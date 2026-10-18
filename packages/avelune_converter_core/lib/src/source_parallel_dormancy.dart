@@ -210,6 +210,8 @@ void _auditSourceFactWriteBlock(
 
   for (final node in block.nodes) {
     switch (node) {
+      case SourceCommonEventCallNode():
+        _auditSourceFactWriteBlock(node.body, event, analyzer, writes);
       case SourceTextNode(:final followingChoice):
         if (followingChoice != null) choice(followingChoice);
       case SourceChoiceNode():

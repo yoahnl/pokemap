@@ -211,11 +211,24 @@ final class LiteralTileFixture {
     bool includeEventSystem = false,
     List<String?> switchNames = const [null, 'Original door opened', 'Original reward consumed'],
     List<String?> variableNames = const [null, 'Original count'],
+    Map<int, List<LiteralFixtureEventCommand>> commonEvents = const {},
+    Map<int, int> commonEventTriggers = const {},
   }) async {
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
     final sourceTilesets = tilesets ?? [LiteralFixtureTileset(id: 1)];
     final bytes = <String, List<int>>{
       ...extraFiles,
+      if (commonEvents.isNotEmpty)
+        'Data/CommonEvents.rxdata': _Marshal().dump([
+          for (var id = 0; id <= commonEvents.keys.reduce((a, b) => a > b ? a : b); id++)
+            if (commonEvents[id] case final commands?)
+              _Object('RPG::CommonEvent', {'@id': id, '@name': 'Common $id',
+                '@trigger': commonEventTriggers[id] ?? 0, '@switch_id': 1,
+                '@list': [for (final command in [...commands, const LiteralFixtureEventCommand(0, [])])
+                  _Object('RPG::EventCommand', {'@code': command.code,
+                    '@indent': command.indent, '@parameters': command.parameters})]})
+            else null,
+        ]),
       if (scriptsBytes != null)
         'Data/Scripts.rxdata': List<int>.unmodifiable(scriptsBytes),
       if (includeEventSystem)

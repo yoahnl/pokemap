@@ -115,6 +115,7 @@ Map<SourceEventNode, Set<int>> _sourceMapScopes(SourceEventBlock block, int owne
     for (final node in body.nodes) {
       scopes[node] = Set.unmodifiable(current);
       final branches = switch (node) {
+        SourceCommonEventCallNode() => [node.body],
         SourceConditionalNode() => [node.whenTrue, node.whenFalse],
         SourceChoiceNode() => [for (final branch in node.branches) branch.body,
           if (node.cancelBranch != null) node.cancelBranch!],
@@ -405,6 +406,60 @@ NarrativeFactOperator _sourceVariableOperator(SourceEventCondition condition) =>
           _ => throw const NativeWriteException('events.variable.operator', 'Unqualified integer comparison'),
         };
 
+String _sourceCommonProgramHash(SourceEventBlock block) => canonicalHashOf({
+  'span': block.span.toJson(),
+  'diagnostics': block.diagnostics.map((diagnostic) => diagnostic.toJson()).toList(),
+  'nodes': block.nodes.map(_sourceCommonProgramNode).toList(),
+}).value;
+
+Object? _sourceCommonProgramNode(SourceEventNode node) => {
+  'kind': node.runtimeType.toString(), 'span': node.span.toJson(),
+  'value': switch (node) {
+    SourceAnnotationNode() => node.toJson(),
+    SourceVariableSetNode() => node.toJson(),
+    SourceExitEventNode() => node.toJson(),
+    SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
+      'ownerMapId': node.sourceMapId, 'ownerEventId': node.sourceEventId,
+      'bodyHash': _sourceCommonProgramHash(node.body)},
+    SourceTextNode() => {'text': node.text,
+      'annotations': node.annotations.map(_sourceCommonProgramNode).toList(),
+      'followingChoice': node.followingChoice == null ? null
+          : _sourceCommonProgramNode(node.followingChoice!)},
+    SourceChoiceNode() => {'cancelType': node.cancelType,
+      'cancellation': node.cancellation.toJson(),
+      'branches': [for (final branch in node.branches) {'index': branch.index,
+        'label': branch.label, 'bodyHash': _sourceCommonProgramHash(branch.body)}],
+      'cancelBranchHash': node.cancelBranch == null ? null : _sourceCommonProgramHash(node.cancelBranch!)},
+    SourceConditionalNode() => {'condition': node.condition.toJson(),
+      'whenTrueHash': _sourceCommonProgramHash(node.whenTrue),
+      'whenFalseHash': _sourceCommonProgramHash(node.whenFalse)},
+    SourceSwitchNode() => {'firstId': node.firstId, 'lastId': node.lastId,
+      'value': node.value, 'factIds': node.factIds},
+    SourceSelfSwitchNode() => {'letter': node.letter, 'value': node.value, 'factId': node.factId},
+    SourceWarpNode() => {'targetSourceMapId': node.targetSourceMapId,
+      'x': node.x, 'y': node.y, 'direction': node.direction, 'fade': node.fade,
+      'originalProgram': node.originalProgram?.toJson()},
+    SourceToneNode() => node.toJson(),
+    SourceWaitNode() => node.toJson(),
+    SourceSoundEffectNode() => node.toJson(),
+    SourceScriptNode() => {'script': node.script},
+    SourceInteractionFacingNode() => {'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
+    SourceForcedMoveRouteNode() => node.toJson(),
+    SourceMoveRouteBarrierNode() => node.toJson(),
+    SourcePlayerVisibilityNode() => node.toJson(),
+    SourceTempSwitchNode() => node.toJson(),
+    SourcePickupNode() => node.toJson(),
+    SourceUnknownNode() => {'command': node.command.toJson(), 'reason': node.reason},
+    SourcePokemonGiftNode() => node.toJson(),
+    SourceTrainerProgramNode() => node.toJson(),
+    SourcePokedexRewardProgramNode() => node.toJson(),
+    SourceCenterServiceProgramNode() => node.toJson(),
+    SourceTownMapProgramNode() => node.toJson(),
+    SourceFieldObstacleProgramNode() => node.toJson(),
+    SourcePartyTradeProgramNode() => node.toJson(),
+  },
+};
+
 Object? _sourceControlNode(SourceEventNode node) => {
   'kind': node.runtimeType.toString(), 'span': node.span.toJson(),
   'value': switch (node) {
@@ -412,6 +467,9 @@ Object? _sourceControlNode(SourceEventNode node) => {
     SourceVariableSetNode() => node.toJson(),
     SourceSelfSwitchNode() => [node.factId, node.letter, node.value],
     SourceExitEventNode() => node.toJson(),
+    SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
+      'ownerMapId': node.sourceMapId, 'ownerEventId': node.sourceEventId,
+      'bodyHash': _sourceCommonProgramHash(node.body)},
     SourceConditionalNode() => {'condition': node.condition.toJson(),
       'true': node.whenTrue.nodes.map(_sourceControlNode).toList(),
       'false': node.whenFalse.nodes.map(_sourceControlNode).toList()},
@@ -430,6 +488,8 @@ Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     yield node;
     switch (node) {
+      case SourceCommonEventCallNode():
+        yield* _sourceControlNodes(node.body);
       case SourceConditionalNode():
         yield* _sourceControlNodes(node.whenTrue);
         yield* _sourceControlNodes(node.whenFalse);
@@ -488,7 +548,7 @@ bool _hasSourceSelfSwitchScript(SourceEventDefinition event) => event.pages.any(
 bool _requiresSourceControlScriptProfile(SourceEventDefinition event) =>
     _hasSourceSelfSwitchScript(event) || _sourceControlVariables(event, '').isNotEmpty || event.pages.any((page) =>
       _sourceControlNodes(page.body).any((node) =>
-        node is SourceAnnotationNode || node is SourceExitEventNode));
+        node is SourceAnnotationNode || node is SourceExitEventNode || node is SourceCommonEventCallNode));
 
 bool _hasSourceSelfSwitchControl(SourceEventDefinition event) {
   bool condition(SourceEventCondition value) =>
@@ -1180,13 +1240,19 @@ final class _ProjectionBuilder {
                   : null,
               'adaptedCommands': [
                 for (final node in _sourceControlNodes(page.body))
-                  if (node is SourceAnnotationNode || node is SourceVariableSetNode ||
+                  if (node is SourceCommonEventCallNode || node is SourceAnnotationNode || node is SourceVariableSetNode ||
                       node is SourceExitEventNode || (node is SourceConditionalNode &&
                       node.condition.kind == SourceEventConditionKind.variableComparison)) {
                     ...(_sourceControlNode(node) as Map<String, Object?>),
                     'rawDataRefs': [page.rawDataRef!.toJson()],
-                    'nativeContract': node is SourceAnnotationNode ? 'preservedAnnotationNoRuntimeEffect'
-                      : node is SourceExitEventNode ? 'endCurrentReusableSceneInvocation'
+                    if (node is SourceCommonEventCallNode || node.span.locator.file != page.locator.file)
+                      'commonSourceFiles': [for (final file in source.snapshot.entries.where((entry) =>
+                          sourcePathCollisionKey(entry.relativePath) == 'data/commonevents.rxdata'))
+                        {'fileId': file.fileId.value, 'sha256': file.sha256!.value,
+                          'relativePath': file.relativePath}],
+                    'nativeContract': node is SourceCommonEventCallNode ? 'staticCommonEventSubroutine'
+                      : node is SourceAnnotationNode ? 'preservedAnnotationNoRuntimeEffect'
+                      : node is SourceExitEventNode ? 'endCurrentSourceInterpreterInvocation'
                       : 'persistentIntegerFact',
                     'executionEnabled': gaps.isEmpty,
                     'sourceScriptsExecuted': 0,
@@ -2384,7 +2450,8 @@ final class _ProjectionBuilder {
         target(RegExp(r'^\s*\[\s*([1-9][0-9]*)\s*\]')
             .firstMatch(text.substring(reference.end)));
       }
-      for (final reference in RegExp(r'\bpb(?:Set|Get)\b').allMatches(text)) {
+      for (final reference in RegExp(sourceReader.supportsIntegerVariableHelpers
+          ? r'\bpbSet\b' : r'\bpb(?:Set|Get)\b').allMatches(text)) {
         final suffix = text.substring(reference.end).trimLeft();
         final parenthesized = suffix.startsWith('(');
         if (parenthesized && !closedCall(suffix)) {
@@ -2400,15 +2467,88 @@ final class _ProjectionBuilder {
     final switchRuby = sourceReader.observeOpaqueSwitchRuby();
     final commonRuby = sourceReader.observeOpaqueCommonEventRuby();
     _incompleteVariableRubyCensus = !switchRuby.complete || !commonRuby.complete;
-    _dynamicVariableWriter = commonRuby.dynamicVariableWrite;
-    writes.addAll(commonRuby.variableWrites);
+    final commonIds = sourceReader.commonEventIds;
+    final representedCommon = <int>{};
+    final unrepresentedCommon = <int>{};
+    var dynamicOpaqueCommonCall = false;
+    void opaqueCommonTarget(RegExpMatch? literal) {
+      final id = literal == null ? null : int.tryParse(literal.group(1)!);
+      if (id == null) {
+        dynamicOpaqueCommonCall = true;
+      } else {
+        unrepresentedCommon.add(id);
+      }
+    }
+    void opaqueCommonCalls(String text) {
+      for (final call in RegExp(r'\bpbCommonEvent\b').allMatches(text)) {
+        final suffix = text.substring(call.end).trimLeft();
+        opaqueCommonTarget((suffix.startsWith('(')
+          ? RegExp(r'^\(\s*([1-9][0-9]*)\s*\)')
+          : RegExp(r'^([1-9][0-9]*)\s*(?=[;\r\n)]|$)')).firstMatch(suffix));
+      }
+      for (final setter in RegExp(r'\$game_temp\s*\.\s*common_event_id\s*(\|\||&&|<<|>>|\*\*|[+\-*/%&|^])?=(?!=)').allMatches(text)) {
+        final suffix = text.substring(setter.end).trimLeft();
+        if (setter.group(1) != null) {
+          dynamicOpaqueCommonCall = true;
+        } else {
+          final parenthesized = suffix.startsWith('(');
+          opaqueCommonTarget((parenthesized
+            ? RegExp(r'^\(\s*([1-9][0-9]*)\s*\)\s*(?=[;\r\n)]|$)')
+            : RegExp(r'^([1-9][0-9]*)\s*(?=[;\r\n)]|$)')).firstMatch(suffix));
+        }
+      }
+    }
+    opaqueCommonCalls(switchRuby.texts.join('\n'));
+    opaqueCommonCalls(commonRuby.texts.join('\n'));
+    final pageRuby = <(int, int, int), ({List<String> texts, bool complete})>{};
+    for (final map in source.maps) {
+      for (final event in map.map.events) {
+        for (final page in event.pages) {
+          final observed = sourceReader.observeOpaquePageRuby(page);
+          pageRuby[(map.map.sourceMapId, event.sourceEventId, page.originalPageIndex)] = observed;
+          opaqueCommonCalls(observed.texts.join('\n'));
+          if (!observed.complete) _incompleteVariableRubyCensus = true;
+        }
+      }
+    }
+    for (final event in _sourceControlAnalysis.events) {
+      final calls = event.pages.expand((page) => _sourceControlNodes(page.body))
+          .whereType<SourceCommonEventCallNode>().map((call) => call.commonEventId).toSet();
+      final rawCalls = event.pages.expand((page) => page.sourcePage.commands)
+          .where((command) => command.code == 117 && command.parameters.length == 1 && command.parameters.single is int)
+          .map((command) => command.parameters.single as int).toSet();
+      if (maps.containsKey(event.sourceMapId) && _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+        representedCommon.addAll(calls);
+        unrepresentedCommon.addAll(rawCalls.difference(calls));
+      } else {
+        unrepresentedCommon.addAll({...calls, ...rawCalls});
+      }
+    }
+    final observations = {for (final id in commonIds)
+      id: sourceReader.observeOpaqueCommonEventRuby(onlyId: id)};
+    representedCommon.removeAll(unrepresentedCommon);
+    if (dynamicOpaqueCommonCall) representedCommon.clear();
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final observation in observations.entries) {
+        if (representedCommon.contains(observation.key)) continue;
+        for (final target in observation.value.commonEventCalls) {
+          if (representedCommon.remove(target)) changed = true;
+        }
+      }
+    }
     script(switchRuby.texts.join('\n'));
-    script(commonRuby.texts.join('\n'));
+    for (final observation in observations.entries.where((entry) => !representedCommon.contains(entry.key))) {
+      _dynamicVariableWriter |= observation.value.dynamicVariableWrite;
+      writes.addAll(observation.value.variableWrites);
+      script(observation.value.texts.join('\n'));
+    }
     for (final map in source.maps) {
       for (final event in map.map.events) {
         if (exempt.contains(source.eventIdentity(map.map.sourceMapId, event.sourceEventId))) continue;
         for (final page in event.pages) {
-          final observed = sourceReader.observeOpaquePageRuby(page);
+          final observed = pageRuby[(map.map.sourceMapId, event.sourceEventId, page.originalPageIndex)]!;
           if (!observed.complete) _incompleteVariableRubyCensus = true;
           for (final command in page.commands) {
             final params = command.parameters;
@@ -2432,7 +2572,24 @@ final class _ProjectionBuilder {
               _incompleteVariableRubyCensus = true;
             }
           }
-          script(observed.texts.join('\n'));
+          final expected = _sourceControlAnalysis.eventAt(map.map.sourceMapId, event.sourceEventId)!;
+          final texts = observed.texts.toList();
+          if (sourceReader.supportsIntegerVariableHelpers && maps.containsKey(expected.sourceMapId) &&
+              _gaps(expected, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+            final nativePage = expected.pages.singleWhere((candidate) => candidate.originalPageIndex == page.originalPageIndex);
+            final covered = <int>{};
+            for (final node in _sourceControlNodes(nativePage.body).whereType<SourceVariableSetNode>()) {
+              if (node.span.locator.file != nativePage.locator.file) continue;
+              final first = node.span.firstCommandIndex, last = node.span.lastCommandIndex;
+              if (first < 0 || last >= page.commands.length || page.commands[first].code != 355) continue;
+              covered.addAll(Iterable<int>.generate(last - first + 1, (offset) => first + offset));
+            }
+            for (final position in covered) {
+              final parameters = page.commands[position].parameters;
+              if (parameters.length == 1 && parameters.single is String) texts.remove(parameters.single);
+            }
+          }
+          script(texts.join('\n'));
         }
       }
     }
@@ -2548,6 +2705,14 @@ final class _ProjectionBuilder {
       return _nativeCenterNurseGaps(event, checkCharacterBindings: checkCharacterBindings);
     }
     final gaps = <String>{};
+    final commonCalls = event.pages.expand((page) => _sourceControlNodes(page.body))
+        .whereType<SourceCommonEventCallNode>().toList();
+    if (commonCalls.isNotEmpty && (source.connections.any((connection) =>
+        connection.sourceMapId == event.sourceMapId || connection.targetSourceMapId == event.sourceMapId) ||
+        event.pages.expand((page) => _sourceControlNodes(page.body)).any((node) =>
+          node is SourceWarpNode || node is SourceForcedMoveRouteNode))) {
+      gaps.add('sourceCommonEventMapContextUnsupported');
+    }
     if (maps[event.sourceMapId]!.version == ProjectVersion.v9 &&
         _fixedRouteBindings(event) != null) {
       gaps.add('sourceFixedRouteSpatialUnsupported');
@@ -2858,6 +3023,12 @@ final class _ProjectionBuilder {
       {bool checkCharacterBindings = true}) {
     for (final node in block.nodes) {
       switch (node) {
+        case SourceCommonEventCallNode():
+          if (node.sourceMapId != event.sourceMapId || node.sourceEventId != event.sourceEventId ||
+              node.body.isQuarantined) {
+            gaps.add('sourceCommonEventContextUnqualified');
+          }
+          _blockGaps(event, node.body, gaps, checkCharacterBindings: checkCharacterBindings);
         case SourceTextNode(:final text, :final followingChoice):
           if (_textFeedback(event, text) == null) {
             gaps.add('sourceTextControlUnsupported');
@@ -3080,6 +3251,8 @@ final class _ProjectionBuilder {
   void _blockFacts(SourceEventBlock block, Set<String> ids) {
     for (final node in block.nodes) {
       switch (node) {
+        case SourceCommonEventCallNode():
+          _blockFacts(node.body, ids);
         case SourceVariableSetNode(:final factIds):
         case SourceSwitchNode(:final factIds):
           ids.addAll(factIds);
@@ -3414,6 +3587,9 @@ final class _SceneBuilder {
   final edges = <SceneEdge>[];
   var ordinal = 0;
   late final String eventEnd;
+  String? _commonReturn;
+  String _commonDialoguePrefix = '';
+  int _commonInvocation = 0;
 
   String _node(SceneNodePayload payload) {
     final id = 'node_${ordinal++}';
@@ -3690,6 +3866,14 @@ final class _SceneBuilder {
     var next = continuation;
     for (final node in block.nodes.reversed) {
       switch (node) {
+        case SourceCommonEventCallNode():
+          final previousReturn = _commonReturn;
+          final previousPrefix = _commonDialoguePrefix;
+          _commonReturn = next;
+          _commonDialoguePrefix = 'common_${_commonInvocation++}_';
+          next = _block(node.body, next);
+          _commonReturn = previousReturn;
+          _commonDialoguePrefix = previousPrefix;
         case SourceTextNode(:final text, :final followingChoice):
           next = _dialogue(node.span, text, followingChoice, next);
         case SourceChoiceNode():
@@ -3698,7 +3882,7 @@ final class _SceneBuilder {
         case SourceAnnotationNode():
           break;
         case SourceExitEventNode():
-          next = eventEnd;
+          next = _commonReturn ?? eventEnd;
         case SourceVariableSetNode(:final factIds, :final value):
           for (final id in factIds.reversed) {
             final action = _node(SceneActionPayload.consequence(SceneConsequence.setFactValue(
@@ -4133,7 +4317,7 @@ final class _SceneBuilder {
             ? [projection._textFeedback(event, text)!]
             : const <DialogueLineFeedback>[]);
     final id = projection._key(
-        event, 'dialogue_${page.originalPageIndex}_${dialogueKey ?? span.firstCommandIndex}');
+        event, 'dialogue_${page.originalPageIndex}_${dialogueKey ?? '$_commonDialoguePrefix${span.firstCommandIndex}'}');
     final outcomes = [
       for (final branch in choice?.branches ?? <SourceChoiceBranch>[])
         'choice_${branch.index}',

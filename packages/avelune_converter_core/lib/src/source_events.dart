@@ -7,6 +7,7 @@ final class _SourceOpaqueCommandReader {
   final int commandLimit, parameterLimit;
   final texts = <String>[];
   final variableWrites = <int>{};
+  final commonEventCalls = <int>{};
   bool dynamicVariableWrite = false;
   int commandCount = 0;
   int parameterCount = 0;
@@ -97,6 +98,7 @@ final class _SourceOpaqueCommandReader {
           if (collectWriters && (parameters.length != 1 || integer(parameters.single) < 1)) {
             throw const FormatException();
           }
+          if (collectWriters) commonEventCalls.add(integer(parameters.single));
       }
     }
   }
@@ -114,9 +116,14 @@ final class _SourceOpaqueCommandReader {
     active.remove(id);
   }
 
-  void commonEvents() {
+  void commonEvents({int? onlyId}) {
     final entries = array(document.rootId);
-    for (var index = 0; index < entries.length; index++) {
+    for (final index in onlyId == null
+        ? Iterable<int>.generate(entries.length)
+        : [onlyId]) {
+      if (index < 1 || index >= entries.length) {
+        if (onlyId != null) throw const FormatException();
+      }
       final id = entries[index];
       if (document.node(id).kind == MarshalKind.nil) {
         plain(id, MarshalKind.nil);
@@ -128,6 +135,7 @@ final class _SourceOpaqueCommandReader {
           trigger < 0 || trigger > 2 || integer(_eventField(fields, '@switch_id')) < 0) {
         throw const FormatException();
       }
+      if (onlyId != null && index != onlyId) continue;
       commands(_eventField(fields, '@list'), collectWriters: true);
     }
   }
@@ -397,8 +405,15 @@ final class SourceVariableSetNode extends SourceEventNode {
 final class SourceExitEventNode extends SourceEventNode {
   const SourceExitEventNode(super.span);
   Map<String, Object?> toJson() => {
-    'kind': 'exitEvent', 'span': span.toJson(), 'scope': 'wholeEventInvocation',
+    'kind': 'exitEvent', 'span': span.toJson(), 'scope': 'currentSourceInterpreterInvocation',
   };
+}
+
+final class SourceCommonEventCallNode extends SourceEventNode {
+  const SourceCommonEventCallNode(super.span, {required this.commonEventId,
+    required this.body, required this.sourceMapId, required this.sourceEventId});
+  final int commonEventId, sourceMapId, sourceEventId;
+  final SourceEventBlock body;
 }
 
 final class SourceTextNode extends SourceEventNode {
@@ -1021,12 +1036,12 @@ final class SourceEventAnalyzer {
     }
   }
 
-  ({List<String> texts, Set<int> variableWrites, bool dynamicVariableWrite,
-      bool present, bool complete}) observeOpaqueCommonEventRuby() {
+  ({List<String> texts, Set<int> variableWrites, Set<int> commonEventCalls, bool dynamicVariableWrite,
+      bool present, bool complete}) observeOpaqueCommonEventRuby({int? onlyId}) {
     final entries = project.snapshot.entries.where((entry) =>
         sourcePathCollisionKey(entry.relativePath) == 'data/commonevents.rxdata').toList();
     if (entries.isEmpty) {
-      return (texts: const [], variableWrites: const {}, dynamicVariableWrite: false,
+      return (texts: const [], variableWrites: const {}, commonEventCalls: const {}, dynamicVariableWrite: false,
           present: false, complete: true);
     }
     if (entries.length == 1) {
@@ -1034,19 +1049,61 @@ final class SourceEventAnalyzer {
       if (file != null && _admitted(file)) {
         final reader = _SourceOpaqueCommandReader(file.document);
         try {
-          reader.commonEvents();
+          reader.commonEvents(onlyId: onlyId);
           return (texts: List.unmodifiable(reader.texts),
               variableWrites: Set.unmodifiable(reader.variableWrites),
+              commonEventCalls: Set.unmodifiable(reader.commonEventCalls),
               dynamicVariableWrite: reader.dynamicVariableWrite, present: true, complete: true);
         } on FormatException {
           return (texts: List.unmodifiable(reader.texts),
               variableWrites: Set.unmodifiable(reader.variableWrites),
+              commonEventCalls: Set.unmodifiable(reader.commonEventCalls),
               dynamicVariableWrite: true, present: true, complete: false);
         }
       }
     }
-    return (texts: const [], variableWrites: const {}, dynamicVariableWrite: true,
+    return (texts: const [], variableWrites: const {}, commonEventCalls: const {}, dynamicVariableWrite: true,
         present: true, complete: false);
+  }
+
+  List<int> get commonEventIds {
+    final files = project.archive.files.values.where((file) =>
+      sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata' && _admitted(file)).toList();
+    if (files.length != 1) return const [];
+    try {
+      final reader = _SourceOpaqueCommandReader(files.single.document);
+      final entries = reader.array(files.single.document.rootId);
+      return [for (var id = 1; id < entries.length; id++)
+        if (reader.document.node(entries[id]).kind != MarshalKind.nil) id];
+    } on FormatException {
+      return const [];
+    }
+  }
+
+  late final bool commonEventsAreManual = _commonEventsAreManual();
+
+  bool _commonEventsAreManual() {
+    final files = project.archive.files.values.where((file) =>
+        sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata' && _admitted(file)).toList();
+    if (files.length != 1) return false;
+    final reader = _SourceOpaqueCommandReader(files.single.document);
+    try {
+      final entries = reader.array(reader.document.rootId);
+      for (var id = 0; id < entries.length; id++) {
+        if (reader.document.node(entries[id]).kind == MarshalKind.nil) {
+          reader.plain(entries[id], MarshalKind.nil);
+          continue;
+        }
+        final fields = _eventFields(reader.document, entries[id], 'RPG::CommonEvent');
+        if (id == 0 || reader.integer(_eventField(fields, '@id')) != id ||
+            reader.integer(_eventField(fields, '@trigger')) != 0) {
+          return false;
+        }
+      }
+      return true;
+    } on FormatException {
+      return false;
+    }
   }
 
   List<String?>? _switchNames() => _systemNames('@switches');
@@ -1068,6 +1125,28 @@ final class SourceEventAnalyzer {
       _variableNames != null && id < _variableNames.length && _variableNames[id] != null;
 
   bool isIntegerVariableDeclared(int id) => _validVariable(id);
+
+  bool get supportsIntegerVariableHelpers => _isQualified &&
+      profile.interpretationProfile!.sections.containsKey('events.Utilities');
+
+  List<({int id, int value})>? integerHelperAssignments(String text) {
+    if (!supportsIntegerVariableHelpers) return null;
+    final lines = text.trim().split(RegExp(r'[;\r\n]+'));
+    final result = <({int id, int value})>[];
+    for (final line in lines) {
+      final match = RegExp(r'^\s*pbSet\s*\(\s*([1-9][0-9]*)\s*,\s*(-?(?:0|[1-9][0-9]*))\s*\)\s*$')
+          .firstMatch(line);
+      if (match == null) return null;
+      final id = int.tryParse(match.group(1)!);
+      final value = int.tryParse(match.group(2)!);
+      if (id == null || !_validVariable(id) || value == null ||
+          value < -99999999 || value > 99999999) {
+        return null;
+      }
+      result.add((id: id, value: value));
+    }
+    return result.isEmpty ? null : List.unmodifiable(result);
+  }
 
   List<String?>? _systemNames(String field) {
     for (final file in project.archive.files.values) {
@@ -1348,15 +1427,27 @@ String _eventLiteralText(MarshalDocument doc, int id) {
   return _eventText(doc, id);
 }
 
+final class _SourceCallBudget {
+  int commands = 0;
+  int parameters = 0;
+}
+
 final class _SourceEventParser {
   _SourceEventParser(this.analyzer, this.commands, this.locator, this.mapId,
-      this.eventId, this.switchNames, this.rawPage);
+      this.eventId, this.switchNames, this.rawPage,
+      {this.rawCommon, this.callStack = const [], _SourceCallBudget? callBudget})
+      : callBudget = callBudget ?? _SourceCallBudget();
   final SourceEventAnalyzer analyzer;
   final List<SourceCommand> commands;
   final SourceLocator locator;
   final int mapId, eventId;
   final List<String?>? switchNames;
   final SourcePreservedData? rawPage;
+  final ({SourceArchivedFile file, int nodeId})? rawCommon;
+  final List<int> callStack;
+  final _SourceCallBudget callBudget;
+  MarshalDocument get _document => rawCommon?.file.document ??
+      analyzer.project.archive.files[rawPage!.fileId]!.document;
   final diagnostics = <SourceEventDiagnostic>[];
   var index = 0;
 
@@ -1426,7 +1517,8 @@ final class _SourceEventParser {
       }
       final before = index;
       try {
-        final statements = command.code == 355 ? _selfSwitchStatements(indent) : null;
+        final statements = command.code == 355
+            ? _integerHelperStatements(indent) ?? _selfSwitchStatements(indent) : null;
         if (statements != null) {
           nodes.addAll(statements);
         } else {
@@ -1493,7 +1585,7 @@ final class _SourceEventParser {
     if (nodes.isEmpty) return null;
     for (var position = first; position < end; position++) {
       final raw = _rawFacingParameters(commands[position], 1);
-      final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+      final doc = _document;
       if (_eventLiteralText(doc, raw.single) != lines[position - first]) {
         throw const FormatException();
       }
@@ -1502,11 +1594,111 @@ final class _SourceEventParser {
     return nodes;
   }
 
+  List<SourceVariableSetNode>? _integerHelperStatements(int indent) {
+    final first = index;
+    var end = first;
+    final lines = <String>[];
+    while (end < commands.length && const [355, 655].contains(commands[end].code)) {
+      final command = commands[end];
+      if (command.indent != indent || command.parameters.length != 1) return null;
+      lines.add(_string(command.parameters.single));
+      end++;
+    }
+    final assignments = analyzer.integerHelperAssignments(lines.join('\n'));
+    if (assignments == null) return null;
+    for (var position = first; position < end; position++) {
+      if (_eventLiteralText(_document, _rawFacingParameters(commands[position], 1).single) !=
+          lines[position - first]) {
+        throw const FormatException();
+      }
+    }
+    index = end;
+    return [for (final assignment in assignments)
+      SourceVariableSetNode(_span(first, end - 1), firstId: assignment.id,
+        lastId: assignment.id, sourceValue: assignment.value,
+        factIds: [analyzer.variableFactId(assignment.id)])];
+  }
+
   SourceUnknownNode _unknown(String reason) {
     final current = index++;
     _diagnostic(reason, current, current);
     return SourceUnknownNode(
         _span(current, current), commands[current], reason);
+  }
+
+  SourceEventNode _commonEvent() {
+    final values = _literalIntegerParameters(commands[index], 1);
+    final id = values.single;
+    if (!analyzer._isQualified || id < 1) return _unknown('events.invalid_common_event');
+    if (!analyzer.commonEventsAreManual) return _unknown('events.common_event_automatic_or_invalid');
+    if (callStack.contains(id)) return _unknown('events.common_event_recursion');
+    if (callStack.length >= 16) return _unknown('events.common_event_depth_exceeded');
+    final files = analyzer.project.archive.files.values.where((file) =>
+        sourcePathCollisionKey(file.entry.relativePath) == 'data/commonevents.rxdata' &&
+        analyzer._admitted(file)).toList();
+    if (files.length != 1) return _unknown('events.common_event_missing');
+    final file = files.single;
+    final reader = _SourceOpaqueCommandReader(file.document);
+    final entries = reader.array(file.document.rootId);
+    if (id >= entries.length || file.document.node(entries[id]).kind == MarshalKind.nil) {
+      return _unknown('events.common_event_missing');
+    }
+    final fields = _facingFields(file.document, entries[id], 'RPG::CommonEvent',
+        const {'@id', '@name', '@trigger', '@switch_id', '@list'});
+    if (reader.integer(_eventField(fields, '@id')) != id ||
+        reader.integer(_eventField(fields, '@trigger')) != 0 ||
+        reader.integer(_eventField(fields, '@switch_id')) < 0) {
+      return _unknown('events.common_event_automatic_or_invalid');
+    }
+    final list = reader.array(_eventField(fields, '@list'));
+    if (list.length > 10000 - callBudget.commands) {
+      return _unknown('events.common_event_command_budget_exceeded');
+    }
+    callBudget.commands += list.length;
+    Object? parameter(int nodeId, int depth) {
+      if (++callBudget.parameters > 40000 || depth >= 32) throw const FormatException();
+      final node = file.document.node(nodeId);
+      switch (node.kind) {
+        case MarshalKind.nil:
+          reader.plain(nodeId, MarshalKind.nil);
+          return null;
+        case MarshalKind.integer:
+          return reader.integer(nodeId);
+        case MarshalKind.boolean:
+          reader.plain(nodeId, MarshalKind.boolean);
+          return _eventBool(file.document, nodeId);
+        case MarshalKind.string:
+          return _eventLiteralText(file.document, nodeId);
+        case MarshalKind.array:
+          return [for (final child in reader.array(nodeId)) parameter(child, depth + 1)];
+        default:
+          throw const FormatException();
+      }
+    }
+    final commonLocator = SourceLocator.fromJson({'file': file.entry.relativePath,
+      'mapId': null, 'eventId': null, 'pageIndex': null, 'commandIndex': null,
+      'tileId': null, 'line': null});
+    final commonCommands = <SourceCommand>[];
+    for (var position = 0; position < list.length; position++) {
+      final command = _eventFields(file.document, list[position], 'RPG::EventCommand');
+      commonCommands.add(SourceCommand._({
+        'originalIndex': position,
+        'code': reader.integer(_eventField(command, '@code')),
+        'indent': reader.integer(_eventField(command, '@indent')),
+        'parameters': [for (final value in reader.array(_eventField(command, '@parameters')))
+          parameter(value, 0)],
+        'sourceLocator': {...commonLocator.toJson(), 'commandIndex': position},
+      }));
+    }
+    final body = _SourceEventParser(analyzer, commonCommands, commonLocator,
+        mapId, eventId, switchNames, null,
+        rawCommon: (file: file, nodeId: entries[id]),
+        callStack: [...callStack, id], callBudget: callBudget).parse();
+    diagnostics.addAll(body.diagnostics);
+    if (body.isQuarantined) return _unknown('events.common_event_body_unqualified');
+    final current = index++;
+    return SourceCommonEventCallNode(_span(current, current), commonEventId: id,
+        body: body, sourceMapId: mapId, sourceEventId: eventId);
   }
 
   SourceEventNode _node(int indent) {
@@ -1550,7 +1742,7 @@ final class _SourceEventParser {
           final current = commands[index];
           _arity(current.parameters, 1);
           final raw = _rawFacingParameters(current, 1);
-          final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+          final doc = _document;
           final line = _eventLiteralText(doc, raw.single);
           if (line != _string(current.parameters.single)) throw const FormatException();
           lines.add(line);
@@ -1563,6 +1755,8 @@ final class _SourceEventParser {
         _literalIntegerParameters(command, 0);
         final current = index++;
         return SourceExitEventNode(_span(current, current));
+      case 117:
+        return _commonEvent();
       case 122:
         final values = _literalIntegerParameters(command, 5);
         if (values[2] != 0 || values[3] != 0) {
@@ -1658,7 +1852,7 @@ final class _SourceEventParser {
         _arity(command.parameters, 1);
         final visibilityRaw = _rawFacingParameters(command, 1);
         final visibilityDoc =
-            analyzer.project.archive.files[rawPage!.fileId]!.document;
+            _document;
         final visibility = _eventInt(
             visibilityDoc,
             _facingPlain(
@@ -1697,7 +1891,7 @@ final class _SourceEventParser {
         final temporaryCall = RegExp(r'^setTempSwitchOn\("([A-D])"\)\n$').firstMatch(script);
         if (analyzer._isQualified && index == first + 1 && temporaryCall != null) {
           final raw = _rawFacingParameters(command, 1);
-          final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+          final doc = _document;
           if (_routeText(doc, raw.single) != script.substring(0, script.length - 1)) {
             throw const FormatException();
           }
@@ -1707,9 +1901,14 @@ final class _SourceEventParser {
         if (analyzer._isQualified && index == first + 1) {
           final literal = _string(command.parameters.single);
           final gift = _SourcePokemonGiftLiteral(literal).parse();
-          if (gift != null) {
+          if (gift != null && rawCommon != null) {
+            _diagnostic('events.common_event_page_bound_program_unsupported', first, first);
+            return SourceUnknownNode(_span(first, first), command,
+                'events.common_event_page_bound_program_unsupported');
+          }
+          if (gift != null && rawPage != null) {
             final raw = _rawFacingParameters(command, 1);
-            final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+            final doc = _document;
             if (_eventLiteralText(doc, raw.single) != literal) {
               throw const FormatException();
             }
@@ -1726,8 +1925,13 @@ final class _SourceEventParser {
           final pickup = _SourcePickupLiteral(literal).parse(_span(first, first),
               helper: SourceItemGrantHelper.receiveItem);
           if (pickup != null) {
+            if (rawCommon != null) {
+              _diagnostic('events.common_event_page_bound_program_unsupported', first, first);
+              return SourceUnknownNode(_span(first, first), command,
+                  'events.common_event_page_bound_program_unsupported');
+            }
             final raw = _rawFacingParameters(command, 1);
-            final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+            final doc = _document;
             if (_routeText(doc, raw.single) != literal) {
               throw const FormatException();
             }
@@ -1826,7 +2030,7 @@ final class _SourceEventParser {
   }
 
   int _presentationDuration(SourceCommand command, List<int> raw, int slot) {
-    final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+    final doc = _document;
     final ticks = _eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer));
     if (ticks < 0 || ticks != _integer(command.parameters[slot])) {
       throw const FormatException();
@@ -2014,16 +2218,17 @@ final class _SourceEventParser {
 
   List<int> _rawFacingParameters(SourceCommand command, int arity) {
     final page = rawPage;
-    if (page == null ||
-        canonicalJsonOf(page.locator?.toJson()) !=
-            canonicalJsonOf(locator.toJson()) ||
+    if ((page == null && rawCommon == null) ||
+        (rawCommon == null && canonicalJsonOf(page!.locator?.toJson()) !=
+            canonicalJsonOf(locator.toJson())) ||
         canonicalJsonOf(command.sourceLocator.toJson()) !=
             canonicalJsonOf(
                 {...locator.toJson(), 'commandIndex': command.originalIndex})) {
       throw const FormatException();
     }
-    final doc = analyzer.project.archive.files[page.fileId]!.document;
-    final fields = _eventFields(doc, page.nodeId, 'RPG::Event::Page');
+    final doc = _document;
+    final fields = _eventFields(doc, rawCommon?.nodeId ?? page!.nodeId,
+        rawCommon == null ? 'RPG::Event::Page' : 'RPG::CommonEvent');
     final list =
         _facingArray(doc, _eventField(fields, '@list'), commands.length);
     if (command.originalIndex < 0 || command.originalIndex >= list.length) {
@@ -2069,7 +2274,7 @@ final class _SourceEventParser {
   List<int> _literalIntegerParameters(SourceCommand command, int arity) {
     _arity(command.parameters, arity);
     final raw = _rawFacingParameters(command, arity);
-    final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+    final doc = _document;
     return List.generate(arity, (slot) {
       final value = _eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer));
       if (value != _integer(command.parameters[slot])) throw const FormatException();
@@ -2153,7 +2358,7 @@ final class _SourceEventParser {
             _integer(params[1]), _onOff(params[2]), switchNames);
         if (condition.kind == SourceEventConditionKind.tempSwitch) {
           final raw = _rawFacingParameters(command, 3);
-          final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+          final doc = _document;
           for (var slot = 0; slot < raw.length; slot++) {
             if (_eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer)) !=
                 _integer(params[slot])) {
@@ -2196,7 +2401,7 @@ final class _SourceEventParser {
           return _unqualifiedEventCondition('events.invalid_facing_direction');
         }
         final facingRaw = _rawFacingParameters(command, 3);
-        final facingDoc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+        final facingDoc = _document;
         for (var slot = 0; slot < facingRaw.length; slot++) {
           if (_eventInt(facingDoc,
                   _facingPlain(facingDoc, facingRaw[slot], MarshalKind.integer)) !=
@@ -2212,13 +2417,28 @@ final class _SourceEventParser {
           return _unqualifiedEventCondition('events.unqualified_profile');
         }
         final raw = _rawFacingParameters(command, 2);
-        final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+        final doc = _document;
         if (_eventInt(doc, _facingPlain(doc, raw[0], MarshalKind.integer)) !=
             12) {
           throw const FormatException();
         }
         final literal = _routeText(doc, raw[1]);
         if (literal != _string(params[1])) throw const FormatException();
+        if (analyzer.supportsIntegerVariableHelpers) {
+          final comparison = RegExp(r'^\s*pbGet\s*\(\s*([1-9][0-9]*)\s*\)\s*(==|!=|>=|<=|>|<)\s*(-?(?:0|[1-9][0-9]*))\s*$')
+              .firstMatch(literal);
+          if (comparison != null) {
+            final id = int.tryParse(comparison.group(1)!);
+            final value = int.tryParse(comparison.group(3)!);
+            if (id == null || !analyzer._validVariable(id) || value == null ||
+                value < -2147483648 || value > 2147483647) {
+              return _unqualifiedEventCondition('events.invalid_integer_helper_condition');
+            }
+            return SourceEventCondition(kind: SourceEventConditionKind.variableComparison,
+                variableId: id, factId: analyzer.variableFactId(id), minimum: value,
+                comparisonOperator: const {'==': 0, '>=': 1, '<=': 2, '>': 3, '<': 4, '!=': 5}[comparison.group(2)]);
+          }
+        }
         if (literal == 'get_self.onEvent?') {
           return SourceEventCondition(
               kind: SourceEventConditionKind.playerOnEvent);
@@ -2227,6 +2447,9 @@ final class _SourceEventParser {
         if (itemPresence != null) return itemPresence;
         final pickup =
             _SourcePickupLiteral(_string(params[1])).parse(_span(index, index));
+        if (pickup != null && rawCommon != null) {
+          return _unqualifiedEventCondition('events.common_event_page_bound_program_unsupported');
+        }
         if (pickup == null) {
           return _unqualifiedEventCondition(
               'events.unsupported_script_condition');

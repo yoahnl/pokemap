@@ -405,7 +405,7 @@ final class SourceInteractionInventory {
           commands.where((c) => c.code == 201),
         );
         signal(
-          'commonEventCallUnresolved',
+          page.isQuarantined ? 'commonEventCallUnresolved' : 'commonEventCallStaticallyResolved',
           commands.where((c) => c.code == 117),
         );
         signal(
