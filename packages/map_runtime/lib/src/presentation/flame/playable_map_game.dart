@@ -3996,7 +3996,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameState? gameStateOverride,
     MapData? mapOverride,
   }) {
+    final npcPred = _npcPresencePredicateFor(
+      manifest,
+      gameStateOverride: gameStateOverride,
+      mapOverride: mapOverride,
+    );
     return (String mapId, MapEntity entity) {
+      if (entity.kind == MapEntityKind.npc) {
+        return npcPred(mapId, entity);
+      }
       final projection = _resolveWorldRuleProjectionForMap(
         mapId,
         manifest,
@@ -4139,6 +4147,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _mountNewlyPresentNpcActorsOnLoadedMaps() {
     for (final loaded in _loadedMapsById.values) {
+      final npcPred = _npcPresencePredicateFor(loaded.bundle.manifest);
       final charById = {
         for (final character in loaded.bundle.manifest.characters)
           character.id: character,
@@ -4149,12 +4158,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       for (final entity in loaded.bundle.map.entities) {
         if (entity.kind != MapEntityKind.npc ||
-            sceneNpcPresenceOverride(
-                  _gameState,
-                  mapId: loaded.bundle.map.id,
-                  entityId: entity.id,
-                ) !=
-                true ||
+            !npcPred(loaded.bundle.map.id, entity) ||
             loaded.npcActorByEntityId.containsKey(entity.id)) {
           continue;
         }
