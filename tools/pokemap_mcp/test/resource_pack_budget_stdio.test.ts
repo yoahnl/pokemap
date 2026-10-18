@@ -24,7 +24,7 @@ test("diagnostic schema accepts readonly scope and refuses quota overrides", () 
   } }).success, false);
 });
 
-test("live MCP keeps simultaneous quota facts on a failed preparation", { timeout: 120000 }, async () => {
+test("live MCP prepares a selection above the former 10000 definition limit", { timeout: 120000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "l0-pack-refusal-"));
   let mcp: Awaited<ReturnType<typeof connectPackMcp>> | undefined;
   try {
@@ -52,10 +52,7 @@ test("live MCP keeps simultaneous quota facts on a failed preparation", { timeou
     const fixture = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
     const element = packRecord((fixture.elements as unknown[])[0]);
     fixture.elements = [...fixture.elements as unknown[], ...Array.from({ length: 10001 }, (_, index) => ({ ...element,
-      id: `l0-element-${index}`, categoryId: `l0-category-${index}`,
-    }))];
-    fixture.elementCategories = [...fixture.elementCategories as unknown[], ...Array.from({ length: 10001 }, (_, index) => ({
-      id: `l0-category-${index}`, name: `Category ${index}`,
+      id: `l0-element-${index}`,
     }))];
     await writeFile(path, JSON.stringify(fixture));
     const before = await readFile(path);
@@ -78,17 +75,14 @@ test("live MCP keeps simultaneous quota facts on a failed preparation", { timeou
     assert.equal(packRecord(diagnosed.snapshot).state, "succeeded");
     const diagnosis = packRecord(diagnosed.result);
     const report = (diagnosis.budgetReports as Record<string, unknown>[]).find((value) => value.scope === "nativeSelection")!;
-    assert.deepEqual(new Set((report.violations as Record<string, unknown>[]).map((value) => value.dimension)),
-      new Set(["resources", "supports"]));
-    const failedStart = await mcp.pack(opened, "prepare", { ...input, metadata, author: "L0 fixture" });
-    const failed = await settle(failedStart);
-    assert.equal(packRecord(failed.snapshot).state, "failed");
-    assert.equal(packRecord(failed.snapshot).errorCode, "catalog.budget_exceeded");
-    assert.deepEqual(packRecord(packRecord(failed.result).budgetReport).violations, report.violations);
+    assert.deepEqual(report.violations, []);
+    const preparedStart = await mcp.pack(opened, "prepare", { ...input, metadata, author: "L4 fixture" });
+    const prepared = await settle(preparedStart);
+    assert.equal(packRecord(prepared.snapshot).state, "succeeded", JSON.stringify(prepared));
+    assert.equal(typeof packRecord(prepared.result).preparedExportHandle, "string");
     const queried = await mcp.call("pokemap_query", { projectHandle: opened.projectHandle,
-      resourceKind: "resourcePackJob", operation: "get", ids: [failedStart.jobId] });
-    assert.deepEqual(packRecord(packRecord((queried.items as unknown[])[0]).result).budgetReport,
-      packRecord(failed.result).budgetReport);
+      resourceKind: "resourcePackJob", operation: "get", ids: [preparedStart.jobId] });
+    assert.deepEqual(packRecord((queried.items as unknown[])[0]).result, prepared.result);
     assert.deepEqual(await readFile(path), before);
     await mcp.call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
@@ -119,7 +113,8 @@ test("live MCP advertises volume diagnostics and leaves the project intact", { t
     const reports = result.budgetReports as Record<string, unknown>[];
     assert.equal(reports.length, 1);
     assert.equal(reports[0]!.scope, "sourceProjectDistribution");
-    assert.equal(packRecord(reports[0]!.totals).catalogBytes, before.length);
+    assert.equal(packRecord(reports[0]!.totals).sourceDocumentBytes, before.length);
+    assert.ok(Number(packRecord(reports[0]!.totals).catalogBytes) > 0);
     assert.equal(result.mergedProjectMeasured, false);
     assert.deepEqual(await readFile(path), before);
     await mcp.call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });

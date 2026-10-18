@@ -196,7 +196,7 @@ void main() {
           (n) => ResourcePackSecurityPolicy(maxManifestBytes: n)
         ),
         (
-          result.manifest.content.catalog.byteLength,
+          result.budgetReport!.totals['catalogBytes']!,
           (n) => ResourcePackSecurityPolicy(maxCatalogBytes: n)
         ),
         (
@@ -227,6 +227,7 @@ void main() {
       final result =
           const ResourcePackInspector().inspectSourceSync(_Source(bytes));
       final previewSize = result.manifest.content.files
+          .where((file) => file.path.startsWith('previews/'))
           .map((f) => f.byteLength)
           .reduce((a, b) => a > b ? a : b);
       expect(
@@ -385,11 +386,10 @@ void main() {
       final collection = _visualFixture('image_collection');
       for (final kind in ['element', 'palette', 'smart_atlas']) {
         final combined = _editFixture(_visualFixture(kind), (catalog) {
-          final parsed = ZipDecoder()
-              .decodeBytes(collection)
-              .files
-              .firstWhere((f) => f.name == 'catalog.json');
-          final other = jsonDecode(utf8.decode(parsed.readBytes()!)) as Map;
+          final other = _logicalCatalog({
+            for (final file in ZipDecoder().decodeBytes(collection))
+              file.name: file.content,
+          }).toJson();
           ((catalog['tilesets'] as List).first as Map)['source'] =
               ((other['tilesets'] as List).first as Map)['source'];
         });
@@ -564,7 +564,11 @@ void main() {
         for (final e in entries.where((e) => e.name.endsWith('.json')))
           jsonDecode(utf8.decode(source.readAtSync(e.dataOffset, e.size)))
       ];
-      final nodes = json.map(_nodes).reduce((a, b) => a > b ? a : b);
+      final measured =
+          const ResourcePackInspector().inspectSourceSync(_Source(bytes));
+      final nodes = measured.budgetReport!.totals['jsonNodes']!;
+      expect(
+          nodes, greaterThan(json.map(_nodes).reduce((a, b) => a > b ? a : b)));
       final depth = json.map(_depth).reduce((a, b) => a > b ? a : b);
       expect(
           ResourcePackInspector(
@@ -572,14 +576,17 @@ void main() {
                       maxJsonNodes: nodes, maxJsonDepth: depth))
               .inspectSourceSync(_Source(bytes)),
           isA<ResourcePackInspection>());
-      for (final policy in [
-        ResourcePackSecurityPolicy(maxJsonNodes: nodes - 1),
-        ResourcePackSecurityPolicy(maxJsonDepth: depth - 1)
+      for (final (policy, code) in [
+        (
+          ResourcePackSecurityPolicy(maxJsonNodes: nodes - 1),
+          'catalog_budget_exceeded'
+        ),
+        (ResourcePackSecurityPolicy(maxJsonDepth: depth - 1), 'json_complexity')
       ]) {
         expect(
             () => ResourcePackInspector(policy: policy)
                 .inspectSourceSync(_Source(bytes)),
-            _packFailure('json_complexity'));
+            _packFailure(code));
       }
     });
     test('preserves native hierarchy count and depth limits', () {
@@ -805,22 +812,24 @@ Uint8List _fixture(
       defect == 'snapshot_fingerprint' ? '0' * 64 : snapshotFingerprint;
   final catalog = ResourcePackCatalog(
     borderCatalog: borderSnapshot
-        ? ProjectBorderCatalog(formatVersion: 10, visualSnapshots: [
-            BorderVisualSnapshot(
-              id: 'border-snapshot-sha256:$snapshotHash',
-              contentFingerprint: snapshotHash,
-              frames: [
-                BorderVisualFrameSnapshot(
-                    relativeAssetPath: file.logicalPath,
-                    sourceRectPx: BorderPixelRect(
-                        x: 0,
-                        y: 0,
-                        width: defect == 'snapshot_rect' ? 3 : 2,
-                        height: 2),
-                    durationMs: 100)
-              ],
-            )
-          ])
+        ? ProjectBorderCatalog(
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+            visualSnapshots: [
+                BorderVisualSnapshot(
+                  id: 'border-snapshot-sha256:$snapshotHash',
+                  contentFingerprint: snapshotHash,
+                  frames: [
+                    BorderVisualFrameSnapshot(
+                        relativeAssetPath: file.logicalPath,
+                        sourceRectPx: BorderPixelRect(
+                            x: 0,
+                            y: 0,
+                            width: defect == 'snapshot_rect' ? 3 : 2,
+                            height: 2),
+                        durationMs: 100)
+                  ],
+                )
+              ])
         : null,
     tilesets: png
         ? [
@@ -874,6 +883,7 @@ Uint8List _fixture(
           ]
         : [],
   ).toJson();
+  final seedCatalog = ResourcePackCatalog.fromJson(catalog);
   if (defect == 'world_designation') {
     ((catalog['tilesets'] as List).first as Map)['isWorldTileset'] = true;
   }
@@ -927,18 +937,23 @@ Uint8List _fixture(
     (((catalog['models3d'] as List).first as Map)['inspection']
         as Map)['triangleCount'] = 100;
   }
-  List<int> catalogBytes = utf8.encode(jsonEncode(catalog));
+  _writePublication(entries, catalog, seed: seedCatalog);
   if (defect == 'duplicate_json') {
-    catalogBytes =
-        utf8.encode(jsonEncode(catalog).replaceFirst('{', '{"tilesets":[], '));
+    entries['catalog.json'] = utf8.encode(utf8
+        .decode(entries['catalog.json']!)
+        .replaceFirst('{', '{"format":"avelune.portable-catalog",'));
   }
-  if (defect == 'invalid_utf8') catalogBytes = [0xff];
-  entries['catalog.json'] = catalogBytes;
+  if (defect == 'invalid_utf8') entries['catalog.json'] = [0xff];
+  if (defect == 'unsafe_number') {
+    final descriptor = jsonDecode(utf8.decode(entries['catalog.json']!)) as Map;
+    descriptor['unsafe'] = 9007199254740992;
+    entries['catalog.json'] = utf8.encode(jsonEncode(descriptor));
+  }
   ResourcePackInventoryFile inventory(String path) => ResourcePackInventoryFile(
       path: path,
       byteLength: entries[path]!.length,
       rawSha256: sha256.convert(entries[path]!).toString(),
-      mediaType: path == 'catalog.json'
+      mediaType: path.endsWith('.json')
           ? 'application/json'
           : path.endsWith('.txt')
               ? 'text/plain'
@@ -957,7 +972,7 @@ Uint8List _fixture(
       ];
   final manifest = ResourcePackManifest.fromJson({
     'format': 'avelune.asset-pack',
-    'formatVersion': 1,
+    'formatVersion': ResourcePackManifest.currentFormatVersion,
     'pack': {
       'id': 'original.workshop',
       'version': '1.0.0',
@@ -969,8 +984,8 @@ Uint8List _fixture(
     },
     'compatibility': {
       'resourceLibraryCatalogVersion': 2,
-      'smartTileCatalogVersion': 7,
-      'borderCatalogVersion': 10,
+      'smartTileCatalogVersion': ProjectSmartTileCatalog.currentFormatVersion,
+      'borderCatalogVersion': ProjectBorderCatalog.latestSupportedFormatVersion,
       'requiredCapabilities': declared,
       'tileWidth': 2,
       'tileHeight': 2
@@ -1119,10 +1134,14 @@ final class _VirtualZip implements RandomAccessPackageSource {
 }
 
 _VirtualZip _virtualFixture(String kind, int size) {
-  final catalogBytes = CanonicalJson.encodeUtf8(ResourcePackCatalog().toJson());
+  final publication =
+      PortableCatalogPublication.encodeCatalog(ResourcePackCatalog());
+  final catalogBytes = CanonicalJson.encodeUtf8(publication.descriptor);
+  final objectBytes = publication.storage.objects.values
+      .fold<int>(0, (sum, bytes) => sum + bytes.length);
   final catalog = ResourcePackInventoryFile(
       path: 'catalog.json',
-      byteLength: kind == 'catalog' ? size : catalogBytes.length,
+      byteLength: kind == 'catalog' ? size - objectBytes : catalogBytes.length,
       mediaType: 'application/json',
       rawSha256: sha256.convert(catalogBytes).toString());
   final files = <ResourcePackInventoryFile>[];
@@ -1130,6 +1149,16 @@ _VirtualZip _virtualFixture(String kind, int size) {
     _SparseEntry('catalog.json', catalog.byteLength,
         kind == 'catalog' ? null : catalogBytes)
   ];
+  for (final object in publication.storage.objects.entries) {
+    final path = 'catalog/objects/${object.key}.json';
+    files.add(ResourcePackInventoryFile(
+      path: path,
+      byteLength: object.value.length,
+      rawSha256: object.key,
+      mediaType: 'application/json',
+    ));
+    entries.add(_SparseEntry(path, object.value.length, object.value));
+  }
   void add(
       String hash, int length, String root, String extension, String mime) {
     final path = '$root/$hash.$extension';
@@ -1143,7 +1172,10 @@ _VirtualZip _virtualFixture(String kind, int size) {
         'image/png');
     add(
         '1' * 64,
-        size - catalog.byteLength - ResourcePackSecurityPolicy.maxFileBytesV1,
+        size -
+            catalog.byteLength -
+            objectBytes -
+            ResourcePackSecurityPolicy.maxFileBytesV1,
         'blobs',
         'png',
         'image/png');
@@ -1157,7 +1189,7 @@ _VirtualZip _virtualFixture(String kind, int size) {
   }
   final manifest = ResourcePackManifest.fromJson({
     'format': 'avelune.asset-pack',
-    'formatVersion': 1,
+    'formatVersion': ResourcePackManifest.currentFormatVersion,
     'pack': {
       'id': 'original',
       'version': '1.0.0',
@@ -1169,10 +1201,13 @@ _VirtualZip _virtualFixture(String kind, int size) {
     },
     'compatibility': {
       'resourceLibraryCatalogVersion': 2,
-      'smartTileCatalogVersion': 7,
-      'borderCatalogVersion': 10,
+      'smartTileCatalogVersion': ProjectSmartTileCatalog.currentFormatVersion,
+      'borderCatalogVersion': ProjectBorderCatalog.latestSupportedFormatVersion,
       'requiredCapabilities': [
-        if (kind == 'glb') 'models.glb' else if (files.isNotEmpty) 'images.png'
+        if (kind == 'glb')
+          'models.glb'
+        else if (files.any((file) => file.mediaType == 'image/png'))
+          'images.png'
       ],
       'tileWidth': 2,
       'tileHeight': 2
@@ -1191,25 +1226,105 @@ _VirtualZip _virtualFixture(String kind, int size) {
   return _VirtualZip(entries);
 }
 
+ResourcePackCatalog _logicalCatalog(Map<String, List<int>> entries) =>
+    PortableCatalogPublication.decodeCatalogSync(
+      jsonDecode(utf8.decode(entries['catalog.json']!)) as Map<String, dynamic>,
+      readObject: (reference) =>
+          entries[PortableCatalogPublication.objectPath(reference)]!,
+    );
+
+void _writePublication(
+    Map<String, List<int>> entries, Map<String, dynamic> catalog,
+    {ResourcePackCatalog? seed}) {
+  entries.removeWhere((path, _) => path.startsWith('catalog/objects/'));
+  Map<String, Object?> descriptor;
+  Map<String, List<int>> objects;
+  try {
+    final publication = PortableCatalogPublication.encodeCatalog(
+      ResourcePackCatalog.fromJson(catalog),
+    );
+    descriptor = publication.descriptor;
+    objects = publication.storage.objects;
+  } on Object catch (error) {
+    if (error is! FormatException &&
+        error is! ResourcePackDependencyException) {
+      rethrow;
+    }
+    if (seed == null) rethrow;
+    final units = PortableCatalogPublication.definitionUnits(seed).map((unit) {
+      final payload =
+          jsonDecode(jsonEncode(unit.payload)) as Map<String, dynamic>;
+      final section = payload['section'] as String;
+      if (!section.startsWith(r'$')) {
+        dynamic values = catalog;
+        for (final part in section.split('.')) {
+          values = values is Map ? values[part] : null;
+        }
+        if (values is List && payload['position'] < values.length) {
+          final value = values[payload['position'] as int];
+          payload['value'] = section == 'provenance'
+              ? (Map<String, dynamic>.from(value as Map)..remove('resources'))
+              : value;
+        }
+      } else if (section == r'$shell') {
+        final shell = payload['value'] as Map;
+        if (catalog.containsKey('maps')) shell['maps'] = catalog['maps'];
+      }
+      return CatalogDefinitionUnit(
+          key: unit.key, payload: payload, references: unit.references);
+    }).toList();
+    for (final (section, kind) in [
+      ('elements', CatalogDefinitionKind.element),
+      ('elementCategories', CatalogDefinitionKind.elementCategory),
+    ]) {
+      final values = catalog[section] as List? ?? [];
+      for (var position = 0; position < values.length; position++) {
+        final value = values[position] as Map<String, dynamic>;
+        final key = CatalogDefinitionKey(kind, value['id'] as String);
+        if (units.any((unit) => unit.key == key)) continue;
+        units.add(CatalogDefinitionUnit(key: key, payload: {
+          'id': key.id,
+          'section': section,
+          'position': position,
+          'value': value,
+        }));
+      }
+    }
+    final storage = CatalogStorageBuilder().build(units);
+    descriptor = {
+      'format': 'avelune.portable-catalog',
+      'version': 2,
+      'kind': 'resourcePack',
+      'root': storage.root.toJson(),
+    };
+    objects = storage.objects;
+  }
+  entries['catalog.json'] = CanonicalJson.encodeUtf8(descriptor);
+  for (final object in objects.entries) {
+    entries['catalog/objects/${object.key}.json'] = object.value;
+  }
+}
+
 Uint8List _editFixture(
     Uint8List input, void Function(Map<String, dynamic>) edit) {
   final archive = ZipDecoder().decodeBytes(input);
-  final entries = {
+  final entries = <String, List<int>>{
     for (final file in archive.files) file.name: file.readBytes()!
   };
-  final catalog =
-      jsonDecode(utf8.decode(entries['catalog.json']!)) as Map<String, dynamic>;
+  final seed = _logicalCatalog(entries);
+  final catalog = seed.toJson();
   edit(catalog);
-  return _rebuildFixture(entries, catalog);
+  return _rebuildFixture(entries, catalog, seed: seed);
 }
 
 Uint8List _rebuildFixture(
-    Map<String, List<int>> entries, Map<String, dynamic> catalog) {
-  entries['catalog.json'] = utf8.encode(jsonEncode(catalog));
+    Map<String, List<int>> entries, Map<String, dynamic> catalog,
+    {ResourcePackCatalog? seed}) {
+  _writePublication(entries, catalog, seed: seed);
   ResourcePackInventoryFile inventory(String path) => ResourcePackInventoryFile(
       path: path,
       byteLength: entries[path]!.length,
-      mediaType: path == 'catalog.json'
+      mediaType: path.endsWith('.json')
           ? 'application/json'
           : path.endsWith('.png')
               ? 'image/png'
@@ -1229,9 +1344,13 @@ Uint8List _rebuildFixture(
     'files': files.map((f) => f.toJson()).toList(),
     'treeSha256': resourcePackTreeSha256(catalogFile, files)
   };
-  (original['compatibility'] as Map)['requiredCapabilities'] =
-      ResourcePackCapabilities.requiredFor(
-          ResourcePackCatalog.fromJson(catalog), files);
+  try {
+    (original['compatibility'] as Map)['requiredCapabilities'] =
+        ResourcePackCapabilities.requiredFor(
+            ResourcePackCatalog.fromJson(catalog), files);
+  } on FormatException {
+    if (seed == null) rethrow;
+  }
   entries['manifest.json'] = ResourcePackManifestCodec()
       .encodeUtf8(ResourcePackManifest.fromJson(original));
   return DeterministicZipEncoder.encode(entries.entries.toList()
@@ -1245,8 +1364,7 @@ Uint8List _replaceMedia(
   final entries = <String, List<int>>{
     for (final file in archive.files) file.name: file.readBytes()!
   };
-  final catalog =
-      jsonDecode(utf8.decode(entries['catalog.json']!)) as Map<String, dynamic>;
+  final catalog = _logicalCatalog(entries).toJson();
   final file =
       (catalog['files'] as List).cast<Map>().firstWhere((f) => f['id'] == id);
   final previous = file['archivePath'] as String;

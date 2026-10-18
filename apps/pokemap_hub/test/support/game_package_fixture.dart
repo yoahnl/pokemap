@@ -9,7 +9,11 @@ GamePackageHostCompatibility testHostCompatibility() =>
     GamePackageHostCompatibility(
       hubVersion: Version.parse('1.0.0'),
       runtimeApiVersion: Version.parse('1.0.0'),
-      capabilities: const <String>{'map@1', 'overworld.menu@1'},
+      capabilities: const <String>{
+        'map@1',
+        'overworld.menu@1',
+        'catalog.partitioned@2',
+      },
       supportedProjectFormats: <String>{ProjectVersion.v8.name},
       currentProjectFormat: ProjectVersion.v8.name,
       supportedSaveFormats: const <int>{1},

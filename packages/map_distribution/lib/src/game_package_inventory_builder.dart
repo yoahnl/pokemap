@@ -22,7 +22,7 @@ final class GamePackageInventoryBuildResult {
 /// Produces the complete payload inventory embedded in a package manifest.
 final class GamePackageInventoryBuilder {
   const GamePackageInventoryBuilder({
-    this.maxFileCount = 20000,
+    this.maxFileCount = 64999,
     this.maxFileBytes = 268435456,
     this.maxTotalBytes = 1073741824,
   });

@@ -76,8 +76,12 @@ void main() {
       final value = result['result'] as Map;
       final report = (value['budgetReports'] as List).single as Map;
       expect(report['scope'], 'sourceProjectDistribution');
-      expect((report['totals'] as Map)['catalogBytes'],
+      expect((report['totals'] as Map)['sourceDocumentBytes'],
           before.resourceBytes('project').length);
+      expect((report['totals'] as Map)['catalogBytes'],
+          const CatalogBudgetCalculator()
+              .measureProjectJson(before.manifest.toJson())
+              .totals['catalogBytes']);
       expect(value.containsKey('preparedImportHandle'), isFalse);
       expect(value.containsKey('preparedExportHandle'), isFalse);
       expect((await fixture.loader.load(project)).revision, before.revision);

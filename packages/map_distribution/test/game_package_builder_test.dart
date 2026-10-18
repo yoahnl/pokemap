@@ -6,8 +6,194 @@ import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
+import 'package:map_distribution/src/deterministic_zip_encoder.dart';
 
 void main() {
+  test('publishes partitioned project and preserves its exact reexport', () {
+    final first = GamePackageBuilder().build(
+        manifest: _draftManifest(),
+        payloadFiles: {'project/project.json': _validProjectBytes()});
+    expect(first.manifest.compatibility.requiredCapabilities,
+        contains('catalog.partitioned@2'));
+    final archive = ZipDecoder().decodeBytes(first.packageBytes);
+    final payload = <String, List<int>>{
+      for (final file in archive.files)
+        if (file.name != 'game-manifest.json')
+          file.name: file.content as List<int>
+    };
+    final descriptor = jsonDecode(utf8.decode(payload['project/project.json']!))
+        as Map<String, dynamic>;
+    expect(descriptor['kind'], 'project');
+    final project = PortableCatalogPublication.decodeProjectSync(descriptor,
+        readObject: (ref) =>
+            payload['project/${PortableCatalogPublication.objectPath(ref)}']!);
+    expect(
+        project.toJson(),
+        ProjectManifest.fromJson(jsonDecode(utf8.decode(_validProjectBytes()))
+                as Map<String, dynamic>)
+            .toJson());
+    final second = GamePackageBuilder()
+        .build(manifest: first.manifest, payloadFiles: payload);
+    expect(second.packageBytes, first.packageBytes);
+  });
+
+  test('rejects missing orphaned changed and unsupported publication objects',
+      () {
+    final built = GamePackageBuilder().build(
+        manifest: _draftManifest(),
+        payloadFiles: {'project/project.json': _validProjectBytes()});
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final payload = <String, List<int>>{
+      for (final file in archive.files)
+        if (file.name != 'game-manifest.json')
+          file.name: file.content as List<int>
+    };
+    final object = payload.keys
+        .firstWhere((path) => path.startsWith('project/catalog/objects/'));
+    final invalid = <Map<String, List<int>>>[
+      {...payload}..remove(object),
+      {...payload, object: utf8.encode('{}')},
+      {
+        ...payload,
+        'project/catalog/objects/${sha256.convert(utf8.encode('{}'))}.json':
+            utf8.encode('{}')
+      },
+      for (final change in [
+        {'version': 1},
+        {'format': 'other'},
+        {'kind': 'resourcePack'}
+      ])
+        {
+          ...payload,
+          'project/project.json': utf8.encode(jsonEncode({
+            ...jsonDecode(utf8.decode(payload['project/project.json']!)) as Map,
+            ...change,
+          }))
+        },
+    ];
+    for (final candidate in invalid) {
+      expect(
+          () => GamePackageBuilder()
+              .build(manifest: built.manifest, payloadFiles: candidate),
+          throwsA(isA<GamePackageFormatException>()
+              .having((e) => e.code, 'code', 'invalidProject')));
+    }
+  });
+
+  test('requires partition capability even without host compatibility', () {
+    final built = GamePackageBuilder().build(
+        manifest: _draftManifest(),
+        payloadFiles: {'project/project.json': _validProjectBytes()});
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final json = built.manifest.toJson();
+    (json['compatibility'] as Map)['requiredCapabilities'] = [];
+    final bytes = DeterministicZipEncoder.encode([
+      for (final file in archive.files)
+        MapEntry(
+            file.name,
+            file.name == 'game-manifest.json'
+                ? CanonicalJson.encodeUtf8(json)
+                : file.content as List<int>),
+    ]);
+    expect(
+        () => GamePackageInspector().inspect(bytes),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'missingCatalogCapability')));
+  });
+
+  test(
+      'global project quotas count every object and never rewrite a signed capability',
+      () {
+    final project = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(_validProjectBytes())) as Map<String, dynamic>);
+    final budget =
+        CatalogBudgetCalculator().measureProjectJson(project.toJson());
+    final physicalBytes = budget.totals['catalogBytes']!;
+    final values = budget.totals['jsonNodes']!;
+    final exact = GamePackageSecurityPolicy(
+        maxCatalogBytes: physicalBytes, maxCatalogJsonValues: values);
+    final built = GamePackageBuilder(securityPolicy: exact).build(
+        manifest: _draftManifest(),
+        payloadFiles: {'project/project.json': _validProjectBytes()});
+    expect(
+        GamePackageInspector(policy: exact)
+            .inspect(built.packageBytes)
+            .manifest
+            .content
+            .totalBytes,
+        physicalBytes);
+    for (final policy in [
+      GamePackageSecurityPolicy(maxCatalogBytes: physicalBytes - 1),
+      GamePackageSecurityPolicy(maxCatalogJsonValues: values - 1)
+    ]) {
+      expect(
+          () => GamePackageBuilder(securityPolicy: policy).build(
+              manifest: _draftManifest(),
+              payloadFiles: {'project/project.json': _validProjectBytes()}),
+          throwsA(isA<GamePackageFormatException>()));
+      expect(
+          () =>
+              GamePackageInspector(policy: policy).inspect(built.packageBytes),
+          throwsA(isA<GamePackageFormatException>()));
+    }
+    final signed = _draftManifest().copyWith(
+        signature: const GamePackageSignature(
+            algorithm: 'ed25519',
+            keyId: 'publisher:key',
+            value:
+                'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='));
+    expect(
+        () => GamePackageBuilder().build(
+            manifest: signed,
+            payloadFiles: {'project/project.json': _validProjectBytes()}),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'staleSignature')));
+  });
+
+  test('preserves signed capability order during an unchanged v2 reexport', () {
+    final built = GamePackageBuilder().build(
+        manifest: _draftManifest(),
+        payloadFiles: {'project/project.json': _validProjectBytes()});
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final payload = {
+      for (final file in archive.files)
+        if (file.name != 'game-manifest.json')
+          file.name: file.content as List<int>
+    };
+    final old = built.manifest.compatibility;
+    final compatibility = GamePackageCompatibility(
+        minHubVersion: old.minHubVersion,
+        runtimeApiExpression: old.runtimeApiExpression,
+        projectFormat: old.projectFormat,
+        saveFormat: old.saveFormat,
+        compatibilityId: old.compatibilityId,
+        requiredCapabilities: ['map@1', 'catalog.partitioned@2']);
+    final signed = built.manifest.copyWith(
+        compatibility: compatibility,
+        signature: const GamePackageSignature(
+            algorithm: 'ed25519',
+            keyId: 'publisher:key',
+            value:
+                'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='));
+    final reexport =
+        GamePackageBuilder().build(manifest: signed, payloadFiles: payload);
+    expect(reexport.manifest.compatibility.toJson(),
+        signed.compatibility.toJson());
+    expect(reexport.manifest.signature!.toJson(), signed.signature!.toJson());
+  });
+
+  test('refuses duplicate native project keys before publication normalization',
+      () {
+    final source = utf8.decode(_validProjectBytes()).replaceFirst(
+        '"name":"Builder Test"', '"name":"Builder Test","name":"Other"');
+    expect(
+        () => GamePackageBuilder().build(
+            manifest: _draftManifest(),
+            payloadFiles: {'project/project.json': utf8.encode(source)}),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'invalidProject')));
+  });
+
   group('GamePackageBuilder', () {
     const builder = GamePackageBuilder();
 
@@ -78,14 +264,22 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        'abf8577296df75e4021132ac657d61148cf7484db77b1c77a5636553e2db4424',
+        '836cbe79e7b76af15ce354ef2eee5e3dce2e8d9df77e07065fc94de4daa50a10',
       );
       expect(
         first.packageSha256,
-        'abf8577296df75e4021132ac657d61148cf7484db77b1c77a5636553e2db4424',
+        '836cbe79e7b76af15ce354ef2eee5e3dce2e8d9df77e07065fc94de4daa50a10',
       );
       expect(first.archiveBytes, first.packageBytes.length);
-      expect(first.manifest.content.fileCount, 2);
+      expect(
+          first.manifest.content.fileCount,
+          2 +
+              PortableCatalogPublication.encodeProject(ProjectManifest.fromJson(
+                      jsonDecode(utf8.decode(_validProjectBytes()))
+                          as Map<String, dynamic>))
+                  .storage
+                  .objects
+                  .length);
       expect(
         first.manifest.content.treeSha256,
         second.manifest.content.treeSha256,
@@ -97,6 +291,9 @@ void main() {
         <String>[
           'game-manifest.json',
           'presentation/icon.png',
+          ...first.manifest.content.files
+              .where((file) => file.path.startsWith('project/catalog/objects/'))
+              .map((file) => file.path),
           'project/project.json',
         ],
       );
@@ -113,10 +310,12 @@ void main() {
       expect(decoded.toJson(), first.manifest.toJson());
     });
 
-    test('supports a large valid inventory within the v1 entry quota', () {
+    test(
+        'supports more than twenty thousand files within the classic ZIP quota',
+        () {
       final payload = <String, List<int>>{
         'project/project.json': _validProjectBytes(),
-        for (var index = 0; index < 11999; index++)
+        for (var index = 0; index < 20001; index++)
           'project/data/catalog/'
               '${index.toString().padLeft(5, '0')}.json': utf8.encode('{}'),
       };
@@ -126,14 +325,22 @@ void main() {
         payloadFiles: payload,
       );
 
-      expect(built.manifest.content.fileCount, 12000);
+      expect(
+          built.manifest.content.fileCount,
+          20002 +
+              PortableCatalogPublication.encodeProject(ProjectManifest.fromJson(
+                      jsonDecode(utf8.decode(_validProjectBytes()))
+                          as Map<String, dynamic>))
+                  .storage
+                  .objects
+                  .length);
       expect(
         const GamePackageInspector()
             .inspect(built.packageBytes)
             .manifest
             .content
             .fileCount,
-        12000,
+        built.manifest.content.fileCount,
       );
     });
 
@@ -162,7 +369,11 @@ void main() {
       ) as Map<String, dynamic>;
 
       expect(
-        (packagedProject['pokemon']! as Map<String, dynamic>)['ruleset'],
+        PortableCatalogPublication.decodeProjectSync(packagedProject,
+            readObject: (ref) => archive
+                .findFile(
+                    'project/${PortableCatalogPublication.objectPath(ref)}')!
+                .content as List<int>).pokemon.ruleset.toJson(),
         PokemonRulesetProfile.pokeMapBetaV1.toJson(),
       );
     });

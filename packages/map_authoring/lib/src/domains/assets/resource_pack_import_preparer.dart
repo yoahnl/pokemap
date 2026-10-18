@@ -26,6 +26,7 @@ import 'asset_store.dart';
 import 'resource_information_document.dart';
 import 'resource_pack_budget.dart';
 import 'resource_pack_import_projection.dart';
+import 'resource_pack_dynamic_remapping.dart';
 part 'resource_pack_import_review.dart';
 
 final class ResourcePackImportException implements Exception {
@@ -1147,7 +1148,36 @@ ProjectManifest _merge(
 
   final smart = target.smartTileCatalog;
   final imported = c.smartTileCatalog;
+  bool includeDynamic(CatalogDefinitionKey owner) {
+    final parts = jsonDecode(resourcePackDynamicNativeKey(owner)) as List;
+    return include(parts[0] as String, parts[2] as String);
+  }
+
+  final importedDependencies = projection.projectDynamicDependencies;
+  final dynamicTargets = <CatalogDefinitionKey, Set<CatalogDefinitionKey>>{};
+  if (importedDependencies.isNotEmpty) {
+    for (final declaration
+        in PortableCatalogPublication.projectDynamicDependencies(target)) {
+      if (dynamicTargets.containsKey(declaration.owner)) {
+        throw const FormatException('catalog.dynamic: duplicate declaration');
+      }
+      dynamicTargets[declaration.owner] = declaration.targets.toSet();
+    }
+    for (final declaration in importedDependencies) {
+      if (includeDynamic(declaration.owner)) {
+        (dynamicTargets[declaration.owner] ??= {}).addAll(declaration.targets);
+      }
+    }
+  }
   return target.copyWith(
+      globalProperties: importedDependencies.isEmpty ? target.globalProperties : {
+        ...target.globalProperties,
+        PortableCatalogPublication.projectDynamicDependenciesKey: [
+          for (final owner in dynamicTargets.keys.toList()..sort())
+            CatalogDynamicDependency(owner: owner, targets: dynamicTargets[owner]!)
+                .toJson(),
+        ],
+      },
       tilesets: [
         ...target.tilesets,
         ...c.tilesets.where((e) => include('tileset', e.id))

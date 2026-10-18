@@ -9,108 +9,182 @@ import 'support/glb_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
-  test('unfinished attached stairs are editable but cannot be exported as playable', () {
+  test(
+      'unfinished attached stairs are editable but cannot be exported as playable',
+      () {
     final files = spatialPayload();
-    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
-    final instance = map.spatialScene!.instances.single.copyWith(blocksMovement: false);
-    final scene = map.spatialScene!.copyWith(instances: [instance], navigation: SpatialNavigationProfile(ramps: [
-      SpatialRamp(id: 'stairs', x: 2, z: 2, width: 1, depth: 1, lowLevel: 0, highLevel: 1,
-        direction: SpatialRampDirection.north, surfaceInstanceId: instance.id),
-    ]));
-    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(spatialScene: scene).toJson()));
-    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(), payloadFiles: files),
-      throwsA(isA<GamePackageFormatException>().having((error) => error.code, 'code', 'runtime3d.ramp_unconnected')));
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(files['project/maps/map.json']!))
+            as Map<String, dynamic>);
+    final instance =
+        map.spatialScene!.instances.single.copyWith(blocksMovement: false);
+    final scene = map.spatialScene!.copyWith(
+        instances: [instance],
+        navigation: SpatialNavigationProfile(ramps: [
+          SpatialRamp(
+              id: 'stairs',
+              x: 2,
+              z: 2,
+              width: 1,
+              depth: 1,
+              lowLevel: 0,
+              highLevel: 1,
+              direction: SpatialRampDirection.north,
+              surfaceInstanceId: instance.id),
+        ]));
+    files['project/maps/map.json'] =
+        utf8.encode(jsonEncode(map.copyWith(spatialScene: scene).toJson()));
+    expect(
+        () => const GamePackageBuilder()
+            .build(manifest: spatialManifest(), payloadFiles: files),
+        throwsA(isA<GamePackageFormatException>().having(
+            (error) => error.code, 'code', 'runtime3d.ramp_unconnected')));
   });
-  test('continuous terrain packages require an explicit runtime capability', () {
+  test('continuous terrain packages require an explicit runtime capability',
+      () {
     final files = spatialPayload();
-    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
-    final surface = SpatialTerrainSurface(id: 'hill', x: 1, z: 1, height: 2, gradientX: .25,
-      footprints: [BorderGroundFootprint(points: [
-        BorderGroundPoint(x: 0, z: 0), BorderGroundPoint(x: 1, z: 0),
-        BorderGroundPoint(x: 1, z: 1), BorderGroundPoint(x: 0, z: 1),
-      ])]);
-    final updated = const SpatialMapOperations().upsertTerrainSurfaces(map, [surface]);
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(files['project/maps/map.json']!))
+            as Map<String, dynamic>);
+    final surface = SpatialTerrainSurface(
+        id: 'hill',
+        x: 1,
+        z: 1,
+        height: 2,
+        gradientX: .25,
+        footprints: [
+          BorderGroundFootprint(points: [
+            BorderGroundPoint(x: 0, z: 0),
+            BorderGroundPoint(x: 1, z: 0),
+            BorderGroundPoint(x: 1, z: 1),
+            BorderGroundPoint(x: 0, z: 1),
+          ])
+        ]);
+    final updated =
+        const SpatialMapOperations().upsertTerrainSurfaces(map, [surface]);
     files['project/maps/map.json'] = utf8.encode(jsonEncode(updated.toJson()));
-    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(), payloadFiles: files),
-      throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'message', contains('map3d.terrain-surfaces@1'))));
+    expect(
+        () => const GamePackageBuilder()
+            .build(manifest: spatialManifest(), payloadFiles: files),
+        throwsA(isA<GamePackageFormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('map3d.terrain-surfaces@1'))));
     final built = const GamePackageBuilder().build(
-      manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.terrain-surfaces@1']), payloadFiles: files);
+        manifest: spatialManifest(
+            capabilities: ['map3d@1', 'map3d.terrain-surfaces@1']),
+        payloadFiles: files);
     final inspected = const GamePackageInspector().inspect(built.packageBytes);
-    expect(inspected.manifest.compatibility.requiredCapabilities, contains('map3d.terrain-surfaces@1'));
+    expect(inspected.manifest.compatibility.requiredCapabilities,
+        contains('map3d.terrain-surfaces@1'));
     final archive = ZipDecoder().decodeBytes(built.packageBytes);
-    final saved = MapData.fromJson(jsonDecode(utf8.decode(archive.findFile('project/maps/map.json')!.content)) as Map<String, dynamic>);
+    final saved = MapData.fromJson(jsonDecode(
+            utf8.decode(archive.findFile('project/maps/map.json')!.content))
+        as Map<String, dynamic>);
     expect(saved.spatialScene!.worldHeightAt(1.5, 1.5), 2.125);
   });
 
   test('native animated paths require and retain the animation capability', () {
     final files = spatialPayload(modelBytes: animatedGlb());
-    final project = ProjectManifest.fromJson(jsonDecode(
-        utf8.decode(files['project/project.json']!)) as Map<String, dynamic>);
+    final project = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(files['project/project.json']!))
+            as Map<String, dynamic>);
     final updatedProject = project.copyWith(
         smartTileCatalog: ProjectSmartTileCatalog(materials: const [
-      ProjectSmartTileMaterial(id: 'grass', name: 'Grass', connectionGroupId: 'grass')
+      ProjectSmartTileMaterial(
+          id: 'grass', name: 'Grass', connectionGroupId: 'grass')
     ], presets: const [
-      ProjectSmartTilePreset(id: 'grass', name: 'Grass',
-          usage: SmartTileUsage.path, topology: SmartTileTopology.uniform,
+      ProjectSmartTilePreset(
+          id: 'grass',
+          name: 'Grass',
+          usage: SmartTileUsage.path,
+          topology: SmartTileTopology.uniform,
           templateHint: SmartTileTemplateHint.simple,
           coveragePolicy: SmartTileCoveragePolicy.sparse,
-          coverageProfile: SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+          coverageProfile:
+              SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
           transformPolicy: SmartTileTransformPolicy(),
-          defaultMaterialId: 'grass', allowedMaterialIds: ['grass'],
-          rules: [SmartTileRule(id: 'grass',
-              centerMatch: SmartTileSlotMatch.material('grass'),
-              candidates: [SmartTileCandidate(id: 'grass', parts: [
-                SmartTileVisualPart(source: SmartTileVisualSource.model3d(
-                    modelId: 'model', animationIndex: 0))
-              ])])])
+          defaultMaterialId: 'grass',
+          allowedMaterialIds: [
+            'grass'
+          ],
+          rules: [
+            SmartTileRule(
+                id: 'grass',
+                centerMatch: SmartTileSlotMatch.material('grass'),
+                candidates: [
+                  SmartTileCandidate(id: 'grass', parts: [
+                    SmartTileVisualPart(
+                        source: SmartTileVisualSource.model3d(
+                            modelId: 'model', animationIndex: 0))
+                  ])
+                ])
+          ])
     ]));
-    final map = MapData.fromJson(jsonDecode(
-        utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(files['project/maps/map.json']!))
+            as Map<String, dynamic>);
     final updatedMap = map.copyWith(layers: [
-      SmartTileLayer(id: 'grass', name: 'Grass', presetId: 'grass',
+      SmartTileLayer(
+          id: 'grass',
+          name: 'Grass',
+          presetId: 'grass',
           usage: SmartTileUsage.path,
           animationActivation: SmartTileAnimationActivation.onEnter,
           materialPalette: const ['', 'grass'],
-          field: SmartTileField.cell(semanticCells: [
-            for (var i = 0; i < 64; i++) i == 9 ? 1 : 0
-          ]))
+          field: SmartTileField.cell(
+              semanticCells: [for (var i = 0; i < 64; i++) i == 9 ? 1 : 0]))
     ]);
-    files['project/project.json'] = utf8.encode(jsonEncode(updatedProject.toJson()));
-    files['project/maps/map.json'] = utf8.encode(jsonEncode(updatedMap.toJson()));
-    expect(() => const GamePackageBuilder().build(
-        manifest: spatialManifest(), payloadFiles: files),
+    files['project/project.json'] =
+        utf8.encode(jsonEncode(updatedProject.toJson()));
+    files['project/maps/map.json'] =
+        utf8.encode(jsonEncode(updatedMap.toJson()));
+    expect(
+        () => const GamePackageBuilder()
+            .build(manifest: spatialManifest(), payloadFiles: files),
         throwsA(isA<GamePackageFormatException>().having(
-            (error) => error.message, 'message', contains('map3d.animation@1'))));
+            (error) => error.message,
+            'message',
+            contains('map3d.animation@1'))));
     final built = const GamePackageBuilder().build(
-        manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.animation@1']),
+        manifest:
+            spatialManifest(capabilities: ['map3d@1', 'map3d.animation@1']),
         payloadFiles: files);
     final inspected = const GamePackageInspector().inspect(built.packageBytes);
     expect(inspected.manifest.compatibility.requiredCapabilities,
         contains('map3d.animation@1'));
   });
 
-  test('requires the terrain appearance capability for custom cliff meshes', () {
+  test('requires the terrain appearance capability for custom cliff meshes',
+      () {
     final files = spatialPayload();
-    final map = MapData.fromJson(jsonDecode(
-        utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
-    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(
-      spatialScene: map.spatialScene!.copyWith(generateCliffs: false),
-    ).toJson()));
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(files['project/maps/map.json']!))
+            as Map<String, dynamic>);
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(map
+        .copyWith(
+          spatialScene: map.spatialScene!.copyWith(generateCliffs: false),
+        )
+        .toJson()));
     expect(
       () => const GamePackageBuilder().build(
-        manifest: spatialManifest(), payloadFiles: files,
+        manifest: spatialManifest(),
+        payloadFiles: files,
       ),
       throwsA(isA<GamePackageFormatException>().having(
-        (error) => error.message, 'message', contains('map3d.terrain-appearance@1'),
+        (error) => error.message,
+        'message',
+        contains('map3d.terrain-appearance@1'),
       )),
     );
     final built = const GamePackageBuilder().build(
-      manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.terrain-appearance@1']),
+      manifest: spatialManifest(
+          capabilities: ['map3d@1', 'map3d.terrain-appearance@1']),
       payloadFiles: files,
     );
     final inspected = const GamePackageInspector().inspect(built.packageBytes);
     expect(inspected.manifest.compatibility.requiredCapabilities,
-      contains('map3d.terrain-appearance@1'));
+        contains('map3d.terrain-appearance@1'));
   });
 
   test('packages flat Smart Tile surfaces and closes their texture assets', () {
@@ -308,11 +382,18 @@ void main() {
         throwsA(isA<GamePackageFormatException>()));
   });
   test('models3d participate in the project collection quota', () {
-    final payload = spatialPayload();
+    final built = GamePackageBuilder()
+        .build(manifest: spatialManifest(), payloadFiles: spatialPayload());
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final payload = {
+      for (final file in archive.files)
+        if (file.name != 'game-manifest.json')
+          file.name: file.content as List<int>
+    };
     expect(
         () => const GamePackageProjectValidator(
                 GamePackageSecurityPolicy(maxProjectCollectionEntries: 3))
-            .validate(spatialManifest(),
+            .validate(built.manifest,
                 Uint8List.fromList(payload['project/project.json']!),
                 payloadPaths: payload.keys.toSet(),
                 readPayload: (path) => payload[path]),

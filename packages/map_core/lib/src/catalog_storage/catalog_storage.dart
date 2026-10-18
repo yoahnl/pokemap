@@ -311,6 +311,21 @@ final class CatalogDefinitionPage {
 typedef CatalogObjectReader =
     Future<List<int>> Function(CatalogObjectReference reference);
 
+typedef CatalogObjectReaderSync =
+    List<int> Function(CatalogObjectReference reference);
+
+final class CatalogStorageRead {
+  CatalogStorageRead._(
+    Iterable<CatalogDefinitionUnit> units,
+    Iterable<CatalogObjectReference> references,
+    this.storedBytes,
+  ) : units = List.unmodifiable(units),
+      objectReferences = List.unmodifiable(references);
+  final List<CatalogDefinitionUnit> units;
+  final List<CatalogObjectReference> objectReferences;
+  final int storedBytes;
+}
+
 final class CatalogStoragePatch {
   CatalogStoragePatch._(
     this.beforeRoot,
@@ -380,6 +395,149 @@ final class CatalogSnapshot {
       throw const FormatException('catalog.root: count mismatch');
     }
     return CatalogSnapshot._(root, readObject, effective, count, index);
+  }
+
+  static CatalogStorageRead readAllSync({
+    required CatalogObjectReference root,
+    required CatalogObjectReaderSync readObject,
+    CatalogStorageLimits? limits,
+  }) {
+    final effective = limits ?? CatalogStorageLimits();
+    final references = <String, CatalogObjectReference>{};
+    var storedBytes = 0;
+    Map<String, Object?> read(CatalogObjectReference reference, int maximum) {
+      if (reference.byteLength > maximum) {
+        throw const FormatException('catalog.object: byte limit');
+      }
+      final previous = references[reference.sha256];
+      if (previous != null && previous != reference) {
+        throw const FormatException(
+          'catalog.validate: conflicting object reference',
+        );
+      }
+      if (previous == null) {
+        references[reference.sha256] = reference;
+        storedBytes += reference.byteLength;
+        if (storedBytes > effective.maxStoredBytes) {
+          throw const FormatException('catalog.validate: total byte limit');
+        }
+      }
+      return _decodeObject(
+        reference,
+        readObject(reference),
+        effective,
+        maximum,
+      );
+    }
+
+    final json = read(root, effective.maxIndexBytes);
+    _envelope(json, 'root', {'definitionCount', 'index'});
+    final count = _integer(
+      json['definitionCount'],
+      0,
+      effective.maxDefinitions,
+    );
+    final index = json['index'] == null
+        ? null
+        : _Node.fromJson(_map(json['index']), effective);
+    if ((count == 0) != (index == null) ||
+        (index != null && index.count != count)) {
+      throw const FormatException('catalog.root: count mismatch');
+    }
+    final entries = <CatalogIndexEntry>[];
+    final seen = <String>{root.sha256};
+    void visit(_Node node) {
+      if (!seen.add(node.reference.sha256)) {
+        throw const FormatException('catalog.index: cycle or repeated node');
+      }
+      final value = read(node.reference, effective.maxIndexBytes);
+      if (node.height == 0) {
+        _envelope(value, 'leaf', {'entries'});
+        final page = _list(value['entries'], effective.indexPageSize).map((
+          item,
+        ) {
+          final entry = _map(item);
+          _keys(entry, {'key', 'reference'});
+          return CatalogIndexEntry(
+            key: CatalogDefinitionKey.fromJson(_map(entry['key'])),
+            reference: CatalogObjectReference.fromJson(
+              _map(entry['reference']),
+            ),
+          );
+        }).toList();
+        _ordered(page.map((entry) => entry.key).toList());
+        if (page.isEmpty ||
+            page.length != node.count ||
+            page.first.key != node.first ||
+            page.last.key != node.last) {
+          throw const FormatException('catalog.leaf: invalid range or count');
+        }
+        if (entries.length + page.length > effective.maxDefinitions) {
+          throw const FormatException('catalog.validate: definition limit');
+        }
+        entries.addAll(page);
+      } else {
+        _envelope(value, 'branch', {'children'});
+        final children = _list(
+          value['children'],
+          effective.indexPageSize,
+        ).map((v) => _Node.fromJson(_map(v), effective)).toList();
+        if (children.isEmpty ||
+            children.first.first != node.first ||
+            children.last.last != node.last ||
+            children.fold<int>(0, (sum, child) => sum + child.count) !=
+                node.count ||
+            children.any((child) => child.height != node.height - 1)) {
+          throw const FormatException(
+            'catalog.branch: invalid range count or height',
+          );
+        }
+        for (var i = 1; i < children.length; i++) {
+          if (children[i - 1].last.compareTo(children[i].first) >= 0) {
+            throw const FormatException('catalog.branch: unordered ranges');
+          }
+        }
+        for (final child in children) {
+          visit(child);
+        }
+      }
+    }
+
+    if (index != null) {
+      visit(index);
+    }
+    if (entries.length != count) {
+      throw const FormatException(
+        'catalog.validate: definition count mismatch',
+      );
+    }
+    _ordered(entries.map((entry) => entry.key).toList());
+    final keys = entries.map((entry) => entry.key).toSet();
+    final units = <CatalogDefinitionUnit>[];
+    for (final entry in entries) {
+      final value = read(entry.reference, effective.maxUnitBytes);
+      _envelope(value, 'unit', {'key', 'payload', 'references'});
+      final key = CatalogDefinitionKey.fromJson(_map(value['key']));
+      if (key != entry.key) {
+        throw const FormatException('catalog.unit: indexed key mismatch');
+      }
+      final dependencies = _list(
+        value['references'],
+        effective.maxReferencesPerUnit,
+      ).map((v) => CatalogDefinitionKey.fromJson(_map(v))).toList();
+      _ordered(dependencies);
+      if (dependencies.any((key) => !keys.contains(key))) {
+        throw const FormatException('catalog.validate: missing dependency');
+      }
+      units.add(
+        CatalogDefinitionUnit(
+          key: key,
+          payload: _map(value['payload']),
+          references: dependencies,
+        ),
+      );
+    }
+    return CatalogStorageRead._(units, references.values, storedBytes);
   }
 
   final CatalogObjectReference root;
@@ -1113,7 +1271,18 @@ Future<Map<String, Object?>> _read(
   if (ref.byteLength > maxBytes) {
     throw const FormatException('catalog.object: byte limit');
   }
-  final bytes = await reader(ref);
+  return _decodeObject(ref, await reader(ref), limits, maxBytes);
+}
+
+Map<String, Object?> _decodeObject(
+  CatalogObjectReference ref,
+  List<int> bytes,
+  CatalogStorageLimits limits,
+  int maxBytes,
+) {
+  if (ref.byteLength > maxBytes) {
+    throw const FormatException('catalog.object: byte limit');
+  }
   if (bytes.length != ref.byteLength ||
       bytes.any((b) => b < 0 || b > 255) ||
       crypto.sha256.convert(bytes).toString() != ref.sha256) {

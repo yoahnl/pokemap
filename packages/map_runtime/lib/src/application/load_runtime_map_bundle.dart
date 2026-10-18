@@ -116,8 +116,9 @@ String _runtimeAssetPath({
   // The logical path remains presentation metadata and may intentionally have
   // no duplicate file. Projects without a matching catalog record retain the
   // historical physical-path behavior for backwards compatibility.
-  final relativePath =
-      asset == null ? legacyRelativePath : assetBlobStorageKey(asset.artifact);
+  final relativePath = asset == null
+      ? legacyRelativePath
+      : assetBlobStorageKey(asset.artifact);
   return p.normalize(p.join(projectRoot, relativePath));
 }
 
@@ -141,26 +142,86 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
     throw const ProjectLoadException('Project file not found');
   }
   try {
+    if (await file.length() > 128 * 1024 * 1024) {
+      throw const FormatException('Project document exceeds its byte limit.');
+    }
     final text = await file.readAsString();
     _runtimeLoaderLog('project manifest read ok bytes=${text.length}');
     // Parse + validation sur un isolate de travail : seul le read était
     // asynchrone, le reste bloquait l'isolate UI à chaque chargement.
-    final manifest = await _decodeProjectManifestOffThread(text);
+    final manifest = await _decodeProjectManifestOffThread(
+      text,
+      file.parent.path,
+    );
     _runtimeLoaderLog(
       'project manifest validated maps=${manifest.maps.length} tilesets=${manifest.tilesets.length} scenarios=${manifest.scenarios.length}',
     );
     return manifest;
   } catch (e) {
     _runtimeLoaderLog(
-        'project manifest load failed path=$manifestPath error=$e');
+      'project manifest load failed path=$manifestPath error=$e',
+    );
     throw ProjectLoadException('Failed to load project: $e');
   }
 }
 
 /// Portée top-level volontaire : un closure créé dans la fonction appelante
 /// pourrait capturer des objets non envoyables de son scope.
-Future<ProjectManifest> _decodeProjectManifestOffThread(String text) {
-  return Isolate.run(() => decodeRuntimeProjectManifest(text));
+Future<ProjectManifest> _decodeProjectManifestOffThread(
+  String text,
+  String projectRoot,
+) {
+  return Isolate.run(() {
+    final raw = decodeNarrativeEventJsonStrict(text) as Map<String, dynamic>;
+    if (!raw.containsKey('format') &&
+        !raw.containsKey('kind') &&
+        !raw.containsKey('root')) {
+      return decodeRuntimeProjectManifest(text);
+    }
+    final root = Directory(projectRoot).resolveSymbolicLinksSync();
+    var storedBytes = utf8.encode(text).length;
+    var values = _catalogJsonValues(raw);
+    final consumed = <String>{};
+    final project = PortableCatalogPublication.decodeProjectSync(
+      raw,
+      limits: CatalogStorageLimits(maxStoredBytes: 128 * 1024 * 1024),
+      readObject: (reference) {
+        final relative = PortableCatalogPublication.objectPath(reference);
+        final file = File(p.join(root, relative));
+        final resolved = file.resolveSymbolicLinksSync();
+        if (!p.isWithin(root, resolved) ||
+            !FileSystemEntity.isFileSync(resolved) ||
+            file.lengthSync() != reference.byteLength ||
+            reference.byteLength > 1024 * 1024) {
+          throw const FormatException('Invalid catalog object path or size.');
+        }
+        final bytes = file.readAsBytesSync();
+        if (consumed.add(relative)) {
+          storedBytes += bytes.length;
+          values += _catalogJsonValues(jsonDecode(utf8.decode(bytes)));
+          if (storedBytes > 128 * 1024 * 1024 || values > 8000000) {
+            throw const FormatException('Global catalog quota exceeded.');
+          }
+        }
+        return bytes;
+      },
+    );
+    final manifest = normalizeRuntimeProjectManifest(project);
+    ProjectValidator.validate(manifest);
+    return manifest;
+  });
+}
+
+int _catalogJsonValues(Object? value) {
+  var count = 0;
+  final pending = <Object?>[value];
+  while (pending.isNotEmpty) {
+    final item = pending.removeLast();
+    count++;
+    if (item is Map) pending.addAll(item.values);
+    if (item is List) pending.addAll(item);
+  }
+  return count;
 }
 
 ProjectManifest decodeRuntimeProjectManifest(String text) {
@@ -172,9 +233,7 @@ ProjectManifest decodeRuntimeProjectManifest(String text) {
   return manifest;
 }
 
-ProjectManifest normalizeRuntimeProjectManifest(
-  ProjectManifest manifest,
-) {
+ProjectManifest normalizeRuntimeProjectManifest(ProjectManifest manifest) {
   final tileSize = manifest.settings.tileWidth;
   return manifest.copyWith(
     elements: [
@@ -248,10 +307,7 @@ MapData _decodeValidateAndComposeMapData(
 ) {
   final raw = jsonDecode(text) as Map<String, dynamic>;
   final map = MapData.fromJson(raw);
-  MapValidator.validate(
-    map,
-    projectDialogueContext: projectDialogueContext,
-  );
+  MapValidator.validate(map, projectDialogueContext: projectDialogueContext);
   final visualComposition = buildMapVisualCompositionPlan(map);
   if (!visualComposition.canCompose) {
     final details = visualComposition.diagnostics
@@ -312,7 +368,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   final mapPath = p.normalize(p.join(projectRoot, rel));
   progressSink?.call(RuntimeMapBundleLoadStage.mapResolution);
   _runtimeLoaderLog(
-      'bundle map resolved mapId=$mapId relativePath=$rel mapPath=$mapPath');
+    'bundle map resolved mapId=$mapId relativePath=$rel mapPath=$mapPath',
+  );
   final mapWatch = Stopwatch()..start();
   final map = await loadMapDataFromFile(
     mapPath,
@@ -335,10 +392,10 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   );
   final characterAnimationPreloadPlan =
       buildCharacterAnimationSourcePreloadPlan(
-    manifest: manifest,
-    projectRootDirectory: projectRoot,
-    assetCatalog: assetCatalog,
-  );
+        manifest: manifest,
+        projectRootDirectory: projectRoot,
+        assetCatalog: assetCatalog,
+      );
   for (final diagnostic in characterAnimationPreloadPlan.diagnostics) {
     _runtimeLoaderLog(
       'character animation source unavailable character=${diagnostic.characterId} '
@@ -349,7 +406,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   progressSink?.call(RuntimeMapBundleLoadStage.tilesets);
   for (final entry in paths.entries) {
     _runtimeLoaderLog(
-        'bundle tileset path id=${entry.key} path=${entry.value}');
+      'bundle tileset path id=${entry.key} path=${entry.value}',
+    );
   }
   _runtimeLoaderLog(
     'bundle load ok mapId=${map.id} projectRoot=$projectRoot tilesets=${paths.length}',

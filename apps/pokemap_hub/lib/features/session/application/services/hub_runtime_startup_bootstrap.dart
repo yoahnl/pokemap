@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
@@ -212,10 +210,8 @@ final class HubRuntimeStartupBootstrap
 
       final projectFile = await launch.assets.resolveReference(launch.project);
       lifetime?.ensureActive();
-      final projectText = await projectFile.readAsString();
-      lifetime?.ensureActive();
-      final installedProject = await Isolate.run(
-        () => _parseInstalledProject(projectText),
+      final installedProject = await loadProjectManifestFromFile(
+        projectFile.path,
       );
       lifetime?.ensureActive();
       final spatial =
@@ -349,14 +345,6 @@ final class HubRuntimeStartupBootstrap
       );
     }
   }
-}
-
-ProjectManifest _parseInstalledProject(String text) {
-  final projectJson = jsonDecode(text);
-  if (projectJson is! Map<String, dynamic>) {
-    throw const FormatException('Installed project must be an object.');
-  }
-  return ProjectManifest.fromJson(projectJson);
 }
 
 bool _referencesPresentationMedia(ProjectManifest project) {

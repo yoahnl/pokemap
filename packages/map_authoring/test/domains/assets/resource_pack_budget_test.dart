@@ -10,15 +10,20 @@ import 'resource_pack_export_test.dart' as source;
 import 'resource_pack_import_fixture.dart';
 
 void main() {
-  test('project measurements preserve actual bytes and unknown raw fields', () async {
-    final raw = {'name': 'Été', 'rawExtension': ['x' * 5000]};
+  test('project measurements preserve actual bytes and unknown raw fields',
+      () async {
+    final raw = {
+      'name': 'Été',
+      'rawExtension': ['x' * 5000]
+    };
     final bytes = utf8.encode(const JsonEncoder.withIndent('  ').convert(raw));
     final report = await measureProjectDocumentBudget(bytes,
         scope: 'mergedProjectDistribution');
-    expect(report.totals['catalogBytes'], bytes.length);
-    expect(report.totals['jsonNodes'], 4);
-    expect(report.totals['jsonDepth'], 2);
-    expect(report.totals['catalogBytes'], greaterThan(5000));
+    expect(report.totals['sourceDocumentBytes'], bytes.length);
+    expect(report.totals['catalogBytes'], isNull);
+    expect(report.totals['sourceDocumentJsonValues'], 4);
+    expect(report.totals['sourceDocumentJsonDepth'], 2);
+    expect(report.totals['sourceDocumentBytes'], greaterThan(5000));
     expect(report.totals['files'], isNull);
     expect(report.totals['payloadBytes'], isNull);
     expect(report.totals['imagePixels'], isNull);
@@ -26,7 +31,32 @@ void main() {
     expect(jsonDecode(utf8.decode(bytes)), raw);
   });
 
-  test('import preview measures the real merged document without applying it', () async {
+  test('merged catalog beyond 32 MiB uses partitioned physical quotas',
+      () async {
+    final project = ProjectManifest(
+        name: 'Large catalog',
+        maps: [],
+        tilesets: [],
+        elementCategories: [
+          for (var i = 0; i < 40; i++)
+            ProjectElementCategory(id: 'category_$i', name: 'a' * 900000)
+        ]);
+    final bytes = utf8.encode(jsonEncode(project.toJson()));
+    expect(bytes.length, greaterThan(32 * 1024 * 1024));
+    final report = await measureProjectDocumentBudget(bytes,
+        scope: 'mergedProjectDistribution');
+    expect(report.accepted, isTrue);
+    final canonical =
+        CatalogBudgetCalculator().measureProjectJson(project.toJson());
+    expect(report.totals['catalogBytes'], canonical.totals['catalogBytes']);
+    expect(
+        report.metrics.any((metric) => metric.dimension == 'catalogUnitBytes'),
+        isTrue);
+    expect(report.unknownDimensions, contains('fileInventory'));
+  });
+
+  test('import preview measures the real merged document without applying it',
+      () async {
     final fixture = await ResourcePackImportFixture.create();
     try {
       final raw = {
@@ -41,9 +71,11 @@ void main() {
       expect(report['scope'], 'mergedProjectDistribution');
       expect((report['totals'] as Map)['catalogBytes'],
           greaterThan(fixture.snapshot.resourceBytes('project').length));
-      expect(prepared.review.summary['budgetAdmission'], 'gameDistributionOnly');
+      expect(
+          prepared.review.summary['budgetAdmission'], 'gameDistributionOnly');
       expect(fixture.snapshot.revision, before);
-      expect(jsonDecode(utf8.decode(fixture.snapshot.resourceBytes('project'))), raw);
+      expect(jsonDecode(utf8.decode(fixture.snapshot.resourceBytes('project'))),
+          raw);
     } finally {
       await fixture.dispose();
     }
@@ -72,7 +104,8 @@ void main() {
     final report = await builder.measureNativeSelection(
       manifest: manifest,
       roots: [
-        NativeResourcePackRef(kind: ResourcePackKind.smartTilePreset, id: 'sol'),
+        NativeResourcePackRef(
+            kind: ResourcePackKind.smartTilePreset, id: 'sol'),
       ],
       files: [descriptor],
     );

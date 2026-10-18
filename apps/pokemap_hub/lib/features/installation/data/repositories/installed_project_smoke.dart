@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -16,11 +14,7 @@ Future<void> loadInstalledProjectSmoke(
   final projectFile = File(
     p.join(stagedVersionRoot.path, 'project', 'project.json'),
   );
-  final decoded = jsonDecode(await projectFile.readAsString());
-  if (decoded is! Map<String, dynamic>) {
-    throw const FormatException('Installed project manifest is invalid.');
-  }
-  final project = ProjectManifest.fromJson(decoded);
+  final project = await loadProjectManifestFromFile(projectFile.path);
   final mapId = project.newGame.enabled
       ? project.newGame.startMapId
       : project.maps.firstOrNull?.id;

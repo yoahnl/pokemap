@@ -33,7 +33,7 @@ final class ResourcePackManifestCodec {
         source,
         path: 'manifest.json',
         maxDepth: policy.maxJsonDepth,
-        maxNodes: policy.maxJsonNodes,
+        maxNodes: policy.maxJsonNodes < 1000000 ? policy.maxJsonNodes : 1000000,
         duplicateCode: 'resource_pack.json_duplicate_key',
       );
     } on GamePackageFormatException catch (error) {

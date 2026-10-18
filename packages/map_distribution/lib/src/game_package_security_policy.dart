@@ -10,6 +10,8 @@ final class GamePackageSecurityPolicy {
     int maxFileBytes = maxFileBytesV1,
     int maxTotalPayloadBytes = maxTotalPayloadBytesV1,
     int maxJsonBytes = maxJsonBytesV1,
+    int maxCatalogBytes = 134217728,
+    int maxCatalogJsonValues = 8000000,
     int maxImageDimension = maxImageDimensionV1,
     int maxImagePixels = maxImagePixelsV1,
     int maxMediaHeaderBytes = maxMediaHeaderBytesV1,
@@ -24,6 +26,8 @@ final class GamePackageSecurityPolicy {
         _maxFileBytes = maxFileBytes,
         _maxTotalPayloadBytes = maxTotalPayloadBytes,
         _maxJsonBytes = maxJsonBytes,
+        _maxCatalogBytes = maxCatalogBytes,
+        _maxCatalogJsonValues = maxCatalogJsonValues,
         _maxImageDimension = maxImageDimension,
         _maxImagePixels = maxImagePixels,
         _maxMediaHeaderBytes = maxMediaHeaderBytes,
@@ -34,8 +38,8 @@ final class GamePackageSecurityPolicy {
         _maxProjectHierarchyDepth = maxProjectHierarchyDepth;
 
   static const int maxArchiveBytesV1 = 1073741824;
-  static const int maxManifestBytesV1 = 4194304;
-  static const int maxPayloadEntriesV1 = 20000;
+  static const int maxManifestBytesV1 = 33554432;
+  static const int maxPayloadEntriesV1 = 64999;
   static const int maxFileBytesV1 = 268435456;
   static const int maxTotalPayloadBytesV1 = 1073741824;
   static const int maxJsonBytesV1 = 33554432;
@@ -56,6 +60,8 @@ final class GamePackageSecurityPolicy {
   final int _maxFileBytes;
   final int _maxTotalPayloadBytes;
   final int _maxJsonBytes;
+  final int _maxCatalogBytes;
+  final int _maxCatalogJsonValues;
   final int _maxImageDimension;
   final int _maxImagePixels;
   final int _maxMediaHeaderBytes;
@@ -73,6 +79,8 @@ final class GamePackageSecurityPolicy {
   int get maxFileBytes => _lower(_maxFileBytes, maxFileBytesV1);
   int get maxTotalPayloadBytes =>
       _lower(_maxTotalPayloadBytes, maxTotalPayloadBytesV1);
+  int get maxCatalogBytes => _lower(_maxCatalogBytes, 134217728);
+  int get maxCatalogJsonValues => _lower(_maxCatalogJsonValues, 8000000);
   int get maxJsonBytes => _lower(_maxJsonBytes, maxJsonBytesV1);
   int get maxImageDimension => _lower(_maxImageDimension, maxImageDimensionV1);
   int get maxImagePixels => _lower(_maxImagePixels, maxImagePixelsV1);

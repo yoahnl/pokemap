@@ -222,6 +222,13 @@ final class ResourcePackInventoryFile extends _PackJsonValue {
       }
       return;
     }
+    if (RegExp(r'^catalog/objects/[a-f0-9]{64}\.json$').hasMatch(path)) {
+      if (path != 'catalog/objects/${this.rawSha256}.json' ||
+          mediaType != 'application/json') {
+        throw const FormatException('Catalog object path or MIME is invalid');
+      }
+      return;
+    }
     final match = RegExp(
       r'^(blobs|licenses|previews)/([a-f0-9]{64})\.(png|glb|txt)$',
     ).firstMatch(path);
@@ -351,7 +358,7 @@ final class ResourcePackManifest extends _PackJsonValue {
   }
 
   static const format = 'avelune.asset-pack';
-  static const currentFormatVersion = 1;
+  static const currentFormatVersion = 2;
   static const extension = '.aveluneassets';
   static const mediaType = 'application/vnd.avelune.asset-pack+zip';
 

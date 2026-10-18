@@ -11,7 +11,7 @@ import 'package:map_distribution/src/resource_pack_security_policy.dart';
 
 Map<String, Object?> _manifest() => {
       'format': 'avelune.asset-pack',
-      'formatVersion': 1,
+      'formatVersion': 2,
       'pack': {
         'id': 'original.workshop',
         'version': '1.0.0',
@@ -24,7 +24,8 @@ Map<String, Object?> _manifest() => {
       'compatibility': {
         'resourceLibraryCatalogVersion': 2,
         'smartTileCatalogVersion': 7,
-        'borderCatalogVersion': 10,
+        'borderCatalogVersion':
+            ProjectBorderCatalog.latestSupportedFormatVersion,
         'requiredCapabilities': ['images.png'],
         'tileWidth': 32,
         'tileHeight': 32,
@@ -68,8 +69,8 @@ void main() {
         () => codec.decodeUtf8([0xff]), _failure('resource_pack.invalid_utf8'));
     final valid = jsonEncode(_manifest());
     final duplicate = valid.replaceFirst(
-      '"formatVersion":1',
-      '"formatVersion":1,"formatVersion":1',
+      '"formatVersion":2',
+      '"formatVersion":2,"formatVersion":2',
     );
     expect(
       () => codec.decodeUtf8(utf8.encode(duplicate)),
@@ -83,6 +84,7 @@ void main() {
 
   test('refuses unknown fields and incompatible native versions', () {
     for (final json in [
+      {..._manifest(), 'formatVersion': 1},
       {..._manifest(), 'maps': []},
       {
         ..._manifest(),
@@ -315,10 +317,10 @@ void main() {
       maxUnreferencedAge: Duration(days: 90),
     );
     expect(policy.maxArchiveBytes, 512 * 1024 * 1024);
-    expect(policy.maxZipEntries, 20000);
+    expect(policy.maxZipEntries, 65000);
     expect(policy.maxChunkBytes, 1024 * 1024);
     expect(policy.maxJsonDepth, 128);
-    expect(policy.maxJsonNodes, 1000000);
+    expect(policy.maxJsonNodes, 8000000);
     expect(policy.maxUnreferencedAge, const Duration(hours: 24));
     expect(
         () => const ResourcePackSecurityPolicy(maxChunkBytes: 0).maxChunkBytes,

@@ -29,12 +29,17 @@ void main() {
     final inspection =
         const ResourcePackInspector().inspectSourceSync(_Source(archive));
     final report = inspection.budgetReport!;
-    final raw = utf8.encode(const JsonEncoder.withIndent('  ').convert(json));
-    final nodes = const CatalogBudgetCalculator()
-        .measureJsonDocument(json, scope: 'raw')
-        .totals['jsonNodes'];
-    expect(report.totals['catalogBytes'], raw.length);
-    expect(report.totals['jsonNodes'], nodes);
+    final publication =
+        PortableCatalogPublication.encodeCatalog(inspection.catalog);
+    final physicalBytes = utf8
+            .encode(const JsonEncoder.withIndent('  ')
+                .convert(publication.descriptor))
+            .length +
+        publication.storage.objects.values.fold<int>(0, (a, b) => a + b.length);
+    final expected =
+        CatalogBudgetCalculator().measureResourcePack(inspection.catalog);
+    expect(report.totals['catalogBytes'], physicalBytes);
+    expect(report.totals['jsonNodes'], expected.totals['jsonNodes']);
     expect(report.totals['files'], inspection.manifest.content.files.length);
     expect(report.totals['referencedFiles'], 1);
     expect(report.totals['imagePixels'], 256);
@@ -92,17 +97,15 @@ void main() {
     expect(() => result.imageDimensions.clear(), throwsUnsupportedError);
   });
 
-  test('cyclic hierarchy preserves legacy failfast hierarchy code', () async {
+  test('cyclic hierarchy is refused before publication', () async {
     final fixture = _fixture();
     final json = fixture.catalog.toJson();
     json['tilesetFolders'] = [
       {'id': 'a', 'name': 'A', 'parentFolderId': 'b', 'sortOrder': 0},
       {'id': 'b', 'name': 'B', 'parentFolderId': 'a', 'sortOrder': 0},
     ];
-    final error = await _failure(() => const ResourcePackInspector()
-        .inspectSourceSync(_Source(_archiveFor(fixture, json: json))));
-    expect(error.code, 'resource_pack.hierarchy_limit');
-    expect(error.details, isNull);
+    expect(() => _archiveFor(fixture, json: json),
+        throwsA(isA<ResourcePackDependencyException>()));
   });
 
   test('format exception keeps default contract and snapshots optional details',
@@ -163,7 +166,9 @@ void main() {
   test('file and payload refusals retain all known catalog quota violations',
       () async {
     final fixture = _fixture();
-    final bytes = CanonicalJson.encodeUtf8(fixture.catalog.toJson()).length;
+    final bytes = CatalogBudgetCalculator()
+        .measureResourcePack(fixture.catalog)
+        .totals['catalogBytes']!;
     final pngBytes = fixture.payload.values.first.length;
     final policy = ResourcePackSecurityPolicy(
         maxResources: 1,
@@ -192,7 +197,10 @@ void main() {
     expect(
         _dimensions(
             inspectorError.details!['budgetReport'] as Map<String, Object?>),
-        containsAll(['fileBytes', 'payloadBytes', 'resources', 'supports']));
+        containsAll(['fileBytes', 'payloadBytes']));
+    expect(
+        (inspectorError.details!['budgetReport'] as Map)['unknownDimensions'],
+        containsAll(['resources', 'supports']));
   });
 
   test(
@@ -272,7 +280,9 @@ void main() {
     final fixture = _fixture();
     final sink = _Sink();
     await _build(fixture, sink);
-    final bytes = CanonicalJson.encodeUtf8(fixture.catalog.toJson()).length;
+    final bytes = CatalogBudgetCalculator()
+        .measureResourcePack(fixture.catalog)
+        .totals['catalogBytes']!;
     final error = await _failure(() => ResourcePackInspector(
             policy: ResourcePackSecurityPolicy(maxCatalogBytes: bytes - 1))
         .inspectSourceSync(_Source(sink.bytes)));
@@ -300,16 +310,26 @@ void main() {
 
 Uint8List _archiveFor(_Fixture fixture,
     {Map<String, Object?>? json, String? rawSha256, bool prettyJson = false}) {
+  final publication = PortableCatalogPublication.encodeCatalog(
+      ResourcePackCatalog.fromJson(json ?? fixture.catalog.toJson()));
   final catalog = prettyJson
-      ? Uint8List.fromList(utf8.encode(const JsonEncoder.withIndent('  ')
-          .convert(json ?? fixture.catalog.toJson())))
-      : CanonicalJson.encodeUtf8(json ?? fixture.catalog.toJson());
+      ? Uint8List.fromList(utf8.encode(
+          const JsonEncoder.withIndent('  ').convert(publication.descriptor)))
+      : CanonicalJson.encodeUtf8(publication.descriptor);
   final file = ResourcePackInventoryFile(
       path: 'catalog.json',
       byteLength: catalog.length,
       mediaType: 'application/json',
       rawSha256: rawSha256 ?? sha256.convert(catalog).toString());
-  final inventory = fixture.sources.map((s) => s.inventory).toList();
+  final inventory = [
+    ...fixture.sources.map((s) => s.inventory),
+    for (final object in publication.storage.objects.entries)
+      ResourcePackInventoryFile(
+          path: 'catalog/objects/${object.key}.json',
+          byteLength: object.value.length,
+          mediaType: 'application/json',
+          rawSha256: object.key),
+  ];
   final manifest = ResourcePackManifest(
       pack: _metadata,
       compatibility: ResourcePackCompatibility(
@@ -331,6 +351,8 @@ Uint8List _archiveFor(_Fixture fixture,
     MapEntry('manifest.json',
         const ResourcePackManifestCodec().encodeUtf8(manifest)),
     ...fixture.payload.entries,
+    ...publication.storage.objects.entries
+        .map((e) => MapEntry('catalog/objects/${e.key}.json', e.value)),
   ]..sort((a, b) => a.key.compareTo(b.key)));
 }
 

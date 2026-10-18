@@ -13,9 +13,9 @@ void main() {
       CatalogBudgetFile(
           path: 'previews/a.png', byteLength: 4, imageWidth: 1, imageHeight: 1)
     ]);
-    expect(report.totals['files'], 2);
+    expect(report.totals['files'], 2 + report.totals['catalogObjects']!);
     expect(report.totals['referencedFiles'], 0);
-    expect(report.totals['zipEntries'], 4);
+    expect(report.totals['zipEntries'], 4 + report.totals['catalogObjects']!);
   });
 
   test('minimal bounded summary handles long Unicode scopes within exact bytes',
@@ -56,7 +56,7 @@ void main() {
         lessThanOrEqualTo(200 * 1024));
     expect(bounded['truncated'], isTrue);
     expect(bounded['metricCount'], report.metrics.length);
-    expect(bounded['violationCount'], 20001);
+    expect(bounded['violationCount'], 20000);
     expect(bounded['accepted'], report.accepted);
     final grouped = (bounded['metrics'] as List).cast<Map<String, Object?>>();
     final fileMetric =
@@ -119,7 +119,20 @@ void main() {
       'resource pack metadata quotas accept exact bounds and collect every excess',
       () {
     final catalog = ResourcePackCatalog();
-    final bytes = CanonicalJson.encodeUtf8(catalog.toJson()).length;
+    final bytes = CatalogBudgetCalculator()
+        .measureResourcePack(catalog)
+        .totals['catalogBytes']!;
+    final objects = PortableCatalogPublication.encodeCatalog(catalog)
+        .storage
+        .objects
+        .length;
+    final maximumCatalogFileBytes =
+        PortableCatalogPublication.encodeCatalog(catalog)
+            .storage
+            .objects
+            .values
+            .map((bytes) => bytes.length)
+            .reduce((a, b) => a > b ? a : b);
     const files = [
       CatalogBudgetFile(
           path: 'previews/a.png',
@@ -137,10 +150,10 @@ void main() {
     final exact = CatalogBudgetCalculator(
             resourcePackPolicy: ResourcePackSecurityPolicy(
                 maxTotalPayloadBytes: bytes + 8,
-                maxFileBytes: 4,
+                maxFileBytes: maximumCatalogFileBytes,
                 maxPreviewBytes: 4,
                 maxPreviewFiles: 2,
-                maxZipEntries: 4,
+                maxZipEntries: 4 + objects,
                 maxImageDimension: 2,
                 maxImagePixels: 4,
                 maxArchiveBytes: 2,
@@ -158,7 +171,7 @@ void main() {
                 maxFileBytes: 3,
                 maxPreviewBytes: 3,
                 maxPreviewFiles: 1,
-                maxZipEntries: 3,
+                maxZipEntries: 3 + objects,
                 maxImageDimension: 1,
                 maxImagePixels: 3,
                 maxArchiveBytes: 1,
@@ -300,8 +313,12 @@ void main() {
     final report = const CatalogBudgetCalculator().measureResourcePack(catalog);
     expect(report.totals['resources'], 0);
     expect(report.totals['supports'], 0);
-    expect(report.totals['catalogBytes'],
-        CanonicalJson.encodeUtf8(catalog.toJson()).length);
+    final publication = PortableCatalogPublication.encodeCatalog(catalog);
+    expect(
+        report.totals['catalogBytes'],
+        CanonicalJson.encodeUtf8(publication.descriptor).length +
+            publication.storage.objects.values
+                .fold<int>(0, (sum, bytes) => sum + bytes.length));
     expect(report.totals['graphNodes'], greaterThan(0));
   });
 

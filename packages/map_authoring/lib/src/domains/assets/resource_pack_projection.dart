@@ -12,6 +12,7 @@ import '../../ports/file_backed_payload_store.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../infrastructure/local_resource_pack_store.dart';
 import 'resource_pack_native_remapper.dart';
+import 'resource_pack_dynamic_remapping.dart';
 import 'resource_pack_border_sources.dart';
 import '../maps/canonical_border_ground_composer.dart';
 
@@ -357,6 +358,16 @@ final class _Projection {
   final Set<String> removed = {};
   final List<NativeResourcePackRef> promoted = [];
   final List<Map<String, dynamic>> classifications = [];
+  late final Map<String, CatalogDynamicDependency> dynamicDeclarations = () {
+    final declarations = <String, CatalogDynamicDependency>{};
+    for (final declaration
+        in PortableCatalogPublication.projectDynamicDependencies(manifest)) {
+      final key = resourcePackDynamicNativeKey(declaration.owner);
+      if (declarations.containsKey(key)) _fail('dynamic_duplicate', key);
+      declarations[key] = declaration;
+    }
+    return declarations;
+  }();
   int _resourceCount = 0;
   int _supportCount = 0;
   int _fileCount = 0;
@@ -404,6 +415,10 @@ final class _Projection {
         _field(classification, 'familyId', 'resourceFamily');
         classifications.add(classification);
       }
+    }
+    for (final target in dynamicDeclarations[key]?.targets ??
+        const <CatalogDefinitionKey>[]) {
+      remapResourcePackDynamicKey(target, reference);
     }
     active.remove(key);
     completed[key] = value;
@@ -537,6 +552,13 @@ final class _Projection {
       },
       removed: removed.add);
 
+  String _portableDynamicReference(String kind, String id, [String? owner]) {
+    final mapped = reference(kind, id, owner);
+    if (kind != 'borderSnapshot') return mapped;
+    return resourcePackBorderSnapshotAlias(
+        nodes[_key(kind, id, owner)]!.value['contentFingerprint'] as String);
+  }
+
   Map<String, Object?> catalogJson(List<ResourcePackFileBinding> bindings,
       List<ResourcePackProvenance> provenance) {
     List<Map<String, dynamic>> entries(String kind) => [
@@ -544,6 +566,13 @@ final class _Projection {
             if (nodes[key]!.kind == kind) completed[key]!
         ];
     return {
+      'dynamicDependencies': [
+        for (final declaration in dynamicDeclarations.entries)
+          if (completed.containsKey(declaration.key))
+            remapResourcePackDynamicDependency(
+                    declaration.value, _portableDynamicReference)
+                .toJson(),
+      ],
       'tilesets': entries('tileset'),
       'elements': entries('element'),
       'models3d': entries('model3d'),

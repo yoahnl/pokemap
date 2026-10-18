@@ -10,6 +10,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import '../../../../map_distribution/test/support/spatial_package_fixture.dart'
+    as spatial_fixture;
 
 void main() {
   test(
@@ -47,10 +49,69 @@ void main() {
         ZipDecoder().decodeBytes(await output.readAsBytes(), verify: true);
     expect(archive.files.where((entry) => entry.name.contains('.pokemap')),
         isEmpty);
+    final descriptor = jsonDecode(
+            utf8.decode(archive.findFile('project/project.json')!.content))
+        as Map<String, dynamic>;
+    expect(descriptor['format'], 'avelune.portable-catalog');
+    expect(descriptor['version'], 2);
+    expect(descriptor['kind'], 'project');
+    final exported = PortableCatalogPublication.decodeProjectSync(descriptor,
+        readObject: (ref) => archive
+            .findFile('project/${PortableCatalogPublication.objectPath(ref)}')!
+            .content);
+    final original = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(projectBytes)) as Map<String, dynamic>);
+    expect(exported.name, original.name);
+    expect(
+        exported.maps.map((map) => map.id), original.maps.map((map) => map.id));
+    final inspected =
+        GamePackageInspector().inspect(await output.readAsBytes());
+    expect(inspected.manifest.compatibility.requiredCapabilities,
+        contains('catalog.partitioned@2'));
+
     expect(await File(p.join(root.path, 'project.json')).readAsBytes(),
         projectBytes);
     expect((await profiles.read(projectRoot: root.path)).profile, candidate);
   });
+  test('canonical spatial localTest exports a partitioned native project',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('canonical-spatial-export-');
+    addTearDown(() => root.delete(recursive: true));
+    final source = spatial_fixture.spatialPayload();
+    for (final entry in source.entries) {
+      final file =
+          File(p.join(root.path, entry.key.substring('project/'.length)));
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(entry.value);
+    }
+    final artifact = await CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(artifact.manifest.compatibility.requiredCapabilities,
+        containsAll(['catalog.partitioned@2', 'map3d@1']));
+    final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
+    final descriptor = jsonDecode(
+            utf8.decode(archive.findFile('project/project.json')!.content))
+        as Map<String, dynamic>;
+    expect(descriptor['version'], 2);
+    final project = PortableCatalogPublication.decodeProjectSync(descriptor,
+        readObject: (ref) => archive
+            .findFile('project/${PortableCatalogPublication.objectPath(ref)}')!
+            .content);
+    expect(project.settings.dimension, ProjectDimension.threeD);
+    expect(project.models3d.single.id, 'model');
+    expect(archive.findFile('project/assets/models3d/model.glb')!.content,
+        source['project/assets/models3d/model.glb']);
+    final reexport =
+        GamePackageBuilder().build(manifest: artifact.manifest, payloadFiles: {
+      for (final file in archive.files)
+        if (file.name != 'game-manifest.json') file.name: file.content
+    });
+    expect(reexport.packageBytes, artifact.packageBytes);
+  });
+
   test('exports provisioned capture sprites and their exact project reference',
       () async {
     final projectRoot = await _createPlayableProject();

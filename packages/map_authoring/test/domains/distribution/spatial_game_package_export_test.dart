@@ -202,9 +202,7 @@ void main() {
           'map3d.story@1'
         ]));
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
-    final exported = ProjectManifest.fromJson(jsonDecode(
-            utf8.decode(archive.findFile('project/project.json')!.content))
-        as Map<String, dynamic>);
+    final exported = _publishedProject(archive);
     final command =
         (exported.scenes.single.graph.nodes[1].payload as SceneActionPayload)
             .interactiveCommand as ScenePlayModelAnimationInteractiveCommand;
@@ -249,8 +247,7 @@ void main() {
         isNot(contains('map@1')));
     expect(artifact.manifest.compatibility.projectFormat, 'v9');
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
-    final project = jsonDecode(
-        utf8.decode(archive.findFile('project/project.json')!.content));
+    final project = _publishedProject(archive).toJson();
     final exportedMap = jsonDecode(utf8.decode(archive
         .findFile('project/${manifest.maps.first.relativePath}')!
         .content));
@@ -381,3 +378,12 @@ final class _FileSource implements RandomAccessPackageSource {
     return file.readSync(length);
   }
 }
+
+ProjectManifest _publishedProject(Archive archive) =>
+    PortableCatalogPublication.decodeProjectSync(
+        jsonDecode(
+                utf8.decode(archive.findFile('project/project.json')!.content))
+            as Map<String, dynamic>,
+        readObject: (ref) => archive
+            .findFile('project/${PortableCatalogPublication.objectPath(ref)}')!
+            .content);

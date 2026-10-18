@@ -27,8 +27,39 @@ final class GamePackageProjectValidator {
       if (decoded is! Map<String, dynamic>) {
         _fail('Project manifest must be a JSON object.');
       }
-      _validateComplexity(decoded);
-      final project = ProjectManifest.fromJson(decoded);
+      if (!packageManifest.compatibility.requiredCapabilities
+          .contains('catalog.partitioned@2')) {
+        _fail('Partitioned catalog capability is required.');
+      }
+      if (readPayload == null) _fail('Catalog object reader is required.');
+      final consumed = <String>{};
+      var catalogBytes = projectBytes.length;
+      var catalogValues = _jsonValues(decoded);
+      final project = PortableCatalogPublication.decodeProjectSync(decoded,
+          limits: CatalogStorageLimits(maxStoredBytes: policy.maxCatalogBytes),
+          readObject: (reference) {
+        final path =
+            'project/${PortableCatalogPublication.objectPath(reference)}';
+        final bytes = readPayload(path);
+        if (bytes == null) _fail('Missing catalog object.');
+        if (consumed.add(path)) {
+          catalogBytes += bytes.length;
+          catalogValues += _jsonValues(jsonDecode(utf8.decode(bytes)));
+          if (catalogBytes > policy.maxCatalogBytes ||
+              catalogValues > policy.maxCatalogJsonValues) {
+            _complexityFail('Partitioned catalog exceeds its global quota.');
+          }
+        }
+        return bytes;
+      });
+      final objectPaths = payloadPaths
+          .where((path) => path.startsWith('project/catalog/objects/'))
+          .toSet();
+      if (objectPaths.length != consumed.length ||
+          !objectPaths.containsAll(consumed)) {
+        _fail('Unreachable catalog objects are forbidden.');
+      }
+      _validateComplexity(project.toJson());
       ProjectValidator.validate(project);
       if (project.version.name != packageManifest.compatibility.projectFormat) {
         throw GamePackageFormatException(
@@ -67,9 +98,6 @@ final class GamePackageProjectValidator {
         _fail('Project dimension and map capability do not match.');
       }
       if (spatial) {
-        if (readPayload == null) {
-          _fail('Spatial project payload validation is required.');
-        }
         GamePackageSpatialProjectValidator(policy: policy, gameplay: gameplay)
             .validate(project, readPayload);
         if (SpatialGameplayCapabilities.requiresStory(project) &&
@@ -92,9 +120,11 @@ final class GamePackageProjectValidator {
         if (maps.any((map) => !map.spatialScene!.generateCliffs) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains('map3d.terrain-appearance@1')) {
-          _fail('Custom 3D terrain appearance requires map3d.terrain-appearance@1.');
+          _fail(
+              'Custom 3D terrain appearance requires map3d.terrain-appearance@1.');
         }
-        if (maps.any((map) => map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty) &&
+        if (maps.any((map) =>
+                map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialTerrainSurfaceSet.capabilityId)) {
           _fail('Continuous 3D terrain requires map3d.terrain-surfaces@1.');
@@ -106,6 +136,18 @@ final class GamePackageProjectValidator {
     } on Object {
       _fail('Project manifest failed its pure validation preflight.');
     }
+  }
+
+  int _jsonValues(Object? value) {
+    var count = 0;
+    final pending = <Object?>[value];
+    while (pending.isNotEmpty) {
+      final item = pending.removeLast();
+      count++;
+      if (item is Map) pending.addAll(item.values);
+      if (item is List) pending.addAll(item);
+    }
+    return count;
   }
 
   void _validateComplexity(Map<String, dynamic> json) {

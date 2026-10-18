@@ -89,7 +89,7 @@ test("pack MCP full transfer, scoped query and real resources/read", { timeout: 
         const snapshot = record(status.snapshot);
         assert.notEqual(snapshot.state, "failed", JSON.stringify(status));
         if (snapshot.state === "succeeded") return record(status.result);
-        await new Promise((done) => setTimeout(done, 2));
+        await new Promise((done) => setTimeout(done, 250));
       }
       throw new Error("Pack job did not finish.");
     }

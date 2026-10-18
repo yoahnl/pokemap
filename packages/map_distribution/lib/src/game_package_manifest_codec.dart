@@ -131,7 +131,7 @@ final class GamePackageManifestCodec {
         source,
         path: r'$',
         maxDepth: 32,
-        maxNodes: 200000,
+        maxNodes: 1000000,
         duplicateCode: 'nonCanonicalManifest',
       );
       decoded = jsonDecode(source);
@@ -2343,11 +2343,11 @@ final class GamePackageManifestCodec {
       _fail('invalidSha256', '$path.treeSha256', 'Invalid SHA-256 digest.');
     }
     final fileValues = _list(json['files'], '$path.files');
-    if (fileValues.isEmpty || fileValues.length > 20000) {
+    if (fileValues.isEmpty || fileValues.length > 64999) {
       _fail(
         'invalidFileCount',
         '$path.files',
-        'Between 1 and 20000 payload files are required.',
+        'Between 1 and 64999 payload files are required.',
       );
     }
     final files = <GamePackageFileEntry>[];

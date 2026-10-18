@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../catalog_storage/catalog_storage.dart';
+
 import '../models/environment.dart';
 import '../models/project_tileset_source.dart';
 import '../models/resource_pack.dart';
@@ -115,11 +117,37 @@ final class ResourcePackDependencyGraph {
       _nodes[node.reference] = node;
     }
   }
-  factory ResourcePackDependencyGraph.fromCatalog(
-    ResourcePackCatalog catalog,
-  ) => ResourcePackDependencyGraph(
-    nodes: ResourcePackReferenceVisitor(catalog).nodes(),
-  );
+  factory ResourcePackDependencyGraph.fromCatalog(ResourcePackCatalog catalog) {
+    final nodes = ResourcePackReferenceVisitor(catalog).nodes();
+    final byReference = {for (final node in nodes) node.reference: node};
+    final declarations = <ResourcePackNodeRef, Set<ResourcePackNodeRef>>{};
+    for (final declaration in catalog.dynamicDependencies) {
+      final owner = resourcePackNodeForCatalogKey(declaration.owner);
+      final targets = declaration.targets
+          .map(resourcePackNodeForCatalogKey)
+          .toSet();
+      if (declarations.containsKey(owner) ||
+          !byReference.containsKey(owner) ||
+          targets.any((target) => !byReference.containsKey(target))) {
+        throw const FormatException(
+          'catalog.dynamic: duplicate declaration, missing owner or target',
+        );
+      }
+      declarations[owner] = targets;
+    }
+    return ResourcePackDependencyGraph(
+      nodes: [
+        for (final node in nodes)
+          ResourcePackDependencyNode(
+            reference: node.reference,
+            dependencies: [
+              ...node.dependencies,
+              ...?declarations[node.reference],
+            ],
+          ),
+      ],
+    );
+  }
   final Map<ResourcePackNodeRef, ResourcePackDependencyNode> _nodes;
   List<ResourcePackDependencyNode> get nodes =>
       List.unmodifiable(_nodes.values);
@@ -638,4 +666,74 @@ Set<String> smartTilePresetMaterialIds(ProjectSmartTilePreset preset) {
     );
   }
   return ids;
+}
+
+ResourcePackNodeRef resourcePackNodeForCatalogKey(CatalogDefinitionKey key) {
+  if (key.kind == CatalogDefinitionKind.fileBinding) {
+    return ResourcePackNodeRef.file(key.id);
+  }
+  final resourceKind = switch (key.kind) {
+    CatalogDefinitionKind.tileset => ResourcePackKind.tileset,
+    CatalogDefinitionKind.element => ResourcePackKind.element,
+    CatalogDefinitionKind.model3d => ResourcePackKind.model3d,
+    CatalogDefinitionKind.character => ResourcePackKind.character,
+    CatalogDefinitionKind.environmentPreset =>
+      ResourcePackKind.environmentPreset,
+    CatalogDefinitionKind.smartTilePreset => ResourcePackKind.smartTilePreset,
+    CatalogDefinitionKind.borderRecord => ResourcePackKind.borderBlueprint,
+    _ => null,
+  };
+  if (resourceKind != null) {
+    return ResourcePackNodeRef.resource(
+      ResourcePackRef(kind: resourceKind, id: key.id),
+    );
+  }
+  final supportKind = switch (key.kind) {
+    CatalogDefinitionKind.resourceFamily =>
+      ResourcePackSupportKind.resourceFamily,
+    CatalogDefinitionKind.elementCategory =>
+      ResourcePackSupportKind.elementCategory,
+    CatalogDefinitionKind.tilesetFolder =>
+      ResourcePackSupportKind.tilesetFolder,
+    CatalogDefinitionKind.smartTileMaterial =>
+      ResourcePackSupportKind.smartTileMaterial,
+    CatalogDefinitionKind.smartTileAtlas =>
+      ResourcePackSupportKind.smartTileAtlas,
+    CatalogDefinitionKind.smartTileAnimation =>
+      ResourcePackSupportKind.smartTileAnimation,
+    CatalogDefinitionKind.smartTileCategory =>
+      ResourcePackSupportKind.smartTileCategory,
+    CatalogDefinitionKind.smartTilePattern =>
+      ResourcePackSupportKind.smartTilePattern,
+    CatalogDefinitionKind.borderVisualSnapshot =>
+      ResourcePackSupportKind.borderSnapshot,
+    _ => null,
+  };
+  if (supportKind != null) {
+    return ResourcePackNodeRef.support(
+      ResourcePackSupportRef(kind: supportKind, id: key.id),
+    );
+  }
+  if (key.kind == CatalogDefinitionKind.characterStudioDefinition) {
+    final value = jsonDecode(key.id);
+    if (value is! List ||
+        value.length != 2 ||
+        value[1] is! String ||
+        !{
+          ResourcePackSupportKind.characterPortraitState.name,
+          ResourcePackSupportKind.characterAnimationDefinition.name,
+        }.contains(value[0]) ||
+        jsonEncode(value) != key.id) {
+      throw const FormatException(
+        'catalog.dynamic: invalid studio definition key',
+      );
+    }
+    return ResourcePackNodeRef.support(
+      ResourcePackSupportRef(
+        kind: ResourcePackSupportKind.values.byName(value[0] as String),
+        id: value[1] as String,
+      ),
+    );
+  }
+  throw const FormatException('catalog.dynamic: unsupported dependency kind');
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'dart:collection';
 
 import 'package:map_core/map_core.dart';
@@ -238,8 +240,10 @@ final class CatalogBudgetCalculator {
     final report =
         _BudgetBuilder(scope, maxBreakdownEntries, resourcePack: true);
     final json = catalog.toJson();
-    _json(report, json, policy.maxCatalogBytes, policy.maxJsonNodes,
-        policy.maxJsonDepth);
+    _publication(report, PortableCatalogPublication.encodeCatalog(catalog),
+        maxBytes: policy.maxCatalogBytes,
+        maxValues: policy.maxJsonNodes,
+        maxDepth: policy.maxJsonDepth);
     final graph = ResourcePackDependencyGraph.fromCatalog(catalog);
     final closure = graph.validateAll();
     final implicitFamilies = ResourceLibraryCatalog.predefinedFamilies
@@ -298,7 +302,8 @@ final class CatalogBudgetCalculator {
         binding.archivePath: CatalogBudgetFile(
             path: binding.archivePath, byteLength: binding.byteLength),
     };
-    for (final file in files) {
+    for (final file
+        in files.where((f) => !f.path.startsWith('catalog/objects/'))) {
       final previous = descriptors[file.path];
       if (previous?.byteLength != null &&
           file.byteLength != null &&
@@ -312,17 +317,24 @@ final class CatalogBudgetCalculator {
           imageHeight: file.imageHeight,
           isPreview: file.isPreview);
     }
-    report.total('files', descriptors.length, null);
+    report.total(
+        'files', descriptors.length + report.totals['catalogObjects']!, null);
     _files(report, descriptors.values, pack: true);
+    _includeCatalogFileBytes(report);
     report.optionalTotal('archiveBytes', archiveBytes, policy.maxArchiveBytes);
     report.optionalTotal(
         'manifestBytes', manifestBytes, policy.maxManifestBytes);
     report.optionalTotal('publishedFiles', null, policy.maxPublishedFiles);
-    report.total('zipEntries', descriptors.length + 2, policy.maxZipEntries);
+    report.total(
+        'zipEntries',
+        descriptors.length + report.totals['catalogObjects']! + 2,
+        policy.maxZipEntries);
     final fileBytes = report.totals['fileBytes'];
     report.optionalTotal(
         'payloadBytes',
-        fileBytes == null ? null : fileBytes + report.totals['catalogBytes']!,
+        fileBytes == null
+            ? null
+            : fileBytes + report.totals['catalogDescriptorBytes']!,
         policy.maxTotalPayloadBytes);
     return report.build();
   }
@@ -336,8 +348,22 @@ final class CatalogBudgetCalculator {
   }) {
     final policy = gamePackagePolicy;
     final report = _BudgetBuilder(scope, maxBreakdownEntries);
-    _json(report, projectJson, policy.maxJsonBytes, policy.maxJsonNodes,
-        policy.maxJsonDepth);
+    if (projectJson['version'] is String) {
+      _publication(
+          report,
+          PortableCatalogPublication.encodeProject(
+              ProjectManifest.fromJson(Map<String, dynamic>.from(projectJson))),
+          maxBytes: policy.maxCatalogBytes,
+          maxValues: policy.maxCatalogJsonValues,
+          maxDepth: policy.maxJsonDepth);
+    } else {
+      _json(report, projectJson, policy.maxJsonBytes, policy.maxJsonNodes,
+          policy.maxJsonDepth);
+      report.total('catalogObjects', 0, null);
+      report.total('catalogObjectBytes', 0, null);
+      report.total(
+          'catalogDescriptorBytes', report.totals['catalogBytes']!, null);
+    }
     var entries = 0;
     for (final field in _projectCollections) {
       final value = projectJson[field];
@@ -356,24 +382,85 @@ final class CatalogBudgetCalculator {
           policy.maxProjectHierarchyEntries,
           policy.maxProjectHierarchyDepth);
     }
-    final descriptors = files.toList();
+    final descriptors = files
+        .where((f) =>
+            !f.path.startsWith('project/catalog/objects/') &&
+            f.path != 'project/project.json')
+        .toList();
     if (descriptors.map((file) => file.path).toSet().length !=
         descriptors.length) {
       throw const FormatException('Chemin de fichier dupliqué.');
     }
     _files(report, descriptors, pack: false);
-    report.total('files', descriptors.length, null);
+    _includeCatalogFileBytes(report);
     report.total(
-        'payloadEntries', descriptors.length + 1, policy.maxPayloadEntries);
+        'files', descriptors.length + report.totals['catalogObjects']!, null);
+    report.total(
+        'payloadEntries',
+        descriptors.length + report.totals['catalogObjects']! + 1,
+        policy.maxPayloadEntries);
     report.optionalTotal('archiveBytes', archiveBytes, policy.maxArchiveBytes);
     report.optionalTotal(
         'manifestBytes', manifestBytes, policy.maxManifestBytes);
     final fileBytes = report.totals['fileBytes'];
     report.optionalTotal(
         'payloadBytes',
-        fileBytes == null ? null : fileBytes + report.totals['catalogBytes']!,
+        fileBytes == null
+            ? null
+            : fileBytes + report.totals['catalogDescriptorBytes']!,
         policy.maxTotalPayloadBytes);
     return report.build();
+  }
+
+  void _includeCatalogFileBytes(_BudgetBuilder report) {
+    final binaryBytes = report.totals['fileBytes'];
+    report.totals['fileBytes'] = binaryBytes == null
+        ? null
+        : binaryBytes + report.totals['catalogObjectBytes']!;
+  }
+
+  void _publication(
+      _BudgetBuilder report, PortableCatalogPublicationBuild publication,
+      {required int maxBytes, required int maxValues, required int maxDepth}) {
+    final descriptorBytes =
+        CanonicalJson.encodeUtf8(publication.descriptor).length;
+    var bytes = descriptorBytes;
+    var values = 0;
+    var depth = 0;
+    for (final entry in publication.storage.objects.entries) {
+      bytes += entry.value.length;
+      final raw = jsonDecode(utf8.decode(entry.value));
+      final local =
+          _BudgetBuilder('${report.scope}.catalog.objects.${entry.key}', 0);
+      _json(local, raw, null, null, null);
+      values += local.totals['jsonNodes']!;
+      final localDepth = local.totals['jsonDepth']!;
+      if (localDepth > depth) depth = localDepth;
+      final index = raw is Map && raw['type'] != 'unit';
+      report.metric(
+          local.scope,
+          index ? 'catalogIndexBytes' : 'catalogUnitBytes',
+          entry.value.length,
+          index ? 256 * 1024 : 1024 * 1024);
+      report.metric(
+          local.scope,
+          'fileBytes',
+          entry.value.length,
+          report.resourcePack
+              ? resourcePackPolicy.maxFileBytes
+              : gamePackagePolicy.maxFileBytes);
+      report.metric(local.scope, 'catalogObjectValues',
+          local.totals['jsonNodes']!, 100000);
+    }
+    final descriptor = _BudgetBuilder(report.scope, 0);
+    _json(descriptor, publication.descriptor, null, null, null);
+    values += descriptor.totals['jsonNodes']!;
+    report.total('catalogBytes', bytes, maxBytes);
+    report.total('catalogDescriptorBytes', descriptorBytes, null);
+    report.total('catalogObjectBytes', bytes - descriptorBytes, null);
+    report.total('catalogObjects', publication.storage.objects.length, null);
+    report.total('jsonNodes', values, maxValues);
+    report.total('jsonDepth', depth, maxDepth < 64 ? maxDepth : 64);
   }
 
   void _json(_BudgetBuilder report, Object? json, int? maxBytes, int? maxNodes,

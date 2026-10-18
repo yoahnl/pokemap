@@ -1,4 +1,7 @@
 import 'dart:typed_data';
+import 'dart:convert';
+import 'package:map_core/map_core.dart';
+import 'strict_json_structure_validator.dart';
 
 import 'package:crypto/crypto.dart';
 
@@ -56,13 +59,86 @@ final class GamePackageBuilder {
   final GamePackageManifestCodec manifestCodec;
   final GamePackageSecurityPolicy securityPolicy;
 
+  Map<String, List<int>> _publicationPayload(Map<String, List<int>> files) {
+    try {
+      final bytes = files['project/project.json'];
+      if (bytes == null) throw const FormatException('Missing project');
+      final source = utf8.decode(bytes);
+      const StrictJsonStructureValidator().validate(source,
+          path: 'project/project.json',
+          maxDepth: securityPolicy.maxJsonDepth,
+          maxNodes: securityPolicy.maxCatalogJsonValues,
+          duplicateCode: 'invalidProject');
+      final raw = jsonDecode(source) as Map<String, dynamic>;
+      final hasPublicationMarker = raw.containsKey('format') ||
+          raw.containsKey('kind') ||
+          raw.containsKey('root');
+      if (hasPublicationMarker) {
+        PortableCatalogPublication.decodeProjectSync(raw,
+            limits: CatalogStorageLimits(
+                maxStoredBytes: securityPolicy.maxCatalogBytes),
+            readObject: (ref) =>
+                files[
+                    'project/${PortableCatalogPublication.objectPath(ref)}'] ??
+                (throw const FormatException('Missing catalog object')));
+        return files;
+      }
+      if (files.keys
+          .any((path) => path.startsWith('project/catalog/objects/'))) {
+        throw const FormatException(
+            'Native project contains publication objects');
+      }
+      if (raw['version'] is! String) {
+        throw const FormatException('Missing native version');
+      }
+      final project = ProjectManifest.fromJson(raw);
+      ProjectValidator.validate(project);
+      final publication = PortableCatalogPublication.encodeProject(project,
+          limits: CatalogStorageLimits(
+              maxStoredBytes: securityPolicy.maxCatalogBytes));
+      return {
+        ...files,
+        'project/project.json':
+            CanonicalJson.encodeUtf8(publication.descriptor),
+        for (final object in publication.storage.objects.entries)
+          'project/catalog/objects/${object.key}.json': object.value,
+      };
+    } on Object catch (error) {
+      if (error is GamePackageFormatException) rethrow;
+      throw GamePackageFormatException(
+          code: 'invalidProject',
+          path: 'project/project.json',
+          message: 'Invalid project publication: $error');
+    }
+  }
+
   GamePackageBuildResult build({
     required GamePackageManifest manifest,
     required Map<String, List<int>> payloadFiles,
     PackageMediaTypeResolver? mediaTypeForPath,
   }) {
+    final publicationPayload = _publicationPayload(payloadFiles);
+    final required = manifest.compatibility.requiredCapabilities;
+    final changesCapability = !required.contains('catalog.partitioned@2');
+    if (manifest.signature != null && changesCapability) {
+      throw GamePackageFormatException(
+          code: 'staleSignature',
+          path: r'$.signature',
+          message: 'Partitioned publication changes signed capabilities.');
+    }
+    final old = manifest.compatibility;
+    final compatibility = changesCapability
+        ? GamePackageCompatibility(
+            minHubVersion: old.minHubVersion,
+            runtimeApiExpression: old.runtimeApiExpression,
+            projectFormat: old.projectFormat,
+            saveFormat: old.saveFormat,
+            compatibilityId: old.compatibilityId,
+            requiredCapabilities:
+                {...required, 'catalog.partitioned@2'}.toList()..sort())
+        : old;
     final inventory = inventoryBuilder.buildWithSnapshot(
-      payloadFiles,
+      publicationPayload,
       mediaTypeForPath: mediaTypeForPath,
     );
     final content = inventory.content;
@@ -99,7 +175,8 @@ final class GamePackageBuilder {
         message: 'Signed manifest content differs from the payload inventory.',
       );
     }
-    final packagedManifest = manifest.copyWith(content: content);
+    final packagedManifest =
+        manifest.copyWith(content: content, compatibility: compatibility);
     final manifestBytes = manifestCodec.encodeCanonicalUtf8(packagedManifest);
     if (manifestBytes.length > securityPolicy.maxManifestBytes) {
       throw GamePackageFormatException(

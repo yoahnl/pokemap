@@ -21,7 +21,8 @@ void main() {
 
       expect(result.manifest.gameId, 'games.example.inspector');
       expect(result.signatureStatus, PackageSignatureStatus.notPresent);
-      expect(result.payloadPaths, <String>['project/project.json']);
+      expect(result.payloadPaths,
+          built.manifest.content.files.map((file) => file.path).toList());
       expect(result.receipt.receiptVersion, 1);
       expect(result.receipt.treeSha256, result.manifest.content.treeSha256);
       expect(result.receipt.packageSha256, hasLength(64));
@@ -66,7 +67,7 @@ void main() {
         );
         expect(
           fromFile.receipt.payloadBytes,
-          audio.length + _validProjectBytes().length,
+          built.manifest.content.totalBytes,
         );
 
         packageFile.writeAsBytesSync(
@@ -148,8 +149,8 @@ void main() {
       _expectCode(
         () => inspector.inspect(
           _rawArchive(<String, List<int>>{
-            'game-manifest.json': const GamePackageManifestCodec()
-                .encodeCanonicalUtf8(manifest),
+            'game-manifest.json':
+                const GamePackageManifestCodec().encodeCanonicalUtf8(manifest),
             'project/project.json': _validProjectBytes(),
             'project/maps/unlisted.json': _validProjectBytes(),
           }),
@@ -171,8 +172,8 @@ void main() {
       final manifest = _build(<String, List<int>>{
         'project/project.json': _validProjectBytes(),
       }).manifest;
-      final manifestBytes = const GamePackageManifestCodec()
-          .encodeCanonicalUtf8(manifest);
+      final manifestBytes =
+          const GamePackageManifestCodec().encodeCanonicalUtf8(manifest);
 
       _expectCode(
         () => inspector.inspect(
@@ -193,25 +194,23 @@ void main() {
         'unsupportedZipFeature',
       );
       _expectCode(
-        () =>
-            const GamePackageInspector(
-              policy: GamePackageSecurityPolicy(maxArchiveBytes: 10),
-            ).inspect(
-              _build(<String, List<int>>{
-                'project/project.json': _validProjectBytes(),
-              }).packageBytes,
-            ),
+        () => const GamePackageInspector(
+          policy: GamePackageSecurityPolicy(maxArchiveBytes: 10),
+        ).inspect(
+          _build(<String, List<int>>{
+            'project/project.json': _validProjectBytes(),
+          }).packageBytes,
+        ),
         'archiveTooLarge',
       );
       _expectCode(
-        () =>
-            const GamePackageInspector(
-              policy: GamePackageSecurityPolicy(maxFileBytes: 0),
-            ).inspect(
-              _build(<String, List<int>>{
-                'project/project.json': _validProjectBytes(),
-              }).packageBytes,
-            ),
+        () => const GamePackageInspector(
+          policy: GamePackageSecurityPolicy(maxFileBytes: 0),
+        ).inspect(
+          _build(<String, List<int>>{
+            'project/project.json': _validProjectBytes(),
+          }).packageBytes,
+        ),
         'entryTooLarge',
       );
     });
@@ -300,14 +299,13 @@ void main() {
           'executableContent',
         );
         _expectCode(
-          () =>
-              const GamePackageInspector(
-                policy: GamePackageSecurityPolicy(maxJsonNodes: 1),
-              ).inspect(
-                _rawPackage(<String, List<int>>{
-                  'project/project.json': utf8.encode('{"value":1}'),
-                }),
-              ),
+          () => const GamePackageInspector(
+            policy: GamePackageSecurityPolicy(maxJsonNodes: 1),
+          ).inspect(
+            _rawPackage(<String, List<int>>{
+              'project/project.json': utf8.encode('{"value":1}'),
+            }),
+          ),
           'entryTooLarge',
         );
       },
@@ -404,7 +402,7 @@ void main() {
           hostCompatibility: GamePackageHostCompatibility(
             hubVersion: Version.parse('0.9.0'),
             runtimeApiVersion: Version.parse('1.4.0'),
-            capabilities: const <String>{},
+            capabilities: const <String>{'catalog.partitioned@2'},
             supportedProjectFormats: const <String>{'v8'},
             currentProjectFormat: 'v8',
             supportedSaveFormats: const <int>{1},
@@ -418,7 +416,7 @@ void main() {
           hostCompatibility: GamePackageHostCompatibility(
             hubVersion: Version.parse('0.9.0'),
             runtimeApiVersion: Version.parse('3.0.0'),
-            capabilities: const <String>{},
+            capabilities: const <String>{'catalog.partitioned@2'},
             supportedProjectFormats: const <String>{'v8'},
             currentProjectFormat: 'v8',
             supportedSaveFormats: const <int>{1},
@@ -452,8 +450,8 @@ void main() {
       final valid = _build(<String, List<int>>{
         'project/project.json': _validProjectBytes(),
       });
-      final manifestBytes = const GamePackageManifestCodec()
-          .encodeCanonicalUtf8(valid.manifest);
+      final manifestBytes =
+          const GamePackageManifestCodec().encodeCanonicalUtf8(valid.manifest);
       _expectCode(
         () => inspector.inspect(
           _rawArchive(<String, List<int>>{
@@ -640,409 +638,412 @@ void main() {
       );
     });
 
-    test('executes hostile ZIP/content cases through both inspector backends', () {
+    test('executes hostile ZIP/content cases through both inspector backends',
+        () {
       final projectBytes = _validProjectBytes();
       final valid = _build(<String, List<int>>{
         'project/project.json': projectBytes,
       });
-      final manifestBytes = const GamePackageManifestCodec()
-          .encodeCanonicalUtf8(valid.manifest);
+      final manifestBytes =
+          const GamePackageManifestCodec().encodeCanonicalUtf8(valid.manifest);
       final withMap = _build(<String, List<int>>{
         'project/maps/listed.json': utf8.encode('{}'),
         'project/project.json': projectBytes,
       });
-      final hostile =
-          <
-            ({
-              String id,
-              List<int> bytes,
-              String code,
-              GamePackageInspector inspector,
-            })
-          >[
-            (
-              id: 'HP-001',
-              bytes: _rawArchive(<String, List<int>>{
-                'project/project.json': projectBytes,
+      final hostile = <({
+        String id,
+        List<int> bytes,
+        String code,
+        GamePackageInspector inspector,
+      })>[
+        (
+          id: 'HP-001',
+          bytes: _rawArchive(<String, List<int>>{
+            'project/project.json': projectBytes,
+          }),
+          code: 'manifestMissing',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-002/HP-008',
+          bytes: _duplicateFirstCentralEntry(valid.packageBytes),
+          code: 'duplicateEntry',
+          inspector: inspector,
+        ),
+        for (final pathCase in <({String id, String path})>[
+          (id: 'HP-003-absolute', path: '/absolute.json'),
+          (id: 'HP-003-drive', path: 'C:/drive.json'),
+          (id: 'HP-003-UNC', path: r'\\server\share.json'),
+          (id: 'HP-004-backslash', path: r'project\backslash.json'),
+          (id: 'HP-004-parent', path: 'project/../escape.json'),
+          (id: 'HP-004-dot', path: 'project/./dot.json'),
+          (id: 'HP-004-empty', path: 'project//empty.json'),
+          (id: 'HP-005-NUL', path: 'project/\u0000.json'),
+          (id: 'HP-005-control', path: 'project/\u0001.json'),
+          (id: 'HP-006-NFD', path: 'presentation/e\u0301.png'),
+          (
+            id: 'HP-017-depth',
+            path: 'project/${List<String>.filled(33, 'a').join('/')}/x.json',
+          ),
+          (id: 'HP-017-segment', path: 'project/${'a' * 256}.json'),
+          (
+            id: 'HP-017-path',
+            path: 'project/${<String>[
+              ...List<String>.filled(16, 'a' * 28),
+              'a' * 34
+            ].join('/')}/x.json',
+          ),
+        ])
+          (
+            id: pathCase.id,
+            bytes: _rawArchive(<String, List<int>>{
+              'game-manifest.json': manifestBytes,
+              pathCase.path: <int>[1],
+              'project/project.json': projectBytes,
+            }),
+            code: 'invalidPath',
+            inspector: inspector,
+          ),
+        (
+          id: 'HP-005',
+          bytes: _corruptLastCentralAndLocalName(
+            _rawArchive(<String, List<int>>{
+              'game-manifest.json': manifestBytes,
+              'project/project.json': projectBytes,
+              'project/x.json': utf8.encode('{}'),
+            }),
+          ),
+          code: 'invalidPath',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-007',
+          bytes: _rawArchive(<String, List<int>>{
+            'game-manifest.json': manifestBytes,
+            'presentation/Icon.png': <int>[1],
+            'presentation/icon.png': <int>[1],
+            'project/project.json': projectBytes,
+          }),
+          code: 'pathCollision',
+          inspector: inspector,
+        ),
+        for (final mode in <int>[0xa1a4, 0x21a4, 0x61a4, 0x11a4])
+          (
+            id: 'HP-009:${mode.toRadixString(16)}',
+            bytes: _setFirstCentralMode(valid.packageBytes, mode),
+            code: 'unsupportedEntryType',
+            inspector: inspector,
+          ),
+        (
+          id: 'HP-009',
+          bytes: _setFirstCentralMode(valid.packageBytes, 0xa1ff),
+          code: 'unsupportedEntryType',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-009-hardlink-extra',
+          bytes: _setFirstCentralExtraLength(valid.packageBytes, 1),
+          code: 'unsupportedEntryType',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-010',
+          bytes: _setFirstCentralMode(valid.packageBytes, 0x81ed),
+          code: 'executableContent',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-011-compression',
+          bytes: _rawArchive(<String, List<int>>{
+            'game-manifest.json': manifestBytes,
+            'project/project.json': projectBytes,
+          }, compression: CompressionType.deflate),
+          code: 'unsupportedZipFeature',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-011-flags',
+          bytes: _setFirstEntryFlags(valid.packageBytes, 0x0801),
+          code: 'unsupportedZipFeature',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-011-data-descriptor',
+          bytes: _setFirstEntryFlags(valid.packageBytes, 0x0808),
+          code: 'unsupportedZipFeature',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-012',
+          bytes: _aliasSecondLocalOffset(valid.packageBytes),
+          code: 'invalidZipStructure',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-013',
+          bytes: valid.packageBytes,
+          code: 'entryCountExceeded',
+          inspector: const GamePackageInspector(
+            policy: GamePackageSecurityPolicy(maxPayloadEntries: 0),
+          ),
+        ),
+        (
+          id: 'HP-014',
+          bytes: valid.packageBytes,
+          code: 'entryTooLarge',
+          inspector: GamePackageInspector(
+            policy: GamePackageSecurityPolicy(
+              maxFileBytes: projectBytes.length - 1,
+            ),
+          ),
+        ),
+        (
+          id: 'HP-015',
+          bytes: valid.packageBytes,
+          code: 'archiveTooLarge',
+          inspector: GamePackageInspector(
+            policy: GamePackageSecurityPolicy(
+              maxTotalPayloadBytes: projectBytes.length - 1,
+            ),
+          ),
+        ),
+        (
+          id: 'HP-016',
+          bytes: valid.packageBytes,
+          code: 'manifestTooLarge',
+          inspector: const GamePackageInspector(
+            policy: GamePackageSecurityPolicy(maxManifestBytes: 1),
+          ),
+        ),
+        (
+          id: 'HP-018',
+          bytes: _truncateLastStoredEntry(
+            _rawPackage(<String, List<int>>{
+              'project/project.json': projectBytes,
+            }),
+          ),
+          code: 'sizeMismatch',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-019',
+          bytes: _rawPackage(
+            <String, List<int>>{'project/project.json': projectBytes},
+            mutateManifest: (json) {
+              final content = json['content']! as Map<String, Object?>;
+              final file =
+                  (content['files']! as List).first as Map<String, Object?>;
+              file['sha256'] = '0' * 64;
+              _recomputeTree(content);
+            },
+          ),
+          code: 'hashMismatch',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-020',
+          bytes: _rawPackage(
+            <String, List<int>>{'project/project.json': projectBytes},
+            mutateManifest: (json) {
+              (json['content']! as Map<String, Object?>)['treeSha256'] =
+                  '0' * 64;
+            },
+            encodeUncheckedManifest: true,
+          ),
+          code: 'treeHashMismatch',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-021',
+          bytes: _rawArchive(<String, List<int>>{
+            'game-manifest.json': manifestBytes,
+            'project/maps/unlisted.json': utf8.encode('{}'),
+            'project/project.json': projectBytes,
+          }),
+          code: 'unlistedFile',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-022',
+          bytes: _rawArchive(<String, List<int>>{
+            'game-manifest.json': const GamePackageManifestCodec()
+                .encodeCanonicalUtf8(withMap.manifest),
+            'project/project.json': projectBytes,
+          }),
+          code: 'missingFile',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-024',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': projectBytes,
+            'project/assets/run.dart': utf8.encode('void main() {}'),
+          }),
+          code: 'executableContent',
+          inspector: inspector,
+        ),
+        for (final executable in <MapEntry<String, List<int>>>[
+          MapEntry<String, List<int>>(
+            'project/assets/run.sh',
+            utf8.encode('#!/bin/sh'),
+          ),
+          const MapEntry<String, List<int>>(
+            'project/assets/program.exe',
+            <int>[0x4d, 0x5a, 0, 0],
+          ),
+          const MapEntry<String, List<int>>(
+            'project/assets/program.bin',
+            <int>[0x7f, 0x45, 0x4c, 0x46],
+          ),
+          const MapEntry<String, List<int>>(
+            'project/assets/plugin.dll',
+            <int>[0x4d, 0x5a, 0, 0],
+          ),
+          const MapEntry<String, List<int>>(
+            'project/assets/macho.png',
+            <int>[0xfe, 0xed, 0xfa, 0xcf],
+          ),
+        ])
+          (
+            id: 'HP-024/025:${executable.key}',
+            bytes: _rawPackage(<String, List<int>>{
+              executable.key: executable.value,
+              'project/project.json': projectBytes,
+            }),
+            code: 'executableContent',
+            inspector: inspector,
+          ),
+        (
+          id: 'HP-025',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/assets/archive.png': <int>[0x50, 0x4b, 0x03, 0x04],
+            'project/project.json': projectBytes,
+          }),
+          code: 'executableContent',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-026',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              '{"mistralApiKey":"not-for-release"}',
+            ),
+          }),
+          code: 'probableSecret',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-027',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              '{"note":"-----BEGIN PRIVATE KEY-----"}',
+            ),
+          }),
+          code: 'probableSecret',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-027-credential-uri',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              '{"note":"https://player:secret@example.invalid/data"}',
+            ),
+          }),
+          code: 'probableSecret',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-028',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              '{"pokemon":{"speciesDir":"/tmp/outside"}}',
+            ),
+          }),
+          code: 'referenceEscapesRoot',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-029-dimension',
+          bytes: _rawPackage(<String, List<int>>{
+            'presentation/icon.png': _oversizedPng(),
+            'project/project.json': projectBytes,
+          }),
+          code: 'decodedAssetQuotaExceeded',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-029-pixels',
+          bytes: _rawPackage(<String, List<int>>{
+            'presentation/icon.png': _oversizedPng(
+              width: 8192,
+              height: 8193,
+            ),
+            'project/project.json': projectBytes,
+          }),
+          code: 'decodedAssetQuotaExceeded',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-036',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              '${List<String>.filled(129, '{"v":').join()}0'
+              '${List<String>.filled(129, '}').join()}',
+            ),
+          }),
+          code: 'entryTooLarge',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-037',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/project.json': utf8.encode(
+              jsonEncode(<String, Object?>{
+                'name': 'Too deep',
+                'pokemon': const ProjectPokemonConfig(
+                        ruleset: PokemonRulesetProfile.pokeMapBetaV1)
+                    .toJson(),
+                'version': 'v8',
+                'maps': <Object?>[],
+                'tilesets': <Object?>[],
+                'groups': <Object?>[
+                  for (var index = 0; index < 33; index++)
+                    <String, Object?>{
+                      'id': 'g$index',
+                      'name': 'Group $index',
+                          'type': 'city',
+                      'parentGroupId': index == 0 ? null : 'g${index - 1}',
+                    },
+                ],
               }),
-              code: 'manifestMissing',
-              inspector: inspector,
             ),
-            (
-              id: 'HP-002/HP-008',
-              bytes: _duplicateFirstCentralEntry(valid.packageBytes),
-              code: 'duplicateEntry',
-              inspector: inspector,
+          }),
+          code: 'projectComplexityExceeded',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-038',
+          bytes: _rawPackage(<String, List<int>>{
+            'project/debug/runtime_host_launch_save.json': utf8.encode(
+              '{}',
             ),
-            for (final pathCase in <({String id, String path})>[
-              (id: 'HP-003-absolute', path: '/absolute.json'),
-              (id: 'HP-003-drive', path: 'C:/drive.json'),
-              (id: 'HP-003-UNC', path: r'\\server\share.json'),
-              (id: 'HP-004-backslash', path: r'project\backslash.json'),
-              (id: 'HP-004-parent', path: 'project/../escape.json'),
-              (id: 'HP-004-dot', path: 'project/./dot.json'),
-              (id: 'HP-004-empty', path: 'project//empty.json'),
-              (id: 'HP-005-NUL', path: 'project/\u0000.json'),
-              (id: 'HP-005-control', path: 'project/\u0001.json'),
-              (id: 'HP-006-NFD', path: 'presentation/e\u0301.png'),
-              (
-                id: 'HP-017-depth',
-                path:
-                    'project/${List<String>.filled(33, 'a').join('/')}/x.json',
-              ),
-              (id: 'HP-017-segment', path: 'project/${'a' * 256}.json'),
-              (
-                id: 'HP-017-path',
-                path:
-                    'project/${<String>[...List<String>.filled(16, 'a' * 28), 'a' * 34].join('/')}/x.json',
-              ),
-            ])
-              (
-                id: pathCase.id,
-                bytes: _rawArchive(<String, List<int>>{
-                  'game-manifest.json': manifestBytes,
-                  pathCase.path: <int>[1],
-                  'project/project.json': projectBytes,
-                }),
-                code: 'invalidPath',
-                inspector: inspector,
-              ),
-            (
-              id: 'HP-005',
-              bytes: _corruptLastCentralAndLocalName(
-                _rawArchive(<String, List<int>>{
-                  'game-manifest.json': manifestBytes,
-                  'project/project.json': projectBytes,
-                  'project/x.json': utf8.encode('{}'),
-                }),
-              ),
-              code: 'invalidPath',
-              inspector: inspector,
+            'project/project.json': projectBytes,
+          }),
+          code: 'executableContent',
+          inspector: inspector,
+        ),
+        (
+          id: 'HP-039',
+          bytes: _rawPackage(<String, List<int>>{
+            'presentation/icon.png': utf8.encode(
+              'prefix sk-ABCDEFGHIJKLMNOP suffix',
             ),
-            (
-              id: 'HP-007',
-              bytes: _rawArchive(<String, List<int>>{
-                'game-manifest.json': manifestBytes,
-                'presentation/Icon.png': <int>[1],
-                'presentation/icon.png': <int>[1],
-                'project/project.json': projectBytes,
-              }),
-              code: 'pathCollision',
-              inspector: inspector,
-            ),
-            for (final mode in <int>[0xa1a4, 0x21a4, 0x61a4, 0x11a4])
-              (
-                id: 'HP-009:${mode.toRadixString(16)}',
-                bytes: _setFirstCentralMode(valid.packageBytes, mode),
-                code: 'unsupportedEntryType',
-                inspector: inspector,
-              ),
-            (
-              id: 'HP-009',
-              bytes: _setFirstCentralMode(valid.packageBytes, 0xa1ff),
-              code: 'unsupportedEntryType',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-009-hardlink-extra',
-              bytes: _setFirstCentralExtraLength(valid.packageBytes, 1),
-              code: 'unsupportedEntryType',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-010',
-              bytes: _setFirstCentralMode(valid.packageBytes, 0x81ed),
-              code: 'executableContent',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-011-compression',
-              bytes: _rawArchive(<String, List<int>>{
-                'game-manifest.json': manifestBytes,
-                'project/project.json': projectBytes,
-              }, compression: CompressionType.deflate),
-              code: 'unsupportedZipFeature',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-011-flags',
-              bytes: _setFirstEntryFlags(valid.packageBytes, 0x0801),
-              code: 'unsupportedZipFeature',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-011-data-descriptor',
-              bytes: _setFirstEntryFlags(valid.packageBytes, 0x0808),
-              code: 'unsupportedZipFeature',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-012',
-              bytes: _aliasSecondLocalOffset(valid.packageBytes),
-              code: 'invalidZipStructure',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-013',
-              bytes: valid.packageBytes,
-              code: 'entryCountExceeded',
-              inspector: const GamePackageInspector(
-                policy: GamePackageSecurityPolicy(maxPayloadEntries: 0),
-              ),
-            ),
-            (
-              id: 'HP-014',
-              bytes: valid.packageBytes,
-              code: 'entryTooLarge',
-              inspector: GamePackageInspector(
-                policy: GamePackageSecurityPolicy(
-                  maxFileBytes: projectBytes.length - 1,
-                ),
-              ),
-            ),
-            (
-              id: 'HP-015',
-              bytes: valid.packageBytes,
-              code: 'archiveTooLarge',
-              inspector: GamePackageInspector(
-                policy: GamePackageSecurityPolicy(
-                  maxTotalPayloadBytes: projectBytes.length - 1,
-                ),
-              ),
-            ),
-            (
-              id: 'HP-016',
-              bytes: valid.packageBytes,
-              code: 'manifestTooLarge',
-              inspector: const GamePackageInspector(
-                policy: GamePackageSecurityPolicy(maxManifestBytes: 1),
-              ),
-            ),
-            (
-              id: 'HP-018',
-              bytes: _truncateLastStoredEntry(
-                _rawPackage(<String, List<int>>{
-                  'project/project.json': projectBytes,
-                }),
-              ),
-              code: 'sizeMismatch',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-019',
-              bytes: _rawPackage(
-                <String, List<int>>{'project/project.json': projectBytes},
-                mutateManifest: (json) {
-                  final content = json['content']! as Map<String, Object?>;
-                  final file =
-                      (content['files']! as List).single
-                          as Map<String, Object?>;
-                  file['sha256'] = '0' * 64;
-                  _recomputeTree(content);
-                },
-              ),
-              code: 'hashMismatch',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-020',
-              bytes: _rawPackage(
-                <String, List<int>>{'project/project.json': projectBytes},
-                mutateManifest: (json) {
-                  (json['content']! as Map<String, Object?>)['treeSha256'] =
-                      '0' * 64;
-                },
-                encodeUncheckedManifest: true,
-              ),
-              code: 'treeHashMismatch',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-021',
-              bytes: _rawArchive(<String, List<int>>{
-                'game-manifest.json': manifestBytes,
-                'project/maps/unlisted.json': utf8.encode('{}'),
-                'project/project.json': projectBytes,
-              }),
-              code: 'unlistedFile',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-022',
-              bytes: _rawArchive(<String, List<int>>{
-                'game-manifest.json': const GamePackageManifestCodec()
-                    .encodeCanonicalUtf8(withMap.manifest),
-                'project/project.json': projectBytes,
-              }),
-              code: 'missingFile',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-024',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': projectBytes,
-                'project/assets/run.dart': utf8.encode('void main() {}'),
-              }),
-              code: 'executableContent',
-              inspector: inspector,
-            ),
-            for (final executable in <MapEntry<String, List<int>>>[
-              MapEntry<String, List<int>>(
-                'project/assets/run.sh',
-                utf8.encode('#!/bin/sh'),
-              ),
-              const MapEntry<String, List<int>>(
-                'project/assets/program.exe',
-                <int>[0x4d, 0x5a, 0, 0],
-              ),
-              const MapEntry<String, List<int>>(
-                'project/assets/program.bin',
-                <int>[0x7f, 0x45, 0x4c, 0x46],
-              ),
-              const MapEntry<String, List<int>>(
-                'project/assets/plugin.dll',
-                <int>[0x4d, 0x5a, 0, 0],
-              ),
-              const MapEntry<String, List<int>>(
-                'project/assets/macho.png',
-                <int>[0xfe, 0xed, 0xfa, 0xcf],
-              ),
-            ])
-              (
-                id: 'HP-024/025:${executable.key}',
-                bytes: _rawPackage(<String, List<int>>{
-                  executable.key: executable.value,
-                  'project/project.json': projectBytes,
-                }),
-                code: 'executableContent',
-                inspector: inspector,
-              ),
-            (
-              id: 'HP-025',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/assets/archive.png': <int>[0x50, 0x4b, 0x03, 0x04],
-                'project/project.json': projectBytes,
-              }),
-              code: 'executableContent',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-026',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': utf8.encode(
-                  '{"mistralApiKey":"not-for-release"}',
-                ),
-              }),
-              code: 'probableSecret',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-027',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': utf8.encode(
-                  '{"note":"-----BEGIN PRIVATE KEY-----"}',
-                ),
-              }),
-              code: 'probableSecret',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-027-credential-uri',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': utf8.encode(
-                  '{"note":"https://player:secret@example.invalid/data"}',
-                ),
-              }),
-              code: 'probableSecret',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-028',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': utf8.encode(
-                  '{"pokemon":{"speciesDir":"/tmp/outside"}}',
-                ),
-              }),
-              code: 'referenceEscapesRoot',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-029-dimension',
-              bytes: _rawPackage(<String, List<int>>{
-                'presentation/icon.png': _oversizedPng(),
-                'project/project.json': projectBytes,
-              }),
-              code: 'decodedAssetQuotaExceeded',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-029-pixels',
-              bytes: _rawPackage(<String, List<int>>{
-                'presentation/icon.png': _oversizedPng(
-                  width: 8192,
-                  height: 8193,
-                ),
-                'project/project.json': projectBytes,
-              }),
-              code: 'decodedAssetQuotaExceeded',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-036',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': utf8.encode(
-                  '${List<String>.filled(129, '{"v":').join()}0'
-                  '${List<String>.filled(129, '}').join()}',
-                ),
-              }),
-              code: 'entryTooLarge',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-037',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/project.json': utf8.encode(
-                  jsonEncode(<String, Object?>{
-                    'name': 'Too deep',
-                    'version': 'v8',
-                    'maps': <Object?>[],
-                    'tilesets': <Object?>[],
-                    'groups': <Object?>[
-                      for (var index = 0; index < 33; index++)
-                        <String, Object?>{
-                          'id': 'g$index',
-                          'parentGroupId': index == 0 ? null : 'g${index - 1}',
-                        },
-                    ],
-                  }),
-                ),
-              }),
-              code: 'projectComplexityExceeded',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-038',
-              bytes: _rawPackage(<String, List<int>>{
-                'project/debug/runtime_host_launch_save.json': utf8.encode(
-                  '{}',
-                ),
-                'project/project.json': projectBytes,
-              }),
-              code: 'executableContent',
-              inspector: inspector,
-            ),
-            (
-              id: 'HP-039',
-              bytes: _rawPackage(<String, List<int>>{
-                'presentation/icon.png': utf8.encode(
-                  'prefix sk-ABCDEFGHIJKLMNOP suffix',
-                ),
-                'project/project.json': projectBytes,
-              }),
-              code: 'probableSecret',
-              inspector: inspector,
-            ),
-          ];
+            'project/project.json': projectBytes,
+          }),
+          code: 'probableSecret',
+          inspector: inspector,
+        ),
+      ];
 
       for (final testCase in hostile) {
         _expectCodeBoth(
@@ -1109,14 +1110,13 @@ void main() {
         'entryTooLarge',
       );
       _expectCode(
-        () =>
-            const GamePackageInspector(
-              trustRequirement: PackageTrustRequirement.signatureRequired,
-            ).inspectSourceSync(
-              _sparsePackageWithVirtualProject(
-                GamePackageSecurityPolicy.maxFileBytesV1 + 1,
-              ),
-            ),
+        () => const GamePackageInspector(
+          trustRequirement: PackageTrustRequirement.signatureRequired,
+        ).inspectSourceSync(
+          _sparsePackageWithVirtualProject(
+            GamePackageSecurityPolicy.maxFileBytesV1 + 1,
+          ),
+        ),
         'entryTooLarge',
       );
 
@@ -1163,16 +1163,21 @@ void main() {
       final built = _build(<String, List<int>>{
         'project/project.json': projectBytes,
       });
-      final manifestBytes = const GamePackageManifestCodec()
-          .encodeCanonicalUtf8(built.manifest);
+      final manifestBytes =
+          const GamePackageManifestCodec().encodeCanonicalUtf8(built.manifest);
       final exactInspector = GamePackageInspector(
         policy: GamePackageSecurityPolicy(
           maxArchiveBytes: built.packageBytes.length,
           maxManifestBytes: manifestBytes.length,
-          maxPayloadEntries: 1,
-          maxFileBytes: projectBytes.length,
-          maxTotalPayloadBytes: projectBytes.length,
-          maxJsonBytes: projectBytes.length,
+          maxPayloadEntries: built.manifest.content.fileCount,
+          maxFileBytes: built.manifest.content.files
+              .map((file) => file.size)
+              .reduce((a, b) => a > b ? a : b),
+          maxTotalPayloadBytes: built.manifest.content.totalBytes,
+          maxJsonBytes: built.manifest.content.files
+              .map((file) => file.size)
+              .reduce((a, b) => a > b ? a : b),
+          maxCatalogBytes: built.manifest.content.totalBytes,
         ),
       );
 
@@ -1220,7 +1225,8 @@ final class _RejectingVerifier implements GamePackageSignatureVerifier {
     required String keyId,
     required List<int> preimage,
     required List<int> signature,
-  }) => false;
+  }) =>
+      false;
 }
 
 final class _FilePackageSource implements RandomAccessPackageSource {
@@ -1270,11 +1276,13 @@ final class _LengthOnlyPackageSource implements RandomAccessPackageSource {
 
 final class _SparseZipEntry {
   _SparseZipEntry.bytes(this.name, List<int> bytes)
-    : size = bytes.length,
-      crc32 = getCrc32(bytes),
-      bytes = Uint8List.fromList(bytes);
+      : size = bytes.length,
+        crc32 = getCrc32(bytes),
+        bytes = Uint8List.fromList(bytes);
 
-  const _SparseZipEntry.virtual(this.name, this.size) : crc32 = 0, bytes = null;
+  const _SparseZipEntry.virtual(this.name, this.size)
+      : crc32 = 0,
+        bytes = null;
 
   final String name;
   final int size;
@@ -1359,16 +1367,16 @@ final class _SparseSegment {
 }
 
 List<int> _validProjectBytes({String name = 'Inspector Test'}) => utf8.encode(
-  jsonEncode(<String, Object?>{
-    'name': name,
-    'version': 'v8',
-    'maps': <Object?>[],
-    'tilesets': <Object?>[],
-    'pokemon': const ProjectPokemonConfig(
-      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-    ).toJson(),
-  }),
-);
+      jsonEncode(<String, Object?>{
+        'name': name,
+        'version': 'v8',
+        'maps': <Object?>[],
+        'tilesets': <Object?>[],
+        'pokemon': const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ).toJson(),
+      }),
+    );
 
 Uint8List _oversizedPng({int width = 8193, int height = 1}) {
   final bytes = Uint8List(24)
@@ -1399,7 +1407,7 @@ GamePackageBuildResult _build(Map<String, List<int>> payload) {
         'projectFormat': 'v8',
         'saveFormat': 1,
         'compatibilityId': 'main',
-        'requiredCapabilities': <String>[],
+        'requiredCapabilities': <String>['catalog.partitioned@2'],
       },
       'locales': <String, Object?>{
         'default': 'fr',
@@ -1414,11 +1422,31 @@ GamePackageBuildResult _build(Map<String, List<int>> payload) {
   );
 }
 
+Map<String, List<int>> _partitionPayload(Map<String, List<int>> payload) {
+  final bytes = payload['project/project.json'];
+  if (bytes == null) return payload;
+  try {
+    final raw = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+    if (raw['version'] is! String) return payload;
+    final publication =
+        PortableCatalogPublication.encodeProject(ProjectManifest.fromJson(raw));
+    return {
+      ...payload,
+      'project/project.json': CanonicalJson.encodeUtf8(publication.descriptor),
+      for (final object in publication.storage.objects.entries)
+        'project/catalog/objects/${object.key}.json': object.value,
+    };
+  } on Object {
+    return payload;
+  }
+}
+
 List<int> _rawPackage(
   Map<String, List<int>> payload, {
   void Function(Map<String, Object?> manifest)? mutateManifest,
   bool encodeUncheckedManifest = false,
 }) {
+  payload = _partitionPayload(payload);
   final content = const GamePackageInventoryBuilder().build(payload);
   final manifestJson = <String, Object?>{
     'packageFormat': 1,
@@ -1432,7 +1460,7 @@ List<int> _rawPackage(
       'projectFormat': 'v8',
       'saveFormat': 1,
       'compatibilityId': 'main',
-      'requiredCapabilities': <String>[],
+      'requiredCapabilities': <String>['catalog.partitioned@2'],
     },
     'locales': <String, Object?>{
       'default': 'fr',
@@ -1460,16 +1488,15 @@ List<int> _rawArchive(
   final entries = files.entries.toList()
     ..sort((left, right) => left.key.compareTo(right.key));
   for (final entry in entries) {
-    final file =
-        compression == CompressionType.none
-              ? ArchiveFile.noCompress(
-                  entry.key,
-                  entry.value.length,
-                  entry.value,
-                )
-              : ArchiveFile(entry.key, entry.value.length, entry.value)
-          ..mode = 0x81a4
-          ..compression = compression;
+    final file = compression == CompressionType.none
+        ? ArchiveFile.noCompress(
+            entry.key,
+            entry.value.length,
+            entry.value,
+          )
+        : ArchiveFile(entry.key, entry.value.length, entry.value)
+      ..mode = 0x81a4
+      ..compression = compression;
     archive.add(file);
   }
   final bytes = Uint8List.fromList(
@@ -1486,8 +1513,7 @@ List<int> _rawArchive(
     _setU16(bytes, cursor + 4, 0x0314);
     _setU16(bytes, cursor + 36, 0);
     _setU32(bytes, cursor + 38, 0x81a40000);
-    cursor +=
-        46 +
+    cursor += 46 +
         _u16(bytes, cursor + 28) +
         _u16(bytes, cursor + 30) +
         _u16(bytes, cursor + 32);
@@ -1613,16 +1639,14 @@ List<int> _truncateLastStoredEntry(List<int> source) {
   final oldCentralOffset = _u32(original, oldEocd + 16);
   var oldCentralCursor = oldCentralOffset;
   for (var index = 1; index < entryCount; index++) {
-    oldCentralCursor +=
-        46 +
+    oldCentralCursor += 46 +
         _u16(original, oldCentralCursor + 28) +
         _u16(original, oldCentralCursor + 30) +
         _u16(original, oldCentralCursor + 32);
   }
   final localOffset = _u32(original, oldCentralCursor + 42);
   final oldSize = _u32(original, localOffset + 18);
-  final dataOffset =
-      localOffset +
+  final dataOffset = localOffset +
       30 +
       _u16(original, localOffset + 26) +
       _u16(original, localOffset + 28);
@@ -1674,8 +1698,7 @@ List<int> _aliasSecondLocalOffset(List<int> source) {
   final bytes = Uint8List.fromList(source);
   final eocd = _findSignature(bytes, 0x06054b50, fromEnd: true);
   var cursor = _u32(bytes, eocd + 16);
-  cursor +=
-      46 +
+  cursor += 46 +
       _u16(bytes, cursor + 28) +
       _u16(bytes, cursor + 30) +
       _u16(bytes, cursor + 32);
@@ -1689,8 +1712,7 @@ List<int> _corruptLastCentralAndLocalName(List<int> source) {
   final count = _u16(bytes, eocd + 10);
   var cursor = _u32(bytes, eocd + 16);
   for (var index = 0; index < count - 1; index++) {
-    cursor +=
-        46 +
+    cursor += 46 +
         _u16(bytes, cursor + 28) +
         _u16(bytes, cursor + 30) +
         _u16(bytes, cursor + 32);
@@ -1743,16 +1765,16 @@ int _findSignature(List<int> bytes, int signature, {bool fromEnd = false}) {
 }
 
 int _u16(List<int> bytes, int offset) => ByteData.sublistView(
-  Uint8List.fromList(bytes),
-  offset,
-  offset + 2,
-).getUint16(0, Endian.little);
+      Uint8List.fromList(bytes),
+      offset,
+      offset + 2,
+    ).getUint16(0, Endian.little);
 
 int _u32(List<int> bytes, int offset) => ByteData.sublistView(
-  Uint8List.fromList(bytes),
-  offset,
-  offset + 4,
-).getUint32(0, Endian.little);
+      Uint8List.fromList(bytes),
+      offset,
+      offset + 4,
+    ).getUint32(0, Endian.little);
 
 void _setU16(Uint8List bytes, int offset, int value) =>
     ByteData.sublistView(bytes).setUint16(offset, value, Endian.little);

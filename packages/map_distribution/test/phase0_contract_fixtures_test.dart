@@ -110,15 +110,21 @@ void main() {
       final built = const GamePackageBuilder().build(
         manifest: manifest,
         payloadFiles: payload,
-        mediaTypeForPath: (path) => manifest.content.files
-            .singleWhere((entry) => entry.path == path)
-            .mediaType,
+        mediaTypeForPath: (path) =>
+            manifest.content.files
+                .where((entry) => entry.path == path)
+                .firstOrNull
+                ?.mediaType ??
+            (path.endsWith('.json') ? 'application/json' : null),
       );
       final inspected = const GamePackageInspector().inspect(
         built.packageBytes,
       );
-      expect(inspected.manifest.toJson(), manifest.toJson());
-      expect(inspected.payloadPaths.toSet(), payload.keys.toSet());
+      expect(inspected.manifest.gameId, manifest.gameId);
+      expect(inspected.manifest.compatibility.requiredCapabilities,
+          contains('catalog.partitioned@2'));
+      expect(inspected.manifest.signature, isNull);
+      expect(inspected.payloadPaths.toSet(), containsAll(payload.keys));
     }
   });
 

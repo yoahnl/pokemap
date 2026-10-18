@@ -178,14 +178,41 @@ final class ResourcePackInspector {
         archiveBytes: length,
         manifestBytes: manifestEntry.size,
         inventory: inventory.values);
-    if (manifest.content.catalog.byteLength > policy.maxCatalogBytes) {
-      final content = _stream(source, entries['catalog.json']!);
-      if (content.rawSha256 != manifest.content.catalog.rawSha256) {
-        _fail('hash_mismatch', 'catalog.json',
-            'The raw SHA-256 differs from the inventoried digest.');
+    var declaredPayloadBytes = 0;
+    var declaredCatalogBytes = 0;
+    var declaredPreviews = 0;
+    for (final file in inventory.values) {
+      declaredPayloadBytes += file.byteLength;
+      if (file.path == 'catalog.json' ||
+          file.path.startsWith('catalog/objects/')) {
+        declaredCatalogBytes += file.byteLength;
       }
+      if (file.path != 'catalog.json' &&
+          file.byteLength > policy.maxFileBytes) {
+        _fail('file_too_large', file.path,
+            'Payload exceeds its individual byte limit.',
+            budgetReport: partialBudget);
+      }
+      if (file.path.endsWith('.glb') && file.byteLength > 128 * 1024 * 1024) {
+        _fail(
+            'model_too_large', file.path, 'GLB exceeds its native byte limit.');
+      }
+      if (file.path.startsWith('previews/')) {
+        declaredPreviews++;
+        if (file.byteLength > policy.maxPreviewBytes ||
+            declaredPreviews > policy.maxPreviewFiles) {
+          _fail('preview_limit', file.path, 'Preview quota exceeded.',
+              budgetReport: partialBudget);
+        }
+      }
+    }
+    if (declaredCatalogBytes > policy.maxCatalogBytes) {
       _fail('catalog_too_large', 'catalog.json',
-          'The catalog exceeds its byte limit.',
+          'Catalog physical bytes exceed policy.',
+          budgetReport: partialBudget);
+    }
+    if (declaredPayloadBytes > policy.maxTotalPayloadBytes) {
+      _fail('payload_too_large', r'$', 'Payload total exceeds policy.',
           budgetReport: partialBudget);
     }
     if (resourcePackTreeSha256(
@@ -206,8 +233,35 @@ final class ResourcePackInspector {
       _fail('catalog_invalid', 'catalog.json',
           'The portable catalog must be an object.');
     }
-    _validateHierarchies(json, enforceLimits: false);
-    final catalog = ResourcePackCatalog.fromJson(json);
+    final consumed = <String>{};
+    final catalog = PortableCatalogPublication.decodeCatalogSync(json,
+        limits: CatalogStorageLimits(maxStoredBytes: policy.maxCatalogBytes),
+        readObject: (reference) {
+      final path = PortableCatalogPublication.objectPath(reference);
+      final entry = entries[path];
+      final declaredFile = inventory[path];
+      if (entry == null || declaredFile == null) {
+        _fail('catalog_object_missing', path,
+            'A reachable catalog object is missing.');
+      }
+      final content = _stream(source, entry, collect: true);
+      if (content.rawSha256 != declaredFile.rawSha256) {
+        _fail('hash_mismatch', path, 'Catalog object hash mismatch.');
+      }
+      _decodeJson(content.bytes, path, budgetReport: partialBudget);
+      consumed.add(path);
+      return content.bytes;
+    });
+    final catalogPaths = inventory.keys
+        .where((path) => path.startsWith('catalog/objects/'))
+        .toSet();
+    if (catalogPaths.length != consumed.length ||
+        !catalogPaths.containsAll(consumed)) {
+      _fail('catalog_object_unreachable', 'catalog.json',
+          'Unreachable catalog objects are forbidden.');
+    }
+    final catalogJson = catalog.toJson();
+    _validateHierarchies(catalogJson, enforceLimits: false);
     final graph = ResourcePackDependencyGraph.fromCatalog(catalog);
     final closure = graph.validateAll();
     final resources = closure.resources.length;
@@ -234,32 +288,42 @@ final class ResourcePackInspector {
                 byteLength: file.byteLength,
                 isPreview: file.path.startsWith('previews/')),
         ]);
-    final rawJsonBudget = const CatalogBudgetCalculator().measureJsonDocument(
-        json,
-        scope: 'resourcePack',
-        maxBytes: policy.maxCatalogBytes,
-        maxNodes: policy.maxJsonNodes,
-        maxDepth: policy.maxJsonDepth);
-    final budgetMetrics = <(String, String), CatalogBudgetMetric>{
-      for (final metric in measuredBudget.metrics)
-        (metric.scope, metric.dimension): metric,
-      for (final metric in rawJsonBudget.metrics)
-        (metric.scope, metric.dimension): metric,
-      for (final metric in partialBudget.metrics)
-        (metric.scope, metric.dimension): metric,
-    };
     final budgetReport = CatalogBudgetReport(
-        scope: 'resourcePack',
-        metrics: budgetMetrics.values,
+        scope: measuredBudget.scope,
+        metrics: [
+          for (final metric in measuredBudget.metrics)
+            if (metric.scope == 'resourcePack' &&
+                {'catalogBytes', 'payloadBytes'}.contains(metric.dimension))
+              CatalogBudgetMetric(
+                  scope: metric.scope,
+                  dimension: metric.dimension,
+                  observed: metric.dimension == 'catalogBytes'
+                      ? declaredCatalogBytes
+                      : declaredPayloadBytes,
+                  allowed: metric.allowed,
+                  unit: metric.unit,
+                  label: metric.label,
+                  remedy: metric.remedy)
+            else
+              metric
+        ],
         totals: {
           ...measuredBudget.totals,
-          ...rawJsonBudget.totals,
-          ...partialBudget.totals
+          'catalogBytes': declaredCatalogBytes,
+          'payloadBytes': declaredPayloadBytes
         },
         breakdown: measuredBudget.breakdown,
         omittedBreakdownEntries: measuredBudget.omittedBreakdownEntries,
         unknownDimensions: measuredBudget.unknownDimensions);
-    _validateHierarchies(json, budgetReport: budgetReport);
+    if (budgetReport.violations.any((v) =>
+        v.dimension == 'catalogBytes' ||
+        v.dimension == 'jsonNodes' ||
+        v.dimension == 'jsonDepth')) {
+      _fail('catalog_budget_exceeded', 'catalog.json',
+          'Partitioned catalog exceeds global limits.',
+          budgetReport: budgetReport);
+    }
+    _validateHierarchies(catalogJson, budgetReport: budgetReport);
     var payloadBytes = 0;
     var previews = 0;
     for (final file in inventory.values) {
@@ -480,14 +544,16 @@ final class ResourcePackInspector {
       unknown.addAll(['catalogBytes', 'payloadBytes', 'files']);
     } else {
       var payloadBytes = 0;
+      var catalogBytes = 0;
       var previews = 0;
       final files = inventory.toList();
       for (final file in files) {
         payloadBytes += file.byteLength;
-        if (file.path == 'catalog.json') {
-          add('resourcePack', 'catalogBytes', file.byteLength,
-              policy.maxCatalogBytes, 'Taille du catalogue JSON');
-        } else {
+        if (file.path == 'catalog.json' ||
+            file.path.startsWith('catalog/objects/')) {
+          catalogBytes += file.byteLength;
+        }
+        if (file.path != 'catalog.json') {
           add(file.path, 'fileBytes', file.byteLength, policy.maxFileBytes,
               'Taille du fichier');
         }
@@ -500,6 +566,8 @@ final class ResourcePackInspector {
           unknown.add('${file.path}.imageDimensions');
         }
       }
+      add('resourcePack', 'catalogBytes', catalogBytes, policy.maxCatalogBytes,
+          'Taille physique du catalogue');
       add('resourcePack', 'payloadBytes', payloadBytes,
           policy.maxTotalPayloadBytes, 'Charge utile');
       add('resourcePack', 'zipEntries', files.length + 1, policy.maxZipEntries,
@@ -974,7 +1042,8 @@ final class ResourcePackInspector {
       const StrictJsonStructureValidator().validate(text,
           path: path,
           maxDepth: policy.maxJsonDepth,
-          maxNodes: policy.maxJsonNodes,
+          maxNodes:
+              policy.maxJsonNodes < 1000000 ? policy.maxJsonNodes : 1000000,
           duplicateCode: 'resource_pack.json_duplicate_key');
       final value = jsonDecode(text);
       CanonicalJson.encode(value);
@@ -1068,6 +1137,7 @@ final class ResourcePackInspector {
 void _validateName(String name) {
   if (name == 'manifest.json' ||
       name == 'catalog.json' ||
+      RegExp(r'^catalog/objects/[a-f0-9]{64}\.json$').hasMatch(name) ||
       RegExp(r'^blobs/[a-f0-9]{64}\.(png|glb)$').hasMatch(name) ||
       RegExp(r'^licenses/[a-f0-9]{64}\.txt$').hasMatch(name) ||
       RegExp(r'^previews/[a-f0-9]{64}\.png$').hasMatch(name)) {

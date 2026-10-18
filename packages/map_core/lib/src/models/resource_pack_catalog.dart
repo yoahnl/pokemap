@@ -1,3 +1,5 @@
+import '../catalog_storage/catalog_dynamic_dependency.dart';
+
 import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
@@ -30,7 +32,9 @@ final class ResourcePackCatalog {
     Iterable<ResourcePackFileBinding> files = const [],
     Iterable<ResourcePackProvenance> provenance = const [],
     Iterable<String> smartTilePatternIds = const [],
-  }) : tilesets = List.unmodifiable(tilesets),
+    Iterable<CatalogDynamicDependency> dynamicDependencies = const [],
+  }) : dynamicDependencies = List.unmodifiable(dynamicDependencies),
+       tilesets = List.unmodifiable(tilesets),
        elements = List.unmodifiable(elements),
        models3d = List.unmodifiable(models3d),
        characters = List.unmodifiable(characters),
@@ -80,6 +84,7 @@ final class ResourcePackCatalog {
       'files',
       'provenance',
       'extras',
+      'dynamicDependencies',
     };
     if (json.keys.any((key) => !keys.contains(key))) {
       throw const FormatException('pack.catalog: unknown section');
@@ -132,6 +137,13 @@ final class ResourcePackCatalog {
       throw const FormatException('pack.extras: unknown field');
     }
     return ResourcePackCatalog(
+      dynamicDependencies: [
+        for (final item in _list(
+          json['dynamicDependencies'],
+          'dynamicDependencies',
+        ))
+          CatalogDynamicDependency.fromJson(_object(item, 'dynamicDependency')),
+      ],
       tilesets: _nativeList(
         json['tilesets'],
         'ProjectTilesetEntry',
@@ -197,6 +209,7 @@ final class ResourcePackCatalog {
     );
   }
 
+  final List<CatalogDynamicDependency> dynamicDependencies;
   final List<ProjectTilesetEntry> tilesets;
   final List<ProjectElementEntry> elements;
   final List<ProjectModel3dEntry> models3d;
@@ -365,6 +378,9 @@ final class ResourcePackCatalog {
   Map<String, Object?> toJson() {
     final smart = smartTileCatalog.toJson(compact: false)..remove('drafts');
     return {
+      'dynamicDependencies': [
+        for (final declaration in dynamicDependencies) declaration.toJson(),
+      ],
       'tilesets': [for (final e in tilesets) e.toJson()],
       'elements': [for (final e in elements) e.toJson()],
       'models3d': [for (final e in models3d) e.toJson()],

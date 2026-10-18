@@ -1169,6 +1169,7 @@ final class GamePackageManifest {
 
   GamePackageManifest copyWith({
     GamePackageContent? content,
+    GamePackageCompatibility? compatibility,
     GamePackageSignature? signature,
     bool clearSignature = false,
   }) =>
@@ -1180,7 +1181,7 @@ final class GamePackageManifest {
         description: description,
         author: author,
         publisher: publisher,
-        compatibility: compatibility,
+        compatibility: compatibility ?? this.compatibility,
         locales: locales,
         branding: _legacyBranding,
         presentation: presentation,

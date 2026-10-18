@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:archive/archive.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -11,6 +12,81 @@ import 'package:map_distribution/src/deterministic_zip_encoder.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('publishes only a v2 descriptor with exact reachable catalog objects',
+      () async {
+    final sink = _Sink();
+    final result = await ResourcePackBuilder().build(
+        metadata: _metadata,
+        catalog: ResourcePackCatalog(),
+        tileWidth: 16,
+        tileHeight: 16,
+        sources: [],
+        sink: sink);
+    final archive = ZipDecoder().decodeBytes(sink.bytes);
+    final descriptor = jsonDecode(
+            utf8.decode(archive.findFile('catalog.json')!.content as List<int>))
+        as Map<String, dynamic>;
+    expect(descriptor['format'], 'avelune.portable-catalog');
+    expect(descriptor['version'], 2);
+    expect(result.manifest.toJson()['formatVersion'], 2);
+    final read = PortableCatalogPublication.readSync(descriptor,
+        readObject: (ref) => archive
+            .findFile(PortableCatalogPublication.objectPath(ref))!
+            .content as List<int>);
+    expect(
+        result.manifest.content.files.map((f) => f.path).toSet(),
+        read.objectReferences
+            .map(PortableCatalogPublication.objectPath)
+            .toSet());
+    final inspection =
+        ResourcePackInspector().inspectSourceSync(_Source(sink.bytes));
+    expect(inspection.catalog.toJson(), ResourcePackCatalog().toJson());
+  });
+
+  test('counts descriptor root indexes and units in physical and value quotas',
+      () async {
+    final catalog = ResourcePackCatalog();
+    final report = CatalogBudgetCalculator().measureResourcePack(catalog);
+    final bytes = report.totals['catalogBytes']!;
+    final values = report.totals['jsonNodes']!;
+    final exact = ResourcePackSecurityPolicy(
+        maxCatalogBytes: bytes, maxJsonNodes: values);
+    final sink = _Sink();
+    await ResourcePackBuilder(policy: exact).build(
+        metadata: _metadata,
+        catalog: catalog,
+        tileWidth: 16,
+        tileHeight: 16,
+        sources: [],
+        sink: sink);
+    expect(
+        ResourcePackInspector(policy: exact)
+            .inspectSourceSync(_Source(sink.bytes))
+            .payloadBytes,
+        bytes);
+    for (final policy in [
+      ResourcePackSecurityPolicy(maxCatalogBytes: bytes - 1),
+      ResourcePackSecurityPolicy(maxJsonNodes: values - 1)
+    ]) {
+      final rejected = _Sink();
+      await expectLater(
+          ResourcePackBuilder(policy: policy).build(
+              metadata: _metadata,
+              catalog: catalog,
+              tileWidth: 16,
+              tileHeight: 16,
+              sources: [],
+              sink: rejected),
+          throwsA(isA<GamePackageFormatException>()));
+      expect(rejected.bytes, isEmpty);
+      expect(rejected.aborted, isTrue);
+      expect(
+          () => ResourcePackInspector(policy: policy)
+              .inspectSourceSync(_Source(sink.bytes)),
+          throwsA(isA<GamePackageFormatException>()));
+    }
+  });
+
   test('streams the exact deterministic ZIP profile with backpressure',
       () async {
     final catalog = ResourcePackCatalog();
@@ -34,11 +110,15 @@ void main() {
     expect(first.bytes, second.bytes);
     expect(a.archiveRawSha256, b.archiveRawSha256);
     expect(a.archiveBytes, first.bytes.length);
+    final publication = PortableCatalogPublication.encodeCatalog(catalog);
     final expected = DeterministicZipEncoder.encode([
-      MapEntry('catalog.json', CanonicalJson.encodeUtf8(catalog.toJson())),
+      ...publication.storage.objects.entries
+          .map((e) => MapEntry('catalog/objects/${e.key}.json', e.value)),
+      MapEntry(
+          'catalog.json', CanonicalJson.encodeUtf8(publication.descriptor)),
       MapEntry(
           'manifest.json', ResourcePackManifestCodec().encodeUtf8(a.manifest)),
-    ]);
+    ]..sort((a, b) => PackagePathPolicy.compareUtf8(a.key, b.key)));
     expect(first.bytes, expected);
     expect(
         ResourcePackInspector()
@@ -53,8 +133,9 @@ void main() {
       'rejects useful payload one byte below catalog plus sources before opening sources',
       () async {
     final fixture = await _payloadFixture();
-    final catalogBytes =
-        CanonicalJson.encodeUtf8(fixture.catalog.toJson()).length;
+    final catalogBytes = CatalogBudgetCalculator()
+        .measureResourcePack(fixture.catalog)
+        .totals['catalogBytes']!;
     final sourceBytes =
         fixture.sources.fold<int>(0, (sum, source) => sum + source.byteLength);
     final exactBytes = catalogBytes + sourceBytes;
@@ -101,8 +182,9 @@ void main() {
       'accepts useful payload exactly at catalog plus sources with official inspection',
       () async {
     final fixture = await _payloadFixture();
-    final catalogBytes =
-        CanonicalJson.encodeUtf8(fixture.catalog.toJson()).length;
+    final catalogBytes = CatalogBudgetCalculator()
+        .measureResourcePack(fixture.catalog)
+        .totals['catalogBytes']!;
     final sourceBytes =
         fixture.sources.fold<int>(0, (sum, source) => sum + source.byteLength);
     final exactBytes = catalogBytes + sourceBytes;
@@ -121,7 +203,12 @@ void main() {
     expect(inspection.resourceCount, 1);
     expect(inspection.catalog.files.single.rawSha256,
         fixture.catalog.files.single.rawSha256);
-    expect(result.manifest.content.catalog.byteLength, catalogBytes);
+    expect(
+        result.manifest.content.catalog.byteLength,
+        CanonicalJson.encodeUtf8(
+                PortableCatalogPublication.encodeCatalog(fixture.catalog)
+                    .descriptor)
+            .length);
     expect(result.archiveBytes, sink.bytes.length);
     expect(inspection.archiveRawSha256, result.archiveRawSha256);
     expect(fixture.openedPaths, hasLength(fixture.sources.length * 2));

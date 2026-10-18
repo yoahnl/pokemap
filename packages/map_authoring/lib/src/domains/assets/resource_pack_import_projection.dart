@@ -7,6 +7,7 @@ import 'package:map_distribution/map_distribution.dart';
 import '../maps/canonical_border_ground_composer.dart';
 import 'resource_pack_border_sources.dart';
 import 'resource_pack_native_remapper.dart';
+import 'resource_pack_dynamic_remapping.dart';
 
 final class ResourcePackImportProjection {
   ResourcePackImportProjection(
@@ -176,6 +177,15 @@ final class ResourcePackImportProjection {
       }
     }
     final json = inspection.catalog.toJson();
+    json['dynamicDependencies'] = [
+      for (final declaration in inspection.catalog.dynamicDependencies)
+        if (selectedKeys
+            .contains(resourcePackDynamicNativeKey(declaration.owner)))
+          remapResourcePackDynamicDependency(declaration,
+              (kind, id, [owner]) => kind == 'borderSnapshot'
+                  ? id
+                  : reference(kind, id, owner)).toJson(),
+    ];
     List<Map<String, dynamic>> values(String kind) => [
           for (final key in selectedKeys.toList()..sort())
             if ((jsonDecode(key) as List)[0] == kind) definitions[key]!
@@ -256,6 +266,14 @@ final class ResourcePackImportProjection {
     catalog = ResourcePackCatalog.fromJson(json);
     ResourcePackDependencyGraph.fromCatalog(catalog).validateAll();
   }
+
+  List<CatalogDynamicDependency> get projectDynamicDependencies => [
+        for (final declaration in catalog.dynamicDependencies)
+          remapResourcePackDynamicDependency(declaration,
+              (kind, id, [owner]) => kind == 'borderSnapshot'
+                  ? reference(kind, id, owner)
+                  : id),
+      ];
 
   Future<void> certifyBorders(
       ProjectManifest target,

@@ -42,7 +42,7 @@ export async function connectPackMcp(root: string, dart?: string) {
     for (let i = 0; i < 3000; i++) {
       const state = await pack(opened, "get", { jobId: start.jobId });
       if (["succeeded", "failed", "cancelled"].includes(String(packRecord(state.snapshot).state))) return state;
-      await new Promise((done) => setTimeout(done, 1));
+      await new Promise((done) => setTimeout(done, 250));
     }
     throw new Error("The resource pack job did not settle.");
   }

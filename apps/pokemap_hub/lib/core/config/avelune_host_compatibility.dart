@@ -7,6 +7,7 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
       hubVersion: Version.parse('0.1.0'),
       runtimeApiVersion: Version.parse('1.4.0'),
       capabilities: const <String>{
+        'catalog.partitioned@2',
         'dialogue.choices@1',
         'map@1',
         'map3d@1',

@@ -20,8 +20,13 @@ void main() {
         ]),
         payloadFiles: files);
     final inspected = const GamePackageInspector().inspect(built.packageBytes);
-    expect(inspected.manifest.compatibility.requiredCapabilities,
-        ['map3d@1', 'map3d.gameplay@1', 'map3d.story@1', 'map3d.animation@1']);
+    expect(inspected.manifest.compatibility.requiredCapabilities, [
+      'catalog.partitioned@2',
+      'map3d.animation@1',
+      'map3d.gameplay@1',
+      'map3d.story@1',
+      'map3d@1'
+    ]);
     final decoded = _project(files);
     expect(buildSceneRuntimePlan(decoded.scenes.single).canBuild, isTrue);
     expect(decoded.cinematics.single.timeline.steps.map((s) => s.kind),

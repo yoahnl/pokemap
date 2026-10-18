@@ -17,8 +17,6 @@ import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
 import 'runtime_static_terrain_projection.dart';
-import 'runtime_smart_tile_rule_projection.dart';
-import 'runtime_unused_model_projection.dart';
 
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
@@ -124,7 +122,7 @@ final class _PresentationPackageProjection {
 final class RuntimeProjectProjectionBuilder {
   const RuntimeProjectProjectionBuilder({
     this.maxWorkspaceEntries = 100000,
-    this.maxPayloadEntries = 20000,
+    this.maxPayloadEntries = 64999,
     this.maxFileBytes = 268435456,
     this.maxJsonSourceBytes = 268435456,
     this.maxTotalPayloadBytes = 1073741824,
@@ -436,27 +434,6 @@ final class RuntimeProjectProjectionBuilder {
       presentation: presentation,
     );
 
-    var runtimeMaps = <MapData>[];
-    if (projectedProject.settings.dimension == ProjectDimension.twoD &&
-        projectedProject.smartTileCatalog.presets
-            .any((preset) => preset.rules.length >= 64)) {
-      for (final entry in projectedProject.maps) {
-        runtimeMaps.add(sourceMaps[entry.id] ??
-            MapData.fromJson(_decodeJsonObject(
-                await authorFiles.read(entry.relativePath, budget,
-                    jsonLike: true),
-                entry.relativePath)));
-      }
-      projectedProject = projectRuntimeSmartTileRules(
-        project: projectedProject,
-        maps: runtimeMaps,
-        additionalDocuments: [
-          for (final entry in compiledEntries)
-            _decodeJsonObject(payload['project/${entry.relativePath}']!,
-                entry.relativePath),
-        ],
-      );
-    }
     if (projectedProject.settings.dimension == ProjectDimension.threeD &&
         projectedProject.smartTileCatalog.presets
             .any((preset) => preset.rules.length >= 64)) {
@@ -475,7 +452,6 @@ final class RuntimeProjectProjectionBuilder {
         readAsset: (path) => authorFiles.read(path, budget),
       );
       projectedProject = terrain.project;
-      runtimeMaps = terrain.maps;
       final virtualFiles = <String, List<int>>{
         ...authorFiles.virtualFiles,
         ...terrain.assets,
@@ -500,33 +476,6 @@ final class RuntimeProjectProjectionBuilder {
             records: [...authorFiles.catalog.records, ...derivedRecords]),
         virtualFiles: virtualFiles,
       );
-    }
-
-    final excludedModelPaths = <String>{};
-    if (projectedProject.settings.dimension == ProjectDimension.threeD &&
-        projectedProject.models3d.isNotEmpty) {
-      if (runtimeMaps.isEmpty) {
-        for (final entry in projectedProject.maps) {
-          runtimeMaps.add(sourceMaps[entry.id] ??
-              MapData.fromJson(_decodeJsonObject(
-                  await authorFiles.read(entry.relativePath, budget,
-                      jsonLike: true),
-                  entry.relativePath)));
-        }
-      }
-      final models = projectRuntimeModelResources(
-          project: projectedProject,
-          maps: runtimeMaps,
-          assets: authorFiles.catalog,
-          additionalDocuments: [
-            for (final entry in compiledEntries)
-              _decodeJsonObject(payload['project/${entry.relativePath}']!,
-                  entry.relativePath)
-          ]);
-      projectedProject = models.project;
-      excludedModelPaths.addAll(models.excludedLogicalPaths);
-      authorFiles = _AuthorProjectFileResolver(projectRoot, models.assets,
-          virtualFiles: authorFiles.virtualFiles);
     }
 
     final presentationPackage = await _preparePresentationPackage(
@@ -573,7 +522,6 @@ final class RuntimeProjectProjectionBuilder {
       }
       if (type != FileSystemEntityType.file ||
           relative == 'project.json' ||
-          excludedModelPaths.contains(relative) ||
           dialogueSources.contains(relative) ||
           (presentationPackage?.excludedLogicalPaths.contains(relative) ??
               false) ||

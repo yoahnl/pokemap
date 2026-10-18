@@ -82,6 +82,11 @@ final class GamePackageInspector {
     }
     const codec = GamePackageManifestCodec();
     final manifest = codec.decodeUtf8(manifestBytes);
+    if (!manifest.compatibility.requiredCapabilities
+        .contains('catalog.partitioned@2')) {
+      _fail('missingCatalogCapability', 'game-manifest.json',
+          'Partitioned catalog capability is required.');
+    }
     final signatureStatus = _verifySignature(manifest, codec);
     final compatibility = _evaluateCompatibility(manifest);
     final rawByPath = <String, RandomAccessZipStructureEntry>{
@@ -253,6 +258,11 @@ final class GamePackageInspector {
         .add(manifestEntry.data);
     const codec = GamePackageManifestCodec();
     final manifest = codec.decodeUtf8(manifestEntry.data);
+    if (!manifest.compatibility.requiredCapabilities
+        .contains('catalog.partitioned@2')) {
+      _fail('missingCatalogCapability', 'game-manifest.json',
+          'Partitioned catalog capability is required.');
+    }
     final signatureStatus = _verifySignature(manifest, codec);
     final compatibility = _evaluateCompatibility(manifest);
 

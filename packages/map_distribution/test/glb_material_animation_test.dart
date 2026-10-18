@@ -196,9 +196,13 @@ void main() {
         payloadFiles: spatialPayload(modelBytes: bytes));
     const GamePackageInspector().inspect(built.packageBytes);
     final archive = ZipDecoder().decodeBytes(built.packageBytes);
-    final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(
-            archive.findFile('project/project.json')!.content as List<int>))
-        as Map<String, dynamic>);
+    final project = PortableCatalogPublication.decodeProjectSync(
+        jsonDecode(utf8.decode(
+                archive.findFile('project/project.json')!.content as List<int>))
+            as Map<String, dynamic>,
+        readObject: (ref) => archive
+            .findFile('project/${PortableCatalogPublication.objectPath(ref)}')!
+            .content as List<int>);
     expect(
         project.models3d.single.inspection.animations.map((clip) => clip.index),
         [0, 1]);

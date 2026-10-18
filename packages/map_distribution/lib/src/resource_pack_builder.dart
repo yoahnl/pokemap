@@ -64,8 +64,18 @@ final class ResourcePackBuilder {
     required ResourcePackArchiveSink sink,
   }) async {
     try {
-      final files = sources.toList()
-        ..sort((a, b) => PackagePathPolicy.compareUtf8(a.path, b.path));
+      final sourceFiles = sources.toList();
+      if (sourceFiles.any((file) => file.path.startsWith('catalog/') || file.path == 'catalog.json')) {
+        _fail('catalog_source_reserved', 'catalog.json');
+      }
+      final publication = PortableCatalogPublication.encodeCatalog(catalog,
+          limits: CatalogStorageLimits(maxStoredBytes: policy.maxCatalogBytes));
+      final files = <ResourcePackBuildSource>[
+        ...sourceFiles,
+        for (final object in publication.storage.objects.entries)
+          _inline('catalog/objects/${object.key}.json',
+              Uint8List.fromList(object.value)),
+      ]..sort((a, b) => PackagePathPolicy.compareUtf8(a.path, b.path));
       final names = <String>{};
       for (final file in files) {
         file.inventory;
@@ -121,8 +131,8 @@ final class ResourcePackBuilder {
       if (supports > policy.maxSupports) {
         _fail('support_limit', 'catalog.json', budgetReport);
       }
-      final catalogBytes = CanonicalJson.encodeUtf8(catalog.toJson());
-      if (catalogBytes.length > policy.maxCatalogBytes) {
+      final catalogBytes = CanonicalJson.encodeUtf8(publication.descriptor);
+      if (budgetReport.totals['catalogBytes']! > policy.maxCatalogBytes) {
         _fail('catalog_too_large', r'$', budgetReport);
       }
       payloadBytes += catalogBytes.length;
@@ -161,6 +171,7 @@ final class ResourcePackBuilder {
               files: inventory,
               treeSha256: resourcePackTreeSha256(catalogFile, inventory)));
       final manifestBytes = CanonicalJson.encodeUtf8(manifest.toJson());
+      ResourcePackManifestCodec(policy: policy).decodeUtf8(manifestBytes);
       budgetReport = CatalogBudgetCalculator(resourcePackPolicy: policy)
           .measureResourcePack(catalog,
               manifestBytes: manifestBytes.length,
