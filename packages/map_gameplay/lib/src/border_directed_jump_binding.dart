@@ -36,7 +36,7 @@ List<BorderDirectedJumpBinding> bindMaterializedBorderJumpFaces({
   required ProjectManifest project,
   required PixelSize tileSize,
 }) {
-  ProjectValidator.validate(project, maps: [map]);
+  ProjectValidator.validate(project);
   MapValidator.validate(map, projectDialogueContext: project);
   if (map.spatialScene != null ||
       tileSize.width != project.settings.tileWidth ||
