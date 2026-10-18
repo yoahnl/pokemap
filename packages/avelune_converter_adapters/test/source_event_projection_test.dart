@@ -988,7 +988,7 @@ void main() {
         (r'variables = $game_variables; variables[7] = []', false),
         (r'$game_variables[8].replace([])', true),
       ]) {
-        test('opaque $kind route script preserves numeric writer boundaries ' + entry.$1, () async {
+        test('opaque $kind route script preserves numeric writer boundaries ${entry.$1}', () async {
           final move = _RubyObject('RPG::MoveCommand', {
             '@code': 45, '@parameters': [entry.$1],
           });
@@ -1025,13 +1025,13 @@ void main() {
         (r'variables = $game_variables; variables[7] = []', false),
         (r'$game_variables[8].replace([])', true),
       ]) {
-        test('script switch $kind contributes opaque numeric references ' + entry.$1, () async {
+        test('script switch $kind contributes opaque numeric references ${entry.$1}', () async {
           final writer = kind == 'branch'
               ? _page([_command(111, [0, 1, 0]), _command(412, []), _command(0, [])])
               : _withCondition(_page([_command(0, [])]), {'@switch1_valid': true});
           final source = await _events([_page([
             _command(122, [7, 7, 0, 0, 3]), _command(0, []),
-          ])], attestedScripts: true, switches: ['', 's:' + entry.$1],
+          ])], attestedScripts: true, switches: ['', 's:${entry.$1}'],
             extraEvents: {2: _event(2, [writer])});
           final result = _projectEvents(source);
           expect(result.scenes, hasLength(entry.$2 ? 1 : 0));
@@ -1041,7 +1041,7 @@ void main() {
     }
     for (final code in [103, 105]) {
       for (final entry in [(7, false), (8, true), ('target', false)]) {
-        test('unsupported numeric input $code reserves its variable ' + entry.$1.toString(), () async {
+        test('unsupported numeric input $code reserves its variable ${entry.$1}', () async {
           final source = await _events([_page([
             _command(122, [7, 7, 0, 0, 3]), _command(0, []),
           ])], attestedScripts: true, extraEvents: {2: _event(2, [_page([

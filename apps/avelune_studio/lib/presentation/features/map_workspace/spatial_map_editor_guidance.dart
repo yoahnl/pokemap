@@ -4,7 +4,9 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
   List<SpatialCellOverlay> terrainSurfaceSelectionOverlays(ColorScheme colors) {
     if (widget.view.tool != StudioMapTool.terrain ||
         widget.view.spatialTerrainMode != SpatialTerrainMode.relief ||
-        !widget.view.spatialContinuousTerrain) return const [];
+        !widget.view.spatialContinuousTerrain) {
+      return const [];
+    }
     final preview = widget.view.terrainSurfacePreview;
     final scene = preview?.validFor(widget.document.current) == true
         ? preview!.result.spatialScene! : widget.document.current.spatialScene!;
