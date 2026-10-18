@@ -517,6 +517,15 @@ Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
   }
 }
 
+bool _conditionUsesTempSwitch(SourceEventCondition condition) =>
+    condition.kind == SourceEventConditionKind.tempSwitch ||
+    condition.children.any(_conditionUsesTempSwitch);
+
+bool _eventUsesTempSwitch(SourceEventDefinition event) => event.pages.any((page) =>
+    _conditionUsesTempSwitch(page.condition) ||
+    _sourceControlNodes(page.body).any((node) => node is SourceTempSwitchNode ||
+        node is SourceConditionalNode && _conditionUsesTempSwitch(node.condition)));
+
 Set<String> _sourceControlVariables(SourceEventDefinition event) {
   final ids = <String>{};
   void condition(SourceEventCondition value) {
@@ -917,7 +926,7 @@ final class _ProjectionBuilder {
     if (condition.kind == SourceEventConditionKind.all) {
       return _all(condition.children.map((child) => _pageGuard(event, child)).toList());
     }
-    if (condition.kind == SourceEventConditionKind.tempSwitch && _isSourceTransition(event)) {
+    if (condition.kind == SourceEventConditionKind.tempSwitch) {
       return _Guard.expression(NarrativeEventConditionExpression.leaf(
         NarrativeEventCondition.mapEventInstanceBoolean(mapId: maps[event.sourceMapId]!.id,
           eventId: _key(event, 'anchor'), key: condition.tempSwitchLetter!,
@@ -1225,7 +1234,7 @@ final class _ProjectionBuilder {
             {
               'originalPageIndex': page.originalPageIndex,
               'triggerCode': page.triggerCode,
-              if (page.triggerCode == 1)
+              if (const [1, 2].contains(page.triggerCode))
                 'sourceContact': _touch(event, page).toJson(),
               'condition': page.condition.toJson(),
               'locator': page.locator.toJson(),
@@ -2616,7 +2625,7 @@ final class _ProjectionBuilder {
       gaps.addAll(context?.refusals.isNotEmpty == true
           ? context!.refusals : ['sourceExecutionContextUnknown']);
     }
-    if (_isSourceTransition(event) && retentionPolicy == null) {
+    if ((_isSourceTransition(event) || _eventUsesTempSwitch(event)) && retentionPolicy == null) {
       gaps.add('sourceMapInstanceRetentionMissing');
     }
     if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
@@ -2637,7 +2646,6 @@ final class _ProjectionBuilder {
       gaps.add('eventPositionInvalid');
     }
     String? previousGraphic;
-    int? trigger;
     for (final page in event.pages) {
       _conditionGaps(event, page.condition, gaps);
       _blockGaps(event, page.body, gaps, checkCharacterBindings: checkCharacterBindings);
@@ -2715,7 +2723,7 @@ final class _ProjectionBuilder {
         }
       }
       if (page.triggerCode != 0 &&
-          !(page.triggerCode == 1 && graphic.through) &&
+          !const [1, 2].contains(page.triggerCode) &&
           !_isSourceTransition(event) && !staticSign) {
         gaps.add('triggerContractUnsupported');
       }
@@ -2731,7 +2739,7 @@ final class _ProjectionBuilder {
           gaps.add('counterInteractionReachUnsupported');
         }
       }
-      if (page.triggerCode == 1 && !page.isEmpty) {
+      if (const [1, 2].contains(page.triggerCode) && !page.isEmpty) {
         final touch = _touch(event, page);
         if (touch.kind == SourceEventTouchKind.unqualified) {
           gaps.add('sourceTouchContactUnqualified');
@@ -2745,10 +2753,6 @@ final class _ProjectionBuilder {
           }
         }
       }
-      if (trigger != null && trigger != page.triggerCode && !_isSourceTransition(event)) {
-        gaps.add('pageTriggerChanges');
-      }
-      trigger = page.triggerCode;
     }
     final hasBase = event.pages.any((p) =>
         p.condition.isQualified &&
@@ -2889,7 +2893,7 @@ final class _ProjectionBuilder {
       case SourceEventConditionKind.variableAtLeast:
         break;
       case SourceEventConditionKind.tempSwitch:
-        if (!_isSourceTransition(event)) gaps.add('sourceTempSwitchUnsupported');
+        break;
       case SourceEventConditionKind.playerOnEvent:
         if (!_isSourceTransition(event)) gaps.add('sourceDoorProgramUnsupported');
       case SourceEventConditionKind.playerFacing:
@@ -3067,7 +3071,7 @@ final class _ProjectionBuilder {
             }
           }
         case SourceTempSwitchNode():
-          if (!_isSourceTransition(event)) gaps.add('sourceTempSwitchUnsupported');
+          break;
       }
     }
   }
@@ -3291,13 +3295,25 @@ final class _ProjectionBuilder {
             mapEntityCollisionOffsetYProperty: '0',
           },
         });
-    NarrativeEventSourceRef sourceRef;
-    if (event.pages.first.triggerCode == 0 || trainer != null) {
-      sourceRef = NarrativeEventSourceRef.entityInteract(map.id, entityId);
-    } else if (_isSourceTransition(event) && graphic.characterName.isNotEmpty && !graphic.through) {
-      sourceRef = NarrativeEventSourceRef.entityBump(map.id, entityId);
-    } else {
-      final triggerId = _key(event, 'trigger');
+    final triggerId = _key(event, 'trigger');
+    bool usesTrigger(SourceEventPageAnalysis page) =>
+        trainer == null && const [1, 2].contains(page.triggerCode) &&
+        !(page.graphic!.characterName.isNotEmpty && !page.graphic!.through);
+    NarrativeEventSourceRef pageSource(SourceEventPageAnalysis page) {
+      if (page.triggerCode == 3) {
+        return NarrativeEventSourceRef.entityAutorun(map.id, entityId);
+      }
+      if (page.triggerCode == 0 || trainer != null) {
+        return NarrativeEventSourceRef.entityInteract(map.id, entityId);
+      }
+      if (!usesTrigger(page)) {
+        return NarrativeEventSourceRef.entityBump(map.id, entityId);
+      }
+      return _touch(event, page).kind == SourceEventTouchKind.front
+          ? NarrativeEventSourceRef.triggerBump(map.id, triggerId)
+          : NarrativeEventSourceRef.triggerEnter(map.id, triggerId);
+    }
+    if (projectedPages.any(usesTrigger)) {
       final trigger = MapTrigger(
           id: triggerId,
           name: _name(event),
@@ -3312,10 +3328,6 @@ final class _ProjectionBuilder {
           [event.identity, event.sourceFileId],
           [map.id, trigger.id],
           {'mapId': map.id, 'trigger': trigger.toJson()}));
-      sourceRef = event.pages.first.triggerCode == 1 &&
-          _touch(event, event.pages.first).kind == SourceEventTouchKind.front
-          ? NarrativeEventSourceRef.triggerBump(map.id, triggerId)
-          : NarrativeEventSourceRef.triggerEnter(map.id, triggerId);
     }
     maps[event.sourceMapId] = maps[event.sourceMapId]!
         .copyWith(entities: [...maps[event.sourceMapId]!.entities, entity]);
@@ -3396,12 +3408,7 @@ final class _ProjectionBuilder {
           NarrativeEventDefinition(
               id: _eventId(event, 'page_${page.originalPageIndex}'),
               name: '${_name(event)} / ${page.originalPageIndex + 1}',
-              source: page.triggerCode == 3
-                  ? NarrativeEventSourceRef.entityAutorun(map.id, entityId)
-                  : routedDoorPrograms.containsKey(event.identity) &&
-                      page.triggerCode == 1 && graphic.characterName.isNotEmpty && !graphic.through
-                      ? NarrativeEventSourceRef.entityBump(map.id, entityId)
-                      : sourceRef,
+              source: pageSource(page),
               conditions: expression.leaves,
               conditionExpression: expression,
               sceneId: scene.id,

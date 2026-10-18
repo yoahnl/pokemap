@@ -35,6 +35,11 @@ abstract interface class FlameCinematicMotionActorHandle
   void setMotion(EntityFacing facing, CharacterAnimationState state);
 }
 
+abstract interface class FlameCinematicJumpActorHandle
+    implements FlameCinematicRuntimeActorHandle {
+  void setJumpLift(double lift);
+}
+
 final class FlameCinematicActorPose {
   const FlameCinematicActorPose({
     required this.focusX,
@@ -212,7 +217,8 @@ final class FlameCinematicRuntimePlaybackSink
       final failure = _preflightStep(asset, step);
       if (failure != null) return failure;
     }
-    if (asset.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal &&
+    if ((asset.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal ||
+            asset.timeline.steps.any((step) => step.kind == CinematicTimelineStepKind.actorJump)) &&
         (asset.stageContext?.actorBindings.isNotEmpty ?? false)) {
       final poseHost = host;
       if (poseHost is! FlameCinematicPoseRuntimeHost) {
@@ -248,6 +254,8 @@ final class FlameCinematicRuntimePlaybackSink
         _beginCameraStep(context);
       case CinematicTimelineStepKind.actorMove:
         _beginActorMoveStep(context);
+      case CinematicTimelineStepKind.actorJump:
+        _beginActorJumpStep(context);
       case CinematicTimelineStepKind.actorFace:
         final actor = _requireActor(step.actorId);
         actor.setFacing(_entityFacingOf(step));
@@ -306,6 +314,8 @@ final class FlameCinematicRuntimePlaybackSink
         _applyCameraState(state, progress);
       case _ActorMoveStepState():
         _applyActorMoveState(state, progress);
+      case _ActorJumpStepState():
+        _applyActorJumpState(state, progress);
       case _FadeStepState():
         host.setCinematicFadeOpacity(
           cinematicFadeOpacity(fadeOut: state.fadeOut, progress: progress),
@@ -363,6 +373,8 @@ final class FlameCinematicRuntimePlaybackSink
         _applyCameraState(state, 1);
       case _ActorMoveStepState():
         _applyActorMoveState(state, 1);
+      case _ActorJumpStepState():
+        _applyActorJumpState(state, 1);
       case _FadeStepState():
         host.setCinematicFadeOpacity(state.fadeOut ? 1 : 0);
       case _ShakeStepState():
@@ -459,6 +471,11 @@ final class FlameCinematicRuntimePlaybackSink
     attempt(() => host.showCinematicActorEmote(null, null));
     attempt(() => host.setCinematicFadeOpacity(null));
     attempt(() => _characterAnimationController?.dispose());
+    for (final actor in _actors.values) {
+      if (actor is FlameCinematicJumpActorHandle) {
+        attempt(() => actor.setJumpLift(0));
+      }
+    }
     final poseHost = host;
     final current = snapshot != null && snapshot.mapId == host.activeMapId &&
         (poseHost is! FlameCinematicPoseRuntimeHost ||
@@ -545,6 +562,14 @@ final class FlameCinematicRuntimePlaybackSink
               message: 'Step "${step.id}" has an unavailable camera target.',
             );
           }
+        }
+        return null;
+      case CinematicTimelineStepKind.actorJump:
+        if (_resolveActorById(asset, step.actorId) is! FlameCinematicJumpActorHandle ||
+            host is! FlameCinematicPoseRuntimeHost ||
+            cinematicTimelineActorJumpHeightCellsOf(step) == null ||
+            !_hasPositiveDuration(step) || _movementRoute(asset, step) == null) {
+          return invalid('requires a jump actor, valid landing, height and duration.');
         }
         return null;
       case CinematicTimelineStepKind.actorMove:
@@ -648,7 +673,8 @@ final class FlameCinematicRuntimePlaybackSink
       if (step.kind == CinematicTimelineStepKind.actorFace) {
         poses[step.actorId!] = FlameCinematicActorPose(
           focusX: pose.focusX, focusY: pose.focusY, facing: _entityFacingOf(step));
-      } else if (step.kind == CinematicTimelineStepKind.actorMove) {
+      } else if (step.kind == CinematicTimelineStepKind.actorMove ||
+          step.kind == CinematicTimelineStepKind.actorJump) {
         final route = _movementRoute(asset, step)!;
         var target = route.last;
         final targetBinding = asset.stageContext?.movementTargetBindings
@@ -665,6 +691,11 @@ final class FlameCinematicRuntimePlaybackSink
             : _facingBetween(Vector2(previous.x / width, previous.y / height),
                 Vector2(target.x / width, target.y / height), pose.facing);
         poses[step.actorId!] = FlameCinematicActorPose(focusX: target.x, focusY: target.y, facing: facing);
+        if (step.kind == CinematicTimelineStepKind.actorJump) {
+          (host as FlameCinematicPoseRuntimeHost).validateCinematicActorPoses({
+            for (final binding in bindings) binding: poses[binding.actorId]!,
+          });
+        }
       }
     }
     return {for (final binding in bindings) binding: poses[binding.actorId]!};
@@ -919,6 +950,56 @@ final class FlameCinematicRuntimePlaybackSink
     }
   }
 
+  void _beginActorJumpStep(CinematicRuntimeStepContext context) {
+    final step = context.step;
+    final actor = _requireActor(step.actorId);
+    final binding = context.asset.stageContext!.actorBindings
+        .singleWhere((binding) => binding.actorId == step.actorId);
+    final target = _movementRoute(context.asset, step)!.single;
+    final width = (project?.settings.tileWidth ?? 1) * (project?.settings.displayScale ?? 1);
+    final height = (project?.settings.tileHeight ?? 1) * (project?.settings.displayScale ?? 1);
+    final facing = cinematicTimelineActorFacingModeOf(step) == CinematicTimelineActorFacingMode.preserve
+        ? actor.facing : _facingBetween(
+            Vector2(actor.focusPoint.x / width, actor.focusPoint.y / height),
+            Vector2(target.x / width, target.y / height), actor.facing);
+    final state = _ActorJumpStepState(
+      actor: actor, binding: binding, start: actor.focusPoint.clone(),
+      target: target.clone(), facing: facing,
+      height: cinematicTimelineActorJumpHeightCellsOf(step)!,
+    );
+    _validateJumpLanding(state);
+    _stepState = state;
+    _applyActorJumpState(state, 0);
+  }
+
+  void _validateJumpLanding(_ActorJumpStepState state) {
+    final snapshot = _snapshot!;
+    (host as FlameCinematicPoseRuntimeHost).validateCinematicActorPoses({
+      for (final binding in snapshot.asset.stageContext!.actorBindings)
+        binding: FlameCinematicActorPose(
+          focusX: _requireActor(binding.actorId).focusPoint.x,
+          focusY: _requireActor(binding.actorId).focusPoint.y,
+          facing: _requireActor(binding.actorId).facing,
+        ),
+      state.binding: FlameCinematicActorPose(focusX: state.target.x,
+          focusY: state.target.y, facing: state.facing),
+    });
+  }
+
+  void _applyActorJumpState(_ActorJumpStepState state, double progress) {
+    if (progress >= 1) _validateJumpLanding(state);
+    final sample = sampleCinematicJump(
+      start: (x: state.start.x, y: state.start.y),
+      end: (x: state.target.x, y: state.target.y),
+      progress: progress, heightCells: state.height,
+    );
+    state.actor.setFocusPoint(Vector2(sample.x, sample.y));
+    state.actor.setFacing(state.facing);
+    final cellHeight = (project?.settings.tileHeight ?? 1) *
+        (project?.settings.displayScale ?? 1);
+    (state.actor as FlameCinematicJumpActorHandle).setJumpLift(sample.liftCells * cellHeight);
+  }
+
   void _applyCameraState(_CameraStepState state, double progress) {
     host.cameraPosition = Vector2(
       cinematicVisualLerp(state.fromPosition.x, state.targetPosition.x, progress),
@@ -1154,6 +1235,8 @@ final class _ActorVisualSnapshot {
   final EntityFacing facing;
 
   void restore() {
+    final jumpActor = actor;
+    if (jumpActor is FlameCinematicJumpActorHandle) jumpActor.setJumpLift(0);
     actor.setFocusPoint(focusPoint.clone());
     actor.setFacing(facing);
   }
@@ -1161,6 +1244,18 @@ final class _ActorVisualSnapshot {
 
 sealed class _FlameCinematicStepState {
   const _FlameCinematicStepState();
+}
+
+final class _ActorJumpStepState extends _FlameCinematicStepState {
+  const _ActorJumpStepState({required this.actor, required this.binding,
+      required this.start, required this.target, required this.facing,
+      required this.height});
+
+  final FlameCinematicRuntimeActorHandle actor;
+  final CinematicActorBinding binding;
+  final Vector2 start, target;
+  final EntityFacing facing;
+  final double height;
 }
 
 final class _PassiveStepState extends _FlameCinematicStepState {

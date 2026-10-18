@@ -357,10 +357,14 @@ final class _PlayableMapCinematicRuntimeHost
 }
 
 final class _PlayableMapPlayerCinematicActorHandle
-    implements FlameCinematicCharacterAnimationActorHandle, FlameCinematicMotionActorHandle {
+    implements FlameCinematicCharacterAnimationActorHandle, FlameCinematicMotionActorHandle,
+        FlameCinematicJumpActorHandle {
   const _PlayableMapPlayerCinematicActorHandle(this._player);
 
   final PlayerComponent _player;
+
+  @override
+  void setJumpLift(double lift) => _player.setCinematicJumpLift(lift);
 
   @override
   String get actorId => 'player';
@@ -410,13 +414,17 @@ final class _PlayableMapPlayerCinematicActorHandle
 }
 
 final class _PlayableMapNpcCinematicActorHandle
-    implements FlameCinematicCharacterAnimationActorHandle, FlameCinematicMotionActorHandle {
+    implements FlameCinematicCharacterAnimationActorHandle, FlameCinematicMotionActorHandle,
+        FlameCinematicJumpActorHandle {
   const _PlayableMapNpcCinematicActorHandle(this.actorId, this._actor);
 
   @override
   final String actorId;
 
   final OverworldActorComponent _actor;
+
+  @override
+  void setJumpLift(double lift) => _actor.cinematicJumpLift = lift;
 
   @override
   ProjectCharacterEntry get character => _actor.character;

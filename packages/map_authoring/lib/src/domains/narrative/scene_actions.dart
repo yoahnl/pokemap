@@ -249,6 +249,28 @@ final class SceneActions {
     'outputPorts': ['completed', 'blocked'],
   };
 
+  static const _mapEventInstanceBooleanContract = {
+    'sourceKind': 'mapEventInstanceBoolean',
+    'parameters': ['mapId', 'sourceId', 'key', 'operator'],
+    'owner': 'knownUniqueLogicalMapEntity',
+    'operators': ['isTrue', 'isFalse'],
+    'valueType': 'boolean',
+    'defaultValue': false,
+    'lifetime': 'mapEventInstance',
+    'saveResume': 'retainedInstanceState',
+    'recreatedInstance': 'defaultsRestored',
+  };
+
+  static const _setMapEventInstanceBooleanContract = {
+    'consequenceKind': 'setMapEventInstanceBoolean',
+    'parameters': ['mapId', 'eventId', 'key', 'value'],
+    'owner': 'knownUniqueLogicalMapEntity',
+    'valueType': 'boolean',
+    'lifetime': 'mapEventInstance',
+    'persistentFacts': 'unchanged',
+    'outputPorts': ['completed'],
+  };
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'scene.graph.patch',
@@ -256,6 +278,8 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
+        'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
@@ -273,6 +297,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'pokedexCaughtCount': {
           'sourceKind': 'pokedexCaughtCount',
           'projectDimension': 'twoD',
@@ -355,6 +380,8 @@ final class SceneActions {
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
+        'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
+        'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,

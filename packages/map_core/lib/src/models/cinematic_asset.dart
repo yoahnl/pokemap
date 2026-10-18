@@ -8,6 +8,7 @@ enum CinematicTimelineStepKind {
   wait,
   camera,
   actorMove,
+  actorJump,
   actorFace,
   actorEmote,
   actorAnimation,

@@ -108,6 +108,14 @@ class PlayerComponent extends PositionComponent with HasVisibility {
   DirectedJumpPlan? _jumpPlan;
   void Function()? _jumpCompletion;
   double _jumpLiftPx = 0;
+  double _cinematicJumpLift = 0;
+
+  double get cinematicJumpLift => _cinematicJumpLift;
+
+  void setCinematicJumpLift(double lift) {
+    _cinematicJumpLift = lift;
+    _actor?.cinematicJumpLift = lift;
+  }
 
   /// Facteur gameplay px → monde Flame (écran), identique pour X/Y si tuiles carrées.
   double get _scaleX =>
@@ -383,7 +391,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
     }
     if (_actor != null) return;
     canvas.save();
-    canvas.translate(0, -_jumpLiftPx);
+    canvas.translate(0, -_jumpLiftPx - _cinematicJumpLift);
     final cw = size.x;
     final ch = size.y;
     final cx = cw / 2;

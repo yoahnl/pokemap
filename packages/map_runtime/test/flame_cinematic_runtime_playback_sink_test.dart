@@ -4,6 +4,55 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final keepFacing in [false, true]) {
+    test('jump has a separate lift and exact landing preserve=$keepFacing', () async {
+      final host = _FakeHost();
+      final base = _visualAsset(steps: [_actorMoveStep()]);
+      final asset = CinematicAsset.fromJson({...base.toJson(),
+        'actorCompletionPolicy': 'keepFinal', 'timeline': {'steps': [
+          {'id': 'jump', 'kind': 'actorJump', 'actorId': 'hero',
+            'targetId': base.timeline.steps.single.targetId, 'durationMs': 1000,
+            'metadata': {'actor.jumpHeightCells': '0.5',
+              'actor.facingMode': keepFacing ? 'preserve' : 'followMovement'}},
+        ]},
+      });
+      final controller = CinematicRuntimePlaybackController(
+          sink: FlameCinematicRuntimePlaybackSink(host: host));
+      final completion = controller.play(asset);
+      controller.update(const Duration(milliseconds: 500));
+      expect(host.actors['hero']!.focusPoint, Vector2(60, 30));
+      expect(host.actors['hero']!.jumpLift, .5);
+      expect(host.actors['hero']!.facing, keepFacing ? EntityFacing.north : EntityFacing.east);
+      controller.update(const Duration(milliseconds: 500));
+      expect((await completion).success, isTrue);
+      expect(host.actors['hero']!.focusPoint, Vector2(100, 40));
+      expect(host.actors['hero']!.jumpLift, 0);
+    });
+  }
+
+  test('occupied landing after takeoff fails and restores the initial pose', () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final asset = CinematicAsset.fromJson({...base.toJson(),
+      'timeline': {'steps': [
+        {'id': 'jump', 'kind': 'actorJump', 'actorId': 'hero',
+          'targetId': base.timeline.steps.single.targetId, 'durationMs': 1000,
+          'metadata': {'actor.jumpHeightCells': '0.5'}},
+      ]},
+    });
+    final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host));
+    final completion = controller.play(asset);
+    controller.update(const Duration(milliseconds: 500));
+    expect(host.lastValidatedPoses, hasLength(2));
+    host.rejectPoses = true;
+    controller.update(const Duration(milliseconds: 500));
+    expect((await completion).success, isFalse);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    expect(host.actors['hero']!.jumpLift, 0);
+    expect(host.inputLocked, isFalse);
+  });
+
   test('cleanup failure prevents final pose publication', () async {
     final host = _FakeHost();
     final base = _visualAsset(steps: [_actorMoveStep()]);
@@ -421,12 +470,17 @@ void main() {
 final class _FakeHost implements FlameCinematicRuntimeHost, FlameCinematicPoseRuntimeHost {
   Object activation = Object();
   bool throwWhenCommittingPoses = false;
+  bool rejectPoses = false;
+  Map<CinematicActorBinding, FlameCinematicActorPose> lastValidatedPoses = const {};
   int poseCommitCount = 0;
   @override
   Object get cinematicActivationToken => activation;
 
   @override
-  void validateCinematicActorPoses(Map<CinematicActorBinding, FlameCinematicActorPose> poses) {}
+  void validateCinematicActorPoses(Map<CinematicActorBinding, FlameCinematicActorPose> poses) {
+    lastValidatedPoses = poses;
+    if (rejectPoses) throw StateError('Landing occupied.');
+  }
 
   @override
   void commitCinematicActorPoses(Map<CinematicActorBinding, FlameCinematicActorPose> poses) {
@@ -524,8 +578,12 @@ final class _FakeHost implements FlameCinematicRuntimeHost, FlameCinematicPoseRu
 final class _FakeActor
     implements
         FlameCinematicCharacterAnimationActorHandle,
-        FlameCinematicMotionActorHandle {
+        FlameCinematicMotionActorHandle, FlameCinematicJumpActorHandle {
   _FakeActor(this.focusPoint, this.facing);
+  double jumpLift = 0;
+
+  @override
+  void setJumpLift(double lift) => jumpLift = lift;
 
   @override
   Vector2 focusPoint;

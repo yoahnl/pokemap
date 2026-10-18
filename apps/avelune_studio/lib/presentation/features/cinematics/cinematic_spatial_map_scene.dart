@@ -378,9 +378,8 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
                   Positioned.fill(
                     child: IgnorePointer(
                       child: ColoredBox(
-                        color: Theme.of(context).colorScheme.scrim.withValues(
-                          alpha: viewportFrame?.fadeOpacity ?? 0,
-                        ),
+                        color: Theme.of(context).colorScheme.scrim
+                            .withValues(alpha: viewportFrame?.fadeOpacity ?? 0),
                       ),
                     ),
                   ),
@@ -422,7 +421,9 @@ List<SpatialCellOverlay> cinematicSpatialOverlays(
         ),
   };
   for (final step in model.asset.timeline.steps.where(
-    (step) => step.kind == CinematicTimelineStepKind.actorMove,
+    (step) =>
+        step.kind == CinematicTimelineStepKind.actorMove ||
+        step.kind == CinematicTimelineStepKind.actorJump,
   )) {
     var origin = positions[step.actorId];
     if (origin == null) continue;

@@ -611,7 +611,7 @@ final class SpatialExplorationSession {
         x: story?.x ?? movement.x,
         y: story == null
             ? movement.y
-            : bundle.map.spatialScene!.worldHeightAt(story.x, story.z),
+            : bundle.map.spatialScene!.worldHeightAt(story.x, story.z) + story.liftCells,
         z: story?.z ?? movement.z,
         texture: _textures[resolved.imageId]!,
         frame: resolved.sourceRect);
@@ -707,7 +707,7 @@ final class SpatialExplorationSession {
     return SpatialActorVisual(
         x: x,
         z: z,
-        y: source.map.spatialScene!.worldHeightAt(x, z),
+        y: source.map.spatialScene!.worldHeightAt(x, z) + (pose?.liftCells ?? 0),
         texture: _textures[resolved.imageId]!,
         frame: resolved.sourceRect);
   }

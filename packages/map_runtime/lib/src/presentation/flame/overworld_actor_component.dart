@@ -320,8 +320,17 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     }
   }
 
+  double cinematicJumpLift = 0;
+
   @override
   void render(Canvas canvas) {
+    canvas.save();
+    canvas.translate(0, -cinematicJumpLift);
+    _renderCinematicVisual(canvas);
+    canvas.restore();
+  }
+
+  void _renderCinematicVisual(Canvas canvas) {
     if (!_gameplayVisible) {
       return;
     }

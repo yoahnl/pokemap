@@ -64,6 +64,26 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
       facingMode: facingMode,
     ).cinematic,
   );
+  String? addJump(
+    String actorId,
+    String targetId, {
+    String? afterStepId,
+    int durationMs = 1000,
+    double heightCells = cinematicTimelineDefaultActorJumpHeightCells,
+    CinematicTimelineActorFacingMode facingMode =
+        CinematicTimelineActorFacingMode.followMovement,
+  }) => _added(
+    (a) => addCinematicTimelineActorJumpStep(
+      _with(a),
+      cinematicId: a.id,
+      actorId: actorId,
+      targetId: targetId,
+      afterStepId: afterStepId,
+      durationMs: durationMs,
+      heightCells: heightCells,
+      facingMode: facingMode,
+    ).cinematic,
+  );
   String? addEmote(
     String actorId, {
     String? afterStepId,
@@ -116,6 +136,14 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
     final s = a.timeline.steps.firstWhere((s) => s.id == stepId);
     if (isCinematicTimelineBasicBlockStep(s)) {
       return updateCinematicTimelineBasicBlockStep(
+        _with(a),
+        cinematicId: a.id,
+        stepId: stepId,
+        durationMs: durationMs,
+      ).cinematic;
+    }
+    if (isCinematicTimelineActorJumpStep(s)) {
+      return updateCinematicTimelineActorJumpStep(
         _with(a),
         cinematicId: a.id,
         stepId: stepId,

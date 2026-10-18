@@ -6,6 +6,29 @@ import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtim
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('jump overflies a blocked path and validates its landing again', () async {
+    final host = _Host();
+    final base = _asset();
+    final move = base.timeline.steps.single;
+    final jump = CinematicAsset.fromJson({...base.toJson(), 'timeline': {'steps': [
+      {'id': 'jump', 'kind': 'actorJump', 'actorId': move.actorId,
+        'targetId': move.targetId, 'durationMs': 1000,
+        'metadata': {'actor.jumpHeightCells': '0.5'}},
+    ]}});
+    host.blocked = (x, z, nx, nz) => x != nx || z != nz;
+    final controller = host.controller();
+    final completion = controller.play(jump);
+    controller.update(const Duration(milliseconds: 500));
+    expect(host.pose.liftCells, .5);
+    host.blocked = (x, z, nx, nz) => true;
+    controller.update(const Duration(milliseconds: 500));
+    expect((await completion).success, isFalse);
+    expect(host.pose.x, 1);
+    expect(host.pose.z, 2);
+    expect(host.pose.liftCells, 0);
+    expect(host.committed, isEmpty);
+  });
+
   test('restoreInitial rolls actor pose back even after successful playback',
       () async {
     final host = _Host();

@@ -204,7 +204,15 @@ CinematicPlaybackPreflightReport preflightCinematicPlayback({
         ));
       }
     }
-    if (step.kind == CinematicTimelineStepKind.actorMove) {
+    if (step.kind == CinematicTimelineStepKind.actorJump) {
+      final error = cinematicTimelineActorJumpValidationErrorOf(
+        cinematic,
+        step,
+      );
+      if (error != null) issues.add(_stepIssue(step, error));
+    }
+    if (step.kind == CinematicTimelineStepKind.actorMove ||
+        step.kind == CinematicTimelineStepKind.actorJump) {
       if (cinematicTimelineActorFacingModeOf(step) == null) {
         issues.add(_stepIssue(step, 'requires a valid actor.facingMode.'));
       }
@@ -273,6 +281,7 @@ CinematicMediaAssetKind? _expectedMediaKind(CinematicTimelineStepKind kind) =>
     };
 
 bool _requiresActor(CinematicTimelineStepKind kind) =>
+    kind == CinematicTimelineStepKind.actorJump ||
     kind == CinematicTimelineStepKind.actorMove ||
     kind == CinematicTimelineStepKind.actorFace ||
     kind == CinematicTimelineStepKind.actorEmote;

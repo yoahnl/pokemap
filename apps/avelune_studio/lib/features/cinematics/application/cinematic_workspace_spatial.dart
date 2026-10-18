@@ -119,7 +119,8 @@ extension CinematicWorkspaceSpatial on CinematicWorkspaceController {
       throw ArgumentError('La destination doit être dans la carte.');
     }
     final step = a.timeline.steps.firstWhere((s) => s.id == stepId);
-    if (!isCinematicTimelineActorMoveStep(step)) {
+    if (!isCinematicTimelineActorMoveStep(step) &&
+        !isCinematicTimelineActorJumpStep(step)) {
       throw ArgumentError('Sélectionnez un déplacement.');
     }
     final target = addCinematicMovementTarget(
@@ -147,12 +148,19 @@ extension CinematicWorkspaceSpatial on CinematicWorkspaceController {
         sourceId: point.id,
       ),
     ).cinematic;
-    next = updateCinematicTimelineActorMoveStep(
-      _with(next),
-      cinematicId: a.id,
-      stepId: stepId,
-      targetId: target.target.targetId,
-    ).cinematic;
+    next = isCinematicTimelineActorJumpStep(step)
+        ? updateCinematicTimelineActorJumpStep(
+            _with(next),
+            cinematicId: a.id,
+            stepId: stepId,
+            targetId: target.target.targetId,
+          ).cinematic
+        : updateCinematicTimelineActorMoveStep(
+            _with(next),
+            cinematicId: a.id,
+            stepId: stepId,
+            targetId: target.target.targetId,
+          ).cinematic;
     return _keepPaths(a, next);
   });
   bool setManualPath(String stepId, List<String> waypointIds) => edit((a) {

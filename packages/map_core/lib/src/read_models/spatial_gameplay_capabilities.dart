@@ -44,6 +44,7 @@ abstract final class SpatialGameplayCapabilities {
     CinematicTimelineStepKind.wait,
     CinematicTimelineStepKind.camera,
     CinematicTimelineStepKind.actorMove,
+    CinematicTimelineStepKind.actorJump,
     CinematicTimelineStepKind.actorFace,
     CinematicTimelineStepKind.marker,
   };

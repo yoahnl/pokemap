@@ -251,17 +251,28 @@ final class SourceEventCondition {
   bool? evaluate(
       {Map<String, bool> facts = const {},
       Map<int, int> variables = const {},
-      Map<String, int> itemQuantities = const {}, int? playerFacing}) {
-    if (!isQualified) return null;
+      Map<String, int> itemQuantities = const {},
+      Map<String, bool>? eventTempSwitches,
+      bool? playerOnEvent,
+      int? playerFacing}) {
     if (kind == SourceEventConditionKind.all) {
-      final values = children
-          .map((child) => child.evaluate(facts: facts, variables: variables,
-              itemQuantities: itemQuantities, playerFacing: playerFacing))
-          .toList();
-      return values.contains(null)
-          ? null
-          : values.every((value) => value == true);
+      if (sourceDirection != null) return null;
+      var unknown = false;
+      for (final child in children) {
+        final value = child.evaluate(
+          facts: facts,
+          variables: variables,
+          itemQuantities: itemQuantities,
+          eventTempSwitches: eventTempSwitches,
+          playerOnEvent: playerOnEvent,
+          playerFacing: playerFacing,
+        );
+        if (value == false) return false;
+        unknown |= value == null;
+      }
+      return unknown ? null : true;
     }
+    if (!isQualified) return null;
     return switch (kind) {
       SourceEventConditionKind.always => true,
       SourceEventConditionKind.globalSwitch ||
@@ -279,6 +290,10 @@ final class SourceEventCondition {
       },
       SourceEventConditionKind.itemPresence =>
         ((itemQuantities[sourceItemSymbol] ?? 0) > 0) == expectedValue,
+      SourceEventConditionKind.tempSwitch => eventTempSwitches == null
+          ? null : (eventTempSwitches[tempSwitchLetter] ?? false) == expectedValue,
+      SourceEventConditionKind.playerOnEvent => playerOnEvent == null
+          ? null : playerOnEvent == expectedValue,
       SourceEventConditionKind.playerFacing => playerFacing == null
           ? null : (playerFacing == sourceDirection) == expectedValue,
       _ => null,
@@ -774,9 +789,16 @@ final class SourceEventDefinition {
   bool get isQuarantined => pages.any((page) => page.isQuarantined);
   SourceEventPageAnalysis? selectPage(
       {Map<String, bool> facts = const {},
-      Map<int, int> variables = const {}}) {
+      Map<int, int> variables = const {},
+      Map<String, int> itemQuantities = const {},
+      Map<String, bool>? eventTempSwitches,
+      bool? playerOnEvent,
+      int? playerFacing}) {
     for (final page in pages.reversed) {
-      final value = page.condition.evaluate(facts: facts, variables: variables);
+      final value = page.condition.evaluate(
+          facts: facts, variables: variables, itemQuantities: itemQuantities,
+          eventTempSwitches: eventTempSwitches, playerOnEvent: playerOnEvent,
+          playerFacing: playerFacing);
       if (value == null) return null;
       if (value) return page;
     }
@@ -1066,12 +1088,12 @@ final class SourceEventAnalyzer {
       return _unqualifiedEventCondition('events.missing_switch_name');
     }
     if (names[id]!.startsWith('s:')) {
-      final temporary = RegExp(r'^s:tsOff\?\("([A-D])"\)$').firstMatch(names[id]!);
+      final temporary = RegExp(r'^s:ts(On|Off)\?\("([A-D])"\)$').firstMatch(names[id]!);
       if (_isQualified && temporary != null) {
         return SourceEventCondition(
             kind: SourceEventConditionKind.tempSwitch,
-            tempSwitchLetter: temporary[1]!,
-            expectedValue: !value);
+            tempSwitchLetter: temporary[2]!,
+            expectedValue: temporary[1] == 'On' ? value : !value);
       }
       return _unqualifiedEventCondition('events.dynamic_switch_name');
     }

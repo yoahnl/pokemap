@@ -13,6 +13,32 @@ import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dar
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('real NPC jumps over a wall with visual lift and grounded save', (tester) async {
+    await tester.runAsync(() async {
+      final game = await _mount(tester, targetX: 5.5, jump: true);
+      final completion = game.debugExecuteNarrativeSceneForTest(
+        NarrativeSceneExecutionRequest(eventId: 'test', sceneId: 'scene',
+            executionId: 'jump', gameState: game.gameStateSnapshot),
+      );
+      await _until(game, () => game.debugIsCinematicPlaying);
+      game.update(.5);
+      expect(_npc(game).cinematicJumpLift, 8);
+      expect(_npc(game).gridPos, const GridPos(x: 3, y: 3));
+      game.update(.5);
+      expect(_npc(game).cinematicJumpLift, 0);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      );
+      expect(await completion, isA<NarrativeSceneExecutionCompleted>());
+      expect(_npc(game).gridPos, const GridPos(x: 5, y: 3));
+      final saved = SaveData.fromJson(jsonDecode(jsonEncode(
+        saveDataFromGameState(game.gameStateSnapshot),
+      )));
+      expect(saved.mapInstanceWorldState.instancesByMapId['room']!.npcPoses['guide']!.position,
+          const GridPos(x: 5, y: 3));
+    });
+  });
+
   testWidgets('fractional final NPC pose is rejected before playback mutation', (tester) async {
     await tester.runAsync(() async {
       final game = await _mount(tester, targetX: 4.25);
@@ -75,9 +101,9 @@ Future<void> _until(PlayableMapGame game, bool Function() ready) async {
   fail('Runtime condition did not settle.');
 }
 
-Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targetX = 4.5}) async {
+Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targetX = 4.5, bool jump = false}) async {
   final game = PlayableMapGame(
-    bundle: _bundle(targetX), projectFilePath: '/tmp/cinematic-pose/project.json',
+    bundle: _bundle(targetX, jump: jump), projectFilePath: '/tmp/cinematic-pose/project.json',
     saveData: save,
     runtimeTilesetImageLoader: (paths, {transparentColorByTilesetId = const {}}) async {
       final recorder = ui.PictureRecorder();
@@ -101,17 +127,20 @@ Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targ
   return game;
 }
 
-RuntimeMapBundle _bundle(double targetX) => RuntimeMapBundle(
+RuntimeMapBundle _bundle(double targetX, {bool jump = false}) => RuntimeMapBundle(
   projectRootDirectory: '/tmp/cinematic-pose',
   tilesetAbsolutePathsById: const {'actors': '/tmp/cinematic-pose/actors.png'},
-  map: const MapData(
-    id: 'room', name: 'Room', size: GridSize(width: 8, height: 8),
+  map: MapData(
+    id: 'room', name: 'Room', size: const GridSize(width: 8, height: 8),
     entities: [
       MapEntity(id: 'spawn', kind: MapEntityKind.spawn, pos: GridPos(x: 1, y: 1),
           blocksMovement: false,
           spawn: MapEntitySpawnData(role: EntitySpawnRole.playerStart)),
       MapEntity(id: 'guide', kind: MapEntityKind.npc, pos: GridPos(x: 3, y: 3), blocksMovement: true,
           npc: MapEntityNpcData(displayName: 'Guide', characterId: 'guide-character')),
+      if (jump) const MapEntity(id: 'wall', kind: MapEntityKind.custom,
+          pos: GridPos(x: 4, y: 3),
+          properties: {'collision.width': '1', 'collision.height': '1'}),
     ],
   ),
   manifest: ProjectManifest(
@@ -132,9 +161,11 @@ RuntimeMapBundle _bundle(double targetX) => RuntimeMapBundle(
             kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: 'end')],
       ),
       timeline: CinematicTimeline(steps: [
-        CinematicTimelineStep(id: 'move', kind: CinematicTimelineStepKind.actorMove,
-            actorId: 'guide', targetId: 'end', durationMs: 100,
-            metadata: const {'actor.movementMode': 'walk', 'actor.pathMode': 'direct'}),
+        CinematicTimelineStep(id: 'move', kind: jump
+            ? CinematicTimelineStepKind.actorJump : CinematicTimelineStepKind.actorMove,
+            actorId: 'guide', targetId: 'end', durationMs: jump ? 1000 : 100,
+            metadata: jump ? const {'actor.jumpHeightCells': '0.5'}
+                : const {'actor.movementMode': 'walk', 'actor.pathMode': 'direct'}),
         CinematicTimelineStep(id: 'face', kind: CinematicTimelineStepKind.actorFace,
             actorId: 'guide', metadata: const {'actor.direction': 'left'}),
         CinematicTimelineStep(id: 'line', kind: CinematicTimelineStepKind.dialogueLine,

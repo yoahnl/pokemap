@@ -31,6 +31,85 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets('jump palette and controls author a bounded canonical jump', (
+    tester,
+  ) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_actorMovementCinematic()]);
+    var latest = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_actor_move',
+      onProjectChanged: (value) => latest = value,
+    );
+    final add = find.byKey(
+      const ValueKey('cinematic-builder-palette-actorJump-button'),
+    );
+    expect(add, findsOneWidget);
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    final step = latest.cinematics.single.timeline.steps.last;
+    expect(isCinematicTimelineActorJumpStep(step), isTrue);
+    expect(cinematicTimelineActorJumpHeightCellsOf(step), .5);
+    final height = find.byKey(
+      const ValueKey('cinematic-builder-jump-height-field'),
+    );
+    await tester.ensureVisible(height);
+    await tester.enterText(height, '5');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'La hauteur doit être supérieure à 0 et au plus égale à 4 cases.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      cinematicTimelineActorJumpHeightCellsOf(
+        latest.cinematics.single.timeline.steps.last,
+      ),
+      .5,
+    );
+    await tester.enterText(height, '1.5');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    for (final key in ['cinematic-builder-jump-actor-actor_rival', 'cinematic-builder-jump-target-target_exit']) {
+      final picker = find.byKey(ValueKey(key));
+      await tester.ensureVisible(picker);
+      await tester.tap(picker);
+      await tester.pumpAndSettle();
+    }
+    final duration = find.byKey(const ValueKey('cinematic-builder-jump-duration-ms-field'));
+    await tester.ensureVisible(duration);
+    await tester.enterText(duration, '1400');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(latest.cinematics.single.timeline.steps.last.actorId, 'actor_rival');
+    expect(latest.cinematics.single.timeline.steps.last.targetId, 'target_exit');
+    expect(latest.cinematics.single.timeline.steps.last.durationMs, 1400);
+    final preserve = find.byKey(
+      const ValueKey('cinematic-builder-jump-facing-preserve'),
+    );
+    await tester.ensureVisible(preserve);
+    await tester.tap(preserve);
+    await tester.pumpAndSettle();
+    expect(
+      cinematicTimelineActorJumpHeightCellsOf(
+        latest.cinematics.single.timeline.steps.last,
+      ),
+      1.5,
+    );
+    expect(
+      cinematicTimelineActorFacingModeOf(
+        latest.cinematics.single.timeline.steps.last,
+      ),
+      CinematicTimelineActorFacingMode.preserve,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets(
     'completion policy picker preserves the policy through manual route edits',
     (tester) async {

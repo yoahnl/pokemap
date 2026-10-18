@@ -33,6 +33,18 @@ final class EventV2Actions {
         resourceKinds: const ['project', 'eventV2'],
         extensions: {
           'sourceVariants': NarrativeEventSourceRef.contracts,
+          if (entry.$1 == 'event_v2.record_upsert' ||
+              entry.$1 == 'event_v2.record_upsert_batch')
+            'mapEventInstanceBoolean': {
+              'conditionKind': 'mapEventInstanceBoolean',
+              'parameters': ['mapId', 'eventId', 'key', 'expectedValue'],
+              'owner': 'knownUniqueLogicalMapEntity',
+              'valueType': 'boolean',
+              'defaultValue': false,
+              'lifetime': 'mapEventInstance',
+              'saveResume': 'retainedInstanceState',
+              'recreatedInstance': 'defaultsRestored',
+            },
           if (entry.$1 == 'event_v2.record_upsert_batch')
             'records': {
               'type': 'array',

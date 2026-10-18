@@ -11,11 +11,13 @@ final class CinematicActorPlaybackOverlayPose {
     required this.actorId,
     required this.x,
     required this.y,
+    this.liftCells = 0,
   });
 
   final String actorId;
   final double x;
   final double y;
+  final double liftCells;
 }
 
 final class CinematicActorPlaybackOverlayModel {
@@ -53,6 +55,7 @@ CinematicActorPlaybackOverlayModel?
         actorId: actor.actorId,
         x: pose.x!,
         y: pose.y!,
+        liftCells: pose.liftCells,
       );
     }
 

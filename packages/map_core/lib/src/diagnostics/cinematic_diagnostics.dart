@@ -28,6 +28,7 @@ enum CinematicDiagnosticCode {
   cinematicActorMoveMissingActorRef,
   cinematicActorMoveMissingTargetRef,
   cinematicUnknownMovementTargetRef,
+  cinematicActorJumpInvalid,
   cinematicActorMoveInvalidDuration,
   cinematicActorMoveInvalidMovementMode,
   cinematicActorMoveInvalidFacingMode,
@@ -1411,6 +1412,25 @@ void _diagnoseTimeline(
         ),
       );
     }
+    if (step.kind == CinematicTimelineStepKind.actorJump) {
+      final error = cinematicTimelineActorJumpValidationErrorOf(
+        cinematic,
+        step,
+      );
+      if (error != null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.cinematicActorJumpInvalid,
+            severity: CinematicDiagnosticSeverity.error,
+            message: error,
+            cinematicId: cinematic.id,
+            stepId: step.id,
+            target: CinematicDiagnosticTarget.step,
+            suggestedFixLabel: 'Vérifier acteur, cible, durée, hauteur et orientation du saut.',
+          ),
+        );
+      }
+    }
     if (step.kind == CinematicTimelineStepKind.actorMove) {
       _diagnoseActorMoveStep(
         cinematic,
@@ -1445,7 +1465,8 @@ void _diagnoseStepDuration(
   CinematicTimelineStep step,
   List<CinematicDiagnostic> diagnostics,
 ) {
-  if (step.kind == CinematicTimelineStepKind.actorMove ||
+  if (step.kind == CinematicTimelineStepKind.actorJump ||
+      step.kind == CinematicTimelineStepKind.actorMove ||
       step.kind == CinematicTimelineStepKind.actorEmote) {
     return;
   }

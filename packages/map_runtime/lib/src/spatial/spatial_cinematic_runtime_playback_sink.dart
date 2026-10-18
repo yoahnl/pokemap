@@ -12,9 +12,10 @@ final class SpatialCinematicActorPose {
     required this.facing,
     this.motion = CharacterAnimationState.idle,
     this.animationSeconds = 0,
+    this.liftCells = 0,
   });
 
-  final double x, z, animationSeconds;
+  final double x, z, animationSeconds, liftCells;
   final EntityFacing facing;
   final CharacterAnimationState motion;
 
@@ -24,6 +25,7 @@ final class SpatialCinematicActorPose {
     EntityFacing? facing,
     CharacterAnimationState? motion,
     double? animationSeconds,
+    double? liftCells,
   }) =>
       SpatialCinematicActorPose(
         x: x ?? this.x,
@@ -31,6 +33,7 @@ final class SpatialCinematicActorPose {
         facing: facing ?? this.facing,
         motion: motion ?? this.motion,
         animationSeconds: animationSeconds ?? this.animationSeconds,
+        liftCells: liftCells ?? this.liftCells,
       );
 
   @override
@@ -40,10 +43,10 @@ final class SpatialCinematicActorPose {
       other.z == z &&
       other.facing == facing &&
       other.motion == motion &&
-      other.animationSeconds == animationSeconds;
+      other.animationSeconds == animationSeconds && other.liftCells == liftCells;
 
   @override
-  int get hashCode => Object.hash(x, z, facing, motion, animationSeconds);
+  int get hashCode => Object.hash(x, z, facing, motion, animationSeconds, liftCells);
 }
 
 final class SpatialCinematicCameraPose {
@@ -110,6 +113,7 @@ final class SpatialCinematicRuntimePlaybackSink
   List<({double x, double y})>? _route;
   double _routeProgress = 0;
   EntityFacing? _preservedFacing;
+  double? _jumpHeight;
   SpatialCinematicCameraPose? _cameraFrom, _cameraTarget;
 
   @override
@@ -129,6 +133,7 @@ final class SpatialCinematicRuntimePlaybackSink
           CinematicTimelineStepKind.wait,
           CinematicTimelineStepKind.camera,
           CinematicTimelineStepKind.actorMove,
+          CinematicTimelineStepKind.actorJump,
           CinematicTimelineStepKind.actorFace,
           CinematicTimelineStepKind.marker,
         }.contains(step.kind)) {
@@ -211,6 +216,14 @@ final class SpatialCinematicRuntimePlaybackSink
       final routes = <String, List<({double x, double y})>>{};
       for (final step in asset.timeline.steps) {
         switch (step.kind) {
+          case CinematicTimelineStepKind.actorJump:
+            final binding = bindings[step.actorId]!;
+            final route = _movementRoute(asset, map, step, poses);
+            final target = route.single;
+            _validateLanding(map, binding, target, poses);
+            _terminalPose(binding, poses[binding]!.copyWith(x: target.x, z: target.y));
+            routes[step.id] = route;
+            poses[binding] = poses[binding]!.copyWith(x: target.x, z: target.y);
           case CinematicTimelineStepKind.actorMove:
             if ((step.durationMs ?? 0) <= 0 ||
                 cinematicTimelineActorMovementModeOf(step) == null ||
@@ -272,9 +285,20 @@ final class SpatialCinematicRuntimePlaybackSink
     _route = null;
     _routeProgress = 0;
     _preservedFacing = null;
+    _jumpHeight = null;
     _cameraFrom = _cameraTarget = null;
     final step = context.step;
     switch (step.kind) {
+      case CinematicTimelineStepKind.actorJump:
+        _jumpHeight = cinematicTimelineActorJumpHeightCellsOf(step)!;
+        final binding = _stepActor = prepared.bindings[step.actorId]!;
+        final pose = _actor(binding);
+        final target = prepared.routes[step.id]!.single;
+        _validateLanding(prepared.map, binding, target, _livePoses(prepared));
+        _route = [(x: pose.x, y: pose.z), target];
+        _preservedFacing = cinematicTimelineActorFacingModeOf(step) ==
+                CinematicTimelineActorFacingMode.preserve
+            ? pose.facing : _segmentFacing(_route!.first, target, pose.facing);
       case CinematicTimelineStepKind.actorMove:
         final binding = _stepActor = prepared.bindings[step.actorId]!;
         final pose = _actor(binding);
@@ -316,7 +340,16 @@ final class SpatialCinematicRuntimePlaybackSink
         ? 1.0
         : (context.elapsed.inMicroseconds / (duration * 1000)).clamp(0.0, 1.0);
     final route = _route, binding = _stepActor;
-    if (route != null && binding != null) {
+    if (route != null && binding != null && _jumpHeight != null) {
+      if (progress >= 1) {
+        _validateLanding(prepared.map, binding, route.last, _livePoses(prepared));
+      }
+      final sample = sampleCinematicJump(start: route.first, end: route.last,
+          progress: progress, heightCells: _jumpHeight!);
+      writeActor(binding, _actor(binding).copyWith(x: sample.x, z: sample.y,
+          liftCells: sample.liftCells, facing: _preservedFacing,
+          motion: CharacterAnimationState.idle, animationSeconds: 0));
+    } else if (route != null && binding != null) {
       final pose = _actor(binding);
       final sample = sampleCinematicRoute(route, progress);
       final previousSample = sampleCinematicRoute(route, _routeProgress);
@@ -380,7 +413,7 @@ final class SpatialCinematicRuntimePlaybackSink
       writeActor(
           binding,
           _actor(binding).copyWith(
-              motion: CharacterAnimationState.idle, animationSeconds: 0));
+              motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0));
     }
     _stepActor = null;
     _route = null;
@@ -476,7 +509,7 @@ final class SpatialCinematicRuntimePlaybackSink
       z = pixelZ.round() / 16;
     }
     return pose.copyWith(
-        x: x, z: z, motion: CharacterAnimationState.idle, animationSeconds: 0);
+        x: x, z: z, motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0);
   }
 
   Map<CinematicActorBinding, SpatialCinematicActorPose> _livePoses(
@@ -523,6 +556,15 @@ final class SpatialCinematicRuntimePlaybackSink
         }
         previous = point;
       }
+    }
+  }
+
+  void _validateLanding(MapData map, CinematicActorBinding binding,
+      ({double x, double y}) target,
+      Map<CinematicActorBinding, SpatialCinematicActorPose> poses) {
+    if (!_inside(map, target.x, target.y) ||
+        !canTraverse(binding, target.x, target.y, target.x, target.y, poses)) {
+      throw StateError('Actor ${binding.actorId} jump landing is blocked.');
     }
   }
 

@@ -772,6 +772,11 @@ const cinematicTimelineCameraZoomPresetMetadataKey = 'camera.zoomPreset';
 const cinematicTimelineActorDirectionMetadataKey = 'actor.direction';
 const cinematicTimelineActorFaceBlockMetadataValue = 'actorFace';
 const cinematicTimelineActorMoveBlockMetadataValue = 'actorMove';
+const cinematicTimelineActorJumpBlockMetadataValue = 'actorJump';
+const cinematicTimelineActorJumpHeightCellsMetadataKey =
+    'actor.jumpHeightCells';
+const cinematicTimelineDefaultActorJumpHeightCells = 0.5;
+const cinematicTimelineActorJumpMaximumHeightCells = 4.0;
 const cinematicTimelineActorEmoteBlockMetadataValue = 'actorEmote';
 const cinematicTimelineActorMovementModeMetadataKey = 'actor.movementMode';
 const cinematicTimelineActorFacingModeMetadataKey = 'actor.facingMode';
@@ -1593,13 +1598,15 @@ CinematicMovementTargetRemovalResult removeCinematicMovementTarget(
   );
   final isUsed = cinematic.timeline.steps.any(
     (step) =>
-        step.kind == CinematicTimelineStepKind.actorMove && step.targetId == id,
+        (step.kind == CinematicTimelineStepKind.actorMove ||
+            step.kind == CinematicTimelineStepKind.actorJump) &&
+        step.targetId == id,
   );
   if (isUsed) {
     throw ArgumentError.value(
       targetId,
       'targetId',
-      'Movement target is still used by an actorMove step.',
+      'Movement target is still used by an actor movement step.',
     );
   }
 
@@ -2113,6 +2120,187 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
   );
 }
 
+CinematicTimelineStepUpdateResult addCinematicTimelineActorJumpStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+  required String targetId,
+  int? durationMs,
+  double heightCells = cinematicTimelineDefaultActorJumpHeightCells,
+  CinematicTimelineActorFacingMode facingMode =
+      CinematicTimelineActorFacingMode.followMovement,
+  String? afterStepId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final actor = _requireActor(cinematic, actorId);
+  final target = _requireMovementTarget(cinematic, targetId);
+  final steps = cinematic.timeline.steps.toList();
+  final index = _timelineInsertIndex(
+    steps,
+    afterStepId,
+    argumentName: 'afterStepId',
+    message: 'Actor jump insertion references an unknown timeline step.',
+  );
+  final step = CinematicTimelineStep(
+    id: _nextTimelineStepId(cinematic, 'step_actor_jump'),
+    kind: CinematicTimelineStepKind.actorJump,
+    label: 'Saut : ${actor.label ?? actor.actorId}',
+    actorId: actor.actorId,
+    targetId: target.targetId,
+    durationMs: durationMs ?? cinematicTimelineDefaultActorMoveDurationMs,
+    metadata: {
+      cinematicTimelineDraftMetadataKindKey:
+          cinematicTimelineBasicBlockMetadataKindValue,
+      cinematicTimelineDraftMetadataSourceKey:
+          cinematicTimelineDraftMetadataSourceValue,
+      cinematicTimelineAuthoringBlockMetadataKey:
+          cinematicTimelineActorJumpBlockMetadataValue,
+      cinematicTimelineActorJumpHeightCellsMetadataKey: heightCells.toString(),
+      cinematicTimelineActorFacingModeMetadataKey: facingMode.name,
+    },
+  );
+  steps.insert(index, step);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithTimeline(cinematic, CinematicTimeline(steps: steps)),
+  );
+  return CinematicTimelineStepUpdateResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: step,
+  );
+}
+
+CinematicTimelineStepUpdateResult updateCinematicTimelineActorJumpStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  String? targetId,
+  int? durationMs,
+  double? heightCells,
+  CinematicTimelineActorFacingMode? facingMode,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final steps = cinematic.timeline.steps.toList();
+  final index = steps.indexWhere((step) => step.id == stepId);
+  if (index < 0 || !isCinematicTimelineActorJumpStep(steps[index])) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'An authored actorJump step is required.',
+    );
+  }
+  final step = steps[index];
+  final actor = _requireActor(cinematic, actorId ?? step.actorId ?? '');
+  final target = _requireMovementTarget(
+    cinematic,
+    targetId ?? step.targetId ?? '',
+  );
+  final metadata = Map<String, String>.of(step.metadata);
+  if (heightCells != null) {
+    metadata[cinematicTimelineActorJumpHeightCellsMetadataKey] = heightCells
+        .toString();
+  }
+  if (facingMode != null) {
+    metadata[cinematicTimelineActorFacingModeMetadataKey] = facingMode.name;
+  }
+  final updated = CinematicTimelineStep(
+    id: step.id,
+    kind: step.kind,
+    label: step.label,
+    actorId: actor.actorId,
+    targetId: target.targetId,
+    durationMs: durationMs ?? step.durationMs,
+    metadata: metadata,
+  );
+  steps[index] = updated;
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithTimeline(cinematic, CinematicTimeline(steps: steps)),
+  );
+  return CinematicTimelineStepUpdateResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: updated,
+  );
+}
+
+bool isCinematicTimelineActorJumpStep(CinematicTimelineStep step) =>
+    step.kind == CinematicTimelineStepKind.actorJump &&
+    step.metadata[cinematicTimelineDraftMetadataSourceKey] ==
+        cinematicTimelineDraftMetadataSourceValue &&
+    step.metadata[cinematicTimelineDraftMetadataKindKey] ==
+        cinematicTimelineBasicBlockMetadataKindValue &&
+    step.metadata[cinematicTimelineAuthoringBlockMetadataKey] ==
+        cinematicTimelineActorJumpBlockMetadataValue &&
+    cinematicTimelineActorJumpHeightCellsOf(step) != null &&
+    cinematicTimelineActorFacingModeOf(step) != null;
+
+double? cinematicTimelineActorJumpHeightCellsOf(CinematicTimelineStep step) {
+  final raw = step.metadata[cinematicTimelineActorJumpHeightCellsMetadataKey];
+  if (raw == null || raw.trim() != raw) return null;
+  final height = double.tryParse(raw);
+  return height != null &&
+          height.isFinite &&
+          height > 0 &&
+          height <= cinematicTimelineActorJumpMaximumHeightCells
+      ? height
+      : null;
+}
+
+String? cinematicTimelineActorJumpValidationErrorOf(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step,
+) {
+  if (!cinematic.requiredActors.any((actor) => actor.actorId == step.actorId)) {
+    return 'Actor jump requires an existing actorId.';
+  }
+  if (!cinematic.movementTargets.any(
+    (target) => target.targetId == step.targetId,
+  )) {
+    return 'Actor jump requires an existing targetId.';
+  }
+  final duration = step.durationMs;
+  if (duration == null ||
+      duration < cinematicTimelineActorMoveMinimumDurationMs ||
+      duration > cinematicTimelineMaximumDurationMs) {
+    return 'Actor jump durationMs must be between 200 and 30000.';
+  }
+  if (cinematicTimelineActorJumpHeightCellsOf(step) == null) {
+    return 'Actor jump requires finite actor.jumpHeightCells greater than 0 and at most 4.';
+  }
+  if (cinematicTimelineActorFacingModeOf(step) == null) {
+    return 'Actor jump facing mode must be followMovement or preserve.';
+  }
+  final context = cinematic.stageContext;
+  final pointIds = <String>{
+    for (final binding
+        in context?.movementTargetBindings ??
+            const <CinematicMovementTargetBinding>[])
+      if (binding.targetId == step.targetId &&
+          binding.kind == CinematicMovementTargetBindingKind.stagePoint)
+        binding.sourceId ?? '',
+    for (final placement
+        in context?.initialPlacements ??
+            const <CinematicActorInitialPlacement>[])
+      if (placement.actorId == step.actorId &&
+          placement.kind == CinematicActorInitialPlacementKind.stagePoint)
+        placement.stagePointId ?? '',
+  };
+  for (final id in pointIds) {
+    final points = context!.stagePoints.where((point) => point.id == id);
+    if (points.length != 1) {
+      return 'Actor jump requires an existing unique stage point.';
+    }
+    final point = points.single;
+    if (!point.x.isFinite || !point.y.isFinite || point.x < 0 || point.y < 0) {
+      return 'Actor jump coordinates must be finite and nonnegative.';
+    }
+  }
+  return null;
+}
+
 CinematicTimelineActorEmoteStepResult addCinematicTimelineActorEmoteStep(
   ProjectManifest project, {
   required String cinematicId,
@@ -2278,6 +2466,7 @@ bool isCinematicTimelineAuthoringStep(CinematicTimelineStep step) {
       isCinematicTimelineBasicBlockStep(step) ||
       isCinematicTimelineActorFacingStep(step) ||
       isCinematicTimelineActorMoveStep(step) ||
+      isCinematicTimelineActorJumpStep(step) ||
       isCinematicTimelineActorEmoteStep(step) ||
       isCinematicTimelineCommandStep(step);
 }
@@ -3052,6 +3241,13 @@ void _validateCinematicShape(CinematicAsset cinematic) {
     'CinematicAsset title is required.',
   );
   for (final step in cinematic.timeline.steps) {
+    if (step.kind == CinematicTimelineStepKind.actorJump) {
+      final issue = cinematicTimelineActorJumpValidationErrorOf(
+        cinematic,
+        step,
+      );
+      if (issue != null) throw ArgumentError.value(step.id, 'actorJump', issue);
+    }
     if (step.kind == CinematicTimelineStepKind.actorMove &&
         cinematicTimelineActorFacingModeOf(step) == null) {
       throw ArgumentError.value(

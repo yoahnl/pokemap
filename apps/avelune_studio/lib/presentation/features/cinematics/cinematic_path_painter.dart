@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'cinematic_map_model.dart';
 
 class CinematicPathPainter extends CustomPainter {
@@ -28,7 +29,9 @@ class CinematicPathPainter extends CustomPainter {
           ),
     };
     for (final step in asset.timeline.steps.where(
-      (s) => s.kind == CinematicTimelineStepKind.actorMove,
+      (s) =>
+          s.kind == CinematicTimelineStepKind.actorMove ||
+          s.kind == CinematicTimelineStepKind.actorJump,
     )) {
       var origin = positions[step.actorId];
       if (origin == null) continue;

@@ -59,6 +59,7 @@ enum CinematicActorPlaybackPoseSource {
   actorFace,
   actorMoveDirect,
   actorMoveManualPath,
+  actorJump,
   missing,
 }
 
@@ -112,6 +113,7 @@ final class CinematicPreviewPlaybackDiagnostic {
 @immutable
 final class CinematicPreviewPlaybackCapabilities {
   const CinematicPreviewPlaybackCapabilities({
+    this.supportsActorJump = false,
     required this.supportsActorMoveDirect,
     required this.supportsActorMoveManualPath,
     required this.supportsActorFace,
@@ -128,6 +130,7 @@ final class CinematicPreviewPlaybackCapabilities {
     required this.hasUnsupportedSteps,
   });
 
+  final bool supportsActorJump;
   final bool supportsActorMoveDirect;
   final bool supportsActorMoveManualPath;
   final bool supportsActorFace;
@@ -147,6 +150,7 @@ final class CinematicPreviewPlaybackCapabilities {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CinematicPreviewPlaybackCapabilities &&
+          other.supportsActorJump == supportsActorJump &&
           other.supportsActorMoveDirect == supportsActorMoveDirect &&
           other.supportsActorMoveManualPath == supportsActorMoveManualPath &&
           other.supportsActorFace == supportsActorFace &&
@@ -164,6 +168,7 @@ final class CinematicPreviewPlaybackCapabilities {
 
   @override
   int get hashCode => Object.hash(
+        supportsActorJump,
         supportsActorMoveDirect,
         supportsActorMoveManualPath,
         supportsActorFace,
@@ -336,6 +341,7 @@ final class CinematicActorPlaybackPose {
     this.actorLabel,
     this.x,
     this.y,
+    this.liftCells = 0,
     required this.facing,
     required this.source,
     required this.isInterpolated,
@@ -346,6 +352,7 @@ final class CinematicActorPlaybackPose {
   final String? actorLabel;
   final double? x;
   final double? y;
+  final double liftCells;
   final CinematicActorPreviewDirection facing;
   final CinematicActorPlaybackPoseSource source;
   final bool isInterpolated;
@@ -356,6 +363,7 @@ final class CinematicActorPlaybackPose {
   CinematicActorPlaybackPose copyWith({
     double? x,
     double? y,
+    double? liftCells,
     CinematicActorPreviewDirection? facing,
     CinematicActorPlaybackPoseSource? source,
     bool? isInterpolated,
@@ -367,6 +375,7 @@ final class CinematicActorPlaybackPose {
       actorLabel: actorLabel,
       x: x ?? this.x,
       y: y ?? this.y,
+      liftCells: liftCells ?? this.liftCells,
       facing: facing ?? this.facing,
       source: source ?? this.source,
       isInterpolated: isInterpolated ?? this.isInterpolated,
@@ -383,6 +392,7 @@ final class CinematicActorPlaybackPose {
           other.actorLabel == actorLabel &&
           other.x == x &&
           other.y == y &&
+          other.liftCells == liftCells &&
           other.facing == facing &&
           other.source == source &&
           other.isInterpolated == isInterpolated &&
@@ -394,6 +404,7 @@ final class CinematicActorPlaybackPose {
         actorLabel,
         x,
         y,
+        liftCells,
         facing,
         source,
         isInterpolated,
@@ -876,6 +887,7 @@ final class CinematicPreviewPlaybackPlan {
     required List<CinematicPreviewPlaybackDiagnostic> diagnostics,
     required List<CinematicPlaybackCue> playbackCues,
     required this.capabilities,
+    required Map<String, _ActorJumpPlaybackPlan> jumpPlans,
     required Map<String, _ActorMovePlaybackPlan> movePlans,
     required Map<String, CinematicActorPreviewDirection> actorFaceDirections,
     required Map<String, _ActorEmotePlaybackPlan> actorEmotePlans,
@@ -896,6 +908,7 @@ final class CinematicPreviewPlaybackPlan {
           diagnostics,
         ),
         playbackCues = List<CinematicPlaybackCue>.unmodifiable(playbackCues),
+        _jumpPlans = Map<String, _ActorJumpPlaybackPlan>.unmodifiable(jumpPlans),
         _movePlans =
             Map<String, _ActorMovePlaybackPlan>.unmodifiable(movePlans),
         _actorFaceDirections =
@@ -933,6 +946,7 @@ final class CinematicPreviewPlaybackPlan {
   final List<CinematicPreviewPlaybackDiagnostic> diagnostics;
   final List<CinematicPlaybackCue> playbackCues;
   final CinematicPreviewPlaybackCapabilities capabilities;
+  final Map<String, _ActorJumpPlaybackPlan> _jumpPlans;
   final Map<String, _ActorMovePlaybackPlan> _movePlans;
   final Map<String, CinematicActorPreviewDirection> _actorFaceDirections;
   final Map<String, _ActorEmotePlaybackPlan> _actorEmotePlans;
@@ -1056,6 +1070,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
 
   final actorTrackIds = {for (final track in actorTracks) track.actorId};
   final movePlans = <String, _ActorMovePlaybackPlan>{};
+  final jumpPlans = <String, _ActorJumpPlaybackPlan>{};
   final faceDirections = <String, CinematicActorPreviewDirection>{};
   final emotePlans = <String, _ActorEmotePlaybackPlan>{};
   final characterAnimationCommands =
@@ -1113,6 +1128,35 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
         } else if (direction != null) {
           faceDirections[step.id] = _directionFromActorFace(direction);
         }
+      case CinematicTimelineStepKind.actorJump:
+        final destination = stageContext == null
+            ? resolvedMovementTargets[step.targetId]
+            : _movementTargetPoint(
+                stageContext: stageContext,
+                targetId: step.targetId,
+                resolvedMovementTargets: resolvedMovementTargets,
+              );
+        if (destination == null ||
+            !destination.x.isFinite ||
+            !destination.y.isFinite) {
+          itemDiagnostics.add(
+            CinematicPreviewPlaybackDiagnostic(
+              code: CinematicPreviewPlaybackDiagnosticCode
+                  .cinematicPreviewPlaybackMoveDestinationMissing,
+              severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+              message: 'La destination du saut est absente ou invalide.',
+              stepId: step.id,
+            ),
+          );
+          supported = false;
+          hasUnsupportedSteps = true;
+        }
+        jumpPlans[step.id] = _ActorJumpPlaybackPlan(
+          actorId: step.actorId ?? '',
+          destination: destination,
+          heightCells: cinematicTimelineActorJumpHeightCellsOf(step),
+          facingMode: cinematicTimelineActorFacingModeOf(step),
+        );
       case CinematicTimelineStepKind.actorMove:
         final plan = _buildActorMovePlan(
           step: step,
@@ -1255,6 +1299,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
     diagnostics: diagnostics,
     playbackCues: playbackCues,
     capabilities: CinematicPreviewPlaybackCapabilities(
+      supportsActorJump: true,
       supportsActorMoveDirect: true,
       supportsActorMoveManualPath: true,
       supportsActorFace: true,
@@ -1270,6 +1315,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
       supportsEditorialMarkers: true,
       hasUnsupportedSteps: hasUnsupportedSteps,
     ),
+    jumpPlans: jumpPlans,
     movePlans: movePlans,
     actorFaceDirections: faceDirections,
     actorEmotePlans: emotePlans,
@@ -1324,6 +1370,47 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
             );
           }
         }
+      case CinematicTimelineStepKind.actorJump:
+        final jump = plan._jumpPlans[item.stepId];
+        final current = jump == null ? null : posesByActorId[jump.actorId];
+        if (!item.supported ||
+            jump == null ||
+            current == null ||
+            !current.hasPosition ||
+            !current.x!.isFinite ||
+            !current.y!.isFinite ||
+            jump.destination == null ||
+            jump.heightCells == null ||
+            jump.facingMode == null) {
+          break;
+        }
+        final destination = jump.destination!;
+        final sampled = sampleCinematicJump(
+          start: (x: current.x!, y: current.y!),
+          end: (x: destination.x, y: destination.y),
+          progress: _timelineItemProgress(item, clampedTimeMs),
+          heightCells: jump.heightCells!,
+        );
+        final facing = _pointAlongRoute([
+          CinematicPreviewPlaybackPoint(
+            x: current.x!,
+            y: current.y!,
+            source: CinematicPreviewPlaybackPointSource.initialPlacement,
+          ),
+          destination,
+        ], 1).facing;
+        posesByActorId[jump.actorId] = current.copyWith(
+          x: sampled.x,
+          y: sampled.y,
+          liftCells: sampled.liftCells,
+          facing: jump.facingMode == CinematicTimelineActorFacingMode.preserve
+              ? current.facing
+              : facing ?? current.facing,
+          source: CinematicActorPlaybackPoseSource.actorJump,
+          isInterpolated:
+              clampedTimeMs > item.startMs && clampedTimeMs < item.endMs,
+          activeStepId: item.stepId,
+        );
       case CinematicTimelineStepKind.actorMove:
         final movePlan = plan._movePlans[item.stepId];
         if (movePlan == null) {
@@ -2211,6 +2298,9 @@ CinematicActorEmotePlaybackState _emotePlaybackStateFor({
 
 bool _stepSupportedForPlayback(CinematicTimelineStep step) {
   return switch (step.kind) {
+    CinematicTimelineStepKind.actorJump =>
+      cinematicTimelineActorFacingModeOf(step) != null &&
+          cinematicTimelineActorJumpHeightCellsOf(step) != null,
     CinematicTimelineStepKind.actorMove =>
       cinematicTimelineActorFacingModeOf(step) != null,
     CinematicTimelineStepKind.wait ||
@@ -2231,6 +2321,7 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
 }
 
 bool _isAdvancedKind(CinematicTimelineStepKind kind) =>
+    kind == CinematicTimelineStepKind.actorJump ||
     kind == CinematicTimelineStepKind.dialogueLine ||
     kind == CinematicTimelineStepKind.sound ||
     kind == CinematicTimelineStepKind.music ||
@@ -2538,4 +2629,18 @@ final class _RouteInterpolation {
 
   final CinematicPreviewPlaybackPoint point;
   final CinematicActorPreviewDirection? facing;
+}
+
+@immutable
+final class _ActorJumpPlaybackPlan {
+  const _ActorJumpPlaybackPlan({
+    required this.actorId,
+    required this.destination,
+    required this.heightCells,
+    required this.facingMode,
+  });
+  final String actorId;
+  final CinematicPreviewPlaybackPoint? destination;
+  final double? heightCells;
+  final CinematicTimelineActorFacingMode? facingMode;
 }

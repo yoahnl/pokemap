@@ -351,6 +351,7 @@ export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
     show
         FlameCinematicRuntimeActorHandle,
         FlameCinematicMotionActorHandle,
+        FlameCinematicJumpActorHandle,
         FlameCinematicCharacterAnimationActorHandle,
         FlameCinematicRuntimeHost,
         FlameCinematicActorPose,

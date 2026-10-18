@@ -146,7 +146,7 @@ extension StudioCinematicSpatialPreview on StudioMapResources {
                 ? 'hero'
                 : 'cinematic:${actor.actorId}'] = SpatialActorVisual(
               x: x,
-              y: map.spatialScene!.worldHeightAt(x, z),
+              y: map.spatialScene!.worldHeightAt(x, z) + (pose?.liftCells ?? 0),
               z: z,
               texture: textures[source.imageId]!,
               frame: source.sourceRect,

@@ -338,6 +338,7 @@ _LaneLookup _laneForStep(
     CinematicTimelineStepKind.wait ||
     CinematicTimelineStepKind.marker =>
       'time-global',
+    CinematicTimelineStepKind.actorJump ||
     CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.actorFace ||
     CinematicTimelineStepKind.actorEmote ||
@@ -360,7 +361,8 @@ CinematicTimelineLaneStep _laneStepFor(
   if (isCinematicTimelineDraftStep(step)) {
     badges.add('Brouillon');
   }
-  if (step.kind == CinematicTimelineStepKind.actorMove) {
+  if (step.kind == CinematicTimelineStepKind.actorMove ||
+      step.kind == CinematicTimelineStepKind.actorJump) {
     final target = targetLabel ?? step.targetId;
     if (target != null) {
       badges.add('Cible: $target');
@@ -400,7 +402,8 @@ String _laneStepLabel(
   required String? actorLabel,
   required String? targetLabel,
 }) {
-  if (step.kind == CinematicTimelineStepKind.actorMove) {
+  if (step.kind == CinematicTimelineStepKind.actorMove ||
+      step.kind == CinematicTimelineStepKind.actorJump) {
     final actor = actorLabel ?? step.actorId;
     final target = targetLabel ?? step.targetId;
     if (actor != null && target != null) {
@@ -426,6 +429,7 @@ String _pathModeLabel(CinematicTimelineActorPathMode mode) {
 
 bool _isActorLaneStep(CinematicTimelineStepKind kind) {
   return switch (kind) {
+    CinematicTimelineStepKind.actorJump ||
     CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.actorFace ||
     CinematicTimelineStepKind.actorEmote ||

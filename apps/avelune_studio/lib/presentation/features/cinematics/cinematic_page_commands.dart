@@ -175,6 +175,19 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
           id = controller.addMove(actor, target, afterStepId: after);
         }
         state.mode = CinematicMapMode.destination;
+      case CinematicTimelineStepKind.actorJump:
+        final actor = state.actorId;
+        if (actor == null) {
+          state.actionError = 'Ajoutez et sélectionnez un acteur.';
+          break;
+        }
+        final target =
+            asset.movementTargets.firstOrNull?.targetId ??
+            controller.addTarget('Destination du saut');
+        if (target != null) {
+          id = controller.addJump(actor, target, afterStepId: after);
+        }
+        state.mode = CinematicMapMode.destination;
       case CinematicTimelineStepKind.actorFace:
         if (state.actorId == null) {
           state.actionError = 'Sélectionnez un acteur.';

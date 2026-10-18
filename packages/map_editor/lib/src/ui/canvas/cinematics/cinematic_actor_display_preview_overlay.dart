@@ -107,7 +107,7 @@ class CinematicActorDisplayPreviewOverlay extends StatelessWidget {
   ) {
     final override = playbackPoseOverrides[actor.actorId];
     if (override != null) {
-      return transform.tileToPreview(override.x, override.y);
+      return transform.tileToPreview(override.x, override.y - override.liftCells);
     }
     return transform.tileToPreview(
       (actor.position.x ?? 0).toDouble(),

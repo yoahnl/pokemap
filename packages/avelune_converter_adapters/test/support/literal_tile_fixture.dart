@@ -88,7 +88,8 @@ final class LiteralFixtureEvent {
 final class LiteralFixtureEventPage {
   const LiteralFixtureEventPage({required this.commands, this.selfSwitch,
     this.globalSwitch, this.characterName = '', this.pattern = 0,
-    this.direction = 2, this.trigger = 0, this.through = false});
+    this.direction = 2, this.trigger = 0, this.through = false,
+    this.moveType = 0});
   final List<LiteralFixtureEventCommand> commands;
   final String? selfSwitch;
   final int? globalSwitch;
@@ -97,6 +98,7 @@ final class LiteralFixtureEventPage {
   final int direction;
   final int trigger;
   final bool through;
+  final int moveType;
 }
 
 final class LiteralFixtureEventCommand {
@@ -363,7 +365,7 @@ _Object _fixtureEvent(LiteralFixtureEvent event) => _Object('RPG::Event', {
       '@character_hue': 0, '@direction': page.direction,
       '@pattern': page.pattern, '@opacity': 255, '@blend_type': 0,
     }),
-    '@move_type': 0, '@move_speed': 3, '@move_frequency': 3,
+    '@move_type': page.moveType, '@move_speed': 3, '@move_frequency': 3,
     '@move_route': _Object('RPG::MoveRoute', {
       '@repeat': true, '@skippable': false,
       '@list': [_Object('RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})],

@@ -31,3 +31,31 @@ import 'dart:math' as math;
   }
   return (x: points.last.x, y: points.last.y, segment: -1);
 }
+
+({double x, double y, double liftCells}) sampleCinematicJump({
+  required ({double x, double y}) start,
+  required ({double x, double y}) end,
+  required double progress,
+  required double heightCells,
+}) {
+  if (!start.x.isFinite ||
+      !start.y.isFinite ||
+      !end.x.isFinite ||
+      !end.y.isFinite ||
+      !progress.isFinite ||
+      !heightCells.isFinite ||
+      heightCells <= 0 ||
+      heightCells > 4) {
+    throw ArgumentError(
+      'Jump coordinates, progress and height must be finite and height must be in (0, 4].',
+    );
+  }
+  final t = progress.clamp(0.0, 1.0);
+  if (t == 0) return (x: start.x, y: start.y, liftCells: 0);
+  if (t == 1) return (x: end.x, y: end.y, liftCells: 0);
+  return (
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t,
+    liftCells: 4 * heightCells * t * (1 - t),
+  );
+}

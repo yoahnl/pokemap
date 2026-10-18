@@ -9,7 +9,8 @@ import 'package:map_runtime/src/presentation/flame/player_component.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('real player preserves facing during a cinematic move', (
+  for (final movementKind in [CinematicTimelineStepKind.actorMove, CinematicTimelineStepKind.actorJump]) {
+  testWidgets('real player preserves facing during ${movementKind.name}', (
     tester,
   ) async {
     await tester.runAsync(() async {
@@ -49,12 +50,15 @@ void main() {
             ),
             CinematicTimelineStep(
               id: 'move',
-              kind: CinematicTimelineStepKind.actorMove,
+              kind: movementKind,
               actorId: 'hero',
               targetId: 'end',
               durationMs: 1000,
-              metadata: const {
+              metadata: {
+                if (movementKind == CinematicTimelineStepKind.actorJump) 'actor.jumpHeightCells': '0.5',
+                if (movementKind == CinematicTimelineStepKind.actorMove)
                 'actor.movementMode': 'walk',
+                if (movementKind == CinematicTimelineStepKind.actorMove)
                 'actor.pathMode': 'direct',
                 'actor.facingMode': 'preserve',
               },
@@ -96,7 +100,10 @@ void main() {
       game.update(.5);
       expect(player.position.x, greaterThan(initialPosition.x));
       expect(player.cinematicFacing, EntityFacing.west);
+      expect(player.cinematicJumpLift, movementKind == CinematicTimelineStepKind.actorJump
+          ? greaterThan(0) : 0);
       game.update(.5);
+      expect(player.cinematicJumpLift, 0);
       expect(player.cinematicFacing, EntityFacing.west);
       expect(game.debugCinematicDialogueLine, 'Finished');
       game.handleRuntimeInputEvent(
@@ -107,6 +114,7 @@ void main() {
       expect(game.debugIsGameplayInputLocked, isFalse);
     });
   });
+  }
 
   test('PlayableMapGame renders and awaits a cinematic before restoring input and camera', () async {
     final game = _LifecycleTestPlayableMapGame(

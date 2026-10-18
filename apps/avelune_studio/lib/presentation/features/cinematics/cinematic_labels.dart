@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/feedback/studio_badge.dart';
 
 String cinematicActionLabel(CinematicTimelineStepKind kind) => switch (kind) {
   CinematicTimelineStepKind.wait => 'Attendre',
   CinematicTimelineStepKind.camera => 'Déplacer la caméra',
   CinematicTimelineStepKind.actorMove => 'Déplacer un acteur',
+  CinematicTimelineStepKind.actorJump => 'Faire sauter un acteur',
   CinematicTimelineStepKind.actorFace => 'Orienter un acteur',
   CinematicTimelineStepKind.actorEmote => 'Afficher une émotion',
   CinematicTimelineStepKind.actorAnimation => 'Jouer une animation',
@@ -22,6 +24,7 @@ IconData cinematicActionIcon(CinematicTimelineStepKind kind) => switch (kind) {
   CinematicTimelineStepKind.wait => Icons.hourglass_bottom,
   CinematicTimelineStepKind.camera => Icons.videocam_outlined,
   CinematicTimelineStepKind.actorMove => Icons.directions_walk,
+  CinematicTimelineStepKind.actorJump => Icons.arrow_upward,
   CinematicTimelineStepKind.actorFace => Icons.explore_outlined,
   CinematicTimelineStepKind.actorEmote => Icons.mood,
   CinematicTimelineStepKind.actorAnimation => Icons.animation,
@@ -40,7 +43,8 @@ Color cinematicActionColor(
 ) => switch (kind) {
   CinematicTimelineStepKind.camera ||
   CinematicTimelineStepKind.music => Theme.of(context).colorScheme.primary,
-  CinematicTimelineStepKind.actorMove => StudioTone.success.color(context),
+  CinematicTimelineStepKind.actorMove ||
+  CinematicTimelineStepKind.actorJump => StudioTone.success.color(context),
   CinematicTimelineStepKind.wait ||
   CinematicTimelineStepKind.actorFace => StudioTone.warning.color(context),
   CinematicTimelineStepKind.sound ||

@@ -229,6 +229,7 @@ typedef _UpdateActorMoveCallback = Future<void> Function(
   String? actorId,
   String? targetId,
   int? durationMs,
+  double? heightCells,
   CinematicTimelineActorMovementMode? movementMode,
   CinematicTimelineActorFacingMode? facingMode,
 });
@@ -828,6 +829,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             onRemoveMovementTarget: _removeMovementTarget,
                             onAddActorFacing: _addActorFacing,
                             onAddActorMove: _addActorMove,
+                            onAddActorJump: widget.onUpdateCinematicAsset == null ? null : _addActorJump,
                             onAddActorEmote: _addActorEmote,
                             onAddActorAnimation: _addActorAnimation,
                             animationDefinitions: widget.animationDefinitions,
@@ -1798,6 +1800,18 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     setState(() => _builderController.selectedStepId = createdStepId);
   }
 
+  Future<void> _addActorJump() async {
+    if (widget.onUpdateCinematicAsset == null || widget.asset.requiredActors.isEmpty || widget.asset.movementTargets.isEmpty) return;
+    final result = addCinematicTimelineActorJumpStep(
+      _createDummyProject(), cinematicId: widget.asset.id,
+      actorId: widget.asset.requiredActors.first.actorId,
+      targetId: widget.asset.movementTargets.first.targetId,
+      afterStepId: _builderController.selectedStepId,
+    );
+    final updated = await widget.onUpdateCinematicAsset!(cinematicId: widget.asset.id, cinematic: result.cinematic);
+    if (mounted && updated) setState(() => _builderController.selectedStepId = result.step.id);
+  }
+
   Future<void> _addActorMove() async {
     final actor = widget.asset.requiredActors.isEmpty
         ? null
@@ -2009,9 +2023,19 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     String? actorId,
     String? targetId,
     int? durationMs,
+    double? heightCells,
     CinematicTimelineActorMovementMode? movementMode,
     CinematicTimelineActorFacingMode? facingMode,
   }) async {
+    if (isCinematicTimelineActorJumpStep(step)) {
+      final result = updateCinematicTimelineActorJumpStep(
+        _createDummyProject(), cinematicId: widget.asset.id, stepId: step.id,
+        actorId: actorId, targetId: targetId, durationMs: durationMs,
+        heightCells: heightCells, facingMode: facingMode,
+      );
+      await _updateCinematic(result.cinematic);
+      return;
+    }
     if (!isCinematicTimelineActorMoveStep(step)) {
       return;
     }
@@ -2119,6 +2143,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
         stepId: step.id,
         durationMs: durationMs,
       );
+    } else if (isCinematicTimelineActorJumpStep(step)) {
+      if (widget.onUpdateCinematicAsset == null) return false;
+      final result = updateCinematicTimelineActorJumpStep(_createDummyProject(), cinematicId: widget.asset.id, stepId: step.id, durationMs: durationMs);
+      updated = await widget.onUpdateCinematicAsset!(cinematicId: widget.asset.id, cinematic: result.cinematic);
     } else if (isCinematicTimelineActorEmoteStep(step)) {
       updated = await widget.onUpdateActorEmoteStep(
         cinematicId: widget.asset.id,
@@ -2171,6 +2199,7 @@ class _BlockPalette extends StatelessWidget {
     required this.onRemoveMovementTarget,
     required this.onAddActorFacing,
     required this.onAddActorMove,
+    this.onAddActorJump,
     required this.onAddActorEmote,
     required this.onAddActorAnimation,
     required this.animationDefinitions,
@@ -2188,6 +2217,7 @@ class _BlockPalette extends StatelessWidget {
   final _RemoveMovementTargetCallback onRemoveMovementTarget;
   final _AddActorFacingCallback onAddActorFacing;
   final _AddActorMoveCallback onAddActorMove;
+  final VoidCallback? onAddActorJump;
   final _AddActorEmoteCallback onAddActorEmote;
   final _AddActorAnimationCallback onAddActorAnimation;
   final List<CharacterCustomAnimationDefinition> animationDefinitions;
@@ -2252,6 +2282,14 @@ class _BlockPalette extends StatelessWidget {
                   _ActorMovePaletteTile(
                     asset: asset,
                     onAddActorMove: onAddActorMove,
+                  ),
+                  const SizedBox(height: 8),
+                  PokeMapButton(
+                    key: const ValueKey('cinematic-builder-palette-actorJump-button'),
+                    onPressed: asset.requiredActors.isEmpty || asset.movementTargets.isEmpty ? null : onAddActorJump,
+                    variant: PokeMapButtonVariant.secondary,
+                    leading: const Icon(CupertinoIcons.arrow_up),
+                    child: const Text('Faire sauter un acteur'),
                   ),
                   const SizedBox(height: 8),
                   _ActorFacingPaletteTile(
@@ -11095,6 +11133,10 @@ class _SelectedStepInspector extends StatelessWidget {
           ),
           const SizedBox(height: 8),
         ],
+        if (isCinematicTimelineActorJumpStep(step)) ...[
+          _ActorJumpControls(asset: asset, step: step, onUpdate: onUpdateActorMove),
+          const SizedBox(height: 8),
+        ],
         if (isActorMove) ...[
           _ActorMoveControls(
             asset: asset,
@@ -12468,6 +12510,116 @@ class _InspectorDropdownField<T> extends StatelessWidget {
   }
 }
 
+class _ActorJumpControls extends StatefulWidget {
+  const _ActorJumpControls({
+    required this.asset,
+    required this.step,
+    required this.onUpdate,
+  });
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final _UpdateActorMoveCallback onUpdate;
+  @override
+  State<_ActorJumpControls> createState() => _ActorJumpControlsState();
+}
+
+class _ActorJumpControlsState extends State<_ActorJumpControls> {
+  late final TextEditingController height = TextEditingController(
+    text: '${cinematicTimelineActorJumpHeightCellsOf(widget.step)}',
+  );
+  String? error;
+  @override
+  void didUpdateWidget(covariant _ActorJumpControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.step.id != widget.step.id ||
+        cinematicTimelineActorJumpHeightCellsOf(oldWidget.step) !=
+            cinematicTimelineActorJumpHeightCellsOf(widget.step)) {
+      height.text = '${cinematicTimelineActorJumpHeightCellsOf(widget.step)}';
+      error = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    height.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const _SectionTitle(
+        title: 'Saut',
+        subtitle: 'Acteur et destination guidés',
+      ),
+      for (final actor in widget.asset.requiredActors)
+        PokeMapButton(
+          key: ValueKey('cinematic-builder-jump-actor-${actor.actorId}'),
+          onPressed: () => widget.onUpdate(widget.step, actorId: actor.actorId),
+          variant: PokeMapButtonVariant.secondary,
+          isSelected: widget.step.actorId == actor.actorId,
+          child: Text(_actorDisplayLabel(actor)),
+        ),
+      const SizedBox(height: 8),
+      const _KeyValue(label: 'Destination', value: 'Repère d’arrivée du saut'),
+      for (final target in widget.asset.movementTargets)
+        PokeMapButton(
+          key: ValueKey('cinematic-builder-jump-target-${target.targetId}'),
+          onPressed: () =>
+              widget.onUpdate(widget.step, targetId: target.targetId),
+          variant: PokeMapButtonVariant.secondary,
+          isSelected: widget.step.targetId == target.targetId,
+          child: Text(target.label),
+        ),
+      const SizedBox(height: 8),
+      PokeMapTextField(
+        label: 'Hauteur (cases)',
+        controller: height,
+        fieldKey: const ValueKey('cinematic-builder-jump-height-field'),
+        errorText: error,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        onSubmitted: (text) {
+          final value = double.tryParse(text);
+          if (value == null ||
+              !value.isFinite ||
+              value <= 0 ||
+              value > cinematicTimelineActorJumpMaximumHeightCells) {
+            setState(
+              () => error = 'La hauteur doit être supérieure à 0 et au plus égale à 4 cases.',
+            );
+            return;
+          }
+          setState(() => error = null);
+          unawaited(widget.onUpdate(widget.step, heightCells: value));
+        },
+      ),
+      const SizedBox(height: 8),
+      const _KeyValue(label: 'Orientation', value: 'Pendant le saut'),
+      for (final mode in CinematicTimelineActorFacingMode.values)
+        PokeMapButton(
+          key: ValueKey('cinematic-builder-jump-facing-${mode.name}'),
+          onPressed: () => widget.onUpdate(widget.step, facingMode: mode),
+          variant: PokeMapButtonVariant.secondary,
+          isSelected: cinematicTimelineActorFacingModeOf(widget.step) == mode,
+          child: Text(
+            mode == CinematicTimelineActorFacingMode.preserve
+                ? 'Conserver l’orientation'
+                : 'Suivre le déplacement',
+          ),
+        ),
+      const SizedBox(height: 8),
+      _DurationEditorControls(
+        currentDurationMs: widget.step.durationMs!,
+        explicitDurationMs: widget.step.durationMs,
+        minDurationMs: cinematicTimelineActorMoveMinimumDurationMs,
+        keyPrefix: 'cinematic-builder-jump-duration',
+        onDurationChanged: (value) =>
+            widget.onUpdate(widget.step, durationMs: value),
+      ),
+    ],
+  );
+}
 class _ActorMoveControls extends StatelessWidget {
   const _ActorMoveControls({
     required this.asset,
@@ -13313,7 +13465,7 @@ int _editableDurationMs(CinematicTimelineStep step) {
 }
 
 int _editableDurationMinimumMs(CinematicTimelineStep step) {
-  if (isCinematicTimelineActorMoveStep(step)) {
+  if (isCinematicTimelineActorMoveStep(step) || isCinematicTimelineActorJumpStep(step)) {
     return cinematicTimelineActorMoveMinimumDurationMs;
   }
   return cinematicTimelineMinimumDurationMs;
@@ -13323,6 +13475,7 @@ bool _canResizeTimelineStepDuration(CinematicTimelineStep step) {
   return isCinematicTimelineBasicBlockStep(step) ||
       isCinematicTimelineActorFacingStep(step) ||
       isCinematicTimelineActorMoveStep(step) ||
+      isCinematicTimelineActorJumpStep(step) ||
       isCinematicTimelineActorEmoteStep(step);
 }
 
@@ -13719,6 +13872,7 @@ String _timelineStepKindLabel(CinematicTimelineStepKind kind) {
   return switch (kind) {
     CinematicTimelineStepKind.camera => 'Caméra',
     CinematicTimelineStepKind.actorMove => 'Déplacement acteur',
+    CinematicTimelineStepKind.actorJump => 'Saut acteur',
     CinematicTimelineStepKind.actorFace => 'Orientation acteur',
     CinematicTimelineStepKind.actorEmote => 'Émotion acteur',
     CinematicTimelineStepKind.actorAnimation => 'Animation acteur',
@@ -13868,6 +14022,9 @@ String _authoringStepConfigurationLabel(
   }
   if (blockKind != null) {
     return _basicBlockLabel(blockKind);
+  }
+  if (isCinematicTimelineActorJumpStep(step)) {
+    return '${_actorDisplayLabelForId(asset, step.actorId ?? '')} saute · ${step.durationMs} ms · ${cinematicTimelineActorJumpHeightCellsOf(step)} case(s)';
   }
   if (isCinematicTimelineActorMoveStep(step)) {
     return _actorMoveSummary(asset, step);
@@ -14375,6 +14532,7 @@ IconData _stepIcon(CinematicTimelineStepKind kind) {
   return switch (kind) {
     CinematicTimelineStepKind.camera => CupertinoIcons.video_camera,
     CinematicTimelineStepKind.actorMove => CupertinoIcons.arrow_right,
+    CinematicTimelineStepKind.actorJump => CupertinoIcons.arrow_up,
     CinematicTimelineStepKind.actorFace => CupertinoIcons.arrow_turn_up_right,
     CinematicTimelineStepKind.actorEmote => CupertinoIcons.chat_bubble,
     CinematicTimelineStepKind.actorAnimation => CupertinoIcons.play_circle,
@@ -14437,6 +14595,7 @@ PokeMapTone _blockTone(CinematicTimelineStepKind kind) {
   return switch (kind) {
     CinematicTimelineStepKind.camera => PokeMapTone.cinematic,
     CinematicTimelineStepKind.actorMove ||
+    CinematicTimelineStepKind.actorJump ||
     CinematicTimelineStepKind.actorFace ||
     CinematicTimelineStepKind.actorEmote ||
     CinematicTimelineStepKind.actorAnimation =>

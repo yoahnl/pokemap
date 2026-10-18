@@ -20,6 +20,16 @@ extension CinematicInspectorStep on CinematicInspector {
         tryCommit: (text) {
           if (controller.active?.asset.id != asset.id) return false;
           final duration = int.tryParse(text);
+          const jumpDurationError =
+              'La durée du saut doit être comprise entre 200 et 30000 ms.';
+          if (isCinematicTimelineActorJumpStep(step) &&
+              (duration == null ||
+                  duration < cinematicTimelineActorMoveMinimumDurationMs ||
+                  duration > cinematicTimelineMaximumDurationMs)) {
+            view.error = jumpDurationError;
+            changed();
+            return false;
+          }
           if (duration == null || duration <= 0) {
             view.error = 'Saisissez une durée entière strictement positive.';
             changed();
@@ -27,8 +37,9 @@ extension CinematicInspectorStep on CinematicInspector {
           }
           final accepted = controller.updateDuration(step.id, duration);
           if (accepted &&
-              view.error ==
-                  'Saisissez une durée entière strictement positive.') {
+              (view.error ==
+                      'Saisissez une durée entière strictement positive.' ||
+                  view.error == jumpDurationError)) {
             view.error = null;
             changed();
           }
@@ -37,6 +48,7 @@ extension CinematicInspectorStep on CinematicInspector {
       ),
     if (isCinematicTimelineActorFacingStep(step) ||
         isCinematicTimelineActorMoveStep(step) ||
+        isCinematicTimelineActorJumpStep(step) ||
         isCinematicTimelineActorEmoteStep(step))
       StudioSelect(
         label: 'Acteur',
@@ -47,7 +59,14 @@ extension CinematicInspectorStep on CinematicInspector {
         },
         onChanged: (id) => _edit(
           asset,
-          (a) => isCinematicTimelineActorMoveStep(step)
+          (a) => isCinematicTimelineActorJumpStep(step)
+              ? updateCinematicTimelineActorJumpStep(
+                  _project(a),
+                  cinematicId: a.id,
+                  stepId: step.id,
+                  actorId: id,
+                ).cinematic
+              : isCinematicTimelineActorMoveStep(step)
               ? updateCinematicTimelineActorMoveStep(
                   _project(a),
                   cinematicId: a.id,
@@ -91,7 +110,9 @@ extension CinematicInspectorStep on CinematicInspector {
           ).cinematic,
         ),
       ),
-    if (isCinematicTimelineActorMoveStep(step)) ..._moveFields(asset, step),
+    if (isCinematicTimelineActorMoveStep(step) ||
+        isCinematicTimelineActorJumpStep(step))
+      ..._moveFields(asset, step),
     if (isCinematicTimelineActorEmoteStep(step))
       StudioSelect(
         label: 'Émotion',
@@ -140,6 +161,7 @@ extension CinematicInspectorStep on CinematicInspector {
   ];
 
   List<Widget> _moveFields(CinematicAsset asset, CinematicTimelineStep step) {
+    final jump = isCinematicTimelineActorJumpStep(step);
     final path = asset.stageContext?.manualPaths
         .where((p) => p.ownerActorMoveStepId == step.id)
         .firstOrNull;
@@ -151,15 +173,8 @@ extension CinematicInspectorStep on CinematicInspector {
           for (final target in asset.movementTargets)
             target.targetId: '${target.label} · ${target.targetId}',
         },
-        onChanged: (id) => _edit(
-          asset,
-          (a) => updateCinematicTimelineActorMoveStep(
-            _project(a),
-            cinematicId: a.id,
-            stepId: step.id,
-            targetId: id,
-          ).cinematic,
-        ),
+        onChanged: (id) =>
+            _edit(asset, (a) => _updateMotion(a, step, targetId: id)),
       ),
       const Text(
         'Une nouvelle destination choisie sur la carte est propre à cette étape ; les cibles partagées restent intactes.',
@@ -172,22 +187,23 @@ extension CinematicInspectorStep on CinematicInspector {
             ? null
             : () => _mode(CinematicMapMode.destination),
       ),
-      StudioSelect(
-        label: 'Allure',
-        value: cinematicTimelineActorMovementModeOf(step)?.name,
-        options: const {'walk': 'Marcher', 'run': 'Courir'},
-        onChanged: (value) => _edit(
-          asset,
-          (a) => updateCinematicTimelineActorMoveStep(
-            _project(a),
-            cinematicId: a.id,
-            stepId: step.id,
-            movementMode: CinematicTimelineActorMovementMode.values.byName(
-              value,
-            ),
-          ).cinematic,
+      if (!jump)
+        StudioSelect(
+          label: 'Allure',
+          value: cinematicTimelineActorMovementModeOf(step)?.name,
+          options: const {'walk': 'Marcher', 'run': 'Courir'},
+          onChanged: (value) => _edit(
+            asset,
+            (a) => updateCinematicTimelineActorMoveStep(
+              _project(a),
+              cinematicId: a.id,
+              stepId: step.id,
+              movementMode: CinematicTimelineActorMovementMode.values.byName(
+                value,
+              ),
+            ).cinematic,
+          ),
         ),
-      ),
       StudioSelect(
         label: 'Orientation pendant le déplacement',
         value: cinematicTimelineActorFacingModeOf(step)?.name,
@@ -197,27 +213,82 @@ extension CinematicInspectorStep on CinematicInspector {
         },
         onChanged: (value) => _edit(
           asset,
-          (a) => updateCinematicTimelineActorMoveStep(
-            _project(a),
-            cinematicId: a.id,
-            stepId: step.id,
+          (a) => _updateMotion(
+            a,
+            step,
             facingMode: CinematicTimelineActorFacingMode.values.byName(value),
-          ).cinematic,
+          ),
         ),
       ),
-      StudioButton(
-        label: 'Ajouter un point de trajet',
-        secondary: true,
-        icon: Icons.route,
-        onPressed: model == null ? null : () => _mode(CinematicMapMode.path),
-      ),
-      if (path != null) ...[
+      if (jump)
+        StudioCommitField(
+          key: ValueKey('jump-height-${step.id}'),
+          label: 'Hauteur (cases)',
+          alwaysCommit: true,
+          value: '${cinematicTimelineActorJumpHeightCellsOf(step)}',
+          tryCommit: (text) {
+            const error =
+                'La hauteur doit être supérieure à 0 et au plus égale à 4 cases.';
+            final height = double.tryParse(text);
+            if (height == null ||
+                !height.isFinite ||
+                height <= 0 ||
+                height > cinematicTimelineActorJumpMaximumHeightCells) {
+              view.error = error;
+              changed();
+              return false;
+            }
+            final accepted = _edit(
+              asset,
+              (a) => updateCinematicTimelineActorJumpStep(
+                _project(a),
+                cinematicId: a.id,
+                stepId: step.id,
+                heightCells: height,
+              ).cinematic,
+            );
+            if (accepted && view.error == error) {
+              view.error = null;
+              changed();
+            }
+            return accepted;
+          },
+        ),
+      if (!jump)
+        StudioButton(
+          label: 'Ajouter un point de trajet',
+          secondary: true,
+          icon: Icons.route,
+          onPressed: model == null ? null : () => _mode(CinematicMapMode.path),
+        ),
+      if (!jump && path != null) ...[
         const Text('Points du trajet — dans l’ordre de passage'),
         for (var index = 0; index < path.waypointStagePointIds.length; index++)
           _waypoint(asset, step, path, index),
       ],
     ];
   }
+
+  CinematicAsset _updateMotion(
+    CinematicAsset asset,
+    CinematicTimelineStep step, {
+    String? targetId,
+    CinematicTimelineActorFacingMode? facingMode,
+  }) => isCinematicTimelineActorJumpStep(step)
+      ? updateCinematicTimelineActorJumpStep(
+          _project(asset),
+          cinematicId: asset.id,
+          stepId: step.id,
+          targetId: targetId,
+          facingMode: facingMode,
+        ).cinematic
+      : updateCinematicTimelineActorMoveStep(
+          _project(asset),
+          cinematicId: asset.id,
+          stepId: step.id,
+          targetId: targetId,
+          facingMode: facingMode,
+        ).cinematic;
 
   Widget _waypoint(
     CinematicAsset asset,

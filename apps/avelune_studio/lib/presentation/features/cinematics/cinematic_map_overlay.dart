@@ -1,7 +1,10 @@
 import 'cinematic_transport_listenable.dart';
+
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
 import '../../shared/widgets/layout/studio_map_overlay_frame.dart';
 import '../map_workspace/map_workspace_visuals.dart';
@@ -65,6 +68,7 @@ class CinematicMapOverlay extends StatelessWidget {
                   pose.y!,
                   pose.facing,
                   pose.isInterpolated,
+                  pose.liftCells,
                 ),
             ] else if (actor.position.isResolved)
               _actor(
@@ -137,8 +141,9 @@ class CinematicMapOverlay extends StatelessWidget {
     double x,
     double y,
     CinematicActorPreviewDirection direction,
-    bool moving,
-  ) {
+    bool moving, [
+    double liftCells = 0,
+  ]) {
     final character = model.project.characters
         .where((c) => c.id == actor.appearance.characterId)
         .firstOrNull;
@@ -169,7 +174,7 @@ class CinematicMapOverlay extends StatelessWidget {
         .firstOrNull;
     return Positioned(
       left: x * cell.width - width / 2,
-      top: y * cell.height - height / 2,
+      top: (y - liftCells) * cell.height - height / 2,
       width: width,
       height: height,
       child: GestureDetector(

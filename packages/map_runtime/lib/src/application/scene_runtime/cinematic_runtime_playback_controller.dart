@@ -342,6 +342,7 @@ const _supportedKinds = <CinematicTimelineStepKind>{
   CinematicTimelineStepKind.wait,
   CinematicTimelineStepKind.camera,
   CinematicTimelineStepKind.actorMove,
+  CinematicTimelineStepKind.actorJump,
   CinematicTimelineStepKind.actorFace,
   CinematicTimelineStepKind.actorEmote,
   CinematicTimelineStepKind.actorAnimation,
@@ -468,13 +469,20 @@ SceneCinematicRuntimeAwaitableResult? _preflightAsset(CinematicAsset asset) {
         );
       }
     }
-    if (step.kind == CinematicTimelineStepKind.actorMove) {
+    if (step.kind == CinematicTimelineStepKind.actorMove ||
+        step.kind == CinematicTimelineStepKind.actorJump) {
       final targetId = step.targetId;
       if (targetId == null || !targetBindings.containsKey(targetId)) {
         return _failure(
           SceneCinematicRuntimeAwaitableErrorCode.invalidTargetReference,
           'Step "${step.id}" references an unavailable movement target.',
         );
+      }
+    }
+    if (step.kind == CinematicTimelineStepKind.actorJump) {
+      final error = cinematicTimelineActorJumpValidationErrorOf(asset, step);
+      if (error != null) {
+        return _failure(SceneCinematicRuntimeAwaitableErrorCode.invalidStep, error);
       }
     }
     if (step.kind == CinematicTimelineStepKind.dialogueLine &&
@@ -517,6 +525,7 @@ SceneCinematicRuntimeAwaitableResult? _preflightAsset(CinematicAsset asset) {
 
 bool _requiresActor(CinematicTimelineStepKind kind) {
   return kind == CinematicTimelineStepKind.actorMove ||
+      kind == CinematicTimelineStepKind.actorJump ||
       kind == CinematicTimelineStepKind.actorFace ||
       kind == CinematicTimelineStepKind.actorEmote;
 }

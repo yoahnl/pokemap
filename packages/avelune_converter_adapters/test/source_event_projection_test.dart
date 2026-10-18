@@ -1742,7 +1742,7 @@ void main() {
       expect(
           evidence,
           contains(entry.key == 'tempSwitchSetter'
-              ? 'sourceTempSwitchUnsupported'
+              ? 'sourceMapInstanceRetentionMissing'
               : 'sourceDoorProgramUnsupported'));
       expect(result.registry.records.single.definitionOrNull, isNull);
       expect(
@@ -1783,7 +1783,7 @@ void main() {
             23, (id) => id == 22 ? 's:tsOff?("A")' : 'Switch $id'));
     final result = _projectEvents(source);
     expect(jsonEncode(result.semanticEvidence),
-        contains('sourceTempSwitchUnsupported'));
+        contains('sourceMapInstanceRetentionMissing'));
     expect(result.registry.records.single.definitionOrNull, isNull);
     expect(result.facts, isEmpty);
     expect(result.scenes, isEmpty);
@@ -1816,7 +1816,7 @@ void main() {
       expect(result.staticSemanticsQualified, isFalse);
       expect(source.canonicalHash, before);
       final profile = result.semanticEvidence['sourceProfile'] as Map;
-      expect(profile['profile'], 'kanto-events-static-v6');
+      expect(profile['profile'], 'rmxp-static-events-v1');
       expect(result.semanticEvidence['sourceProfileHash'],
           canonicalHashOf(profile).value);
       final historical =
