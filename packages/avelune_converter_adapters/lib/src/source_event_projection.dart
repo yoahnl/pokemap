@@ -346,6 +346,7 @@ final class SourceEventProjector {
     }
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts);
+    builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
@@ -457,9 +458,100 @@ _Guard _conditionGuard(SourceEventCondition condition) =>
             NarrativeEventCondition.fact(
                 sourceEventFactBindingId(condition.factId!),
                 condition.expectedValue))),
+      SourceEventConditionKind.variableAtLeast ||
+      SourceEventConditionKind.variableComparison =>
+        _Guard.expression(NarrativeEventConditionExpression.leaf(
+          NarrativeEventCondition.factValue(sourceEventIntegerVariableBindingId(condition.factId!),
+            operator: _sourceVariableOperator(condition), expectedValue: NarrativeValue.integer(condition.minimum!)))),
       _ => throw const NativeWriteException('events.condition.unqualified',
           'Only qualified boolean source conditions may become page guards'),
     };
+
+NarrativeFactOperator _sourceVariableOperator(SourceEventCondition condition) =>
+    condition.kind == SourceEventConditionKind.variableAtLeast
+        ? NarrativeFactOperator.greaterThanOrEqual
+        : switch (condition.comparisonOperator) {
+          0 => NarrativeFactOperator.equals,
+          1 => NarrativeFactOperator.greaterThanOrEqual,
+          2 => NarrativeFactOperator.lessThanOrEqual,
+          3 => NarrativeFactOperator.greaterThan,
+          4 => NarrativeFactOperator.lessThan,
+          5 => NarrativeFactOperator.notEquals,
+          _ => throw const NativeWriteException('events.variable.operator', 'Unqualified integer comparison'),
+        };
+
+Object? _sourceControlNode(SourceEventNode node) => {
+  'kind': node.runtimeType.toString(), 'span': node.span.toJson(),
+  'value': switch (node) {
+    SourceAnnotationNode() => node.toJson(),
+    SourceVariableSetNode() => node.toJson(),
+    SourceExitEventNode() => node.toJson(),
+    SourceConditionalNode() => {'condition': node.condition.toJson(),
+      'true': node.whenTrue.nodes.map(_sourceControlNode).toList(),
+      'false': node.whenFalse.nodes.map(_sourceControlNode).toList()},
+    SourceChoiceNode() => {'cancelType': node.cancelType, 'branches': [
+      for (final branch in node.branches) {'index': branch.index, 'label': branch.label,
+        'nodes': branch.body.nodes.map(_sourceControlNode).toList()}],
+      'cancel': node.cancelBranch?.nodes.map(_sourceControlNode).toList()},
+    SourceTextNode() => {'text': node.text,
+      'annotations': node.annotations.map((annotation) => annotation.toJson()).toList(), 'choice': node.followingChoice == null
+      ? null : _sourceControlNode(node.followingChoice!)},
+    _ => null,
+  },
+};
+
+Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
+  for (final node in block.nodes) {
+    yield node;
+    switch (node) {
+      case SourceConditionalNode():
+        yield* _sourceControlNodes(node.whenTrue);
+        yield* _sourceControlNodes(node.whenFalse);
+      case SourceChoiceNode():
+        for (final branch in node.branches) { yield* _sourceControlNodes(branch.body); }
+        if (node.cancelBranch != null) yield* _sourceControlNodes(node.cancelBranch!);
+      case SourceTextNode(:final followingChoice):
+        yield* node.annotations;
+        if (followingChoice == null) break;
+        for (final branch in followingChoice.branches) { yield* _sourceControlNodes(branch.body); }
+        if (followingChoice.cancelBranch != null) yield* _sourceControlNodes(followingChoice.cancelBranch!);
+      default: break;
+    }
+  }
+}
+
+Set<String> _sourceControlVariables(SourceEventDefinition event) {
+  final ids = <String>{};
+  void condition(SourceEventCondition value) {
+    if (value.kind == SourceEventConditionKind.variableAtLeast ||
+        value.kind == SourceEventConditionKind.variableComparison) {
+      if (value.factId case final id?) ids.add(id);
+    }
+    for (final child in value.children) { condition(child); }
+  }
+  for (final page in event.pages) {
+    condition(page.condition);
+    for (final node in _sourceControlNodes(page.body)) {
+      if (node is SourceVariableSetNode) ids.addAll(node.factIds);
+      if (node is SourceConditionalNode) condition(node.condition);
+    }
+  }
+  return ids;
+}
+
+bool _hasSourceControl(SourceEventDefinition event) =>
+    _sourceControlVariables(event).isNotEmpty || event.pages.any((page) =>
+      _sourceControlNodes(page.body).any((node) =>
+        node is SourceAnnotationNode || node is SourceExitEventNode));
+
+Sha256Hash _sourceControlFingerprint(SourceEventDefinition event) => canonicalHashOf({
+  'identity': event.identity.value, 'map': event.sourceMapId, 'event': event.sourceEventId,
+  'file': event.sourceFileId.value,
+  'pages': [for (final page in event.pages) {
+    'source': page.sourcePage.toJson(), 'condition': page.condition.toJson(),
+    'raw': page.rawDataRef?.toJson(), 'nodes': page.body.nodes.map(_sourceControlNode).toList(),
+  }],
+});
 
 final class _ProjectionBuilder {
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
@@ -632,11 +724,8 @@ final class _ProjectionBuilder {
       }));
 
   String _elevatorVariableKey(int variable) => 'source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable';
-  NarrativeFactDefinition _elevatorFact(int variable) => addNarrativeFact(
-      const ProjectManifest(name: 'Source elevator', maps: [], tilesets: []),
-      label: 'Source elevator ${canonicalHashOf({'source': source.snapshot.logicalProjectNamespace.value, 'variable': variable}).value.substring(0, 24)}',
-      initialValue: NarrativeValue.integer(0), category: 'Source events',
-      description: 'Shared source variable $variable', tags: ['sourceImported']).createdFact;
+  NarrativeFactDefinition _elevatorFact(int variable) =>
+      _nativeIntegerFact(_elevatorVariableKey(variable));
 
   Set<String> _elevatorGaps(
     SourceEventDefinition event, {
@@ -902,6 +991,7 @@ final class _ProjectionBuilder {
           limits: limits);
 
   SourceEventProjection build() {
+    _prepareVariableWriterAudit(checkCharacterBindings: true);
     final events =
         analysis.events.where((e) => maps.containsKey(e.sourceMapId)).toList()
           ..sort((a, b) {
@@ -1127,6 +1217,18 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                for (final node in _sourceControlNodes(page.body))
+                  if (node is SourceAnnotationNode || node is SourceVariableSetNode ||
+                      node is SourceExitEventNode || (node is SourceConditionalNode &&
+                      node.condition.kind == SourceEventConditionKind.variableComparison)) {
+                    ...(_sourceControlNode(node) as Map<String, Object?>),
+                    'rawDataRefs': [page.rawDataRef!.toJson()],
+                    'nativeContract': node is SourceAnnotationNode ? 'preservedAnnotationNoRuntimeEffect'
+                      : node is SourceExitEventNode ? 'endCurrentReusableSceneInvocation'
+                      : 'persistentIntegerFact',
+                    'executionEnabled': gaps.isEmpty,
+                    'sourceScriptsExecuted': 0,
+                  },
                 if (gaps.isEmpty && _isPartyTradeFamily(event))
                   {
                     'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
@@ -2286,6 +2388,135 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  Set<int>? _unqualifiedVariableWriters;
+  bool _dynamicVariableWriter = false;
+  bool _incompleteVariableRubyCensus = false;
+  late final SourceEventAnalysis _sourceControlAnalysis = SourceEventAnalyzer.forProject(
+      source, profile: analysis.profile).analyze();
+
+  void _prepareVariableWriterAudit({required bool checkCharacterBindings}) {
+    if (_unqualifiedVariableWriters != null) return;
+    final exempt = <ConverterId>{};
+    for (final event in analysis.events) {
+      if (maps.containsKey(event.sourceMapId) &&
+          (elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
+          _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+        exempt.add(event.identity);
+      }
+    }
+    final writes = <int>{};
+    final sourceReader = SourceEventAnalyzer.forProject(source, profile: analysis.profile);
+    void script(String text) {
+      bool closedCall(String suffix) {
+        var depth = 0;
+        String? quote;
+        var escaped = false;
+        for (var index = 0; index < suffix.length; index++) {
+          final character = suffix[index];
+          if (quote != null) {
+            if (escaped) {
+              escaped = false;
+            } else if (character == '\\') {
+              escaped = true;
+            } else if (character == quote) {
+              quote = null;
+            }
+          } else if (character == "'" || character == '"') {
+            quote = character;
+          } else if (character == '(') {
+            depth++;
+          } else if (character == ')') {
+            depth--;
+            if (depth == 0) return true;
+          }
+        }
+        return false;
+      }
+      void target(RegExpMatch? literal) {
+        final id = literal == null ? null : int.tryParse(literal.group(1)!);
+        if (id == null) {
+          _dynamicVariableWriter = true;
+        } else {
+          writes.add(id);
+        }
+      }
+      for (final reference in RegExp(r'\$game_variables\b').allMatches(text)) {
+        target(RegExp(r'^\s*\[\s*([1-9][0-9]*)\s*\]')
+            .firstMatch(text.substring(reference.end)));
+      }
+      for (final reference in RegExp(r'\bpb(?:Set|Get)\b').allMatches(text)) {
+        final suffix = text.substring(reference.end).trimLeft();
+        final parenthesized = suffix.startsWith('(');
+        if (parenthesized && !closedCall(suffix)) {
+          _dynamicVariableWriter = true;
+          continue;
+        }
+        target((parenthesized
+                ? RegExp(r'^\(\s*([1-9][0-9]*)\s*(?=[,)])')
+                : RegExp(r'^([1-9][0-9]*)\s*(?=[,);\r\n]|$)'))
+            .firstMatch(suffix));
+      }
+    }
+    final switchRuby = sourceReader.observeOpaqueSwitchRuby();
+    _incompleteVariableRubyCensus = !switchRuby.complete || source.snapshot.entries.any(
+        (entry) => sourcePathCollisionKey(entry.relativePath) == 'data/commonevents.rxdata');
+    script(switchRuby.texts.join('\n'));
+    for (final map in source.maps) {
+      for (final event in map.map.events) {
+        if (exempt.contains(source.eventIdentity(map.map.sourceMapId, event.sourceEventId))) continue;
+        for (final page in event.pages) {
+          final observed = sourceReader.observeOpaquePageRuby(page);
+          if (!observed.complete) _incompleteVariableRubyCensus = true;
+          for (final command in page.commands) {
+            final params = command.parameters;
+            if (command.code == 122) {
+              final validRange = params.length >= 2 && params[0] is int && params[1] is int &&
+                  (params[0] as int) >= 1 && (params[1] as int) >= (params[0] as int) &&
+                  (params[1] as int) <= 5000;
+              if (!validRange) { _dynamicVariableWriter = true; continue; }
+              final isLiteral = params.length == 5 && params[2] == 0 && params[3] == 0 && params[4] is int;
+              if (!isLiteral) {
+                for (var id = params[0] as int; id <= (params[1] as int); id++) { writes.add(id); }
+              }
+            } else if (command.code == 103 || command.code == 105) {
+              final target = params.isEmpty ? null : params.first;
+              if (target is! int || target < 0) {
+                _dynamicVariableWriter = true;
+              } else if (target >= 1 && target <= 5000) {
+                writes.add(target);
+              }
+            } else if (command.code == 117) {
+              _incompleteVariableRubyCensus = true;
+            }
+          }
+          script(observed.texts.join('\n'));
+        }
+      }
+    }
+    _unqualifiedVariableWriters = Set.unmodifiable(writes);
+  }
+
+  Set<String> _sourceControlGaps(SourceEventDefinition event) {
+    final expected = _sourceControlAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    if (!_hasSourceControl(event) && (expected == null || !_hasSourceControl(expected))) {
+      return const {};
+    }
+    if (!SourceEventProfile.kantoForProject(source).isQualified || expected == null ||
+        _sourceControlFingerprint(expected) != _sourceControlFingerprint(event)) {
+      return {'sourceNumericControlSourceMismatch'};
+    }
+    if (_unqualifiedVariableWriters == null) return const {};
+    final variables = _sourceControlVariables(event);
+    if (variables.isNotEmpty && _incompleteVariableRubyCensus) {
+      return {'sourceVariableRubyCensusIncomplete'};
+    }
+    if (variables.any((id) => _dynamicVariableWriter ||
+        _unqualifiedVariableWriters!.contains(int.parse(id.split(':').last)))) {
+      return {'sourceVariableWriterUnqualified'};
+    }
+    return const {};
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     if (isSourceHoleNativeIdentity(event)) return _holeGaps(event);
@@ -2493,6 +2724,7 @@ final class _ProjectionBuilder {
             _simpleFact(event.pages.single.condition) != null)) {
       gaps.add('pagePresenceExpressionUnsupported');
     }
+    gaps.addAll(_sourceControlGaps(event));
     return gaps;
   }
 
@@ -2618,8 +2850,9 @@ final class _ProjectionBuilder {
         if (binding == null) {
           gaps.add('pickupCatalogBindingMissing');
         }
+      case SourceEventConditionKind.variableComparison:
       case SourceEventConditionKind.variableAtLeast:
-        gaps.add('variableStateProjectionUnsupported');
+        break;
       case SourceEventConditionKind.tempSwitch:
         if (!_isSourceTransition(event)) gaps.add('sourceTempSwitchUnsupported');
       case SourceEventConditionKind.playerOnEvent:
@@ -2657,6 +2890,10 @@ final class _ProjectionBuilder {
           _conditionGaps(event, condition, gaps);
           _blockGaps(event, whenTrue, gaps, checkCharacterBindings: checkCharacterBindings);
           _blockGaps(event, whenFalse, gaps, checkCharacterBindings: checkCharacterBindings);
+        case SourceAnnotationNode():
+        case SourceVariableSetNode():
+        case SourceExitEventNode():
+          break;
         case SourceSwitchNode():
         case SourceSelfSwitchNode():
           break;
@@ -2860,6 +3097,7 @@ final class _ProjectionBuilder {
   void _blockFacts(SourceEventBlock block, Set<String> ids) {
     for (final node in block.nodes) {
       switch (node) {
+        case SourceVariableSetNode(:final factIds):
         case SourceSwitchNode(:final factIds):
           ids.addAll(factIds);
         case SourceSelfSwitchNode(:final factId):
@@ -2943,7 +3181,8 @@ final class _ProjectionBuilder {
       _blockFacts(page.body, factIds);
     }
     for (final id in factIds) {
-      factsById.putIfAbsent(id, () => _nativeFact(id));
+      factsById.putIfAbsent(id, () => id.startsWith('source:${source.snapshot.logicalProjectNamespace.value}:variable:')
+          ? _nativeIntegerFact(id) : _nativeFact(id));
     }
     final map = maps[event.sourceMapId]!;
     final entityId = _key(event, 'anchor');
@@ -3194,6 +3433,7 @@ final class _SceneBuilder {
   final nodes = <SceneNode>[];
   final edges = <SceneEdge>[];
   var ordinal = 0;
+  late final String eventEnd;
 
   String _node(SceneNodePayload payload) {
     final id = 'node_${ordinal++}';
@@ -3212,7 +3452,7 @@ final class _SceneBuilder {
   }
 
   SceneAsset build() {
-    final end = _node(SceneEndPayload());
+    final end = eventEnd = _node(SceneEndPayload());
     final hole = projection.holePrograms[event.identity];
     final elevator = projection.elevatorPrograms[event.identity];
     final warpTile = projection.warpTilePrograms.programs[event.identity];
@@ -3519,7 +3759,17 @@ final class _SceneBuilder {
         case SourceChoiceNode():
           next = _dialogue(node.span, null, node, next);
         case SourceInteractionFacingNode():
+        case SourceAnnotationNode():
           break;
+        case SourceExitEventNode():
+          next = eventEnd;
+        case SourceVariableSetNode(:final factIds, :final value):
+          for (final id in factIds.reversed) {
+            final action = _node(SceneActionPayload.consequence(SceneConsequence.setFactValue(
+              factId: sourceEventIntegerVariableBindingId(id), value: NarrativeValue.integer(value))));
+            _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+            next = action;
+          }
         case SourceMoveRouteBarrierNode():
           next = _interactive(SceneInteractiveCommand.waitForActorRoutes(
             mapId: projection.maps[mapScopes[node]!.single]!.id), next);
@@ -3906,6 +4156,12 @@ final class _SceneBuilder {
           ? SceneConditionSource.mapEventInstanceBoolean(mapId: projection.maps[event.sourceMapId]!.id,
               eventId: projection._key(event, 'anchor'), key: condition.tempSwitchLetter!,
               expected: condition.expectedValue)
+          : condition.kind == SourceEventConditionKind.variableAtLeast ||
+              condition.kind == SourceEventConditionKind.variableComparison
+          ? SceneConditionSource.factValue(
+              factId: sourceEventIntegerVariableBindingId(condition.factId!),
+              operator: _sourceVariableOperator(condition),
+              expectedValue: NarrativeValue.integer(condition.minimum!))
           : SceneConditionSource.factValue(
             factId: sourceEventFactBindingId(condition.factId!),
             operator: NarrativeFactOperator.equals,

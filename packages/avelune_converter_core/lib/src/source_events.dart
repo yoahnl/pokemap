@@ -6,6 +6,7 @@ enum SourceEventConditionKind {
   globalSwitch,
   selfSwitch,
   variableAtLeast,
+  variableComparison,
   pickup,
   itemPresence,
   tempSwitch,
@@ -65,6 +66,7 @@ final class SourceEventProfile {
           '045':
               '8c11fb7f170df5ca2aff17725e1dbed031c94deebabdbbae69dd926e24acafa7',
           '046': '7159cc172004da46b72a51b7d009df24de7a297bdb09599de31a4b5116dab373',
+          '055': '94d61f95de05effb31a464526f894f1a31882400e50f7b6e7a99629e0ae093ca',
           '079':
               'eacf78724bf5ab978b4b74d73149e3e556906d8f63d0ed380310bdddae7a6dad',
           '088':
@@ -86,6 +88,7 @@ final class SourceEventCondition {
     this.expectedValue = true,
     this.variableId,
     this.minimum,
+    this.comparisonOperator,
     this.reason,
     this.pickup,
     this.sourceItemSymbol,
@@ -99,6 +102,7 @@ final class SourceEventCondition {
   final bool expectedValue;
   final int? variableId;
   final int? minimum;
+  final int? comparisonOperator;
   final String? reason;
   final SourcePickupNode? pickup;
   final String? sourceItemSymbol;
@@ -115,7 +119,10 @@ final class SourceEventCondition {
         SourceEventConditionKind.selfSwitch =>
           factId != null,
         SourceEventConditionKind.variableAtLeast =>
-          variableId != null && minimum != null,
+          variableId != null && minimum != null && factId != null,
+        SourceEventConditionKind.variableComparison =>
+          variableId != null && minimum != null && factId != null &&
+          comparisonOperator != null && comparisonOperator! >= 0 && comparisonOperator! <= 5,
         SourceEventConditionKind.pickup => pickup != null,
         SourceEventConditionKind.itemPresence => sourceItemSymbol != null,
         SourceEventConditionKind.tempSwitch => tempSwitchLetter == 'A',
@@ -145,6 +152,14 @@ final class SourceEventCondition {
         (facts[factId] ?? false) == expectedValue,
       SourceEventConditionKind.variableAtLeast =>
         (variables[variableId] ?? 0) >= minimum!,
+      SourceEventConditionKind.variableComparison => switch (comparisonOperator!) {
+        0 => (variables[variableId] ?? 0) == minimum!,
+        1 => (variables[variableId] ?? 0) >= minimum!,
+        2 => (variables[variableId] ?? 0) <= minimum!,
+        3 => (variables[variableId] ?? 0) > minimum!,
+        4 => (variables[variableId] ?? 0) < minimum!,
+        _ => (variables[variableId] ?? 0) != minimum!,
+      },
       SourceEventConditionKind.itemPresence =>
         ((itemQuantities[sourceItemSymbol] ?? 0) > 0) == expectedValue,
       SourceEventConditionKind.playerFacing => playerFacing == null
@@ -159,6 +174,8 @@ final class SourceEventCondition {
         'expectedValue': expectedValue,
         'variableId': variableId,
         'minimum': minimum,
+        if (kind == SourceEventConditionKind.variableComparison)
+          'comparisonOperator': comparisonOperator,
         'reason': reason,
         'pickup': pickup?.toJson(),
         if (kind == SourceEventConditionKind.itemPresence)
@@ -222,9 +239,42 @@ sealed class SourceEventNode {
   final SourceEventSpan span;
 }
 
+final class SourceAnnotationNode extends SourceEventNode {
+  SourceAnnotationNode(super.span, List<String> lines) : lines = List.unmodifiable(lines);
+  final List<String> lines;
+  Map<String, Object?> toJson() => {
+    'kind': 'annotation', 'span': span.toJson(), 'lines': lines,
+    'runtimeEffect': 'none',
+  };
+}
+
+final class SourceVariableSetNode extends SourceEventNode {
+  SourceVariableSetNode(super.span, {required this.firstId, required this.lastId,
+    required this.sourceValue, required List<String> factIds})
+      : factIds = List.unmodifiable(factIds);
+  final int firstId, lastId, sourceValue;
+  final List<String> factIds;
+  int get value => sourceValue.clamp(-99999999, 99999999);
+  Map<String, Object?> toJson() => {
+    'kind': 'integerVariableSet', 'span': span.toJson(),
+    'firstId': firstId, 'lastId': lastId, 'sourceValue': sourceValue,
+    'value': value, 'factIds': factIds, 'operator': 'set', 'operand': 'literal',
+  };
+}
+
+final class SourceExitEventNode extends SourceEventNode {
+  const SourceExitEventNode(super.span);
+  Map<String, Object?> toJson() => {
+    'kind': 'exitEvent', 'span': span.toJson(), 'scope': 'wholeEventInvocation',
+  };
+}
+
 final class SourceTextNode extends SourceEventNode {
-  const SourceTextNode(super.span, this.text, {this.followingChoice});
+  SourceTextNode(super.span, this.text, {this.followingChoice,
+    List<SourceAnnotationNode> annotations = const []})
+      : annotations = List.unmodifiable(annotations);
   final String text;
+  final List<SourceAnnotationNode> annotations;
   final SourceChoiceNode? followingChoice;
 }
 
@@ -661,6 +711,8 @@ final class SourceEventAnalyzer {
   final SourceEventProfile profile;
   String globalFactId(int switchId) =>
       'source:${project.snapshot.logicalProjectNamespace.value}:switch:$switchId';
+  String variableFactId(int variableId) =>
+      'source:${project.snapshot.logicalProjectNamespace.value}:variable:$variableId';
   String selfFactId(int mapId, int eventId, String letter) =>
       'source:${project.snapshot.logicalProjectNamespace.value}:map:$mapId:event:$eventId:self:$letter';
 
@@ -798,7 +850,88 @@ final class SourceEventAnalyzer {
           entry.relativePath == file.entry.relativePath &&
           entry.kind == SourceNodeKind.file);
 
-  List<String?>? _switchNames() {
+  ({List<String> texts, bool complete}) observeOpaquePageRuby(SourceEventPage page) {
+    final texts = <String>[];
+    try {
+      final reference = _reference(page.rawDataRef);
+      if (reference == null) throw const FormatException();
+      final document = project.archive.files[reference.fileId]!.document;
+      int plain(int id, MarshalKind kind) {
+        final node = document.node(id);
+        if (node.kind != kind || node.extensions.isNotEmpty ||
+            node.userClass != null || node.instanceVariables.isNotEmpty) {
+          throw const FormatException();
+        }
+        return id;
+      }
+      int integer(int id) => _eventInt(document, plain(id, MarshalKind.integer));
+      List<int> array(int id) => document.node(plain(id, MarshalKind.array)).elements;
+      void movement(int id) {
+        final fields = _eventFields(document, id, 'RPG::MoveCommand');
+        if (integer(_eventField(fields, '@code')) != 45) return;
+        final parameters = array(_eventField(fields, '@parameters'));
+        if (parameters.length != 1) throw const FormatException();
+        texts.add(_eventLiteralText(document, parameters.single));
+      }
+      void route(int id) {
+        final fields = _eventFields(document, id, 'RPG::MoveRoute');
+        for (final step in array(_eventField(fields, '@list'))) {
+          movement(step);
+        }
+      }
+      final fields = _eventFields(document, reference.nodeId, 'RPG::Event::Page');
+      if (integer(_eventField(fields, '@move_type')) == 3) {
+        route(_eventField(fields, '@move_route'));
+      }
+      for (final command in array(_eventField(fields, '@list'))) {
+        final fields = _eventFields(document, command, 'RPG::EventCommand');
+        final code = integer(_eventField(fields, '@code'));
+        if (!const {111, 209, 355, 509, 655}.contains(code)) continue;
+        final parameters = array(_eventField(fields, '@parameters'));
+        switch (code) {
+          case 209:
+            if (parameters.length != 2) throw const FormatException();
+            route(parameters[1]);
+          case 509:
+            if (parameters.length != 1) throw const FormatException();
+            movement(parameters.single);
+          case 355:
+          case 655:
+            if (parameters.length != 1) throw const FormatException();
+            texts.add(_eventLiteralText(document, parameters.single));
+          case 111:
+            if (parameters.isEmpty) throw const FormatException();
+            if (integer(parameters.first) == 12) {
+              if (parameters.length != 2) throw const FormatException();
+              texts.add(_eventLiteralText(document, parameters[1]));
+            }
+        }
+      }
+      return (texts: List.unmodifiable(texts), complete: true);
+    } on FormatException {
+      return (texts: List.unmodifiable(texts), complete: false);
+    }
+  }
+
+  List<String?>? _switchNames() => _systemNames('@switches');
+
+  ({List<String> texts, bool complete}) observeOpaqueSwitchRuby() {
+    final names = _switchNames();
+    return (
+      texts: List.unmodifiable([
+        for (final name in names ?? const <String?>[])
+          if (name != null && name.startsWith('s:')) name.substring(2),
+      ]),
+      complete: names != null && !names.skip(1).contains(null),
+    );
+  }
+
+  late final List<String?>? _variableNames = _systemNames('@variables');
+
+  bool _validVariable(int id) => id >= 1 && id <= 5000 &&
+      _variableNames != null && id < _variableNames.length && _variableNames[id] != null;
+
+  List<String?>? _systemNames(String field) {
     for (final file in project.archive.files.values) {
       if (sourcePathCollisionKey(file.entry.relativePath) !=
               'data/system.rxdata' ||
@@ -808,8 +941,11 @@ final class SourceEventAnalyzer {
       try {
         final fields =
             _eventFields(file.document, file.document.rootId, 'RPG::System');
-        final array = file.document.node(_eventField(fields, '@switches'));
-        if (array.kind != MarshalKind.array) return null;
+        final array = file.document.node(_eventField(fields, field));
+        if (array.kind != MarshalKind.array || array.extensions.isNotEmpty ||
+            array.userClass != null || array.instanceVariables.isNotEmpty) {
+          return null;
+        }
         return List.unmodifiable(array.elements.map((id) {
           final node = file.document.node(id);
           if (node.kind != MarshalKind.string) return null;
@@ -879,9 +1015,17 @@ final class SourceEventAnalyzer {
       final id = _eventInt(file.document, _eventField(fields, '@variable_id'));
       final minimum =
           _eventInt(file.document, _eventField(fields, '@variable_value'));
-      if (id < 1) throw const FormatException();
+      if (!_validVariable(id)) return _unqualifiedEventCondition('events.invalid_variable_metadata');
+      for (final key in ['@variable_id', '@variable_value', '@variable_valid']) {
+        final node = file.document.node(_eventField(fields, key));
+        if (node.extensions.isNotEmpty || node.userClass != null ||
+            node.instanceVariables.isNotEmpty) {
+          throw const FormatException();
+        }
+      }
       children.add(SourceEventCondition(
           kind: SourceEventConditionKind.variableAtLeast,
+          factId: variableFactId(id),
           variableId: id,
           minimum: minimum));
     }
@@ -1178,9 +1322,13 @@ final class _SourceEventParser {
         _arity(command.parameters, 1);
         var text = _string(command.parameters[0]);
         index++;
-        while (index < commands.length &&
-            commands[index].code == 401 &&
-            commands[index].indent == indent) {
+        final annotations = <SourceAnnotationNode>[];
+        while (index < commands.length && commands[index].indent == indent) {
+          if (_at(108, indent)) {
+            annotations.add(_node(indent) as SourceAnnotationNode);
+            continue;
+          }
+          if (!_at(401, indent)) break;
           final continuation = commands[index].parameters;
           _arity(continuation, 1);
           final next = _string(continuation[0]);
@@ -1195,13 +1343,48 @@ final class _SourceEventParser {
           choice = _choice(indent);
         }
         return SourceTextNode(_span(first, index - 1), text,
-            followingChoice: choice);
+            followingChoice: choice, annotations: annotations);
       case 102:
         return _choice(indent);
       case 106:
         return _wait();
+      case 108:
+        final first = index;
+        final lines = <String>[];
+        do {
+          final current = commands[index];
+          _arity(current.parameters, 1);
+          final raw = _rawFacingParameters(current, 1);
+          final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+          final line = _eventLiteralText(doc, raw.single);
+          if (line != _string(current.parameters.single)) throw const FormatException();
+          lines.add(line);
+          index++;
+        } while (_at(408, indent));
+        return SourceAnnotationNode(_span(first, index - 1), lines);
       case 111:
         return _conditional(indent);
+      case 115:
+        _literalIntegerParameters(command, 0);
+        final current = index++;
+        return SourceExitEventNode(_span(current, current));
+      case 122:
+        final values = _literalIntegerParameters(command, 5);
+        if (values[2] != 0 || values[3] != 0) {
+          return _unknown('events.dynamic_variable_assignment');
+        }
+        final first = values[0], last = values[1];
+        if (last < first || !analyzer._validVariable(first) || !analyzer._validVariable(last)) {
+          return _unknown('events.invalid_variable_metadata');
+        }
+        for (var id = first; id <= last; id++) {
+          if (!analyzer._validVariable(id)) return _unknown('events.invalid_variable_metadata');
+        }
+        final current = index++;
+        return SourceVariableSetNode(_span(current, current), firstId: first,
+          lastId: last, sourceValue: values[4], factIds: [
+            for (var id = first; id <= last; id++) analyzer.variableFactId(id),
+          ]);
       case 121:
         final params = command.parameters;
         _arity(params, 3);
@@ -1672,6 +1855,17 @@ final class _SourceEventParser {
     return reference;
   }
 
+  List<int> _literalIntegerParameters(SourceCommand command, int arity) {
+    _arity(command.parameters, arity);
+    final raw = _rawFacingParameters(command, arity);
+    final doc = analyzer.project.archive.files[rawPage!.fileId]!.document;
+    return List.generate(arity, (slot) {
+      final value = _eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer));
+      if (value != _integer(command.parameters[slot])) throw const FormatException();
+      return value;
+    });
+  }
+
   Map<String, int> _facingFields(
       MarshalDocument doc, int id, String className, Set<String> expected) {
     final fields = _eventFields(doc, id, className);
@@ -1757,6 +1951,17 @@ final class _SourceEventParser {
           }
         }
         return condition;
+      case 1:
+        final values = _literalIntegerParameters(command, 5);
+        if (values[2] != 0 || values[4] < 0 || values[4] > 5) {
+          return _unqualifiedEventCondition('events.dynamic_variable_comparison');
+        }
+        if (!analyzer._validVariable(values[1])) {
+          return _unqualifiedEventCondition('events.invalid_variable_metadata');
+        }
+        return SourceEventCondition(kind: SourceEventConditionKind.variableComparison,
+          variableId: values[1], factId: analyzer.variableFactId(values[1]),
+          minimum: values[3], comparisonOperator: values[4]);
       case 2:
         _arity(params, 3);
         final letter = _string(params[1]);

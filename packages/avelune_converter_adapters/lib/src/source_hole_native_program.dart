@@ -254,7 +254,10 @@ String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({
             'nodes': [
               for (final node in page.body.nodes)
                 switch (node) {
-                  SourceUnknownNode() => {
+                  SourceAnnotationNode() => node.toJson(),
+        SourceVariableSetNode() => node.toJson(),
+        SourceExitEventNode() => node.toJson(),
+        SourceUnknownNode() => {
                       'type': 'unknown',
                       'span': node.span.toJson(),
                       'command': node.command.toJson(),

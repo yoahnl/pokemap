@@ -373,6 +373,12 @@ void main() {
               LiteralFixtureEventPage(
                   characterName: 'OriginalPlayer',
                   commands: [
+                    LiteralFixtureEventCommand(108, ['Original annotation']),
+                    LiteralFixtureEventCommand(408, ['Original continuation']),
+                    LiteralFixtureEventCommand(122, [1, 1, 0, 0, 2]),
+                    LiteralFixtureEventCommand(111, [1, 1, 0, 2, 0]),
+                    LiteralFixtureEventCommand(115, [], indent: 1),
+                    LiteralFixtureEventCommand(412, []),
                     LiteralFixtureEventCommand(101, ['Bienvenue']),
                     LiteralFixtureEventCommand(123, ['A', 0]),
                   ]),
@@ -453,6 +459,7 @@ void main() {
       expect(native.manifest.eventRegistry!.records,
           composed.projection.registry.records);
       expect(native.manifest.facts, composed.projection.facts);
+      expect(native.manifest.facts.where((fact) => fact.valueKind == NarrativeValueKind.integer), hasLength(1));
       expect(native.manifest.scenes, composed.projection.scenes);
       final firstMap = native.mapById(draft.mapIds[1]!)!;
       expect(
@@ -529,6 +536,31 @@ void main() {
             .write(alteredApproval.plan, alteredApproval.context, altered),
         throwsA(isA<NativeWriteException>().having(
             (error) => error.code, 'code', 'native.semantics.regeneration')));
+    expect(stages, isEmpty);
+    final changedValues = NativeProjectDraft(source: draft.source, projectName: draft.projectName,
+      parentPath: draft.parentPath, folderName: draft.folderName, mapIds: draft.mapIds,
+      artifacts: draft.artifacts, sourceArtifacts: draft.sourceArtifacts,
+      compositionEvidence: draft.compositionEvidence, mutations: draft.mutations.map((entry) {
+        if (entry.actionId != 'scene.upsert') return entry;
+        final scene = jsonDecode(canonicalJsonOf(entry.parameters['scene'])) as Map<String, dynamic>;
+        for (final node in (scene['graph'] as Map)['nodes'] as List) {
+          final payload = (node as Map)['payload'];
+          if (payload is! Map) continue;
+          final consequence = payload['consequence'];
+          if (consequence is Map && consequence['kind'] == 'setFact' && consequence['value'] is int) {
+            consequence['value'] = 99;
+          }
+        }
+        return NativeMutation(operationId: entry.operationId, actionId: entry.actionId,
+          sourceEntityIds: entry.sourceEntityIds, targetEntityIds: entry.targetEntityIds,
+          parameters: {'scene': scene});
+      }).toList());
+    expect(canonicalJsonOf(changedValues.mutations.map((mutation) => mutation.parameters).toList()),
+        isNot(canonicalJsonOf(draft.mutations.map((mutation) => mutation.parameters).toList())));
+    final changedValuesApproval = approveNativeFixtureDraft(changedValues);
+    await expectLater(NativeProjectWriter(checkpoint: (stage, _, __) => stages.add(stage))
+        .write(changedValuesApproval.plan, changedValuesApproval.context, changedValues),
+        throwsA(isA<NativeWriteException>().having((error) => error.code, 'code', 'native.semantics.regeneration')));
     expect(stages, isEmpty);
     final forgedEvidence = jsonDecode(canonicalJsonOf(draft.compositionEvidence)) as Map<String, Object?>;
     final eventEvidence = forgedEvidence['sourceEvents'] as Map;

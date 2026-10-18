@@ -349,6 +349,9 @@ Object? _node(SourceEventNode node) => {
       'type': node.runtimeType.toString(),
       'span': node.span.toJson(),
       'value': switch (node) {
+        SourceAnnotationNode() => node.toJson(),
+        SourceVariableSetNode() => node.toJson(),
+        SourceExitEventNode() => node.toJson(),
         SourceUnknownNode() => [node.command.toJson(), node.reason],
         SourceScriptNode() => node.script,
         SourceForcedMoveRouteNode() => node.toJson(),

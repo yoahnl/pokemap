@@ -176,11 +176,14 @@ void main() {
       expect(doors, hasLength(19));
       for (final event in doors) {
         expect(event.pages, hasLength(2));
-        expect(event.isQuarantined, true);
-        final write = event.pages.first.body.nodes.first as SourceUnknownNode;
-        expect(write.command.code, 122);
-        expect(write.command.parameters.take(4), [10, 10, 0, 0]);
-        expect(write.command.parameters.last, inInclusiveRange(1, 11));
+        final write = event.pages.first.body.nodes.first as SourceVariableSetNode;
+        expect(write.firstId, 10);
+        expect(write.lastId, 10);
+        expect(write.sourceValue, inInclusiveRange(1, 11));
+        expect(write.factIds, ['source:${source.snapshot.logicalProjectNamespace.value}:variable:10']);
+        final commands = event.pages.first.sourcePage.commands;
+        expect(commands.first.code, 122);
+        expect(commands.first.parameters, [10, 10, 0, 0, write.sourceValue]);
         expect(event.pages.last.body.nodes.first, isA<SourceConditionalNode>());
       }
       if (proof != null) {
@@ -418,9 +421,11 @@ void main() {
               {1, 2}.contains(event.sourceEventId))
           .toList();
       expect(cabins, hasLength(6));
-      expect(cabins.every((event) => event.isQuarantined), true);
-      expect(project(cabins).scenes, isEmpty);
-      expect(project(cabins).facts, isEmpty);
+      final result = project(cabins);
+      expect(result.registry.records, hasLength(6));
+      expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue);
+      expect(result.scenes, isEmpty);
+      expect(result.facts, isEmpty);
     });
   },
       skip: root == null || snapshot == null

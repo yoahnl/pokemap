@@ -261,6 +261,9 @@ Object? _node(SourceEventNode node) => {
         SourceToneNode() => node.toJson(),
         SourceWaitNode() => node.toJson(),
         SourceSoundEffectNode() => node.toJson(),
+        SourceAnnotationNode() => node.toJson(),
+        SourceVariableSetNode() => node.toJson(),
+        SourceExitEventNode() => node.toJson(),
         SourceUnknownNode() => {
             'command': node.command.toJson(),
             'reason': node.reason

@@ -257,10 +257,30 @@ void main() {
         expect(
             events.projection.facts
                 .singleWhere((fact) =>
-                    fact.description == 'Shared source variable $variable')
+                    fact.id == sourceEventIntegerVariableBindingId('source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable'))
                 .valueKind,
             NarrativeValueKind.integer);
       }
+    });
+
+    test('elevator writers and readers share canonical generic integer identities', () {
+      final ids = {for (final variable in [10, 11]) sourceEventIntegerVariableBindingId(
+        'source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable')};
+      final integer = events.projection.facts.where((fact) => fact.valueKind == NarrativeValueKind.integer);
+      expect(integer.map((fact) => fact.id).toSet(), ids);
+      expect(integer.map((fact) => fact.initialValue), everyElement(NarrativeValue.integer(0)));
+      final actions = events.projection.scenes.expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload).whereType<SceneActionPayload>()
+          .map((payload) => payload.consequence).whereType<SceneSetFactConsequence>();
+      expect(actions.where((action) => action.narrativeValue.kind == NarrativeValueKind.integer)
+          .map((action) => action.factId).toSet(), ids);
+      final readers = events.projection.scenes.expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload).whereType<SceneConditionPayload>()
+          .map((payload) => payload.conditionSource).whereType<SceneConditionSource>()
+          .where((condition) => condition.expectedFactValue?.kind == NarrativeValueKind.integer);
+      expect(readers.map((condition) => condition.sourceId).toSet(), {
+        sourceEventIntegerVariableBindingId('source:${source.snapshot.logicalProjectNamespace.value}:variable:10'),
+      });
     });
 
     test(
@@ -379,9 +399,9 @@ void main() {
       final writer = NarrativeFactRuntimeWriter(
           NarrativeFactRuntimeResolver.fromFacts(facts));
       final currentFact = facts.singleWhere(
-          (fact) => fact.description == 'Shared source variable 10');
+          (fact) => fact.id == sourceEventIntegerVariableBindingId('source:${source.snapshot.logicalProjectNamespace.value}:variable:10'));
       final targetFact = facts.singleWhere(
-          (fact) => fact.description == 'Shared source variable 11');
+          (fact) => fact.id == sourceEventIntegerVariableBindingId('source:${source.snapshot.logicalProjectNamespace.value}:variable:11'));
       Future<GameState> run(SceneAsset scene, GameState before,
           {int? choice}) async {
         var state = before;
@@ -493,7 +513,7 @@ void main() {
         () async {
       final facts = events.projection.facts;
       final currentFact = facts.singleWhere(
-          (fact) => fact.description == 'Shared source variable 10');
+          (fact) => fact.id == sourceEventIntegerVariableBindingId('source:${source.snapshot.logicalProjectNamespace.value}:variable:10'));
       var paths = 0;
       for (final program in programs.values
           .where((program) => program.role == SourceElevatorRole.exit)) {
@@ -745,7 +765,7 @@ void main() {
           .toList();
       String variableId(int variable) => integer
           .singleWhere(
-              (fact) => fact.description == 'Shared source variable $variable')
+              (fact) => fact.id == sourceEventIntegerVariableBindingId('source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable'))
           .id;
       final traces = <Map<String, Object?>>[];
       for (final cabin in [40, 177, 224]) {

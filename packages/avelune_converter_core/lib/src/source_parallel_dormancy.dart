@@ -276,6 +276,11 @@ void _auditSourceFactWriteBlock(
           };
           if (!allowed) throw const FormatException();
         }
+      case SourceVariableSetNode():
+        break;
+      case SourceAnnotationNode():
+      case SourceExitEventNode():
+        break;
       case SourceScriptNode():
       case SourceUnknownNode():
         throw const FormatException();

@@ -535,6 +535,7 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     {bool system = true,
     bool includeSystem = true,
     List<Object?> switches = const ['', 'Ready', 's:dangerous()'],
+    List<Object?>? variables,
     Map<int, _RubyObject>? extraEvents}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages), ...?extraEvents}),
@@ -542,7 +543,8 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
   });
   if (system) {
     data['Data/System.rxdata'] = _MarshalFixture()
-        .dump(_RubyObject('RPG::System', {'@switches': switches}));
+        .dump(_RubyObject('RPG::System', {'@switches': switches,
+          '@variables': variables ?? List.filled(128, '')}));
   }
   return _normalize(_source(data), includeEventSystem: includeSystem);
 }
@@ -624,6 +626,134 @@ _RubyObject _strengthPage() => _page([
     ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
 
 void main() {
+  group('generic source numeric control', () {
+    test('annotations between text continuations and choices do not split dialogue', () async {
+      final source = await _events([_page([
+        _command(101, ['first']), _command(108, ['between lines']),
+        _command(401, ['second']), _command(108, ['before choice']),
+        _command(408, ['continued annotation']),
+        _command(102, [['yes'], 0]), _command(402, [0, 'yes']),
+        _command(115, [], indent: 1), _command(404, []), _command(0, []),
+      ])]);
+      final event = _analyzer(source).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isFalse);
+      final node = event.pages.single.body.nodes.single as SourceTextNode;
+      expect(node.text, 'first second');
+      expect(node.followingChoice, isNotNull);
+      expect(node.annotations, hasLength(2));
+    });
+    test('annotations retain their exact lines and span without quarantine', () async {
+      final source = await _events([_page([
+        _command(108, ['annotation']), _command(408, ['continuation']),
+        _command(115, []), _command(0, []),
+      ])]);
+      final event = _analyzer(source).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isFalse);
+      expect(event.pages.single.body.nodes.map((node) => node.runtimeType.toString()),
+          ['SourceAnnotationNode', 'SourceExitEventNode']);
+      expect(event.pages.single.body.nodes.first.span.firstCommandIndex, 0);
+      expect(event.pages.single.body.nodes.first.span.lastCommandIndex, 1);
+      expect(event.pages.single.sourcePage.commands.first.parameters, ['annotation']);
+    });
+    for (final commands in [
+      [_command(408, ['orphan'])],
+      [_command(108, [4])],
+      [_command(108, ['ok']), _command(408, [])],
+      [_command(115, [0])],
+    ]) {
+      test('malformed annotations and exit stay quarantined $commands', () async {
+        final source = await _events([_page([...commands, _command(0, [])])]);
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+      });
+    }
+    test('literal integer range writes preserve source value and clamp', () async {
+      final source = await _events([_page([
+        _command(122, [3, 5, 0, 0, -2147483648]), _command(0, []),
+      ])]);
+      final event = _analyzer(source).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isFalse);
+      final node = event.pages.single.body.nodes.single as SourceVariableSetNode;
+      expect(node.firstId, 3);
+      expect(node.lastId, 5);
+      expect(node.sourceValue, -2147483648);
+      expect(node.value, -99999999);
+      expect(node.factIds, [for (var id = 3; id <= 5; id++)
+        'source:${source.snapshot.logicalProjectNamespace.value}:variable:$id']);
+    });
+    test('all literal assignment clamp boundaries match the source interpreter', () async {
+      for (final value in [-2147483648, -100000000, -99999999, -1, 0, 99999999, 100000000, 2147483647]) {
+        final source = await _events([_page([_command(122, [1, 1, 0, 0, value]), _command(0, [])])]);
+        final event = _analyzer(source).analyze().requireEvent(1, 1);
+        final node = event.pages.single.body.nodes.single as SourceVariableSetNode;
+        expect(node.sourceValue, value);
+        expect(node.value, value.clamp(-99999999, 99999999));
+      }
+    });
+    test('variable ID 5000 requires a plain metadata name and 5001 stays rejected', () async {
+      for (final id in [5000, 5001]) {
+        final source = await _events([_page([_command(122, [id, id, 0, 0, 0]), _command(0, [])])],
+          variables: List.filled(5002, ''));
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined, id == 5001);
+      }
+      for (final name in [null, 0, <Object?>[], _RubyAnnotation('', extension: 'Unknown')]) {
+        final source = await _events([_page([_command(122, [1, 1, 0, 0, 0]), _command(0, [])])],
+          variables: ['', name]);
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+      }
+    });
+    test('decorated raw integer operands cannot borrow normalized literal values', () async {
+      for (final value in [_RubyAnnotation(7, extension: 'Unknown'),
+        _RubyAnnotation(7, fields: {'@value': 7})]) {
+        final source = await _events([_page([_command(122, [1, 1, 0, 0, value]), _command(0, [])])]);
+        final event = _analyzer(source).analyze().eventAt(1, 1);
+        if (event == null) {
+          expect(source.canPlan, isFalse);
+          expect(source.diagnostics.any((diagnostic) => diagnostic.blocksPlanning), isTrue);
+        } else {
+          expect(event.isQuarantined, isTrue);
+        }
+      }
+    });
+    for (final parameters in [
+      [1, 7, 1, 1, 0], [1, 7, 0, 1, 6], [1, 7, 0, 'name', 0],
+      [1, 0, 0, 1, 0], [1, 128, 0, 1, 0],
+    ]) {
+      test('dynamic or invalid integer comparison stays unqualified $parameters', () async {
+        final source = await _events([_page([
+          _command(111, parameters), _command(115, [], indent: 1), _command(412, []), _command(0, []),
+        ])]);
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+      });
+    }
+    for (final parameters in [
+      [0, 1, 0, 0, 1], [2, 1, 0, 0, 1], [1, 128, 0, 0, 1],
+      [5001, 5001, 0, 0, 1], [1, 1, 1, 0, 1], [1, 1, 0, 1, 2],
+      [1, 1, 0, 0, 'name'], [1, 1, 0, 0, [1, 2]],
+    ]) {
+      test('invalid or dynamic numeric write is quarantined $parameters', () async {
+        final source = await _events([_page([_command(122, parameters), _command(0, [])])]);
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+      });
+    }
+    for (var operation = 0; operation < 6; operation++) {
+      test('integer branch operator $operation follows source semantics', () async {
+        final source = await _events([_page([
+          _command(111, [1, 7, 0, -1, operation]),
+          _command(101, ['yes'], indent: 1), _command(412, []), _command(0, []),
+        ])]);
+        final event = _analyzer(source).analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isFalse);
+        final condition = (event.pages.single.body.nodes.single as SourceConditionalNode).condition;
+        for (final value in [-2, -1, 0]) {
+          final expected = [value == -1, value >= -1, value <= -1,
+            value > -1, value < -1, value != -1][operation];
+          expect(condition.evaluate(variables: {7: value}), expected);
+        }
+        expect(condition.evaluate(), [false, true, false, true, false, true][operation]);
+      });
+    }
+  });
+
   group('structural field obstacle programmes CV-02A', () {
     test('attestation is produced only by the raw source analyzer', () async {
       final source = await _cutSource();

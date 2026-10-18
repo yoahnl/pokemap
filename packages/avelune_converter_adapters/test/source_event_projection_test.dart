@@ -439,15 +439,20 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
     {bool system = true,
     bool includeSystem = true,
     List<Object?> switches = const ['', 'Ready', 's:dangerous()'],
+    List<Object?>? variables,
     String? eventName,
     _RubyObject? tileset,
     Map<int, _RubyObject>? extraEvents,
+    List<Object?>? commonEvents,
     bool attestedScripts = false}) async {
   final data = _project(maps: {
     1: _map(events: {1: _event(1, pages, name: eventName), ...?extraEvents}),
     8: _map(),
   }, tileset: tileset);
   data['Graphics/Characters/QualifiedNpc.png'] = _png();
+  if (commonEvents != null) {
+    data['Data/CommonEvents.rxdata'] = _MarshalFixture().dump(commonEvents);
+  }
   if (attestedScripts) {
     data['Data/Scripts.rxdata'] =
         await File(Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS']!)
@@ -455,7 +460,8 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
   }
   if (system) {
     data['Data/System.rxdata'] = _MarshalFixture()
-        .dump(_RubyObject('RPG::System', {'@switches': switches}));
+        .dump(_RubyObject('RPG::System', {'@switches': switches,
+          '@variables': variables ?? List.filled(128, '')}));
   }
   return _normalize(_source(data), includeEventSystem: includeSystem);
 }
@@ -682,8 +688,417 @@ List<_RubyObject> _interactionFacingCommands() {
   ];
 }
 
+Future<({GameState state, List<String> shown})> _runNumericScene(
+    SourceEventProjection result, SceneAsset scene, {GameState? initial,
+    String choice = 'choice_0'}) async {
+  var state = initial ?? const GameState(saveId: 'numeric-source');
+  final resolver = NarrativeFactRuntimeResolver.fromFacts(result.facts);
+  final writer = NarrativeFactRuntimeWriter(resolver);
+  final shown = <String>[];
+  final plan = buildSceneRuntimePlan(SceneAsset.fromJson(
+      jsonDecode(jsonEncode(scene.toJson())) as Map<String, dynamic>));
+  expect(plan.plan, isNotNull);
+  final execution = await SceneRuntimeExecutor(callbacks:
+      SceneRuntimeExecutionCallbacks(
+        evaluateCondition: (intent) {
+          final source = intent.conditionSource!;
+          final value = resolver.resolve(factId: source.sourceId,
+              runtimeState: state.narrativeFactRuntimeState,
+              storyFlags: state.storyFlags) as NarrativeFactRuntimeResolved;
+          return value.narrativeValue.matches(source.resolvedFactOperator,
+              source.resolvedExpectedFactValue) ? 'true' : 'false';
+        },
+        showDialogue: (intent) {
+          final document = const YarnDialogueCompiler().compile(result.dialogueSources[intent.dialogueId]!);
+          shown.addAll(document.nodes.single.steps.whereType<RuntimeDialogueLine>().map((line) => line.text));
+          return intent.declaredOutputPortIds.contains(choice) ? choice : 'completed';
+        },
+        applyConsequence: (consequence) {
+          final set = consequence as SceneSetFactConsequence;
+          final write = writer.setFactValue(gameState: state, factId: set.factId,
+              value: set.narrativeValue);
+          expect(write.success, isTrue);
+          state = write.gameState;
+          return 'completed';
+        },
+        startBattle: (_) => throw StateError('No battle'),
+        playCinematic: (_) => throw StateError('No cinematic'),
+        executeInteractiveCommand: (_) => throw StateError('No interactive command'),
+      )).execute(plan.plan!);
+  expect(execution.status, SceneRuntimeExecutionStatus.completed);
+  return (state: GameState.fromJson(jsonDecode(jsonEncode(state.toJson()))
+      as Map<String, dynamic>), shown: shown);
+}
+
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  group('generic native numeric control', () {
+    test('annotations have no runtime effect and range writes persist', () async {
+      final source = await _events([_page([
+        _command(108, ['annotation']), _command(408, ['continued']),
+        _command(122, [3, 5, 0, 0, 2147483647]),
+        _command(101, ['done']), _command(0, []),
+      ])], attestedScripts: true);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1));
+      expect(result.facts, hasLength(3));
+      expect(result.facts.every((fact) => fact.initialValue == NarrativeValue.integer(0)), isTrue);
+      final run = await _runNumericScene(result, result.scenes.single);
+      expect(run.shown, ['done']);
+      expect(run.state.narrativeFactRuntimeState.valuesByFactId.values,
+          everyElement(NarrativeValue.integer(99999999)));
+      expect(run.state.consumedEventIds, isEmpty);
+      expect(result.registry.records.single.definitionOrNull!.reusePolicy,
+          NarrativeEventReusePolicy.reusable);
+      final evidence = jsonEncode(result.semanticEvidence);
+      expect(evidence, contains('annotation'));
+      expect(evidence, contains('integerVariableSet'));
+    });
+    test('generic writes use the same canonical identities as elevator and warp variables', () async {
+      final source = await _events([_page([
+        _command(122, [1, 3, 0, 0, 4]), _command(122, [10, 11, 0, 0, 2]), _command(0, []),
+      ])], attestedScripts: true);
+      final result = _projectEvents(source);
+      final ids = {for (final id in [1, 2, 3, 10, 11]) sourceEventIntegerVariableBindingId(
+        'source:${source.snapshot.logicalProjectNamespace.value}:variable:$id')};
+      expect(result.facts.map((fact) => fact.id).toSet(), ids);
+      final run = await _runNumericScene(result, result.scenes.single);
+      expect(run.state.narrativeFactRuntimeState.valuesByFactId.keys.toSet(), ids);
+    });
+    test('literal annotations do not split one native text and choice dialogue', () async {
+      final source = await _events([_page([
+        _command(101, ['first']), _command(108, ['middle']), _command(401, ['second']),
+        _command(108, ['choice']), _command(408, ['continued']),
+        _command(102, [['Leave'], 0]), _command(402, [0, 'Leave']),
+        _command(115, [], indent: 1), _command(404, []), _command(0, []),
+      ])], attestedScripts: true);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1));
+      expect(result.dialogues, hasLength(1));
+      final run = await _runNumericScene(result, result.scenes.single);
+      expect(run.shown, ['first second']);
+      final evidence = jsonEncode(result.semanticEvidence);
+      expect(evidence, contains('continued'));
+    });
+    for (var operation = 0; operation < 6; operation++) {
+      test('all six native integer comparisons match source $operation', () async {
+        final source = await _events([_page([
+          _command(111, [1, 7, 0, -1, operation]),
+          _command(101, ['true'], indent: 1), _command(411, []),
+          _command(101, ['false'], indent: 1), _command(412, []), _command(0, []),
+        ])], attestedScripts: true);
+        final result = _projectEvents(source);
+        expect(result.scenes, hasLength(1));
+        expect(result.facts, hasLength(1));
+        for (final value in [-2, -1, 0]) {
+          final initial = const GameState(saveId: 'comparisons').copyWith(
+            narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(valuesByFactId: {
+              result.facts.single.id: NarrativeValue.integer(value),
+            }));
+          final run = await _runNumericScene(result, result.scenes.single, initial: initial);
+          final expected = [value == -1, value >= -1, value <= -1,
+            value > -1, value < -1, value != -1][operation];
+          expect(run.shown, [expected ? 'true' : 'false']);
+        }
+        final defaultRun = await _runNumericScene(result, result.scenes.single);
+        expect(defaultRun.shown, [[false, true, false, true, false, true][operation] ? 'true' : 'false']);
+      });
+    }
+    for (final nested in [false, true]) {
+      test('exit ends the entire invocation from nested choice $nested', () async {
+        final source = await _events([_page([
+          _command(122, [7, 7, 0, 0, 1]),
+          if (nested) ...[
+            _command(102, [['Leave', 'Stay'], 0]), _command(402, [0, 'Leave']),
+          ],
+          _command(111, [1, 7, 0, 1, 0], indent: nested ? 1 : 0),
+          _command(115, [], indent: nested ? 2 : 1),
+          _command(122, [7, 7, 0, 0, 2], indent: nested ? 2 : 1),
+          _command(412, [], indent: nested ? 1 : 0),
+          if (nested) ...[
+            _command(101, ['choice suffix'], indent: 1),
+            _command(402, [1, 'Stay']), _command(101, ['stay'], indent: 1),
+            _command(404, []),
+          ],
+          _command(122, [7, 7, 0, 0, 3]), _command(101, ['event suffix']),
+          _command(0, []),
+        ])], attestedScripts: true);
+        final result = _projectEvents(source);
+        expect(result.scenes, hasLength(1));
+        final initial = const GameState(saveId: 'exit').copyWith(consumedEventIds: {'unrelated'});
+        final first = await _runNumericScene(result, result.scenes.single, initial: initial);
+        expect(first.shown.where((text) => text.contains('suffix')), isEmpty);
+        expect(first.state.narrativeFactRuntimeState.valuesByFactId.values.single,
+            NarrativeValue.integer(1));
+        expect(first.state.consumedEventIds, {'unrelated'});
+        final second = await _runNumericScene(result, result.scenes.single, initial: first.state);
+        expect(second.state, first.state);
+      });
+    }
+    test('a numeric page without an unconditional presence base remains inactive', () async {
+      final page = _withCondition(_page([_command(101, ['conditional actor'])]), {
+        '@variable_valid': true, '@variable_id': 7, '@variable_value': 0,
+      });
+      final result = _projectEvents(await _events([page], attestedScripts: true));
+      expect(result.scenes, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(jsonEncode(result.semanticEvidence), contains('pagePresenceExpressionUnsupported'));
+    });
+    test('numeric page conditions retain default zero and last true priority', () async {
+      final high = _withCondition(_page([_command(101, ['high'])]), {
+        '@variable_valid': true, '@variable_id': 7, '@variable_value': 1,
+      });
+      final result = _projectEvents(await _events([
+        _page([_command(101, ['low'])]), high,
+      ], attestedScripts: true));
+      expect(result.scenes, hasLength(2));
+      expect(result.facts, hasLength(1));
+      final json = jsonEncode(result.registry.toJson());
+      expect(json, contains('greaterThanOrEqual'));
+      expect(result.facts.single.initialValue, NarrativeValue.integer(0));
+      bool guard(NarrativeEventConditionExpression expression, int value) => switch (expression) {
+        NarrativeEventConditionLeaf(:final condition) => condition.whenTyped(
+          fact: (_, operation, expected) => NarrativeValue.integer(value).matches(operation, expected),
+          narrativeEventConsumed: (_, __) => throw StateError('No consumed predicate')),
+        NarrativeEventConditionAll(:final children) => children.every((child) => guard(child, value)),
+        NarrativeEventConditionAny(:final children) => children.any((child) => guard(child, value)),
+        NarrativeEventConditionNot(:final child) => !guard(child, value),
+      };
+      for (final value in [-1, 0, 1, 2]) {
+        final selected = result.registry.records.map((record) => record.definitionOrNull!)
+            .where((event) => guard(event.conditionExpression, value));
+        expect(selected.single.priority, value >= 1 ? 1 : 0);
+      }
+    });
+    for (final script in [r'pbSet(7, "name")', r'$game_variables[7] = []',
+      r'pbSet(target_id, value)', r'$game_variables[target_id] = value',
+      r'$game_variables[7] ||= []', r'$game_variables[7] &&= []',
+      r'$game_variables[7] **= 2', r'$game_variables[7].replace([])',
+      r'$game_variables[7].push(1)', r'value = $game_variables[7]; value.replace([])',
+      r'value = pbGet(7); value.push(1)', r'value = pbGet 7; value.push(1)',
+      r'pbSet 7, "name"', r'pbSet(7, "name"',
+      r'$game_variables[targets[0]] = []', r'$game_variables[7',
+      r'variables = $game_variables; variables[7] = []',
+      r'pbGet(targets[0]).replace([])', r'pbGet(7 + offset).push(1)',
+      r'pbSet(8, "name"', r'pbGet(8', r'$game_variables[8',
+      r'value = $game_variables[7]',
+    ]) {
+      test('nonconverted script writer refuses integer binding $script', () async {
+        final source = await _events([_page([
+          _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+        ])], attestedScripts: true, extraEvents: {
+          2: _event(2, [_page([_command(355, [script]), _command(0, [])])]),
+        });
+        final result = _projectEvents(source);
+        expect(result.scenes, isEmpty);
+        expect(result.facts, isEmpty);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceVariableWriterUnqualified'));
+      });
+    }
+    for (final script in [r'$game_variables[8] ||= []', r'$game_variables[8].replace([])',
+      r'value = pbGet(8); value.push(1)', r'pbSet 8, "name"',
+      r'value = pbGet 8; value.push(1)', r'pbSet(8, ")")',
+      r'pbSet(8, handler(0))']) {
+      test('an opaque reference to a different static variable preserves independence $script', () async {
+        final source = await _events([_page([
+          _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+        ])], attestedScripts: true, extraEvents: {
+          2: _event(2, [_page([_command(355, [script]), _command(0, [])])]),
+        });
+        final result = _projectEvents(source);
+        expect(result.scenes, hasLength(1));
+        expect(result.facts, hasLength(1));
+        expect(result.facts.single.id, sourceEventIntegerVariableBindingId(
+          'source:${source.snapshot.logicalProjectNamespace.value}:variable:7'));
+      });
+    }
+    test('annotations containing Ruby variable references have no writer effect', () async {
+      final source = await _events([_page([
+        _command(108, [r'$game_variables[7].replace([])']),
+        _command(408, [r'pbSet(dynamic_target, []); pbGet(7).push(1)']),
+        _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+      ])], attestedScripts: true);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1));
+      expect(result.facts, hasLength(1));
+      final run = await _runNumericScene(result, result.scenes.single);
+      expect(run.state.narrativeFactRuntimeState.valuesByFactId.values.single,
+          NarrativeValue.integer(3));
+    });
+    test('altered parsed integer commands cannot borrow source raw witnesses', () async {
+      final source = await _events([_page([
+        _command(122, [7, 7, 0, 0, 1]), _command(115, []), _command(0, []),
+      ], character: '')], eventName: 'HiddenItem control', attestedScripts: true);
+      final analysis = _analyzer(source).analyze();
+      final original = analysis.events.single;
+      final page = original.pages.single;
+      final write = page.body.nodes.first as SourceVariableSetNode;
+      final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+        sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+        identity: original.identity, name: original.name, x: original.x, y: original.y,
+        locator: original.locator, pages: [SourceEventPageAnalysis(
+          sourcePage: page.sourcePage, locator: page.locator, condition: page.condition,
+          graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [],
+          body: SourceEventBlock(span: page.body.span, nodes: [
+            SourceVariableSetNode(write.span, firstId: write.firstId, lastId: write.lastId,
+              sourceValue: 99, factIds: write.factIds), ...page.body.nodes.skip(1),
+          ]))]);
+      final result = const SourceEventProjector().project(source: source,
+        analysis: SourceEventAnalysis(profile: analysis.profile, events: [forged], diagnostics: []),
+        nativeMaps: _nativeMaps(source));
+      expect(result.scenes, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(jsonEncode(result.semanticEvidence), contains('sourceNumericControlSourceMismatch'));
+    });
+    for (final commands in [
+      [_command(122, [7, 7, 0, 0, 1])],
+      [_command(115, [])],
+      [_command(108, ['annotation']), _command(408, ['continued'])],
+      [_command(111, [1, 7, 0, 0, 0]), _command(115, [], indent: 1), _command(412, [])],
+    ]) {
+      test('removing every source control cannot activate the retained suffix $commands', () async {
+        final source = await _events([_page([
+          ...commands, _command(101, ['retained suffix']), _command(0, []),
+        ], character: '')], eventName: 'HiddenItem control', attestedScripts: true);
+        final analysis = _analyzer(source).analyze();
+        final original = analysis.events.single;
+        final page = original.pages.single;
+        final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+          sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+          identity: original.identity, name: original.name, x: original.x, y: original.y,
+          locator: original.locator, pages: [SourceEventPageAnalysis(
+            sourcePage: page.sourcePage, locator: page.locator, condition: page.condition,
+            graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [],
+            body: SourceEventBlock(span: page.body.span,
+              nodes: page.body.nodes.whereType<SourceTextNode>().toList()))]);
+        final result = const SourceEventProjector().project(source: source,
+          analysis: SourceEventAnalysis(profile: analysis.profile, events: [forged], diagnostics: []),
+          nativeMaps: _nativeMaps(source));
+        expect(result.scenes, isEmpty);
+        expect(result.facts, isEmpty);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceNumericControlSourceMismatch'));
+      });
+    }
+    for (final kind in ['forced', 'continuation', 'autonomous']) {
+      for (final entry in [
+        (r'$game_variables[7].replace([])', false),
+        (r'$game_variables[target] = []', false),
+        (r'variables = $game_variables; variables[7] = []', false),
+        (r'$game_variables[8].replace([])', true),
+      ]) {
+        test('opaque $kind route script preserves numeric writer boundaries ' + entry.$1, () async {
+          final move = _RubyObject('RPG::MoveCommand', {
+            '@code': 45, '@parameters': [entry.$1],
+          });
+          final route = _RubyObject('RPG::MoveRoute', {
+            '@repeat': false, '@skippable': false, '@list': [
+              move, _RubyObject('RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]}),
+            ],
+          });
+          final writer = _page([
+            if (kind == 'forced') _command(209, [0, route]),
+            if (kind == 'continuation') _command(509, [move]),
+            _command(0, []),
+          ]);
+          if (kind == 'autonomous') {
+            writer.fields['@move_type'] = 3;
+            writer.fields['@move_route'] = route;
+          }
+          final source = await _events([_page([
+            _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+          ])], attestedScripts: true, extraEvents: {2: _event(2, [writer])});
+          final result = _projectEvents(source);
+          expect(result.scenes, hasLength(entry.$2 ? 1 : 0));
+          expect(result.facts, hasLength(entry.$2 ? 1 : 0));
+          if (!entry.$2) {
+            expect(jsonEncode(result.semanticEvidence), contains('sourceVariableWriterUnqualified'));
+          }
+        });
+      }
+    }
+    for (final kind in ['branch', 'page']) {
+      for (final entry in [
+        (r'$game_variables[7].replace([])', false),
+        (r'pbSet(target, [])', false),
+        (r'variables = $game_variables; variables[7] = []', false),
+        (r'$game_variables[8].replace([])', true),
+      ]) {
+        test('script switch $kind contributes opaque numeric references ' + entry.$1, () async {
+          final writer = kind == 'branch'
+              ? _page([_command(111, [0, 1, 0]), _command(412, []), _command(0, [])])
+              : _withCondition(_page([_command(0, [])]), {'@switch1_valid': true});
+          final source = await _events([_page([
+            _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+          ])], attestedScripts: true, switches: ['', 's:' + entry.$1],
+            extraEvents: {2: _event(2, [writer])});
+          final result = _projectEvents(source);
+          expect(result.scenes, hasLength(entry.$2 ? 1 : 0));
+          expect(result.facts, hasLength(entry.$2 ? 1 : 0));
+        });
+      }
+    }
+    for (final code in [103, 105]) {
+      for (final entry in [(7, false), (8, true), ('target', false)]) {
+        test('unsupported numeric input $code reserves its variable ' + entry.$1.toString(), () async {
+          final source = await _events([_page([
+            _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+          ])], attestedScripts: true, extraEvents: {2: _event(2, [_page([
+            _command(code, [entry.$1, if (code == 103) 2]), _command(0, []),
+          ])])});
+          final result = _projectEvents(source);
+          expect(result.scenes, hasLength(entry.$2 ? 1 : 0));
+          expect(result.facts, hasLength(entry.$2 ? 1 : 0));
+        });
+      }
+    }
+    for (final trigger in [0, 2]) {
+      test('inventoried unread common events refuse numeric admission trigger $trigger', () async {
+        final source = await _events([_page([
+          _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+        ])], attestedScripts: true, commonEvents: [null, _RubyObject('RPG::CommonEvent', {
+          '@id': 1, '@name': 'Opaque common event', '@trigger': trigger,
+          '@switch_id': 1, '@list': [_command(355, [r'$game_variables[7] = []']), _command(0, [])],
+        })]);
+        expect(source.snapshot.entries.any((entry) => entry.relativePath == 'Data/CommonEvents.rxdata'), isTrue);
+        expect(source.archive.files.values.any((entry) => entry.entry.relativePath == 'Data/CommonEvents.rxdata'), isFalse);
+        final result = _projectEvents(source);
+        expect(result.scenes, isEmpty);
+        expect(result.facts, isEmpty);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceVariableRubyCensusIncomplete'));
+      });
+    }
+    test('common event invocation without audited common source refuses numeric admission', () async {
+      final source = await _events([_page([
+        _command(122, [7, 7, 0, 0, 3]), _command(0, []),
+      ])], attestedScripts: true, extraEvents: {2: _event(2, [_page([
+        _command(117, [1]), _command(0, []),
+      ])])});
+      final result = _projectEvents(source);
+      expect(result.scenes, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(jsonEncode(result.semanticEvidence), contains('sourceVariableRubyCensusIncomplete'));
+    });
+    test('an incomplete variable census does not disable annotations and invocation exit', () async {
+      final source = await _events([_page([
+        _command(108, ['annotation']), _command(115, []), _command(0, []),
+      ])], attestedScripts: true, commonEvents: [null]);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1));
+      expect(result.facts, isEmpty);
+    });
+    test('unsupported sibling or suffix keeps the whole event inactive', () async {
+      for (final sibling in [false, true]) {
+        final result = _projectEvents(await _events([
+          _page([_command(122, [7, 7, 0, 0, 1]), _command(115, []),
+            if (!sibling) _command(355, ['pbGivePokemon(:TEST)']), _command(0, [])]),
+          if (sibling) _page([_command(118, ['label']), _command(0, [])]),
+        ], attestedScripts: true));
+        expect(result.scenes, isEmpty);
+        expect(result.facts, isEmpty);
+        expect(result.registry.records.single.definitionOrNull, isNull);
+      }
+    });
+  }, skip: scriptsPath == null);
   group('generic static door source programs', () {
     List<_RubyObject> program({int mode = 0, int target = 8, int x = 1}) => [
       _command(250, [_RubyObject('RPG::AudioFile', {
