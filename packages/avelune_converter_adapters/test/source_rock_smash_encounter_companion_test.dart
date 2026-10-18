@@ -1,3 +1,4 @@
+import 'support/native_encounter_qualification_fixture.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
@@ -79,12 +80,10 @@ void main() {
           overrideBytes: {'Data/Scripts.rxdata': scripts});
       source = original.source;
       analysis = SourceEventAnalyzer.forProject(source,
-              profile: SourceEventProfile.forProject(source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-))
+              profile: SourceEventProfile.forProject(source))
           .analyze();
       files = _Files(source, [root, scriptsRoot!]);
-      qualification = NativeEncounterCatalogQualification.builtinKantoV1();
+      qualification = await qualifyFixtureEncounterSource(source: source, files: files, selectedSourceMapIds: mapIds.keys);
       defaults = await resolve();
       qualified = await resolve(release: qualification, targets: mapIds);
     });

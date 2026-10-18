@@ -1,3 +1,4 @@
+import 'support/native_encounter_qualification_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
@@ -196,7 +197,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         SourceCatalogStudyComposer(
                 nativeTrainerCatalog: catalog,
                 nativeEncounterQualification:
-                    NativeEncounterCatalogQualification.builtinKantoV1())
+                    await syntheticNativeEncounterQualification())
             .compose(
                 source: fixture.source,
                 base: semantic,
@@ -252,7 +253,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
             nativeMapIds: {1: 'map-1'},
             nativeTrainerBundle: catalog,
             nativeEncounterQualification:
-                NativeEncounterCatalogQualification.builtinKantoV1()),
+                await syntheticNativeEncounterQualification()),
         throwsA(isA<ContractError>().having((error) => error.code, 'code',
             'native_catalog.encounter_qualification_identity')));
   });

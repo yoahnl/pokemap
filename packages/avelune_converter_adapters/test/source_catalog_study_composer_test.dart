@@ -1,3 +1,4 @@
+import 'support/native_encounter_qualification_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -28,7 +29,7 @@ void main() {
         SourceCatalogStudyComposer(
                 automaticNativeEncounters: false,
                 nativeEncounterQualification:
-                    NativeEncounterCatalogQualification.builtinKantoV1())
+                    await syntheticNativeEncounterQualification())
             .compose(
                 source: fixture.source,
                 base: literal.draft!,

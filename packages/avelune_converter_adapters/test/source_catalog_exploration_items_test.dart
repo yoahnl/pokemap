@@ -1,3 +1,4 @@
+import 'support/native_encounter_qualification_fixture.dart';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -108,11 +109,12 @@ Future<
         ({
           LiteralTileFixture fixture,
           NativeProjectDraft base,
-          ProjectItemCatalog previous
+          ProjectItemCatalog previous,
+          NativeEncounterCatalogQualification qualification
         })>
     _fixture(List<int> scripts,
         {bool qualify = true, String? omitSymbol}) async {
-  final qualification = NativeEncounterCatalogQualification.builtinKantoV1();
+  final catalog = NativePsdkTrainerBundle.builtin();
   final png = image.encodePng(image.Image(width: 1, height: 1, numChannels: 4));
   final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
 
@@ -137,7 +139,7 @@ Future<
           for (var i = 0; i < 47; i++)
             '[ITEM_$i]\nName = Item $i\nPocket = 1\nPrice = 100\nSellPrice = 50\nDescription = Source item $i\n'
         ].join('\n')),
-        for (final species in qualification.bundle.speciesById.values)
+        for (final species in catalog.speciesById.values)
           if (species.forms.formId == '0')
             for (final direction in ['Front', 'Back'])
               'Graphics/Pokemon/$direction/${species.id.toUpperCase()}.png':
@@ -193,7 +195,8 @@ Future<
       ],
       compositionEvidence: {'sourceSemantics': <String, Object?>{}},
       limits: sourceCatalogStudyWriteLimits);
-  return (fixture: fixture, base: base, previous: previous);
+  return (fixture: fixture, base: base, previous: previous,
+      qualification: await qualifyFixtureEncounterSource(source: fixture.source, files: fixture.files, selectedSourceMapIds: [98]));
 }
 
 void main() {
@@ -210,7 +213,7 @@ void main() {
       final fixture = await _fixture(scripts);
       final result = (await SourceCatalogStudyComposer(
               nativeEncounterQualification:
-                  NativeEncounterCatalogQualification.builtinKantoV1(),
+                  fixture.qualification,
               includeNativeEncounterConsumers: true)
           .compose(
               source: fixture.fixture.source,
@@ -277,7 +280,7 @@ void main() {
       final fixture = await _fixture(scripts);
       final result = (await SourceCatalogStudyComposer(
               nativeEncounterQualification:
-                  NativeEncounterCatalogQualification.builtinKantoV1())
+                  fixture.qualification)
           .compose(
               source: fixture.fixture.source,
               base: fixture.base,
@@ -299,7 +302,7 @@ void main() {
       await expectLater(
           SourceCatalogStudyComposer(
                   nativeEncounterQualification:
-                      NativeEncounterCatalogQualification.builtinKantoV1(),
+                      fixture.qualification,
                   includeNativeEncounterConsumers: true)
               .compose(
                   source: fixture.fixture.source,
@@ -315,7 +318,7 @@ void main() {
       await expectLater(
           SourceCatalogStudyComposer(
                   nativeEncounterQualification:
-                      NativeEncounterCatalogQualification.builtinKantoV1(),
+                      fixture.qualification,
                   includeNativeEncounterConsumers: true)
               .compose(
                   source: fixture.fixture.source,
@@ -338,7 +341,7 @@ void main() {
       await expectLater(
           SourceCatalogStudyComposer(
                   nativeEncounterQualification:
-                      NativeEncounterCatalogQualification.builtinKantoV1(),
+                      fixture.qualification,
                   includeNativeEncounterConsumers: true)
               .compose(
                   source: fixture.fixture.source,
@@ -354,7 +357,7 @@ void main() {
       final fixture = await _fixture(scripts);
       final composer = SourceCatalogStudyComposer(
           nativeEncounterQualification:
-              NativeEncounterCatalogQualification.builtinKantoV1(),
+              fixture.qualification,
           includeNativeEncounterConsumers: true);
       final first = (await composer.compose(
           source: fixture.fixture.source,

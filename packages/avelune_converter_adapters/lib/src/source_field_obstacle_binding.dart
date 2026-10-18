@@ -259,20 +259,14 @@ final class SourceFieldObstacleBindingResolver {
         if (nativeEncounterQualification != null &&
             nativeEncounterQualification.admitsAutomaticSource(source.snapshot) &&
             nativeMapIds != null && nativeMapIds.isNotEmpty &&
-            nativeMapIds.length <= (nativeEncounterQualification.isGeneric ? 2048 : 8) &&
+            nativeMapIds.length <= 2048 &&
             nativeEncounterQualification.admitsSourceScope(source.snapshot, nativeMapIds.keys) &&
             nativeMapIds.keys.every((mapId) => source.maps.any((map) => map.map.sourceMapId == mapId)) &&
             nativeMapIds.values.every((mapId) => mapId.trim().isNotEmpty && mapId.trim() == mapId) &&
             nativeMapIds.values.toSet().length == nativeMapIds.length) {
-          final catalogPbs = nativeEncounterQualification.isGeneric
-              ? await const SourcePbsParser().read(
-                  snapshot: source.snapshot, files: _FieldObstacleWitnessFiles(source, exact),
-                  profile: SourcePbsProfile.essentials21_1, cancellation: cancellation)
-              : await const SourcePbsParser().read(
+          final catalogPbs = await const SourcePbsParser().read(
               snapshot: source.snapshot, files: _FieldObstacleWitnessFiles(source, exact),
-              profile: SourcePbsProfile.essentials21_1,
-              families: const {SourcePbsFamily.species, SourcePbsFamily.encounters},
-              cancellation: cancellation);
+              profile: SourcePbsProfile.essentials21_1, cancellation: cancellation);
           try {
             final native = await const NativeEncounterCatalogBindings().bind(
             interpretationProfile: source.interpretationProfile,

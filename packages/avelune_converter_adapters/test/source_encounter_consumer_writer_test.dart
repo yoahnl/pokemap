@@ -1,3 +1,4 @@
+import 'support/native_encounter_qualification_fixture.dart';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -187,9 +188,8 @@ void main() {
             .where((entry) => entry.path.contains('staging')),
         isEmpty);
   }, skip: scriptsPath == null, timeout: const Timeout(Duration(minutes: 6)));
-  final qualification = NativeEncounterCatalogQualification.builtinKantoV1();
   Map<String, List<int>> nativeMedia() =>
-      nativeMediaSourceFiles(qualification.bundle);
+      nativeMediaSourceFiles(NativePsdkCatalogManifest.builtin());
 
   test(
       'Surf encounter consumers publish through typed actions and refuse removed terrain before staging',
@@ -228,6 +228,8 @@ void main() {
             files: source.fixture.files,
             limits: limits);
     expect(semantic, isNotNull);
+    final qualification = await qualifyFixtureEncounterSource(source: source.fixture.source,
+        files: source.fixture.files, selectedSourceMapIds: [98]);
     final events = await SourceEventStudyComposer(
             nativeEncounterQualification: qualification)
         .compose(

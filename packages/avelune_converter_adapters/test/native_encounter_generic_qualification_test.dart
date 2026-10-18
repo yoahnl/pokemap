@@ -318,7 +318,7 @@ void main() {
             'code', 'encounter_consumers.catalog_binding')));
   });
   test(
-      'automatic project reports unsupported source species instead of falling back to V1',
+      'automatic project rejects unsupported source species without implicit qualification',
       () async {
     final fixture = await _source(
         const [_Record('REEDLING', 'REEDLING', 'Reedling')],
@@ -385,7 +385,7 @@ void main() {
               source: project.source,
               files: project.files,
               selectedSourceMapIds: maps.keys))!;
-      expect(qualification.isGeneric, isTrue);
+      expect(qualification.evidence['kind'], 'nativeEncounterGenericQualification');
       expect(qualification.evidence['sourcePbsHash'], pbs.canonicalHash.value);
       final binding = await const NativeEncounterCatalogBindings().bind(
           snapshot: project.source.snapshot,
