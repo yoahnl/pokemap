@@ -172,6 +172,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               : _space == WorkspaceSpace.presentation
                               ? _presentationPage()
                               : workspaceSecondaryContent(
+                                  loadSceneMoves: _loadSceneMoves,
                                   space: _space,
                                   presentations: _presentations,
                                   onPresentations: _presentations == null
@@ -265,5 +266,16 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         ),
       ),
     );
+  }
+  Future<Map<String, String>> _loadSceneMoves() async {
+    final owner = _pokemon;
+    if (owner == null) throw StateError('Catalogue indisponible.');
+    await owner.load(refresh: true);
+    if (!mounted || !identical(owner, _pokemon)) throw StateError('Le projet a changé.');
+    final moves = owner.index?.moves;
+    if (owner.error != null || moves == null || !moves.available || moves.diagnostics.isNotEmpty) {
+      throw StateError('Le catalogue des capacités est indisponible ou ambigu.');
+    }
+    return {for (final move in moves.entries) move.id: move.name};
   }
 }

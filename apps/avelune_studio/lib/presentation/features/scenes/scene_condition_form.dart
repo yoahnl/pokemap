@@ -11,16 +11,19 @@ class SceneConditionForm extends StatefulWidget {
     required this.project,
     required this.current,
     required this.onApply,
+    this.loadMoves,
   });
   final ProjectManifest project;
   final SceneConditionPayload current;
   final ValueChanged<SceneConditionSource> onApply;
+  final Future<Map<String, String>> Function()? loadMoves;
   @override
   State<SceneConditionForm> createState() => _SceneConditionFormState();
 }
 
 class _SceneConditionFormState extends State<SceneConditionForm> {
   static const families = {
+    'partyState': 'Équipe Pokémon',
     'fact': 'État du monde',
     'storyStepCompletion': 'Étape d’histoire',
     'consumedEvent': 'Interaction déjà jouée',
@@ -42,6 +45,13 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   bool _boolean = true;
   String _text = '';
   bool _unsupported = false;
+  ScenePartyConditionKind _partyKind =
+      ScenePartyConditionKind.canReceivePokemon;
+  FieldAbility? _ability;
+  Map<String, String> _moves = const {};
+  bool _movesLoading = false;
+  String? _movesError;
+  int _moveRequest = 0;
   String _firstNational = '1';
   String _lastNational = '151';
   String _minimumCount = '20';
@@ -63,7 +73,8 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   void didUpdateWidget(SceneConditionForm old) {
     super.didUpdateWidget(old);
     if (old.current != widget.current ||
-        old.project.settings.dimension != widget.project.settings.dimension) {
+        old.project != widget.project ||
+        old.loadMoves != widget.loadMoves) {
       _reset();
     }
   }
@@ -77,7 +88,13 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     _text = '';
     _unsupported = source != null && !_availableFamilies.containsKey(_family);
     if (_unsupported || source == null) return;
-    if (_family == 'pokedexCaughtCount') {
+    if (_family == 'partyState') {
+      _partyKind = source.partyConditionKind!;
+      _id = source.partyMoveId;
+      _ability = source.partyFieldAbility;
+      _boolean = source.partyExpected!;
+      if (source.partyMoveId != null) _loadPartyMoves();
+    } else if (_family == 'pokedexCaughtCount') {
       final range = source.pokedexSpeciesRange;
       _firstNational = '${range!.firstNationalDex}';
       _lastNational = '${range.lastNationalDex}';
@@ -114,7 +131,10 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
       for (final battle in buildBattlePublicContracts(widget.project))
         if (battle.battleKind == BattlePublicContractKind.trainer &&
             battle.status == LinkedAssetContractStatus.available &&
-            widget.project.trainers.where((trainer) => trainer.id == battle.trainerId).length == 1)
+            widget.project.trainers
+                    .where((trainer) => trainer.id == battle.trainerId)
+                    .length ==
+                1)
           battle.trainerId: battle.label,
     },
     'fact' => {for (final value in widget.project.facts) value.id: value.label},
@@ -138,7 +158,69 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   NarrativeFactDefinition? get _fact =>
       widget.project.facts.where((fact) => fact.id == _id).firstOrNull;
 
+  Future<void> _loadPartyMoves() async {
+    final request = ++_moveRequest;
+    final project = widget.project;
+    _moves = const {};
+    _movesLoading = true;
+    _movesError = null;
+    try {
+      final load = widget.loadMoves;
+      if (load == null) throw StateError('Catalogue indisponible.');
+      final moves = await load();
+      if (!mounted || request != _moveRequest || project != widget.project) {
+        return;
+      }
+      setState(() => _moves = moves);
+    } on Object {
+      if (!mounted || request != _moveRequest || project != widget.project) {
+        return;
+      }
+      setState(
+        () => _movesError = 'Le catalogue des capacités est indisponible ou ambigu. La condition actuelle est conservée.',
+      );
+    } finally {
+      if (mounted && request == _moveRequest && project == widget.project) {
+        setState(() => _movesLoading = false);
+      }
+    }
+  }
+
   SceneConditionSource? get _prepared {
+    if (_family == 'partyState' && !_unsupported) {
+      final label = _partyKind.label;
+      return switch (_partyKind) {
+        ScenePartyConditionKind.canReceivePokemon =>
+          SceneConditionSource.partyCanReceivePokemon(
+            expected: _boolean,
+            label: label,
+          ),
+        ScenePartyConditionKind.knowsMove =>
+          !_movesLoading && _moves.containsKey(_id)
+              ? SceneConditionSource.partyKnowsMove(
+                  moveId: _id!,
+                  expected: _boolean,
+                  label: '$label : ${_moves[_id]}',
+                )
+              : null,
+        ScenePartyConditionKind.hasUsableMove =>
+          !_movesLoading && _moves.containsKey(_id)
+              ? SceneConditionSource.partyHasUsableMove(
+                  moveId: _id!,
+                  expected: _boolean,
+                  label: '$label : ${_moves[_id]}',
+                )
+              : null,
+        ScenePartyConditionKind.canUseFieldAbility =>
+          _ability == null
+              ? null
+              : SceneConditionSource.partyCanUseFieldAbility(
+                  ability: _ability!,
+                  expected: _boolean,
+                  label: '$label : ${_abilityLabel(_ability!)}',
+                ),
+      };
+    }
     if (_family == 'pokedexCaughtCount' && !_unsupported) {
       try {
         final first = int.parse(_firstNational);
@@ -251,21 +333,101 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
           }),
         ),
         const SizedBox(height: 12),
-        if (_family != 'pokedexCaughtCount')
+        if (_family != 'pokedexCaughtCount' && _family != 'partyState')
           StudioSelect(
             label: 'Référence',
             value: _id,
             options: references,
             onChanged: _selectReference,
           ),
-        if (_family != 'pokedexCaughtCount' && references.isEmpty) ...[
+        if (_family != 'pokedexCaughtCount' &&
+            _family != 'partyState' &&
+            references.isEmpty) ...[
           const SizedBox(height: 8),
           const StudioNotice(
             'Aucune référence disponible dans ce projet. La condition actuelle reste conservée.',
           ),
         ],
         const SizedBox(height: 12),
-        if (_family == 'pokedexCaughtCount' && !_unsupported) ...[
+        if (_family == 'partyState' && !_unsupported) ...[
+          StudioSelect(
+            key: const ValueKey('scene-party-kind'),
+            label: 'Condition d’équipe',
+            value: _partyKind.name,
+            options: {
+              for (final kind in ScenePartyConditionKind.values)
+                kind.name: kind.label,
+            },
+            onChanged: (value) {
+              setState(() {
+                _partyKind = ScenePartyConditionKind.values.byName(value);
+                _id = null;
+                _ability = null;
+                _moveRequest++;
+                _movesLoading = false;
+                _moves = const {};
+              });
+              if (_partyKind == ScenePartyConditionKind.knowsMove ||
+                  _partyKind == ScenePartyConditionKind.hasUsableMove) {
+                _loadPartyMoves();
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          if (_partyKind == ScenePartyConditionKind.knowsMove ||
+              _partyKind == ScenePartyConditionKind.hasUsableMove) ...[
+            StudioSelect(
+              key: const ValueKey('scene-party-move'),
+              label: 'Capacité de l’équipe',
+              value: _id,
+              options: _moves,
+              onChanged: (value) => setState(() => _id = value),
+            ),
+            if (_movesLoading)
+              const StudioNotice('Chargement des capacités du projet…'),
+            if (_movesError != null) StudioNotice(_movesError!, isError: true),
+            if (!_movesLoading && _movesError == null && _moves.isEmpty)
+              const StudioNotice(
+                'Aucune capacité disponible dans le catalogue du projet.',
+              ),
+          ],
+          if (_partyKind == ScenePartyConditionKind.canUseFieldAbility)
+            StudioSelect(
+              key: const ValueKey('scene-party-ability'),
+              label: 'Capacité de terrain',
+              value: _ability?.moveId,
+              options: {
+                for (final ability in FieldAbility.values)
+                  ability.moveId: _abilityLabel(ability),
+              },
+              onChanged: (value) => setState(
+                () => _ability = FieldAbility.values.singleWhere(
+                  (ability) => ability.moveId == value,
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+          StudioSelect(
+            key: const ValueKey('scene-party-expected'),
+            label: 'Condition remplie',
+            value: '$_boolean',
+            options: const {'true': 'Oui', 'false': 'Non'},
+            onChanged: (value) => setState(() => _boolean = value == 'true'),
+          ),
+          const SizedBox(height: 8),
+          StudioNotice(switch (_partyKind) {
+            ScenePartyConditionKind.canReceivePokemon => 'Vérifie une place dans l’équipe, puis dans le PC. Aucun Pokémon n’est reçu par cette condition.',
+            ScenePartyConditionKind.knowsMove =>
+              'Un membre connaît cette capacité, même K.O. ou sans PP.',
+            ScenePartyConditionKind.hasUsableMove => 'Un membre non K.O. connaît cette capacité et possède au moins un PP.',
+            ScenePartyConditionKind.canUseFieldAbility => 'La capacité de terrain doit être prise en charge et débloquée ; un membre non K.O. doit la connaître. Aucun PP requis, y compris à PP0 ; aucun PP n’est consommé.',
+          }),
+          if (_partyKind == ScenePartyConditionKind.canUseFieldAbility &&
+              widget.project.settings.dimension == ProjectDimension.threeD)
+            const StudioNotice(
+              'Les capacités de terrain sont actuellement disponibles dans le Player 2D ; elles ne sont pas disponibles dans les projets 3D. La condition est donc fausse en 3D, et sa négation reste utilisable.',
+            ),
+        ] else if (_family == 'pokedexCaughtCount' && !_unsupported) ...[
           StudioDraftField(
             key: const ValueKey('pokedex-first-national'),
             label: 'Premier numéro du Pokédex national',
@@ -371,3 +533,14 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     );
   }
 }
+
+String _abilityLabel(FieldAbility ability) => switch (ability) {
+  FieldAbility.surf => 'Surf',
+  FieldAbility.cut => 'Coupe',
+  FieldAbility.strength => 'Force',
+  FieldAbility.flash => 'Flash',
+  FieldAbility.rockSmash => 'Éclate-Roc',
+  FieldAbility.waterfall => 'Cascade',
+  FieldAbility.dive => 'Plongée',
+  FieldAbility.fly => 'Vol',
+};

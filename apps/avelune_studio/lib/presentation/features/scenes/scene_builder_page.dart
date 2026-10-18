@@ -31,6 +31,7 @@ class SceneBuilderPage extends StatefulWidget {
     required this.views,
     required this.onBack,
     this.narrative,
+    this.loadMoves,
     this.onTest,
     this.dialogues,
     this.onDialogue,
@@ -44,6 +45,7 @@ class SceneBuilderPage extends StatefulWidget {
   final SceneWorkspaceController controller;
   final SceneBuilderViewStore views;
   final NarrativeWorkspaceController? narrative;
+  final Future<Map<String, String>> Function()? loadMoves;
   final VoidCallback onBack;
   final String onBackLabel;
   final VoidCallback? onTest;
@@ -106,6 +108,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                 session: session,
                 project: linkedProject,
                 loadMap: mapLoader.load,
+                loadMoves: widget.loadMoves,
                 documents: documents,
                 narrative: widget.narrative,
                 nodeId: state!.nodeId,

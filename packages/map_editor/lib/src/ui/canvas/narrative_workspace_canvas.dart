@@ -9,6 +9,7 @@ import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:path/path.dart' as p;
 
 import '../../app/providers/core_providers.dart';
+import '../../app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
 import '../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../application/services/narrative_document_session.dart';
@@ -1189,6 +1190,17 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   );
               editorNotifier.selectCinematicsWorkspace();
             },
+        partyProjectDimension: editor.project?.settings.dimension ?? ProjectDimension.twoD,
+        loadPartyMoves: () async {
+          final root = editor.projectRootPath;
+          final project = editor.project;
+          final result = await ref.read(pokemonMovesCatalogWorkspaceLoaderProvider)(root);
+          final current = ref.read(editorNotifierProvider);
+          if (current.projectRootPath != root || current.project != project || !result.isAvailable || result.diagnostics.isNotEmpty) {
+            throw StateError('Catalogue indisponible ou projet modifié.');
+          }
+          return {for (final entry in result.entries) entry.id: entry.name};
+        },
         conditionSourceOptions: editor.project == null
             ? const []
             : _buildSceneConditionSourceOptions(

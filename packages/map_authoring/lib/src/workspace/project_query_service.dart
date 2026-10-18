@@ -15,6 +15,8 @@ import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
 import '../domains/maps/world_graph_queries.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
+import '../domains/narrative/scene_party_move_catalog.dart';
+import '../domains/narrative/narrative_authoring_exception.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
 import '../domains/narrative/storyline_inspection.dart';
@@ -169,10 +171,24 @@ final class ProjectQueryService {
         nextCursor: nextCursor);
   }
 
+  Future<AuthoringQueryPage> queryScenes(ProjectSnapshot snapshot, AuthoringQueryRequest request) async {
+    Set<String>? moveIds;
+    if (request.view == AuthoringQueryView.detail && request.operation != AuthoringQueryOperation.summary &&
+        snapshot.manifest.scenes.where((scene) => request.ids.isEmpty || request.ids.contains(scene.id)).any(sceneNeedsPartyMoveCatalog)) {
+      try {
+        moveIds = await loadScenePartyMoveCatalog(snapshot);
+      } on NarrativeAuthoringException {
+        moveIds = null;
+      }
+    }
+    return query(snapshot, request, availableMoveIds: moveIds);
+  }
+
   AuthoringQueryPage query(
     ProjectSnapshot snapshot,
-    AuthoringQueryRequest request,
-  ) {
+    AuthoringQueryRequest request, {
+    Set<String>? availableMoveIds,
+  }) {
     if (request.resourceKind == 'pokemonDocument' &&
         request.view == AuthoringQueryView.detail &&
         request.operation != AuthoringQueryOperation.summary &&
@@ -209,6 +225,7 @@ final class ProjectQueryService {
         _records(
           snapshot,
           request,
+          availableMoveIds: availableMoveIds,
           onEventV2CatalogBuilt: onEventV2CatalogBuilt,
           onEventV2ValidationBuilt: onEventV2ValidationBuilt,
         );
@@ -860,6 +877,7 @@ AuthoringQueryPage? _queryMapRegion(
 List<_QueryRecord> _records(
   ProjectSnapshot snapshot,
   AuthoringQueryRequest request, {
+  Set<String>? availableMoveIds,
   void Function()? onEventV2CatalogBuilt,
   void Function(String eventId)? onEventV2ValidationBuilt,
 }) {
@@ -1356,7 +1374,7 @@ List<_QueryRecord> _records(
         for (final scene in snapshot.manifest.scenes)
           _QueryRecord(
             summary: _sceneSummary(scene),
-            detail: _sceneDetail(snapshot, scene),
+            detail: _sceneDetail(snapshot, scene, availableMoveIds: availableMoveIds),
           ),
       ];
     case 'eventV2':
@@ -2247,10 +2265,11 @@ Map<String, Object?> _sceneSummary(SceneAsset scene) => {
       'edgeCount': scene.graph.edges.length,
     };
 
-Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene) {
+Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene, {Set<String>? availableMoveIds}) {
   final report = diagnoseSceneAgainstProject(
     scene,
     snapshot.manifest,
+    availableMoveIds: availableMoveIds,
     mapsById: {for (final map in snapshot.maps) map.id: map},
   );
   return {

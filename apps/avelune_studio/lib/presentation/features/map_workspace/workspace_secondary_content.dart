@@ -87,6 +87,7 @@ Widget? workspaceSecondaryContent({
   required NarrativeWorkspaceController? narrative,
   VerificationWorkspaceController? verification,
   required SceneWorkspaceController? scenes,
+  Future<Map<String, String>> Function()? loadSceneMoves,
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
   required StoryProgressionViewStore progressionViews,
@@ -173,6 +174,7 @@ Widget? workspaceSecondaryContent({
   }
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
+      loadMoves: loadSceneMoves,
       onPresentation: onScenePresentation,
       onCreatePresentation: onCreatePresentation,
       presentationFor: presentations?.assetFor,

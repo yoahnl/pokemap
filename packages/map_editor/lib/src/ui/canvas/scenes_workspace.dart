@@ -228,6 +228,8 @@ class ScenesWorkspace extends StatefulWidget {
     this.presentationFolders = const [],
     this.newGameConfig = const ProjectNewGameConfig(),
     this.conditionSourceOptions = const [],
+    this.loadPartyMoves,
+    this.partyProjectDimension = ProjectDimension.twoD,
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
     this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
@@ -283,6 +285,8 @@ class ScenesWorkspace extends StatefulWidget {
   final List<CinematicLibraryFolder> presentationFolders;
   final ProjectNewGameConfig newGameConfig;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
+  final Future<Map<String, String>> Function()? loadPartyMoves;
+  final ProjectDimension partyProjectDimension;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -936,6 +940,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onRemoveEdgeDraft: _removeSelectedEdgeDraft,
                     onRemoveNodeDraft: _removeSelectedNodeDraft,
                     conditionSourceOptions: widget.conditionSourceOptions,
+                    loadPartyMoves: widget.loadPartyMoves,
+                    partyProjectDimension: widget.partyProjectDimension,
                     onUpdateConditionSource: _updateConditionSource,
                     onUpdateEndPayload: _updateEndPayload,
                     linkedAssetContracts: widget.linkedAssetContracts,

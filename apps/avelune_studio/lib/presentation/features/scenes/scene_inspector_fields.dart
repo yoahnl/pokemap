@@ -82,6 +82,7 @@ extension _SceneInspectorFields on SceneInspector {
       return [
         SceneConditionForm(
           project: project,
+          loadMoves: loadMoves,
           current: value,
           onApply: (source) => edit(
             (scene) => updateSceneConditionSource(

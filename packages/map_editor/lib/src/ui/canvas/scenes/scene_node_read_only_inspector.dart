@@ -9,6 +9,7 @@ import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_cinematic_picker.dart';
 import 'scene_action_builder.dart';
+import 'scene_party_condition_editor.dart';
 import 'scene_dialogue_choice_policy_dialog.dart';
 import 'scene_pre_session_interaction_dialog.dart';
 
@@ -139,6 +140,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onRemoveEdgeDraft,
     this.onRemoveNodeDraft,
     this.conditionSourceOptions = const [],
+    this.loadPartyMoves,
+    this.partyProjectDimension = ProjectDimension.twoD,
     this.onUpdateConditionSource,
     this.onUpdateEndPayload,
     this.linkedAssetContracts,
@@ -166,6 +169,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final ValueChanged<String>? onRemoveEdgeDraft;
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
+  final Future<Map<String, String>> Function()? loadPartyMoves;
+  final ProjectDimension partyProjectDimension;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
   final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
@@ -216,6 +221,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               node: node,
               onRemoveNodeDraft: onRemoveNodeDraft,
               conditionSourceOptions: conditionSourceOptions,
+              loadPartyMoves: loadPartyMoves,
+              partyProjectDimension: partyProjectDimension,
               onUpdateConditionSource: onUpdateConditionSource,
               onUpdateEndPayload: onUpdateEndPayload,
               linkedAssetContracts: linkedAssetContracts,
@@ -328,6 +335,8 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.node,
     required this.onRemoveNodeDraft,
     required this.conditionSourceOptions,
+    required this.loadPartyMoves,
+    required this.partyProjectDimension,
     required this.onUpdateConditionSource,
     required this.onUpdateEndPayload,
     required this.linkedAssetContracts,
@@ -353,6 +362,8 @@ class _NodeInspectorBody extends StatelessWidget {
   final SceneNode node;
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
+  final Future<Map<String, String>> Function()? loadPartyMoves;
+  final ProjectDimension partyProjectDimension;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
   final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
@@ -405,6 +416,8 @@ class _NodeInspectorBody extends StatelessWidget {
             _ConditionAuthoringPanel(
               node: node,
               options: conditionSourceOptions,
+              loadMoves: loadPartyMoves,
+              dimension: partyProjectDimension,
               onUpdateConditionSource: onUpdateConditionSource,
             ),
             const SizedBox(height: 10),
@@ -2616,9 +2629,13 @@ class _ConditionAuthoringPanel extends StatefulWidget {
   const _ConditionAuthoringPanel({
     required this.node,
     required this.options,
+    this.loadMoves,
+    this.dimension = ProjectDimension.twoD,
     required this.onUpdateConditionSource,
   });
 
+  final Future<Map<String, String>> Function()? loadMoves;
+  final ProjectDimension dimension;
   final SceneNode node;
   final List<SceneConditionSourcePickerOption> options;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
@@ -2707,6 +2724,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
             _ConditionButtonRow(
               label: 'Source',
               children: [
+                _conditionButton(key: const ValueKey('scene-condition-source-kind-partyState'), label: 'Équipe Pokémon', selected: _sourceKind == SceneConditionSourceKind.partyState, onPressed: () => setState(() => _sourceKind = SceneConditionSourceKind.partyState)),
                 if (_optionsForKind(SceneConditionSourceKind.playerFacing).isNotEmpty)
                   _conditionButton(
                     key: const ValueKey('scene-condition-source-kind-playerFacing'),
@@ -2768,6 +2786,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                 ),
               ],
             ),
+            if (_sourceKind == SceneConditionSourceKind.partyState)
+              ScenePartyConditionEditor(dimension: widget.dimension, current: (widget.node.payload as SceneConditionPayload).conditionSource, loadMoves: widget.loadMoves, onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source) ?? false),
+            if (_sourceKind != SceneConditionSourceKind.partyState) ...[
             const SizedBox(height: 8),
             _ConditionButtonRow(
               label: 'Référence',
@@ -2799,6 +2820,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
               leading: const Icon(CupertinoIcons.check_mark_circled),
               child: Text(_saving ? 'Enregistrement...' : 'Enregistrer'),
             ),
+            ],
           ],
         ),
       ],

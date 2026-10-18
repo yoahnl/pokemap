@@ -14,6 +14,8 @@ import 'dialogue_source_store.dart';
 import 'event_actions.dart';
 import 'narrative_action_support.dart';
 import 'scene_actions.dart';
+import 'scene_party_move_catalog.dart';
+import 'narrative_authoring_exception.dart';
 
 class NarrativeDocumentActions {
   const NarrativeDocumentActions();
@@ -23,6 +25,26 @@ class NarrativeDocumentActions {
     'Publish an authoritative map with compiled narrative dependencies',
     resourceKinds: const ['project', 'map', 'dialogueSource'],
   );
+
+  Future<AuthoringMutationDraft> prepare(AuthoringPlanningContext context) async {
+    late final List<SceneAsset> scenes;
+    try {
+      scenes = _objects(context.request.parameters, 'scenes').map(SceneAsset.fromJson).toList();
+    } on FormatException {
+      throw NarrativeAuthoringException('scene.graph.payload_invalid', 'The typed Scene payload is invalid.');
+    } on ArgumentError {
+      throw NarrativeAuthoringException('scene.graph.payload_invalid', 'The typed Scene payload is invalid.');
+    } on TypeError {
+      throw NarrativeAuthoringException('scene.graph.payload_invalid', 'The typed Scene payload is invalid.');
+    }
+    if (scenes.any(sceneNeedsPartyMoveCatalog)) {
+      final moveIds = await loadScenePartyMoveCatalog(context.snapshot);
+      for (final scene in scenes) {
+        validateScenePartyMoves(scene, moveIds);
+      }
+    }
+    return build(context);
+  }
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final fields = context.request.parameters;

@@ -11,6 +11,7 @@ import 'dialogue_authoring_service.dart';
 import 'dialogue_source_store.dart';
 import 'dialogue_source_guards.dart';
 import 'modern_narrative_inspection.dart';
+import 'scene_party_move_catalog.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 import 'presentation_cinematic_template_actions.dart';
@@ -28,6 +29,23 @@ final class ScenePreSessionInteractionCueBindingDraft {
 
 final class SceneActions {
   const SceneActions();
+
+  static const _partyConditionContract = {
+    'sourceKind': 'partyState',
+    'sourceId': 'predicateName',
+    'predicates': ['canReceivePokemon', 'knowsMove', 'hasUsableMove', 'canUseFieldAbility'],
+    'operators': ['isTrue', 'isFalse'],
+    'capacity': 'partyThenStorage',
+    'moveReference': 'knownUniqueMoveInActiveProjectCatalogue',
+    'movePredicates': {'field': 'moveId', 'value': 'canonicalMoveId'},
+    'fieldAbility': {'field': 'ability', 'value': 'FieldAbility.moveId',
+      'allowedValues': ['fly', 'surf', 'cut', 'strength', 'flash', 'rock_smash', 'waterfall', 'dive']},
+    'knowsMove': 'anyPartyMemberIncludingFaintedAndZeroPp',
+    'hasUsableMove': 'nonFaintedMemberWithKnownMoveAndPositivePp',
+    'canUseFieldAbility': 'supportedAndUnlockedWithNonFaintedMemberKnowingMoveEvenAtZeroPpWithoutPpConsumption',
+    'projectDimensions': ['twoD', 'threeD'],
+    'persistentEffects': 'none',
+  };
 
   static const _warpContract = {
     'parameters': ['destinationMapId', 'warpId', 'arrivalFacing', 'transition', 'presentation'],
@@ -278,6 +296,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
@@ -297,6 +316,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'pokedexCaughtCount': {
           'sourceKind': 'pokedexCaughtCount',
@@ -393,6 +413,7 @@ final class SceneActions {
         'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
+        'partyState': _partyConditionContract,
         'badgeCondition': {
           'sourceKind': 'badge',
           'sourceId': 'projectBadgeId',
@@ -479,6 +500,59 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
     ),
   ]);
+
+  Future<AuthoringMutationDraft> prepare(AuthoringPlanningContext context) async {
+    Set<String>? moveIds;
+    final parameters = context.request.parameters;
+    final rawSources = <Object?>[];
+    if (context.request.actionId == 'scene.condition.set') {
+      rawSources.add(parameters['conditionSource']);
+    } else {
+      final rawScene = parameters['scene'];
+      final rawGraph = rawScene is Map ? rawScene['graph'] : null;
+      final rawNodes = context.request.actionId == 'scene.graph.patch'
+          ? parameters['upsertNodes'] : rawGraph is Map ? rawGraph['nodes'] : null;
+      if (rawNodes is List) {
+        for (final node in rawNodes) {
+          final payload = node is Map ? node['payload'] : null;
+          if (payload is Map) rawSources.add(payload['conditionSource']);
+        }
+      }
+    }
+    for (final raw in rawSources) {
+      if (raw is! Map<String, dynamic>) continue;
+      SceneConditionSource source;
+      try {
+        source = SceneConditionSource.fromJson(raw);
+      } on ArgumentError {
+        continue;
+      } on FormatException {
+        continue;
+      } on TypeError {
+        throw NarrativeAuthoringException('scene.graph.payload_invalid',
+            'The typed condition payload is invalid.');
+      }
+      final moveId = source.partyMoveId;
+      if (moveId == null) continue;
+      moveIds ??= await loadScenePartyMoveCatalog(context.snapshot);
+      if (!moveIds.contains(moveId)) {
+        throw NarrativeAuthoringException('scene.party_move_ref_unknown',
+            'The selected party move is not in the active project catalogue.');
+      }
+    }
+    final draft = build(context);
+    final rawScene = context.request.parameters['scene'];
+    final targetId = context.request.parameters['sceneId'] ?? (rawScene is Map ? rawScene['id'] : null);
+    final scenes = draft.projectedProject?.scenes.where((scene) =>
+        (scene.id == targetId || !context.snapshot.manifest.scenes.contains(scene)) && sceneNeedsPartyMoveCatalog(scene)).toList() ?? const <SceneAsset>[];
+    if (scenes.isNotEmpty) {
+      moveIds ??= await loadScenePartyMoveCatalog(context.snapshot);
+      for (final scene in scenes) {
+        validateScenePartyMoves(scene, moveIds);
+      }
+    }
+    return draft;
+  }
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;

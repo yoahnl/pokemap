@@ -465,7 +465,7 @@ final class MapMutationDispatcher {
         ),
       MapMutationActionRegistration(
         descriptor: NarrativeDocumentActions.descriptor,
-        build: const NarrativeDocumentActions().build,
+        build: const NarrativeDocumentActions().prepare,
       ),
       for (final descriptor in CinematicActions.descriptors)
         MapMutationActionRegistration(
@@ -500,7 +500,7 @@ final class MapMutationDispatcher {
       for (final descriptor in SceneActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
-          build: scenes.build,
+          build: scenes.prepare,
         ),
       for (final descriptor in EventV2Actions.descriptors)
         MapMutationActionRegistration(
