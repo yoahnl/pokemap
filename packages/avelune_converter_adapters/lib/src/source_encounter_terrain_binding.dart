@@ -176,11 +176,11 @@ final class SourceEncounterTerrainBinding {
       evidenceMaps.add({
         ...binding,
         'terrainCounts': terrainCounts,
-        'landCells': _positions(land),
-        'caveCells': _positions(cave),
+        'landCells': _rowRuns(land),
+        'caveCells': _rowRuns(cave),
         'rawWaterCellCount': rawWater,
-        'waterCells': _positions(water),
-        'unqualifiedTerrainCells': _positions(unknown),
+        'waterCells': _rowRuns(water),
+        'unqualifiedTerrainCells': _rowRuns(unknown),
         'encounterZones': zoneRows,
         'surfRectangles':
             rectangles.map((area) => _inert(area.toJson())).toList(),
@@ -191,7 +191,7 @@ final class SourceEncounterTerrainBinding {
     }
     return SourceEncounterTerrainBindingResult._(allZones, {
       'kind': 'sourceEncounterTerrainBinding',
-      'version': 1,
+      'version': 2,
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
       'sourceSelectionHash': source.canonicalHash.value,
       'profile': semantic.profile.toJson(),
@@ -416,6 +416,20 @@ const _landTags = {2, 10, 11, 14};
 Object? _inert(Object? value) => jsonDecode(jsonEncode(value));
 List<Map<String, int>> _positions(List<GridPos> cells) =>
     cells.map((cell) => {'x': cell.x, 'y': cell.y}).toList(growable: false);
+
+Map<String, Object?> _rowRuns(List<GridPos> cells) {
+  final runs = <List<int>>[];
+  for (final cell in cells) {
+    if (runs.isNotEmpty &&
+        runs.last[0] == cell.y &&
+        runs.last[1] + runs.last[2] == cell.x) {
+      runs.last[2]++;
+    } else {
+      runs.add([cell.y, cell.x, 1]);
+    }
+  }
+  return {'encoding': 'rowRuns', 'count': cells.length, 'runs': runs};
+}
 
 MapRect _bounds(List<GridPos> cells) {
   var x0 = cells.first.x, x1 = x0, y0 = cells.first.y, y1 = y0;

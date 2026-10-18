@@ -8,6 +8,122 @@ import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
 
 void main() {
+  for (final offset in [false, true]) {
+    test('terrain target characterization offset=$offset', () async {
+      final source = await _source(offsetTerrain: offset);
+      final result = _bind(source, [
+        'Land',
+        'Cave',
+        'Water',
+        'OldRod',
+        'GoodRod',
+        'SuperRod',
+        'RockSmash'
+      ]);
+      final evidence = Map<String, Object?>.from(result.evidence)
+        ..remove('version');
+      evidence['maps'] = [
+        for (final raw in result.evidence['maps'] as List)
+          Map<String, Object?>.from(raw as Map)
+            ..removeWhere((key, _) => _evidenceCellKeys.contains(key))
+      ];
+      expect(
+          canonicalHashOf({
+            'evidence': evidence,
+            'zones': {
+              for (final entry in result.zonesBySourceMapId.entries)
+                '${entry.key}': jsonDecode(jsonEncode(
+                    entry.value.map((zone) => zone.toJson()).toList()))
+            }
+          }).value,
+          offset
+              ? '19d5523028f1c67e14636201f9cf23d93eb0fe733335eba9189d0992ffc6bd21'
+              : '8a351b1930c6bddbf3130b288c94f0807df49308a73fb3cb90e11f5c543308cc');
+    });
+  }
+
+  final patterns = {
+    'dense': List.generate(3, (_) => List.filled(4, 385)),
+    'sparse': [
+      [385, 384, 385, 386, 388],
+      [388, 386, 384, 385, 384],
+    ],
+    'holes and multiple rows': [
+      [386, 386, 384, 386, 388],
+      [386, 384, 386, 386, 388],
+      [385, 385, 384, 385, 388],
+    ],
+    'empty sets': [List.filled(4, 387)],
+  };
+  for (final pattern in patterns.entries) {
+    test('row run terrain evidence round trips ${pattern.key} in exact order',
+        () async {
+      final source = await _source(terrainRows: pattern.value);
+      final result = _bind(source, []);
+      expect(result.evidence['version'], 2);
+      final map = (result.evidence['maps'] as List).single as Map;
+      for (final key in _evidenceCellKeys) {
+        final expected = [
+          for (var y = 0; y < pattern.value.length; y++)
+            for (var x = 0; x < pattern.value[y].length; x++)
+              if (switch (key) {
+                'landCells' => pattern.value[y][x] == 385,
+                'caveCells' => {384, 385}.contains(pattern.value[y][x]),
+                'waterCells' => pattern.value[y][x] == 386,
+                _ => pattern.value[y][x] == 388,
+              })
+                {'x': x, 'y': y}
+        ];
+        expect(_decodeEvidenceCells(map[key]), expected);
+      }
+      expect(canonicalJsonOf(result.evidence),
+          canonicalJsonOf(_bind(source, []).evidence));
+      if (pattern.key == 'dense') {
+        expect(map['landCells'], {
+          'encoding': 'rowRuns',
+          'count': 12,
+          'runs': [
+            [0, 0, 4],
+            [1, 0, 4],
+            [2, 0, 4]
+          ]
+        });
+      }
+    });
+  }
+
+  test('large dense evidence fits the same node quota without losing cells',
+      () async {
+    final source = await _source(
+        terrainRows: List.generate(128, (_) => List.filled(128, 385)));
+    final evidence = _bind(source, []).evidence;
+    final maps = evidence['maps'] as List;
+    expect((maps.single as Map)['landCells'], isA<Map>());
+    final raw = {
+      ...evidence,
+      'version': 1,
+      'maps': [
+        for (final entry in maps)
+          {
+            ...entry as Map,
+            for (final key in _evidenceCellKeys)
+              key: _decodeEvidenceCells(entry[key])
+          }
+      ]
+    };
+    const limits = ContractLimits(maxNodes: 10000);
+    expect(
+        () => canonicalJsonOf(raw, limits: limits),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'json.quota')));
+    expect(() => canonicalJsonOf(evidence, limits: limits), returnsNormally);
+    expect(_nodes(evidence), lessThan(_nodes(raw) ~/ 10));
+    expect(utf8.encode(jsonEncode(evidence)).length,
+        lessThan(utf8.encode(jsonEncode(raw)).length));
+    expect(_decodeEvidenceCells((maps.single as Map)['landCells']),
+        hasLength(16384));
+  });
+
   test('terrain skips empty, neutral and inactive bridge before grass', () {
     final resolver = SourceEncounterTerrainResolver(resolver: _resolver());
     expect(
@@ -476,9 +592,21 @@ List<GridPos> _worldCells(MapGameplayZone zone) => [
     ];
 
 Future<NormalizedSourceProject> _source(
-    {bool qualified = true, bool offsetTerrain = false}) async {
+    {bool qualified = true,
+    bool offsetTerrain = false,
+    List<List<int>>? terrainRows}) async {
   final fixture = await LiteralTileFixture.create(maps: [
-    if (offsetTerrain)
+    if (terrainRows != null)
+      LiteralFixtureMap(
+          id: 9,
+          width: terrainRows.first.length,
+          height: terrainRows.length,
+          layers: [
+            terrainRows.expand((row) => row).toList(),
+            List.filled(terrainRows.length * terrainRows.first.length, 0),
+            List.filled(terrainRows.length * terrainRows.first.length, 0)
+          ])
+    else if (offsetTerrain)
       LiteralFixtureMap(id: 9, width: 6, height: 5, layers: [
         List<int>.generate(
             30, (index) => {14, 15, 20}.contains(index) ? 386 : 384),
@@ -511,7 +639,7 @@ Future<NormalizedSourceProject> _source(
     LiteralFixtureTileset(
         id: 1,
         passages: {386: 15, 387: 15},
-        terrainTags: {385: 2, 386: 7, 387: 4})
+        terrainTags: {385: 2, 386: 7, 387: 4, 388: 18})
   ]);
   final snapshot = SourceSnapshot(
       logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
@@ -538,6 +666,36 @@ Future<NormalizedSourceProject> _source(
       files: LiteralFixtureFiles(snapshot, fixture.sourceBytes),
       selectedMapIds: {9});
 }
+
+const _evidenceCellKeys = [
+  'landCells',
+  'caveCells',
+  'waterCells',
+  'unqualifiedTerrainCells'
+];
+
+List<Map<String, int>> _decodeEvidenceCells(Object? value) {
+  final encoded = value as Map;
+  expect(encoded['encoding'], 'rowRuns');
+  final cells = <Map<String, int>>[];
+  for (final run in encoded['runs'] as List) {
+    final triple = (run as List).cast<int>();
+    expect(triple, hasLength(3));
+    expect(triple[2], greaterThan(0));
+    for (var x = triple[1]; x < triple[1] + triple[2]; x++) {
+      cells.add({'x': x, 'y': triple[0]});
+    }
+  }
+  expect(cells.length, encoded['count']);
+  return cells;
+}
+
+int _nodes(Object? value) => switch (value) {
+      Map() =>
+        1 + value.values.fold<int>(0, (sum, child) => sum + _nodes(child)),
+      List() => 1 + value.fold<int>(0, (sum, child) => sum + _nodes(child)),
+      _ => 1,
+    };
 
 SourceSemanticResolver _resolver() => SourceSemanticResolver(
         profile: SourceSemanticProfile.kantoPlayerWalk(

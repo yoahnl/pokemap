@@ -109,16 +109,18 @@ enum CheckStatus { notRun, passed, failed, notApplicable }
 enum AiUsageStatus { notUsed, reported, estimated, unknown }
 
 sealed class ConverterDocument extends _JsonRecord {
-  ConverterDocument._(super.json);
+  ConverterDocument._(super.json, this._limits);
+
+  final ContractLimits _limits;
 
   String get schemaVersion => _json['schemaVersion'] as String;
   String get kind => _json['kind'] as String;
   bool get exampleOnly => _json['exampleOnly'] as bool;
-  late final Sha256Hash canonicalHash = canonicalHashOf(_json);
+  late final Sha256Hash canonicalHash = canonicalHashOf(_json, limits: _limits);
 }
 
 final class TargetCapabilities extends ConverterDocument {
-  TargetCapabilities._(super.json) : super._();
+  TargetCapabilities._(super.json, super.limits) : super._();
 
   factory TargetCapabilities.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -164,7 +166,7 @@ final class ContractEvidence extends _JsonRecord {
 }
 
 final class ReviewDecisions extends ConverterDocument {
-  ReviewDecisions._(super.json) : super._();
+  ReviewDecisions._(super.json, super.limits) : super._();
 
   factory ReviewDecisions.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -204,7 +206,7 @@ final class ReviewDecision extends _JsonRecord {
 }
 
 final class AssetCandidate extends ConverterDocument {
-  AssetCandidate._(super.json) : super._();
+  AssetCandidate._(super.json, super.limits) : super._();
 
   factory AssetCandidate.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -382,7 +384,7 @@ final class PixelAnchor extends _JsonRecord {
 }
 
 final class SourceMapIr extends ConverterDocument {
-  SourceMapIr._(super.json) : super._();
+  SourceMapIr._(super.json, super.limits) : super._();
 
   factory SourceMapIr.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -495,7 +497,7 @@ final class SourceCommand extends _JsonRecord {
 }
 
 final class ConversionPlan extends ConverterDocument {
-  ConversionPlan._(super.json) : super._();
+  ConversionPlan._(super.json, super.limits) : super._();
 
   factory ConversionPlan.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -620,7 +622,7 @@ final class ConversionDiagnostic extends _JsonRecord {
 }
 
 final class VisionResponse extends ConverterDocument {
-  VisionResponse._(super.json) : super._();
+  VisionResponse._(super.json, super.limits) : super._();
 
   factory VisionResponse.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -669,7 +671,7 @@ final class VisionSuggestion extends _JsonRecord {
 }
 
 final class ConversionReport extends ConverterDocument {
-  ConversionReport._(super.json) : super._();
+  ConversionReport._(super.json, super.limits) : super._();
 
   factory ConversionReport.fromJson(Object? input,
           {ContractLimits limits = const ContractLimits()}) =>
@@ -792,13 +794,13 @@ ConverterDocument _readContract(
   }
   _validateShape(json, _contractSchemas[kind] as Map<String, Object?>, r'$');
   final document = switch (kind) {
-    'sourceMapIr' => SourceMapIr._(json),
-    'assetCandidate' => AssetCandidate._(json),
-    'reviewDecisions' => ReviewDecisions._(json),
-    'visionResponse' => VisionResponse._(json),
-    'targetCapabilities' => TargetCapabilities._(json),
-    'conversionPlan' => ConversionPlan._(json),
-    'conversionReport' => ConversionReport._(json),
+    'sourceMapIr' => SourceMapIr._(json, limits),
+    'assetCandidate' => AssetCandidate._(json, limits),
+    'reviewDecisions' => ReviewDecisions._(json, limits),
+    'visionResponse' => VisionResponse._(json, limits),
+    'targetCapabilities' => TargetCapabilities._(json, limits),
+    'conversionPlan' => ConversionPlan._(json, limits),
+    'conversionReport' => ConversionReport._(json, limits),
     _ => throw StateError('Unreachable kind'),
   };
   _validateDomain(document);
