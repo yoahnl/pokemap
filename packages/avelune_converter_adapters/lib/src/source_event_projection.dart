@@ -9,6 +9,7 @@ import 'source_pokemon_gift_binding.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
+import 'source_sequence_program.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_trainer_event_bindings.dart';
@@ -677,6 +678,8 @@ final class _ProjectionBuilder {
   final SourceSemanticResolver semanticResolver;
   final Sha256Hash sourceSnapshotHash;
   final SourceEventAnalysis analysis;
+  late final Map<ConverterId, SourceSequenceProgram> sequencePrograms =
+      sourceSequencePrograms(source: source, analysis: analysis);
   late final SourceWarpTileNativePrograms warpTilePrograms =
       sourceWarpTileNativePrograms(source: source, analysis: analysis);
   late final SourceEventAnalysis _authoritativeSourceAnalysis =
@@ -845,11 +848,16 @@ final class _ProjectionBuilder {
   bool _isExternalWarpFamily(SourceEventDefinition event) => event.pages.expand((p) => p.body.nodes).whereType<SourceWarpNode>().any((n) => n.originalProgram != null);
 
   bool _isSourceTransition(SourceEventDefinition event) =>
+      sequencePrograms.containsKey(event.identity) ||
       warpTilePrograms.programs.containsKey(event.identity) ||
       _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
+      (sequencePrograms.containsKey(event.identity) && executionContextQualified &&
+        executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null &&
+        executionContext?.stairIdentity == null && executionContext?.holeIdentity == null &&
+        executionContext?.elevatorIdentity == null) ||
       (warpTilePrograms.programs.containsKey(event.identity) && retentionPolicy != null) ||
       qualifiedHoleContexts.contains(event.identity) || qualifiedElevatorContexts.contains(event.identity) || qualifiedStaticDoorContexts.contains(event.identity) || qualifiedRoutedDoorContexts.contains(event.identity) || qualifiedStairContexts.contains(event.identity) ||
       (_isExternalWarpFamily(event) &&
@@ -933,7 +941,10 @@ final class _ProjectionBuilder {
       (_isSourceTransition(event) || _isSourceArrivalCandidate(event)) && event.sourceMapId == node.targetSourceMapId &&
       event.x == node.x && event.y == node.y &&
       (!_isExternalWarpFamily(event) || _externalWarpProgram(event) != null) &&
-      event.pages.firstOrNull?.graphic?.characterName.isNotEmpty == true;
+      (event.pages.firstOrNull?.graphic?.characterName.isNotEmpty == true ||
+        (sequencePrograms[event.identity]?.finiteAutorun == true &&
+          _eventExecutionContextQualified(event) &&
+          event.pages.first.graphic?.characterName.isEmpty == true));
 
   bool _isSourceArrivalCandidate(SourceEventDefinition event) =>
       !event.isQuarantined &&
@@ -971,6 +982,10 @@ final class _ProjectionBuilder {
 
   String? _arrivalOwner(SourceWarpNode node) {
     final owners = _sourceContextEvents.where((event) => _isArrivalCollisionOwner(event, node)).toList();
+    if (owners.length == 1 && sequencePrograms[owners.single.identity]?.finiteAutorun == true &&
+        owners.single.pages.first.graphic?.characterName.isEmpty == true) {
+      return null;
+    }
     return owners.length == 1 && _selectedEventIdentities.contains(owners.single.identity) ? _key(owners.single, 'anchor') : null;
   }
 
@@ -1464,6 +1479,11 @@ final class _ProjectionBuilder {
       'arrivalAnchorContract':
           'sceneOnly self-target at the exact Scene.warp destination; no physical activation',
       'sourceAdmission': false,
+      'sequencePrograms': [for (final program in sequencePrograms.values) {
+        ...program.toJson(),
+        'executionContextQualified': _eventExecutionContextQualified(
+          analysis.events.singleWhere((event) => event.identity == program.eventIdentity)),
+      }],
       if (retentionPolicy != null) 'mapInstanceRetentionPolicy': retentionPolicy!.toJson(),
       'elevatorPrograms': [for (final program in elevatorPrograms.values) {...program.toJson(), 'executionContext': contextEncoding.encodeContext(elevatorContexts[program.eventIdentity]?.toJson()), 'executionContextQualified': qualifiedElevatorContexts.contains(program.eventIdentity)}],
       'doorExecutionQualification': {
@@ -2721,6 +2741,11 @@ final class _ProjectionBuilder {
       gaps.add('sourceFixedRouteCounterReachUnqualified');
     }
     final staticSign = _supportsStaticSign(event);
+    if (sequencePrograms.containsKey(event.identity) &&
+        (maps[event.sourceMapId]!.version == ProjectVersion.v9 ||
+          maps[event.sourceMapId]!.spatialScene != null)) {
+      gaps.add('sourceSequenceSpatialUnsupported');
+    }
     if (_isSourceTransition(event) && !_eventExecutionContextQualified(event)) {
       final context = _eventExecutionContext(event);
       gaps.addAll(context?.refusals.isNotEmpty == true
@@ -2780,7 +2805,8 @@ final class _ProjectionBuilder {
           (graphic.characterName.isNotEmpty &&
               (graphic.pattern < 0 ||
                   graphic.pattern > 3 ||
-                  graphic.directionFix))) {
+                  (graphic.directionFix && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
+                    page.originalPageIndex == 1 && page.isEmpty))))) {
         gaps.add('pageGraphicContractUnsupported');
       }
       if (checkCharacterBindings && graphic.characterName.isNotEmpty) {
@@ -3173,7 +3199,7 @@ final class _ProjectionBuilder {
                 !const [-1, 0].contains(node.targetSourceCharacterId)) {
               gaps.add('sourceRouteBarrierScopeUnsupported');
             }
-            if (!qualifiedStairContexts.contains(event.identity) && node.steps.any((step) => const {
+            if (!qualifiedStairContexts.contains(event.identity) && !sequencePrograms.containsKey(event.identity) && node.steps.any((step) => const {
               SourceMoveRouteStepKind.moveLeft,
               SourceMoveRouteStepKind.moveRight,
               SourceMoveRouteStepKind.moveUpperLeft,

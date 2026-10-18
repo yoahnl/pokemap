@@ -17,6 +17,7 @@ import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
 import 'source_event_sound_binding.dart';
+import 'source_sequence_program.dart';
 import 'source_event_character_import.dart';
 import 'source_character_presentation_binding.dart';
 import 'source_event_item_bindings.dart';
@@ -165,6 +166,7 @@ final class SourceEventStudyComposer {
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
     final elevatorPrograms = sourceElevatorPrograms(source: source, analysis: analysis);
+    final sequencePrograms = sourceSequencePrograms(source: source, analysis: analysis);
     final warpTilePrograms = sourceWarpTileNativePrograms(source: source, analysis: analysis);
     SourceExternalWarpBinding? externalWarps;
     final externalWarpEvidence = <Map<String, Object?>>[];
@@ -178,7 +180,7 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final externalTransitionIds = {...?externalWarps?.programs.keys};
-    final transitionIds = {...externalTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys};
+    final transitionIds = {...externalTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys, ...sequencePrograms.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -411,7 +413,7 @@ final class SourceEventStudyComposer {
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
           nativeMapIds: base.mapIds, cancellation: cancellation) : null;
     final retentionPolicy = retentionBinding?.policy;
-    final executionContext = externalTransitionIds.isEmpty ? null :
+    final executionContext = externalTransitionIds.isEmpty && sequencePrograms.isEmpty ? null :
         await const SourceEventExecutionContextResolver().read(source: source,
           base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
           cancellation: cancellation);

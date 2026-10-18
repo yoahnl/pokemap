@@ -888,7 +888,7 @@ final class SourceEventExecutionContextResolver {
           'globalRouteBarrier': routedDoorProgram == null &&
                   stairProgram == null &&
                   elevatorProgram == null
-              ? 'notUsedByAttestedProgram'
+              ? 'freshNativeActorClosureAvailableForBoundFinitePrograms'
               : 'exactProgramLocalNativeActorClosure',
           'ambientMovementParityQualified': false,
         },
