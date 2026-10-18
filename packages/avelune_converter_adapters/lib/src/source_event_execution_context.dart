@@ -78,7 +78,8 @@ final class SourceEventExecutionContext {
       maps.length == mapIds.length &&
       mapIds.entries.every((entry) =>
           maps[entry.key]?.id == entry.value &&
-          canonicalHashOf(maps[entry.key]!.toJson()) == _mapHashes[entry.key]);
+          canonicalHashOf(jsonDecode(jsonEncode(maps[entry.key]!.toJson()))) ==
+              _mapHashes[entry.key]);
 
   bool sharesNativeBindingWith(SourceEventExecutionContext other) =>
       sourceSnapshotHash == other.sourceSnapshotHash &&
@@ -208,7 +209,7 @@ final class SourceEventExecutionContextResolver {
     base.validateResourceBudget(limits: limits);
     final hashes = Map<int, Sha256Hash>.unmodifiable({
       for (final entry in nativeMaps.entries)
-        entry.key: canonicalHashOf(entry.value.toJson()),
+        entry.key: canonicalHashOf(jsonDecode(jsonEncode(entry.value.toJson()))),
     });
     final composition = base.compositionEvidence['composition'];
     final compositionHash = composition is Map
@@ -793,7 +794,8 @@ final class SourceEventExecutionContextResolver {
         mapHashes: nativeMapHashes ??
             {
               for (final entry in nativeMaps.entries)
-                entry.key: canonicalHashOf(entry.value.toJson())
+                entry.key:
+                    canonicalHashOf(jsonDecode(jsonEncode(entry.value.toJson())))
             },
         refusals: refusals.toList()..sort(),
         proof: proof);

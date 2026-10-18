@@ -1830,7 +1830,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
             map.size.width != initial['width'] ||
             map.size.height != initial['height'] ||
             map.visualStack == null ||
-            canonicalJsonOf(map.toJson(), limits: limits.jsonLimits) !=
+            canonicalJsonOf(jsonDecode(jsonEncode(map.toJson())),
+                    limits: limits.jsonLimits) !=
                 canonicalJsonOf(raw, limits: limits.jsonLimits)) {
           throw const NativeWriteException('native.map.save',
               'A canonical map save must follow the exact approved creation geometry');
@@ -3080,7 +3081,8 @@ void _verifyLiteralCompositionContents(
   }
   final mapHashes = {
     for (final entry in draft.mapIds.entries)
-      '${entry.key}': canonicalHashOf(maps[entry.value]!.toJson(),
+      '${entry.key}': canonicalHashOf(
+              jsonDecode(jsonEncode(maps[entry.value]!.toJson())),
               limits: limits.jsonLimits)
           .value,
   };
