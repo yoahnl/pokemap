@@ -39,6 +39,7 @@ class PokemonDatabaseIndexEntry {
     required this.isEnabledInProject,
     required this.refs,
     this.formIds = const <String>[],
+    this.primaryFormId,
     this.portraitRelativePath,
     this.thumbnailRelativePath,
   });
@@ -58,6 +59,7 @@ class PokemonDatabaseIndexEntry {
   final bool isEnabledInProject;
   final PokemonDatabaseIndexRefs refs;
   final List<String> formIds;
+  final String? primaryFormId;
 
   /// Portrait local optionnel pour embellir la liste Pokédex.
   ///
@@ -125,6 +127,7 @@ class PokemonDatabaseIndexEntry {
       genIntroduced: species.genIntroduced,
       types: List<String>.from(speciesIndexEntry.types),
       formIds: List<String>.from(speciesIndexEntry.formIds),
+      primaryFormId: species.forms.formId,
       isEnabledInProject: species.classification.isEnabledInProject,
       refs: PokemonDatabaseIndexRefs(
         learnset: species.refs.learnset.trim(),

@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
+import 'support/scene_catalog_pokemon_gift_fixture.dart';
 
 const _mapId = 'event_v2_boot_map';
 const _eventId = 'evt_019abcde-1000-7000-8000-000000000001';
@@ -22,6 +26,76 @@ const _retryOutcomeId = 'boot.retry';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final alreadyConsumed in [true, false]) {
+    test('2D scene factory tolerates malformed ${alreadyConsumed ? 'consumed' : 'unreachable'} gift data', () async {
+      final root = await Directory.systemTemp.createTemp('gift-malformed-factory-');
+      addTearDown(() => root.delete(recursive: true));
+      final config = await writeSceneCatalogPokemonGiftFixture(root);
+      final file = File('${root.path}/custom/species/not-a-builtin.json');
+      final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      data['baseStats'] = 'malformed';
+      await file.writeAsString(jsonEncode(data));
+      final gift = SceneConsequence.givePokemonFromCatalog(speciesId: 'clockbird', formId: 'bronze', level: 7);
+      final scene = SceneAsset(id: _sceneId, name: 'Gift recovery', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'gift', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(gift)),
+        SceneNode(id: 'money', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(SceneConsequence.giveMoney(amount: 7))),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        SceneEdge(id: 'start', fromNodeId: 'start', fromPortId: 'completed', toNodeId: alreadyConsumed ? 'gift' : 'money', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'gift-money', fromNodeId: 'gift', fromPortId: 'completed', toNodeId: 'money', kind: SceneEdgeKind.actionCompleted),
+        SceneEdge(id: 'money-end', fromNodeId: 'money', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+      ]));
+      final operationId = scenePokemonGrantOperationId(sceneId: _sceneId, executionId: 'recover', nodeId: 'gift', consequence: gift)!;
+      final state = GameState(saveId: 'recover', currentMapId: _mapId,
+        appliedPokemonGrantOperationIds: alreadyConsumed ? {operationId} : {});
+      final original = _bundle();
+      final game = PlayableMapGame(
+        bundle: original.copyWith(projectRootDirectory: root.path, manifest: original.manifest.copyWith(pokemon: config, scenes: [scene])),
+        projectFilePath: '${root.path}/project.json', saveData: saveDataFromGameState(state),
+      );
+      addTearDown(game.onRemove);
+      final result = await game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(eventId: _eventId, sceneId: _sceneId, executionId: 'recover', gameState: state));
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final next = (result as NarrativeSceneExecutionCompleted).updatedGameState;
+      expect(next.trainerProfile.money, 7);
+      expect(next.party.members, isEmpty);
+      expect(next.progression, state.progression);
+      expect(next.appliedPokemonGrantOperationIds, state.appliedPokemonGrantOperationIds);
+    });
+  }
+
+  test('2D scene factory preloads a native catalog Pokemon gift', () async {
+    final root = await Directory.systemTemp.createTemp('gift-2d-');
+    addTearDown(() => root.delete(recursive: true));
+    final config = await writeSceneCatalogPokemonGiftFixture(root);
+    final original = _bundle();
+    final source = original.manifest.scenes.single;
+    final scene = SceneAsset(id: source.id, name: source.name, graph: SceneGraph(
+      startNodeId: source.graph.startNodeId,
+      nodes: [for (final node in source.graph.nodes)
+        if (node.kind == SceneNodeKind.action)
+          SceneNode(id: node.id, kind: node.kind, payload: SceneActionPayload.consequence(SceneConsequence.givePokemonFromCatalog(speciesId: 'clockbird', formId: 'bronze', level: 7)))
+        else node],
+      edges: source.graph.edges,
+    ));
+    final game = PlayableMapGame(
+      bundle: original.copyWith(projectRootDirectory: root.path, manifest: original.manifest.copyWith(pokemon: config, scenes: [scene])),
+      projectFilePath: '${root.path}/project.json',
+    );
+    addTearDown(game.onRemove);
+    game.onGameResize(Vector2(320, 240));
+    await game.onLoad();
+    await _waitForActivationDispatch(game);
+    final pokemon = game.gameStateSnapshot.party.members.single;
+    expect(pokemon.speciesId, 'clockbird');
+    expect(pokemon.formId, 'bronze');
+    expect(pokemon.currentPpByMoveId, {'tick': 13, 'tock': 19});
+    expect(pokemon.experience, 343);
+    expect(game.gameStateSnapshot.progression.caughtSpeciesIds, ['clockbird']);
+    expect(game.gameStateSnapshot.appliedPokemonGrantOperationIds, hasLength(1));
+  });
 
   test('world Presentation awaits playback before committing its Event', () async {
     final player = _WorldPresentationPlayer();

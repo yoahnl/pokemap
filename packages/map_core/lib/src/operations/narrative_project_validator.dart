@@ -1368,6 +1368,7 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
           case SceneTakeItemConsequence():
           case SceneGiveMoneyConsequence():
           case SceneGivePokemonConsequence():
+          case SceneGivePokemonFromCatalogConsequence():
           case SceneGiveConfiguredStarterConsequence():
             break;
         }

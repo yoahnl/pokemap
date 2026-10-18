@@ -25,6 +25,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.takeItem,
     NarrativeCommandIds.giveMoney,
     NarrativeCommandIds.givePokemon,
+    NarrativeCommandIds.givePokemonFromCatalog,
     NarrativeCommandIds.giveConfiguredStarter,
     NarrativeCommandIds.healParty,
     NarrativeCommandIds.setNpcPresence,

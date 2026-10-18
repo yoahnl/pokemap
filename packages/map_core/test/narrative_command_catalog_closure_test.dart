@@ -22,6 +22,7 @@ void main() {
       NarrativeCommandIds.grantRailCurrency,
       NarrativeCommandIds.grantRailStamp,
       NarrativeCommandIds.givePokemon,
+      NarrativeCommandIds.givePokemonFromCatalog,
       NarrativeCommandIds.giveConfiguredStarter,
       NarrativeCommandIds.warp,
       NarrativeCommandIds.wait,

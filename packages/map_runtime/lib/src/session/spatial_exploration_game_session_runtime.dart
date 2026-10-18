@@ -14,6 +14,7 @@ import '../application/map_activation.dart';
 import '../application/narrative_event_runtime_snapshot.dart';
 import '../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../application/scene_runtime/scene_consequence_runtime_writer.dart';
+import '../application/scene_runtime/runtime_scene_pokemon_catalog.dart';
 import '../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/scene_runtime/scene_wild_battle_request.dart';
@@ -409,9 +410,15 @@ final class SpatialExplorationGameSessionRuntime
                       projectRootDirectory: bundle.projectRootDirectory,
                       pokemonConfig: project.pokemon))
               : const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {});
+          final pokemonCatalog = await loadRuntimeScenePokemonCatalog(
+            scene: scene,
+            projectRootDirectory: bundle.projectRootDirectory,
+            pokemonConfig: project.pokemon,
+          );
           _ensureGameplayActive();
           return SceneConsequenceRuntimeWriter(
               project: project,
+              pokemonCatalog: pokemonCatalog,
               mapsById: _mapsById,
               maxHpByPartyIndex: caps.maxHpByPartyIndex,
               maxPpByPartyIndex: caps.maxPpByPartyIndex);

@@ -981,6 +981,8 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneGivePokemonFromCatalogConsequence():
+      break;
     case SceneGiveConfiguredStarterConsequence():
       if (consequence.starterOptionId.trim().isEmpty) {
         diagnostics.add(
@@ -1548,6 +1550,7 @@ void _diagnoseActionConsequenceAgainstProject(
     case SceneTakeItemConsequence():
     case SceneGiveMoneyConsequence():
     case SceneGivePokemonConsequence():
+    case SceneGivePokemonFromCatalogConsequence():
       break;
     case SceneGiveConfiguredStarterConsequence():
       if (consequence.starterOptionId.trim().isEmpty) {

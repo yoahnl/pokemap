@@ -17,6 +17,11 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
   required String commandId,
   required Map<String, String> parameters,
 }) {
+  if (commandId == NarrativeCommandIds.givePokemonFromCatalog &&
+      (parameters.length != 3 ||
+          parameters.keys.any((key) => !const {'speciesId', 'formId', 'level'}.contains(key)))) {
+    throw const FormatException('Catalog gift parameters must be speciesId, formId and level only.');
+  }
   int integer(String id, {int fallback = 1}) =>
       int.tryParse(parameters[id] ?? '') ?? fallback;
   return switch (commandId) {
@@ -66,6 +71,13 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         currentHp: integer('currentHp', fallback: integer('level')),
         natureId: parameters['natureId'] ?? 'hardy',
         abilityId: parameters['abilityId'] ?? 'unknown',
+      ),
+    ),
+    NarrativeCommandIds.givePokemonFromCatalog => SceneActionPayload.consequence(
+      SceneConsequence.givePokemonFromCatalog(
+        speciesId: parameters['speciesId']!,
+        formId: parameters['formId']!,
+        level: int.parse(parameters['level']!),
       ),
     ),
     NarrativeCommandIds.giveConfiguredStarter => SceneActionPayload.consequence(

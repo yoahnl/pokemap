@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_action_inspector.dart';
@@ -11,14 +12,29 @@ final class SceneActionPickerOption {
     required this.id,
     required this.label,
     this.parentId,
+    this.isPrimarySpeciesForm = false,
     this.parameters = const {},
   });
 
   final String id;
   final String label;
   final String? parentId;
+  final bool isPrimarySpeciesForm;
   final Map<String, String> parameters;
 }
+
+List<SceneActionPickerOption> buildScenePokemonFormPickerOptions(
+  Iterable<SceneConsequenceCatalogOption> species,
+) => [
+  for (final entry in species)
+    for (final formId in entry.formIds)
+      SceneActionPickerOption(
+        id: formId,
+        label: scenePokemonFormLabel(formId),
+        parentId: entry.id,
+        isPrimarySpeciesForm: entry.catalogGiftFormIds.contains(formId),
+      ),
+];
 
 List<SceneActionPickerOption> buildSceneSoundMediaPickerOptions(
   ProjectManifest project,
@@ -658,6 +674,32 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         if (currentValue != null &&
             currentValue.isNotEmpty &&
             !options.any((option) => option.id == currentValue)) {
+          if (_command.id == NarrativeCommandIds.givePokemonFromCatalog &&
+              parameter.kind == NarrativeCommandParameterKind.speciesForm &&
+              options.isNotEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const PokeMapDiagnosticCallout(
+                  key: ValueKey('scene-action-catalog-gift-form-diagnostic'),
+                  severity: PokeMapDiagnosticSeverity.error,
+                  title: 'Forme du cadeau à corriger',
+                  message: 'La forme enregistrée ne peut pas être chargée. Choisissez la forme principale disponible.',
+                ),
+                const SizedBox(height: 8),
+                PokeMapDropdownField<String>(
+                  label: parameter.label,
+                  value: '',
+                  items: [
+                    const PokeMapDropdownItem(value: '', label: 'Choisir la forme principale'),
+                    for (final option in options)
+                      PokeMapDropdownItem(value: option.id, label: option.label),
+                  ],
+                  onChanged: (value) => _setReferenceValue(parameter, value),
+                ),
+              ],
+            );
+          }
           return PokeMapDiagnosticCallout(
             severity: PokeMapDiagnosticSeverity.error,
             title: '${parameter.label} supprimé',
@@ -695,6 +737,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (_command.id == NarrativeCommandIds.givePokemonFromCatalog &&
+        kind == NarrativeCommandParameterKind.species) {
+      final loadableSpeciesIds = {
+        for (final form in widget.pickerOptions[NarrativeCommandParameterKind.speciesForm] ?? const <SceneActionPickerOption>[])
+          if (form.isPrimarySpeciesForm) form.parentId,
+      };
+      return [
+        for (final species in widget.pickerOptions[kind] ?? const <SceneActionPickerOption>[])
+          if (loadableSpeciesIds.contains(species.id)) species,
+      ];
+    }
     if (kind == NarrativeCommandParameterKind.map &&
         _command.id == NarrativeCommandIds.waitForActorRoutes) {
       final entries = widget.project?.maps ?? const <ProjectMapEntry>[];
@@ -715,7 +768,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       final speciesId = _values['speciesId'];
       return [
         for (final option in widget.pickerOptions[kind] ?? const [])
-          if (option.parentId == speciesId) option,
+          if (option.parentId == speciesId &&
+              (_command.id != NarrativeCommandIds.givePokemonFromCatalog || option.isPrimarySpeciesForm)) option,
       ];
     }
     if (kind == NarrativeCommandParameterKind.visualElementReference) {

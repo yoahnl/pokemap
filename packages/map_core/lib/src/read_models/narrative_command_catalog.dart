@@ -14,6 +14,7 @@ abstract final class NarrativeCommandIds {
   static const grantRailCurrency = 'grantRailCurrency';
   static const grantRailStamp = 'grantRailStamp';
   static const givePokemon = 'givePokemon';
+  static const givePokemonFromCatalog = 'givePokemonFromCatalog';
   static const giveConfiguredStarter = 'giveConfiguredStarter';
   static const warp = 'warp';
   static const wait = 'wait';
@@ -277,6 +278,16 @@ final class NarrativeCommandCatalog {
             'Starter',
             NarrativeCommandParameterKind.starter,
           ),
+        ],
+      ),
+      consequence(
+        NarrativeCommandIds.givePokemonFromCatalog,
+        'Donner un Pokémon du catalogue',
+        'FG-084',
+        [
+          _parameter('speciesId', 'Espèce', NarrativeCommandParameterKind.species),
+          _parameter('formId', 'Forme', NarrativeCommandParameterKind.speciesForm),
+          _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
         ],
       ),
       consequence(

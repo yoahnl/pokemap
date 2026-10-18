@@ -1236,6 +1236,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
             case SceneTakeItemConsequence():
             case SceneGiveMoneyConsequence():
             case SceneGivePokemonConsequence():
+            case SceneGivePokemonFromCatalogConsequence():
             case SceneGiveConfiguredStarterConsequence():
             case SceneHealPartyConsequence():
             case SceneFinishGameConsequence():
@@ -1463,6 +1464,7 @@ NarrativeSymbolicState _applyAction({
       case SceneTakeItemConsequence():
       case SceneGiveMoneyConsequence():
       case SceneGivePokemonConsequence():
+      case SceneGivePokemonFromCatalogConsequence():
       case SceneGiveConfiguredStarterConsequence():
       case SceneHealPartyConsequence():
       case SceneSetNpcPresenceConsequence():

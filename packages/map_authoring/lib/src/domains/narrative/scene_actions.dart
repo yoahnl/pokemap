@@ -92,6 +92,20 @@ final class SceneActions {
     'outputPorts': ['completed', 'cancelled'],
   };
 
+  static const _givePokemonFromCatalogContract = {
+    'consequenceKind': 'givePokemonFromCatalog',
+    'parameters': ['speciesId', 'formId', 'level'],
+    'levelRange': [1, 100],
+    'catalog': 'activeProjectPokemonCatalog',
+    'generation': 'activeNativeRuleset',
+    'initialHealth': 'fullHpAndPp',
+    'moves': 'nativeLevelLearnset',
+    'destination': 'partyThenStorage',
+    'storageFull': 'atomicRefusalWithoutConsumingOperation',
+    'pokedex': 'seenAndCaughtOnSuccessfulGrant',
+    'idempotency': 'saveIdAndSceneGrantOperationId',
+  };
+
   static const _openRegionalMapContract = {
     'projectDimension': 'twoD',
     'parameters': [],
@@ -219,6 +233,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -307,6 +322,7 @@ final class SceneActions {
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
+        'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,

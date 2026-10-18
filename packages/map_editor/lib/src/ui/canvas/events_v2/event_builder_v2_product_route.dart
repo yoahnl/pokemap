@@ -2110,15 +2110,7 @@ buildEventBuilderV2TemplateActionPickerOptions({
     NarrativeCommandParameterKind.storyStep: section(catalogs.storySteps),
     NarrativeCommandParameterKind.item: section(catalogs.items),
     NarrativeCommandParameterKind.species: section(catalogs.species),
-    NarrativeCommandParameterKind.speciesForm: [
-      for (final species in catalogs.species.options)
-        for (final formId in species.formIds)
-          SceneActionPickerOption(
-            id: formId,
-            label: scenePokemonFormLabel(formId),
-            parentId: species.id,
-          ),
-    ],
+    NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions(catalogs.species.options),
     NarrativeCommandParameterKind.starter: section(catalogs.configuredStarters),
     NarrativeCommandParameterKind.map: [
       for (final map in project.maps)

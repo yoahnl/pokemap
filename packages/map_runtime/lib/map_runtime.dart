@@ -513,6 +513,8 @@ export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
         SceneConsequenceRuntimeWriter,
         scenePokemonGrantOperationId,
         sceneRailProgressionOperationId;
+export 'src/application/scene_runtime/runtime_scene_pokemon_catalog.dart'
+    show RuntimeScenePokemonCatalog, RuntimeScenePokemonCatalogEntry, loadRuntimeScenePokemonCatalog;
 export 'src/application/scene_runtime/narrative_game_completion_runtime_coordinator.dart'
     show
         GameCompletionRequestEmitter,

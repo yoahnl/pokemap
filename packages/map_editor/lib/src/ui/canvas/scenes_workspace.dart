@@ -2782,6 +2782,7 @@ enum _SceneConsequencePickerMode {
   takeItem,
   giveMoney,
   givePokemon,
+  givePokemonFromCatalog,
   giveConfiguredStarter,
 }
 
@@ -2943,6 +2944,12 @@ class _SceneConsequencePickerDialogState
                 enabled: widget.catalogs.species.isReady,
               ),
               _kindButton(
+                key: const ValueKey('scene-consequence-kind-givePokemonFromCatalog'),
+                label: 'Donner un Pokémon du catalogue',
+                mode: _SceneConsequencePickerMode.givePokemonFromCatalog,
+                enabled: widget.catalogs.species.options.any((species) => species.catalogGiftFormIds.isNotEmpty),
+              ),
+              _kindButton(
                 key: const ValueKey(
                   'scene-consequence-kind-giveConfiguredStarter',
                 ),
@@ -2996,6 +3003,8 @@ class _SceneConsequencePickerDialogState
                   _SceneConsequencePickerMode.giveMoney => _giveMoneyControls(),
                   _SceneConsequencePickerMode.givePokemon =>
                     _givePokemonControls(),
+                  _SceneConsequencePickerMode.givePokemonFromCatalog =>
+                    _givePokemonControls(catalogGift: true),
                   _SceneConsequencePickerMode.giveConfiguredStarter =>
                     _giveConfiguredStarterControls(),
                 },
@@ -3038,7 +3047,15 @@ class _SceneConsequencePickerDialogState
   }) {
     return PokeMapButton(
       key: key,
-      onPressed: enabled ? () => setState(() => _mode = mode) : null,
+      onPressed: enabled ? () => setState(() {
+        _mode = mode;
+        if (mode == _SceneConsequencePickerMode.givePokemonFromCatalog) {
+          if (_selectedSpecies?.catalogGiftFormIds.isEmpty ?? true) {
+            _selectedSpecies = widget.catalogs.species.options.where((species) => species.catalogGiftFormIds.isNotEmpty).firstOrNull;
+          }
+          _selectedPokemonFormId = _selectedSpecies?.catalogGiftFormIds.firstOrNull;
+        }
+      }) : null,
       variant: _mode == mode
           ? PokeMapButtonVariant.primary
           : PokeMapButtonVariant.secondary,
@@ -3202,13 +3219,14 @@ class _SceneConsequencePickerDialogState
     ];
   }
 
-  List<Widget> _givePokemonControls() {
+  List<Widget> _givePokemonControls({bool catalogGift = false}) {
     final level = int.tryParse(_pokemonLevelController.text.trim());
     final currentHp = int.tryParse(_pokemonCurrentHpController.text.trim());
     final friendship = int.tryParse(_pokemonFriendshipController.text.trim());
-    final formIds = _selectedSpecies?.formIds ?? const <String>[];
+    final formIds = (catalogGift ? _selectedSpecies?.catalogGiftFormIds : _selectedSpecies?.formIds) ?? const <String>[];
     return [
       for (final species in widget.catalogs.species.options)
+        if (!catalogGift || species.catalogGiftFormIds.isNotEmpty)
         _ConsequencePickerCard(
           key: ValueKey(
             'scene-consequence-species-option-${_pickerKeyPart(species.id)}',
@@ -3219,7 +3237,7 @@ class _SceneConsequencePickerDialogState
           details: species.details,
           onTap: () => setState(() {
             _selectedSpecies = species;
-            _selectedPokemonFormId = species.formIds.firstOrNull;
+            _selectedPokemonFormId = (catalogGift ? species.catalogGiftFormIds : species.formIds).firstOrNull;
           }),
         ),
       const SizedBox(height: 4),
@@ -3257,6 +3275,12 @@ class _SceneConsequencePickerDialogState
         onChanged: (_) => setState(() {}),
       ),
       const SizedBox(height: 12),
+      if (catalogGift)
+        const PokeMapDiagnosticCallout(
+          severity: PokeMapDiagnosticSeverity.info,
+          message: 'PV, attaques, PP et caractéristiques seront calculés depuis le catalogue actif. Le Pokémon rejoint l’équipe ou le PC.',
+        ),
+      if (!catalogGift) ...[
       PokeMapTextField(
         key: const ValueKey('scene-consequence-pokemon-current-hp-field'),
         label: 'PV courants',
@@ -3285,6 +3309,7 @@ class _SceneConsequencePickerDialogState
             : null,
         onChanged: (_) => setState(() {}),
       ),
+      ],
     ];
   }
 
@@ -3367,6 +3392,16 @@ class _SceneConsequencePickerDialogState
               nickname: _pokemonNicknameController.text,
               friendship: int.parse(_pokemonFriendshipController.text.trim()),
             ),
+      _SceneConsequencePickerMode.givePokemonFromCatalog =>
+        _selectedSpecies == null || _selectedPokemonFormId == null ||
+          !_selectedSpecies!.catalogGiftFormIds.contains(_selectedPokemonFormId) ||
+          (int.tryParse(_pokemonLevelController.text.trim()) ?? 0) < 1 ||
+          (int.tryParse(_pokemonLevelController.text.trim()) ?? 101) > 100
+        ? null
+        : SceneConsequence.givePokemonFromCatalog(
+          speciesId: _selectedSpecies!.id, formId: _selectedPokemonFormId!,
+          level: int.parse(_pokemonLevelController.text.trim()),
+        ),
       _SceneConsequencePickerMode.giveConfiguredStarter =>
         _selectedConfiguredStarter == null
             ? null

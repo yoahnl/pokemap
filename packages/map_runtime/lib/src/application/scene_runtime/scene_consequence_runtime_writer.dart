@@ -4,6 +4,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'scene_consequence_runtime_write_result.dart';
 import 'scene_game_completion_metadata.dart';
 import 'scene_npc_state_metadata.dart';
+import 'runtime_scene_pokemon_catalog.dart';
 
 String? scenePokemonGrantOperationId({
   required String sceneId,
@@ -12,6 +13,7 @@ String? scenePokemonGrantOperationId({
   required SceneConsequence consequence,
 }) {
   if (consequence.kind != SceneConsequenceKind.givePokemon &&
+      consequence.kind != SceneConsequenceKind.givePokemonFromCatalog &&
       consequence.kind != SceneConsequenceKind.giveConfiguredStarter) {
     return null;
   }
@@ -55,6 +57,7 @@ final class SceneConsequenceRuntimeWriter {
     this.maxPpByPartyIndex = const <int, Map<String, int>>{},
     this.mutations = const GameStateMutations(),
     this.mapInstanceScopes = const <String, MapInstanceRef>{},
+    this.pokemonCatalog,
   });
 
   final ProjectManifest project;
@@ -63,6 +66,7 @@ final class SceneConsequenceRuntimeWriter {
   final Map<int, Map<String, int>> maxPpByPartyIndex;
   final GameStateMutations mutations;
   final Map<String, MapInstanceRef> mapInstanceScopes;
+  final RuntimeScenePokemonCatalog? pokemonCatalog;
 
   static const int _maxPartySize = 6;
 
@@ -182,6 +186,11 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.givePokemon => _applyGivePokemon(
           gameState,
           consequence as SceneGivePokemonConsequence,
+          pokemonGrantOperationId,
+        ),
+      SceneConsequenceKind.givePokemonFromCatalog => _applyCatalogPokemon(
+          gameState,
+          consequence as SceneGivePokemonFromCatalogConsequence,
           pokemonGrantOperationId,
         ),
       SceneConsequenceKind.giveConfiguredStarter => _applyConfiguredStarter(
@@ -641,6 +650,54 @@ final class SceneConsequenceRuntimeWriter {
         pokemon: unresolvedPokemon,
       ),
     );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyCatalogPokemon(
+    GameState gameState,
+    SceneGivePokemonFromCatalogConsequence consequence,
+    String? grantOperationId,
+  ) {
+    final operationId = grantOperationId?.trim() ?? '';
+    if (operationId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPokemonGrantOperationId,
+        'Catalog gift requires a grant operation id.',
+      );
+    }
+    if (gameState.appliedPokemonGrantOperationIds.contains(operationId)) {
+      return _SceneConsequenceRuntimeWriteStep.applied(gameState);
+    }
+    final catalog = pokemonCatalog;
+    if (catalog == null) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+        'Catalog gift requires a preloaded active project Pokemon catalog.',
+      );
+    }
+    final PlayerPokemon pokemon;
+    try {
+      pokemon = catalog.generate(consequence: consequence, state: gameState,
+          operationId: operationId, ruleset: project.pokemon.ruleset);
+    } on FormatException catch (error) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+        error.message,
+      );
+    }
+    final granted = mutations.givePokemonOnce(gameState,
+        grantOperationId: operationId, pokemon: pokemon);
+    if (!granted.appliedPokemonGrantOperationIds.contains(operationId)) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.pokemonGrantRejected,
+        'Catalog gift could not be acquired by party or PC.',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(granted.copyWith(
+      progression: granted.progression.copyWith(
+        caughtSpeciesIds: {...granted.progression.caughtSpeciesIds, pokemon.speciesId}.toList(),
+        seenSpeciesIds: {...granted.progression.seenSpeciesIds, pokemon.speciesId}.toList(),
+      ).normalized(),
+    ));
   }
 
   _SceneConsequenceRuntimeWriteStep _applyConfiguredStarter(

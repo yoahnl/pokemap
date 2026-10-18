@@ -1361,6 +1361,8 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           ..._moneyRows(context, consequence)
         else if (consequence is SceneGivePokemonConsequence)
           ..._pokemonRows(context, consequence)
+        else if (consequence is SceneGivePokemonFromCatalogConsequence)
+          ..._catalogPokemonRows(context, consequence)
         else if (consequence is SceneGiveConfiguredStarterConsequence)
           ..._configuredStarterRows(context, consequence)
         else
@@ -1610,6 +1612,27 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     ];
   }
 
+  List<Widget> _catalogPokemonRows(BuildContext context, SceneGivePokemonFromCatalogConsequence consequence) {
+    final species = _catalogOptionFor(catalogs.species, consequence.speciesId);
+    final validForm = species?.catalogGiftFormIds.contains(consequence.formId) ?? false;
+    return [
+      const _InspectorRow(label: 'Type', value: 'Donner un Pokémon du catalogue'),
+      _InspectorRow(label: 'Pokémon', value: species?.label ?? 'Espèce locale indisponible'),
+      _InspectorRow(label: 'Forme', value: validForm ? scenePokemonFormLabel(consequence.formId) : 'Forme locale indisponible'),
+      _InspectorRow(label: 'Niveau', value: '${consequence.level}'),
+      if (!validForm)
+        const PokeMapDiagnosticCallout(
+          key: ValueKey('scene-catalog-gift-form-diagnostic'),
+          severity: PokeMapDiagnosticSeverity.error,
+          title: 'Forme du cadeau à corriger',
+          message: 'Cette forme ne peut pas être chargée pour un cadeau du catalogue. Choisissez la forme principale disponible.',
+        ),
+      const _InspectorNote(label: 'Caractéristiques, PV et attaques calculés dans le catalogue actif. Destination : équipe puis PC.'),
+      const SizedBox(height: 6),
+      _gameplayEditButton(context, consequence, enabled: catalogs.species.options.any((option) => option.catalogGiftFormIds.isNotEmpty)),
+    ];
+  }
+
   List<Widget> _configuredStarterRows(
     BuildContext context,
     SceneGiveConfiguredStarterConsequence consequence,
@@ -1844,10 +1867,12 @@ class _GameplayConsequenceEditSheetState
     };
     final initialSpeciesId = switch (consequence) {
       SceneGivePokemonConsequence(:final speciesId) => speciesId,
+      SceneGivePokemonFromCatalogConsequence(:final speciesId) => speciesId,
       _ => null,
     };
     final initialPokemonFormId = switch (consequence) {
       SceneGivePokemonConsequence(:final formId) => formId,
+      SceneGivePokemonFromCatalogConsequence(:final formId) => formId,
       _ => null,
     };
     final initialConfiguredStarterId = switch (consequence) {
@@ -1860,11 +1885,15 @@ class _GameplayConsequenceEditSheetState
       initialItemId,
     );
     _selectedSpeciesId = _resolveInitialSelection(
-      widget.catalogs.species.options,
+      consequence is SceneGivePokemonFromCatalogConsequence
+          ? widget.catalogs.species.options.where((option) => option.catalogGiftFormIds.isNotEmpty).toList()
+          : widget.catalogs.species.options,
       initialSpeciesId,
     );
     final selectedSpecies = _speciesOption(_selectedSpeciesId);
-    _selectedPokemonFormId =
+    _selectedPokemonFormId = consequence is SceneGivePokemonFromCatalogConsequence
+        ? selectedSpecies?.catalogGiftFormIds.firstOrNull
+        :
         selectedSpecies?.formIds.contains(initialPokemonFormId) == true
             ? initialPokemonFormId
             : selectedSpecies?.formIds.firstOrNull;
@@ -1885,9 +1914,11 @@ class _GameplayConsequenceEditSheetState
           : '100',
     );
     _levelController = TextEditingController(
-      text: consequence is SceneGivePokemonConsequence
-          ? '${consequence.level}'
-          : '5',
+      text: switch (consequence) {
+        SceneGivePokemonConsequence(:final level) => '$level',
+        SceneGivePokemonFromCatalogConsequence(:final level) => '$level',
+        _ => '5',
+      },
     );
     _currentHpController = TextEditingController(
       text: consequence is SceneGivePokemonConsequence
@@ -2001,25 +2032,34 @@ class _GameplayConsequenceEditSheetState
         ),
       ];
     }
-    if (consequence is SceneGivePokemonConsequence) {
+    if (consequence is SceneGivePokemonConsequence || consequence is SceneGivePokemonFromCatalogConsequence) {
+      final catalogGift = consequence is SceneGivePokemonFromCatalogConsequence;
       final level = int.tryParse(_levelController.text.trim());
       final currentHp = int.tryParse(_currentHpController.text.trim());
       final selectedSpecies = _speciesOption(_selectedSpeciesId);
-      final formIds = selectedSpecies?.formIds ?? const <String>[];
+      final formIds = (catalogGift ? selectedSpecies?.catalogGiftFormIds : selectedSpecies?.formIds) ?? const <String>[];
       return [
+        if (consequence is SceneGivePokemonFromCatalogConsequence &&
+            !(_speciesOption(consequence.speciesId)?.catalogGiftFormIds.contains(consequence.formId) ?? false))
+          const PokeMapDiagnosticCallout(
+            key: ValueKey('scene-catalog-gift-repair-diagnostic'),
+            severity: PokeMapDiagnosticSeverity.warning,
+            message: 'La forme enregistrée est indisponible pour ce cadeau. Enregistrez une forme principale chargeable pour la remplacer.',
+          ),
         PokeMapDropdownField<String>(
           key: const ValueKey('scene-gameplay-consequence-species-picker'),
           label: 'Pokémon',
           value: _selectedSpeciesId ?? '',
           items: [
             for (final option in widget.catalogs.species.options)
+              if (!catalogGift || option.catalogGiftFormIds.isNotEmpty)
               PokeMapDropdownItem(value: option.id, label: option.label),
           ],
           enabled: widget.catalogs.species.options.isNotEmpty,
           onChanged: (value) => setState(() {
             _selectedSpeciesId = value;
             final species = _speciesOption(value);
-            _selectedPokemonFormId = species?.formIds.firstOrNull;
+            _selectedPokemonFormId = (catalogGift ? species?.catalogGiftFormIds : species?.formIds)?.firstOrNull;
           }),
         ),
         const SizedBox(height: 12),
@@ -2056,6 +2096,7 @@ class _GameplayConsequenceEditSheetState
               : null,
           onChanged: (_) => setState(() {}),
         ),
+        if (consequence is SceneGivePokemonConsequence) ...[
         const SizedBox(height: 12),
         PokeMapTextField(
           key: const ValueKey(
@@ -2069,6 +2110,7 @@ class _GameplayConsequenceEditSheetState
               : null,
           onChanged: (_) => setState(() {}),
         ),
+        ],
       ];
     }
     if (consequence is SceneGiveConfiguredStarterConsequence) {
@@ -2161,6 +2203,11 @@ class _GameplayConsequenceEditSheetState
                 label: label,
                 notes: notes,
               ),
+      SceneGivePokemonFromCatalogConsequence() =>
+        _selectedSpeciesId == null || _selectedPokemonFormId == null ||
+          !(_speciesOption(_selectedSpeciesId)?.catalogGiftFormIds.contains(_selectedPokemonFormId) ?? false) || level == null || level < 1 || level > 100
+          ? null
+          : SceneConsequence.givePokemonFromCatalog(speciesId: _selectedSpeciesId!, formId: _selectedPokemonFormId!, level: level),
       SceneGiveConfiguredStarterConsequence(:final label, :final notes) =>
         _selectedConfiguredStarterId == null
             ? null
@@ -3366,6 +3413,13 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
       const _InspectorRow(label: 'consequence', value: 'Donner un Pokémon'),
       _InspectorRow(label: 'niveau', value: '${consequence.level}'),
       _InspectorRow(label: 'PV courants', value: '${consequence.currentHp}'),
+    ];
+  }
+  if (consequence is SceneGivePokemonFromCatalogConsequence) {
+    return [
+      const _InspectorRow(label: 'consequence', value: 'Donner un Pokémon du catalogue'),
+      _InspectorRow(label: 'niveau', value: '${consequence.level}'),
+      const _InspectorRow(label: 'destination', value: 'Équipe ou PC'),
     ];
   }
   if (consequence is SceneGiveConfiguredStarterConsequence) {

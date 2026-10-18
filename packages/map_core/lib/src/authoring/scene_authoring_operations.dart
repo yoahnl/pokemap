@@ -2068,6 +2068,11 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
           'givePokemon consequence currentHp must be positive.',
         );
       }
+    case SceneGivePokemonFromCatalogConsequence():
+      if (consequence.speciesId.isEmpty || consequence.formId.isEmpty ||
+          consequence.level < 1 || consequence.level > 100) {
+        throw ArgumentError.value(consequence, 'consequence', 'Invalid catalog gift.');
+      }
     case SceneGiveConfiguredStarterConsequence():
       _trimRequired(
         consequence.starterOptionId,
@@ -2765,6 +2770,7 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneTakeItemConsequence() => 'Retirer un objet',
     SceneGiveMoneyConsequence() => 'Donner de l’argent',
     SceneGivePokemonConsequence() => 'Donner un Pokémon',
+    SceneGivePokemonFromCatalogConsequence() => 'Donner un Pokémon du catalogue',
     SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
     SceneSetNpcPresenceConsequence() => 'Modifier la présence d’un PNJ',
     SceneSetPauseMenuEntryVisibilityConsequence() =>

@@ -77,6 +77,7 @@ import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_grant.dart';
 import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
+import '../../application/scene_runtime/runtime_scene_pokemon_catalog.dart';
 import '../../application/runtime_pokemon_evolution_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_post_battle_decision_coordinator.dart';
@@ -11778,6 +11779,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return SceneConsequenceRuntimeWriter(
       project: project,
       mapsById: mapsById,
+      pokemonCatalog: await loadRuntimeScenePokemonCatalog(
+        scene: scene,
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: project.pokemon,
+        speciesLoader: _battleSpeciesLoader,
+        learnsetLoader: _battleLearnsetLoader,
+        moveCatalogLoader: _battleMoveCatalogLoader,
+      ),
       maxHpByPartyIndex: recoveryCaps.maxHpByPartyIndex,
       maxPpByPartyIndex: recoveryCaps.maxPpByPartyIndex,
       mapInstanceScopes: Map.unmodifiable({

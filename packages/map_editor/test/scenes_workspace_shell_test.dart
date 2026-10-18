@@ -1271,6 +1271,84 @@ void main() {
       },
     );
 
+    for (final primaryFormId in ['base', 'bronze']) {
+    testWidgets('creates a native catalog gift with guided species form and level $primaryFormId', (tester) async {
+      final container = await _pumpNarrativeShell(tester,
+        project: _projectWithConsequenceAuthoringTargets(),
+        projectRootPath: '/project', workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(const _SceneTestWorkspaceFactory()),
+          sceneItemDefinitionLoaderProvider.overrideWithValue((_) async => const <ProjectItemDefinition>[]),
+          pokedexEntryLoaderProvider.overrideWithValue((_) async => [
+            PokemonDatabaseIndexEntry(id: 'species_sproutle', nationalDex: 1,
+              primaryName: 'Sproutle', genIntroduced: 1, types: ['grass'],
+              primaryFormId: primaryFormId, formIds: ['sunny', 'base', 'bronze'], isEnabledInProject: true,
+              refs: PokemonDatabaseIndexRefs(learnset: 'learnsets/sproutle.json', evolution: 'evolutions/sproutle.json', media: 'media/sproutle.json')),
+          ]),
+        ]);
+      await tester.ensureVisible(find.byKey(const ValueKey('scenes-add-node-action-consequence')));
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-action-consequence')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scene-consequence-kind-givePokemonFromCatalog')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('scene-consequence-species-option-species_sproutle')));
+      final form = tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-consequence-pokemon-form-picker')));
+      expect(form.items.map((item) => item.value), [primaryFormId]);
+      await tester.enterText(find.descendant(of: find.byKey(const ValueKey('scene-consequence-pokemon-level-field')), matching: find.byType(TextField)), '7');
+      await tester.pump();
+      expect(find.byKey(const ValueKey('scene-consequence-pokemon-current-hp-field')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('scene-consequence-create-action')));
+      await tester.pumpAndSettle();
+      final consequence = (container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.last.payload as SceneActionPayload).consequence;
+      expect(consequence, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: primaryFormId, level: 7));
+      final createdNode = container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.last;
+      await tester.tap(find.byKey(ValueKey('scene-graph-node-${createdNode.id}')));
+      await tester.pumpAndSettle();
+      expect(find.text('Donner un Pokémon du catalogue'), findsWidgets);
+      await tester.tap(find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('scene-gameplay-consequence-current-hp-field')), findsNothing);
+      await tester.enterText(find.descendant(of: find.byKey(const ValueKey('scene-gameplay-consequence-level-field')), matching: find.byType(TextField)), '9');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('scene-gameplay-consequence-save-action')));
+      await tester.pumpAndSettle();
+      final edited = (container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.last.payload as SceneActionPayload).consequence;
+      expect(edited, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: primaryFormId, level: 9));
+    });
+    }
+
+    testWidgets('catalog gift inspector diagnoses and repairs an unsupported stored form', (tester) async {
+      final container = await _pumpNarrativeShell(tester,
+        project: _projectWithGameplayConsequenceActionScene(SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: 'sunny', level: 7)),
+        projectRootPath: '/project', workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(const _SceneTestWorkspaceFactory()),
+          sceneItemDefinitionLoaderProvider.overrideWithValue((_) async => const <ProjectItemDefinition>[]),
+          pokedexEntryLoaderProvider.overrideWithValue((_) async => const [
+            PokemonDatabaseIndexEntry(id: 'species_sproutle', nationalDex: 1,
+              primaryName: 'Sproutle', genIntroduced: 1, types: ['grass'],
+              primaryFormId: 'base', formIds: ['base', 'sunny'], isEnabledInProject: true,
+              refs: PokemonDatabaseIndexRefs(learnset: 'sproutle', evolution: 'sproutle', media: 'sproutle')),
+          ]),
+        ]);
+      await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_action')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('scene-catalog-gift-form-diagnostic')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('scene-catalog-gift-repair-diagnostic')), findsOneWidget);
+      final form = tester.widget<PokeMapDropdownField<String>>(find.byKey(const ValueKey('scene-gameplay-consequence-form-picker')));
+      expect(form.items.map((item) => item.value), ['base']);
+      expect(form.value, 'base');
+      expect(((container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.firstWhere((node) => node.id == 'node_action').payload as SceneActionPayload).consequence as SceneGivePokemonFromCatalogConsequence).formId, 'sunny');
+      await tester.tap(find.byKey(const ValueKey('scene-gameplay-consequence-save-action')));
+      await tester.pumpAndSettle();
+      final edited = (container.read(editorNotifierProvider).project!.scenes.single.graph.nodes.firstWhere((node) => node.id == 'node_action').payload as SceneActionPayload).consequence;
+      expect(edited, SceneConsequence.givePokemonFromCatalog(speciesId: 'species_sproutle', formId: 'base', level: 7));
+      expect(find.byKey(const ValueKey('scene-catalog-gift-form-diagnostic')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
       'creates a configured starter from New Game options without raw IDs',
       (tester) async {

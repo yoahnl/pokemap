@@ -5,9 +5,71 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
+import 'package:map_editor/src/features/narrative/state/scene_consequence_catalog_providers.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  for (final primaryFormId in ['base', 'bronze']) {
+  testWidgets('catalog gift builder offers only the resolved primary form $primaryFormId', (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(tester,
+      initialCommandId: NarrativeCommandIds.givePokemonFromCatalog,
+      initialParameters: {'speciesId': 'bird', 'formId': primaryFormId, 'level': '5'},
+      onSubmit: (payload) => submitted = payload,
+      options: {
+        NarrativeCommandParameterKind.species: [const SceneActionPickerOption(id: 'bird', label: 'Bird')],
+        NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([
+          SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', primaryFormId: primaryFormId, formIds: ['sunny', primaryFormId]),
+        ]),
+      },
+    );
+    final form = tester.widget<PokeMapDropdownField<String>>(find.byWidgetPredicate((widget) => widget is PokeMapDropdownField<String> && widget.label == 'Forme'));
+    expect(form.items.map((item) => item.value), [primaryFormId]);
+    expect(_submitButton(tester).onPressed, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    expect((submitted as SceneActionPayload).consequence, SceneConsequence.givePokemonFromCatalog(speciesId: 'bird', formId: primaryFormId, level: 5));
+  });
+  }
+
+  testWidgets('catalog gift builder refuses forms without resolved primary metadata', (tester) async {
+    await _pumpBuilder(tester,
+      initialCommandId: NarrativeCommandIds.givePokemonFromCatalog,
+      initialParameters: const {'speciesId': 'bird', 'formId': 'base', 'level': '5'},
+      onSubmit: (_) => fail('Unresolved primary form must not submit'),
+      options: {
+        NarrativeCommandParameterKind.species: [const SceneActionPickerOption(id: 'bird', label: 'Bird')],
+        NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([
+          const SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', formIds: ['base']),
+        ]),
+      },
+    );
+    expect(_submitButton(tester).onPressed, isNull);
+    expect(find.byWidgetPredicate((widget) => widget is PokeMapDropdownField<String> && widget.label == 'Forme'), findsNothing);
+  });
+
+  testWidgets('catalog gift builder repairs an unsupported initial form through its primary picker', (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(tester,
+      initialCommandId: NarrativeCommandIds.givePokemonFromCatalog,
+      initialParameters: const {'speciesId': 'bird', 'formId': 'sunny', 'level': '5'},
+      onSubmit: (payload) => submitted = payload,
+      options: {
+        NarrativeCommandParameterKind.species: [const SceneActionPickerOption(id: 'bird', label: 'Bird')],
+        NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions([
+          const SceneConsequenceCatalogOption(id: 'bird', label: 'Bird', primaryFormId: 'bronze', formIds: ['sunny', 'bronze']),
+        ]),
+      },
+    );
+    expect(_submitButton(tester).onPressed, isNull);
+    final form = tester.widget<PokeMapDropdownField<String>>(find.byWidgetPredicate((widget) => widget is PokeMapDropdownField<String> && widget.label == 'Forme'));
+    expect(form.items.map((item) => item.value), ['', 'bronze']);
+    form.onChanged('bronze');
+    await tester.pump();
+    expect(_submitButton(tester).onPressed, isNotNull);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    expect((submitted as SceneActionPayload).consequence, SceneConsequence.givePokemonFromCatalog(speciesId: 'bird', formId: 'bronze', level: 5));
+  });
+
   testWidgets('route wait uses a native map picker and submits only its exact reference', (tester) async {
     SceneNodePayload? submitted;
     const project = ProjectManifest(name: 'Barrier', maps: [ProjectMapEntry(id: 'port', name: 'Port', relativePath: 'maps/port.json')], tilesets: []);

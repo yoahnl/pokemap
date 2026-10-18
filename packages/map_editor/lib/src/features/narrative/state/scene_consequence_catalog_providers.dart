@@ -22,6 +22,7 @@ final class SceneConsequenceCatalogOption {
     required this.label,
     this.details = const <String>[],
     this.formIds = const <String>[],
+    this.primaryFormId,
     this.itemDefinition,
   });
 
@@ -29,6 +30,12 @@ final class SceneConsequenceCatalogOption {
   final String label;
   final List<String> details;
   final List<String> formIds;
+  final String? primaryFormId;
+
+  List<String> get catalogGiftFormIds {
+    final formId = primaryFormId?.trim();
+    return formId == null || formId.isEmpty ? const [] : [formId];
+  }
   final ProjectItemDefinition? itemDefinition;
 }
 
@@ -312,6 +319,7 @@ Future<SceneConsequenceCatalogSection> _loadSpecies(
             id: entry.id.trim(),
             label: entry.primaryName.trim(),
             formIds: List<String>.from(entry.formIds),
+            primaryFormId: entry.primaryFormId,
             details: <String>[
               'Pokédex n°${entry.nationalDex}',
             ],

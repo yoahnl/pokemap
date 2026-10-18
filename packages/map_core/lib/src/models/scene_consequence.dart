@@ -16,6 +16,7 @@ enum SceneConsequenceKind {
   grantRailCurrency,
   grantRailStamp,
   givePokemon,
+  givePokemonFromCatalog,
   giveConfiguredStarter,
   healParty,
   awardBadge,
@@ -117,6 +118,12 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneGiveConfiguredStarterConsequence;
 
+  factory SceneConsequence.givePokemonFromCatalog({
+    required String speciesId,
+    required String formId,
+    required int level,
+  }) = SceneGivePokemonFromCatalogConsequence;
+
   factory SceneConsequence.healParty({
     String? label,
     String? notes,
@@ -181,6 +188,8 @@ abstract base class SceneConsequence {
         SceneGrantRailStampConsequence.fromJson(json),
       SceneConsequenceKind.givePokemon =>
         SceneGivePokemonConsequence.fromJson(json),
+      SceneConsequenceKind.givePokemonFromCatalog =>
+        SceneGivePokemonFromCatalogConsequence.fromJson(json),
       SceneConsequenceKind.giveConfiguredStarter =>
         SceneGiveConfiguredStarterConsequence.fromJson(json),
       SceneConsequenceKind.healParty =>
@@ -800,6 +809,56 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
 }
 
 @immutable
+final class SceneGivePokemonFromCatalogConsequence extends SceneConsequence {
+  SceneGivePokemonFromCatalogConsequence({
+    required String speciesId,
+    required String formId,
+    required this.level,
+  }) : speciesId = speciesId.trim(),
+       formId = formId.trim() {
+    if (this.speciesId.isEmpty || this.formId.isEmpty || level < 1 || level > 100) {
+      throw const FormatException('Catalog gift requires species, form and a level between 1 and 100.');
+    }
+  }
+
+  factory SceneGivePokemonFromCatalogConsequence.fromJson(Map<String, dynamic> json) {
+    const fields = {'kind', 'speciesId', 'formId', 'level'};
+    if (json.keys.any((field) => !fields.contains(field)) ||
+        json['kind'] != 'givePokemonFromCatalog' || json['level'] is! int) {
+      throw const FormatException('Invalid catalog gift fields.');
+    }
+    return SceneGivePokemonFromCatalogConsequence(
+      speciesId: _readRequiredString(json, 'speciesId'),
+      formId: _readRequiredString(json, 'formId'),
+      level: json['level'] as int,
+    );
+  }
+
+  final String speciesId;
+  final String formId;
+  final int level;
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.givePokemonFromCatalog;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': _kindToJson(kind),
+    'speciesId': speciesId,
+    'formId': formId,
+    'level': level,
+  };
+
+  @override
+  bool operator ==(Object other) => identical(this, other) ||
+      other is SceneGivePokemonFromCatalogConsequence &&
+      other.speciesId == speciesId && other.formId == formId && other.level == level;
+
+  @override
+  int get hashCode => Object.hash(speciesId, formId, level);
+}
+
+@immutable
 final class SceneGiveConfiguredStarterConsequence extends SceneConsequence {
   SceneGiveConfiguredStarterConsequence({
     required String starterOptionId,
@@ -1278,6 +1337,7 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.grantRailCurrency => 'grantRailCurrency',
     SceneConsequenceKind.grantRailStamp => 'grantRailStamp',
     SceneConsequenceKind.givePokemon => 'givePokemon',
+    SceneConsequenceKind.givePokemonFromCatalog => 'givePokemonFromCatalog',
     SceneConsequenceKind.giveConfiguredStarter => 'giveConfiguredStarter',
     SceneConsequenceKind.healParty => 'healParty',
     SceneConsequenceKind.awardBadge => 'awardBadge',

@@ -408,6 +408,10 @@ _PreviewConsequenceResult _previewConsequence({
         state,
         partyMemberCount: state.partyMemberCount + 1,
       );
+    case SceneGivePokemonFromCatalogConsequence():
+      before = 'party=${state.partyMemberCount}';
+      after = '${consequence.speciesId} (${consequence.formId}) niv. ${consequence.level}, équipe ou PC';
+      next = _copyConsequenceState(state, partyMemberCount: state.partyMemberCount < 6 ? state.partyMemberCount + 1 : state.partyMemberCount);
     case SceneGiveConfiguredStarterConsequence():
       before = 'party=${state.partyMemberCount}';
       after = 'party=${state.partyMemberCount + 1} '

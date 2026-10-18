@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -113,6 +114,18 @@ void main() {
       project: _project(),
       mapsById: {'map_test': _map()},
       maxHpByPartyIndex: const {0: 20},
+      pokemonCatalog: RuntimeScenePokemonCatalog(entries: {
+        'sproutle': RuntimeScenePokemonCatalogEntry(
+          species: const WildPokemonGenerationSpecies(
+            id: 'sproutle', formId: 'base',
+            baseStats: PokemonBaseStats(hp: 45, attack: 49, defense: 49, specialAttack: 65, specialDefense: 65, speed: 45),
+            primaryAbilityId: 'overgrow', standardAbilityIds: ['overgrow'], allowedAbilityIds: ['overgrow'],
+            genderRatio: {'male': 1}, growthRateId: 'medium_fast', baseFriendship: 70,
+          ),
+          learnset: const WildPokemonGenerationLearnset(startingMoves: ['tackle']),
+          maxPpByMoveId: {'tackle': 35},
+        ),
+      }),
       maxPpByPartyIndex: const {
         0: {'tackle': 35},
       },
@@ -128,6 +141,7 @@ void main() {
         pokemonGrantOperationId: consequence.kind ==
                     SceneConsequenceKind.givePokemon ||
                 consequence.kind == SceneConsequenceKind.giveConfiguredStarter
+                || consequence.kind == SceneConsequenceKind.givePokemonFromCatalog
             ? 'scene:parity:execution:${entry.key}'
             : null,
       );
@@ -363,6 +377,9 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
             level: 5,
             currentHp: 18,
           ),
+      NarrativeCommandIds.givePokemonFromCatalog: () => SceneConsequence.givePokemonFromCatalog(
+        speciesId: 'sproutle', formId: 'base', level: 5,
+      ),
       NarrativeCommandIds.giveConfiguredStarter: () =>
           SceneConsequence.giveConfiguredStarter(
             starterOptionId: 'starter_sproutle',

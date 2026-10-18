@@ -28,6 +28,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   invalidPokemonLevel,
   invalidPokemonCurrentHp,
   invalidPokemonDefinition,
+  pokemonGrantRejected,
   missingPokemonGrantOperationId,
   missingStarterOptionReference,
   unknownStarterOption,

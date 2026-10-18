@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../support/spatial_smart_tile_fixture.dart';
+import '../support/scene_catalog_pokemon_gift_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -207,6 +208,25 @@ void main() {
         snapshotRevision: snapshot.revision, choiceIndex: 1));
     expect((await dialogue).outcomeId, 'declined');
     expect(runtime.dialoguePresentationListenable.value, isNull);
+  });
+
+  test('spatial scene factory preloads a native catalog Pokemon gift', () async {
+    final config = await writeSceneCatalogPokemonGiftFixture(root);
+    bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(
+      pokemon: config,
+      eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+        records: [spatialEvent(NarrativeEventSourceRef.mapEnter('field'), 'arrival')], legacyClaims: const []),
+      scenes: [spatialScene('arrival', [SceneConsequence.givePokemonFromCatalog(speciesId: 'clockbird', formId: 'bronze', level: 7)])],
+    ));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final pokemon = runtime.gameStateSnapshot.party.members.single;
+    expect(pokemon.speciesId, 'clockbird');
+    expect(pokemon.formId, 'bronze');
+    expect(pokemon.currentPpByMoveId, {'tick': 13, 'tock': 19});
+    expect(pokemon.experience, 343);
+    expect(runtime.gameStateSnapshot.progression.caughtSpeciesIds, ['clockbird']);
+    expect(runtime.gameStateSnapshot.appliedPokemonGrantOperationIds, hasLength(1));
   });
 
   test('native map enter commits its Event V2 scene exactly once', () async {

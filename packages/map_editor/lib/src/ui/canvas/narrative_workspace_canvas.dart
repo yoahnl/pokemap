@@ -5008,15 +5008,7 @@ _buildSceneActionPickerOptions(
     NarrativeCommandParameterKind.storyStep: fromCatalog(catalogs.storySteps),
     NarrativeCommandParameterKind.item: fromCatalog(catalogs.items),
     NarrativeCommandParameterKind.species: fromCatalog(catalogs.species),
-    NarrativeCommandParameterKind.speciesForm: [
-      for (final species in catalogs.species.options)
-        for (final formId in species.formIds)
-          SceneActionPickerOption(
-            id: formId,
-            label: scenePokemonFormLabel(formId),
-            parentId: species.id,
-          ),
-    ],
+    NarrativeCommandParameterKind.speciesForm: buildScenePokemonFormPickerOptions(catalogs.species.options),
     NarrativeCommandParameterKind.starter: fromCatalog(
       catalogs.configuredStarters,
     ),
