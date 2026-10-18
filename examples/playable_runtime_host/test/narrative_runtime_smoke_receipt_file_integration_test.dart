@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 
 import '../tool/verify_narrative_project.dart';
 
+import 'support/runtime_smoke_profile_fixture.dart';
+
 void main() {
   test('atomic writer publishes a decodable receipt', () async {
     final root = await Directory.systemTemp.createTemp('receipt_atomic_');
@@ -59,9 +61,9 @@ NarrativeRuntimeSmokeReceipt _receipt(String hex) =>
     NarrativeRuntimeSmokeReceipt(
       projectFingerprint: 'sha256:${hex * 64}',
       validatorVersion: 'v1',
-      profileId: selbrumeReleaseV1Profile.id,
+      profileId: runtimeSmokeProfileFixture.id,
       profileVersion: 1,
-      suiteIds: selbrumeReleaseV1Profile.requiredSuiteIds,
+      suiteIds: runtimeSmokeProfileFixture.requiredSuiteIds,
       fixtureId: 'selbrume',
       result: NarrativeRuntimeSmokeResult.pass,
       completedAt: DateTime.utc(2026),

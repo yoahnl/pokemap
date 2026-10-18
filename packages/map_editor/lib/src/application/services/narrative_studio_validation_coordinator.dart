@@ -15,7 +15,7 @@ final class NarrativeStudioValidationCoordinator {
     required List<MapData> maps,
     required NarrativeProjectValidationReport projectReport,
     required String projectFingerprint,
-    required NarrativeRuntimeSmokeProfile profile,
+    required NarrativeRuntimeSmokeProfile? profile,
     required NarrativeRuntimeSmokeReceiptResolution runtimeReceipt,
     DateTime? generatedAt,
   }) {
@@ -43,8 +43,8 @@ final class NarrativeStudioValidationCoordinator {
 
     return NarrativeMultidimensionalValidationReport(
       validatorVersion: validatorVersion,
-      profileId: profile.id,
-      profileVersion: profile.version,
+      profileId: profile?.id,
+      profileVersion: profile?.version,
       projectFingerprint: projectFingerprint,
       generatedAt: generatedAt ?? DateTime.now().toUtc(),
       structurallyValid: NarrativeValidationDimensionResult(

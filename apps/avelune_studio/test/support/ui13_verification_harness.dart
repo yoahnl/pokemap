@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/dialogues/application/dialogue_workspace_controller.dart';
@@ -13,10 +14,12 @@ import 'package:avelune_studio/features/verification/application/verification_wo
 import 'package:avelune_studio/features/verification/data/local_verification_adapter.dart';
 import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
 import 'package:avelune_studio/features/world/data/local_world_adapter.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../tool/create_example_project.dart';
 import 'ui06_scene_fixture.dart';
 import 'ui13_verification_fixture.dart';
+import 'runtime_smoke_profile_fixture.dart';
 
 /// A real project on disk carrying faults the canonical validators produce:
 /// a rule whose state does not exist, a rule aimed at an entity that is not on
@@ -62,10 +65,20 @@ class Ui13VerificationHarness {
     VerificationPort Function(VerificationPort)? wrap,
     bool seedProblems = true,
     bool homonyms = false,
+    bool configureRuntimeProfile = true,
+    NarrativeRuntimeSmokeProfile? runtimeProfile,
   }) async {
     final temporary = await Directory.systemTemp.createTemp('avelune_ui13_');
     final directory = Directory(await temporary.resolveSymbolicLinks());
     await writeExampleProject(directory);
+    final manifestFile = File('${directory.path}/project.json');
+    final manifestJson = jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
+    if (configureRuntimeProfile) {
+      manifestJson['runtimeSmokeProfile'] = (runtimeProfile ?? runtimeSmokeProfileFixture).toJson();
+    } else {
+      manifestJson.remove('runtimeSmokeProfile');
+    }
+    await manifestFile.writeAsString(jsonEncode(manifestJson));
     if (seedProblems) await seedUi13Fixture(directory, homonyms: homonyms);
     return open(directory, wrap: wrap);
   }

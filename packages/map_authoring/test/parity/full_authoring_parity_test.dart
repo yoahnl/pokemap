@@ -7,6 +7,12 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('runtime verification policy cites dedicated transport proofs', () {
+      final evidence = AuthoringFullParityCatalog.canonical().requireMutationAction('validation.runtime_smoke_profile.configure');
+      expect(evidence.contractTestPath, 'test/domains/project/runtime_smoke_profile_actions_test.dart');
+      expect(evidence.endToEndEvidence[AuthoringTransport.mcp], '../../tools/pokemap_mcp/test/runtime_smoke_profile_stdio.test.ts');
+      expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.editor), isFalse);
+    });
     test('publishes no map-shadow actions or resources', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       expect(
@@ -800,6 +806,7 @@ const Set<String> _characterStudioActionIds = <String>{
 };
 
 final Set<String> _approvedResourceKinds = {
+  'runtimeSmokeProfile',
   'resourcePackJob',
   'resourcePackInspection',
   'resourcePackEntry',

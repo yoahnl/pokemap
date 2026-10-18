@@ -3,6 +3,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_studio_validation_coordinator.dart';
 import 'package:map_editor/src/infrastructure/repositories/narrative_runtime_smoke_receipt_repository.dart';
 
+import 'support/runtime_smoke_profile_fixture.dart';
+
 void main() {
   test('keeps four dimensions independent and refuses absent smoke', () {
     final symbolic = NarrativeSymbolicReachabilityReport(
@@ -29,7 +31,7 @@ void main() {
         symbolicReachability: symbolic,
       ),
       projectFingerprint: 'sha256:${'e' * 64}',
-      profile: selbrumeReleaseV1Profile,
+      profile: runtimeSmokeProfileFixture,
       runtimeReceipt: const NarrativeRuntimeSmokeReceiptResolution(
         state: NarrativeRuntimeReceiptState.absent,
         reason: 'absent',

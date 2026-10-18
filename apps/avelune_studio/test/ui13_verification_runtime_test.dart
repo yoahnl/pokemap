@@ -8,6 +8,8 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'support/ui13_verification_harness.dart';
 
+import 'support/runtime_smoke_profile_fixture.dart';
+
 Future<void> writeReceipt(
   Ui13VerificationHarness h,
   Map<String, Object?> body,
@@ -21,11 +23,11 @@ Future<void> writeReceipt(
 
 Map<String, Object?> receipt({
   required String fingerprint,
-  String profileId = 'selbrume-release-v1',
+  String profileId = 'test-release-v1',
   int profileVersion = 1,
   List<String> suiteIds = const [
-    'selbrume-lighthouse-retry',
-    'selbrume-player-journey',
+    'test-retry',
+    'test-journey',
   ],
   String result = 'pass',
 }) => {
@@ -45,9 +47,41 @@ const _otherFingerprint =
     'sha256:1111111111111111111111111111111111111111111111111111111111111111';
 
 Future<VerificationRuntimeEvidence> evidenceOf(Ui13VerificationHarness h) =>
-    h.port.readRuntimeEvidence(selbrumeReleaseV1Profile);
+    h.port.readRuntimeEvidence(runtimeSmokeProfileFixture);
 
 void main() {
+  test('verification uses each project policy and never selects it from a receipt', () async {
+    for (final id in ['project-one', 'project-two']) {
+      final profile = NarrativeRuntimeSmokeProfile(id: id, version: 2, requiredSuiteIds: ['$id-start', '$id-win']);
+      final h = await Ui13VerificationHarness.create(runtimeProfile: profile);
+      addTearDown(h.dispose);
+      final adapter = LocalVerificationAdapter(session: h.session, mapAdapter: h.adapter);
+      final fingerprint = await adapter.projectFingerprint();
+      await writeReceipt(h, receipt(fingerprint: fingerprint, profileId: id, profileVersion: 2, suiteIds: profile.requiredSuiteIds));
+      expect(await h.verification.run(), isTrue);
+      final report = h.verification.report!.dimensions;
+      expect(report.profileId, id);
+      expect(report.profileVersion, 2);
+      expect(report.runtimeSmokeVerified.status, NarrativeValidationStatus.pass);
+      await writeReceipt(h, receipt(fingerprint: fingerprint));
+      expect(await h.verification.run(), isTrue);
+      expect(h.verification.report!.dimensions.runtimeSmokeVerified.status, NarrativeValidationStatus.notRun);
+    }
+  });
+
+  test('an unconfigured project stays notRun even with a valid fresh receipt', () async {
+    final h = await Ui13VerificationHarness.create(configureRuntimeProfile: false);
+    addTearDown(h.dispose);
+    final adapter = LocalVerificationAdapter(session: h.session, mapAdapter: h.adapter);
+    await writeReceipt(h, receipt(fingerprint: await adapter.projectFingerprint()));
+    expect(await h.verification.run(), isTrue);
+    final report = h.verification.report!.dimensions;
+    expect(report.profileId, isNull);
+    expect(report.profileVersion, isNull);
+    expect(report.runtimeSmokeVerified.status, NarrativeValidationStatus.notRun);
+    expect(report.runtimeSmokeVerified.limitations.join(' '), contains('Aucun profil'));
+  });
+
   test('a receipt of another version is stale, never a success', () async {
     final h = await Ui13VerificationHarness.create();
     addTearDown(h.dispose);
@@ -79,12 +113,12 @@ void main() {
       h,
       receipt(
         fingerprint: _otherFingerprint,
-        suiteIds: const ['selbrume-lighthouse-retry'],
+        suiteIds: const ['test-retry'],
       ),
     );
     final evidence = await evidenceOf(h);
     expect(evidence.state, VerificationRuntimeState.incompleteSuites);
-    expect(evidence.reason, contains('selbrume-player-journey'));
+    expect(evidence.reason, contains('test-journey'));
   });
 
   test('an unreadable receipt is reported, not ignored', () async {

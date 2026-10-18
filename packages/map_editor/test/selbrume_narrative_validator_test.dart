@@ -9,63 +9,73 @@ import 'package:map_editor/src/infrastructure/repositories/narrative_runtime_smo
 import 'package:path/path.dart' as p;
 
 void main() {
-  test('canonical Selbrume passes bounded solvability and runtime proof',
-      () async {
-    final projectRoot = p.normalize(
-      p.join(Directory.current.path, '..', '..', 'selbrume'),
-    );
-    final session = await NarrativeEventAuthoringSession.prepare(
-      p.join(projectRoot, 'project.json'),
-    );
+  test(
+    'canonical Selbrume passes bounded solvability and configured runtime policy',
+    () async {
+      final projectRoot = p.normalize(
+        p.join(Directory.current.path, '..', '..', 'selbrume'),
+      );
+      final session = await NarrativeEventAuthoringSession.prepare(
+        p.join(projectRoot, 'project.json'),
+      );
 
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final request = NarrativeValidatorSnapshotRequest.fromProject(
-      projectRootPath: projectRoot,
-      project: session.manifest,
-    );
-    final report = await container.read(
-      narrativeValidatorReportProvider(request).future,
-    );
-    final criticalDiagnostics = report.diagnostics
-        .where(
-          (diagnostic) =>
-              diagnostic.severity == NarrativeProjectDiagnosticSeverity.error,
-        )
-        .toList(growable: false);
-
-    final canonicalEventCount = session.manifest.eventRegistry?.records.length;
-    expect(canonicalEventCount, greaterThanOrEqualTo(27));
-    expect(report.totalEventCount, canonicalEventCount);
-    expect(
-      report.mapEventViews
-          .where((view) => view.groupKind == NarrativeMapEventsGroupKind.map),
-      hasLength(session.manifest.maps.length),
-    );
-    expect(
-      criticalDiagnostics,
-      isEmpty,
-      reason: criticalDiagnostics
-          .map(
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final request = NarrativeValidatorSnapshotRequest.fromProject(
+        projectRootPath: projectRoot,
+        project: session.manifest,
+      );
+      final report = await container.read(
+        narrativeValidatorReportProvider(request).future,
+      );
+      final criticalDiagnostics = report.diagnostics
+          .where(
             (diagnostic) =>
-                '${diagnostic.code} · ${diagnostic.path} · ${diagnostic.message}',
+                diagnostic.severity == NarrativeProjectDiagnosticSeverity.error,
           )
-          .join('\n'),
-    );
-    expect(
-      report.narrativelySolvable,
-      NarrativeSymbolicVerdict.pass,
-      reason: 'La campagne canonique doit être prouvée dans le budget borné.',
-    );
+          .toList(growable: false);
 
-    const receipts = NarrativeRuntimeSmokeReceiptRepository();
-    final fingerprint = await receipts.computeProjectFingerprint(projectRoot);
-    final runtimeReceipt = await receipts.read(
-      projectRoot: projectRoot,
-      expectedFingerprint: fingerprint,
-      profile: selbrumeReleaseV1Profile,
-    );
-    expect(runtimeReceipt.state, NarrativeRuntimeReceiptState.freshPass);
-    expect(runtimeReceipt.receipt?.projectFingerprint, fingerprint);
-  }, timeout: const Timeout(Duration(minutes: 3)));
+      final canonicalEventCount =
+          session.manifest.eventRegistry?.records.length;
+      expect(canonicalEventCount, greaterThanOrEqualTo(27));
+      expect(report.totalEventCount, canonicalEventCount);
+      expect(
+        report.mapEventViews.where(
+          (view) => view.groupKind == NarrativeMapEventsGroupKind.map,
+        ),
+        hasLength(session.manifest.maps.length),
+      );
+      expect(
+        criticalDiagnostics,
+        isEmpty,
+        reason: criticalDiagnostics
+            .map(
+              (diagnostic) =>
+                  '${diagnostic.code} · ${diagnostic.path} · ${diagnostic.message}',
+            )
+            .join('\n'),
+      );
+      expect(
+        report.narrativelySolvable,
+        NarrativeSymbolicVerdict.pass,
+        reason: 'La campagne canonique doit être prouvée dans le budget borné.',
+      );
+
+      const receipts = NarrativeRuntimeSmokeReceiptRepository();
+      final fingerprint = await receipts.computeProjectFingerprint(projectRoot);
+      final runtimeReceipt = await receipts.read(
+        projectRoot: projectRoot,
+        expectedFingerprint: fingerprint,
+        profile: session.manifest.runtimeSmokeProfile,
+      );
+      if (session.manifest.runtimeSmokeProfile == null) {
+        expect(runtimeReceipt.state, NarrativeRuntimeReceiptState.unconfigured);
+        expect(runtimeReceipt.receipt, isNull);
+      } else {
+        expect(runtimeReceipt.state, NarrativeRuntimeReceiptState.freshPass);
+        expect(runtimeReceipt.receipt?.projectFingerprint, fingerprint);
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }

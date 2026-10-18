@@ -54,7 +54,7 @@ void main() {
       final runtimeReceipt = await receipts.read(
         projectRoot: projectRoot.path,
         expectedFingerprint: projectFingerprint,
-        profile: selbrumeReleaseV1Profile,
+        profile: _project.runtimeSmokeProfile,
       );
       final expectedMultidimensional =
           const NarrativeStudioValidationCoordinator().coordinate(
@@ -62,7 +62,7 @@ void main() {
         maps: const [],
         projectReport: expected,
         projectFingerprint: projectFingerprint,
-        profile: selbrumeReleaseV1Profile,
+        profile: _project.runtimeSmokeProfile,
         runtimeReceipt: runtimeReceipt,
         generatedAt: result.multidimensionalReport!.generatedAt,
       );

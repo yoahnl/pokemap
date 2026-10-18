@@ -6,7 +6,38 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/infrastructure/repositories/narrative_runtime_smoke_receipt_repository.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/runtime_smoke_profile_fixture.dart';
+
 void main() {
+  test('two project policies keep mismatch, missing policy, version and result distinct', () async {
+    const repository = NarrativeRuntimeSmokeReceiptRepository();
+    for (final id in ['first', 'second']) {
+      final root = await Directory.systemTemp.createTemp('project-policy-');
+      addTearDown(() => root.delete(recursive: true));
+      final project = ProjectManifest(name: id, maps: [], tilesets: [], runtimeSmokeProfile: NarrativeRuntimeSmokeProfile(id: id, version: 2, requiredSuiteIds: ['$id-a', '$id-b']));
+      await File('${root.path}/project.json').writeAsString(jsonEncode(project.toJson()));
+      final decoded = ProjectManifest.fromJson(jsonDecode(await File('${root.path}/project.json').readAsString()) as Map<String, dynamic>);
+      final fingerprint = await repository.computeProjectFingerprint(root.path);
+      final file = File('${root.path}/${NarrativeRuntimeSmokeReceiptRepository.relativeReceiptPath}');
+      await file.parent.create(recursive: true);
+      Future<void> write({String? profileId, int version = 2, List<String>? suites, NarrativeRuntimeSmokeResult result = NarrativeRuntimeSmokeResult.pass}) async {
+        await file.writeAsString(jsonEncode(NarrativeRuntimeSmokeReceipt(projectFingerprint: fingerprint, validatorVersion: 'v1', profileId: profileId ?? id, profileVersion: version, suiteIds: suites ?? decoded.runtimeSmokeProfile!.requiredSuiteIds, fixtureId: id, result: result, completedAt: DateTime.utc(2026)).toJson()));
+      }
+      Future<NarrativeRuntimeSmokeReceiptResolution> read(NarrativeRuntimeSmokeProfile? expected) => repository.read(projectRoot: root.path, expectedFingerprint: fingerprint, profile: expected);
+      await write();
+      expect((await read(decoded.runtimeSmokeProfile)).validationStatus, NarrativeValidationStatus.pass);
+      expect((await read(null)).state, NarrativeRuntimeReceiptState.unconfigured);
+      await write(profileId: 'other');
+      expect((await read(decoded.runtimeSmokeProfile)).state, NarrativeRuntimeReceiptState.profileMismatch);
+      await write(version: 1);
+      expect((await read(decoded.runtimeSmokeProfile)).state, NarrativeRuntimeReceiptState.profileMismatch);
+      await write(suites: ['$id-a']);
+      expect((await read(decoded.runtimeSmokeProfile)).state, NarrativeRuntimeReceiptState.incompleteSuites);
+      await write(result: NarrativeRuntimeSmokeResult.fail);
+      expect((await read(decoded.runtimeSmokeProfile)).validationStatus, NarrativeValidationStatus.fail);
+    }
+  });
+
   test('fingerprint includes manifest, maps and Yarn but excludes receipt',
       () async {
     final root = await Directory.systemTemp.createTemp('receipt_repo_');
@@ -68,7 +99,7 @@ void main() {
     final absent = await repository.read(
       projectRoot: root.path,
       expectedFingerprint: fingerprint,
-      profile: selbrumeReleaseV1Profile,
+      profile: runtimeSmokeProfileFixture,
     );
     expect(absent.state, NarrativeRuntimeReceiptState.absent);
 
@@ -82,7 +113,7 @@ void main() {
         file.writeAsString(jsonEncode(NarrativeRuntimeSmokeReceipt(
           projectFingerprint: digest,
           validatorVersion: 'v1',
-          profileId: selbrumeReleaseV1Profile.id,
+          profileId: runtimeSmokeProfileFixture.id,
           profileVersion: 1,
           suiteIds: suites,
           fixtureId: 'selbrume',
@@ -92,31 +123,31 @@ void main() {
 
     await write(
         digest: 'sha256:${'d' * 64}',
-        suites: selbrumeReleaseV1Profile.requiredSuiteIds);
+        suites: runtimeSmokeProfileFixture.requiredSuiteIds);
     expect(
       (await repository.read(
               projectRoot: root.path,
               expectedFingerprint: fingerprint,
-              profile: selbrumeReleaseV1Profile))
+              profile: runtimeSmokeProfileFixture))
           .state,
       NarrativeRuntimeReceiptState.stale,
     );
-    await write(digest: fingerprint, suites: ['selbrume-lighthouse-retry']);
+    await write(digest: fingerprint, suites: ['test-retry']);
     expect(
       (await repository.read(
               projectRoot: root.path,
               expectedFingerprint: fingerprint,
-              profile: selbrumeReleaseV1Profile))
+              profile: runtimeSmokeProfileFixture))
           .state,
       NarrativeRuntimeReceiptState.incompleteSuites,
     );
     await write(
-        digest: fingerprint, suites: selbrumeReleaseV1Profile.requiredSuiteIds);
+        digest: fingerprint, suites: runtimeSmokeProfileFixture.requiredSuiteIds);
     expect(
       (await repository.read(
               projectRoot: root.path,
               expectedFingerprint: fingerprint,
-              profile: selbrumeReleaseV1Profile))
+              profile: runtimeSmokeProfileFixture))
           .state,
       NarrativeRuntimeReceiptState.freshPass,
     );

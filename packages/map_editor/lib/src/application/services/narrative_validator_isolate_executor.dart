@@ -507,7 +507,7 @@ Future<void> _runNarrativeValidation(
         final runtimeReceipt = await receipts.read(
           projectRoot: work.projectRootPath,
           expectedFingerprint: projectFingerprint,
-          profile: selbrumeReleaseV1Profile,
+          profile: work.project.runtimeSmokeProfile,
         );
         final multidimensionalReport =
             const NarrativeStudioValidationCoordinator().coordinate(
@@ -515,7 +515,7 @@ Future<void> _runNarrativeValidation(
           maps: maps,
           projectReport: work.projectReport!,
           projectFingerprint: projectFingerprint,
-          profile: selbrumeReleaseV1Profile,
+          profile: work.project.runtimeSmokeProfile,
           runtimeReceipt: runtimeReceipt,
         );
         Isolate.exit(command.resultPort, <Object?>[

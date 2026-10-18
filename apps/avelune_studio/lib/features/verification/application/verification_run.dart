@@ -114,7 +114,7 @@ extension VerificationRun on VerificationWorkspaceController {
 
   Future<VerificationRuntimeEvidence> _evidence(
     VerificationSnapshot snapshot,
-  ) => port.readRuntimeEvidence(selbrumeReleaseV1Profile);
+  ) => port.readRuntimeEvidence(snapshot.project.runtimeSmokeProfile);
 
   /// A new report keeps the selection when its key survives. A key that is
   /// gone says so: it includes the severity, so its absence proves nothing.
@@ -194,8 +194,8 @@ extension VerificationRun on VerificationWorkspaceController {
     final symbolic = validation.symbolicReachability;
     return NarrativeMultidimensionalValidationReport(
       validatorVersion: VerificationWorkspaceController.validatorVersion,
-      profileId: selbrumeReleaseV1Profile.id,
-      profileVersion: selbrumeReleaseV1Profile.version,
+      profileId: snapshot.project.runtimeSmokeProfile?.id,
+      profileVersion: snapshot.project.runtimeSmokeProfile?.version,
       projectFingerprint: snapshot.fingerprint,
       generatedAt: DateTime.now().toUtc(),
       structurallyValid: NarrativeValidationDimensionResult(

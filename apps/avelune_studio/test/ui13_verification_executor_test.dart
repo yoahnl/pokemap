@@ -2,10 +2,11 @@ import 'dart:isolate';
 
 import 'package:avelune_studio/features/verification/application/verification_workspace_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
 
 import 'support/ui13_controllable_verification_port.dart';
 import 'support/ui13_verification_harness.dart';
+
+import 'support/runtime_smoke_profile_fixture.dart';
 
 Future<(Ui13VerificationHarness, Ui13ControllableVerificationPort)>
 controlled() async {
@@ -13,7 +14,7 @@ controlled() async {
   final executor = Ui13ControllableVerificationPort(
     revision: await h.port.projectRevision(),
     maps: await h.port.loadMaps(),
-    evidence: await h.port.readRuntimeEvidence(selbrumeReleaseV1Profile),
+    evidence: await h.port.readRuntimeEvidence(runtimeSmokeProfileFixture),
   );
   return (h, executor);
 }

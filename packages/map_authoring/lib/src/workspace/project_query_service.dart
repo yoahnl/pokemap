@@ -864,6 +864,15 @@ List<_QueryRecord> _records(
   void Function(String eventId)? onEventV2ValidationBuilt,
 }) {
   switch (request.resourceKind) {
+    case 'runtimeSmokeProfile':
+      final profile = snapshot.manifest.runtimeSmokeProfile;
+      if (profile == null) return const [];
+      final record = <String, Object?>{
+        ...profile.toJson(),
+        'name': profile.id,
+        'resourceKind': 'runtimeSmokeProfile',
+      };
+      return [_QueryRecord(summary: record, detail: record)];
     case 'pokemonDocument':
       return _pokemonDocumentRecords(snapshot);
     case 'resourceLibraryCatalog':

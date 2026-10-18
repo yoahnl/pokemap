@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 enum NarrativeRuntimeReceiptState {
+  unconfigured,
   freshPass,
   freshFail,
   absent,
@@ -30,6 +31,7 @@ final class NarrativeRuntimeSmokeReceiptResolution {
           NarrativeValidationStatus.pass,
         NarrativeRuntimeReceiptState.freshFail =>
           NarrativeValidationStatus.fail,
+        NarrativeRuntimeReceiptState.unconfigured ||
         NarrativeRuntimeReceiptState.absent ||
         NarrativeRuntimeReceiptState.stale ||
         NarrativeRuntimeReceiptState.profileMismatch ||
@@ -105,8 +107,14 @@ final class NarrativeRuntimeSmokeReceiptRepository {
   Future<NarrativeRuntimeSmokeReceiptResolution> read({
     required String projectRoot,
     required String expectedFingerprint,
-    required NarrativeRuntimeSmokeProfile profile,
+    required NarrativeRuntimeSmokeProfile? profile,
   }) async {
+    if (profile == null) {
+      return const NarrativeRuntimeSmokeReceiptResolution(
+        state: NarrativeRuntimeReceiptState.unconfigured,
+        reason: 'Aucun profil de vérification runtime n’est configuré pour ce projet.',
+      );
+    }
     final file = File(p.join(projectRoot, relativeReceiptPath));
     if (!await file.exists()) {
       return const NarrativeRuntimeSmokeReceiptResolution(

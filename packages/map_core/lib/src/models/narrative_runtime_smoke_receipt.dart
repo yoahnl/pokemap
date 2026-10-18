@@ -8,30 +8,64 @@ final class NarrativeRuntimeSmokeProfile {
     required this.id,
     required this.version,
     required List<String> requiredSuiteIds,
-  }) : requiredSuiteIds = _stableStrings(requiredSuiteIds);
+  }) : requiredSuiteIds = _profileSuiteIds(requiredSuiteIds) {
+    if (id.isEmpty || id != id.trim() || version < 1) {
+      throw ArgumentError('Runtime smoke profiles require an ID and positive version.');
+    }
+  }
+
+  factory NarrativeRuntimeSmokeProfile.fromJson(Object? source) {
+    if (source is! Map ||
+        source.length != 3 ||
+        source.keys.any((key) => !const {'id', 'version', 'requiredSuiteIds'}.contains(key)) ||
+        source['id'] is! String ||
+        source['version'] is! int ||
+        source['requiredSuiteIds'] is! List ||
+        (source['requiredSuiteIds'] as List).any((value) => value is! String)) {
+      throw const FormatException('Invalid runtime smoke profile.');
+    }
+    return NarrativeRuntimeSmokeProfile(
+      id: source['id'] as String,
+      version: source['version'] as int,
+      requiredSuiteIds: (source['requiredSuiteIds'] as List).cast<String>(),
+    );
+  }
 
   final String id;
   final int version;
   final List<String> requiredSuiteIds;
 
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'version': version,
+        'requiredSuiteIds': requiredSuiteIds,
+      };
+
   bool acceptsSuites(Iterable<String> suiteIds) {
     final actual = suiteIds.toSet();
     return requiredSuiteIds.every(actual.contains);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is NarrativeRuntimeSmokeProfile &&
+      id == other.id &&
+      version == other.version &&
+      requiredSuiteIds.length == other.requiredSuiteIds.length &&
+      requiredSuiteIds.indexed.every((entry) => other.requiredSuiteIds[entry.$1] == entry.$2);
+
+  @override
+  int get hashCode => Object.hash(id, version, Object.hashAll(requiredSuiteIds));
 }
 
-final NarrativeRuntimeSmokeProfile selbrumeReleaseV1Profile =
-    NarrativeRuntimeSmokeProfile(
-  id: 'selbrume-release-v1',
-  version: 1,
-  requiredSuiteIds: const [
-    'selbrume-lighthouse-retry',
-    'selbrume-player-journey',
-  ],
-);
-
-NarrativeRuntimeSmokeProfile? narrativeRuntimeSmokeProfileById(String id) =>
-    id == selbrumeReleaseV1Profile.id ? selbrumeReleaseV1Profile : null;
+List<String> _profileSuiteIds(List<String> values) {
+  if (values.isEmpty ||
+      values.any((value) => value.isEmpty || value != value.trim()) ||
+      values.toSet().length != values.length) {
+    throw ArgumentError('Runtime smoke profiles require distinct non-empty suite IDs.');
+  }
+  return _stableStrings(values);
+}
 
 @immutable
 final class NarrativeRuntimeSmokeReceipt {

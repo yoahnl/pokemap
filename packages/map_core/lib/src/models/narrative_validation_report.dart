@@ -105,6 +105,13 @@ final class NarrativeMultidimensionalValidationReport {
     if (schemaVersion != 1) {
       throw ArgumentError.value(schemaVersion, 'schemaVersion');
     }
+    if ((profileId == null) != (profileVersion == null) ||
+        profileId != null && (profileId!.trim().isEmpty || profileVersion! < 1)) {
+      throw ArgumentError('Runtime profile metadata must be absent or complete.');
+    }
+    if (profileId == null && runtimeSmokeVerified.status != NarrativeValidationStatus.notRun) {
+      throw ArgumentError('Runtime verification requires a configured expected profile.');
+    }
   }
 
   factory NarrativeMultidimensionalValidationReport.fromJson(
@@ -113,8 +120,8 @@ final class NarrativeMultidimensionalValidationReport {
     return NarrativeMultidimensionalValidationReport(
       schemaVersion: _requiredInt(json, 'schemaVersion'),
       validatorVersion: _requiredString(json, 'validatorVersion'),
-      profileId: _requiredString(json, 'profileId'),
-      profileVersion: _requiredInt(json, 'profileVersion'),
+      profileId: json['profileId'] == null ? null : _requiredString(json, 'profileId'),
+      profileVersion: json['profileVersion'] == null ? null : _requiredInt(json, 'profileVersion'),
       projectFingerprint: _requiredString(json, 'projectFingerprint'),
       generatedAt: DateTime.parse(_requiredString(json, 'generatedAt')),
       structurallyValid: NarrativeValidationDimensionResult.fromJson(
@@ -138,8 +145,8 @@ final class NarrativeMultidimensionalValidationReport {
 
   final int schemaVersion;
   final String validatorVersion;
-  final String profileId;
-  final int profileVersion;
+  final String? profileId;
+  final int? profileVersion;
   final String projectFingerprint;
   final DateTime generatedAt;
   final NarrativeValidationDimensionResult structurallyValid;

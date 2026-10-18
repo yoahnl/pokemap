@@ -510,6 +510,13 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'validation.runtime_smoke_profile.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/runtime_smoke_profile_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/runtime_smoke_profile_actions_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/runtime_smoke_profile_stdio.test.ts',
+    };
+  }
   if (actionId == 'event_v2.record_upsert_batch') {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/event_record_batch_transport_test.dart',
@@ -1707,6 +1714,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/project/runtime_audio_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['validation.runtime_smoke_profile.'],
+    'test/domains/project/runtime_smoke_profile_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['presentationMedia.import'],
     'test/domains/assets/presentation_media_import_transaction_test.dart',
   ),
@@ -1802,6 +1813,7 @@ const _semanticOwners = <String, String>{
   'pokemonRuleset': 'project',
   'projectNewGameConfig': 'project',
   'projectPresentationProfile': 'project',
+  'runtimeSmokeProfile': 'project',
   'projectPresentationPreset': 'project',
   'presentationPreviewContext': 'project',
   'mapGroup': 'project',

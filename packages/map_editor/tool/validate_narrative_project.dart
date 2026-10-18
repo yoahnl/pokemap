@@ -53,6 +53,10 @@ Future<NarrativeMultidimensionalValidationReport> _validateProject(
   final session = await NarrativeEventAuthoringSession.prepare(
     p.join(projectRoot, 'project.json'),
   );
+  final profile = session.manifest.runtimeSmokeProfile;
+  if (command.profileId != null && command.profileId != profile?.id) {
+    throw StateError('The requested profile is not configured by this project.');
+  }
   final catalogs = await _loadPokemonCatalogs(
     projectRoot,
     enabled: session.manifest.pokemon.enabled,
@@ -70,14 +74,14 @@ Future<NarrativeMultidimensionalValidationReport> _validateProject(
   final receipt = await receiptRepository.read(
     projectRoot: projectRoot,
     expectedFingerprint: fingerprint,
-    profile: selbrumeReleaseV1Profile,
+    profile: profile,
   );
   return const NarrativeStudioValidationCoordinator().coordinate(
     project: session.manifest,
     maps: session.maps,
     projectReport: projectReport,
     projectFingerprint: fingerprint,
-    profile: selbrumeReleaseV1Profile,
+    profile: profile,
     runtimeReceipt: receipt,
   );
 }
@@ -133,11 +137,13 @@ final class _CliCommand extends _CliInvocation {
     required this.projectRoot,
     required this.reportInput,
     required this.output,
+    this.profileId,
   });
 
   final String? projectRoot;
   final String? reportInput;
   final String? output;
+  final String? profileId;
 }
 
 final class _CliHelp extends _CliInvocation {
@@ -198,11 +204,6 @@ _CliInvocation _parseArguments(List<String> arguments) {
       'Provide exactly one of --project-root or --report-input.',
     );
   }
-  if (projectRoot != null && profile != selbrumeReleaseV1Profile.id) {
-    return _CliUsageError(
-      'Project validation requires "--profile ${selbrumeReleaseV1Profile.id}".',
-    );
-  }
   if (reportInput != null && profile != null) {
     return const _CliUsageError(
       '--profile cannot be combined with --report-input.',
@@ -212,13 +213,14 @@ _CliInvocation _parseArguments(List<String> arguments) {
     projectRoot: projectRoot,
     reportInput: reportInput,
     output: output,
+    profileId: profile,
   );
 }
 
 const _usage = '''
 Usage:
   dart run tool/validate_narrative_project.dart \\
-    --project-root <path> --profile selbrume-release-v1 \\
+    --project-root <path> [--profile <configured-profile-id>] \\
     --format json [--output <path>]
 
   dart run tool/validate_narrative_project.dart \\

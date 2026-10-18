@@ -2,6 +2,7 @@ import 'package:map_core/map_core_domain.dart';
 
 /// How a runtime smoke receipt relates to the version being verified.
 enum VerificationRuntimeState {
+  unconfigured,
   freshPass,
   freshFail,
   absent,
@@ -88,7 +89,7 @@ abstract interface class VerificationPort {
   /// The runtime proof on disk, classified against [profile] and the
   /// canonical project fingerprint rather than assumed fresh.
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
-    NarrativeRuntimeSmokeProfile profile,
+    NarrativeRuntimeSmokeProfile? profile,
   );
 
   /// The saved Yarn sources of the dialogues the control needs, read once at

@@ -109,6 +109,9 @@ _ProjectManifest _$ProjectManifestFromJson(
           )
           .toList() ??
       const [],
+  runtimeSmokeProfile: json['runtimeSmokeProfile'] == null
+      ? null
+      : NarrativeRuntimeSmokeProfile.fromJson(json['runtimeSmokeProfile']),
   eventRegistry: json['eventRegistry'] == null
       ? null
       : NarrativeEventRegistry.fromJson(json['eventRegistry']),
@@ -239,6 +242,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'narrativeDiagnosticSuppressions': instance.narrativeDiagnosticSuppressions
       .map((e) => e.toJson())
       .toList(),
+  'runtimeSmokeProfile': ?instance.runtimeSmokeProfile?.toJson(),
   'eventRegistry': ?instance.eventRegistry?.toJson(),
   'scenes': _scenesToJson(instance.scenes),
   'storylines': _storylinesToJson(instance.storylines),

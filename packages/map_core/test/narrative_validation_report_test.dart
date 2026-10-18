@@ -2,6 +2,16 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('an absent configured profile has nullable metadata and never implies a pass', () {
+    final pass = NarrativeValidationDimensionResult(status: NarrativeValidationStatus.pass);
+    final report = NarrativeMultidimensionalValidationReport(validatorVersion: 'v1', profileId: null, profileVersion: null, projectFingerprint: 'sha256:${'b' * 64}', generatedAt: DateTime.utc(2026), structurallyValid: pass, narrativelySolvable: pass, physicallyReachable: pass, runtimeSmokeVerified: NarrativeValidationDimensionResult(status: NarrativeValidationStatus.notRun, limitations: ['No configured runtime profile.']));
+    final decoded = NarrativeMultidimensionalValidationReport.fromJson(report.toJson());
+    expect(decoded.profileId, isNull);
+    expect(decoded.profileVersion, isNull);
+    expect(decoded.overallStatus, NarrativeValidationStatus.notRun);
+    expect(decoded.isPlayable, isFalse);
+  });
+
   test('round-trips four independent statuses and requires four passes', () {
     NarrativeValidationDimensionResult dimension(
             NarrativeValidationStatus status) =>

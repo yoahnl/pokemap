@@ -9,6 +9,8 @@ import 'package:map_core/map_core_domain.dart';
 import 'support/ui13_controllable_verification_port.dart';
 import 'support/ui13_verification_harness.dart';
 
+import 'support/runtime_smoke_profile_fixture.dart';
+
 Future<void> renameScene(Ui13VerificationHarness h, String name) async {
   expect(
     h.scenes.open(Ui13VerificationHarness.sceneId),
@@ -100,7 +102,7 @@ void main() {
     final executor = Ui13ControllableVerificationPort(
       revision: await h.port.projectRevision(),
       maps: maps,
-      evidence: await h.port.readRuntimeEvidence(selbrumeReleaseV1Profile),
+      evidence: await h.port.readRuntimeEvidence(runtimeSmokeProfileFixture),
     );
     final controller = h.withPort(executor);
     addTearDown(controller.dispose);
@@ -181,9 +183,9 @@ void main() {
         'schemaVersion': 1,
         'projectFingerprint': await adapter.projectFingerprint(),
         'validatorVersion': 'narrative-validator-v1',
-        'profileId': selbrumeReleaseV1Profile.id,
-        'profileVersion': selbrumeReleaseV1Profile.version,
-        'suiteIds': selbrumeReleaseV1Profile.requiredSuiteIds,
+        'profileId': runtimeSmokeProfileFixture.id,
+        'profileVersion': runtimeSmokeProfileFixture.version,
+        'suiteIds': runtimeSmokeProfileFixture.requiredSuiteIds,
         'fixtureId': 'fixture-ui13',
         'result': 'pass',
         'completedAt': DateTime.utc(2026, 9, 21, 12).toIso8601String(),

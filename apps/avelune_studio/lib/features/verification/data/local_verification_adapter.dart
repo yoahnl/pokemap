@@ -138,8 +138,14 @@ class LocalVerificationAdapter implements VerificationPort {
 
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
-    NarrativeRuntimeSmokeProfile profile,
+    NarrativeRuntimeSmokeProfile? profile,
   ) async {
+    if (profile == null) {
+      return const VerificationRuntimeEvidence(
+        state: VerificationRuntimeState.unconfigured,
+        reason: 'Aucun profil de vérification runtime n’est configuré pour ce projet.',
+      );
+    }
     final file = File(p.join(session.directoryPath, receiptPath));
     if (!await file.exists()) {
       return const VerificationRuntimeEvidence(

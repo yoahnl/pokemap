@@ -551,6 +551,18 @@ final class AuthoringResourceKindRegistry {
         summary: 'One typed station-to-station journey definition',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'runtimeSmokeProfile',
+        version: 1,
+        displayName: 'Runtime verification policy',
+        summary: 'Project-owned expected profile, version and mandatory suites',
+        extensions: const {
+          'configureAction': 'validation.runtime_smoke_profile.configure',
+          'storage': 'project.json.runtimeSmokeProfile',
+          'absentStatus': 'notRun',
+          'receiptSelectsPolicy': false,
+        },
+      ),
+      AuthoringResourceKindDescriptor(
           id: 'regionalMap',
           version: 1,
           displayName: 'Regional map',
@@ -759,6 +771,7 @@ final class AuthoringResourceKindRegistry {
         'map',
         'mapConnection',
         'project',
+        'runtimeSmokeProfile',
         'pokemonDocument',
         'projectPresentationProfile',
         'projectPresentationPreset',

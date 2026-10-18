@@ -9,31 +9,38 @@ typedef NarrativeSuiteRunner = Future<bool> Function(
   String testPath,
 );
 
-const _suitePaths = <String, String>{
-  'selbrume-lighthouse-retry':
-      'test/selbrume_lighthouse_retry_integration_test.dart',
-  'selbrume-player-journey': 'test/selbrume_player_journey_e2e_test.dart',
-};
-
 Future<void> main(List<String> args) async {
   final parsed = _Arguments.parse(args);
   if (parsed == null) {
     stderr.writeln(
       'Usage: dart run tool/verify_narrative_project.dart '
-      '--project-root <path> --profile selbrume-release-v1 --write-receipt',
+      '--project-root <path> --suite-manifest <path> '
+      '[--profile <configured-profile-id>] [--write-receipt]',
     );
     exitCode = 64;
     return;
   }
-  final profile = narrativeRuntimeSmokeProfileById(parsed.profileId);
+  final project = ProjectManifest.fromJson(
+    jsonDecode(
+      await File(p.join(parsed.projectRoot, 'project.json')).readAsString(),
+    ) as Map<String, dynamic>,
+  );
+  final profile = project.runtimeSmokeProfile;
   if (profile == null) {
-    stderr.writeln('Unknown runtime smoke profile "${parsed.profileId}".');
+    stderr.writeln(
+      'Runtime smoke notRun: no expected profile is configured by this project.',
+    );
+    exitCode = 3;
+    return;
+  }
+  if (parsed.profileId != null && profile.id != parsed.profileId) {
+    stderr.writeln('The requested profile is not configured by this project.');
     exitCode = 64;
     return;
   }
   final receipt = await verifyNarrativeProject(
     projectRoot: parsed.projectRoot,
-    profile: profile,
+    suitePaths: await loadNarrativeSuiteManifest(File(parsed.suiteManifest)),
     suiteRunner: _runFlutterSuite,
   );
   if (receipt == null) {
@@ -52,17 +59,25 @@ Future<void> main(List<String> args) async {
 
 Future<NarrativeRuntimeSmokeReceipt?> verifyNarrativeProject({
   required String projectRoot,
-  required NarrativeRuntimeSmokeProfile profile,
+  required Map<String, String> suitePaths,
   required NarrativeSuiteRunner suiteRunner,
   DateTime? completedAt,
 }) async {
+  final project = ProjectManifest.fromJson(
+    jsonDecode(await File(p.join(projectRoot, 'project.json')).readAsString())
+        as Map<String, dynamic>,
+  );
+  final profile = project.runtimeSmokeProfile;
+  if (profile == null) return null;
+  final before = await fingerprintNarrativeProjectDirectory(projectRoot);
   final executed = <String>[];
   for (final suiteId in profile.requiredSuiteIds) {
-    final testPath = _suitePaths[suiteId];
+    final testPath = suitePaths[suiteId];
     if (testPath == null || !await suiteRunner(suiteId, testPath)) return null;
     executed.add(suiteId);
   }
   final fingerprint = await fingerprintNarrativeProjectDirectory(projectRoot);
+  if (fingerprint != before) return null;
   return NarrativeRuntimeSmokeReceipt(
     projectFingerprint: fingerprint,
     validatorVersion: 'narrative-validator-v1',
@@ -76,6 +91,44 @@ Future<NarrativeRuntimeSmokeReceipt?> verifyNarrativeProject({
       'PARTIAL / NO-GO baseline: runtime smoke only; FG-185 is not promoted.',
     ],
   );
+}
+
+Future<Map<String, String>> loadNarrativeSuiteManifest(File file) async {
+  final json = jsonDecode(await file.readAsString());
+  if (json is! Map ||
+      json.length != 2 ||
+      json['schemaVersion'] != 1 ||
+      json['suites'] is! Map) {
+    throw const FormatException('Expected a versioned runtime suite manifest.');
+  }
+  final paths = <String, String>{};
+  for (final entry in (json['suites'] as Map).entries) {
+    final id = entry.key;
+    final path = entry.value;
+    if (id is! String ||
+        id.isEmpty ||
+        id != id.trim() ||
+        path is! String ||
+        !path.endsWith('.dart') ||
+        p.isAbsolute(path) ||
+        path.contains('\\') ||
+        p.posix.normalize(path) != path ||
+        path.split('/').contains('..')) {
+      throw const FormatException(
+        'Suite paths must be canonical relative Dart test paths.',
+      );
+    }
+    final target = File(p.join(file.parent.path, path));
+    final root = await file.parent.resolveSymbolicLinks();
+    final resolved = await target.resolveSymbolicLinks();
+    if (!p.isWithin(root, resolved)) {
+      throw const FormatException(
+        'Suite paths must remain inside their manifest directory.',
+      );
+    }
+    paths[id] = resolved;
+  }
+  return Map.unmodifiable(paths);
 }
 
 Future<String> fingerprintNarrativeProjectDirectory(String projectRoot) async {
@@ -156,16 +209,19 @@ final class _Arguments {
   const _Arguments({
     required this.projectRoot,
     required this.profileId,
+    required this.suiteManifest,
     required this.writeReceipt,
   });
 
   final String projectRoot;
-  final String profileId;
+  final String? profileId;
+  final String suiteManifest;
   final bool writeReceipt;
 
   static _Arguments? parse(List<String> args) {
     String? projectRoot;
     String? profileId;
+    String? suiteManifest;
     var writeReceipt = false;
     for (var index = 0; index < args.length; index++) {
       switch (args[index]) {
@@ -177,14 +233,18 @@ final class _Arguments {
           profileId = args[index];
         case '--write-receipt':
           writeReceipt = true;
+        case '--suite-manifest':
+          if (++index >= args.length) return null;
+          suiteManifest = args[index];
         default:
           return null;
       }
     }
-    if (projectRoot == null || profileId == null) return null;
+    if (projectRoot == null || suiteManifest == null) return null;
     return _Arguments(
       projectRoot: projectRoot,
       profileId: profileId,
+      suiteManifest: suiteManifest,
       writeReceipt: writeReceipt,
     );
   }

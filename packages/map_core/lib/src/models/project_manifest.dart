@@ -29,6 +29,7 @@ import 'resource_pack_installation_catalog.dart';
 import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
+import 'narrative_runtime_smoke_receipt.dart';
 import 'narrative_fact.dart';
 import 'scenario_asset.dart';
 import 'scene_asset.dart';
@@ -478,6 +479,8 @@ abstract class ProjectManifest with _$ProjectManifest {
     List<WorldRuleDefinition> worldRules,
     @Default([])
     List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
+    @JsonKey(includeIfNull: false)
+    NarrativeRuntimeSmokeProfile? runtimeSmokeProfile,
     @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
     @Default([])
     @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
