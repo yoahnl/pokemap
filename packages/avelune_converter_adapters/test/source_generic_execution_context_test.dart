@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
+import 'package:avelune_converter_adapters/src/source_encounter_terrain_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -14,6 +16,7 @@ Future<LiteralTileFixture> _fixture(int map,
         {bool writer = false,
         bool unguarded = false,
         bool twoDoors = false,
+        bool surf = false,
         bool remoteParallel = false,
         bool remoteWriter = false,
         bool remoteDoorTarget = false,
@@ -28,7 +31,9 @@ Future<LiteralTileFixture> _fixture(int map,
           ...extra
         },
         maps: [
-          LiteralFixtureMap(id: map, events: [
+          LiteralFixtureMap(id: map, layers: surf ? const [
+            [385, 384, 384], [0, 0, 0], [0, 0, 0]
+          ] : null, events: [
             LiteralFixtureEvent(
                 id: map + 3,
                 x: 0,
@@ -83,7 +88,8 @@ Future<LiteralTileFixture> _fixture(int map,
                         ['pbSetSelfSwitch(${map + 3},"C",true,$map)']),
                     const LiteralFixtureEventCommand(0, [])])]),
             ])
-        ]);
+        ], tilesets: [LiteralFixtureTileset(id: 1,
+          terrainTags: surf ? const {385: 7} : const {})]);
 
 LiteralFixtureUserDefined _tone(double channel) {
   final bytes = ByteData(32);
@@ -148,6 +154,274 @@ final class _ChangedFiles implements SourceFilePort {
 }
 
 void main() {
+  group('attested source Surf execution bases', () {
+    late LiteralTileFixture fixture;
+    late NormalizedSourceProject source;
+    late SourceEventAnalysis analysis;
+    late Map<ConverterId, SourceStaticDoorProgram> programs;
+    late MapData saved;
+    late MapData native;
+    late List<NativeMutation> mutations;
+
+    NativeMutation createZone(
+      MapGameplayZone zone, {
+      String? operationId,
+      int actionVersion = 1,
+      List<ConverterId>? sourceIds,
+      List<ConverterId>? targets,
+    }) => NativeMutation(
+      operationId: ConverterId(operationId ?? 'ac12-surf-zone-${zone.id}'),
+      actionId: 'gameplay_zone.create',
+      actionVersion: actionVersion,
+      sourceEntityIds: sourceIds ?? [source.mapIdentity(83)],
+      targetEntityIds:
+          targets ?? [ConverterId(native.id), ConverterId(zone.id)],
+      parameters: {
+        'mapId': native.id,
+        'zone': jsonDecode(jsonEncode(zone.toJson())),
+      },
+    );
+
+    NativeProjectDraft draft({
+      List<NativeMutation>? changes,
+      bool flag = true,
+      Map<String, Object?> semanticOverrides = const {},
+    }) => NativeProjectDraft(
+      source: source,
+      projectName: 'Source Surf context',
+      parentPath: Directory.systemTemp.path,
+      folderName: 'source-surf-context',
+      mapIds: {83: native.id},
+      artifacts: const [],
+      mutations: changes ?? mutations,
+      compositionEvidence: {
+        'sourceSemantics': {
+          'kind': 'sourceSemanticStudy',
+          'version': 1,
+          'sourceSnapshotHash': source.snapshot.canonicalHash.value,
+          'normalizedSourceHash': source.canonicalHash.value,
+          if (flag) 'includeNativeSurfTraversal': true,
+          ...semanticOverrides,
+        },
+      },
+    );
+
+    Future<SourceEventExecutionContext> read(
+      NativeProjectDraft base, {
+      MapData? map,
+      SourceFilePort? files,
+    }) => const SourceEventExecutionContextResolver().read(
+      source: source,
+      base: base,
+      nativeMaps: {83: map ?? native},
+      files: files ?? fixture.files,
+      staticDoorProgram: programs.values.first,
+      staticDoorAnalysis: analysis,
+    );
+
+    setUp(() async {
+      fixture = await _fixture(83, twoDoors: true, surf: true);
+      source = await _source(fixture);
+      analysis = SourceEventAnalyzer.forProject(
+        source,
+        profile: SourceEventProfile.forProject(source),
+      ).analyze();
+      programs = sourceStaticDoorPrograms(source: source, analysis: analysis);
+      expect(programs, hasLength(2));
+      saved = MapData(
+        id: 'native_83',
+        name: 'Source Surf',
+        size: const GridSize(width: 3, height: 1),
+        layers: const [],
+      );
+      final terrain = const SourceEncounterTerrainBinding().bind(
+        source: source,
+        nativeMapIds: {83: saved.id},
+        tableIdsBySourceMethod: const {},
+        expectedSourceSelectionHash: source.canonicalHash,
+      );
+      expect(terrain.zonesBySourceMapId[83], hasLength(1));
+      native = saved.copyWith(gameplayZones: terrain.zonesBySourceMapId[83]!);
+      mutations = [
+        NativeMutation(
+          operationId: ConverterId('map_83'),
+          actionId: 'map.save',
+          sourceEntityIds: [source.mapIdentity(83)],
+          targetEntityIds: [ConverterId(saved.id)],
+          parameters: {'map': jsonDecode(jsonEncode(saved.toJson()))},
+        ),
+        for (final zone in native.gameplayZones) createZone(zone),
+      ];
+    });
+
+    test(
+      'qualifies independently regenerated Surf in single and batched doors',
+      () async {
+        final base = draft();
+        final batch = await const SourceEventExecutionContextResolver()
+            .readStaticTransfers(
+              source: source,
+              base: base,
+              nativeMaps: {83: native},
+              files: fixture.files,
+              programs: programs,
+              analysis: analysis,
+            );
+        for (final entry in programs.entries) {
+          final single = await const SourceEventExecutionContextResolver().read(
+            source: source,
+            base: base,
+            nativeMaps: {83: native},
+            files: fixture.files,
+            staticDoorProgram: entry.value,
+            staticDoorAnalysis: analysis,
+          );
+          expect(
+            single.isQualified,
+            isTrue,
+            reason: single.refusals.toString(),
+          );
+          expect(
+            single.isBoundTo(source, analysis.profile, {83: native}),
+            isTrue,
+          );
+          expect(batch[entry.key]!.toJson(), single.toJson());
+          expect(
+            single.isBoundTo(source, analysis.profile, {83: saved}),
+            isFalse,
+          );
+        }
+      },
+    );
+
+    test(
+      'requires the explicit Surf request and its complete canonical actions',
+      () async {
+        final duplicate = createZone(
+          native.gameplayZones.single,
+          operationId: 'duplicate-surf-zone',
+        );
+        for (final base in [
+          draft(flag: false),
+          draft(changes: [mutations.first]),
+          draft(changes: [...mutations, duplicate]),
+          draft(changes: mutations.reversed.toList()),
+          draft(semanticOverrides: {'sourceSnapshotHash': '0' * 64}),
+          draft(semanticOverrides: {'normalizedSourceHash': '0' * 64}),
+          draft(semanticOverrides: {'version': 2}),
+        ]) {
+          final context = await read(base);
+          expect(context.isQualified, isFalse);
+          expect(context.refusals, contains('sourceExecutionBaseUnsupported'));
+          final batch = await const SourceEventExecutionContextResolver()
+              .readStaticTransfers(
+                source: source,
+                base: base,
+                nativeMaps: {83: native},
+                files: fixture.files,
+                programs: programs,
+                analysis: analysis,
+              );
+          expect(batch.values.every((context) => !context.isQualified), isTrue);
+        }
+      },
+    );
+
+    test(
+      'refuses forged Surf geometry, mode, identities and native map zones',
+      () async {
+        final original = native.gameplayZones.single;
+        final shifted = MapGameplayZone(
+          id: original.id,
+          name: original.name,
+          kind: GameplayZoneKind.movement,
+          area: const MapRect(
+            pos: GridPos(x: 1, y: 0),
+            size: GridSize(width: 1, height: 1),
+          ),
+          movement: const MovementZonePayload(requiredMode: MovementMode.surf),
+        );
+        final walking = MapGameplayZone(
+          id: original.id,
+          name: original.name,
+          kind: GameplayZoneKind.movement,
+          area: original.area,
+          movement: const MovementZonePayload(requiredMode: MovementMode.walk),
+        );
+        for (final replacement in [
+          createZone(shifted),
+          createZone(walking),
+          createZone(original, sourceIds: const []),
+          createZone(original, targets: [ConverterId(native.id)]),
+          createZone(original, actionVersion: 2),
+          createZone(original, operationId: 'forged-surf-identity'),
+        ]) {
+          final context = await read(
+            draft(changes: [mutations.first, replacement]),
+          );
+          expect(context.isQualified, isFalse);
+          expect(context.refusals, contains('sourceExecutionBaseUnsupported'));
+        }
+        for (final map in [
+          saved,
+          native.copyWith(gameplayZones: [shifted]),
+          native.copyWith(gameplayZones: [original, shifted]),
+        ]) {
+          expect((await read(draft(), map: map)).isQualified, isFalse);
+        }
+      },
+    );
+
+    test(
+      'refuses zones injected into map saves and unrelated actions',
+      () async {
+        final injectedSave = NativeMutation(
+          operationId: mutations.first.operationId,
+          actionId: 'map.save',
+          sourceEntityIds: mutations.first.sourceEntityIds,
+          targetEntityIds: mutations.first.targetEntityIds,
+          parameters: {'map': jsonDecode(jsonEncode(native.toJson()))},
+        );
+        final unrelated = NativeMutation(
+          operationId: ConverterId('unrelated'),
+          actionId: 'gameplay_zone.delete',
+          sourceEntityIds: const [],
+          targetEntityIds: [ConverterId(native.id)],
+          parameters: {'mapId': native.id},
+        );
+        for (final changes in [
+          [injectedSave, ...mutations.skip(1)],
+          [...mutations, unrelated],
+        ]) {
+          final context = await read(draft(changes: changes));
+          expect(context.isQualified, isFalse);
+          expect(context.refusals, contains('sourceExecutionBaseUnsupported'));
+        }
+      },
+    );
+
+    test(
+      'keeps changed source witness rejection with canonical Surf zones',
+      () async {
+        await expectLater(
+          read(
+            draft(),
+            files: _ChangedFiles(
+              fixture.files,
+              source.maps.single.map.sourceFileId,
+            ),
+          ),
+          throwsA(
+            isA<NativeWriteException>().having(
+              (error) => error.code,
+              'code',
+              'events.execution.witness.changed',
+            ),
+          ),
+        );
+      },
+    );
+  });
   test('local dormancy scopes retain remote native writers and reject unsafe destinations', () async {
     for (final remoteWriter in [false, true]) {
       final fixture = await _fixture(83, twoDoors: true,

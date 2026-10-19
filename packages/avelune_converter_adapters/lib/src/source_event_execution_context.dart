@@ -11,9 +11,160 @@ import 'source_stair_program.dart';
 import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'native_mutation_batches.dart';
+import 'source_encounter_terrain_binding.dart';
 
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
+
+final class _SourceSurfBaseAdmission {
+  const _SourceSurfBaseAdmission._(
+    this.isQualified,
+    this.operationIds,
+    this.proof,
+  );
+
+  factory _SourceSurfBaseAdmission.verify({
+    required NormalizedSourceProject source,
+    required NativeProjectDraft base,
+    required Map<int, MapData> nativeMaps,
+    required List<NativeMutation> mutations,
+    required NativeWriteLimits limits,
+    ScanCancellation? cancellation,
+  }) {
+    const refused = _SourceSurfBaseAdmission._(false, {}, {});
+    final semantic = base.compositionEvidence['sourceSemantics'];
+    final requested =
+        semantic is Map && semantic['includeNativeSurfTraversal'] == true;
+    final creates = mutations
+        .where((entry) => entry.actionId == 'gameplay_zone.create')
+        .toList();
+    if (!requested && creates.isEmpty) {
+      return const _SourceSurfBaseAdmission._(true, {}, {});
+    }
+    if (semantic is! Map ||
+        semantic['includeNativeSurfTraversal'] != true ||
+        semantic['kind'] != 'sourceSemanticStudy' ||
+        semantic['version'] != 1 ||
+        semantic['sourceSnapshotHash'] != source.snapshot.canonicalHash.value ||
+        semantic['normalizedSourceHash'] != source.canonicalHash.value) {
+      return refused;
+    }
+    cancellation?.check();
+    try {
+      final terrain = const SourceEncounterTerrainBinding().bind(
+        source: source,
+        nativeMapIds: {
+          for (final entry in nativeMaps.entries) entry.key: entry.value.id,
+        },
+        tableIdsBySourceMethod: const {},
+        expectedSourceSelectionHash: source.canonicalHash,
+      );
+      cancellation?.check();
+      final expected = <ConverterId, NativeMutation>{};
+      for (final entry in nativeMaps.entries) {
+        cancellation?.check();
+        final zones = terrain.zonesBySourceMapId[entry.key]!;
+        if (canonicalJsonOf(
+              jsonDecode(
+                jsonEncode(
+                  entry.value.gameplayZones
+                      .map((zone) => zone.toJson())
+                      .toList(),
+                ),
+              ),
+              limits: limits.jsonLimits,
+            ) !=
+            canonicalJsonOf(
+              jsonDecode(
+                jsonEncode(zones.map((zone) => zone.toJson()).toList()),
+              ),
+              limits: limits.jsonLimits,
+            )) {
+          return refused;
+        }
+        for (final zone in zones) {
+          final mutation = NativeMutation(
+            operationId: ConverterId('ac12-surf-zone-${zone.id}'),
+            actionId: 'gameplay_zone.create',
+            sourceEntityIds: [source.mapIdentity(entry.key)],
+            targetEntityIds: [
+              ConverterId(entry.value.id),
+              ConverterId(zone.id),
+            ],
+            parameters: {
+              'mapId': entry.value.id,
+              'zone': jsonDecode(jsonEncode(zone.toJson())),
+            },
+            limits: limits,
+          );
+          expected[mutation.operationId] = mutation;
+        }
+      }
+      if (creates.length != expected.length) return refused;
+      final saves = <String>{};
+      final admitted = <ConverterId>{};
+      final mapIds = nativeMaps.values.map((map) => map.id).toSet();
+      for (final mutation in mutations) {
+        cancellation?.check();
+        if (mutation.actionId == 'map.save') {
+          final saved = mutation.parameters['map'];
+          if (saved is! Map || saved['id'] is! String) return refused;
+          final savedId = saved['id'] as String;
+          final zones = saved['gameplayZones'];
+          if (!mapIds.contains(savedId) ||
+              !saves.add(savedId) ||
+              zones != null && (zones is! List || zones.isNotEmpty) ||
+              admitted.isNotEmpty) {
+            return refused;
+          }
+        } else if (mutation.actionId == 'gameplay_zone.create') {
+          final canonical = expected[mutation.operationId];
+          if (canonical == null ||
+              !admitted.add(mutation.operationId) ||
+              !saves.contains(mutation.parameters['mapId']) ||
+              canonicalJsonOf(mutation.toJson(0), limits: limits.jsonLimits) !=
+                  canonicalJsonOf(
+                    canonical.toJson(0),
+                    limits: limits.jsonLimits,
+                  )) {
+            return refused;
+          }
+        }
+      }
+      if (saves.length != mapIds.length || admitted.length != expected.length) {
+        return refused;
+      }
+      return _SourceSurfBaseAdmission._(true, Set.unmodifiable(admitted), {
+        'kind': 'sourceNativeSurfExecutionBase',
+        'version': 1,
+        'sourceSnapshotHash': source.snapshot.canonicalHash.value,
+        'normalizedSourceHash': source.canonicalHash.value,
+        'terrainBindingHash': canonicalHashOf(
+          terrain.evidence,
+          limits: limits.jsonLimits,
+        ).value,
+        'zoneCount': expected.length,
+        'zoneMutationsHash': canonicalHashOf(
+          creates.map((mutation) => mutation.toJson(0)).toList(),
+          limits: limits.jsonLimits,
+        ).value,
+      });
+    } on FormatException {
+      return refused;
+    } on TypeError {
+      return refused;
+    }
+  }
+
+  final bool isQualified;
+  final Set<ConverterId> operationIds;
+  final Map<String, Object?> proof;
+
+  bool permits(NativeMutation mutation) =>
+      isQualified &&
+      mutation.actionId == 'gameplay_zone.create' &&
+      operationIds.contains(mutation.operationId);
+}
 
 final class SourceEventExecutionContext {
   SourceEventExecutionContext._({
@@ -235,6 +386,14 @@ final class SourceEventExecutionContextResolver {
         ? canonicalHashOf(composition, limits: limits.jsonLimits)
         : null;
     final baseMutations = expandNativeMutationBatches(base, limits).toList();
+    final surfBaseAdmission = _SourceSurfBaseAdmission.verify(
+      source: source,
+      base: base,
+      nativeMaps: nativeMaps,
+      mutations: baseMutations,
+      limits: limits,
+      cancellation: cancellation,
+    );
     final authoritativeSourceAnalysis = SourceEventAnalyzer.forProject(source,
             profile: SourceEventProfile.forProject(source))
         .analyze();
@@ -284,6 +443,7 @@ final class SourceEventExecutionContextResolver {
           staticDoorAnalysis: staticProgram == null ? null : analysis,
           authoritativeSourceAnalysis: authoritativeSourceAnalysis,
           parallelDormancyAuditor: parallelDormancyAuditor,
+          surfBaseAdmission: surfBaseAdmission,
           nativeMapHashes: hashes,
           baseCompositionHash: compositionHash,
           baseMutations: baseMutations,
@@ -309,6 +469,7 @@ final class SourceEventExecutionContextResolver {
     SourceHoleNativeProgram? holeProgram,
     SourceEventAnalysis? authoritativeSourceAnalysis,
     SourceParallelDormancyAuditor? parallelDormancyAuditor,
+    _SourceSurfBaseAdmission? surfBaseAdmission,
     Map<int, Sha256Hash>? nativeMapHashes,
     Sha256Hash? baseCompositionHash,
     List<NativeMutation>? baseMutations,
@@ -320,6 +481,7 @@ final class SourceEventExecutionContextResolver {
     final profile = SourceEventProfile.forProject(source);
     final refusals = <String>{};
     final proof = <String, Object?>{};
+    Map<String, Object?>? surfProof;
     final snapshotHash = source.snapshot.canonicalHash;
     final normalizationHash = source.canonicalHash;
     final staticTransfer = staticDoorProgram != null;
@@ -491,6 +653,20 @@ final class SourceEventExecutionContextResolver {
       if (nativeMapHashes == null) base.validateResourceBudget(limits: limits);
       final semanticMutations =
           baseMutations ?? expandNativeMutationBatches(base, limits).toList();
+      final surfAdmission = surfBaseAdmission ??
+          _SourceSurfBaseAdmission.verify(
+            source: source,
+            base: base,
+            nativeMaps: nativeMaps,
+            mutations: semanticMutations,
+            limits: limits,
+            cancellation: cancellation,
+          );
+      if (!surfAdmission.isQualified) {
+        refusals.add('sourceExecutionBaseUnsupported');
+      } else if (surfAdmission.proof.isNotEmpty) {
+        surfProof = surfAdmission.proof;
+      }
       if (base.source.canonicalHash != normalizationHash ||
           canonicalJsonOf({
                 for (final entry in nativeMaps.entries)
@@ -546,7 +722,7 @@ final class SourceEventExecutionContextResolver {
                 'characterStudio.character.update',
                 'characterStudio.animationClip.upsert',
                 'characterStudio.character.setDefault',
-              }.contains(entry.actionId))) {
+              }.contains(entry.actionId) && !surfAdmission.permits(entry))) {
         refusals.add('sourceExecutionBaseUnsupported');
       }
     }
@@ -795,6 +971,7 @@ final class SourceEventExecutionContextResolver {
           'stateImports': 'notSupported'
         },
         'sourceCheckpoint': 'notImported',
+        if (surfProof != null) 'nativeSurfTraversal': surfProof,
         'followers': 'newGameDeclaredEmpty',
         'scope': {
           'sourceMapIds': activeMapIds.toList()..sort(),
