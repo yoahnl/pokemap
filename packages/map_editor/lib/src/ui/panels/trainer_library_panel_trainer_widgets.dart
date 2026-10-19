@@ -1090,11 +1090,6 @@ class _TrainerEditorCard extends StatelessWidget {
   }
 }
 
-/// Player-facing truth for the three runtime PSDK AI profiles.
-///
-/// Items are announced as unavailable because RM-021 does not invent a hidden
-/// trainer inventory. The battle policy can consume authored options later,
-/// but the current Editor intentionally exposes no such control.
 String _trainerBattleDifficultyPolicySummary(int? difficulty) {
   if (difficulty == null || difficulty <= 3) {
     return 'Profil basique · choix simples · aucun switch tactique · soins selon stock configuré';

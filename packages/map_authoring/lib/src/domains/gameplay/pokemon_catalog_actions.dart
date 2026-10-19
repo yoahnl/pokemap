@@ -403,6 +403,14 @@ final class PokemonCatalogActions {
         }
       }
     }
+    if (isItemCatalog) {
+      ProjectValidator.validateTrainerBattleItemReferences(
+        context.snapshot.manifest.trainers,
+        itemCatalog: document == null
+            ? null
+            : decodeProjectItemCatalog(document.toJson()),
+      );
+    }
     final afterBytes = document == null ? null : _encode(document.toJson());
     final resource = AuthoringResourceRef(
       kind: 'pokemonDocument',

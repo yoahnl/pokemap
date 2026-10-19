@@ -217,6 +217,88 @@ void main() {
       expect(_stock(await fixture.query(jsonl)), {'potion': 2});
     });
 
+    for (final replacement in [
+      'remove item',
+      'remove battle use',
+      'clear catalog',
+    ]) {
+      test('$transport blocks whole catalog replacement: $replacement',
+          () async {
+        final fixture = await _Fixture.create();
+        addTearDown(fixture.dispose);
+        await fixture.upsert(_trainer({'potion': 2}), jsonl);
+        final beforeBytes = await fixture.catalog.readAsBytes();
+        final catalog =
+            decodeProjectItemCatalog(jsonDecode(utf8.decode(beforeBytes)));
+        final entries = switch (replacement) {
+          'remove item' =>
+            catalog.entries.where((item) => item.id != 'potion').toList(),
+          'remove battle use' => [
+              for (final item in catalog.entries)
+                if (item.id == 'potion') item.copyWith(uses: []) else item,
+            ],
+          _ => <ProjectItemDefinition>[],
+        };
+        final replacementCatalog = catalog.copyWith(entries: entries);
+        expect(
+          validateProjectItemCatalog(
+            replacementCatalog,
+            capabilityTruth: itemSystemV1CapabilityTruth,
+          ).hasBlockingDiagnostics,
+          isFalse,
+        );
+        await fixture.expectRejected(
+          'pokemon.catalog.write',
+          {
+            'relativePath': 'data/pokemon/catalogs/items.json',
+            'document': replacementCatalog.toJson(),
+            'beforeBytesBase64': base64Encode(beforeBytes),
+          },
+          jsonl,
+          reason: replacement,
+        );
+        expect(_stock(await fixture.query(jsonl)), {'potion': 2});
+      });
+    }
+
+    test(
+        '$transport permits whole catalog replacement preserving authored stock',
+        () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      await fixture.upsert(_trainer({'potion': 2}), jsonl);
+      final projectBefore = await fixture.file.readAsBytes();
+      final beforeBytes = await fixture.catalog.readAsBytes();
+      final catalog =
+          decodeProjectItemCatalog(jsonDecode(utf8.decode(beforeBytes)));
+      final replacement = catalog.copyWith(entries: [
+        for (final item in catalog.entries)
+          if (item.id == 'potion')
+            item.copyWith(displayName: 'Renamed Potion')
+          else
+            item,
+      ]);
+      await fixture.mutate(
+        'pokemon.catalog.write',
+        {
+          'relativePath': 'data/pokemon/catalogs/items.json',
+          'document': replacement.toJson(),
+          'beforeBytesBase64': base64Encode(beforeBytes),
+        },
+        jsonl,
+      );
+      expect(await fixture.file.readAsBytes(), projectBefore);
+      expect(_stock(await fixture.query(jsonl)), {'potion': 2});
+      expect(
+        decodeProjectItemCatalog(
+                jsonDecode(await fixture.catalog.readAsString()))
+            .entries
+            .singleWhere((item) => item.id == 'potion')
+            .displayName,
+        'Renamed Potion',
+      );
+    });
+
     test(
         '$transport permits a supported battle effect update without rewriting stock',
         () async {

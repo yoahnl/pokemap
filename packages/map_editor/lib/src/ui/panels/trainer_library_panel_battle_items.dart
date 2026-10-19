@@ -10,15 +10,16 @@ void _clearBattleItemControllers(
 }
 
 String? _battleItemDraftError(Map<String, TextEditingController> controllers) {
-  if (controllers.length > 16)
+  if (controllers.length > trainerBattleItemMaxDistinctCount) {
     return 'Le stock accepte au plus 16 soins distincts.';
+  }
   for (final controller in controllers.values) {
     final raw = controller.text;
     final quantity = int.tryParse(raw);
     if (!RegExp(r'^[0-9]+$').hasMatch(raw) ||
         quantity == null ||
-        quantity < 1 ||
-        quantity > 99) {
+        quantity < trainerBattleItemMinQuantity ||
+        quantity > trainerBattleItemMaxQuantity) {
       return 'Chaque quantité doit être un entier entre 1 et 99.';
     }
   }
@@ -61,7 +62,8 @@ extension _TrainerBattleItemsRendering on _TrainerLibraryPanelState {
             label: 'Ajouter un soin',
             value: '',
             enabled:
-                references.isItemCatalogAvailable && controllers.length < 16,
+                references.isItemCatalogAvailable &&
+                controllers.length < trainerBattleItemMaxDistinctCount,
             items: [
               const PokeMapDropdownItem(
                 value: '',
@@ -71,16 +73,11 @@ extension _TrainerBattleItemsRendering on _TrainerLibraryPanelState {
                 if (!controllers.containsKey(item.id))
                   PokeMapDropdownItem(value: item.id, label: item.displayName),
             ],
-            onChanged: (id) {
-              if (id.isEmpty ||
-                  controllers.containsKey(id) ||
-                  controllers.length >= 16 ||
-                  !eligibleById.containsKey(id))
-                return;
-              setState(() {
-                controllers[id] = TextEditingController(text: '1');
-              });
-            },
+            onChanged: (id) => _addBattleItem(
+              createMode,
+              id,
+              references.itemsCatalogView.canonicalCatalog,
+            ),
           ),
           if (!references.isItemCatalogAvailable)
             const Text(
@@ -102,16 +99,14 @@ extension _TrainerBattleItemsRendering on _TrainerLibraryPanelState {
                     fieldKey: Key('$prefix-${entry.key}-quantity'),
                     controller: entry.value,
                     keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: _refreshBattleItemDraft,
                   ),
                 ),
                 const SizedBox(width: 8),
                 PokeMapButton(
                   key: Key('$prefix-${entry.key}-remove'),
                   variant: PokeMapButtonVariant.ghost,
-                  onPressed: () => setState(() {
-                    controllers.remove(entry.key)?.dispose();
-                  }),
+                  onPressed: () => _removeBattleItem(createMode, entry.key),
                   child: const Text('Retirer'),
                 ),
               ],

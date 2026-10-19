@@ -136,6 +136,48 @@ void main() {
       );
       await captureM3Widget(tester, captureKey, 'combat-02-dresseurs');
 
+      final beforeClear = workspace.combat!.trainer!.current;
+      final removeStock = find.byKey(
+        const ValueKey('chef_gare:battle-item:potion:remove'),
+      );
+      await tester.ensureVisible(removeStock);
+      await tester.tap(removeStock);
+      await pumpIo(tester);
+      await tester.tap(find.text('Enregistrer').last);
+      await pumpIo(tester);
+      expect(workspace.combat!.dirty, isFalse);
+      final cleared = (await tester.runAsync(() async {
+        final session = ProjectSession(
+          sessionId: 'independent-cleared-stock-reader',
+          name: host.source.session.name,
+          directoryPath: host.source.directory.path,
+        );
+        final maps = LocalMapWorkspaceAdapter();
+        await maps.loadProject(session);
+        final saved = await LocalPokemonCombatAdapter(
+          session: session,
+          mapAdapter: maps,
+        ).load();
+        return saved.project.trainers.singleWhere(
+          (value) => value.id == 'chef_gare',
+        );
+      }))!;
+      expect(cleared.toJson(), {
+        ...beforeClear.toJson(),
+        'battleItems': <String, int>{},
+      });
+      final refillPicker = find.byKey(
+        const ValueKey('chef_gare:battle-item-picker'),
+      );
+      await tester.ensureVisible(refillPicker);
+      tester.widget<StudioSelect>(refillPicker).onChanged!('potion');
+      await pumpIo(tester);
+      await tester.ensureVisible(quantity);
+      await tester.enterText(quantity, '2');
+      await tester.tap(find.text('Enregistrer').last);
+      await pumpIo(tester);
+      expect(workspace.combat!.dirty, isFalse);
+
       await tester.tap(find.text('Rencontres uniques').last);
       await pumpIo(tester);
       await tester.tap(find.text('Créer une rencontre unique').last);

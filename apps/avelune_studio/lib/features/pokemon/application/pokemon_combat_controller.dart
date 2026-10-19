@@ -220,8 +220,9 @@ final class PokemonCombatController {
         current.battleItems.length >= 16 ||
         current.battleItems.containsKey(itemId) ||
         !eligibleTrainerBattleItems(index.itemCatalog)
-            .any((item) => item.id == itemId))
+            .any((item) => item.id == itemId)) {
       return;
+    }
     editTrainer(
       (value) => value.copyWith(battleItems: {...value.battleItems, itemId: 1}),
     );
@@ -230,8 +231,9 @@ final class PokemonCombatController {
   void editTrainerBattleItemQuantity(String itemId, String raw) {
     if (trainer == null ||
         saving ||
-        !trainer!.current.battleItems.containsKey(itemId))
+        !trainer!.current.battleItems.containsKey(itemId)) {
       return;
+    }
     final key = 'battleItem:$itemId';
     numericInputs[key] = raw;
     final quantity = int.tryParse(raw);

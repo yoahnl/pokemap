@@ -216,6 +216,40 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     }
   }
 
+  void _addBattleItem(
+    bool createMode,
+    String itemId,
+    ProjectItemCatalog? catalog,
+  ) {
+    final controllers = createMode
+        ? _newBattleItemControllers
+        : _editBattleItemControllers;
+    if (itemId.isEmpty ||
+        controllers.containsKey(itemId) ||
+        controllers.length >= trainerBattleItemMaxDistinctCount ||
+        !eligibleTrainerBattleItems(catalog).any((item) => item.id == itemId)) {
+      return;
+    }
+    setState(() {
+      controllers[itemId] = TextEditingController(
+        text: '$trainerBattleItemMinQuantity',
+      );
+    });
+  }
+
+  void _removeBattleItem(bool createMode, String itemId) {
+    final controllers = createMode
+        ? _newBattleItemControllers
+        : _editBattleItemControllers;
+    setState(() {
+      controllers.remove(itemId)?.dispose();
+    });
+  }
+
+  void _refreshBattleItemDraft(String value) {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);

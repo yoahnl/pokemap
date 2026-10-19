@@ -145,6 +145,13 @@ test("L21a authors finite trainer medicines through the real MCP server", { time
       contexts: ["battle"], target: "party_member", consumption: "never",
       effect: { kind: "heal_hp", mode: "flat", amount: 20 },
     } }, true);
+    for (const entries of [[], [{ ...tonic, uses: [] }]]) {
+      await plan("pokemon.catalog.write", {
+        relativePath: "data/pokemon/catalogs/items.json",
+        document: { schemaVersion: 1, entries },
+        beforeBytesBase64: (await readFile(itemsFile)).toString("base64"),
+      }, true);
+    }
     await apply({});
     await reopen();
     const final = await trainers();

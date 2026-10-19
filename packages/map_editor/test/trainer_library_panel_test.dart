@@ -86,11 +86,14 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Modifier'),
       -400,
-      scrollable: find.descendant(
-        of: find.byKey(const Key('trainer-library-detail-scroll')),
-        matching: find.byType(Scrollable),
-      ).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('trainer-library-detail-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
+    await settleTrainerUi(tester);
     await tester.tap(find.text('Modifier').first);
     await settleTrainerUi(tester);
   }
@@ -556,6 +559,7 @@ void main() {
       await tester.enterText(quantity, '2.5');
       await pressCupertinoButtonWithText(tester, 'Enregistrer');
       expect(notifier.state.project!.trainers.single.battleItems, isEmpty);
+
       expect(tester.widget<TextField>(quantity).controller!.text, '2.5');
       expect(find.textContaining('entier entre 1 et 99'), findsWidgets);
       await tester.enterText(quantity, '2');
@@ -585,6 +589,44 @@ void main() {
       await settleTrainerUi(tester);
       await pressCupertinoButtonWithText(tester, 'Enregistrer');
       expect(notifier.state.project!.trainers.single.battleItems, isEmpty);
+      final createButton = find.byKey(
+        const Key('trainer-library-new-trainer-button'),
+      );
+      await tester.ensureVisible(createButton);
+      await settleTrainerUi(tester);
+      await tester.tap(createButton);
+      await settleTrainerUi(tester);
+      await tester.enterText(
+        find.byKey(const Key('trainer-library-create-name-field')),
+        'Brock',
+      );
+      await tester.enterText(
+        find.byKey(const Key('trainer-library-create-class-field')),
+        'Leader',
+      );
+      tester
+          .widget<PokeMapDropdownField<String>>(
+            find.byKey(const Key('trainer-library-create-battle-item-picker')),
+          )
+          .onChanged('oran_berry');
+      await settleTrainerUi(tester);
+      final createQuantity = find.byKey(
+        const Key('trainer-library-create-battle-item-oran_berry-quantity'),
+      );
+      await tester.ensureVisible(createQuantity);
+      await tester.enterText(createQuantity, '100');
+      await pressCupertinoButtonWithText(tester, 'Créer');
+      expect(notifier.state.project!.trainers, hasLength(1));
+      expect(tester.widget<TextField>(createQuantity).controller!.text, '100');
+      await tester.enterText(createQuantity, '3');
+      await pressCupertinoButtonWithText(tester, 'Créer');
+      final created = notifier.state.project!.trainers.last;
+      expect(created.id, 'brock');
+      expect(created.battleItems, {'oran_berry': 3});
+      expect(created.rewardItemGrants, isEmpty);
+      expect(repository.lastSavedProject!.trainers.last.battleItems, {
+        'oran_berry': 3,
+      });
     },
   );
 
@@ -968,11 +1010,24 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    container.read(editorNotifierProvider.notifier).state = const EditorState(
+    container.read(editorNotifierProvider.notifier).state = EditorState(
       project: ProjectManifest(
         name: 'trainer_transition_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
+        battleTransitions: ProjectBattleTransitionConfig(
+          definitions: [
+            for (final id in ['hgss_trainer', 'dpp_trainer'])
+              BattleTransitionDefinition.fromJson({
+                'id': id,
+                'label': id,
+                'usages': ['trainer'],
+                'phases': [
+                  {'kind': 'fadeToBlack', 'durationSeconds': 0.1},
+                ],
+              }),
+          ],
+        ),
         trainers: <ProjectTrainerEntry>[
           ProjectTrainerEntry(
             id: 'mira',
