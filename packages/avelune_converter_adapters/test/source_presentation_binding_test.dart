@@ -257,7 +257,7 @@ void main() {
       await expectLater(
           bind(plain),
           throwsA(isA<SourceHealingDisplayBindingUnavailable>().having(
-              (e) => e.reason, 'reason', 'presentation_bindings_missing')));
+              (e) => e.reason, 'reason', 'source_image_unqualified')));
       final selected = await fixture(presentation: declaration);
       final binding = (await bind(selected))!;
       expect(binding.artifacts, hasLength(1));

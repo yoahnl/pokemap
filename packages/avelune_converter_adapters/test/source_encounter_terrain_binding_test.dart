@@ -38,8 +38,8 @@ void main() {
             }
           }).value,
           offset
-              ? '19d5523028f1c67e14636201f9cf23d93eb0fe733335eba9189d0992ffc6bd21'
-              : '8a351b1930c6bddbf3130b288c94f0807df49308a73fb3cb90e11f5c543308cc');
+              ? 'd8d29814ae743e6f012b02e650785c51d7faa69e22c5816d4b5f8737c99aa1eb'
+              : '7cfd21b412a113cd221a80618f9f6458d7ba2d82c0325d45c2d55a102d79fc10');
     });
   }
 
@@ -643,6 +643,11 @@ void main() {
   test('rejects unattested scripts, wrong source hash and foreign references',
       () async {
     final source = await _source();
+    expect(SourceSemanticResolver.forProject(source).profile.isQualified, isTrue);
+    final scripts = source.snapshot.entries.singleWhere(
+        (entry) => entry.relativePath == 'Data/Scripts.rxdata');
+    expect(scripts.byteLength, syntheticInterpretationArchive.length);
+    expect(scripts.sha256, literalFixtureHash(syntheticInterpretationArchive));
     for (final tableIds in [
       {
         9: {'Land': 'wrong-table'}
@@ -675,7 +680,11 @@ void main() {
             expectedSourceSelectionHash: Sha256Hash('e' * 64)),
         throwsA(isA<Exception>()));
     final unattested = await _source(qualified: false);
-    expect(() => _bind(unattested, ['Land']), throwsA(isA<Exception>()));
+    expect(SourceSemanticResolver.forProject(unattested).profile.isQualified,
+        isFalse);
+    expect(() => _bind(unattested, ['Land']),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', 'Encounter terrain requires its attested source selection')));
   });
 }
 
@@ -706,7 +715,11 @@ Future<NormalizedSourceProject> _source(
     {bool qualified = true,
     bool offsetTerrain = false,
     List<List<int>>? terrainRows}) async {
-  final fixture = await LiteralTileFixture.create(maps: [
+  final fixture = await LiteralTileFixture.create(
+      scriptsBytes: qualified ? syntheticInterpretationArchive : const [4, 8, 48],
+      interpretationProfile: qualified ? fixtureSourceInterpretationProfile : null,
+      selectedMapIds: {9},
+      maps: [
     if (terrainRows != null)
       LiteralFixtureMap(
           id: 9,
@@ -752,30 +765,7 @@ Future<NormalizedSourceProject> _source(
         passages: {386: 15, 387: 15},
         terrainTags: {385: 2, 386: 7, 387: 4, 388: 18})
   ]);
-  final snapshot = SourceSnapshot(
-      logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
-      policyHash: fixture.snapshot.policyHash,
-      entries: [
-        ...fixture.snapshot.entries,
-        SourceFileEntry(
-            fileId: ConverterId('fixture:scripts'),
-            relativePath: 'Data/Scripts.rxdata',
-            kind: SourceNodeKind.file,
-            byteLength: 1,
-            sha256: Sha256Hash(qualified
-                ? fixtureSourceInterpretationProfile.scriptsArchiveHash.value
-                : 'e' * 64),
-            format: 'ruby-marshal',
-            family: 'data')
-      ],
-      diagnostics: [],
-      excludedPaths: [],
-      profileEvidence: fixture.snapshot.profileEvidence,
-      state: SourceScanState.complete);
-  return const RmxpSourceNormalizer().normalize(
-      snapshot: snapshot,
-      files: LiteralFixtureFiles(snapshot, fixture.sourceBytes),
-      selectedMapIds: {9});
+  return fixture.source;
 }
 
 const _evidenceCellKeys = [

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
@@ -57,6 +58,9 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   bool _spatialPaused = false;
   bool _ready = false;
   Completer<void>? _spatialMountReady;
+  HeadlessSceneInteractionPort? _preSessionInteractions;
+  StreamSubscription<SceneInteractionRequest>? _preSessionSubscription;
+  SceneInteractionRequest? _preSessionRequest;
 
   Future<Object> _load({bool restoreSpatialSave = false}) async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
@@ -130,10 +134,30 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       mapId: widget.entry.id,
     );
     _requireUnchangedMap(bundle, document.map);
-    final initialGameState = await prepareStudioPlaytestStart(
-      bundle,
-      projectPath,
-    );
+    final GameState? initialGameState;
+    if (bundle.manifest.newGame.enabled &&
+        bundle.manifest.newGame.preSessionSceneId?.trim().isNotEmpty == true) {
+      final interactions = HeadlessSceneInteractionPort();
+      _preSessionInteractions = interactions;
+      _preSessionSubscription = interactions.requests.listen((request) {
+        if (mounted) setState(() => _preSessionRequest = request);
+      });
+      try {
+        initialGameState = await prepareStudioPlaytestStart(
+          bundle,
+          projectPath,
+          interactions: interactions,
+        );
+      } finally {
+        await _preSessionSubscription?.cancel();
+        _preSessionSubscription = null;
+        interactions.close();
+        _preSessionInteractions = null;
+        if (mounted) setState(() => _preSessionRequest = null);
+      }
+    } else {
+      initialGameState = await prepareStudioPlaytestStart(bundle, projectPath);
+    }
     if (!mounted) throw StateError('Test fermé');
     final game = PlayableMapGame(
       bundle: bundle,
@@ -202,6 +226,8 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
 
   @override
   void dispose() {
+    _preSessionInteractions?.close();
+    unawaited(_preSessionSubscription?.cancel());
     _game?.pauseEngine();
     _finishSpatialMount(StateError('Test fermé'));
     unawaited(_spatialPlaytest?.dispose());
@@ -414,6 +440,32 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
             if (snapshot.hasError) {
               return Center(
                 child: Text('Le test ne peut pas démarrer : ${snapshot.error}'),
+              );
+            }
+            if (_preSessionRequest case final request?) {
+              return Localizations.override(
+                context: context,
+                delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+                child: Theme(
+                  data: Theme.of(context).brightness == Brightness.dark
+                      ? PokeMapPlayerTheme.dark()
+                      : PokeMapPlayerTheme.light(),
+                  child: PlayerSceneInteractionSurface(
+                    request: request,
+                    onResult: (result) {
+                      final resolution = _preSessionInteractions?.resolve(
+                        result,
+                      );
+                      if (resolution?.isAccepted == true && mounted) {
+                        if (result is SceneCancelledInteractionResult) {
+                          widget.onClose();
+                          return;
+                        }
+                        setState(() => _preSessionRequest = null);
+                      }
+                    },
+                  ),
+                ),
               );
             }
             final game = snapshot.connectionState == ConnectionState.done

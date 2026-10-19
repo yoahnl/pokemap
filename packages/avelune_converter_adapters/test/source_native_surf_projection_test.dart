@@ -194,7 +194,7 @@ Future<SourceSemanticsProjection> _project(NormalizedSourceProject source,
 Future<(NormalizedSourceProject, LiteralTileComposition, SourceFilePort)>
     _input({List<int>? scripts}) async {
   final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
-scriptsBytes: scripts, maps: [
+scriptsBytes: scripts ?? syntheticInterpretationArchive, maps: [
     LiteralFixtureMap(id: 9, width: 4, height: 3, layers: [
       [384, 386, 386, 384, 384, 386, 386, 384, 384, 386, 386, 384],
       List.filled(12, 0),
@@ -208,32 +208,8 @@ scriptsBytes: scripts, maps: [
     'Graphics/Characters/OriginalPlayer.png':
         image.encodePng(image.Image(width: 128, height: 192, numChannels: 4))
   });
-  final snapshot = scripts == null
-      ? SourceSnapshot(
-          logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
-          policyHash: fixture.snapshot.policyHash,
-          entries: [
-            ...fixture.snapshot.entries,
-            SourceFileEntry(
-                fileId: ConverterId('fixture:attested-scripts'),
-                relativePath: 'Data/Scripts.rxdata',
-                kind: SourceNodeKind.file,
-                byteLength: 1,
-                sha256:
-                    Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
-                format: 'ruby-marshal',
-                family: 'data')
-          ],
-          diagnostics: [],
-          excludedPaths: [],
-          profileEvidence: fixture.snapshot.profileEvidence,
-          state: SourceScanState.complete)
-      : fixture.snapshot;
-  final files = LiteralFixtureFiles(snapshot, fixture.sourceBytes);
-  final source = scripts == null
-      ? await const RmxpSourceNormalizer()
-          .normalize(snapshot: snapshot, files: files, selectedMapIds: {9})
-      : fixture.source;
+  final files = fixture.files;
+  final source = fixture.source;
   final base = await const LiteralTileComposer().compose(
       source: source,
       files: files,

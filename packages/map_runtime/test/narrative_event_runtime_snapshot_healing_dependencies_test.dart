@@ -3,13 +3,16 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/narrative_event_runtime_snapshot.dart';
+import 'package:map_runtime/src/application/narrative_scene_runtime_execution.dart';
 import 'package:map_runtime/src/application/runtime_project_catalog.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_callbacks.dart';
 
 void main() {
   for (final partitioned in [false, true]) {
     test(
-      'global narrative validation retains another map healing visuals lazy=$partitioned',
+      'global narrative validation retains another map healing and actor visuals lazy=$partitioned',
       () async {
         final root = await Directory.systemTemp.createTemp(
           'narrative-healing-closure-',
@@ -19,7 +22,22 @@ void main() {
           id: 'center',
           name: 'Center',
           size: const GridSize(width: 8, height: 8),
+          warps: const [
+            MapWarp(
+              id: 'door-entry',
+              pos: GridPos(x: 4, y: 5),
+              targetMapId: 'center',
+              targetPos: GridPos(x: 4, y: 5),
+              triggerMode: MapWarpTriggerMode.sceneOnly,
+            ),
+          ],
           entities: [
+            const MapEntity(
+              id: 'door',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 4, y: 5),
+              npc: MapEntityNpcData(characterId: 'center-door'),
+            ),
             MapEntity(
               id: 'healing-balls',
               kind: MapEntityKind.custom,
@@ -82,6 +100,14 @@ void main() {
                 ],
               ),
           ],
+          characters: const [
+            ProjectCharacterEntry(
+              id: 'center-door',
+              name: 'Center door',
+              tilesetId: 'healing-sheet',
+              frameHeight: 1,
+            ),
+          ],
           scenes: [
             SceneAsset(
               id: 'nurse',
@@ -96,6 +122,50 @@ void main() {
                     payload: SceneActionPayload.interactive(
                       SceneInteractiveCommand.openHeal(
                         displayEntityId: 'healing-balls',
+                      ),
+                    ),
+                  ),
+                  SceneNode(
+                    id: 'actor',
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.interactive(
+                      SceneInteractiveCommand.actorRoute(
+                        target: SceneActorTarget.entity(
+                          mapId: 'center',
+                          entityId: 'door',
+                        ),
+                        steps: [
+                          SceneActorRouteStep.face(
+                            direction: EntityFacing.south,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SceneNode(
+                    id: 'collision-owner',
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.interactive(
+                      SceneInteractiveCommand.actorRoute(
+                        target: SceneActorTarget.player(mapId: 'center'),
+                        steps: [
+                          SceneActorRouteStep.move(
+                            direction: EntityFacing.south,
+                            durationMs: 200,
+                            initialCollisionOwnerEntityId: 'door',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SceneNode(
+                    id: 'warp',
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.interactive(
+                      SceneInteractiveCommand.warp(
+                        destinationMapId: 'center',
+                        warpId: 'door-entry',
+                        arrivalCollisionOwnerEntityId: 'door',
                       ),
                     ),
                   ),
@@ -118,9 +188,22 @@ void main() {
                       id: 'heal-$port',
                       fromNodeId: 'heal',
                       fromPortId: port,
-                      toNodeId: 'end',
+                      toNodeId: 'actor',
                       kind: SceneEdgeKind.actionCompleted,
                     ),
+                  for (final pair in [
+                    ('actor', 'collision-owner'),
+                    ('collision-owner', 'warp'),
+                    ('warp', 'end'),
+                  ])
+                    for (final port in ['completed', 'blocked'])
+                      SceneEdge(
+                        id: '${pair.$1}-$port',
+                        fromNodeId: pair.$1,
+                        fromPortId: port,
+                        toNodeId: pair.$2,
+                        kind: SceneEdgeKind.actionCompleted,
+                      ),
                 ],
               ),
             ),
@@ -151,6 +234,7 @@ void main() {
         final selected = await catalog.manifestForMap(mart);
         expect(selected.elements, isEmpty);
         expect(selected.tilesets, isEmpty);
+        expect(selected.characters, isEmpty);
         expect(
           diagnoseSceneAgainstProject(
             project.scenes.single,
@@ -167,6 +251,18 @@ void main() {
           ).byCode(SceneDiagnosticCode.commandInvalidHealingDisplay),
           hasLength(1),
         );
+        final partialDiagnostics = diagnoseSceneAgainstProject(
+          project.scenes.single,
+          selected,
+          mapsById: {'center': center, 'mart': mart},
+        );
+        for (final code in [
+          SceneDiagnosticCode.commandInvalidActorTarget,
+          SceneDiagnosticCode.commandInvalidActorInitialCollisionOwner,
+          SceneDiagnosticCode.commandInvalidWarpArrivalOwner,
+        ]) {
+          expect(partialDiagnostics.byCode(code), hasLength(1));
+        }
         final missing = await NarrativeEventRuntimeSnapshot.build(
           project: selected,
           loadMap: (id) async {
@@ -183,8 +279,27 @@ void main() {
           ),
           contains('sceneNotBuildable'),
         );
-        final otherOwner = await RuntimeProjectCatalog.open(file.path);
+        final foreignFile = File('${root.path}/foreign.json');
+        await foreignFile.writeAsString(
+          jsonEncode(
+            project.copyWith(
+              characters: [
+                project.characters.single.copyWith(name: 'Conflicting door'),
+              ],
+            ).toJson(),
+          ),
+        );
+        final otherOwner = await RuntimeProjectCatalog.open(foreignFile.path);
         addTearDown(otherOwner.dispose);
+        final foreignView = await otherOwner.manifestForMap(center);
+        expect(foreignView.characters.single.name, 'Conflicting door');
+        expect(
+          () => catalog.mergeNarrativeVisualDefinitions(
+            selected,
+            [foreignView],
+          ),
+          throwsStateError,
+        );
         await expectLater(
           NarrativeEventRuntimeSnapshot.build(
             project: selected,
@@ -218,9 +333,67 @@ void main() {
           isEmpty,
         );
         expect(snapshot.matchesProject(selected), isTrue);
-        expect(identical(snapshot.project, selected), isTrue);
+        expect(
+          diagnoseSceneAgainstProject(
+            snapshot.project.scenes.single,
+            snapshot.project,
+            mapsById: snapshot.mapsById,
+          ).errorCount,
+          0,
+        );
+        expect(snapshot.project.elements, hasLength(6));
+        expect(snapshot.project.tilesets.single.id, 'healing-sheet');
+        expect(snapshot.project.characters.single.id, 'center-door');
+        expect(RuntimeProjectCatalog.ownerOf(snapshot.project), same(catalog));
+        expect(snapshot.matchesProject(snapshot.project), isTrue);
+        var healingCommands = 0;
+        var actorCommands = 0;
+        var warpCommands = 0;
+        const state = GameState(saveId: 'nurse', currentMapId: 'center');
+        final execution = await executeNarrativeEventScene(
+          request: const NarrativeSceneExecutionRequest(
+            eventId: 'nurse-event',
+            sceneId: 'nurse',
+            executionId: 'nurse-execution',
+            gameState: state,
+          ),
+          project: snapshot.project,
+          mapsById: snapshot.mapsById,
+          currentGameState: () => state,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => throw StateError('Unexpected condition'),
+            showDialogue: (_) => throw StateError('Unexpected dialogue'),
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+            executeInteractiveCommand: (intent) {
+              final command = intent.interactiveCommand;
+              switch (command) {
+                case SceneOpenHealInteractiveCommand():
+                  expect(command.displayEntityId, 'healing-balls');
+                  healingCommands++;
+                case SceneActorRouteInteractiveCommand():
+                  expect(command.target.mapId, 'center');
+                  actorCommands++;
+                case SceneWarpInteractiveCommand():
+                  expect(command.arrivalCollisionOwnerEntityId, 'door');
+                  warpCommands++;
+                default:
+                  fail('Unexpected command: $command');
+              }
+              return 'completed';
+            },
+          ),
+        );
+        expect(execution, isA<NarrativeSceneExecutionCompleted>());
+        expect(healingCommands, 1);
+        expect(actorCommands, 2);
+        expect(warpCommands, 1);
         expect(selected.elements, isEmpty);
         expect(selected.tilesets, isEmpty);
+        expect(selected.characters, isEmpty);
+        catalog.dispose();
+        expect(snapshot.matchesProject(selected), isFalse);
+        expect(snapshot.matchesProject(snapshot.project), isFalse);
       },
     );
   }

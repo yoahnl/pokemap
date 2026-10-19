@@ -42,9 +42,7 @@ void main() {
         size: const GridSize(width: 3, height: 1),
         layers: [],
         gameplayZones: const [_zone]);
-    final profile = SourceEventProfile.forProject(fixture.source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-);
+    final profile = SourceEventProfile.forProject(fixture.source);
     final resolver = const SourceEventExecutionContextResolver();
     final context = await resolver.read(
         source: fixture.source,

@@ -4,12 +4,83 @@ import 'package:map_runtime/map_runtime.dart';
 
 Future<GameState?> prepareStudioPlaytestStart(
   RuntimeMapBundle bundle,
-  String projectFilePath,
-) async {
+  String projectFilePath, {
+  SceneStructuredInteractionPort? interactions,
+}) async {
   final project = bundle.manifest;
   final map = bundle.map;
   final newGame = project.newGame;
-  if (!newGame.enabled || map.id == newGame.startMapId) return null;
+  if (!newGame.enabled) return null;
+
+  if (newGame.preSessionSceneId?.trim().isNotEmpty == true) {
+    if (interactions == null) {
+      throw StateError(
+        'Les interactions de nouvelle partie sont indisponibles.',
+      );
+    }
+    final spawn = map.id == newGame.startMapId
+        ? null
+        : _playtestSpawn(map, project);
+    final flow = RuntimeProjectNewGameFlowPort(
+      projectFilePath: () async => projectFilePath,
+      initialMapPreloader: RuntimeInitialMapPreloader(
+        projectFilePath: () async => projectFilePath,
+        loadSave: (_) async => null,
+      ),
+    );
+    try {
+      final preparation = await flow.prepare();
+      final runId = 'studio-new-game-${DateTime.now().microsecondsSinceEpoch}';
+      final draft = NewGameDraft.start(
+        draftId: '$runId-draft',
+        projectRevision: preparation.projectRevision,
+        slotId: 'test',
+        config: preparation.project.newGame,
+      );
+      final runner = preparation.preSessionRunner;
+      if (runner == null) {
+        throw StateError('La scène de nouvelle partie est indisponible.');
+      }
+      final preparedDraft = await runner.run(
+        runId: runId,
+        draft: draft,
+        interactions: interactions,
+      );
+      final revision = await flow.readCurrentProjectRevision();
+      final committed = commitNewGameDraft(
+        journal: NewGameSeedCommitJournal.empty(),
+        operationId: '$runId-seed',
+        currentProjectRevision: revision,
+        expectedDraftRevision: preparedDraft.revision,
+        draft: preparedDraft,
+      );
+      final seed = committed.seed;
+      if (seed == null) {
+        throw StateError(
+          'La configuration de départ est incomplète ou le projet a changé.',
+        );
+      }
+      final state = createNewGameStateFromSeed(
+        project: preparation.project,
+        startMap: preparation.startMap,
+        seed: seed,
+        currentProjectRevision: revision,
+        locale: 'fr-FR',
+        tileWidthPx: project.settings.tileWidth,
+        tileHeightPx: project.settings.tileHeight,
+      );
+      return spawn == null
+          ? state
+          : state.copyWith(
+              currentMapId: map.id,
+              playerPosition: spawn.pos,
+              playerFacing: spawn.facing,
+            );
+    } finally {
+      flow.clear();
+    }
+  }
+  if (map.id == newGame.startMapId) return null;
 
   final spawn = _playtestSpawn(map, project);
 

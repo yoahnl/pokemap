@@ -14,12 +14,48 @@ void main() {
   });
   tearDown(() async => root.delete(recursive: true));
   test('selected complete declared corpus is read within the measured bounded file quota', () async {
+    final template = fixtureSourceInterpretationProfile.declaredPrograms
+        .singleWhere((binding) =>
+            binding.family == SourceDeclaredProgramFamily.externalWarp)
+        .toJson();
+    final programs = [
+      for (var index = 0; index < 171; index++)
+        jsonDecode(jsonEncode(template)) as Map<String, dynamic>,
+    ];
+    for (final (index, program) in programs.indexed) {
+      program['id'] = 'synthetic-quota-warp-$index';
+      final commands =
+          ((program['pages'] as Map)['program'] as Map)['list'] as List;
+      final sound = commands.cast<Map>().singleWhere((command) =>
+          command['code'] == 250)['parameters'] as List;
+      (sound.single as Map)['name'] = 'synthetic_quota_effect_$index';
+    }
+    final profile = SourceInterpretationProfile.fromJson({
+      ...fixtureSourceInterpretationProfile.toJson(),
+      'declaredPrograms': programs,
+    });
+    final bytes = utf8.encode(canonicalJsonOf(profile.toJson(),
+        limits: SourceInterpretationProfile.jsonLimits));
+    expect(bytes.length, greaterThan(131072));
+    expect(bytes.length, lessThan(SourceInterpretationProfile.maxEncodedBytes));
     final file = File('${root.path}/complete-profile.json');
-    await file.writeAsString(canonicalJsonOf(fixtureSourceInterpretationProfile.toJson(), limits: SourceInterpretationProfile.jsonLimits));
+    await file.writeAsBytes(bytes);
     final selected = await const LocalSourceInterpretationProfileStore().read(file.path);
     expect(selected.declaredPrograms, hasLength(171));
-    expect(selected.canonicalHash, fixtureSourceInterpretationProfile.canonicalHash);
-    await file.writeAsBytes(List.filled(SourceInterpretationProfile.maxEncodedBytes + 1, 32));
+    expect(selected.declaredPrograms.map((binding) => binding.canonicalHash).toSet(),
+        hasLength(171));
+    expect(selected.canonicalHash, profile.canonicalHash);
+    expect(selected.toJson(), profile.toJson());
+    await file.writeAsBytes([
+      ...bytes,
+      ...List.filled(SourceInterpretationProfile.maxEncodedBytes - bytes.length, 32),
+    ]);
+    expect(await file.length(), SourceInterpretationProfile.maxEncodedBytes);
+    final atLimit =
+        await const LocalSourceInterpretationProfileStore().read(file.path);
+    expect(atLimit.canonicalHash, profile.canonicalHash);
+    expect(atLimit.toJson(), profile.toJson());
+    await file.writeAsBytes([32], mode: FileMode.append);
     await expectLater(const LocalSourceInterpretationProfileStore().read(file.path), throwsA(isA<ContractError>().having((e) => e.code, 'code', 'interpretation_profile.quota')));
   });
   test('selected JSON profile has exact immutable canonical identity',

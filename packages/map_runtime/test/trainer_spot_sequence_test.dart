@@ -201,6 +201,32 @@ void main() {
       expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
     });
 
+    for (final overrideActive in [false, true]) {
+      test(
+        'trainer sight follows the selected global override $overrideActive',
+        () async {
+          final game = await _loadGame(
+            _narrativeBundle(globalOverride: overrideActive),
+          );
+          await _stepRight(game);
+          if (overrideActive) {
+            await _pumpFrames(game, 900);
+            expect(_trainerPos(game), const GridPos(x: 4, y: 1));
+            expect(_emoteOverlay(game), isNull);
+            expect(game.debugPendingBattleRequest, isNull);
+            expect(game.debugHasPendingSceneBattle, isFalse);
+            expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+          } else {
+            await _pumpUntil(
+              game,
+              () => _emoteOverlay(game) != null,
+              maxTicks: 30,
+            );
+          }
+        },
+      );
+    }
+
     test('a defeated team variant does not spot the player again', () async {
       final game = await _loadGame(_narrativeBundle());
       game.debugMarkTrainerAsDefeated('trainer_spot_variant');
@@ -227,6 +253,7 @@ void main() {
 RuntimeMapBundle _narrativeBundle({
   bool enabled = true,
   bool withDialogue = false,
+  bool? globalOverride,
   EventSystemMode eventMode = EventSystemMode.v2Only,
 }) {
   final base = _bundle();
@@ -351,6 +378,62 @@ Dresseur: Tu as croisé mon regard. Je te défie !
       },
     ],
   };
+  if (globalOverride != null) {
+    manifest['facts'] = [
+      NarrativeFactDefinition(
+        id: 'fact_trainer_override',
+        label: 'Global trainer override',
+        defaultValue: globalOverride,
+      ).toJson(),
+    ];
+    manifest['scenes'] = <Object?>[
+      ...(manifest['scenes'] as List),
+      SceneAsset(
+        id: 'trainer_global_override',
+        name: 'Trainer override',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'end',
+              kind: SceneNodeKind.end,
+              payload: SceneEndPayload(),
+            ),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'finish',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      ).toJson(),
+    ];
+    final records = (manifest['eventRegistry'] as Map)['records'] as List;
+    final original = records.single as Map;
+    (manifest['eventRegistry'] as Map)['records'] = <Object?>[
+      ...records,
+      {
+        ...original,
+        'definition': {
+          ...original['definition'] as Map,
+          'id': 'evt_019abcde-7000-7000-8000-000000000062',
+          'conditions': [
+            NarrativeEventCondition.fact(
+              'fact_trainer_override',
+              true,
+            ).toJson(),
+          ],
+          'sceneId': 'trainer_global_override',
+          'priority': 100,
+        },
+      },
+    ];
+  }
   return RuntimeMapBundle(
     manifest: ProjectManifest.fromJson(manifest),
     map: base.map,

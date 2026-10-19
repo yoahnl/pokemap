@@ -10,6 +10,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       required this.trainerVersion,
       required this.detectionDistance,
       required this.defeatedFactId,
+      required bool afterDialogueFacesPlayer,
       required List<String> challengeLines,
       required List<String> afterWinLines,
       required this.endSpeechComment,
@@ -20,11 +21,13 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       required this.sourceSnapshotHash,
       required this.profileHash,
       required this.templateHash})
-      : challengeLines = List.unmodifiable(challengeLines),
+      : _afterDialogueFacesPlayer = afterDialogueFacesPlayer,
+        challengeLines = List.unmodifiable(challengeLines),
         afterWinLines = List.unmodifiable(afterWinLines),
         sourcePageRefs = List.unmodifiable(sourcePageRefs);
 
   final SourceTrainerProgramKind kind;
+  final bool _afterDialogueFacesPlayer;
   final String trainerType, trainerName, defeatedFactId, endSpeechComment;
   final int trainerVersion,
       detectionDistance,
@@ -36,7 +39,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
 
   bool get facesPlayerAfterDialogue =>
-      kind == SourceTrainerProgramKind.afterWin;
+      kind == SourceTrainerProgramKind.afterWin && _afterDialogueFacesPlayer;
   List<String> get requiredGameplayBindings => [
         'nativeTrainerDefinitionVersion$trainerVersion',
         'nativeTrainerBattleOutcome',
@@ -124,9 +127,9 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
           .firstMatch(event.name);
   if (!analyzer._isQualified ||
       distanceMatch == null ||
-      event.pages.length != 2 ||
-      event.pages[0].originalPageIndex != 0 ||
-      event.pages[1].originalPageIndex != 1) {
+      !const [2, 3].contains(event.pages.length) ||
+      event.pages.indexed
+          .any((entry) => entry.$1 != entry.$2.originalPageIndex)) {
     return null;
   }
   try {
@@ -155,6 +158,17 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
       final hash = canonicalHashOf(value);
       if (!_sourceTrainerPageMetadata(value, candidate.originalPageIndex)) {
         return null;
+      }
+      if (candidate.originalPageIndex == 2) {
+        final condition = analyzer._pageCondition(
+            candidate, mapId, event.sourceEventId, analyzer._switchNames());
+        if (condition.kind != SourceEventConditionKind.all ||
+            condition.children.length != 1 ||
+            condition.children.single.kind !=
+                SourceEventConditionKind.globalSwitch ||
+            !condition.children.single.expectedValue) {
+          return null;
+        }
       }
       final candidateLocator = _eventLocator(
           path, mapId, event.sourceEventId, candidate.originalPageIndex);
@@ -210,6 +224,15 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     if (canonicalJsonOf(firstMetadata) != canonicalJsonOf(secondMetadata)) {
       return null;
     }
+    if (values.length == 3 && !_sourceTrainerEmptyOverride(values[2])) {
+      final overrideMetadata = Map.of(values[2])
+        ..remove('condition')
+        ..remove('trigger')
+        ..remove('list');
+      if (canonicalJsonOf(firstMetadata) != canonicalJsonOf(overrideMetadata)) {
+        return null;
+      }
+    }
     final encounter = _SourceTrainerProgramCursor(values[0]['list'] as List);
     final intro = encounter.literal(355);
     final introMatch =
@@ -236,37 +259,57 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     encounter.expect(355, 0, const ['pbTrainerEnd']);
     encounter.expect(0, 0, const []);
     if (!encounter.isDone) return null;
-    final after = _SourceTrainerProgramCursor(values[1]['list'] as List);
-    final afterLines = after.texts();
-    const turn = {
-      '__class__': 'RPG::MoveCommand',
-      'code': 25,
-      'parameters': <Object?>[]
-    };
-    after.expect(209, 0, [
-      0,
-      {
-        '__class__': 'RPG::MoveRoute',
-        'repeat': false,
-        'skippable': false,
-        'list': [
-          turn,
-          const {
-            '__class__': 'RPG::MoveCommand',
-            'code': 0,
-            'parameters': <Object?>[],
-          }
-        ],
+    ({List<String> lines, bool facing}) afterLines(int index) {
+      final after = _SourceTrainerProgramCursor(values[index]['list'] as List);
+      final lines = after.texts();
+      if (index == 2 &&
+          !after.isDone &&
+          (after.commands[after.index] as Map)['code'] == 0) {
+        after.expect(0, 0, const []);
+        if (!after.isDone) throw const FormatException();
+        return (lines: lines, facing: false);
       }
-    ]);
-    after.expect(509, 0, const [turn]);
-    after.expect(0, 0, const []);
-    if (!after.isDone || ![0, 1].contains(page.originalPageIndex)) return null;
+      const turn = {
+        '__class__': 'RPG::MoveCommand',
+        'code': 25,
+        'parameters': <Object?>[]
+      };
+      after.expect(209, 0, [
+        0,
+        {
+          '__class__': 'RPG::MoveRoute',
+          'repeat': false,
+          'skippable': false,
+          'list': [
+            turn,
+            const {
+              '__class__': 'RPG::MoveCommand',
+              'code': 0,
+              'parameters': <Object?>[],
+            }
+          ],
+        }
+      ]);
+      after.expect(509, 0, const [turn]);
+      after.expect(0, 0, const []);
+      if (!after.isDone) throw const FormatException();
+      return (lines: lines, facing: true);
+    }
+
+    final after = afterLines(1);
+    final override = values.length == 3
+        ? _sourceTrainerEmptyOverride(values[2])
+            ? (lines: <String>[], facing: false)
+            : afterLines(2)
+        : null;
     final index = page.originalPageIndex;
     final span = SourceEventSpan(
         firstCommandIndex: page.commands.first.originalIndex,
         lastCommandIndex: page.commands.last.originalIndex,
         locator: locator);
+    if (index == 2 && override!.lines.isEmpty) {
+      return SourceEventBlock(span: span, nodes: const []);
+    }
     return SourceEventBlock(span: span, nodes: [
       SourceTrainerProgramNode._(span,
           kind: index == 0
@@ -277,8 +320,10 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
           trainerVersion: arguments.version,
           detectionDistance: distance,
           defeatedFactId: analyzer.selfFactId(mapId, event.sourceEventId, 'A'),
+          afterDialogueFacesPlayer:
+              index == 2 ? override!.facing : after.facing,
           challengeLines: challenge,
-          afterWinLines: afterLines,
+          afterWinLines: index == 2 ? override!.lines : after.lines,
           endSpeechComment: endSpeech,
           sourceTriggerCode: page.triggerCode,
           sourceMoveType: values[index]['move_type'] as int,
@@ -326,7 +371,7 @@ bool _sourceTrainerEventContext(
   }
   final pages = document.node(_eventField(fields, '@pages'));
   if (pages.kind != MarshalKind.array ||
-      pages.elements.length != 2 ||
+      pages.elements.length != event.pages.length ||
       pages.extensions.isNotEmpty ||
       pages.userClass != null ||
       pages.instanceVariables.isNotEmpty) {
@@ -463,14 +508,20 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
     return false;
   }
   final condition = page['condition'];
+  if (index == 2 &&
+      (condition is! Map ||
+          condition['switch1_id'] is! int ||
+          (condition['switch1_id'] as int) < 1)) {
+    return false;
+  }
   if (canonicalJsonOf(condition) !=
       canonicalJsonOf({
         '__class__': 'RPG::Event::Page::Condition',
-        'switch1_valid': false,
+        'switch1_valid': index == 2,
         'switch2_valid': false,
         'variable_valid': false,
         'self_switch_valid': index == 1,
-        'switch1_id': 1,
+        'switch1_id': index == 2 ? (condition as Map)['switch1_id'] : 1,
         'switch2_id': 1,
         'variable_id': 1,
         'variable_value': 0,
@@ -493,7 +544,8 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
       graphic['__class__'] != 'RPG::Event::Page::Graphic' ||
       graphic['tile_id'] != 0 ||
       graphic['character_name'] is! String ||
-      (graphic['character_name'] as String).isEmpty ||
+      ((graphic['character_name'] as String).isEmpty &&
+          !(index == 2 && _sourceTrainerEmptyOverride(page))) ||
       graphic['character_hue'] != 0 ||
       !const [2, 4, 6, 8].contains(graphic['direction']) ||
       graphic['pattern'] != 0 ||
@@ -507,7 +559,11 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
       page['walk_anime'] != true ||
       page['step_anime'] != false ||
       page['direction_fix'] != false ||
-      page['through'] != false ||
+      (page['through'] != false &&
+          !(index == 2 &&
+              _sourceTrainerEmptyOverride(page) &&
+              (graphic['character_name'] as String).isEmpty &&
+              page['through'] == true)) ||
       page['always_on_top'] != false ||
       !(index == 0 ? const [2] : const [0, 2]).contains(page['trigger'])) {
     return false;
@@ -542,6 +598,17 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
   }
   return true;
 }
+
+bool _sourceTrainerEmptyOverride(Map<String, Object?> page) =>
+    canonicalJsonOf(page['list']) ==
+    canonicalJsonOf([
+      {
+        '__class__': 'RPG::EventCommand',
+        'code': 0,
+        'indent': 0,
+        'parameters': <Object?>[]
+      }
+    ]);
 
 ({String name, int version})? _sourceTrainerLiteralArguments(String arguments) {
   if (arguments.isEmpty) return null;

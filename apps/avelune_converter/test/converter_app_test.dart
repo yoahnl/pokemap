@@ -19,6 +19,90 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('content picker prepares world without object review and invalidates on change', (tester) async {
+    final source = (await tester.runAsync(_OriginalSource.create))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source, contentScope: ConverterContentScope.world);
+      await _acknowledgeAndPrepare(tester, source);
+      final prepared = source.workflow.state.prepared!;
+      expect(prepared.settings.contentScope, ConverterContentScope.world);
+      expect(prepared.reviewSet, isNull);
+      expect(find.byKey(const ValueKey('save-review-session')), findsNothing);
+      await tester.tap(find.text('Ressources'));
+      await tester.pump();
+      expect(find.byType(ConverterAssetReviewPanel), findsNothing);
+      expect(find.textContaining('Ce mode ne prépare pas de revue d’objets'), findsOneWidget);
+      await tester.tap(find.text('Analyse'));
+      await tester.pump();
+      final picker = find.byKey(const ValueKey('content-scope'));
+      expect(tester.widget<StudioSelect>(picker).value, 'world');
+      expect(find.textContaining('L’eau reste fermée sans Surf.'), findsOneWidget);
+      expect(find.textContaining('PNJ, objets interactifs, dialogues, combats, rencontres et musiques ne sont pas importés'), findsOneWidget);
+      expect(tester.widget<StudioSelect>(picker).options, {
+        'world': 'Monde explorable (cartes, collisions, personnage)',
+        'full': 'Monde, interactions et musiques',
+      });
+      tester.widget<StudioSelect>(picker).onChanged!('full');
+      await tester.pumpAndSettle();
+      expect(source.workflow.state.prepared, isNull);
+      expect(source.workflow.state.approval, isNull);
+      expect(tester.widget<StudioSelect>(picker).value, 'full');
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(tester, () => source.workflow.state.prepared != null && !source.workflow.state.isBusy);
+      expect(source.workflow.state.prepared!.settings.contentScope, ConverterContentScope.full);
+      expect(source.workflow.state.prepared!.reviewSet, isNotNull);
+      await tester.tap(find.text('Ressources'));
+      await tester.pump();
+      expect(find.byType(ConverterAssetReviewPanel), findsOneWidget);
+      await tester.runAsync(source.expectSourceUnchanged);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
+  testWidgets('native preparation shows its own phase before creating files',
+      (tester) async {
+    final entered = Completer<void>();
+    final release = Completer<void>();
+    final source = (await tester.runAsync(() => _OriginalSource.create(
+      workflowCheckpoint: (phase, _, _) async {
+        if (phase.name == 'projectNativeMutations') {
+          entered.complete();
+          await release.future;
+        }
+      },
+    )))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await _scanAndPrepare(tester, source);
+      await _acknowledgeAndPrepare(tester, source);
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      await _approveInDialog(tester);
+      await _waitFor(tester, () => entered.isCompleted);
+      expect(find.text('Assemblage du projet à créer'), findsOneWidget);
+      expect(find.text('Création du projet Avelune'), findsNothing);
+      expect(source.nativeStages, isEmpty);
+      expect(_button(tester, 'cancel-job').onPressed, isNotNull);
+      await tester.tap(find.byKey(const ValueKey('cancel-job')));
+      await tester.pump();
+      release.complete();
+      await _waitFor(tester, () => !source.workflow.state.isBusy);
+      expect(source.workflow.state.failure!.code, 'workflow.cancelled');
+      expect(source.workflow.state.result, isNull);
+      expect(source.nativeStages, isEmpty);
+      await tester.runAsync(source.expectSourceUnchanged);
+      expect(tester.takeException(), isNull);
+    } finally {
+      if (!release.isCompleted) release.complete();
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
   testWidgets('source defects require an explicit reversible presentation decision', (tester) async {
     final source = (await tester.runAsync(() => _OriginalSource.create(maps: [
       LiteralFixtureMap(id: 1, events: [const LiteralFixtureEvent(id: 2, x: 1, y: 0,
@@ -141,7 +225,7 @@ void main() {
           find.byType(ConverterAssetReviewPanel),
         );
         expect(panel.limits.maxArtifacts, 4096);
-        expect(panel.limits.maxMutations, 16384);
+        expect(panel.limits.maxMutations, 32768);
         await tester.tap(find.text('Export'));
         await tester.pump();
         final prepared = source.workflow.state.prepared!;
@@ -154,7 +238,7 @@ void main() {
           find.text(
             'Plan : ${uniqueHandles.length} ressources uniques / 4096, '
             '${draft.sourceArtifacts.length} témoins source, '
-            '${draft.mutations.length} opérations / 16384, '
+            '${draft.mutations.length} opérations / 32768, '
             '${draft.validatedJsonByteLength} octets / ${prepared.settings.writeLimits.maxTotalDraftJsonBytes}.',
           ),
           findsOneWidget,
@@ -171,7 +255,7 @@ void main() {
         );
         final saved = (await tester.runAsync(store.list))!.single;
         expect(saved.resumeSettings.writeLimits.maxArtifacts, 4096);
-        expect(saved.resumeSettings.writeLimits.maxMutations, 16384);
+        expect(saved.resumeSettings.writeLimits.maxMutations, 32768);
         await tester.runAsync(source.expectSourceUnchanged);
         expect(tester.takeException(), isNull);
       } finally {
@@ -1494,7 +1578,7 @@ void main() {
         expect(find.text('Session enregistrée'), findsOneWidget);
         final stored = (await tester.runAsync(store.list))!.single;
         final document = stored.toJson();
-        expect(document['version'], 6);
+        expect(document['version'], 11);
         final reviewSet = document['reviewSet']! as Map;
         expect((reviewSet['segments']! as List), hasLength(2));
         await tester.pumpWidget(const SizedBox());
@@ -1601,9 +1685,11 @@ void main() {
         tester,
         source,
         planSavePicker: () async => planPath,
+        contentScope: ConverterContentScope.world,
       );
       await _acknowledgeAndPrepare(tester, source);
       final recipe = source.workflow.exportStudyPlanRecipe();
+      expect(recipe.settings.contentScope, ConverterContentScope.world);
       await tester.tap(find.byKey(const ValueKey('save-conversion-plan')));
       await tester.pump();
       await _waitFor(
@@ -1642,6 +1728,7 @@ void main() {
         recipe.canonicalHash,
       );
       expect(restored!.state.approval, isNull);
+      expect(restored!.state.prepared!.settings.contentScope, ConverterContentScope.world);
       expect(restored!.state.result, isNull);
       expect(source.nativeStages, isEmpty);
       expect(find.textContaining('Une nouvelle approbation'), findsOneWidget);
@@ -1997,11 +2084,40 @@ void main() {
       final source = harness!;
       _setWindow(tester, const Size(1600, 1000));
       String? openedFolder;
+      String? inspectedProject;
+      String? inspectedRoot;
+      final inspection = ConverterPlayableStartInspection(
+        revision: 'sha256:native-start-fixture',
+        maps: [ConverterPlayableStartMap(id: 'map-start', name: 'Start map',
+          spawns: [const ConverterPlayableStartSpawn(id: 'spawn-start', name: 'Start spawn')])],
+        avatars: [const ConverterPlayableStartAvatar(id: 'player', name: 'Imported player')],
+        species: [
+          const ConverterPlayableStartSpecies(id: 'first', name: 'First starter'),
+          const ConverterPlayableStartSpecies(id: 'second', name: 'Second starter'),
+        ],
+      );
+      final applyRequests = <Map<String, Object>>[];
+      final applyingGate = Completer<void>();
       try {
         await _scanAndPrepare(
           tester,
           source,
           folderOpener: (value) async => openedFolder = value,
+          playableStartInspector: ({required projectPath, required allowedRootPath}) async {
+            inspectedProject = projectPath;
+            inspectedRoot = allowedRootPath;
+            return inspection;
+          },
+          playableStartApplier: ({required projectPath, required allowedRootPath,
+            required expectedRevision, required mapId, required spawnId,
+            required starterSpeciesIds, required starterLevel}) async {
+            applyRequests.add({'projectPath': projectPath, 'allowedRootPath': allowedRootPath,
+              'expectedRevision': expectedRevision, 'mapId': mapId, 'spawnId': spawnId,
+              'starterSpeciesIds': starterSpeciesIds, 'starterLevel': starterLevel});
+            await applyingGate.future;
+            throw const ConverterPlayableStartException('playable_start.stale_revision',
+              'Le projet a changé. Relisez le départ.');
+          },
         );
         await tester.tap(find.text('Export'));
         await tester.pump();
@@ -2036,6 +2152,29 @@ void main() {
         expect(result.receipt.mapHashes, hasLength(2));
         expect(result.published, isTrue);
         expect(result.playableCertified, isFalse);
+        await _waitFor(tester, () => inspectedProject != null);
+        await tester.pump();
+        expect(inspectedProject, result.projectPath);
+        expect(inspectedRoot, source.output.path);
+        expect(find.text('Départ Avelune adapté, ne reproduit pas l’introduction source'), findsOneWidget);
+        tester.widget<StudioSelect>(find.byKey(const ValueKey('playable-start-map'))).onChanged!('map-start');
+        await tester.pump();
+        tester.widget<StudioSelect>(find.byKey(const ValueKey('playable-start-spawn'))).onChanged!('spawn-start');
+        tester.widget<StudioToggleRow>(find.byKey(const ValueKey('playable-starter-first'))).onChanged!(true);
+        tester.widget<StudioToggleRow>(find.byKey(const ValueKey('playable-starter-second'))).onChanged!(true);
+        await tester.pump();
+        await tester.ensureVisible(find.byKey(const ValueKey('apply-playable-start')));
+        await tester.tap(find.byKey(const ValueKey('apply-playable-start')));
+        await tester.pump();
+        expect(find.text('Configuration du départ jouable…'), findsOneWidget);
+        expect(find.text('Publication du projet vérifié'), findsNothing);
+        applyingGate.complete();
+        await tester.pumpAndSettle();
+        expect(applyRequests, [{'projectPath': result.projectPath, 'allowedRootPath': source.output.path,
+          'expectedRevision': inspection.revision, 'mapId': 'map-start', 'spawnId': 'spawn-start',
+          'starterSpeciesIds': ['first', 'second'], 'starterLevel': 5}]);
+        expect(find.text('Le projet a changé. Relisez le départ.'), findsOneWidget);
+        expect(find.textContaining('Les choix de départ sont enregistrés'), findsNothing);
         expect(find.text('Projet d’étude publié et relu'), findsOneWidget);
         await tester.runAsync(() async {
           expect(await Directory(result.projectPath).exists(), isTrue);
@@ -2053,6 +2192,7 @@ void main() {
         expect(openedFolder, result.projectPath);
         expect(tester.takeException(), isNull);
       } finally {
+        if (!applyingGate.isCompleted) applyingGate.complete();
         await tester.pumpWidget(const SizedBox());
         await tester.runAsync(source.close);
       }
@@ -2427,6 +2567,9 @@ Future<void> _scanAndPrepare(
   Future<void> Function(String)? folderOpener,
   ConverterPlanSavePicker? planSavePicker,
   LocalReviewSessionStore? sessionStore,
+  ConverterContentScope contentScope = ConverterContentScope.full,
+  ConverterPlayableStartInspector? playableStartInspector,
+  ConverterPlayableStartApplier? playableStartApplier,
 }) async {
   await tester.pumpWidget(
     ConverterApp(
@@ -2436,6 +2579,8 @@ Future<void> _scanAndPrepare(
       folderOpener: folderOpener ?? (_) async {},
       planSavePicker: planSavePicker ?? () async => null,
       sessionStore: sessionStore,
+      playableStartInspector: playableStartInspector,
+      playableStartApplier: playableStartApplier,
     ),
   );
   await tester.tap(find.byKey(const ValueKey('analyse-project')));
@@ -2448,6 +2593,12 @@ Future<void> _scanAndPrepare(
   await tester.ensureVisible(find.text('Tout sélectionner'));
   await tester.tap(find.text('Tout sélectionner'));
   await tester.pump();
+  if (contentScope != ConverterContentScope.full) {
+    expect(tester.widget<StudioSelect>(find.byKey(const ValueKey('content-scope'))).value, 'full');
+    tester.widget<StudioSelect>(find.byKey(const ValueKey('content-scope')))
+        .onChanged!(contentScope.name);
+    await tester.pumpAndSettle();
+  }
   await tester.tap(find.byKey(const ValueKey('prepare-study')));
   await tester.pump();
   await _waitFor(
@@ -2545,6 +2696,7 @@ final class _OriginalSource {
 
   static Future<_OriginalSource> create({
     NativeWriteCheckpoint? checkpoint,
+    ConverterWorkflowCheckpoint? workflowCheckpoint,
     String sourceSuffix = 'source',
     List<LiteralFixtureMap>? maps,
     List<int>? scriptsBytes,
@@ -2567,6 +2719,7 @@ final class _OriginalSource {
       );
       final stages = <NativeWriteStage>[];
       final workflow = ConverterWorkflow(
+        checkpoint: workflowCheckpoint,
         nativeWriteCheckpoint: (stage, stagingRoot, projectPath) async {
           stages.add(stage);
           await checkpoint?.call(stage, stagingRoot, projectPath);

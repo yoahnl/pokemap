@@ -64,13 +64,14 @@ Future<void> main() async {
       workflowFactory: () => active = ConverterWorkflow(),
       pathPicker: (kind) async => switch (kind) {
         ConverterPathKind.planFile => selected,
-        ConverterPathKind.sourceFolder => recipe.sourceSelection.rootPath,
+        ConverterPathKind.sourceFolder => pickConverterPath(kind),
         ConverterPathKind.supplementalFolder =>
           supplementalPick < recipe.sourceSelection.supplementalRootPaths.length
               ? recipe.sourceSelection.supplementalRootPaths[supplementalPick++]
               : null,
         ConverterPathKind.destinationParent => recipe.settings.parentPath,
         ConverterPathKind.sourceProject => null,
+        ConverterPathKind.interpretationProfileFile => null,
       },
     ),
   );

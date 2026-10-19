@@ -75,6 +75,28 @@ void main() {
     },
   );
 
+  test('review sessions require explicit full content and reject world scope', () async {
+    expect(() => LocalReviewResumeSettings(sourceRootPath: source.path,
+      destinationParentPath: destination.path, projectName: settings.projectName,
+      folderName: settings.folderName, contentScope: ConverterContentScope.world),
+      throwsA(isA<LocalReviewSessionStoreFailure>().having((failure) => failure.code,
+        'code', 'session.store.content_scope')));
+    final body = settings.toJson();
+    expect(body['contentScope'], 'full');
+    final stored = await store().create(reviewSet: _reviewSet(_session()), resumeSettings: settings);
+    expect(stored.toJson()['version'], 11);
+    final reopened = (await store().load(stored.reviewSet.sessionId))!;
+    expect(reopened.resumeSettings.contentScope, ConverterContentScope.full);
+    expect(reopened.toJson(), stored.toJson());
+    final missing = {...body}..remove('contentScope');
+    for (final invalid in [missing, {...body, 'contentScope': 'partial'}, {...body, 'contentScope': 'world'}]) {
+      expect(() => LocalReviewResumeSettings.fromJson(invalid),
+        throwsA(isA<LocalReviewSessionStoreFailure>()));
+    }
+    expect(() => StoredReviewSession.fromJson({...stored.toJson(), 'version': 10}),
+      throwsA(isA<LocalReviewSessionStoreFailure>()));
+  });
+
   test(
       'resume roundtrip retains explicit draft aggregate nodes and rejects missing field',
       () {
@@ -333,12 +355,12 @@ void main() {
         _error('session.store.document'));
   });
 
-  test('shared source store emits breaking version 10', () {
+  test('shared source store emits breaking version 11', () {
     final stored = StoredReviewSession(
         reviewSet: _reviewSet(_session()),
         resumeSettings: settings,
         storedRevision: 1);
-    expect(stored.toJson()['version'], 10);
+    expect(stored.toJson()['version'], 11);
   });
 
   test('aggregate image budget resume survives exact disk reopen', () async {
@@ -356,7 +378,7 @@ void main() {
     expect(loaded.resumeSettings.writeLimits.maxImagePixels, 16777216);
     expect(loaded.resumeSettings.toJson(), custom.toJson());
     expect(loaded.canonicalHash, created.canonicalHash);
-    expect(loaded.toJson()['version'], 10);
+    expect(loaded.toJson()['version'], 11);
   });
 
   test('aggregate image budget resume boundaries alter envelope hashes', () {

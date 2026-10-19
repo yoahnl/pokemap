@@ -201,22 +201,23 @@ final class SourceTrainerEventBindingResolver {
             expected.eventAt(event.sourceMapId, event.sourceEventId);
         if (original == null ||
             event.isQuarantined ||
-            event.pages.length != 2 ||
+            !const [2, 3].contains(event.pages.length) ||
             canonicalJsonOf(_eventFingerprint(event)) !=
                 canonicalJsonOf(_eventFingerprint(original))) {
           throw ContractError(
               'events.trainer.program_binding',
               event.identity.value,
-              'Both source trainer pages require their exact raw analysis.');
+              'All source trainer pages require their exact raw analysis.');
         }
         final programs = <SourceTrainerProgramNode>[];
         for (final page in event.pages) {
+          if (page.originalPageIndex == 2 && page.isEmpty) continue;
           if (page.body.nodes.length != 1 ||
               page.body.nodes.single is! SourceTrainerProgramNode) {
             throw ContractError(
                 'events.trainer.program_binding',
                 event.identity.value,
-                'The complete two-page source trainer program is required.');
+                'The complete source trainer program is required.');
           }
           programs.add(page.body.nodes.single as SourceTrainerProgramNode);
         }

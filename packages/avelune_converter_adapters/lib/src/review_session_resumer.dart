@@ -137,6 +137,7 @@ final class ConverterReviewSessionResumer {
     final saved = stored.resumeSettings;
     final session = stored.reviewSet;
     return ConverterStudySettings(
+        contentScope: saved.contentScope,
         projectName: projectName ?? saved.projectName,
         parentPath: destinationParentPath ?? saved.destinationParentPath,
         folderName: folderName ?? saved.folderName,

@@ -148,10 +148,22 @@ void main() {
         scriptsBytes: [4, 8, 48]);
     addTearDown(source.close);
     final profile = await const LiteralAutotileComposer()
-        .inspectProfile(interpretationProfile: fixtureSourceInterpretationProfile, snapshot: source.snapshot, files: source.files);
+        .inspectProfile(snapshot: source.snapshot, files: source.files);
     expect(profile.clockAttested, isFalse);
     expect(profile.extendedAttested, isFalse);
     expect(profile.sourceSnapshotHash, source.snapshot.canonicalHash);
+  }, skip: !Platform.isMacOS);
+  test('AUTO-02 incomplete selected autotile profile is rejected', () async {
+    final source = await _Source.open(OriginalAutotileFixture.simple().pngBytes,
+        scriptsBytes: [4, 8, 48]);
+    addTearDown(source.close);
+    await expectLater(
+        const LiteralAutotileComposer().inspectProfile(
+            interpretationProfile: fixtureSourceInterpretationProfile,
+            snapshot: source.snapshot,
+            files: source.files),
+        throwsA(isA<LiteralAutotileFailure>().having(
+            (failure) => failure.code, 'code', 'autotile.profile.sections')));
   }, skip: !Platform.isMacOS);
   for (final format in OriginalAutotileFormat.values) {
     test('AUTO-02 exact Kanto profile ${format.name} three frame clock',

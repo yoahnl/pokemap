@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_adapters/src/native_mutation_batches.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -18,6 +19,157 @@ import 'support/native_media_source_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 
 void main() {
+  test('world content preserves source IR and publishes before full interactions', () async {
+    final harness = await _WorkflowHarness.create(
+      scriptsBytes: syntheticInterpretationArchive,
+      includeEventSystem: true,
+      maps: [LiteralFixtureMap(id: 1, events: [
+        const LiteralFixtureEvent(id: 1, x: 1, y: 0, name: 'Guide', pages: [
+          LiteralFixtureEventPage(characterName: 'OriginalPlayer', commands: [
+            LiteralFixtureEventCommand(101, ['Original greeting']),
+          ]),
+        ]),
+      ])],
+      extraFiles: {
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+        'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+          image.Image(width: 128, height: 192, numChannels: 4)),
+      },
+    );
+    final restored = ConverterWorkflow();
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1],
+        contentScope: ConverterContentScope.world));
+      final world = await harness.workflow.prepareStudy();
+      expect(world.canApprove, isTrue, reason: jsonEncode({
+        'normalization': world.normalizedSource.diagnostics.map((value) => value.toJson()).toList(),
+        'composition': world.composition.diagnostics.map((value) => value.toJson()).toList(),
+        'findings': world.previewPlan?.findings.map((value) => value.toJson()).toList(),
+      }));
+      expect(world.normalizedSource.maps.single.map.events, hasLength(1));
+      expect(world.assetCandidates, isEmpty);
+      expect(world.reviewSet, isNull);
+      expect(world.assetLibrary, isNull);
+      expect(world.nativeDraft!.compositionEvidence, contains('sourceSemantics'));
+      expect(world.nativeDraft!.compositionEvidence, isNot(contains('sourceEvents')));
+      expect(world.nativeDraft!.compositionEvidence, isNot(contains('sourceCatalogs')));
+      final actions = world.nativeDraft!.mutations.map((mutation) => mutation.actionId).toSet();
+      expect(actions, contains('characterStudio.character.setDefault'));
+      for (final action in ['entity.upsert', 'dialogue.create', 'scene.upsert',
+        'campaign.trainer.upsert', 'campaign.encounter_table.upsert',
+        'pokemon.catalog.write', 'item.create']) {
+        expect(actions, isNot(contains(action)), reason: action);
+      }
+      final recipe = harness.workflow.exportStudyPlanRecipe();
+      expect(recipe.settings.contentScope, ConverterContentScope.world);
+      final reopened = await restored.restoreStudyPlanRecipe(
+        ConverterStudyPlanRecipe.decode(recipe.encode()));
+      expect(reopened.settings.contentScope, ConverterContentScope.world);
+      expect(reopened.nativeDraft!.canonicalHash, world.nativeDraft!.canonicalHash);
+      expect(reopened.preparationHash, world.preparationHash);
+      final published = await harness.workflow.writeApproved(harness.approve(world));
+      expect(published.published, isTrue);
+      expect(published.receipt.verified, isTrue);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1],
+        folderName: 'full-original-study', contentScope: ConverterContentScope.full));
+      final full = await harness.workflow.prepareStudy();
+      expect(full.canApprove, isTrue);
+      expect(full.normalizedSource.canonicalHash, world.normalizedSource.canonicalHash);
+      expect(full.nativeDraft!.mutations.map((mutation) => mutation.actionId),
+        containsAll(['entity.upsert', 'dialogue.create', 'scene.upsert']));
+      final fullPublished = await harness.workflow.writeApproved(harness.approve(full));
+      expect(fullPublished.published, isTrue);
+      expect(fullPublished.receipt.verified, isTrue);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await restored.dispose();
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
+  test('native preparation exposes bounded phases before project creation',
+      () async {
+    final harness = await _WorkflowHarness.create();
+    final events = <ConverterWorkflowEvent>[];
+    final subscription = harness.workflow.events.listen(events.add);
+    try {
+      final prepared = await harness.prepare();
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      events.clear();
+      final result = await harness.workflow.writeApproved(harness.approve(prepared));
+      await Future<void>.delayed(Duration.zero);
+      final phases = <String>[];
+      for (final event in events) {
+        final name = event.state.phase?.name;
+        if (name != null && (phases.isEmpty || phases.last != name)) {
+          phases.add(name);
+        }
+      }
+      expect(phases, containsAllInOrder([
+        'validateNativeBindings',
+        'verifyNativeLibrary',
+        'projectNativeMutations',
+        'validateNativeProject',
+        'writeNative',
+        'verifyNative',
+        'publishNative',
+      ]));
+      final projection = events.where((event) =>
+          event.state.phase?.name == 'projectNativeMutations' &&
+          event.state.progress != null).map((event) => event.state.progress!).toList();
+      expect(projection, isNotEmpty);
+      expect(projection.first.done, 0);
+      expect(projection.last.total, expandNativeMutationBatches(
+          prepared.nativeDraft!, prepared.settings.writeLimits).length);
+      expect(projection.last.done, projection.last.total);
+      var done = 0;
+      for (final progress in projection) {
+        expect(progress.unit, JobUnit.operations);
+        expect(progress.done, greaterThanOrEqualTo(done));
+        done = progress.done;
+      }
+      expect(result.published, isTrue);
+      expect(result.receipt.verified, isTrue);
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await subscription.cancel();
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
+  test('native preparation cancellation preserves the prepared study for retry',
+      () async {
+    late _WorkflowHarness harness;
+    var cancel = true;
+    harness = await _WorkflowHarness.create(checkpoint: (phase, _, __) {
+      if (phase.name == 'projectNativeMutations' && cancel) {
+        cancel = false;
+        harness.workflow.cancelCurrentJob();
+      }
+    });
+    try {
+      final prepared = await harness.prepare();
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final approval = harness.approve(prepared);
+      await expectLater(harness.workflow.writeApproved(approval),
+          _throwsWorkflow('workflow.cancelled'));
+      expect(harness.workflow.state.prepared, same(prepared));
+      expect(harness.workflow.state.approval, isNull);
+      expect(harness.workflow.state.result, isNull);
+      expect(harness.nativeStages, isEmpty);
+      expect(await Directory(harness.destination).exists(), isFalse);
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+      final retry = await harness.workflow.writeApproved(harness.approve(prepared));
+      expect(retry.published, isTrue);
+      expect(retry.receipt.verified, isTrue);
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
   test('native study declares supported canonical shop capability before approval',
       () async {
     final harness = await _WorkflowHarness.create();
@@ -626,7 +778,7 @@ void main() {
         ),
       );
       final json = settings.toJson();
-      expect(json['version'], 9);
+      expect(json['version'], 10);
       final write = json['writeLimits'] as Map;
       expect(write['maxImagePixels'], 16777216);
       expect(write['maxTotalImagePixels'], 33554432);
@@ -2803,6 +2955,7 @@ final class _WorkflowHarness {
 
   ConverterStudySettings settings(SourceSnapshot snapshot,
           {List<int> selected = const [1, 8],
+          ConverterContentScope contentScope = ConverterContentScope.full,
           List<LiteralDependencyDecision> decisions = const [],
           List<SourceImageBinding> imageBindings = const [],
           List<SourceEventAdaptation> sourceAdaptations = const [],
@@ -2821,6 +2974,7 @@ final class _WorkflowHarness {
           ConverterAssetReviewSet? reviewSet,
           SourceInterpretationProfile? interpretationProfile}) =>
       ConverterStudySettings(
+        contentScope: contentScope,
         interpretationProfile: interpretationProfile ?? fixture.source.interpretationProfile,
         reviewSet: reviewSet,
         projectName: projectName ?? 'Controlled original workflow study',

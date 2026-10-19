@@ -1100,10 +1100,11 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
     final declared = profile.interpretationProfile?.declaredPrograms ??
         const <SourceDeclaredProgramBinding>[];
     final supportsAutomatic = families.any((family) => const {
-      SourceDeclaredProgramFamily.centerNurse,
-      SourceDeclaredProgramFamily.centerPc,
-      SourceDeclaredProgramFamily.healingDisplay,
-    }.contains(family));
+          SourceDeclaredProgramFamily.centerNurse,
+          SourceDeclaredProgramFamily.centerPc,
+          SourceDeclaredProgramFamily.healingDisplay,
+          SourceDeclaredProgramFamily.warpTile,
+        }.contains(family));
     if (!supportsAutomatic &&
         !declared.any((binding) => families.contains(binding.family))) {
       return null;
@@ -1119,7 +1120,10 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
                 families.contains(binding.family) &&
                 binding.pages.length == pages.length &&
                 encodedPages.every(binding._canonicalPages.values.contains))
-        ? _automaticCenterServiceBinding(pages.cast<Object?>())
+        ? (families.contains(SourceDeclaredProgramFamily.warpTile)
+                ? _automaticWarpTileBinding(pages.cast<Object?>())
+                : null) ??
+            _automaticCenterServiceBinding(pages.cast<Object?>())
         : null;
     for (final binding in [...declared, if (automatic != null) automatic]) {
       if (bindingIds != null && !bindingIds.contains(binding.id) ||
@@ -1163,4 +1167,64 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
   } on TypeError {
     return null;
   }
+}
+
+SourceDeclaredProgramBinding? _automaticWarpTileBinding(List<Object?> pages) {
+  if (pages.any((page) => page is! Map)) return null;
+  final values =
+      pages.map((page) => Map<String, Object?>.from(page as Map)).toList();
+  if (values.any((page) {
+    final graphic = page['graphic'] as Map;
+    return page['move_type'] != 0 ||
+        graphic['tile_id'] != 0 ||
+        graphic['character_name'] != '' ||
+        graphic['blend_type'] != 0;
+  })) {
+    return null;
+  }
+  Map<String, Object?>? roles;
+  String? role;
+  if (values.length == 2 &&
+      values[0]['trigger'] == 1 &&
+      values[1]['trigger'] == 3 &&
+      (values[0]['condition'] as Map)['self_switch_valid'] == true &&
+      (values[1]['condition'] as Map)['switch1_valid'] == true) {
+    roles = {'departure': values[0], 'arrival': values[1]};
+    role = 'tile';
+  } else if (values.length == 1 && values.single['trigger'] == 1) {
+    final page = values.single;
+    final condition = page['condition'] as Map;
+    final commands = page['list'] as List;
+    if (const [
+          'switch1_valid',
+          'switch2_valid',
+          'variable_valid',
+          'self_switch_valid'
+        ].any((flag) => condition[flag] != false) ||
+        commands.length != 2) {
+      return null;
+    }
+    final first = commands.first as Map, last = commands.last as Map;
+    final parameters = first['parameters'] as List;
+    if (first['code'] != 355 ||
+        first['indent'] != 0 ||
+        last['code'] != 0 ||
+        last['indent'] != 0 ||
+        (last['parameters'] as List).isNotEmpty ||
+        parameters.length != 1 ||
+        parameters.single is! String ||
+        !RegExp(r'^pbSetSelfSwitch\([1-9][0-9]*,"[A-D]",true\)$')
+            .hasMatch(parameters.single as String)) {
+      return null;
+    }
+    roles = {'program': page};
+    role = 'activation';
+  }
+  if (roles == null) return null;
+  return SourceDeclaredProgramBinding.fromJson({
+    'id': 'automatic-warpTile-${canonicalHashOf(pages).value}',
+    'family': 'warpTile',
+    'pages': roles,
+    'parameters': {'role': role},
+  });
 }

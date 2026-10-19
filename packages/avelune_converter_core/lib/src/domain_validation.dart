@@ -213,6 +213,7 @@ void _validateDomain(ConverterDocument document) {
         }
       }
     case ConversionPlan():
+      final operations = document.operations;
       _unique(document.selectedSourceMapIds, r'$.selectedSourceMapIds');
       _unique(document.dependencySourceMapIds, r'$.dependencySourceMapIds');
       _require(
@@ -221,12 +222,12 @@ void _validateDomain(ConverterDocument document) {
           'domain.mapScope',
           r'$.dependencySourceMapIds',
           'Selected maps and dependencies must be distinct');
-      _unique(document.operations.map((o) => o.operationId), r'$.operations');
+      _unique(operations.map((o) => o.operationId), r'$.operations');
       _relativePath(document.outputPolicy.destinationFolderName,
           r'$.outputPolicy.destinationFolderName',
           singleSegment: true);
-      for (var i = 0; i < document.operations.length; i++) {
-        final operation = document.operations[i];
+      for (var i = 0; i < operations.length; i++) {
+        final operation = operations[i];
         final path = '\$.operations[$i]';
         _unique(operation.sourceEntityIds, '$path.sourceEntityIds');
         _unique(operation.targetEntityIds, '$path.targetEntityIds');

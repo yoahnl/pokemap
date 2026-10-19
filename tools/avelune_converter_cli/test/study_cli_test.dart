@@ -52,6 +52,41 @@ void main() {
         '--json'
       ];
 
+  test('CLI content scope defaults to full and persists explicit world plans', () async {
+    final planned = await invoke([...planArgs(), '--content', 'world']);
+    expect(planned.code, 0, reason: planned.err);
+    final recipe = await const LocalStudyPlanStore().read(planPath);
+    expect(recipe.settings.contentScope, ConverterContentScope.world);
+    final converted = await invoke(['convert', '--plan', planPath, '--approve-plan',
+      recipe.approvedPlanHash.value, '--offline', '--json']);
+    expect(converted.code, 0, reason: converted.err);
+    expect(jsonDecode(converted.out)['sourceUnchanged'], isTrue);
+    await File(planPath).delete();
+    final full = await invoke([...planArgs(), '--destination', '${output.path}/full-study']);
+    expect(full.code, 0, reason: full.err);
+    expect((await const LocalStudyPlanStore().read(planPath)).settings.contentScope,
+      ConverterContentScope.full);
+    final invalid = await invoke([...planArgs(), '--content', 'partial']);
+    expect(invalid.code, 2);
+  }, skip: !Platform.isMacOS);
+
+  test('CLI refuses item bindings in world scope without writing a plan', () async {
+    final bindings = File('${root.path}/world-item-bindings.json');
+    await bindings.writeAsString(jsonEncode([{
+      'kind': 'sourceMissingItemBinding', 'version': 1, 'sourceSymbol': 'ETHER',
+      'sourceSnapshotHash': '1' * 64, 'sourceFileId': 'original-donor-items',
+      'sourceRelativePath': '_converter_sources/1/Data/items.dat',
+      'sourceSha256': '2' * 64, 'reason': 'Explicit incompatible item choice',
+      'humanConfirmed': true,
+    }]));
+    final result = await invoke([...planArgs(), '--content', 'world',
+      '--missing-item-bindings', bindings.path]);
+    expect(result.code, 2, reason: result.err);
+    expect(result.err, contains('workflow.content_scope.item_bindings'));
+    expect(File(planPath).existsSync(), isFalse);
+    expect(Directory('${output.path}/native-study').existsSync(), isFalse);
+  }, skip: !Platform.isMacOS);
+
   test('CLI inventories explicit source defects and replays their closed decisions', () async {
     fixture = await LiteralTileFixture.create(sourceRootPath: '${root.path}/defect-source', maps: [
       LiteralFixtureMap(id: 1, events: [const LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
@@ -189,7 +224,7 @@ void main() {
     final recipe = await const LocalStudyPlanStore().read(planPath);
     expect(await Directory('${output.path}/native-study').exists(), isFalse);
     expect(recipe.settings.writeLimits.maxArtifacts, 4096);
-    expect(recipe.settings.writeLimits.maxMutations, 16384);
+    expect(recipe.settings.writeLimits.maxMutations, 32768);
     final restored = ConverterStudyPlanRecipe.fromJson(jsonDecode(planned.out));
     expect(restored.canonicalHash, recipe.canonicalHash);
     expect(restored.settings.writeLimits.maxArtifacts, 4096);
@@ -310,7 +345,9 @@ void main() {
       'workflow.source_changed': 7,
       'publication.destination.exists': 7,
       'workflow.cancelled': 130,
-      'workflow.recipe.invalid': 2
+      'workflow.recipe.invalid': 2,
+      'workflow.content_scope.item_bindings': 2,
+      'workflow.content_scope.review': 2,
     }.entries) {
       expect(converterCliExitCode(entry.key), entry.value, reason: entry.key);
     }

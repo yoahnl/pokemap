@@ -89,6 +89,7 @@ Future<LiteralTileFixture> _fixture(int map,
                     const LiteralFixtureEventCommand(0, [])])]),
             ])
         ], tilesets: [LiteralFixtureTileset(id: 1,
+          passages: surf ? const {385: 15} : const {},
           terrainTags: surf ? const {385: 7} : const {})]);
 
 LiteralFixtureUserDefined _tone(double channel) {

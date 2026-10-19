@@ -9,8 +9,20 @@ import 'package:path/path.dart' as path;
 import 'lot6_connection_preflight.dart';
 
 Future<void> main(List<String> args) async {
-  if (args.length != 1) throw ArgumentError('Provide an unused absolute evidence directory.');
-  final evidence = Directory(args.single);
+  if (args.length < 2 || args.length > 3 || !const {'world', 'full'}.contains(args[1])) {
+    throw ArgumentError('Provide an unused absolute evidence directory, world or full, and an optional destination folder name.');
+  }
+  final contentScope = ConverterContentScope.values.byName(args[1]);
+  final folderName = args.length == 3 ? args[2] : contentScope == ConverterContentScope.world
+      ? 'Kanto — Monde explorable'
+      : 'Kanto complet — EV10';
+  if (folderName.isEmpty || folderName.trim() != folderName ||
+      folderName == '.' || folderName == '..' ||
+      folderName.contains('/') || folderName.contains(r'\') ||
+      folderName.contains('\u0000') || path.isAbsolute(folderName)) {
+    throw ArgumentError('The destination must be one nonempty folder name.');
+  }
+  final evidence = Directory(args.first);
   const evidenceParent = '/Users/karim/Project/avelune project/Inventaires/Kanto EV-10/lot6';
   if (!evidence.isAbsolute ||
       path.dirname(evidence.path) != evidenceParent ||
@@ -56,15 +68,18 @@ Future<void> main(List<String> args) async {
     }
   });
   final result = <String, Object?>{
-    'kind': 'fullKantoCanonicalConverterDelivery',
+    'kind': contentScope == ConverterContentScope.world
+        ? 'kantoWorldFoundationDelivery'
+        : 'fullKantoCanonicalConverterDelivery',
     'userRequest': 'Complete Kanto with doors and connections under Project/avelune project; Avelune battles; lot6 publication and qualification; no Git operations',
     'sourceScriptsExecuted': 0,
     'interpretationProfileId': interpretationProfile.profileId.value,
     'interpretationProfilePath': profilePath,
     'interpretationProfileHash': interpretationProfile.canonicalHash.value,
     'aiSourceInferenceCalls': 0,
+    'contentScope': contentScope.name,
     'finalPlayableCertified': false,
-    'projectPath': '/Users/karim/Project/avelune project/Kanto complet — EV10',
+    'projectPath': '/Users/karim/Project/avelune project/$folderName',
   };
   Future<void> save() => File('${evidence.path}/delivery.json')
       .writeAsString(jsonEncode(result), flush: true);
@@ -116,7 +131,7 @@ Future<void> main(List<String> args) async {
     }
     final parent = Directory('/Users/karim/Project/avelune project');
     if (await parent.resolveSymbolicLinks() != parent.path ||
-        await FileSystemEntity.type('${parent.path}/Kanto complet — EV10',
+        await FileSystemEntity.type('${parent.path}/$folderName',
                 followLinks: false) !=
             FileSystemEntityType.notFound) {
       throw StateError('The final destination must be fresh and canonical');
@@ -162,13 +177,16 @@ Future<void> main(List<String> args) async {
     }];
     await File('${evidence.path}/dependency-decisions.json').writeAsString(jsonEncode(rows), flush: true);
     workflow.updateSettings(ConverterStudySettings(
-      projectName: 'Kanto complet — EV10',
+      contentScope: contentScope,
+      projectName: folderName,
       parentPath: parent.path,
-      folderName: 'Kanto complet — EV10',
+      folderName: folderName,
       selectedSourceMapIds: ids,
       interpretationProfile: interpretationProfile,
       sourceAdaptations: (decisions['decisions'] as List).map(SourceEventAdaptation.fromJson).toList(),
-      missingItemBindings: (decisions['missingItemBindings'] as List).map(SourceMissingItemBinding.fromJson).toList(),
+      missingItemBindings: contentScope == ConverterContentScope.full
+          ? (decisions['missingItemBindings'] as List).map(SourceMissingItemBinding.fromJson).toList()
+          : const [],
       allowFirstFrameAutotiles: true,
       profileAcknowledgement: SourceStudyAcknowledgement(
         sourceSnapshotHash: snapshot.canonicalHash,
@@ -325,11 +343,12 @@ Future<void> main(List<String> args) async {
       'elapsedMs': watch.elapsedMilliseconds,
     });
     await save();
-    final sourceEvents = draft!.compositionEvidence['sourceEvents'] as Map;
+    final sourceEvents = draft!.compositionEvidence['sourceEvents'];
     await File('${evidence.path}/runtime-inputs.json').writeAsString(jsonEncode({
       'verified': delivered.published && delivered.receipt.verified && delivered.sourceUnchanged,
       'projectPath': delivered.projectPath,
-      'events': sourceEvents['projection'],
+      'contentScope': contentScope.name,
+      'events': sourceEvents is Map ? sourceEvents['projection'] : null,
     }), flush: true);
   } catch (error, stack) {
     result.addAll({

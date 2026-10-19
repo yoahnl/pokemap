@@ -156,6 +156,7 @@ final class LocalReviewResumeSettings {
     required String destinationParentPath,
     required String projectName,
     required String folderName,
+    ConverterContentScope contentScope = ConverterContentScope.full,
     SourceInterpretationProfile? interpretationProfile,
     bool allowFirstFrameAutotiles = false,
     LocalReviewProfileAcknowledgement? profileAcknowledgement,
@@ -169,6 +170,9 @@ final class LocalReviewResumeSettings {
     NativeWriteLimits writeLimits = const NativeWriteLimits(),
   }) =>
       _readDocument(() {
+        _requireStore(contentScope == ConverterContentScope.full,
+            'session.store.content_scope',
+            'Object review sessions require world and interactions; use a study plan to resume a world-only import.');
         final selection = ConverterSourceSelection(
             rootPath: _absolutePath(sourceRootPath),
             supplementalRootPaths: supplementalRootPaths,
@@ -222,6 +226,7 @@ final class LocalReviewResumeSettings {
             bindings,
             SourceEventAdaptation.canonicalize(sourceAdaptations),
         SourceMissingItemBinding.canonicalize(missingItemBindings),
+            contentScope,
             sourceScanPolicy ?? SourceScanPolicy(),
             normalizationLimits,
             writeLimits);
@@ -241,6 +246,7 @@ final class LocalReviewResumeSettings {
       this.imageBindings,
       this.sourceAdaptations,
       this.missingItemBindings,
+      this.contentScope,
       this.sourceScanPolicy,
       this.normalizationLimits,
       this.writeLimits);
@@ -262,6 +268,7 @@ final class LocalReviewResumeSettings {
           'imageBindings',
           'sourceAdaptations',
           'missingItemBindings',
+          'contentScope',
           'sourceScanPolicy',
           'normalizationLimits',
           'writeLimits'
@@ -270,6 +277,7 @@ final class LocalReviewResumeSettings {
         _requireStore(dependencies.length <= 2048, 'session.store.quota',
             'Too many dependency receipts.');
         return LocalReviewResumeSettings(
+          contentScope: ConverterContentScope.values.byName(_string(json['contentScope'])),
           interpretationProfile: json['interpretationProfile'] == null ? null : SourceInterpretationProfile.fromJson(json['interpretationProfile']),
           sourceRootPath: _string(json['sourceRootPath']),
           supplementalRootPaths:
@@ -312,6 +320,7 @@ final class LocalReviewResumeSettings {
   final List<SourceImageBinding> imageBindings;
   final List<SourceEventAdaptation> sourceAdaptations;
   final List<SourceMissingItemBinding> missingItemBindings;
+  final ConverterContentScope contentScope;
   final SourceScanPolicy sourceScanPolicy;
   final SourceNormalizationLimits normalizationLimits;
   final NativeWriteLimits writeLimits;
@@ -332,6 +341,7 @@ final class LocalReviewResumeSettings {
         'imageBindings': imageBindings.map((item) => item.toJson()).toList(),
         'sourceAdaptations': sourceAdaptations.map((item) => item.toJson()).toList(),
         'missingItemBindings': missingItemBindings.map((item) => item.toJson()).toList(),
+        'contentScope': contentScope.name,
         'sourceScanPolicy': {
           'limits': sourceScanPolicy.limits.toJson(),
           'excludedSegments': sourceScanPolicy.excludedSegments
@@ -388,7 +398,7 @@ final class StoredReviewSession {
           'resumeSettings'
         });
         _requireStore(
-            json['kind'] == 'localReviewSession' && json['version'] == 10,
+            json['kind'] == 'localReviewSession' && json['version'] == 11,
             'session.store.document',
             'Unsupported stored review document.');
         final settings =
@@ -410,7 +420,7 @@ final class StoredReviewSession {
 
   Map<String, Object?> toJson() => Map.unmodifiable({
         'kind': 'localReviewSession',
-        'version': 10,
+        'version': 11,
         'storedRevision': storedRevision,
         'reviewSet': reviewSet.toJson(),
         'resumeSettings': resumeSettings.toJson(),

@@ -1,4 +1,3 @@
-import 'dart:io';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -16,8 +15,7 @@ Future<NormalizedSourceProject> _source({
 }) async {
   final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
 
-      scriptsBytes: await File(Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS']!)
-          .readAsBytes(),
+      scriptsBytes: syntheticInterpretationArchive,
       includeEventSystem: true,
       maps: [
         LiteralFixtureMap(id: 1, width: 4, height: 3, layers: [
@@ -56,8 +54,6 @@ SourceEventTouchResolution _resolve(NormalizedSourceProject source,
 }
 
 void main() {
-  final scriptsMissing = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'] == null;
-
   for (final trigger in [0, 1, 2, 3, 4]) {
     test('static bump footprint accepts only player-touch trigger $trigger', () async {
       final source = await _source(trigger: trigger);
@@ -68,7 +64,7 @@ void main() {
         page: event.pages.single, mapEvents: analysis.events, width: 2, height: 1);
       expect(result.kind, trigger == 1 ? SourceEventTouchKind.front : SourceEventTouchKind.unqualified);
       if (trigger == 1) expect(_resolve(source).kind, SourceEventTouchKind.unqualified);
-    }, skip: scriptsMissing);
+    });
   }
 
   test('static action footprint proves both cells with the sealed source', () async {
@@ -77,13 +73,13 @@ void main() {
     expect(result.reason, 'stationaryFootprintTilesBlocked');
     expect(result.trace.where((step) =>
         step.reason == SourcePassageReason.allDirectionsBlocked), hasLength(2));
-  }, skip: scriptsMissing);
+  });
 
   for (final blocked in [<int>{5}, <int>{6}, <int>{}]) {
     test('static action footprint refuses a passable occupied cell $blocked', () async {
       expect(_resolve(await _source(blockedCells: blocked)).kind,
           SourceEventTouchKind.unqualified);
-    }, skip: scriptsMissing);
+    });
   }
 
   for (final dimensions in [(0, 1), (1, 1), (3, 1), (2, 0), (2, 2)]) {
@@ -91,7 +87,7 @@ void main() {
         () async {
       expect(_resolve(await _source(), width: dimensions.$1,
           height: dimensions.$2).kind, SourceEventTouchKind.unqualified);
-    }, skip: scriptsMissing);
+    });
   }
 
   for (final name in ['Bookshelf size(0,1)', 'Bookshelf size(2,0)',
@@ -99,14 +95,14 @@ void main() {
     test('static action footprint refuses invalid source directive $name', () async {
       expect(_resolve(await _source(eventName: name)).kind,
           SourceEventTouchKind.unqualified);
-    }, skip: scriptsMissing);
+    });
   }
 
   test('static action footprint refuses out of bounds and through pages', () async {
     expect(_resolve(await _source(x: 3)).kind, SourceEventTouchKind.unqualified);
     expect(_resolve(await _source(through: true)).kind,
         SourceEventTouchKind.unqualified);
-  }, skip: scriptsMissing);
+  });
 
   test('static action footprint refuses an overlapping event from either side',
       () async {
@@ -118,7 +114,7 @@ void main() {
       expect(_resolve(source).kind, SourceEventTouchKind.unqualified,
           reason: 'Overlapping event starts at $x');
     }
-  }, skip: scriptsMissing);
+  });
 
   test('static action footprint refuses unknown movement context and missing raw page',
       () async {
@@ -141,7 +137,7 @@ void main() {
     expect(resolver.resolveStaticActionFootprint(event: replacement,
         page: page, mapEvents: [replacement], width: 2, height: 1).kind,
         SourceEventTouchKind.unqualified);
-  }, skip: scriptsMissing);
+  });
 
   test('static action footprint does not weaken the existing touch footprint gate',
       () async {
@@ -152,5 +148,5 @@ void main() {
     expect(resolver.resolveEventTouch(cell: resolver.cellAt(1, 1, 1),
         event: event, page: event.pages.single, mapEvents: analysis.events).kind,
         SourceEventTouchKind.unqualified);
-  }, skip: scriptsMissing);
+  });
 }

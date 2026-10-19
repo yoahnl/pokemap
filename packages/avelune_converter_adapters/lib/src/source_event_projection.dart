@@ -694,6 +694,8 @@ final class _ProjectionBuilder {
   late final Set<ConverterId> _selectedEventIdentities =
       analysis.events.map((event) => event.identity).toSet();
   final _arrivalOwnerChecks = <ConverterId>{};
+  final _arrivalOwnerDependencies = <ConverterId, Set<ConverterId>>{};
+  final _stationaryRotationSourceMatches = <SourceEventDefinition, bool>{};
   _SourceSelfSwitchQualification? _selfSwitchQualification;
   final _selfSwitchQualificationProofs = <Map<String, Object?>>[];
   late final Map<String, SourceEventDefinition> _selfSwitchTargets = {
@@ -947,8 +949,11 @@ final class _ProjectionBuilder {
   }
 
   bool _isArrivalCollisionOwner(SourceEventDefinition event, SourceWarpNode node) =>
-      (_isSourceTransition(event) || _isSourceArrivalCandidate(event)) && event.sourceMapId == node.targetSourceMapId &&
-      event.x == node.x && event.y == node.y &&
+      _isArrivalCollisionOwnerAt(event, node.targetSourceMapId, node.x, node.y);
+
+  bool _isArrivalCollisionOwnerAt(SourceEventDefinition event, int targetMapId, int x, int y) =>
+      (_isSourceTransition(event) || _isSourceArrivalCandidate(event)) && event.sourceMapId == targetMapId &&
+      event.x == x && event.y == y &&
       (!_isExternalWarpFamily(event) || _externalWarpProgram(event) != null) &&
       (event.pages.firstOrNull?.graphic?.characterName.isNotEmpty == true ||
         (sequencePrograms[event.identity]?.finiteAutorun == true &&
@@ -976,6 +981,14 @@ final class _ProjectionBuilder {
           }
           continue;
         }
+        if (image.characterName.isNotEmpty && !image.through &&
+            !_isArrivalCollisionOwnerAt(event, targetMapId, x, y)) {
+          final footprint = _eventFootprint(event);
+          if (event.x <= x && x < event.x + footprint.width &&
+              event.y - footprint.height + 1 <= y && y <= event.y) {
+            return {'warpArrivalSourceCharacterUnqualified'};
+          }
+        }
         if (image.tileId <= 0 || image.through) { continue; }
         final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false).allMatches(event.name).toList();
         final width = sizes.isEmpty ? 1 : int.tryParse(sizes.first.group(1)!);
@@ -991,11 +1004,18 @@ final class _ProjectionBuilder {
 
   String? _arrivalOwner(SourceWarpNode node) {
     final owners = _sourceContextEvents.where((event) => _isArrivalCollisionOwner(event, node)).toList();
-    if (owners.length == 1 && sequencePrograms[owners.single.identity]?.finiteAutorun == true &&
-        owners.single.pages.first.graphic?.characterName.isEmpty == true) {
+    if (owners.length != 1) return null;
+    final owner = owners.single;
+    if (!_selectedEventIdentities.contains(owner.identity) ||
+        gapsByEvent[owner.identity]?.isEmpty != true) {
+      throw NativeWriteException('events.arrival.binding',
+          'Source arrival map=${node.targetSourceMapId} position=(${node.x},${node.y}) requires qualified owner map=${owner.sourceMapId} event=${owner.sourceEventId} identity=${owner.identity.value}');
+    }
+    if (sequencePrograms[owner.identity]?.finiteAutorun == true &&
+        owner.pages.first.graphic?.characterName.isEmpty == true) {
       return null;
     }
-    return owners.length == 1 && _selectedEventIdentities.contains(owners.single.identity) ? _key(owners.single, 'anchor') : null;
+    return _key(owner, 'anchor');
   }
 
   SourceEventSoundBinding? _sound(String name, {bool allowNativeAdaptation = false}) {
@@ -1048,14 +1068,27 @@ final class _ProjectionBuilder {
     mutations.add(_mutation('event_v2.registry_mode.set', 'registry', [owner],
         [], {'mode': 'v2Only'}));
     for (final event in events) {
-      gapsByEvent[event.identity] = _gaps(event);
+      final gaps = _gaps(event);
+      if (gaps.isEmpty && _isFieldObstacleFamily(event)) {
+        gaps.addAll(_fieldObstacleGaps(event));
+      }
+      gapsByEvent[event.identity] = gaps;
+    }
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final event in events) {
+        final gaps = gapsByEvent[event.identity]!;
+        if (gaps.isEmpty &&
+            (_arrivalOwnerDependencies[event.identity] ?? const <ConverterId>{})
+                .any((owner) => gapsByEvent[owner]?.isEmpty != true)) {
+          gaps.add('warpArrivalOwnerUnavailable');
+          changed = true;
+        }
+      }
     }
     for (final event in events) {
-      var gaps = gapsByEvent[event.identity]!;
-      if (gaps.isEmpty && _isFieldObstacleFamily(event)) {
-        gaps = _fieldObstacleGaps(event);
-        gapsByEvent[event.identity] = gaps;
-      }
+      final gaps = gapsByEvent[event.identity]!;
       if (gaps.isNotEmpty) {
         quarantinedCount++;
         records.add(NarrativeEventRecord.draft(NarrativeEventDraft(
@@ -1319,7 +1352,7 @@ final class _ProjectionBuilder {
                 if (gaps.isEmpty && _hasTrainerProgram(event))
                   {
                     'sourceOpcodes': page.sourcePage.commands.map((command) => command.code).toSet().toList()..sort(),
-                    'span': page.body.nodes.single.span.toJson(),
+                    'span': page.body.span.toJson(),
                     'rawDataRefs': [page.rawDataRef!.toJson()],
                     'nativeContract': 'aveluneTrainerBattleAndSourceWinnerFact',
                     'equivalenceScope': ['sourceChallengeAndAfterWinText', 'nativeAveluneBattle', 'winnerSelfSwitchA'],
@@ -1371,6 +1404,21 @@ final class _ProjectionBuilder {
                                 .condition.sourceDirection)!.name,
                       },
                       'windowSkinParityQualified': false,
+                    },
+                if (gaps.isEmpty)
+                  for (final node in _sourceControlNodes(page.body)
+                      .whereType<SourceForcedMoveRouteNode>()
+                      .where((node) => _supportsStationaryNpcRotation(event, node)))
+                    {
+                      'sourceOpcodes': [209, 509],
+                      'span': node.span.toJson(),
+                      'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList(),
+                      'nativeContract': 'stationaryNpcCardinalRotationActorRoute',
+                      'sourceTargetCharacterId': 0,
+                      'sourceRotationCodes': node.steps.map((step) => step.sourceCode).toList(),
+                      'nativeSteps': 'entityActorRouteAbsoluteFacing',
+                      'sourceAsynchronousTimingParity': false,
+                      'collisionFootprintChanged': false,
                     },
                 if (gaps.isEmpty)
                   for (final node in page.body.nodes
@@ -1792,25 +1840,84 @@ final class _ProjectionBuilder {
         })) {
       return true;
     }
-    if (event.pages.length != 1 ||
-        maps[event.sourceMapId]!.spatialScene != null) {
+    if (maps[event.sourceMapId]!.spatialScene != null) {
       return false;
     }
-    final page = event.pages.single;
-    final graphic = page.graphic;
-    return graphic != null &&
-        graphic.characterName.isNotEmpty &&
-        (graphic.moveType == 0 || _fixedRouteBindings(event) != null) &&
-        !graphic.directionFix &&
-        !graphic.through &&
-        page.triggerCode == 0 &&
-        page.condition.kind == SourceEventConditionKind.always &&
-        page.body.nodes.length >= 2 &&
-        (page.body.nodes.length == 2 || _fixedRouteBindings(event) != null) &&
-        page.body.nodes.take(page.body.nodes.length - 1).every((node) =>
-            node is SourceTextNode && node.followingChoice == null ||
-            node is SourceShopProgramNode && _shopBinding(event, node) != null) &&
-        page.body.nodes.last is SourceInteractionFacingNode;
+    bool stableBlock(Iterable<SourceEventNode> nodes) => nodes.every((node) =>
+        switch (node) {
+          SourceTextNode() => node.followingChoice == null,
+          SourceAnnotationNode() => true,
+          SourceConditionalNode() => stableBlock(node.whenTrue.nodes) &&
+              stableBlock(node.whenFalse.nodes),
+          SourceShopProgramNode() => _shopBinding(event, node) != null,
+          _ => false,
+        });
+    return event.pages.every((page) {
+      if (page.isEmpty) return true;
+      final graphic = page.graphic;
+      if (graphic == null ||
+          graphic.characterName.isEmpty ||
+          (graphic.moveType != 0 && _fixedRouteBindings(event) == null) ||
+          graphic.directionFix || graphic.through || page.triggerCode != 0) {
+        return false;
+      }
+      final nodes = page.body.nodes;
+      return stableBlock(nodes.isNotEmpty && nodes.last is SourceInteractionFacingNode
+          ? nodes.take(nodes.length - 1) : nodes);
+    });
+  }
+
+  bool _supportsStationaryNpcRotation(
+      SourceEventDefinition event, SourceForcedMoveRouteNode route) {
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9 ||
+        route.targetSourceCharacterId != 0 || route.repeat ||
+        route.steps.isEmpty || route.steps.any((step) => !const {
+          SourceMoveRouteStepKind.turnDown, SourceMoveRouteStepKind.turnLeft,
+          SourceMoveRouteStepKind.turnRight, SourceMoveRouteStepKind.turnUp,
+        }.contains(step.kind)) || event.pages.any((page) =>
+          _sourceControlNodes(page.body).any((node) => node is SourceWarpNode ||
+              node is SourceCommonEventCallNode))) {
+      return false;
+    }
+    final pages = event.pages.where((page) =>
+        _sourceControlNodes(page.body).contains(route)).toList();
+    if (pages.length != 1) return false;
+    final page = pages.single, graphic = page.graphic;
+    if (page.triggerCode != 0 || graphic == null ||
+        graphic.characterName.isEmpty || graphic.moveType != 0 ||
+        graphic.directionFix || graphic.through) {
+      return false;
+    }
+    return _stationaryRotationSourceMatches.putIfAbsent(event, () {
+      final expected = _authoritativeSourceAnalysis.eventAt(
+          event.sourceMapId, event.sourceEventId);
+      if (expected == null || expected.identity != event.identity ||
+          expected.sourceFileId != event.sourceFileId ||
+          expected.name != event.name || expected.x != event.x ||
+          expected.y != event.y || expected.pages.length != event.pages.length) {
+        return false;
+      }
+      Object? graphicValue(SourceEventGraphic? value) => value == null ? null : [
+        value.tileId, value.characterName, value.hue, value.direction,
+        value.pattern, value.opacity, value.blendType, value.moveType,
+        value.moveSpeed, value.moveFrequency, value.walkAnime, value.stepAnime,
+        value.directionFix, value.through, value.alwaysOnTop, value.moveRouteNodeId,
+      ];
+      return List.generate(event.pages.length, (index) => index).every((index) {
+        final original = expected.pages[index], supplied = event.pages[index];
+        return canonicalJsonOf(original.sourcePage.toJson()) ==
+                canonicalJsonOf(supplied.sourcePage.toJson()) &&
+            canonicalJsonOf(original.rawDataRef?.toJson()) ==
+                canonicalJsonOf(supplied.rawDataRef?.toJson()) &&
+            canonicalJsonOf(original.condition.toJson()) ==
+                canonicalJsonOf(supplied.condition.toJson()) &&
+            canonicalJsonOf(graphicValue(original.graphic)) ==
+                canonicalJsonOf(graphicValue(supplied.graphic)) &&
+            _sourceCommonProgramHash(original.body) ==
+                _sourceCommonProgramHash(supplied.body);
+      });
+    });
   }
 
   bool _supportsStaticSign(SourceEventDefinition event) {
@@ -2110,6 +2217,9 @@ final class _ProjectionBuilder {
     final initial = event.pages.first.graphic!;
     for (final page in event.pages) {
       final graphic = page.graphic!;
+      if (page.originalPageIndex == 2 && page.isEmpty && graphic.characterName.isEmpty) {
+        continue;
+      }
       if (graphic.tileId != 0 || graphic.characterName.isEmpty ||
           graphic.characterName != initial.characterName || graphic.hue != 0 ||
           graphic.direction != initial.direction || _sourceFacingDirection(graphic.direction) == null ||
@@ -2133,8 +2243,7 @@ final class _ProjectionBuilder {
         }
       }
     }
-    final program = binding.programs.first;
-    if ([...program.challengeLines, ...program.afterWinLines, binding.nativeVictorySpeech]
+    if ([for (final program in binding.programs) ...[...program.challengeLines, ...program.afterWinLines], binding.nativeVictorySpeech]
         .any((text) {
           final feedback = _staticSourceTextFeedback(text);
           return feedback == null || feedback.plainText.trim().isEmpty;
@@ -2911,14 +3020,18 @@ final class _ProjectionBuilder {
       }
       if (const [1, 2].contains(page.triggerCode) && !page.isEmpty) {
         final touch = _touch(event, page);
+        final multiCellTouch = _usesMultiCellTouchFootprint(event, page);
         if (touch.kind == SourceEventTouchKind.unqualified) {
           gaps.add('sourceTouchContactUnqualified');
+        } else if (multiCellTouch && !_nativeTouchFootprintMatches(event, touch.kind)) {
+          gaps.add('sourceTouchFootprintNativeCollisionUnqualified');
         } else if (touch.kind == SourceEventTouchKind.front &&
             (graphic.characterName.isEmpty || graphic.through)) {
-          if ((!_isSourceTransition(event) && !staticSign) ||
-              touch.reason != (staticSign && _staticSignWidth(event) == 2
+          if ((!_isSourceTransition(event) && !staticSign && !multiCellTouch) ||
+              touch.reason != (multiCellTouch ? 'stationaryTouchFootprintBlocked' :
+                  staticSign && _staticSignWidth(event) == 2
                   ? 'stationaryFootprintTilesBlocked' : 'stationaryTilesBlocked') ||
-              !_nativeSolidAt(event)) {
+              !(multiCellTouch ? _nativeTouchFootprintMatches(event, touch.kind) : _nativeSolidAt(event))) {
             gaps.add('sourceTerrainBumpUnqualified');
           }
         }
@@ -2928,10 +3041,42 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  bool _usesMultiCellTouchFootprint(SourceEventDefinition event,
+      SourceEventPageAnalysis page) {
+    final size = _eventFootprint(event);
+    final map = maps[event.sourceMapId]!;
+    return map.spatialScene == null && map.version != ProjectVersion.v9 &&
+        page.triggerCode == 1 && size.height == 1 &&
+        (size.width == 2 || size.width == 3) &&
+        page.graphic?.characterName.isEmpty == true &&
+        _sourceControlNodes(page.body).any((node) => node is SourceWarpNode);
+  }
+
+  bool _nativeTouchFootprintMatches(SourceEventDefinition event,
+      SourceEventTouchKind kind) {
+    final map = maps[event.sourceMapId]!;
+    final size = _eventFootprint(event);
+    if ((kind != SourceEventTouchKind.enter && kind != SourceEventTouchKind.front) ||
+        map.layers.whereType<CollisionLayer>().any((layer) =>
+            layer.collisions.length != map.size.width * map.size.height)) {
+      return false;
+    }
+    for (var x = event.x; x < event.x + size.width; x++) {
+      final index = event.y * map.size.width + x;
+      final blocked = map.layers.whereType<CollisionLayer>().any((layer) =>
+          index >= 0 && index < layer.collisions.length && layer.collisions[index]);
+      if (blocked != (kind == SourceEventTouchKind.front)) return false;
+    }
+    return true;
+  }
+
   SourceEventTouchResolution _touch(
           SourceEventDefinition event, SourceEventPageAnalysis page) =>
       holePrograms.containsKey(event.identity)
           ? _holeTouch(event, page)
+          : _usesMultiCellTouchFootprint(event, page)
+          ? semanticResolver.resolveEventTouchFootprint(event: event, page: page,
+              mapEvents: _sourceContextEvents, width: _eventFootprint(event).width, height: 1)
           : page.triggerCode == 1 && _staticSignWidth(event) == 2
           ? semanticResolver.resolveStaticBumpFootprint(event: event, page: page,
               mapEvents: _sourceContextEvents, width: 2, height: 1)
@@ -3190,7 +3335,17 @@ final class _ProjectionBuilder {
             break;
           }
           gaps.addAll(_sourceArrivalTileGaps(targetSourceMapId, x, y));
+          for (final actor in _sourceContextEvents.where((actor) =>
+              actor.sourceMapId == targetSourceMapId && actor.x == x &&
+              actor.y == y && actor.pages.any((page) =>
+                  page.graphic?.characterName.isNotEmpty == true &&
+                  page.graphic?.through == false))) {
+            _arrivalOwnerDependencies.putIfAbsent(event.identity, () => {})
+                .add(actor.identity);
+          }
           for (final owner in _sourceContextEvents.where((owner) => _isArrivalCollisionOwner(owner, node))) {
+            _arrivalOwnerDependencies.putIfAbsent(event.identity, () => {})
+                .add(owner.identity);
             if (!_selectedEventIdentities.contains(owner.identity) || !_arrivalOwnerChecks.add(owner.identity)) {
               gaps.add('warpArrivalOwnerUnavailable');
               continue;
@@ -3267,6 +3422,18 @@ final class _ProjectionBuilder {
         case SourceForcedMoveRouteNode():
         case SourceMoveRouteBarrierNode():
         case SourcePlayerVisibilityNode():
+          if (node is SourceForcedMoveRouteNode &&
+              _supportsStationaryNpcRotation(event, node)) {
+            break;
+          }
+          if (node is SourceMoveRouteBarrierNode) {
+            final index = block.nodes.indexOf(node);
+            if (index > 0 && block.nodes[index - 1] is SourceForcedMoveRouteNode &&
+                _supportsStationaryNpcRotation(event,
+                    block.nodes[index - 1] as SourceForcedMoveRouteNode)) {
+              break;
+            }
+          }
           if (!_isSourceTransition(event)) {
             gaps.add('sourceDoorProgramUnsupported');
           } else if (node is SourceForcedMoveRouteNode) {

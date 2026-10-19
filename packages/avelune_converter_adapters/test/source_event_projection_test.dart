@@ -2101,6 +2101,58 @@ void main() {
   });
 
   test(
+      'stationary NPC source dialogue preserves multiple messages before final facing',
+      () async {
+    final result = _projectEvents(await _events([
+      _page([
+        _command(101, ['First message']),
+        _command(101, ['Second message']),
+        _command(401, ['Second message continuation']),
+        ..._interactionFacingCommands(),
+      ])
+    ]));
+    expect(result.registry.records.single.definitionOrNull, isNotNull);
+    final dialogues = result.scenes.single.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>();
+    expect(dialogues, hasLength(2));
+    expect(result.dialogueSources.values.join('\n'),
+        allOf(contains('First message'), contains('Second message'),
+            contains('Second message continuation')));
+    final event = (result.semanticEvidence['events'] as List).single as Map;
+    final page = (event['pages'] as List).single as Map;
+    expect((page['adaptedCommands'] as List)
+        .whereType<Map>().where((command) => command['nativeContract'] == 'npcFacingAtEntityInteract'),
+        hasLength(1));
+  });
+
+  test('stationary NPC facing preserves conditional dialogue pages and annotations',
+      () async {
+    final result = _projectEvents(await _events([
+      _page([
+        _command(108, ['Original source annotation']),
+        _command(101, ['First page']),
+        ..._interactionFacingCommands(),
+      ]),
+      _withCondition(_page([
+        _command(111, [0, 1, 0]),
+        _command(101, ['Switch is on'], indent: 1),
+        _command(411, []),
+        _command(101, ['Switch is off'], indent: 1),
+        _command(412, []),
+        ..._interactionFacingCommands(),
+      ]), {'@self_switch_valid': true}),
+    ], interpretationProfile: fixtureSourceInterpretationProfile));
+    expect(result.registry.records, hasLength(2));
+    expect(result.registry.records.map((record) => record.definitionOrNull),
+        everyElement(isNotNull));
+    expect(result.scenes, hasLength(2));
+    expect(result.nativeMaps[1]!.entities.single.presentation!.variants, hasLength(2));
+    expect(jsonEncode(result.dialogueSources.values.toList()),
+        allOf(contains('First page'), contains('Switch is on'), contains('Switch is off')));
+  });
+
+  test(
       'face-player routes stay inactive outside the stable interaction context',
       () async {
     for (final variant in [
@@ -2108,16 +2160,17 @@ void main() {
       'through',
       'directionFix',
       'moving',
-      'branch',
+      'branchWarp',
       'effect',
       'routeFirst',
-      'multiPage',
+      'multiPageMoving',
     ]) {
       final page = _page([
         if (variant == 'routeFirst') ..._interactionFacingCommands(),
-        if (variant == 'branch') _command(111, [0, 1, 0]),
-        _command(101, ['Hello'], indent: variant == 'branch' ? 1 : 0),
-        if (variant == 'branch') _command(412, []),
+        if (variant == 'branchWarp') _command(111, [0, 1, 0]),
+        _command(101, ['Hello'], indent: variant == 'branchWarp' ? 1 : 0),
+        if (variant == 'branchWarp') _command(201, [0, 8, 1, 1, 2, 0], indent: 1),
+        if (variant == 'branchWarp') _command(412, []),
         if (variant == 'effect') _command(123, ['A', 0]),
         if (variant != 'routeFirst') ..._interactionFacingCommands(),
       ], trigger: variant == 'touch' ? 1 : 0);
@@ -2126,10 +2179,10 @@ void main() {
       if (variant == 'moving') page.fields['@move_type'] = 1;
       final result = _projectEvents(await _events([
         page,
-        if (variant == 'multiPage')
+        if (variant == 'multiPageMoving')
           _page([
             _command(101, ['Other page'])
-          ]),
+          ])..fields['@move_type'] = 1,
       ]));
       expect(result.registry.records.single.definitionOrNull, isNull,
           reason: variant);

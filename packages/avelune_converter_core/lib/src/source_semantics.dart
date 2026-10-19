@@ -680,6 +680,74 @@ final class SourceSemanticResolver {
       reason: status == SourcePassageStatus.allowed ? 'stationaryActionFootprintAllowed' : 'stationaryActionFootprintBlocked');
   }
 
+  SourceEventTouchResolution resolveEventTouchFootprint({
+    required SourceEventDefinition event,
+    required SourceEventPageAnalysis page,
+    required Iterable<SourceEventDefinition> mapEvents,
+    required int width,
+    required int height,
+  }) {
+    SourceEventTouchResolution refused(String reason) =>
+        SourceEventTouchResolution(kind: SourceEventTouchKind.unqualified,
+            reason: reason);
+    final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+        .allMatches(event.name).toList();
+    if (page.triggerCode != 1 || (width != 2 && width != 3) || height != 1 ||
+        sizes.length != 1 || int.tryParse(sizes.single.group(1)!) != width ||
+        int.tryParse(sizes.single.group(2)!) != height ||
+        page.graphic?.characterName.isNotEmpty != false) {
+      return refused('sourceTouchFootprintUnqualified');
+    }
+    final candidates = mapEvents.toList();
+    final owners = candidates.where((candidate) =>
+        candidate.sourceMapId == event.sourceMapId &&
+        candidate.identity == event.identity).toList();
+    if (owners.length != 1) return refused('eventSetBinding');
+    final owner = owners.single;
+    final original = owner.pages.where((candidate) =>
+        candidate.originalPageIndex == page.originalPageIndex).singleOrNull;
+    Object? graphic(SourceEventGraphic? value) => value == null ? null : [
+      value.tileId, value.characterName, value.hue, value.direction,
+      value.pattern, value.opacity, value.blendType, value.moveType,
+      value.moveSpeed, value.moveFrequency, value.walkAnime, value.stepAnime,
+      value.directionFix, value.through, value.alwaysOnTop, value.moveRouteNodeId,
+    ];
+    if (owner.sourceEventId != event.sourceEventId ||
+        owner.sourceFileId != event.sourceFileId || owner.name != event.name ||
+        owner.x != event.x || owner.y != event.y || original == null ||
+        canonicalJsonOf(owner.locator.toJson()) != canonicalJsonOf(event.locator.toJson()) ||
+        canonicalJsonOf(original.sourcePage.toJson()) != canonicalJsonOf(page.sourcePage.toJson()) ||
+        canonicalJsonOf(original.rawDataRef?.toJson()) != canonicalJsonOf(page.rawDataRef?.toJson()) ||
+        canonicalJsonOf(original.condition.toJson()) != canonicalJsonOf(page.condition.toJson()) ||
+        canonicalJsonOf(graphic(original.graphic)) != canonicalJsonOf(graphic(page.graphic))) {
+      return refused('sourceTouchFootprintBindingMismatch');
+    }
+    for (final other in candidates.where((candidate) =>
+        candidate.sourceMapId == event.sourceMapId &&
+        candidate.identity != event.identity)) {
+      final directives = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+          .allMatches(other.name).toList();
+      final otherWidth = directives.isEmpty ? 1 : int.tryParse(directives.first.group(1)!);
+      final otherHeight = directives.isEmpty ? 1 : int.tryParse(directives.first.group(2)!);
+      if (directives.length > 1 || otherWidth == null || otherWidth < 1 ||
+          otherWidth > 64 || otherHeight == null || otherHeight < 1 || otherHeight > 64) {
+        return refused('sourceTouchNeighborFootprintUnqualified');
+      }
+      if (other.x < event.x + width && other.x + otherWidth > event.x &&
+          other.y >= event.y && other.y - otherHeight + 1 <= event.y) {
+        return refused('sourceTouchFootprintOverlappingEvent');
+      }
+    }
+    final result = resolveEventActionFootprint(event: event, page: page,
+        mapEvents: candidates, width: width, height: height);
+    return SourceEventTouchResolution(kind: result.kind,
+        reason: switch (result.kind) {
+          SourceEventTouchKind.enter => 'stationaryTouchFootprintAllowed',
+          SourceEventTouchKind.front => 'stationaryTouchFootprintBlocked',
+          SourceEventTouchKind.unqualified => result.reason,
+        }, trace: result.trace);
+  }
+
   SourceEventTouchResolution resolveStaticActionFootprint({
     required SourceEventDefinition event,
     required SourceEventPageAnalysis page,
@@ -755,6 +823,22 @@ final class SourceSemanticResolver {
           int.tryParse(otherSizes.first.group(1)!);
       final otherHeight = otherSizes.isEmpty ? 1 :
           int.tryParse(otherSizes.first.group(2)!);
+      final boundedFootprint = otherSizes.length <= 1 &&
+          otherWidth != null && otherWidth >= 1 &&
+          otherHeight != null && otherHeight >= 1 &&
+          candidate.x >= 0 && candidate.x + otherWidth <= map.width &&
+          candidate.y < map.height && candidate.y - otherHeight + 1 >= 0;
+      if (boundedFootprint && candidate.identity != event.identity &&
+          (candidate.x + otherWidth <= event.x ||
+              candidate.x >= event.x + width ||
+              candidate.y < event.y ||
+              candidate.y - otherHeight + 1 >= event.y + height) &&
+          candidate.pages.isNotEmpty &&
+          candidate.pages.every((other) =>
+              other.graphic != null && other.graphic!.moveType == 0 &&
+              _plainTouchPage(other))) {
+        continue;
+      }
       if (otherSizes.length > 1 || otherWidth == null ||
           otherWidth < 1 || otherWidth > 2 || otherHeight != 1) {
         return refused('eventFootprintUnqualified');

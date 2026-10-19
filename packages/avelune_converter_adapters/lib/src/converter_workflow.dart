@@ -26,6 +26,15 @@ enum ConverterWorkflowPhase {
   verifySource,
   normalize,
   compose,
+  validateNativeBindings,
+  verifyNativeWitnesses,
+  rebuildNativeTiles,
+  rebuildNativeTraversal,
+  rebuildNativeEvents,
+  rebuildNativeCatalogs,
+  verifyNativeLibrary,
+  projectNativeMutations,
+  validateNativeProject,
   writeNative,
   verifyNative,
   publishNative,
@@ -130,6 +139,8 @@ final class SourceStudyAcknowledgement {
   Sha256Hash get canonicalHash => canonicalHashOf(toJson());
 }
 
+enum ConverterContentScope { world, full }
+
 final class ConverterStudySettings {
   factory ConverterStudySettings({
     required String projectName,
@@ -137,6 +148,7 @@ final class ConverterStudySettings {
     required String folderName,
     required List<int> selectedSourceMapIds,
     required SourceStudyAcknowledgement profileAcknowledgement,
+    ConverterContentScope contentScope = ConverterContentScope.full,
     SourceInterpretationProfile? interpretationProfile,
     List<LiteralDependencyDecision> dependencyDecisions = const [],
     List<SourceImageBinding> imageBindings = const [],
@@ -149,6 +161,14 @@ final class ConverterStudySettings {
         const SourceNormalizationLimits(),
     NativeWriteLimits? writeLimits,
   }) {
+    if (contentScope == ConverterContentScope.world && missingItemBindings.isNotEmpty) {
+      throw const ConverterWorkflowFailure('workflow.content_scope.item_bindings',
+          'Explicit item bindings require the world and interactions content scope.');
+    }
+    if (contentScope == ConverterContentScope.world && reviewSet != null) {
+      throw const ConverterWorkflowFailure('workflow.content_scope.review',
+          'Object review requires the world and interactions content scope.');
+    }
     writeLimits ??=
         sourceCatalogStudyWriteLimitsFor(selectedSourceMapIds.length,
             includeNativeCatalog: true);
@@ -217,6 +237,7 @@ final class ConverterStudySettings {
         bindings,
         SourceEventAdaptation.canonicalize(sourceAdaptations),
         SourceMissingItemBinding.canonicalize(missingItemBindings),
+        contentScope,
         allowFirstFrameAutotiles,
         assetOutputMode,
         reviewSet,
@@ -235,6 +256,7 @@ final class ConverterStudySettings {
       this.imageBindings,
       this.sourceAdaptations,
       this.missingItemBindings,
+      this.contentScope,
       this.allowFirstFrameAutotiles,
       this.assetOutputMode,
       this.reviewSet,
@@ -251,6 +273,7 @@ final class ConverterStudySettings {
   final List<SourceImageBinding> imageBindings;
   final List<SourceEventAdaptation> sourceAdaptations;
   final List<SourceMissingItemBinding> missingItemBindings;
+  final ConverterContentScope contentScope;
   final bool allowFirstFrameAutotiles;
   final AssetOutputMode assetOutputMode;
   final ConverterAssetReviewSet? reviewSet;
@@ -261,7 +284,8 @@ final class ConverterStudySettings {
 
   Map<String, Object?> _json({required bool includeReviewSet}) => {
         'kind': 'converterStudySettings',
-        'version': 9,
+        'version': 10,
+        'contentScope': contentScope.name,
         'projectName': projectName,
         'parentPath': parentPath,
         'folderName': folderName,
@@ -1516,7 +1540,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             converterAssetReviewSetLimitsFor(settings.writeLimits);
         final seedMode =
             settings.reviewSet?.seedOutputMode ?? settings.assetOutputMode;
-        if (composition.canWrite) {
+        if (composition.canWrite && settings.contentScope == ConverterContentScope.full) {
           try {
             proposals = await const LocalAssetProposer().proposeByMap(
                 source: normalized,
@@ -1660,7 +1684,8 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 outputMode: settings.assetOutputMode,
                 limits: settings.writeLimits,
                 cancellation: relay.cancellation);
-        final encounters = await NativeEncounterCatalogQualification.prepareAutomatic(
+        final encounters = settings.contentScope == ConverterContentScope.world
+            ? null : await NativeEncounterCatalogQualification.prepareAutomatic(
             source: normalized, files: files,
             selectedSourceMapIds: settings.selectedSourceMapIds,
             cancellation: relay.cancellation);
@@ -1671,7 +1696,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             files: files,
             limits: settings.writeLimits,
             cancellation: relay.cancellation);
-        final events = semantic == null
+        final events = semantic == null || settings.contentScope == ConverterContentScope.world
             ? null
             : await SourceEventStudyComposer(nativeEncounterQualification: encounters).compose(
                 source: normalized,
@@ -1680,7 +1705,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 limits: settings.writeLimits,
                 cancellation: relay.cancellation);
         final preceding = events?.draft ?? semantic ?? composition.draft;
-        final catalogs = preceding == null
+        final catalogs = preceding == null || settings.contentScope == ConverterContentScope.world
             ? null
             : await SourceCatalogStudyComposer(nativeEncounterQualification: encounters,
                 nativeTrainerQualification: events?.trainerQualification,
@@ -1790,8 +1815,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         final approval = request.approval!;
         var applied = 0;
         await relay.start(
-            ConverterWorkflowPhase.writeNative, JobUnit.operations,
-            total: draft.mutations.length);
+            ConverterWorkflowPhase.validateNativeBindings, JobUnit.operations);
         final context =
             _planContext(prepared, approval.approvedPlan, request.sessionId);
         Future<void> publicationCheckpoint(NativePublicationStage? stage,
@@ -1824,7 +1848,48 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         await relay.checkpoint(
             journalPath: publicationJob.journalPath,
             destinationPath: path.join(draft.parentPath, draft.folderName));
-        final writer = NativeProjectWriter(stagingFactory: () async {
+        NativePreparationStage? preparationStage;
+        final writer = NativeProjectWriter(
+            preparationCheckpoint: (stage, progress) async {
+          try {
+            if (preparationStage != stage) {
+              final phase = switch (stage) {
+                NativePreparationStage.bindings =>
+                  ConverterWorkflowPhase.validateNativeBindings,
+                NativePreparationStage.sourceWitnesses =>
+                  ConverterWorkflowPhase.verifyNativeWitnesses,
+                NativePreparationStage.literalTiles =>
+                  ConverterWorkflowPhase.rebuildNativeTiles,
+                NativePreparationStage.traversal =>
+                  ConverterWorkflowPhase.rebuildNativeTraversal,
+                NativePreparationStage.events =>
+                  ConverterWorkflowPhase.rebuildNativeEvents,
+                NativePreparationStage.catalogs =>
+                  ConverterWorkflowPhase.rebuildNativeCatalogs,
+                NativePreparationStage.assetLibrary =>
+                  ConverterWorkflowPhase.verifyNativeLibrary,
+                NativePreparationStage.mutationProjection =>
+                  ConverterWorkflowPhase.projectNativeMutations,
+                NativePreparationStage.projectValidation =>
+                  ConverterWorkflowPhase.validateNativeProject,
+              };
+              if (relay.phase != phase ||
+                  relay.progress.unit != progress.unit ||
+                  relay.progress.total != progress.total) {
+                relay.finish();
+                await relay.start(phase, progress.unit, total: progress.total);
+              }
+              preparationStage = stage;
+            }
+            relay.update(progress);
+          } on ConverterWorkflowFailure catch (failure) {
+            throw NativeWriteException(
+                failure.code == 'workflow.cancelled'
+                    ? 'native.cancelled'
+                    : failure.code,
+                failure.message);
+          }
+        }, stagingFactory: () async {
           try {
             return await publicationJob!.createStaging();
           } on NativePublicationException catch (failure) {
@@ -1836,6 +1901,12 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
           }
         }, checkpoint: (stage, stagingRoot, projectPath) async {
           try {
+            if (stage == NativeWriteStage.beforeStage) {
+              relay.finish();
+              await relay.start(
+                  ConverterWorkflowPhase.writeNative, JobUnit.operations,
+                  total: draft.mutations.length);
+            }
             await publicationJob!
                 .recordWriteCheckpoint(stage, stagingRoot, projectPath);
             if (stage == NativeWriteStage.beforeNativeVerify) {

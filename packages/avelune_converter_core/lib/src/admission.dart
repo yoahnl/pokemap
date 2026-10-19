@@ -164,8 +164,9 @@ AdmittedPlan admitPlan(ConversionPlan plan, PlanContext context) {
   final capabilities = {
     for (final c in context.targetCapabilities.capabilities) c.capabilityId: c,
   };
-  for (var i = 0; i < plan.operations.length; i++) {
-    final operation = plan.operations[i];
+  final operations = plan.operations;
+  for (var i = 0; i < operations.length; i++) {
+    final operation = operations[i];
     final path = r'$.operations' '[$i]';
     _require(operation.status != OperationStatus.blocked,
         'policy.operationBlocked', path, 'Blocked operation cannot be applied');
@@ -205,8 +206,9 @@ AdmittedPlan admitPlan(ConversionPlan plan, PlanContext context) {
   final decisions = {
     for (final d in context.decisions.decisions) d.decisionId: d
   };
-  for (var i = 0; i < plan.findings.length; i++) {
-    final finding = plan.findings[i];
+  final findings = plan.findings;
+  for (var i = 0; i < findings.length; i++) {
+    final finding = findings[i];
     final path = r'$.findings' '[$i]';
     _require(
         finding.severity != DiagnosticSeverity.error ||

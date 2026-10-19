@@ -342,13 +342,24 @@ void main() {
             .analyze();
         final result = sourceWarpTileNativePrograms(
             source: fixture.source, analysis: analysis);
+        final absent =
+            await _reprofile(fixture, syntheticSourceInterpretationProfile);
+        final automatic = sourceWarpTileNativePrograms(
+            source: absent, analysis: _analyze(absent));
         if (unexpectedState) {
           expect(result.programs, isEmpty,
               reason:
                   'A whole declared page cannot silently discard another persistent self switch write');
+          expect(automatic.programs, isEmpty,
+              reason:
+                  'Automatic discovery must reject the same extra persistent write');
           continue;
         }
         expect(result.programs, hasLength(3));
+        expect(
+            result.programs.values.every((program) =>
+                !program.declaredProgramBinding.automaticallyDiscovered),
+            isTrue);
         final native = result.programs.values
             .firstWhere((program) => !program.isActivation);
         expect(native.toJson()['sourcePositionVariableIds'], variables);
@@ -399,13 +410,32 @@ void main() {
                             .toList()))
                 .programs,
             isEmpty);
-        final absent =
-            await _reprofile(fixture, syntheticSourceInterpretationProfile);
+        expect(automatic.programs, hasLength(2));
         expect(
-            sourceWarpTileNativePrograms(
-                    source: absent, analysis: _analyze(absent))
-                .programs,
-            isEmpty);
+            automatic.programs.values.every((program) =>
+                !program.isActivation &&
+                program.declaredProgramBinding.automaticallyDiscovered),
+            isTrue);
+        expect(
+            automatic.programs
+                .containsKey(absent.eventIdentity(origin, activationId)),
+            isFalse,
+            reason:
+                'The action-button activation still requires its explicit binding');
+        for (final program in automatic.programs.values) {
+          final declaredProgram = result.programs[program.event.identity]!;
+          expect(program.sourcePositionVariableIds, variables);
+          expect(program.arrivalYOffset, -(2 + offset));
+          expect(program.sourcePositionVariableIds,
+              declaredProgram.sourcePositionVariableIds);
+          expect(program.arrivalYOffset, declaredProgram.arrivalYOffset);
+          expect(program.selfSwitchLetter, declaredProgram.selfSwitchLetter);
+          expect(program.tempSwitchLetter, declaredProgram.tempSwitchLetter);
+          expect(program.warp!.targetSourceMapId,
+              declaredProgram.warp!.targetSourceMapId);
+          expect(program.warp!.x, declaredProgram.warp!.x);
+          expect(program.warp!.y, declaredProgram.warp!.y);
+        }
       }
     }
   });

@@ -13,8 +13,26 @@ import 'package:path/path.dart' as path;
 import 'desktop_services.dart';
 import 'asset_review_panel.dart';
 import 'map_comparison.dart';
+import 'playable_start_setup.dart';
 import 'vision_desktop_services.dart';
 import 'vision_panel.dart';
+
+typedef ConverterPlayableStartInspector =
+    Future<ConverterPlayableStartInspection> Function({
+      required String projectPath,
+      required String allowedRootPath,
+    });
+
+typedef ConverterPlayableStartApplier =
+    Future<ConverterPlayableStartReceipt> Function({
+      required String projectPath,
+      required String allowedRootPath,
+      required String expectedRevision,
+      required String mapId,
+      required String spawnId,
+      required List<String> starterSpeciesIds,
+      required int starterLevel,
+    });
 
 class ConverterApp extends StatelessWidget {
   const ConverterApp({
@@ -29,6 +47,8 @@ class ConverterApp extends StatelessWidget {
     this.sessionStore,
     this.visionVault,
     this.visionClientFactory = openConverterVisionClient,
+    this.playableStartInspector,
+    this.playableStartApplier,
   });
 
   final ConverterWorkflow? workflow;
@@ -41,6 +61,8 @@ class ConverterApp extends StatelessWidget {
   final LocalReviewSessionStore? sessionStore;
   final VisionSecretVault? visionVault;
   final ConverterVisionClientFactory visionClientFactory;
+  final ConverterPlayableStartInspector? playableStartInspector;
+  final ConverterPlayableStartApplier? playableStartApplier;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +95,8 @@ class ConverterApp extends StatelessWidget {
         sessionStore: sessionStore,
         visionVault: visionVault,
         visionClientFactory: visionClientFactory,
+        playableStartInspector: playableStartInspector,
+        playableStartApplier: playableStartApplier,
       ),
     );
   }
@@ -91,6 +115,8 @@ class ConverterWindow extends StatefulWidget {
     this.sessionStore,
     this.visionVault,
     this.visionClientFactory = openConverterVisionClient,
+    this.playableStartInspector,
+    this.playableStartApplier,
   });
 
   final ConverterWorkflow? workflow;
@@ -103,6 +129,8 @@ class ConverterWindow extends StatefulWidget {
   final LocalReviewSessionStore? sessionStore;
   final VisionSecretVault? visionVault;
   final ConverterVisionClientFactory visionClientFactory;
+  final ConverterPlayableStartInspector? playableStartInspector;
+  final ConverterPlayableStartApplier? playableStartApplier;
 
   @override
   State<ConverterWindow> createState() => _ConverterWindowState();
@@ -132,11 +160,18 @@ class _ConverterWindowState extends State<ConverterWindow> {
   bool _savingSession = false;
   bool _savingPlan = false;
   bool _loadingSession = false;
+  bool _loadingPlayableStart = false;
+  bool _applyingPlayableStart = false;
+  ConverterPlayableStartInspection? _playableStartInspection;
+  ConverterPlayableStartReceipt? _playableStartReceipt;
+  String? _playableStartProjectPath;
+  String? _playableStartError;
   bool _reviewSourceVerified = false;
   bool _unappliedDrafts = false;
   String? _sessionNotice;
   int _sessionGeneration = 0;
   AssetOutputMode _assetOutputMode = AssetOutputMode.sharedAtlas;
+  ConverterContentScope _contentScope = ConverterContentScope.full;
   PreparedStudy? _reviewPreview;
   ConverterStudySettings? _importedSettings;
   SourceInterpretationProfile? _interpretationProfile;
@@ -152,7 +187,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   ConverterWorkflowState get _state => _workflow.state;
   bool get _busy =>
-      _state.isBusy || _savingSession || _savingPlan || _loadingSession;
+      _state.isBusy ||
+      _savingSession ||
+      _savingPlan ||
+      _loadingSession ||
+      _loadingPlayableStart ||
+      _applyingPlayableStart;
   PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
   AssetReviewSession? get _reviewSession => _reviewSet?.segments[_reviewMapId];
   (String, String, String, String, String) get _formValues => (
@@ -191,9 +231,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
     if (!path.isAbsolute(_sourceRoot) ||
         !path.isAbsolute(_parent.text.trim()) ||
         _name.text.trim().isEmpty ||
+        _name.text.trim().length > 256 ||
+        _name.text.contains('\u0000') ||
         !_validFolder(_folder.text.trim())) {
       return false;
     }
+    if (_contentScope == ConverterContentScope.world) return true;
     try {
       _resumeSettings();
       return true;
@@ -267,6 +310,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
             snapshot.profile.evidenceHash &&
         previousAcknowledgement?.humanConfirmed == _studyAcknowledged;
     return LocalReviewResumeSettings(
+      contentScope: _contentScope,
       interpretationProfile: _interpretationProfile,
       sourceRootPath: savedSource?.sourceRootPath ?? _sourceRoot,
       supplementalRootPaths:
@@ -552,6 +596,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _loadingSession = true;
       _storedReview = stored;
       _interpretationProfile = settings.interpretationProfile;
+      _contentScope = settings.contentScope;
       _importedSettings = null;
       _reviewSet = stored.reviewSet;
       _reviewMapId = null;
@@ -792,6 +837,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
     final snapshot = _state.snapshot!;
     final ids = _selectedMaps.toList()..sort();
     return ConverterStudySettings(
+      contentScope: _contentScope,
       interpretationProfile: _interpretationProfile,
       imageBindings: _imageBindings,
       sourceAdaptations: _sourceAdaptations,
@@ -823,9 +869,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
   }
 
   Future<void> _chooseInterpretationProfile() => _run(() async {
-    final selected = await widget.pathPicker(ConverterPathKind.interpretationProfileFile);
+    final selected = await widget.pathPicker(
+      ConverterPathKind.interpretationProfileFile,
+    );
     if (selected == null || !mounted) return;
-    final profile = await const LocalSourceInterpretationProfileStore().read(selected);
+    final profile = await const LocalSourceInterpretationProfileStore().read(
+      selected,
+    );
     if (!mounted) return;
     _workflow.invalidatePrepared();
     setState(() {
@@ -949,6 +999,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
       setState(() {
         _sessionGeneration++;
         _importedSettings = recipe.settings;
+        _contentScope = recipe.settings.contentScope;
         _interpretationProfile = recipe.settings.interpretationProfile;
         _imageBindings
           ..clear()
@@ -1014,6 +1065,33 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _dirty = true;
       });
       await _prepareCurrent();
+    }),
+  );
+
+  void _changeContentScope(String value) => unawaited(
+    _run(() async {
+      final scope = ConverterContentScope.values.byName(value);
+      if (scope == _contentScope ||
+          !await _prepareForSessionChange() ||
+          !mounted) {
+        return;
+      }
+      _workflow.invalidatePrepared();
+      setState(() {
+        _contentScope = scope;
+        _reviewSet = null;
+        _reviewMapId = null;
+        _reviewPreview = null;
+        _storedReview = null;
+        _reviewSourceVerified = false;
+        _unappliedDrafts = false;
+        _sessionGeneration++;
+        if (scope == ConverterContentScope.world) _missingItemBindings.clear();
+        _dirty = true;
+        _sessionNotice = scope == ConverterContentScope.world
+            ? 'Le monde seul conserve les cartes, les collisions, les connexions et le personnage. Les portes événementielles, PNJ, objets interactifs, dialogues, combats, rencontres et musiques attendront une conversion complète. Exportez un plan pour reprendre ce choix.'
+            : null;
+      });
     }),
   );
 
@@ -1088,12 +1166,19 @@ class _ConverterWindowState extends State<ConverterWindow> {
     }),
   );
 
-  void _changeMissingItemBinding(String symbol, SourceMissingItemBinding? binding) => unawaited(
+  void _changeMissingItemBinding(
+    String symbol,
+    SourceMissingItemBinding? binding,
+  ) => unawaited(
     _run(() async {
       final previous = _prepared ?? _reviewPreview;
-      if (previous == null || !await _prepareForSessionChange() || !mounted) return;
+      if (previous == null || !await _prepareForSessionChange() || !mounted) {
+        return;
+      }
       setState(() {
-        _missingItemBindings.removeWhere((value) => value.sourceSymbol == symbol);
+        _missingItemBindings.removeWhere(
+          (value) => value.sourceSymbol == symbol,
+        );
         if (binding != null) _missingItemBindings.add(binding);
         _reviewPreview = previous;
         _reviewSet = null;
@@ -1109,26 +1194,31 @@ class _ConverterWindowState extends State<ConverterWindow> {
     }),
   );
 
-  void _changeSourceAdaptation(SourceEventAdaptation decision, bool apply) => unawaited(
-    _run(() async {
-      final previous = _prepared ?? _reviewPreview;
-      if (previous == null || !await _prepareForSessionChange() || !mounted) return;
-      setState(() {
-        _sourceAdaptations.removeWhere((value) => value.targetKey == decision.targetKey);
-        if (apply) _sourceAdaptations.add(decision);
-        _reviewPreview = previous;
-        _reviewSet = null;
-        _reviewMapId = null;
-        _storedReview = null;
-        _reviewSourceVerified = false;
-        _unappliedDrafts = false;
-        _decisions.clear();
-        _sessionGeneration++;
-        _dirty = true;
-      });
-      _workflow.invalidatePrepared();
-    }),
-  );
+  void _changeSourceAdaptation(SourceEventAdaptation decision, bool apply) =>
+      unawaited(
+        _run(() async {
+          final previous = _prepared ?? _reviewPreview;
+          if (previous == null || !await _prepareForSessionChange() || !mounted) {
+            return;
+          }
+          setState(() {
+            _sourceAdaptations.removeWhere(
+              (value) => value.targetKey == decision.targetKey,
+            );
+            if (apply) _sourceAdaptations.add(decision);
+            _reviewPreview = previous;
+            _reviewSet = null;
+            _reviewMapId = null;
+            _storedReview = null;
+            _reviewSourceVerified = false;
+            _unappliedDrafts = false;
+            _decisions.clear();
+            _sessionGeneration++;
+            _dirty = true;
+          });
+          _workflow.invalidatePrepared();
+        }),
+      );
 
   void _changeDependency(
     LiteralMapDependency dependency,
@@ -1229,7 +1319,103 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _sessionNotice = null;
     });
     await _workflow.writeApproved(approval);
+    final result = _state.result;
+    if (mounted &&
+        result != null &&
+        prepared.settings.contentScope == ConverterContentScope.full) {
+      await _inspectPlayableStart(result.projectPath);
+    }
   });
+
+  Future<void> _inspectPlayableStart(String projectPath) async {
+    if (_loadingPlayableStart || _applyingPlayableStart) return;
+    final generation = _sessionGeneration;
+    setState(() {
+      _loadingPlayableStart = true;
+      _playableStartInspection = null;
+      _playableStartReceipt = null;
+      _playableStartProjectPath = projectPath;
+      _playableStartError = null;
+    });
+    try {
+      final inspect =
+          widget.playableStartInspector ??
+          const ConverterPlayableStartService().inspect;
+      final inspection = await inspect(
+        projectPath: projectPath,
+        allowedRootPath: path.dirname(projectPath),
+      );
+      if (mounted &&
+          generation == _sessionGeneration &&
+          _state.result?.projectPath == projectPath) {
+        setState(() => _playableStartInspection = inspection);
+      }
+    } catch (error) {
+      if (mounted && generation == _sessionGeneration) {
+        setState(
+          () => _playableStartError = error is ConverterPlayableStartException
+              ? error.message
+              : 'Le départ n’a pas pu être relu. Le projet converti reste disponible.',
+        );
+      }
+    } finally {
+      if (mounted && generation == _sessionGeneration) {
+        setState(() => _loadingPlayableStart = false);
+      }
+    }
+  }
+
+  Future<void> _applyPlayableStart({
+    required String projectPath,
+    required ConverterPlayableStartInspection inspection,
+    required String mapId,
+    required String spawnId,
+    required List<String> starterSpeciesIds,
+    required int starterLevel,
+  }) async {
+    if (_busy ||
+        _state.result?.projectPath != projectPath ||
+        _playableStartInspection?.revision != inspection.revision) {
+      throw StateError('Le projet à configurer a changé.');
+    }
+    final generation = _sessionGeneration;
+    setState(() {
+      _applyingPlayableStart = true;
+      _playableStartError = null;
+    });
+    try {
+      final apply =
+          widget.playableStartApplier ??
+          const ConverterPlayableStartService().apply;
+      final receipt = await apply(
+        projectPath: projectPath,
+        allowedRootPath: path.dirname(projectPath),
+        expectedRevision: inspection.revision,
+        mapId: mapId,
+        spawnId: spawnId,
+        starterSpeciesIds: starterSpeciesIds,
+        starterLevel: starterLevel,
+      );
+      if (mounted &&
+          generation == _sessionGeneration &&
+          _state.result?.projectPath == projectPath) {
+        setState(() => _playableStartReceipt = receipt);
+      }
+    } catch (error) {
+      if (mounted && generation == _sessionGeneration) {
+        setState(
+          () => _playableStartError = error is ConverterPlayableStartException
+              ? error.message
+              : 'Le départ n’a pas pu être appliqué. Relisez le projet avant de réessayer.',
+        );
+      }
+      rethrow;
+    } finally {
+      if (mounted && generation == _sessionGeneration) {
+        setState(() => _applyingPlayableStart = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -1707,17 +1893,42 @@ class _ConverterWindowState extends State<ConverterWindow> {
               tone: StudioTone.warning,
             ),
             const SizedBox(height: 12),
-            Text(_interpretationProfile == null
-                ? 'Sans profil de scripts : étude littérale, sans adaptation des événements ni des règles de déplacement.'
-                : 'Profil de scripts sélectionné : ${_interpretationProfile!.profileId.value}'),
+            Text(
+              _interpretationProfile == null
+                  ? 'Sans profil de scripts : étude littérale, sans adaptation des événements ni des règles de déplacement.'
+                  : 'Profil de scripts sélectionné : ${_interpretationProfile!.profileId.value}',
+            ),
             const SizedBox(height: 8),
-            StudioButton(key: const ValueKey('choose-interpretation-profile'),
-              label: 'Choisir un profil de scripts', secondary: true,
-              onPressed: _busy ? null : _chooseInterpretationProfile),
+            StudioButton(
+              key: const ValueKey('choose-interpretation-profile'),
+              label: 'Choisir un profil de scripts',
+              secondary: true,
+              onPressed: _busy ? null : _chooseInterpretationProfile,
+            ),
             if (_interpretationProfile != null)
-              StudioButton(key: const ValueKey('clear-interpretation-profile'),
-                label: 'Revenir à l’étude littérale', secondary: true,
-                onPressed: _busy ? null : _clearInterpretationProfile),
+              StudioButton(
+                key: const ValueKey('clear-interpretation-profile'),
+                label: 'Revenir à l’étude littérale',
+                secondary: true,
+                onPressed: _busy ? null : _clearInterpretationProfile,
+              ),
+            const SizedBox(height: 12),
+            StudioSelect(
+              key: const ValueKey('content-scope'),
+              label: 'Contenu à importer',
+              value: _contentScope.name,
+              options: const {
+                'world': 'Monde explorable (cartes, collisions, personnage)',
+                'full': 'Monde, interactions et musiques',
+              },
+              onChanged: _busy ? null : _changeContentScope,
+            ),
+            if (_contentScope == ConverterContentScope.world) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Les portes événementielles, PNJ, objets interactifs, dialogues, combats, rencontres et musiques ne sont pas importés. L’eau reste fermée sans Surf. Le plan local conserve vos choix ; son chargement recalcule la préparation depuis la source.',
+              ),
+            ],
             const SizedBox(height: 12),
             StudioToggleRow(
               key: const ValueKey('acknowledge-study'),
@@ -1871,7 +2082,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Widget _sourceAdaptationsPanel() {
     final inventory = (_prepared ?? _reviewPreview)?.sourceAdaptationInventory;
-    if (inventory == null || inventory.issues.isEmpty) return const SizedBox.shrink();
+    if (inventory == null || inventory.issues.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final actions = <String, SourceAdaptationIssue>{
       for (final issue in inventory.issues)
         if (issue.action != null) issue.action!.targetKey: issue,
@@ -1880,52 +2093,134 @@ class _ConverterWindowState extends State<ConverterWindow> {
       title: 'Défauts et adaptations de la source',
       radius: 16,
       children: [
-        const Text('Les décisions ci-dessous sont explicites et liées aux fichiers source exacts. Après chaque changement, préparez à nouveau les cartes puis examinez le résultat.'),
+        const Text(
+          'Les décisions ci-dessous sont explicites et liées aux fichiers source exacts. Après chaque changement, préparez à nouveau les cartes puis examinez le résultat.',
+        ),
         const SizedBox(height: 12),
         for (final entry in actions.entries) ...[
-          Text('${_mapName(entry.value.locator.mapId!)} · événement ${entry.value.locator.eventId} · page ${entry.value.locator.pageIndex! + 1}'),
+          Text(
+            '${_mapName(entry.value.locator.mapId!)} · événement ${entry.value.locator.eventId} · page ${entry.value.locator.pageIndex! + 1}',
+          ),
           const SizedBox(height: 6),
           Text(entry.value.message),
           const SizedBox(height: 6),
           StudioSelect(
             key: ValueKey('source-adaptation-${entry.key}'),
-            label: entry.value.action!.kind == SourceEventAdaptationKind.omitInvalidEventTileGraphic
+            label:
+                entry.value.action!.kind ==
+                    SourceEventAdaptationKind.omitInvalidEventTileGraphic
                 ? 'Calque invalide : omission visuelle explicite, sans fidélité source certifiée'
                 : 'Cible de la remise à zéro du soin',
-            value: _sourceAdaptations.any((value) => value.targetKey == entry.key) ? 'apply' : '',
-            options: {'': 'Conserver la source et son défaut', 'apply': entry.value.action!.kind == SourceEventAdaptationKind.omitInvalidEventTileGraphic
-                ? 'Omettre ce calque hors atlas' : 'Utiliser la cible de soin reconnue'},
-            onChanged: _busy ? null : (value) => _changeSourceAdaptation(entry.value.action!, value == 'apply'),
+            value:
+                _sourceAdaptations.any((value) => value.targetKey == entry.key)
+                ? 'apply'
+                : '',
+            options: {
+              '': 'Conserver la source et son défaut',
+              'apply':
+                  entry.value.action!.kind ==
+                      SourceEventAdaptationKind.omitInvalidEventTileGraphic
+                  ? 'Omettre ce calque hors atlas'
+                  : 'Utiliser la cible de soin reconnue',
+            },
+            onChanged: _busy
+                ? null
+                : (value) => _changeSourceAdaptation(
+                    entry.value.action!,
+                    value == 'apply',
+                  ),
           ),
           const SizedBox(height: 16),
         ],
-        Text('Inventaire : ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.sourceDefect).length} défauts source ; ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.missingBinding).length} associations manquantes ; ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.unsupported).length} limites non prises en charge ; ${_sourceAdaptations.length + _missingItemBindings.length} adaptations choisies.'),
+        Text(
+          'Inventaire : ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.sourceDefect).length} défauts source ; ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.missingBinding).length} associations manquantes ; ${inventory.issues.where((value) => value.classification == SourceAdaptationClassification.unsupported).length} limites non prises en charge ; ${_sourceAdaptations.length + _missingItemBindings.length} adaptations choisies.',
+        ),
       ],
     );
   }
 
   Widget _missingItemsPanel() {
+    if (_contentScope == ConverterContentScope.world) {
+      return const SizedBox.shrink();
+    }
     final prepared = _prepared ?? _reviewPreview;
-    final symbols = {...?prepared?.missingItemBindingOptions.keys,
-      ..._missingItemBindings.map((value) => value.sourceSymbol)}.toList()..sort();
+    final symbols = {
+      ...?prepared?.missingItemBindingOptions.keys,
+      ..._missingItemBindings.map((value) => value.sourceSymbol),
+    }.toList()..sort();
     if (symbols.isEmpty) return const SizedBox.shrink();
-    return StudioPanel(title: 'Entrées absentes du catalogue source', radius: 16, children: [
-      const Text('Choisissez explicitement une entrée réelle dans un dossier de référence déjà sélectionné. Seuls les objets absents du catalogue prioritaire peuvent être associés.'),
-      const SizedBox(height: 12),
-      for (final symbol in symbols) ...[
-        StudioSelect(key: ValueKey('missing-item-binding-$symbol'), label: 'Objet $symbol',
-          value: _missingItemBindings.where((value) => value.sourceSymbol == symbol).firstOrNull?.sourceRelativePath ?? '',
-          options: {'': 'Conserver le refus : entrée absente',
-            for (final candidate in prepared?.missingItemBindingOptions[symbol] ?? <SourceMissingItemBinding>[])
-              candidate.sourceRelativePath: _state.sharedSourceFiles.where((value) => value.relativePath == candidate.sourceRelativePath).firstOrNull?.referenceRootPath ?? candidate.sourceRelativePath,
-            for (final selected in _missingItemBindings.where((value) => value.sourceSymbol == symbol))
-              selected.sourceRelativePath: _state.sharedSourceFiles.where((value) => value.relativePath == selected.sourceRelativePath).firstOrNull?.referenceRootPath ?? selected.sourceRelativePath,
-          }, onChanged: _busy ? null : (selected) => _changeMissingItemBinding(symbol,
-            selected.isEmpty ? null : (prepared?.missingItemBindingOptions[symbol] ?? <SourceMissingItemBinding>[])
-              .where((value) => value.sourceRelativePath == selected).firstOrNull ?? _missingItemBindings.where((value) => value.sourceSymbol == symbol && value.sourceRelativePath == selected).firstOrNull)),
+    return StudioPanel(
+      title: 'Entrées absentes du catalogue source',
+      radius: 16,
+      children: [
+        const Text(
+          'Choisissez explicitement une entrée réelle dans un dossier de référence déjà sélectionné. Seuls les objets absents du catalogue prioritaire peuvent être associés.',
+        ),
         const SizedBox(height: 12),
+        for (final symbol in symbols) ...[
+          StudioSelect(
+            key: ValueKey('missing-item-binding-$symbol'),
+            label: 'Objet $symbol',
+            value:
+                _missingItemBindings
+                    .where((value) => value.sourceSymbol == symbol)
+                    .firstOrNull
+                    ?.sourceRelativePath ??
+                '',
+            options: {
+              '': 'Conserver le refus : entrée absente',
+              for (final candidate
+                  in prepared?.missingItemBindingOptions[symbol] ??
+                      <SourceMissingItemBinding>[])
+                candidate.sourceRelativePath:
+                    _state.sharedSourceFiles
+                        .where(
+                          (value) =>
+                              value.relativePath ==
+                              candidate.sourceRelativePath,
+                        )
+                        .firstOrNull
+                        ?.referenceRootPath ??
+                    candidate.sourceRelativePath,
+              for (final selected in _missingItemBindings.where(
+                (value) => value.sourceSymbol == symbol,
+              ))
+                selected.sourceRelativePath:
+                    _state.sharedSourceFiles
+                        .where(
+                          (value) =>
+                              value.relativePath == selected.sourceRelativePath,
+                        )
+                        .firstOrNull
+                        ?.referenceRootPath ??
+                    selected.sourceRelativePath,
+            },
+            onChanged: _busy
+                ? null
+                : (selected) => _changeMissingItemBinding(
+                    symbol,
+                    selected.isEmpty
+                        ? null
+                        : (prepared?.missingItemBindingOptions[symbol] ??
+                                      <SourceMissingItemBinding>[])
+                                  .where(
+                                    (value) =>
+                                        value.sourceRelativePath == selected,
+                                  )
+                                  .firstOrNull ??
+                              _missingItemBindings
+                                  .where(
+                                    (value) =>
+                                        value.sourceSymbol == symbol &&
+                                        value.sourceRelativePath == selected,
+                                  )
+                                  .firstOrNull,
+                  ),
+          ),
+          const SizedBox(height: 12),
+        ],
       ],
-    ]);
+    );
   }
 
   Widget _resourcesPage() {
@@ -1945,8 +2240,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const StudioNotice(
-          'Les tuiles gardent leurs placements source. Les objets approuvés sont ajoutés à la bibliothèque après une vérification de leurs images source.',
+        StudioNotice(
+          _contentScope == ConverterContentScope.world
+              ? 'Les atlas et les placements source sont conservés. Ce mode ne prépare pas de revue d’objets ; portes événementielles, PNJ, objets interactifs, dialogues, combats, rencontres et musiques attendront la conversion complète. Le plan local conserve vos choix pour un nouveau calcul.'
+              : 'Les tuiles gardent leurs placements source. Les objets approuvés sont ajoutés à la bibliothèque après une vérification de leurs images source.',
         ),
         const SizedBox(height: 24),
         if (reviewSet != null) ...[
@@ -1970,7 +2267,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
           ),
           const SizedBox(height: 16),
         ],
-        _assetReviewPanel(prepared),
+        if (_contentScope == ConverterContentScope.full)
+          _assetReviewPanel(prepared),
         const SizedBox(height: 24),
         if (_reviewSession case final session?) ...[
           ConverterVisionPanel(
@@ -2248,7 +2546,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
               options: {
                 if (dependency.kind == LiteralDependencyKind.staticTransfer)
                   'include': 'Inclure cette carte',
-                'excludeStudy': dependency.kind == LiteralDependencyKind.dynamicTransfer
+                'excludeStudy':
+                    dependency.kind == LiteralDependencyKind.dynamicTransfer
                     ? 'Conserver ce transfert inactif'
                     : 'Exclure du projet d’étude',
                 'block': 'Bloquer la conversion',
@@ -2287,6 +2586,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Widget _exportPage() {
     final result = _state.result;
+    final playableStart = _playableStartProjectPath == result?.projectPath
+        ? _playableStartInspection
+        : null;
     if (result != null && !_dirty) {
       return StudioPanel(
         title: 'Projet d’étude publié et relu',
@@ -2328,6 +2630,50 @@ class _ConverterWindowState extends State<ConverterWindow> {
           const StudioNotice(
             'Dans Avelune Studio, ouvrez ce dossier pour examiner et éditer les cartes, puis choisissez « Tester la carte » pour les essayer. Le projet d’étude est publié ; les comportements source non traduits restent signalés et le gameplay complet n’est pas certifié.',
           ),
+          if (_prepared?.settings.contentScope ==
+              ConverterContentScope.full) ...[
+            const SizedBox(height: 16),
+            if (_loadingPlayableStart)
+              const Text('Lecture des choix de départ disponibles…')
+            else if (playableStart case final inspection?)
+              ConverterPlayableStartSetup(
+                key: ValueKey('playable-start-${result.projectPath}'),
+                inspection: inspection,
+                onApply:
+                    ({
+                      required mapId,
+                      required spawnId,
+                      required starterSpeciesIds,
+                      required starterLevel,
+                    }) => _applyPlayableStart(
+                      projectPath: result.projectPath,
+                      inspection: inspection,
+                      mapId: mapId,
+                      spawnId: spawnId,
+                      starterSpeciesIds: starterSpeciesIds,
+                      starterLevel: starterLevel,
+                    ),
+              ),
+            if (_playableStartError case final error?) ...[
+              StudioNotice(error),
+              const SizedBox(height: 8),
+            ],
+            StudioButton(
+              key: const ValueKey('inspect-playable-start'),
+              label: 'Relire le départ du projet',
+              secondary: true,
+              icon: Icons.refresh,
+              onPressed: _busy
+                  ? null
+                  : () => _inspectPlayableStart(result.projectPath),
+            ),
+            if (_playableStartReceipt != null) ...[
+              const SizedBox(height: 8),
+              const StudioNotice(
+                'Les choix de départ sont enregistrés dans le projet natif. Dans Studio, lancez « Test du jeu », puis « Nouvelle partie » pour choisir votre starter.',
+              ),
+            ],
+          ],
         ],
       );
     }
@@ -2667,13 +3013,18 @@ class _ConverterWindowState extends State<ConverterWindow> {
   );
 
   Widget _progress() {
-    final progress = _savingSession || _loadingSession ? null : _state.progress;
+    final progress = _savingSession || _loadingSession ||
+        _loadingPlayableStart || _applyingPlayableStart ? null : _state.progress;
     final total = progress?.total;
     final determinate = total != null && total > 0;
     final phase = _savingSession
         ? 'Enregistrement de la session…'
         : _loadingSession
         ? 'Reprise de la session…'
+        : _loadingPlayableStart
+        ? 'Lecture du départ jouable…'
+        : _applyingPlayableStart
+        ? 'Configuration du départ jouable…'
         : _phaseLabel(_state.phase);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -2793,6 +3144,22 @@ String _phaseLabel(ConverterWorkflowPhase? phase) => switch (phase) {
   ConverterWorkflowPhase.verifySource => 'Vérification des fichiers source',
   ConverterWorkflowPhase.normalize => 'Lecture des cartes et références',
   ConverterWorkflowPhase.compose => 'Préparation des tuiles natives',
+  ConverterWorkflowPhase.validateNativeBindings => 'Contrôle du plan approuvé',
+  ConverterWorkflowPhase.verifyNativeWitnesses =>
+    'Contrôle des ressources source',
+  ConverterWorkflowPhase.rebuildNativeTiles => 'Contrôle des décors des cartes',
+  ConverterWorkflowPhase.rebuildNativeTraversal =>
+    'Contrôle des collisions et connexions',
+  ConverterWorkflowPhase.rebuildNativeEvents =>
+    'Contrôle des PNJ, dialogues et interactions',
+  ConverterWorkflowPhase.rebuildNativeCatalogs =>
+    'Contrôle des objets et rencontres',
+  ConverterWorkflowPhase.verifyNativeLibrary =>
+    'Contrôle de la bibliothèque de ressources',
+  ConverterWorkflowPhase.projectNativeMutations =>
+    'Assemblage du projet à créer',
+  ConverterWorkflowPhase.validateNativeProject =>
+    'Validation du monde assemblé',
   ConverterWorkflowPhase.writeNative => 'Création du projet Avelune',
   ConverterWorkflowPhase.verifyNative => 'Relecture du projet créé',
   ConverterWorkflowPhase.publishNative => 'Publication du projet vérifié',

@@ -2386,7 +2386,11 @@ SceneAsset _createPreSessionTemplate(
                   id: id,
                   label: SceneInteractionPrompt(
                     localizationKey: 'newGame.avatar.$id',
-                    fallbackText: id,
+                    fallbackText: project.characters
+                            .where((character) => character.id == id)
+                            .firstOrNull
+                            ?.name ??
+                        'Personnage',
                   ),
                 ),
             ],

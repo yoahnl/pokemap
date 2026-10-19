@@ -38,6 +38,8 @@ Future<int> runConverterCli(List<String> arguments,
     ..addOption('name', help: 'Nom du projet natif.')
     ..addOption('interpretation-profile', help: 'Profil JSON explicite des scripts source ; absent : étude littérale.')
     ..addOption('mode', defaultsTo: 'study', allowed: ['study'])
+    ..addOption('content', defaultsTo: 'full', allowed: ['world', 'full'],
+        help: 'Monde explorable seul, ou monde et interactions.')
     ..addOption('plan',
         help: 'Nouveau fichier .json de recette, hors source et projet natif.')
     ..addFlag('ack-profile',
@@ -82,7 +84,7 @@ Future<int> runConverterCli(List<String> arguments,
     out.writeln('Avelune Converter — étude locale hors ligne\n'
         'scan --source SOURCE --namespace ID --offline [--json]\n'
         'plan --source SOURCE --namespace ID --maps 1,2 --name NOM '
-        '--destination DEST --plan RECETTE.json --ack-profile [--interpretation-profile PROFIL.json] --offline\n'
+        '--destination DEST --plan RECETTE.json --ack-profile [--content world|full] [--interpretation-profile PROFIL.json] --offline\n'
         'convert --plan RECETTE.json --approve-plan SHA256 --offline\n'
         'verify --project DEST --offline\n'
         'Les chemins sont absolus. Code 0 d’étude ne certifie pas un jeu complet.\n');
@@ -232,6 +234,7 @@ Future<int> runConverterCli(List<String> arguments,
         return 0;
       }
       workflow.updateSettings(ConverterStudySettings(
+          contentScope: ConverterContentScope.values.byName(command['content'] as String),
           interpretationProfile: command['interpretation-profile'] == null ? null :
             await const LocalSourceInterpretationProfileStore().read(command['interpretation-profile'] as String),
           missingItemBindings: command['missing-item-bindings'] == null ? const [] :
@@ -427,6 +430,7 @@ int converterCliExitCode(String code) {
     return 3;
   }
   if (code.startsWith('interpretation_profile.') ||
+      code.startsWith('workflow.content_scope.') ||
       code == 'workflow.recipe.invalid' ||
       code == 'workflow.recipe.store_invalid' ||
       code == 'workflow.recipe.quota' ||

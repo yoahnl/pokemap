@@ -636,7 +636,66 @@ enum NativeWriteStage {
 typedef NativeWriteCheckpoint = FutureOr<void> Function(
     NativeWriteStage stage, String? stagingRoot, String? projectPath);
 
+enum NativePreparationStage {
+  bindings,
+  sourceWitnesses,
+  literalTiles,
+  traversal,
+  events,
+  catalogs,
+  assetLibrary,
+  mutationProjection,
+  projectValidation,
+}
+
+typedef NativePreparationCheckpoint = FutureOr<void> Function(
+    NativePreparationStage stage, JobProgress progress);
+
 typedef NativeStagingFactory = Future<String> Function();
+
+final class _NativePreparationReporter {
+  _NativePreparationReporter(this.checkpoint, this.cancellation);
+
+  final NativePreparationCheckpoint? checkpoint;
+  final ScanCancellation? cancellation;
+  NativePreparationStage? _stage;
+  JobUnit _unit = JobUnit.operations;
+  int _done = 0;
+  int? _total;
+
+  Future<void> start(NativePreparationStage stage,
+      {int? total, JobUnit unit = JobUnit.operations}) async {
+    await finish();
+    _stage = stage;
+    _done = 0;
+    _total = total;
+    _unit = unit;
+    await _emit();
+  }
+
+  Future<void> advance() async {
+    _checkCancelled(cancellation);
+    _done++;
+    if (_done % 32 == 0) await _emit();
+  }
+
+  Future<void> finish() async {
+    if (_stage == null) return;
+    await _emit();
+    _stage = null;
+  }
+
+  Future<void> report() => _emit();
+
+  Future<void> _emit() async {
+    _checkCancelled(cancellation);
+    await checkpoint?.call(_stage!,
+        JobProgress(done: _done, total: _total, unit: _unit));
+    _checkCancelled(cancellation);
+    await Future<void>.delayed(Duration.zero);
+    _checkCancelled(cancellation);
+  }
+}
 
 final class NativeBorderSnapshotReceipt {
   NativeBorderSnapshotReceipt({required this.byteLength, required this.sha256}) {
@@ -707,11 +766,13 @@ final class NativeWriteException implements Exception {
 
 final class NativeProjectWriter {
   const NativeProjectWriter(
-      {this.creation, this.checkpoint, this.stagingFactory, this.snapshotProfileSink});
+      {this.creation, this.checkpoint, this.stagingFactory,
+      this.snapshotProfileSink, this.preparationCheckpoint});
   final ProjectCreationPort? creation;
   final NativeWriteCheckpoint? checkpoint;
   final NativeStagingFactory? stagingFactory;
   final ProjectSnapshotLoadProfileSink? snapshotProfileSink;
+  final NativePreparationCheckpoint? preparationCheckpoint;
 
   Future<NativeWriteReceipt> write(
     ConversionPlan plan,
@@ -728,7 +789,8 @@ final class NativeProjectWriter {
       limits._validate();
       _checkCancelled(cancellation);
       final prepared =
-          await _prepareNativeDraft(plan, context, draft, limits, cancellation);
+          await _prepareNativeDraft(plan, context, draft, limits, cancellation,
+              _NativePreparationReporter(preparationCheckpoint, cancellation));
       final creator = creation ?? const LocalProjectCreationService();
       final requested = _creationRequest(draft, draft.parentPath,
         retentionPolicy: prepared.bootstrap.settings.mapInstanceRetentionPolicy);
@@ -1215,7 +1277,10 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     PlanContext context,
     NativeProjectDraft draft,
     NativeWriteLimits limits,
-    ScanCancellation? cancellation) async {
+    ScanCancellation? cancellation,
+    _NativePreparationReporter preparation) async {
+  await preparation.start(NativePreparationStage.bindings,
+      total: draft.mutations.length + 1);
   if (!plan.outputPolicy.offline ||
       !plan.outputPolicy.destinationMustBeNew ||
       plan.outputPolicy.destinationFolderName != draft.folderName) {
@@ -1363,13 +1428,17 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       throw const NativeWriteException('native.action.unsupported',
           'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
+    await preparation.advance();
   }
   final budget = _preflightNativeResourceBudget(draft, limits);
+  await preparation.advance();
   final artifacts = budget.artifacts;
   final dimensions = budget.dimensions;
-  final semantics = await _verifySourceSemantics(draft, limits, cancellation);
+  final semantics = await _verifySourceSemantics(
+      draft, limits, cancellation, preparation);
+  await preparation.start(NativePreparationStage.assetLibrary);
   final library = await _verifyApprovedAssetLibrary(
-      plan, context, draft, limits, cancellation, semantics);
+      plan, context, draft, limits, cancellation, semantics, preparation);
   if (semantics.verified &&
       (draft.mutations.any((mutation) =>
               !semantics.regeneratedOperationIds
@@ -1442,7 +1511,10 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   String? defaultPlayerCharacterId;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
-  final expandedMutations = expandNativeMutationBatches(draft, limits);
+  final expandedMutations =
+      expandNativeMutationBatches(draft, limits).toList(growable: false);
+  await preparation.start(NativePreparationStage.mutationProjection,
+      total: expandedMutations.length);
   for (final mutation in expandedMutations) {
     final parameters = mutation.parameters;
     switch (mutation.actionId) {
@@ -2223,7 +2295,12 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         throw const NativeWriteException('native.action.unsupported',
             'Only image import, atlas animation upsert, map creation and native map save are admitted');
     }
+    await preparation.advance();
   }
+  await preparation.start(NativePreparationStage.projectValidation,
+      total: maps.length + (semantics.events?.projection.scenes.length ?? 0) +
+          2 + (semantics.events == null ? 0 : 1) +
+          (semantics.verified ? 0 : 1));
   if (usedArtifacts.length != artifacts.length ||
       tilesets.isEmpty ||
       maps.length != draft.mapIds.length ||
@@ -2310,9 +2387,12 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     throw const NativeWriteException('native.border.quota', 'Derived canonical Border snapshots require their explicit cumulative artifact budget');
   }
   ProjectValidator.validate(manifest, maps: maps.values);
+  await preparation.advance();
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);
+    await preparation.advance();
   }
+  await preparation.report();
   const SourceEventArrivalValidator().validateConnections(
       manifest: manifest,
       maps: maps.values.toList(),
@@ -2320,16 +2400,19 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       connectionMutations: draft.mutations.where(
           (entry) => entry.actionId == 'connection.create_bidirectional_apply'),
       cancellation: cancellation);
+  await preparation.advance();
   if (projectedEvents != null) {
-    for (final scene in projectedEvents.scenes) {
-      try {
+    try {
+      for (final scene in projectedEvents.scenes) {
         const SceneActions()
             .upsert(manifest, maps: maps.values.toList(), scene: scene);
-      } on NarrativeAuthoringException catch (error) {
-        throw NativeWriteException('native.events.scene',
-            '${error.code}: ${canonicalJsonOf(error.details, limits: limits.jsonLimits)}');
+        await preparation.advance();
       }
+    } on NarrativeAuthoringException catch (error) {
+      throw NativeWriteException('native.events.scene',
+          '${error.code}: ${canonicalJsonOf(error.details, limits: limits.jsonLimits)}');
     }
+    await preparation.report();
     const SourceEventArrivalValidator().validate(
         manifest: manifest,
         maps: maps.values.toList(),
@@ -2342,10 +2425,13 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               entry['warpId'] as String: entry['arrivalCollisionOwnerEntityId'] as String,
         },
         cancellation: cancellation);
+    await preparation.advance();
   }
   if (!semantics.verified) {
     _verifyLiteralCompositionContents(draft, maps, limits, library);
+    await preparation.advance();
   }
+  await preparation.finish();
   return _PreparedNativeDraft(
       bootstrap,
       manifest,
@@ -2543,14 +2629,18 @@ final class _VerifiedAssetLibrary {
 }
 
 final class _WitnessSourceFiles implements SourceFilePort {
-  const _WitnessSourceFiles(this.bytes);
+  _WitnessSourceFiles(this.bytes, this.preparation);
   final Map<ConverterId, List<int>> bytes;
+  final _NativePreparationReporter preparation;
 
   @override
-  Future<List<int>> read(ConverterId fileId) async =>
-      bytes[fileId] ??
-      (throw const NativeWriteException('native.library.witness',
-          'A source image is not present among the declared witnesses'));
+  Future<List<int>> read(ConverterId fileId) async {
+    final result = bytes[fileId] ??
+        (throw const NativeWriteException('native.library.witness',
+            'A source image is not present among the declared witnesses'));
+    await preparation.advance();
+    return result;
+  }
 }
 
 final class _VerifiedSourceSemantics {
@@ -2577,13 +2667,20 @@ final class _VerifiedSourceSemantics {
 Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     NativeProjectDraft draft,
     NativeWriteLimits limits,
-    ScanCancellation? cancellation) async {
+    ScanCancellation? cancellation,
+    _NativePreparationReporter preparation) async {
+  await preparation.start(NativePreparationStage.sourceWitnesses);
   final raw = draft.compositionEvidence['sourceSemantics'];
   if (raw == null) {
     if (draft.compositionEvidence.containsKey('sourceEvents') ||
         draft.compositionEvidence.containsKey('sourceCatalogs')) {
       throw const NativeWriteException('native.events.binding',
           'Event conversion requires preceding qualified source semantics');
+    }
+    for (final stage in [NativePreparationStage.literalTiles,
+      NativePreparationStage.traversal, NativePreparationStage.events,
+      NativePreparationStage.catalogs]) {
+      await preparation.start(stage, total: 0);
     }
     return const _VerifiedSourceSemantics(false, {}, {}, {}, {});
   }
@@ -2650,7 +2747,9 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
           'A shared source witness cannot have conflicting envelopes');
     }
     witnessRows[id] = row;
+    await preparation.advance();
   }
+  await preparation.report();
   for (final row in witnessRows.values) {
     if (row is! Map || row['fileId'] is! String) {
       throw const NativeWriteException('native.semantics.witness',
@@ -2738,6 +2837,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
               'Source witness chunk encoding is invalid');
         }
         witnessHandles.add(artifact.handle);
+        await preparation.advance();
       }
       bytes = restored.takeBytes();
     } else {
@@ -2750,7 +2850,9 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
           'Semantic source bytes differ from their admitted snapshot');
     }
     files[entry.fileId] = bytes;
+    await preparation.advance();
   }
+  await preparation.report();
   _checkCancelled(cancellation);
   final NativeProjectDraft expected;
   SourceEventStudyComposition? eventComposition;
@@ -2775,7 +2877,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
       nativeTrainers = await NativeTrainerCatalogQualification.fromArtifacts(
           evidence: trainerEvidence,
           artifacts: draft.artifacts.where((artifact) => handles.contains(artifact.handle)),
-          normalizedSource: draft.source, files: _WitnessSourceFiles(files),
+          normalizedSource: draft.source, files: _WitnessSourceFiles(files, preparation),
           nativeCatalog: trainerCatalog, writeLimits: limits,
           cancellation: cancellation);
     }
@@ -2783,9 +2885,10 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
       throw const FormatException('Surf traversal requires its exact native encounter release');
     }
     final composition = draft.compositionEvidence['composition'] as Map;
+    await preparation.start(NativePreparationStage.literalTiles);
     final base = await const LiteralTileComposer().compose(
         source: draft.source,
-        files: _WitnessSourceFiles(files),
+        files: _WitnessSourceFiles(files, preparation),
         selectedSourceMapIds:
             (composition['selectedSourceMapIds'] as List).cast<int>(),
         projectName: draft.projectName,
@@ -2798,16 +2901,19 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
             composition['allowFirstFrameAutotiles'] == true,
         limits: limits,
         cancellation: cancellation);
+    await preparation.start(NativePreparationStage.traversal);
     final regenerated = await SourceSemanticStudyComposer(
         includeNativeSurfTraversal: includeSurf).compose(
         source: draft.source,
         base: base,
-        files: _WitnessSourceFiles(files),
+        files: _WitnessSourceFiles(files, preparation),
         limits: limits,
         cancellation: cancellation);
     if (regenerated == null) {
       throw const FormatException('Missing semantic draft');
     }
+    await preparation.start(NativePreparationStage.events,
+        total: eventRaw == null ? 0 : null);
     if (eventRaw != null) {
       eventComposition = await SourceEventStudyComposer(
           nativeEncounterQualification: nativeEncounters,
@@ -2815,7 +2921,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
           nativeTrainerQualification: nativeTrainers).compose(
           source: draft.source,
           base: regenerated,
-          files: _WitnessSourceFiles(files),
+          files: _WitnessSourceFiles(files, preparation),
           limits: limits,
           cancellation: cancellation);
       if (eventComposition == null) {
@@ -2826,6 +2932,8 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
       }
     }
     final preceding = eventComposition?.draft ?? regenerated;
+    await preparation.start(NativePreparationStage.catalogs,
+        total: catalogRaw == null ? 0 : null);
     if (catalogRaw != null) {
       final automaticEncounters = (catalogRaw as Map).containsKey('automaticNativeEncounters')
           ? catalogRaw['automaticNativeEncounters'] : true;
@@ -2842,7 +2950,7 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
           .compose(
               source: draft.source,
           base: preceding,
-          files: _WitnessSourceFiles(files),
+          files: _WitnessSourceFiles(files, preparation),
           limits: limits,
           cancellation: cancellation);
       if (catalogComposition == null) {
@@ -2920,7 +3028,8 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
     NativeProjectDraft draft,
     NativeWriteLimits limits,
     ScanCancellation? cancellation,
-    _VerifiedSourceSemantics semantics) async {
+    _VerifiedSourceSemantics semantics,
+    _NativePreparationReporter preparation) async {
   final raw = draft.compositionEvidence['assetLibrary'];
   if (raw == null) {
     if (draft.sourceArtifacts.any((artifact) =>
@@ -2960,6 +3069,7 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
           'Source witnesses must contain each exact PNG content once');
     }
     witnesses[witness.rawSha256] = witness;
+    await preparation.advance();
   }
   final files = <ConverterId, List<int>>{};
   final usedWitnesses = <Sha256Hash>{};
@@ -2978,6 +3088,7 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
       }
       files[sourceImage.fileId] = witness.bytes;
       usedWitnesses.add(witness.rawSha256);
+      await preparation.advance();
     }
   }
   if (usedWitnesses.length != witnesses.length) {
@@ -2989,7 +3100,7 @@ Future<_VerifiedAssetLibrary> _verifyApprovedAssetLibrary(
   try {
     regenerated = await const ApprovedAssetLibraryComposer().compose(
         source: draft.source,
-        files: _WitnessSourceFiles(files),
+        files: _WitnessSourceFiles(files, preparation),
         candidates: candidates,
         approvedCandidateHashes: context.approvedCandidateHashes,
         decisions: context.decisions,

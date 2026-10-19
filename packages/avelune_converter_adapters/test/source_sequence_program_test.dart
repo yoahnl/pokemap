@@ -88,16 +88,18 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
 }
 
 Future<SourceEventProjection> _projection(LiteralTileFixture fixture,
-    {bool context = true, bool mutateMap = false}) async {
+    {bool context = true, bool mutateMap = false,
+    SourceEventAnalysis Function(SourceEventAnalysis)? transformAnalysis}) async {
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: fixture.snapshot,
       files: fixture.files,
       interpretationProfile: syntheticSourceInterpretationProfile,
       includeEventSystem: true,
       includeConnections: true);
-  final analysis = SourceEventAnalyzer.forProject(source,
+  final originalAnalysis = SourceEventAnalyzer.forProject(source,
           profile: SourceEventProfile.forProject(source))
       .analyze();
+  final analysis = transformAnalysis?.call(originalAnalysis) ?? originalAnalysis;
   final maps = {
     1: MapData(
         id: 'map',
@@ -173,6 +175,84 @@ Future<SourceEventProjection> _projection(LiteralTileFixture fixture,
 }
 
 void main() {
+  for (final chain in [false, true]) {
+  test(chain
+      ? 'a solid NPC with only a warp is not an arrival collision owner'
+      : 'warp depends on the final qualification of its exact arrival actor', () async {
+    final fixture = await LiteralTileFixture.create(
+        interpretationProfile: syntheticSourceInterpretationProfile,
+        scriptsBytes: syntheticInterpretationArchive,
+        includeEventSystem: true,
+        extraFiles: {
+          'Data/map_connections.dat': literalFixtureMarshal([]),
+          'Graphics/Characters/Wall.png': literalFixtureAtlas(),
+        }, maps: [LiteralFixtureMap(id: 1, events: [
+          LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: [
+            LiteralFixtureEventPage(characterName: 'Wall', commands: [
+              LiteralFixtureEventCommand(201, [0, 1, chain ? 1 : 2, 0, 0, 1])
+            ])
+          ]),
+          if (chain) const LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+            LiteralFixtureEventPage(characterName: 'Wall', commands: [
+              LiteralFixtureEventCommand(201, [0, 1, 2, 0, 0, 1])
+            ])
+          ]),
+          LiteralFixtureEvent(id: chain ? 3 : 2, x: 2, y: 0, pages: [
+            LiteralFixtureEventPage(characterName: 'Wall',
+                commands: _route(target: 0, steps: [_step(16)]))
+          ])
+        ])]);
+    final valid = await _projection(fixture);
+    expect(valid.scenes, hasLength(2));
+    final validEvents = (valid.semanticEvidence['events'] as List).cast<Map>();
+    final validCaller = validEvents.singleWhere((event) =>
+        (event['locator'] as Map)['eventId'] == 1);
+    if (chain) {
+      expect(validCaller['status'], 'quarantinedWholeEvent');
+      expect(validCaller['gaps'], ['warpArrivalSourceCharacterUnqualified']);
+      expect(validEvents.where((event) =>
+          (event['locator'] as Map)['eventId'] != 1).map((event) => event['status']),
+          everyElement('adaptedStaticSemantics'));
+    } else {
+      expect(validCaller['status'], 'adaptedStaticSemantics');
+      expect(validCaller['gaps'], isEmpty);
+    }
+    final refused = await _projection(fixture, transformAnalysis: (original) =>
+        SourceEventAnalysis(profile: original.profile,
+            diagnostics: original.diagnostics,
+            events: [for (final event in original.events)
+              if (event.sourceEventId != (chain ? 3 : 2)) event else
+                SourceEventDefinition(sourceMapId: event.sourceMapId,
+                    sourceEventId: event.sourceEventId,
+                    sourceFileId: event.sourceFileId, identity: event.identity,
+                    name: event.name, x: event.x, y: event.y,
+                    locator: event.locator, pages: [
+                      for (final page in event.pages)
+                        SourceEventPageAnalysis(sourcePage: page.sourcePage,
+                            locator: page.locator, condition: page.condition,
+                            graphic: page.graphic, rawDataRef: page.rawDataRef,
+                            diagnostics: page.diagnostics,
+                            body: SourceEventBlock(span: page.body.span,
+                                nodes: [SourceUnknownNode(page.body.nodes.first.span,
+                                  page.sourcePage.commands.first,
+                                  'Explicitly refused selected owner')]))
+                    ])
+            ]));
+    final events = (refused.semanticEvidence['events'] as List).cast<Map>();
+    final caller = events.singleWhere((event) =>
+        (event['locator'] as Map)['eventId'] == 1);
+    expect(caller['gaps'], ['warpArrivalSourceCharacterUnqualified']);
+    if (chain) {
+      final intermediate = events.singleWhere((event) =>
+          (event['locator'] as Map)['eventId'] == 2);
+      expect(intermediate['status'], 'quarantinedWholeEvent');
+      expect(intermediate['gaps'], ['warpArrivalSourceCharacterUnqualified']);
+    }
+    expect(refused.scenes, isEmpty);
+    expect(refused.nativeMaps.values.expand((map) => map.warps), isEmpty);
+  });
+  }
+
   for (final kind in ['global', 'self', 'combined', 'numeric']) {
     test('finite autorun preserves its $kind initial guard', () async {
       final source = await _source(const [

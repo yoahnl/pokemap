@@ -246,6 +246,43 @@ final class RuntimeProjectCatalog {
         CatalogDefinitionKey(CatalogDefinitionKind.character, characterId),
       ]);
 
+  ProjectManifest mergeNarrativeVisualDefinitions(
+    ProjectManifest project,
+    Iterable<ProjectManifest> views,
+  ) {
+    _ensureOpen();
+    final sources = [project, ...views];
+    if (sources.any((view) => !identical(ownerOf(view), this))) {
+      throw StateError(
+        'Narrative views must belong to the same runtime catalog.',
+      );
+    }
+    final merged = project.copyWith(
+      elements: _mergeNarrativeVisualDefinitions(
+        sources.expand((view) => view.elements),
+        (entry) => entry.id,
+        (entry) => entry.toJson(),
+      ),
+      characters: _mergeNarrativeVisualDefinitions(
+        sources.expand((view) => view.characters),
+        (entry) => entry.id,
+        (entry) => entry.toJson(),
+      ),
+      tilesets: _mergeNarrativeVisualDefinitions(
+        sources.expand((view) => view.tilesets),
+        (entry) => entry.id,
+        (entry) => entry.toJson(),
+      ),
+      elementCategories: _mergeNarrativeVisualDefinitions(
+        sources.expand((view) => view.elementCategories),
+        (entry) => entry.id,
+        (entry) => entry.toJson(),
+      ),
+    );
+    _owners[merged] = this;
+    return merged;
+  }
+
   Future<ProjectManifest> _manifestForRoots(
     Iterable<CatalogDefinitionKey> roots,
   ) async {
@@ -373,6 +410,28 @@ final class RuntimeProjectCatalog {
   void _ensureOpen() {
     if (_disposed) throw StateError('Runtime project catalog is disposed.');
   }
+}
+
+List<T> _mergeNarrativeVisualDefinitions<T>(
+  Iterable<T> entries,
+  String Function(T) identityOf,
+  Map<String, dynamic> Function(T) jsonOf,
+) {
+  final definitions = <String, T>{};
+  for (final entry in entries) {
+    final id = identityOf(entry);
+    final existing = definitions[id];
+    if (existing != null &&
+        !identical(existing, entry) &&
+        canonicalizeNarrativeEventJson(jsonOf(existing)) !=
+            canonicalizeNarrativeEventJson(jsonOf(entry))) {
+      throw StateError(
+        'Event V2 runtime snapshot has conflicting visual definition "$id".',
+      );
+    }
+    definitions[id] = entry;
+  }
+  return List.unmodifiable(definitions.values);
 }
 
 Object? _immutableRuntimeProperty(Object? value, int depth) {

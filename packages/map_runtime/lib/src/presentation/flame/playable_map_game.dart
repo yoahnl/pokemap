@@ -15230,6 +15230,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
 
       if (inLoS) {
+        if (!_authoredTrainerEncounterCanSpot(entity)) continue;
         if (trainer.rematchPolicy != ProjectTrainerRematchPolicy.allowed &&
             _authoredTrainerEncounterWasDefeated(entity)) {
           continue;
@@ -15238,6 +15239,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         return;
       }
     }
+  }
+
+  bool _authoredTrainerEncounterCanSpot(MapEntity entity) {
+    final preparation = _readInteractionAuthority(
+      NarrativeEventOccurrence(
+        source: NarrativeEventSourceRef.entityInteract(_activeMapId, entity.id),
+      ),
+    );
+    if (preparation is! NarrativeEventDispatchAuthorityReady) return false;
+    final decision = preparation.plan(gameState: gameStateSnapshot);
+    if (decision is NarrativeEventDispatchNoMatch) {
+      return decision.legacyFallbackAllowed;
+    }
+    if (decision is! NarrativeEventDispatchHandled) return false;
+    final project = _cachedNarrativeRuntimeSnapshot?.project ?? _bundle.manifest;
+    for (final scene in project.scenes) {
+      if (scene.id != decision.sceneId) continue;
+      return scene.graph.nodes.any((node) {
+        final payload = node.payload;
+        return payload is SceneBattlePayload &&
+            payload.battleKind == 'trainer' &&
+            payload.trainerId != null;
+      });
+    }
+    return false;
   }
 
   bool _authoredTrainerEncounterWasDefeated(MapEntity entity) {

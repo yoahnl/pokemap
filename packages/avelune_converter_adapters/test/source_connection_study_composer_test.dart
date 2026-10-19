@@ -579,7 +579,7 @@ Future<_Fixture> _fixture(List<List<Object>>? rows,
   final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
 
       scriptsBytes:
-          scriptPath == null ? null : await File(scriptPath).readAsBytes(),
+          scriptPath == null ? syntheticInterpretationArchive : await File(scriptPath).readAsBytes(),
       tilesets: tilesets,
       maps: [
         for (final id in allIds)

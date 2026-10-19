@@ -86,35 +86,217 @@ Matcher _arrivalFailure(String code) => throwsA(
     isA<NativeWriteException>().having((error) => error.code, 'code', code));
 
 void main() {
-  test('rejects an active or nonlocal destination marker', () {
-    for (final warp in [
-      _arrival('arrival', _position).copyWith(triggerMode: MapWarpTriggerMode.onBump),
-      _arrival('arrival', _position).copyWith(
-        triggerMode: MapWarpTriggerMode.sceneOnly, targetMapId: 'other'),
-    ]) {
-      final map = _map(warps: [warp]);
-      expect(() => const SourceEventArrivalValidator().validate(
-        manifest: _manifest(map), maps: [map], arrivalAnchorIds: ['arrival']),
+  test('arrival owner remains available without a runtime presentation state',
+      () {
+    final owner = MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: _position,
+        npc: const MapEntityNpcData(characterId: 'doorCharacter'),
+        properties: const {
+          mapEntityCollisionWidthProperty: '1',
+          mapEntityCollisionHeightProperty: '1',
+          mapEntityCollisionOffsetYProperty: '0',
+        },
+        presentation: MapEntityPresentation(variants: [
+          MapEntityPresentationVariant(
+              id: 'closed',
+              condition: NarrativeEventConditionExpression.all(const []),
+              characterId: 'doorCharacter',
+              blocksMovement: true),
+        ]));
+    final map = _map(entities: [owner]);
+    final manifest = _manifest(map).copyWith(characters: const [
+      ProjectCharacterEntry(
+          id: 'doorCharacter',
+          name: 'Door',
+          tilesetId: 'tiles',
+          frameHeight: 1),
+    ]);
+    final before = map.toJson();
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: manifest,
+            maps: [map],
+            arrivalAnchorIds: ['arrival'],
+            arrivalCollisionOwners: {'arrival': 'door'}),
+        returnsNormally);
+    expect(map.toJson(), before);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: manifest.copyWith(characters: const []),
+            maps: [map],
+            arrivalAnchorIds: ['arrival'],
+            arrivalCollisionOwners: {'arrival': 'door'}),
         _arrivalFailure('events.arrival.binding'));
+  });
+
+  for (final baseBlocks in [false, true]) {
+    test('arrival rejects a presented blocker with baseBlocks=$baseBlocks', () {
+      final entity = MapEntity(
+          id: 'other',
+          kind: MapEntityKind.custom,
+          pos: const GridPos(x: 0, y: 1),
+          blocksMovement: baseBlocks,
+          presentation: MapEntityPresentation(variants: [
+            MapEntityPresentationVariant(
+                id: 'blocking',
+                condition: NarrativeEventConditionExpression.all(const []),
+                blocksMovement: true,
+                size: const GridSize(width: 2, height: 1)),
+          ]));
+      final map = _map(entities: [entity]);
+      final before = map.toJson();
+      expect(
+          () => const SourceEventArrivalValidator().validate(
+              manifest: _manifest(map),
+              maps: [map],
+              arrivalAnchorIds: ['arrival']),
+          _arrivalFailure('events.arrival.blocked'));
+      expect(map.toJson(), before);
+    });
+  }
+
+  test('arrival preserves authored collision offsets across variant sizes', () {
+    final entity = MapEntity(
+        id: 'offset',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 0, y: 0),
+        size: const GridSize(width: 3, height: 2),
+        blocksMovement: true,
+        properties: const {
+          mapEntityCollisionWidthProperty: '1',
+          mapEntityCollisionHeightProperty: '1',
+          mapEntityCollisionOffsetXProperty: '2',
+          mapEntityCollisionOffsetYProperty: '1',
+        },
+        presentation: MapEntityPresentation(variants: [
+          MapEntityPresentationVariant(
+              id: 'small',
+              condition: NarrativeEventConditionExpression.all(const []),
+              blocksMovement: true),
+          MapEntityPresentationVariant(
+              id: 'wide',
+              condition: NarrativeEventConditionExpression.all(const []),
+              blocksMovement: true,
+              size: const GridSize(width: 2, height: 1)),
+        ]));
+    for (final position in [
+      const GridPos(x: 2, y: 1),
+      const GridPos(x: 3, y: 2),
+    ]) {
+      final map =
+          _map(entities: [entity], warps: [_arrival('arrival', position)]);
+      expect(
+          () => const SourceEventArrivalValidator().validate(
+              manifest: _manifest(map),
+              maps: [map],
+              arrivalAnchorIds: ['arrival']),
+          position.x == 2
+              ? _arrivalFailure('events.arrival.blocked')
+              : returnsNormally);
     }
   });
 
-  test('explicit owner admits only its collision and keeps a second blocker', () {
-    final owner = MapEntity(id: 'door', kind: MapEntityKind.npc,
-      pos: _position, npc: const MapEntityNpcData(characterId: 'doorCharacter'),
-      properties: const {mapEntityCollisionWidthProperty: '1',
-        mapEntityCollisionHeightProperty: '1', mapEntityCollisionOffsetYProperty: '0'});
+  test('arrival keeps a through presentation passable', () {
+    final map = _map(entities: [
+      MapEntity(
+          id: 'through',
+          kind: MapEntityKind.custom,
+          pos: _position,
+          blocksMovement: false,
+          presentation: MapEntityPresentation(variants: [
+            MapEntityPresentationVariant(
+                id: 'through',
+                condition: NarrativeEventConditionExpression.all(const []),
+                blocksMovement: false),
+          ])),
+    ]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: _manifest(map),
+            maps: [map],
+            arrivalAnchorIds: ['arrival']),
+        returnsNormally);
+  });
+
+  test('arrival binding error identifies its map warp owner and exact cause',
+      () {
+    final owner = MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: const GridPos(x: 0, y: 1),
+        npc: const MapEntityNpcData(characterId: 'doorCharacter'));
+    final map = _map(entities: [owner]);
+    final manifest = _manifest(map).copyWith(characters: const [
+      ProjectCharacterEntry(
+          id: 'doorCharacter',
+          name: 'Door',
+          tilesetId: 'tiles',
+          frameHeight: 1),
+    ]);
+    expect(
+        () => const SourceEventArrivalValidator().validate(
+            manifest: manifest,
+            maps: [map],
+            arrivalAnchorIds: ['arrival'],
+            arrivalCollisionOwners: {'arrival': 'door'}),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'events.arrival.binding')
+            .having((error) => error.message, 'map', contains('map=map'))
+            .having((error) => error.message, 'warp', contains('warp=arrival'))
+            .having((error) => error.message, 'owner', contains('owner=door'))
+            .having((error) => error.message, 'position', contains('(1,1)'))
+            .having(
+                (error) => error.message, 'cause', contains('exact anchor'))));
+  });
+
+  test('rejects an active or nonlocal destination marker', () {
+    for (final warp in [
+      _arrival('arrival', _position)
+          .copyWith(triggerMode: MapWarpTriggerMode.onBump),
+      _arrival('arrival', _position).copyWith(
+          triggerMode: MapWarpTriggerMode.sceneOnly, targetMapId: 'other'),
+    ]) {
+      final map = _map(warps: [warp]);
+      expect(
+          () => const SourceEventArrivalValidator().validate(
+              manifest: _manifest(map),
+              maps: [map],
+              arrivalAnchorIds: ['arrival']),
+          _arrivalFailure('events.arrival.binding'));
+    }
+  });
+
+  test('explicit owner admits only its collision and keeps a second blocker',
+      () {
+    final owner = MapEntity(
+        id: 'door',
+        kind: MapEntityKind.npc,
+        pos: _position,
+        npc: const MapEntityNpcData(characterId: 'doorCharacter'),
+        properties: const {
+          mapEntityCollisionWidthProperty: '1',
+          mapEntityCollisionHeightProperty: '1',
+          mapEntityCollisionOffsetYProperty: '0'
+        });
     for (final other in [false, true]) {
-      final map = _map(entities: [owner,
-        if (other) owner.copyWith(id: 'other')]);
+      final map =
+          _map(entities: [owner, if (other) owner.copyWith(id: 'other')]);
       final manifest = _manifest(map).copyWith(characters: const [
-        ProjectCharacterEntry(id: 'doorCharacter', name: 'Door',
-          tilesetId: 'tiles', frameHeight: 1),
+        ProjectCharacterEntry(
+            id: 'doorCharacter',
+            name: 'Door',
+            tilesetId: 'tiles',
+            frameHeight: 1),
       ]);
       void operation() => const SourceEventArrivalValidator().validate(
-        manifest: manifest, maps: [map], arrivalAnchorIds: ['arrival'],
-        arrivalCollisionOwners: {'arrival': 'door'});
-      expect(operation, other ? _arrivalFailure('events.arrival.blocked') : returnsNormally);
+          manifest: manifest,
+          maps: [map],
+          arrivalAnchorIds: ['arrival'],
+          arrivalCollisionOwners: {'arrival': 'door'});
+      expect(operation,
+          other ? _arrivalFailure('events.arrival.blocked') : returnsNormally);
       expect(map.entities.first, owner);
     }
   });

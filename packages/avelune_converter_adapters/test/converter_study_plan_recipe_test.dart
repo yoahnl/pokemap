@@ -58,10 +58,12 @@ void main() {
 
   ConverterStudyPlanRecipe connectionRecipe(int maxConnections,
       {NativeWriteLimits writeLimits = const NativeWriteLimits(), SourceInterpretationProfile? interpretationProfile,
+      ConverterContentScope contentScope = ConverterContentScope.full,
       List<SourceMissingItemBinding> missingItemBindings = const []}) {
     final sourceHash = Sha256Hash('1' * 64);
     final profileHash = Sha256Hash('2' * 64);
     final settings = ConverterStudySettings(
+        contentScope: contentScope,
         interpretationProfile: interpretationProfile,
         missingItemBindings: missingItemBindings,
         projectName: 'Original connection quota study',
@@ -94,6 +96,32 @@ void main() {
         rulesHash: Sha256Hash('8' * 64),
         converterVersion: 'original-quota-fixture');
   }
+
+  test('content scope is required closed and hashed in recipe thirteen', () {
+    final full = connectionRecipe(2);
+    final world = connectionRecipe(2, contentScope: ConverterContentScope.world);
+    expect(full.settings.contentScope, ConverterContentScope.full);
+    expect(world.settings.canonicalHash, isNot(full.settings.canonicalHash));
+    expect(world.canonicalHash, isNot(full.canonicalHash));
+    for (final recipe in [full, world]) {
+      final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
+      expect(decoded.settings.contentScope, recipe.settings.contentScope);
+      expect(decoded.toJson()['version'], 13);
+      expect((decoded.toJson()['settings'] as Map)['version'], 10);
+      expect(decoded.toJson(), recipe.toJson());
+    }
+    final missing = jsonDecode(world.encode()) as Map<String, dynamic>;
+    (missing['settings'] as Map).remove('contentScope');
+    final invalid = jsonDecode(world.encode()) as Map<String, dynamic>;
+    (invalid['settings'] as Map)['contentScope'] = 'worldAndSomeEvents';
+    for (final input in [missing, invalid, {...world.toJson(), 'version': 12}]) {
+      expect(() => ConverterStudyPlanRecipe.fromJson(input),
+        throwsA(isA<ConverterWorkflowFailure>()));
+    }
+    expect(() => ConverterStudyPlanRecipe.fromJson({...world.toJson(), 'version': 12}),
+      throwsA(isA<ConverterWorkflowFailure>().having((failure) => failure.message,
+        'message', contains('version 13'))));
+  });
 
   test(
       'recipe roundtrip binds explicit draft aggregate nodes in settings identity',
@@ -211,6 +239,9 @@ void main() {
       'reason': 'Explicit supplemental source selection', 'humanConfirmed': true,
     });
     final plain = connectionRecipe(2);
+    expect(() => connectionRecipe(2, contentScope: ConverterContentScope.world,
+      missingItemBindings: [binding]), throwsA(isA<ConverterWorkflowFailure>()
+        .having((failure) => failure.code, 'code', 'workflow.content_scope.item_bindings')));
     final recipe = connectionRecipe(2, missingItemBindings: [binding]);
     expect(recipe.settingsHash, isNot(plain.settingsHash));
     final decoded = ConverterStudyPlanRecipe.fromJson(recipe.toJson());
@@ -298,7 +329,7 @@ void main() {
           await prepare(supplementalRootPaths: [first.path, second.path]);
       final snapshot = original.state.snapshot!;
       final recipe = original.exportStudyPlanRecipe();
-      expect(recipe.toJson()['version'], 12);
+      expect(recipe.toJson()['version'], 13);
       expect(recipe.sourceSelection.supplementalRootPaths,
           [first.path, second.path]);
       expect(recipe.sharedSourceFiles.single.referenceRootPath, second.path);
@@ -413,8 +444,10 @@ void main() {
     };
   }
 
-  ConverterStudyPlanRecipe pairRecipe(ConverterAssetReviewSet reviewSet) {
+  ConverterStudyPlanRecipe pairRecipe(ConverterAssetReviewSet reviewSet,
+      {ConverterContentScope contentScope = ConverterContentScope.full}) {
     final settings = ConverterStudySettings(
+        contentScope: contentScope,
         projectName: 'Original segmented recipe',
         parentPath: output.path,
         folderName: 'original-study',
@@ -449,12 +482,15 @@ void main() {
   test('segmented recipe keeps both full reviews and their compact identity',
       () {
     final reviewSet = _recipePairSet();
+    expect(() => pairRecipe(reviewSet, contentScope: ConverterContentScope.world),
+      throwsA(isA<ConverterWorkflowFailure>().having((failure) => failure.code,
+        'code', 'workflow.content_scope.review')));
     final recipe = pairRecipe(reviewSet);
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
     expect(decoded.settings.reviewSet!.toJson(), reviewSet.toJson());
     expect(decoded.settings.canonicalHash, recipe.settingsHash);
     expect(decoded.canonicalHash, recipe.canonicalHash);
-    expect((recipe.toJson()['settings'] as Map)['version'], 9);
+    expect((recipe.toJson()['settings'] as Map)['version'], 10);
     expect(
         (recipe.toJson()['settings'] as Map)['reviewSet'], reviewSet.toJson());
   });
@@ -468,7 +504,7 @@ void main() {
     await prepare(supplementalRootPaths: [shared.path]);
     final recipe = original.exportStudyPlanRecipe();
     final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
-    expect(decoded.toJson()['version'], 12);
+    expect(decoded.toJson()['version'], 13);
     expect(decoded.sourceSelection.supplementalRootPaths, [shared.path]);
     expect(decoded.sharedSourceFiles.single.relativePath, 'PBS/items.txt');
     expect(decoded.sharedSourceFiles.single.referenceRootPath, shared.path);
@@ -731,8 +767,8 @@ void main() {
       'maxStringCodeUnits': 1048576,
       'maxTextCodeUnits': 50331648,
     });
-    expect(settings['version'], 9);
-    expect(recipe.toJson()['version'], 12);
+    expect(settings['version'], 10);
+    expect(recipe.toJson()['version'], 13);
   });
 
   test('aggregate image budget recipe preserves explicit boundaries and hashes',
@@ -745,7 +781,7 @@ void main() {
       expect(decoded.settings.writeLimits.maxImagePixels, 16777216);
       expect(decoded.settings.canonicalHash, recipe.settings.canonicalHash);
       expect(decoded.canonicalHash, recipe.canonicalHash);
-      expect((recipe.toJson()['settings'] as Map)['version'], 9);
+      expect((recipe.toJson()['settings'] as Map)['version'], 10);
     }
     final low = connectionRecipe(2,
         writeLimits: const NativeWriteLimits(maxTotalImagePixels: 16777216));
@@ -827,8 +863,8 @@ void main() {
     expect(two.canonicalHash, isNot(three.canonicalHash));
   });
 
-  test('source adaptations recipe emits breaking version 12', () {
-    expect(connectionRecipe(2).toJson()['version'], 12);
+  test('source adaptations recipe emits breaking version 13', () {
+    expect(connectionRecipe(2).toJson()['version'], 13);
   });
 
   test('draft JSON budget recipe refuses a resigned version 1', () {

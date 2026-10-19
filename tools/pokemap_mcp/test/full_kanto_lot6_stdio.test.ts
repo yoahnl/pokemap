@@ -34,7 +34,9 @@ test("published full Kanto crosses a fresh read-only MCP session with all 383 ma
   const reference = await realpath(referencePath);
   assertWithinRoot(root, reference);
   const delivery = record(JSON.parse(await readFile(reference, "utf8")));
-  assert.equal(delivery.kind, "fullKantoCanonicalConverterDelivery");
+  assert.ok(delivery.contentScope === "world" || delivery.contentScope === "full");
+  assert.equal(delivery.kind, delivery.contentScope === "world"
+    ? "kantoWorldFoundationDelivery" : "fullKantoCanonicalConverterDelivery");
   assert.equal(delivery.phase, "published");
   assert.equal(delivery.published, true);
   assert.equal(delivery.verified, true);
@@ -115,6 +117,7 @@ test("published full Kanto crosses a fresh read-only MCP session with all 383 ma
     assert.equal(afterValidation.snapshotRevision, revision);
     console.log(JSON.stringify({
       kind: "fullKantoLot6ReadOnlyMcpQualification", projectPath: projectRoot,
+      contentScope: delivery.contentScope,
       resourceKind, mapCount: mapIds.size, pageCount, valid: validation.valid,
       contentMutationCount: 0, sourceScriptsExecuted: 0,
       NoFullCampaignCertified: true,

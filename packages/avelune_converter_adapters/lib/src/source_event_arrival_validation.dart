@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -75,7 +77,8 @@ final class SourceEventArrivalValidator {
           mutation.parameters['direction'] != direction.name ||
           findMapConnection(from, direction, targetMapId: to.id)?.offset !=
               row.nativeOffset ||
-          findMapConnection(to, direction.opposite, targetMapId: from.id)?.offset !=
+          findMapConnection(to, direction.opposite, targetMapId: from.id)
+                  ?.offset !=
               -row.nativeOffset ||
           sourceConnectionHasBorderEvents(
               source: source,
@@ -101,7 +104,7 @@ final class SourceEventArrivalValidator {
         final world = worlds.putIfAbsent(
             map.id,
             () => GameplayWorldState.initial(
-                map: map,
+                map: _arrivalValidationMap(map),
                 playerPos: pos,
                 project: manifest,
                 tileWidth: manifest.settings.tileWidth,
@@ -138,7 +141,7 @@ final class SourceEventArrivalValidator {
     final anchors = anchorSet.toList()..sort();
     if (!anchorSet.containsAll(arrivalCollisionOwners.keys)) {
       throw const NativeWriteException('events.arrival.binding',
-        'Every collision owner requires its exact arrival marker');
+          'Every collision owner requires its exact arrival marker');
     }
     if (anchors.isEmpty) return;
     if (maps.map((map) => map.id).toSet().length != maps.length) {
@@ -164,9 +167,10 @@ final class SourceEventArrivalValidator {
       }
       final (map, warp) = matches.single;
       if (warp.triggerMode != MapWarpTriggerMode.sceneOnly ||
-          warp.targetMapId != map.id || warp.targetPos != warp.pos) {
+          warp.targetMapId != map.id ||
+          warp.targetPos != warp.pos) {
         throw const NativeWriteException('events.arrival.binding',
-          'A Scene destination must be one inert local arrival marker');
+            'A Scene destination must be one inert local arrival marker');
       }
       final pos = warp.pos;
       if (pos.x < 0 ||
@@ -179,7 +183,7 @@ final class SourceEventArrivalValidator {
       final world = worlds.putIfAbsent(
           map.id,
           () => GameplayWorldState.initial(
-              map: map,
+              map: _arrivalValidationMap(map),
               playerPos: pos,
               project: manifest,
               tileWidth: manifest.settings.tileWidth,
@@ -193,11 +197,13 @@ final class SourceEventArrivalValidator {
           mapHeightCells: map.size.height);
       final bool allowed;
       try {
-        allowed = isSceneWarpArrivalAllowed(world: world.withPlayer(player),
-          project: manifest, arrivalCollisionOwnerEntityId: arrivalCollisionOwners[id]);
-      } on StateError {
-        throw const NativeWriteException('events.arrival.binding',
-          'The explicit arrival owner must resolve to its exact native actor anchor');
+        allowed = isSceneWarpArrivalAllowed(
+            world: world.withPlayer(player),
+            project: manifest,
+            arrivalCollisionOwnerEntityId: arrivalCollisionOwners[id]);
+      } on StateError catch (error) {
+        throw NativeWriteException('events.arrival.binding',
+            'Arrival map=${map.id} warp=$id position=(${pos.x},${pos.y}) owner=${arrivalCollisionOwners[id] ?? '<none>'}: ${error.message}');
       }
       if (!allowed) {
         throw NativeWriteException('events.arrival.blocked',
@@ -205,4 +211,37 @@ final class SourceEventArrivalValidator {
       }
     }
   }
+}
+
+MapData _arrivalValidationMap(MapData map) => map.copyWith(entities: [
+      for (final entity in map.entities)
+        entity.presentation == null ? entity : _arrivalValidationEntity(entity),
+    ]);
+
+MapEntity _arrivalValidationEntity(MapEntity entity) {
+  final footprints = [
+    if (entity.blocksMovement) resolveEntityCollisionFootprint(entity),
+    for (final variant in entity.presentation!.variants)
+      if (variant.blocksMovement) MapRect(pos: entity.pos, size: variant.size),
+  ];
+  final authored = entity.copyWith(presentation: null);
+  if (footprints.isEmpty) return authored;
+  final left = footprints.map((rect) => rect.pos.x).reduce(math.min);
+  final top = footprints.map((rect) => rect.pos.y).reduce(math.min);
+  final right =
+      footprints.map((rect) => rect.pos.x + rect.size.width).reduce(math.max);
+  final bottom =
+      footprints.map((rect) => rect.pos.y + rect.size.height).reduce(math.max);
+  return authored.copyWith(
+      blocksMovement: true,
+      size: GridSize(
+          width: math.max(entity.size.width, right - entity.pos.x),
+          height: math.max(entity.size.height, bottom - entity.pos.y)),
+      properties: {
+        ...entity.properties,
+        mapEntityCollisionWidthProperty: '${right - left}',
+        mapEntityCollisionHeightProperty: '${bottom - top}',
+        mapEntityCollisionOffsetXProperty: '${left - entity.pos.x}',
+        mapEntityCollisionOffsetYProperty: '${top - entity.pos.y}',
+      });
 }

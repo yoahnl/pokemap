@@ -83,6 +83,68 @@ VisionRequestContext visionContext() => VisionRequestContext(
     );
 
 void main() {
+  test('large plan preserves admission and final-entry validation barriers', () {
+    const limits = ContractLimits(
+        maxNodes: 1000000,
+        maxStringCodeUnits: 1048576,
+        maxTextCodeUnits: 8388608);
+    final input = readyPlanJson();
+    final operation = Map<String, Object?>.from(
+        (input['operations'] as List).single as Map);
+    final operations = List.generate(18062,
+        (index) => {...operation, 'operationId': 'large-op-$index'});
+    final diagnostic = Map<String, Object?>.from(
+        (fixture('conversion_plan')['findings'] as List).single as Map)
+      ..addAll({
+        'severity': 'info',
+        'cause': 'policy',
+        'sourceLocator': null,
+        'message': 'Source data preserved for study.',
+        'disposition': 'preservedOnly',
+        'blocksStudy': false,
+        'blocksPlayableSlice': false,
+      });
+    final findings = List.generate(5325,
+        (index) => {...diagnostic, 'diagnosticId': 'large-finding-$index'});
+    input['operations'] = operations;
+    input['findings'] = findings;
+    final plan = ConversionPlan.fromJson(input, limits: limits);
+    expect(admitPlan(plan, contextFor(plan)).plan, same(plan));
+
+    operations.last['targetActionId'] = 'map.unknown';
+    final unknownAction = ConversionPlan.fromJson(input, limits: limits);
+    expect(
+        () => admitPlan(unknownAction, contextFor(unknownAction)),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'policy.targetAction')
+            .having((error) => error.path, 'path', r'$.operations[18061]')));
+
+    operations.last['targetActionId'] = operation['targetActionId'];
+    findings.last['blocksStudy'] = true;
+    final blockedFinding = ConversionPlan.fromJson(input, limits: limits);
+    expect(
+        () => admitPlan(blockedFinding, contextFor(blockedFinding)),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'policy.diagnosticBlocked')
+            .having((error) => error.path, 'path', r'$.findings[5324]')));
+
+    findings.last['blocksStudy'] = false;
+    operations.last['operationId'] = operations.first['operationId'];
+    expect(
+        () => ConversionPlan.fromJson(input, limits: limits),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'domain.duplicate')
+            .having((error) => error.path, 'path', r'$.operations[18061]')));
+
+    operations.last['operationId'] = 'large-op-18061';
+    findings.last['diagnosticId'] = findings.first['diagnosticId'];
+    expect(
+        () => ConversionPlan.fromJson(input, limits: limits),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'domain.duplicate')
+            .having((error) => error.path, 'path', r'$.findings[5324]')));
+  });
+
   test('IR-02 stable identity ignores display names and current snapshots', () {
     final input = fixture('source_map_ir');
     final first = SourceMapIr.fromJson(input);

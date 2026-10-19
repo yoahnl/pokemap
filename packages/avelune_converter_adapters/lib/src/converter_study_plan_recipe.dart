@@ -86,8 +86,9 @@ final class ConverterStudyPlanRecipe {
       final canonical = canonicalJsonOf(input, limits: jsonLimits);
       if (utf8.encode(canonical).length > maxFileBytes) throw _quota();
       final json = _object(jsonDecode(canonical));
-      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 12) {
-        throw _invalid();
+      if (json['kind'] != 'converterStudyPlanRecipe' || json['version'] != 13) {
+        throw const ConverterWorkflowFailure('workflow.recipe.invalid',
+            'Study plan recipe version 13 is required; older recipes must be prepared again.');
       }
       final source = _object(json['sourceSelection']);
       final policy = _object(source['policy']);
@@ -98,7 +99,10 @@ final class ConverterStudyPlanRecipe {
       final write = _object(settings['writeLimits']);
       final contract = _object(write['jsonLimits']);
       final planContract = _object(write['planJsonLimits']);
-      if (settings['version'] != 9) throw _invalid();
+      if (settings['version'] != 10) {
+        throw const ConverterWorkflowFailure('workflow.recipe.invalid',
+            'Study settings version 10 with an explicit content scope is required.');
+      }
       if (!write.containsKey('maxDraftEvidenceJsonNodes')) throw _invalid();
       final writeLimits = NativeWriteLimits(
           maxArtifacts: _int(write['maxArtifacts']),
@@ -150,6 +154,7 @@ final class ConverterStudyPlanRecipe {
               .map(ConverterSharedSourceFile.fromJson)
               .toList(),
           settings: ConverterStudySettings(
+              contentScope: ConverterContentScope.values.byName(_string(settings['contentScope'])),
               interpretationProfile: settings['interpretationProfile'] == null ? null :
                 SourceInterpretationProfile.fromJson(settings['interpretationProfile']),
               missingItemBindings: _list(settings['missingItemBindings']).map(SourceMissingItemBinding.fromJson).toList(),
@@ -263,7 +268,7 @@ final class ConverterStudyPlanRecipe {
 
   Map<String, Object?> _body() => {
         'kind': 'converterStudyPlanRecipe',
-        'version': 12,
+        'version': 13,
         'sessionId': sessionId.value,
         'sessionRevision': sessionRevision,
         'sourceSelection': {

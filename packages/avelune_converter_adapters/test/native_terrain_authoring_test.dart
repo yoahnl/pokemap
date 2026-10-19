@@ -366,6 +366,8 @@ Future<Map<String, List<int>>> _treeBytes(String path) async => {
     };
 
 final class _NativeSession {
+  static var _sessionSequence = 0;
+
   _NativeSession(this.direct, this.handles, this.snapshots, this.api,
       this.mutations, this.worker, this.project, this.workspace);
 
@@ -377,6 +379,7 @@ final class _NativeSession {
   final JsonlWorker worker;
   final ProjectHandle project;
   final WorkspaceHandle workspace;
+  final _idPrefix = 'terrain-session-${++_sessionSequence}';
   var _sequence = 0;
   var _closed = false;
 
@@ -452,7 +455,7 @@ final class _NativeSession {
 
   Future<void> mutate(String action, Map<String, Object?> parameters) async {
     final snapshot = await load();
-    final id = 'terrain-${++_sequence}';
+    final id = '$_idPrefix-${++_sequence}';
     final request = AuthoringRequest(
         requestId: id,
         actionId: action,

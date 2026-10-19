@@ -169,18 +169,12 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
   required SourceEventAnalysis analysis,
 }) {
   final profile = SourceEventProfile.forProject(source);
-  final tileBindings = {
-    for (final binding in profile.interpretationProfile?.declaredPrograms ??
-        const <SourceDeclaredProgramBinding>[])
-      if (binding.family == SourceDeclaredProgramFamily.warpTile &&
-          binding.parameters['role'] == 'tile')
-        binding.id
-  };
   final selected = <ConverterId, SourceDeclaredProgramMatch>{};
   for (final event in analysis.events) {
-    final binding =
-        _declaredTile(source, profile, event, bindingIds: tileBindings);
-    if (binding != null) selected[event.identity] = binding;
+    final binding = _declaredTile(source, profile, event);
+    if (binding != null && binding.binding.parameters['role'] == 'tile') {
+      selected[event.identity] = binding;
+    }
   }
   SourceWarpTileNativePrograms refuse(String reason) =>
       SourceWarpTileNativePrograms._(const {},
@@ -196,9 +190,8 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
   final context = <ConverterId, SourceEventDefinition>{};
   final bindings = <ConverterId, SourceDeclaredProgramMatch>{};
   for (final event in authority.events) {
-    final binding =
-        _declaredTile(source, profile, event, bindingIds: tileBindings);
-    if (binding != null) {
+    final binding = _declaredTile(source, profile, event);
+    if (binding != null && binding.binding.parameters['role'] == 'tile') {
       if (context.containsKey(event.identity)) {
         return refuse('sourceWarpTileDuplicateContextIdentity');
       }
@@ -265,9 +258,18 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
           event, binding.parameters, context, bindings, tiles);
       if (candidates.length == 1) eligible.add(binding.id);
     }
-    if (eligible.isEmpty) continue;
-    final binding = _declaredTile(source, profile, event, bindingIds: eligible);
+    final binding = _declaredTile(source, profile, event,
+        bindingIds: eligible.isEmpty ? null : eligible);
     if (binding == null) continue;
+    if (eligible.isEmpty &&
+        (!binding.automaticallyDiscovered ||
+            binding.binding.parameters['role'] != 'activation' ||
+            _activationCandidates(event, binding.binding.parameters, context,
+                        bindings, tiles)
+                    .length !=
+                1)) {
+      continue;
+    }
     if (caller[event.identity] == null ||
         _fingerprint(caller[event.identity]!) != _fingerprint(event)) {
       return refuse('sourceWarpTileCompleteContextBindingMismatch');
@@ -517,7 +519,9 @@ _WarpTileShape? _tileShape(SourceDeclaredProgramMatch binding) {
   }
   if (temp.length != 1) return null;
   if (!_tileStateGraphIsClosed(
-      departure, arrival, variables, p, letter, temp.single)) {
+          departure, arrival, variables, p, letter, temp.single) ||
+      !_tileGhostPositionIsClosed(departure, variables) ||
+      !_tileGhostPositionIsClosed(arrival, variables)) {
     return null;
   }
   return _WarpTileShape(List.unmodifiable(variables), offset, departureIndex,
@@ -588,6 +592,22 @@ bool _tileStateGraphIsClosed(
       ];
   final dep = state(departure), arr = state(arrival);
   if (dep.length != 4 || dep.last[0] != 201) return false;
+  List<List<Object?>> prefix(Map<String, Object?> page, int count) => [
+        for (final command in (page['list'] as List).take(count))
+          [command['code'], command['indent'], command['parameters']]
+      ];
+  if (canonicalJsonOf(prefix(departure, 3)) != canonicalJsonOf(positions(0)) ||
+      canonicalJsonOf(prefix(arrival, 4)) !=
+          canonicalJsonOf([
+            [
+              111,
+              0,
+              [12, 'get_self.onEvent?']
+            ],
+            ...positions(1)
+          ])) {
+    return false;
+  }
   return canonicalJsonOf(dep) ==
           canonicalJsonOf([
             ...positions(0),
@@ -614,6 +634,43 @@ bool _tileStateGraphIsClosed(
               ['setTempSwitchOn("$temporary")']
             ]
           ]);
+}
+
+bool _tileGhostPositionIsClosed(
+    Map<String, Object?> page, List<int> variables) {
+  var x = 0, y = 0, capturedY = 0;
+  for (final command in page['list'] as List) {
+    final parameters = command['parameters'] as List;
+    if (command['code'] == 122 &&
+        parameters[0] == variables[2] &&
+        parameters.length == 5 &&
+        parameters[2] != 0) {
+      capturedY = (parameters[2] == 2 ? -1 : 1) * (parameters[4] as int);
+    }
+    if (command['code'] == 202) {
+      if (canonicalJsonOf(parameters) !=
+          canonicalJsonOf([0, 1, variables[1], variables[2], 0])) {
+        return false;
+      }
+      x = 0;
+      y = capturedY;
+    }
+    if (command['code'] == 209 && parameters.first == 0) {
+      for (final step in (parameters.last as Map)['list'] as List) {
+        switch (step['code']) {
+          case 1:
+            y++;
+          case 2:
+            x--;
+          case 3:
+            x++;
+          case 4:
+            y--;
+        }
+      }
+    }
+  }
+  return x == 0 && y == 0;
 }
 
 bool _safeTileCommands(Map<String, Object?> page) {
@@ -686,6 +743,9 @@ bool _safeTileCommands(Map<String, Object?> page) {
           return false;
         }
         final parameters = step['parameters'] as List;
+        if (p.first == -1 && step['code'] != 0 && step['code'] != 42) {
+          return false;
+        }
         if (step['code'] == 15 || step['code'] == 42) {
           if (parameters.length != 1 ||
               parameters.single is! int ||

@@ -90,8 +90,12 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
       throw StateError('The new game preload did not produce a usable map.');
     }
     final snapshot = await _readProjectSnapshot(projectFilePath);
-    if (_snapshotContent(snapshot.project) !=
-            _snapshotContent(normalizeRuntimeProjectManifest(bundle.manifest)) ||
+    final catalog = bundle.projectCatalog;
+    final publicationIsCurrent = catalog == null
+        ? _snapshotContent(snapshot.project) ==
+            _snapshotContent(normalizeRuntimeProjectManifest(bundle.manifest))
+        : await catalog.isCurrentPublication();
+    if (!publicationIsCurrent ||
         _snapshotContent(snapshot.map) != _snapshotContent(bundle.map)) {
       clear();
       throw const RuntimeNewGameException(

@@ -119,23 +119,7 @@ final class NarrativeEventRuntimeSnapshot {
 
     final validationProject = owner == null
         ? project
-        : project.copyWith(
-            elements: _mergeNarrativeVisualDefinitions(
-              validatedProjects.expand((view) => view.elements),
-              (entry) => entry.id,
-              (entry) => entry.toJson(),
-            ),
-            tilesets: _mergeNarrativeVisualDefinitions(
-              validatedProjects.expand((view) => view.tilesets),
-              (entry) => entry.id,
-              (entry) => entry.toJson(),
-            ),
-            elementCategories: _mergeNarrativeVisualDefinitions(
-              validatedProjects.expand((view) => view.elementCategories),
-              (entry) => entry.id,
-              (entry) => entry.toJson(),
-            ),
-          );
+        : owner.mergeNarrativeVisualDefinitions(project, validatedProjects);
     final catalog = await Isolate.run(
       () => _buildNarrativeCatalog(
         project: validationProject,
@@ -146,7 +130,7 @@ final class NarrativeEventRuntimeSnapshot {
     );
 
     return NarrativeEventRuntimeSnapshot._(
-      project: project,
+      project: validationProject,
       mapsById: Map<String, MapData>.unmodifiable(mapsById),
       registryResult: registryResult,
       factResolver: factResolver,
@@ -155,28 +139,6 @@ final class NarrativeEventRuntimeSnapshot {
       validatedProjects: validatedProjects,
     );
   }
-}
-
-List<T> _mergeNarrativeVisualDefinitions<T>(
-  Iterable<T> entries,
-  String Function(T) identityOf,
-  Map<String, dynamic> Function(T) jsonOf,
-) {
-  final definitions = <String, T>{};
-  for (final entry in entries) {
-    final id = identityOf(entry);
-    final existing = definitions[id];
-    if (existing != null &&
-        !identical(existing, entry) &&
-        canonicalizeNarrativeEventJson(jsonOf(existing)) !=
-            canonicalizeNarrativeEventJson(jsonOf(entry))) {
-      throw StateError(
-        'Event V2 runtime snapshot has conflicting visual definition "$id".',
-      );
-    }
-    definitions[id] = entry;
-  }
-  return List.unmodifiable(definitions.values);
 }
 
 ({

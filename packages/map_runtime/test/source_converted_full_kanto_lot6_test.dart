@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -13,7 +14,23 @@ import 'package:path/path.dart' as path;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const audioEvents = MethodChannel('xyz.luan/audioplayers.global/events');
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(audioEvents, (call) async {
+      if (call.method != 'listen' && call.method != 'cancel') {
+        throw UnsupportedError(call.method);
+      }
+      return null;
+    });
+  });
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(audioEvents, null);
+  });
   final referencePath = Platform.environment['AVELUNE_LOT6_KANTO_REFERENCE'];
+  final fullReference = referencePath != null &&
+      (jsonDecode(File(referencePath).readAsStringSync()) as Map)['contentScope'] == 'full';
   testWidgets(
     'published full Kanto world preview walks from authored Route 9 spawn and persists across disk reload',
     (tester) async {
@@ -21,7 +38,12 @@ void main() {
         final delivery = Map<String, dynamic>.from(
           jsonDecode(await File(referencePath!).readAsString()) as Map,
         );
-        expect(delivery['kind'], 'fullKantoCanonicalConverterDelivery');
+        final contentScope = delivery['contentScope'];
+        expect(contentScope, isIn(['world', 'full']));
+        final worldOnly = contentScope == 'world';
+        expect(delivery['kind'], worldOnly
+            ? 'kantoWorldFoundationDelivery'
+            : 'fullKantoCanonicalConverterDelivery');
         expect(delivery['phase'], 'published');
         expect(delivery['published'], isTrue);
         expect(delivery['verified'], isTrue);
@@ -40,6 +62,11 @@ void main() {
         final manifest = await loadProjectManifestFromFile(projectFile);
         expect(manifest.maps, hasLength(383));
         expect(manifest.maps.map((map) => map.id).toSet(), hasLength(383));
+        if (worldOnly) {
+          expect(manifest.scenes, isEmpty);
+          expect(manifest.trainers, isEmpty);
+          expect(manifest.encounterTables, isEmpty);
+        }
         expect(
           manifest.newGame.enabled,
           isFalse,
@@ -90,9 +117,12 @@ void main() {
           expect(moved, isNot(spawn.pos));
           expect(game.gameStateSnapshot.currentMapId, mapId);
           expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
-          excursionProof = await _tryCenterExcursion(
+          excursionProof = worldOnly
+              ? await _tryWorldConnection(game, firstBundle, manifest, projectFile, readMapHashes)
+              : await _tryCenterExcursion(
             game,
             firstBundle,
+            manifest,
             referencePath,
             projectFile,
             readMapHashes,
@@ -154,6 +184,7 @@ void main() {
         stdout.writeln(
           jsonEncode({
             'kind': 'lot6FullKantoWorldPreviewRuntimeProof',
+            'contentScope': contentScope,
             'mapCount': manifest.maps.length,
             'previewMapId': mapId,
             'previewMapName': entry.name,
@@ -173,6 +204,103 @@ void main() {
     skip: referencePath == null,
     timeout: const Timeout(Duration(minutes: 3)),
   );
+  testWidgets('published full Kanto house stairs change floors within Map007',
+      (tester) async {
+    await tester.runAsync(() async {
+      final delivery = jsonDecode(await File(referencePath!).readAsString()) as Map;
+      expect(delivery['kind'], 'fullKantoCanonicalConverterDelivery');
+      expect(delivery['contentScope'], 'full');
+      expect(delivery['phase'], 'published');
+      expect(delivery['published'], isTrue);
+      expect(delivery['verified'], isTrue);
+      expect(delivery['sourceUnchanged'], isTrue);
+      expect(delivery['sourceScriptsExecuted'], 0);
+      final projectRoot = delivery['projectPath'] as String;
+      expect(path.isAbsolute(projectRoot), isTrue);
+      expect(await Directory(projectRoot).resolveSymbolicLinks(), projectRoot);
+      final projectFile = path.join(projectRoot, 'project.json');
+      final projectHash = await _hash(projectFile);
+      final manifest = await loadProjectManifestFromFile(projectFile);
+      final rows = await _qualifiedEventRows(referencePath, delivery);
+      final stairsUp = _qualifiedDoor(manifest, rows, 7, 2);
+      final stairsDown = _qualifiedDoor(manifest, rows, 7, 3);
+      final mapId = stairsUp.source['mapId'] as String;
+      expect(stairsDown.source['mapId'], mapId);
+      expect(stairsUp.command.destinationMapId, mapId);
+      expect(stairsDown.command.destinationMapId, mapId);
+      final exit = rows.singleWhere((row) =>
+          (row['locator'] as Map)['mapId'] == 7 &&
+          (row['locator'] as Map)['eventId'] == 1);
+      final bundle = await loadRuntimeMapBundle(projectFilePath: projectFile, mapId: mapId);
+      expect(bundle.map.size, const GridSize(width: 40, height: 20));
+      expect(_doorPosition(stairsUp, bundle.map), const GridPos(x: 12, y: 4));
+      expect(_doorPosition(stairsDown, bundle.map), const GridPos(x: 30, y: 4));
+      final arrivals = {
+        'up': bundle.map.warps.singleWhere((warp) => warp.id == stairsUp.command.warpId).pos,
+        'down': bundle.map.warps.singleWhere((warp) => warp.id == stairsDown.command.warpId).pos,
+      };
+      expect(arrivals['up'], const GridPos(x: 31, y: 4));
+      expect(arrivals['down'], const GridPos(x: 11, y: 4));
+      final mapFile = path.join(projectRoot,
+          manifest.maps.singleWhere((entry) => entry.id == mapId).relativePath);
+      final mapHash = await _hash(mapFile);
+      final spawn = resolveInitialPlayerSpawn(bundle.map,
+          tileWidthPx: manifest.settings.tileWidth,
+          tileHeightPx: manifest.settings.tileHeight);
+      final saveRoot = await Directory.systemTemp.createTemp('lot6-full-stairs-save-');
+      PlayableMapGame? game;
+      final verified = <String>[];
+      var publicInputs = 0;
+      try {
+        game = await _start(tester, bundle, projectFile,
+            _DiskSave(path.join(saveRoot.path, 'save.json')));
+        expect(game.debugPlayerGridPosition, spawn.pos);
+        expect(game.gameStateSnapshot.currentMapId, mapId);
+        final stairs = {'up': stairsUp, 'down': stairsDown};
+        while (verified.length < 2) {
+          final world = _worldFor(game, bundle.map, manifest);
+          var activated = false;
+          for (final entry in stairs.entries) {
+            if (verified.contains(entry.key)) continue;
+            final approaches = _approaches(entry.value, bundle.map, world);
+            final route = _pathTo(world, game.debugPlayerGridPosition, approaches.keys.toSet());
+            if (route == null) continue;
+            await _followPath(game, bundle, route);
+            final before = game.debugPlayerGridPosition;
+            await _activateDoor(game, approaches[before]!, entry.value,
+                expectedPosition: arrivals[entry.key]);
+            expect(game.gameStateSnapshot.currentMapId, mapId);
+            expect(game.debugPlayerGridPosition, arrivals[entry.key]);
+            expect(game.debugPlayerGridPosition, isNot(before));
+            verified.add(entry.key);
+            publicInputs += route.length + 1;
+            activated = true;
+            break;
+          }
+          expect(activated, isTrue,
+              reason: 'lot6.stairs.no_safe_public_route: map=$mapId position=${game.debugPlayerGridPosition} verified=$verified');
+        }
+        expect(verified.toSet(), {'up', 'down'});
+      } finally {
+        game?.onRemove();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await saveRoot.delete(recursive: true);
+      }
+      expect(await _hash(projectFile), projectHash);
+      expect(await _hash(mapFile), mapHash);
+      stdout.writeln(jsonEncode({
+        'kind': 'lot6FullKantoIntramapStairsRuntimeProof', 'contentScope': 'full',
+        'sourceMapId': 7, 'mapId': mapId, 'mapSize': {'width': 40, 'height': 20},
+        'authoredPreviewSpawn': spawn.pos.toJson(), 'stairsUpVerified': true,
+        'stairsDownVerified': true, 'stairsOrder': verified,
+        'sameMapFloorTransferVerified': true, 'publicCardinalInputs': publicInputs,
+        'projectAndMapUnchanged': true, 'houseExitCertified': false,
+        'houseExitObservedQualification': exit['status'],
+        'lot6NativeStartCertified': false, 'fullCampaignCertified': false,
+        'sourceScriptsExecuted': 0,
+      }));
+    });
+  }, skip: !fullReference, timeout: const Timeout(Duration(minutes: 3)));
 }
 
 Future<PlayableMapGame> _start(
@@ -300,14 +428,14 @@ Future<GridPos> _walkOneCell(
     expect(
       game.debugPlayerWorldTopLeft.x,
       closeTo(
-        renderedBefore.x + direction.dx * bundle.manifest.settings.tileWidth,
+        renderedBefore.x + direction.dx * bundle.cellWidth,
         0.001,
       ),
     );
     expect(
       game.debugPlayerWorldTopLeft.y,
       closeTo(
-        renderedBefore.y + direction.dy * bundle.manifest.settings.tileHeight,
+        renderedBefore.y + direction.dy * bundle.cellHeight,
         0.001,
       ),
     );
@@ -333,29 +461,96 @@ const _cardinals = <(RuntimeInputControl, Direction, MapConnectionDirection)>[
   (RuntimeInputControl.up, Direction.north, MapConnectionDirection.north),
 ];
 
+Future<Map<String, Object?>> _tryWorldConnection(
+  PlayableMapGame game,
+  RuntimeMapBundle initial,
+  ProjectManifest manifest,
+  String projectFile,
+  Map<String, String> readMapHashes,
+) async {
+  final initialWorld = _worldFor(game, initial.map, manifest);
+  final diagnostics = <Map<String, Object?>>[];
+  for (final connection in initial.map.connections) {
+    final entry = manifest.maps.singleWhere(
+        (entry) => entry.id == connection.targetMapId);
+    final file = path.join(path.dirname(projectFile), entry.relativePath);
+    readMapHashes[file] = await _hash(file);
+    final outside = await loadMapDataFromFile(file,
+        projectDialogueContext: manifest);
+    final outsideWorld = _worldFor(game, outside, manifest);
+    final sizes = {initial.map.id: initial.map.size, outside.id: outside.size};
+    final arrivals = <GridPos, GridPos>{};
+    for (var y = 0; y < initial.map.size.height; y++) {
+      for (var x = 0; x < initial.map.size.width; x++) {
+        final border = GridPos(x: x, y: y);
+        if (resolveMapConnectionForPosition(map: initial.map,
+            sourcePos: border, direction: connection.direction,
+            targetMapSizes: sizes) != connection) {
+          continue;
+        }
+        final arrival = resolveConnectedMapTargetPos(sourcePos: border,
+            sourceSize: initial.map.size, targetSize: outside.size,
+            direction: connection.direction, offset: connection.offset);
+        if (arrival != null && _safeCell(outsideWorld, arrival)) {
+          arrivals[border] = arrival;
+        }
+      }
+    }
+    final search = <String, Object?>{};
+    final route = _pathTo(initialWorld, game.debugPlayerGridPosition,
+        arrivals.keys.toSet(), diagnostics: search);
+    if (route == null) {
+      diagnostics.add({'targetMapId': outside.id,
+        'direction': connection.direction.name,
+        'safeArrivalCount': arrivals.length, ...search});
+      continue;
+    }
+    final border = _endOf(game.debugPlayerGridPosition, route);
+    final direction = _cardinals.singleWhere(
+        (entry) => entry.$3 == connection.direction).$2;
+    await _followPath(game, initial, route);
+    await _publicStep(game, direction, outside.id,
+        expectedPosition: arrivals[border]);
+    expect(game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.connection);
+    final reverse = switch (direction) {
+      Direction.north => Direction.south,
+      Direction.south => Direction.north,
+      Direction.east => Direction.west,
+      Direction.west => Direction.east,
+    };
+    await _publicStep(game, reverse, initial.map.id,
+        expectedPosition: border);
+    expect(game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.connection);
+    return {
+      'connectionVerified': true,
+      'connectionRoundTripVerified': true,
+      'centerDoorRoundTripVerified': false,
+      'fromMapId': initial.map.id,
+      'outsideMapId': outside.id,
+      'publicCardinalSteps': route.length + 2,
+      'doorsPendingInteractionStage': true,
+    };
+  }
+  return {
+    'connectionVerified': false,
+    'centerDoorRoundTripVerified': false,
+    'limitedProof': 'No safe connection route; movement and save/reload only.',
+    'diagnostics': diagnostics,
+  };
+}
+
 Future<Map<String, Object?>> _tryCenterExcursion(
   PlayableMapGame game,
   RuntimeMapBundle initial,
+  ProjectManifest manifest,
   String referencePath,
   String projectFile,
   Map<String, String> readMapHashes,
 ) async {
-  final manifest = initial.manifest;
-  final qualification = Map<String, dynamic>.from(
-    jsonDecode(
-      await File(
-        path.join(
-          path.dirname(referencePath),
-          'source-event-qualification.json',
-        ),
-      ).readAsString(),
-    ) as Map,
-  );
   final delivery = jsonDecode(await File(referencePath).readAsString()) as Map;
-  expect(qualification['kind'], 'fullKantoSourceEventQualification');
-  expect(qualification['sourceSnapshotHash'], delivery['snapshotHash']);
-  expect(qualification['nativeDraftHash'], delivery['nativeDraftHash']);
-  final rows = (qualification['events'] as List).cast<Map>();
+  final rows = await _qualifiedEventRows(referencePath, delivery);
   final maps = <String, MapData>{initial.map.id: initial.map};
   Future<MapData> readMap(String id) async {
     if (maps.containsKey(id)) return maps[id]!;
@@ -368,36 +563,8 @@ Future<Map<String, Object?>> _tryCenterExcursion(
     );
   }
 
-  _Door door(int sourceMapId, int sourceEventId) {
-    final row = rows.singleWhere((row) {
-      final locator = row['locator'] as Map;
-      return locator['mapId'] == sourceMapId &&
-          locator['eventId'] == sourceEventId;
-    });
-    expect(row['status'], 'adaptedStaticSemantics');
-    expect(row['gaps'], isEmpty);
-    final page = (row['pages'] as List).cast<Map>().singleWhere(
-      (page) => page['originalPageIndex'] == 0,
-    );
-    final record = manifest.eventRegistry!.records.singleWhere(
-      (record) => record.id == page['nativeEventId'],
-    );
-    expect(record.enabledOrNull, isTrue);
-    final definition = record.definitionOrNull!;
-    final source = definition.source.toJson();
-    expect(source['kind'], isIn(['entityBump', 'triggerEnter', 'triggerBump']));
-    final scene = manifest.scenes.singleWhere(
-      (scene) => scene.id == definition.sceneId,
-    );
-    final commands = scene.graph.nodes
-        .map((node) => node.payload)
-        .whereType<SceneActionPayload>()
-        .map((payload) => payload.interactiveCommand)
-        .whereType<SceneWarpInteractiveCommand>()
-        .toList();
-    expect(commands, hasLength(1));
-    return _Door(record.id, source, commands.single);
-  }
+  _Door door(int sourceMapId, int sourceEventId) =>
+      _qualifiedDoor(manifest, rows, sourceMapId, sourceEventId);
 
   for (final connection in initial.map.connections) {
     await readMap(connection.targetMapId);
@@ -456,7 +623,7 @@ Future<Map<String, Object?>> _tryCenterExcursion(
       }
     }
     final entranceApproaches = _approaches(entrance, outside, outsideWorld);
-    final outsidePaths = <GridPos, List<Direction>>{};
+    final outsidePaths = <GridPos, List<(Direction, GridPos)>>{};
     final toBorder = _pathTo(
       initialWorld,
       game.debugPlayerGridPosition,
@@ -563,6 +730,39 @@ final class _Door {
   final SceneWarpInteractiveCommand command;
 }
 
+Future<List<Map>> _qualifiedEventRows(String referencePath, Map delivery) async {
+  final qualification = jsonDecode(await File(path.join(path.dirname(referencePath),
+      'source-event-qualification.json')).readAsString()) as Map;
+  expect(qualification['kind'], 'fullKantoSourceEventQualification');
+  expect(qualification['sourceSnapshotHash'], delivery['snapshotHash']);
+  expect(qualification['nativeDraftHash'], delivery['nativeDraftHash']);
+  return (qualification['events'] as List).cast<Map>();
+}
+
+_Door _qualifiedDoor(ProjectManifest manifest, List<Map> rows,
+    int sourceMapId, int sourceEventId) {
+  final row = rows.singleWhere((row) {
+    final locator = row['locator'] as Map;
+    return locator['mapId'] == sourceMapId && locator['eventId'] == sourceEventId;
+  });
+  expect(row['status'], 'adaptedStaticSemantics');
+  expect(row['gaps'], isEmpty);
+  final page = (row['pages'] as List).cast<Map>()
+      .singleWhere((page) => page['originalPageIndex'] == 0);
+  final record = manifest.eventRegistry!.records
+      .singleWhere((record) => record.id == page['nativeEventId']);
+  expect(record.enabledOrNull, isTrue);
+  final definition = record.definitionOrNull!;
+  final source = definition.source.toJson();
+  expect(source['kind'], isIn(['entityBump', 'triggerEnter', 'triggerBump']));
+  final scene = manifest.scenes.singleWhere((scene) => scene.id == definition.sceneId);
+  final commands = scene.graph.nodes.map((node) => node.payload)
+      .whereType<SceneActionPayload>().map((payload) => payload.interactiveCommand)
+      .whereType<SceneWarpInteractiveCommand>().toList();
+  expect(commands, hasLength(1));
+  return _Door(record.id, source, commands.single);
+}
+
 GameplayWorldState _worldFor(
   PlayableMapGame game,
   MapData map,
@@ -591,8 +791,11 @@ bool _trainerSees(GameplayWorldState world, GridPos position) =>
     });
 
 bool _safeCell(GameplayWorldState world, GridPos position) {
-  if (world.isBlocked(position.x, position.y) ||
-      world.isWaterCell(position.x, position.y) ||
+  return !world.isBlocked(position.x, position.y) && _safeActivities(world, position);
+}
+
+bool _safeActivities(GameplayWorldState world, GridPos position) {
+  if (world.isWaterCell(position.x, position.y) ||
       _trainerSees(world, position)) {
     return false;
   }
@@ -635,17 +838,7 @@ Map<GridPos, Direction> _approaches(
   MapData map,
   GameplayWorldState world,
 ) {
-  final source = door.source;
-  final GridPos position;
-  if (source['entityId'] case final String id) {
-    position = map.entities.singleWhere((entity) => entity.id == id).pos;
-  } else {
-    final trigger = map.triggers.singleWhere(
-      (trigger) => trigger.id == source['triggerId'],
-    );
-    expect(trigger.area.size, const GridSize(width: 1, height: 1));
-    position = trigger.area.pos;
-  }
+  final position = _doorPosition(door, map);
   return {
     for (final (_, direction, _) in _cardinals)
       if (_safeCell(
@@ -657,67 +850,150 @@ Map<GridPos, Direction> _approaches(
   };
 }
 
-List<Direction>? _pathTo(
+GridPos _doorPosition(_Door door, MapData map) {
+  final source = door.source;
+  final GridPos position;
+  if (source['entityId'] case final String id) {
+    position = map.entities.singleWhere((entity) => entity.id == id).pos;
+  } else {
+    final trigger = map.triggers.singleWhere(
+      (trigger) => trigger.id == source['triggerId'],
+    );
+    expect(trigger.area.size, const GridSize(width: 1, height: 1));
+    position = trigger.area.pos;
+  }
+  return position;
+}
+
+List<(Direction, GridPos)>? _pathTo(
   GameplayWorldState world,
   GridPos start,
   Set<GridPos> goals, {
   bool Function(GridPos)? acceptsGoal,
+  Map<String, Object?>? diagnostics,
 }) {
   final queue = Queue<GridPos>()..add(start);
   final parents = <GridPos, (GridPos, Direction)?>{start: null};
+  final states = <GridPos, GameplayWorldState>{start: _planningWorldAt(world, start)};
+  final results = <String, int>{};
+  final jumpLandings = <GridPos>{};
+  final rejected = <Map<String, Object?>>[];
   while (queue.isNotEmpty && parents.length <= 16384) {
     final current = queue.removeFirst();
     if (goals.contains(current) && (acceptsGoal?.call(current) ?? true)) {
-      final result = <Direction>[];
+      final result = <(Direction, GridPos)>[];
       var cursor = current;
       while (parents[cursor] != null) {
         final parent = parents[cursor]!;
-        result.add(parent.$2);
+        result.add((parent.$2, cursor));
         cursor = parent.$1;
       }
       return result.length > 512 ? null : result.reversed.toList();
     }
     for (final (_, direction, _) in _cardinals) {
-      final next = GridPos(
+      final adjacent = GridPos(
         x: current.x + direction.dx,
         y: current.y + direction.dy,
       );
-      if (parents.containsKey(next) || !_safeCell(world, next)) continue;
+      final result = _cardinalResult(states[current]!, direction);
+      final kind = result is Blocked ? 'Blocked:${result.reason.name}' : result.runtimeType.toString();
+      if (result is Jumped) jumpLandings.add(result.plan.landingPos);
+      results.update(kind, (count) => count + 1, ifAbsent: () => 1);
+      final moved = _safeCardinalStep(states[current]!, direction, result: result);
+      if (moved == null && (_safeCell(world, adjacent) || result is Jumped)) {
+        final distance = goals.isEmpty ? 0 : goals.map((goal) =>
+            (goal.x - current.x).abs() + (goal.y - current.y).abs())
+            .reduce((a, b) => a < b ? a : b);
+        rejected.add({'from': current.toJson(), 'to': adjacent.toJson(),
+          'direction': direction.name, 'result': kind, 'goalDistance': distance,
+          if (result is Jumped) 'landing': result.plan.landingPos.toJson()});
+        rejected.sort((a, b) => (a['goalDistance'] as int).compareTo(b['goalDistance'] as int));
+        if (rejected.length > 12) rejected.removeLast();
+      }
+      if (moved == null) continue;
+      final next = moved.player.pos;
+      if (parents.containsKey(next)) continue;
       parents[next] = (current, direction);
+      states[next] = moved;
       queue.add(next);
     }
+  }
+  if (diagnostics != null) {
+    final positions = parents.keys;
+    diagnostics.addAll({'reachableCellCount': parents.length,
+      'reachableBounds': {
+        'left': positions.map((p) => p.x).reduce((a, b) => a < b ? a : b),
+        'right': positions.map((p) => p.x).reduce((a, b) => a > b ? a : b),
+        'top': positions.map((p) => p.y).reduce((a, b) => a < b ? a : b),
+        'bottom': positions.map((p) => p.y).reduce((a, b) => a > b ? a : b)},
+      'canonicalResults': results, 'nearestRejectedEdges': rejected,
+      'jumpLandingsOutsideReachable': jumpLandings.where((position) => !parents.containsKey(position)).map((position) => position.toJson()).toList(),
+      'searchLimitReached': parents.length > 16384});
   }
   return null;
 }
 
-GridPos _endOf(GridPos start, List<Direction> directions) => directions.fold(
-  start,
-  (position, direction) =>
-      GridPos(x: position.x + direction.dx, y: position.y + direction.dy),
-);
+GameplayWorldState _planningWorldAt(GameplayWorldState world, GridPos position) =>
+    world.withPlayer(GameplayPlayerState.fromGridSpawn(
+      cell: position,
+      facing: world.player.facing,
+      movementMode: world.player.movementMode,
+      tileWidthPx: world.tileWidthPx,
+      tileHeightPx: world.tileHeightPx,
+      mapWidthCells: world.map.size.width,
+      mapHeightCells: world.map.size.height,
+      spriteWidthPx: world.player.playerSpriteWidthPx,
+      spriteHeightPx: world.player.playerSpriteHeightPx,
+    ));
+
+GameplayStepResult _cardinalResult(GameplayWorldState world, Direction direction) =>
+    stepGameplayWorld(world, MoveIntent(direction,
+      pixelsPerStep: direction.dx == 0 ? world.tileHeightPx : world.tileWidthPx));
+
+GameplayWorldState? _safeCardinalStep(GameplayWorldState world, Direction direction,
+    {GameplayStepResult? result}) {
+  result ??= _cardinalResult(world, direction);
+  if (result is Jumped) {
+    return _safeCell(world, result.plan.landingPos) &&
+        _safeActivities(world, result.plan.viaPos) ? result.world : null;
+  }
+  final target = GridPos(x: world.player.pos.x + direction.dx,
+      y: world.player.pos.y + direction.dy);
+  if (!_safeCell(world, target)) return null;
+  if (result is! Moved || result.world.player.pos != target ||
+      result.hazardEffect != null || result.movementEffect != null ||
+      result.platformControl != null) {
+    return null;
+  }
+  return result.world;
+}
+
+GridPos _endOf(GridPos start, List<(Direction, GridPos)> directions) =>
+    directions.isEmpty ? start : directions.last.$2;
 
 Future<void> _followPath(
   PlayableMapGame game,
   RuntimeMapBundle bundle,
-  List<Direction> directions,
+  List<(Direction, GridPos)> directions,
 ) async {
-  for (final direction in directions) {
+  for (final (direction, target) in directions) {
     final before = game.debugPlayerGridPosition;
     final rendered = game.debugPlayerWorldTopLeft;
-    final target = _endOf(before, [direction]);
+    final planningWorld = _planningWorldAt(
+        _worldFor(game, bundle.map, bundle.manifest), before);
     expect(
-      _safeCell(_worldFor(game, bundle.map, bundle.manifest), target),
-      isTrue,
-      reason: 'lot6.route_became_unsafe: ${bundle.map.id} $before -> $target',
+      _safeCardinalStep(planningWorld, direction)?.player.pos,
+      target,
+      reason: 'lot6.canonical_route_edge_refused: ${bundle.map.id} $before -> $target ${direction.name}',
     );
     await _publicStep(game, direction, bundle.map.id, expectedPosition: target);
     expect(
       game.debugPlayerWorldTopLeft.x,
-      closeTo(rendered.x + direction.dx * bundle.cellWidth, .001),
+      closeTo(rendered.x + (target.x - before.x) * bundle.cellWidth, .001),
     );
     expect(
       game.debugPlayerWorldTopLeft.y,
-      closeTo(rendered.y + direction.dy * bundle.cellHeight, .001),
+      closeTo(rendered.y + (target.y - before.y) * bundle.cellHeight, .001),
     );
   }
 }
@@ -725,10 +1001,12 @@ Future<void> _followPath(
 Future<void> _activateDoor(
   PlayableMapGame game,
   Direction direction,
-  _Door door,
-) async {
+  _Door door, {
+  GridPos? expectedPosition,
+}) async {
   final activations = game.debugCompletedMapActivationDispatchCount;
-  await _publicStep(game, direction, door.command.destinationMapId);
+  await _publicStep(game, direction, door.command.destinationMapId,
+      expectedPosition: expectedPosition);
   expect(
     game.debugLastCompletedMapActivation?.reason,
     MapActivationReason.warp,

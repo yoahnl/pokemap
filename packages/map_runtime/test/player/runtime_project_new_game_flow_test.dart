@@ -8,6 +8,160 @@ import 'package:map_runtime/map_runtime.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final changeUnusedResource in [false, true]) {
+    test(
+      'map-scoped catalog keeps full publication guard, changed=$changeUnusedResource',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'new-game-catalog-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        const used = ProjectTilesetEntry(
+          id: 'used',
+          name: 'Used',
+          relativePath: 'used.png',
+        );
+        const unused = ProjectTilesetEntry(
+          id: 'unused',
+          name: 'Unused',
+          relativePath: 'unused.png',
+        );
+        final project = ProjectManifest(
+          name: 'Catalog new game',
+          maps: const [
+            ProjectMapEntry(
+              id: 'start',
+              name: 'Start',
+              relativePath: 'start.json',
+            ),
+          ],
+          tilesets: const [used, unused],
+          newGame: const ProjectNewGameConfig(
+            enabled: true,
+            startMapId: 'start',
+          ),
+        );
+        final map = MapData(
+          id: 'start',
+          name: 'Start',
+          size: GridSize(width: 4, height: 4),
+          tilesetId: 'used',
+          layers: [
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              palette: const [
+                TileLayerPaletteEntry(tilesetId: 'used', localTileId: 0),
+              ],
+              cells: List.filled(16, 0),
+            ),
+          ],
+        );
+        final projectFile = File('${directory.path}/project.json');
+        final originalBytes = utf8.encode(jsonEncode(project.toJson()));
+        await projectFile.writeAsBytes(originalBytes);
+        await File('${directory.path}/start.json')
+            .writeAsString(jsonEncode(map.toJson()));
+        var imageLoaderCalled = false;
+        final preloader = RuntimeInitialMapPreloader(
+          projectFilePath: () async => projectFile.path,
+          loadSave: (_) async => null,
+          tilesetImageLoader:
+              (
+                paths, {
+                transparentColorByTilesetId = const {},
+                onProgress,
+              }) async {
+                imageLoaderCalled = true;
+                expect(paths.keys, ['used']);
+                if (changeUnusedResource) {
+                  await projectFile.writeAsString(
+                    jsonEncode(
+                      project
+                          .copyWith(
+                            tilesets: [
+                              used,
+                              unused.copyWith(name: 'Unused changed'),
+                            ],
+                          )
+                          .toJson(),
+                    ),
+                  );
+                }
+                return {};
+              },
+        );
+        final flow = RuntimeProjectNewGameFlowPort(
+          projectFilePath: () async => projectFile.path,
+          initialMapPreloader: preloader,
+        );
+        addTearDown(flow.clear);
+        if (changeUnusedResource) {
+          await expectLater(
+            flow.prepare(),
+            throwsA(
+              isA<RuntimeNewGameException>().having(
+                (error) => error.code,
+                'code',
+                'new_game.project_changed',
+              ),
+            ),
+          );
+        } else {
+          final prepared = await flow.prepare();
+          expect(prepared.project.tilesets.map((entry) => entry.id), ['used']);
+          expect(
+            await flow.readCurrentProjectRevision(),
+            prepared.projectRevision,
+          );
+          expect(await projectFile.readAsBytes(), originalBytes);
+        }
+        expect(imageLoaderCalled, isTrue);
+      },
+    );
+  }
+
+  final publishedProject = Platform.environment['AVELUNE_NEW_GAME_PROJECT'];
+  if (publishedProject != null) {
+    test('published native project prepares without changing source bytes', () async {
+      final file = File('$publishedProject/project.json');
+      final before = await file.readAsBytes();
+      final source = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(before)) as Map<String, dynamic>,
+      );
+      final preloader = RuntimeInitialMapPreloader(
+        projectFilePath: () async => file.path,
+        loadSave: (_) async => null,
+        tilesetImageLoader: (
+          paths, {
+          transparentColorByTilesetId = const {},
+          onProgress,
+        }) async => {},
+      );
+      final flow = RuntimeProjectNewGameFlowPort(
+        projectFilePath: () async => file.path,
+        initialMapPreloader: preloader,
+      );
+      addTearDown(flow.clear);
+      await preloader.preloadInitialMap(
+        const RuntimeInitialMapPreloadRequest.newGame(),
+      );
+      final view = preloader.preparedNewGameBundle(projectFilePath: file.path)!;
+      expect(
+        view.manifest.tilesets.length,
+        lessThanOrEqualTo(source.tilesets.length),
+      );
+      expect(
+        view.manifest.elements.length,
+        lessThanOrEqualTo(source.elements.length),
+      );
+      expect(await view.projectCatalog!.isCurrentPublication(), isTrue);
+      final prepared = await flow.prepare();
+      expect(await flow.readCurrentProjectRevision(), prepared.projectRevision);
+      expect(await file.readAsBytes(), before);
+    });
+  }
+
   for (final changeProject in [false, true]) {
     test('normalization preserves new game revision, changed=$changeProject',
         () async {
