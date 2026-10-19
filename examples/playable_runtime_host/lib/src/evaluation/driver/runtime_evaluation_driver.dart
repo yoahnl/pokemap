@@ -196,6 +196,7 @@ final class RuntimeEvaluationDriver
       ),
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
+      bagCapacity: bundle.manifest.bagCapacity,
     );
     game.setPlayerServiceRuntimeController(playerServiceController);
     final driver = RuntimeEvaluationDriver._(
@@ -1528,8 +1529,25 @@ final class RuntimeEvaluationDriver
 
   @override
   Future<void> giveBagItem(String itemId, int quantity) async {
+    final itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: project.pokemon,
+    );
+    final before = state;
+    final next = const GameStateMutations().giveItem(
+      before,
+      itemId,
+      quantity,
+      bagCapacity: project.bagCapacity,
+      itemCatalog: itemCatalog,
+    );
+    _require(
+      !identical(before, next),
+      operation: 'bag.give',
+      message: 'The item could not be added to the bag.',
+    );
     await _commitProbeState(
-      const GameStateMutations().giveItem(state, itemId, quantity),
+      next,
       operation: 'bag.give',
     );
   }

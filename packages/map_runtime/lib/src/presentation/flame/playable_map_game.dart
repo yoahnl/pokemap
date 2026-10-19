@@ -59,6 +59,7 @@ import '../../player/runtime_world_service_models.dart';
 import '../../player/runtime_regional_map_builder.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
+import '../../application/runtime_bag_capacity.dart';
 import '../../application/runtime_battle_experience_progress.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
 import '../../application/runtime_battle_reward_resolver.dart';
@@ -2258,6 +2259,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   BattleSession? _battleSession;
   RuntimePsdkBattleSessionAdapter? _psdkBattleSession;
   RuntimeActiveBattleContext? _activeBattleContext;
+  GameState? _battleRollbackState;
   RuntimeBattleCaptureAttemptReceipt? _captureAttemptReceipt;
   final ValueNotifier<BattleCommandOverlaySnapshot?>
       _battleCommandOverlayNotifier =
@@ -3033,6 +3035,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     GameState nextState, {
     GameState? expectedState,
   }) async {
+    ensureRuntimeBagCapacity(
+      state: nextState,
+      capacity: _bundle.manifest.bagCapacity,
+      itemCatalog: _itemCatalogSnapshot,
+    );
     final activeScene = _activeNarrativeSceneWorkingSession;
     if (activeScene != null) {
       // The Scene owns the current atomic state transaction. Persisting here
@@ -3863,6 +3870,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _battleSession = null;
     _psdkBattleSession = null;
     _activeBattleContext = null;
+    _battleRollbackState = null;
     _captureAttemptReceipt = null;
     _isBattleResolving = false;
     _isPostBattleFlowRunning = false;
@@ -3892,9 +3900,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required BattleOutcome outcome,
     RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
   }) async {
-    if (_flowPhase != _RuntimeFlowPhase.overworld) {
-      throw StateError('Post-battle test seam requires overworld flow.');
+    if (_flowPhase != _RuntimeFlowPhase.overworld &&
+        _flowPhase != _RuntimeFlowPhase.battle) {
+      throw StateError('Post-battle test seam requires overworld or battle flow.');
     }
+    _battleRollbackState ??= _battleRuntimeGameState;
     _activeBattleContext = context;
     _captureAttemptReceipt = captureAttemptReceipt;
     _setFlowPhase(_RuntimeFlowPhase.battle);
@@ -4925,6 +4935,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           bootResources[1]! as BorderRuntimeAssetBundle;
       final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
       _itemCatalogSnapshot = bootResources[3]! as ItemCatalogSnapshot;
+      ensureRuntimeBagCapacity(
+        state: _gameState,
+        capacity: _bundle.manifest.bagCapacity,
+        itemCatalog: _itemCatalogSnapshot,
+      );
       onInitialLoadProgress?.call(PlayableMapGameInitialLoadStage.resources);
       await afterInitialTilesetImagesLoaded?.call();
       if (_isRemoved) return;
@@ -6481,6 +6496,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       {String? executionId,
   }) {
     return ScenarioRuntimeExecutionContext(
+      bagCapacity: _bundle.manifest.bagCapacity,
+      itemCatalog: _itemCatalogSnapshot,
       executionId: executionId ?? _nextNarrativeRuntimeId('scenario'),
       gameState: _gameState,
       onGameStateUpdated: (state) {
@@ -9176,6 +9193,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _showNotification('Cette rencontre n’est plus disponible.');
       return;
     }
+    _battleRollbackState = _battleRuntimeGameState;
     _setFlowPhase(_RuntimeFlowPhase.battleTransition);
     _notification?.removeFromParent();
     _notification = null;
@@ -9271,6 +9289,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
       return;
     }
+    _battleRollbackState ??= _battleRuntimeGameState;
     // BETA-BAT-016 : la pré-transition n'est PLUS retirée ici. Elle vit
     // par-dessus le chargement et tombe au reveal (_maybeRevealBattleScene) ;
     // les chemins d'échec la retirent déjà explicitement.
@@ -9793,6 +9812,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _psdkBattleSession = null;
     _activeBattleContext = null;
     _captureAttemptReceipt = null;
+    if (_battleRollbackState case final original?) {
+      _replaceBattleRuntimeGameState(original);
+      _battleRollbackState = null;
+    }
     _isBattleResolving = false;
     _setFlowPhase(_RuntimeFlowPhase.overworld);
     _clearPressedMovementControls();
@@ -10348,10 +10371,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if (flowDied()) return;
       final nextTransaction = result?.transaction;
       if (result == null || !result.isSuccess || nextTransaction == null) {
-        throw StateError(
-          result?.failure?.message ??
-              'La décision post-combat ne peut pas être appliquée.',
-        );
+        throw result?.failure ??
+            StateError('La décision post-combat ne peut pas être appliquée.');
       }
       currentTransaction = nextTransaction;
     }
@@ -10646,7 +10667,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       '[battle] post-battle transaction rolled back: $error\n$stackTrace',
     );
     _dismissBattleExitCurtainImmediately();
-    _showNotification('La fin du combat ne peut pas être appliquée.');
+    _showNotification(error is RuntimePostBattleCoordinatorFailure
+        ? error.message
+        : 'La fin du combat ne peut pas être appliquée.');
     try {
       _onBattleFinished(outcome, postBattleFailed: true);
     } catch (cleanupError, cleanupStackTrace) {
@@ -10659,6 +10682,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _forcePostBattleCleanup() {
+    if (_battleRollbackState case final original?) {
+      _replaceBattleRuntimeGameState(original);
+      _battleRollbackState = null;
+    }
     final scenarioOwner = _pendingScenarioBattleHandoff;
     if (scenarioOwner != null) {
       _pendingScenarioBattleHandoff = null;
@@ -10712,6 +10739,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     bool postBattleFailed = false,
   }) {
     debugPrint('[battle] battle finished outcome=${outcome.type.name}');
+    if (postBattleFailed && _battleRollbackState != null) {
+      _replaceBattleRuntimeGameState(_battleRollbackState!);
+    }
     final sceneBattleOutcomeResult = _pendingSceneBattleOutcomeCompleter == null
         ? null
         : postBattleFailed
@@ -10838,6 +10868,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _psdkBattleSession = null;
     _activeBattleContext = null;
     _captureAttemptReceipt = null;
+    _battleRollbackState = null;
     _isBattleResolving = false; // Reset lock anti-spam
     _isPostBattleFlowRunning = false;
     _isPostBattleCommitCompleted = false;
@@ -12107,6 +12138,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     return SceneConsequenceRuntimeWriter(
       project: project,
+      itemCatalog: _itemCatalogSnapshot,
       mapsById: mapsById,
       pokemonCatalog: pokemonCatalog,
       partyConditionContext: partyConditionContext,
@@ -14061,6 +14093,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _activeScriptRuntimeSourceId = runtimeSourceId;
     _beginBlockingInteraction(source: runtimeSourceId);
     final context = ScriptExecutionContext(
+      bagCapacity: _bundle.manifest.bagCapacity,
+      itemCatalog: _itemCatalogSnapshot,
       gameState: _gameState,
       onGameStateUpdated: (state) {
         _gameState = state;
@@ -15323,6 +15357,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (isLoaded) {
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     }
+    try {
+      ensureRuntimeBagCapacity(
+        state: _gameState,
+        capacity: _bundle.manifest.bagCapacity,
+        itemCatalog: _itemCatalogSnapshot,
+      );
+    } on StateError catch (error) {
+      _showNotification('Sauvegarde impossible : ${error.message}');
+      return false;
+    }
     if (kDebugMode) {
       debugPrint(
         '[step_studio_trace] runtime_save_requested map=$_activeMapId completedStepIds=${_gameState.progression.completedStepIds} completedCutsceneIds=${_gameState.progression.completedCutsceneIds}',
@@ -15384,6 +15428,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       completedMapActivationDispatchCount: _completedMapActivationDispatchCount,
       lastCompletedMapActivation: _lastCompletedMapActivation,
     );
+    final sourceItemCatalog = _itemCatalogSnapshot;
 
     // 1. Lire puis migrer la sauvegarde sans toucher au runtime courant.
     GameState? rawLoadedState;
@@ -15429,8 +15474,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
     // 2. Charger et valider toutes les données/ressources avant la mutation.
     RuntimeMapBundle newBundle;
+    late ItemCatalogSnapshot loadedItemCatalog;
     try {
       newBundle = await _loadRuntimeMapBundleCached(loadedState.currentMapId);
+      loadedItemCatalog = await _runtimeItemCatalogLoader.loadSnapshot(
+        projectRootDirectory: newBundle.projectRootDirectory,
+        pokemonConfig: newBundle.manifest.pokemon,
+      );
+      try {
+        ensureRuntimeBagCapacity(
+          state: rawLoadedState,
+          capacity: newBundle.manifest.bagCapacity,
+          itemCatalog: loadedItemCatalog,
+        );
+      } on StateError catch (error) {
+        _showNotification(
+          'Chargement impossible : ${error.message} La partie en cours et la sauvegarde ont été conservées.',
+        );
+        return false;
+      }
       newBundle = await _preparePlayerAvatarBundle(newBundle, loadedState.trainerProfile.avatarCharacterId);
       if (newBundle.map.id != loadedState.currentMapId) {
         throw StateError(
@@ -15534,6 +15596,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     try {
       _worldTone.setTone(SceneWorldToneValue.neutral, durationSeconds: 0);
       _gameState = loadedState;
+      _itemCatalogSnapshot = loadedItemCatalog;
       _clearTransientScenarioWorkForLoad();
       _clearTransientUiState();
       await _narrativeStateTransactions.transact<void>((_) {
@@ -15597,6 +15660,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } catch (e, st) {
       debugPrint('[load] commit failed, rolling back: $e\n$st');
       if (_isRemoved) return false;
+      _itemCatalogSnapshot = sourceItemCatalog;
       final rolledBack = await _restoreFailedLoad(source);
       if (!_isRemoved) _worldTone.restoreCheckpoint(sourceTone);
       _showNotification(

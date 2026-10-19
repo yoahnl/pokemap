@@ -80,6 +80,7 @@ enum ShopPurchaseFailure {
   shopClosed,
   shopStateChanged,
   ownershipLimit,
+  bagFull,
 }
 
 /// Result of one atomic shop purchase against [GameState].
@@ -181,6 +182,9 @@ final class ShopSaleResult {
 enum BattleRewardApplicationFailure {
   missingItemCatalog,
   unknownItem,
+  bagCapacityExceeded,
+  quantityOverflow,
+  invalidReward,
 }
 
 final class BattleRewardApplicationException implements Exception {
@@ -208,6 +212,32 @@ class GameStateMutations {
   const GameStateMutations();
 
   static const _bagOperations = BagOperations();
+
+  ShopPurchaseFailure _bagPurchaseFailure(BagOperationFailure? failure) =>
+      switch (failure) {
+        BagOperationFailure.pocketFull || BagOperationFailure.stackFull =>
+          ShopPurchaseFailure.bagFull,
+        BagOperationFailure.unknownItem => ShopPurchaseFailure.unknownItem,
+        _ => ShopPurchaseFailure.invalidRequest,
+      };
+
+  BattleRewardApplicationFailure _bagRewardFailure(BagOperationFailure failure) =>
+      switch (failure) {
+        BagOperationFailure.pocketFull || BagOperationFailure.stackFull =>
+          BattleRewardApplicationFailure.bagCapacityExceeded,
+        BagOperationFailure.quantityOverflow =>
+          BattleRewardApplicationFailure.quantityOverflow,
+        BagOperationFailure.missingItemCatalog =>
+          BattleRewardApplicationFailure.missingItemCatalog,
+        BagOperationFailure.unknownItem =>
+          BattleRewardApplicationFailure.unknownItem,
+        BagOperationFailure.invalidItemId ||
+        BagOperationFailure.invalidQuantity ||
+        BagOperationFailure.itemMissing ||
+        BagOperationFailure.insufficientQuantity ||
+        BagOperationFailure.protectedKeyItem =>
+          BattleRewardApplicationFailure.invalidReward,
+      };
 
   int itemQuantity(GameState state, String itemId) {
     return _bagOperations.quantityOf(state.bag, itemId);
@@ -341,10 +371,13 @@ class GameStateMutations {
   GameState giveItem(
     GameState state,
     String itemId,
-    int quantity,
-  ) {
+    int quantity, {
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ItemCatalogSnapshot? itemCatalog,
+  }) {
     final result = _bagOperations.give(
-      BagGiveRequest(bag: state.bag, itemId: itemId, quantity: quantity),
+      BagGiveRequest(bag: state.bag, itemId: itemId, quantity: quantity,
+          capacity: bagCapacity, itemCatalog: itemCatalog),
     );
     return result.isSuccess ? state.copyWith(bag: result.bag) : state;
   }
@@ -359,6 +392,7 @@ class GameStateMutations {
     required int quantity,
     required int unitPrice,
     required ItemCatalogSnapshot itemCatalog,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
   }) {
     final normalizedItemId = itemId.trim();
     const maxSafeTotal = 0x7fffffffffffffff;
@@ -395,13 +429,15 @@ class GameStateMutations {
         bag: state.bag,
         itemId: normalizedItemId,
         quantity: quantity,
+        capacity: bagCapacity,
+        itemCatalog: itemCatalog,
       ),
     );
     if (!given.isSuccess) {
       return ShopPurchaseResult.failed(
         state: state,
         totalCost: totalCost,
-        failure: ShopPurchaseFailure.invalidRequest,
+        failure: _bagPurchaseFailure(given.failure),
       );
     }
     final nextState = state.copyWith(
@@ -428,6 +464,7 @@ class GameStateMutations {
     required String itemId,
     required int quantity,
     required ItemCatalogSnapshot itemCatalog,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
   }) {
     return _purchaseFromShopEntries(
       state,
@@ -437,6 +474,7 @@ class GameStateMutations {
       itemId: itemId,
       quantity: quantity,
       itemCatalog: itemCatalog,
+      bagCapacity: bagCapacity,
     );
   }
 
@@ -453,6 +491,7 @@ class GameStateMutations {
     required String itemId,
     required int quantity,
     required ItemCatalogSnapshot itemCatalog,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
     ScriptEvaluationContext? conditionContext,
   }) {
     final normalizedExpectedStateId = expectedStateId.trim();
@@ -490,6 +529,7 @@ class GameStateMutations {
       itemId: itemId,
       quantity: quantity,
       itemCatalog: itemCatalog,
+      bagCapacity: bagCapacity,
     );
   }
 
@@ -501,6 +541,7 @@ class GameStateMutations {
     required String itemId,
     required int quantity,
     required ItemCatalogSnapshot itemCatalog,
+    required ProjectBagCapacity bagCapacity,
   }) {
     final normalizedItemId = itemId.trim();
     final normalizedShopId = shopId.trim();
@@ -579,6 +620,7 @@ class GameStateMutations {
       quantity: quantity,
       unitPrice: entry.price,
       itemCatalog: itemCatalog,
+      bagCapacity: bagCapacity,
     );
     if (!purchase.isSuccess) {
       return purchase;
@@ -598,11 +640,18 @@ class GameStateMutations {
         final given = _bagOperations.give(BagGiveRequest(
             bag: purchasedState.bag,
             itemId: bonus.itemId,
-            quantity: bonusQuantity));
+            quantity: bonusQuantity,
+            capacity: bagCapacity,
+            itemCatalog: itemCatalog));
         if (given.isSuccess) {
           purchasedState = purchasedState.copyWith(bag: given.bag);
         } else {
-          bonusQuantity = 0;
+          return ShopPurchaseResult.failed(
+            state: state,
+            totalCost: purchase.totalCost,
+            failure: _bagPurchaseFailure(given.failure),
+            remainingStock: remainingStock,
+          );
         }
       }
     }
@@ -981,14 +1030,32 @@ class GameStateMutations {
     GameState state, {
     required BattleReward reward,
     ItemCatalogSnapshot? itemCatalog,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
   }) {
     validateBattleRewardItems(
       reward: reward,
       itemCatalog: itemCatalog,
     );
-    var nextState = addMoney(state, reward.money);
+    var nextBag = state.bag;
     for (final grant in reward.itemGrants) {
-      nextState = giveItem(nextState, grant.itemId, grant.quantity);
+      final given = _bagOperations.give(BagGiveRequest(
+        bag: nextBag,
+        itemId: grant.itemId,
+        quantity: grant.quantity,
+        capacity: bagCapacity,
+        itemCatalog: itemCatalog,
+      ));
+      if (!given.isSuccess) {
+        throw BattleRewardApplicationException(
+          failure: _bagRewardFailure(given.failure!),
+          itemId: grant.itemId,
+        );
+      }
+      nextBag = given.bag;
+    }
+    var nextState = addMoney(state, reward.money);
+    if (!identical(nextBag, state.bag)) {
+      nextState = nextState.copyWith(bag: nextBag);
     }
     for (final flagId in reward.flagIds) {
       nextState = setFlag(nextState, flagId);

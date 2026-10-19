@@ -145,25 +145,51 @@ final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
   );
 
   @override
-  Future<void> saveShop(
-    ShopDefinition? before,
-    ShopDefinition after,
-  ) => mapAdapter.withResourceMutation(
-    () => _withSnapshot((snapshot, run) async {
-      final current = snapshot.manifest.shops
-          .where((entry) => entry.id == after.id)
-          .firstOrNull;
-      if (!_same(current?.toJson(), before?.toJson())) {
-        throw StateError(
-          'Cette boutique a changé sur le disque. Votre brouillon est conservé.',
-        );
-      }
-      await run('campaign.shop.upsert', {
-        'value': after.toJson(),
-      }, 'project.json');
-      await mapAdapter.resourceBaseline(session, refreshCatalog: true);
-    }),
-  );
+  Future<({String? refreshWarning})> saveBagCapacity(
+    ProjectBagCapacity before,
+    ProjectBagCapacity after,
+  ) => mapAdapter.withResourceMutation(() async {
+    await mapAdapter.resourceBaseline(session, refreshCatalog: true);
+    var applied = false;
+    try {
+      await _withSnapshot((snapshot, run) async {
+        if (snapshot.manifest.bagCapacity != before) {
+          throw StateError(
+            'La capacité du sac a changé sur le disque. Votre brouillon est conservé.',
+          );
+        }
+        await run('bag.capacity.set', after.toJson(), 'project.json');
+        applied = true;
+        await mapAdapter.resourceBaseline(session, refreshCatalog: true);
+      });
+      return (refreshWarning: null);
+    } on Object catch (failure) {
+      if (!applied) rethrow;
+      return (
+        refreshWarning:
+            'Capacité enregistrée ; actualisation de l’atelier impossible : $failure',
+      );
+    }
+  });
+
+  @override
+  Future<void> saveShop(ShopDefinition? before, ShopDefinition after) =>
+      mapAdapter.withResourceMutation(
+        () => _withSnapshot((snapshot, run) async {
+          final current = snapshot.manifest.shops
+              .where((entry) => entry.id == after.id)
+              .firstOrNull;
+          if (!_same(current?.toJson(), before?.toJson())) {
+            throw StateError(
+              'Cette boutique a changé sur le disque. Votre brouillon est conservé.',
+            );
+          }
+          await run('campaign.shop.upsert', {
+            'value': after.toJson(),
+          }, 'project.json');
+          await mapAdapter.resourceBaseline(session, refreshCatalog: true);
+        }),
+      );
 
   Future<T> _withSnapshot<T>(
     Future<T> Function(

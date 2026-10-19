@@ -24,6 +24,7 @@ import '../domains/distribution/game_package_export_profile_api.dart';
 import '../domains/distribution/game_package_export_profile.dart';
 import '../domains/gameplay/character_studio/character_studio_action_support.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
+import '../domains/gameplay/bag_capacity_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
@@ -367,6 +368,13 @@ final class JsonlWorker {
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
+      );
+    } on BagCapacityAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
       );
     } on RailJourneyAuthoringException catch (error) {
       result = _failure(

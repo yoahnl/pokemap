@@ -7,6 +7,10 @@ enum BagOperationFailure {
   insufficientQuantity,
   quantityOverflow,
   protectedKeyItem,
+  missingItemCatalog,
+  unknownItem,
+  pocketFull,
+  stackFull,
 }
 
 enum ItemConsumptionReason {

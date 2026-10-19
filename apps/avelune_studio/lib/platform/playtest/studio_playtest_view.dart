@@ -145,6 +145,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     _game = game;
     _playerBundle = bundle;
     _playerServices = PlayerServiceRuntimeController.contextual(
+      bagCapacity: bundle.manifest.bagCapacity,
       supportsRepel: true,
       currentGameState: () => game.playerServiceGameStateSnapshot,
       commitAndSave: game.commitAndSavePlayerServiceState,

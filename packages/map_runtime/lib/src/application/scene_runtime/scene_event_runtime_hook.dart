@@ -219,6 +219,8 @@ final class SceneEventRuntimeHook {
         final result = executeSceneItemGift(
           command: command,
           gameState: projectedState(),
+          bagCapacity: project.bagCapacity,
+          itemCatalog: writer.itemCatalog,
         );
         if (result.outcome == SceneItemGiftOutcome.received) {
           validationState = result.gameState;

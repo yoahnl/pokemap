@@ -263,6 +263,67 @@ final class PokemonCommerceController {
     }
   }
 
+  Future<bool> saveBagCapacity(
+    ProjectBagCapacity before,
+    ProjectBagCapacity after,
+  ) async {
+    if (_disposed ||
+        dirty ||
+        saving ||
+        importing ||
+        loading ||
+        snapshot == null) {
+      return false;
+    }
+    saving = true;
+    final currentSnapshot = snapshot!;
+    error = null;
+    changed();
+    try {
+      final outcome = await port.saveBagCapacity(before, after);
+      if (_disposed) return true;
+      final selectedItemId = item?.id;
+      final selectedShopId = shop?.id;
+      try {
+        snapshot = await port.load();
+      } on Object catch (failure) {
+        if (_disposed) return true;
+        snapshot = PokemonCommerceSnapshot(
+          project: currentSnapshot.project.copyWith(bagCapacity: after),
+          catalog: currentSnapshot.catalog,
+          shops: currentSnapshot.shops,
+          references: currentSnapshot.references,
+          narrativeReferences: currentSnapshot.narrativeReferences,
+          shopDiagnostics: currentSnapshot.shopDiagnostics,
+          catalogPath: currentSnapshot.catalogPath,
+          problem: currentSnapshot.problem,
+        );
+        notice = 'Capacité du sac enregistrée.';
+        error =
+            'L’enregistrement a réussi, mais l’actualisation du catalogue a échoué : $failure';
+        return true;
+      }
+      if (_disposed) return true;
+      _baseItem = snapshot!.catalog?.entries
+          .where((entry) => entry.id == selectedItemId)
+          .firstOrNull;
+      item = _baseItem;
+      _baseShop = snapshot!.shops
+          .where((entry) => entry.id == selectedShopId)
+          .firstOrNull;
+      shop = _baseShop;
+      notice = 'Capacité du sac enregistrée.';
+      error = outcome.refreshWarning;
+      return true;
+    } on Object catch (failure) {
+      if (!_disposed) error = 'Enregistrement refusé : $failure';
+      return false;
+    } finally {
+      saving = false;
+      if (!_disposed) changed();
+    }
+  }
+
   void dispose() {
     _disposed = true;
     _generation++;

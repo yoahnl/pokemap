@@ -144,10 +144,13 @@ final class SandboxPlayerStateService {
     SandboxPlayerState sandbox, {
     required String itemId,
     required int quantity,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ItemCatalogSnapshot? itemCatalog,
   }) =>
       _next(
         sandbox,
-        mutations.giveItem(sandbox.state, itemId, quantity),
+        mutations.giveItem(sandbox.state, itemId, quantity,
+            bagCapacity: bagCapacity, itemCatalog: itemCatalog),
         kind: 'bag.give',
       );
 

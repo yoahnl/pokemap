@@ -1,17 +1,22 @@
 import 'package:map_core/map_core.dart';
 
 import 'bag_operation_result.dart';
+import 'item_catalog_snapshot.dart';
 
 final class BagGiveRequest {
   const BagGiveRequest({
     required this.bag,
     required this.itemId,
     required this.quantity,
+    this.capacity = const ProjectBagCapacity.unlimited(),
+    this.itemCatalog,
   });
 
   final Bag bag;
   final String itemId;
   final int quantity;
+  final ProjectBagCapacity capacity;
+  final ItemCatalogSnapshot? itemCatalog;
 }
 
 final class BagTakeRequest {
@@ -86,6 +91,10 @@ final class BagOperations {
     }
 
     final quantityAfter = quantityBefore + request.quantity;
+    final capacityFailure = _capacityFailure(request, itemId, quantityAfter);
+    if (capacityFailure != null) {
+      return _failure(request.bag, itemId, quantityBefore, capacityFailure);
+    }
     return BagOperationResult.succeeded(
       originalBag: request.bag,
       bag: _replaceStack(request.bag, itemId, quantityAfter),
@@ -101,6 +110,40 @@ final class BagOperations {
       itemId: request.itemId,
       quantity: request.quantity,
     );
+  }
+
+  BagOperationFailure? _capacityFailure(
+    BagGiveRequest request,
+    String itemId,
+    int quantityAfter,
+  ) {
+    final capacity = request.capacity.normalized();
+    if (capacity.pockets.isEmpty) return null;
+    final catalog = request.itemCatalog;
+    if (catalog == null) return BagOperationFailure.missingItemCatalog;
+    final item = catalog.definitionFor(itemId);
+    if (item == null) return BagOperationFailure.unknownItem;
+    final pocket = capacity.pockets[item.pocketId];
+    if (pocket == null) return null;
+    final maximumQuantity = pocket.maxQuantityPerItem;
+    if (maximumQuantity != null && quantityAfter > maximumQuantity) {
+      return BagOperationFailure.stackFull;
+    }
+    final maximumTypes = pocket.maxDistinctItems;
+    if (maximumTypes == null || quantityOf(request.bag, itemId) > 0) {
+      return null;
+    }
+    final distinctItems = <String>{};
+    for (final entry in request.bag.entries) {
+      final definition = catalog.definitionFor(entry.itemId);
+      if (definition == null) return BagOperationFailure.unknownItem;
+      if (definition.pocketId == item.pocketId) {
+        distinctItems.add(definition.id);
+      }
+    }
+    return distinctItems.length >= maximumTypes
+        ? BagOperationFailure.pocketFull
+        : null;
   }
 
   BagOperationResult consume(BagConsumeRequest request) {

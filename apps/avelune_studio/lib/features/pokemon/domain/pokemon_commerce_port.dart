@@ -59,6 +59,11 @@ abstract interface class PokemonCommercePort {
 
   Future<void> saveShop(ShopDefinition? before, ShopDefinition after);
 
+  Future<({String? refreshWarning})> saveBagCapacity(
+    ProjectBagCapacity before,
+    ProjectBagCapacity after,
+  );
+
   Future<PokemonCommerceImportPreview> previewJson(
     String path, {
     required bool item,

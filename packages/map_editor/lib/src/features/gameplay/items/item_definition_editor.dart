@@ -15,6 +15,7 @@ final class ItemDefinitionEditor extends StatefulWidget {
     this.heldEffectOptions = const <ItemStudioOption>[],
     this.moveOptions = const <ItemStudioOption>[],
     this.isSaving = false,
+    this.onDirtyChanged,
   });
 
   final ProjectItemDefinition? initialDefinition;
@@ -23,6 +24,7 @@ final class ItemDefinitionEditor extends StatefulWidget {
   final List<ItemStudioOption> heldEffectOptions;
   final List<ItemStudioOption> moveOptions;
   final bool isSaving;
+  final ValueChanged<bool>? onDirtyChanged;
 
   @override
   State<ItemDefinitionEditor> createState() => _ItemDefinitionEditorState();
@@ -38,6 +40,7 @@ final class _ItemDefinitionEditorState extends State<ItemDefinitionEditor> {
   String? _nameError;
   String? _buyPriceError;
   String? _sellPriceError;
+  bool _wasDirty = false;
 
   @override
   void initState() {
@@ -159,7 +162,10 @@ final class _ItemDefinitionEditorState extends State<ItemDefinitionEditor> {
               ),
               PokeMapDropdownItem(value: 'key-items', label: 'Objets rares'),
             ],
-            onChanged: (value) => setState(() => _pocketId = value),
+            onChanged: (value) {
+              setState(() => _pocketId = value);
+              _notifyDirty();
+            },
           ),
           const SizedBox(height: 8),
           PokeMapTextField(
@@ -205,6 +211,7 @@ final class _ItemDefinitionEditorState extends State<ItemDefinitionEditor> {
             moveOptions: widget.moveOptions,
             onChanged: (definition) {
               setState(() => _capabilities = definition);
+              _notifyDirty();
             },
           ),
         ],
@@ -263,7 +270,24 @@ final class _ItemDefinitionEditorState extends State<ItemDefinitionEditor> {
   }
 
   void _refresh() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      _notifyDirty();
+    }
+  }
+
+  void _notifyDirty() {
+    final initial = widget.initialDefinition;
+    final dirty =
+        initial == null ||
+        _nameController.text != initial.displayName ||
+        _descriptionController.text != (initial.description ?? '') ||
+        _buyPriceController.text != (initial.buyPrice?.toString() ?? '') ||
+        _sellPriceController.text != (initial.sellPrice?.toString() ?? '') ||
+        _draft() != initial;
+    if (dirty == _wasDirty) return;
+    _wasDirty = dirty;
+    widget.onDirtyChanged?.call(dirty);
   }
 }
 

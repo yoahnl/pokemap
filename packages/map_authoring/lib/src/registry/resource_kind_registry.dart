@@ -697,6 +697,13 @@ final class AuthoringResourceKindRegistry {
         summary: 'Canonical project-owned item catalog',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'bagCapacity',
+        version: 1,
+        displayName: 'Bag capacity',
+        summary: 'Optional project-wide per-pocket limits; absent bounds are unlimited',
+        extensions: const {'singletonId': 'project', 'mutationAction': 'bag.capacity.set'},
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'itemDefinition',
         version: 1,
         displayName: 'Item definition',
@@ -804,6 +811,7 @@ final class AuthoringResourceKindRegistry {
         'eventV2',
         'fact',
         'itemCatalog',
+        'bagCapacity',
         'itemDefinition',
         'itemReadiness',
         'itemUsage',

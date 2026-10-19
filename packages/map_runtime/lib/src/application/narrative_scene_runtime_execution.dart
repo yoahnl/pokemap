@@ -308,6 +308,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
               final result = executeSceneItemGift(
                 command: command,
                 gameState: projected.gameState,
+                bagCapacity: project.bagCapacity,
+                itemCatalog: writer.itemCatalog,
               );
               if (result.outcome == SceneItemGiftOutcome.received) {
                 pendingConsequences.add(

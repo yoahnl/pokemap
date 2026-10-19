@@ -4,8 +4,105 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/gameplay/items/item_studio_gateway.dart';
 import 'package:map_editor/src/features/gameplay/items/item_studio_workspace.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('capacity editing cannot discard the current item draft', (
+    tester,
+  ) async {
+    final gateway = _FakeItemStudioGateway();
+    await _pumpWorkspace(tester, gateway);
+    await tester.enterText(
+      find.byKey(const Key('item-definition-name-field')),
+      'Unsaved item',
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const Key('item-studio-capacity-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.byKey(const Key('item-studio-entry-potion')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const Key('item-studio-capacity-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const Key('item-definition-name-field')),
+          )
+          .controller!
+          .text,
+      'Unsaved item',
+    );
+    await tester.enterText(
+      find.byKey(const Key('item-definition-name-field')),
+      'Potion',
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const Key('item-studio-capacity-button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    final price = tester.widget<PokeMapTextField>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is PokeMapTextField && widget.label == 'Prix d’achat',
+      ),
+    );
+    price.controller!.text = '1e';
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('item-studio-entry-potion')));
+    await tester.pump();
+    expect(price.controller!.text, '1e');
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const Key('item-studio-capacity-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+    price.controller!.text = '300';
+    await tester.pump();
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const Key('item-studio-capacity-button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    await tester.enterText(
+      find.byKey(const Key('item-definition-name-field')),
+      'Discarded by explicit reload',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('item-studio-reload-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const Key('item-studio-capacity-button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
   testWidgets('loads canonical items and their readiness', (tester) async {
     final gateway = _FakeItemStudioGateway();
 
@@ -149,6 +246,12 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
 }
 
 final class _FakeItemStudioGateway implements ItemStudioGateway {
+  @override
+  Future<ItemStudioMutationReceipt> saveBagCapacity(
+    String projectRootPath, {
+    required ProjectBagCapacity capacity,
+    required String snapshotRevision,
+  }) async => const ItemStudioMutationReceipt(receiptId: 'bag-capacity');
   final List<ProjectItemDefinition> definitions = <ProjectItemDefinition>[
     const ProjectItemDefinition(
       id: 'potion',

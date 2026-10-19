@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 part 'script_runtime_state.freezed.dart';
 
@@ -82,10 +83,14 @@ class ScriptExecutionContext {
     this.dialogueLoader,
     this.onDialogueOpened,
     this.onWarpRequested,
+    this.bagCapacity = const ProjectBagCapacity.unlimited(),
+    this.itemCatalog,
   });
 
   /// État de partie actuel.
   GameState gameState;
+  final ProjectBagCapacity bagCapacity;
+  final ItemCatalogSnapshot? itemCatalog;
 
   /// Callback appelé quand l'état de partie est modifié.
   final void Function(GameState) onGameStateUpdated;

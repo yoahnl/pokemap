@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'runtime_bag_capacity.dart';
 
 import 'script_runtime_state.dart';
 
@@ -227,8 +228,19 @@ class ScriptCommandExecutor {
         'Item quantity must be positive',
       );
     }
-    final newState = _mutations.giveItem(state, itemId, quantity);
-    _commitGameState(newState);
+    final result = const BagOperations().give(BagGiveRequest(
+      bag: state.bag,
+      itemId: itemId,
+      quantity: quantity,
+      capacity: _context.bagCapacity,
+      itemCatalog: _context.itemCatalog,
+    ));
+    if (!result.isSuccess) {
+      return ScriptCommandResult.error(
+        runtimeBagGrantFailureMessage(result.failure!),
+      );
+    }
+    _commitGameState(state.copyWith(bag: result.bag));
     return const ScriptCommandResult.completed();
   }
 

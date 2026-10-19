@@ -568,7 +568,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     await _waitUntilResumed(generation);
     if (!_current(generation)) return;
     if (!result.isSuccess) {
-      _fail(result.failure!.cause ?? StateError(result.failure!.message));
+      _fail(result.failure!);
       return;
     }
     overlay?.lockForPostBattle();
@@ -617,7 +617,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       if (!_current(generation)) return;
       final transaction = post.currentTransaction;
       if (transaction == null || post.currentFailure != null) {
-        throw StateError('Post battle decisions are incomplete.');
+        throw post.currentFailure ??
+            StateError('La fin du combat ne peut pas être appliquée.');
       }
       final messages =
           transaction.messages.skip(playedMessageCount).toList(growable: false);

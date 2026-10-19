@@ -5,8 +5,66 @@ import 'package:map_runtime/src/application/narrative_scene_runtime_execution.da
 import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_callbacks.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_event_runtime_hook.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_consequence_runtime_writer.dart';
 
 void main() {
+  test('configured pocket refusal keeps the gift retryable after save reload',
+      () async {
+    final scene = _scene();
+    final project = _project(scene).copyWith(
+      bagCapacity: const ProjectBagCapacity(
+        pockets: {'machines': BagPocketCapacity(maxQuantityPerItem: 2)},
+      ),
+    );
+    final writer = SceneConsequenceRuntimeWriter(
+      project: project,
+      itemCatalog: ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(schemaVersion: 1, entries: [
+          ProjectItemDefinition(
+            id: 'tm23',
+            displayName: 'Machine',
+            pocketId: 'machines',
+          ),
+        ]),
+      ),
+    );
+    Future<NarrativeSceneExecutionCompleted> play(GameState state) async {
+      final result = await executeNarrativeEventScene(
+        request: NarrativeSceneExecutionRequest(
+          eventId: 'gift',
+          sceneId: scene.id,
+          executionId: 'gift',
+          gameState: state,
+        ),
+        project: project,
+        mapsById: const {},
+        currentGameState: () => state,
+        consequenceWriter: writer,
+        callbacks: _callbacks(state),
+      );
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      return result as NarrativeSceneExecutionCompleted;
+    }
+
+    final pending = await play(const GameState(
+      saveId: 'capacity-gift',
+      bag: Bag(entries: [BagEntry(itemId: 'tm23', quantity: 2)]),
+    ));
+    expect(pending.consumeOneShot, isFalse);
+    expect(pending.qualifiedOutcomes.single.outcomeId, 'pending');
+    expect(pending.updatedGameState.bag.entries.single.quantity, 2);
+    final reloaded = gameStateFromStrictSaveJson(
+      strictGameStateSaveJson(pending.updatedGameState),
+    );
+    final space = const BagOperations().take(
+      BagTakeRequest(bag: reloaded.bag, itemId: 'tm23', quantity: 1),
+    );
+    final received = await play(reloaded.copyWith(bag: space.bag));
+    expect(received.consumeOneShot, isTrue);
+    expect(received.qualifiedOutcomes.single.outcomeId, 'received');
+    expect(received.updatedGameState.bag.entries.single.quantity, 2);
+  });
+
   for (final outcome in ['victory', 'captured']) {
     test(
       'unique $outcome preserves deferred gift retry without replaying battle',

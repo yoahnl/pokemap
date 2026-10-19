@@ -140,6 +140,7 @@ final class BattleProgressionService {
     required BattleReward reward,
     bool applyAuthoredRewards = true,
     ItemCatalogSnapshot? itemCatalog,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
     PokemonEvolutionHeldItemPolicy? evolutionHeldItemPolicy,
   }) {
     final rules = PokemonGameplayRules.fromProfile(context.ruleset);
@@ -357,6 +358,7 @@ final class BattleProgressionService {
               progressedState,
               reward: appliedReward,
               itemCatalog: itemCatalog,
+              bagCapacity: bagCapacity,
             )
           : progressedState,
       appliedReward: appliedReward,

@@ -56,6 +56,7 @@ final class ItemStudioCatalogSnapshot {
     required this.snapshotRevision,
     this.heldEffectOptions = const <ItemStudioOption>[],
     this.moveOptions = const <ItemStudioOption>[],
+    this.bagCapacity = const ProjectBagCapacity.unlimited(),
   });
 
   final List<ProjectItemDefinition> definitions;
@@ -64,6 +65,7 @@ final class ItemStudioCatalogSnapshot {
   final String snapshotRevision;
   final List<ItemStudioOption> heldEffectOptions;
   final List<ItemStudioOption> moveOptions;
+  final ProjectBagCapacity bagCapacity;
 }
 
 final class ItemStudioMutationReceipt {
@@ -89,6 +91,12 @@ abstract interface class ItemStudioGateway {
   });
 
   Future<void> undo(String projectRootPath, {required String receiptId});
+
+  Future<ItemStudioMutationReceipt> saveBagCapacity(
+    String projectRootPath, {
+    required ProjectBagCapacity capacity,
+    required String snapshotRevision,
+  });
 }
 
 final class CanonicalItemStudioGateway implements ItemStudioGateway {
@@ -126,6 +134,12 @@ final class CanonicalItemStudioGateway implements ItemStudioGateway {
           .add(_usage(record));
     }
     return ItemStudioCatalogSnapshot(
+      bagCapacity: ProjectBagCapacity.fromJson({
+        'pockets': _queryAll(
+          session,
+          resourceKind: 'bagCapacity',
+        ).single['pockets'],
+      }),
       definitions: List<ProjectItemDefinition>.unmodifiable(definitions),
       readinessByItemId: Map<String, ItemStudioReadiness>.unmodifiable(
         readinessByItemId,
@@ -142,6 +156,28 @@ final class CanonicalItemStudioGateway implements ItemStudioGateway {
         definitions.map((definition) => definition.machine?.moveId),
       ),
     );
+  }
+
+  @override
+  Future<ItemStudioMutationReceipt> saveBagCapacity(
+    String projectRootPath, {
+    required ProjectBagCapacity capacity,
+    required String snapshotRevision,
+  }) async {
+    final identity = _identity('bag_capacity');
+    final plan = await _mutations.plan(
+      projectRootPath,
+      actionId: 'bag.capacity.set',
+      parameters: capacity.toJson(),
+      idempotencyKey: identity,
+      requestId: '${identity}_request',
+      expectedRevision: snapshotRevision,
+    );
+    final result = await _mutations.apply(
+      plan,
+      operationId: '${identity}_apply',
+    );
+    return ItemStudioMutationReceipt(receiptId: result.receipt.receiptId);
   }
 
   @override

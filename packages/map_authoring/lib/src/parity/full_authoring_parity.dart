@@ -1069,6 +1069,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/pokemon_authoring.test.ts',
     };
   }
+  if (actionId == 'bag.capacity.set') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/gameplay/bag_capacity_authoring_test.dart',
+      AuthoringTransport.cli: 'test/domains/gameplay/bag_capacity_authoring_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/bag_capacity_gateway_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/bag_capacity_stdio.test.ts',
+    };
+  }
   if (actionId == 'presentationMedia.import') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -1553,6 +1561,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'bag.capacity.set') {
+    return 'test/domains/gameplay/bag_capacity_authoring_test.dart';
+  }
   if (actionId == 'world_rule.upsert_batch') {
     return 'test/domains/narrative/world_rule_batch_transport_test.dart';
   }
@@ -2004,6 +2015,7 @@ const _semanticOwners = <String, String>{
   'pokemonType': 'pokemonDocument',
   'pokemonCatalog': 'pokemonDocument',
   'itemCatalog': 'itemCatalog',
+  'bagCapacity': 'project',
   'itemDefinition': 'itemCatalog',
   'itemUsage': 'itemCatalog',
   'itemReadiness': 'itemCatalog',
@@ -2017,6 +2029,7 @@ const _semanticOwners = <String, String>{
 };
 
 const _requiredDirectReadResourceKinds = <String>{
+  'bagCapacity',
   'trainerPokemonStats',
   'resourcePackJob',
   'resourcePackInspection',

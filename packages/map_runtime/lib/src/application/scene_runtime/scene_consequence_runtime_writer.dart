@@ -6,6 +6,7 @@ import 'scene_game_completion_metadata.dart';
 import 'scene_npc_state_metadata.dart';
 import 'runtime_scene_pokemon_catalog.dart';
 import 'scene_interactive_pokemon_gift.dart';
+import '../runtime_bag_capacity.dart';
 
 String? scenePokemonGrantOperationId({
   required String sceneId,
@@ -60,6 +61,7 @@ final class SceneConsequenceRuntimeWriter {
     this.mapInstanceScopes = const <String, MapInstanceRef>{},
     this.pokemonCatalog,
     this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
+    this.itemCatalog,
   });
 
   final ProjectManifest project;
@@ -70,6 +72,7 @@ final class SceneConsequenceRuntimeWriter {
   final Map<String, MapInstanceRef> mapInstanceScopes;
   final RuntimeScenePokemonCatalog? pokemonCatalog;
   final ScenePartyConditionContext partyConditionContext;
+  final ItemCatalogSnapshot? itemCatalog;
 
   static const int _maxPartySize = 6;
 
@@ -441,28 +444,22 @@ final class SceneConsequenceRuntimeWriter {
     if (validation != null) {
       return validation;
     }
-    final quantityBefore = mutations.itemQuantity(
-      gameState,
-      consequence.itemId,
-    );
-    final updatedState = mutations.giveItem(
-      gameState,
-      consequence.itemId,
-      consequence.quantity,
-    );
-    final quantityAfter = mutations.itemQuantity(
-      updatedState,
-      consequence.itemId,
-    );
-    if (quantityAfter < quantityBefore ||
-        quantityAfter - quantityBefore != consequence.quantity) {
+    final given = const BagOperations().give(BagGiveRequest(
+      bag: gameState.bag,
+      itemId: consequence.itemId,
+      quantity: consequence.quantity,
+      capacity: project.bagCapacity,
+      itemCatalog: itemCatalog,
+    ));
+    if (!given.isSuccess) {
       return _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.itemGrantRejected,
-        'Scene consequence giveItem could not add ${consequence.quantity} of '
-        '"${consequence.itemId}" to the Bag.',
+        runtimeBagGrantFailureMessage(given.failure!),
       );
     }
-    return _SceneConsequenceRuntimeWriteStep.applied(updatedState);
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(bag: given.bag),
+    );
   }
 
   _SceneConsequenceRuntimeWriteStep _applyTakeItem(

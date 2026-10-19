@@ -67,7 +67,7 @@ enum RuntimePostBattleCoordinatorFailureCode {
   invalidOutcome,
 }
 
-final class RuntimePostBattleCoordinatorFailure {
+final class RuntimePostBattleCoordinatorFailure implements Exception {
   const RuntimePostBattleCoordinatorFailure({
     required this.code,
     required this.message,
@@ -79,6 +79,9 @@ final class RuntimePostBattleCoordinatorFailure {
   final String message;
   final GameState originalState;
   final Object? cause;
+
+  @override
+  String toString() => message;
 
   RuntimePostBattleMessage get presentationMessage => RuntimePostBattleMessage(
         kind: RuntimePostBattleMessageKind.error,
@@ -283,14 +286,7 @@ final class RuntimePostBattleDecisionCoordinator {
         _advanceOrFinalize(transaction),
       );
     } on BattleRewardApplicationException catch (error) {
-      return RuntimePostBattleCoordinatorResult.failure(
-        failure: RuntimePostBattleCoordinatorFailure(
-          code: RuntimePostBattleCoordinatorFailureCode.rewardResolution,
-          message: 'Récompense objet inconnue : ${error.itemId}.',
-          originalState: transactionBaseState,
-          cause: error,
-        ),
-      );
+      return _rewardFailure(error, transactionBaseState);
     } on RuntimePostBattleResolutionException catch (error) {
       return RuntimePostBattleCoordinatorResult.failure(
         failure: RuntimePostBattleCoordinatorFailure(
@@ -353,6 +349,9 @@ final class RuntimePostBattleDecisionCoordinator {
       return RuntimePostBattleCoordinatorResult.success(
         _advanceOrFinalize(next),
       );
+    } on BattleRewardApplicationException catch (error) {
+      return _rewardFailure(error, transaction.originalState,
+          transaction: transaction);
     } catch (error) {
       return _decisionFailure(transaction, 'Décision de capacité invalide.',
           cause: error);
@@ -399,6 +398,9 @@ final class RuntimePostBattleDecisionCoordinator {
       return RuntimePostBattleCoordinatorResult.success(
         _advanceOrFinalize(next),
       );
+    } on BattleRewardApplicationException catch (error) {
+      return _rewardFailure(error, transaction.originalState,
+          transaction: transaction);
     } catch (error) {
       return _decisionFailure(transaction, 'Décision d’évolution invalide.',
           cause: error);
@@ -417,6 +419,33 @@ final class RuntimePostBattleDecisionCoordinator {
         message: message,
         originalState: transaction.originalState,
         cause: cause,
+      ),
+    );
+  }
+
+  RuntimePostBattleCoordinatorResult _rewardFailure(
+    BattleRewardApplicationException error,
+    GameState originalState, {
+    RuntimePostBattleTransaction? transaction,
+  }) {
+    return RuntimePostBattleCoordinatorResult.failure(
+      transaction: transaction,
+      failure: RuntimePostBattleCoordinatorFailure(
+        code: RuntimePostBattleCoordinatorFailureCode.rewardResolution,
+        message: switch (error.failure) {
+          BattleRewardApplicationFailure.bagCapacityExceeded =>
+            'Le sac ne peut pas recevoir toutes les récompenses. Le combat est annulé : libérez de la place avant de le recommencer.',
+          BattleRewardApplicationFailure.quantityOverflow =>
+            'Le sac ne peut pas recevoir cette quantité de récompenses. Le combat est annulé.',
+          BattleRewardApplicationFailure.missingItemCatalog =>
+            'Le catalogue des récompenses est indisponible. Le combat est annulé.',
+          BattleRewardApplicationFailure.unknownItem =>
+            'Récompense objet inconnue : ${error.itemId}.',
+          BattleRewardApplicationFailure.invalidReward =>
+            'La récompense objet est invalide. Le combat est annulé.',
+        },
+        originalState: originalState,
+        cause: error,
       ),
     );
   }
@@ -464,6 +493,7 @@ final class RuntimePostBattleDecisionCoordinator {
       progression.state,
       reward: progression.appliedReward,
       itemCatalog: transaction._itemCatalog,
+      bagCapacity: transaction.bundle.manifest.bagCapacity,
     );
     final rewardMessages = _rewardMessages(progression.appliedReward);
     final request = transaction.runtimeContext.request;

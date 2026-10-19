@@ -1214,6 +1214,13 @@ List<_QueryRecord> _records(
       ];
     case 'itemCatalog':
       return _itemCatalogRecords(snapshot);
+    case 'bagCapacity':
+      final record = <String, Object?>{
+        'id': 'project',
+        'resourceKind': 'bagCapacity',
+        ...snapshot.manifest.bagCapacity.toJson(),
+      };
+      return [_QueryRecord(summary: record, detail: record)];
     case 'itemDefinition':
       return _itemDefinitionRecords(snapshot);
     case 'itemUsage':

@@ -12,6 +12,7 @@ import 'pokemon_commerce_import_button.dart';
 import 'pokemon_commerce_create_dialog.dart';
 import 'pokemon_commerce_row.dart';
 import 'pokemon_ui_parts.dart';
+import 'pokemon_bag_capacity_dialog.dart';
 
 class PokemonCommercePage extends StatefulWidget {
   const PokemonCommercePage({
@@ -190,6 +191,21 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
                   ? 'Les objets utilisables par le projet.'
                   : 'Les catalogues de vente du projet.',
             ),
+            if (items) ...[
+              StudioButton(
+                key: const Key('commerce-bag-capacity'),
+                label: 'Capacité du sac',
+                secondary: true,
+                onPressed:
+                    commerce.dirty ||
+                        commerce.saving ||
+                        commerce.importing ||
+                        commerce.loading
+                    ? null
+                    : () => showPokemonBagCapacityDialog(context, commerce),
+              ),
+              const SizedBox(height: 10),
+            ],
             StudioSearchField(
               controller: items ? itemSearch : shopSearch,
               label: items ? 'Rechercher un objet' : 'Rechercher une boutique',

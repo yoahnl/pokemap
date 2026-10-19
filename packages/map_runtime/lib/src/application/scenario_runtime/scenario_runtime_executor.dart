@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../story_flags_manager.dart';
+import '../runtime_bag_capacity.dart';
 import 'scenario_runtime_models.dart';
 
 /// Presets source partagés avec l'authoring.
@@ -1218,12 +1219,24 @@ class ScenarioRuntimeExecutor {
                 );
               }
 
-              const itemMutations = GameStateMutations();
-              final nextItemState = itemMutations.giveItem(
-                context.gameState,
-                itemId,
-                quantity,
-              );
+              final given = const BagOperations().give(BagGiveRequest(
+                bag: context.gameState.bag,
+                itemId: itemId,
+                quantity: quantity,
+                capacity: context.bagCapacity,
+                itemCatalog: context.itemCatalog,
+              ));
+              if (!given.isSuccess) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: runtimeBagGrantFailureMessage(given.failure!),
+                );
+              }
+              final nextItemState = context.gameState.copyWith(bag: given.bag);
               context.gameState = nextItemState;
               context.onGameStateUpdated(nextItemState);
               final nextAfterItem = _pickLinearNextNodeId(

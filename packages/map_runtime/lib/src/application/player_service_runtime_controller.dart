@@ -176,6 +176,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimeMoveMachineLoader? moveMachineLoader,
     RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
     ItemCatalogSnapshot? itemCatalog,
+    this.bagCapacity = const ProjectBagCapacity.unlimited(),
     RuntimeItemCatalogLoader itemCatalogLoader =
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
@@ -212,6 +213,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimeMoveMachineLoader? moveMachineLoader,
     RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
     ItemCatalogSnapshot? itemCatalog,
+    this.bagCapacity = const ProjectBagCapacity.unlimited(),
     RuntimeItemCatalogLoader itemCatalogLoader =
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
@@ -286,6 +288,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final String? _projectRootDirectory;
   final ProjectPokemonConfig? _pokemonConfig;
   ItemCatalogSnapshot? _itemCatalog;
+  final ProjectBagCapacity bagCapacity;
   final RuntimeItemCatalogLoader _itemCatalogLoader;
   final RuntimePokemonEvolutionLoader _evolutionLoader;
   final RuntimeMoveMachineLoader _moveMachineLoader;
@@ -1096,16 +1099,27 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final partyIndex = _partyIndexFromTarget(state, command.partyTargetId);
     if (command.kind == RuntimePlayerPauseCommandKind.unequipHeldItem &&
         partyIndex != null) {
+      final itemCatalog = await _resolveItemCatalog();
+      if (_currentGameState() != state || _pauseMutationRefusal() != null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cette cible n’est plus disponible.',
+        );
+      }
       final individualId = state.party.members[partyIndex].individualId;
       return _applyHeldItemTransfer(
         individualId.isEmpty
             ? const HeldItemOperations().unequip(
                 state,
                 partyIndex: partyIndex,
+                bagCapacity: bagCapacity,
+                itemCatalog: itemCatalog,
               )
             : const HeldItemOperations().unequipByIndividualId(
                 state,
                 individualId: individualId,
+                bagCapacity: bagCapacity,
+                itemCatalog: itemCatalog,
               ),
       );
     }
@@ -1306,11 +1320,15 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                 state,
                 partyIndex: partyIndex,
                 itemId: definition.id,
+                bagCapacity: bagCapacity,
+                itemCatalog: itemCatalog,
               )
             : const HeldItemOperations().equipByIndividualId(
                 state,
                 individualId: individualId,
                 itemId: definition.id,
+                bagCapacity: bagCapacity,
+                itemCatalog: itemCatalog,
               ),
       );
     }
@@ -1432,6 +1450,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             'Ce Pokémon tient déjà cet objet.',
           HeldItemTransferFailure.quantityOverflow =>
             'Le sac ne peut pas récupérer l’objet actuellement tenu.',
+          HeldItemTransferFailure.bagFull =>
+            'Le sac est plein pour cet objet. Libérez de la place avant de le récupérer.',
+          HeldItemTransferFailure.missingItemCatalog ||
+          HeldItemTransferFailure.unknownItem =>
+            'Le catalogue des objets ne permet pas de vérifier la place dans le sac.',
         },
       );
     }
@@ -2644,15 +2667,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: 'Sélectionnez un objet.',
       );
     }
-    final result = const GameStateMutations().purchaseFromResolvedShop(
-      session.gameState,
-      shop: session.request.shop,
-      expectedStateId: session.resolved.stateId,
-      itemId: itemId,
-      quantity: quantity,
-      itemCatalog: session.itemCatalog,
-      conditionContext: session.request.conditionContext,
-    );
+    final result = _previewShopPurchase(session, itemId, quantity);
     if (!result.isSuccess) {
       final message = _shopFailureMessage(result.failure!);
       _publishWorldService(
@@ -2682,6 +2697,23 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     );
     return const RuntimeWorldServiceCommandResult(
       status: RuntimeWorldServiceCommandStatus.accepted,
+    );
+  }
+
+  ShopPurchaseResult _previewShopPurchase(
+    _ContextualShopSession session,
+    String itemId,
+    int quantity,
+  ) {
+    return const GameStateMutations().purchaseFromResolvedShop(
+      session.gameState,
+      shop: session.request.shop,
+      expectedStateId: session.resolved.stateId,
+      itemId: itemId,
+      quantity: quantity,
+      itemCatalog: session.itemCatalog,
+      bagCapacity: bagCapacity,
+      conditionContext: session.request.conditionContext,
     );
   }
 
@@ -2751,14 +2783,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         .where((entry) => entry.itemId == session.selectedItemId)
         .firstOrNull;
     final totalPrice = (selected?.unitPrice ?? 0) * session.quantity;
+    final purchaseFailure =
+        session.mode == RuntimeShopMode.buy && selected != null
+        ? _previewShopPurchase(session, selected.itemId, session.quantity).failure
+        : null;
     final canTransact = session.resolved.isOpen &&
         selected != null &&
         selected.canTransact &&
         (session.mode == RuntimeShopMode.sell
             ? selected.ownedQuantity >= session.quantity
-            : (selected.remainingStock == null ||
-                    selected.remainingStock! >= session.quantity) &&
-                totalPrice <= session.gameState.trainerProfile.money);
+            : purchaseFailure == null);
     final confirmReason = !session.resolved.isOpen
         ? 'Cette boutique est fermée.'
         : selected == null
@@ -2771,12 +2805,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                     ? selected.ownedQuantity < session.quantity
                         ? 'Quantité possédée insuffisante.'
                         : null
-                    : selected.remainingStock != null &&
-                            selected.remainingStock! < session.quantity
-                        ? 'Stock insuffisant.'
-                        : totalPrice > session.gameState.trainerProfile.money
-                            ? 'Fonds insuffisants.'
-                            : null;
+                    : purchaseFailure == null
+                        ? null
+                        : _shopFailureMessage(purchaseFailure);
     return RuntimeWorldServiceSnapshot(
       revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
       request: session.request.worldRequest!,
@@ -2853,16 +2884,21 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     _ContextualShopSession session,
   ) {
     if (session.mode == RuntimeShopMode.buy) {
-      return session.resolved.entries
-          .map(
-            (entry) => RuntimeShopEntrySnapshot(
-              itemId: entry.itemId,
-              label: _shopItemLabel(entry.itemId),
-              unitPrice: entry.price,
-              remainingStock: _remainingShopStock(session, entry),
-            ),
-          )
-          .toList(growable: false);
+      return session.resolved.entries.map((entry) {
+        final capacityFailure = bagCapacity.pockets.isNotEmpty &&
+                _previewShopPurchase(session, entry.itemId, 1).failure ==
+                    ShopPurchaseFailure.bagFull
+            ? _shopFailureMessage(ShopPurchaseFailure.bagFull)
+            : null;
+        return RuntimeShopEntrySnapshot(
+          itemId: entry.itemId,
+          label: _shopItemLabel(entry.itemId),
+          unitPrice: entry.price,
+          remainingStock: _remainingShopStock(session, entry),
+          canTransact: capacityFailure == null,
+          unavailableReason: capacityFailure,
+        );
+      }).toList(growable: false);
     }
 
     return session.gameState.bag
@@ -2907,7 +2943,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         .firstOrNull;
     if (entry == null) return 1;
     final remaining = _remainingShopStock(session, entry);
-    return remaining == null ? 10 : remaining.clamp(1, 10);
+    final maximum = remaining == null ? 10 : remaining.clamp(1, 10);
+    for (var quantity = maximum; quantity > 1; quantity--) {
+      if (_previewShopPurchase(session, itemId, quantity).isSuccess) {
+        return quantity;
+      }
+    }
+    return 1;
   }
 
   int? _remainingShopStock(
@@ -3103,6 +3145,8 @@ String _shopFailureMessage(ShopPurchaseFailure failure) => switch (failure) {
   ShopPurchaseFailure.outOfStock => 'Stock insuffisant.',
   ShopPurchaseFailure.ownershipLimit =>
     'La quantité maximale possédée est atteinte.',
+  ShopPurchaseFailure.bagFull =>
+    'Le sac est plein pour cet achat. Libérez de la place avant de réessayer.',
   ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',
   ShopPurchaseFailure.shopStateChanged =>
     'La boutique a changé. Le catalogue a été actualisé.',

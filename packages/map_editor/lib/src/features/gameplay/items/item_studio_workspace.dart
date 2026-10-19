@@ -10,6 +10,7 @@ import 'item_catalog_list.dart';
 import 'item_definition_editor.dart';
 import 'item_readiness_panel.dart';
 import 'item_studio_gateway.dart';
+import 'bag_capacity_editor.dart';
 
 final class ItemStudioWorkspace extends ConsumerStatefulWidget {
   const ItemStudioWorkspace({super.key, this.projectRootPath, this.gateway});
@@ -34,6 +35,7 @@ final class _ItemStudioWorkspaceState
   bool _isSaving = false;
   bool _isUndoing = false;
   bool _isSimulating = false;
+  bool _itemDirty = false;
   Map<String, Object?>? _simulation;
 
   ItemStudioGateway get _gateway {
@@ -71,6 +73,9 @@ final class _ItemStudioWorkspaceState
           onCreate: _isSaving ? null : _create,
           onReload: _isSaving ? null : () => _reload(projectRootPath),
           onUndo: _lastReceiptId == null ? null : () => _undo(projectRootPath),
+          onCapacity: _isSaving || _isUndoing || _creating || _itemDirty
+              ? null
+              : () => _configureCapacity(projectRootPath),
         ),
         const SizedBox(height: 10),
         if (_operationError case final error?) ...[
@@ -127,7 +132,9 @@ final class _ItemStudioWorkspaceState
           readinessByItemId: catalog.readinessByItemId,
           selectedItemId: selectedId,
           onSelected: (itemId) => setState(() {
+            if (!_creating && itemId == selectedId) return;
             _selectedItemId = itemId;
+            _itemDirty = false;
             _creating = false;
             _simulation = null;
             _operationError = null;
@@ -186,9 +193,11 @@ final class _ItemStudioWorkspaceState
             heldEffectOptions: catalog.heldEffectOptions,
             moveOptions: catalog.moveOptions,
             isSaving: _isSaving,
+            onDirtyChanged: (dirty) => setState(() => _itemDirty = dirty),
             onCancel: _creating
                 ? () => setState(() {
                     _creating = false;
+                    _itemDirty = false;
                     _operationError = null;
                   })
                 : null,
@@ -224,8 +233,48 @@ final class _ItemStudioWorkspaceState
       _simulation = null;
       _operationError = null;
       _lastReceiptId = null;
+      _itemDirty = false;
     }
     return _snapshotFuture!;
+  }
+
+  Future<void> _configureCapacity(String projectRootPath) async {
+    if (_itemDirty || _creating || _isSaving || _isUndoing) return;
+    try {
+      final catalog = await _futureFor(projectRootPath);
+      if (!mounted ||
+          _loadedProjectRootPath != projectRootPath ||
+          _itemDirty ||
+          _creating) {
+        return;
+      }
+      final receipt = await showDialog<ItemStudioMutationReceipt>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => BagCapacityEditor(
+          initial: catalog.bagCapacity,
+          pocketIds: catalog.definitions.map(
+            (definition) => definition.pocketId,
+          ),
+          onSaved: (capacity) => _gateway.saveBagCapacity(
+            projectRootPath,
+            capacity: capacity,
+            snapshotRevision: catalog.snapshotRevision,
+          ),
+        ),
+      );
+      if (!mounted ||
+          receipt == null ||
+          _loadedProjectRootPath != projectRootPath) {
+        return;
+      }
+      setState(() {
+        _lastReceiptId = receipt.receiptId;
+        _snapshotFuture = _gateway.load(projectRootPath);
+      });
+    } on Object catch (failure) {
+      if (mounted) setState(() => _operationError = '$failure');
+    }
   }
 
   void _create() {
@@ -257,6 +306,7 @@ final class _ItemStudioWorkspaceState
       if (!mounted) return;
       _lastReceiptId = receipt.receiptId;
       _selectedItemId = definition.id;
+      _itemDirty = false;
       _creating = false;
       _simulation = null;
       _snapshotFuture = _gateway.load(projectRootPath);
@@ -280,6 +330,7 @@ final class _ItemStudioWorkspaceState
       if (!mounted) return;
       _lastReceiptId = null;
       _selectedItemId = null;
+      _itemDirty = false;
       _creating = false;
       _simulation = null;
       _snapshotFuture = _gateway.load(projectRootPath);
@@ -316,6 +367,7 @@ final class _ItemStudioWorkspaceState
 
   void _reload(String projectRootPath) {
     setState(() {
+      _itemDirty = false;
       _snapshotFuture = _gateway.load(projectRootPath);
       _simulation = null;
       _operationError = null;
@@ -340,6 +392,7 @@ final class _WorkspaceHeader extends StatelessWidget {
     required this.onCreate,
     required this.onReload,
     required this.onUndo,
+    required this.onCapacity,
   });
 
   final bool canUndo;
@@ -347,6 +400,7 @@ final class _WorkspaceHeader extends StatelessWidget {
   final VoidCallback? onCreate;
   final VoidCallback? onReload;
   final VoidCallback? onUndo;
+  final VoidCallback? onCapacity;
 
   @override
   Widget build(BuildContext context) {
@@ -375,6 +429,14 @@ final class _WorkspaceHeader extends StatelessWidget {
               ],
             ),
           ),
+          PokeMapButton(
+            key: const Key('item-studio-capacity-button'),
+            onPressed: onCapacity,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            child: const Text('Capacité du sac'),
+          ),
+          const SizedBox(width: 6),
           PokeMapButton(
             key: const Key('item-studio-reload-button'),
             onPressed: onReload,

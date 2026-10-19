@@ -667,6 +667,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         ),
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: bundle.manifest.pokemon,
+        bagCapacity: bundle.manifest.bagCapacity,
         conditionContext: ScriptEvaluationContext(
           narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
             bundle.manifest.facts,

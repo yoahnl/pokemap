@@ -170,6 +170,11 @@ _ProjectManifest _$ProjectManifestFromJson(
   newGame: json['newGame'] == null
       ? const ProjectNewGameConfig()
       : ProjectNewGameConfig.fromJson(json['newGame'] as Map<String, dynamic>),
+  bagCapacity: _readProjectBagCapacity(json, 'bagCapacity') == null
+      ? const ProjectBagCapacity.unlimited()
+      : _projectBagCapacityFromJson(
+          _readProjectBagCapacity(json, 'bagCapacity'),
+        ),
   presentation: json['presentation'] == null
       ? null
       : ProjectPresentationProfile.fromJson(
@@ -259,6 +264,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'battleTransitions': ?instance.battleTransitions?.toJson(),
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
+  'bagCapacity': ?_projectBagCapacityToJson(instance.bagCapacity),
   'presentation': ?instance.presentation?.toJson(),
   'regionalMap': ?instance.regionalMap?.toJson(),
   'presentationPresets': instance.presentationPresets

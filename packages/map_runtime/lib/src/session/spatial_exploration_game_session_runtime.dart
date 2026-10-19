@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 
 import '../application/load_runtime_map_bundle.dart';
 import '../application/runtime_project_catalog.dart';
+import '../application/runtime_item_catalog_loader.dart';
+import '../application/runtime_bag_capacity.dart';
 import '../application/narrative_runtime_activity_gate.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_map_bundle.dart';
@@ -255,6 +257,7 @@ final class SpatialExplorationGameSessionRuntime
 
   bool _mounted = false, _paused = false, _stopped = false, _disposed = false;
   bool _loadingStarted = false;
+  ItemCatalogSnapshot _bagItemCatalog = ItemCatalogSnapshot.empty();
   int _loadGeneration = 0;
   Future<void>? _mountFuture;
 
@@ -440,6 +443,7 @@ final class SpatialExplorationGameSessionRuntime
           _ensureGameplayActive();
           return SceneConsequenceRuntimeWriter(
               project: project,
+              itemCatalog: _bagItemCatalog,
               pokemonCatalog: pokemonCatalog,
               partyConditionContext: partyConditionContext,
               mapsById: _mapsById,
@@ -837,6 +841,16 @@ final class SpatialExplorationGameSessionRuntime
       if (bundle.map.id != mapId) {
         throw StateError('The preloaded map does not match the spatial state.');
       }
+      _bagItemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: manifest.pokemon,
+      );
+      _ensureLoadActive(generation);
+      ensureRuntimeBagCapacity(
+        state: state,
+        capacity: manifest.bagCapacity,
+        itemCatalog: _bagItemCatalog,
+      );
       reportProgress(const GameSessionLoadingProgress(
           stage: 'resources', current: 1, total: 3));
       _gameState = state;
@@ -1082,6 +1096,11 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   GameSessionCheckpoint _checkpointFromState(GameState state) {
+    ensureRuntimeBagCapacity(
+      state: state,
+      capacity: _session!.bundle.manifest.bagCapacity,
+      itemCatalog: _bagItemCatalog,
+    );
     return GameSessionCheckpoint(
         saveId: state.saveId,
         createdAt: _createdAt!,
@@ -1116,6 +1135,8 @@ final class SpatialExplorationGameSessionRuntime
         grantedCapabilities: descriptor.grantedCapabilities,
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: bundle.manifest.pokemon,
+        bagCapacity: bundle.manifest.bagCapacity,
+        itemCatalog: _bagItemCatalog,
         locale: descriptor.locale);
     services.setPauseMutationGuard(() =>
         _activityGate.activity == NarrativeRuntimeActivity.idle &&
@@ -1132,6 +1153,11 @@ final class SpatialExplorationGameSessionRuntime
 
   Future<void> _commitPlayerServiceState(GameState state) async {
     _ensureGameplayActive();
+    ensureRuntimeBagCapacity(
+      state: state,
+      capacity: _session!.bundle.manifest.bagCapacity,
+      itemCatalog: _bagItemCatalog,
+    );
     final normalized = normalizeLoadedGameState(state);
     if (_sceneStateWriter case final commit?) {
       commit(normalized);

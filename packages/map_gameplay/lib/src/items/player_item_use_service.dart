@@ -190,6 +190,10 @@ PlayerItemUseFailure _mapBagFailure(BagOperationFailure failure) {
       PlayerItemUseFailure.insufficientQuantity,
     BagOperationFailure.invalidItemId ||
     BagOperationFailure.invalidQuantity ||
+    BagOperationFailure.missingItemCatalog ||
+    BagOperationFailure.unknownItem ||
+    BagOperationFailure.pocketFull ||
+    BagOperationFailure.stackFull ||
     BagOperationFailure.quantityOverflow =>
       PlayerItemUseFailure.invalidRequest,
   };

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -12,6 +15,59 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame transactional load', () {
+    test('over-capacity save is refused atomically and a corrected save loads',
+        () async {
+      final root = await Directory.systemTemp.createTemp('bag-capacity-load-');
+      addTearDown(() => root.delete(recursive: true));
+      final catalog = File('${root.path}/data/pokemon/catalogs/items.json');
+      await catalog.parent.create(recursive: true);
+      await catalog.writeAsString(jsonEncode(
+        const ProjectItemCatalog(schemaVersion: 1, entries: [
+          ProjectItemDefinition(
+            id: 'supply',
+            displayName: 'Supply',
+            pocketId: 'supplies',
+          ),
+        ]).toJson(),
+      ));
+      RuntimeMapBundle bundle(String mapId) {
+        final base = _bundle(mapId);
+        return base.copyWith(
+          projectRootDirectory: root.path,
+          manifest: base.manifest.copyWith(
+            bagCapacity: const ProjectBagCapacity(
+              pockets: {'supplies': BagPocketCapacity(maxQuantityPerItem: 2)},
+            ),
+          ),
+        );
+      }
+
+      final saved = _targetState().copyWith(
+        bag: const Bag(entries: [BagEntry(itemId: 'supply', quantity: 3)]),
+      );
+      final repository = _MemoryGameSaveRepository(saved);
+      final game = _game(
+        repository: repository,
+        sourceBundle: bundle(_sourceMapId),
+        runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async =>
+            bundle(mapId),
+      );
+      addTearDown(game.onRemove);
+      await _load(game);
+      final before = game.gameStateSnapshot;
+      expect(await game.loadGame(), isFalse);
+      _expectSourceRuntimePreserved(game, before);
+      expect(repository.storedState, same(saved));
+      expect(repository.saveCount, 0);
+      expect(game.debugNotificationText, contains('sac'));
+      repository.storedState = saved.copyWith(
+        bag: const Bag(entries: [BagEntry(itemId: 'supply', quantity: 2)]),
+      );
+      expect(await game.loadGame(), isTrue);
+      expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
+      expect(game.gameStateSnapshot.currentMapId, _targetMapId);
+    });
+
     test('loads an earlier save without instances after the running world gains one', () async {
       final repository = _MemoryGameSaveRepository(null);
       final earlierGame = _game(

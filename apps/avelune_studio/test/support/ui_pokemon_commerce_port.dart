@@ -66,6 +66,18 @@ final class UiPokemonCommercePort implements PokemonCommercePort {
   ) => _serialWrite(() => source.saveItem(before, after));
 
   @override
+  Future<({String? refreshWarning})> saveBagCapacity(
+    ProjectBagCapacity before,
+    ProjectBagCapacity after,
+  ) async {
+    ({String? refreshWarning})? result;
+    await _serialWrite(() async {
+      result = await source.saveBagCapacity(before, after);
+    });
+    return result!;
+  }
+
+  @override
   Future<void> saveShop(ShopDefinition? before, ShopDefinition after) =>
       _serialWrite(() => source.saveShop(before, after));
 

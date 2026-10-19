@@ -67,6 +67,7 @@ export 'src/domains/gameplay/pokemon_catalog_actions.dart';
 export 'src/domains/gameplay/pokemon_ruleset_actions.dart';
 export 'src/domains/gameplay/campaign_content_actions.dart';
 export 'src/domains/gameplay/item_catalog_actions.dart';
+export 'src/domains/gameplay/bag_capacity_actions.dart';
 export 'src/domains/gameplay/character_studio/character_studio_resources.dart';
 export 'src/domains/gameplay/character_studio/character_studio_action_support.dart';
 export 'src/domains/gameplay/character_studio/character_studio_animation_clip_actions.dart';

@@ -1468,6 +1468,156 @@ void main() {
       );
     });
 
+    for (final withDecision in [false, true]) {
+      test('capacity rollback restores consumed battle items, decision=$withDecision',
+          () async {
+        final manifest = (await _writeProjectManifest(tempProjectRoot)).copyWith(
+          bagCapacity: const ProjectBagCapacity(
+            pockets: {'medicine': BagPocketCapacity(maxQuantityPerItem: 2)},
+          ),
+        );
+        final map = _buildMap();
+        final request = _wildRequest(manifest, map);
+        final initial = GameState(
+          saveId: 'capacity-battle-rollback',
+          bag: const Bag(entries: [BagEntry(itemId: 'potion', quantity: 2)]),
+          party: PlayerParty(members: [
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: withDecision
+                  ? const ['wrap', 'coil', 'vine_whip', 'scratch']
+                  : const ['wrap', 'coil'],
+              currentHp: 12,
+              experience: 1000,
+            ),
+          ]),
+        );
+        final repository = _CapacitySaveRepository(initial);
+        final game = PlayableMapGame(
+          bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+          projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+          saveData: saveDataFromGameState(initial),
+          saveRepository: repository,
+          runtimePlayerPokemonProgressionCatalogLoader:
+              _progressionCatalogsForScene,
+          postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
+            resolveReward: ({
+              required bundle,
+              required postWriteBackState,
+              required runtimeContext,
+              required outcome,
+            }) async {
+              final pending = await _pendingMoveLearningResolution(
+                bundle: bundle,
+                postWriteBackState: postWriteBackState,
+                runtimeContext: runtimeContext,
+                outcome: outcome,
+              );
+              final reward = BattleReward(
+                sourceKind: BattleRewardSourceKind.trainer,
+                trainerId: 'capacity-reward',
+                money: 100,
+                itemGrants: [
+                  BattleRewardItemGrant(itemId: 'potion', quantity: 2),
+                ],
+              );
+              final context = pending.progressionContext;
+              return RuntimeBattleRewardResolution(
+                baseState: postWriteBackState,
+                reward: reward,
+                progressionContext: context,
+                progression: const BattleProgressionService().apply(
+                  state: postWriteBackState,
+                  context: context,
+                  reward: reward,
+                  applyAuthoredRewards: false,
+                ),
+              );
+            },
+          ),
+        );
+        addTearDown(game.onRemove);
+        game.onGameResize(Vector2(640, 480));
+        await game.onLoad();
+        final before = strictGameStateSaveJson(game.gameStateSnapshot);
+        await game.debugOpenBattleForTest(request);
+        await game.debugWaitForBattleOverlaySync();
+        final overlay = game.debugBattleOverlayComponent!;
+        overlay.moveSelectionRight();
+        expect(overlay.validateSelectedChoice(), isTrue);
+        expect(overlay.validateSelectedChoice(), isTrue);
+        expect(overlay.validateSelectedChoice(), isTrue);
+        await game.debugWaitForBattleOverlaySync();
+        expect(game.gameStateSnapshot.bag.entries.single.quantity, 1);
+        expect(game.gameStateSnapshot.party.members.single.currentHp,
+            greaterThan(12));
+        expect(game.isBattleUiActive, isTrue);
+        expect(await game.saveGame(), isFalse);
+        expect(repository.saveCount, 0);
+        expect(await repository.load(), same(initial));
+        final battleState = game.debugBattleSessionSnapshot!.state;
+        final completion = game.debugStartPostBattleForTest(
+          context: RuntimeActiveBattleContext.withLineupMapping(
+            request: request,
+            playerPartyIndex: 0,
+            playerPartySlotIndicesByLineupIndex: const [0],
+          ),
+          outcome: BattleOutcome(
+            type: BattleOutcomeType.victory,
+            finalState: BattleState(
+              phase: BattlePhase.finished,
+              playerSide: battleState.playerSide,
+              enemySide: battleState.enemySide.withActive(
+                battleState.enemy.withDamage(battleState.enemy.currentHp),
+              ),
+              playerParticipantLineupIndexes:
+                  battleState.playerParticipantLineupIndexes,
+            ),
+          ),
+        );
+        var sawDecision = false;
+        for (var frame = 0;
+            frame < 320 && game.debugFlowPhaseName != 'overworld';
+            frame++) {
+          game.update(.25);
+          await Future<void>.delayed(Duration.zero);
+          if (game.debugPostBattleOverlayMounted) {
+            game.debugValidatePostBattleChoice();
+          } else {
+            sawDecision = sawDecision ||
+                (game.debugBattleOverlayComponent?.hasPostBattleDecision ?? false);
+            game.debugBattleOverlayComponent?.validateSelectedChoice();
+          }
+        }
+        await completion;
+        expect(sawDecision, withDecision);
+        expect(game.debugFlowPhaseName, 'overworld');
+        expect(game.debugIsGameplayInputLocked, isFalse);
+        expect(game.canCapturePlayerCheckpoint, isTrue);
+        expect(game.debugNotificationText, contains('sac'));
+        expect(strictGameStateSaveJson(game.gameStateSnapshot), before);
+        expect(repository.saveCount, 0);
+        expect(await repository.load(), same(initial));
+        expect(await game.saveGame(), isTrue);
+        final persisted = (await repository.load())!;
+        final reloaded = PlayableMapGame(
+          bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+          projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+          saveData: saveDataFromGameState(persisted),
+          saveRepository: repository,
+          runtimePlayerPokemonProgressionCatalogLoader:
+              _progressionCatalogsForScene,
+        );
+        addTearDown(reloaded.onRemove);
+        reloaded.onGameResize(Vector2(640, 480));
+        await reloaded.onLoad();
+        expect(strictGameStateSaveJson(reloaded.gameStateSnapshot), before);
+      });
+    }
+
     test('PlayableMapGame can run from a PSDK battle', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -2910,6 +3060,28 @@ Future<int> _framesToFinishTurnPresentation({
     frames += 1;
   }
   return frames;
+}
+
+final class _CapacitySaveRepository implements GameSaveRepository {
+  _CapacitySaveRepository(this.state);
+
+  GameState? state;
+  int saveCount = 0;
+
+  @override
+  Future<GameState?> load() async => state;
+
+  @override
+  Future<void> save(GameState next) async {
+    saveCount++;
+    state = next;
+  }
+
+  @override
+  Future<bool> exists() async => state != null;
+
+  @override
+  Future<void> delete() async => state = null;
 }
 
 /// Jeu qui se déclare chargé, pour que le routage des entrées s'exécute.

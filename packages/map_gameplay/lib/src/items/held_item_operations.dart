@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 
 import 'bag_operations.dart';
+import 'bag_operation_result.dart';
+import 'item_catalog_snapshot.dart';
 
 enum HeldItemTransferStatus { equipped, swapped, unequipped, failed }
 
@@ -11,6 +13,9 @@ enum HeldItemTransferFailure {
   noHeldItem,
   alreadyEquipped,
   quantityOverflow,
+  bagFull,
+  missingItemCatalog,
+  unknownItem,
 }
 
 final class HeldItemTransferResult {
@@ -38,6 +43,8 @@ final class HeldItemOperations {
     GameState state, {
     required int partyIndex,
     required String itemId,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ItemCatalogSnapshot? itemCatalog,
   }) {
     final normalizedItemId = itemId.trim();
     if (normalizedItemId.isEmpty) {
@@ -70,10 +77,12 @@ final class HeldItemOperations {
           bag: nextBag,
           itemId: currentItemId,
           quantity: 1,
+          capacity: bagCapacity,
+          itemCatalog: itemCatalog,
         ),
       );
       if (!returned.isSuccess) {
-        return _failed(state, HeldItemTransferFailure.quantityOverflow);
+        return _failed(state, _returnFailure(returned.failure));
       }
       nextBag = returned.bag;
     }
@@ -96,17 +105,25 @@ final class HeldItemOperations {
     GameState state, {
     required String individualId,
     required String itemId,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ItemCatalogSnapshot? itemCatalog,
   }) {
     final partyIndex = _partyIndexByIndividualId(state, individualId);
     if (partyIndex == null) {
       return _failed(state, HeldItemTransferFailure.invalidTarget);
     }
-    return equip(state, partyIndex: partyIndex, itemId: itemId);
+    return equip(state,
+        partyIndex: partyIndex,
+        itemId: itemId,
+        bagCapacity: bagCapacity,
+        itemCatalog: itemCatalog);
   }
 
   HeldItemTransferResult unequip(
     GameState state, {
     required int partyIndex,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ItemCatalogSnapshot? itemCatalog,
   }) {
     if (!_isValidTarget(state, partyIndex)) {
       return _failed(state, HeldItemTransferFailure.invalidTarget);
@@ -121,10 +138,12 @@ final class HeldItemOperations {
         bag: state.bag,
         itemId: currentItemId,
         quantity: 1,
+        capacity: bagCapacity,
+        itemCatalog: itemCatalog,
       ),
     );
     if (!returned.isSuccess) {
-      return _failed(state, HeldItemTransferFailure.quantityOverflow);
+      return _failed(state, _returnFailure(returned.failure));
     }
 
     final members = [...state.party.members];
@@ -142,13 +161,29 @@ final class HeldItemOperations {
   HeldItemTransferResult unequipByIndividualId(
     GameState state, {
     required String individualId,
+    ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ItemCatalogSnapshot? itemCatalog,
   }) {
     final partyIndex = _partyIndexByIndividualId(state, individualId);
     if (partyIndex == null) {
       return _failed(state, HeldItemTransferFailure.invalidTarget);
     }
-    return unequip(state, partyIndex: partyIndex);
+    return unequip(state,
+        partyIndex: partyIndex,
+        bagCapacity: bagCapacity,
+        itemCatalog: itemCatalog);
   }
+
+  HeldItemTransferFailure _returnFailure(BagOperationFailure? failure) =>
+      switch (failure) {
+        BagOperationFailure.pocketFull ||
+        BagOperationFailure.stackFull =>
+          HeldItemTransferFailure.bagFull,
+        BagOperationFailure.missingItemCatalog =>
+          HeldItemTransferFailure.missingItemCatalog,
+        BagOperationFailure.unknownItem => HeldItemTransferFailure.unknownItem,
+        _ => HeldItemTransferFailure.quantityOverflow,
+      };
 
   bool _isValidTarget(GameState state, int partyIndex) {
     return partyIndex >= 0 && partyIndex < state.party.members.length;

@@ -37,6 +37,7 @@ import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/gameplay/pokemon_media_import_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
+import '../domains/gameplay/bag_capacity_actions.dart';
 import '../domains/gameplay/campaign_content_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_animation_definition_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_animation_clip_actions.dart';
@@ -180,6 +181,7 @@ final class MapMutationDispatcher {
     const pokemonCatalogs = PokemonCatalogActions();
     const pokemonRuleset = PokemonRulesetActions();
     const itemCatalog = ItemCatalogActions();
+    const bagCapacity = BagCapacityActions();
     const campaignContent = CampaignContentActions();
     const characterStudioAnimationDefinitions =
         CharacterStudioAnimationDefinitionActions();
@@ -440,6 +442,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: itemCatalog.build,
+        ),
+      for (final descriptor in BagCapacityActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: bagCapacity.build,
         ),
       for (final descriptor in CampaignContentActions.descriptors)
         MapMutationActionRegistration(

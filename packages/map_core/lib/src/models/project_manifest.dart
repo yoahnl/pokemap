@@ -16,6 +16,7 @@ import 'rail_journey.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'pokemon_ruleset_profile.dart';
+import 'project_bag_capacity.dart';
 import 'save_data.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
@@ -50,6 +51,21 @@ part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
 
 const Object _explicitNullProjectBorderCatalog = Object();
+const Object _explicitNullProjectBagCapacity = Object();
+
+Object? _readProjectBagCapacity(Map json, String key) =>
+    json.containsKey(key) ? json[key] ?? _explicitNullProjectBagCapacity : null;
+
+ProjectBagCapacity _projectBagCapacityFromJson(Object? json) {
+  if (json == null) return const ProjectBagCapacity.unlimited();
+  if (json is! Map || json.keys.any((key) => key is! String)) {
+    throw const FormatException(r'$.bagCapacity: expected an object');
+  }
+  return ProjectBagCapacity.fromJson(Map<String, dynamic>.from(json));
+}
+
+Map<String, dynamic>? _projectBagCapacityToJson(ProjectBagCapacity capacity) =>
+    capacity.isUnlimited ? null : capacity.toJson();
 
 Object? _readProjectBorderCatalog(Map json, String key) {
   if (!json.containsKey(key)) {
@@ -511,6 +527,14 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default(ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1))
     ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
+    @Default(ProjectBagCapacity.unlimited())
+    @JsonKey(
+      readValue: _readProjectBagCapacity,
+      fromJson: _projectBagCapacityFromJson,
+      toJson: _projectBagCapacityToJson,
+      includeIfNull: false,
+    )
+    ProjectBagCapacity bagCapacity,
     @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
     @JsonKey(includeIfNull: false) ProjectRegionalMapCatalog? regionalMap,
     @Default([]) List<ProjectPresentationPresetRecord> presentationPresets,

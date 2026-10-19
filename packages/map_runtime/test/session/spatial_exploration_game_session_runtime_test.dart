@@ -116,6 +116,55 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  for (final continueGame in [false, true]) {
+    test('capacity rejects spatial boot before mount, continue=$continueGame',
+        () async {
+      await runtime.dispose();
+      bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+          bagCapacity: const ProjectBagCapacity(
+            pockets: {'supplies': BagPocketCapacity(maxQuantityPerItem: 2)},
+          ),
+        ),
+      );
+      final catalog = File('${root.path}/data/pokemon/catalogs/items.json');
+      await catalog.parent.create(recursive: true);
+      await catalog.writeAsString(jsonEncode(
+        const ProjectItemCatalog(schemaVersion: 1, entries: [
+          ProjectItemDefinition(
+            id: 'supply',
+            displayName: 'Supply',
+            pocketId: 'supplies',
+          ),
+        ]).toJson(),
+      ));
+      final state = descriptor().initialGameState!.copyWith(
+        bag: const Bag(entries: [BagEntry(itemId: 'supply', quantity: 3)]),
+      );
+      final save = spatialSave(state);
+      runtime = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(continueGame: continueGame, initialState: state),
+        projectFilePath: () async => '${root.path}/project.json',
+        initialSave: () async => continueGame ? save : null,
+        preloadedInitialMap: (
+                {required projectFilePath,
+                required descriptor,
+                required initialSave}) async =>
+            RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async => mounts++,
+        unmountSession: (_) async => unmounts++,
+      );
+      await expectLater(
+        runtime.load((_) {}),
+        throwsA(isA<StateError>().having(
+            (error) => error.message, 'message', contains('sac'))),
+      );
+      expect(mounts, 0);
+      expect(runtime.session, isNull);
+      expect(save.state['bag'], state.bag.toJson());
+    });
+  }
+
   test('primary opens one dialogue, locks sprint and rejects stale commands',
       () async {
     await runtime.load((_) {});

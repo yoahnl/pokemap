@@ -51,6 +51,8 @@ export 'src/models/map_visual_stack_config.dart';
 export 'src/models/project_battle_audio.dart';
 export 'src/models/project_battle_transitions.dart';
 export 'src/models/project_manifest.dart';
+export 'src/models/project_bag_capacity.dart';
+export 'src/operations/bag_capacity_validation.dart';
 export 'src/models/resource_library_catalog.dart';
 export 'src/operations/resource_library_operations.dart';
 export 'src/operations/character_studio_readiness.dart';

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 /// Types de sources runtime supportées par l'exécuteur MVP du graphe scénario.
 ///
@@ -279,9 +280,13 @@ class ScenarioRuntimeExecutionContext {
     this.shouldSkipScenario,
     this.deferOutcomeDispatch = false,
     this.onOutcomeEmitted,
+    this.bagCapacity = const ProjectBagCapacity.unlimited(),
+    this.itemCatalog,
   });
 
   GameState gameState;
+  final ProjectBagCapacity bagCapacity;
+  final ItemCatalogSnapshot? itemCatalog;
   final String executionId;
   final void Function(GameState) onGameStateUpdated;
   final ScenarioRuntimeOpenDialogue openDialogue;

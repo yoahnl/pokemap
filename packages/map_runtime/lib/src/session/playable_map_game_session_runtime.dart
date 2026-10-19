@@ -9,6 +9,8 @@ import '../application/dialogue_portrait_resolver.dart';
 import '../application/map_activation.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/runtime_project_catalog.dart';
+import '../application/runtime_item_catalog_loader.dart';
+import '../application/runtime_bag_capacity.dart';
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_move_catalog_loader.dart';
@@ -110,6 +112,8 @@ final class PlayableMapGameSessionRuntime
   String? _projectRootDirectory;
   DialoguePortraitResolver? _pausePortraitResolver;
   ProjectPokemonConfig? _pokemonConfig;
+  ProjectBagCapacity _bagCapacity = const ProjectBagCapacity.unlimited();
+  ItemCatalogSnapshot _bagItemCatalog = ItemCatalogSnapshot.empty();
   List<ProjectMapEntry> _projectMaps = const <ProjectMapEntry>[];
   ProjectRegionalMapCatalog? _regionalMap;
   List<BadgeDefinition> _projectBadges = const [];
@@ -293,6 +297,20 @@ final class PlayableMapGameSessionRuntime
       }
       _ensureNotDisposed();
       _projectRootDirectory = bundle.projectRootDirectory;
+      _bagCapacity = bundle.manifest.bagCapacity;
+      if (bundle.manifest.bagCapacity.pockets.isNotEmpty) {
+        final itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        );
+        _ensureNotDisposed();
+        _bagItemCatalog = itemCatalog;
+        ensureRuntimeBagCapacity(
+          state: initialState,
+          capacity: bundle.manifest.bagCapacity,
+          itemCatalog: itemCatalog,
+        );
+      }
       _pausePortraitResolver = DialoguePortraitResolver(
         manifest: bundle.manifest,
         projectRootDirectory: bundle.projectRootDirectory,
@@ -399,6 +417,7 @@ final class PlayableMapGameSessionRuntime
         grantedCapabilities: descriptor.grantedCapabilities,
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: bundle.manifest.pokemon,
+        bagCapacity: bundle.manifest.bagCapacity,
         locale: descriptor.locale,
       );
       _playerServices = playerServices;
@@ -546,13 +565,18 @@ final class PlayableMapGameSessionRuntime
   @override
   Future<GameSessionCheckpoint?> captureCheckpoint() async {
     final game = _requireGame();
-    if (!game.canCapturePlayerCheckpoint) return null;
+    if (!game.canCapturePlayerCheckpoint || game.isBattleUiActive) return null;
     final saveId = _saveId!;
     final state = game.gameStateSnapshot.copyWith(saveId: saveId);
     return _checkpointFromState(state);
   }
 
   GameSessionCheckpoint _checkpointFromState(GameState state) {
+    ensureRuntimeBagCapacity(
+      state: state,
+      capacity: _bagCapacity,
+      itemCatalog: _bagItemCatalog,
+    );
     final updatedAt = _now().toUtc();
     return GameSessionCheckpoint(
       saveId: state.saveId,

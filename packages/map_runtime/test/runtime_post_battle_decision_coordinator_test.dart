@@ -6,6 +6,108 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimePostBattleDecisionCoordinator', () {
+    test('full bag rolls back victory and remains retryable after making space',
+        () async {
+      final base = _state().copyWith(
+        bag: const Bag(entries: [BagEntry(itemId: 'potion', quantity: 1)]),
+      );
+      final before = strictGameStateSaveJson(base);
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _multiLevelAutomaticMoveResolution,
+      );
+      final rejected = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _capacityBundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(rejected.isSuccess, isFalse);
+      expect(rejected.transaction, isNull);
+      expect(rejected.failure!.originalState, same(base));
+      expect(rejected.failure!.message, contains('sac'));
+      expect(strictGameStateSaveJson(base), before);
+      expect(base.completedBattleRequestIds, isEmpty);
+      expect(base.storyFlags.activeFlags, isEmpty);
+      expect(base.trainerProfile.money, 0);
+      expect(base.party.members.single.currentHp, 15);
+      expect(base.party.members.single.currentPpByMoveId!['tackle'], 35);
+      final space = const BagOperations().take(
+        BagTakeRequest(bag: base.bag, itemId: 'potion', quantity: 1),
+      );
+      final retryBase = gameStateFromStrictSaveJson(
+        strictGameStateSaveJson(base.copyWith(bag: space.bag)),
+      );
+      final retried = await coordinator.begin(
+        transactionBaseState: retryBase,
+        bundle: _capacityBundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(retried.isSuccess, isTrue);
+      expect(retried.transaction!.finalState!.bag.entries.single.quantity, 2);
+      expect(retried.transaction!.finalState!.trainerProfile.money, 480);
+      expect(retried.transaction!.finalState!.completedBattleRequestIds,
+          contains(_trainerRequest().requestId));
+    });
+
+    test('capacity refusal after decisions preserves the original full state',
+        () async {
+      final base = _state(knownMoves: const [
+        'tackle',
+        'growl',
+        'tail_whip',
+        'focus_energy',
+      ]).copyWith(
+        bag: const Bag(entries: [BagEntry(itemId: 'potion', quantity: 1)]),
+      );
+      final before = strictGameStateSaveJson(base);
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _trainerResolutionWithPendingMoveAndEvolution,
+      );
+      final started = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _capacityBundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(started.isSuccess, isTrue);
+      final transaction = started.transaction!;
+      final move = transaction.pendingMoveLearning!;
+      final declined = coordinator.resolveMoveLearning(
+        transaction: transaction,
+        decision: BattleMoveLearningDecision.decline(
+          opportunityId: move.opportunityId,
+          partySlot: move.partySlot,
+          moveId: move.candidate.moveId,
+        ),
+      );
+      expect(declined.isSuccess, isTrue);
+      final evolutionTransaction = declined.transaction!;
+      final evolution = evolutionTransaction.pendingEvolution!;
+      final rejected = coordinator.resolveEvolution(
+        transaction: evolutionTransaction,
+        decision: BattleEvolutionDecision.refuse(
+          opportunityId: evolution.opportunityId,
+          occurrenceId: evolution.occurrenceId,
+          partySlot: evolution.partySlot,
+          sourceSpeciesId: evolution.sourceSpeciesId,
+          targetSpeciesId: evolution.targetSpeciesId,
+        ),
+      );
+      expect(rejected.isSuccess, isFalse);
+      expect(rejected.failure!.code,
+          RuntimePostBattleCoordinatorFailureCode.rewardResolution);
+      expect(rejected.failure!.message, contains('sac'));
+      expect(rejected.failure!.originalState, same(base));
+      expect(rejected.transaction!.finalState, isNull);
+      expect(strictGameStateSaveJson(base), before);
+      expect(base.completedBattleRequestIds, isEmpty);
+      expect(base.storyFlags.activeFlags, isEmpty);
+    });
+
     test(
         'recette 2026-08-24 : les prompts parlent les noms affichables, pas '
         'les identifiants', () async {
@@ -1081,6 +1183,17 @@ RuntimeMapBundle _bundle() {
     ),
     projectRootDirectory: '/tmp/coordinator-fixture',
     tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+RuntimeMapBundle _capacityBundle() {
+  final bundle = _bundle();
+  return bundle.copyWith(
+    manifest: bundle.manifest.copyWith(
+      bagCapacity: const ProjectBagCapacity(
+        pockets: {'medicine': BagPocketCapacity(maxQuantityPerItem: 2)},
+      ),
+    ),
   );
 }
 
