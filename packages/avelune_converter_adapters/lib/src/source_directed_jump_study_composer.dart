@@ -420,18 +420,11 @@ Future<SourceBorderMutationReplay> replaySourceBorderMutation({
     planId: mutation.operationId.value,
     seed: 0,
   );
-  final store = MemoryArtifactStore(
-    maximumArtifactBytes: limits.maxArtifactBytes,
+  final store = _BorderArtifactStore(
+    mutation.actionId == 'border.blueprint.publish' ? artifacts : const [],
+    limits.maxArtifactBytes,
+    cancellation,
   );
-  if (mutation.actionId == 'border.blueprint.publish') {
-    for (final artifact in artifacts) {
-      cancellation?.check();
-      await store.put(
-        artifact.bytes,
-        declaredMediaType: artifact.reference.mediaType,
-      );
-    }
-  }
   cancellation?.check();
   final draft = mutation.actionId.startsWith('border.')
       ? await BorderCatalogActions(artifactStore: store).build(context)
@@ -444,6 +437,60 @@ Future<SourceBorderMutationReplay> replaySourceBorderMutation({
     limits: limits,
     cancellation: cancellation,
   );
+}
+
+final class _BorderArtifactStore implements ArtifactStore {
+  _BorderArtifactStore(Iterable<NativeArtifact> artifacts, int maximumArtifactBytes,
+      ScanCancellation? cancellation) {
+    final maximum = maximumArtifactBytes < maximumAuthoringArtifactBytesV1
+        ? maximumArtifactBytes : maximumAuthoringArtifactBytesV1;
+    for (final artifact in artifacts) {
+      cancellation?.check();
+      if (artifact.bytes.length > maximum) {
+        throw const ArtifactStoreException('artifact.too_large',
+            'The artifact exceeds the configured byte limit.');
+      }
+      final inspected = sniffArtifactMediaType(artifact.bytes);
+      if (inspected != 'application/octet-stream' &&
+          inspected != artifact.reference.mediaType) {
+        throw const ArtifactStoreException('artifact.mime_mismatch',
+            'The declared media type conflicts with the inspected bytes.');
+      }
+      _artifacts.putIfAbsent(artifact.handle, () => artifact);
+    }
+  }
+
+  final _artifacts = <String, NativeArtifact>{};
+
+  @override
+  ContentArtifactRef? inspect(String handle) => _artifacts[handle]?.reference;
+
+  @override
+  Future<List<int>> read(String handle) async {
+    final artifact = _artifacts[handle];
+    if (artifact == null) {
+      throw const ArtifactStoreException('artifact.unknown',
+          'The artifact handle is unknown or has expired.');
+    }
+    return artifact.bytes;
+  }
+
+  @override
+  List<ContentArtifactRef> list() => List.unmodifiable(
+      _artifacts.values.map((artifact) => artifact.reference).toList()
+        ..sort((left, right) => left.handle.compareTo(right.handle)));
+
+  @override
+  Future<StoredArtifact> put(List<int> bytes, {String? declaredMediaType}) async {
+    throw const ArtifactStoreException('artifact.read_only',
+        'Source Border replay reads previously admitted immutable artifacts.');
+  }
+
+  @override
+  Future<bool> release(String handle) async {
+    throw const ArtifactStoreException('artifact.read_only',
+        'Source Border replay retains its admitted immutable artifacts.');
+  }
 }
 
 final class SourceDirectedJumpStudyComposer {

@@ -55,6 +55,30 @@ void main() {
     expect(result.resources.blobs, hasLength(1));
   });
 
+  test('publication still refuses an unused source artifact with a false MIME',
+      () async {
+    final artifact = NativeArtifact(bytes: utf8.encode('{}'));
+    await expectLater(publishPair(additionalArtifacts: [artifact]),
+        throwsA(isA<ArtifactStoreException>().having(
+            (error) => error.code, 'code', 'artifact.mime_mismatch')));
+  });
+
+  test('publication still checks unused source artifacts against its byte limit',
+      () async {
+    final artifact = NativeArtifact(bytes: List<int>.filled(2048, 0));
+    await expectLater(publishPair(additionalArtifacts: [artifact],
+        limits: const NativeWriteLimits(maxArtifactBytes: 1024)),
+        throwsA(isA<ArtifactStoreException>().having(
+            (error) => error.code, 'code', 'artifact.too_large')));
+  });
+
+  test('publication refuses a valid handle that was never staged', () async {
+    final absent = NativeArtifact(bytes: [1, 2, 3]);
+    await expectLater(publishPair(sourceFrameHandle: absent.handle),
+        throwsA(isA<MapAuthoringException>().having(
+            (error) => error.code, 'code', 'artifact.unknown')));
+  });
+
   test('resource replay refuses unexpected kinds, identities and paths', () {
     final blob =
         ContentArtifactRef.fromBytes([1, 2, 3], mediaType: 'image/png');
@@ -240,7 +264,10 @@ void main() {
 
 Future<SourceBorderMutationReplay> publishPair(
     {void Function(SourceBorderMutationReplay)? onPublication,
-    bool sharedPixels = false}) async {
+    bool sharedPixels = false,
+    List<NativeArtifact> additionalArtifacts = const [],
+    String? sourceFrameHandle,
+    NativeWriteLimits limits = const NativeWriteLimits()}) async {
   var project = ProjectManifest(
     name: 'Border replay',
     version: ProjectVersion.v8,
@@ -325,7 +352,7 @@ Future<SourceBorderMutationReplay> publishPair(
               'primitiveId': 'south-$i',
               'frames': [
                 {
-                  'artifactHandle': artifact.handle,
+                  'artifactHandle': sourceFrameHandle ?? artifact.handle,
                   'sourceProjectRelativePath': 'assets/source.png'
                 }
               ]
@@ -343,7 +370,8 @@ Future<SourceBorderMutationReplay> publishPair(
               sourceEntityIds: const [],
               targetEntityIds: const [],
               parameters: action.$2),
-          artifacts: [artifact],
+          artifacts: [artifact, ...additionalArtifacts],
+          limits: limits,
           resources: result?.resources);
       project = result.project;
       if (action.$1 == 'border.blueprint.publish') onPublication?.call(result);
