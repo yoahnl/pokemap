@@ -88,6 +88,33 @@ Future<SourceEventAnalysis> _analyze(String family,
 }
 
 void main() {
+  test('automatic center families survive absent and mixed declarations', () async {
+    final binding = _bindings().singleWhere((row) => row['family'] == 'centerPc');
+    final pages = (binding['pages'] as Map).values.cast<Map>().toList();
+    for (final page in pages) {
+      (page['graphic'] as Map)['tile_id'] = 0;
+    }
+    final fixture = await createDeclaredProgramFixture(
+        namespace: 'automatic-mixed-program-families',
+        profile: syntheticSourceInterpretationProfile,
+        maps: {17: [DeclaredProgramFixtureEvent(id: 19, name: 'PC', x: 2, y: 3,
+          pages: pages.map((page) => Map<String, Object?>.from(page)).toList())]});
+    final profile = SourceEventProfile.forProject(fixture.source);
+    final event = fixture.source.maps.single.map.events.single;
+    for (final families in [
+      {SourceDeclaredProgramFamily.centerPc},
+      {SourceDeclaredProgramFamily.partyTrade, SourceDeclaredProgramFamily.centerPc},
+    ]) {
+      final match = matchSourceDeclaredProgram(source: fixture.source,
+          profile: profile, sourceMapId: 17, event: event, families: families);
+      expect(match?.binding.family, SourceDeclaredProgramFamily.centerPc);
+      expect(match?.automaticallyDiscovered, isTrue);
+    }
+    expect(matchSourceDeclaredProgram(source: fixture.source, profile: profile,
+        sourceMapId: 17, event: event,
+        families: {SourceDeclaredProgramFamily.partyTrade}), isNull);
+  });
+
   test('a declared binding elsewhere does not suppress automatic PC discovery',
       () async {
     final raw = syntheticSourceInterpretationProfile.toJson();

@@ -1097,19 +1097,24 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
   final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
   if (!analyzer._isQualified) return null;
   try {
+    final declared = profile.interpretationProfile?.declaredPrograms ??
+        const <SourceDeclaredProgramBinding>[];
+    final supportsAutomatic = families.any((family) => const {
+      SourceDeclaredProgramFamily.centerNurse,
+      SourceDeclaredProgramFamily.centerPc,
+      SourceDeclaredProgramFamily.healingDisplay,
+    }.contains(family));
+    if (!supportsAutomatic &&
+        !declared.any((binding) => families.contains(binding.family))) {
+      return null;
+    }
     final raw = _externalWarpRawEvent(analyzer, sourceMapId, event);
     if (raw?.value is! Map) return null;
     final pages = (raw!.value as Map)['pages'];
     if (pages is! List || pages.length != event.pages.length) return null;
     final encodedPages = [for (final page in pages) canonicalJsonOf(page)];
     final matches = <SourceDeclaredProgramMatch>[];
-    final declared = profile.interpretationProfile?.declaredPrograms ??
-        const <SourceDeclaredProgramBinding>[];
-    final automatic = families.any((family) => const {
-                  SourceDeclaredProgramFamily.centerNurse,
-                  SourceDeclaredProgramFamily.centerPc,
-                  SourceDeclaredProgramFamily.healingDisplay,
-                }.contains(family)) &&
+    final automatic = supportsAutomatic &&
             !declared.any((binding) =>
                 families.contains(binding.family) &&
                 binding.pages.length == pages.length &&
