@@ -310,6 +310,106 @@ void main() {
     expect((await _read(_fixture())).depthOffsetPx, 0);
   });
 
+  for (final size in [
+    (127, 192, 64),
+    (129, 192, 64),
+    (128, 129, 64),
+    (129, 257, 64),
+    (129, 258, 64),
+    (129, 259, 64),
+    (129, 260, 96),
+    (129, 263, 96),
+    (255, 383, 96),
+    (4, 4, 64),
+    (256, 384, 96),
+  ]) {
+    test('preserves sixteen integer frames from ${size.$1}x${size.$2}',
+        () async {
+      final fixture = _fixture(width: size.$1, height: size.$2);
+      final imported = await _read(fixture);
+      final original = image.decodePng(Uint8List.fromList(imported.imageBytes))!;
+      final native = image.decodePng(Uint8List.fromList(imported.outputBytes))!;
+      final frameWidth = size.$1 ~/ 4;
+      final frameHeight = size.$2 ~/ 4;
+      final offsetX = 32 - frameWidth ~/ 2;
+      final offsetY = size.$3 - frameHeight;
+      expect((native.width, native.height), (256, size.$3 * 4));
+      expect(imported.nativeFrameHeightPx, size.$3);
+      expect(imported.character.frameHeight, size.$3 ~/ 32);
+      expect(imported.sourceOffsetXPx, offsetX);
+      expect(imported.sourceOffsetYPx, offsetY);
+      expect(imported.depthOffsetPx, frameHeight > 32 ? 31 : 0);
+      for (var row = 0; row < 4; row++) {
+        for (var column = 0; column < 4; column++) {
+          for (var y = 0; y < size.$3; y++) {
+            for (var x = 0; x < 64; x++) {
+              final actual = native.getPixel(column * 64 + x, row * size.$3 + y);
+              if (x >= offsetX && x < offsetX + frameWidth &&
+                  y >= offsetY && y < offsetY + frameHeight) {
+                final expected = original.getPixel(
+                    column * frameWidth + x - offsetX,
+                    row * frameHeight + y - offsetY);
+                expect([actual.r, actual.g, actual.b, actual.a],
+                    [expected.r, expected.g, expected.b, expected.a]);
+              } else {
+                expect(actual.a, 0);
+              }
+            }
+          }
+        }
+      }
+      final source = imported.evidence['sourceOriginal'] as Map;
+      expect(source['frameLayoutPolicy'], 'rmxpIntegerDivision4x4');
+      expect(source['usedWidthPx'], frameWidth * 4);
+      expect(source['usedHeightPx'], frameHeight * 4);
+      expect(source['ignoredRightColumns'], size.$1 % 4);
+      expect(source['ignoredBottomRows'], size.$2 % 4);
+      expect(source['ignoredPixelCount'],
+          size.$1 * size.$2 - frameWidth * 4 * frameHeight * 4);
+      expect(imported.evidence['sourcePixelsPreserved'],
+          size.$1 % 4 == 0 && size.$2 % 4 == 0);
+      expect(imported.evidence['sourceRenderedPixelsPreserved'], isTrue);
+      expect(imported.evidence['sourcePixelsResampled'], isFalse);
+      expect(imported.evidence['sourceScriptsExecuted'], 0);
+    });
+  }
+
+  test('selects every pattern and cardinal direction on integer frame sheets',
+      () async {
+    const directions = {
+      2: (0, EntityFacing.south),
+      4: (1, EntityFacing.west),
+      6: (2, EntityFacing.east),
+      8: (3, EntityFacing.north),
+    };
+    for (final width in [127, 129]) {
+      final fixture = _fixture(width: width, height: 192);
+      for (var pattern = 0; pattern < 4; pattern++) {
+        for (final direction in directions.entries) {
+          final imported = await _read(fixture,
+              pattern: pattern, direction: direction.key);
+          expect(imported.facing, direction.value.$2);
+          expect(imported.evidence['initialFrame'], {
+            'sourcePattern': pattern,
+            'sourceDirection': direction.key,
+            'facing': direction.value.$2.name,
+            'x': pattern * (width ~/ 4),
+            'y': direction.value.$1 * 48,
+            'width': width ~/ 4,
+            'height': 48,
+          });
+          for (final row in directions.values) {
+            final clip = imported.character.animations
+                .singleWhere((clip) => clip.direction == row.$2);
+            expect(clip.frames.single.source,
+                TilesetSourceRect(x: pattern * 64, y: row.$1 * 64,
+                    width: 64, height: 64));
+          }
+        }
+      }
+    }
+  });
+
   test('rejects incomplete snapshots before reading', () async {
     final fixture = _fixture(state: SourceScanState.partial);
     await expectLater(_read(fixture),
@@ -382,7 +482,11 @@ void main() {
 
   test('rejects sheet and frame layouts the native atlas cannot express',
       () async {
-    for (final size in [(127, 128), (128, 129), (512, 128), (128, 512)]) {
+    for (final size in [
+      (1, 128), (2, 128), (3, 128),
+      (128, 1), (128, 2), (128, 3),
+      (257, 128), (128, 385), (512, 128), (128, 512),
+    ]) {
       await expectLater(_read(_fixture(width: size.$1, height: size.$2)),
           throwsA(_code('source.event_character.sheet_geometry')));
     }

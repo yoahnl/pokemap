@@ -74,6 +74,13 @@ final class SourceEventCharacterImport {
           'sheetHeight': sheetHeight,
           'frameWidthPx': frameWidthPx,
           'frameHeightPx': frameHeightPx,
+          'frameLayoutPolicy': 'rmxpIntegerDivision4x4',
+          'usedWidthPx': frameWidthPx * 4,
+          'usedHeightPx': frameHeightPx * 4,
+          'ignoredRightColumns': sheetWidth % 4,
+          'ignoredBottomRows': sheetHeight % 4,
+          'ignoredPixelCount':
+              sheetWidth * sheetHeight - frameWidthPx * 4 * frameHeightPx * 4,
         },
         'nativeOutput': {
           'rawSha256': artifact.rawSha256.value,
@@ -96,7 +103,8 @@ final class SourceEventCharacterImport {
           'width': frameWidthPx,
           'height': frameHeightPx,
         },
-        'sourcePixelsPreserved': true,
+        'sourcePixelsPreserved': sheetWidth % 4 == 0 && sheetHeight % 4 == 0,
+        'sourceRenderedPixelsPreserved': true,
         'sourcePixelsResampled': false,
         'sourceScriptsExecuted': 0,
         'aiCalls': 0,
@@ -197,7 +205,7 @@ final class SourceEventCharacterImporter {
     }
     final bytes = Uint8List.fromList(rawBytes).asUnmodifiableView();
     final (width, height) = _geometry(bytes, path, limits);
-    final nativeHeight = height > 256 ? 96 : 64;
+    final nativeHeight = height ~/ 4 > 64 ? 96 : 64;
     if (limits.maxImagePixels < 256 * nativeHeight * 4) {
       throw ContractError('source.event_character.image_limit', path, 'The native character atlas exceeds its image quota.');
     }
@@ -353,10 +361,9 @@ int _row(int direction) => switch (direction) {
         'The source character must be a bounded static PNG.');
   }
   final (width, height) = dimensions;
-  if (width % 4 != 0 || height % 4 != 0 || width > 256 ||
-      height > 384) {
+  if (width < 4 || height < 4 || width > 256 || height > 384) {
     throw ContractError('source.event_character.sheet_geometry', path,
-        'The source must contain four columns and four rows with frames at most 64 by 96 pixels.');
+        'The source requires sixteen integer frames between 1 by 1 and 64 by 96 pixels.');
   }
   try {
     const NativePngValidator().validate(bytes, limits: limits);
@@ -379,7 +386,7 @@ List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
   final frameWidth = width ~/ 4;
   final frameHeight = height ~/ 4;
   final offsetX = 32 - frameWidth ~/ 2;
-  final nativeHeight = height > 256 ? 96 : 64;
+  final nativeHeight = frameHeight > 64 ? 96 : 64;
   final offsetY = nativeHeight - frameHeight;
   final raster = image.Image(
     width: 256,
