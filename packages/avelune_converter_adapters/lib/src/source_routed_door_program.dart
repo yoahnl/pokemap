@@ -20,6 +20,11 @@ final class SourceRoutedDoorProgram {
         _departureGraphic = event.pages[event.pages.length - 2].graphic!,
         _arrivalGraphic = event.pages.last.graphic!,
         nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event, source),
+        invisibleOwnerRouteTimingAdaptation =
+            event.pages.last.graphic!.characterName.isEmpty &&
+            (event.pages.last.body.nodes.first as SourceConditionalNode)
+                .whenTrue.nodes.whereType<SourceForcedMoveRouteNode>()
+                .any((node) => node.targetSourceCharacterId == 0),
         _fingerprint = _fingerprintOf(event);
 
   final int sourceMapId, sourceEventId, targetSourceMapId;
@@ -30,6 +35,7 @@ final class SourceRoutedDoorProgram {
       sourceFileHash;
   final SourceEventGraphic _departureGraphic, _arrivalGraphic;
   final bool nativeStableDepartureDoorSkin;
+  final bool invisibleOwnerRouteTimingAdaptation;
   final String _fingerprint;
 
   bool isBoundTo(
@@ -61,6 +67,12 @@ final class SourceRoutedDoorProgram {
         'temporaryState': 'nativeMapEventInstanceBoolean',
         'sourceScriptsExecuted': 0,
         'sourceProgramPlaybackQualified': false,
+        if (invisibleOwnerRouteTimingAdaptation)
+          'presentationAdaptation': {
+            'kind': 'nativeInvisibleDoorOwnerRoutePauses',
+            'explicitWaitsPreserved': true,
+            'invisibleTurnsYieldPreserved': false,
+          },
         if (nativeStableDepartureDoorSkin)
           'presentationAdaptation': {
             'kind': 'nativeStableDepartureDoorSkin',
@@ -199,7 +211,8 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
     }
   }
   final body = departure.body.nodes;
-  final animated = body.length == 12 &&
+  final animated = departure.graphic!.characterName.isNotEmpty &&
+      body.length == 12 &&
       _route(body[0], 0, [44, 15, 17, 15, 18, 15, 19, 15]) &&
       body[1] is SourceMoveRouteBarrierNode &&
       _route(body[2], -1, [37, 4, 38]) &&
@@ -272,7 +285,18 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           route[2] is SourcePlayerVisibilityNode &&
           (route[2] as SourcePlayerVisibilityNode).visible &&
           _route(route[3], -1, [1]) &&
-          route[4] is SourceMoveRouteBarrierNode);
+          route[4] is SourceMoveRouteBarrierNode) ||
+        (route.length == 8 &&
+          route[0] is SourcePlayerVisibilityNode &&
+          !(route[0] as SourcePlayerVisibilityNode).visible &&
+          _route(route[1], 0, [15, 17, 15, 18, 15, 19, 15]) &&
+          route[2] is SourceMoveRouteBarrierNode &&
+          route[3] is SourcePlayerVisibilityNode &&
+          (route[3] as SourcePlayerVisibilityNode).visible &&
+          _route(route[4], -1, [1]) &&
+          route[5] is SourceMoveRouteBarrierNode &&
+          _route(route[6], 0, [18, 15, 17, 15, 16, 15]) &&
+          route[7] is SourceMoveRouteBarrierNode);
 }
 
 bool _usesStableDepartureDoorSkin(SourceEventDefinition event, NormalizedSourceProject source) {

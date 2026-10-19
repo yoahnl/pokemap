@@ -4032,6 +4032,24 @@ final class _SceneBuilder {
           _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
           next = action;
         case SourceForcedMoveRouteNode():
+          if (node.targetSourceCharacterId == 0 &&
+              projection.qualifiedRoutedDoorContexts.contains(event.identity) &&
+              projection.routedDoorPrograms[event.identity]!
+                  .invisibleOwnerRouteTimingAdaptation &&
+              node.steps.every((step) => const {
+                SourceMoveRouteStepKind.wait,
+                SourceMoveRouteStepKind.turnDown,
+                SourceMoveRouteStepKind.turnLeft,
+                SourceMoveRouteStepKind.turnRight,
+                SourceMoveRouteStepKind.turnUp,
+              }.contains(step.kind))) {
+            final durationMs = node.steps
+                .where((step) => step.kind == SourceMoveRouteStepKind.wait)
+                .fold<int>(0, (sum, step) => sum + step.durationTicks! * 50);
+            next = _interactive(
+                SceneInteractiveCommand.wait(durationMs: durationMs), next);
+            break;
+          }
           final mapId = projection.maps[mapScopes[node]!.single]!.id;
           final player = node.targetSourceCharacterId == -1;
           final target = player ? SceneActorTarget.player(mapId: mapId) :
