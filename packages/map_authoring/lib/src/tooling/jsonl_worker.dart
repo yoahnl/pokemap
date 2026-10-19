@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 
 import '../api/authoring_mutation_api.dart';
 import '../api/authoring_read_api.dart';
+import '../api/authoring_result_projection.dart';
 import '../contracts/authoring_error.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/authoring_result.dart';
@@ -49,6 +50,7 @@ import '../workspace/project_pokemon_ruleset_bootstrap_service.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
 import '../workspace/workspace_handle_store.dart';
+import 'jsonl_projection.dart';
 
 /// Bounded transport budget shared by the CLI worker and the MCP bridge.
 ///
@@ -149,7 +151,8 @@ final class JsonlWorker {
       final args = _jsonObject(decoded['args'], 'args');
       final timeout =
           command == 'game_export' ? gameExportTimeout : commandTimeout;
-      final data = await _dispatch(command, args, isCancelled: () => abandoned)
+      final data = await _dispatch(command, args,
+              requestId: requestId, isCancelled: () => abandoned)
           .timeout(timeout, onTimeout: () {
         abandoned = true;
         throw TimeoutException('Worker deadline reached.');
@@ -269,6 +272,15 @@ final class JsonlWorker {
         domainCode: error.code,
         message: error.message,
         details: error.details,
+      );
+    } on AuthoringProjectionException catch (error) {
+      result = _failure(
+        requestId,
+        code: error.code.endsWith('_unavailable')
+            ? AuthoringErrorCode.notFound
+            : AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
       );
     } on FileBackedPayloadException catch (error) {
       result = _failure(
@@ -492,6 +504,7 @@ final class JsonlWorker {
   Future<Map<String, Object?>> _dispatch(
     String command,
     Map<String, dynamic> args, {
+    required String requestId,
     bool Function()? isCancelled,
   }) async {
     if (_closing != null) {
@@ -504,6 +517,16 @@ final class JsonlWorker {
       case 'describe':
         rejectUnknownContractKeys(args, const {});
         return _combinedDescription();
+      case 'projection':
+        final mutations = _mutations;
+        if (mutations is! AuthoringResultProjectionPort) {
+          throw const _UnsupportedWorkerCommand();
+        }
+        return readJsonlProjection(
+          mutations as AuthoringResultProjectionPort,
+          args,
+          requestId: requestId,
+        );
       case 'open':
         rejectUnknownContractKeys(args, const {'projectRoot'});
         final projectRoot =

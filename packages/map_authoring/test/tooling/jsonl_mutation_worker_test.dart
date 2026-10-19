@@ -229,8 +229,10 @@ void main() {
         'history',
         'open',
         'plan',
+        'projection',
         'query',
         'recover',
+        'recovery_status',
         'stage_artifact',
         'undo',
         'validate'

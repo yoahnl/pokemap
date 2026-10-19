@@ -76,9 +76,11 @@ test("all tools publish strict schemas, outputs and annotations", async () => {
         "pokemap_game_export_profile_validate",
         "pokemap_game_export_profile_save",
         "pokemap_game_export",
+        "pokemap_project_templates",
         "pokemap_project_create_preview",
         "pokemap_project_create",
         "pokemap_resource_pack",
+        "pokemap_projection",
       ],
     );
     for (const tool of tools) {

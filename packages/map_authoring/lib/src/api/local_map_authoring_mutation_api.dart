@@ -155,6 +155,11 @@ final class LocalMapAuthoringMutationApi
             summary: 'Plan and preview a map mutation.',
           ),
           AuthoringMutationCommandDescriptor(
+            id: 'projection',
+            summary:
+                'Read receipt by receiptId, diff by diffRef (limit 1..200, default 200), or payload by payloadRef (offset >= 0; byteLength 1..131072, default 131072); responses are bounded to 262144 bytes.',
+          ),
+          AuthoringMutationCommandDescriptor(
             id: 'recover',
             summary: 'Resume a recoverable transaction.',
           ),

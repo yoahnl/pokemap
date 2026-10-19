@@ -2859,6 +2859,7 @@ rester compact :
 | `pokemap_query` | Get/list/search/batch/graph |
 | `pokemap_plan` | Dry-run d’une ou plusieurs actions |
 | `pokemap_apply` | Commit d’un plan avec idempotence et CAS |
+| `pokemap_projection` | Reprojection d’un reçu, diff paginé et chunks immuables |
 | `pokemap_validate` | Validations ciblées ou complètes |
 | `pokemap_render` | Previews et rendus |
 | `pokemap_playtest` | Sessions et scénarios de playtest |
@@ -2866,6 +2867,30 @@ rester compact :
 | `pokemap_artifact` | Métadonnées et lecture d’artefacts |
 | `pokemap_history` | History/diff/undo/redo |
 | `pokemap_recovery` | Inspection et reprise explicite |
+
+La commande JSONL `projection` et l’outil en lecture seule `pokemap_projection`
+utilisent le port canonique `AuthoringResultProjectionPort`. Leur champ
+`operation` accepte `receipt` avec `receiptId`, `diff` avec `diffRef`, un
+`cursor` optionnel et `limit`, ou `payload` avec `payloadRef`, `offset` et
+`byteLength`. Chaque opération exige `projectHandle` et refuse les champs des
+autres opérations. Les plafonds existants restent 200 lignes par page et
+128 Kio bruts par chunk ; les réponses de succès restent bornées à 256 Kio,
+UTF-8, échappements JSON, base64 et identifiant réel de l’appel compris. Une
+page peut contenir moins de lignes que la limite demandée afin de conserver
+la marge de l’enveloppe. Si l’identifiant JSON-RPC consomme déjà ce budget,
+MCP refuse avant toute lecture avec `resource_limit`. Le SDK réémet cet
+identifiant dans le refus ; lorsque l’identifiant seul dépasse 256 Kio,
+l’enveloppe d’erreur ne peut pas respecter ce plafond.
+
+Les références opaques appartiennent à la session et au projet qui les ont
+produites ; elles ne sont pas des chemins de fichiers. Les diffs et payloads
+restent les copies figées du plan ou du reçu, avec `fullDiffFingerprint` et
+`rawSha256` pour vérifier leur reconstruction. La lecture ne confirme pas un
+plan, ne prolonge pas son TTL et n’autorise pas son application après expiration
+ou conflit de révision. Un reçu historique reste lisible après une nouvelle
+mutation. Après fermeture, expiration de session ou redémarrage, les anciens
+handles sont refusés ; `receipt` permet de recréer des références dans une
+nouvelle session à partir du reçu durable.
 
 Les données en lecture peuvent aussi être exposées comme ressources :
 
