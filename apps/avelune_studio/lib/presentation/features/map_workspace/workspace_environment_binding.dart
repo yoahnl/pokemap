@@ -2,6 +2,10 @@ part of 'map_workspace_screen.dart';
 
 extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
   void _openEnvironments() {
+    if (!_controller.hasCompleteProject) {
+      unawaited(_materializeWorkshops(destination: WorkspaceSpace.resources));
+      return;
+    }
     final resources = _resources;
     if (resources == null) return;
     resources.library.selectFamily(ResourceLibraryFamily.environments);

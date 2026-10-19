@@ -108,7 +108,7 @@ test("live MCP publishes paints reopens and undoes native raster supports", asyn
     assert.deepEqual(await readFile(mapPath), saved);
     const loaded = record(JSON.parse(await readFile(manifestPath, "utf8")));
     const catalog = record(loaded.smartTileCatalog);
-    assert.equal(catalog.formatVersion, 7);
+    assert.equal(catalog.formatVersion, 8);
     const preset = (catalog.presets as JsonRecord[]).find(value => value.id === "ground")!;
     const publishedParts = record((record((preset.rules as unknown[])[0]).candidates as unknown[])[0]).parts as JsonRecord[];
     assert.deepEqual(publishedParts.map(part => part.spatialHeightOffset ?? 0), [0, -1, -2.5]);

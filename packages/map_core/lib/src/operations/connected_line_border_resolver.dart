@@ -262,10 +262,19 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
           lineSide: request.feature.lineSide,
           allowAutoRotation: params.allowAutoRotation,
         );
+        final nativeTransform = _composeLineSide(
+          role: role,
+          primaryQuarterTurns: _primaryQuarterTurns(node, role),
+          lineSide: request.feature.lineSide,
+          allowAutoRotation: true,
+        );
         final candidates = _eligibleCandidates(
           primitives,
           role: role,
           transform: transform,
+          nativeTransform: nativeTransform,
+          allowAutoRotation: params.allowAutoRotation,
+          isFacade: isFacade,
         );
         if (candidates.isEmpty) {
           diagnostics.add(
@@ -291,6 +300,7 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
             node: node,
             role: role,
             transform: transform,
+            nativeTransform: nativeTransform,
             candidates: candidates,
           ),
         );
@@ -328,13 +338,26 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
   final evidence = <ConnectedLineNodeResolutionEvidence>[];
   for (final need in nodeNeeds) {
     final slotKey = _slotKey(request, need);
+    final selected = _choosePrimitive(
+      request,
+      revision: revision,
+      slotKey: slotKey,
+      candidates: need.candidates,
+      variationPermille: params.variationPermille,
+    );
+    final transform = _primitiveTransform(
+      selected,
+      transform: need.transform,
+      nativeTransform: need.nativeTransform,
+      isFacade: isFacade,
+    );
     evidence.add(
       ConnectedLineNodeResolutionEvidence(
         strokeId: need.lattice.strokeId,
         nodeIndex: need.node.index,
         cell: need.node.cell,
         role: need.role,
-        transform: need.transform,
+        transform: transform,
         slotKey: slotKey,
       ),
     );
@@ -343,17 +366,10 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
       continue;
     }
     localScope?.recordRecomputedCell(need.node.cell);
-    final selected = _choosePrimitive(
-      request,
-      revision: revision,
-      slotKey: slotKey,
-      candidates: need.candidates,
-      variationPermille: params.variationPermille,
-    );
     final sprite = resolveBorderSpriteGeometry(
       metrics: selected.publishedMetrics,
       sourceAnchorPx: selected.anchorPx,
-      transform: need.transform,
+      transform: transform,
       targetAnchorWorldPx: _cellCenterWorldPx(request, need.node.cell),
     );
     final canvas = GridSize(
@@ -379,7 +395,7 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
           anchorCell: need.node.cell,
           topLeftWorldPx: sprite.topLeftWorldPx,
           opaqueWorldBoundsPx: sprite.opaqueWorldBoundsPx,
-          transform: need.transform,
+          transform: transform,
           drawBand: BorderDrawBand.structure,
           stableOrderKey: buildBorderStableOrderKey(
             drawBand: BorderDrawBand.structure,
@@ -695,18 +711,54 @@ List<BorderPublishedPrimitive> _eligibleCandidates(
   Iterable<BorderPublishedPrimitive> primitives, {
   required BorderPrimitiveRole role,
   required BorderSpriteTransform transform,
+  required BorderSpriteTransform nativeTransform,
+  required bool allowAutoRotation,
+  required bool isFacade,
 }) =>
     primitives
         .where(
-          (primitive) =>
-              primitive.role == role &&
-              primitive.weight > 0 &&
-              primitive.transforms.allowedQuarterTurns
-                  .contains(transform.quarterTurns) &&
-              (!transform.flipX || primitive.transforms.allowFlipX),
+          (primitive) {
+            final actual = _primitiveTransform(
+              primitive,
+              transform: transform,
+              nativeTransform: nativeTransform,
+              isFacade: isFacade,
+            );
+            return primitive.role == role &&
+                primitive.weight > 0 &&
+                (isFacade ||
+                    primitive.authoredOrientation == BorderPrimitiveOrientation.legacyAxis ||
+                    allowAutoRotation ||
+                    actual.quarterTurns == 0) &&
+                primitive.transforms.allowedQuarterTurns.contains(actual.quarterTurns) &&
+                (!actual.flipX || primitive.transforms.allowFlipX);
+          },
         )
         .toList(growable: false)
       ..sort((left, right) => left.id.compareTo(right.id));
+
+BorderSpriteTransform _primitiveTransform(
+  BorderPublishedPrimitive primitive, {
+  required BorderSpriteTransform transform,
+  required BorderSpriteTransform nativeTransform,
+  required bool isFacade,
+}) {
+  if (isFacade ||
+      primitive.authoredOrientation == BorderPrimitiveOrientation.legacyAxis) {
+    return transform;
+  }
+  final authoredTurns = switch (primitive.authoredOrientation) {
+    BorderPrimitiveOrientation.east || BorderPrimitiveOrientation.legacyAxis => 0,
+    BorderPrimitiveOrientation.south => 1,
+    BorderPrimitiveOrientation.west => 2,
+    BorderPrimitiveOrientation.north => 3,
+  };
+  return BorderSpriteTransform(
+    quarterTurns: (nativeTransform.quarterTurns +
+        (nativeTransform.flipX ? authoredTurns : -authoredTurns) + 4) % 4,
+    flipX: nativeTransform.flipX,
+  );
+}
 
 BorderPublishedPrimitive _choosePrimitive(
   BorderResolutionRequest request, {
@@ -900,6 +952,7 @@ final class _NodeNeed {
     required this.node,
     required this.role,
     required this.transform,
+    required this.nativeTransform,
     required this.candidates,
   });
 
@@ -907,6 +960,7 @@ final class _NodeNeed {
   final BorderLinearNodeNeed node;
   final BorderPrimitiveRole role;
   final BorderSpriteTransform transform;
+  final BorderSpriteTransform nativeTransform;
   final List<BorderPublishedPrimitive> candidates;
 }
 

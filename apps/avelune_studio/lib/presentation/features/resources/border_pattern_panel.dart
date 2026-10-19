@@ -22,6 +22,7 @@ class BorderPatternPanel extends StatelessWidget {
     this.variantSelector,
     this.modelSettings,
     this.settingsForRole,
+    this.sequenceSettings,
   });
 
   final Map<String, ResourceItem> chosen;
@@ -34,6 +35,7 @@ class BorderPatternPanel extends StatelessWidget {
   final Widget Function(String role)? variantSelector;
   final Widget? modelSettings;
   final BorderModelSettings Function(String role)? settingsForRole;
+  final Widget? sequenceSettings;
 
   static const contour = <(String, String)>[
     ('Angle haut gauche', 'lineCorner'),
@@ -245,6 +247,10 @@ class BorderPatternPanel extends StatelessWidget {
         style: Theme.of(context).textTheme.labelMedium,
       ),
       const SizedBox(height: 10),
+      if (sequenceSettings != null) ...[
+        sequenceSettings!,
+        const SizedBox(height: 12),
+      ],
       if (variantSelector != null)
         for (final role in _roles) variantSelector!(role),
       if (straightOnly) ...[

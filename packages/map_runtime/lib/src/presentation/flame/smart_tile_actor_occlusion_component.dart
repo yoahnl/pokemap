@@ -190,6 +190,7 @@ final class _SmartTileActorOcclusionRenderSource {
                   cellX: cellX,
                   cellY: cellY,
                   globalElapsedMs: elapsedMs,
+                  channel: SmartTileRenderChannel.actorOcclusion,
                 ),
       );
       ownerCellVisits += batch.work.ownerCellVisits;
@@ -200,6 +201,7 @@ final class _SmartTileActorOcclusionRenderSource {
               layerId: layer.layerId,
               cellX: visual.cellX,
               cellY: visual.cellY,
+              channel: SmartTileRenderChannel.actorOcclusion,
             )) {
           continue;
         }

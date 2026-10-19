@@ -14,6 +14,41 @@ import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('direct PNG decoding fits without reserving readback and split buffers', () async {
+    final bytes = Uint8List.fromList(img.encodePng(img.Image(width: 32, height: 32)));
+    final budget = RuntimeResourceBudget(profile: const RuntimeResourceProfile(
+      maximumResidentBytes: 4096, maximumTransientBytes: 12288));
+    final image = await decodeRuntimeTilesetImage(bytes, resourceBudget: budget);
+    expect(image.width, 32);
+    expect(image.height, 32);
+    expect(budget.residentBytes, 4096);
+    image.dispose();
+    expect(budget.residentBytes + budget.transientBytes + budget.activeDecodes, 0);
+    budget.dispose();
+  });
+
+  test('color-key readback keeps its larger admission requirement', () async {
+    final bytes = Uint8List.fromList(img.encodePng(img.Image(width: 32, height: 32)));
+    final budget = RuntimeResourceBudget(profile: const RuntimeResourceProfile(
+      maximumResidentBytes: 4096, maximumTransientBytes: 12288));
+    await expectLater(decodeRuntimeTilesetImage(bytes, resourceBudget: budget,
+      transparentColor: TilesetTransparentColor.fromHexRgb('ff00ff')),
+      throwsA(isA<RuntimeResourceAdmissionException>()));
+    expect(budget.residentBytes + budget.transientBytes + budget.activeDecodes, 0);
+    budget.dispose();
+  });
+
+  test('vertical PNG splitting keeps its larger admission requirement', () async {
+    final bytes = Uint8List.fromList(img.encodePng(img.Image(width: 8, height: 4097)));
+    const rgba = 8 * 4097 * 4;
+    final budget = RuntimeResourceBudget(profile: const RuntimeResourceProfile(
+      maximumResidentBytes: rgba, maximumTransientBytes: rgba * 3));
+    await expectLater(decodeRuntimeTilesetImage(bytes, resourceBudget: budget),
+      throwsA(isA<RuntimeResourceAdmissionException>()));
+    expect(budget.residentBytes + budget.transientBytes + budget.activeDecodes, 0);
+    budget.dispose();
+  });
+
   test(
     'a cancelled prefetch does not cancel a demand joining its flight',
     () async {

@@ -345,6 +345,17 @@ final class SceneActions {
     'outputPorts': ['completed'],
   };
 
+  static const _battleDefeatRecoveryContract = {
+    'payloadKind': 'battle',
+    'field': 'defeatRecovery',
+    'values': ['continueScene', 'returnToRecoveryPoint'],
+    'default': 'continueScene',
+    'projectDimension': 'twoD',
+    'activation': 'actualDefeatAfterSuccessfulSceneCompletion',
+    'effects': ['healParty', 'defeatMoneyPenalty', 'returnToRecordedRecoveryPoint'],
+    'saveResume': 'committedRecoveredState',
+  };
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'scene.graph.patch',
@@ -352,6 +363,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'adjustIntegerFact': _adjustIntegerFactContract,
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
@@ -471,6 +483,7 @@ final class SceneActions {
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
+        'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'adjustIntegerFact': _adjustIntegerFactContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,

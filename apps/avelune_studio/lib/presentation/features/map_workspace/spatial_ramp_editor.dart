@@ -33,7 +33,7 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
   SpatialRamp? _ramp;
   SpatialRampEditingPreview? _ownPreview;
   String _x = '', _y = '', _width = '', _depth = '';
-  int _lowLevel = 0, _highLevel = 1;
+  String _lowLevel = '0', _highLevel = '1';
   SpatialRampDirection _direction = SpatialRampDirection.north;
   String? _surfaceInstanceId;
   String? _error;
@@ -81,8 +81,8 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
       _y = '${ramp.z}';
       _width = '${ramp.width}';
       _depth = '${ramp.depth}';
-      _lowLevel = ramp.lowLevel;
-      _highLevel = ramp.highLevel;
+      _lowLevel = '${ramp.lowLevel}';
+      _highLevel = '${ramp.highLevel}';
       _direction = ramp.direction;
       _surfaceInstanceId = ramp.surfaceInstanceId;
     }
@@ -125,8 +125,8 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
               z: _number(_y, 'Y'),
               width: _number(_width, 'La largeur'),
               depth: _number(_depth, 'La profondeur'),
-              lowLevel: _lowLevel,
-              highLevel: _highLevel,
+              lowLevel: _number(_lowLevel, 'Le niveau bas'),
+              highLevel: _number(_highLevel, 'Le niveau haut'),
               direction: _direction,
               surfaceInstanceId: _surfaceInstanceId,
             ),
@@ -263,38 +263,22 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
             'Position et dimensions en cases. Un niveau représente ${scene!.levelHeight} case de hauteur.',
           ),
           const SizedBox(height: 12),
-          StudioSelect(
+          StudioDraftField(
             key: const ValueKey('spatial-ramp-low-level'),
             label: 'Niveau bas',
-            value: '$_lowLevel',
-            options: {
-              for (
-                var level = 0;
-                level <= MapSpatialScene.maximumTerrainLevel;
-                level++
-              )
-                '$level': '$level',
-            },
-            onChanged: enabled
-                ? (value) => _edit(() => _lowLevel = int.parse(value))
-                : null,
+            value: _lowLevel,
+            enabled: enabled,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) => _edit(() => _lowLevel = value),
           ),
           const SizedBox(height: 12),
-          StudioSelect(
+          StudioDraftField(
             key: const ValueKey('spatial-ramp-high-level'),
             label: 'Niveau haut',
-            value: '$_highLevel',
-            options: {
-              for (
-                var level = 1;
-                level <= MapSpatialScene.maximumTerrainLevel;
-                level++
-              )
-                '$level': '$level',
-            },
-            onChanged: enabled
-                ? (value) => _edit(() => _highLevel = int.parse(value))
-                : null,
+            value: _highLevel,
+            enabled: enabled,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) => _edit(() => _highLevel = value),
           ),
           const SizedBox(height: 12),
           StudioSelect(

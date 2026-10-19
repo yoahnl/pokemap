@@ -11,18 +11,22 @@ MapCatalogReceipt mapCatalogReceipt(
   ProjectManifest before,
   String beforeRevision,
   AuthoringPlan plan,
-  String actionId,
-) {
+  String actionId, {
+  ProjectManifest? projectedProject,
+  String? projectedRevision,
+}) {
   final changes = plan.changeSet.changes;
   final manifestBytes = changes
       .where((change) => change.storageKey == 'project.json')
       .firstOrNull
       ?.afterBytes;
-  final manifest = manifestBytes == null
-      ? before
-      : ProjectManifest.fromJson(
-          jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>,
-        );
+  final manifest =
+      projectedProject ??
+      (manifestBytes == null
+          ? before
+          : ProjectManifest.fromJson(
+              jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>,
+            ));
   final documents = <String, MapWorkspaceDocument>{};
   for (final change in changes.where(
     (change) => change.resource.kind == 'map',
@@ -45,9 +49,11 @@ MapCatalogReceipt mapCatalogReceipt(
     before: before,
     manifest: manifest,
     beforeRevision: beforeRevision,
-    revision: manifestBytes == null
-        ? beforeRevision
-        : narrativeEventBytesFingerprint(manifestBytes),
+    revision:
+        projectedRevision ??
+        (manifestBytes == null
+            ? beforeRevision
+            : narrativeEventBytesFingerprint(manifestBytes)),
     changedPaths: List.unmodifiable(changes.map((change) => change.storageKey)),
     documents: Map.unmodifiable(documents),
     createdMapId: actionId == 'map.create' || actionId == 'map.duplicate'

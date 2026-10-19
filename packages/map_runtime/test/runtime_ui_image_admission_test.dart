@@ -134,6 +134,49 @@ void main() {
     expect(resources.residentBytes, 0);
   });
 
+  test('scope refresh preserves live images and independent owners', () async {
+    final resources = budget(192);
+    final cache = RuntimeOwnedImageCache(loadLease: (_) =>
+        decodeRuntimeUiImage(png(), resourceBudget: resources));
+    addTearDown(cache.dispose);
+    final scope = cache.beginScope();
+    final obsolete = await cache.load('obsolete');
+    final live = await cache.load('live');
+    final shared = await cache.load('shared');
+    final otherScope = cache.beginScope();
+    await cache.load('shared');
+    cache.updateScope(scope, keys: ['next'], liveImages: [live]);
+    expect(obsolete.debugDisposed, isTrue);
+    expect(live.debugDisposed, isFalse);
+    expect(shared.debugDisposed, isFalse);
+    final next = await cache.load('next');
+    cache.updateScope(scope, keys: ['next']);
+    expect(live.debugDisposed, isTrue);
+    expect(shared.debugDisposed, isFalse);
+    cache.endScope(otherScope);
+    expect(shared.debugDisposed, isTrue);
+    expect(next.debugDisposed, isFalse);
+    cache.endScope(scope);
+    expect(next.debugDisposed, isTrue);
+    expect(resources.residentBytes, 0);
+  });
+
+  test('scope refresh retains an image decode already in flight', () async {
+    final resources = budget(64);
+    final gate = Completer<RuntimeUiImageLease>();
+    final cache = RuntimeOwnedImageCache(loadLease: (_) => gate.future);
+    addTearDown(cache.dispose);
+    final scope = cache.beginScope();
+    final loading = cache.load('late');
+    cache.updateScope(scope, keys: []);
+    gate.complete(await decodeRuntimeUiImage(png(), resourceBudget: resources));
+    final image = await loading;
+    expect(image.debugDisposed, isFalse);
+    cache.updateScope(scope, keys: []);
+    expect(image.debugDisposed, isTrue);
+    expect(resources.residentBytes, 0);
+  });
+
   test(
     'battle visual readback releases its admitted clone and transient bytes',
     () async {

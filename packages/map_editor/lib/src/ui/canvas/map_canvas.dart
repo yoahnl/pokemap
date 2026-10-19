@@ -1349,6 +1349,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               return;
             }
             if (geometry is BorderStrokeGeometry) {
+              final definition = state.project?.borderCatalog
+                  .recordById(transaction?.proposedFeature.blueprintId ?? '')
+                  ?.latestPublished
+                  ?.definition;
               final mode = state.activeTool == EditorToolType.borderPaint
                   ? BorderStrokeEditingMode.draw
                   : BorderStrokeEditingMode.erase;
@@ -1358,6 +1362,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     baseGeometry: geometry,
                     mode: mode,
                     pointerDown: gridPos,
+                    preserveTraversal: definition == null ||
+                        definition.sequenceLength == 1 ||
+                        definition.followContourDirection,
                   );
               final sampledDraft = currentDraft.sample(gridPos);
               try {

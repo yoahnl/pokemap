@@ -12,6 +12,31 @@ typedef _ApplyAction = Future<Map<String, Object?>> Function({
 });
 
 void main() {
+  test('native cardinal publication is identical through direct API and JSONL', () async {
+    final direct = await BorderCatalogHarness.create('native-direct');
+    final jsonl = await BorderCatalogHarness.create('native-jsonl');
+    addTearDown(direct.dispose);
+    addTearDown(jsonl.dispose);
+    late final List<Map<String, Object?>> directReceipts;
+    try {
+      directReceipts = await direct.runDirectLifecycle(nativeOrientations: true);
+    } on MapAuthoringException catch (error) {
+      fail('${error.code}: ${error.details}');
+    }
+    final jsonlReceipts = await jsonl.runJsonlLifecycle(nativeOrientations: true);
+    expect(directReceipts, jsonlReceipts);
+    expect(await direct.projectBytes(), await jsonl.projectBytes());
+    final manifest = ProjectManifest.fromJson(jsonDecode(
+        utf8.decode(await direct.projectBytes())) as Map<String, dynamic>);
+    final definition = manifest.borderCatalog.records.single.latestPublished!.definition;
+    expect(definition.primitives, hasLength(12));
+    expect(definition.primitives.map((p) => p.authoredOrientation),
+        isNot(contains(BorderPrimitiveOrientation.legacyAxis)));
+    expect(definition.primitives.map((p) => p.transforms.allowedQuarterTurns),
+        everyElement([0]));
+    expect(definition.primitives.map((p) => p.transforms.allowFlipX), everyElement(false));
+  });
+
   test(
       'horizontal facade publication is identical through direct API and JSONL',
       () async {
@@ -532,7 +557,7 @@ final class BorderCatalogHarness {
 
   Future<List<Map<String, Object?>>> runDirectLifecycle(
       {BorderBlueprintTemplate template =
-          BorderBlueprintTemplate.connectedLine}) async {
+          BorderBlueprintTemplate.connectedLine, bool nativeOrientations = false}) async {
     final opened = await readApi.open(root.path);
     final project = ProjectHandle(opened['projectHandle']! as String);
     final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
@@ -578,6 +603,7 @@ final class BorderCatalogHarness {
 
     return _runLifecycle(
       template: template,
+      nativeOrientations: nativeOrientations,
       apply: apply,
       artifactHandle: artifact.reference.handle,
     );
@@ -585,7 +611,7 @@ final class BorderCatalogHarness {
 
   Future<List<Map<String, Object?>>> runJsonlLifecycle(
       {BorderBlueprintTemplate template =
-          BorderBlueprintTemplate.connectedLine}) async {
+          BorderBlueprintTemplate.connectedLine, bool nativeOrientations = false}) async {
     final opened = await _jsonl('open', <String, Object?>{
       'projectRoot': root.path,
     });
@@ -631,6 +657,7 @@ final class BorderCatalogHarness {
 
     return _runLifecycle(
       template: template,
+      nativeOrientations: nativeOrientations,
       apply: apply,
       artifactHandle: artifact.reference.handle,
     );
@@ -697,8 +724,9 @@ Future<List<Map<String, Object?>>> _runLifecycle({
   required _ApplyAction apply,
   required String artifactHandle,
   BorderBlueprintTemplate template = BorderBlueprintTemplate.connectedLine,
+  bool nativeOrientations = false,
 }) async {
-  final primitives = _primitives()
+  final primitives = _primitives(nativeOrientations: nativeOrientations)
       .where((p) =>
           template != BorderBlueprintTemplate.horizontalFacade ||
           p.role != BorderPrimitiveRole.lineCorner)
@@ -740,8 +768,9 @@ Future<List<Map<String, Object?>>> _runLifecycle({
       actionId: 'border.blueprint.publish',
       parameters: <String, Object?>{
         'blueprintId': 'fence',
-        'acceptedWarningCodes': const <String>[
+        'acceptedWarningCodes': <String>[
           'border.publication.coverage_overlap_exceeded',
+          if (nativeOrientations) 'border.publication.repetition_run',
         ],
         'primitiveSources': <Object?>[
           for (final primitive in primitives)
@@ -835,7 +864,7 @@ BorderBlueprintRecord _record({
       ),
     );
 
-List<BorderPrimitiveDraft> _primitives() {
+List<BorderPrimitiveDraft> _primitives({bool nativeOrientations = false}) {
   final metrics = const CanonicalBorderSnapshotCompiler().prepare(
     sourceElementId: 'fence-element',
     anchorPx: const BorderPixelPos(x: 16, y: 16),
@@ -852,15 +881,19 @@ List<BorderPrimitiveDraft> _primitives() {
       BorderPrimitiveRole.lineStraight,
       BorderPrimitiveRole.lineCorner,
     ])
+      for (final orientation in nativeOrientations
+          ? BorderPrimitiveOrientation.values.where((v) => v != BorderPrimitiveOrientation.legacyAxis)
+          : [BorderPrimitiveOrientation.legacyAxis])
       BorderPrimitiveDraft(
-        id: role.name,
+        id: nativeOrientations ? '${role.name}-${orientation.name}' : role.name,
         sourceElementId: 'fence-element',
         role: role,
+        authoredOrientation: orientation,
         weight: 1000,
         anchorPx: const BorderPixelPos(x: 16, y: 16),
         transforms: BorderTransformPolicy(
-          allowedQuarterTurns: <int>[0, 1, 2, 3],
-          allowFlipX: true,
+          allowedQuarterTurns: nativeOrientations ? <int>[0] : <int>[0, 1, 2, 3],
+          allowFlipX: !nativeOrientations,
         ),
         currentMetrics: metrics,
       ),

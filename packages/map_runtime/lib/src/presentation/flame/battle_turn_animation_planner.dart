@@ -340,6 +340,15 @@ final class BattleTurnAnimationPlanner {
               ),
             );
           }
+        case BattleTurnStatusCuredItemEvent():
+          steps.add(ShowMessageStep(
+            message:
+                '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
+          ));
+          steps.add(ShowMessageStep(
+            message:
+                '${speciesDisplayName(event.targetSpeciesId)} est guéri de son problème de statut.',
+          ));
         case BattleTurnMovePpRestoredEvent():
           steps.add(ShowMessageStep(
             message:

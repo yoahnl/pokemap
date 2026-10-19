@@ -22,9 +22,7 @@ Future<void> _reconcileResourceReceipt(
       policy: ProjectSnapshotLoadPolicy.editorReadProjection,
     );
     adapter._requireAvailable();
-    var changed =
-        narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-        receipt.revision;
+    var changed = studioProjectSnapshotRevision(snapshot) != receipt.revision;
     for (final entry in receipt.pathRevisions.entries) {
       final identity = await reader.readIdentity(
         projectRoot: adapter.session.directoryPath,

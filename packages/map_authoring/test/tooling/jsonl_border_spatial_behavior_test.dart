@@ -146,7 +146,8 @@ void main() {
       ]) {
         expect(draftContract['summary'], contains(field));
       }
-      expect((draftContract['extensions'] as Map)['catalogFormatVersion'], 5);
+      expect((draftContract['extensions'] as Map)['catalogFormatVersion'],
+          ProjectBorderCatalog.latestSupportedFormatVersion);
       expect(
           actions.singleWhere(
               (value) => value['id'] == 'border.blueprint.publish')['summary'],

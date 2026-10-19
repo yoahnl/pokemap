@@ -6,6 +6,7 @@ import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
 import 'smart_tile_cell_actions.dart';
 import 'smart_tile_native_transition_guard.dart';
+import 'smart_tile_construction_contract.dart';
 
 /// Canonical reusable-pattern painting shared by direct, JSONL, editor and MCP.
 final class SmartTilePatternActions {
@@ -115,6 +116,7 @@ final class SmartTilePatternActions {
         parameters.object('selection'),
         mapSize: context.map.size,
       );
+      _requireConstructionDimension(context.map, pattern);
       final materialId = _patternMaterial(context, layer, parameters);
       if (affectedCellCount == maximumCellsPerBatch) {
         throw semanticFailure(
@@ -134,7 +136,10 @@ final class SmartTilePatternActions {
           phaseX: parameters.optionalInteger('phaseX') ?? 0,
           phaseY: parameters.optionalInteger('phaseY') ?? 0,
           materialId: materialId,
-          maximumCellCount: maximumCellsPerBatch - affectedCellCount,
+          maximumCellCount: pattern.construction != null &&
+                  maximumCellsPerBatch - affectedCellCount > smartTileMaximumCellsPerGesture
+              ? smartTileMaximumCellsPerGesture
+              : maximumCellsPerBatch - affectedCellCount,
         );
       } on SmartTileGestureLimitException {
         throw semanticFailure(
@@ -215,6 +220,7 @@ final class SmartTilePatternActions {
       context.parameters.object('selection'),
       mapSize: context.map.size,
     );
+    _requireConstructionDimension(context.map, pattern);
     final materialId = _patternMaterial(context, layer, context.parameters);
     late final SmartTilePatternApplication application;
     try {
@@ -258,6 +264,14 @@ final class SmartTilePatternActions {
       'patternId': pattern.id,
       'usage': pattern.usage.name,
       'repeatMode': pattern.repeatMode.name,
+      if (pattern.construction != null) ...{
+        'construction': pattern.construction!.toJson(),
+        'constructionBounds': application.layer.patternStrokes
+            .singleWhere((stroke) => stroke.id == context.parameters.string('strokeId'))
+            .toJson()['constructionBounds'],
+      },
+      if (pattern.clippingPolicy == SmartTilePatternClippingPolicy.reject)
+        'clippingPolicy': 'reject',
       'gestureSelection': selection.kind.name,
       'gestureCellCount': application.affectedCells.length,
       'collisionUpdateCount': application.collisionUpdates.length,
@@ -385,6 +399,10 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
       ],
       extensions: <String, Object?>{
         if (id != 'smart_tile.pattern.erase')
+          'adaptiveConstruction2d': adaptiveSmartTileConstructionContract,
+        if (id != 'smart_tile.pattern.erase')
+          'patternClipping': smartTilePatternClippingContract,
+        if (id != 'smart_tile.pattern.erase')
           'materialPalettePolicy': 'append_catalog_material_allowed_by_preset',
         'semanticIds': true,
         'rawTilesetRequired': false,
@@ -479,6 +497,15 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         },
       },
     );
+
+void _requireConstructionDimension(MapData map, ProjectSmartTilePattern pattern) {
+  if (map.spatialScene != null && pattern.construction != null) {
+    throw semanticFailure(
+      'smart_tile.pattern.construction_2d_only',
+      'Adaptive native construction is available on 2D maps only.',
+    );
+  }
+}
 
 const _coordinateSchema = {
   'type': 'object',

@@ -38,6 +38,18 @@ final class BattleFxBundleCache {
     _images.endScope(scope);
   }
 
+  void updateScope(
+    Object scope, {
+    required Iterable<String> effectIds,
+    Iterable<ui.Image> liveImages = const [],
+  }) {
+    _images.updateScope(
+      scope,
+      keys: effectIds.map((id) => BattleFxCatalog.require(id).assetKey),
+      liveImages: liveImages,
+    );
+  }
+
   Future<ui.Image> loadImage(String effectId) async {
     final normalizedEffectId = effectId.trim();
     final spec = BattleFxCatalog.require(normalizedEffectId);

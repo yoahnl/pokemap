@@ -7,6 +7,27 @@ import 'package:test/test.dart';
 
 void main() {
   group('BorderCatalogActions', () {
+    test('advertises native connected-line cardinal selection', () {
+      final action = BorderCatalogActions.descriptors.firstWhere(
+          (value) => value.id == 'border.blueprint.draft.upsert');
+      expect(action.extensions['nativeConnectedLine2d'], {
+        'template': 'connectedLine', 'sourceDimension': '2d',
+        'orientationField': 'authoredOrientation',
+        'minimumCatalogFormatVersion': 4,
+        'orientationReference': {'east': 0, 'south': 1, 'west': 2, 'north': 3},
+        'nativeConnections': {
+          'lineCap': {'east': ['east'], 'south': ['south'],
+            'west': ['west'], 'north': ['north']},
+          'lineStraight': {'east': ['east', 'west'], 'south': ['north', 'south']},
+          'lineCorner': {'east': ['west', 'south'], 'south': ['west', 'north'],
+            'west': ['east', 'north'], 'north': ['east', 'south']},
+        },
+        'rotation': 'targetMinusAuthored', 'automaticRotation': 'transformPolicy',
+        'mirroredRotation': 'targetPlusAuthored',
+        'mirrorFreeProfile': 'allPositivePrimitivesCardinalAndDisallowFlipX',
+        'mirrorFreeLineSide': 'primary', 'mirrorFreeCanonicalGallery': 'primary',
+      });
+    });
     test('advertises the semantic horizontal facade contract', () {
       final descriptor = BorderCatalogActions.descriptors
           .firstWhere((value) => value.id == 'border.blueprint.draft.upsert');

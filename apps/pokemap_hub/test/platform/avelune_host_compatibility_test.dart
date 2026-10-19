@@ -22,8 +22,10 @@ void main() {
     });
     expect(compatibility.capabilities, contains('map3d@1'));
     expect(compatibility.capabilities, contains('map3d.animation@1'));
+    expect(compatibility.capabilities, contains(SpatialModelClipCapabilities.capabilityId));
     expect(compatibility.capabilities, contains('map3d.terrain-appearance@1'));
     expect(compatibility.capabilities, contains('map3d.terrain-surfaces@1'));
+    expect(compatibility.capabilities, contains('map3d.fractional-ramps@1'));
     expect(
       compatibility.capabilities,
       contains(SpatialGameplayCapabilities.capabilityId),

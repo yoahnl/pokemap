@@ -76,18 +76,23 @@ class SpatialBlockedArea {
 }
 
 final class SpatialRamp extends SpatialBlockedArea {
+  static const fractionalLevelsCapabilityId = 'map3d.fractional-ramps@1';
+
   SpatialRamp({
     required this.id,
     required super.x,
     required super.z,
     required super.width,
     required super.depth,
-    required this.lowLevel,
-    required this.highLevel,
+    required num lowLevel,
+    required num highLevel,
     required this.direction,
     this.surfaceInstanceId,
-  }) {
+  }) : lowLevel = lowLevel.toDouble(),
+       highLevel = highLevel.toDouble() {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
+        !lowLevel.isFinite ||
+        !highLevel.isFinite ||
         lowLevel < 0 ||
         highLevel > maximumSpatialTerrainLevel ||
         highLevel <= lowLevel) {
@@ -99,9 +104,12 @@ final class SpatialRamp extends SpatialBlockedArea {
     }
   }
   final String id;
-  final int lowLevel, highLevel;
+  final double lowLevel, highLevel;
   final SpatialRampDirection direction;
   final String? surfaceInstanceId;
+  bool get hasFractionalLevels =>
+      lowLevel != lowLevel.truncateToDouble() ||
+      highLevel != highLevel.truncateToDouble();
   double levelAt(double px, double pz) {
     final progress = switch (direction) {
       SpatialRampDirection.north => 1 - (pz - z) / depth,
@@ -117,8 +125,8 @@ final class SpatialRamp extends SpatialBlockedArea {
     double? z,
     double? width,
     double? depth,
-    int? lowLevel,
-    int? highLevel,
+    num? lowLevel,
+    num? highLevel,
     SpatialRampDirection? direction,
     Object? surfaceInstanceId = _unsetRampSurface,
   }) => SpatialRamp(
@@ -140,8 +148,8 @@ final class SpatialRamp extends SpatialBlockedArea {
     z: (json['z'] as num).toDouble(),
     width: (json['width'] as num).toDouble(),
     depth: (json['depth'] as num).toDouble(),
-    lowLevel: json['lowLevel'] as int,
-    highLevel: json['highLevel'] as int,
+    lowLevel: json['lowLevel'] as num,
+    highLevel: json['highLevel'] as num,
     direction: SpatialRampDirection.values.byName(json['direction'] as String),
     surfaceInstanceId: json['surfaceInstanceId'] as String?,
   );
@@ -149,8 +157,12 @@ final class SpatialRamp extends SpatialBlockedArea {
   Map<String, dynamic> toJson() => {
     ...super.toJson(),
     'id': id,
-    'lowLevel': lowLevel,
-    'highLevel': highLevel,
+    'lowLevel': lowLevel == lowLevel.truncateToDouble()
+        ? lowLevel.toInt()
+        : lowLevel,
+    'highLevel': highLevel == highLevel.truncateToDouble()
+        ? highLevel.toInt()
+        : highLevel,
     'direction': direction.name,
     if (surfaceInstanceId != null) 'surfaceInstanceId': surfaceInstanceId,
   };

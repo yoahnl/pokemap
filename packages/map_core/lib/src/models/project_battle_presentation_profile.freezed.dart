@@ -652,7 +652,7 @@ as ProjectBattlePanelPresentationProfile,
 @override
 @pragma('vm:prefer-inline')
 $ProjectBattlePanelPresentationProfileCopyWith<$Res> get moves {
-
+  
   return $ProjectBattlePanelPresentationProfileCopyWith<$Res>(_self.moves, (value) {
     return _then(_self.copyWith(moves: value));
   });
@@ -661,7 +661,7 @@ $ProjectBattlePanelPresentationProfileCopyWith<$Res> get moves {
 @override
 @pragma('vm:prefer-inline')
 $ProjectBattlePanelPresentationProfileCopyWith<$Res> get target {
-
+  
   return $ProjectBattlePanelPresentationProfileCopyWith<$Res>(_self.target, (value) {
     return _then(_self.copyWith(target: value));
   });
@@ -670,7 +670,7 @@ $ProjectBattlePanelPresentationProfileCopyWith<$Res> get target {
 @override
 @pragma('vm:prefer-inline')
 $ProjectBattlePanelPresentationProfileCopyWith<$Res> get message {
-
+  
   return $ProjectBattlePanelPresentationProfileCopyWith<$Res>(_self.message, (value) {
     return _then(_self.copyWith(message: value));
   });
@@ -933,7 +933,7 @@ as ProjectBattlePanelPresentationProfile,
 @override
 @pragma('vm:prefer-inline')
 $ProjectBattlePanelPresentationProfileCopyWith<$Res> get moves {
-
+  
   return $ProjectBattlePanelPresentationProfileCopyWith<$Res>(_self.moves, (value) {
     return _then(_self.copyWith(moves: value));
   });
@@ -942,7 +942,7 @@ $ProjectBattlePanelPresentationProfileCopyWith<$Res> get moves {
 @override
 @pragma('vm:prefer-inline')
 $ProjectBattlePanelPresentationProfileCopyWith<$Res> get target {
-
+  
   return $ProjectBattlePanelPresentationProfileCopyWith<$Res>(_self.target, (value) {
     return _then(_self.copyWith(target: value));
   });
@@ -951,7 +951,7 @@ $ProjectBattlePanelPresentationProfileCopyWith<$Res> get target {
 @override
 @pragma('vm:prefer-inline')
 $ProjectBattlePanelPresentationProfileCopyWith<$Res> get message {
-
+  
   return $ProjectBattlePanelPresentationProfileCopyWith<$Res>(_self.message, (value) {
     return _then(_self.copyWith(message: value));
   });

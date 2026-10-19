@@ -482,6 +482,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             rewardMoneyController: _newRewardMoneyController,
             rewardFlagsController: _newRewardFlagsController,
             rewardItemQuantityController: _newRewardItemQuantityController,
+            battleItemsEditor: _buildBattleItemsEditor(
+              references,
+              createMode: true,
+            ),
             references: references,
             badges: project.badges,
             dialogues: project.dialogues,
@@ -565,6 +569,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             rewardMoneyController: _editRewardMoneyController,
             rewardFlagsController: _editRewardFlagsController,
             rewardItemQuantityController: _editRewardItemQuantityController,
+            battleItemsEditor: _buildBattleItemsEditor(
+              references,
+              createMode: false,
+            ),
             references: references,
             badges: project.badges,
             dialogues: project.dialogues,

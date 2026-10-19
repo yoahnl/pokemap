@@ -518,6 +518,32 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/world_rule_batch_stdio.test.ts',
     };
   }
+  if(actionId=='project.catalog.partition') return const {
+    AuthoringTransport.directApi:'test/workspace/catalog_partition_action_test.dart',
+    AuthoringTransport.cli:'test/workspace/catalog_partition_action_test.dart',
+    AuthoringTransport.editor:'../../apps/avelune_studio/test/resource_io/project_catalog_partition_test.dart',
+    AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
+  };
+  if(actionId=='catalog.definition.update') {
+    return const {
+      AuthoringTransport.directApi:'test/catalog_storage/catalog_project_transport_test.dart',
+      AuthoringTransport.cli:'test/catalog_storage/catalog_project_transport_test.dart',
+      AuthoringTransport.editor:'../../apps/avelune_studio/test/resource_io/working_catalog_adapter_test.dart',
+      AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
+    };
+  }
+  if (actionId == 'environment.preset.upsert_batch' ||
+      actionId == 'resource.family.apply_batch') {
+    return {
+      AuthoringTransport.directApi: actionId.startsWith('environment.')
+          ? 'test/domains/maps/environment_preset_batch_test.dart'
+          : 'test/domains/assets/resource_family_batch_test.dart',
+      AuthoringTransport.cli:
+          '../../tools/pokemap_mcp/test/resource_catalog_batch_stdio.test.ts',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_catalog_batch_stdio.test.ts',
+    };
+  }
   if (actionId == 'project.battle_transitions.update') {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/battle_transition_catalogue_actions_test.dart',
@@ -699,6 +725,16 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../apps/avelune_studio/test/resource_io/resource_library_host_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/resource_library_stdio.test.ts',
+    };
+  }
+  if (actionId == 'model3d.configure_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/assets/model3d_configure_batch_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/model3d_configure_batch_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/model3d_configure_batch_stdio.test.ts',
     };
   }
   if (actionId == 'model3d.source.replace' ||
@@ -1482,6 +1518,8 @@ String _contractTestFor(String actionId) {
   if (actionId == 'world_rule.upsert_batch') {
     return 'test/domains/narrative/world_rule_batch_transport_test.dart';
   }
+  if(actionId=='project.catalog.partition') return 'test/workspace/catalog_partition_action_test.dart';
+  if(actionId=='catalog.definition.update') return 'test/catalog_storage/catalog_project_transport_test.dart';
   if (actionId == 'event_v2.record_upsert_batch') {
     return 'test/domains/narrative/event_record_batch_transport_test.dart';
   }
@@ -1536,6 +1574,10 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(['environment.preset.upsert_batch'],
+      'test/domains/maps/environment_preset_batch_test.dart'),
+  _ContractEvidenceRule(['resource.family.apply_batch'],
+      'test/domains/assets/resource_family_batch_test.dart'),
   _ContractEvidenceRule(['resource.family.', 'resource.classify'],
       'test/domains/assets/resource_library_actions_test.dart'),
   _ContractEvidenceRule(
@@ -1709,6 +1751,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['model3d.import_batch', 'model3d.source.replace_batch'],
     'test/domains/assets/model3d_import_batch_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['model3d.configure_batch'],
+    'test/domains/assets/model3d_configure_batch_test.dart',
   ),
   _ContractEvidenceRule(
     ['model3d.'],

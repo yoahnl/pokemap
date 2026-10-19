@@ -82,6 +82,19 @@ void main() {
     await settleTrainerUi(tester);
   }
 
+  Future<void> openTrainerEditor(WidgetTester tester) async {
+    await tester.scrollUntilVisible(
+      find.text('Modifier'),
+      -400,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('trainer-library-detail-scroll')),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    await tester.tap(find.text('Modifier').first);
+    await settleTrainerUi(tester);
+  }
+
   Future<void> openTrainerDropdown(
     WidgetTester tester,
     String keyPrefix,
@@ -463,8 +476,7 @@ void main() {
           .single;
       expect(trainer.battleDifficulty, isNull);
 
-      await tester.tap(find.text('Modifier').first);
-      await settleTrainerUi(tester);
+      await openTrainerEditor(tester);
 
       final slider = tester.widget<CupertinoSlider>(
         find.byKey(const Key('trainer-library-edit-difficulty-slider')),
@@ -476,8 +488,7 @@ void main() {
       trainer = container.read(editorNotifierProvider).project!.trainers.single;
       expect(trainer.battleDifficulty, 7);
 
-      await tester.tap(find.text('Modifier').first);
-      await settleTrainerUi(tester);
+      await openTrainerEditor(tester);
       await tester.tap(
         find.byKey(const Key('trainer-library-edit-difficulty-clear-button')),
       );
@@ -486,6 +497,94 @@ void main() {
 
       trainer = container.read(editorNotifierProvider).project!.trainers.single;
       expect(trainer.battleDifficulty, isNull);
+    },
+  );
+
+  testWidgets(
+    'authors finite trainer battle stock and preserves invalid drafts',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+          pokedexMovesCatalogLoaderProvider.overrideWithValue(
+            (_) async => _movesCatalogView,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = const EditorState(
+        projectRootPath: '/tmp/trainers_battle_stock_test',
+        project: ProjectManifest(
+          name: 'Stock',
+          maps: [],
+          tilesets: [],
+          trainers: [
+            ProjectTrainerEntry(
+              id: 'misty',
+              name: 'Misty',
+              trainerClass: 'Leader',
+              rewardItemGrants: [
+                ProjectTrainerItemGrant(itemId: 'oran_berry', quantity: 7),
+              ],
+            ),
+          ],
+        ),
+      );
+      await pumpTrainerPanel(tester, container);
+      await settleTrainerUi(tester);
+      await tester.tap(find.text('Modifier').first);
+      await settleTrainerUi(tester);
+      final picker = tester.widget<PokeMapDropdownField<String>>(
+        find.byKey(const Key('trainer-library-edit-battle-item-picker')),
+      );
+      expect(picker.items.map((item) => item.value), ['', 'oran_berry']);
+      picker.onChanged('oran_berry');
+      await settleTrainerUi(tester);
+      final quantity = find.byKey(
+        const Key('trainer-library-edit-battle-item-oran_berry-quantity'),
+      );
+      await tester.ensureVisible(quantity);
+      await tester.enterText(quantity, '2.5');
+      await pressCupertinoButtonWithText(tester, 'Enregistrer');
+      expect(notifier.state.project!.trainers.single.battleItems, isEmpty);
+      expect(tester.widget<TextField>(quantity).controller!.text, '2.5');
+      expect(find.textContaining('entier entre 1 et 99'), findsWidgets);
+      await tester.enterText(quantity, '2');
+      await pressCupertinoButtonWithText(tester, 'Enregistrer');
+      expect(notifier.state.project!.trainers.single.battleItems, {
+        'oran_berry': 2,
+      });
+      expect(
+        notifier
+            .state
+            .project!
+            .trainers
+            .single
+            .rewardItemGrants
+            .single
+            .quantity,
+        7,
+      );
+      await openTrainerEditor(tester);
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const Key('trainer-library-edit-battle-item-oran_berry-remove'),
+            ),
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      await pressCupertinoButtonWithText(tester, 'Enregistrer');
+      expect(notifier.state.project!.trainers.single.battleItems, isEmpty);
     },
   );
 
@@ -755,7 +854,7 @@ void main() {
       );
       expect(
         find.text(
-          'Profil tactique · analyse dégâts/types · switch tactique · objets indisponibles',
+          'Profil tactique · analyse dégâts/types · switch tactique · soins selon stock configuré',
         ),
         findsOneWidget,
       );
@@ -767,7 +866,7 @@ void main() {
       await settleTrainerUi(tester);
       expect(
         find.text(
-          'Profil basique · choix simples · aucun switch tactique · aucun objet',
+          'Profil basique · choix simples · aucun switch tactique · soins selon stock configuré',
         ),
         findsOneWidget,
       );
@@ -779,7 +878,7 @@ void main() {
       await settleTrainerUi(tester);
       expect(
         find.text(
-          'Profil avancé · analyse statuts/utilité · switch tactique · objets indisponibles',
+          'Profil avancé · analyse statuts/utilité · switch tactique · soins selon stock configuré',
         ),
         findsOneWidget,
       );

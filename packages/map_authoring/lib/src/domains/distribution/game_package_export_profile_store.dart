@@ -9,6 +9,8 @@ import 'package:path/path.dart' as p;
 import '../../ports/project_file_reader.dart';
 import '../../ports/game_package_export_profile_api_port.dart';
 import '../../support/authoring_fingerprint.dart';
+import '../../catalog_storage/catalog_storage_store.dart';
+import '../../workspace/catalog/catalog_project_reader.dart';
 
 final class GamePackageExportProfileStore {
   const GamePackageExportProfileStore({required this.projectRoot});
@@ -156,9 +158,18 @@ final class GamePackageExportProfileStore {
   Future<String> _contextRevision(GamePackageExportProfile? profile) async {
     final paths = <String>{'project.json'};
     final projectFile = await _safeReference('project.json');
-    final manifest = ProjectManifest.fromJson(
-        (jsonDecode(await projectFile.readAsString()) as Map)
-            .cast<String, dynamic>());
+    final descriptor = (jsonDecode(await projectFile.readAsString()) as Map)
+        .cast<String, Object?>();
+    final catalog = await CatalogProjectReader.open(
+      store: await CatalogStorageStore.open(projectRoot: projectRoot.path),
+      descriptor: descriptor,
+    );
+    final manifest = catalog == null
+        ? ProjectManifest.fromJson(descriptor)
+        : await catalog.read((value) async => value.projectMetadata);
+    if (descriptor['format'] == 'avelune.working-catalog') {
+      paths.add(CatalogStorageStore.headStorageKey);
+    }
     if (manifest.newGame.enabled) {
       final maps = manifest.maps
           .where((entry) => entry.id == manifest.newGame.startMapId)
@@ -201,7 +212,9 @@ final class GamePackageExportProfileStore {
       }
       fingerprint.endEntry();
     }
-    return fingerprint.close();
+    final revision = fingerprint.close();
+    await catalog?.read((_) async {});
+    return revision;
   }
 
   Future<File> _safeReference(String path) async {

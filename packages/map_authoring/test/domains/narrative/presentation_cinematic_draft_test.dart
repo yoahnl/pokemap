@@ -5,6 +5,24 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('working catalog Presentation drafts retain the complete project', () {
+    final baseline = _manifest();
+    final snapshot = _snapshot(baseline, working: true);
+    final draft = PresentationCinematicDraft.fromSnapshot(snapshot,
+        expectedProject: baseline);
+    final projected = draft.apply(
+        actionId: 'presentationClip.update',
+        parameters: {
+          'cinematicId': 'opening',
+          'trackId': 'text',
+          'clip': encodePresentationClip(_textClip(content: 'Working draft'))
+        },
+        operationId: 'working-edit');
+    expect(_content(projected), 'Working draft');
+    expect(projected.name, baseline.name);
+    expect(jsonDecode(utf8.decode(snapshot.resourceBytes('project'))),
+        WorkingProjectCatalogDescriptor(projectId: 'draft').toJson());
+  });
   test('applies consecutive Presentation actions without mutating the baseline',
       () {
     final baseline = _manifest();
@@ -144,7 +162,6 @@ void main() {
           'not a Scene editor',
     );
   });
-
 }
 
 ProjectManifest _manifest() => ProjectManifest(
@@ -247,12 +264,15 @@ String _content(ProjectManifest manifest) =>
             as PresentationTextClip)
         .text;
 
-ProjectSnapshot _snapshot(ProjectManifest manifest) {
-  final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
+ProjectSnapshot _snapshot(ProjectManifest manifest, {bool working = false}) {
+  final projectBytes = utf8.encode(jsonEncode(working
+      ? WorkingProjectCatalogDescriptor(projectId: "draft").toJson()
+      : manifest.toJson()));
   return ProjectSnapshot(
     projectHandle: const ProjectHandle('draft-test'),
     revision: 'sha256:${List<String>.filled(64, 'a').join()}',
     manifest: manifest,
+    materializedCatalogProject: working,
     maps: const <MapData>[],
     resourceFingerprints: <String, String>{
       'project': computeAuthoringBytesFingerprint(

@@ -9,6 +9,8 @@ import 'package:path/path.dart' as p;
 
 Future<Directory> requireStudioCaptureRoot(String configuredPath) async {
   const ownedRoots = {
+    '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/l6-catalog-qualification-20261018/captures':
+        'avelune-studio-l6-catalog-capture@1',
     '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/avelune-cs-native-20261016-143230-captures':
         'avelune-studio-native-cs-capture@1',
     '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/Valbois-studio-capture-20261008':

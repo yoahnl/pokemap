@@ -5,6 +5,7 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
+import '../../project_session/data/studio_project_document_revision.dart';
 import '../domain/map_catalog_port.dart';
 import '../domain/map_workspace_port.dart';
 import 'local_map_workspace_adapter.dart';
@@ -108,8 +109,7 @@ final class LocalMapCatalogAdapter
           'Le projet ou ses références ont changé depuis l’analyse. Relancez-la ; rien n’a été publié.',
         );
       }
-      if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-          before.revision) {
+      if (studioProjectSnapshotRevision(snapshot) != before.revision) {
         throw const MapWorkspaceFailure(
           MapWorkspaceProblem.conflict,
           'Le projet a changé. Aucune modification n’a été publiée.',
@@ -186,6 +186,10 @@ final class LocalMapCatalogAdapter
         before.revision,
         planned.plan,
         actionId,
+        projectedProject: planned.projectedProject,
+        projectedRevision: snapshot.materializedCatalogProject
+            ? studioProjectPlanRevision(snapshot, planned.plan)
+            : null,
       );
       try {
         final confirmation = confirmDestructive
@@ -221,6 +225,19 @@ final class LocalMapCatalogAdapter
         if (recovered.receipt.status.name != 'applied' &&
             recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
           rethrow;
+        }
+      }
+      if (snapshot.materializedCatalogProject) {
+        final after = await snapshots.load(
+          opened.projectHandle,
+          policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+        );
+        if (studioProjectSnapshotRevision(after) != receipt.revision ||
+            after.manifest != receipt.manifest) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.conflict,
+            'Le catalogue a été publié mais sa relecture a changé. Rouvrez le projet sans relancer la publication.',
+          );
         }
       }
       return receipt;

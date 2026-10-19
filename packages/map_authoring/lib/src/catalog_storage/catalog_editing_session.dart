@@ -13,9 +13,11 @@ import '../history/content_blob_store.dart';
 import '../history/file_history_store.dart';
 import '../history/history_store.dart';
 import '../ports/idempotency_store.dart';
+import '../ports/transaction_file_gateway.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/authoring_plan.dart';
+import '../transactions/authoring_payload.dart';
 import '../transactions/change_set.dart';
 import '../transactions/file_idempotency_store.dart';
 import '../transactions/idempotency_ledger.dart';
@@ -23,21 +25,24 @@ import '../transactions/journaled_transaction.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import 'catalog_generation_retention.dart';
+import 'catalog_revert_merge.dart';
 import 'catalog_storage_store.dart';
 
 final class CatalogEditingPlan {
-  CatalogEditingPlan._(this.plan, this.scope, this.operationId, this.root,
-      this._lease, this._patch, this._owner);
+  CatalogEditingPlan._(this.plan, this.scope, this._operationId, this.root,
+      this._lease, this._patch, this._owner, this._currentProjectRevision);
 
   final AuthoringPlan plan;
   final AuthoringIdempotencyScope scope;
-  final String operationId;
+  String _operationId;
+  String get operationId => _operationId;
   final CatalogObjectReference root;
   CatalogStoragePatch? _patch;
   final Object _owner;
+  final Future<String> Function()? _currentProjectRevision;
   bool _settled = false;
   bool _invalidated = false;
-  final CatalogGenerationLease _lease;
+  CatalogGenerationLease _lease;
 }
 
 final class CatalogEditingSession {
@@ -56,7 +61,8 @@ final class CatalogEditingSession {
         _plans = AuthoringPlanStore(clock: clock),
         _reader = reader,
         _snapshot = reader.snapshot {
-    final recorder = AuthoringHistoryRecorder(store: history, blobs: blobs);
+    final recorder = AuthoringHistoryRecorder(
+        store: history, blobs: blobs, catalogStore: store);
     _transaction = JournaledAuthoringTransaction(
         plans: _plans,
         gateway: store.gateway,
@@ -94,7 +100,7 @@ final class CatalogEditingSession {
         () => retention.bindProjectUnderLock(projectId));
     final reader = await retention.openSnapshot();
     try {
-      await reader.snapshot.validate();
+      await reader.snapshot.admitIndex();
       return CatalogEditingSession._(
           store: store,
           projectId: projectId,
@@ -180,7 +186,7 @@ final class CatalogEditingSession {
     }
     final reader = await retention.openSnapshot();
     try {
-      await reader.snapshot.validate();
+      await reader.snapshot.admitIndex();
     } on Object {
       await reader.close();
       rethrow;
@@ -208,27 +214,100 @@ final class CatalogEditingSession {
   Future<CatalogEditingPlan> planPatch({
     Iterable<CatalogDefinitionUnit> upserts = const [],
     Iterable<CatalogDefinitionKey> removals = const [],
+    Iterable<AuthoringResourceChange> additionalChanges = const [],
+    String? workspaceFingerprint,
+    String? publicBaseRevision,
+    AuthoringDiff? publicDiff,
+    AuthoringPlan? publicPlan,
+    Future<String> Function()? currentProjectRevision,
     required String idempotencyKey,
+    AuthoringRequest? request,
   }) =>
       _serialize(() => _planPatch(
           upserts: upserts,
           removals: removals,
+          additionalChanges: additionalChanges,
+          workspaceFingerprint: workspaceFingerprint,
+          publicBaseRevision: publicBaseRevision,
+          publicDiff: publicDiff,
+          publicPlan: publicPlan,
+          currentProjectRevision: currentProjectRevision,
+          request: request,
           idempotencyKey: idempotencyKey));
 
   Future<CatalogEditingPlan> _planPatch({
-    Iterable<CatalogDefinitionUnit> upserts = const [],
-    Iterable<CatalogDefinitionKey> removals = const [],
+    required Iterable<CatalogDefinitionUnit> upserts,
+    required Iterable<CatalogDefinitionKey> removals,
+    required Iterable<AuthoringResourceChange> additionalChanges,
+    required String? workspaceFingerprint,
+    required String? publicBaseRevision,
+    required AuthoringDiff? publicDiff,
+    required AuthoringPlan? publicPlan,
+    required Future<String> Function()? currentProjectRevision,
     required String idempotencyKey,
+    required AuthoringRequest? request,
   }) async {
     _requireOpen();
     final base = snapshot;
-    final patch = await base.patch(upserts: upserts, removals: removals);
+    final additional = additionalChanges.toList(growable: false);
+    for (final change in additional) {
+      _requireAdditionalPath(change.storageKey);
+      if (change.resource.kind == 'catalogHead') {
+        throw const CatalogStorageException('catalog.reserved_resource',
+            'Catalog head resources are owned by the catalog transaction.');
+      }
+    }
+    final units = upserts.toList();
+    final deleted = removals.toList();
+    if (units.any((unit) =>
+            unit.key.kind == CatalogDefinitionKind.workspaceState ||
+            unit.references.any(
+                (key) => key.kind == CatalogDefinitionKind.workspaceState)) ||
+        deleted
+            .any((key) => key.kind == CatalogDefinitionKind.workspaceState)) {
+      throw const CatalogStorageException('catalog.reserved_resource',
+          'Workspace state is owned by the catalog transaction.');
+    }
+    final revision = publicBaseRevision ??
+        publicPlan?.baseRevision ??
+        'sha256:${base.root.sha256}';
+    if (additional.isNotEmpty &&
+        (workspaceFingerprint == null || currentProjectRevision == null)) {
+      throw const CatalogStorageException('catalog.workspace_state_required',
+          'External resource edits require a canonical inventory fingerprint and revision guard.');
+    }
+    if (revision != 'sha256:${base.root.sha256}' &&
+        currentProjectRevision == null) {
+      throw const CatalogStorageException(
+          'catalog.project_revision_guard_required',
+          'A public project revision requires its canonical revision reader.');
+    }
+    if (workspaceFingerprint != null) {
+      if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(workspaceFingerprint)) {
+        throw const FormatException(
+            'catalog.workspace: invalid inventory fingerprint');
+      }
+      final key = CatalogDefinitionKey(
+          CatalogDefinitionKind.workspaceState, 'workspace');
+      final existing = await base.lookup(key);
+      if (additional.isNotEmpty &&
+          existing?.payload['fingerprint'] == workspaceFingerprint) {
+        throw const CatalogStorageException(
+            'catalog.workspace_fingerprint_unchanged',
+            'Changed resources must produce a changed canonical inventory fingerprint.');
+      }
+      units.add(CatalogDefinitionUnit(
+          key: key,
+          payload: {'id': 'workspace', 'fingerprint': workspaceFingerprint}));
+    }
+    final patch = await base.patch(upserts: units, removals: deleted);
     if (patch.isEmpty) {
       throw const CatalogStorageException('catalog.no_changes',
           'The catalog edit does not change any definition.');
     }
     return store.gateway.withExclusiveWriteLock(() async {
       await _requireAdmission(base.root);
+      await _requireProjectRevision(currentProjectRevision, revision);
       final operationId = _token('operation_');
       final lease = await retention.protectUnderLock(
           roots: [patch.beforeRoot, patch.root],
@@ -245,6 +324,12 @@ final class CatalogEditingSession {
             idempotencyKey: idempotencyKey,
             actionId: 'catalog.units.patch',
             context: AuthoringHistoryContext(),
+            publicRequest: request,
+            publicBaseRevision: revision,
+            publicPlan: publicPlan,
+            diff: publicDiff,
+            additionalChanges: additional,
+            currentProjectRevision: currentProjectRevision,
             patch: patch);
       } on Object {
         await retention.releaseUnderLock(lease.id);
@@ -253,10 +338,22 @@ final class CatalogEditingSession {
     });
   }
 
-  Future<AuthoringReceipt> apply(CatalogEditingPlan prepared) =>
-      _serialize(() => _apply(prepared));
+  Future<AuthoringReceipt> apply(CatalogEditingPlan prepared,
+          {String? operationId,
+          AuthoringTransactionPrecondition? precondition,
+          void Function()? beforeReservation,
+          void Function()? preparationCheck}) =>
+      _serialize(() => _apply(prepared,
+          operationId: operationId,
+          precondition: precondition,
+          beforeReservation: beforeReservation,
+          preparationCheck: preparationCheck));
 
-  Future<AuthoringReceipt> _apply(CatalogEditingPlan prepared) async {
+  Future<AuthoringReceipt> _apply(CatalogEditingPlan prepared,
+      {String? operationId,
+      AuthoringTransactionPrecondition? precondition,
+      void Function()? beforeReservation,
+      void Function()? preparationCheck}) async {
     _requireOpen();
     if (!identical(prepared._owner, _owner) ||
         prepared._invalidated ||
@@ -264,6 +361,28 @@ final class CatalogEditingSession {
             !identical(_prepared[prepared.plan.planId], prepared))) {
       throw const CatalogStorageException('catalog.plan_unknown',
           'The prepared edit does not belong to this session.');
+    }
+    if (operationId != null && operationId != prepared.operationId) {
+      safeAuthoringSecurityIdentifier(operationId, 'operationId');
+      if (prepared._settled) {
+        throw const CatalogStorageException('catalog.operation_mismatch',
+            'A completed plan cannot change its operation identity.');
+      }
+      await store.gateway.withExclusiveWriteLock(() async {
+        await _requireAdmission(_decodeHead(
+            _headChange(prepared.plan.changeSet.changes).beforeBytes!));
+        if (await store.gateway.readJournal(operationId) != null) {
+          throw const CatalogStorageException('catalog.operation_mismatch',
+              'The operation identity is already in use.');
+        }
+        final lease = await retention.protectUnderLock(
+            roots: prepared._lease.roots,
+            ownerId: operationId,
+            purpose: CatalogLeasePurpose.preparation);
+        await retention.releaseUnderLock(prepared._lease.id);
+        prepared._lease = lease;
+        prepared._operationId = operationId;
+      });
     }
     final replay = await _transaction.inspectReplay(
         scope: prepared.scope, plan: prepared.plan);
@@ -281,15 +400,20 @@ final class CatalogEditingSession {
           'catalog.plan_unknown', 'The prepared edit is no longer active.');
     }
     final before =
-        _decodeHead(prepared.plan.changeSet.changes.single.beforeBytes!);
+        _decodeHead(_headChange(prepared.plan.changeSet.changes).beforeBytes!);
     final context = AuthoringHistoryContext.fromExtensions(
         prepared.plan.request.extensions);
+    final currentRevision = prepared._currentProjectRevision == null
+        ? 'sha256:${snapshot.root.sha256}'
+        : await prepared._currentProjectRevision();
     final receipt = await _transaction.apply(
         planId: prepared.plan.planId,
         request: prepared.plan.request,
-        currentProjectRevision: 'sha256:${snapshot.root.sha256}',
+        currentProjectRevision: currentRevision,
         scope: prepared.scope,
         operationId: prepared.operationId,
+        beforeReservation: beforeReservation,
+        preparationCheck: preparationCheck,
         precondition: () async {
           if (prepared._invalidated ||
               prepared._settled ||
@@ -298,14 +422,19 @@ final class CatalogEditingSession {
                 'The prepared edit is no longer active.');
           }
           await _requireAdmission(before, ownOperationId: prepared.operationId);
+          await _requireProjectRevision(
+              prepared._currentProjectRevision, prepared.plan.baseRevision);
+          await precondition?.call();
           if (context.expectedHeadEntryId != null) {
             final head = (await history.list(projectId: projectId, limit: 1))
                 .entries
                 .firstOrNull;
             if (head?.entryId != context.expectedHeadEntryId) {
-              throw const AuthoringHistoryException(
-                  'history.redo_branch_diverged',
-                  'Redo is unsafe because the history branch changed.');
+              throw AuthoringHistoryException(
+                  context.kind == AuthoringHistoryKind.revert
+                      ? 'history.head_stale'
+                      : 'history.redo_branch_diverged',
+                  'The history branch changed after this plan was prepared.');
             }
           }
         });
@@ -322,7 +451,7 @@ final class CatalogEditingSession {
           ? await patch.nextSnapshot(readObject: nextReader.lease.readObject)
           : nextReader.snapshot;
       if (patch == null || nextReader.snapshot.root != prepared.root) {
-        await next.validate();
+        await next.admitIndex();
       }
     } on Object {
       await nextReader.close();
@@ -343,27 +472,95 @@ final class CatalogEditingSession {
     await _plans.discard(prepared.plan.planId);
   }
 
+  Future<CatalogEditingPlan> planUndo(
+          {required String entryId,
+          required String idempotencyKey,
+          String? operationId,
+          AuthoringRequest? request,
+          String? publicBaseRevision,
+          Future<String> Function()? currentProjectRevision}) =>
+      _serialize(() => _planHistory(entryId, idempotencyKey,
+          redo: false,
+          operationId: operationId,
+          request: request,
+          publicBaseRevision: publicBaseRevision,
+          currentProjectRevision: currentProjectRevision));
+
+  Future<CatalogEditingPlan> planRedo(
+          {required String entryId,
+          required String idempotencyKey,
+          String? operationId,
+          AuthoringRequest? request,
+          String? publicBaseRevision,
+          Future<String> Function()? currentProjectRevision}) =>
+      _serialize(() => _planHistory(entryId, idempotencyKey,
+          redo: true,
+          operationId: operationId,
+          request: request,
+          publicBaseRevision: publicBaseRevision,
+          currentProjectRevision: currentProjectRevision));
+
   Future<AuthoringReceipt> undo(
-          {required String entryId, required String idempotencyKey}) =>
-      _serialize(() async =>
-          _apply(await _planHistory(entryId, idempotencyKey, redo: false)));
+          {required String entryId,
+          required String idempotencyKey,
+          String? operationId,
+          AuthoringRequest? request,
+          String? publicBaseRevision,
+          Future<String> Function()? currentProjectRevision,
+          AuthoringTransactionPrecondition? precondition,
+          void Function()? beforeReservation,
+          void Function()? preparationCheck}) =>
+      _serialize(() async => _apply(
+          await _planHistory(entryId, idempotencyKey,
+              redo: false,
+              operationId: operationId,
+              request: request,
+              publicBaseRevision: publicBaseRevision,
+              currentProjectRevision: currentProjectRevision),
+          operationId: operationId,
+          precondition: precondition,
+          beforeReservation: beforeReservation,
+          preparationCheck: preparationCheck));
 
   Future<AuthoringReceipt> redo(
-          {required String entryId, required String idempotencyKey}) =>
-      _serialize(() async =>
-          _apply(await _planHistory(entryId, idempotencyKey, redo: true)));
+          {required String entryId,
+          required String idempotencyKey,
+          String? operationId,
+          AuthoringRequest? request,
+          String? publicBaseRevision,
+          Future<String> Function()? currentProjectRevision,
+          AuthoringTransactionPrecondition? precondition,
+          void Function()? beforeReservation,
+          void Function()? preparationCheck}) =>
+      _serialize(() async => _apply(
+          await _planHistory(entryId, idempotencyKey,
+              redo: true,
+              operationId: operationId,
+              request: request,
+              publicBaseRevision: publicBaseRevision,
+              currentProjectRevision: currentProjectRevision),
+          operationId: operationId,
+          precondition: precondition,
+          beforeReservation: beforeReservation,
+          preparationCheck: preparationCheck));
 
   Future<CatalogEditingPlan> _planHistory(String entryId, String key,
-      {required bool redo}) async {
+      {required bool redo,
+      String? operationId,
+      AuthoringRequest? request,
+      String? publicBaseRevision,
+      Future<String> Function()? currentProjectRevision}) async {
     _requireOpen();
     return store.gateway.withExclusiveWriteLock(() async {
       await _requireAdmission(snapshot.root);
       final entry = await history.get(projectId: projectId, entryId: entryId);
       if (entry == null ||
           entry.nonUndoableReason != null ||
-          entry.changes.length != 1 ||
-          entry.changes.single.storageKey !=
-              CatalogStorageStore.headStorageKey) {
+          entry.changes
+                  .where((change) =>
+                      change.storageKey == CatalogStorageStore.headStorageKey)
+                  .length !=
+              1) {
         throw const AuthoringHistoryException('history.entry_missing',
             'The selected entry is not an undoable catalog edit.');
       }
@@ -376,7 +573,8 @@ final class CatalogEditingSession {
         throw const AuthoringHistoryException('history.redo_branch_diverged',
             'Redo is unsafe because the history branch changed.');
       }
-      final change = entry.changes.single;
+      final change = entry.changes.singleWhere(
+          (change) => change.storageKey == CatalogStorageStore.headStorageKey);
       final expected = redo ? change.beforeRevision : change.afterRevision;
       if (await store.gateway
               .readResourceRevision(CatalogStorageStore.headStorageKey) !=
@@ -410,34 +608,334 @@ final class CatalogEditingSession {
       }
       final target = _decodeHead(bytes);
       final next = (await store.openRoot(target)).snapshot;
-      await next.validate();
-      final operationId = _token('operation_');
-      final lease = await retention.protectUnderLock(
-          roots: [snapshot.root, target],
-          ownerId: operationId,
-          purpose: CatalogLeasePurpose.preparation);
+      await next.admitIndex();
+      final additional = <AuthoringResourceChange>[];
+      final payloads = <AuthoringPayload>[];
       try {
-        return _prepare(
-            before: snapshot.root,
-            next: next,
-            operationId: operationId,
-            lease: lease,
-            idempotencyKey: key,
-            actionId: redo ? 'history.redo' : 'history.undo',
-            context: AuthoringHistoryContext(
-                kind: redo
-                    ? AuthoringHistoryKind.redo
-                    : AuthoringHistoryKind.undo,
-                targetEntryId: entryId,
-                expectedHeadEntryId: redo ? latest!.entryId : null),
-            diff: redo
-                ? entry.receipt.diff
-                : invertAuthoringHistoryDiff(entry.receipt.diff));
+        for (final resource in entry.changes) {
+          if (resource.storageKey == CatalogStorageStore.headStorageKey) {
+            continue;
+          }
+          _requireAdditionalPath(resource.storageKey);
+          final beforeRevision =
+              redo ? resource.beforeRevision : resource.afterRevision;
+          final afterRevision =
+              redo ? resource.afterRevision : resource.beforeRevision;
+          if (await store.gateway.readResourceRevision(resource.storageKey) !=
+              beforeRevision) {
+            throw const AuthoringHistoryException('history.resource_changed',
+                'A resource changed after the selected catalog transaction.');
+          }
+          Future<AuthoringPayload?> capture(
+              String? id, String? revision) async {
+            if (id == null) return null;
+            final payload =
+                await blobs.capturePayload(id, storageKey: resource.storageKey);
+            if (payload == null) {
+              throw const AuthoringHistoryException('history.blob_missing',
+                  'A retained transaction resource is unavailable.');
+            }
+            payloads.add(payload);
+            if (payload.resourceRevision != revision) {
+              throw const AuthoringHistoryException(
+                  'history.blob_revision_mismatch',
+                  'A retained transaction resource does not match history.');
+            }
+            return payload;
+          }
+
+          additional.add(AuthoringResourceChange.withPayloads(
+              resource: AuthoringResourceRef(
+                  kind: resource.resource.kind,
+                  id: resource.resource.id,
+                  revision: beforeRevision,
+                  extensions: resource.resource.extensions),
+              storageKey: resource.storageKey,
+              beforePayload: await capture(
+                  redo ? resource.beforeBlobId : resource.afterBlobId,
+                  beforeRevision),
+              afterPayload: await capture(
+                  redo ? resource.afterBlobId : resource.beforeBlobId,
+                  afterRevision)));
+        }
+        final revision = publicBaseRevision ?? 'sha256:${snapshot.root.sha256}';
+        if (revision != 'sha256:${snapshot.root.sha256}' &&
+            currentProjectRevision == null) {
+          throw const CatalogStorageException(
+              'catalog.project_revision_guard_required',
+              'A public project revision requires its canonical revision reader.');
+        }
+        await _requireProjectRevision(currentProjectRevision, revision);
+        final selectedOperation = operationId ?? _token('operation_');
+        safeAuthoringSecurityIdentifier(selectedOperation, 'operationId');
+        final lease = await retention.protectUnderLock(
+            roots: [snapshot.root, target],
+            ownerId: selectedOperation,
+            purpose: CatalogLeasePurpose.preparation);
+        try {
+          final prepared = _prepare(
+              before: snapshot.root,
+              next: next,
+              operationId: selectedOperation,
+              lease: lease,
+              idempotencyKey: key,
+              actionId: redo ? 'history.redo' : 'history.undo',
+              additionalChanges: additional,
+              publicRequest: request,
+              publicBaseRevision: publicBaseRevision,
+              currentProjectRevision: currentProjectRevision,
+              context: AuthoringHistoryContext(
+                  kind: redo
+                      ? AuthoringHistoryKind.redo
+                      : AuthoringHistoryKind.undo,
+                  targetEntryId: entryId,
+                  expectedHeadEntryId: redo ? latest!.entryId : null),
+              diff: redo
+                  ? entry.receipt.diff
+                  : invertAuthoringHistoryDiff(entry.receipt.diff));
+          try {
+            await bindCanonicalBulkHistoryPlan(
+                history: history,
+                plan: prepared.plan,
+                actorId: actorId,
+                projectId: projectId,
+                operationId: selectedOperation);
+            return prepared;
+          } on Object {
+            prepared._invalidated = true;
+            _prepared.remove(prepared.plan.planId);
+            await _plans.discard(prepared.plan.planId);
+            rethrow;
+          }
+        } on Object {
+          await retention.releaseUnderLock(lease.id);
+          rethrow;
+        }
       } on Object {
-        await retention.releaseUnderLock(lease.id);
+        await releaseAuthoringPayloads(payloads);
         rethrow;
       }
     });
+  }
+
+  Future<CatalogEditingPlan> planRevert({
+    required String entryId,
+    required String expectedHeadEntryId,
+    required String idempotencyKey,
+    required Future<String> Function(
+            CatalogSnapshot projected, List<AuthoringResourceChange> changes)
+        validateProjection,
+    required Future<String> Function() currentProjectRevision,
+    String? operationId,
+    AuthoringRequest? request,
+    String? publicBaseRevision,
+  }) =>
+      _serialize(() => _planRevert(
+          entryId: entryId,
+          expectedHeadEntryId: expectedHeadEntryId,
+          idempotencyKey: idempotencyKey,
+          validateProjection: validateProjection,
+          currentProjectRevision: currentProjectRevision,
+          operationId: operationId,
+          request: request,
+          publicBaseRevision: publicBaseRevision));
+
+  Future<CatalogEditingPlan> _planRevert({
+    required String entryId,
+    required String expectedHeadEntryId,
+    required String idempotencyKey,
+    required Future<String> Function(
+            CatalogSnapshot projected, List<AuthoringResourceChange> changes)
+        validateProjection,
+    required Future<String> Function() currentProjectRevision,
+    String? operationId,
+    AuthoringRequest? request,
+    String? publicBaseRevision,
+  }) async {
+    _requireOpen();
+    final selectedOperation = operationId ?? _token('operation_');
+    safeAuthoringSecurityIdentifier(selectedOperation, 'operationId');
+    return store.gateway.withExclusiveWriteLock(() async {
+      await _requireAdmission(snapshot.root);
+      final latest = (await history.list(projectId: projectId, limit: 1))
+          .entries
+          .firstOrNull;
+      if (latest?.entryId != expectedHeadEntryId) {
+        throw const AuthoringHistoryException('history.head_stale',
+            'The current history head differs from the expected head.');
+      }
+      final target = await history.get(projectId: projectId, entryId: entryId);
+      final heads = target?.changes
+          .where((change) =>
+              change.storageKey == CatalogStorageStore.headStorageKey)
+          .toList();
+      if (target == null ||
+          target.nonUndoableReason != null ||
+          heads?.length != 1 ||
+          heads!.single.beforeBlobId == null ||
+          heads.single.afterBlobId == null) {
+        throw const AuthoringHistoryException('history.entry_missing',
+            'The selected entry is not a retained catalog mutation.');
+      }
+      final beforeRoot = await _historyRoot(
+          heads.single.beforeBlobId!, heads.single.beforeRevision!);
+      final afterRoot = await _historyRoot(
+          heads.single.afterBlobId!, heads.single.afterRevision!);
+      final before = (await store.openRoot(beforeRoot)).snapshot;
+      final after = (await store.openRoot(afterRoot)).snapshot;
+      final delta = await CatalogRevertDelta.between(
+          before: before, after: after, current: snapshot);
+      final upserts = delta.upserts;
+      final removals = delta.removals;
+      final additional = <AuthoringResourceChange>[];
+      final payloads = <AuthoringPayload>[];
+      try {
+        for (final resource in target.changes) {
+          if (resource.storageKey == CatalogStorageStore.headStorageKey) {
+            continue;
+          }
+          _requireAdditionalPath(resource.storageKey);
+          final currentRevision =
+              await store.gateway.readResourceRevision(resource.storageKey);
+          if (currentRevision == resource.afterRevision) continue;
+          final current =
+              await store.gateway.captureResourcePayload(resource.storageKey);
+          if (current != null) payloads.add(current);
+          final desired = resource.afterBlobId == null
+              ? null
+              : await blobs.capturePayload(resource.afterBlobId!,
+                  storageKey: resource.storageKey);
+          if (desired != null) payloads.add(desired);
+          if (current?.resourceRevision != currentRevision ||
+              desired?.resourceRevision != resource.afterRevision) {
+            throw const AuthoringHistoryException(
+                'history.blob_revision_mismatch',
+                'A retained or current resource does not match its revision.');
+          }
+          additional.add(AuthoringResourceChange.withPayloads(
+              resource: AuthoringResourceRef(
+                  kind: resource.resource.kind,
+                  id: resource.resource.id,
+                  revision: currentRevision,
+                  extensions: resource.resource.extensions),
+              storageKey: resource.storageKey,
+              beforePayload: current,
+              afterPayload: desired));
+        }
+        if (upserts.isEmpty && removals.isEmpty && additional.isEmpty) {
+          throw const AuthoringHistoryException(
+              'history.revert_noop', 'The selected state is already current.');
+        }
+        final revision = publicBaseRevision ?? await currentProjectRevision();
+        await _requireProjectRevision(currentProjectRevision, revision);
+        final candidate =
+            await snapshot.patch(upserts: upserts, removals: removals);
+        Future<List<int>> candidateRead(
+                CatalogObjectReference reference) async =>
+            candidate.objects[reference.sha256] ??
+            await store.readObject(reference);
+        final projected =
+            await candidate.nextSnapshot(readObject: candidateRead);
+        final fingerprint =
+            await validateProjection(projected, List.unmodifiable(additional));
+        if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(fingerprint)) {
+          throw const FormatException(
+              'catalog.workspace: invalid inventory fingerprint');
+        }
+        final stateKey = CatalogDefinitionKey(
+            CatalogDefinitionKind.workspaceState, 'workspace');
+        if (additional.isNotEmpty &&
+            (await snapshot.lookup(stateKey))?.payload['fingerprint'] ==
+                fingerprint) {
+          throw const CatalogStorageException(
+              'catalog.workspace_fingerprint_unchanged',
+              'Changed resources must produce a changed canonical inventory fingerprint.');
+        }
+        final patch = await snapshot.patch(upserts: [
+          ...upserts,
+          CatalogDefinitionUnit(
+              key: stateKey,
+              payload: {'id': 'workspace', 'fingerprint': fingerprint}),
+        ], removals: removals);
+        final lease = await retention.protectUnderLock(
+            roots: [snapshot.root, patch.root],
+            ownerId: selectedOperation,
+            purpose: CatalogLeasePurpose.preparation);
+        try {
+          await store.publishObjectsUnderLock(patch.objects);
+          final next = await patch.nextSnapshot(readObject: lease.readObject);
+          final prepared = _prepare(
+              before: snapshot.root,
+              next: next,
+              operationId: selectedOperation,
+              lease: lease,
+              idempotencyKey: idempotencyKey,
+              actionId: 'history.revert',
+              context: AuthoringHistoryContext(
+                  kind: AuthoringHistoryKind.revert,
+                  targetEntryId: entryId,
+                  expectedHeadEntryId: expectedHeadEntryId),
+              publicRequest: request,
+              publicBaseRevision: revision,
+              currentProjectRevision: currentProjectRevision,
+              additionalChanges: additional,
+              patch: patch);
+          try {
+            final attestation = target.bulkCapability == null
+                ? null
+                : await CatalogRevertMergeAttestation.verify(
+                    current: snapshot,
+                    targetBefore: before,
+                    targetAfter: after,
+                    result: next);
+            await bindCanonicalBulkHistoryPlan(
+                history: history,
+                plan: prepared.plan,
+                actorId: actorId,
+                projectId: projectId,
+                operationId: selectedOperation,
+                catalogRevert: attestation);
+            return prepared;
+          } on Object {
+            prepared._invalidated = true;
+            _prepared.remove(prepared.plan.planId);
+            await _plans.discard(prepared.plan.planId);
+            rethrow;
+          }
+        } on Object {
+          await retention.releaseUnderLock(lease.id);
+          rethrow;
+        }
+      } on Object {
+        await releaseAuthoringPayloads(payloads);
+        rethrow;
+      }
+    });
+  }
+
+  Future<CatalogObjectReference> _historyRoot(
+      String blobId, String revision) async {
+    final payload = await blobs.get(blobId);
+    if (payload == null ||
+        payload.byteLength > CatalogStorageStore.maximumHeadBytes) {
+      throw const AuthoringHistoryException(
+          'history.blob_missing', 'The retained catalog head is unavailable.');
+    }
+    final bytes = <int>[];
+    await for (final chunk in payload.openRead()) {
+      bytes.addAll(chunk);
+      if (bytes.length > CatalogStorageStore.maximumHeadBytes) {
+        throw const AuthoringHistoryException('history.blob_revision_mismatch',
+            'The retained catalog head exceeds its budget.');
+      }
+    }
+    if (computeAuthoringBytesFingerprint(bytes,
+            logicalName: CatalogStorageStore.headStorageKey) !=
+        revision) {
+      throw const AuthoringHistoryException('history.blob_revision_mismatch',
+          'The retained catalog head does not match history.');
+    }
+    return _decodeHead(bytes);
   }
 
   CatalogEditingPlan _prepare(
@@ -449,17 +947,49 @@ final class CatalogEditingSession {
       required String actionId,
       required AuthoringHistoryContext context,
       AuthoringDiff? diff,
+      AuthoringRequest? publicRequest,
+      String? publicBaseRevision,
+      AuthoringPlan? publicPlan,
+      List<AuthoringResourceChange> additionalChanges = const [],
+      Future<String> Function()? currentProjectRevision,
       CatalogStoragePatch? patch}) {
-    final revision = 'sha256:${before.sha256}';
-    final request = AuthoringRequest(
-        requestId: _token('request_'),
-        actionId: actionId,
-        actionVersion: 1,
-        workspaceHandle: 'catalog-session',
-        expectedRevision: revision,
-        idempotencyKey: idempotencyKey,
-        parameters: {'beforeRoot': before.toJson(), 'root': next.root.toJson()},
-        extensions: {'history': context.toJson()});
+    final revision = publicBaseRevision ?? 'sha256:${before.sha256}';
+    publicRequest ??= publicPlan?.request;
+    if (publicRequest != null &&
+        (publicRequest.idempotencyKey != idempotencyKey ||
+            (publicRequest.expectedRevision != null &&
+                publicRequest.expectedRevision != revision))) {
+      throw const CatalogStorageException('catalog.request_mismatch',
+          'The public request does not match the catalog edit.');
+    }
+    final request = publicRequest == null
+        ? AuthoringRequest(
+            requestId: _token('request_'),
+            actionId: actionId,
+            actionVersion: 1,
+            workspaceHandle: 'catalog-session',
+            expectedRevision: revision,
+            idempotencyKey: idempotencyKey,
+            parameters: {
+                'beforeRoot': before.toJson(),
+                'root': next.root.toJson()
+              },
+            extensions: {
+                'history': context.toJson()
+              })
+        : AuthoringRequest(
+            requestId: publicRequest.requestId,
+            actionId: publicRequest.actionId,
+            actionVersion: publicRequest.actionVersion,
+            workspaceHandle: publicRequest.workspaceHandle,
+            expectedRevision: publicRequest.expectedRevision,
+            idempotencyKey: publicRequest.idempotencyKey,
+            parameters: publicRequest.parameters,
+            dryRun: publicRequest.dryRun,
+            extensions: {
+                ...publicRequest.extensions,
+                'history': context.toJson()
+              });
     final resource = AuthoringResourceRef(kind: 'catalogHead', id: 'catalog');
     final change = AuthoringResourceChange(
         resource: resource,
@@ -467,38 +997,84 @@ final class CatalogEditingSession {
         beforeBytes: CatalogStorageStore.encodeHead(before),
         afterBytes: CatalogStorageStore.encodeHead(next.root));
     final now = _clock().toUtc();
-    final plan = AuthoringPlan(
-        planId: _token('plan_'),
-        receiptId: _token('receipt_'),
-        request: request,
-        baseRevision: revision,
-        seed: 0,
-        createdAt: now,
-        expiresAt: now.add(const Duration(minutes: 10)),
-        changeSet: AuthoringChangeSet(
-            changes: [change],
-            diff: diff ??
-                AuthoringDiff([
-                  revisionHistoryDiff(resource,
-                      beforeRevision: change.beforeRevision,
-                      afterRevision: change.afterRevision)
-                ])));
+    final suppliedDiff = diff ?? publicPlan?.changeSet.diff;
+    final headDiff = revisionHistoryDiff(resource,
+        beforeRevision: change.beforeRevision,
+        afterRevision: change.afterRevision);
+    final changeSet = AuthoringChangeSet(
+        changes: [change, ...additionalChanges],
+        diff: suppliedDiff == null
+            ? AuthoringDiff([
+                headDiff,
+                for (final extra in additionalChanges)
+                  revisionHistoryDiff(extra.resource,
+                      beforeRevision: extra.beforeRevision,
+                      afterRevision: extra.afterRevision),
+              ])
+            : AuthoringDiff([
+                ...suppliedDiff.entries,
+                if (!suppliedDiff.entries.any((entry) =>
+                    entry.resource.kind == 'catalogHead' &&
+                    entry.resource.id == 'catalog'))
+                  headDiff,
+              ]));
+    if (publicPlan != null && publicPlan.baseRevision != revision) {
+      throw const CatalogStorageException('catalog.request_mismatch',
+          'The public plan has a different base revision.');
+    }
+    final plan = publicPlan?.reframeChangeSet(
+            changeSet: changeSet, request: request, baseRevision: revision) ??
+        AuthoringPlan(
+            planId: _token('plan_'),
+            receiptId: _token('receipt_'),
+            request: request,
+            baseRevision: revision,
+            seed: 0,
+            createdAt: now,
+            expiresAt: now.add(const Duration(minutes: 10)),
+            changeSet: changeSet);
     _plans.save(plan);
     final prepared = CatalogEditingPlan._(
         plan,
         AuthoringIdempotencyScope(
             actorId: actorId,
             projectId: projectId,
-            actionId: actionId,
-            actionVersion: 1,
+            actionId: request.actionId,
+            actionVersion: request.actionVersion,
             key: idempotencyKey),
         operationId,
         next.root,
         lease,
         patch,
-        _owner);
+        _owner,
+        currentProjectRevision);
     _prepared[plan.planId] = prepared;
     return prepared;
+  }
+
+  static AuthoringResourceChange _headChange(
+          Iterable<AuthoringResourceChange> changes) =>
+      changes.singleWhere(
+          (change) => change.storageKey == CatalogStorageStore.headStorageKey);
+
+  static void _requireAdditionalPath(String path) {
+    final normalized = path.toLowerCase();
+    if (normalized == 'project.json' ||
+        normalized == 'catalog' ||
+        normalized.startsWith('catalog/') ||
+        normalized == '.pokemap' ||
+        normalized.startsWith('.pokemap/')) {
+      throw const CatalogStorageException('catalog.reserved_resource',
+          'Catalog storage and the working descriptor are transaction-owned resources.');
+    }
+  }
+
+  static Future<void> _requireProjectRevision(
+      Future<String> Function()? read, String expected) async {
+    if (read != null && await read() != expected) {
+      throw const CatalogStorageException('catalog.project_revision_conflict',
+          'The project resources changed before the catalog transaction.');
+    }
   }
 
   Future<void> _requireAdmission(CatalogObjectReference expected,

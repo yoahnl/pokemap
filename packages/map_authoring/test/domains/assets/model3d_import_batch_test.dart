@@ -36,6 +36,7 @@ void main() {
     await f.apply(await f.plan({
       'modelId': 'house',
       'name': 'Configured house',
+      'blocksMovementByDefault': false,
       'scale': 2.5,
       'pivot': {'x': 1, 'y': 2, 'z': -3}
     }, action: 'model3d.configure'));
@@ -66,6 +67,8 @@ void main() {
     expect(f.mutations.artifacts.inspect(otherLease), isNotNull);
     await f.mutations.artifacts.release(otherLease);
     final after = await f.snapshot();
+    expect(after.manifest.models3d.singleWhere((m) => m.id == 'house').blocksMovementByDefault, false);
+    expect(after.manifest.models3d.singleWhere((m) => m.id == 'tree').blocksMovementByDefault, true);
     for (var i = 0; i < before.manifest.models3d.length; i++) {
       final previous = before.manifest.models3d[i];
       final current = after.manifest.models3d[i];
@@ -502,6 +505,7 @@ void main() {
     final summary = (modelDiff.after as Map)['modelSummary'] as Map;
     expect(summary['id'], 'large');
     expect(summary['sourceAssetId'], 'model3d_large');
+    expect(summary['blocksMovementByDefault'], true);
     expect(summary['relativePath'], 'assets/models3d/large.glb');
     expect(summary['fingerprintDomain'], 'model3d-entry.json');
     expect((summary['inspection'] as Map)['materialCount'], 500);

@@ -159,11 +159,42 @@ final class MapLifecycleAdapter {
     }
     _requireCanonicalMapId(updated.id);
     final snapshot = context.snapshot;
-    _requireManifestOwnership(snapshot.manifest);
-    final entry = _requireMapEntry(snapshot.manifest, updated.id);
     final before = _requireMap(snapshot, updated.id);
-    _validateProjected(snapshot.manifest, [updated]);
     final beforeBytes = snapshot.resourceBytes('map:${updated.id}');
+    _validateProjected(snapshot.manifest, [updated]);
+    return _saveMapImages(
+        project: snapshot.manifest,
+        before: before,
+        beforeBytes: beforeBytes,
+        beforeRevision: snapshot.resourceFingerprints['map:${updated.id}']!,
+        updated: updated);
+  }
+
+  AuthoringMutationDraft saveSelection({
+    required ProjectManifest project,
+    required MapData before,
+    required List<int> beforeBytes,
+    required String beforeRevision,
+    required MapData updated,
+  }) {
+    ProjectValidator.validateCatalogSelection(project);
+    MapValidator.validate(updated, projectDialogueContext: project);
+    return _saveMapImages(project: project, before: before, beforeBytes: beforeBytes, beforeRevision: beforeRevision, updated: updated);
+  }
+
+  AuthoringMutationDraft _saveMapImages({
+    required ProjectManifest project,
+    required MapData before,
+    required List<int> beforeBytes,
+    required String beforeRevision,
+    required MapData updated,
+  }) {
+    _requireCanonicalMapId(updated.id);
+    _requireManifestOwnership(project);
+    final entry = _requireMapEntry(project, updated.id);
+    if (before.id != updated.id) {
+      throw _failure('map.id_invalid', 'The saved map identity changed.');
+    }
     final encodeSpan = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.saveEncode,
     );
@@ -177,7 +208,8 @@ final class MapLifecycleAdapter {
       encodeSpan?.finish();
     }
     _requireChanged(beforeBytes, afterBytes);
-    final resource = _existingResource(snapshot, 'map', updated.id);
+    final resource = AuthoringResourceRef(
+        kind: 'map', id: updated.id, revision: beforeRevision);
     return AuthoringMutationDraft(
       changeSet: AuthoringChangeSet(
         changes: [
@@ -587,7 +619,7 @@ List<int> encodeProjectAuthoringDocument(
 ) {
   late final Map<String, Object?> original;
   try {
-    final decoded = jsonDecode(utf8.decode(snapshot.resourceBytes('project')));
+    final decoded = jsonDecode(utf8.decode(snapshot.authoringProjectBytes));
     if (decoded is! Map || decoded.keys.any((key) => key is! String)) {
       throw const FormatException();
     }

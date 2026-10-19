@@ -11,6 +11,40 @@ import 'package:map_core/map_core_domain.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  testWidgets('individual description is visible in the resource sheet', (
+    tester,
+  ) async {
+    final base = workspaceProject;
+    final item = resourceCatalog(base).first;
+    final project = base.copyWith(
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          ResourceLibraryEntry.fromJson({
+            'resourceKind': item.canonicalKind,
+            'resourceId': item.id,
+            'description': 'Arbre pour les routes.',
+          }),
+        ],
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: ResourceDetailPanel(
+            item: item,
+            project: project,
+            preview: const SizedBox(),
+            onUse: (_) {},
+            onEdit: (_) {},
+            onTerrain: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Arbre pour les routes.'), findsOneWidget);
+  });
+
   testWidgets('terrain category is canonical and missing maps are explained', (
     tester,
   ) async {

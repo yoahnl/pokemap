@@ -912,6 +912,29 @@ void _diagnoseRequiredRolesAndOrientations(
           );
           continue;
         }
+        if (borderBlueprintUsesNativeConnectedLine(definition)) {
+          final requiredDirections = role == BorderPrimitiveRole.lineStraight
+              ? const [BorderPrimitiveOrientation.east, BorderPrimitiveOrientation.south]
+              : const [BorderPrimitiveOrientation.east, BorderPrimitiveOrientation.south,
+                  BorderPrimitiveOrientation.west, BorderPrimitiveOrientation.north];
+          for (final desired in requiredDirections) {
+            for (final flipX in borderBlueprintUsesPrimaryNativeConnectedLine(definition)
+                ? const [false] : const [false, true]) {
+              if (eligible.any((primitive) => _connectedLinePrimitiveCoversOrientation(
+                  primitive, desired: desired, flipX: flipX,
+                  allowAutoRotation: definition.defaults.allowAutoRotation))) {
+                continue;
+              }
+              diagnostics.add(_diagnostic(
+                  code: 'border.publication.connected_line_transform_unavailable',
+                  scope: BorderDiagnosticScope.blueprint, blueprintId: blueprintId,
+                  parameters: {'role': borderPrimitiveRoleV1WireName(role),
+                    'authoredOrientation': desired.name, 'flipX': flipX},
+                  action: 'border.action.add_native_connected_line_orientation'));
+            }
+          }
+          continue;
+        }
         final quarterTurns = isFacade || !definition.defaults.allowAutoRotation
             ? const <int>[0]
             : role == BorderPrimitiveRole.lineStraight
@@ -1106,7 +1129,7 @@ void _diagnoseTwoTierStoneChainRolesAndOrientations({
       BorderPrimitiveOrientation.west,
     ]) {
       final covered = roleEntry.$2.any(
-        (primitive) => _stoneChainPrimitiveCoversOrientation(
+        (primitive) => _primitiveCoversCardinalOrientation(
           primitive,
           desired: desired,
           allowAutoRotation: definition.defaults.allowAutoRotation,
@@ -1133,7 +1156,28 @@ void _diagnoseTwoTierStoneChainRolesAndOrientations({
   }
 }
 
-bool _stoneChainPrimitiveCoversOrientation(
+bool _connectedLinePrimitiveCoversOrientation(
+  BorderPublishedPrimitive primitive, {
+  required BorderPrimitiveOrientation desired,
+  required bool flipX,
+  required bool allowAutoRotation,
+}) {
+  const directions = [BorderPrimitiveOrientation.east, BorderPrimitiveOrientation.south,
+      BorderPrimitiveOrientation.west, BorderPrimitiveOrientation.north];
+  final authoredTurns = directions.indexOf(primitive.authoredOrientation);
+  final desiredTurns = directions.indexOf(desired);
+  if (authoredTurns < 0 || desiredTurns < 0 || (flipX && !primitive.transforms.allowFlipX)) {
+    return false;
+  }
+  final mirroredDelta = primitive.role == BorderPrimitiveRole.lineCorner ? 1 : 2;
+  final quarterTurns = flipX
+      ? (desiredTurns + mirroredDelta + authoredTurns) % 4
+      : (desiredTurns - authoredTurns + 4) % 4;
+  return (allowAutoRotation || quarterTurns == 0) &&
+      primitive.transforms.allowedQuarterTurns.contains(quarterTurns);
+}
+
+bool _primitiveCoversCardinalOrientation(
   BorderPublishedPrimitive primitive, {
   required BorderPrimitiveOrientation desired,
   required bool allowAutoRotation,
@@ -2181,6 +2225,8 @@ Object _publicationCandidateProjection(
     if (definition.jumpBehavior != null)
       'jumpBehavior': definition.jumpBehavior!.toJson(),
     if (definition.straightOnly) 'straightOnly': 'true',
+    if (definition.sequenceLength != 1)
+      'sequenceLength': definition.sequenceLength.toString(),
     if (definition.followContourDirection) 'followContourDirection': 'true',
     if (definition.replacesGround) 'replacesGround': 'true',
     if (definition.masksGroundCells) 'masksGroundCells': 'true',
@@ -2224,6 +2270,8 @@ Map<String, Object?> _publishedPrimitiveProjection(
       if (primitive.cornerTurn != null)
         'cornerTurn': primitive.cornerTurn!.name,
       'authoredOrientation': primitive.authoredOrientation.name,
+      if (primitive.sequenceIndex != 0)
+        'sequenceIndex': primitive.sequenceIndex.toString(),
       'weight': primitive.weight.toString(),
       if (primitive.groundSurfaces.isNotEmpty)
         'groundSurfaces': [

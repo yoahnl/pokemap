@@ -70,16 +70,19 @@ final class BattleTurnRunner {
     required PsdkBattleMoveBehaviorRegistry moveBehaviorRegistry,
     BattleMoveProcedureHooks moveProcedureHooks = BattleMoveProcedureHooks.none,
     PsdkBattleAi? opponentAi,
+    Map<String, int>? opponentItemQuantities,
     bool enforceRulesetFeatures = true,
   })  : _moveBehaviorRegistry = moveBehaviorRegistry,
         _moveProcedureHooks = moveProcedureHooks,
         _opponentAi = opponentAi,
+        _opponentItemQuantities = opponentItemQuantities,
         _enforceRulesetFeatures = enforceRulesetFeatures;
 
   final BattleContext _context;
   final PsdkBattleMoveBehaviorRegistry _moveBehaviorRegistry;
   final BattleMoveProcedureHooks _moveProcedureHooks;
   final PsdkBattleAi? _opponentAi;
+  final Map<String, int>? _opponentItemQuantities;
   final bool _enforceRulesetFeatures;
   static const BattleMoveHistoryRecorder _moveHistoryRecorder =
       BattleMoveHistoryRecorder();
@@ -703,6 +706,7 @@ final class BattleTurnRunner {
       state: _context.state,
       user: psdkOpponentSlot,
       target: psdkPlayerSlot,
+      remainingItemQuantities: _opponentItemQuantities,
     );
   }
 

@@ -16,6 +16,30 @@ void main() {
 
   group('trainer use cases', () {
     test(
+      'trainer update rejects unavailable battle stock catalogue atomically',
+      () async {
+        final project = _project(
+          trainers: [
+            const ProjectTrainerEntry(
+              id: 'misty',
+              name: 'Misty',
+              trainerClass: 'Leader',
+              battleItems: {'potion': 2},
+            ),
+          ],
+        );
+        await expectLater(
+          UpdateTrainerUseCase(
+            repository,
+          ).execute(workspace, project, trainerId: 'misty', name: 'Draft'),
+          throwsA(isA<ValidationException>()),
+        );
+        expect(repository.savedProjects, isEmpty);
+        expect(project.trainers.single.name, 'Misty');
+      },
+    );
+
+    test(
       'create trainer keeps battleDifficulty null when no explicit value is authored',
       () async {
         final useCase = CreateTrainerUseCase(repository);

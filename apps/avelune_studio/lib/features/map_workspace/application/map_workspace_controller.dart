@@ -11,7 +11,12 @@ part 'map_workspace_history_destinations.dart';
 part 'map_workspace_resource_references.dart';
 
 class MapWorkspaceController {
-  MapWorkspaceController(this.session, this.port, {this.catalogPort});
+  MapWorkspaceController(this.session, this.port, {this.catalogPort})
+    : projectScope =
+          session.storage == ProjectSessionStorage.workingCatalog &&
+              port is MapWorkspaceScopedPort
+          ? MapWorkspaceProjectScope.catalogMetadata
+          : MapWorkspaceProjectScope.completeProject;
 
   final ProjectSession session;
   final MapWorkspacePort port;
@@ -27,6 +32,10 @@ class MapWorkspaceController {
   final Map<String, int> _mapEpochs = {};
   final Set<void Function()> _listeners = {};
   ProjectManifest? project;
+  MapWorkspaceProjectScope projectScope;
+  final Map<String, MapWorkspaceSelection> _selections = {};
+  bool get hasCompleteProject =>
+      projectScope == MapWorkspaceProjectScope.completeProject;
   EditableMapDocument? active;
   bool loading = false;
   String? error;
@@ -45,7 +54,10 @@ class MapWorkspaceController {
   Future<void> initialize() async {
     if (project != null) return;
     try {
-      final manifest = await port.loadProject(session);
+      final source = port;
+      final manifest = !hasCompleteProject && source is MapWorkspaceScopedPort
+          ? (await source.loadCatalog(session)).metadata
+          : await port.loadProject(session);
       if (_disposed) return;
       project = manifest;
       notify();
@@ -56,6 +68,18 @@ class MapWorkspaceController {
         notify();
       }
     }
+  }
+
+  Future<void> materializeProject() async {
+    if (hasCompleteProject || _disposed) return;
+    final source = port;
+    if (source is! MapWorkspaceScopedPort) return;
+    final complete = await source.materializeProject(session);
+    if (_disposed) return;
+    project = complete;
+    projectScope = MapWorkspaceProjectScope.completeProject;
+    _selections.clear();
+    notify();
   }
 
   Future<void> activate(
@@ -81,11 +105,18 @@ class MapWorkspaceController {
     try {
       final cached = documents[entry.id];
       if (cached == null) {
-        pending = _loading.putIfAbsent(
-          entry.id,
-          () =>
-              port.loadMap(session, currentEntry).then(EditableMapDocument.new),
-        );
+        pending = _loading.putIfAbsent(entry.id, () async {
+          final source = port;
+          if (!hasCompleteProject && source is MapWorkspaceScopedPort) {
+            final selection = await source.loadMapSelection(
+              session,
+              currentEntry,
+            );
+            _selections[entry.id] = selection;
+            return EditableMapDocument(selection.document);
+          }
+          return EditableMapDocument(await port.loadMap(session, currentEntry));
+        });
       }
       final document = cached ?? await pending!;
       if (_disposed ||
@@ -95,7 +126,14 @@ class MapWorkspaceController {
         return;
       }
       documents[entry.id] = document;
-      if (generation == _generation) active = document;
+      if (generation == _generation) {
+        active = document;
+        final selection = _selections[entry.id];
+        if (!hasCompleteProject && selection != null) {
+          project = selection.definitions;
+          projectScope = MapWorkspaceProjectScope.mapSelection;
+        }
+      }
     } catch (failure) {
       if (!_disposed &&
           generation == _generation &&
@@ -183,6 +221,16 @@ class MapWorkspaceController {
       final revision = await port.saveMap(session, document.base, snapshot);
       if (_disposed) return false;
       document.acceptSave(snapshot, revision);
+      final source = port;
+      if (!hasCompleteProject && source is MapWorkspaceScopedPort) {
+        final entry = project!.maps.singleWhere(
+          (entry) => entry.id == document.base.mapId,
+        );
+        final selection = await source.loadMapSelection(session, entry);
+        if (_disposed) return false;
+        _selections[entry.id] = selection;
+        if (identical(active, document)) project = selection.definitions;
+      }
       return true;
     } catch (failure) {
       if (!_disposed) document.error = _message(failure);

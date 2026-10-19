@@ -159,7 +159,7 @@ class Ui13HostAnalysisPort implements VerificationPort {
 
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
-    NarrativeRuntimeSmokeProfile profile,
+    NarrativeRuntimeSmokeProfile? profile,
   ) => delegate.readRuntimeEvidence(profile);
 
   @override

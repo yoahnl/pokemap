@@ -76,6 +76,7 @@ class _MapDecorInspectorTabsState extends State<MapDecorInspectorTabs> {
                   child: MapDecorAnimationPanel(
                     document: widget.document,
                     project: widget.project,
+                    visuals: widget.visuals,
                     onChanged: widget.onChanged,
                   ),
                 )

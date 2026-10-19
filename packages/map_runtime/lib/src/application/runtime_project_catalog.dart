@@ -569,6 +569,16 @@ Iterable<CatalogDefinitionKey> _mapRoots(
       yield key(CatalogDefinitionKind.element, variant.elementId);
     }
   }
+  for (final trainer in metadata.trainers) {
+    final character = trainer.characterId?.trim();
+    if (character != null && character.isNotEmpty) {
+      yield key(CatalogDefinitionKind.character, character);
+    }
+    final portrait = trainer.portraitElementId?.trim();
+    if (portrait != null && portrait.isNotEmpty) {
+      yield key(CatalogDefinitionKind.element, portrait);
+    }
+  }
   final player = metadata.settings.defaultPlayerCharacterId;
   for (final id in {
     if (player != null && player.isNotEmpty) player,
@@ -754,6 +764,7 @@ Iterable<CatalogDefinitionKey> _definitionDependencies(
       if (primitive.isSpatial) {
         yield key(CatalogDefinitionKind.model3d, primitive.sourceModelId!);
       } else {
+        yield key(CatalogDefinitionKind.element, primitive.sourceElementId!);
         yield key(
           CatalogDefinitionKind.borderVisualSnapshot,
           primitive.visualSnapshotId,

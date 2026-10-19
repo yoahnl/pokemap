@@ -10,7 +10,7 @@ import 'stone_chain_line_border_resolver.dart';
 
 /// Current deterministic Border resolver contract used by editor/runtime
 /// freshness checks.
-const int borderResolverVersion = 3;
+const int borderResolverVersion = 4;
 
 /// Dispatches a Border request to the closed V1 template solver set.
 ///

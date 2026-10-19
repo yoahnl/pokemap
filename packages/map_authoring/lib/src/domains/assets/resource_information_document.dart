@@ -6,7 +6,7 @@ import '../../workspace/project_snapshot.dart';
 
 List<int> encodeResourceInformationDocument(
     ProjectSnapshot snapshot, ProjectManifest manifest) {
-  final original = jsonDecode(utf8.decode(snapshot.resourceBytes('project')));
+  final original = jsonDecode(utf8.decode(snapshot.authoringProjectBytes));
   if (original is! Map<String, dynamic>) {
     throw const FormatException('The original resource manifest is invalid.');
   }

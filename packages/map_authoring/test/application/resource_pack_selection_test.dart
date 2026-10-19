@@ -36,6 +36,7 @@ void main() {
             ResourceLibraryEntry(
               resourceKind: 'environmentPreset',
               resourceId: 'été_$i',
+              description: 'Description individuelle $i.',
               familyId: i.isEven ? 'child' : null,
               placementContext: [
                 ResourcePlacementContext.interior,
@@ -71,6 +72,19 @@ void main() {
         ),
       );
       expect(sourceQuery['snapshotRevision'], isNotNull);
+      final descriptionPage = await api.transfer(
+        fixture.opened.projectHandle,
+        verb: 'entries',
+        input: {
+          'selectionHandle': selected['selectionHandle'],
+          'filter': {'search': 'Description individuelle 249.'},
+        },
+      );
+      expect(descriptionPage['totalAvailable'], 1);
+      expect(
+        ((descriptionPage['items'] as List).single as Map)['description'],
+        'Description individuelle 249.',
+      );
       final filter = {
         'kind': 'environmentPreset',
         'context': 'interior',

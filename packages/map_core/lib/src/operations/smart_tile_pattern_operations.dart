@@ -113,6 +113,13 @@ SmartTilePatternApplication applySmartTilePatternGesture(
       code: 'smart_tile.pattern.material_not_allowed',
     );
   }
+  validateSmartTilePatternConstruction(pattern);
+  if (pattern.construction != null && (phaseX != 0 || phaseY != 0)) {
+    throw const ValidationException(
+      'Native construction phases are anchored to the complete selection.',
+      code: 'smart_tile.pattern.construction_phase_invalid',
+    );
+  }
   if (pattern.repeatMode == SmartTilePatternRepeatMode.stamp &&
       selection.kind != SmartTilePatternSelectionKind.stamp) {
     throw const ValidationException(
@@ -120,17 +127,31 @@ SmartTilePatternApplication applySmartTilePatternGesture(
       code: 'smart_tile.pattern.stamp_only',
     );
   }
-  final compiled = _compileSelection(
-    layer,
-    pattern: pattern,
-    mapSize: mapSize,
-    selection: selection,
-    maximumCellCount: maximumCellCount,
-  );
-  final resolvedPhaseX = selection.kind == SmartTilePatternSelectionKind.stamp
+  final construction = pattern.construction == null
+      ? null
+      : _compileConstructionSelection(
+          pattern: pattern,
+          mapSize: mapSize,
+          selection: selection,
+          maximumCellCount: maximumCellCount,
+        );
+  final compiled =
+      construction?.$1 ??
+      _compileSelection(
+        layer,
+        pattern: pattern,
+        mapSize: mapSize,
+        selection: selection,
+        maximumCellCount: maximumCellCount,
+      );
+  final resolvedPhaseX = construction != null
+      ? 0
+      : selection.kind == SmartTilePatternSelectionKind.stamp
       ? pattern.anchorX - selection.start.x + phaseX
       : phaseX;
-  final resolvedPhaseY = selection.kind == SmartTilePatternSelectionKind.stamp
+  final resolvedPhaseY = construction != null
+      ? 0
+      : selection.kind == SmartTilePatternSelectionKind.stamp
       ? pattern.anchorY - selection.start.y + phaseY
       : phaseY;
   final stroke = SmartTilePatternStroke(
@@ -139,6 +160,7 @@ SmartTilePatternApplication applySmartTilePatternGesture(
     cells: compiled,
     phaseX: resolvedPhaseX,
     phaseY: resolvedPhaseY,
+    constructionBounds: construction?.$2,
   );
   SmartTileLayer next = layer.copyWith(
     patternStrokes: <SmartTilePatternStroke>[
@@ -275,12 +297,166 @@ SmartTilePatternCell? smartTilePatternCellAt({
   if (stroke.patternId != pattern.id || !stroke.cells.contains(cell)) {
     return null;
   }
-  final x = _positiveModulo(cell.x + stroke.phaseX, pattern.width);
-  final y = _positiveModulo(cell.y + stroke.phaseY, pattern.height);
+  final construction = pattern.construction;
+  final bounds = stroke.constructionBounds;
+  if (construction != null && bounds == null) {
+    throw const ValidationException(
+      'Native construction requires its original rectangle.',
+      code: 'smart_tile.pattern.construction_bounds_missing',
+    );
+  }
+  final x = construction == null
+      ? _positiveModulo(cell.x + stroke.phaseX, pattern.width)
+      : construction.x?.sourceIndex(
+              position: cell.x - bounds!.pos.x,
+              sourceLength: pattern.width,
+              outputLength: bounds.size.width,
+            ) ??
+            cell.x - bounds!.pos.x;
+  final y = construction == null
+      ? _positiveModulo(cell.y + stroke.phaseY, pattern.height)
+      : construction.y?.sourceIndex(
+              position: cell.y - bounds!.pos.y,
+              sourceLength: pattern.height,
+              outputLength: bounds.size.height,
+            ) ??
+            cell.y - bounds!.pos.y;
   for (final candidate in pattern.cells) {
     if (candidate.x == x && candidate.y == y) return candidate;
   }
   return null;
+}
+
+void validateSmartTilePatternConstruction(ProjectSmartTilePattern pattern) {
+  final construction = pattern.construction;
+  if (construction == null) return;
+  construction.validateSource(width: pattern.width, height: pattern.height);
+  if (pattern.repeatMode != SmartTilePatternRepeatMode.tiled ||
+      pattern.cells.any(
+        (cell) =>
+            cell.parts.any((part) => part.source is SmartTileModel3dSource),
+      )) {
+    throw const ValidationException(
+      'Native constructions require tiled 2D source patterns.',
+      code: 'smart_tile.pattern.construction_definition_invalid',
+    );
+  }
+}
+
+void validateSmartTilePatternConstructionStroke({
+  required ProjectSmartTilePattern pattern,
+  required SmartTilePatternStroke stroke,
+}) {
+  validateSmartTilePatternConstruction(pattern);
+  final construction = pattern.construction;
+  final bounds = stroke.constructionBounds;
+  if (construction == null) {
+    if (bounds != null) {
+      throw const ValidationException(
+        'Ordinary pattern strokes cannot carry construction bounds.',
+        code: 'smart_tile.pattern.construction_bounds_unexpected',
+      );
+    }
+    return;
+  }
+  if (bounds == null) {
+    throw const ValidationException(
+      'Native construction requires its original rectangle.',
+      code: 'smart_tile.pattern.construction_bounds_missing',
+    );
+  }
+  construction.validateSize(
+    sourceWidth: pattern.width,
+    sourceHeight: pattern.height,
+    width: bounds.size.width,
+    height: bounds.size.height,
+  );
+  if (stroke.phaseX != 0 ||
+      stroke.phaseY != 0 ||
+      stroke.cells.any(
+        (cell) =>
+            cell.x < bounds.pos.x ||
+            cell.y < bounds.pos.y ||
+            cell.x >= bounds.pos.x + bounds.size.width ||
+            cell.y >= bounds.pos.y + bounds.size.height,
+      )) {
+    throw const ValidationException(
+      'Native construction ownership and phase must remain inside its original rectangle.',
+      code: 'smart_tile.pattern.construction_bounds_invalid',
+    );
+  }
+}
+
+(List<GridPos>, MapRect) _compileConstructionSelection({
+  required ProjectSmartTilePattern pattern,
+  required GridSize mapSize,
+  required SmartTilePatternSelection selection,
+  required int maximumCellCount,
+}) {
+  final construction = pattern.construction!;
+  final start = selection.start;
+  final end = selection.end ?? start;
+  var left = start.x < end.x ? start.x : end.x;
+  var top = start.y < end.y ? start.y : end.y;
+  var width = (start.x - end.x).abs() + 1;
+  var height = (start.y - end.y).abs() + 1;
+  switch (selection.kind) {
+    case SmartTilePatternSelectionKind.rectangle:
+      break;
+    case SmartTilePatternSelectionKind.stamp:
+      left -= pattern.anchorX;
+      top -= pattern.anchorY;
+      width = construction.x?.minimumLength(pattern.width) ?? pattern.width;
+      height = construction.y?.minimumLength(pattern.height) ?? pattern.height;
+      break;
+    case SmartTilePatternSelectionKind.line:
+      if (construction.x == null && start.x == end.x) {
+        left -= pattern.anchorX;
+        width = pattern.width;
+      } else if (construction.y == null && start.y == end.y) {
+        top -= pattern.anchorY;
+        height = pattern.height;
+      } else {
+        throw const ValidationException(
+          'Native construction lines must follow the repeated axis with a fixed complete cross-section.',
+          code: 'smart_tile.pattern.construction_line_invalid',
+        );
+      }
+      break;
+  }
+  construction.validateSize(
+    sourceWidth: pattern.width,
+    sourceHeight: pattern.height,
+    width: width,
+    height: height,
+  );
+  if (maximumCellCount <= 0) {
+    throw const ValidationException(
+      'Smart Tile pattern maximumCellCount must be positive.',
+    );
+  }
+  if (width * height > maximumCellCount) {
+    throw SmartTileGestureLimitException(maximumCellCount: maximumCellCount);
+  }
+  if (left < 0 ||
+      top < 0 ||
+      left + width > mapSize.width ||
+      top + height > mapSize.height) {
+    throw const ValidationException(
+      'The complete native construction must fit inside the map.',
+      code: 'smart_tile.pattern.construction_out_of_bounds',
+    );
+  }
+  return (
+    List<GridPos>.unmodifiable([
+      for (var y = top; y < top + height; y++)
+        for (var x = left; x < left + width; x++) GridPos(x: x, y: y),
+    ]),
+    MapRect(
+      pos: GridPos(x: left, y: top),
+      size: GridSize(width: width, height: height),
+    ),
+  );
 }
 
 List<GridPos> _compileSelection(
@@ -313,6 +489,17 @@ List<GridPos> _compileSelection(
       mapSize: mapSize,
       selection: geometric,
       maximumCellCount: maximumCellCount,
+    );
+  }
+  if (pattern.clippingPolicy == SmartTilePatternClippingPolicy.reject &&
+      (selection.start.x - pattern.anchorX < 0 ||
+          selection.start.y - pattern.anchorY < 0 ||
+          selection.start.x - pattern.anchorX + pattern.width > mapSize.width ||
+          selection.start.y - pattern.anchorY + pattern.height >
+              mapSize.height)) {
+    throw const ValidationException(
+      'The entire anchored pattern must fit inside the map.',
+      code: 'smart_tile.pattern.stamp_out_of_bounds',
     );
   }
   _checkMapCell(selection.start, mapSize);

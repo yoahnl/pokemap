@@ -223,6 +223,56 @@ void main() {
   });
 
   test(
+    'explicit index admission preserves quotas without decoding unrelated units',
+    () async {
+      for (final count in [128, 256, 512]) {
+        final limits = CatalogStorageLimits(indexPageSize: 16);
+        final built = CatalogStorageBuilder(limits: limits).build(
+          List.generate(
+            count,
+            (i) => _unit('id-${i.toString().padLeft(4, '0')}'),
+          ),
+        );
+        final objects = {...built.objects};
+        final reads = <String>[];
+        final snapshot = await _open(
+          built,
+          objects,
+          limits: limits,
+          reads: reads,
+        );
+        await snapshot.admitIndex();
+        expect(
+          reads.where(
+            (digest) =>
+                (jsonDecode(utf8.decode(objects[digest]!)) as Map)['type'] ==
+                'unit',
+          ),
+          isEmpty,
+        );
+        reads.clear();
+        final patch = await snapshot.patch(
+          upserts: [_unit('id-0000', version: 2)],
+        );
+        expect(patch.root, isNot(snapshot.root));
+        final unitReads = reads
+            .where(
+              (digest) =>
+                  (jsonDecode(utf8.decode(objects[digest]!)) as Map)['type'] ==
+                  'unit',
+            )
+            .toList();
+        expect(unitReads.length, lessThanOrEqualTo(1));
+        objects.addAll(patch.objects);
+        final after = await patch.nextSnapshot(
+          readObject: (reference) async => objects[reference.sha256]!,
+        );
+        await after.validate();
+      }
+    },
+  );
+
+  test(
     'successive patches retain admission without a global payload cache',
     () async {
       final limits = CatalogStorageLimits(indexPageSize: 4);
@@ -359,7 +409,7 @@ void main() {
         readObject: (r) async => objects[r.sha256]!,
         limits: CatalogStorageLimits(indexPageSize: 2, maxStoredBytes: bytes),
       );
-      await exact.validate();
+      await exact.admitIndex();
       final equalSize = await exact.patch(upserts: [_unit('a', version: 2)]);
       objects.addAll(equalSize.objects);
       final next = await equalSize.nextSnapshot(
@@ -385,6 +435,7 @@ void main() {
           maxStoredBytes: bytes - 1,
         ),
       );
+      await expectLater(tooSmall.admitIndex(), throwsFormatException);
       await expectLater(tooSmall.patch(), throwsFormatException);
     },
   );

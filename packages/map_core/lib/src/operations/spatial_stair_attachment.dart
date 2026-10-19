@@ -101,15 +101,7 @@ final class SpatialStairAttachment {
     return turns.round() % 4;
   }
 
-  int _level(double height, double levelHeight) {
-    final value = height / levelHeight;
-    if ((value - value.round()).abs() > .000001) {
-      throw const FormatException(
-        'Stair heights must align with terrain levels.',
-      );
-    }
-    return value.round();
-  }
+  double _level(double height, double levelHeight) => height / levelHeight;
 
   SpatialRampDirection _direction(SpatialRampDirection direction, int turns) {
     const order = [

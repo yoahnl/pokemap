@@ -16,6 +16,7 @@ final class SceneBattleRuntimeBattleRequest {
     required this.npcEntityId,
     this.battleKind = 'trainer',
     this.battleTemplateId,
+    this.defeatRecovery = SceneBattleDefeatRecovery.continueScene,
   });
 
   final String requestId;
@@ -24,6 +25,7 @@ final class SceneBattleRuntimeBattleRequest {
   final String npcEntityId;
   final String battleKind;
   final String? battleTemplateId;
+  final SceneBattleDefeatRecovery defeatRecovery;
 }
 
 final class SceneBattleRuntimeOutcomeAdapter {
@@ -83,6 +85,7 @@ final class SceneBattleRuntimeOutcomeAdapter {
       npcEntityId: npcEntityId,
       battleKind: battleKind!,
       battleTemplateId: battleTemplateId,
+      defeatRecovery: intent.battleDefeatRecovery,
     );
 
     try {

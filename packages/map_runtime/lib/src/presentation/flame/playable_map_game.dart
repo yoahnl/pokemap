@@ -624,6 +624,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   Completer<SceneBattleRuntimeOutcomeResult>?
       _pendingSceneBattleOutcomeCompleter;
   String? _pendingSceneBattleRequestId;
+  SceneBattleDefeatRecovery _pendingSceneBattleDefeatRecovery =
+      SceneBattleDefeatRecovery.continueScene;
   _NarrativeSceneWorkingSession? _activeNarrativeSceneWorkingSession;
   PlayerServiceRuntimeController? _playerServiceRuntimeController;
   Completer<SceneDialogueRuntimeAwaitableResult>?
@@ -944,11 +946,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   bool get _blocksOverworldForMapActivationWork =>
       _flowPhase == _RuntimeFlowPhase.overworld &&
+      !_cinematicRuntimeController.isPlaying &&
       (_isLoadActivationWorkInFlight ||
           _inFlightMapActivationDispatchIds.isNotEmpty);
 
   bool get _blocksOverworldForNarrativeDispatch =>
       _flowPhase == _RuntimeFlowPhase.overworld &&
+      !_cinematicRuntimeController.isPlaying &&
       (_entityAutorunInFlight ||
           _inFlightSpatialDispatchCount > 0 ||
           _narrativeOutcomeDrainFuture != null ||
@@ -1211,10 +1215,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     return _cachedEntityAutorunSources;
   }
 
-  bool _usesLogicalMapInstances(RuntimeMapBundle bundle) =>
+  bool _usesLogicalMapInstances(
+    RuntimeMapBundle bundle, {
+    GameState? gameState,
+  }) =>
       bundle.manifest.settings.mapInstanceRetentionPolicy != null ||
       _entityAutorunSourcesFor(bundle.manifest).isNotEmpty ||
-      _gameState.mapInstanceWorldState.instancesByMapId.isNotEmpty ||
+      (gameState ?? _gameState).mapInstanceWorldState.instancesByMapId.isNotEmpty ||
       bundle.map.gameplayZones.any(isDarknessZone) ||
       (_runtimeBundleByMapId[bundle.map.id] ?? bundle)
           .map.entities.any((entity) => entity.fieldObstacle != null || entity.interactiveEncounter != null ||
@@ -1376,7 +1383,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             throw StateError('The narrative map escapes the project.');
           }
           final map = mapId == _bundle.map.id ? _bundle.map :
-              await loadMapDataFromFile(path, projectDialogueContext: null);
+              await loadMapDataFromFile(
+                path,
+                projectDialogueContext: null,
+                projectTileSize: PixelSize(
+                  width: project.settings.tileWidth,
+                  height: project.settings.tileHeight,
+                ),
+              );
           return (project: project, map: map);
         }
         if (!_hasInjectedRuntimeMapBundleLoader &&
@@ -1486,6 +1500,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         currentGameState: () => session.gameState,
         hostedBattleOutcomes: hostedBattleOutcomes,
         consequenceWriter: consequenceWriter,
+        onSceneStateProjection: (projector) => session.stateProjection = projector,
         callbacks: _buildSceneRuntimeHostCallbacks(
           runtimeSourceId: 'event-v2:${request.eventId}',
           executionId: request.executionId,
@@ -1501,9 +1516,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         throw StateError('The runtime was removed during Scene execution.');
       }
       if (result is NarrativeSceneExecutionCompleted) {
-        final hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
+        var hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState,
         );
+        hydratedGameState = await _applySceneDefeatRecovery(session, hydratedGameState);
         if (_isRemoved) {
           throw StateError('The runtime was removed before Scene commit.');
         }
@@ -1526,9 +1542,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           consumeOneShot: result.consumeOneShot,
         );
       }
+      if (result is NarrativeSceneExecutionFailed) {
+        debugPrint('[event_v2] scene failed event=${request.eventId} scene=${request.sceneId} failure=${result.failure}');
+      } else if (result is NarrativeSceneExecutionCancelled) {
+        debugPrint('[event_v2] scene cancelled event=${request.eventId} scene=${request.sceneId} reason=${result.reason}');
+      }
       await session.rollback();
       return result;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('[event_v2] scene exception event=${request.eventId} scene=${request.sceneId}: $error\n$stackTrace');
       try {
         await session.rollback();
       } catch (rollbackError) {
@@ -1538,6 +1560,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } finally {
       session.restoreActorRoutes();
       _activeNarrativeSceneWorkingSession = null;
+      if (!_isRemoved) _refreshWorldNpcPresence();
     }
   }
 
@@ -3411,6 +3434,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required String layerId,
     required int cellX,
     required int cellY,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
   }) =>
       _loadedMapsById[_activeMapId]
           ?.smartTileAnimationController
@@ -3419,6 +3443,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             cellX: cellX,
             cellY: cellY,
             globalElapsedMs: _runtimeClockMs.floor(),
+            channel: channel,
           ) ??
       0;
 
@@ -4007,7 +4032,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     MapData? mapOverride,
   }) {
     return (String mapId, MapEntity npcEntity) {
-      final gameState = gameStateOverride ?? _gameState;
+      final gameState = gameStateOverride ?? _scenePresentationGameState;
       final presentation = _resolveWorldRuleProjectionForMap(mapId, manifest,
         gameStateOverride: gameState, mapOverride: mapOverride);
       if (presentation?.absentPresentationEntityIds.contains(npcEntity.id) == true) return false;
@@ -4091,6 +4116,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Map<String, _WorldRuleProjectionCache>
       _worldRuleProjectionCacheByMapId = <String, _WorldRuleProjectionCache>{};
 
+  GameState get _scenePresentationGameState =>
+      _activeNarrativeSceneWorkingSession?.presentationGameState ?? _gameState;
+
   RuntimeWorldRuleProjectionState? _resolveWorldRuleProjectionForMap(
     String mapId,
     ProjectManifest manifest, {
@@ -4108,7 +4136,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     // copies de collections) pour chaque PNJ dans la closure de présence.
     // Ses entrées sont immuables et remplacées par identité : un refresh de
     // présence la calcule une fois par carte, pas une fois par entité.
-    final gameState = gameStateOverride ?? _gameState;
+    final gameState = gameStateOverride ?? _scenePresentationGameState;
     final cached = _worldRuleProjectionCacheByMapId[mapId];
     if (cached != null &&
         identical(cached.manifest, manifest) &&
@@ -4135,7 +4163,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
     _world = _world.withEntityPresentations(project: _bundle.manifest,
-      gameState: _gameState, sourceMap: _bundle.map);
+      gameState: _scenePresentationGameState, sourceMap: _bundle.map);
     _refreshNpcPresentationActors();
     _world = _world.withNpcMapPresencePredicate(
       _npcPresencePredicateFor(_bundle.manifest),
@@ -4267,7 +4295,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         final previous = _lastNpcPresentations[key];
         if (next != null) _lastNpcPresentations[key] = next;
         final declaredFacing = resolveMapEntityPresentation(project: loaded.bundle.manifest,
-          gameState: _gameState, map: loaded.bundle.map, entity: source)?.facing;
+          gameState: _scenePresentationGameState, map: loaded.bundle.map, entity: source)?.facing;
         final previousFacing = _lastNpcDeclaredFacings[key];
         final facingChanged = previousFacing != null && declaredFacing != null && previousFacing != declaredFacing;
         if (declaredFacing != null) _lastNpcDeclaredFacings[key] = declaredFacing;
@@ -5388,6 +5416,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     if (!_isRemoved) _worldTone.advance(dt);
     for (final loaded in _loadedMapsById.values) {
+      if (loaded.bundle.map.id == _activeMapId && !_player.isStepping) {
+        loaded.smartTileAnimationController.onPlayerStepCompleted();
+      }
       loaded.smartTileAnimationController.update(dt);
       loaded.actorOcclusionLayers.update(dt);
     }
@@ -6199,6 +6230,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// - on lit les triggers couvrant la nouvelle position,
   /// - on déclenche uniquement les IDs présents dans "nouvelle - ancienne".
   void _resetTriggerEnterOccupancy() {
+    for (final loaded in _loadedMapsById.values) {
+      loaded.smartTileAnimationController.resetPlayerOccupancy(
+        loaded.bundle.map.id == _activeMapId ? _world.player.pos : null,
+      );
+    }
     _synchronizeTriggerEnterOccupancy();
     _pendingNarrativeTriggerEntries.clear();
   }
@@ -6221,7 +6257,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }) {
     _loadedMapsById[_activeMapId]
         ?.smartTileAnimationController
-        .onPlayerEnteredCell(currentPos);
+        .onPlayerEnteredCell(currentPos, previousCell: previousPos);
     // On privilégie l'état mémorisé pour éviter de recalculer l'ancienne
     // couverture à chaque tick. Un fallback de sécurité reste possible.
     final previousIds = _activeScenarioTriggerIds.isEmpty
@@ -9341,6 +9377,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         final psdkOpponentAi = resolveRuntimeTrainerPsdkAi(
           request: request,
           manifest: _bundle.manifest,
+          itemCatalog: _itemCatalogSnapshot,
         );
         _psdkBattleSession = _traceSync(
           'battle',
@@ -9348,6 +9385,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           () => RuntimePsdkBattleSessionAdapter.fromSetup(
             psdkSetup!,
             opponentAi: psdkOpponentAi,
+            itemDisplayNames: {
+              for (final item in _itemCatalogSnapshot.definitions)
+                item.id: item.displayName,
+            },
           ),
         );
         _battleSession = _psdkBattleSession!.createLegacyDisplaySession(
@@ -9776,6 +9817,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final requestId = _pendingSceneBattleRequestId;
     _pendingSceneBattleOutcomeCompleter = null;
     _pendingSceneBattleRequestId = null;
+    _pendingSceneBattleDefeatRecovery = SceneBattleDefeatRecovery.continueScene;
     if (!completer.isCompleted) {
       completer.complete(result);
     }
@@ -10736,6 +10778,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
       if (outcome.isDefeat && !postBattleFailed) {
         if (hostedByNarrativeScene) {
+          if (_pendingSceneBattleDefeatRecovery ==
+              SceneBattleDefeatRecovery.returnToRecoveryPoint) {
+            _activeNarrativeSceneWorkingSession!.defeatRecoveryRequest ??=
+                _NarrativeSceneDefeatRecoveryRequest(
+                  activeBattleContext,
+                  outcome.finalState.player.lineupIndex,
+                );
+          }
           _replaceBattleRuntimeGameState(
             applyRuntimeDefeatRecoveryToGameState(
               gameState: _battleRuntimeGameState,
@@ -11064,9 +11114,67 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     unawaited(_defeatRecoveryFuture);
   }
 
+  Future<GameState> _applySceneDefeatRecovery(
+    _NarrativeSceneWorkingSession session,
+    GameState state,
+  ) async {
+    final request = session.defeatRecoveryRequest;
+    if (request == null) return state;
+    session.defeatRecoveryRequest = null;
+    final checkpoint = _RuntimeSpatialSnapshot(
+      gameState: state,
+      bundle: _bundle,
+      authoredBundle: _runtimeBundleByMapId[_activeMapId] ?? _bundle,
+      world: _world,
+      activeMapId: _activeMapId,
+      previousMapId: _previousMapId,
+      flowPhase: _flowPhase,
+      currentMapActivationId: _currentMapActivationId,
+      completedMapActivationDispatchCount: _completedMapActivationDispatchCount,
+      lastCompletedMapActivation: _lastCompletedMapActivation,
+    );
+    final previousDeferredActivation = session.deferredMapActivation;
+    final previousDeferral = session.defersMapActivation;
+    session.registerCompensation(() async {
+      if (_isRemoved) return;
+      session.gameState = checkpoint.gameState;
+      session.deferredMapActivation = previousDeferredActivation;
+      session.defersMapActivation = previousDeferral;
+      if (!await _restoreRuntimeSpatialSnapshot(checkpoint, commitNarrativeState: false)) {
+        throw StateError('The scripted defeat recovery source could not be restored.');
+      }
+    });
+    session.stateProjection = null;
+    session.gameState = state;
+    session.defersMapActivation = true;
+    _applyNarrativeGameState(state);
+    final recoveryPoint = await _resolveDefeatFallbackPoint(request.context);
+    if (!_scenePresentationScopeIsCurrent(session)) {
+      throw StateError('The scripted defeat recovery owner changed.');
+    }
+    final count = int.tryParse(state.metadata[playerDefeatCountMetadataKey] ?? '') ?? 0;
+    _defeatRecoveryFuture = _applyDefeatRecovery(
+      request.context,
+      activePlayerLineupIndex: request.activePlayerLineupIndex,
+      requestCheckpoint: false,
+      allowMapActivationWork: true,
+    );
+    await _defeatRecoveryFuture;
+    if (!_scenePresentationScopeIsCurrent(session) ||
+        _activeMapId != recoveryPoint.mapId ||
+        _world.player.pos != recoveryPoint.position ||
+        _gameState.metadata[playerDefeatCountMetadataKey] != '${count + 1}') {
+      throw StateError('The scripted defeat recovery did not reach its recorded point.');
+    }
+    session.gameState = _gameState;
+    return _gameState;
+  }
+
   Future<void> _applyDefeatRecovery(
     RuntimeActiveBattleContext battleContext, {
     required int activePlayerLineupIndex,
+    bool requestCheckpoint = true,
+    bool allowMapActivationWork = false,
   }) async {
     final recoveryLock = _inputLocks.acquire(
       owner: RuntimeInputLockOwner.checkpoint,
@@ -11129,6 +11237,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             targetPos: recovery.recoveryPoint.position,
             triggerMode: MapWarpTriggerMode.onEnter,
           ),
+          allowMapActivationWork: allowMapActivationWork,
         );
         _world = _world.withPlayer(
           _gridAlignedPlayerState(
@@ -11141,7 +11250,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       }
       _showNotification(_defeatRecoveryMessage(recovery.moneyLost));
-      await defeatRecoveryCheckpointEmitter?.call();
+      if (requestCheckpoint) await defeatRecoveryCheckpointEmitter?.call();
     } catch (error, stackTrace) {
       debugPrint('[whiteout] recovery failed: $error\n$stackTrace');
       _gameState = applyRuntimeDefeatRecoveryToGameState(
@@ -11167,7 +11276,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       _setFlowPhase(_RuntimeFlowPhase.overworld);
       _showNotification(_defeatRecoveryFailureMessage);
-      await defeatRecoveryCheckpointEmitter?.call();
+      if (requestCheckpoint) await defeatRecoveryCheckpointEmitter?.call();
     } finally {
       _inputLocks.release(
         owner: RuntimeInputLockOwner.checkpoint,
@@ -11694,6 +11803,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         session.gameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState ?? session.gameState,
         );
+        session.gameState = await _applySceneDefeatRecovery(session, session.gameState);
         if (_isRemoved) {
           throw StateError('The runtime was removed before the map event Scene commit.',
           );
@@ -11720,6 +11830,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ];
         await _publishRootNarrativeOutcomes(outcomes);
         session.commit();
+        final activation = session.deferredMapActivation;
+        if (activation != null) {
+          _installMapActivation(activation);
+          _resetTriggerEnterOccupancy();
+          unawaited(_dispatchCompletedMapActivation(activation));
+        }
       }
     } catch (error, stackTrace) {
       try {
@@ -11821,7 +11937,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           return scenePortId;
         });
       },
-      playCinematic: (intent) {
+      playCinematic: (intent) async {
+        _refreshWorldNpcPresence();
+        final actors = _loadedMapsById[_activeMapId]?.npcActorByEntityId.values.toList() ??
+            const <OverworldActorComponent>[];
+        await Future.wait(actors.map((actor) => actor.mounted));
+        if (!_scenePresentationScopeIsCurrent(presentationSession)) {
+          throw StateError('The cinematic Scene owner changed before actor mounting.');
+        }
         final adapter = SceneCinematicRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeExecutionSourceId,
           project: _bundle.manifest,
@@ -13732,6 +13855,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final completer = Completer<SceneBattleRuntimeOutcomeResult>();
     _pendingSceneBattleOutcomeCompleter = completer;
     _pendingSceneBattleRequestId = request.requestId;
+    _pendingSceneBattleDefeatRecovery = request.defeatRecovery;
 
     final returnContext = OverworldReturnContext(
       mapId: _world.map.id,
@@ -13768,6 +13892,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (battleRequest == null) {
       _pendingSceneBattleOutcomeCompleter = null;
       _pendingSceneBattleRequestId = null;
+      _pendingSceneBattleDefeatRecovery = SceneBattleDefeatRecovery.continueScene;
       return Future.value(
         SceneBattleRuntimeOutcomeResult.failed(
           errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
@@ -17459,7 +17584,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required bool requireActive,
   }) {
     final policy = bundle.manifest.settings.mapInstanceRetentionPolicy;
-    if (!_usesLogicalMapInstances(bundle)) return;
+    if (!_usesLogicalMapInstances(bundle, gameState: gameState)) return;
     for (final mapId in policy?.clampViewportToMapIds ?? const <String>{}) {
       if (bundle.manifest.maps.where((map) => map.id == mapId).length != 1) {
         throw StateError('Logical map viewport references unknown map $mapId.');

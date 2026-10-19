@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
 import 'geometry.dart';
+import 'smart_tile_pattern_construction.dart';
 
 part 'smart_tile.freezed.dart';
 part 'smart_tile.g.dart';
@@ -176,6 +177,8 @@ enum SmartTilePatternRepeatMode {
   @JsonValue('stamp')
   stamp,
 }
+
+enum SmartTilePatternClippingPolicy { clip, reject }
 
 enum SmartTilePatternCollision {
   @JsonValue('inherit')
@@ -651,6 +654,10 @@ abstract class ProjectSmartTilePattern with _$ProjectSmartTilePattern {
     @Default(0) int anchorY,
     @Default(SmartTilePatternRepeatMode.tiled)
     SmartTilePatternRepeatMode repeatMode,
+    @Default(SmartTilePatternClippingPolicy.clip)
+    @JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson)
+    SmartTilePatternClippingPolicy clippingPolicy,
+    @JsonKey(includeIfNull: false) SmartTilePatternConstruction? construction,
     @Default(<SmartTilePatternCell>[]) List<SmartTilePatternCell> cells,
     @Default(0) int drawOrder,
     @Default(<String>[]) List<String> tags,
@@ -672,8 +679,16 @@ ProjectSmartTilePattern _projectSmartTilePatternFromJson(
     'drawOrder',
     'sortOrder',
   ]);
-  return _$ProjectSmartTilePatternFromJson(json);
+  final pattern = _$ProjectSmartTilePatternFromJson(json);
+  pattern.construction?.validateSource(
+    width: pattern.width,
+    height: pattern.height,
+  );
+  return pattern;
 }
+
+String? _patternClippingPolicyToJson(SmartTilePatternClippingPolicy policy) =>
+    policy == SmartTilePatternClippingPolicy.clip ? null : policy.name;
 
 @freezed
 abstract class SmartTilePatternStroke with _$SmartTilePatternStroke {
@@ -686,6 +701,8 @@ abstract class SmartTilePatternStroke with _$SmartTilePatternStroke {
     required List<GridPos> cells,
     @Default(0) int phaseX,
     @Default(0) int phaseY,
+    @JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson)
+    MapRect? constructionBounds,
   }) = _SmartTilePatternStroke;
 
   factory SmartTilePatternStroke.fromJson(Map<String, dynamic> json) =>
@@ -696,8 +713,43 @@ SmartTilePatternStroke _smartTilePatternStrokeFromJson(
   Map<String, dynamic> json,
 ) {
   _requireStrictJsonIntegers(json, const <String>['phaseX', 'phaseY']);
+  final bounds = json['constructionBounds'];
+  if (bounds != null) {
+    if (bounds is! Map<String, dynamic> ||
+        bounds.keys.any((key) => key != 'pos' && key != 'size') ||
+        bounds['pos'] is! Map<String, dynamic> ||
+        bounds['size'] is! Map<String, dynamic>) {
+      throw const FormatException(
+        'Native construction bounds must be a rectangle.',
+      );
+    }
+    final pos = bounds['pos'] as Map<String, dynamic>;
+    final size = bounds['size'] as Map<String, dynamic>;
+    _requireStrictJsonIntegers(pos, const ['x', 'y']);
+    _requireStrictJsonIntegers(size, const ['width', 'height']);
+    if (pos['x'] is! int ||
+        pos['y'] is! int ||
+        size['width'] is! int ||
+        size['height'] is! int ||
+        (size['width'] as int) <= 0 ||
+        (size['height'] as int) <= 0 ||
+        (json['phaseX'] ?? 0) != 0 ||
+        (json['phaseY'] ?? 0) != 0) {
+      throw const FormatException(
+        'Invalid native construction bounds or phase.',
+      );
+    }
+  }
   return _$SmartTilePatternStrokeFromJson(json);
 }
+
+Map<String, dynamic>? _constructionBoundsToJson(MapRect? bounds) =>
+    bounds == null
+    ? null
+    : {
+        'pos': {'x': bounds.pos.x, 'y': bounds.pos.y},
+        'size': {'width': bounds.size.width, 'height': bounds.size.height},
+      };
 
 @freezed
 abstract class SmartTileCandidate with _$SmartTileCandidate {
@@ -1003,7 +1055,7 @@ ProjectSmartTileAuthoringDraft _projectSmartTileAuthoringDraftFromJson(
 
 @immutable
 final class ProjectSmartTileCatalog {
-  static const int currentFormatVersion = 7;
+  static const int currentFormatVersion = 9;
 
   const ProjectSmartTileCatalog.empty()
     : formatVersion = currentFormatVersion,
@@ -1080,6 +1132,25 @@ final class ProjectSmartTileCatalog {
       throw FormatException(
         r'$.smartTileCatalog.formatVersion: '
         'smart_tile_catalog_version_unsupported ($version)',
+      );
+    }
+    if (version < 9 &&
+        _catalogHasPartField(json, 'spatialClip', modelOnly: true)) {
+      throw const FormatException(
+        r'$.smartTileCatalog: model spatialClip requires catalog format version 9',
+      );
+    }
+    if (version < 8 &&
+        json['patterns'] is List &&
+        (json['patterns'] as List).any(
+          (pattern) =>
+              pattern is Map &&
+              (pattern['construction'] != null ||
+                  pattern['clippingPolicy'] != null &&
+                      pattern['clippingPolicy'] != 'clip'),
+        )) {
+      throw const FormatException(
+        r'$.smartTileCatalog: construction or clippingPolicy requires catalog format version 8',
       );
     }
     if (version < 7 && _catalogHasPartField(json, 'spatialFollowTerrain')) {
@@ -1177,7 +1248,13 @@ final class ProjectSmartTileCatalog {
               : item.toJson(),
         )
         .toList(),
-    'patterns': patterns.map((item) => item.toJson()).toList(),
+    'patterns': patterns
+        .map(
+          (item) => compact
+              ? _compactSmartTilePatternJson(item.toJson())
+              : item.toJson(),
+        )
+        .toList(),
     'drafts': drafts
         .map(
           (item) => compact
@@ -1213,10 +1290,21 @@ final class ProjectSmartTileCatalog {
   );
 }
 
-bool _catalogHasPartField(Map<String, dynamic> json, String field) {
+bool _catalogHasPartField(
+  Map<String, dynamic> json,
+  String field, {
+  bool modelOnly = false,
+}) {
   bool usesField(Object? parts) =>
       parts is List &&
-      parts.any((part) => part is Map && part.containsKey(field));
+      parts.any(
+        (part) =>
+            part is Map &&
+            part.containsKey(field) &&
+            (!modelOnly ||
+                (part['source'] is Map &&
+                    (part['source'] as Map)['kind'] == 'model3d')),
+      );
   for (final key in ['presets', 'drafts']) {
     final entries = json[key];
     if (entries is! List) continue;
@@ -1278,6 +1366,28 @@ Map<String, dynamic> _compactSmartTileOwnerJson(Map<String, dynamic> json) {
     final signature = scenario['signature'] as Map<String, dynamic>;
     signature.removeWhere((key, value) => value == null);
     if (signature.isEmpty) scenario.remove('signature');
+  }
+  return json;
+}
+
+Map<String, dynamic> _compactSmartTilePatternJson(Map<String, dynamic> json) {
+  _omitSmartTileDefaults(json, const {
+    'categoryId': '',
+    'anchorX': 0,
+    'anchorY': 0,
+    'repeatMode': 'tiled',
+    'drawOrder': 0,
+    'sortOrder': 0,
+  });
+  if ((json['tags'] as List).isEmpty) json.remove('tags');
+  for (final cell in (json['cells'] as List).cast<Map<String, dynamic>>()) {
+    _omitSmartTileDefaults(cell, const {
+      'eraseMaterial': false,
+      'collision': 'inherit',
+    });
+    for (final part in (cell['parts'] as List).cast<Map<String, dynamic>>()) {
+      _compactSmartTileVisualPartJson(part);
+    }
   }
   return json;
 }

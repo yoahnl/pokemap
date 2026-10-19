@@ -450,15 +450,37 @@ final class JournaledAuthoringTransaction {
         }
         final journal = await _gateway.readJournal(operationId);
         if (journal == null ||
-            (journal.status != AuthoringTransactionStatus.committed &&
-                journal.status != AuthoringTransactionStatus.compensated) ||
             journal.operationId != operationId ||
             journal.planId != planId ||
-            journal.scope.storageKey != scope.storageKey ||
-            journal.finalReceipt == null ||
-            canonicalAuthoringJson(journal.finalReceipt!.toJson()) !=
-                canonicalAuthoringJson(receipt.toJson())) {
+            journal.scope.storageKey != scope.storageKey) {
           return;
+        }
+        final finalized =
+            (journal.status == AuthoringTransactionStatus.committed ||
+                journal.status == AuthoringTransactionStatus.compensated) &&
+            journal.finalReceipt != null &&
+            canonicalAuthoringJson(journal.finalReceipt!.toJson()) ==
+                canonicalAuthoringJson(receipt.toJson());
+        if (!finalized) {
+          final stale = switch (journal.status) {
+            AuthoringTransactionStatus.preparing ||
+            AuthoringTransactionStatus.staged ||
+            AuthoringTransactionStatus.prepared ||
+            AuthoringTransactionStatus.promoting => true,
+            _ => false,
+          };
+          if (!stale ||
+              journal.finalReceipt != null ||
+              canonicalAuthoringJson(journal.intendedReceipt.toJson()) !=
+                  canonicalAuthoringJson(receipt.toJson())) {
+            return;
+          }
+          for (final entry in journal.entries) {
+            if (await _gateway.readResourceRevision(entry.storageKey) !=
+                entry.afterRevision) {
+              return;
+            }
+          }
         }
         await _deleteTransactionBestEffort(operationId);
       });

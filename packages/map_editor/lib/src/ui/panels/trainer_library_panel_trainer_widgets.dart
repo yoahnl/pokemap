@@ -168,6 +168,7 @@ class _TrainerEditorCard extends StatelessWidget {
     required this.rewardMoneyController,
     required this.rewardFlagsController,
     required this.rewardItemQuantityController,
+    required this.battleItemsEditor,
     required this.references,
     required this.badges,
     required this.dialogues,
@@ -225,6 +226,7 @@ class _TrainerEditorCard extends StatelessWidget {
   final TextEditingController rewardMoneyController;
   final TextEditingController rewardFlagsController;
   final TextEditingController rewardItemQuantityController;
+  final Widget battleItemsEditor;
   final _TrainerReferenceData references;
   final List<BadgeDefinition> badges;
   final List<ProjectDialogueEntry> dialogues;
@@ -460,6 +462,8 @@ class _TrainerEditorCard extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            battleItemsEditor,
             const SizedBox(height: 8),
             _TrainerRewardEditor(
               createMode: createMode,
@@ -1093,12 +1097,12 @@ class _TrainerEditorCard extends StatelessWidget {
 /// but the current Editor intentionally exposes no such control.
 String _trainerBattleDifficultyPolicySummary(int? difficulty) {
   if (difficulty == null || difficulty <= 3) {
-    return 'Profil basique · choix simples · aucun switch tactique · aucun objet';
+    return 'Profil basique · choix simples · aucun switch tactique · soins selon stock configuré';
   }
   if (difficulty <= 7) {
-    return 'Profil tactique · analyse dégâts/types · switch tactique · objets indisponibles';
+    return 'Profil tactique · analyse dégâts/types · switch tactique · soins selon stock configuré';
   }
-  return 'Profil avancé · analyse statuts/utilité · switch tactique · objets indisponibles';
+  return 'Profil avancé · analyse statuts/utilité · switch tactique · soins selon stock configuré';
 }
 
 class _TrainerCharacterPicker extends StatelessWidget {

@@ -5,8 +5,8 @@ import '../fixtures/border/masonry_line_fixture.dart';
 
 void main() {
   group('resolveMasonryLineBorder', () {
-    test('uses resolver contract V3 after the stone-chain pipeline split', () {
-      expect(borderResolverVersion, 3);
+    test('uses resolver contract V4 for native connected-line orientation', () {
+      expect(borderResolverVersion, 4);
     });
 
     test('resolves a long line deterministically at native size', () {

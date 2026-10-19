@@ -18,7 +18,11 @@ void _validateSpatialBehavior({
   required bool animationLoop,
   required double animationSpeed,
   required bool blocksMovement,
+  required int sequenceIndex,
 }) {
+  if (sequenceIndex < 0 || sequenceIndex > 9007199254740991) {
+    throw const ValidationException('Invalid Border sequence index');
+  }
   if ((animationIndex != null && animationIndex < 0) ||
       !animationSpeed.isFinite ||
       animationSpeed <= 0 ||
@@ -29,7 +33,8 @@ void _validateSpatialBehavior({
       (animationIndex != null ||
           !animationLoop ||
           animationSpeed != 1 ||
-          !blocksMovement)) {
+          !blocksMovement ||
+          sequenceIndex != 0)) {
     throw const ValidationException(
       'Spatial Border behavior requires a model source',
     );
@@ -76,6 +81,7 @@ final class BorderPrimitiveDraft {
     this.sourceModelId,
     required this.role,
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
+    this.sequenceIndex = 0,
     this.cornerTurn,
     required this.weight,
     BorderPixelPos? anchorPx,
@@ -109,6 +115,7 @@ final class BorderPrimitiveDraft {
       animationLoop: animationLoop,
       animationSpeed: animationSpeed,
       blocksMovement: blocksMovement,
+      sequenceIndex: sequenceIndex,
     );
     _validateVisualSource(
       sourceElementId,
@@ -131,6 +138,7 @@ final class BorderPrimitiveDraft {
   final String? sourceModelId;
   final BorderPrimitiveRole role;
   final BorderPrimitiveOrientation authoredOrientation;
+  final int sequenceIndex;
   final BorderCornerTurn? cornerTurn;
   final int weight;
   final BorderPixelPos? _anchorPx;
@@ -166,6 +174,7 @@ final class BorderPrimitiveDraft {
           sourceModelId == other.sourceModelId &&
           role == other.role &&
           authoredOrientation == other.authoredOrientation &&
+          sequenceIndex == other.sequenceIndex &&
           cornerTurn == other.cornerTurn &&
           weight == other.weight &&
           _anchorPx == other._anchorPx &&
@@ -186,6 +195,7 @@ final class BorderPrimitiveDraft {
     sourceModelId,
     role,
     authoredOrientation,
+    sequenceIndex,
     cornerTurn,
     weight,
     _anchorPx,
@@ -211,6 +221,7 @@ final class BorderPublishedPrimitive {
     String? visualSnapshotId,
     required this.role,
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
+    this.sequenceIndex = 0,
     this.cornerTurn,
     required this.weight,
     BorderPixelPos? anchorPx,
@@ -245,6 +256,7 @@ final class BorderPublishedPrimitive {
       animationLoop: animationLoop,
       animationSpeed: animationSpeed,
       blocksMovement: blocksMovement,
+      sequenceIndex: sequenceIndex,
     );
     _validateVisualSource(
       sourceElementId,
@@ -268,6 +280,7 @@ final class BorderPublishedPrimitive {
   final String? _visualSnapshotId;
   final BorderPrimitiveRole role;
   final BorderPrimitiveOrientation authoredOrientation;
+  final int sequenceIndex;
   final BorderCornerTurn? cornerTurn;
   final int weight;
   final BorderPixelPos? _anchorPx;
@@ -309,6 +322,7 @@ final class BorderPublishedPrimitive {
           _visualSnapshotId == other._visualSnapshotId &&
           role == other.role &&
           authoredOrientation == other.authoredOrientation &&
+          sequenceIndex == other.sequenceIndex &&
           cornerTurn == other.cornerTurn &&
           weight == other.weight &&
           _anchorPx == other._anchorPx &&
@@ -330,6 +344,7 @@ final class BorderPublishedPrimitive {
     _visualSnapshotId,
     role,
     authoredOrientation,
+    sequenceIndex,
     cornerTurn,
     weight,
     _anchorPx,
@@ -421,6 +436,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     required this.previewSeed,
     required this.template,
     this.straightOnly = false,
+    this.sequenceLength = 1,
     this.followContourDirection = false,
     this.replacesGround = false,
     this.masksGroundCells = false,
@@ -479,6 +495,26 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
         'Straight-only Borders require a spatial connectedLine blueprint',
       );
     }
+    if (sequenceLength < 1 ||
+        sequenceLength > 9007199254740991 ||
+        (sequenceLength > 1 &&
+            (!straightOnly || !kinds.contains(BorderVisualKind.model3d)))) {
+      throw const ValidationException(
+        'Border sequences require a positive portable length and a spatial straight-only blueprint',
+      );
+    }
+    for (final primitive in _primitives) {
+      final index = switch (primitive) {
+        BorderPrimitiveDraft() => primitive.sequenceIndex,
+        BorderPublishedPrimitive() => primitive.sequenceIndex,
+        _ => 0,
+      };
+      if (index >= sequenceLength) {
+        throw const ValidationException(
+          'Border sequence index exceeds its length',
+        );
+      }
+    }
     if (followContourDirection &&
         (template != BorderBlueprintTemplate.connectedLine ||
             !kinds.contains(BorderVisualKind.model3d))) {
@@ -514,6 +550,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
   final BorderSignedInt64 previewSeed;
   final BorderBlueprintTemplate template;
   final bool straightOnly;
+  final int sequenceLength;
   final bool followContourDirection;
   final bool replacesGround;
   final bool masksGroundCells;
@@ -543,6 +580,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
           previewSeed == other.previewSeed &&
           template == other.template &&
           straightOnly == other.straightOnly &&
+          sequenceLength == other.sequenceLength &&
           followContourDirection == other.followContourDirection &&
           replacesGround == other.replacesGround &&
           masksGroundCells == other.masksGroundCells &&
@@ -561,6 +599,7 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     previewSeed,
     template,
     straightOnly,
+    sequenceLength,
     followContourDirection,
     replacesGround,
     masksGroundCells,

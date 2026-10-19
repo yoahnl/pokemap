@@ -1,6 +1,8 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../exceptions/map_exceptions.dart';
 import '../models/smart_tile.dart';
+import 'smart_tile_pattern_operations.dart';
 import 'smart_tile_coverage.dart';
 import 'smart_tile_resolver.dart';
 import 'smart_tile_sprite_geometry.dart';
@@ -631,6 +633,15 @@ final class _SmartTileCatalogValidator {
       final patternPath =
           r'$.smartTileCatalog.patterns['
           '$patternIndex]';
+      try {
+        validateSmartTilePatternConstruction(pattern);
+      } on ValidationException catch (error) {
+        _error(
+          code: 'smart_tiles.pattern.construction_invalid',
+          path: '$patternPath.construction',
+          message: error.toString(),
+        );
+      }
       if (pattern.cells.isEmpty) {
         _error(
           code: 'smart_tiles.pattern.cells_missing',
@@ -1015,18 +1026,44 @@ final class _SmartTileCatalogValidator {
           message: 'Raster clipping requires a 3D project.',
         );
       }
-      if (part.source is SmartTileModel3dSource) {
-        _error(
-          code: 'smart_tiles.raster.clip_source_invalid',
-          path: '$path.spatialClip',
-          message: 'Raster clipping requires a frame or animation source.',
-        );
+      if (part.source case SmartTileModel3dSource source) {
+        if (source.animationIndex != null || part.transform.flipX) {
+          _error(
+            code: 'smart_tiles.model3d.clip_transform_invalid',
+            path: '$path.spatialClip',
+            message: 'Model clipping requires static, non-mirrored geometry.',
+          );
+        }
+        final clip = part.spatialClip!;
+        if (source.replacesGround &&
+            (clip.left != 0 ||
+                clip.top != 0 ||
+                clip.right != 1 ||
+                clip.bottom != 1)) {
+          _error(
+            code: 'smart_tiles.model3d.clip_replacement_invalid',
+            path: '$path.spatialClip',
+            message: 'A ground replacement model must fill its whole cell.',
+          );
+        }
       }
-      if (part.channel != SmartTileRenderChannel.ground) {
+      final model = part.source is SmartTileModel3dSource;
+      final validChannel = model
+          ? const {
+              SmartTileRenderChannel.ground,
+              SmartTileRenderChannel.understory,
+              SmartTileRenderChannel.canopy,
+            }.contains(part.channel)
+          : part.channel == SmartTileRenderChannel.ground;
+      if (!validChannel) {
         _error(
-          code: 'smart_tiles.raster.clip_channel_invalid',
+          code: model
+              ? 'smart_tiles.model3d.clip_channel_invalid'
+              : 'smart_tiles.raster.clip_channel_invalid',
           path: '$path.spatialClip',
-          message: 'Raster clipping requires the ground render channel.',
+          message: model
+              ? 'Model clipping requires ground, understory or canopy.'
+              : 'Raster clipping requires the ground render channel.',
         );
       }
     }

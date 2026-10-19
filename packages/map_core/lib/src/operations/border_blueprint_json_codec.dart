@@ -30,6 +30,7 @@ const Set<String> _definitionOptionalKeys = <String>{
   'ground',
   'categoryId',
   'straightOnly',
+  'sequenceLength',
   'followContourDirection',
   'replacesGround',
   'masksGroundCells',
@@ -426,6 +427,11 @@ Map<String, Object?> _encodeDraftDefinition(
   String path,
   int formatVersion,
 ) {
+  if (value.sequenceLength != 1 && formatVersion < 12) {
+    throw FormatException(
+      '$path.sequenceLength: requires catalog format version 12',
+    );
+  }
   _validateDefinitionFields(value, path);
   final template = _encodeTemplate(
     value.template,
@@ -453,6 +459,7 @@ Map<String, Object?> _encodeDraftDefinition(
     ),
     'template': template,
     if (value.straightOnly) 'straightOnly': true,
+    if (value.sequenceLength != 1) 'sequenceLength': value.sequenceLength,
     if (value.followContourDirection) 'followContourDirection': true,
     if (value.replacesGround) 'replacesGround': true,
     if (value.masksGroundCells) 'masksGroundCells': true,
@@ -510,6 +517,13 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
       previewSeed: previewSeed,
       template: template,
       straightOnly: _decodeStraightOnly(value, path),
+      sequenceLength: _decodeSequenceInteger(
+        value,
+        'sequenceLength',
+        1,
+        path,
+        formatVersion,
+      ),
       followContourDirection: _decodeFollowContourDirection(value, path),
       replacesGround: _decodeReplacesGround(value, path),
       masksGroundCells: _decodeMasksGroundCells(value, path),
@@ -533,6 +547,11 @@ Map<String, Object?> _encodePublishedDefinition(
   String path,
   int formatVersion,
 ) {
+  if (value.sequenceLength != 1 && formatVersion < 12) {
+    throw FormatException(
+      '$path.sequenceLength: requires catalog format version 12',
+    );
+  }
   _validateDefinitionFields(value, path);
   final template = _encodeTemplate(
     value.template,
@@ -560,6 +579,7 @@ Map<String, Object?> _encodePublishedDefinition(
     ),
     'template': template,
     if (value.straightOnly) 'straightOnly': true,
+    if (value.sequenceLength != 1) 'sequenceLength': value.sequenceLength,
     if (value.followContourDirection) 'followContourDirection': true,
     if (value.replacesGround) 'replacesGround': true,
     if (value.masksGroundCells) 'masksGroundCells': true,
@@ -617,6 +637,13 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       previewSeed: previewSeed,
       template: template,
       straightOnly: _decodeStraightOnly(value, path),
+      sequenceLength: _decodeSequenceInteger(
+        value,
+        'sequenceLength',
+        1,
+        path,
+        formatVersion,
+      ),
       followContourDirection: _decodeFollowContourDirection(value, path),
       replacesGround: _decodeReplacesGround(value, path),
       masksGroundCells: _decodeMasksGroundCells(value, path),
@@ -653,6 +680,20 @@ bool _decodeStraightOnly(BorderJsonObject value, String path) =>
         borderJsonPropertyPath(path, 'straightOnly'),
       )
     : false;
+
+int _decodeSequenceInteger(
+  BorderJsonObject value,
+  String field,
+  int fallback,
+  String path,
+  int formatVersion,
+) {
+  if (!value.containsKey(field)) return fallback;
+  if (formatVersion < 12) {
+    throw FormatException('$path.$field: requires catalog format version 12');
+  }
+  return borderJsonRequireInt(value[field], '$path.$field');
+}
 
 bool _decodeFollowContourDirection(BorderJsonObject value, String path) =>
     value.containsKey('followContourDirection')
@@ -770,6 +811,7 @@ Map<String, Object?> _encodeDraftPrimitive(
       sourceModelId: value.sourceModelId!,
       role: value.role,
       authoredOrientation: value.authoredOrientation,
+      sequenceIndex: value.sequenceIndex,
       cornerTurn: value.cornerTurn,
       weight: value.weight,
       transforms: value.transforms,
@@ -834,6 +876,13 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
         ),
         role: _decodePrimitiveRoleField(value, path, formatVersion),
         authoredOrientation: _decodeAuthoredOrientationField(value, path),
+        sequenceIndex: _decodeSequenceInteger(
+          value,
+          'sequenceIndex',
+          0,
+          path,
+          formatVersion,
+        ),
         cornerTurn: _decodeCornerTurn(value, path),
         weight: borderJsonRequireInt(value['weight'], '$path.weight'),
         animationIndex: value['animationIndex'] == null
@@ -924,6 +973,7 @@ Map<String, Object?> _encodePublishedPrimitive(
       sourceModelId: value.sourceModelId!,
       role: value.role,
       authoredOrientation: value.authoredOrientation,
+      sequenceIndex: value.sequenceIndex,
       cornerTurn: value.cornerTurn,
       weight: value.weight,
       transforms: value.transforms,
@@ -993,6 +1043,13 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
         ),
         role: _decodePrimitiveRoleField(value, path, formatVersion),
         authoredOrientation: _decodeAuthoredOrientationField(value, path),
+        sequenceIndex: _decodeSequenceInteger(
+          value,
+          'sequenceIndex',
+          0,
+          path,
+          formatVersion,
+        ),
         cornerTurn: _decodeCornerTurn(value, path),
         weight: borderJsonRequireInt(value['weight'], '$path.weight'),
         animationIndex: value['animationIndex'] == null
@@ -1084,6 +1141,7 @@ Map<String, Object?> _encodeSpatialPrimitive({
   required String sourceModelId,
   required BorderPrimitiveRole role,
   required BorderPrimitiveOrientation authoredOrientation,
+  required int sequenceIndex,
   required BorderCornerTurn? cornerTurn,
   required int weight,
   required BorderTransformPolicy transforms,
@@ -1095,6 +1153,11 @@ Map<String, Object?> _encodeSpatialPrimitive({
   required List<BorderGroundFootprint> groundFootprints,
   required List<BorderGroundSurface> groundSurfaces,
 }) {
+  if (sequenceIndex != 0 && formatVersion < 12) {
+    throw FormatException(
+      '$path.sequenceIndex: requires catalog format version 12',
+    );
+  }
   if (formatVersion < 5) {
     throw FormatException(
       '$path: spatial primitives require catalog format version 5',
@@ -1123,6 +1186,7 @@ Map<String, Object?> _encodeSpatialPrimitive({
     'sourceModelId': sourceModelId,
     'role': _encodePrimitiveRole(role, formatVersion, '$path.role'),
     'authoredOrientation': authoredOrientation.name,
+    if (sequenceIndex != 0) 'sequenceIndex': sequenceIndex,
     if (cornerTurn != null) 'cornerTurn': cornerTurn.name,
     'weight': weight,
     'transforms': _encodeTransformPolicy(transforms, '$path.transforms'),
@@ -1177,6 +1241,7 @@ void _validateSpatialPrimitiveJson(
     requiredKeys: const {'id', 'sourceModelId', 'role', 'weight', 'transforms'},
     optionalKeys: const {
       'authoredOrientation',
+      'sequenceIndex',
       'cornerTurn',
       'anchorWorld',
       'animationIndex',

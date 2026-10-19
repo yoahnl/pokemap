@@ -378,10 +378,12 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
               ModelCollisionControls(
                 model: model,
                 busy: n.busy,
-                onSave: (bounds) => n.mutate('model3d.configure', {
-                  'modelId': model.id,
-                  'collisionBounds': bounds?.toJson(),
-                }),
+                onSave: (bounds, blocksMovementByDefault) =>
+                    n.mutate('model3d.configure', {
+                      'modelId': model.id,
+                      'collisionBounds': bounds?.toJson(),
+                      'blocksMovementByDefault': blocksMovementByDefault,
+                    }),
               ),
               if (model.inspection.animations.isNotEmpty) ...[
                 const SizedBox(height: 16),

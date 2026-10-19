@@ -35,6 +35,181 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame checkpoint/load safety', () {
+    for (final recovery in SceneBattleDefeatRecovery.values) {
+      for (final defeat in [false, true]) {
+        test('scripted battle $recovery defeat=$defeat recovers only when selected', () async {
+          final gate = NarrativeRuntimeActivityGate();
+          final repository = _GateMemoryRepository(gate);
+          final initial = _battleReadyState().copyWith(
+            trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000),
+            metadata: {
+              playerRecoveryMapIdMetadataKey: _sourceMapId,
+              playerRecoveryPositionXMetadataKey: '3',
+              playerRecoveryPositionYMetadataKey: '3',
+              playerRecoveryFacingMetadataKey: 'north',
+            },
+          );
+          final game = _game(
+            bundle: _sceneBundle(recovery: recovery),
+            initialState: initial,
+            narrativeRuntimeActivityGate: gate,
+            saveRepository: repository,
+            dialogueSessionLoader: (_) async => _singleLineDialogue(),
+            defeatRecoveryCapsLoader: (_) async => const RuntimePlayerServiceRecoveryCaps(
+              maxHpByPartyIndex: {0: 20},
+              maxPpByPartyIndex: {0: {'tackle': 35}},
+            ),
+          );
+          await _load(game);
+          expect(_press(game, RuntimeInputControl.primary), isTrue);
+          await _waitUntilWithoutUpdate(() => game.debugFlowPhaseName == 'dialogue');
+          expect(_press(game, RuntimeInputControl.primary), isTrue);
+          await _waitUntilWithoutUpdate(() => game.debugHasPendingSceneBattle);
+          game.debugApplyBattleOutcomeForTest(
+            context: _trainerContext(),
+            outcome: defeat ? _defeatOutcome() : _victoryOutcome(),
+          );
+          await _waitUntilWithoutUpdate(() => gate.activity == NarrativeRuntimeActivity.idle);
+          final state = game.gameStateSnapshot;
+          final shouldRecover = defeat && recovery == SceneBattleDefeatRecovery.returnToRecoveryPoint;
+          expect(state.metadata[playerDefeatCountMetadataKey], shouldRecover ? '1' : null);
+          expect(state.playerPosition, shouldRecover ? const GridPos(x: 3, y: 3) : const GridPos(x: 0, y: 0));
+          expect(state.party.members.single.currentHp, shouldRecover ? 20 : defeat ? 1 : 12);
+          expect(state.trainerProfile.money, shouldRecover ? 900 : 1000);
+          expect(await game.saveGame(), isTrue);
+          expect(repository.storedState?.metadata[playerDefeatCountMetadataKey], shouldRecover ? '1' : null);
+          expect(repository.storedState?.playerPosition, state.playerPosition);
+        });
+      }
+    }
+    test('Event V2 Scene returns the recovered state to its coordinator', () async {
+      final initial = _battleReadyState().copyWith(
+        trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000),
+        metadata: {
+          playerRecoveryMapIdMetadataKey: _sourceMapId,
+          playerRecoveryPositionXMetadataKey: '3',
+          playerRecoveryPositionYMetadataKey: '3',
+          playerRecoveryFacingMetadataKey: 'north',
+        },
+      );
+      final game = _game(bundle: _sceneBundle(recovery: SceneBattleDefeatRecovery.returnToRecoveryPoint),
+        initialState: initial,
+        dialogueSessionLoader: (_) async => _singleLineDialogue(),
+        defeatRecoveryCapsLoader: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: {0: 20}, maxPpByPartyIndex: {0: {'tackle': 35}}));
+      await _load(game);
+      final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+        eventId: 'recovery_test', sceneId: 'dialogue_battle_scene',
+        executionId: 'recovery_test_execution', gameState: game.gameStateSnapshot));
+      await _waitUntilWithoutUpdate(() => game.debugFlowPhaseName == 'dialogue');
+      expect(_press(game, RuntimeInputControl.primary), isTrue);
+      await _waitUntilWithoutUpdate(() => game.debugHasPendingSceneBattle);
+      game.debugApplyBattleOutcomeForTest(context: _trainerContext(), outcome: _defeatOutcome());
+      final result = await execution;
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final state = (result as NarrativeSceneExecutionCompleted).updatedGameState;
+      expect(state.metadata[playerDefeatCountMetadataKey], '1');
+      expect(state.playerPosition, const GridPos(x: 3, y: 3));
+      expect(state.trainerProfile.money, 900);
+      expect(state.party.members.single.currentHp, 20);
+    });
+    test('a failed follow-up after defeat does not commit recovery', () async {
+      final source = _sceneBundle(recovery: SceneBattleDefeatRecovery.returnToRecoveryPoint);
+      final sceneJson = source.manifest.scenes.single.toJson();
+      final graph = Map<String, dynamic>.from(sceneJson['graph'] as Map);
+      graph['nodes'] = [
+        ...graph['nodes'] as List,
+        SceneNode(id: 'followup', kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'scene_dialogue')).toJson(),
+      ];
+      graph['edges'] = [
+        for (final edge in graph['edges'] as List)
+          if ((edge as Map)['id'] == 'battle_defeat') {...edge, 'toNodeId': 'followup'} else edge,
+        SceneEdge(id: 'followup_end', fromNodeId: 'followup', fromPortId: 'completed',
+          toNodeId: 'defeat_end', kind: SceneEdgeKind.defaultFlow).toJson(),
+      ];
+      sceneJson['graph'] = graph;
+      final gate = NarrativeRuntimeActivityGate();
+      var dialogueLoads = 0;
+      var recoveryLoads = 0;
+      final game = _game(bundle: source.copyWith(manifest: source.manifest.copyWith(
+          scenes: [SceneAsset.fromJson(sceneJson)])),
+        initialState: _battleReadyState().copyWith(
+          trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000)),
+        narrativeRuntimeActivityGate: gate,
+        dialogueSessionLoader: (_) async {
+          if (++dialogueLoads > 1) throw StateError('Follow-up unavailable');
+          return _singleLineDialogue();
+        },
+        defeatRecoveryCapsLoader: (_) async {
+          recoveryLoads++;
+          return const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {0: 20}, maxPpByPartyIndex: {});
+        },
+      );
+      await _load(game);
+      expect(_press(game, RuntimeInputControl.primary), isTrue);
+      await _waitUntilWithoutUpdate(() => game.debugFlowPhaseName == 'dialogue');
+      expect(_press(game, RuntimeInputControl.primary), isTrue);
+      await _waitUntilWithoutUpdate(() => game.debugHasPendingSceneBattle);
+      game.debugApplyBattleOutcomeForTest(context: _trainerContext(), outcome: _defeatOutcome());
+      await _waitUntilWithoutUpdate(() => gate.activity == NarrativeRuntimeActivity.idle);
+      expect(dialogueLoads, 2);
+      expect(recoveryLoads, 0);
+      expect(game.gameStateSnapshot.metadata[playerDefeatCountMetadataKey], isNull);
+      expect(game.gameStateSnapshot.trainerProfile.money, 1000);
+    });
+    for (final failRecoveryLoad in [false, true]) {
+      test('scripted defeat across maps loadFailure=$failRecoveryLoad is atomic', () async {
+        final gate = NarrativeRuntimeActivityGate();
+        final repository = _GateMemoryRepository(gate);
+        final source = _sceneBundle(recovery: SceneBattleDefeatRecovery.returnToRecoveryPoint);
+        final manifest = source.manifest.copyWith(maps: [
+          ...source.manifest.maps,
+          const ProjectMapEntry(id: _restoredMapId, name: 'Recovery', relativePath: 'maps/recovery.json'),
+        ]);
+        final initial = _battleReadyState().copyWith(
+          trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000),
+          metadata: {
+            playerRecoveryMapIdMetadataKey: _restoredMapId,
+            playerRecoveryPositionXMetadataKey: '3',
+            playerRecoveryPositionYMetadataKey: '3',
+            playerRecoveryFacingMetadataKey: 'north',
+          },
+        );
+        var recoveryLoads = 0;
+        final game = _game(bundle: source.copyWith(manifest: manifest),
+          initialState: initial, narrativeRuntimeActivityGate: gate,
+          saveRepository: repository,
+          dialogueSessionLoader: (_) async => _singleLineDialogue(),
+          defeatRecoveryCapsLoader: (_) async => const RuntimePlayerServiceRecoveryCaps(
+            maxHpByPartyIndex: {0: 20}, maxPpByPartyIndex: {0: {'tackle': 35}}),
+          runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async {
+            expect(mapId, _restoredMapId);
+            recoveryLoads++;
+            if (failRecoveryLoad) throw StateError('Recovery map unavailable');
+            return _bundle(map: _plainMap(_restoredMapId)).copyWith(manifest: manifest);
+          },
+        );
+        await _load(game);
+        expect(_press(game, RuntimeInputControl.primary), isTrue);
+        await _waitUntilWithoutUpdate(() => game.debugFlowPhaseName == 'dialogue');
+        expect(_press(game, RuntimeInputControl.primary), isTrue);
+        await _waitUntilWithoutUpdate(() => game.debugHasPendingSceneBattle);
+        game.debugApplyBattleOutcomeForTest(context: _trainerContext(), outcome: _defeatOutcome());
+        await _waitUntil(game, () => gate.activity == NarrativeRuntimeActivity.idle
+            && !game.debugIsMapActivationDispatchInFlight, maxTicks: 1800);
+        final state = game.gameStateSnapshot;
+        expect(recoveryLoads, greaterThan(0));
+        expect(state.currentMapId, failRecoveryLoad ? _sourceMapId : _restoredMapId);
+        expect(state.playerPosition, failRecoveryLoad ? initial.playerPosition : const GridPos(x: 3, y: 3));
+        expect(state.metadata[playerDefeatCountMetadataKey], failRecoveryLoad ? null : '1');
+        expect(state.trainerProfile.money, failRecoveryLoad ? 1000 : 900);
+        expect(state.party.members.single.currentHp, failRecoveryLoad ? 1 : 20);
+        expect(await game.saveGame(), isTrue);
+        expect(repository.storedState?.currentMapId, state.currentMapId);
+        expect(repository.storedState?.trainerProfile.money, state.trainerProfile.money);
+      });
+    }
     test(
       'battle handoff blocks load until async setup terminates',
       () async {
@@ -264,6 +439,7 @@ PlayableMapGame _game({
   RuntimeMapBundleLoader? runtimeMapBundleLoader,
   RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
   Future<void> Function()? beforeBattleHandoffPreparation,
+  Future<RuntimePlayerServiceRecoveryCaps> Function(GameState)? defeatRecoveryCapsLoader,
 }) {
   return _TestPlayableMapGame(
     bundle: bundle,
@@ -277,6 +453,7 @@ PlayableMapGame _game({
     runtimePlayerPokemonProgressionCatalogLoader:
         _loadCheckpointProgressionCatalogs,
     beforeBattleHandoffPreparation: beforeBattleHandoffPreparation,
+    defeatRecoveryCapsLoader: defeatRecoveryCapsLoader,
   );
 }
 
@@ -292,6 +469,7 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     super.runtimeTilesetImageLoader,
     super.runtimePlayerPokemonProgressionCatalogLoader,
     super.beforeBattleHandoffPreparation,
+    super.defeatRecoveryCapsLoader,
   });
 
   @override
@@ -600,7 +778,7 @@ ScenarioAsset _mapEnterFollowScenario() {
   );
 }
 
-RuntimeMapBundle _sceneBundle() {
+RuntimeMapBundle _sceneBundle({SceneBattleDefeatRecovery recovery = SceneBattleDefeatRecovery.continueScene}) {
   return _bundle(
     map: _sceneMap(),
     dialogues: const <ProjectDialogueEntry>[
@@ -620,7 +798,7 @@ RuntimeMapBundle _sceneBundle() {
         ],
       ),
     ],
-    scenes: <SceneAsset>[_dialogueBattleScene()],
+    scenes: <SceneAsset>[_dialogueBattleScene(recovery: recovery)],
   );
 }
 
@@ -672,7 +850,7 @@ MapData _sceneMap() {
   );
 }
 
-SceneAsset _dialogueBattleScene() {
+SceneAsset _dialogueBattleScene({SceneBattleDefeatRecovery recovery = SceneBattleDefeatRecovery.continueScene}) {
   return SceneAsset(
     id: 'dialogue_battle_scene',
     name: 'Dialogue and hosted battle',
@@ -692,6 +870,7 @@ SceneAsset _dialogueBattleScene() {
             battleKind: 'trainer',
             trainerId: _trainerId,
             npcEntityId: 'trainer_npc',
+            defeatRecovery: recovery,
             declaredOutcomes: const <String>['victory', 'defeat'],
           ),
         ),
@@ -793,6 +972,21 @@ RuntimeActiveBattleContext _trainerContext() {
       playerPos: GridPos(x: 0, y: 0),
     ),
     playerPartyIndex: 0,
+  );
+}
+
+BattleOutcome _defeatOutcome() {
+  return BattleOutcome(
+    type: BattleOutcomeType.defeat,
+    finalState: BattleState(
+      phase: BattlePhase.finished,
+      player: const BattleCombatant(speciesId: 'sproutle', level: 5, currentHp: 0, maxHp: 20, stats: _battleStats,
+        moves: [BattleMove(id: 'tackle', name: 'Tackle', power: 10)]),
+      enemy: const BattleCombatant(speciesId: 'embercub', level: 5, currentHp: 10, maxHp: 18, stats: _battleStats,
+        moves: [BattleMove(id: 'scratch', name: 'Scratch', power: 10)]),
+      currentTurn: null,
+      outcome: null,
+    ),
   );
 }
 

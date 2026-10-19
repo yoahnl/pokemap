@@ -61,7 +61,7 @@ class Ui13ControllableVerificationPort implements VerificationPort {
 
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
-    NarrativeRuntimeSmokeProfile profile,
+    NarrativeRuntimeSmokeProfile? profile,
   ) {
     if (!holdEvidence) return Future.value(evidence);
     final gate = Completer<VerificationRuntimeEvidence>();

@@ -182,6 +182,8 @@ const _nativeShapes = <String, Map<String, String?>>{
     'anchorX': null,
     'anchorY': null,
     'repeatMode': null,
+    'clippingPolicy': null,
+    'construction': 'SmartTilePatternConstruction',
     'cells': 'SmartTilePatternCell',
     'drawOrder': null,
     'tags': null,
@@ -206,6 +208,16 @@ const _nativeShapes = <String, Map<String, String?>>{
     'sortOrder': null,
     'seedSalt': null,
     'fallbackRuleId': null,
+  },
+  'SmartTilePatternConstruction': {
+    'x': 'SmartTilePatternRepeatAxis',
+    'y': 'SmartTilePatternRepeatAxis',
+  },
+  'SmartTilePatternRepeatAxis': {
+    'repeatStart': null,
+    'repeatLength': null,
+    'minimumRepeats': null,
+    'maximumRepeats': null,
   },
   'ProjectTilesetCollisionObject': {
     'id': null,
@@ -489,6 +501,12 @@ void _validateShape(
 }
 
 const _nativeScalars = <String, Map<String, String>>{
+  'SmartTilePatternRepeatAxis': {
+    'repeatStart': 'integer',
+    'repeatLength': 'integer',
+    'minimumRepeats': 'integer',
+    'maximumRepeats': 'integer',
+  },
   'ProjectRegularAtlasTilesetSource': {
     'assetId': 'string',
     'pixelWidth': 'integer',
@@ -654,6 +672,7 @@ const _nativeScalars = <String, Map<String, String>>{
     'anchorX': 'integer',
     'anchorY': 'integer',
     'repeatMode': 'string',
+    'clippingPolicy': 'string',
     'drawOrder': 'integer',
     'tags': 'strings',
     'sortOrder': 'integer',

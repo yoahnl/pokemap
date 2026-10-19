@@ -25,6 +25,10 @@ extension _WorkspaceMapLibrary on _MapWorkspaceScreenState {
       _views.remove(id)?.dispose();
     }
     for (final entry in _views.entries) {
+      if (!_controller.hasCompleteProject &&
+          entry.key != _controller.active?.base.mapId) {
+        continue;
+      }
       entry.value.reconcileResources(project, mapId: entry.key);
     }
     final current = _controller.active?.current;

@@ -15,6 +15,46 @@ import '../../support/glb_fixture.dart';
 const editing = EnvironmentEditing();
 
 void main() {
+  for (final modelDefault in [false, true]) {
+    for (final mode in EnvironmentCollisionMode.values) {
+      final expected = switch (mode) {
+        EnvironmentCollisionMode.useElementDefault => modelDefault,
+        EnvironmentCollisionMode.forceEnabled => true,
+        EnvironmentCollisionMode.forceDisabled => false,
+      };
+      test('manual Environment model default $modelDefault mode ${mode.name}', () {
+        final fixture = spatialEnvironmentFixture(
+            modelDefaultBlocking: modelDefault, collisionMode: mode);
+        final result = editing.addGeneratedPlacement(fixture.project, fixture.map,
+            layerId: 'env', areaId: 'forest', placementId: 'manual-default',
+            modelId: 'tree', pos: const GridPos(x: 1, y: 1));
+        expect(result.spatialScene!.instances.single.blocksMovement, expected);
+      });
+      test('generated Environment model default $modelDefault mode ${mode.name}', () {
+        final fixture = spatialEnvironmentFixture(
+            modelDefaultBlocking: modelDefault, collisionMode: mode);
+        final preview = generate(fixture.project, fixture.map);
+        expect(preview.placements, hasLength(24));
+        expect(preview.placements.every((entry) => entry.applyCollision == expected), isTrue);
+        final result = apply(fixture.project, fixture.map, preview);
+        expect(result.spatialScene!.instances.every((entry) => entry.blocksMovement == expected), isTrue);
+      });
+    }
+  }
+
+  test('model default blocking invalidates stale Environment generation previews', () {
+    final fixture = spatialEnvironmentFixture(
+        collisionMode: EnvironmentCollisionMode.useElementDefault);
+    final preview = generate(fixture.project, fixture.map);
+    final changed = fixture.project.copyWith(models3d: [
+      fixture.project.models3d.single.copyWith(blocksMovementByDefault: false),
+    ]);
+    expect(generate(changed, fixture.map).inputFingerprint,
+        isNot(preview.inputFingerprint));
+    expect(() => apply(changed, fixture.map, preview),
+        throwsA(isA<MapAuthoringException>()));
+  });
+
   test('continuous terrain invalidates stale Environment generation previews', () {
     final fixture = spatialEnvironmentFixture();
     final preview = generate(fixture.project, fixture.map);
@@ -734,12 +774,14 @@ MapData apply(ProjectManifest project, MapData map,
         currentRevision: 'current');
 
 ({ProjectManifest project, MapData map}) spatialEnvironmentFixture(
-    {int spacing = 0}) {
+    {int spacing = 0, bool modelDefaultBlocking = true,
+    EnvironmentCollisionMode collisionMode = EnvironmentCollisionMode.forceDisabled}) {
   final model = ProjectModel3dEntry(
       id: 'tree',
       name: 'Tree',
       sourceAssetId: 'tree-source',
       relativePath: 'assets/models3d/tree.glb',
+      blocksMovementByDefault: modelDefaultBlocking,
       inspection: const GlbModel3dInspector().inspect(environmentModelGlb()));
   final preset = EnvironmentPreset(
       id: 'forest',
@@ -749,7 +791,7 @@ MapData apply(ProjectManifest project, MapData map,
         EnvironmentPaletteItem(
             modelId: 'tree',
             weight: 1,
-            collisionMode: EnvironmentCollisionMode.forceDisabled)
+            collisionMode: collisionMode)
       ],
       defaultParams: EnvironmentGenerationParams(
           density: 1, variation: 0, edgeDensity: 1, minSpacingCells: spacing),

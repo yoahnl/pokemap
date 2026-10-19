@@ -3,6 +3,31 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('model default blocking preserves explicit false without default churn', () {
+    final blocking = _model();
+    expect(blocking.toJson(), isNot(contains('blocksMovementByDefault')));
+    final nonblocking = ProjectModel3dEntry.fromJson({
+      ...blocking.toJson(),
+      'blocksMovementByDefault': false,
+    });
+    expect(nonblocking.toJson()['blocksMovementByDefault'], false);
+    expect(nonblocking.copyWith(name: 'Decoration').toJson()['blocksMovementByDefault'], false);
+    expect(ProjectModel3dEntry.fromJson(nonblocking.toJson()), nonblocking);
+    expect(nonblocking, isNot(blocking));
+    expect(nonblocking.hashCode, isNot(blocking.hashCode));
+    final explicitTrue = ProjectModel3dEntry.fromJson({
+      ...blocking.toJson(),
+      'blocksMovementByDefault': true,
+    });
+    expect(explicitTrue, blocking);
+    expect(explicitTrue.toJson(), blocking.toJson());
+    for (final invalid in [null, 0, 'false', <String, dynamic>{}]) {
+      expect(() => ProjectModel3dEntry.fromJson({
+        ...blocking.toJson(),
+        'blocksMovementByDefault': invalid,
+      }), throwsFormatException);
+    }
+  });
   test(
     'local collision bounds roundtrip independently of visible geometry',
     () {

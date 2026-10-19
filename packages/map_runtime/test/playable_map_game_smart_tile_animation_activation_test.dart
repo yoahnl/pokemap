@@ -6,20 +6,77 @@ import 'package:map_runtime/map_runtime.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('grass fringe starts at rest on spawn and follows current and stepping cells', () async {
+    final game = _TestPlayableMapGame(
+      bundle: _occupiedGrassBundle(),
+      projectFilePath: '/tmp/project.json',
+      runtimeTilesetImageLoader: (
+        _, {
+        transparentColorByTilesetId = const {},
+      }) async => const {},
+    );
+    addTearDown(game.onRemove);
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _pumpUntil(game, () => !game.debugIsMapActivationDispatchInFlight);
+    int occlusionClock(int x) => game.debugSmartTileAnimationElapsedMsForCell(
+      layerId: 'grass',
+      cellX: x,
+      cellY: 0,
+      channel: SmartTileRenderChannel.actorOcclusion,
+    );
+    expect(occlusionClock(0), greaterThanOrEqualTo(1000));
+    expect(occlusionClock(1), 0);
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.right),
+    );
+    game.update(0.016);
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.release(RuntimeInputControl.right),
+    );
+    expect(occlusionClock(0), greaterThanOrEqualTo(1000));
+    await _pumpUntil(game, () => !game.debugIsPlayerStepping);
+    game.update(0.05);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 0));
+    expect(occlusionClock(0), 0);
+    expect(occlusionClock(1), inExclusiveRange(0, 1000));
+    game.update(2);
+    expect(occlusionClock(1), greaterThanOrEqualTo(1000));
+    expect(
+      game.debugSmartTileAnimationElapsedMsForCell(
+        layerId: 'grass',
+        cellX: 1,
+        cellY: 0,
+      ),
+      0,
+    );
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.left),
+    );
+    game.update(0.016);
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.release(RuntimeInputControl.left),
+    );
+    await _pumpUntil(game, () => !game.debugIsPlayerStepping);
+    game.update(0.05);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+    expect(occlusionClock(1), 0);
+    expect(occlusionClock(0), inExclusiveRange(0, 1000));
+  });
+
   test('entering a painted cell triggers its Smart Tile animation', () async {
     final game = _TestPlayableMapGame(
       bundle: _bundle,
       projectFilePath: '/tmp/project.json',
-      runtimeTilesetImageLoader:
-          (_, {transparentColorByTilesetId = const {}}) async => const {},
+      runtimeTilesetImageLoader: (
+        _, {
+        transparentColorByTilesetId = const {},
+      }) async => const {},
     );
 
     game.onGameResize(Vector2(640, 480));
     await game.onLoad();
-    await _pumpUntil(
-      game,
-      () => !game.debugIsMapActivationDispatchInFlight,
-    );
+    await _pumpUntil(game, () => !game.debugIsMapActivationDispatchInFlight);
 
     expect(
       game.debugSmartTileAnimationElapsedMsForCell(
@@ -71,10 +128,7 @@ final class _TestPlayableMapGame extends PlayableMapGame {
   bool get isLoaded => true;
 }
 
-Future<void> _pumpUntil(
-  PlayableMapGame game,
-  bool Function() predicate,
-) async {
+Future<void> _pumpUntil(PlayableMapGame game, bool Function() predicate) async {
   for (var index = 0; index < 120 && !predicate(); index += 1) {
     game.update(1 / 60);
     await Future<void>.delayed(Duration.zero);
@@ -86,9 +140,7 @@ final _bundle = RuntimeMapBundle(
   manifest: _manifest,
   map: _map,
   projectRootDirectory: '/tmp',
-  tilesetAbsolutePathsById: const <String, String>{
-    'smart': '/tmp/missing.png',
-  },
+  tilesetAbsolutePathsById: const <String, String>{'smart': '/tmp/missing.png'},
 );
 
 final _map = MapData(
@@ -113,11 +165,7 @@ final _manifest = ProjectManifest(
   name: 'Triggered Smart Tile Runtime',
   version: ProjectVersion.v8,
   maps: const <ProjectMapEntry>[
-    ProjectMapEntry(
-      id: 'map',
-      name: 'Map',
-      relativePath: 'maps/map.json',
-    ),
+    ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
   ],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -149,19 +197,11 @@ final _manifest = ProjectManifest(
         name: 'Rustle',
         frames: <ProjectSmartTileAnimationFrame>[
           ProjectSmartTileAnimationFrame(
-            frame: SmartTileFrameRef(
-              atlasId: 'atlas',
-              column: 0,
-              row: 0,
-            ),
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
             durationMs: 500,
           ),
           ProjectSmartTileAnimationFrame(
-            frame: SmartTileFrameRef(
-              atlasId: 'atlas',
-              column: 1,
-              row: 0,
-            ),
+            frame: SmartTileFrameRef(atlasId: 'atlas', column: 1, row: 0),
             durationMs: 500,
           ),
         ],
@@ -202,3 +242,51 @@ final _manifest = ProjectManifest(
     ],
   ),
 );
+
+RuntimeMapBundle _occupiedGrassBundle() {
+  final catalog = _manifest.smartTileCatalog;
+  final preset = catalog.presets.single;
+  final rule = preset.rules.single;
+  final candidate = rule.candidates.single;
+  return RuntimeMapBundle(
+    manifest: _manifest.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: catalog.atlases,
+        materials: [
+          catalog.materials.single.copyWith(
+            pathSurfaceKind: PathSurfaceKind.tallGrass,
+          ),
+        ],
+        animations: [
+          catalog.animations.single.copyWith(loop: SmartTileAnimationLoop.once),
+        ],
+        presets: [
+          preset.copyWith(
+            rules: [
+              rule.copyWith(
+                candidates: [
+                  candidate.copyWith(
+                    parts: [
+                      candidate.parts.single.copyWith(
+                        channel: SmartTileRenderChannel.actorOcclusion,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+    map: _map.copyWith(
+      layers: [
+        (_map.layers.single as SmartTileLayer).copyWith(
+          field: const SmartTileField.cell(semanticCells: [1, 1, 0]),
+        ),
+      ],
+    ),
+    projectRootDirectory: '/tmp',
+    tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
+  );
+}

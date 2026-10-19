@@ -13,6 +13,7 @@ import 'package:map_core/map_core.dart';
 
 import 'animated_render_model.dart';
 import 'glb_renderer_layout.dart';
+import 'spatial_model_source_admission.dart';
 import 'spatial_resource_admission.dart';
 
 final class ModelByteLoader {
@@ -65,8 +66,7 @@ final class ModelByteLoader {
       final reservation = await budget?.acquire(
         residentBytes: 1,
         transientBytes: budget.profile.maximumEncodedBytes,
-        isCurrent: isCurrent,
-      );
+        isCurrent: isCurrent);
       try {
         reservation?.ensureCurrent();
         final bytes = await read();
@@ -205,13 +205,19 @@ final class ModelByteLoader {
           ),
       ];
       if (materialAnimations.clips.isEmpty) {
-        return Model(nodes: model.nodes, animations: animations);
+        final result = Model(nodes: model.nodes, animations: animations);
+        registerSpatialModelClipSource(
+          result,
+          layout.json,
+          hasMaterialAnimations: false,
+        );
+        return result;
       }
       final targets = {
         for (final clip in materialAnimations.clips)
           for (final track in clip.tracks) track.materialIndex,
       };
-      return AnimatedRenderModel(
+      final result = AnimatedRenderModel(
         nodes: model.nodes,
         animations: animations,
         materialAnimations: materialAnimations,
@@ -227,6 +233,12 @@ final class ModelByteLoader {
             _textureWrapModes(layout.json, texture as Map<String, dynamic>),
         ],
       );
+      registerSpatialModelClipSource(
+        result,
+        layout.json,
+        hasMaterialAnimations: true,
+      );
+      return result;
     } finally {
       cache.models.remove(key);
     }

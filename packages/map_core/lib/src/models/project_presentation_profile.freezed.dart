@@ -211,7 +211,7 @@ return $default(_that.code,_that.category,_that.severity,_that.path,_that.messag
 
 class _ProjectPresentationDiagnostic implements ProjectPresentationDiagnostic {
   const _ProjectPresentationDiagnostic({required this.code, required this.category, required this.severity, required this.path, required this.message});
-
+  
 
 @override final  String code;
 @override final  ProjectPresentationCategory category;
@@ -920,7 +920,7 @@ as ProjectVideoVariantProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectVideoVariantProfileCopyWith<$Res> get landscape {
-
+  
   return $ProjectVideoVariantProfileCopyWith<$Res>(_self.landscape, (value) {
     return _then(_self.copyWith(landscape: value));
   });
@@ -1143,7 +1143,7 @@ as ProjectVideoVariantProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectVideoVariantProfileCopyWith<$Res> get landscape {
-
+  
   return $ProjectVideoVariantProfileCopyWith<$Res>(_self.landscape, (value) {
     return _then(_self.copyWith(landscape: value));
   });
@@ -1229,7 +1229,7 @@ as bool,
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveVideoProfileCopyWith<$Res> get media {
-
+  
   return $ProjectResponsiveVideoProfileCopyWith<$Res>(_self.media, (value) {
     return _then(_self.copyWith(media: value));
   });
@@ -1442,7 +1442,7 @@ as bool,
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveVideoProfileCopyWith<$Res> get media {
-
+  
   return $ProjectResponsiveVideoProfileCopyWith<$Res>(_self.media, (value) {
     return _then(_self.copyWith(media: value));
   });
@@ -2063,7 +2063,7 @@ as ProjectPauseCompositionVariantProfile,
 @override
 @pragma('vm:prefer-inline')
 $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactPortrait {
-
+  
   return $ProjectPauseCompositionVariantProfileCopyWith<$Res>(_self.compactPortrait, (value) {
     return _then(_self.copyWith(compactPortrait: value));
   });
@@ -2072,7 +2072,7 @@ $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactPortrait {
 @override
 @pragma('vm:prefer-inline')
 $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactLandscape {
-
+  
   return $ProjectPauseCompositionVariantProfileCopyWith<$Res>(_self.compactLandscape, (value) {
     return _then(_self.copyWith(compactLandscape: value));
   });
@@ -2081,7 +2081,7 @@ $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactLandscape {
 @override
 @pragma('vm:prefer-inline')
 $ProjectPauseCompositionVariantProfileCopyWith<$Res> get expanded {
-
+  
   return $ProjectPauseCompositionVariantProfileCopyWith<$Res>(_self.expanded, (value) {
     return _then(_self.copyWith(expanded: value));
   });
@@ -2294,7 +2294,7 @@ as ProjectPauseCompositionVariantProfile,
 @override
 @pragma('vm:prefer-inline')
 $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactPortrait {
-
+  
   return $ProjectPauseCompositionVariantProfileCopyWith<$Res>(_self.compactPortrait, (value) {
     return _then(_self.copyWith(compactPortrait: value));
   });
@@ -2303,7 +2303,7 @@ $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactPortrait {
 @override
 @pragma('vm:prefer-inline')
 $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactLandscape {
-
+  
   return $ProjectPauseCompositionVariantProfileCopyWith<$Res>(_self.compactLandscape, (value) {
     return _then(_self.copyWith(compactLandscape: value));
   });
@@ -2312,7 +2312,7 @@ $ProjectPauseCompositionVariantProfileCopyWith<$Res> get compactLandscape {
 @override
 @pragma('vm:prefer-inline')
 $ProjectPauseCompositionVariantProfileCopyWith<$Res> get expanded {
-
+  
   return $ProjectPauseCompositionVariantProfileCopyWith<$Res>(_self.expanded, (value) {
     return _then(_self.copyWith(expanded: value));
   });
@@ -4177,7 +4177,7 @@ as ProjectTypographyRoleProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get display {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.display, (value) {
     return _then(_self.copyWith(display: value));
   });
@@ -4186,7 +4186,7 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get display {
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get body {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.body, (value) {
     return _then(_self.copyWith(body: value));
   });
@@ -4195,7 +4195,7 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get body {
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
   });
@@ -4204,7 +4204,7 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue {
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get numbers {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.numbers, (value) {
     return _then(_self.copyWith(numbers: value));
   });
@@ -4433,7 +4433,7 @@ as ProjectTypographyRoleProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get display {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.display, (value) {
     return _then(_self.copyWith(display: value));
   });
@@ -4442,7 +4442,7 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get display {
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get body {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.body, (value) {
     return _then(_self.copyWith(body: value));
   });
@@ -4451,7 +4451,7 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get body {
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
   });
@@ -4460,7 +4460,7 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue {
 @override
 @pragma('vm:prefer-inline')
 $ProjectTypographyRoleProfileCopyWith<$Res> get numbers {
-
+  
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.numbers, (value) {
     return _then(_self.copyWith(numbers: value));
   });
@@ -5158,7 +5158,7 @@ as ProjectPresentationLayoutsProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectBrandingProfileCopyWith<$Res> get branding {
-
+  
   return $ProjectBrandingProfileCopyWith<$Res>(_self.branding, (value) {
     return _then(_self.copyWith(branding: value));
   });
@@ -5537,7 +5537,7 @@ as ProjectPresentationLayoutsProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectBrandingProfileCopyWith<$Res> get branding {
-
+  
   return $ProjectBrandingProfileCopyWith<$Res>(_self.branding, (value) {
     return _then(_self.copyWith(branding: value));
   });

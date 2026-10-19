@@ -386,7 +386,11 @@ final class SpatialGroundPlan {
     imageIds.add(atlas.tilesetId);
   }
 
-  List<SpatialGroundVisual> resolve(int elapsedMs) {
+  List<SpatialGroundVisual> resolve(
+    int elapsedMs, {
+    int Function(String layerId, int cellX, int cellY, int elapsedMs)?
+    animationElapsedMsForCell,
+  }) {
     if (!animated && _static != null) return _static!;
     _visualExclusions.clear();
     _flatVisualSurfaces.clear();
@@ -412,7 +416,15 @@ final class SpatialGroundPlan {
       }
     }
     for (var index = 0; index < _plans.length; index++) {
-      final visuals = _plans[index].resolveBatch(elapsedMs: elapsedMs).visuals;
+      final visuals = _plans[index].resolveBatch(
+        elapsedMs: elapsedMs,
+        animationElapsedMsForCell: animationElapsedMsForCell == null
+            ? null
+            : ({required cellX, required cellY, required elapsedMs}) =>
+                animationElapsedMsForCell(
+                  _layerIds[index], cellX, cellY, elapsedMs,
+                ),
+      ).visuals;
       final ranks = _groundPaintRanks(visuals);
       final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
       for (var part = 0; part < visuals.length; part++) {
@@ -793,7 +805,6 @@ Future<Texture> loadSpatialGroundTexture(
     codec?.dispose();
   }
 }
-
 Future<Texture> loadSpatialGroundTextureFromSource(
   Future<Uint8List> Function() read, {
   required RuntimeResourceBudget budget,

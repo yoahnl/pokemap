@@ -240,7 +240,7 @@ void main() {
   });
 
   test(
-    'invalid overlap bounds and level alignment preserve the source map',
+    'invalid overlap and bounds preserve the source map',
     () {
       final model = stairModel();
       final instance = SpatialModelInstance(
@@ -254,7 +254,6 @@ void main() {
         model: model,
       );
       for (final invalid in [
-        instance.copyWith(position: Model3dVector3(x: 3.5, y: .1, z: 6)),
         instance.copyWith(position: Model3dVector3(x: .1, y: 0, z: 6)),
       ]) {
         expect(

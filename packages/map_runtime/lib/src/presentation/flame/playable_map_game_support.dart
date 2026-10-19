@@ -789,8 +789,11 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
+  GameState Function()? stateProjection;
+  GameState get presentationGameState => stateProjection?.call() ?? gameState;
   bool defersMapActivation = false;
   MapActivation? deferredMapActivation;
+  _NarrativeSceneDefeatRecoveryRequest? defeatRecoveryRequest;
   final actorRouteStates = <Object, ActorRouteTransientState>{};
   final actorRouteCleanup = <void Function()>[];
 
@@ -829,6 +832,13 @@ final class _NarrativeSceneWorkingSession {
       Error.throwWithStackTrace(firstError, firstStackTrace!);
     }
   }
+}
+
+final class _NarrativeSceneDefeatRecoveryRequest {
+  const _NarrativeSceneDefeatRecoveryRequest(this.context, this.activePlayerLineupIndex);
+
+  final RuntimeActiveBattleContext context;
+  final int activePlayerLineupIndex;
 }
 
 final class _NarrativeOutcomeContinuationContext {

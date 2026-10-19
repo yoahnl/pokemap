@@ -34,6 +34,7 @@ final class Model3dActions {
       'source.replace',
       'source.replace_batch',
       'configure',
+      'configure_batch',
       'delete'
     ])
       AuthoringActionDescriptor(
@@ -48,7 +49,9 @@ final class Model3dActions {
           'source.replace_batch' =>
             'Replace 1 to 50 inspected GLB sources in one recoverable publication',
           'configure' =>
-            'Configure a model name, scale, pivot, collision volume and attached stair profile',
+            'Configure a model name, scale, pivot, collision volume, default movement blocking and attached stair profile',
+          'configure_batch' =>
+            'Configure 1 to 50 models in one recoverable publication with aggregated attached stair updates',
           _ => 'Delete an unused model and its owned source'
         },
         inputSchemaId: 'pokemap.authoring.model3d.$action.input.v1',
@@ -62,7 +65,7 @@ final class Model3dActions {
           'assetCatalog',
           'asset',
           'assetBlob',
-          if (action == 'configure') 'map',
+          if (action == 'configure' || action == 'configure_batch') 'map',
         ],
         capabilityIds: const ['authoring.visual_library'],
         requiredPermissions: [
@@ -76,15 +79,42 @@ final class Model3dActions {
           AuthoringGuarantee.idempotent,
           if (action != 'import_batch' &&
               action != 'configure' &&
+              action != 'configure_batch' &&
               !action.startsWith('source.replace'))
             AuthoringGuarantee.atomic,
           AuthoringGuarantee.revisionChecked,
           AuthoringGuarantee.undoable
         ],
         extensions: {
-          if (action == 'source.replace' || action == 'configure')
+          if (action == 'source.replace' ||
+              action == 'configure' ||
+              action == 'configure_batch')
             'publicationSemantics': 'recoverable_cross_file',
-          if (action == 'import_batch' || action == 'source.replace_batch') ...{
+          if (action == 'configure_batch') ...{
+            'maximumModelCount': maximumModelCount,
+            'diffProjection': 'batch_model_configurations',
+            'maximumInlineModelDiffByteLength':
+                maximumInlineModelDiffByteLength,
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['models'],
+              'properties': {
+                'models': {
+                  'type': 'array',
+                  'minItems': 1,
+                  'maxItems': maximumModelCount,
+                  'items': {
+                    'type': 'object',
+                    'additionalProperties': false,
+                    'required': ['modelId'],
+                    'properties': _configurationProperties(),
+                  }
+                }
+              }
+            }
+          } else if (action == 'import_batch' ||
+              action == 'source.replace_batch') ...{
             'maximumModelCount': maximumModelCount,
             'maximumTotalByteLength': maximumTotalByteLength,
             'publicationSemantics': 'recoverable_cross_file',
@@ -146,62 +176,7 @@ final class Model3dActions {
                   'artifactHandle': {'type': 'string', 'minLength': 1},
                 if (action == 'import' || action == 'configure')
                   'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
-                if (action == 'configure') ...{
-                  'rampProfile': {
-                    'type': ['object', 'null'],
-                    'additionalProperties': false,
-                    'required': [
-                      'x',
-                      'z',
-                      'width',
-                      'depth',
-                      'lowHeight',
-                      'highHeight',
-                      'direction'
-                    ],
-                    'properties': {
-                      for (final field in ['x', 'z', 'lowHeight', 'highHeight'])
-                        field: {'type': 'number'},
-                      for (final field in ['width', 'depth'])
-                        field: {'type': 'number', 'exclusiveMinimum': 0},
-                      'direction': {
-                        'type': 'string',
-                        'enum': ['north', 'south', 'east', 'west']
-                      },
-                    },
-                  },
-                  'scale': {
-                    'type': 'number',
-                    'exclusiveMinimum': 0,
-                    'maximum': 1000000
-                  },
-                  'pivot': {
-                    'type': 'object',
-                    'additionalProperties': false,
-                    'required': ['x', 'y', 'z'],
-                    'properties': {
-                      for (final axis in ['x', 'y', 'z'])
-                        axis: {'type': 'number'}
-                    }
-                  },
-                  'collisionBounds': {
-                    'type': ['object', 'null'],
-                    'additionalProperties': false,
-                    'required': ['min', 'max'],
-                    'properties': {
-                      for (final corner in ['min', 'max'])
-                        corner: {
-                          'type': 'object',
-                          'additionalProperties': false,
-                          'required': ['x', 'y', 'z'],
-                          'properties': {
-                            for (final axis in ['x', 'y', 'z'])
-                              axis: {'type': 'number'}
-                          }
-                        }
-                    }
-                  }
-                }
+                if (action == 'configure') ..._configurationProperties()
               }
             }
         },
@@ -215,6 +190,9 @@ final class Model3dActions {
     if (context.request.actionId == 'model3d.source.replace_batch') {
       return _replaceSources(context);
     }
+    if (context.request.actionId == 'model3d.configure_batch') {
+      return _configureBatch(context);
+    }
     final parameters = VisualLibraryParameters(context.request.parameters);
     final action = context.request.actionId;
     parameters.allow(switch (action) {
@@ -227,6 +205,7 @@ final class Model3dActions {
           'pivot',
           'collisionBounds',
           'rampProfile',
+          'blocksMovementByDefault',
         },
       'model3d.delete' => {'modelId'},
       _ => throw const FormatException('Unknown model action.'),
@@ -287,30 +266,8 @@ final class Model3dActions {
     }
     if (current == null) throw const FormatException('Unknown model identity.');
     if (action == 'model3d.configure') {
-      final fields = context.request.parameters;
-      if (fields.containsKey('scale') && fields['scale'] is! num) {
-        throw const FormatException('Scale must be numeric.');
-      }
-      if (fields.containsKey('pivot') && fields['pivot'] is! Map) {
-        throw const FormatException('Pivot must be an object.');
-      }
-      final next = current.copyWith(
-          name: fields.containsKey('name') ? parameters.string('name') : null,
-          scale: fields['scale'] as num?,
-          pivot: fields.containsKey('pivot')
-              ? Model3dVector3.fromJson(
-                  Map<String, dynamic>.from(fields['pivot'] as Map))
-              : null,
-          collisionBounds: fields['collisionBounds'] == null
-              ? null
-              : Model3dBounds.fromJson(parameters.object('collisionBounds')),
-          clearCollisionBounds: fields.containsKey('collisionBounds') &&
-              fields['collisionBounds'] == null,
-          rampProfile: fields['rampProfile'] == null
-              ? null
-              : Model3dRampProfile.fromJson(parameters.object('rampProfile')),
-          clearRampProfile: fields.containsKey('rampProfile') &&
-              fields['rampProfile'] == null);
+      final next = _configuredModel(current, context.request.parameters);
+      _requireClippedSource(context, next);
       return _compose(
           context,
           context.snapshot.manifest.copyWith(models3d: [
@@ -392,6 +349,7 @@ final class Model3dActions {
         throw const FormatException('The staged model content changed.');
       }
       final inspection = const GlbModel3dInspector().inspect(bytes);
+      _requireClippedSource(context, current, inspection: inspection);
       for (final map in context.snapshot.maps) {
         for (final instance
             in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
@@ -417,6 +375,7 @@ final class Model3dActions {
           scale: current.scale,
           pivot: current.pivot,
           collisionBounds: current.collisionBounds,
+          blocksMovementByDefault: current.blocksMovementByDefault,
           rampProfile: current.rampProfile);
       final sameContent = source.artifact.digest == actual.digest &&
           source.artifact.byteLength == actual.byteLength;
@@ -521,6 +480,8 @@ final class Model3dActions {
               context.snapshot.resourceBytes(assetCatalogResourceIdentity)))
           as Map<String, dynamic>);
       final usedAnimations = <String, Set<int>>{};
+      final clippedIds = SpatialModelClipCapabilities.modelIds(
+          context.snapshot.manifest, maps: context.snapshot.maps);
       for (final map in context.snapshot.maps) {
         for (final instance
             in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
@@ -549,6 +510,8 @@ final class Model3dActions {
         }
         final inspection = inspections.putIfAbsent(
             artifact.handle, () => const GlbModel3dInspector().inspect(bytes));
+        _requireClippedSource(context, entry.model,
+            inspection: inspection, clippedIds: clippedIds);
         if ((usedAnimations[entry.model.id] ?? const <int>{})
             .any((index) => index >= inspection.animations.length)) {
           throw const FormatException(
@@ -565,6 +528,7 @@ final class Model3dActions {
             scale: current.scale,
             pivot: current.pivot,
             collisionBounds: current.collisionBounds,
+            blocksMovementByDefault: current.blocksMovementByDefault,
             rampProfile: current.rampProfile);
         final sameContent = source.artifact.digest == actual.digest &&
             source.artifact.byteLength == actual.byteLength;
@@ -650,6 +614,73 @@ final class Model3dActions {
       }
       rethrow;
     }
+  }
+
+  AuthoringMutationDraft _configureBatch(AuthoringPlanningContext context) {
+    final parameters = VisualLibraryParameters(context.request.parameters);
+    parameters.allow({'models'});
+    final inputs = parameters.objects('models');
+    if (inputs.isEmpty || inputs.length > maximumModelCount) {
+      throw const FormatException('Expected 1 to 50 model configurations.');
+    }
+    final manifest = context.snapshot.manifest;
+    final indexed = {for (final model in manifest.models3d) model.id: model};
+    final ids = <String>{};
+    final updates = <(ProjectModel3dEntry, ProjectModel3dEntry)>[];
+    final clippedIds = SpatialModelClipCapabilities.modelIds(manifest, maps: context.snapshot.maps);
+    for (final input in inputs) {
+      final fields = input;
+      final entry = VisualLibraryParameters(fields);
+      entry.allow(_configurationProperties().keys.toSet());
+      final id = entry.string('modelId');
+      if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id)) {
+        throw const FormatException('Invalid model identity.');
+      }
+      if (!ids.add(id)) {
+        throw const FormatException('Duplicate model configuration identity.');
+      }
+      final before = indexed[id];
+      if (before == null) {
+        throw const FormatException('Unknown model identity.');
+      }
+      final after = _configuredModel(before, fields);
+      _requireClippedSource(context, after, clippedIds: clippedIds);
+      if (after != before) updates.add((before, after));
+    }
+    final replacements = {
+      for (final update in updates) update.$2.id: update.$2
+    };
+    final next = manifest.copyWith(models3d: [
+      for (final model in manifest.models3d) replacements[model.id] ?? model
+    ]);
+    final projectDraft = buildVisualManifestDraft(context.snapshot, next,
+        operation: context.request.actionId,
+        path: '/models3d',
+        before: null,
+        after: null);
+    final maps = _configurationMapChanges(context, next, updates);
+    if (projectDraft.changeSet.changes.isEmpty && maps.$1.isEmpty) {
+      return projectDraft;
+    }
+    return AuthoringMutationDraft(
+        changeSet: AuthoringChangeSet(
+            changes: [...projectDraft.changeSet.changes, ...maps.$1],
+            diff: AuthoringDiff([
+              for (final (before, after) in updates)
+                AuthoringDiffEntry(
+                    operation: AuthoringDiffOperation.replace,
+                    resource: projectDraft.changeSet.changes.single.resource,
+                    path: '/models3d/${after.id}',
+                    before: _modelBatchDiffValue(before),
+                    after: _modelBatchDiffValue(after)),
+              ...maps.$2
+            ])),
+        projectedProject: next,
+        preview: {
+          'operation': context.request.actionId,
+          'configuredModelIds': [for (final update in updates) update.$2.id],
+          'unchangedModelCount': inputs.length - updates.length
+        });
   }
 
   Future<AuthoringMutationDraft> _importBatch(
@@ -807,6 +838,110 @@ final class Model3dActions {
               seed: context.seed));
 }
 
+void _requireClippedSource(AuthoringPlanningContext context,
+    ProjectModel3dEntry model, {Model3dInspection? inspection, Set<String>? clippedIds}) {
+  final clipped = clippedIds ?? SpatialModelClipCapabilities.modelIds(
+      context.snapshot.manifest, maps: context.snapshot.maps);
+  if (!clipped.contains(model.id)) return;
+  if ((inspection ?? model.inspection).animations.isNotEmpty) {
+    throw const FormatException('Clipped model sources require a static GLB without node or material animations.');
+  }
+  if (model.rampProfile != null) {
+    throw const FormatException('A clipped model source cannot carry an attached ramp profile.');
+  }
+}
+
+Map<String, Object?> _configurationProperties() => {
+      'modelId': {'type': 'string', 'pattern': r'^[a-zA-Z0-9_-]{1,128}$'},
+      'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
+      'blocksMovementByDefault': {
+        'type': 'boolean',
+        'description':
+            'Default for newly placed model instances; existing instance overrides are unchanged.',
+      },
+      'rampProfile': {
+        'type': ['object', 'null'],
+        'additionalProperties': false,
+        'required': [
+          'x',
+          'z',
+          'width',
+          'depth',
+          'lowHeight',
+          'highHeight',
+          'direction'
+        ],
+        'properties': {
+          for (final field in ['x', 'z', 'lowHeight', 'highHeight'])
+            field: {'type': 'number'},
+          for (final field in ['width', 'depth'])
+            field: {'type': 'number', 'exclusiveMinimum': 0},
+          'direction': {
+            'type': 'string',
+            'enum': ['north', 'south', 'east', 'west']
+          },
+        },
+      },
+      'scale': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 1000000},
+      'pivot': {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['x', 'y', 'z'],
+        'properties': {
+          for (final axis in ['x', 'y', 'z']) axis: {'type': 'number'}
+        }
+      },
+      'collisionBounds': {
+        'type': ['object', 'null'],
+        'additionalProperties': false,
+        'required': ['min', 'max'],
+        'properties': {
+          for (final corner in ['min', 'max'])
+            corner: {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['x', 'y', 'z'],
+              'properties': {
+                for (final axis in ['x', 'y', 'z']) axis: {'type': 'number'}
+              }
+            }
+        }
+      }
+    };
+
+ProjectModel3dEntry _configuredModel(
+    ProjectModel3dEntry current, Map<String, Object?> fields) {
+  final parameters = VisualLibraryParameters(fields);
+  if (fields.containsKey('scale') && fields['scale'] is! num) {
+    throw const FormatException('Scale must be numeric.');
+  }
+  if (fields.containsKey('pivot') && fields['pivot'] is! Map) {
+    throw const FormatException('Pivot must be an object.');
+  }
+  if (fields.containsKey('blocksMovementByDefault') &&
+      fields['blocksMovementByDefault'] is! bool) {
+    throw const FormatException('Default movement blocking must be boolean.');
+  }
+  return current.copyWith(
+      blocksMovementByDefault: fields['blocksMovementByDefault'] as bool?,
+      name: fields.containsKey('name') ? parameters.string('name') : null,
+      scale: fields['scale'] as num?,
+      pivot: fields.containsKey('pivot')
+          ? Model3dVector3.fromJson(
+              Map<String, dynamic>.from(fields['pivot'] as Map))
+          : null,
+      collisionBounds: fields['collisionBounds'] == null
+          ? null
+          : Model3dBounds.fromJson(parameters.object('collisionBounds')),
+      clearCollisionBounds: fields.containsKey('collisionBounds') &&
+          fields['collisionBounds'] == null,
+      rampProfile: fields['rampProfile'] == null
+          ? null
+          : Model3dRampProfile.fromJson(parameters.object('rampProfile')),
+      clearRampProfile:
+          fields.containsKey('rampProfile') && fields['rampProfile'] == null);
+}
+
 bool _smartTileReferencesModel(
     ProjectSmartTileCatalog catalog, String modelId) {
   final sources = <SmartTileVisualSource>[
@@ -841,6 +976,7 @@ Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
       'relativePath': model.relativePath,
       'scale': model.scale,
       'pivot': model.pivot.toJson(),
+      'blocksMovementByDefault': model.blocksMovementByDefault,
       if (model.collisionBounds != null)
         'collisionBounds': model.collisionBounds!.toJson(),
       if (model.rampProfile != null) 'rampProfile': model.rampProfile!.toJson(),
@@ -870,58 +1006,17 @@ AuthoringMutationDraft _compose(
       path: '/models3d/${after?.id ?? before!.id}',
       before: before?.toJson(),
       after: after?.toJson());
-  final mapChanges = <AuthoringResourceChange>[];
-  final mapDiffs = <AuthoringDiffEntry>[];
-  if (before != null &&
-      after != null &&
-      (before.rampProfile != null || after.rampProfile != null) &&
-      (before.rampProfile != after.rampProfile ||
-          before.scale != after.scale ||
-          before.pivot != after.pivot)) {
-    for (final map in context.snapshot.maps) {
-      final scene = map.spatialScene;
-      if (scene == null) continue;
-      final instances = scene.instances
-          .where((instance) => instance.modelId == after.id)
-          .toList();
-      if (instances.isEmpty) continue;
-      final ids = instances.map((instance) => instance.id).toSet();
-      final next = after.rampProfile == null
-          ? map.copyWith(
-              spatialScene: scene.copyWith(
-                  navigation: scene.navigation.copyWith(
-                      ramps: scene.navigation.ramps.where(
-                          (ramp) => !ids.contains(ramp.surfaceInstanceId)))))
-          : const SpatialMapOperations()
-              .upsertInstances(map, instances, models: [after]);
-      if (next == map) continue;
-      MapValidator.validate(next, projectDialogueContext: manifest);
-      final resource = AuthoringResourceRef(
-          kind: 'map',
-          id: map.id,
-          revision: context.snapshot.resourceFingerprints['map:${map.id}']);
-      mapChanges.add(AuthoringResourceChange(
-          resource: resource,
-          storageKey: manifest.maps
-              .singleWhere((entry) => entry.id == map.id)
-              .relativePath,
-          beforeBytes: context.snapshot.resourceBytes('map:${map.id}'),
-          afterBytes: encodeMapAuthoringDocument(next)));
-      mapDiffs.add(AuthoringDiffEntry(
-          operation: AuthoringDiffOperation.replace,
-          resource: resource,
-          path: '/maps/${map.id}/spatialScene',
-          before: scene.toJson(),
-          after: next.spatialScene!.toJson()));
-    }
-  }
+  final (mapChanges, mapDiffs) = _configurationMapChanges(context, manifest,
+      [if (before != null && after != null) (before, after)]);
+  final changes = [
+    ...?assetDraft?.changeSet.changes,
+    ...draft.changeSet.changes,
+    ...mapChanges,
+  ];
+  if (changes.isEmpty) return draft;
   return AuthoringMutationDraft(
       changeSet: AuthoringChangeSet(
-          changes: [
-            ...?assetDraft?.changeSet.changes,
-            ...draft.changeSet.changes,
-            ...mapChanges,
-          ],
+          changes: changes,
           diff: AuthoringDiff([
             ...?assetDraft?.changeSet.diff.entries,
             ...draft.changeSet.diff.entries,
@@ -935,4 +1030,67 @@ AuthoringMutationDraft _compose(
       },
       artifacts: assetDraft?.artifacts ?? const [],
       referenceImpact: assetDraft?.referenceImpact ?? const {});
+}
+
+(List<AuthoringResourceChange>, List<AuthoringDiffEntry>)
+    _configurationMapChanges(
+        AuthoringPlanningContext context,
+        ProjectManifest manifest,
+        List<(ProjectModel3dEntry, ProjectModel3dEntry)> updates) {
+  final changed = {
+    for (final (before, after) in updates)
+      if ((before.rampProfile != null || after.rampProfile != null) &&
+          (before.rampProfile != after.rampProfile ||
+              before.scale != after.scale ||
+              before.pivot != after.pivot))
+        after.id: after
+  };
+  final changes = <AuthoringResourceChange>[];
+  final diffs = <AuthoringDiffEntry>[];
+  if (changed.isEmpty) return (changes, diffs);
+  for (final map in context.snapshot.maps) {
+    final scene = map.spatialScene;
+    if (scene == null) continue;
+    final instances =
+        scene.instances.where((i) => changed.containsKey(i.modelId)).toList();
+    if (instances.isEmpty) continue;
+    final removed = instances
+        .where((i) => changed[i.modelId]!.rampProfile == null)
+        .map((i) => i.id)
+        .toSet();
+    var next = removed.isEmpty
+        ? map
+        : map.copyWith(
+            spatialScene: scene.copyWith(
+                navigation: scene.navigation.copyWith(
+                    ramps: scene.navigation.ramps.where(
+                        (r) => !removed.contains(r.surfaceInstanceId)))));
+    final attached = instances
+        .where((i) => changed[i.modelId]!.rampProfile != null)
+        .toList();
+    if (attached.isNotEmpty) {
+      next = const SpatialMapOperations()
+          .upsertInstances(next, attached, models: manifest.models3d);
+    }
+    if (next == map) continue;
+    MapValidator.validate(next, projectDialogueContext: manifest);
+    final resource = AuthoringResourceRef(
+        kind: 'map',
+        id: map.id,
+        revision: context.snapshot.resourceFingerprints['map:${map.id}']);
+    changes.add(AuthoringResourceChange(
+        resource: resource,
+        storageKey: manifest.maps
+            .singleWhere((entry) => entry.id == map.id)
+            .relativePath,
+        beforeBytes: context.snapshot.resourceBytes('map:${map.id}'),
+        afterBytes: encodeMapAuthoringDocument(next)));
+    diffs.add(AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: resource,
+        path: '/maps/${map.id}/spatialScene',
+        before: scene.toJson(),
+        after: next.spatialScene!.toJson()));
+  }
+  return (changes, diffs);
 }

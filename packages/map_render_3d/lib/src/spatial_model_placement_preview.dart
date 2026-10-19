@@ -131,7 +131,7 @@ final class _PlacementModelComponent extends ModelComponent {
     final pivot =
         Vector3(definition.pivot.x, definition.pivot.y, definition.pivot.z) *
         combinedScale;
-    rotation.rotate(pivot);
+    rotation.asRotationMatrix().transform(pivot);
     position.setValues(
       preview.position.x + offset.dx - pivot.x,
       preview.position.y - pivot.y,

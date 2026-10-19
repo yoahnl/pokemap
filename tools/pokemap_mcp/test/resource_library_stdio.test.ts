@@ -28,7 +28,7 @@ test("resource families and map scope persist through real MCP transactions", as
   await writeFile(manifestPath, JSON.stringify(manifest));
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ["dist/src/index.js", "--root", root],
+    args: ["dist/src/index.js", "--root", root, "--authoring-timeout-ms", "60000"],
     cwd: process.cwd(), stderr: "pipe",
   });
   const client = new Client({ name: "resource-library-contract-proof", version: "1.0.0" });
@@ -54,6 +54,9 @@ test("resource families and map scope persist through real MCP transactions", as
     assert.equal(record(entriesSchema.items).additionalProperties, false);
     assert.deepEqual(record(record(record(entriesSchema.items).properties).role).enum, ["standard", "component"]);
     for (const schema of [record(record(actions.get("resource.classify")!.extensions).inputSchema), record(entriesSchema.items)]) {
+      const description = record(record(schema.properties).description);
+      assert.deepEqual(description.type, ["string", "null"]);
+      assert.equal(description.maxLength, 2000);
       const context = record(record(schema.properties).placementContext);
       assert.deepEqual(context.type, ["string", "null"]);
       assert.deepEqual(context.enum, ["interior", "exterior", "both", null]);
@@ -112,6 +115,21 @@ test("resource families and map scope persist through real MCP transactions", as
       for (const invalid of ["unknown", "", " interior ", 1, false, [], {}]) {
         await mutate(action, parameters(invalid), true);
       }
+    }
+    for (const action of ["resource.classify", "resource.classify_batch"]) {
+      const parameters = (description: unknown) => {
+        const entry = { resourceKind: "element", resourceId: "decor", description };
+        return action === "resource.classify" ? entry : { entries: [entry] };
+      };
+      await mutate(action, parameters("Arbre pour les routes."));
+      await mutate(action, action === "resource.classify" ? { resourceKind: "element", resourceId: "decor" } : { entries: [{ resourceKind: "element", resourceId: "decor" }] });
+      const saved = record(JSON.parse(await readFile(manifestPath, "utf8")));
+      assert.equal((record(saved.resourceLibraryCatalog).entries as JsonRecord[])[0]!.description, "Arbre pour les routes.");
+      await mutate("resource.classify_batch", { entries: [
+        { resourceKind: "element", resourceId: "decor", description: "Autre usage." },
+        { resourceKind: "tileset", resourceId: "sheet", description: 1 },
+      ] }, true);
+      await mutate(action, parameters(null));
     }
     await mutate("resource.family.create", { familyId: "forest", name: "Forêt A", parentId: "trees" });
     await mutate("resource.family.create", { familyId: "forest-detail", name: "Petits arbres", parentId: "forest" });

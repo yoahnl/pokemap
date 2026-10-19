@@ -49,7 +49,8 @@ loadWorkspaceSession(
     await visuals.dispose();
     return null;
   }
-  final narrative = widget.narrativePort == null
+  final narrative =
+      !workspace.hasCompleteProject || widget.narrativePort == null
       ? null
       : NarrativeWorkspaceController(
           workspace,
@@ -68,7 +69,7 @@ loadWorkspaceSession(
     workspace.historyGuard = (before, after) =>
         guardNarrativeHistory(narrative, before, after);
   }
-  final resources = widget.resourcePort == null
+  final resources = !workspace.hasCompleteProject || widget.resourcePort == null
       ? null
       : ResourceNavigation(
           workspace: workspace,

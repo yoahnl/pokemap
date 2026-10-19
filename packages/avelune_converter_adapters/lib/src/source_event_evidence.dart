@@ -117,6 +117,7 @@ final class SourceEventEvidenceEncoding {
     'mapAutonomyPages': {},
     'mapAutonomyPageLists': {},
     'witnesses': {},
+    'parallelNativeWriteClosures': {},
   };
   static const _bindingKeys = [
     'sourceSnapshotHash',
@@ -125,6 +126,12 @@ final class SourceEventEvidenceEncoding {
     'baseDraftHash',
     'mapIds',
     'mapHashes'
+  ];
+  static const _parallelClosureKeys = [
+    'nativeWriteSet',
+    'nativeWriteSetSemantics',
+    'potentiallyProjectableEvents',
+    'quarantinedWholeEvents',
   ];
 
   String _intern(String table, Object? value) {
@@ -160,12 +167,24 @@ final class SourceEventEvidenceEncoding {
     final rawProof = context['proof'];
     if (rawProof is Map) {
       final proof = Map<String, Object?>.from(rawProof);
+      final rawDormancy = proof['parallelDormancy'];
+      if (rawDormancy is Map) {
+        final dormancy = Map<String, Object?>.from(rawDormancy);
+        final closure = <String, Object?>{
+          for (final key in _parallelClosureKeys)
+            if (dormancy.containsKey(key)) key: dormancy.remove(key),
+        };
+        if (closure.isNotEmpty) {
+          dormancy['nativeWriteClosureRef'] =
+              _intern('parallelNativeWriteClosures', closure);
+          proof['parallelDormancy'] = dormancy;
+        }
+      }
       final rawAudit = proof['mapAutonomyAudit'];
       if (rawAudit is Map && rawAudit['pages'] is List) {
         final audit = Map<String, Object?>.from(rawAudit);
         audit['pageListRef'] = _intern('mapAutonomyPageLists', [
-          for (final page in audit.remove('pages') as List)
-            _internPage(page)
+          for (final page in audit.remove('pages') as List) _internPage(page)
         ]);
         proof['mapAutonomyAudit'] = audit;
       }
@@ -184,7 +203,7 @@ final class SourceEventEvidenceEncoding {
       !enabled || _tables['nativeBindings']!.isEmpty
           ? null
           : {
-              'contract': 'source-event-execution-context-tables-v2',
+              'contract': 'source-event-execution-context-tables-v3',
               ..._tables
             };
 
@@ -194,8 +213,8 @@ final class SourceEventEvidenceEncoding {
     Never invalid() => throw const NativeWriteException(
         'events.evidence.binding',
         'Execution context evidence tables require exact hashes and references');
-    if (tables['contract'] != 'source-event-execution-context-tables-v2' ||
-        tables.length != 5) {
+    if (tables['contract'] != 'source-event-execution-context-tables-v3' ||
+        tables.length != 6) {
       invalid();
     }
     final used = <String, Set<String>>{};
@@ -255,6 +274,21 @@ final class SourceEventEvidenceEncoding {
       final rawProof = context['proof'];
       if (rawProof is Map) {
         final proof = Map<String, Object?>.from(rawProof);
+        final rawDormancy = proof['parallelDormancy'];
+        if (rawDormancy is Map &&
+            rawDormancy.containsKey('nativeWriteClosureRef')) {
+          final dormancy = Map<String, Object?>.from(rawDormancy);
+          final closure = resolve('parallelNativeWriteClosures',
+              dormancy.remove('nativeWriteClosureRef'));
+          if (closure is! Map ||
+              closure.isEmpty ||
+              closure.keys.any((key) => !_parallelClosureKeys.contains(key)) ||
+              closure.keys.any(dormancy.containsKey)) {
+            invalid();
+          }
+          dormancy.addAll(Map<String, Object?>.from(closure));
+          proof['parallelDormancy'] = dormancy;
+        }
         final rawAudit = proof['mapAutonomyAudit'];
         if (rawAudit is Map && rawAudit.containsKey('pageListRef')) {
           final audit = Map<String, Object?>.from(rawAudit);
@@ -263,9 +297,7 @@ final class SourceEventEvidenceEncoding {
           if (refs is! List || audit.containsKey('pages')) {
             invalid();
           }
-          audit['pages'] = [
-            for (final ref in refs) resolvePage(ref)
-          ];
+          audit['pages'] = [for (final ref in refs) resolvePage(ref)];
           proof['mapAutonomyAudit'] = audit;
         }
         if (proof.containsKey('witnessRefs')) {
@@ -288,7 +320,8 @@ final class SourceEventEvidenceEncoding {
       'nativeBindings',
       'mapAutonomyPages',
       'mapAutonomyPageLists',
-      'witnesses'
+      'witnesses',
+      'parallelNativeWriteClosures',
     ]) {
       final entries = tables[table];
       if (entries is! Map || entries.length != (used[table]?.length ?? 0)) {

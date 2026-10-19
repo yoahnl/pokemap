@@ -26,6 +26,7 @@ import '../../application/authoring_api/presentation_studio_timeline_authoring_g
 import '../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../application/authoring_api/scene_presentation_create_and_link_gateway.dart';
 import '../../application/authoring_api/scene_dialogue_choice_policy_authoring_gateway.dart';
+import '../../application/authoring_api/scene_battle_recovery_authoring_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -1846,6 +1847,26 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 );
                 return true;
               } on ArgumentError {
+                return false;
+              }
+            },
+        onUpdateBattleDefeatRecovery:
+            ({required sceneId, required nodeId, required defeatRecovery}) async {
+              final current = ref.read(editorNotifierProvider);
+              final project = current.project;
+              final root = current.projectRootPath;
+              if (project == null || root == null) return false;
+              try {
+                final projected = await SceneBattleRecoveryAuthoringGateway(
+                  queries: ref.read(authoringQueryAdapterProvider),
+                ).updateDraft(root, project: project, sceneId: sceneId, nodeId: nodeId,
+                  defeatRecovery: defeatRecovery, activeMap: current.activeMap);
+                final latest = ref.read(editorNotifierProvider);
+                if (latest.projectRootPath != root || latest.project != project) return false;
+                editorNotifier.applyInMemoryProjectManifest(projected,
+                  statusMessage: 'Comportement après défaite appliqué au brouillon');
+                return true;
+              } on Object {
                 return false;
               }
             },

@@ -15553,6 +15553,7 @@ class EditorNotifier extends _$EditorNotifier
     int moneyReward = 0,
     List<ProjectTrainerItemGrant> rewardItemGrants =
         const <ProjectTrainerItemGrant>[],
+    Map<String, int> battleItems = const {},
     List<String> rewardFlagIds = const <String>[],
     String? rewardBadgeId,
     FieldAbility? rewardFieldAbilityUnlock,
@@ -15583,6 +15584,7 @@ class EditorNotifier extends _$EditorNotifier
         defeatDialogueId: defeatDialogueId,
         moneyReward: moneyReward,
         rewardItemGrants: rewardItemGrants,
+        battleItems: battleItems,
         rewardFlagIds: rewardFlagIds,
         rewardBadgeId: rewardBadgeId,
         rewardFieldAbilityUnlock: rewardFieldAbilityUnlock,
@@ -15622,6 +15624,7 @@ class EditorNotifier extends _$EditorNotifier
     Object? defeatDialogueId = _trainerUnset,
     int? moneyReward,
     List<ProjectTrainerItemGrant>? rewardItemGrants,
+    Map<String, int>? battleItems,
     List<String>? rewardFlagIds,
     Object? rewardBadgeId = _trainerUnset,
     Object? rewardFieldAbilityUnlock = _trainerUnset,
@@ -15661,6 +15664,7 @@ class EditorNotifier extends _$EditorNotifier
         defeatDialogueId: _trainerFieldUpdate<String>(defeatDialogueId),
         moneyReward: moneyReward,
         rewardItemGrants: rewardItemGrants,
+        battleItems: battleItems,
         rewardFlagIds: rewardFlagIds,
         rewardBadgeId: _trainerFieldUpdate<String>(rewardBadgeId),
         rewardFieldAbilityUnlock: _trainerFieldUpdate<FieldAbility>(

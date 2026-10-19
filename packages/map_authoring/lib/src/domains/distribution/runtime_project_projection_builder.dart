@@ -8,6 +8,8 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
 import '../../contracts/artifact_ref.dart';
+import '../../catalog_storage/catalog_storage_store.dart';
+import '../../workspace/catalog/catalog_project_reader.dart';
 import '../../references/resource_library_scope_guard.dart';
 import '../../references/resource_usage_documents.dart';
 import '../assets/asset_store.dart';
@@ -154,7 +156,7 @@ final class RuntimeProjectProjectionBuilder {
     await _requireRegularFile(projectFile, logicalPath: 'project.json');
 
     var scrubbedSecretFieldCount = 0;
-    final authorProjectJson = _decodeJsonObject(
+    var authorProjectJson = _decodeJsonObject(
       await budget.readFile(
         projectFile,
         logicalPath: 'project.json',
@@ -162,6 +164,16 @@ final class RuntimeProjectProjectionBuilder {
       ),
       'project.json',
     );
+    final catalogReader = await CatalogProjectReader.open(
+      store: await CatalogStorageStore.open(projectRoot: projectRoot.path),
+      descriptor: authorProjectJson,
+    );
+    if (catalogReader != null) {
+      authorProjectJson = (await catalogReader.read(
+        (catalog) => catalog.exportProject(),
+      ))
+          .toJson();
+    }
     final projectScrub = _scrubJson(authorProjectJson);
     scrubbedSecretFieldCount += projectScrub.removedSecretFields;
     final authorProject = ProjectManifest.fromJson(
@@ -706,6 +718,7 @@ final class RuntimeProjectProjectionBuilder {
       GamePackageSpatialProjectValidator(gameplay: gameplay)
           .validate(projectedProject, (path) => payload[path]);
     }
+    await catalogReader?.read((_) async {});
     return RuntimeProjectProjection(
       project: projectedProject,
       presentation: presentation,
@@ -1283,6 +1296,7 @@ final class RuntimeProjectProjectionBuilder {
   static bool _isExcludedAuthoringPath(String path) {
     if (_isPokeMapStoreBlob(path)) return false;
     final segments = path.toLowerCase().split('/');
+    if (segments.first == 'catalog') return true;
     final basename = segments.last;
     if (segments.first == 'exports' ||
         segments.any((segment) => segment.startsWith('.')) ||

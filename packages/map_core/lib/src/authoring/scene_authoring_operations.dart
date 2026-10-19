@@ -943,6 +943,7 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
   String? trainerId,
   String battleKind = 'trainer',
   String? battleTemplateId,
+  SceneBattleDefeatRecovery? defeatRecovery,
 }) {
   final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
   if (node.kind != SceneNodeKind.battle ||
@@ -988,6 +989,7 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
         ? normalizedBattleTemplateId
         : null,
     npcEntityId: currentPayload.npcEntityId,
+    defeatRecovery: defeatRecovery ?? currentPayload.defeatRecovery,
     declaredOutcomes: normalizedBattleKind == 'wild'
         ? const ['victory', 'captured', 'defeat', 'runaway']
         : const ['victory', 'defeat'],

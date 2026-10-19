@@ -3,10 +3,13 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/domain/repositories/game_save_repository.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/map_activation.dart';
 import 'package:map_runtime/src/application/narrative_event_runtime_snapshot.dart';
 import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 import 'package:map_runtime/src/infrastructure/tile_image_loader.dart';
@@ -32,6 +35,66 @@ void main() {
       ),
       throwsA(isA<MapLoadException>()),
     );
+  });
+
+  test('Player restores saves with transformed elements on an inactive map',
+      () async {
+    final fixture = await _Fixture.create(2);
+    addTearDown(fixture.dispose);
+    await fixture.publish(fixture.project.copyWith(
+      elementCategories: const [ProjectElementCategory(id: 'props', name: 'Props')],
+      elements: [
+        ProjectElementEntry(
+          id: 'remote-prop',
+          name: 'Remote prop',
+          tilesetId: 'b',
+          categoryId: 'props',
+          frames: const [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))],
+        ),
+      ],
+    ));
+    await File('${fixture.root.path}/maps/b.json').writeAsString(jsonEncode(
+      MapData(
+        id: 'b',
+        name: 'B',
+        tilesetId: 'b',
+        size: const GridSize(width: 2, height: 2),
+        layers: [MapLayer.tile(id: 'decor', name: 'Decor', cells: List.filled(4, 0))],
+        placedElements: const [MapPlacedElement(
+          id: 'placed',
+          layerId: 'decor',
+          elementId: 'remote-prop',
+          pos: GridPos(x: 0, y: 0),
+          pixelOffset: PixelOffset(x: 1, y: 2),
+          pixelSize: PixelSize(width: 16, height: 16),
+          properties: {'pokemapPlacementOrigin': 'authored'},
+        )],
+      ).toJson(),
+    ));
+    final first = await loadRuntimeMapBundle(projectFilePath: fixture.path, mapId: 'a');
+    expect(first.manifest.elements, isEmpty);
+    final saves = _Saves();
+    final game = PlayableMapGame(
+      bundle: first,
+      projectFilePath: fixture.path,
+      initialGameState: GameState(saveId: 'transformed-inactive-map', currentMapId: 'a', playerPosition: const GridPos(x: 0, y: 0)),
+      saveRepository: saves,
+    );
+    addTearDown(game.onRemove);
+    game.onGameResize(Vector2(64, 64));
+    await game.onLoad();
+    for (var tick = 0; tick < 2000 && game.debugIsMapActivationDispatchInFlight; tick++) {
+      game.update(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    expect(game.debugIsMapActivationDispatchInFlight, isFalse);
+    expect(await game.saveGame(), isTrue);
+    expect(await game.loadGame(), isTrue);
+    expect(game.gameStateSnapshot.currentMapId, 'a');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+    expect(game.debugLastCompletedMapActivation?.reason, MapActivationReason.saveRestore);
+    expect(first.manifest.elements, isEmpty);
+    expect(first.runtimeImageAbsolutePathsById.keys, ['a']);
   });
 
   for (final multiplier in [1, 2, 4]) {
@@ -211,4 +274,17 @@ final class _Fixture {
   }
 
   Future<void> dispose() => root.delete(recursive: true);
+}
+
+final class _Saves implements GameSaveRepository {
+  GameState? value;
+
+  @override
+  Future<void> save(GameState state) async { value = state; }
+  @override
+  Future<GameState?> load() async => value;
+  @override
+  Future<bool> exists() async => value != null;
+  @override
+  Future<void> delete() async { value = null; }
 }

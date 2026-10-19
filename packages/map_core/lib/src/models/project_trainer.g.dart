@@ -59,6 +59,9 @@ _ProjectTrainerEntry _$ProjectTrainerEntryFromJson(
   name: json['name'] as String,
   trainerClass: json['trainerClass'] as String,
   battleDifficulty: (json['battleDifficulty'] as num?)?.toInt(),
+  battleItems: json['battleItems'] == null
+      ? const <String, int>{}
+      : _projectTrainerBattleItemsFromJson(json['battleItems']),
   battleBackgroundRelativePath: json['battleBackgroundRelativePath'] as String?,
   battleSpriteRelativePath: json['battleSpriteRelativePath'] as String?,
   battleTransitionId: json['battleTransitionId'] as String?,
@@ -117,6 +120,7 @@ Map<String, dynamic> _$ProjectTrainerEntryToJson(
   'name': instance.name,
   'trainerClass': instance.trainerClass,
   'battleDifficulty': instance.battleDifficulty,
+  'battleItems': instance.battleItems,
   'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
   'battleSpriteRelativePath': ?instance.battleSpriteRelativePath,
   'battleTransitionId': ?instance.battleTransitionId,

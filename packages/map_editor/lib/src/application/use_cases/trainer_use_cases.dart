@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
 
 import '../../domain/repositories/repositories.dart';
@@ -93,6 +94,7 @@ class CreateTrainerUseCase {
     int moneyReward = 0,
     List<ProjectTrainerItemGrant> rewardItemGrants =
         const <ProjectTrainerItemGrant>[],
+    Map<String, int> battleItems = const {},
     List<String> rewardFlagIds = const <String>[],
     String? rewardBadgeId,
     FieldAbility? rewardFieldAbilityUnlock,
@@ -137,6 +139,7 @@ class CreateTrainerUseCase {
       defeatDialogueId: _normalizeOptionalTrainerId(defeatDialogueId),
       moneyReward: moneyReward,
       rewardItemGrants: _normalizeTrainerItemGrants(rewardItemGrants),
+      battleItems: battleItems,
       rewardFlagIds: _normalizeTrainerStringList(rewardFlagIds),
       rewardBadgeId: rewardBadgeId?.trim().isEmpty == true
           ? null
@@ -144,8 +147,7 @@ class CreateTrainerUseCase {
       rewardFieldAbilityUnlock: rewardFieldAbilityUnlock,
       tags: _normalizeTrainerStringList(tags),
     );
-    final updated = project.copyWith(trainers: [...project.trainers, trainer]);
-    ProjectValidator.validate(updated);
+    final updated = await _upsertTrainer(workspace, project, trainer);
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
@@ -190,6 +192,7 @@ class UpdateTrainerUseCase {
         const TrainerFieldUpdate<String>.keep(),
     int? moneyReward,
     List<ProjectTrainerItemGrant>? rewardItemGrants,
+    Map<String, int>? battleItems,
     List<String>? rewardFlagIds,
     TrainerFieldUpdate<String> rewardBadgeId =
         const TrainerFieldUpdate<String>.keep(),
@@ -217,6 +220,7 @@ class UpdateTrainerUseCase {
       rewardItemGrants: rewardItemGrants == null
           ? current.rewardItemGrants
           : _normalizeTrainerItemGrants(rewardItemGrants),
+      battleItems: battleItems ?? current.battleItems,
       rewardFlagIds: rewardFlagIds == null
           ? current.rewardFlagIds
           : _normalizeTrainerStringList(rewardFlagIds),
@@ -314,13 +318,31 @@ class UpdateTrainerUseCase {
         rewardFieldAbilityUnlock: rewardFieldAbilityUnlock.valueOrNull,
       );
     }
-    final trainers = List<ProjectTrainerEntry>.from(project.trainers);
-    trainers[index] = updatedTrainer;
-    final updated = project.copyWith(trainers: trainers);
-    ProjectValidator.validate(updated);
+    final updated = await _upsertTrainer(workspace, project, updatedTrainer);
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
   }
+}
+
+Future<ProjectManifest> _upsertTrainer(
+  ProjectWorkspace workspace,
+  ProjectManifest project,
+  ProjectTrainerEntry trainer,
+) async {
+  final needsCatalog =
+      trainer.battleItems.isNotEmpty ||
+      trainer.team.any((pokemon) => pokemon.ballItemId != null);
+  final catalog = needsCatalog
+      ? (await const LoadPokemonItemsCatalogUseCase().execute(
+          workspace,
+        )).canonicalCatalog
+      : null;
+  return const CampaignContentActions().upsert(
+    project,
+    CampaignContentKind.trainer,
+    trainer,
+    itemCatalog: catalog,
+  );
 }
 
 class DeleteTrainerUseCase {

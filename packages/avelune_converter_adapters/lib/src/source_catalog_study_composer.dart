@@ -43,7 +43,7 @@ const _sourceWorldStudyWriteLimits = NativeWriteLimits(
     maxDepth: 64,
     maxNodes: 4000000,
     maxStringCodeUnits: 1048576,
-    maxTextCodeUnits: 25165824,
+    maxTextCodeUnits: 50331648,
   ),
 );
 

@@ -1,7 +1,9 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/battle_start_request.dart';
+import '../../application/runtime_trainer_battle_items.dart';
 
 /// Résout la policy adverse réellement utilisée par le runtime pour une requête.
 ///
@@ -36,13 +38,11 @@ BattleOpponentPolicy resolveRuntimeTrainerOpponentPolicy({
 ///
 /// Trainer difficulty used to affect only the legacy opponent policy while
 /// the normal PSDK path silently kept a fixed level-2 AI. This resolver closes
-/// that split. Item actions remain fail-closed: a tactical or advanced profile
-/// receives them only through explicit authored [itemOptions].
+/// that split.
 PsdkBattleAi resolveRuntimeTrainerPsdkAi({
   required BattleStartRequest request,
   required ProjectManifest manifest,
-  List<PsdkBattleAiItemOption> itemOptions =
-      const <PsdkBattleAiItemOption>[],
+  ItemCatalogSnapshot? itemCatalog,
 }) {
   if (request is! TrainerBattleStartRequest &&
       request is! StaticBattleStartRequest) {
@@ -55,7 +55,12 @@ PsdkBattleAi resolveRuntimeTrainerPsdkAi({
     manifest: manifest,
   );
   return psdkBattleAiPolicyForDifficulty(trainer?.battleDifficulty).createAi(
-    itemOptions: itemOptions,
+    itemOptions: trainer == null
+        ? const []
+        : resolveRuntimeTrainerBattleItems(
+            trainer: trainer,
+            itemCatalog: itemCatalog,
+          ),
   );
 }
 

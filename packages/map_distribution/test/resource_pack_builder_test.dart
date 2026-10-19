@@ -294,6 +294,96 @@ void main() {
     expect(sink.aborted, isTrue);
   });
 
+  group('catalog inventory quotas', () {
+    test('accepts exact resource and support bounds without implicit families',
+        () async {
+      final fixture = await _payloadFixture();
+      final sink = _Sink();
+      const policy =
+          ResourcePackSecurityPolicy(maxResources: 2, maxSupports: 2);
+      await ResourcePackBuilder(policy: policy).build(
+          metadata: _metadata,
+          catalog: _quotaCatalog(fixture.catalog),
+          tileWidth: 16,
+          tileHeight: 16,
+          sources: fixture.sources,
+          sink: sink);
+      final inspection = ResourcePackInspector(policy: policy)
+          .inspectSourceSync(_Source(sink.bytes));
+      expect(inspection.resourceCount, 2);
+      expect(inspection.supportCount, 2);
+      expect(sink.finished, isTrue);
+      expect(sink.aborted, isFalse);
+    });
+
+    for (final (limit, policy) in [
+      ('resource', const ResourcePackSecurityPolicy(maxResources: 1)),
+      ('support', const ResourcePackSecurityPolicy(maxSupports: 1)),
+    ]) {
+      test('rejects the next $limit before opening media or writing ZIP bytes',
+          () async {
+        final fixture = await _payloadFixture();
+        final sink = _Sink();
+        await expectLater(
+            ResourcePackBuilder(policy: policy).build(
+                metadata: _metadata,
+                catalog: _quotaCatalog(fixture.catalog),
+                tileWidth: 16,
+                tileHeight: 16,
+                sources: fixture.sources,
+                sink: sink),
+            throwsA(isA<GamePackageFormatException>()
+                .having((error) => error.code, 'code',
+                    'resource_pack.${limit}_limit')
+                .having((error) => error.path, 'path', 'catalog.json')));
+        expect(fixture.openedPaths, isEmpty);
+        expect(sink.writes, 0);
+        expect(sink.finished, isFalse);
+        expect(sink.aborted, isTrue);
+      });
+    }
+
+    test(
+        'counts a custom family without charging its implicit predefined parent',
+        () async {
+      final fixture = await _payloadFixture();
+      final catalog = _quotaCatalog(fixture.catalog, explicitFamily: true);
+      const policy =
+          ResourcePackSecurityPolicy(maxResources: 2, maxSupports: 3);
+      final sink = _Sink();
+      await ResourcePackBuilder(policy: policy).build(
+          metadata: _metadata,
+          catalog: catalog,
+          tileWidth: 16,
+          tileHeight: 16,
+          sources: fixture.sources,
+          sink: sink);
+      expect(
+          ResourcePackInspector(policy: policy)
+              .inspectSourceSync(_Source(sink.bytes))
+              .supportCount,
+          3);
+      fixture.openedPaths.clear();
+      final rejected = _Sink();
+      await expectLater(
+          const ResourcePackBuilder(
+                  policy: ResourcePackSecurityPolicy(maxSupports: 2))
+              .build(
+                  metadata: _metadata,
+                  catalog: catalog,
+                  tileWidth: 16,
+                  tileHeight: 16,
+                  sources: fixture.sources,
+                  sink: rejected),
+          throwsA(isA<GamePackageFormatException>().having(
+              (error) => error.code, 'code', 'resource_pack.support_limit')));
+      expect(fixture.openedPaths, isEmpty);
+      expect(rejected.writes, 0);
+      expect(rejected.aborted, isTrue);
+      expect(rejected.finished, isFalse);
+    });
+  });
+
   test('aborts a failed sink and never finishes it', () async {
     final sink = _Sink(failAt: 2);
     await expectLater(
@@ -343,6 +433,27 @@ void main() {
     expect(sink.maximumWrite, lessThanOrEqualTo(7));
   });
 }
+
+ResourcePackCatalog _quotaCatalog(ResourcePackCatalog source,
+        {bool explicitFamily = false}) =>
+    ResourcePackCatalog(
+        tilesets: [
+          source.tilesets.single,
+          source.tilesets.single.copyWith(id: 'second', name: 'Second atlas'),
+        ],
+        smartTileCatalog: ProjectSmartTileCatalog(categories: [
+          const ProjectSmartTileCategory(id: 'first', name: 'First'),
+          const ProjectSmartTileCategory(id: 'second', name: 'Second'),
+        ]),
+        resourceLibraryCatalog: ResourceLibraryCatalog(families: [
+          if (explicitFamily)
+            ResourceFamily(
+                id: 'custom',
+                name: 'Custom',
+                parentId: ResourceLibraryCatalog.predefinedFamilies.first.id),
+        ]),
+        files: source.files,
+        provenance: source.provenance);
 
 Future<
     ({

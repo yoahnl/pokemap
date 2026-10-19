@@ -1,5 +1,7 @@
 library map_core;
 
+export 'src/catalog_storage/project_catalog_selection.dart';
+
 export 'src/models/model3d_ramp_profile.dart';
 
 export 'src/models/map_entity_interactive_encounter.dart';
@@ -27,6 +29,7 @@ export 'src/models/tileset.dart';
 export 'src/models/tileset_transparent_color.dart';
 export 'src/models/map_data.dart';
 export 'src/models/map_spatial_scene.dart';
+export 'src/operations/spatial_model_clip_capabilities.dart';
 export 'src/models/spatial_terrain_surface.dart';
 export 'src/models/map_placed_element_origin.dart';
 export 'src/models/element_collision_profile.dart';
@@ -147,6 +150,7 @@ export 'src/models/world_rule.dart';
 export 'src/models/rail_journey.dart';
 export 'src/models/visual_frame_json.dart';
 export 'src/models/smart_tile.dart';
+export 'src/models/smart_tile_pattern_construction.dart';
 export 'src/models/smart_tile_field.dart';
 export 'src/models/border_ground_variant_role.dart';
 export 'src/models/border_value_objects.dart';
@@ -306,6 +310,7 @@ export 'src/read_models/mvp_release_gate.dart';
 export 'src/read_models/project_gameplay_readiness.dart';
 export 'src/read_models/project_capability_truth.dart';
 export 'src/read_models/item_capability_truth.dart';
+export 'src/read_models/trainer_battle_item_capability.dart';
 export 'src/read_models/battle_mvp_capability_gate.dart';
 export 'src/read_models/mvp_product_criterion.dart';
 export 'src/tooling/gameplay_roadmap_dashboard.dart';

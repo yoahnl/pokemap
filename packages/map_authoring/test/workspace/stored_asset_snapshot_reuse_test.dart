@@ -97,6 +97,62 @@ void main() {
     expect(harness.cache.projectCount, 0);
   }, skip: Platform.isWindows);
 
+  test('metadata-only stored generation is recertified before snapshot retention',
+      () async {
+    final harness = await _StoredAssetHarness.create();
+    addTearDown(harness.dispose);
+    var observations = 0;
+    harness.beforeIdentityRead = (path) async {
+      if (path == 'assets/source.bin' && ++observations == 3) {
+        harness.identityGenerations[path] = 1;
+      }
+    };
+    final first = await harness.load();
+    expect(await first.readResourceBytes('asset:source'), harness.bytes);
+    expect(harness.streamReads, greaterThan(4));
+    harness.streamReads = 0;
+    final second = await harness.load();
+    expect(second.revision, first.revision);
+    expect(second.resourceFingerprints, first.resourceFingerprints);
+    expect(harness.cache.canonicalHits, 1);
+    expect(harness.streamReads, 0);
+  }, skip: Platform.isWindows);
+
+  test('recertification rejects changed bytes after a metadata generation change',
+      () async {
+    final harness = await _StoredAssetHarness.create();
+    addTearDown(harness.dispose);
+    var observations = 0;
+    harness.beforeIdentityRead = (path) async {
+      if (path != 'assets/source.bin') return;
+      observations++;
+      if (observations == 3) harness.identityGenerations[path] = 1;
+      if (observations == 4) {
+        final file = File('${harness.root}/$path');
+        final modified = await file.lastModified();
+        await file.writeAsBytes([...harness.bytes]..[23] ^= 1);
+        await file.setLastModified(modified);
+      }
+    };
+    await expectLater(harness.load(), throwsA(isA<ProjectSnapshotException>()));
+    expect(harness.cache.projectCount, 0);
+  }, skip: Platform.isWindows);
+
+  test('recertification rejects an identity that changes during its fresh stream',
+      () async {
+    final harness = await _StoredAssetHarness.create();
+    addTearDown(harness.dispose);
+    var observations = 0;
+    harness.beforeIdentityRead = (path) async {
+      if (path != 'assets/source.bin') return;
+      observations++;
+      if (observations == 3) harness.identityGenerations[path] = 1;
+      if (observations == 5) harness.identityGenerations[path] = 2;
+    };
+    await expectLater(harness.load(), throwsA(isA<ProjectSnapshotException>()));
+    expect(harness.cache.projectCount, 0);
+  }, skip: Platform.isWindows);
+
   test('stored assets without change time retain strict streaming checks',
       () async {
     final harness = await _StoredAssetHarness.create(includeChangedAt: false);
@@ -155,6 +211,7 @@ final class _StoredAssetHarness {
   late final ProjectHandle project;
   late final WorkspaceHandle workspace;
   var streamReads = 0;
+  final identityGenerations = <String, int>{};
   Future<void> Function(String)? beforeIdentityRead;
 
   static Future<_StoredAssetHarness> create(
@@ -202,12 +259,17 @@ final class _StoredAssetHarness {
           await harness.beforeIdentityRead?.call(path);
           final identity =
               await reader.readIdentity(projectRoot: root, relativePath: path);
-          if (identity == null || includeChangedAt) return identity;
+          if (identity == null) return null;
+          final generation = harness.identityGenerations[path] ?? 0;
+          if (includeChangedAt && generation == 0) return identity;
           return ProjectResourceIdentity(
               scope: identity.scope,
               relativePath: identity.relativePath,
               byteLength: identity.byteLength,
-              modifiedAtMicros: identity.modifiedAtMicros);
+              modifiedAtMicros: identity.modifiedAtMicros,
+              changedAtMicros: includeChangedAt && identity.changedAtMicros != null
+                  ? identity.changedAtMicros! + generation
+                  : null);
         },
         canReuseSnapshots: true);
     harness.project = opened.projectHandle;

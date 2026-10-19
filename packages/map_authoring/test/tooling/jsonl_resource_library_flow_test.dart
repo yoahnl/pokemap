@@ -10,6 +10,71 @@ import '../domains/maps/map_catalog_fixture.dart' show catalogMap;
 
 void main() {
   for (final direct in [true, false]) {
+    test(
+        'invalid description batch is atomic through ${direct ? 'direct API' : 'JSONL'}',
+        () async {
+      final fixture =
+          await ResourceInformationFixture.create(smartInformationFixture());
+      addTearDown(fixture.dispose);
+      final file = File('${fixture.root.path}/project.json');
+      final before = await file.readAsBytes();
+      final parameters = {
+        'entries': [
+          {
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'description': 'Arbre pour les routes.'
+          },
+          {'resourceKind': 'tileset', 'resourceId': 'sheet', 'description': 1},
+        ],
+      };
+      if (direct) {
+        await expectLater(
+            () => _mutate(fixture, true, 'resource.classify_batch', parameters),
+            throwsA(isA<VisualLibraryException>()));
+      } else {
+        expect(
+            (await fixture.plan('resource.classify_batch', parameters)).status,
+            AuthoringResultStatus.failure);
+      }
+      expect(await file.readAsBytes(), before);
+      expect((await fixture.read()).resourceLibraryCatalog.isEmpty, isTrue);
+    });
+
+    test(
+        'individual description lifecycle through ${direct ? 'direct API' : 'JSONL'}',
+        () async {
+      final fixture =
+          await ResourceInformationFixture.create(smartInformationFixture());
+      addTearDown(fixture.dispose);
+      for (final action in ['resource.classify', 'resource.classify_batch']) {
+        Map<String, Object?> parameters(Object? description) {
+          final entry = {
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'description': description
+          };
+          return action == 'resource.classify'
+              ? entry
+              : {
+                  'entries': [entry]
+                };
+        }
+
+        await _mutate(
+            fixture, direct, action, parameters('Arbre pour les routes.'));
+        expect(
+            (await fixture.read())
+                .resourceLibraryCatalog
+                .entries
+                .single
+                .toJson()['description'],
+            'Arbre pour les routes.');
+        await _mutate(fixture, direct, action, parameters(null));
+        expect((await fixture.read()).resourceLibraryCatalog.isEmpty, isTrue);
+      }
+    });
+
     for (final action in ['resource.classify', 'resource.classify_batch']) {
       test(
           '$action context-only lifecycle through ${direct ? 'direct API' : 'JSONL'}',
@@ -403,6 +468,7 @@ void main() {
         'placementContext': 'unknown'
       },
       {'resourceKind': 'tileset', 'resourceId': 'sheet', 'placementContext': 1},
+      {'resourceKind': 'tileset', 'resourceId': 'sheet', 'description': 1},
     ]) {
       final refused = await fixture.plan('resource.classify_batch', {
         'entries': [

@@ -85,6 +85,7 @@ final class SourceEncounterTerrainBinding {
       final land = <GridPos>[];
       final cave = <GridPos>[];
       final water = <GridPos>[];
+      final surfRequiredCells = <GridPos>[];
       final unknown = <GridPos>[];
       final terrainCounts = <String, int>{};
       var rawWater = 0;
@@ -112,7 +113,22 @@ final class SourceEncounterTerrainBinding {
           if (_waterTags.contains(tag)) {
             rawWater++;
             if (resolver.resolveSurfEntryTile(cell).isPassable == true) {
+              if (walk.isPassable == true &&
+                  semantic.resolveCell(cell).directions.any((direction) {
+                    final surf = resolver
+                        .resolveSurfDirection(cell, direction.direction)
+                        .isPassable;
+                    return direction.isPassable == null ||
+                        surf == null ||
+                        direction.isPassable != surf;
+                  })) {
+                throw ContractError(
+                    'source_encounter_terrain.mode_specific_passage_unqualified',
+                    '\$.maps.$id.cells[$y][$x]',
+                    'Walking and Surf directional passage differ at map $id ($x,$y)');
+              }
               water.add(pos);
+              if (walk.isPassable == false) surfRequiredCells.add(pos);
             }
           }
         }
@@ -155,7 +171,8 @@ final class SourceEncounterTerrainBinding {
         zones.add(zone);
         zoneRows.add({...identity, 'zone': _inert(zone.toJson())});
       }
-      final rectangles = _rectangles(water, sourceMap.width, sourceMap.height);
+      final rectangles =
+          _rectangles(surfRequiredCells, sourceMap.width, sourceMap.height);
       for (final area in rectangles) {
         final identity = {
           ...binding,

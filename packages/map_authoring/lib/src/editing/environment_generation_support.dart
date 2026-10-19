@@ -162,8 +162,12 @@ List<EnvironmentGeneratedPlacement> _generate({
           modelId: item.modelId,
           position: position,
           pos: pos,
-          applyCollision:
-              item.collisionMode != EnvironmentCollisionMode.forceDisabled,
+          applyCollision: switch (item.collisionMode) {
+            EnvironmentCollisionMode.useElementDefault =>
+              target.models[item.modelId]!.blocksMovementByDefault,
+            EnvironmentCollisionMode.forceEnabled => true,
+            EnvironmentCollisionMode.forceDisabled => false,
+          },
         ));
         continue;
       }

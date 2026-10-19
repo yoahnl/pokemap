@@ -13,14 +13,29 @@ final class SmartTileAnimationActivationController {
          map: map,
          catalog: catalog,
        ),
+       _occlusionDurationMsByLayerId = _cycleDurationsByLayer(
+         map: map,
+         catalog: catalog,
+         actorOcclusionOnly: true,
+       ),
+       _tallGrassMaterialIds = {
+         for (final material in catalog.materials)
+           if (material.pathSurfaceKind == PathSurfaceKind.tallGrass)
+             material.id,
+       },
        _patternCellIndicesByLayerId = _patternCellIndicesByLayer(map);
 
   final GridSize _mapSize;
   final Map<String, SmartTileLayer> _layerById;
   final Map<String, int> _cycleDurationMsByLayerId;
+  final Map<String, int> _occlusionDurationMsByLayerId;
+  final Set<String> _tallGrassMaterialIds;
   final Map<String, Set<int>> _patternCellIndicesByLayerId;
   final Map<(String, int), double> _startedAtMsByCell =
       <(String, int), double>{};
+  final Map<(String, int), double> _occlusionStartedAtMsByCell = {};
+  GridPos? _currentPlayerCell;
+  GridPos? _previousPlayerCell;
   double _elapsedMs = 0;
 
   void update(double dt) {
@@ -30,15 +45,46 @@ final class SmartTileAnimationActivationController {
       final durationMs = _cycleDurationMsByLayerId[key.$1] ?? 0;
       return durationMs <= 0 || _elapsedMs - startedAtMs >= durationMs;
     });
+    _occlusionStartedAtMsByCell.removeWhere((key, startedAtMs) {
+      final durationMs = _occlusionDurationMsByLayerId[key.$1] ?? 0;
+      final cell = GridPos(
+        x: key.$2 % _mapSize.width,
+        y: key.$2 ~/ _mapSize.width,
+      );
+      return _elapsedMs - startedAtMs >= durationMs &&
+          cell != _currentPlayerCell &&
+          cell != _previousPlayerCell;
+    });
   }
 
-  void onPlayerEnteredCell(GridPos cell) {
+  void resetPlayerOccupancy(GridPos? cell) {
+    _occlusionStartedAtMsByCell.clear();
+    _previousPlayerCell = null;
+    _currentPlayerCell = cell;
+    if (cell == null) return;
+    for (final layer in _layerById.values) {
+      if (!_holdsOcclusionAtCell(layer, cell)) continue;
+      _occlusionStartedAtMsByCell[(
+            layer.id,
+            cell.y * _mapSize.width + cell.x,
+          )] =
+          _elapsedMs - _occlusionDurationMsByLayerId[layer.id]!;
+    }
+  }
+
+  void onPlayerStepCompleted() {
+    _previousPlayerCell = null;
+  }
+
+  void onPlayerEnteredCell(GridPos cell, {GridPos? previousCell}) {
     if (cell.x < 0 ||
         cell.y < 0 ||
         cell.x >= _mapSize.width ||
         cell.y >= _mapSize.height) {
       return;
     }
+    _previousPlayerCell = previousCell ?? _currentPlayerCell;
+    _currentPlayerCell = cell;
     for (final layer in _layerById.values) {
       if (layer.animationActivation != SmartTileAnimationActivation.onEnter ||
           (_cycleDurationMsByLayerId[layer.id] ?? 0) <= 0 ||
@@ -47,6 +93,13 @@ final class SmartTileAnimationActivationController {
       }
       _startedAtMsByCell[(layer.id, cell.y * _mapSize.width + cell.x)] =
           _elapsedMs;
+      if (_holdsOcclusionAtCell(layer, cell)) {
+        _occlusionStartedAtMsByCell[(
+              layer.id,
+              cell.y * _mapSize.width + cell.x,
+            )] =
+            _elapsedMs;
+      }
     }
   }
 
@@ -54,6 +107,7 @@ final class SmartTileAnimationActivationController {
     required String layerId,
     required int cellX,
     required int cellY,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
   }) {
     final layer = _layerById[layerId];
     if (layer == null ||
@@ -66,6 +120,13 @@ final class SmartTileAnimationActivationController {
         cellY >= _mapSize.height) {
       return false;
     }
+    if (channel == SmartTileRenderChannel.actorOcclusion &&
+        _holdsOcclusionAtCell(layer, GridPos(x: cellX, y: cellY))) {
+      return _occlusionStartedAtMsByCell.containsKey((
+        layerId,
+        cellY * _mapSize.width + cellX,
+      ));
+    }
     return _startedAtMsByCell.containsKey((
       layerId,
       cellY * _mapSize.width + cellX,
@@ -77,6 +138,7 @@ final class SmartTileAnimationActivationController {
     required int cellX,
     required int cellY,
     required int globalElapsedMs,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
   }) {
     final layer = _layerById[layerId];
     if (layer == null ||
@@ -89,6 +151,17 @@ final class SmartTileAnimationActivationController {
         cellY >= _mapSize.height) {
       return 0;
     }
+    if (channel == SmartTileRenderChannel.actorOcclusion &&
+        _holdsOcclusionAtCell(layer, GridPos(x: cellX, y: cellY))) {
+      final started =
+          _occlusionStartedAtMsByCell[(
+            layerId,
+            cellY * _mapSize.width + cellX,
+          )];
+      if (started == null) return 0;
+      final elapsed = (_elapsedMs - started).floor();
+      return elapsed < 0 ? 0 : elapsed;
+    }
     final startedAtMs =
         _startedAtMsByCell[(layerId, cellY * _mapSize.width + cellX)];
     if (startedAtMs == null) return 0;
@@ -97,6 +170,18 @@ final class SmartTileAnimationActivationController {
     if (durationMs <= 0 || elapsedMs >= durationMs) return 0;
     return elapsedMs < 0 ? 0 : elapsedMs;
   }
+
+  bool _holdsOcclusionAtCell(SmartTileLayer layer, GridPos cell) =>
+      layer.animationActivation == SmartTileAnimationActivation.onEnter &&
+      layer.usage == SmartTileUsage.path &&
+      (_occlusionDurationMsByLayerId[layer.id] ?? 0) > 0 &&
+      cell.x >= 0 &&
+      cell.y >= 0 &&
+      cell.x < _mapSize.width &&
+      cell.y < _mapSize.height &&
+      _tallGrassMaterialIds.contains(
+        smartTileMaterialIdAt(layer, mapSize: _mapSize, x: cell.x, y: cell.y),
+      );
 
   bool _cellHasAuthoredValue(SmartTileLayer layer, GridPos cell) {
     final index = cell.y * _mapSize.width + cell.x;
@@ -128,6 +213,7 @@ Map<String, Set<int>> _patternCellIndicesByLayer(MapData map) =>
 Map<String, int> _cycleDurationsByLayer({
   required MapData map,
   required ProjectSmartTileCatalog catalog,
+  bool actorOcclusionOnly = false,
 }) {
   final presetById = <String, ProjectSmartTilePreset>{
     for (final preset in catalog.presets) preset.id: preset,
@@ -141,25 +227,37 @@ Map<String, int> _cycleDurationsByLayer({
         layer.id: _maximumPresetAnimationDuration(
           presetById[layer.presetId],
           animationById,
+          actorOcclusionOnly: actorOcclusionOnly,
         ),
   };
 }
 
 int _maximumPresetAnimationDuration(
   ProjectSmartTilePreset? preset,
-  Map<String, ProjectSmartTileAnimation> animationById,
-) {
+  Map<String, ProjectSmartTileAnimation> animationById, {
+  bool actorOcclusionOnly = false,
+}) {
   if (preset == null) return 0;
   var maximum = 0;
+  var allOnce = true;
   for (final rule in preset.rules) {
     for (final candidate in rule.candidates) {
       for (final part in candidate.parts) {
+        if (actorOcclusionOnly &&
+            part.channel != SmartTileRenderChannel.actorOcclusion) {
+          continue;
+        }
         part.source.map(
           model3d: (_) {},
           frame: (_) {},
           animation: (source) {
             final animation = animationById[source.animationId];
             if (animation == null) return;
+            if (actorOcclusionOnly &&
+                animation.loop != SmartTileAnimationLoop.once) {
+              allOnce = false;
+              return;
+            }
             final duration = _animationCycleDuration(animation);
             if (duration > maximum) maximum = duration;
           },
@@ -167,7 +265,7 @@ int _maximumPresetAnimationDuration(
       }
     }
   }
-  return maximum;
+  return allOnce ? maximum : 0;
 }
 
 int _animationCycleDuration(ProjectSmartTileAnimation animation) {

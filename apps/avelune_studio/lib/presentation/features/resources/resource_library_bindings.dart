@@ -58,6 +58,7 @@ Future<void> classifyResource(
   final project = navigation.workspace.project!;
   final catalog = project.resourceLibraryCatalog;
   final entry = catalog.entryFor(item.canonicalKind, item.id);
+  var description = entry?.description ?? '';
   var familyId = entry?.familyId;
   var placementContext = entry?.placementContext;
   var mapId = entry?.mapId;
@@ -71,15 +72,19 @@ Future<void> classifyResource(
         title: 'Ranger « ${item.name} »',
         submitLabel: 'Enregistrer',
         dirty: () =>
+            description.trim() != (entry?.description ?? '') ||
             placementContext != entry?.placementContext ||
             familyId != entry?.familyId ||
             mapId != entry?.mapId ||
             role != (entry?.role ?? ResourceLibraryRole.standard),
         valid: () =>
-            mapId == null || project.maps.any((map) => map.id == mapId),
+            description.trim().length <=
+                ResourceLibraryEntry.maximumDescriptionLength &&
+            (mapId == null || project.maps.any((map) => map.id == mapId)),
         submit: () => _publishLibraryChange(navigation, 'resource.classify', {
           'resourceKind': item.canonicalKind,
           'resourceId': item.id,
+          'description': description.trim().isEmpty ? null : description.trim(),
           'familyId': familyId,
           'mapId': mapId,
           'role': role.name,
@@ -88,6 +93,25 @@ Future<void> classifyResource(
         fields: (refresh, busy) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            StudioDraftField(
+              key: const ValueKey('resource-classify-description'),
+              label: 'Description',
+              value: description,
+              lines: 3,
+              enabled: !busy,
+              helperText:
+                  'Décrivez brièvement où et comment utiliser cette ressource.',
+              errorText:
+                  description.trim().length >
+                      ResourceLibraryEntry.maximumDescriptionLength
+                  ? 'La description ne doit pas dépasser 2000 caractères.'
+                  : null,
+              onChanged: (value) {
+                description = value;
+                refresh();
+              },
+            ),
+            const SizedBox(height: 16),
             StudioSelect(
               key: const ValueKey('resource-classify-context'),
               label: 'Contexte d’usage',

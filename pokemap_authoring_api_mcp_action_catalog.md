@@ -1077,6 +1077,26 @@ Les identités dérivées `smt_` sont réservées et ne peuvent pas être édit�
 les commandes ordinaires d’objets. La suppression d’un modèle utilisé par un
 preset, un brouillon ou un motif est bloquée.
 
+Le catalogue Smart Tile 9 accepte `parts[].spatialClip` sur les sources
+`model3d` statiques des canaux `ground`, `understory` et `canopy`. Le rectangle normalisé porte les champs
+`left`, `top`, `right`, `bottom` ; sa projection conserve la densité du modèle
+et les coordonnées de texture. L'inspection doit être dépourvue d'animations
+de nœuds et de matériaux, même si `animationIndex` est nul. Les symétries,
+les profils de rampe et un `replacesGround` avec clip partiel sont refusés.
+Le remplacement de sol reste réservé au canal `ground`. Les clips conservent
+leurs faces extérieures ; des partitions adjacentes doivent attribuer les
+faces verticales communes à un seul composant pour éviter les doublons.
+`map3d.instance.upsert` et `map3d.instance.upsert_batch` acceptent aussi un
+`instance.clip`, exprimé en cellules relativement au pivot avant rotation.
+Ces instances imposent `blocksMovement: false` et `animationIndex: null` ;
+le centre tourné du clip sert à vérifier l'ancrage dans la carte.
+Avec `followTerrain: true`, les sources Smart Tile clippées échantillonnent
+le terrain au centre du support visible ; les sources non clippées gardent
+l'ancre finale comme point d'échantillonnage.
+Les remplacements de source et configurations unitaires ou par lots conservent
+ces gardes, y compris pour les motifs et brouillons non peints. Le paquet de
+jeu exige `map3d.model-clip@1` et le pack de ressources `models.static-clip`.
+
 `smart_tile.material.upsert_batch` v1 reçoit `{materials: [...]}` avec 1 à 250
 documents natifs de matériau. Les identifiants répétés sont refusés ; chaque
 document utilise le même décodage strict que `smart_tile.material.upsert`.
@@ -1178,6 +1198,25 @@ récupération transactionnelle et une seule annulation. Le profil reste dans
 les packs de ressources ; l’export de jeu conserve seulement les rampes
 calculées et refuse les escaliers dont les extrémités ne sont pas raccordées.
 
+`model3d.configure_batch` v1 reçoit `{models: [configuration]}` pour 1 à 50
+identités distinctes existantes. Chaque configuration reprend les champs de
+`model3d.configure` : `modelId`, `name`, `scale`, `pivot`, `collisionBounds`,
+`rampProfile` et `blocksMovementByDefault`. Une propriété omise conserve sa
+valeur ; `collisionBounds: null` et `rampProfile: null` suppriment explicitement
+ces profils. Une identité inconnue ou dupliquée, un champ interdit ou une
+configuration invalide refuse tout le lot avant publication.
+
+Le lot prépare un seul manifeste final et au plus un changement par carte
+concernée par les rampes attachées. Il conserve les identités, les médias et
+les inspections des modèles. Modifier seulement le blocage par défaut ne
+change pas les overrides des instances déjà placées. Les diffs sont bornés
+par modèle ; les postimages restent complètes. La publication multi-fichiers
+est récupérable, vérifiée par révision, idempotente et annulable ; elle ne
+prétend pas être atomique entre fichiers. Le contrat demande `projectWrite`,
+sans permission d'acquisition de sources. Les appels unitaires et par lot
+partagent la même validation ; aucun écran de configuration supplémentaire
+n'est requis pour utiliser ce contrat d'automatisation.
+
 `map3d.instance.delete_batch` v1 reçoit `{mapId, instanceIds: [instanceId]}`.
 Le lot contient de 1 à 50 identités distinctes d'une seule map 3D. Une identité
 absente, un doublon, une instance Smart Tile, une instance détenue par une aire
@@ -1269,12 +1308,13 @@ preset ne publie pas son brouillon de préparation. Ces commandes traversent
 le dispatcher canonique et les transactions revisionnées communes.
 
 Le classement transversal des ressources est indépendant de ces catégories
-métier et utilise les cinq actions canoniques suivantes :
+métier et utilise les actions canoniques suivantes :
 
 ```text
 resource.family.create
 resource.family.update
 resource.family.delete
+resource.family.apply_batch
 resource.classify
 resource.classify_batch
 ```
@@ -1284,6 +1324,12 @@ resource.classify_batch
 si `parentId` est absent et retour à la racine s'il vaut `null`.
 `resource.family.delete` reçoit `{familyId}` et refuse les familles prédéfinies,
 les familles ayant des enfants et celles contenant des ressources classées.
+`resource.family.apply_batch` reçoit `{families: [{operation, familyId, name,
+parentId?}]}` avec 1 à 50 identités distinctes. `operation` vaut `create` ou
+`update` et conserve les préconditions des commandes unitaires. Les parents
+peuvent être définis plus loin dans le lot ; les références et les cycles
+sont validés sur le résultat final, avant une unique écriture atomique.
+Les familles prédéfinies et les suppressions restent exclues de ce lot.
 `resource.classify` reçoit `{resourceKind, resourceId, familyId?, mapId?, role?,
 placementContext?}`. `role` accepte `standard` et `component` ; son omission
 conserve le rôle existant.
@@ -1346,7 +1392,16 @@ le transport MCP stdio et les contrôleurs Studio utilisent ces contrats.
 
 ### 13.2 Environnements
 
+`environment.preset.upsert_batch` reçoit `{presets: [...]}` avec 1 à 50
+définitions complètes et des identités distinctes. Chaque palette respecte
+les mêmes validations que `environment.preset.upsert`. Un échec refuse
+l'ensemble du lot ; le résultat valide produit une seule modification du
+manifeste, sans modifier les cartes ni les autres presets.
+
 ```text
+environment.preset.upsert
+environment.preset.upsert_batch
+environment.preset.delete
 environment.attach_to_tile_layer
 environment.attach_to_spatial_terrain
 environment.detach_from_tile_layer
@@ -1422,6 +1477,7 @@ border_layer.relink_plan
 border_layer.relink_apply
 border_layer.materialize_plan
 border_layer.materialize_apply
+border_layer.materialize_batch_apply
 border_layer.resize_plan
 border_layer.resize_apply
 border_layer.resolve
@@ -1484,6 +1540,14 @@ locales transitives. Le relink natif vers un autre blueprint est refusé avec
 `border.spatial.relink_unsupported` ; l'édition du kit courant puis sa régénération
 est prise en charge. Le redimensionnement natif passe par les opérations spatiales,
 pas par `border_layer.resize_apply` réservé aux cartes 2D.
+
+`border_layer.materialize_batch_apply` résout de 1 à 128 couples uniques
+`{layerId, featureId}` d'une même `mapId`, avec `tileWidthPx`, `tileHeightPx`
+et `resolverVersion`. Le plan utilise les mêmes résolveurs 2D/3D que l'action
+unitaire. Un diagnostic bloquant refuse tout le lot ; la publication conserve
+une seule frontière d'historique et d'annulation. Les sources, tracés, overrides
+et collisions ne sont pas remplacés par des images aplaties. Les doublons,
+champs inconnus et dépassements de borne sont refusés avant écriture.
 
 `border_layer.stroke_erase` accepte `mapId`, `layerId`, `featureId` et `points`
 (1 à 4096 coordonnées entières `{x, y}` dans le lattice du tracé). Il découpe les
@@ -2281,6 +2345,26 @@ item.simulate
 ```
 
 ### 17.4 Trainers et personnages
+
+Le stock de soins adverse de L21a utilise l’action canonique
+`campaign.trainer.upsert`, via `value.battleItems` : un dictionnaire d’IDs exacts
+du catalogue d’objets vers des quantités entières de 1 à 99, avec 16 objets
+distincts au maximum. Un dictionnaire vide supprime le stock. Le contrat
+`trainerBattleItems` est découvrable dans les extensions de cette action.
+
+Les références exigent un objet unique du catalogue du projet, consommé
+`on_applied` en combat et ciblant un membre de l’équipe. Les effets pris en
+charge pour ce stock sont `heal_hp` et `cure_status` des statuts majeurs. Une
+mutation ou suppression du catalogue ne peut pas invalider un stock existant.
+Les sélecteurs guidés d’Editor et de Studio partagent ce filtre d’éligibilité.
+
+Chaque combat initialise son propre stock depuis la définition du trainer,
+quelle que soit sa difficulté. Seule une consommation adverse appliquée dans
+un tour validé retire une unité ; le scoring, un refus ou un rollback ne
+dépensent rien. Les changements de Pokémon conservent le stock restant et un
+nouveau combat réinitialise le stock authored. Ce stock est indépendant du sac
+joueur, des récompenses, des objets tenus et des Balls ; il traverse l’export et
+le rechargement du package sans persister les quantités dépensées.
 
 ```text
 trainer.list

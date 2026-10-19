@@ -50,8 +50,7 @@ Future<T> _readResourceSnapshot<T>(
       policy: ProjectSnapshotLoadPolicy.editorReadProjection,
     );
     adapter._requireAvailable();
-    if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-        before.revision) {
+    if (studioProjectSnapshotRevision(snapshot) != before.revision) {
       throw const ResourceFailure(
         'Le projet a changé sur le disque. Relisez ses informations.',
       );
@@ -103,9 +102,7 @@ Future<ResourceMutationPreparation> _prepareResourceOperation(
     actionId: actionId,
     parameters: parameters,
     snapshotRevision: snapshot.revision,
-    manifestRevision: narrativeEventBytesFingerprint(
-      snapshot.resourceBytes('project'),
-    ),
+    manifestRevision: studioProjectSnapshotRevision(snapshot),
     changedPaths: draft.changeSet.changes.map((c) => c.storageKey).toList(),
     confirmationRequired: actionId.endsWith('.delete'),
   );

@@ -43,6 +43,7 @@ final class SpatialBorderResolutionResult {
 }
 
 typedef _SpatialBorderNode = ({
+  int index,
   GridPos cell,
   BorderLinearNodeKind kind,
   BorderCardinalDirection? incomingDirection,
@@ -605,6 +606,42 @@ BorderDiagnosticsReport validateSpatialBorderBlueprint({
           !roles.contains(BorderPrimitiveRole.lineCorner))) {
     error('border.spatial.required_roles_missing');
   }
+  if (definition.sequenceLength > 1) {
+    final phases = definition.primitives.map((p) => p.sequenceIndex).toSet();
+    if (phases.length != definition.sequenceLength) {
+      error('border.spatial.sequence_phase_missing');
+    }
+    for (final phase in phases) {
+      for (final role in [
+        BorderPrimitiveRole.lineStraight,
+        BorderPrimitiveRole.lineCap,
+      ]) {
+        final requiredTurns =
+            role == BorderPrimitiveRole.lineStraight &&
+                !definition.followContourDirection
+            ? [0, 1]
+            : [0, 1, 2, 3];
+        for (final target in requiredTurns) {
+          final covered = definition.primitives.any((primitive) {
+            if (primitive.sequenceIndex != phase || primitive.role != role) {
+              return false;
+            }
+            final authored = switch (primitive.authoredOrientation) {
+              BorderPrimitiveOrientation.legacyAxis ||
+              BorderPrimitiveOrientation.east => 0,
+              BorderPrimitiveOrientation.south => 1,
+              BorderPrimitiveOrientation.west => 2,
+              BorderPrimitiveOrientation.north => 3,
+            };
+            final turns = (target - authored + 4) % 4;
+            return (definition.defaults.allowAutoRotation || turns == 0) &&
+                primitive.transforms.allowedQuarterTurns.contains(turns);
+          });
+          if (!covered) error('border.spatial.sequence_orientation_missing');
+        }
+      }
+    }
+  }
   if (definition.followContourDirection && !definition.straightOnly) {
     final turns = definition.primitives
         .where((primitive) => primitive.role == BorderPrimitiveRole.lineCorner)
@@ -755,7 +792,13 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   diagnostics.addAll(geometryDiagnostics.diagnostics);
   if (geometryDiagnostics.hasErrors) return failed();
   final chains =
-      <({String lineageNamespace, List<_SpatialBorderNode> nodes})>[];
+      <
+        ({
+          String lineageNamespace,
+          int sourceEdgeOffset,
+          List<_SpatialBorderNode> nodes,
+        })
+      >[];
   final alignment = geometry is BorderStrokeGeometry
       ? geometry.alignment
       : BorderStrokeAlignment.gridEdges;
@@ -768,9 +811,11 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       );
       chains.add((
         lineageNamespace: lattice.lineageNamespace,
+        sourceEdgeOffset: lattice.sourceEdgeOffset,
         nodes: [
           for (final node in lattice.nodes)
             (
+              index: node.index,
               cell: node.cell,
               kind: node.kind,
               incomingDirection: node.incomingDirection,
@@ -793,9 +838,11 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
     )) {
       chains.add((
         lineageNamespace: 'region',
+        sourceEdgeOffset: 0,
         nodes: [
           for (var index = 0; index < contour.edges.length; index++)
             (
+              index: index,
               cell: contour.edges[index].startVertex,
               kind:
                   contour
@@ -843,6 +890,10 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   final slots = <String>{};
   for (final chain in chains) {
     for (final node in chain.nodes) {
+      final sequenceIndex =
+          ((BigInt.from(chain.sourceEdgeOffset) + BigInt.from(node.index)) %
+                  BigInt.from(definition.sequenceLength))
+              .toInt();
       final role = switch (node.kind) {
         BorderLinearNodeKind.endpoint => BorderPrimitiveRole.lineCap,
         BorderLinearNodeKind.straight => BorderPrimitiveRole.lineStraight,
@@ -889,6 +940,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       for (final primitive in definition.primitives.where(
         (primitive) =>
             primitive.role == role &&
+            primitive.sequenceIndex == sequenceIndex &&
             (!definition.followContourDirection ||
                 role != BorderPrimitiveRole.lineCorner ||
                 primitive.cornerTurn == cornerTurn),
@@ -1431,6 +1483,7 @@ bool _supportsRepeatedUnitInversion(
   BorderFeatureGeometry geometry,
   ProjectManifest manifest,
 ) {
+  if (definition.sequenceLength > 1) return false;
   if (definition.template != BorderBlueprintTemplate.connectedLine ||
       !definition.straightOnly ||
       geometry is! BorderStrokeGeometry ||

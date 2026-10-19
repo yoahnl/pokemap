@@ -113,3 +113,71 @@ import 'package:map_core/map_core.dart';
   );
   return (map: map, project: project);
 }
+
+({MapData map, ProjectManifest project}) spatialRasterGrassFixture({
+  SmartTileAnimationActivation activation =
+      SmartTileAnimationActivation.onEnter,
+}) {
+  final fixture = spatialGrassFixture(activation: activation);
+  final catalog = fixture.project.smartTileCatalog;
+  final preset = catalog.presets.single;
+  final rule = preset.rules.single;
+  return (
+    map: fixture.map,
+    project: fixture.project.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: catalog.materials,
+        atlases: const [
+          ProjectSmartTileAtlas(
+            id: 'raster-atlas',
+            name: 'Raster',
+            tilesetId: 'raster-tiles',
+            columns: 2,
+            rows: 1,
+          ),
+        ],
+        animations: const [
+          ProjectSmartTileAnimation(
+            id: 'raster-reaction',
+            name: 'Reaction',
+            loop: SmartTileAnimationLoop.once,
+            frames: [
+              ProjectSmartTileAnimationFrame(
+                frame: SmartTileFrameRef(
+                  atlasId: 'raster-atlas',
+                  column: 0,
+                  row: 0,
+                ),
+                durationMs: 100,
+              ),
+              ProjectSmartTileAnimationFrame(
+                frame: SmartTileFrameRef(
+                  atlasId: 'raster-atlas',
+                  column: 1,
+                  row: 0,
+                ),
+                durationMs: 100,
+              ),
+            ],
+          ),
+        ],
+        presets: [
+          preset.copyWith(rules: [
+            rule.copyWith(candidates: const [
+              SmartTileCandidate(
+                id: 'raster',
+                parts: [
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.animation(
+                      animationId: 'raster-reaction',
+                    ),
+                  ),
+                ],
+              ),
+            ]),
+          ]),
+        ],
+      ),
+    ),
+  );
+}

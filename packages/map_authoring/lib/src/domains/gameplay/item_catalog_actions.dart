@@ -109,6 +109,10 @@ final class ItemCatalogActions {
       context.snapshot.manifest.trainers,
       itemCatalog: after,
     );
+    ProjectValidator.validateTrainerBattleItemReferences(
+      context.snapshot.manifest.trainers,
+      itemCatalog: after,
+    );
     return _draft(context, catalog, after);
   }
 }

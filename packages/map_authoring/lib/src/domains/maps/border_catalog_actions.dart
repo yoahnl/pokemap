@@ -36,7 +36,7 @@ final class BorderCatalogActions {
       ),
       _descriptor(
         'border.blueprint.draft.upsert',
-        'Create or replace one Border blueprint draft, including horizontalFacade 2D profiles with horizontal open strokes, endpoints and openings without rotation or mirroring, plus straight-only native profiles and explicit 3D animationIndex, animationLoop, animationSpeed and blocksMovement settings',
+        'Create or replace one Border blueprint draft, including horizontalFacade 2D profiles, straight-only 3D cyclic sequences with explicit sequenceLength and primitive sequenceIndex, and explicit animationIndex, animationLoop, animationSpeed and blocksMovement settings',
         resourceKinds: const [
           'project',
           'borderBlueprint',
@@ -46,7 +46,7 @@ final class BorderCatalogActions {
       ),
       _descriptor(
         'border.blueprint.publish',
-        'Publish one Border blueprint with sprite snapshots or live 3D sources preserving explicit animation and collision settings; null animationIndex does not start a clip',
+        'Publish one Border blueprint with sprite snapshots or live 3D sources preserving cyclic sequence indices, explicit animation and collision settings; null animationIndex does not start a clip',
         resourceKinds: const <String>[
           'project',
           'borderBlueprint',
@@ -358,6 +358,7 @@ final class BorderCatalogActions {
           visualSnapshotId: preparation.snapshot.id,
           role: primitive.role,
           authoredOrientation: primitive.authoredOrientation,
+          sequenceIndex: primitive.sequenceIndex,
           weight: primitive.weight,
           anchorPx: primitive.anchorPx,
           transforms: primitive.transforms,
@@ -384,6 +385,7 @@ final class BorderCatalogActions {
       previewSeed: draftDefinition.previewSeed,
       template: draftDefinition.template,
       straightOnly: draftDefinition.straightOnly,
+      sequenceLength: draftDefinition.sequenceLength,
       primitives: publishedPrimitives,
       defaults: draftDefinition.defaults,
       ground: publishedGround,
@@ -656,6 +658,7 @@ AuthoringMutationDraft _publishSpatial(
       previewSeed: draft.previewSeed,
       template: draft.template,
       straightOnly: draft.straightOnly,
+      sequenceLength: draft.sequenceLength,
       followContourDirection: draft.followContourDirection,
       replacesGround: draft.replacesGround,
       masksGroundCells: draft.masksGroundCells,
@@ -669,6 +672,7 @@ AuthoringMutationDraft _publishSpatial(
               role: primitive.role,
               cornerTurn: primitive.cornerTurn,
               authoredOrientation: primitive.authoredOrientation,
+              sequenceIndex: primitive.sequenceIndex,
               weight: primitive.weight,
               transforms: primitive.transforms,
               anchorWorld: primitive.anchorWorld,
@@ -1067,6 +1071,41 @@ AuthoringActionDescriptor _descriptor(
             ProjectBorderCatalog.latestSupportedFormatVersion,
         'projectWidePreflight': true,
         'artifactSnapshots': true,
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'nativeConnectedLine2d': {
+            'template': 'connectedLine',
+            'sourceDimension': '2d',
+            'orientationField': 'authoredOrientation',
+            'minimumCatalogFormatVersion': 4,
+            'orientationReference': {'east': 0, 'south': 1, 'west': 2, 'north': 3},
+            'nativeConnections': {
+              'lineCap': {'east': ['east'], 'south': ['south'],
+                'west': ['west'], 'north': ['north']},
+              'lineStraight': {'east': ['east', 'west'], 'south': ['north', 'south']},
+              'lineCorner': {'east': ['west', 'south'], 'south': ['west', 'north'],
+                'west': ['east', 'north'], 'north': ['east', 'south']},
+            },
+            'rotation': 'targetMinusAuthored',
+            'mirroredRotation': 'targetPlusAuthored',
+            'automaticRotation': 'transformPolicy',
+            'mirrorFreeProfile': 'allPositivePrimitivesCardinalAndDisallowFlipX',
+            'mirrorFreeLineSide': 'primary',
+            'mirrorFreeCanonicalGallery': 'primary',
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'spatialSequence': {
+            'minimumCatalogFormatVersion': 12,
+            'lengthField': 'definition.sequenceLength',
+            'indexField': 'primitives[].sequenceIndex',
+            'sourceDimension': '3d',
+            'template': 'connectedLine',
+            'straightOnly': true,
+            'phaseReference': 'sourceEdgeOffsetPlusNodeIndex',
+            'phaseBeforeSuppression': true,
+            'lineSide': 'primary',
+          },
         if (id == 'border.blueprint.draft.upsert' ||
             id == 'border.blueprint.publish')
           'horizontalFacade': {

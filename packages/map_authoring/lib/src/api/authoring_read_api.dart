@@ -1,4 +1,6 @@
 import 'resource_pack_transfer_api.dart';
+import '../workspace/catalog/catalog_project_reader.dart';
+import '../workspace/catalog/catalog_targeted_map_edit.dart';
 
 import 'package:map_core/map_core.dart';
 
@@ -143,6 +145,12 @@ final class AuthoringReadApi
           await packs.queryTransfer(projectHandle, request),
         ),
       );
+    }
+    final catalog = await _openService.catalogProject(projectHandle);
+    if(catalog!=null && request.resourceKind=='map' && request.extensions['materializeProject']!=true) return catalog.queryMaps(request,readMap:(id) async { final selection=await CatalogTargetedMapSelection.read(reader:catalog,mapId:id); return (map:selection.map,revision:selection.snapshotRevision); });
+    if (catalog != null && (catalogResourceKinds.containsKey(request.resourceKind) || (request.resourceKind=='project' && request.view==AuthoringQueryView.summary))) return catalog.query(request);
+    if(catalog!=null && request.resourceKind=='project' && request.view==AuthoringQueryView.detail && request.extensions['materializeProject']!=true) {
+      throw const AuthoringQueryException('query.materialization_required','Full catalog project reads require extensions.materializeProject=true.');
     }
     final snapshot = await _snapshotLoader.load(
       projectHandle,

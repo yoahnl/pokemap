@@ -27,13 +27,19 @@ AuthoringActionDescriptor _descriptor(
       ],
       extensions: <String, Object?>{
         'catalogFormatVersion': ProjectSmartTileCatalog.currentFormatVersion,
+        if (id == 'smart_tile.pattern.upsert' ||
+            id == 'smart_tile.pattern.upsert_batch')
+          'adaptiveConstruction2d': adaptiveSmartTileConstructionContract,
+        if (id == 'smart_tile.pattern.upsert' ||
+            id == 'smart_tile.pattern.upsert_batch')
+          'patternClipping': smartTilePatternClippingContract,
         'projectWidePreflight': true,
         if (id == 'smart_tile.pattern.upsert' ||
             id == 'smart_tile.pattern.upsert_batch' ||
             id == 'smart_tile.preset.draft.upsert' ||
             id == 'smart_tile.preset.publish') ...{
           'model3dOffsetSpace': 'cell_local_before_quarter_turns',
-          'model3dTerrainSample': 'final_anchor',
+          'model3dTerrainSample': 'unclipped_final_anchor',
           'model3dGroundReplacement': 'source_cell_below_or_equal_layer',
           'rasterSpatialClip': {
             'field': 'parts[].spatialClip',
@@ -42,6 +48,24 @@ AuthoringActionDescriptor _descriptor(
             'coordinates': ['left', 'top', 'right', 'bottom'],
             'sourceKinds': ['frame', 'animation'],
             'channel': 'ground',
+            'preservesTextureDensity': true,
+            'preservesNavigation': true,
+          },
+          'model3dSpatialClip': {
+            'field': 'parts[].spatialClip',
+            'minimumCatalogFormatVersion': 9,
+            'capability': SpatialModelClipCapabilities.capabilityId,
+            'resourcePackCapability': SpatialModelClipCapabilities.resourcePackCapabilityId,
+            'units': 'normalized_visual_footprint',
+            'coordinates': ['left', 'top', 'right', 'bottom'],
+            'sourceKinds': ['model3d'],
+            'sourceAdmission': 'inspected_static_glb_without_node_or_material_animations',
+            'channels': ['ground', 'understory', 'canopy'],
+            'boundaryOwnership': 'closed_rectangle_preserves_isolated_outer_faces',
+            'animationIndex': null,
+            'flipX': false,
+            'partialGroundReplacement': 'reject',
+            'terrainSampling': 'visible_clip_support_center',
             'preservesTextureDensity': true,
             'preservesNavigation': true,
           },
@@ -442,7 +466,7 @@ List<int> _encodeSmartTileManifest(
   ProjectSnapshot snapshot,
   ProjectManifest manifest,
 ) {
-  if (manifest == snapshot.manifest) return snapshot.resourceBytes('project');
+  if (manifest == snapshot.manifest) return snapshot.authoringProjectBytes;
   final merged = jsonDecode(
     utf8.decode(encodeResourceInformationDocument(snapshot, manifest)),
   ) as Map<String, dynamic>;

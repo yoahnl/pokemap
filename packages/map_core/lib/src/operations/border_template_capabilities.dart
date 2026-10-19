@@ -1,4 +1,5 @@
 import '../models/border_catalog.dart';
+import '../models/border_blueprint.dart';
 import '../models/border_value_objects.dart';
 
 bool borderTemplateUsesStrokeGeometry(BorderBlueprintTemplate template) =>
@@ -35,6 +36,21 @@ bool borderTemplateRequiresInvertedCanonicalGallery(
         true,
       _ => false,
     };
+
+bool borderBlueprintUsesNativeConnectedLine(
+  BorderBlueprintPublishedDefinition definition,
+) => !definition.isSpatial &&
+    definition.template == BorderBlueprintTemplate.connectedLine &&
+    definition.primitives.any((primitive) => primitive.weight > 0) &&
+    definition.primitives.where((primitive) => primitive.weight > 0).every(
+        (primitive) =>
+            primitive.authoredOrientation != BorderPrimitiveOrientation.legacyAxis);
+
+bool borderBlueprintUsesPrimaryNativeConnectedLine(
+  BorderBlueprintPublishedDefinition definition,
+) => borderBlueprintUsesNativeConnectedLine(definition) &&
+    definition.primitives.where((primitive) => primitive.weight > 0).every(
+        (primitive) => !primitive.transforms.allowFlipX);
 
 /// Exact roles that have no alternative-role substitute at publication.
 ///

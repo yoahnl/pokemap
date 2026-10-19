@@ -729,7 +729,7 @@ void main() {
       'maxDepth': 64,
       'maxNodes': 4000000,
       'maxStringCodeUnits': 1048576,
-      'maxTextCodeUnits': 25165824,
+      'maxTextCodeUnits': 50331648,
     });
     expect(settings['version'], 9);
     expect(recipe.toJson()['version'], 12);

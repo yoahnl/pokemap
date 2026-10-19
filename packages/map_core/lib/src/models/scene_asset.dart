@@ -1758,6 +1758,8 @@ final class SceneActionPayload extends SceneNodePayload {
       );
 }
 
+enum SceneBattleDefeatRecovery { continueScene, returnToRecoveryPoint }
+
 @immutable
 final class SceneBattlePayload extends SceneNodePayload {
   SceneBattlePayload({
@@ -1765,6 +1767,7 @@ final class SceneBattlePayload extends SceneNodePayload {
     this.trainerId,
     this.battleTemplateId,
     this.npcEntityId,
+    this.defeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> declaredOutcomes = const <String>[],
   }) : declaredOutcomes = _immutableNonBlankUniqueStrings(
           declaredOutcomes,
@@ -1785,6 +1788,13 @@ final class SceneBattlePayload extends SceneNodePayload {
       trainerId: _readOptionalString(json, 'trainerId'),
       battleTemplateId: _readOptionalString(json, 'battleTemplateId'),
       npcEntityId: _readOptionalString(json, 'npcEntityId'),
+      defeatRecovery: json.containsKey('defeatRecovery')
+          ? _readEnum(
+              SceneBattleDefeatRecovery.values,
+              json['defeatRecovery'],
+              'defeatRecovery',
+            )
+          : SceneBattleDefeatRecovery.continueScene,
       declaredOutcomes: _readStringList(json, 'declaredOutcomes'),
     );
   }
@@ -1796,6 +1806,7 @@ final class SceneBattlePayload extends SceneNodePayload {
   final String? trainerId;
   final String? battleTemplateId;
   final String? npcEntityId;
+  final SceneBattleDefeatRecovery defeatRecovery;
   final List<String> declaredOutcomes;
 
   @override
@@ -1805,6 +1816,8 @@ final class SceneBattlePayload extends SceneNodePayload {
         'trainerId': trainerId,
         'battleTemplateId': battleTemplateId,
         'npcEntityId': npcEntityId,
+        if (defeatRecovery != SceneBattleDefeatRecovery.continueScene)
+          'defeatRecovery': defeatRecovery.name,
         'declaredOutcomes': declaredOutcomes,
       });
 
@@ -1816,6 +1829,7 @@ final class SceneBattlePayload extends SceneNodePayload {
           other.trainerId == trainerId &&
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
+          other.defeatRecovery == defeatRecovery &&
           _listEquals(other.declaredOutcomes, declaredOutcomes);
 
   @override
@@ -1824,6 +1838,7 @@ final class SceneBattlePayload extends SceneNodePayload {
         trainerId,
         battleTemplateId,
         npcEntityId,
+        defeatRecovery,
         Object.hashAll(declaredOutcomes),
       );
 }

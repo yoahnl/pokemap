@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
+import '../../project_session/data/studio_project_document_revision.dart';
 import '../domain/resource_pack_port.dart';
 import '../domain/resource_port.dart';
 import 'local_resource_adapter.dart';
@@ -215,6 +216,7 @@ final class LocalResourcePackAdapter implements ResourcePackPort {
         final identity = switch (kind) {
           'project' => 'project',
           'assetCatalog' => 'assetCatalog',
+          'catalogHead' => 'catalogHead',
           'asset'
               when snapshot.resourceStorageKeys.containsKey(
                 'assetLogical:$id',
@@ -263,9 +265,7 @@ final class LocalResourcePackAdapter implements ResourcePackPort {
       before: before.manifest,
       manifest: snapshot.manifest,
       beforeRevision: before.revision,
-      revision: narrativeEventBytesFingerprint(
-        snapshot.resourceBytes('project'),
-      ),
+      revision: studioProjectSnapshotRevision(snapshot),
       changedPaths: List.unmodifiable(paths.keys),
       pathRevisions: Map.unmodifiable(paths),
       resourceRevisions: Map.unmodifiable(revisions),

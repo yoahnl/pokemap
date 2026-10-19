@@ -172,19 +172,22 @@ final class FileAuthoringContentBlobStore
       }));
 
   Future<AuthoringPayloadInspection> _verifyBlob(File file, String id) async {
-    final before = await file.stat();
-    final observed = await inspectAuthoringPayload(file.openRead(),
-        storageKey: 'authoring-history-blob', byteLength: before.size);
-    final after = await file.stat();
-    if (observed.resourceRevision != id ||
-        before.type != FileSystemEntityType.file ||
-        before.size != after.size ||
-        before.modified != after.modified ||
-        before.changed != after.changed) {
-      throw const AuthoringContentBlobStoreException('history.blob_corrupt',
-          'A retained history blob failed verification.');
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final before = await file.stat();
+      final observed = await inspectAuthoringPayload(file.openRead(),
+          storageKey: 'authoring-history-blob', byteLength: before.size);
+      final after = await file.stat();
+      if (observed.resourceRevision != id ||
+          before.type != FileSystemEntityType.file ||
+          after.type != FileSystemEntityType.file ||
+          before.size != after.size ||
+          before.modified != after.modified) {
+        break;
+      }
+      if (before.changed == after.changed) return observed;
     }
-    return observed;
+    throw const AuthoringContentBlobStoreException('history.blob_corrupt',
+        'A retained history blob failed verification.');
   }
 
   @override

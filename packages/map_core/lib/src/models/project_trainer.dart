@@ -5,6 +5,41 @@ import 'enums.dart';
 part 'project_trainer.freezed.dart';
 part 'project_trainer.g.dart';
 
+const trainerBattleItemMaxDistinctCount = 16;
+const trainerBattleItemMinQuantity = 1;
+const trainerBattleItemMaxQuantity = 99;
+
+Map<String, int> _projectTrainerBattleItemsFromJson(Object? value) {
+  if (value is! Map) {
+    throw FormatException(
+      'ProjectTrainerEntry.battleItems must be an object',
+      value,
+    );
+  }
+  final stock = <String, int>{};
+  for (final entry in value.entries) {
+    if (entry.key is! String || entry.value is! int) {
+      throw FormatException(
+        'ProjectTrainerEntry.battleItems requires string IDs and integer quantities',
+        value,
+      );
+    }
+    stock[entry.key as String] = entry.value as int;
+  }
+  return stock;
+}
+
+Map<String, dynamic> _projectTrainerEntryJson(Map<String, dynamic> json) {
+  if (json.containsKey('battleItems')) {
+    _projectTrainerBattleItemsFromJson(json['battleItems']);
+  }
+  return _rejectExplicitNullInteger(
+    json,
+    key: 'moneyReward',
+    owner: 'ProjectTrainerEntry',
+  );
+}
+
 /// Preset auteur optionnel d'un dresseur.
 ///
 /// `null` sur [ProjectTrainerEntry.templateKind] reste le trainer générique
@@ -132,6 +167,9 @@ abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
     /// - le routing réel vers quelques profils battle-local reste fait côté
     ///   runtime + `map_battle`, pas dans ce modèle data.
     int? battleDifficulty,
+    @JsonKey(fromJson: _projectTrainerBattleItemsFromJson)
+    @Default(<String, int>{})
+    Map<String, int> battleItems,
 
     /// Image de fond de combat explicitement authored pour ce trainer.
     ///
@@ -192,11 +230,5 @@ abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
   }) = _ProjectTrainerEntry;
 
   factory ProjectTrainerEntry.fromJson(Map<String, dynamic> json) =>
-      _$ProjectTrainerEntryFromJson(
-        _rejectExplicitNullInteger(
-          json,
-          key: 'moneyReward',
-          owner: 'ProjectTrainerEntry',
-        ),
-      );
+      _$ProjectTrainerEntryFromJson(_projectTrainerEntryJson(json));
 }

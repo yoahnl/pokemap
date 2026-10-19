@@ -117,6 +117,12 @@ final class GamePackageProjectValidator {
                 .contains('map3d.animation@1')) {
           _fail('Animated 3D decor requires map3d.animation@1.');
         }
+        if (SpatialModelClipCapabilities.requiresCapability(project,
+                maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialModelClipCapabilities.capabilityId)) {
+          _fail('Clipped 3D models require map3d.model-clip@1.');
+        }
         if (maps.any((map) => !map.spatialScene!.generateCliffs) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains('map3d.terrain-appearance@1')) {
@@ -128,6 +134,13 @@ final class GamePackageProjectValidator {
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialTerrainSurfaceSet.capabilityId)) {
           _fail('Continuous 3D terrain requires map3d.terrain-surfaces@1.');
+        }
+        if (maps.any((map) => map.spatialScene!.navigation.ramps
+                .any((ramp) => ramp.hasFractionalLevels)) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialRamp.fractionalLevelsCapabilityId)) {
+          _fail(
+              'Fractional stair endpoints require ${SpatialRamp.fractionalLevelsCapabilityId}.');
         }
       }
       return project;

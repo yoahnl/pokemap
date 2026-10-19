@@ -98,6 +98,35 @@ void main() {
       );
       ballSelect.onChanged!('poke-ball');
       await pumpIo(tester);
+      final stockPicker = find.byKey(
+        const ValueKey('chef_gare:battle-item-picker'),
+      );
+      await tester.ensureVisible(stockPicker);
+      final stockSelect = tester.widget<StudioSelect>(stockPicker);
+      expect(stockSelect.options, contains('potion'));
+      expect(stockSelect.options, isNot(contains('revive')));
+      expect(stockSelect.options, isNot(contains('ether')));
+      expect(stockSelect.options, isNot(contains('poke-ball')));
+      stockSelect.onChanged!('potion');
+      await pumpIo(tester);
+      final quantity = find.descendant(
+        of: find.byKey(const ValueKey('chef_gare:battle-item:potion:quantity')),
+        matching: find.byType(TextField),
+      );
+      await tester.ensureVisible(quantity);
+      await tester.enterText(quantity, '2.5');
+      await tester.tap(find.text('Enregistrer').last);
+      await pumpIo(tester);
+      expect(workspace.combat!.dirty, isTrue);
+      expect(workspace.combat!.error, contains('nombres invalides'));
+      expect(tester.widget<TextField>(quantity).controller!.text, '2.5');
+      await tester.enterText(quantity, '0');
+      await tester.tap(find.text('Enregistrer').last);
+      await pumpIo(tester);
+      expect(workspace.combat!.dirty, isTrue);
+      expect(workspace.combat!.error, isNotNull);
+      expect(tester.widget<TextField>(quantity).controller!.text, '0');
+      await tester.enterText(quantity, '2');
       await tester.tap(find.text('Enregistrer').last);
       await pumpIo(tester);
       expect(workspace.combat!.dirty, isFalse);
@@ -199,6 +228,7 @@ void main() {
       expect(table.entries.single.speciesId, 'bulbasaur');
       expect(trainer.team.single.speciesId, 'bulbasaur');
       expect(trainer.team.single.toJson()['ballItemId'], 'poke-ball');
+      expect(trainer.battleItems, {'potion': 2});
       expect(
         map.entities
             .singleWhere((value) => value.id == 'combat-guide')

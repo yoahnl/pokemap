@@ -81,6 +81,23 @@ final class CatalogStorageStore {
 
   Future<CatalogObjectReference?> readHead() => _readHead();
 
+  Future<String?> readProjectId() async {
+    const path = 'catalog/IDENTITY.json';
+    if (!await _requireLocalPath(path, allowMissing: true)) return null;
+    final bytes = await _readBounded(path, 4096);
+    final source = utf8.decode(bytes);
+    final value = jsonDecode(source);
+    if (value is! Map<String, dynamic> ||
+        value.length != 2 ||
+        value['schemaVersion'] is! int ||
+        value['schemaVersion'] != 1 ||
+        value['projectId'] is! String ||
+        canonicalAuthoringJson(value) != source) {
+      throw const FormatException('catalog.identity: invalid record');
+    }
+    return value['projectId']! as String;
+  }
+
   Future<List<int>> readObject(CatalogObjectReference reference) =>
       _readBounded(_objectPath(reference.sha256), reference.byteLength);
 

@@ -259,6 +259,9 @@ BorderResolvedPlacement _resolvePlacementOverride({
   }
 
   var primitive = basePrimitive;
+  final definition = request.blueprintRevision!.definition;
+  final connectedLine2d = !definition.isSpatial &&
+      definition.template == BorderBlueprintTemplate.connectedLine;
   final transform = override.transformOverride ?? base.transform;
   final replacementId = override.replacementPrimitiveId;
   if (replacementId != null) {
@@ -276,11 +279,15 @@ BorderResolvedPlacement _resolvePlacementOverride({
       );
       return base;
     }
-    if (replacement.role != basePrimitive.role) {
+    final orientationMismatch = connectedLine2d &&
+        replacement.authoredOrientation != basePrimitive.authoredOrientation;
+    if (replacement.role != basePrimitive.role || orientationMismatch) {
       diagnostics.add(
         _error(
           request,
-          code: 'border.resolution.override_primitive_role_mismatch',
+          code: orientationMismatch
+              ? 'border.resolution.override_primitive_orientation_mismatch'
+              : 'border.resolution.override_primitive_role_mismatch',
           scope: BorderDiagnosticScope.slot,
           slotKey: override.slotKey,
           parameters: <String, Object?>{'primitiveId': replacementId},
@@ -295,6 +302,8 @@ BorderResolvedPlacement _resolvePlacementOverride({
       (candidate) =>
           candidate.role == basePrimitive.role &&
           _transformAllowed(candidate, transform) &&
+          (!connectedLine2d ||
+              candidate.authoredOrientation == basePrimitive.authoredOrientation) &&
           (request.blueprintRevision!.definition.template !=
                   BorderBlueprintTemplate.ledgeLine ||
               (candidate.authoredOrientation ==

@@ -18,6 +18,143 @@ import 'support/native_media_source_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 
 void main() {
+  test('native study declares supported canonical shop capability before approval',
+      () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final prepared = await harness.prepare();
+      expect(prepared.canApprove, isTrue);
+      final shops = prepared.targetCapabilities.capabilities.where((entry) =>
+          entry.capabilityId.value == 'native.study.campaign.shop.upsert');
+      expect(shops, hasLength(1));
+      expect(shops.single.status, CapabilityStatus.supported);
+      expect(shops.single.evidence, isNotEmpty);
+      expect(
+          AuthoringMutationDispatcher.canonical()
+              .descriptors
+              .map((entry) => entry.id),
+          contains('campaign.shop.upsert'));
+      expect(() => harness.approve(prepared), returnsNormally);
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  final preparedReviewPath =
+      Platform.environment['AVELUNE_PREPARED_REVIEW_PATH'];
+  test('real prepared review actions retain strict native study admission',
+      () async {
+    final realReview = Map<String, Object?>.from(
+        jsonDecode(await File(preparedReviewPath!).readAsString()) as Map);
+    expect(realReview['kind'], 'conversionPlan');
+    expect(realReview['selectedSourceMapIds'], hasLength(383));
+    final realOperations = (realReview['operations'] as List).cast<Map>();
+    expect(realOperations, hasLength(18062));
+    final representatives = <String, Map<String, Object?>>{};
+    for (final operation in realOperations) {
+      expect(operation['status'], 'planned');
+      expect(operation['targetActionId'], isA<String>());
+      representatives.putIfAbsent(operation['targetActionId'] as String,
+          () => Map<String, Object?>.from(operation));
+    }
+    expect(representatives, hasLength(42));
+    expect(
+        realOperations.where((operation) =>
+            operation['targetActionId'] == 'campaign.shop.upsert'),
+        hasLength(19));
+    final harness = await _WorkflowHarness.create();
+    try {
+      final prepared = await harness.prepare();
+      expect(prepared.canApprove, isTrue);
+      final approved = harness.approve(prepared).approvedPlan;
+      final inventoryPlan = ConversionPlan.fromJson({
+        ...approved.toJson(),
+        'operations': representatives.values.toList(),
+      });
+      final capabilities = prepared.targetCapabilities;
+      PlanContext contextFor(ConversionPlan plan,
+              {TargetCapabilities? targetCapabilities}) => PlanContext(
+          logicalProjectNamespace: plan.logicalProjectNamespace,
+          sourceSnapshotHash: prepared.sourceSnapshotHash,
+          sessionId: prepared.reviewDecisions.sessionId,
+          targetCapabilities: targetCapabilities ?? capabilities,
+          rulesHash: approved.rulesHash,
+          decisions: prepared.reviewDecisions,
+          candidates: prepared.assetCandidates,
+          converterVersion: approved.converterVersion,
+          approvedPlanHash: plan.canonicalHash,
+          sourceMapIds: prepared.normalizedSource.selectedSourceMapIds.toSet(),
+          sourceEntityIds: inventoryPlan.operations
+              .expand((operation) => operation.sourceEntityIds)
+              .toSet(),
+          targetEntityIds: inventoryPlan.operations
+              .expand((operation) => operation.targetEntityIds)
+              .toSet(),
+          actionCapabilities: {
+            for (final capability in capabilities.capabilities)
+              capability.capabilityId.value.substring('native.study.'.length):
+                  capability.capabilityId
+          },
+          approvedCandidateHashes: prepared.approvedCandidateHashes);
+      expect(
+          () => admitPlan(inventoryPlan, contextFor(inventoryPlan)),
+          returnsNormally);
+      final withoutShop = TargetCapabilities.fromJson({
+        ...capabilities.toJson(),
+        'capabilities': [
+          for (final capability in capabilities.capabilities)
+            if (capability.capabilityId.value !=
+                'native.study.campaign.shop.upsert')
+              capability.toJson()
+        ],
+      });
+      expect(withoutShop.capabilities,
+          hasLength(capabilities.capabilities.length - 1));
+      final missingShop = ConversionPlan.fromJson({
+        ...inventoryPlan.toJson(),
+        'targetProfileHash': withoutShop.canonicalHash.value,
+      });
+      expect(
+          () => admitPlan(missingShop,
+              contextFor(missingShop, targetCapabilities: withoutShop)),
+          throwsA(isA<ContractError>()
+              .having((error) => error.code, 'code', 'policy.targetAction')));
+      final canonicalActions = AuthoringMutationDispatcher.canonical()
+          .descriptors
+          .map((entry) => entry.id)
+          .toSet();
+      for (final action in representatives.keys) {
+        final matching = capabilities.capabilities.where((capability) =>
+            capability.capabilityId.value == 'native.study.$action');
+        expect(matching, hasLength(1), reason: action);
+        expect(matching.single.status, CapabilityStatus.supported,
+            reason: action);
+        expect(matching.single.evidence, isNotEmpty, reason: action);
+        expect(canonicalActions, contains(action));
+      }
+      final unknown = ConversionPlan.fromJson({
+        ...inventoryPlan.toJson(),
+        'operations': [
+          for (var index = 0; index < inventoryPlan.operations.length; index++)
+            {
+              ...inventoryPlan.operations[index].toJson(),
+              if (index == 0) 'targetActionId': 'campaign.shop.unknown',
+            }
+        ],
+      });
+      expect(
+          () => admitPlan(unknown, contextFor(unknown)),
+          throwsA(isA<ContractError>()
+              .having((error) => error.code, 'code', 'policy.targetAction')));
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+    } finally {
+      await harness.close();
+    }
+  }, skip: preparedReviewPath == null);
+
   for (final (blockedLiteral, qualifiedProfile) in [(true, true), (false, true), (false, false)]) {
     test('explicit unused item binding preserves literal blockers only when projection is absent blocked=$blockedLiteral qualified=$qualifiedProfile', () async {
       final harness = await _WorkflowHarness.create(includeEventSystem: true,

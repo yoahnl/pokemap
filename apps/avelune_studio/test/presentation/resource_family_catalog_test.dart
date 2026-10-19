@@ -44,6 +44,28 @@ ProjectManifest _project() => workspaceProject.copyWith(
 );
 
 void main() {
+  test('individual description participates in catalog search', () {
+    final project = _project().copyWith(
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          ResourceLibraryEntry.fromJson({
+            'resourceKind': 'element',
+            'resourceId': 'shared',
+            'description': 'Ombrage pour les places du village.',
+          }),
+        ],
+      ),
+    );
+    expect(
+      filterResourceCatalog(
+        project,
+        resourceCatalog(project),
+        ResourceCatalogFilterState(query: ' PLACES DU VILLAGE '),
+      ).single.id,
+      'shared',
+    );
+  });
+
   test('placement context matrix distinguishes both from unspecified', () {
     final project = workspaceProject.copyWith(
       elements: [

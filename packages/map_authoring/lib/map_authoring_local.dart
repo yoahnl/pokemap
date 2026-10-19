@@ -77,3 +77,6 @@ export 'src/infrastructure/local_resource_pack_store.dart';
 export 'src/transactions/local_authoring_payload.dart';
 
 export 'src/api/local_resource_pack_transfer_api.dart';
+
+export 'src/workspace/catalog_project_materialization.dart';
+export 'src/workspace/catalog/catalog_targeted_map_edit.dart' show CatalogTargetedMapSelection;

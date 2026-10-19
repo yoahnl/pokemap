@@ -35,15 +35,20 @@ import '../events/event_labels.dart';
 import '../events/event_playtest.dart';
 import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/dialogs/studio_review_dialog.dart';
 import '../../../features/stories/domain/story_port.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../stories/story_progression_view_store.dart';
 import '../../../features/scenes/domain/scene_port.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../presentation/features/scenes/scene_builder_page.dart';
+
 import 'package:flutter/material.dart';
+
 import '../../../features/resources/domain/resource_pack_port.dart';
+
 import 'package:map_core/map_core_domain.dart';
+
 import 'workspace_actions.dart';
 import 'workspace_session_loader.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';
@@ -86,6 +91,7 @@ export 'workspace_actions.dart' show StudioRuntimeBuilder;
 import '../../../features/map_workspace/domain/map_dive_pair_port.dart';
 import 'map_dive_zone_panel.dart';
 
+part 'workspace_scoped_catalog_binding.dart';
 part 'workspace_home_binding.dart';
 part 'workspace_environment_binding.dart';
 part 'workspace_story_binding.dart';
@@ -225,6 +231,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   bool? _inspector;
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
+  ProjectManifest? _visualCatalog;
+  bool _projectionVisualsLoading = false;
+  bool _materializingWorkshops = false;
+  var _projectionVisualGeneration = 0;
+  Future<void> _projectionVisualQueue = Future.value();
   String? _resourceError, _connectionError;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
@@ -267,8 +278,19 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   void _changed() {
     _reconcileCatalogueView();
     _releaseStaleMapState();
+    final project = _controller.project;
+    if (!_materializingWorkshops &&
+        project != null &&
+        _visuals != null &&
+        !identical(project, _visualCatalog)) {
+      _visualCatalog = project;
+      unawaited(_refreshScopedVisuals(project));
+    }
     final map = _controller.active?.current;
-    if (map != null && _visuals != null && !identical(map, _preparedMap)) {
+    if (!_projectionVisualsLoading &&
+        map != null &&
+        _visuals != null &&
+        !identical(map, _preparedMap)) {
       _preparedMap = map;
       _visuals!.setActiveMap(map);
     }

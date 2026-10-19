@@ -1,7 +1,93 @@
+import 'dart:collection';
+
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('target validation visits each resource list once', () {
+    final tilesets = _CountingList([
+      for (var index = 0; index < 400; index++)
+        ProjectTilesetEntry(
+          id: 'tile-$index',
+          name: 'Tile $index',
+          relativePath: 'tile.png',
+        ),
+    ]);
+    final project = ProjectManifest(
+      name: 'Large classified project',
+      maps: [],
+      tilesets: tilesets,
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          for (var index = 0; index < 400; index++)
+            ResourceLibraryEntry(
+              resourceKind: 'tileset',
+              resourceId: 'tile-$index',
+            ),
+        ],
+      ),
+    );
+    tilesets.reads = 0;
+    expect(() => validateResourceLibraryTargets(project), returnsNormally);
+    expect(tilesets.reads, lessThanOrEqualTo(800));
+    expect(
+      resourceLibraryResourceExists(project, 'tileset', 'tile-399'),
+      isTrue,
+    );
+    expect(
+      resourceLibraryResourceExists(project, 'tileset', 'missing'),
+      isFalse,
+    );
+    expect(
+      resourceLibraryResourceExists(project, 'unsupported', 'tile-399'),
+      isFalse,
+    );
+  });
+
+  test(
+    'individual descriptions roundtrip and distinguish resource identities',
+    () {
+      final base = {'resourceKind': 'element', 'resourceId': 'chair'};
+      final entry = ResourceLibraryEntry.fromJson({
+        ...base,
+        'description': 'Chaise de cuisine.\nÀ placer près de la table.',
+      });
+      expect(
+        entry.toJson()['description'],
+        'Chaise de cuisine.\nÀ placer près de la table.',
+      );
+      expect(ResourceLibraryEntry.fromJson(entry.toJson()), entry);
+      expect(entry, isNot(ResourceLibraryEntry.fromJson(base)));
+      expect(
+        ResourceLibraryEntry.fromJson({
+          ...base,
+          'description': null,
+        }).toJson().containsKey('description'),
+        isFalse,
+      );
+    },
+  );
+
+  test('description parsing rejects invalid text and types strictly', () {
+    for (final value in ['', ' ', ' padded ', 'x' * 2001, 1, false, [], {}]) {
+      expect(
+        () => ResourceLibraryCatalog.fromJson({
+          'formatVersion': 2,
+          'families': [],
+          'entries': [
+            {
+              'resourceKind': 'element',
+              'resourceId': 'chair',
+              'description': value,
+            },
+          ],
+        }),
+        throwsFormatException,
+        reason: '$value',
+      );
+    }
+  });
+
   test('context-only entry roundtrips independently from scope', () {
     final entry = ResourceLibraryEntry(
       resourceKind: 'element',
@@ -266,4 +352,26 @@ void main() {
       expect(empty.toJson().containsKey('resourceLibraryCatalog'), isFalse);
     },
   );
+}
+
+final class _CountingList<T> extends ListBase<T> {
+  _CountingList(this.items);
+
+  final List<T> items;
+  int reads = 0;
+
+  @override
+  int get length => items.length;
+
+  @override
+  set length(int value) => throw UnsupportedError('Read only');
+
+  @override
+  T operator [](int index) {
+    reads++;
+    return items[index];
+  }
+
+  @override
+  void operator []=(int index, T value) => throw UnsupportedError('Read only');
 }

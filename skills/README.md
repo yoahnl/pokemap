@@ -36,6 +36,7 @@ If instructions conflict, use the stricter safe rule and report the conflict.
 | `writing-skills` | Creating, editing, or validating skills. | Use when changing this directory or adding new skills. |
 | `karpathy-guidelines` | Writing, reviewing, or refactoring code where cautious scope and explicit success criteria matter. | Repository-local behavioral guard against over-engineering and unrelated edits. |
 | `using-pokemap-mcp` | Inspecting or modifying PokeMap projects, automating authoring, checking MCP parity, or diagnosing PokeMap MCP path errors. | Enforces canonical API use, narrow workspace roots, and live parity proof. |
+| [`avelune-packages`](</Users/karim/Project/Avelune Package/skills/avelune-packages/SKILL.md>) | Working on a `.aveluneassets` library, the shared Avelune Packages website, galleries, classification, deduplication or releases. | Canonical skill lives in the separate packages repository; preserve its shared dark theme, official identity and release evidence. |
 | `creating-pokemap-maps-from-reference` | Authoring, rebuilding, or reviewing an editable PokeMap map from a screenshot, bible, concept image, or full-map render. | Enforces scale boards, connected routes, modular bounds-safe assets, edge independence, runtime proof, and visual acceptance gates. |
 
 ## PokeMap-Specific Guidance

@@ -8,6 +8,8 @@ import '../assets/tileset_actions.dart';
 final class EnvironmentPresetActions {
   const EnvironmentPresetActions();
 
+  static const maximumPresetCount = 50;
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     visualLibraryDescriptor(
       'environment.preset.upsert',
@@ -19,6 +21,30 @@ final class EnvironmentPresetActions {
         'model3d',
         'environmentPreset'
       ],
+    ),
+    visualLibraryDescriptor(
+      'environment.preset.upsert_batch',
+      'Atomically create or replace up to 50 validated Environment presets',
+      resourceKinds: const [
+        'project',
+        'preset',
+        'element',
+        'model3d',
+        'environmentPreset'
+      ],
+      inputSchema: const {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['presets'],
+        'properties': {
+          'presets': {
+            'type': 'array',
+            'minItems': 1,
+            'maxItems': maximumPresetCount,
+            'items': {'type': 'object'},
+          },
+        },
+      },
     ),
     visualLibraryDescriptor(
       'environment.preset.delete',
@@ -39,6 +65,58 @@ final class EnvironmentPresetActions {
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = VisualLibraryParameters(context.request.parameters);
     switch (context.request.actionId) {
+      case 'environment.preset.upsert_batch':
+        parameters.allow(const {'presets'});
+        final values = context.request.parameters['presets'];
+        if (values is! List ||
+            values.isEmpty ||
+            values.length > maximumPresetCount) {
+          throw VisualLibraryException('environment.preset_batch_invalid',
+              'An Environment preset batch needs between 1 and 50 presets.');
+        }
+        final presets = <EnvironmentPreset>[];
+        final identities = <String>{};
+        var projected = context.snapshot.manifest;
+        for (final value in values) {
+          if (value is! Map || value.keys.any((key) => key is! String)) {
+            throw VisualLibraryException('environment.preset_batch_invalid',
+                'Every Environment preset must be an object.');
+          }
+          final preset =
+              decodeEnvironmentPreset(Map<String, Object?>.from(value));
+          if (!identities.add(preset.id)) {
+            throw VisualLibraryException('environment.preset_batch_duplicate',
+                'Each Environment preset identity can occur only once in a batch.');
+          }
+          projected = upsertProjectEnvironmentPreset(projected, preset);
+          final errors = diagnoseProjectEnvironmentPresets(projected)
+              .diagnostics
+              .where((diagnostic) =>
+                  diagnostic.presetId == preset.id &&
+                  diagnostic.severity ==
+                      EnvironmentPresetDiagnosticSeverity.error)
+              .toList();
+          if (errors.isNotEmpty) {
+            throw VisualLibraryException('environment.palette_invalid',
+                'The Environment palette must reference existing visual resources.',
+                details: {
+                  'presetId': preset.id,
+                  'diagnostics': [for (final error in errors) error.kind.name]
+                });
+          }
+          presets.add(preset);
+        }
+        return buildVisualManifestDraft(context.snapshot, projected,
+            operation: 'environment.preset.upsert_batch',
+            path: '/environmentPresets',
+            before: [
+              for (final preset in context.snapshot.manifest.environmentPresets)
+                if (identities.contains(preset.id))
+                  encodeEnvironmentPreset(preset)
+            ],
+            after: [
+              for (final preset in presets) encodeEnvironmentPreset(preset)
+            ]);
       case 'environment.preset.upsert':
         parameters.allow(const {'preset'});
         final preset = decodeEnvironmentPreset(parameters.object('preset'));

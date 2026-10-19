@@ -201,7 +201,7 @@ void main() {
       expect(identical(small.planJsonLimits, small.jsonLimits), isTrue);
     }
     final world = sourceCatalogStudyWriteLimitsFor(383);
-    expect(world.planJsonLimits.maxTextCodeUnits, 25165824);
+    expect(world.planJsonLimits.maxTextCodeUnits, 50331648);
     expect(world.jsonLimits.maxTextCodeUnits, 16777216);
     expect(world.maxImagePixels, 16777216);
     expect(world.maxTotalDraftJsonBytes, 268435456);
@@ -209,7 +209,7 @@ void main() {
     for (final contract in [
       const ContractLimits(maxTextCodeUnits: 0),
       const ContractLimits(maxTextCodeUnits: -1),
-      const ContractLimits(maxTextCodeUnits: 25165825),
+      const ContractLimits(maxTextCodeUnits: 50331649),
       const ContractLimits(maxDepth: 0),
       const ContractLimits(maxDepth: 65),
       const ContractLimits(maxNodes: 0),
@@ -264,13 +264,13 @@ void main() {
   }
 
   for (final ready in [false, true]) {
-    test('aggregate plan admits 19Mi and refuses over 24Mi ready=$ready', () {
+    test('aggregate plan admits 19Mi and refuses over 48Mi ready=$ready', () {
       final world = sourceCatalogStudyWriteLimitsFor(383);
       final input = aggregatePlan(600, ready: ready);
       expect(jsonTextSize(input), greaterThan(16777216));
       expect(jsonTextSize(input), lessThanOrEqualTo(25165824));
-      expect(jsonTextSize(aggregatePlan(800, ready: ready)),
-          greaterThan(25165824));
+      expect(jsonTextSize(aggregatePlan(1600, ready: ready)),
+          greaterThan(50331648));
       final plan = ConversionPlan.fromJson(input, limits: world.planJsonLimits);
       expect(plan.state, ready ? PlanState.ready : PlanState.draft);
       expect(plan.operations, hasLength(600));
@@ -283,7 +283,7 @@ void main() {
           throwsA(isA<ContractError>()
               .having((error) => error.code, 'code', 'json.textQuota')));
       expect(
-          () => ConversionPlan.fromJson(aggregatePlan(800, ready: ready),
+          () => ConversionPlan.fromJson(aggregatePlan(1600, ready: ready),
               limits: world.planJsonLimits),
           throwsA(isA<ContractError>()
               .having((error) => error.code, 'code', 'json.textQuota')));
@@ -299,6 +299,58 @@ void main() {
               .having((error) => error.code, 'code', 'json.textQuota')));
     });
   }
+
+  test('whole world plan retains twenty thousand provenance-rich operations', () {
+    final world = sourceCatalogStudyWriteLimitsFor(383);
+    final seed = approveNativeFixtureDraft(fixture.draft).plan.toJson();
+    final operation = (seed['operations'] as List).first as Map;
+    final sourceIds = [
+      for (var index = 0; index < 14; index++) 'source-$index-${'a' * 64}',
+    ];
+    final evidenceRefs = [
+      'native-draft-sha256:${'b' * 64}',
+      'source-study-ack-sha256:${'c' * 64}',
+      'study-settings-sha256:${'d' * 64}',
+    ];
+    final input = {
+      ...seed,
+      'operations': [
+        for (var index = 0; index < 20000; index++)
+          {
+            ...operation,
+            'operationId': 'world-provenance-operation-$index',
+            'sourceEntityIds': sourceIds,
+            'evidenceRefs': evidenceRefs,
+          },
+      ],
+    };
+    expect(jsonTextSize(input), greaterThan(25165824));
+    expect(jsonTextSize(input), lessThanOrEqualTo(50331648));
+    expect(
+        () => ConversionPlan.fromJson(input,
+            limits: const ContractLimits(
+                maxNodes: 4000000, maxTextCodeUnits: 25165824)),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'json.textQuota')));
+    final plan = ConversionPlan.fromJson(input, limits: world.planJsonLimits);
+    expect(plan.operations, hasLength(20000));
+    expect(plan.operations.last.sourceEntityIds.map((id) => id.value), sourceIds);
+    expect(plan.operations.last.evidenceRefs, evidenceRefs);
+    expect(plan.canonicalHash,
+        canonicalHashOf(input, limits: world.planJsonLimits));
+    expect(
+        () => ConversionPlan.fromJson({
+              ...seed,
+              'operations': [
+                {
+                  ...operation,
+                  'evidenceRefs': ['x' * 1048577],
+                },
+              ],
+            }, limits: world.planJsonLimits),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'json.textQuota')));
+  });
 
   NativeMutation mutation(int index,
           {List<ConverterId>? sourceIds,

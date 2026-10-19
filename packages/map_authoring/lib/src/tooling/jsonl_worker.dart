@@ -44,6 +44,8 @@ import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../workspace/project_open_service.dart';
+import '../catalog_storage/catalog_storage_store.dart';
+import '../api/local_map_authoring_mutation_api.dart';
 import '../workspace/project_creation_contracts.dart';
 import '../workspace/project_creation_bootstrap_api.dart';
 import '../workspace/project_pokemon_ruleset_bootstrap_service.dart';
@@ -256,6 +258,14 @@ final class JsonlWorker {
         message: error.message,
         retryable: error.code == 'project.changed_during_snapshot',
       );
+    } on CatalogStorageException catch (error) {
+      result = _failure(requestId,
+          code: error.code == 'catalog.revision_conflict'
+              ? AuthoringErrorCode.revisionConflict
+              : AuthoringErrorCode.validationFailed,
+          domainCode: error.code,
+          message: error.message,
+          retryable: error.code == 'catalog.revision_conflict');
     } on AuthoringQueryException catch (error) {
       result = _queryFailure(requestId, error);
     } on MapRegionQueryException catch (error) {
@@ -501,6 +511,15 @@ final class JsonlWorker {
     return jsonEncode(result.toJson());
   }
 
+  bool _isCatalogProject(ProjectHandle project) {
+    final mutations=_mutations;
+    return mutations is LocalMapAuthoringMutationApi && mutations.isCatalogProject(project);
+  }
+
+  Future<void> _requireSynchronousOperationAllowed(ProjectHandle project,{required String operation,String? planId,String? operationId,String? entryId}) async {
+    await _resourcePacks?.requireSynchronousOperationAllowed(project,operation:operation,planId:planId,operationId:operationId,entryId:entryId);
+  }
+
   Future<Map<String, Object?>> _dispatch(
     String command,
     Map<String, dynamic> args, {
@@ -564,13 +583,16 @@ final class JsonlWorker {
           rethrow;
         }
         _openedWorkspaces.add(workspaceHandle);
-        final pending = await _resourcePacks?.transfer(
+        final catalogProject = _isCatalogProject(projectHandle);
+        final pending = catalogProject
+            ? null
+            : await _resourcePacks?.transfer(
           projectHandle,
           verb: 'recovery_status',
         );
         return Map.unmodifiable({
           ...opened,
-          'readOnly': pending?['recoveryRequired'] == true,
+          'readOnly': catalogProject ? await (mutations as LocalMapAuthoringMutationApi).catalogProjectReadOnly(projectHandle) : pending?['recoveryRequired'] == true,
           if (pending != null) 'resourcePackRecovery': pending,
         });
       case 'project_bootstrap_inspect':
@@ -752,7 +774,7 @@ final class JsonlWorker {
             'confirmationToken',
           },
         );
-        await _resourcePacks?.requireSynchronousOperationAllowed(
+        await _requireSynchronousOperationAllowed(
           _projectHandle(args),
           operation: 'apply',
           planId: requireContractString(args['planId'], 'args.planId'),
@@ -776,7 +798,7 @@ final class JsonlWorker {
           args,
           const {'projectHandle', 'entryId', 'idempotencyKey'},
         );
-        await _resourcePacks?.requireSynchronousOperationAllowed(
+        await _requireSynchronousOperationAllowed(
           _projectHandle(args),
           operation: 'undo',
           entryId: requireContractString(args['entryId'], 'args.entryId'),
@@ -825,7 +847,7 @@ final class JsonlWorker {
           args,
           const {'projectHandle', 'operationId'},
         );
-        await _resourcePacks?.requireSynchronousOperationAllowed(
+        await _requireSynchronousOperationAllowed(
           _projectHandle(args),
           operation: 'recover',
           operationId: requireContractString(

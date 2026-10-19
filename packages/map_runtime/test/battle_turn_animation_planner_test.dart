@@ -116,6 +116,43 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
 
+  test('trainer status medicine keeps project names in animation messages', () {
+    final before = _session(
+      player: _combatant(speciesId: 'player', lineupIndex: 0, moves: []),
+      enemy: _combatant(speciesId: 'foe', lineupIndex: 0, moves: []),
+    );
+    final plan = BattleTurnAnimationPlanner(
+      speciesDisplayName: (id) => id == 'foe' ? 'Adversaire nommé' : id,
+    ).buildForTurn(
+      playerBefore: before.state.player,
+      enemyBefore: before.state.enemy,
+      turnResult: const BattleTurnResult(
+        playerAction: BattleActionNone(),
+        enemyAction: BattleActionNone(),
+        executions: [],
+        timeline: [
+          BattleTurnStatusCuredItemEvent(
+            side: BattleSideId.enemy,
+            itemId: 'custom_cure',
+            displayName: 'Antidote du projet',
+            targetSpeciesId: 'foe',
+            targetLineupIndex: 0,
+          ),
+        ],
+      ),
+      moveCatalog: RuntimeMoveCatalog.fromEntries({}),
+      resolver: _resolver(),
+    );
+
+    expect(
+      plan.steps.whereType<ShowMessageStep>().map((step) => step.message),
+      [
+        'Ennemi utilise Antidote du projet sur Adversaire nommé !',
+        'Adversaire nommé est guéri de son problème de statut.',
+      ],
+    );
+  });
+
   group('L14 weather residual presentation', () {
     BattleAnimationPlan planFor({
       int currentHp = 40,

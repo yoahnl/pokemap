@@ -9,6 +9,65 @@ const int _resolverVersion = 1;
 
 void main() {
   group('assessBorderPublicationReadiness', () {
+    test('native connected-line publication permits mirrors without rotations', () {
+      final fixture = _Fixture.complete();
+      for (final autoRotation in [false, true]) {
+        final definition = _nativeConnectedLineDefinition(
+          fixture,
+          allowAutoRotation: autoRotation,
+        );
+        final gallery = resolveBorderCanonicalGallery(
+          blueprintId: 'coast',
+          blueprintRevision: BorderBlueprintRevision(revision: 1, definition: definition),
+          visualSnapshots: fixture.snapshots,
+          tileSizePx: const GridSize(width: 2, height: 2),
+          resolverVersion: _resolverVersion,
+        );
+        expect(gallery.allCasesResolved, isTrue);
+        expect(gallery.requiresInverted, isTrue);
+        final result = _assess(fixture, definition: definition, galleryReport: gallery.report);
+        expect(_codes(result), isNot(contains('border.publication.connected_line_transform_unavailable')));
+        expect(result.canPublish, isTrue, reason: _codes(result).join(', '));
+      }
+    });
+
+    test('native connected-line publication requires mirrored direction coverage', () {
+      final fixture = _Fixture.complete();
+      final definition = _nativeConnectedLineDefinition(
+        fixture,
+        unmirroredPrimitiveId: 'lineCap-north',
+      );
+      final result = _assess(fixture, definition: definition);
+      final coverageErrors = result.diagnosticReport.diagnostics.where(
+        (diagnostic) => diagnostic.code == 'border.publication.connected_line_transform_unavailable',
+      );
+      expect(result.canPublish, isFalse);
+      expect(coverageErrors, hasLength(1));
+      expect(coverageErrors.single.parameters['flipX'], isTrue);
+    });
+
+    test('native connected-line coverage uses authored directions without mirrors', () {
+      final fixture = _Fixture.complete();
+      final primitives = [
+        for (final role in [BorderPrimitiveRole.lineCap, BorderPrimitiveRole.lineStraight, BorderPrimitiveRole.lineCorner])
+          for (final direction in _allCardinalOrientations)
+            fixture.primitive('${role.name}-${direction.name}', role,
+                authoredOrientation: direction, quarterTurns: const [0]),
+      ];
+      final definition = fixture.definitionFor(
+          template: BorderBlueprintTemplate.connectedLine, primitives: primitives,
+          defaults: BorderGenerationParams(irregularityPermille: 0,
+              detailDensityPermille: 0, variationPermille: 0, maxOverlapPx: 0,
+              gapTolerancePx: 0, depthRows: 1, allowAutoRotation: false));
+      final result = _assess(fixture, definition: definition);
+      expect(_codes(result), isNot(contains('border.publication.connected_line_transform_unavailable')));
+      final incomplete = fixture.definitionFor(
+          template: definition.template, defaults: definition.defaults,
+          primitives: primitives.where((p) => p.id != 'lineCap-west').toList());
+      expect(_codes(_assess(fixture, definition: incomplete)),
+          contains('border.publication.connected_line_transform_unavailable'));
+    });
+
     test('accepts a complete organic candidate without ground', () {
       final fixture = _Fixture.complete();
       final gallery = resolveOrganicEdgeCanonicalGallery(
@@ -2380,6 +2439,41 @@ BorderPublishedGround _ground({
         for (final role in standardBorderGroundVariantRoleOrder) role: snapshotId,
       },
     );
+
+BorderBlueprintPublishedDefinition _nativeConnectedLineDefinition(
+  _Fixture fixture, {
+  bool allowAutoRotation = true,
+  String? unmirroredPrimitiveId,
+}) => fixture.definitionFor(
+  template: BorderBlueprintTemplate.connectedLine,
+  defaults: BorderGenerationParams(
+    irregularityPermille: 0,
+    detailDensityPermille: 0,
+    variationPermille: 0,
+    maxOverlapPx: 0,
+    gapTolerancePx: 0,
+    depthRows: 1,
+    allowAutoRotation: allowAutoRotation,
+  ),
+  primitives: [
+    for (final role in [BorderPrimitiveRole.lineCap, BorderPrimitiveRole.lineStraight, BorderPrimitiveRole.lineCorner])
+      for (final direction in _allCardinalOrientations)
+        BorderPublishedPrimitive(
+          id: '${role.name}-${direction.name}',
+          sourceElementId: 'element-large-a',
+          visualSnapshotId: fixture.snapshotId(0),
+          role: role,
+          authoredOrientation: direction,
+          weight: 100,
+          anchorPx: const BorderPixelPos(x: 1, y: 1),
+          transforms: BorderTransformPolicy(
+            allowFlipX: '${role.name}-${direction.name}' != unmirroredPrimitiveId,
+            allowedQuarterTurns: const [0],
+          ),
+          publishedMetrics: fixture.metrics(),
+        ),
+  ],
+);
 
 final class _Fixture {
   _Fixture.complete()

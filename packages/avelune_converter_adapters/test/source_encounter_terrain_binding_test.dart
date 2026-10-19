@@ -416,6 +416,116 @@ void main() {
     expect(movements, hasLength(2));
   });
 
+  test(
+      'Surf requirement excludes walkable overlays while preserving water family',
+      () async {
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: syntheticInterpretationArchive,
+        interpretationProfile: fixtureSourceInterpretationProfile,
+        maps: [
+          LiteralFixtureMap(id: 9, width: 9, height: 1, layers: [
+            [386, 386, 386, 386, 386, 386, 386, 392, 386],
+            [384, 0, 387, 388, 389, 390, 391, 0, 393],
+            List.filled(9, 0)
+          ])
+        ],
+        tilesets: [
+          LiteralFixtureTileset(
+              id: 1,
+              passages: {386: 15, 387: 15, 388: 1, 391: 15, 392: 0, 393: 8},
+              priorities: {390: 1},
+              terrainTags: {386: 7, 389: 15, 391: 13, 392: 7})
+        ]);
+    final source = fixture.source;
+    final semantic = SourceSemanticResolver.forProject(source);
+    final terrain = SourceEncounterTerrainResolver(resolver: semantic);
+    final result = _bind(source, ['Water', 'OldRod', 'GoodRod', 'SuperRod']);
+    final movementCells = {
+      for (final zone in result.zonesBySourceMapId[9]!)
+        if (zone.kind == GameplayZoneKind.movement)
+          for (var y = zone.area.pos.y;
+              y < zone.area.pos.y + zone.area.size.height;
+              y++)
+            for (var x = zone.area.pos.x;
+                x < zone.area.pos.x + zone.area.size.width;
+                x++)
+              GridPos(x: x, y: y)
+    };
+    expect(movementCells, {
+      const GridPos(x: 1, y: 0),
+      const GridPos(x: 4, y: 0),
+      const GridPos(x: 5, y: 0),
+      const GridPos(x: 6, y: 0)
+    });
+    for (var x = 0; x < 9; x++) {
+      final cell = semantic.cellAt(9, x, 0);
+      expect(terrain.resolveTerrainTag(cell), 7);
+      expect(semantic.resolveConnectionEntryTile(cell).isPassable,
+          {0, 3, 7, 8}.contains(x));
+      expect(terrain.resolveSurfEntryTile(cell).isPassable, x != 2);
+    }
+    for (final zone in result.zonesBySourceMapId[9]!
+        .where((zone) => zone.kind == GameplayZoneKind.encounter)) {
+      expect(_worldCells(zone), [
+        for (var x = 0; x < 9; x++)
+          if (x != 2) GridPos(x: x, y: 0)
+      ]);
+    }
+    final row = (result.evidence['maps'] as List).single as Map;
+    expect(_decodeEvidenceCells(row['waterCells']), [
+      for (var x = 0; x < 9; x++)
+        if (x != 2) {'x': x, 'y': 0}
+    ]);
+    for (final x in [3, 7, 8]) {
+      final passage = semantic.resolveCell(semantic.cellAt(9, x, 0));
+      expect(
+          passage.allowedMask,
+          x == 7
+              ? 15
+              : x == 8
+                  ? 7
+                  : 14);
+      expect(
+          passage.blockedMask,
+          x == 7
+              ? 0
+              : x == 8
+                  ? 8
+                  : 1);
+    }
+  });
+
+  for (final passage in [1, 8]) {
+    test('Water passage $passage refuses mode-specific directional admission',
+        () async {
+      final fixture = await LiteralTileFixture.create(
+          scriptsBytes: syntheticInterpretationArchive,
+          interpretationProfile: fixtureSourceInterpretationProfile,
+          maps: [
+            LiteralFixtureMap(id: 9, width: 3, height: 2, layers: [
+              [384, 384, 384, 384, 384, 386],
+              List.filled(6, 0),
+              List.filled(6, 0)
+            ])
+          ],
+          tilesets: [
+            LiteralFixtureTileset(
+                id: 1, passages: {386: passage}, terrainTags: {386: 7})
+          ]);
+      final source = fixture.source;
+      final semantic = SourceSemanticResolver.forProject(source);
+      final cell = semantic.cellAt(9, 2, 1);
+      expect(semantic.resolveConnectionEntryTile(cell).isPassable, isTrue);
+      expect(semantic.resolveCell(cell).blockedMask, passage);
+      expect(
+          () => _bind(source, []),
+          throwsA(isA<ContractError>()
+              .having((error) => error.code, 'code',
+                  'source_encounter_terrain.mode_specific_passage_unqualified')
+              .having((error) => error.path, 'path', r'$.maps.9.cells[1][2]')));
+    });
+  }
+
   test('every generated zone passes canonical cell mask validation', () async {
     final source = await _source();
     final result = _bind(source, [
@@ -700,13 +810,12 @@ int _nodes(Object? value) => switch (value) {
 
 SourceSemanticResolver _resolver() => SourceSemanticResolver(
         profile: SourceSemanticProfile(
-      scriptsArchiveHash:
-          Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+      scriptsArchiveHash: Sha256Hash(
+          fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
       sourceSnapshotHash: Sha256Hash('a' * 64),
       sourceSelectionHash: Sha256Hash('b' * 64),
-
-interpretationProfile: fixtureSourceInterpretationProfile,
-));
+      interpretationProfile: fixtureSourceInterpretationProfile,
+    ));
 
 SourceSemanticTile _tile(int z,
         {int terrain = 0, int passage = 0, int priority = 0, int id = 384}) =>

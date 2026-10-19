@@ -5,6 +5,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 
 class ModelCollisionControls extends StatefulWidget {
@@ -15,7 +16,11 @@ class ModelCollisionControls extends StatefulWidget {
     this.busy = false,
   });
   final ProjectModel3dEntry model;
-  final Future<void> Function(Model3dBounds? bounds) onSave;
+  final Future<void> Function(
+    Model3dBounds? bounds,
+    bool blocksMovementByDefault,
+  )
+  onSave;
   final bool busy;
 
   @override
@@ -24,6 +29,7 @@ class ModelCollisionControls extends StatefulWidget {
 
 class _ModelCollisionControlsState extends State<ModelCollisionControls> {
   late bool custom;
+  late bool blocksMovementByDefault;
   late List<String> values;
   bool saving = false;
   String? error;
@@ -38,13 +44,16 @@ class _ModelCollisionControlsState extends State<ModelCollisionControls> {
   void didUpdateWidget(ModelCollisionControls old) {
     super.didUpdateWidget(old);
     if (old.model.id != widget.model.id ||
-        old.model.collisionBounds != widget.model.collisionBounds) {
+        old.model.collisionBounds != widget.model.collisionBounds ||
+        old.model.blocksMovementByDefault !=
+            widget.model.blocksMovementByDefault) {
       reset();
     }
   }
 
   void reset() {
     custom = widget.model.collisionBounds != null;
+    blocksMovementByDefault = widget.model.blocksMovementByDefault;
     final bounds =
         widget.model.collisionBounds ?? widget.model.inspection.bounds;
     values = [
@@ -87,7 +96,7 @@ class _ModelCollisionControlsState extends State<ModelCollisionControls> {
       error = null;
     });
     try {
-      await widget.onSave(bounds);
+      await widget.onSave(bounds, blocksMovementByDefault);
     } on Object catch (failure) {
       if (mounted) setState(() => error = '$failure');
     } finally {
@@ -97,8 +106,18 @@ class _ModelCollisionControlsState extends State<ModelCollisionControls> {
 
   @override
   Widget build(BuildContext context) => StudioPanel(
-    title: 'Volume de collision',
+    title: 'Collision et placement',
     children: [
+      StudioToggleRow(
+        key: const ValueKey('model-blocks-movement-default'),
+        label: 'Bloque le passage à la pose',
+        description: 'Ce réglage s’applique aux nouveaux décors. Chaque décor posé conserve son propre choix.',
+        value: blocksMovementByDefault,
+        onChanged: saving || widget.busy
+            ? null
+            : (value) => setState(() => blocksMovementByDefault = value),
+      ),
+      const SizedBox(height: 12),
       IgnorePointer(
         ignoring: saving || widget.busy,
         child: StudioSelect(
@@ -161,7 +180,7 @@ class _ModelCollisionControlsState extends State<ModelCollisionControls> {
         children: [
           StudioButton(
             key: const ValueKey('model-collision-save'),
-            label: saving ? 'Enregistrement…' : 'Enregistrer le volume',
+            label: saving ? 'Enregistrement…' : 'Enregistrer les réglages',
             icon: Icons.save_outlined,
             onPressed: saving || widget.busy ? null : save,
           ),

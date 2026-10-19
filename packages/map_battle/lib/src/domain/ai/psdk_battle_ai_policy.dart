@@ -65,7 +65,7 @@ PsdkBattleAiPolicy psdkBattleAiPolicyForDifficulty(int? difficulty) {
       productDifficulty: normalized,
       aiLevel: 1,
       switchPolicy: PsdkBattleAiSwitchPolicy.never,
-      itemPolicy: PsdkBattleAiItemPolicy.disabled,
+      itemPolicy: PsdkBattleAiItemPolicy.authoredOptionsOnly,
     );
   }
   if (normalized <= 7) {

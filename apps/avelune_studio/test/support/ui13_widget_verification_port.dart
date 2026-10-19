@@ -29,7 +29,7 @@ class Ui13WidgetVerificationPort implements VerificationPort {
 
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(
-    NarrativeRuntimeSmokeProfile profile,
+    NarrativeRuntimeSmokeProfile? profile,
   ) => _run(() => delegate.readRuntimeEvidence(profile));
 
   @override

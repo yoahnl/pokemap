@@ -56,10 +56,21 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
         handles: _handles,
       );
       final opened = await service.openProject(canonicalPath);
+      final catalog = opened.recoveryRequired
+          ? null
+          : await service.catalogProject(opened.projectHandle);
       return ProjectSession(
         sessionId: opened.workspaceHandle.value,
         name: opened.projectName,
         directoryPath: canonicalPath,
+        recoveryOperationIds: List.unmodifiable(opened.recoveryOperationIds),
+        storage: opened.recoveryRequired
+            ? ProjectSessionStorage.workingCatalog
+            : catalog == null
+            ? ProjectSessionStorage.manifest
+            : catalog.readOnly
+            ? ProjectSessionStorage.portableCatalog
+            : ProjectSessionStorage.workingCatalog,
       );
     } on ProjectOpenFailure {
       rethrow;

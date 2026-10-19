@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
@@ -80,6 +81,7 @@ final class ProjectSnapshot {
     required this.revision,
     required this.manifest,
     this.pokemonInventoryComplete = false,
+    this.materializedCatalogProject = false,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     ProjectItemCatalog? itemCatalog,
@@ -202,6 +204,7 @@ final class ProjectSnapshot {
         revision = source.revision,
         manifest = source.manifest,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
+        materializedCatalogProject = source.materializedCatalogProject,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
         maps = source.maps,
@@ -224,6 +227,7 @@ final class ProjectSnapshot {
   })  : payloadOwner = source.payloadOwner,
         projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
+        materializedCatalogProject = source.materializedCatalogProject,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
         maps = List.unmodifiable(
@@ -243,6 +247,11 @@ final class ProjectSnapshot {
   final String revision;
   final ProjectManifest manifest;
   final bool pokemonInventoryComplete;
+  final bool materializedCatalogProject;
+  late final List<int> _materializedAuthoringProjectBytes = List<int>.unmodifiable(utf8.encode(jsonEncode(manifest.toJson())));
+  List<int> get authoringProjectBytes => materializedCatalogProject
+      ? _materializedAuthoringProjectBytes
+      : resourceBytes('project');
   final ProjectItemCatalog? itemCatalog;
   final List<ProjectItemReference> additionalItemReferences;
   final List<MapData> maps;
@@ -347,6 +356,7 @@ final class ProjectSnapshot {
           revision: revision,
           manifest: manifest,
           pokemonInventoryComplete: pokemonInventoryComplete,
+          materializedCatalogProject: materializedCatalogProject,
           itemCatalog: itemCatalog,
           additionalItemReferences: additionalItemReferences,
           maps: maps,

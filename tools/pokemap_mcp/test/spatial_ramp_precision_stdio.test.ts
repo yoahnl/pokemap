@@ -76,7 +76,7 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     const schema = record(record(descriptor.extensions).inputSchema);
     const navigationSchema = record(record(schema.properties).navigation);
     const rampSchema = record(record(record(navigationSchema.properties).ramps).items);
-    for (const field of ["x", "z", "width", "depth"]) {
+    for (const field of ["x", "z", "width", "depth", "lowLevel", "highLevel"]) {
       assert.equal(record(record(rampSchema.properties)[field]).type, "number");
     }
     assert.deepEqual(record(record(rampSchema.properties).surfaceInstanceId).type, ["string", "null"]);
@@ -208,6 +208,42 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     assert.deepEqual(await queryMap(), before);
     assert.deepEqual(await readFile(mapPath), beforeBytes);
     assert.deepEqual(await readFile(manifestPath), beforeManifest);
+    const fractionalArtifact = await call("pokemap_artifact_stage", {
+      sourcePath: modelPath, declaredMediaType: "model/gltf-binary" });
+    await mutate("model3d.import", { modelId: "fractional-stair", name: "Fractional stair",
+      artifactHandle: fractionalArtifact.artifactHandle });
+    await mutate("model3d.configure", { modelId: "fractional-stair", rampProfile: {
+      x: 0, z: 0, width: 1, depth: 1, lowHeight: 0,
+      highHeight: .375, direction: "north" } });
+    await mutate("map3d.instance.upsert", { mapId, instance: {
+      id: "fractional", modelId: "fractional-stair",
+      position: { x: 15, y: .75, z: 10 }, rotationDegrees: 0, scale: 1,
+      blocksMovement: false } });
+    const fractionalMap = await queryMap();
+    const fractionalNavigation = record(record(fractionalMap.spatialScene).navigation);
+    const fractionalRamp = (fractionalNavigation.ramps as JsonRecord[])
+      .find(value => value.surfaceInstanceId === "fractional");
+    assert.ok(fractionalRamp);
+    assert.equal(fractionalRamp.lowLevel, 3);
+    assert.equal(fractionalRamp.highLevel, 4.5);
+    await mutate("map3d.instance.upsert", { mapId, instance: {
+      id: "fractional", modelId: "fractional-stair",
+      position: { x: 16, y: .875, z: 10 }, rotationDegrees: 90,
+      scale: 1, blocksMovement: false } });
+    const movedFractionalMap = await queryMap();
+    const movedRamp = (record(record(movedFractionalMap.spatialScene).navigation).ramps as JsonRecord[])
+      .find(value => value.surfaceInstanceId === "fractional");
+    assert.ok(movedRamp);
+    assert.equal(movedRamp.lowLevel, 3.5);
+    assert.equal(movedRamp.highLevel, 5);
+    assert.equal(movedRamp.direction, "west");
+    const fractionalBytes = await readFile(mapPath);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle });
+    opened = await call("pokemap_workspace", { operation: "open", projectRoot });
+    projectHandle = String(opened.projectHandle);
+    workspaceHandle = String(opened.workspaceHandle);
+    assert.deepEqual(await queryMap(), movedFractionalMap);
+    assert.deepEqual(await readFile(mapPath), fractionalBytes);
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
   } finally {
     await client.close();

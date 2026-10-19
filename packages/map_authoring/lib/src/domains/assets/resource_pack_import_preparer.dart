@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../../contracts/artifact_ref.dart';
+import '../../catalog_storage/catalog_storage_store.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/file_backed_payload_store.dart';
@@ -190,11 +191,9 @@ final class ResourcePackImportPreparer {
     final lease = await store.retain(scope: scope, handle: archiveHandle);
     try {
       final securityPolicy = policy;
-      final inspect =
-          inspector ??
-          (source) =>
-              ResourcePackInspector(policy: securityPolicy)
-                  .inspectSourceSync(source);
+      final inspect = inspector ??
+          (source) => ResourcePackInspector(policy: securityPolicy)
+              .inspectSourceSync(source);
       final inspection = await _sourceWorker(archiveHandle, inspect);
       _checkOpen();
       if (inspection.archiveRawSha256 != lease.payload.rawSha256) {
@@ -229,11 +228,12 @@ final class ResourcePackImportPreparer {
     required String archiveHandle,
     required Iterable<ResourcePackRef> roots,
     Iterable<String> smartTilePatternIds = const [],
-  }) => _select(
-    archiveHandle: archiveHandle,
-    roots: roots,
-    smartTilePatternIds: smartTilePatternIds,
-  );
+  }) =>
+      _select(
+        archiveHandle: archiveHandle,
+        roots: roots,
+        smartTilePatternIds: smartTilePatternIds,
+      );
 
   Future<ResourcePackImportSelection> _select({
     required String archiveHandle,
@@ -323,7 +323,10 @@ final class ResourcePackImportPreparer {
     final same = installed
         .where((e) => e.packId == pack.id && e.packVersion == pack.version)
         .toList();
-    final closure = ResourcePackDependencyGraph.fromCatalog(inspection.catalog).closure(roots: selection.roots, smartTilePatternIds: selection.smartTilePatternIds);
+    final closure = ResourcePackDependencyGraph.fromCatalog(inspection.catalog)
+        .closure(
+            roots: selection.roots,
+            smartTilePatternIds: selection.smartTilePatternIds);
     if (conflictPolicy == ResourcePackConflictPolicy.preserveProject) {
       for (final entry in same) {
         if (selection.roots.every(
@@ -334,7 +337,14 @@ final class ResourcePackImportPreparer {
                     mapping.sourceId == id))) {
           return ResourcePackPreparedImport._(
               status: ResourcePackPreparedImportStatus.alreadyInstalled,
-              review: _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: entry, installation: entry, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.alreadyInstalled),
+              review: _buildImportReview(
+                  selection: selection,
+                  snapshot: snapshot,
+                  closure: closure,
+                  previous: entry,
+                  installation: entry,
+                  policy: conflictPolicy,
+                  status: ResourcePackPreparedImportStatus.alreadyInstalled),
               installation: entry);
         }
       }
@@ -383,8 +393,7 @@ final class ResourcePackImportPreparer {
       final neededLicenses =
           _requiredImportLicenses(inspection.catalog, closure);
       final archivePaths = <String>{
-        for (final file in selectedFiles)
-          file.archivePath,
+        for (final file in selectedFiles) file.archivePath,
         ...neededLicenses
       };
       final staged = <String, StoredFilePayload>{};
@@ -499,7 +508,15 @@ final class ResourcePackImportPreparer {
       if (conflicts.isNotEmpty) {
         return ResourcePackPreparedImport._(
             status: ResourcePackPreparedImportStatus.conflict,
-            review: _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: previous, projection: projection, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.conflict, conflicts: conflicts),
+            review: _buildImportReview(
+                selection: selection,
+                snapshot: snapshot,
+                closure: closure,
+                previous: previous,
+                projection: projection,
+                policy: conflictPolicy,
+                status: ResourcePackPreparedImportStatus.conflict,
+                conflicts: conflicts),
             conflicts: List.unmodifiable(conflicts.toList()..sort()));
       }
       final logicalCount =
@@ -518,7 +535,8 @@ final class ResourcePackImportPreparer {
           _merge(snapshot.manifest, projection, previous, installation);
       ProjectValidator.validate(manifest);
       final catalog = AssetCatalog(records: records);
-      final projectBytes = encodeResourceInformationDocument(snapshot, manifest);
+      final projectBytes =
+          encodeResourceInformationDocument(snapshot, manifest);
       final budget = await measureProjectDocumentBudget(projectBytes,
           scope: 'mergedProjectDistribution');
       final value = _Prepared(
@@ -537,7 +555,18 @@ final class ResourcePackImportPreparer {
       _checkOpen();
       checkCancelled?.call();
       final handle = _next('prepared');
-      value.review = _buildImportReview(selection: selection, snapshot: snapshot, closure: closure, previous: previous, projection: projection, installation: installation, policy: conflictPolicy, status: ResourcePackPreparedImportStatus.ready, outputs: outputs, metadataBytes: value.projectBytes.length + value.catalogBytes.length, budgetReport: budget.toBoundedJson(maximumBytes: 96 * 1024));
+      value.review = _buildImportReview(
+          selection: selection,
+          snapshot: snapshot,
+          closure: closure,
+          previous: previous,
+          projection: projection,
+          installation: installation,
+          policy: conflictPolicy,
+          status: ResourcePackPreparedImportStatus.ready,
+          outputs: outputs,
+          metadataBytes: value.projectBytes.length + value.catalogBytes.length,
+          budgetReport: budget.toBoundedJson(maximumBytes: 96 * 1024));
       _prepared[handle] = value;
       leases.clear();
       return ResourcePackPreparedImport._(
@@ -729,7 +758,8 @@ final class ResourcePackImportPreparer {
           projectedProject: prepared.manifest,
           preview: {
             'operation': 'resource_pack.import',
-            'createdResources': prepared.review.summary['createdDefinitionCount'],
+            'createdResources':
+                prepared.review.summary['createdDefinitionCount'],
             'selectionSummary': prepared.review.summary,
             'logicalOutputs':
                 prepared.outputs.where((o) => o.role == 'logical').length,
@@ -784,6 +814,123 @@ final class ResourcePackImportPreparer {
           'inventory_unknown', 'No prepared import owns these preconditions.');
     }
     inventory.requirePlan(plan);
+    await _requirePreparedPreconditions(plan, inventory);
+  }
+
+  Future<void> certifyCatalogPlan({
+    required AuthoringPlan plan,
+    required String actorId,
+    required String projectId,
+    required String operationId,
+    required CatalogStorageStore store,
+  }) async {
+    final inventory = await _requireCatalogInventory(plan, store);
+    if (projectId != scope.projectId) {
+      _fail('inventory_unknown', 'The prepared project identity differs.');
+    }
+    final existing = plan.bulkCapability;
+    if (existing != null) {
+      existing.requirePlan(plan,
+          actorId: actorId, projectId: projectId, operationId: operationId);
+      return;
+    }
+    plan.bindBulkCapability(ResourcePackBulkAuthority.certifyImport(
+        plan: plan,
+        actorId: actorId,
+        projectId: projectId,
+        operationId: operationId,
+        logicalStorageKeys: inventory.prepared.outputs
+            .where((o) => o.role == 'logical')
+            .map((o) => o.path),
+        contentBlobStorageKeys: inventory.prepared.outputs
+            .where((o) => o.role == 'blob')
+            .map((o) => o.path)));
+  }
+
+  Future<void> requireCatalogPlanPreconditions(AuthoringPlan plan,
+      {required CatalogStorageStore store}) async {
+    final inventory = await _requireCatalogInventory(plan, store);
+    await _requirePreparedPreconditions(plan, inventory);
+  }
+
+  Future<_PlanInventory> _requireCatalogInventory(
+      AuthoringPlan plan, CatalogStorageStore catalogStore) async {
+    final inventory = _planInventories[plan.planId];
+    if (inventory == null) {
+      _fail(
+          'inventory_unknown', 'No trusted prepared inventory owns this plan.');
+    }
+    final expected = inventory.expected
+        .where((entry) => entry['path'] != 'project.json')
+        .toList();
+    final actual = [
+      for (final change in plan.changeSet.changes)
+        if (change.storageKey != CatalogStorageStore.headStorageKey)
+          {
+            'resource': change.resource.toJson(),
+            'path': change.storageKey,
+            'before': change.beforeRevision,
+            'after': change.afterRevision,
+          }
+    ];
+    final heads = plan.changeSet.changes
+        .where(
+            (change) => change.storageKey == CatalogStorageStore.headStorageKey)
+        .toList();
+    if (heads.length != 1 ||
+        heads.single.resource.kind != 'catalogHead' ||
+        heads.single.resource.id != 'catalog' ||
+        canonicalAuthoringJson(expected) != canonicalAuthoringJson(actual)) {
+      _fail('inventory_changed',
+          'The catalog plan differs from its preparation.');
+    }
+    Future<ProjectManifest> projectAt(List<int>? bytes) async {
+      if (bytes == null ||
+          bytes.length > CatalogStorageStore.maximumHeadBytes) {
+        _fail('inventory_changed', 'A bounded catalog HEAD is required.');
+      }
+      try {
+        final value = jsonDecode(utf8.decode(bytes));
+        if (value is! Map<String, dynamic> ||
+            value.length != 2 ||
+            value['schemaVersion'] != 1 ||
+            value['root'] is! Map<String, dynamic>) {
+          throw const FormatException('Invalid catalog HEAD');
+        }
+        final root = CatalogObjectReference.fromJson(
+            Map<String, Object?>.from(value['root'] as Map));
+        if (utf8.decode(CatalogStorageStore.encodeHead(root)) !=
+            utf8.decode(bytes)) {
+          throw const FormatException('Noncanonical catalog HEAD');
+        }
+        final snapshot = await catalogStore.openRoot(root);
+        final catalog =
+            await PortableProjectCatalog.fromSnapshot(snapshot.snapshot);
+        return await catalog.exportProject();
+      } on Object {
+        _fail(
+            'inventory_changed', 'The prepared catalog generation is invalid.');
+      }
+    }
+
+    final before = await projectAt(heads.single.beforeBytes);
+    final after = await projectAt(heads.single.afterBytes);
+    final preparedAfter = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(inventory.prepared.projectBytes))
+            as Map<String, dynamic>);
+    if (canonicalAuthoringJson(before.toJson()) !=
+            canonicalAuthoringJson(
+                inventory.prepared.target.manifest.toJson()) ||
+        canonicalAuthoringJson(after.toJson()) !=
+            canonicalAuthoringJson(preparedAfter.toJson())) {
+      _fail('inventory_changed',
+          'The catalog generation changes the prepared project.');
+    }
+    return inventory;
+  }
+
+  Future<void> _requirePreparedPreconditions(
+      AuthoringPlan plan, _PlanInventory inventory) async {
     final current = await loadSnapshot();
     if (current.revision != plan.baseRevision) {
       _fail('project_stale',
@@ -1170,14 +1317,17 @@ ProjectManifest _merge(
     }
   }
   return target.copyWith(
-      globalProperties: importedDependencies.isEmpty ? target.globalProperties : {
-        ...target.globalProperties,
-        PortableCatalogPublication.projectDynamicDependenciesKey: [
-          for (final owner in dynamicTargets.keys.toList()..sort())
-            CatalogDynamicDependency(owner: owner, targets: dynamicTargets[owner]!)
-                .toJson(),
-        ],
-      },
+      globalProperties: importedDependencies.isEmpty
+          ? target.globalProperties
+          : {
+              ...target.globalProperties,
+              PortableCatalogPublication.projectDynamicDependenciesKey: [
+                for (final owner in dynamicTargets.keys.toList()..sort())
+                  CatalogDynamicDependency(
+                          owner: owner, targets: dynamicTargets[owner]!)
+                      .toJson(),
+              ],
+            },
       tilesets: [
         ...target.tilesets,
         ...c.tilesets.where((e) => include('tileset', e.id))
@@ -1272,44 +1422,46 @@ bool _verifiedSource(RandomAccessPackageSource source) => true;
 Map<String, dynamic> Function(RandomAccessPackageSource) _archiveEntriesWorker(
   ResourcePackInspection inspection,
   ResourcePackSecurityPolicy policy,
-) => (source) {
-  final certified = ResourcePackInspector(policy: policy)
-      .inspectSourceSync(source);
-  if (certified.archiveRawSha256 != inspection.archiveRawSha256) {
-    _fail(
-      'archive_changed',
-      'The inspected archive changed before preparation.',
-    );
-  }
-  final allowed = {
-    'manifest.json',
-    inspection.manifest.content.catalog.path,
-    ...inspection.manifest.content.files.map((file) => file.path),
-  };
-  return {
-    for (final entry in RandomAccessZipStructureReader(
-      const GamePackageSecurityPolicy(),
-      entryNameValidator: (name) {
-        if (!allowed.contains(name)) {
-          _fail('archive_inventory_invalid', 'ZIP inventory differs.');
-        }
-      },
-      maxTotalEntries: policy.maxZipEntries,
-      readChunkBytes: policy.maxChunkBytes,
-    ).read(source).entries)
-      entry.name: entry,
-  };
-};
+) =>
+    (source) {
+      final certified =
+          ResourcePackInspector(policy: policy).inspectSourceSync(source);
+      if (certified.archiveRawSha256 != inspection.archiveRawSha256) {
+        _fail(
+          'archive_changed',
+          'The inspected archive changed before preparation.',
+        );
+      }
+      final allowed = {
+        'manifest.json',
+        inspection.manifest.content.catalog.path,
+        ...inspection.manifest.content.files.map((file) => file.path),
+      };
+      return {
+        for (final entry in RandomAccessZipStructureReader(
+          const GamePackageSecurityPolicy(),
+          entryNameValidator: (name) {
+            if (!allowed.contains(name)) {
+              _fail('archive_inventory_invalid', 'ZIP inventory differs.');
+            }
+          },
+          maxTotalEntries: policy.maxZipEntries,
+          readChunkBytes: policy.maxChunkBytes,
+        ).read(source).entries)
+          entry.name: entry,
+      };
+    };
 
 ResourcePackImportProjection Function() _projectionWorker(
   ResourcePackImportProjection projection,
-) => () {
-  projection.project();
-  return projection;
-};
+) =>
+    () {
+      projection.project();
+      return projection;
+    };
 
-Future<ResourcePackImportProjection> Function(RandomAccessPackageSource)
-_borderWorker(
+Future<ResourcePackImportProjection> Function(
+    RandomAccessPackageSource) _borderWorker(
   ResourcePackImportProjection projection,
   ProjectManifest target,
   ResourcePackInspection inspection,

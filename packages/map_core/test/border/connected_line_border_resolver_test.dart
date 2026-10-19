@@ -3,6 +3,205 @@ import 'package:test/test.dart';
 
 void main() {
   group('resolveConnectedLineBorder', () {
+    test('mixed orientation variations preserve a legacy cap direction', () {
+      final primitives = _mixedOrientationPrimitives();
+      final parameters = _parameters(variationPermille: 0);
+      final initial = resolveConnectedLineBorder(
+        _Fixture(primitives: primitives, parameters: parameters).request,
+      );
+      final cap = initial.materialization!.placements.first;
+      expect(cap.primitiveId, 'a-legacy-cap');
+      for (var salt = 1; salt <= 30; salt++) {
+        final result = resolveConnectedLineBorder(_Fixture(
+          primitives: primitives,
+          parameters: parameters,
+          overrides: [
+            BorderSlotOverride(
+              slotKey: cap.slotKey,
+              variationSalt: BorderSignedInt64.fromInt(salt),
+              suppressed: false,
+              locked: false,
+            ),
+          ],
+        ).request);
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        final varied = result.materialization!.placements.first;
+        expect(varied.primitiveId, anyOf('a-legacy-cap', 'b-legacy-cap'));
+        expect(varied.transform, cap.transform);
+      }
+    });
+
+    test('mixed orientation replacements reject cardinal changes from legacy', () {
+      final primitives = _mixedOrientationPrimitives();
+      final parameters = _parameters(variationPermille: 0);
+      final cap = resolveConnectedLineBorder(
+        _Fixture(primitives: primitives, parameters: parameters).request,
+      ).materialization!.placements.first;
+      for (final replacement in ['b-legacy-cap', 'z-native-south-cap']) {
+        final result = resolveConnectedLineBorder(_Fixture(
+          primitives: primitives,
+          parameters: parameters,
+          overrides: [
+            BorderSlotOverride(
+              slotKey: cap.slotKey,
+              variationSalt: BorderSignedInt64.zero,
+              suppressed: false,
+              locked: false,
+              replacementPrimitiveId: replacement,
+            ),
+          ],
+        ).request);
+        if (replacement == 'b-legacy-cap') {
+          expect(result.canApply, isTrue, reason: _diagnostics(result));
+          expect(result.materialization!.placements.first.primitiveId, replacement);
+          expect(result.materialization!.placements.first.transform, cap.transform);
+        } else {
+          expect(result.canApply, isFalse);
+          expect(_codes(result), contains('border.resolution.override_primitive_orientation_mismatch'));
+        }
+      }
+    });
+
+    test('selects native cardinal caps and straights without rotating pixels', () {
+      for (final vertical in [false, true]) {
+        final result = resolveConnectedLineBorder(
+          _Fixture(
+            primitives: _nativePrimitives(),
+            parameters: _parameters(allowAutoRotation: false),
+            strokes: [
+              _stroke([
+                for (var index = 1; index <= 3; index++)
+                  GridPos(x: vertical ? 2 : index, y: vertical ? index : 2),
+              ]),
+            ],
+          ).request,
+        );
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        expect(_primitiveIds(result.materialization!.placements), vertical
+            ? ['cap-south', 'straight-south', 'cap-north']
+            : ['cap-east', 'straight-east', 'cap-west']);
+        expect(result.materialization!.placements.map((p) => p.transform),
+            everyElement(BorderSpriteTransform(quarterTurns: 0, flipX: false)));
+      }
+    });
+
+    test('selects each native corner without a quarter turn', () {
+      final cases = <(List<GridPos>, String)>[
+        ([const GridPos(x: 1, y: 1), const GridPos(x: 2, y: 1), const GridPos(x: 2, y: 2)], 'east'),
+        ([const GridPos(x: 2, y: 1), const GridPos(x: 1, y: 1), const GridPos(x: 1, y: 2)], 'north'),
+        ([const GridPos(x: 2, y: 1), const GridPos(x: 2, y: 2), const GridPos(x: 1, y: 2)], 'south'),
+        ([const GridPos(x: 1, y: 1), const GridPos(x: 1, y: 2), const GridPos(x: 2, y: 2)], 'west'),
+      ];
+      for (final entry in cases) {
+        final result = resolveConnectedLineBorder(_Fixture(
+          primitives: _nativePrimitives(),
+          parameters: _parameters(allowAutoRotation: false),
+          strokes: [_stroke(entry.$1)],
+        ).request);
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        final corner = result.materialization!.placements.singleWhere(
+            (p) => p.primitiveId.startsWith('corner-'));
+        expect(corner.primitiveId, 'corner-${entry.$2}');
+        expect(corner.transform, BorderSpriteTransform(quarterTurns: 0, flipX: false));
+      }
+    });
+
+    test('refuses a missing native direction instead of choosing another sprite', () {
+      final result = resolveConnectedLineBorder(_Fixture(
+        primitives: _nativePrimitives().where((p) => p.id != 'cap-west').toList(),
+        parameters: _parameters(allowAutoRotation: false),
+      ).request);
+      expect(result.canApply, isFalse);
+      expect(_codes(result), contains('border.resolution.connected_line_transform_unavailable'));
+    });
+
+    test('does not mirror a native kit whose transform policy forbids it', () {
+      final result = resolveConnectedLineBorder(_Fixture(
+        primitives: _nativePrimitives(),
+        lineSide: BorderLineSide.inverted,
+        parameters: _parameters(allowAutoRotation: false),
+      ).request);
+      expect(result.canApply, isFalse);
+    });
+
+    test('composes an explicitly permitted native mirror before rotation', () {
+      final result = resolveConnectedLineBorder(_Fixture(
+        primitives: [
+          for (final (role, label, marker) in [
+            (BorderPrimitiveRole.lineCap, 'cap', 'a'),
+            (BorderPrimitiveRole.lineStraight, 'straight', 'b'),
+            (BorderPrimitiveRole.lineCorner, 'corner', 'c'),
+          ])
+            _primitive(label, role, marker: marker,
+                authoredOrientation: BorderPrimitiveOrientation.south),
+        ],
+        lineSide: BorderLineSide.inverted,
+      ).request);
+      expect(result.canApply, isTrue, reason: _diagnostics(result));
+      expect(result.materialization!.placements.map((p) => p.transform.quarterTurns),
+          [3, 3, 3, 3, 1]);
+      expect(result.materialization!.placements.map((p) => p.transform.flipX), everyElement(true));
+    });
+
+    test('native publication gallery qualifies primary geometry without mirrors', () {
+      final request = _Fixture(primitives: _nativePrimitives(),
+          parameters: _parameters(allowAutoRotation: false)).request;
+      final gallery = resolveBorderCanonicalGallery(
+          blueprintId: request.blueprintId,
+          blueprintRevision: request.blueprintRevision!,
+          visualSnapshots: request.visualSnapshots,
+          tileSizePx: request.tileSizePx);
+      expect(gallery.allCasesResolved, isTrue,
+          reason: gallery.resolutionDiagnostics.diagnostics.map((d) => d.code).join(', '));
+      expect(gallery.cases.map((c) => c.invertedResolverResult), everyElement(isNull));
+    });
+
+    test('native variation overrides preserve the authored direction', () {
+      final fixture = _Fixture(primitives: _nativePrimitives(),
+          parameters: _parameters(allowAutoRotation: false));
+      final initial = resolveConnectedLineBorder(fixture.request);
+      final cap = initial.materialization!.placements.first;
+      for (var salt = 1; salt <= 12; salt++) {
+        final result = resolveConnectedLineBorder(_Fixture(
+          primitives: _nativePrimitives(), parameters: _parameters(allowAutoRotation: false),
+          overrides: [BorderSlotOverride(slotKey: cap.slotKey,
+              variationSalt: BorderSignedInt64.fromInt(salt), suppressed: false, locked: false)],
+        ).request);
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        expect(result.materialization!.placements.first.primitiveId, 'cap-east');
+      }
+    });
+
+    test('native replacement overrides reject an incompatible direction', () {
+      final fixture = _Fixture(primitives: _nativePrimitives(),
+          parameters: _parameters(allowAutoRotation: false));
+      final cap = resolveConnectedLineBorder(fixture.request).materialization!.placements.first;
+      final result = resolveConnectedLineBorder(_Fixture(
+        primitives: _nativePrimitives(), parameters: _parameters(allowAutoRotation: false),
+        overrides: [BorderSlotOverride(slotKey: cap.slotKey,
+            variationSalt: BorderSignedInt64.zero, suppressed: false, locked: false,
+            replacementPrimitiveId: 'cap-west')],
+      ).request);
+      expect(result.canApply, isFalse);
+      expect(_codes(result), contains('border.resolution.override_primitive_orientation_mismatch'));
+    });
+
+    test('native variation stays directional when mirrors are permitted', () {
+      final primitives = _nativePrimitives(allowFlipX: true);
+      final fixture = _Fixture(primitives: primitives,
+          parameters: _parameters(allowAutoRotation: false));
+      final cap = resolveConnectedLineBorder(fixture.request).materialization!.placements.first;
+      for (var salt = 1; salt <= 12; salt++) {
+        final result = resolveConnectedLineBorder(_Fixture(
+          primitives: primitives, parameters: _parameters(allowAutoRotation: false),
+          overrides: [BorderSlotOverride(slotKey: cap.slotKey,
+              variationSalt: BorderSignedInt64.fromInt(salt), suppressed: false, locked: false)],
+        ).request);
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        expect(result.materialization!.placements.first.primitiveId, 'cap-east');
+      }
+    });
+
     test('classifies an open horizontal stroke as cap straight cap', () {
       final result = resolveConnectedLineBorder(_Fixture().request);
 
@@ -599,9 +798,9 @@ final class _Fixture {
               _primitive('corner', BorderPrimitiveRole.lineCorner, marker: 'c'),
             ] {
     final snapshots = visualSnapshots ??
-        <BorderVisualSnapshot>[
-          for (final primitive in this.primitives) _snapshot(primitive),
-        ];
+        <String, BorderVisualSnapshot>{
+          for (final primitive in this.primitives) primitive.visualSnapshotId: _snapshot(primitive),
+        }.values.toList();
     final definition = BorderBlueprintPublishedDefinition(
       name: 'Ligne connectee',
       previewSeed: BorderSignedInt64.fromInt(23),
@@ -679,17 +878,20 @@ BorderPublishedPrimitive _primitive(
   int weight = 1,
   GridSize pixelSize = const GridSize(width: 16, height: 16),
   BorderPixelPos anchorPx = const BorderPixelPos(x: 7, y: 7),
+  BorderPrimitiveOrientation authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
+  List<int> allowedQuarterTurns = const [0, 1, 2, 3],
 }) =>
     BorderPublishedPrimitive(
       id: id,
       sourceElementId: 'element-$id',
       visualSnapshotId: 'border-snapshot-sha256:${marker * 64}',
       role: role,
+      authoredOrientation: authoredOrientation,
       weight: weight,
       anchorPx: anchorPx,
       transforms: BorderTransformPolicy(
         allowFlipX: allowFlipX,
-        allowedQuarterTurns: const <int>[0, 1, 2, 3],
+        allowedQuarterTurns: allowedQuarterTurns,
       ),
       publishedMetrics: BorderPrimitiveAssetMetrics(
         assetFingerprint: 'asset-$id',
@@ -706,6 +908,28 @@ BorderPublishedPrimitive _primitive(
         ),
       ),
     );
+
+List<BorderPublishedPrimitive> _nativePrimitives({bool allowFlipX = false}) => [
+  for (final (role, label, marker) in [
+    (BorderPrimitiveRole.lineCap, 'cap', 'a'),
+    (BorderPrimitiveRole.lineStraight, 'straight', 'b'),
+    (BorderPrimitiveRole.lineCorner, 'corner', 'c'),
+  ])
+    for (final direction in BorderPrimitiveOrientation.values.where(
+        (value) => value != BorderPrimitiveOrientation.legacyAxis))
+      _primitive('$label-${direction.name}', role,
+          marker: marker, authoredOrientation: direction,
+          allowedQuarterTurns: const [0], allowFlipX: allowFlipX),
+];
+
+List<BorderPublishedPrimitive> _mixedOrientationPrimitives() => [
+  _primitive('a-legacy-cap', BorderPrimitiveRole.lineCap, marker: 'a'),
+  _primitive('b-legacy-cap', BorderPrimitiveRole.lineCap, marker: 'a'),
+  _primitive('z-native-south-cap', BorderPrimitiveRole.lineCap, marker: 'd',
+      authoredOrientation: BorderPrimitiveOrientation.south),
+  _primitive('straight', BorderPrimitiveRole.lineStraight, marker: 'b'),
+  _primitive('corner', BorderPrimitiveRole.lineCorner, marker: 'c'),
+];
 
 BorderVisualSnapshot _snapshot(BorderPublishedPrimitive primitive) {
   final fingerprint = primitive.visualSnapshotId.substring(

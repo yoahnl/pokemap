@@ -99,6 +99,9 @@ extension MapWorkspaceCatalogPreparation on MapWorkspaceController {
   }
 
   String? _catalogProblem(String actionId, String? targetId) {
+    if (!hasCompleteProject) {
+      return 'Chargez tous les ateliers avant de modifier le catalogue du projet.';
+    }
     if (_disposed ||
         catalogPort == null ||
         catalogBusy ||

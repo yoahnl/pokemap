@@ -5,6 +5,7 @@ import '../../../features/map_workspace/application/map_editing_commands.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
 import '../../../features/terrains/application/terrain_brush.dart';
 import 'map_workspace_view_state.dart';
+import 'map_terrain_patterns.dart';
 
 class MapCanvasStroke {
   MapCanvasStroke._(
@@ -317,7 +318,8 @@ class MapCanvasStroke {
         pattern.height <= 8 &&
         pattern.width * pattern.height > 1 &&
         parts.isNotEmpty &&
-        parts.every((part) => part.source is SmartTileModel3dSource);
+        parts.every((part) => part.source is SmartTileModel3dSource) &&
+        !parts.every((part) => part.spatialClip != null);
   }
 
   static bool _isSmallStampStroke(
@@ -444,29 +446,61 @@ class MapCanvasStroke {
       final layer = source.layers.whereType<SmartTileLayer>().firstWhere(
         (layer) => layer.id == buffer.layerId,
       );
-      final applied = applySmartTilePatternGesture(
-        layer,
-        pattern: selectedPattern,
-        mapSize: source.size,
-        selection: switch (patternMode) {
-          SmartTilePatternSelectionKind.stamp =>
-            SmartTilePatternSelection.stamp(anchor: patternOrigin!),
-          SmartTilePatternSelectionKind.line => SmartTilePatternSelection.line(
-            start: patternOrigin!,
-            end: _patternEnd!,
-          ),
-          SmartTilePatternSelectionKind.rectangle =>
-            SmartTilePatternSelection.rectangle(
-              start: patternOrigin!,
-              end: _patternEnd!,
-            ),
-        },
-        strokeId: patternStrokeId!,
-        materialId: layer.usage == SmartTileUsage.path &&
-                (layer.encounterBehavior != null ||
-                    layer.animationActivation == SmartTileAnimationActivation.onEnter)
-            ? materialId : null,
-      );
+      late final SmartTilePatternApplication applied;
+      try {
+        applied = applySmartTilePatternGesture(
+          layer,
+          pattern: selectedPattern,
+          mapSize: source.size,
+          selection: switch (patternMode) {
+            SmartTilePatternSelectionKind.stamp =>
+              SmartTilePatternSelection.stamp(anchor: patternOrigin!),
+            SmartTilePatternSelectionKind.line =>
+              SmartTilePatternSelection.line(
+                start: patternOrigin!,
+                end: _patternEnd!,
+              ),
+            SmartTilePatternSelectionKind.rectangle =>
+              SmartTilePatternSelection.rectangle(
+                start: patternOrigin!,
+                end: _patternEnd!,
+              ),
+          },
+          strokeId: patternStrokeId!,
+          materialId:
+              layer.usage == SmartTileUsage.path &&
+                  (layer.encounterBehavior != null ||
+                      layer.animationActivation ==
+                          SmartTileAnimationActivation.onEnter)
+              ? materialId
+              : null,
+        );
+      } on ValidationException catch (error) {
+        if (selectedPattern.construction == null &&
+            selectedPattern.clippingPolicy !=
+                SmartTilePatternClippingPolicy.reject) {
+          rethrow;
+        }
+        cells.clear();
+        if (!validate) return source;
+        throw ValidationException(
+          selectedPattern.construction == null
+              ? 'Le motif entier doit tenir dans la carte.'
+              : error.code == 'smart_tile.pattern.construction_out_of_bounds'
+              ? 'La construction entière doit tenir dans la carte.'
+              : 'Dimensions incompatibles. ${terrainPatternConstructionHint(selectedPattern)}.',
+          code: error.code,
+        );
+      } on SmartTileGestureLimitException {
+        if ((selectedPattern.construction == null &&
+                selectedPattern.clippingPolicy !=
+                    SmartTilePatternClippingPolicy.reject) ||
+            validate) {
+          rethrow;
+        }
+        cells.clear();
+        return source;
+      }
       cells
         ..clear()
         ..addAll(applied.affectedCells);
@@ -507,9 +541,11 @@ class MapCanvasStroke {
         layer,
         mapSize: buffer.sourceMap.size,
         cells: _terrainCells,
-        clearMaterial: layer.usage == SmartTileUsage.path &&
+        clearMaterial:
+            layer.usage == SmartTileUsage.path &&
             (layer.encounterBehavior != null ||
-                layer.animationActivation == SmartTileAnimationActivation.onEnter),
+                layer.animationActivation ==
+                    SmartTileAnimationActivation.onEnter),
       );
     }
     final strokeIds = <String>{};
@@ -539,9 +575,11 @@ class MapCanvasStroke {
       mapSize: buffer.sourceMap.size,
       cells: cells,
       strokeIds: strokeIds,
-      clearMaterial: layer.usage == SmartTileUsage.path &&
+      clearMaterial:
+          layer.usage == SmartTileUsage.path &&
           (layer.encounterBehavior != null ||
-              layer.animationActivation == SmartTileAnimationActivation.onEnter),
+              layer.animationActivation ==
+                  SmartTileAnimationActivation.onEnter),
     );
   }
 

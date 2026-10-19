@@ -98,6 +98,14 @@ class ResourceDetailPanel extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (metadata?.description case final description?) ...[
+                  SelectableText(
+                    description,
+                    key: const ValueKey('resource-description'),
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 ..._metadata(context, entry),
                 if (onClassify != null)
                   StudioButton(

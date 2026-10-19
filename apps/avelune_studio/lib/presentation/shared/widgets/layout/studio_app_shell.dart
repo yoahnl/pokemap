@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../theme/studio_tokens.dart';
 import '../inputs/studio_choice.dart';
 
@@ -90,30 +91,32 @@ class StudioAppShell extends StatelessWidget {
   final List<Widget> actions;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      StudioTopBar(projectName: projectName, actions: actions),
-      Expanded(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact =
-                constraints.maxWidth < 1480 ||
-                MediaQuery.textScalerOf(context).scale(14) > 20;
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (destinations.isNotEmpty)
-                  StudioNavigationRail(
-                    destinations: destinations,
-                    compact: compact,
-                  ),
-                Expanded(child: child),
-              ],
-            );
-          },
+  Widget build(BuildContext context) => Material(
+    child: Column(
+      children: [
+        StudioTopBar(projectName: projectName, actions: actions),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact =
+                  constraints.maxWidth < 1480 ||
+                  MediaQuery.textScalerOf(context).scale(14) > 20;
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (destinations.isNotEmpty)
+                    StudioNavigationRail(
+                      destinations: destinations,
+                      compact: compact,
+                    ),
+                  Expanded(child: child),
+                ],
+              );
+            },
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 

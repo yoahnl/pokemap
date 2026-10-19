@@ -213,6 +213,7 @@ AuthoringMutationDraft guardResourceLibraryMutation(
       inheritedEntries.add(ResourceLibraryEntry(
           resourceKind: 'element',
           resourceId: newId,
+          description: source.description,
           familyId: source.familyId,
           mapId: source.mapId,
           role: source.role,

@@ -46,12 +46,14 @@ final class ResourceLibraryEntry {
     required String resourceId,
     String? familyId,
     String? mapId,
+    String? description,
     this.role = ResourceLibraryRole.standard,
     this.placementContext,
   }) : resourceKind = _identifier(resourceKind, 'entry.resourceKind'),
        resourceId = _identifier(resourceId, 'entry.resourceId'),
        familyId = _optionalIdentifier(familyId, 'entry.familyId'),
-       mapId = _optionalIdentifier(mapId, 'entry.mapId') {
+       mapId = _optionalIdentifier(mapId, 'entry.mapId'),
+       description = _description(description) {
     if (!ResourceLibraryCatalog.resourceKinds.contains(resourceKind)) {
       throw ArgumentError.value(
         resourceKind,
@@ -69,10 +71,12 @@ final class ResourceLibraryEntry {
       'mapId',
       'role',
       'placementContext',
+      'description',
     });
     return ResourceLibraryEntry(
       resourceKind: _string(json['resourceKind'], 'entry.resourceKind'),
       resourceId: _string(json['resourceId'], 'entry.resourceId'),
+      description: _optionalString(json['description'], 'entry.description'),
       familyId: _optionalString(json['familyId'], 'entry.familyId'),
       mapId: _optionalString(json['mapId'], 'entry.mapId'),
       role: json.containsKey('role')
@@ -92,6 +96,9 @@ final class ResourceLibraryEntry {
     );
   }
 
+  static const maximumDescriptionLength = 2000;
+
+  final String? description;
   final String resourceKind;
   final String resourceId;
   final String? familyId;
@@ -103,6 +110,7 @@ final class ResourceLibraryEntry {
   Map<String, Object?> toJson() => {
     'resourceKind': resourceKind,
     'resourceId': resourceId,
+    if (description != null) 'description': description,
     if (familyId != null) 'familyId': familyId,
     if (mapId != null) 'mapId': mapId,
     if (role != ResourceLibraryRole.standard) 'role': role.name,
@@ -116,6 +124,7 @@ final class ResourceLibraryEntry {
       resourceId == other.resourceId &&
       familyId == other.familyId &&
       mapId == other.mapId &&
+      description == other.description &&
       role == other.role &&
       placementContext == other.placementContext;
 
@@ -127,6 +136,7 @@ final class ResourceLibraryEntry {
     mapId,
     role,
     placementContext,
+    description,
   );
 }
 
@@ -315,4 +325,16 @@ bool _listEquals<T>(List<T> left, List<T> right) {
     if (left[index] != right[index]) return false;
   }
   return true;
+}
+
+String? _description(String? value) {
+  if (value == null) return null;
+  if (value.isEmpty ||
+      value != value.trim() ||
+      value.length > ResourceLibraryEntry.maximumDescriptionLength) {
+    throw const FormatException(
+      'entry.description: expected nonblank trimmed text of at most 2000 characters',
+    );
+  }
+  return value;
 }

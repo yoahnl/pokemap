@@ -4,6 +4,7 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
+import '../../project_session/data/studio_project_document_revision.dart';
 import '../domain/map_catalog_preparation.dart';
 import '../domain/map_workspace_port.dart';
 import 'local_map_catalog_adapter.dart';
@@ -57,8 +58,7 @@ Future<MapCatalogPreparation> prepareLocalMapCatalog(
           opened.projectHandle,
           policy: ProjectSnapshotLoadPolicy.editorReadProjection,
         );
-    if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-        before.revision) {
+    if (studioProjectSnapshotRevision(snapshot) != before.revision) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,
         'Le projet a changé pendant sa lecture. Relancez l’analyse.',

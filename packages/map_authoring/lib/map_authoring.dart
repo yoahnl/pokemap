@@ -9,6 +9,7 @@ library;
 export 'src/catalog_storage/catalog_storage_store.dart';
 export 'src/catalog_storage/catalog_editing_session.dart';
 export 'src/catalog_storage/catalog_generation_retention.dart';
+export 'src/catalog_storage/working_project_catalog.dart';
 
 export 'src/api/authoring_read_api.dart';
 export 'src/api/authoring_read_contracts.dart';
@@ -237,3 +238,5 @@ export 'src/api/resource_pack_transfer_api.dart';
 export 'src/application/resource_pack_job_service.dart';
 
 export 'src/api/local_resource_pack_transfer_api.dart';
+
+export 'src/workspace/catalog_project_materialization.dart';

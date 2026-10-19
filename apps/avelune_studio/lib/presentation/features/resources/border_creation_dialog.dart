@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/resources/domain/resource_port.dart';
+import '../../../features/resources/domain/border_sequence_primitives.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -15,6 +16,7 @@ import 'resource_navigation.dart';
 import 'border_discard_dialog.dart';
 import 'border_pattern_panel.dart';
 import 'border_source_panel.dart';
+import 'border_sequence_controls.dart';
 import 'resource_catalog.dart';
 import 'native_ledge_panel.dart';
 
@@ -43,8 +45,10 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   final _selectedPrimitiveIds = <String, String>{};
   final _primitiveModelIds = <String, String>{};
   final _primitiveModelSettings = <String, BorderModelSettings>{};
+  final _sequenceSourceModels = <String, String>{};
   String _settingsRole = 'lineStraight';
   late bool _straightOnly;
+  late int _sequenceLength;
   late bool _horizontalFacade;
   late bool _followContourDirection;
   late bool _replacesGround;
@@ -70,7 +74,10 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     _name = TextEditingController(text: record?.draft.definition.name ?? '');
     _pendingId = record?.id;
     _straightOnly = record?.draft.definition.straightOnly ?? false;
-    _horizontalFacade = record?.draft.definition.template == BorderBlueprintTemplate.horizontalFacade;
+    _sequenceLength = record?.draft.definition.sequenceLength ?? 1;
+    _horizontalFacade =
+        record?.draft.definition.template ==
+        BorderBlueprintTemplate.horizontalFacade;
     _followContourDirection =
         record?.draft.definition.followContourDirection ?? false;
     _replacesGround = record?.draft.definition.replacesGround ?? false;
@@ -128,43 +135,55 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
   bool get _hasChanges => _nativeLedge
       ? _name.text != _expectedRecord?.draft.definition.name ||
             _jumpSide != _expectedRecord?.draft.definition.jumpBehavior?.side
-      :
-      _name.text != (widget.initialRecord?.draft.definition.name ?? '') ||
-      _horizontalFacade != (widget.initialRecord?.draft.definition.template == BorderBlueprintTemplate.horizontalFacade) ||
-      _straightOnly !=
-          (widget.initialRecord?.draft.definition.straightOnly ?? false) ||
-      _replacesGround !=
-          (widget.initialRecord?.draft.definition.replacesGround ?? false) ||
-      _masksGroundCells !=
-          (widget.initialRecord?.draft.definition.masksGroundCells ?? false) ||
-      _groundBaseOffset !=
-          (widget.initialRecord?.draft.definition.groundBaseOffset ?? 0) ||
-      _followContourDirection !=
-          (widget.initialRecord?.draft.definition.followContourDirection ??
-              false) ||
-      _primitiveModelIds.entries.any(
-        (entry) =>
-            widget.initialRecord?.draft.definition.primitives
-                .where((primitive) => primitive.id == entry.key)
-                .firstOrNull
-                ?.sourceModelId !=
-            entry.value,
-      ) ||
-      _primitiveModelSettings.entries.any(
-        (entry) => entry.value != _initialSettings(entry.key),
-      ) ||
-      _roles.any(
-        (role) =>
-            !_selectedPrimitiveIds.containsKey(role) &&
-            _sourceId(role) !=
-                widget.initialRecord?.draft.definition.primitives
-                    .where((primitive) => _roleKey(primitive) == role)
-                    .map(
-                      (primitive) =>
-                          primitive.sourceModelId ?? primitive.sourceElementId,
-                    )
-                    .firstOrNull,
-      );
+      : _name.text != (widget.initialRecord?.draft.definition.name ?? '') ||
+            _horizontalFacade !=
+                (widget.initialRecord?.draft.definition.template ==
+                    BorderBlueprintTemplate.horizontalFacade) ||
+            _straightOnly !=
+                (widget.initialRecord?.draft.definition.straightOnly ??
+                    false) ||
+            _sequenceLength !=
+                (widget.initialRecord?.draft.definition.sequenceLength ?? 1) ||
+            _replacesGround !=
+                (widget.initialRecord?.draft.definition.replacesGround ??
+                    false) ||
+            _masksGroundCells !=
+                (widget.initialRecord?.draft.definition.masksGroundCells ??
+                    false) ||
+            _groundBaseOffset !=
+                (widget.initialRecord?.draft.definition.groundBaseOffset ??
+                    0) ||
+            _followContourDirection !=
+                (widget
+                        .initialRecord
+                        ?.draft
+                        .definition
+                        .followContourDirection ??
+                    false) ||
+            _primitiveModelIds.entries.any(
+              (entry) =>
+                  widget.initialRecord?.draft.definition.primitives
+                      .where((primitive) => primitive.id == entry.key)
+                      .firstOrNull
+                      ?.sourceModelId !=
+                  entry.value,
+            ) ||
+            _primitiveModelSettings.entries.any(
+              (entry) => entry.value != _initialSettings(entry.key),
+            ) ||
+            _roles.any(
+              (role) =>
+                  !_selectedPrimitiveIds.containsKey(role) &&
+                  _sourceId(role) !=
+                      widget.initialRecord?.draft.definition.primitives
+                          .where((primitive) => _roleKey(primitive) == role)
+                          .map(
+                            (primitive) =>
+                                primitive.sourceModelId ??
+                                primitive.sourceElementId,
+                          )
+                          .firstOrNull,
+            );
 
   String _roleKey(BorderPrimitiveDraft primitive) =>
       primitive.cornerTurn == BorderCornerTurn.left
@@ -175,7 +194,8 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
     'lineStraight',
     'lineCap',
     if (!_straightOnly && !_horizontalFacade) 'lineCorner',
-    if (!_straightOnly && !_horizontalFacade && _followContourDirection) 'lineCornerLeft',
+    if (!_straightOnly && !_horizontalFacade && _followContourDirection)
+      'lineCornerLeft',
   ];
 
   String? _sourceId(String role) => _modifiedRoles.contains(role)
@@ -189,26 +209,129 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                 )
                 .firstOrNull;
 
-  bool get _complete => _nativeLedge
+  bool get _complete => _baseComplete && _sequenceProblem == null;
+
+  String? get _sequenceProblem {
+    if (_sequenceLength == 1) return null;
+    final phases = <int, Set<BorderPrimitiveRole>>{};
+    for (final primitive in _sequencePrimitives) {
+      phases.putIfAbsent(primitive.sequenceIndex, () => {}).add(primitive.role);
+    }
+    if (phases.length != _sequenceLength ||
+        phases.values.any(
+          (roles) => !roles.containsAll({
+            BorderPrimitiveRole.lineCap,
+            BorderPrimitiveRole.lineStraight,
+          }),
+        )) {
+      return 'Chaque étape doit contenir un corps et des extrémités avant publication.';
+    }
+    return null;
+  }
+
+  bool get _baseComplete => _nativeLedge
       ? NativeLedgePanel.sourcesAvailable(
           _expectedRecord!,
           widget.project,
           widget.visuals,
         )
-      :
-      _sourceId('lineCap') != null &&
-      _sourceId('lineStraight') != null &&
-      (_horizontalFacade || _straightOnly ||
-          (_sourceId('lineCorner') != null &&
-              (!_followContourDirection ||
-                  _sourceId('lineCornerLeft') != null)));
+      : _sourceId('lineCap') != null &&
+            _sourceId('lineStraight') != null &&
+            (_horizontalFacade ||
+                _straightOnly ||
+                (_sourceId('lineCorner') != null &&
+                    (!_followContourDirection ||
+                        _sourceId('lineCornerLeft') != null)));
 
   String _primitiveId(String role) => _selectedPrimitiveIds[role] ?? role;
 
+  List<BorderPrimitiveDraft> get _sequencePrimitives =>
+      borderSequencePrimitives(
+        widget.initialRecord?.draft.definition.primitives ??
+            borderSequenceModelPrimitives(
+              straightModelId:
+                  _sequenceSourceModels['lineStraight'] ??
+                  _chosen['lineStraight']?.model3d?.id,
+              capModelId:
+                  _sequenceSourceModels['lineCap'] ??
+                  _chosen['lineCap']?.model3d?.id,
+            ),
+        _sequenceLength,
+        previousLength:
+            widget.initialRecord?.draft.definition.sequenceLength ?? 1,
+      );
+
+  Widget _sequenceControls() => BorderSequenceControls(
+    length: _sequenceLength,
+    primitives: _sequencePrimitives,
+    problem: _sequenceProblem,
+    modelNames: {
+      for (final model in widget.project.models3d) model.id: model.name,
+    },
+    activeModelId: _saving ? null : _activeElement?.model3d?.id,
+    selections: _primitiveModelIds,
+    onLength: (text) {
+      final value = int.tryParse(text.trim());
+      if (_saving || value == null || value < 1 || value > 64) {
+        setState(() => _error = 'Le motif doit contenir de 1 à 64 étapes.');
+        return false;
+      }
+      setState(() {
+        if (widget.initialRecord == null) {
+          if (value == 1) {
+            _sequenceSourceModels.clear();
+          } else {
+            for (final role in ['lineStraight', 'lineCap']) {
+              if (_chosen[role]?.model3d?.id case final id?) {
+                _sequenceSourceModels.putIfAbsent(role, () => id);
+              }
+            }
+          }
+        }
+        _sequenceLength = value;
+        final ids = _sequencePrimitives.map((p) => p.id).toSet();
+        _primitiveModelIds.removeWhere((id, _) => !ids.contains(id));
+        _primitiveModelSettings.removeWhere((id, _) => !ids.contains(id));
+        for (final role in _roles) {
+          if (ids.contains(_selectedPrimitiveIds[role])) continue;
+          final first = _sequencePrimitives
+              .where((p) => _roleKey(p) == role)
+              .firstOrNull;
+          if (first == null) {
+            _selectedPrimitiveIds.remove(role);
+          } else {
+            _selectedPrimitiveIds[role] = first.id;
+            final source = _primitiveModelIds[first.id] ?? first.sourceModelId;
+            final item = resourceCatalog(widget.project)
+                .where((item) => item.id == source && item.model3d != null)
+                .firstOrNull;
+            if (item != null) _chosen[role] = item;
+          }
+        }
+        _error = null;
+        _warningCodes = const [];
+      });
+      return true;
+    },
+    onSource: (id, modelId) => setState(() {
+      _primitiveModelIds[id] = modelId;
+      for (final role in _roles.where(
+        (role) => _selectedPrimitiveIds[role] == id,
+      )) {
+        _chosen[role] = resourceCatalog(widget.project)
+            .firstWhere((item) => item.id == modelId && item.model3d != null);
+      }
+      _warningCodes = const [];
+    }),
+  );
+
   BorderModelSettings _initialSettings(String id) {
-    final primitive = widget.initialRecord?.draft.definition.primitives
-        .where((primitive) => primitive.id == id)
-        .firstOrNull;
+    final primitive =
+        (_sequenceLength > 1
+                ? _sequencePrimitives
+                : widget.initialRecord?.draft.definition.primitives)
+            ?.where((primitive) => primitive.id == id)
+            .firstOrNull;
     return BorderModelSettings(
       animationIndex: primitive?.animationIndex,
       animationLoop: primitive?.animationLoop ?? true,
@@ -228,7 +351,9 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
 
   String? get _settingsProblem {
     final primitives =
-        widget.initialRecord?.draft.definition.primitives ??
+        (_sequenceLength > 1
+            ? _sequencePrimitives
+            : widget.initialRecord?.draft.definition.primitives) ??
         <BorderPrimitiveDraft>[];
     for (final primitive in primitives.where(
       (primitive) => primitive.isSpatial,
@@ -386,8 +511,10 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
 
   Widget _variantSelector(String role) {
     final variants =
-        widget.initialRecord?.draft.definition.primitives
-            .where((primitive) => _roleKey(primitive) == role)
+        (_sequenceLength > 1
+                ? _sequencePrimitives
+                : widget.initialRecord?.draft.definition.primitives)
+            ?.where((primitive) => _roleKey(primitive) == role)
             .toList() ??
         [];
     if (variants.length < 2) return const SizedBox.shrink();
@@ -405,7 +532,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
         options: {
           for (var i = 0; i < variants.length; i++)
             variants[i].id:
-                '${i + 1} · ${switch (variants[i].authoredOrientation) {
+                '${_sequenceLength > 1 ? 'Étape ${variants[i].sequenceIndex + 1}/$_sequenceLength · ' : ''}${i + 1} · ${switch (variants[i].authoredOrientation) {
                   BorderPrimitiveOrientation.north => 'vers le nord',
                   BorderPrimitiveOrientation.south => 'vers le sud',
                   BorderPrimitiveOrientation.east => 'vers l’est',
@@ -454,7 +581,9 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
         )
       : BorderCreationRequest(
           name: _name.text.trim(),
-          template: _horizontalFacade ? BorderBlueprintTemplate.horizontalFacade : null,
+          template: _horizontalFacade
+              ? BorderBlueprintTemplate.horizontalFacade
+              : null,
           capElementId:
               widget.project.settings.dimension == ProjectDimension.twoD
               ? _sourceId('lineCap')
@@ -464,33 +593,40 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
               ? _sourceId('lineStraight')
               : null,
           cornerElementId:
-              widget.project.settings.dimension == ProjectDimension.twoD && !_horizontalFacade
+              widget.project.settings.dimension == ProjectDimension.twoD &&
+                  !_horizontalFacade
               ? _sourceId('lineCorner')
               : null,
           capModelId:
               widget.project.settings.dimension == ProjectDimension.threeD &&
-                  !_selectedPrimitiveIds.containsKey('lineCap')
-              ? _sourceId('lineCap')
+                  (widget.initialRecord == null ||
+                      !_selectedPrimitiveIds.containsKey('lineCap'))
+              ? _sequenceSourceModels['lineCap'] ?? _sourceId('lineCap')
               : null,
           straightModelId:
               widget.project.settings.dimension == ProjectDimension.threeD &&
-                  !_selectedPrimitiveIds.containsKey('lineStraight')
-              ? _sourceId('lineStraight')
+                  (widget.initialRecord == null ||
+                      !_selectedPrimitiveIds.containsKey('lineStraight'))
+              ? _sequenceSourceModels['lineStraight'] ??
+                    _sourceId('lineStraight')
               : null,
           cornerModelId:
               widget.project.settings.dimension == ProjectDimension.threeD &&
-                  !_selectedPrimitiveIds.containsKey('lineCorner')
+                  (widget.initialRecord == null ||
+                      !_selectedPrimitiveIds.containsKey('lineCorner'))
               ? _sourceId('lineCorner')
               : null,
           innerCornerModelId:
               _followContourDirection &&
-                  !_selectedPrimitiveIds.containsKey('lineCornerLeft')
+                  (widget.initialRecord == null ||
+                      !_selectedPrimitiveIds.containsKey('lineCornerLeft'))
               ? _sourceId('lineCornerLeft')
               : null,
           blueprintId: _pendingId,
           expectedRecord: _expectedRecord,
           primitiveModelIds: Map.unmodifiable(_primitiveModelIds),
           primitiveModelSettings: Map.unmodifiable(_primitiveModelSettings),
+          sequenceLength: _sequenceLength,
           straightOnly: _straightOnly,
           followContourDirection: _followContourDirection,
           replacesGround: _replacesGround,
@@ -635,16 +771,20 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                     key: const ValueKey('border-horizontal-facade'),
                     label: 'Façade horizontale',
                     value: _horizontalFacade,
-                    onChanged: _saving ? null : (value) => setState(() {
-                      _horizontalFacade = value;
-                      _warningCodes = const [];
-                    }),
+                    onChanged: _saving
+                        ? null
+                        : (value) => setState(() {
+                            _horizontalFacade = value;
+                            _warningCodes = const [];
+                          }),
                   ),
                 ),
               if (_horizontalFacade)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: StudioNotice('Façades sur des tracés ouverts horizontaux, sans rotation ni miroir. Séparez les tracés pour les ouvertures.'),
+                  child: StudioNotice(
+                    'Façades sur des tracés ouverts horizontaux, sans rotation ni miroir. Séparez les tracés pour les ouvertures.',
+                  ),
                 ),
               if (widget.project.settings.dimension ==
                       ProjectDimension.threeD &&
@@ -655,7 +795,13 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                     key: const ValueKey('border-straight-only'),
                     label: 'Tracés droits uniquement',
                     value: _straightOnly,
-                    onChanged: (value) => setState(() => _straightOnly = value),
+                    onChanged: (value) => setState(() {
+                      if (!value && _sequenceLength > 1) {
+                        _error = 'Ramenez le motif à une étape avant d’autoriser les angles.';
+                      } else {
+                        _straightOnly = value;
+                      }
+                    }),
                   ),
                 ),
               if (widget.project.settings.dimension ==
@@ -777,6 +923,20 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                         straightOnly: _straightOnly || _horizontalFacade,
                         followContourDirection: _followContourDirection,
                         variantSelector: _variantSelector,
+                        sequenceSettings:
+                            widget.project.settings.dimension ==
+                                    ProjectDimension.threeD &&
+                                _straightOnly &&
+                                (widget
+                                            .initialRecord
+                                            ?.draft
+                                            .definition
+                                            .template ??
+                                        BorderBlueprintTemplate
+                                            .connectedLine) ==
+                                    BorderBlueprintTemplate.connectedLine
+                            ? _sequenceControls()
+                            : null,
                         modelSettings:
                             widget.project.settings.dimension ==
                                 ProjectDimension.threeD
@@ -786,6 +946,14 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                         onAssign: (role, element) => setState(() {
                           _modifiedRoles.add(role);
                           _chosen[role] = element;
+                          if (widget.initialRecord == null &&
+                              _sequenceLength > 1 &&
+                              element.model3d != null) {
+                            _sequenceSourceModels.putIfAbsent(
+                              role,
+                              () => element.id,
+                            );
+                          }
                           final primitiveId = _selectedPrimitiveIds[role];
                           if (primitiveId != null && element.model3d != null) {
                             _primitiveModelIds[primitiveId] = element.id;

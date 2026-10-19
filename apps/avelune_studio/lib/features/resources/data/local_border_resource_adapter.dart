@@ -15,7 +15,9 @@ Future<ResourceMutationReceipt> _createBorder(
       'Cette bordure a changé depuis l’ouverture de l’éditeur. Fermez puis rouvrez-la avant de modifier ses réglages.',
     );
   }
-  final template = request.template ?? existing?.draft.definition.template ??
+  final template =
+      request.template ??
+      existing?.draft.definition.template ??
       BorderBlueprintTemplate.connectedLine;
   if (request.template != null &&
       ((existing != null && template != existing.draft.definition.template) ||
@@ -24,8 +26,11 @@ Future<ResourceMutationReceipt> _createBorder(
     throw const ResourceFailure('Conservez le type de la bordure existante.');
   }
   final isFacade = template == BorderBlueprintTemplate.horizontalFacade;
-  if (isFacade && baseline.manifest.settings.dimension != ProjectDimension.twoD) {
-    throw const ResourceFailure('Les façades horizontales utilisent des décors 2D.');
+  if (isFacade &&
+      baseline.manifest.settings.dimension != ProjectDimension.twoD) {
+    throw const ResourceFailure(
+      'Les façades horizontales utilisent des décors 2D.',
+    );
   }
   final originalJump = existing?.draft.definition.jumpBehavior;
   if (request.jumpSide != null &&
@@ -55,6 +60,10 @@ Future<ResourceMutationReceipt> _createBorder(
         previewSeed:
             existing?.draft.definition.previewSeed ?? BorderSignedInt64.zero,
         template: template,
+        sequenceLength:
+            request.sequenceLength ??
+            existing?.draft.definition.sequenceLength ??
+            1,
         straightOnly:
             request.straightOnly ??
             existing?.draft.definition.straightOnly ??
@@ -85,7 +94,9 @@ Future<ResourceMutationReceipt> _createBorder(
               maxOverlapPx: 8,
               gapTolerancePx: 1,
               depthRows: 1,
-              allowAutoRotation: request.followContourDirection == true,
+              allowAutoRotation:
+                  request.followContourDirection == true ||
+                  (request.sequenceLength ?? 1) > 1,
             ),
         ground: existing?.draft.definition.ground,
         categoryId: existing?.draft.definition.categoryId,

@@ -43,6 +43,11 @@ typedef SceneBattlePayloadDraftUpdater =
       String? battleTemplateId,
     });
 
+typedef SceneBattleDefeatRecoveryDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  required SceneBattleDefeatRecovery defeatRecovery,
+});
+
 typedef SceneDialogueChoicePolicyDraftLoader =
     Future<SceneDialogueChoicePolicyEditorData> Function({
       required String nodeId,
@@ -155,6 +160,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onUpdateDialogueChoicePolicy,
     this.onOpenDialogue,
     this.onUpdateBattlePayload,
+    this.onUpdateBattleDefeatRecovery,
     this.onUpdateCinematicPayload,
     this.onOpenCinematic,
     this.consequenceFactOptions = const [],
@@ -185,6 +191,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final SceneDialogueChoicePolicyDraftUpdater? onUpdateDialogueChoicePolicy;
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
+  final SceneBattleDefeatRecoveryDraftUpdater? onUpdateBattleDefeatRecovery;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final ValueChanged<String>? onOpenCinematic;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
@@ -238,6 +245,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               onUpdateDialogueChoicePolicy: onUpdateDialogueChoicePolicy,
               onOpenDialogue: onOpenDialogue,
               onUpdateBattlePayload: onUpdateBattlePayload,
+              onUpdateBattleDefeatRecovery: onUpdateBattleDefeatRecovery,
               onUpdateCinematicPayload: onUpdateCinematicPayload,
               onOpenCinematic: onOpenCinematic,
               consequenceFactOptions: consequenceFactOptions,
@@ -353,6 +361,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onUpdateDialogueChoicePolicy,
     required this.onOpenDialogue,
     required this.onUpdateBattlePayload,
+    required this.onUpdateBattleDefeatRecovery,
     required this.onUpdateCinematicPayload,
     required this.onOpenCinematic,
     required this.consequenceFactOptions,
@@ -381,6 +390,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final SceneDialogueChoicePolicyDraftUpdater? onUpdateDialogueChoicePolicy;
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
+  final SceneBattleDefeatRecoveryDraftUpdater? onUpdateBattleDefeatRecovery;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final ValueChanged<String>? onOpenCinematic;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
@@ -456,6 +466,8 @@ class _NodeInspectorBody extends StatelessWidget {
               payload: node.payload as SceneBattlePayload,
               battles: linkedAssetContracts?.battles ?? const [],
               onUpdatePayload: onUpdateBattlePayload,
+              onUpdateDefeatRecovery: partyProjectDimension == ProjectDimension.twoD
+                  ? onUpdateBattleDefeatRecovery : null,
             ),
             const SizedBox(height: 10),
           ],
@@ -1079,12 +1091,14 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
     required this.payload,
     required this.battles,
     required this.onUpdatePayload,
+    this.onUpdateDefeatRecovery,
   });
 
   final SceneNode node;
   final SceneBattlePayload payload;
   final List<BattlePublicContract> battles;
   final SceneBattlePayloadDraftUpdater? onUpdatePayload;
+  final SceneBattleDefeatRecoveryDraftUpdater? onUpdateDefeatRecovery;
 
   @override
   Widget build(BuildContext context) {
@@ -1133,6 +1147,26 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
           leading: const Icon(CupertinoIcons.asterisk_circle),
           child: const Text('Changer le combat'),
         ),
+        const SizedBox(height: 8),
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scene-battle-defeat-recovery-picker'),
+          label: 'Après une défaite',
+          value: payload.defeatRecovery.name,
+          items: const [
+            PokeMapDropdownItem(value: 'continueScene', label: 'Continuer la scène'),
+            PokeMapDropdownItem(value: 'returnToRecoveryPoint', label: 'Revenir au point de soin'),
+          ],
+          enabled: onUpdateDefeatRecovery != null,
+          onChanged: (value) {
+            final updater = onUpdateDefeatRecovery;
+            final recovery = SceneBattleDefeatRecovery.values
+                .where((mode) => mode.name == value).firstOrNull;
+            if (updater == null || recovery == null || recovery == payload.defeatRecovery) return;
+            updater(nodeId: node.id, defeatRecovery: recovery);
+          },
+        ),
+        const _InspectorNote(label: 'Le retour au point de soin a lieu à la fin de la scène. '
+            'L’équipe est soignée et la pénalité de défaite est appliquée.'),
         const SizedBox(height: 8),
         const _InspectorNote(
           label: 'Cette édition modifie uniquement le payload du nœud Scene. '

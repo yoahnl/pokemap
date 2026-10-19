@@ -389,6 +389,17 @@ _ProjectSmartTilePattern _$ProjectSmartTilePatternFromJson(
         json['repeatMode'],
       ) ??
       SmartTilePatternRepeatMode.tiled,
+  clippingPolicy:
+      $enumDecodeNullable(
+        _$SmartTilePatternClippingPolicyEnumMap,
+        json['clippingPolicy'],
+      ) ??
+      SmartTilePatternClippingPolicy.clip,
+  construction: json['construction'] == null
+      ? null
+      : SmartTilePatternConstruction.fromJson(
+          json['construction'] as Map<String, dynamic>,
+        ),
   cells:
       (json['cells'] as List<dynamic>?)
           ?.map((e) => SmartTilePatternCell.fromJson(e as Map<String, dynamic>))
@@ -413,6 +424,8 @@ Map<String, dynamic> _$ProjectSmartTilePatternToJson(
   'anchorX': instance.anchorX,
   'anchorY': instance.anchorY,
   'repeatMode': _$SmartTilePatternRepeatModeEnumMap[instance.repeatMode]!,
+  'clippingPolicy': ?_patternClippingPolicyToJson(instance.clippingPolicy),
+  'construction': ?instance.construction?.toJson(),
   'cells': instance.cells.map((e) => e.toJson()).toList(),
   'drawOrder': instance.drawOrder,
   'tags': instance.tags,
@@ -430,6 +443,11 @@ const _$SmartTilePatternRepeatModeEnumMap = {
   SmartTilePatternRepeatMode.stamp: 'stamp',
 };
 
+const _$SmartTilePatternClippingPolicyEnumMap = {
+  SmartTilePatternClippingPolicy.clip: 'clip',
+  SmartTilePatternClippingPolicy.reject: 'reject',
+};
+
 _SmartTilePatternStroke _$SmartTilePatternStrokeFromJson(
   Map<String, dynamic> json,
 ) => _SmartTilePatternStroke(
@@ -440,6 +458,9 @@ _SmartTilePatternStroke _$SmartTilePatternStrokeFromJson(
       .toList(),
   phaseX: (json['phaseX'] as num?)?.toInt() ?? 0,
   phaseY: (json['phaseY'] as num?)?.toInt() ?? 0,
+  constructionBounds: json['constructionBounds'] == null
+      ? null
+      : MapRect.fromJson(json['constructionBounds'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$SmartTilePatternStrokeToJson(
@@ -450,6 +471,7 @@ Map<String, dynamic> _$SmartTilePatternStrokeToJson(
   'cells': instance.cells.map((e) => e.toJson()).toList(),
   'phaseX': instance.phaseX,
   'phaseY': instance.phaseY,
+  'constructionBounds': ?_constructionBoundsToJson(instance.constructionBounds),
 };
 
 _SmartTileCandidate _$SmartTileCandidateFromJson(Map<String, dynamic> json) =>

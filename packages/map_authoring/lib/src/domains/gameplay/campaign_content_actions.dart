@@ -226,6 +226,9 @@ final class CampaignContentActions {
       ProjectValidator.validateTrainerBallItemReferences(
         [value as ProjectTrainerEntry], itemCatalog: itemCatalog,
       );
+      ProjectValidator.validateTrainerBattleItemReferences(
+        [value], itemCatalog: itemCatalog,
+      );
     }
     final id = _contentId(value);
     final projected = switch (kind) {
@@ -332,6 +335,13 @@ AuthoringActionDescriptor _descriptor(
       requiredPermissions: const [AuthoringPermission.projectWrite],
       extensions: id == 'campaign.trainer.upsert'
           ? const {
+              'trainerBattleItems': {
+                'field': 'value.battleItems',
+                'maxDistinctItems': 16,
+                'quantity': {'min': 1, 'max': 99, 'integer': true},
+                'supportedEffects': ['heal_hp', 'cure_status'],
+                'stockScope': 'perBattle',
+              },
               'trainerPokemonBall': {
                 'field': 'value.team[].ballItemId',
                 'defaultPolicy': 'none',

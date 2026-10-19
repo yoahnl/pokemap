@@ -124,6 +124,12 @@ typedef SceneBattlePayloadUpdater =
       String? battleTemplateId,
     });
 
+typedef SceneBattleDefeatRecoveryUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  required SceneBattleDefeatRecovery defeatRecovery,
+});
+
 typedef SceneCinematicPayloadUpdater =
     Future<bool> Function({
       required String sceneId,
@@ -264,6 +270,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.onLoadDialogueChoicePolicies,
     this.onUpdateDialogueChoicePolicy,
     required this.onUpdateBattlePayload,
+    this.onUpdateBattleDefeatRecovery,
     required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
     this.onUpdateInteractiveCommand,
@@ -322,6 +329,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneDialogueChoicePolicyLoader? onLoadDialogueChoicePolicies;
   final SceneDialogueChoicePolicyUpdater? onUpdateDialogueChoicePolicy;
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
+  final SceneBattleDefeatRecoveryUpdater? onUpdateBattleDefeatRecovery;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
   final SceneInteractiveCommandUpdater? onUpdateInteractiveCommand;
@@ -980,6 +988,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                       );
                     },
                     onUpdateBattlePayload: _updateBattlePayload,
+                    onUpdateBattleDefeatRecovery: widget.onUpdateBattleDefeatRecovery == null
+                        ? null : _updateBattleDefeatRecovery,
                     onUpdateCinematicPayload: _updateCinematicPayload,
                     onOpenCinematic: (cinematicId) {
                       final sceneId = selectedScene.id;
@@ -1410,6 +1420,24 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (!mounted || !updated) {
       return false;
     }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
+  }
+
+  Future<bool> _updateBattleDefeatRecovery({
+    required String nodeId,
+    required SceneBattleDefeatRecovery defeatRecovery,
+  }) async {
+    final selected = _selectedScene;
+    final updater = widget.onUpdateBattleDefeatRecovery;
+    if (selected == null || updater == null) return false;
+    final updated = await updater(sceneId: selected.id, nodeId: nodeId, defeatRecovery: defeatRecovery);
+    if (!mounted || !updated) return false;
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = nodeId;

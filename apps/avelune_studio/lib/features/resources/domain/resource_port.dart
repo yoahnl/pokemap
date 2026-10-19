@@ -59,6 +59,7 @@ final class BorderCreationRequest {
     this.innerCornerModelId,
     this.primitiveModelIds = const {},
     this.primitiveModelSettings = const {},
+    this.sequenceLength,
     this.straightOnly,
     this.followContourDirection,
     this.replacesGround,
@@ -80,6 +81,7 @@ final class BorderCreationRequest {
   final String? innerCornerModelId;
   final Map<String, String> primitiveModelIds;
   final Map<String, BorderModelSettings> primitiveModelSettings;
+  final int? sequenceLength;
   final bool? straightOnly;
   final bool? followContourDirection;
   final bool? replacesGround;

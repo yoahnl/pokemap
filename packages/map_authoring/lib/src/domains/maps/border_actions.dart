@@ -147,8 +147,14 @@ final class BorderActions {
       throw semanticFailure('border.stroke_erase_outside_map',
           'Local stroke erasure must remain inside the Border lattice.');
     }
+    final definition = manifest.borderCatalog
+        .recordById(feature.blueprintId)
+        ?.latestPublished
+        ?.definition;
     final erased = editStroke(geometry, mode: BorderStrokeEditingMode.erase,
-        sampledPoints: sampledPoints);
+        sampledPoints: sampledPoints,
+        preserveTraversal: definition == null || definition.sequenceLength == 1 ||
+            definition.followContourDirection);
     if (erased == geometry) return map;
     if (erased.strokes.isEmpty) {
       return removeBorderFeature(map, layerId: layerId, featureId: featureId);
@@ -253,6 +259,7 @@ final class BorderActions {
     BorderStrokeGeometry base, {
     required BorderStrokeEditingMode mode,
     required List<GridPos> sampledPoints,
+    bool preserveTraversal = true,
   }) {
     if (sampledPoints.isEmpty) {
       throw semanticFailure(
@@ -264,6 +271,7 @@ final class BorderActions {
       baseGeometry: base,
       mode: mode,
       pointerDown: sampledPoints.first,
+      preserveTraversal: preserveTraversal,
     );
     for (final point in sampledPoints.skip(1)) {
       draft = draft.sample(point);
@@ -684,6 +692,10 @@ final class BorderActions {
           blueprintId,
         );
         final geometry = _geometry(parameters.object('geometry'));
+        final lineSide = parameters.contains('lineSide')
+            ? _lineSide(parameters.string('lineSide'))
+            : BorderLineSide.primary;
+        _requireSequenceSide(revision.definition, lineSide);
         if (revision.definition.isSpatial !=
             (context.map.spatialScene != null)) {
           throw semanticFailure('border.visual_dimension_mismatch',
@@ -706,9 +718,7 @@ final class BorderActions {
             blueprintId: blueprintId,
             seed: _seed(parameters.value('seed')),
             geometry: geometry,
-            lineSide: parameters.contains('lineSide')
-                ? _lineSide(parameters.string('lineSide'))
-                : BorderLineSide.primary,
+            lineSide: lineSide,
             spatialOffsetWorld: _spatialOffsetWorld(parameters, context.map),
             overrides: const [],
             keepOutRegions: const [],
@@ -726,6 +736,10 @@ final class BorderActions {
             ? _generationParams(parameters.object('paramsOverride'))
             : feature.paramsOverride;
         final lineSide = parameters.optionalString('lineSide');
+        _requireSequenceSide(
+            context.manifest.borderCatalog.recordById(feature.blueprintId)
+                ?.latestPublished?.definition,
+            lineSide == null ? feature.lineSide : _lineSide(lineSide));
         updated = upsertBorderFeature(
           context.map,
           layerId: layerId,
@@ -1237,6 +1251,17 @@ BorderSignedInt64 _seed(Object? value) {
       'border.seed_invalid',
       'A Border seed must be an integer or canonical signed 64-bit string.',
     );
+  }
+}
+
+void _requireSequenceSide(
+  BorderBlueprintPublishedDefinition? definition,
+  BorderLineSide lineSide,
+) {
+  if (definition != null && definition.sequenceLength > 1 &&
+      lineSide != BorderLineSide.primary) {
+    throw semanticFailure('border.spatial.line_side_inversion_unsupported',
+        'A cyclic spatial Border requires its authored primary side.');
   }
 }
 

@@ -298,7 +298,11 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         opponentAi: resolveRuntimeTrainerPsdkAi(
           request: request,
           manifest: bundle.manifest,
+          itemCatalog: items,
         ),
+        itemDisplayNames: {
+          for (final item in items.definitions) item.id: item.displayName,
+        },
       );
       context = RuntimeActiveBattleContext.withLineupMapping(
         request: request,

@@ -14,6 +14,38 @@ class MapWorkspaceDocument {
   final String mapId;
 }
 
+enum MapWorkspaceProjectScope { catalogMetadata, mapSelection, completeProject }
+
+final class MapWorkspaceCatalog {
+  const MapWorkspaceCatalog({required this.metadata, required this.revision});
+
+  final ProjectManifest metadata;
+  final String revision;
+}
+
+final class MapWorkspaceSelection {
+  const MapWorkspaceSelection({
+    required this.document,
+    required this.definitions,
+    required this.catalogRevision,
+    required this.snapshotRevision,
+  });
+
+  final MapWorkspaceDocument document;
+  final ProjectManifest definitions;
+  final String catalogRevision;
+  final String snapshotRevision;
+}
+
+abstract interface class MapWorkspaceScopedPort implements MapWorkspacePort {
+  Future<MapWorkspaceCatalog> loadCatalog(ProjectSession session);
+  Future<MapWorkspaceSelection> loadMapSelection(
+    ProjectSession session,
+    ProjectMapEntry entry,
+  );
+  Future<ProjectManifest> materializeProject(ProjectSession session);
+}
+
 abstract interface class MapWorkspacePort {
   Future<ProjectManifest> loadProject(ProjectSession session);
   Future<MapWorkspaceDocument> loadMap(

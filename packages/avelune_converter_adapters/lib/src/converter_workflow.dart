@@ -2310,6 +2310,7 @@ const _nativeStudyActions = [
   'pokemon.media.write',
   'campaign.encounter_table.upsert',
   'campaign.badge.upsert',
+  'campaign.shop.upsert',
   'entity.set_field_obstacle',
   'entity.set_presentation',
   'entity.set_interactive_encounter',
@@ -2374,6 +2375,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'Ordered source-derived batches retain every component and its owners, targets and artifacts; canonical limits, pre-stage regeneration and cold single-operation equivalence are verified.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/native_mutation_batches_test.dart',
+                },
+              if (action == 'campaign.shop.upsert')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Canonical shop action exposure and strict admission of the complete prepared action inventory, with unknown actions still refused; native stock application and runtime journeys are separate.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:native study declares supported canonical shop capability before approval',
                 },
               if (action.startsWith('border.blueprint.') ||
                   action.startsWith('border_layer.'))

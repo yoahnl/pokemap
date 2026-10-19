@@ -12,9 +12,14 @@ import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.da
 import 'package:avelune_studio/features/map_workspace/data/map_document_retention.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
-part 'local_map_workspace_catalog.dart';
+import '../../project_session/data/studio_project_document_revision.dart';
 
-final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
+part 'local_map_workspace_catalog.dart';
+part 'local_map_workspace_working_catalog.dart';
+part 'local_map_workspace_scoped_catalog.dart';
+
+final class LocalMapWorkspaceAdapter
+    implements MapWorkspacePort, MapWorkspaceScopedPort {
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
     AtomicMapDocumentPersistence? persistence,
@@ -38,6 +43,12 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
     bool refreshCatalog = false,
   }) async {
     var project = _project(session);
+    if (!project.complete) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.unavailable,
+        'Chargez tous les ateliers avant de modifier les ressources du projet.',
+      );
+    }
     await _requireRoot(session);
     if (refreshCatalog) {
       project = await _refreshCatalog(session, project);
@@ -47,11 +58,30 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
   }
 
   @override
+  Future<MapWorkspaceCatalog> loadCatalog(ProjectSession session) =>
+      _loadScopedCatalog(session);
+
+  @override
+  Future<MapWorkspaceSelection> loadMapSelection(
+    ProjectSession session,
+    ProjectMapEntry entry,
+  ) => _loadScopedMapSelection(session, entry);
+
+  @override
+  Future<ProjectManifest> materializeProject(ProjectSession session) =>
+      _materializeScopedProject(session);
+
+  @override
   Future<ProjectManifest> loadProject(ProjectSession session) async {
     try {
       _projects.clear();
       _loadedPaths.clear();
       await _requireRoot(session);
+      if (session.storage != ProjectSessionStorage.manifest) {
+        final loaded = await _readCatalogProject(session);
+        _projects[session.sessionId] = loaded;
+        return loaded.manifest;
+      }
       final bytes = await _reader.readBytes(
         projectRoot: session.directoryPath,
         relativePath: 'project.json',
@@ -89,6 +119,9 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
   ) async {
     try {
       final project = _project(session);
+      if (!project.complete) {
+        return (await loadMapSelection(session, entry)).document;
+      }
       if (!project.manifest.maps.contains(entry)) {
         throw const MapWorkspaceFailure(
           MapWorkspaceProblem.unsafePath,
@@ -143,6 +176,12 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
     MapData current,
   ) async {
     try {
+      if (session.storage == ProjectSessionStorage.portableCatalog) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.unavailable,
+          'Ce projet publié est en lecture seule.',
+        );
+      }
       final project = _project(session);
       final entry = project.manifest.maps.singleWhere(
         (e) => e.id == base.mapId,
@@ -160,8 +199,16 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
       if (!buildMapVisualCompositionPlan(current).canCompose) {
         throw const FormatException();
       }
-      MapValidator.validate(current, projectDialogueContext: project.manifest);
+      if (project.complete) {
+        MapValidator.validate(
+          current,
+          projectDialogueContext: project.manifest,
+        );
+      }
       final bytes = encodeMapDocumentBytes(current);
+      if (session.storage == ProjectSessionStorage.workingCatalog) {
+        return await _saveWorkingMap(session, project, base, current);
+      }
       return await _persistence.write(
         path,
         bytes,
@@ -190,7 +237,17 @@ final class LocalMapWorkspaceAdapter implements MapWorkspacePort {
       projectRoot: session.directoryPath,
       relativePath: 'project.json',
     );
-    if (narrativeEventBytesFingerprint(bytes) != project.revision) {
+    final head = session.storage == ProjectSessionStorage.workingCatalog
+        ? await _reader.readBytes(
+            projectRoot: session.directoryPath,
+            relativePath: 'catalog/HEAD.json',
+          )
+        : null;
+    if (studioProjectDocumentRevision(
+          descriptorBytes: bytes,
+          headBytes: head,
+        ) !=
+        project.revision) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,
         'Le projet a changé sur le disque. Votre travail reste ouvert ; rouvrez le projet pour utiliser sa nouvelle version.',

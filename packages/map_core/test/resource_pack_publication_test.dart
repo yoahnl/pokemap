@@ -132,7 +132,7 @@ void main() {
       final record = borderFixture();
       final catalog = ResourcePackCatalog(
         borderCatalog: ProjectBorderCatalog(
-          formatVersion: 10,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
           records: [record],
         ),
       );

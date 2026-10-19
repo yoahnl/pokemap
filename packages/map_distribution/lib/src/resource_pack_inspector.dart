@@ -57,6 +57,7 @@ abstract final class ResourcePackCapabilities {
   static const supported = <String>{
     'images.png',
     'models.glb',
+    SpatialModelClipCapabilities.resourcePackCapabilityId,
     'resources.element',
     'resources.model3d',
     'resources.smart-tile-preset',
@@ -71,6 +72,9 @@ abstract final class ResourcePackCapabilities {
     final capabilities = <String>{
       if (files.any((f) => f.mediaType == 'image/png')) 'images.png',
       if (files.any((f) => f.mediaType == 'model/gltf-binary')) 'models.glb',
+      if (SpatialModelClipCapabilities.catalogModelIds(catalog.smartTileCatalog)
+          .isNotEmpty)
+        SpatialModelClipCapabilities.resourcePackCapabilityId,
       if (catalog.elements.isNotEmpty) 'resources.element',
       if (catalog.models3d.isNotEmpty) 'resources.model3d',
       if (catalog.smartTileCatalog.presets.isNotEmpty)

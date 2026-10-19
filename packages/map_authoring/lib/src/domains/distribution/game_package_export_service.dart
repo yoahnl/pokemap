@@ -190,6 +190,8 @@ final class CanonicalGamePackageExportService {
       var spatialStory = false;
       var customTerrainAppearance = false;
       var continuousTerrain = false;
+      var fractionalRamps = false;
+      var modelClips = SpatialModelClipCapabilities.requiresCapability(projection.project);
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
         spatialStory =
@@ -210,7 +212,11 @@ final class CanonicalGamePackageExportService {
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
           customTerrainAppearance |= map.spatialScene?.generateCliffs == false;
-          continuousTerrain |= map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
+          continuousTerrain |=
+              map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
+          fractionalRamps |= map.spatialScene!.navigation.ramps
+              .any((ramp) => ramp.hasFractionalLevels);
+          modelClips |= map.spatialScene!.instances.any((instance) => instance.clip != null);
           animatedDecor |= SpatialGameplayCapabilities.requiresModelAnimation(
               projection.project,
               maps: [map]);
@@ -228,6 +234,8 @@ final class CanonicalGamePackageExportService {
         if (animatedDecor) 'map3d.animation@1',
         if (customTerrainAppearance) 'map3d.terrain-appearance@1',
         if (continuousTerrain) SpatialTerrainSurfaceSet.capabilityId,
+        if (fractionalRamps) SpatialRamp.fractionalLevelsCapabilityId,
+        if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
       }.toList(growable: false)
@@ -419,6 +427,8 @@ final class CanonicalGamePackageExportService {
             'map3d.animation@1',
             'map3d.terrain-appearance@1',
             SpatialTerrainSurfaceSet.capabilityId,
+            SpatialRamp.fractionalLevelsCapabilityId,
+            SpatialModelClipCapabilities.capabilityId,
             SpatialGameplayCapabilities.capabilityId,
             SpatialGameplayCapabilities.storyCapabilityId,
             'overworld.menu@1',

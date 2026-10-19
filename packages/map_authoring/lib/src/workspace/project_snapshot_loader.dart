@@ -240,14 +240,31 @@ final class ProjectSnapshotLoader {
   Future<ProjectSnapshot> loadPresentationDraft(
       ProjectHandle projectHandle) async {
     final access = _handles.resolveProject(projectHandle);
+    await access.requireReadableProject();
     final manifestBytes = await access.readResourceBytes('project.json');
-    final manifest = await _decodeExecutor.decodeManifest(manifestBytes.bytes);
+    final materialized =
+        await access.materializeCatalogProject(manifestBytes.bytes);
+    if (materialized != null &&
+        materialized.descriptorRevision !=
+            computeAuthoringBytesFingerprint(manifestBytes.bytes,
+                logicalName: 'project.json')) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot',
+          'The project descriptor changed during catalog materialization.');
+    }
+    final manifest = materialized?.manifest ??
+        await _decodeExecutor.decodeManifest(manifestBytes.bytes);
     final resources = <_LoadedProjectResource>[
       _LoadedProjectResource(
         relativePath: 'project.json',
         identity: 'project',
         bytes: manifestBytes,
       ),
+      if (materialized?.headBytes case final bytes?)
+        _LoadedProjectResource(
+          relativePath: 'catalog/HEAD.json',
+          identity: 'catalogHead',
+          bytes: access.adoptResourceBytes(bytes),
+        ),
     ];
     final absentPaths = <String>[];
     for (final (path, identity) in [
@@ -302,10 +319,12 @@ final class ProjectSnapshotLoader {
         ..addBytes(bytes)
         ..endEntry();
     }
+    await access.requireReadableProject();
     return ProjectSnapshot(
       projectHandle: projectHandle,
       revision: revision.close(),
       manifest: manifest,
+      materializedCatalogProject: materialized != null,
       maps: const [],
       resourceFingerprints: fingerprints,
       ownedResourceBytes: {
@@ -465,6 +484,7 @@ final class ProjectSnapshotLoader {
     final cacheIdentityReadsBefore =
         profiler == null ? 0 : snapshotCache?.identityReads ?? 0;
     final access = _handles.resolveProject(projectHandle);
+    await access.requireReadableProject();
     final absentResourcePaths = <String>{};
     if (deferPokemonDocuments) invalidate(projectHandle);
     Future<ProjectResourceBytes?> readOptional(String path) async {
@@ -493,9 +513,12 @@ final class ProjectSnapshotLoader {
     final cached = await snapshotCache?.lookup(
       access,
       projectHandle,
-      validation: cacheValidation,
+      validation: access.hasCatalogMaterializer
+          ? ProjectSnapshotCacheValidation.canonical
+          : cacheValidation,
     );
     if (cached != null) {
+      await access.requireReadableProject();
       if (profiler != null) {
         profileSink!(
           profiler.finish(
@@ -520,11 +543,21 @@ final class ProjectSnapshotLoader {
     final manifestIdentity = !identityCachingEnabled
         ? null
         : await access.readResourceIdentity('project.json');
-    final manifest = (manifestIdentity == null
+    final materialized =
+        await access.materializeCatalogProject(manifestBytes.bytes);
+    if (materialized != null &&
+        materialized.descriptorRevision !=
+            computeAuthoringBytesFingerprint(manifestBytes.bytes,
+                logicalName: 'project.json')) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot',
+          'The project descriptor changed during catalog materialization.');
+    }
+    final manifest = materialized?.manifest ??
+        (manifestIdentity == null
             ? null
             : _fingerprintCache?.decoded<ProjectManifest>(manifestIdentity)) ??
         await _decodeExecutor.decodeManifest(manifestBytes.bytes);
-    if (manifestIdentity != null) {
+    if (manifestIdentity != null && materialized == null) {
       _fingerprintCache?.storeDecoded(manifestIdentity, manifest);
     }
     final entries = _validatedMapEntries(manifest.maps);
@@ -540,6 +573,12 @@ final class ProjectSnapshotLoader {
         identity: 'project',
         bytes: manifestBytes,
       ),
+      if (materialized?.headBytes case final bytes?)
+        _LoadedProjectResource(
+          relativePath: 'catalog/HEAD.json',
+          identity: 'catalogHead',
+          bytes: access.adoptResourceBytes(bytes),
+        ),
     ];
     final maps = <MapData>[];
     ProjectItemCatalog? itemCatalog;
@@ -548,6 +587,10 @@ final class ProjectSnapshotLoader {
 
     final identities = <String, ProjectResourceIdentity?>{
       'project.json': manifestIdentity,
+      if (materialized?.headBytes != null)
+        'catalog/HEAD.json': identityCachingEnabled
+            ? await access.readResourceIdentity('catalog/HEAD.json')
+            : null,
     };
     final cache = _fingerprintCache;
     for (final entry in entries) {
@@ -1138,9 +1181,21 @@ final class ProjectSnapshotLoader {
             await access.readResourceIdentity(resource.relativePath);
         if (resource.observedIdentity != null &&
             identities[resource.relativePath] != resource.observedIdentity) {
-          throw const ProjectSnapshotException(
-              'project.changed_during_snapshot',
-              'A certified resource changed before its snapshot was retained.');
+          final recertified = await _readStoredResource(
+              access, resource.relativePath, resource.identity);
+          final expected = resource.stored;
+          final actual = recertified?.stored;
+          if (expected == null ||
+              actual == null ||
+              actual.byteLength != expected.byteLength ||
+              actual.rawSha256 != expected.rawSha256 ||
+              actual.resourceRevision != expected.resourceRevision ||
+              actual.contentDigest != expected.contentDigest) {
+            throw const ProjectSnapshotException(
+                'project.changed_during_snapshot',
+                'A certified resource changed before its snapshot was retained.');
+          }
+          identities[resource.relativePath] = recertified!.observedIdentity;
         }
       }
     }
@@ -1204,6 +1259,7 @@ final class ProjectSnapshotLoader {
       projectHandle: projectHandle,
       revision: revision,
       manifest: manifest,
+      materializedCatalogProject: materialized != null,
       pokemonInventoryComplete: pokemonInventoryComplete,
       maps: maps,
       itemCatalog: itemCatalog,
@@ -1226,6 +1282,7 @@ final class ProjectSnapshotLoader {
       },
       loadDiagnostics: loadDiagnostics,
     );
+    await access.requireReadableProject();
     final completeIdentities = <String, ProjectResourceIdentity>{};
     for (final resource in resources) {
       final identity = identities[resource.relativePath];

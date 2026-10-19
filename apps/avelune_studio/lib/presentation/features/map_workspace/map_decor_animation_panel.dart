@@ -6,17 +6,22 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/layout/studio_asset_preview.dart';
+import 'map_workspace_visuals.dart';
 
 class MapDecorAnimationPanel extends StatefulWidget {
   const MapDecorAnimationPanel({
     super.key,
     required this.document,
     required this.project,
+    required this.visuals,
     required this.onChanged,
   });
 
   final EditableMapDocument document;
   final ProjectManifest project;
+  final MapWorkspaceVisuals visuals;
   final VoidCallback onChanged;
 
   @override
@@ -54,6 +59,15 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
         .firstOrNull;
     final frames = definition?.frames.length ?? 0;
     final animation = selected.animation ?? const MapPlacedElementAnimation();
+    final durations = normalizeElementFrameDurationsMs(
+      definition?.frames.map((frame) => frame.durationMs).toList() ?? const [],
+    );
+    final idleFrame = resolvePlacedElementAnimationFrameIndex(
+      frameDurationsMs: durations,
+      elapsedMs: 0,
+      animation: animation.copyWith(autoplay: false),
+      deterministicSeed: stableHash32(selected.id),
+    );
     final behaviors = selected.behaviors.indexed.where(
       (entry) =>
           entry.$2.effect.type ==
@@ -72,7 +86,7 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
               : 'Cette ressource ne contient pas plusieurs images à animer.',
           style: text.bodySmall,
         ),
-        if (frames > 1) ...[
+        if (definition != null && frames > 1) ...[
           const SizedBox(height: 12),
           StudioChoice(
             label: 'Animation active',
@@ -116,9 +130,59 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
             subtitle: 'Décale le départ des exemplaires de cette ressource.',
             selected: animation.randomStart,
             onTap: () => _updateAnimation(
-              animation.copyWith(randomStart: !animation.randomStart),
+              animation.copyWith(
+                randomStart: !animation.randomStart,
+                startOffsetMs: animation.randomStart
+                    ? animation.startOffsetMs
+                    : null,
+              ),
             ),
           ),
+          const SizedBox(height: 8),
+          StudioSelect(
+            key: const ValueKey('decor-idle-frame'),
+            label: 'Image d’attente',
+            value: '$idleFrame',
+            options: {
+              for (var index = 0; index < frames; index++)
+                '$index': 'Image ${index + 1}',
+            },
+            onChanged: (value) {
+              final index = int.parse(value);
+              final offset = durations
+                  .take(index)
+                  .fold<int>(0, (sum, duration) => sum + duration);
+              _updateAnimation(
+                animation.copyWith(
+                  enabled: true,
+                  mode: animation.mode == MapPlacedElementAnimationMode.none
+                      ? MapPlacedElementAnimationMode.loop
+                      : animation.mode,
+                  autoplay: false,
+                  randomStart: false,
+                  startOffsetMs: offset.toDouble(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Choisir une image désactive le départ automatique. « Jouer une fois » repart de la première image.',
+            style: text.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          StudioAssetPreview(
+            key: const ValueKey('decor-idle-frame-preview'),
+            height: 112,
+            child: Semantics(
+              label: 'Aperçu de l’image d’attente ${idleFrame + 1} sur $frames',
+              child: widget.visuals.thumbnail(
+                definition.copyWith(frames: [definition.frames[idleFrame]]),
+                size: 96,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           StudioCommitField(
             key: ValueKey('animation-speed-${selected.id}'),
             label: 'Vitesse',

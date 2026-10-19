@@ -34,12 +34,14 @@ final class BorderCanonicalGalleryResult {
     required this.report,
     required List<BorderCanonicalGalleryCaseResult> cases,
     required this.resolutionDiagnostics,
+    required this.requiresInverted,
   }) : _cases = List<BorderCanonicalGalleryCaseResult>.unmodifiable(cases);
 
   final BorderBlueprintTemplate template;
   final BorderPublicationGalleryReport report;
   final List<BorderCanonicalGalleryCaseResult> _cases;
   final BorderDiagnosticsReport resolutionDiagnostics;
+  final bool requiresInverted;
 
   List<BorderCanonicalGalleryCaseResult> get cases => _cases;
 
@@ -49,7 +51,7 @@ final class BorderCanonicalGalleryResult {
       _cases.every(
         (item) =>
             item.resolverResult.canApply &&
-            (!borderTemplateRequiresInvertedCanonicalGallery(template) ||
+            (!requiresInverted ||
                 item.invertedResolverResult?.canApply == true),
       );
 
@@ -58,6 +60,7 @@ final class BorderCanonicalGalleryResult {
       identical(this, other) ||
       other is BorderCanonicalGalleryResult &&
           template == other.template &&
+          requiresInverted == other.requiresInverted &&
           report == other.report &&
           _listEquals(_cases, other._cases) &&
           resolutionDiagnostics == other.resolutionDiagnostics;
@@ -65,6 +68,7 @@ final class BorderCanonicalGalleryResult {
   @override
   int get hashCode => Object.hash(
         template,
+        requiresInverted,
         report,
         Object.hashAll(_cases),
         resolutionDiagnostics,
@@ -235,6 +239,8 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
       case BorderBlueprintTemplate.connectedLine:
         final isFacade =
             definition.template == BorderBlueprintTemplate.horizontalFacade;
+        final primaryOnly =
+            isFacade || borderBlueprintUsesPrimaryNativeConnectedLine(definition);
         final geometry = _connectedLineGeometryFor(galleryCase);
         final primary = resolveConnectedLineBorderWithEvidence(
           _request(
@@ -249,7 +255,7 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             lineSide: BorderLineSide.primary,
           ),
         );
-        final inverted = isFacade
+        final inverted = primaryOnly
             ? primary
             : resolveConnectedLineBorderWithEvidence(
           _request(
@@ -291,7 +297,7 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
                 BorderPrimitiveRole.lineCorner,
               },
             ),
-            if (!isFacade)
+            if (!primaryOnly)
               ..._structuralRuns(
               caseWire: caseWire,
               idPrefix: 'inverted:$caseWire',
@@ -312,7 +318,7 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             mapSize: _lineGalleryMapSize,
             geometry: geometry,
             resolverResult: primary.result,
-            invertedResolverResult: isFacade ? null : inverted.result,
+            invertedResolverResult: primaryOnly ? null : inverted.result,
             publicationSample: sample,
           ),
         );
@@ -442,6 +448,9 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
 
   return BorderCanonicalGalleryResult._(
     template: definition.template,
+    requiresInverted:
+        borderTemplateRequiresInvertedCanonicalGallery(definition.template) &&
+        !borderBlueprintUsesPrimaryNativeConnectedLine(definition),
     report: BorderPublicationGalleryReport(
       resolverVersion: resolverVersion,
       canonicalGalleryVersion: borderCanonicalGalleryVersion,
@@ -464,6 +473,7 @@ BorderCanonicalGalleryResult _adaptOrganicGallery(
 ) =>
     BorderCanonicalGalleryResult._(
       template: BorderBlueprintTemplate.organicEdge,
+      requiresInverted: false,
       report: source.report,
       cases: <BorderCanonicalGalleryCaseResult>[
         for (final item in source.cases)

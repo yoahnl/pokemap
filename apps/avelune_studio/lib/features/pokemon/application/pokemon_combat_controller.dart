@@ -213,6 +213,57 @@ final class PokemonCombatController {
     changed();
   }
 
+  void addTrainerBattleItem(String itemId, PokemonWorkspaceIndex index) {
+    final current = trainer?.current;
+    if (current == null ||
+        saving ||
+        current.battleItems.length >= 16 ||
+        current.battleItems.containsKey(itemId) ||
+        !eligibleTrainerBattleItems(index.itemCatalog)
+            .any((item) => item.id == itemId))
+      return;
+    editTrainer(
+      (value) => value.copyWith(battleItems: {...value.battleItems, itemId: 1}),
+    );
+  }
+
+  void editTrainerBattleItemQuantity(String itemId, String raw) {
+    if (trainer == null ||
+        saving ||
+        !trainer!.current.battleItems.containsKey(itemId))
+      return;
+    final key = 'battleItem:$itemId';
+    numericInputs[key] = raw;
+    final quantity = int.tryParse(raw);
+    if (!RegExp(r'^[0-9]+$').hasMatch(raw) ||
+        quantity == null ||
+        quantity < 1 ||
+        quantity > 99) {
+      fieldErrors[key] = 'La quantité doit être un entier entre 1 et 99.';
+      changed();
+      return;
+    }
+    fieldErrors.remove(key);
+    editTrainer(
+      (value) =>
+          value.copyWith(battleItems: {...value.battleItems, itemId: quantity}),
+    );
+  }
+
+  void removeTrainerBattleItem(String itemId) {
+    if (trainer == null || saving) return;
+    numericInputs.remove('battleItem:$itemId');
+    fieldErrors.remove('battleItem:$itemId');
+    editTrainer(
+      (value) => value.copyWith(
+        battleItems: {
+          for (final item in value.battleItems.entries)
+            if (item.key != itemId) item.key: item.value,
+        },
+      ),
+    );
+  }
+
   void discard() {
     if (saving) return;
     if (table?.created == true) table = null;

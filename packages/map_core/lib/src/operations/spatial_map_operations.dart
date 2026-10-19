@@ -339,8 +339,9 @@ final class SpatialMapOperations {
       instances: positioned.instances.map((instance) {
         if (attached.contains(instance.id)) return instance;
         final p = instance.position;
+        final support = instance.supportPosition;
         final delta =
-            positioned.worldHeightAt(p.x, p.z) - before.worldHeightAt(p.x, p.z);
+            positioned.worldHeightAt(support.x, support.z) - before.worldHeightAt(support.x, support.z);
         return delta == 0
             ? instance
             : instance.copyWith(

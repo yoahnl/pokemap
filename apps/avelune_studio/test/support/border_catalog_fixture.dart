@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 ProjectBorderCatalog testBorderCatalog({
   BorderBlueprintTemplate template = BorderBlueprintTemplate.connectedLine,
+  bool nativeOrientations = false,
 }) {
   final roles = template == BorderBlueprintTemplate.stoneChainLine
       ? [BorderPrimitiveRole.structureLarge]
@@ -12,16 +13,20 @@ ProjectBorderCatalog testBorderCatalog({
         ];
   final primitives = <BorderPublishedPrimitive>[
     for (final role in roles)
+      for (final orientation in nativeOrientations
+          ? BorderPrimitiveOrientation.values.where((v) => v != BorderPrimitiveOrientation.legacyAxis)
+          : [BorderPrimitiveOrientation.legacyAxis])
       BorderPublishedPrimitive(
-        id: role.name,
+        id: nativeOrientations ? '${role.name}-${orientation.name}' : role.name,
         sourceElementId: 'test-border',
         visualSnapshotId: 'border-snapshot-sha256:${'a' * 64}',
         role: role,
+        authoredOrientation: orientation,
         weight: 1,
         anchorPx: const BorderPixelPos(x: 7, y: 7),
         transforms: BorderTransformPolicy(
-          allowedQuarterTurns: const [0, 1, 2, 3],
-          allowFlipX: true,
+          allowedQuarterTurns: nativeOrientations ? const [0] : const [0, 1, 2, 3],
+          allowFlipX: !nativeOrientations,
         ),
         publishedMetrics: BorderPrimitiveAssetMetrics(
           assetFingerprint: 'test-border',
@@ -44,12 +49,13 @@ ProjectBorderCatalog testBorderCatalog({
       maxOverlapPx: 0,
       gapTolerancePx: 0,
       depthRows: 1,
-      allowAutoRotation: template != BorderBlueprintTemplate.horizontalFacade,
+      allowAutoRotation: !nativeOrientations && template != BorderBlueprintTemplate.horizontalFacade,
     ),
     sortOrder: 0,
   );
   return ProjectBorderCatalog(
-    formatVersion: template == BorderBlueprintTemplate.horizontalFacade
+    formatVersion: nativeOrientations ? ProjectBorderCatalog.formatVersionV4
+        : template == BorderBlueprintTemplate.horizontalFacade
         ? ProjectBorderCatalog.formatVersionV11
         : template == BorderBlueprintTemplate.stoneChainLine
         ? ProjectBorderCatalog.formatVersionV3

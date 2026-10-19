@@ -125,8 +125,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'Le projet a changé depuis la préparation. Votre saisie est conservée.',
           );
         }
-        if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-            before.revision) {
+        if (studioProjectSnapshotRevision(snapshot) != before.revision) {
           throw const ResourceFailure(
             'Le projet a changé sur le disque. Rien n’a été écrasé.',
           );
@@ -176,6 +175,10 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           planned.plan,
           createdTilesetId,
           operationId,
+          projectedProject: planned.projectedProject,
+          projectedRevision: snapshot.materializedCatalogProject
+              ? studioProjectPlanRevision(snapshot, planned.plan)
+              : null,
         );
         _requireAvailable();
         try {
@@ -215,6 +218,18 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         try {
           await beforeReconciliation?.call();
           _requireAvailable();
+          if (snapshot.materializedCatalogProject) {
+            final after = await snapshots.load(
+              opened.projectHandle,
+              policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+            );
+            if (studioProjectSnapshotRevision(after) != receipt.revision ||
+                after.manifest != receipt.manifest) {
+              throw const ResourceFailure(
+                'La publication a changé avant sa relecture. Relisez sans la rejouer.',
+              );
+            }
+          }
           await mapAdapter.acceptResourceMutation(
             session,
             receipt,

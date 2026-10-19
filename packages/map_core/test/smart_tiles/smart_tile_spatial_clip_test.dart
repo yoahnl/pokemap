@@ -148,7 +148,7 @@ void main() {
       );
       expect(
         codes(partJson()..['source'] = {'kind': 'model3d', 'modelId': 'unit'}),
-        contains('smart_tiles.raster.clip_source_invalid'),
+        isEmpty,
       );
       expect(
         codes(partJson()..['channel'] = 'foreground'),

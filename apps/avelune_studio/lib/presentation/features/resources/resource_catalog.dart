@@ -426,7 +426,9 @@ List<ResourceItem> filterResourceCatalog(
       return false;
     }
     return query.isEmpty ||
-        '${item.name} ${item.tags.join(' ')}'.toLowerCase().contains(query);
+        '${item.name} ${item.tags.join(' ')} ${entry?.description ?? ''}'
+            .toLowerCase()
+            .contains(query);
   }).toList();
 }
 

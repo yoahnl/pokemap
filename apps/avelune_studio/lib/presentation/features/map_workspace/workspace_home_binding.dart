@@ -20,12 +20,20 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   }
 
   void _openResources([ProjectElementEntry? element, bool edit = false]) {
+    if (!_controller.hasCompleteProject) {
+      unawaited(_materializeWorkshops(destination: WorkspaceSpace.resources));
+      return;
+    }
     if (_resources == null) return;
     _resources!.openElement(element, edit: edit);
     _show(WorkspaceSpace.resources);
   }
 
   void _openBorders() {
+    if (!_controller.hasCompleteProject) {
+      unawaited(_materializeWorkshops(destination: WorkspaceSpace.resources));
+      return;
+    }
     if (_resources == null) return;
     _resources!.openBorders();
     _show(WorkspaceSpace.resources);
@@ -56,8 +64,11 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
           for (final entry in _controller.project?.maps ?? <ProjectMapEntry>[])
             (id: entry.id, name: entry.name),
         ],
-        library: _controller.project,
-        testAvailable: _controller.active != null && !_actions.busy,
+        library: _controller.hasCompleteProject ? _controller.project : null,
+        testAvailable:
+            _controller.hasCompleteProject &&
+            _controller.active != null &&
+            !_actions.busy,
         previewBuilder: (id) => StudioHomeMapPreview(
           key: ValueKey(
             'home-map-preview-${_controller.session.sessionId}-$id',

@@ -36,6 +36,7 @@ final class RuntimeOwnedImageCache {
   final int capacity;
   final Map<String, Future<ui.Image>> _pending = {};
   final Map<String, void Function()> _release = {};
+  final Map<String, ui.Image> _loadedImages = {};
   final Map<Object, Set<String>> _scopes = Map.identity();
   final Set<String> _retiredPending = {};
   bool _disposed = false;
@@ -62,6 +63,26 @@ final class RuntimeOwnedImageCache {
         ),
       );
     }
+  }
+
+  void updateScope(
+    Object scope, {
+    required Iterable<String> keys,
+    Iterable<ui.Image> liveImages = const [],
+  }) {
+    final retained = _scopes[scope];
+    if (_disposed || retained == null) {
+      throw StateError('Image scope is not active.');
+    }
+    final live = Set<ui.Image>.identity()..addAll(liveImages);
+    retained
+      ..clear()
+      ..addAll(keys)
+      ..addAll(_loadedImages.entries
+          .where((entry) => live.contains(entry.value))
+          .map((entry) => entry.key))
+      ..addAll(_pending.keys.where((key) => !_release.containsKey(key)));
+    trimUnused();
   }
 
   Future<ui.Image> load(String key) async {
@@ -119,6 +140,7 @@ final class RuntimeOwnedImageCache {
       throw const RuntimeResourceAdmissionException('cancelled_or_closed');
     }
     _release[key] = release;
+    _loadedImages[key] = image;
     return image;
   }
 
@@ -128,6 +150,7 @@ final class RuntimeOwnedImageCache {
       if (_pending.length <= maximumEntries) break;
       if (retained.contains(key)) continue;
       _pending.remove(key);
+      _loadedImages.remove(key);
       _release.remove(key)?.call();
     }
   }
@@ -139,6 +162,7 @@ final class RuntimeOwnedImageCache {
       release();
     }
     _release.clear();
+    _loadedImages.clear();
     _pending.clear();
     _scopes.clear();
     _retiredPending.clear();

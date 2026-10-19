@@ -91,9 +91,15 @@ final class PsdkBattleAi {
     required PsdkBattleState state,
     required PsdkBattleSlotRef user,
     required PsdkBattleSlotRef target,
+    Map<String, int>? remainingItemQuantities,
   }) {
-    final itemDecision =
-        canUseItem ? _chooseItemDecision(state: state, user: user) : null;
+    final itemDecision = canUseItem
+        ? _chooseItemDecision(
+            state: state,
+            user: user,
+            remainingItemQuantities: remainingItemQuantities,
+          )
+        : null;
     if (itemDecision != null) {
       return itemDecision;
     }
@@ -130,11 +136,18 @@ final class PsdkBattleAi {
   BattleItemDecision? _chooseItemDecision({
     required PsdkBattleState state,
     required PsdkBattleSlotRef user,
+    required Map<String, int>? remainingItemQuantities,
   }) {
     final battler = state.battlerAt(user);
     PsdkBattleAiItemOption? bestOption;
     var bestScore = 0.0;
     for (final option in itemOptions) {
+      final quantity = remainingItemQuantities == null
+          ? option.quantity
+          : remainingItemQuantities[option.itemId] ?? 0;
+      if (quantity <= 0) {
+        continue;
+      }
       final score = _itemScore(option: option, battler: battler);
       if (score > bestScore) {
         bestOption = option;
@@ -148,6 +161,7 @@ final class PsdkBattleAi {
       itemId: bestOption.itemId,
       target: bestOption.target ?? user,
       effect: bestOption.effect,
+      highPriority: true,
     );
   }
 
@@ -230,6 +244,9 @@ final class PsdkBattleAi {
     required PsdkBattleAiItemOption option,
     required PsdkBattleCombatant battler,
   }) {
+    if (battler.isFainted) {
+      return 0;
+    }
     final effect = option.effect;
     if (effect is PsdkBattleHpHealItemEffect) {
       final missingHp = battler.maxHp - battler.currentHp;
@@ -479,6 +496,7 @@ final class PsdkBattleAiItemOption {
     required this.itemId,
     required PsdkBattleItemActionEffect effect,
     this.target,
+    this.quantity = 1,
   })  : _effect = effect,
         _hpHealAmount = null;
 
@@ -486,12 +504,14 @@ final class PsdkBattleAiItemOption {
     required String itemId,
     required int amount,
     PsdkBattleSlotRef? target,
+    this.quantity = 1,
   })  : itemId = itemId,
         target = target,
         _effect = null,
         _hpHealAmount = amount;
 
   final String itemId;
+  final int quantity;
   final PsdkBattleSlotRef? target;
   final PsdkBattleItemActionEffect? _effect;
   final int? _hpHealAmount;

@@ -17,6 +17,36 @@ final class PortableCatalogPublicationBuild {
   final CatalogStorageBuild storage;
 }
 
+final class WorkingProjectCatalogDescriptor {
+  WorkingProjectCatalogDescriptor({required this.projectId}) {
+    if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$').hasMatch(projectId)) {
+      throw const FormatException('catalog.working: invalid project identity');
+    }
+  }
+
+  factory WorkingProjectCatalogDescriptor.fromJson(Map<String, Object?> json) {
+    if (json.length != 4 ||
+        json['format'] != 'avelune.working-catalog' ||
+        json['version'] is! int ||
+        json['version'] != 1 ||
+        json['kind'] != 'project' ||
+        json['projectId'] is! String) {
+      throw const FormatException('catalog.working: unsupported descriptor');
+    }
+    return WorkingProjectCatalogDescriptor(
+      projectId: json['projectId']! as String,
+    );
+  }
+
+  final String projectId;
+  Map<String, Object?> toJson() => {
+    'format': 'avelune.working-catalog',
+    'version': 1,
+    'kind': 'project',
+    'projectId': projectId,
+  };
+}
+
 final class PortableProjectCatalog {
   PortableProjectCatalog._(this.snapshot, this.projectMetadata, this._shell);
 
@@ -41,6 +71,20 @@ final class PortableProjectCatalog {
       readObject: readObject,
       limits: limits,
     );
+    if ((await snapshot.page(
+      kind: CatalogDefinitionKind.workspaceState,
+      limit: 1,
+    )).items.isNotEmpty) {
+      throw const FormatException(
+        'catalog.publication: internal workspace state',
+      );
+    }
+    return fromSnapshot(snapshot);
+  }
+
+  static Future<PortableProjectCatalog> fromSnapshot(
+    CatalogSnapshot snapshot,
+  ) async {
     final shell = await snapshot.lookup(_shellKey);
     if (shell == null || shell.payload['section'] != r'$shell') {
       throw const FormatException('catalog.publication: missing project shell');
@@ -72,10 +116,9 @@ final class PortableProjectCatalog {
     } while (cursor != null);
     final decoded = ProjectManifest.fromJson(_reconstruct(metadata));
     final project = decoded.copyWith(
-      globalProperties: _immutableProjectProperty(
-        decoded.globalProperties,
-        0,
-      ) as Map<String, dynamic>,
+      globalProperties:
+          _immutableProjectProperty(decoded.globalProperties, 0)
+              as Map<String, dynamic>,
     );
     final projection = ProjectManifest(
       name: project.name,
@@ -103,6 +146,88 @@ final class PortableProjectCatalog {
 
   Future<CatalogDefinitionUnit?> lookup(CatalogDefinitionKey key) =>
       snapshot.lookup(key);
+
+  CatalogDefinitionUnit createResourceLibraryEntryUnit(
+    ResourceLibraryEntry entry, {
+    required int position,
+  }) {
+    if (position < 0 || position >= snapshot.limits.maxDefinitions) {
+      throw const FormatException(
+        'catalog.edit: invalid classification position',
+      );
+    }
+    return _unit(
+      CatalogDefinitionKey(
+        CatalogDefinitionKind.resourceLibraryEntry,
+        entry.identity,
+      ),
+      'resourceLibraryCatalog.entries',
+      position,
+      entry.toJson(),
+    );
+  }
+
+  CatalogDefinitionUnit replaceDefinitionValue(
+    CatalogDefinitionUnit current,
+    Map<String, Object?> value,
+  ) {
+    final section = current.payload['section'];
+    if (section is! String ||
+        _sections[section] != current.key.kind ||
+        _id(section, value) != current.key.id ||
+        current.payload['position'] is! int ||
+        const [
+          'provenance',
+          'files',
+          'dynamicDependencies',
+        ].contains(section)) {
+      throw const FormatException('catalog.edit: identity or section mismatch');
+    }
+    final replacement = CatalogDefinitionUnit(
+      key: current.key,
+      payload: {...current.payload, 'value': value},
+      references: current.references,
+    );
+    final Map<String, Object?> canonical;
+    if (section == 'resourceLibraryCatalog.entries') {
+      canonical = ResourceLibraryEntry.fromJson(value).toJson();
+    } else if (section == 'resourceLibraryCatalog.families') {
+      canonical = ResourceFamily.fromJson(value).toJson();
+    } else {
+      final decoded = definitions([replacement]).toJson();
+      final parent = _parent(decoded, section);
+      final values = parent?[section.split('.').last];
+      if (values is! List || values.length != 1) {
+        throw const FormatException(
+          'catalog.edit: unsupported typed definition',
+        );
+      }
+      canonical = _map(values.single);
+    }
+    if (_id(section, canonical) != current.key.id) {
+      throw const FormatException('catalog.edit: changed typed identity');
+    }
+    for (final field in value.keys) {
+      if (!canonical.containsKey(field) && value[field] != null) {
+        throw FormatException('catalog.edit: unsupported field $field');
+      }
+    }
+    return CatalogDefinitionUnit(
+      key: current.key,
+      payload: {...current.payload, 'value': canonical},
+      references: current.references,
+    );
+  }
+
+  Future<ProjectManifest> exportProject() async {
+    final units = [
+      for (final unit in await snapshot.readAllUnits())
+        if (unit.key.kind != CatalogDefinitionKind.workspaceState) unit,
+    ];
+    final project = ProjectManifest.fromJson(_reconstruct(units));
+    _verifyUnits(units, _projectUnits(project));
+    return project;
+  }
 
   ProjectManifest definitions(Iterable<CatalogDefinitionUnit> definitions) {
     final grouped = <String, List<CatalogDefinitionUnit>>{};
@@ -287,11 +412,19 @@ final class PortableCatalogPublication {
         'catalog.publication: unsupported descriptor',
       );
     }
-    return CatalogSnapshot.readAllSync(
+    final read = CatalogSnapshot.readAllSync(
       root: CatalogObjectReference.fromJson(_map(descriptor['root'])),
       readObject: readObject,
       limits: limits,
     );
+    if (read.units.any(
+      (unit) => unit.key.kind == CatalogDefinitionKind.workspaceState,
+    )) {
+      throw const FormatException(
+        'catalog.publication: internal workspace state',
+      );
+    }
+    return read;
   }
 
   static ResourcePackCatalog decodeCatalogSync(
@@ -466,6 +599,12 @@ List<CatalogDefinitionUnit> _partition(
   bool project = false,
 }) {
   final shell = <String, Object?>{...source};
+  if (project) {
+    shell.putIfAbsent(
+      'resourceLibraryCatalog',
+      () => const ResourceLibraryCatalog.empty().toJson(),
+    );
+  }
   final result = <CatalogDefinitionUnit>[];
   for (final section in _sections.entries) {
     final parent = _partitionParent(shell, section.key);
@@ -1344,8 +1483,19 @@ void _verifyUnits(
   }
   for (final unit in received) {
     final canonical = byKey[unit.key];
+    Map<String, Object?> comparable(CatalogDefinitionUnit value) {
+      final json = value.toJson();
+      if (const [
+        'resourceLibraryCatalog.entries',
+        'resourceLibraryCatalog.families',
+      ].contains(value.payload['section'])) {
+        json['payload'] = {...value.payload}..remove('position');
+      }
+      return json;
+    }
+
     if (canonical == null ||
-        jsonEncode(unit.toJson()) != jsonEncode(canonical.toJson())) {
+        jsonEncode(comparable(unit)) != jsonEncode(comparable(canonical))) {
       throw const FormatException(
         'catalog.publication: payload or typed references mismatch',
       );

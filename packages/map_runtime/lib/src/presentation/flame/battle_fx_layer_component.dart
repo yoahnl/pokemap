@@ -84,6 +84,19 @@ final class BattleFxLayerComponent extends PositionComponent {
 
   final List<Component> _pendingFxRemovals = <Component>[];
 
+  Iterable<ui.Image> get liveImages sync* {
+    for (final child in children) {
+      final image = switch (child) {
+        BattleFxSpriteComponent(:final sprite) => sprite.image,
+        BattleFxSpriteSheetComponent(:final image) => image,
+        BattleRmxpAnimationComponent(:final image) => image,
+        BattleSdkParticleComponent(:final sprite) => sprite.image,
+        _ => null,
+      };
+      if (image != null) yield image;
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);

@@ -13,6 +13,21 @@ void main() {
       expect(evidence.endToEndEvidence[AuthoringTransport.mcp], '../../tools/pokemap_mcp/test/runtime_smoke_profile_stdio.test.ts');
       expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.editor), isFalse);
     });
+    test('model configuration batches cite their actual transport proofs', () {
+      final evidence = AuthoringFullParityCatalog.canonical()
+          .requireMutationAction('model3d.configure_batch');
+      expect(evidence.contractTestPath,
+          'test/domains/assets/model3d_configure_batch_test.dart');
+      expect(evidence.endToEndEvidence, {
+        AuthoringTransport.directApi:
+            'test/domains/assets/model3d_configure_batch_test.dart',
+        AuthoringTransport.cli:
+            'test/domains/assets/model3d_configure_batch_test.dart',
+        AuthoringTransport.mcp:
+            '../../tools/pokemap_mcp/test/model3d_configure_batch_stdio.test.ts',
+      });
+    });
+
     test('publishes no map-shadow actions or resources', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       expect(

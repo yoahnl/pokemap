@@ -134,7 +134,7 @@ ProjectManifest? _decodeManifestProjection(
 ) {
   try {
     final rawBefore = Map<String, dynamic>.from(
-      jsonDecode(utf8.decode(snapshot.resourceBytes('project'))) as Map,
+      jsonDecode(utf8.decode(snapshot.authoringProjectBytes)) as Map,
     );
     final rawAfter = Map<String, dynamic>.from(
       jsonDecode(utf8.decode(bytes)) as Map,

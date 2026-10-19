@@ -1,10 +1,15 @@
 import 'package:map_core/map_core.dart';
 
+import '../presentation/flame/smart_tile_animation_activation_controller.dart';
+
 final class SpatialSmartTileAnimationController {
   SpatialSmartTileAnimationController({
     required MapData map,
     required ProjectManifest project,
-  }) {
+  }) : _rasterAnimations = SmartTileAnimationActivationController(
+         map: map,
+         catalog: project.smartTileCatalog,
+       ) {
     final layers = map.layers.whereType<SmartTileLayer>().where(
       (layer) =>
           layer.isVisible &&
@@ -37,6 +42,7 @@ final class SpatialSmartTileAnimationController {
   }
 
   final _instancesByCell = <GridPos, List<String>>{};
+  final SmartTileAnimationActivationController _rasterAnimations;
   final _durations = <String, double>{};
   final _restPoses = <String, SpatialModelRuntimeState>{};
   final _startedAt = <String, double>{};
@@ -44,6 +50,7 @@ final class SpatialSmartTileAnimationController {
 
   void update(double dt) {
     if (!dt.isFinite || dt <= 0) return;
+    _rasterAnimations.update(dt);
     _elapsed += dt;
     _startedAt.removeWhere(
       (id, startedAt) => _elapsed - startedAt >= _durations[id]!,
@@ -51,10 +58,23 @@ final class SpatialSmartTileAnimationController {
   }
 
   void onPlayerEnteredCell(GridPos cell) {
+    _rasterAnimations.onPlayerEnteredCell(cell);
     for (final id in _instancesByCell[cell] ?? const <String>[]) {
       _startedAt[id] = _elapsed;
     }
   }
+
+  int rasterElapsedMsForCell({
+    required String layerId,
+    required int cellX,
+    required int cellY,
+    required int globalElapsedMs,
+  }) => _rasterAnimations.elapsedMsForCell(
+    layerId: layerId,
+    cellX: cellX,
+    cellY: cellY,
+    globalElapsedMs: globalElapsedMs,
+  );
 
   SpatialModelRuntimeState? stateFor(String instanceId) {
     final pose = _restPoses[instanceId];

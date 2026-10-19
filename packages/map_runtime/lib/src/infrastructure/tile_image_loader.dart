@@ -450,19 +450,24 @@ Future<RuntimeTilesetImage> _decodeAdmittedImage(
   try {
     reservation.ensureCurrent();
     final dimensions = await inspectRuntimeImageDimensions(bytes);
+    final scratchFactor = transparentColor != null ||
+            dimensions.height > kRuntimeMaxTilesetChunkHeight
+        ? 4
+        : 2;
     final pixels = runtimeImageRgbaByteLength(
       dimensions.width,
       dimensions.height,
       maximumBytes:
           reservation.profile.maximumResidentBytes <
               (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/
-                  4
+                  scratchFactor
           ? reservation.profile.maximumResidentBytes
-          : (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/ 4,
+          : (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/
+              scratchFactor,
     );
     reservation.resize(
       residentBytes: pixels,
-      transientBytes: bytes.length * 2 + pixels * 4,
+      transientBytes: bytes.length * 2 + pixels * scratchFactor,
     );
     image = await _loadTilesetImageWithUiCodec(
       bytes,

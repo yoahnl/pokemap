@@ -6,6 +6,7 @@ import '../../../features/map_workspace/application/spatial_terrain_stroke.dart'
 import '../../../features/terrains/application/terrain_brush.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/feedback/studio_badge.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import 'map_workspace_view_state.dart';
@@ -232,7 +233,10 @@ class MapTerrainToolPanel extends StatelessWidget {
                   'stamp': 'Tampon',
                   if (selectedPattern.repeatMode ==
                       SmartTilePatternRepeatMode.tiled) ...{
-                    'line': 'Ligne',
+                    if (selectedPattern.construction == null ||
+                        selectedPattern.construction!.x == null ||
+                        selectedPattern.construction!.y == null)
+                      'line': 'Ligne',
                     'rectangle': 'Rectangle',
                   },
                 },
@@ -245,6 +249,18 @@ class MapTerrainToolPanel extends StatelessWidget {
                         onChanged();
                       },
               ),
+            ),
+          if (selectedPattern?.construction != null)
+            StudioBadge(
+              terrainPatternConstructionHint(selectedPattern!),
+              key: const ValueKey('terrain-construction-dimensions'),
+            ),
+          if (selectedPattern?.construction == null &&
+              selectedPattern?.clippingPolicy ==
+                  SmartTilePatternClippingPolicy.reject)
+            StudioBadge(
+              'Placement entier : ${selectedPattern!.width} × ${selectedPattern.height} cases',
+              key: const ValueKey('terrain-pattern-whole-placement'),
             ),
           StudioButton(
             key: const ValueKey('terrain-erase'),

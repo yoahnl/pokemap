@@ -53,12 +53,12 @@ export function registerReadOnlyResources(
     ),
     projectMetadata(
       "PokeMap catalog",
-      "A bounded first page of one canonical project resource catalog.",
+      "A bounded summary page; continue with nextCursor through pokemap_query using the same project handle, kind and pageSize 200.",
     ),
     async (uri, variables) =>
       queryResource(uri, authoring, {
         projectHandle: variable(variables, "projectHandle"),
-        request: query(variable(variables, "resourceKind"), "list"),
+        request: query(variable(variables, "resourceKind"), "list", [], "summary"),
       }),
   );
 

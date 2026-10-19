@@ -51,6 +51,8 @@ Future<ResourceMutationReceipt> _applyLifecycleOperation(
     retained.plan,
     null,
     operationId,
+    projectedProject: retained.projectedProject,
+    projectedRevision: retained.projectedRevision,
   );
   retained.applying = true;
   try {
@@ -91,6 +93,19 @@ Future<ResourceMutationReceipt> _applyLifecycleOperation(
     try {
       await adapter.beforeReconciliation?.call();
       adapter._requireAvailable();
+      if (retained.projectedRevision != null) {
+        final after = await ProjectSnapshotLoader(handles: retained.handles)
+            .load(
+              retained.opened.projectHandle,
+              policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+            );
+        if (studioProjectSnapshotRevision(after) != receipt.revision ||
+            after.manifest != receipt.manifest) {
+          throw const ResourceFailure(
+            'La publication a changé avant sa relecture. Relisez sans la rejouer.',
+          );
+        }
+      }
       await adapter.mapAdapter.acceptResourceMutation(adapter.session, receipt);
     } on Object catch (failure) {
       throw ResourceFailure(

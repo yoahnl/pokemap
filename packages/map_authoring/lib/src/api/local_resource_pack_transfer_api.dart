@@ -304,7 +304,7 @@ final class LocalResourcePackTransferApi
             _fail('selection_stale');
           }
           final reports = <Map<String, Object?>>[
-            (await measureProjectDocumentBudget(snapshot.resourceBytes('project'),
+            (await measureProjectDocumentBudget(snapshot.authoringProjectBytes,
                 scope: 'sourceProjectDistribution')).toBoundedJson(maximumBytes: 96 * 1024),
           ];
           job.checkCancelled();
@@ -1374,6 +1374,9 @@ List<Map<String, Object?>> _rootRows(dynamic source) {
           'kind': group.key,
           'id': item.id as String,
           'label': _rowLabel(item),
+          if (metadata['${group.key}:${item.id as String}']?.description
+              case final description?)
+            'description': description,
           'familyId': metadata['${group.key}:${item.id as String}']?.familyId,
           'familyIds': lineage(
             metadata['${group.key}:${item.id as String}']?.familyId,
@@ -1473,7 +1476,7 @@ List<Map<String, Object?>> _filterRows(
   for (final row in rows)
     if ((filter['kind'] == null || filter['kind'] == row['kind']) &&
         (filter['search'] == null ||
-            ('${row['label']} ${row['id']}').toLowerCase().contains(
+            ('${row['label']} ${row['id']} ${row['description'] ?? ''}').toLowerCase().contains(
               (filter['search'] as String).toLowerCase(),
             )) &&
         _matchesContext(row['placementContext'], filter['context']) &&

@@ -11,6 +11,7 @@ import '../models/items/project_item_catalog.dart';
 import '../models/map_data.dart';
 import '../models/map_entity_payloads.dart';
 import '../models/map_spatial_scene.dart';
+import '../operations/spatial_model_clip_capabilities.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/map_placed_element_origin.dart';
@@ -21,6 +22,7 @@ import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
 import '../models/items/project_item_definition.dart';
+import '../read_models/trainer_battle_item_capability.dart';
 import '../models/rail_journey.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
@@ -38,6 +40,7 @@ import '../operations/environment_spatial_ownership.dart';
 import '../operations/spatial_border_resolution.dart';
 import '../operations/smart_tile_catalog_validation.dart';
 import '../operations/smart_tile_layer_operations.dart';
+import '../operations/smart_tile_pattern_operations.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
 import 'project_regional_map_validator.dart';
@@ -185,6 +188,7 @@ class ProjectValidator {
         manifest.models3d.length) {
       throw const ValidationException('3D model identities must be unique.');
     }
+    SpatialModelClipCapabilities.validateSources(manifest, maps: maps ?? const []);
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
       catalog: manifest.smartTileCatalog,
       projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
@@ -271,10 +275,61 @@ class ProjectValidator {
     _validateTrainers(manifest);
     if (itemCatalog != null) {
       validateTrainerBallItemReferences(manifest.trainers, itemCatalog: itemCatalog);
+      validateTrainerBattleItemReferences(manifest.trainers, itemCatalog: itemCatalog);
     }
     _validateCharacters(manifest);
     _validateSettings(manifest.settings);
     _validatePokemonRuleset(manifest.pokemon);
+  }
+
+  static void validateCatalogSelection(ProjectManifest manifest) {
+    _validateUniqueness(manifest);
+    _validateTilesetFolders(manifest);
+    _validateTilesets(manifest, manifest.groups.map((group) => group.id).toSet());
+    _validateElementCategories(manifest);
+    _validateElements(manifest, manifest.groups.map((group) => group.id).toSet());
+    _validateCharacters(manifest);
+    _validateSettings(manifest.settings);
+    if (manifest.models3d.map((model) => model.id).toSet().length !=
+        manifest.models3d.length) {
+      throw const ValidationException('3D model identities must be unique.');
+    }
+    for (final diagnostic in validateProjectSmartTileCatalog(
+      catalog: manifest.smartTileCatalog,
+      projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
+      projectModelIds: manifest.models3d.map((model) => model.id),
+      projectModelAnimationIndices: {
+        for (final model in manifest.models3d)
+          model.id: model.inspection.animations.map((clip) => clip.index).toSet(),
+      },
+      spatial: manifest.settings.dimension == ProjectDimension.threeD,
+    )) {
+      if (diagnostic.isError) {
+        throw ValidationException(
+          '${diagnostic.path}: ${diagnostic.message}',
+          code: diagnostic.code,
+          details: {'path': diagnostic.path},
+        );
+      }
+    }
+    for (final record in manifest.borderCatalog.records) {
+      for (final definition in <BorderBlueprintDefinition>[
+        record.draft.definition,
+        if (record.latestPublished case final publication?) publication.definition,
+      ]) {
+        for (final primitive in definition.primitives) {
+          for (final surface in primitive.groundSurfaces) {
+            final errors = validateBorderGroundSurfaceSources(
+              surface: surface,
+              manifest: manifest,
+            );
+            if (errors.isNotEmpty) {
+              throw ValidationException(errors.first, code: errors.first);
+            }
+          }
+        }
+      }
+    }
   }
 
   static void _validatePokemonRuleset(ProjectPokemonConfig pokemon) {
@@ -2156,6 +2211,71 @@ class ProjectValidator {
     }
   }
 
+  static void validateTrainerBattleItemReferences(
+    Iterable<ProjectTrainerEntry> trainers, {
+    ProjectItemCatalog? itemCatalog,
+  }) {
+    final itemsById = <String, List<ProjectItemDefinition>>{};
+    for (final item in itemCatalog?.entries ?? const <ProjectItemDefinition>[]) {
+      (itemsById[item.id] ??= []).add(item);
+    }
+    for (final trainer in trainers) {
+      _validateTrainerBattleItems(trainer);
+      for (final itemId in trainer.battleItems.keys) {
+        if (itemCatalog == null) {
+          throw ValidationException(
+            'Trainer ${trainer.id} battleItems requires the project item catalogue',
+            code: 'trainer.battle_item_catalog_missing',
+          );
+        }
+        final matches = itemsById[itemId] ?? const <ProjectItemDefinition>[];
+        if (matches.isEmpty) {
+          throw ValidationException(
+            'Trainer ${trainer.id} battleItems references unknown item "$itemId"',
+            code: 'trainer.battle_item_unknown',
+          );
+        }
+        if (matches.length != 1) {
+          throw ValidationException(
+            'Trainer ${trainer.id} battleItems references ambiguous item "$itemId"',
+            code: 'trainer.battle_item_ambiguous',
+          );
+        }
+        if (itemCatalog.schemaVersion != 1 ||
+            !isEligibleTrainerBattleItem(matches.single)) {
+          throw ValidationException(
+            'Trainer ${trainer.id} battleItems item "$itemId" must be a consumable battle HP or status medicine',
+            code: 'trainer.battle_item_ineligible',
+          );
+        }
+      }
+    }
+  }
+
+  static void _validateTrainerBattleItems(ProjectTrainerEntry trainer) {
+    if (trainer.battleItems.length > trainerBattleItemMaxDistinctCount) {
+      throw ValidationException(
+        'Trainer ${trainer.id} battleItems exceeds $trainerBattleItemMaxDistinctCount distinct items',
+        code: 'trainer.battle_items_limit',
+      );
+    }
+    for (final entry in trainer.battleItems.entries) {
+      if (entry.key.isEmpty || entry.key.trim() != entry.key) {
+        throw ValidationException(
+          'Trainer ${trainer.id} battleItems requires exact nonblank item IDs',
+          code: 'trainer.battle_item_id_invalid',
+        );
+      }
+      if (entry.value < trainerBattleItemMinQuantity ||
+          entry.value > trainerBattleItemMaxQuantity) {
+        throw ValidationException(
+          'Trainer ${trainer.id} battleItems quantity must stay within $trainerBattleItemMinQuantity..$trainerBattleItemMaxQuantity',
+          code: 'trainer.battle_item_quantity_invalid',
+        );
+      }
+    }
+  }
+
   static void validateTrainerBallItemReferences(
     Iterable<ProjectTrainerEntry> trainers, {
     ProjectItemCatalog? itemCatalog,
@@ -2218,6 +2338,7 @@ class ProjectValidator {
         .map((dialogue) => dialogue.id)
         .toSet();
     for (final trainer in manifest.trainers) {
+      _validateTrainerBattleItems(trainer);
       final id = trainer.id.trim();
       if (id.isEmpty) {
         throw const ValidationException('Trainer ID cannot be empty');
@@ -2711,7 +2832,25 @@ void _validateFactEqualsCondition(
 
 class MapValidator {
   /// [projectDialogueContext] : si fourni, les [DialogueRef] sans chemin legacy doivent pointer vers [ProjectManifest.dialogues].
-  static void validate(MapData map, {ProjectManifest? projectDialogueContext}) {
+  static void validate(
+    MapData map, {
+    ProjectManifest? projectDialogueContext,
+    PixelSize? projectTileSize,
+  }) {
+    final declaredTileSize = projectDialogueContext == null
+        ? null
+        : PixelSize(
+            width: projectDialogueContext.settings.tileWidth,
+            height: projectDialogueContext.settings.tileHeight,
+          );
+    if (projectTileSize != null &&
+        declaredTileSize != null &&
+        projectTileSize != declaredTileSize) {
+      throw const ValidationException(
+        'Map tile dimensions conflict with the project.',
+      );
+    }
+    final tileSize = declaredTileSize ?? projectTileSize;
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
     final dungeonId = map.mapMetadata.escapeRopeDungeonId;
     if (dungeonId != null &&
@@ -2732,6 +2871,9 @@ class MapValidator {
       throw const ValidationException(
         'The map dimension must match its project.',
       );
+    }
+    if (projectDialogueContext != null) {
+      SpatialModelClipCapabilities.validateSources(projectDialogueContext, maps: [map]);
     }
     if (map.movingPlatforms.isNotEmpty) {
       final project = projectDialogueContext;
@@ -2950,6 +3092,7 @@ class MapValidator {
         layerById: layerById,
         elementById: elementById,
         projectDialogueContext: projectDialogueContext,
+        tileSize: tileSize,
         environmentOwnedIds: environmentOwnedIds,
       );
     }
@@ -3977,6 +4120,16 @@ class MapValidator {
                 code: 'smart_tile_pattern_usage_mismatch',
               );
             }
+            validateSmartTilePatternConstructionStroke(
+              pattern: pattern,
+              stroke: stroke,
+            );
+            if (map.spatialScene != null && pattern.construction != null) {
+              throw const ValidationException(
+                'Adaptive native construction is available on 2D maps only.',
+                code: 'smart_tile.pattern.construction_2d_only',
+              );
+            }
           }
           final knownMaterialIds = catalog.materials
               .map((material) => material.id)
@@ -4286,6 +4439,12 @@ class MapValidator {
       layerById: <String, MapLayer>{?layer?.id: layer!},
       elementById: <String, ProjectElementEntry>{?element?.id: element!},
       projectDialogueContext: projectDialogueContext,
+      tileSize: projectDialogueContext == null
+          ? null
+          : PixelSize(
+              width: projectDialogueContext.settings.tileWidth,
+              height: projectDialogueContext.settings.tileHeight,
+            ),
       environmentOwnedIds:
           environmentOwnedIds ?? environmentOwnedMapPlacedElementIds(map),
     );
@@ -4297,6 +4456,7 @@ class MapValidator {
     required Map<String, MapLayer> layerById,
     required Map<String, ProjectElementEntry> elementById,
     required ProjectManifest? projectDialogueContext,
+    required PixelSize? tileSize,
     required Set<String> environmentOwnedIds,
   }) {
     final instanceId = _requireNonBlank(
@@ -4312,12 +4472,6 @@ class MapValidator {
       'Placed element instance $instanceId has empty elementId',
     );
     final sourceElement = elementById[elementId];
-    final tileSize = projectDialogueContext == null
-        ? null
-        : PixelSize(
-            width: projectDialogueContext.settings.tileWidth,
-            height: projectDialogueContext.settings.tileHeight,
-          );
     validateMapPlacedElementPixelGeometry(instance, tileSize: tileSize);
     if (environmentOwnedIds.contains(instance.id) &&
         (instance.pixelOffset != const PixelOffset(x: 0, y: 0) ||

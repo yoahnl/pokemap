@@ -5,6 +5,27 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final actionId in ['smart_tile.pattern.paint', 'smart_tile.pattern.paint_batch']) {
+    test('rejects adaptive 2D constructions on spatial maps through $actionId', () {
+      final pattern = _rockPattern.copyWith(
+        repeatMode: SmartTilePatternRepeatMode.tiled,
+        construction: SmartTilePatternConstruction(
+          x: SmartTilePatternRepeatAxis(repeatStart: 0, repeatLength: 1),
+        ),
+      );
+      final fixture = _fixture(spatial: true, includePattern: true, pattern: pattern);
+      final before = jsonEncode(fixture.map.toJson());
+      final stroke = {
+        'patternId': pattern.id, 'strokeId': 'adaptive',
+        'selection': {'kind': 'line', 'start': {'x': 0, 'y': 0}, 'end': {'x': 1, 'y': 0}},
+      };
+      expect(() => _buildPattern(fixture.snapshot, actionId: actionId, parameters: {
+        'mapId': 'map', 'layerId': 'ground',
+        if (actionId.endsWith('paint_batch')) 'strokes': [stroke] else ...stroke,
+      }), _failure('smart_tile.pattern.construction_2d_only'));
+      expect(jsonEncode(fixture.map.toJson()), before);
+    });
+  }
   for (final spatial in [false, true]) {
     for (final actionId in [
       'smart_tile.pattern.paint',

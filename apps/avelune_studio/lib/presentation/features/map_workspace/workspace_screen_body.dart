@@ -39,6 +39,22 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                 child: SafeArea(
                   child: Column(
                     children: [
+                      if (!_controller.hasCompleteProject)
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: StudioButton(
+                            key: const ValueKey(
+                              'workspace-materialize-workshops',
+                            ),
+                            label: _materializingWorkshops
+                                ? 'Chargement des ateliers…'
+                                : 'Charger tous les ateliers et imports',
+                            secondary: true,
+                            onPressed: _materializingWorkshops
+                                ? null
+                                : () => _materializeWorkshops(),
+                          ),
+                        ),
                       if (_cinematicMapReturn && _space == WorkspaceSpace.map)
                         Padding(
                           padding: const EdgeInsets.all(8),
@@ -87,7 +103,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           activeSpace: _space.name,
                           controller: _controller,
                           view: _view,
-                          visuals: _visuals,
+                          visuals: _projectionVisualsLoading ? null : _visuals,
                           search: _search,
                           error: error,
                           palette: _palette,
@@ -109,20 +125,27 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                             _gestureGeneration++;
                             unawaited(_controller.activate(entry));
                           },
-                          onOrganizeMaps: _controller.catalogPort == null
+                          onOrganizeMaps:
+                              !_controller.hasCompleteProject ||
+                                  _controller.catalogPort == null
                               ? null
                               : _organizeMaps,
-                          onLinkMaps: widget.mapConnectionPort == null
+                          onLinkMaps:
+                              !_controller.hasCompleteProject ||
+                                  widget.mapConnectionPort == null
                               ? null
                               : _linkMaps,
-                          onUnlinkMaps: widget.mapConnectionPort == null
+                          onUnlinkMaps:
+                              !_controller.hasCompleteProject ||
+                                  widget.mapConnectionPort == null
                               ? null
                               : _unlinkMaps,
                           onSave: document == null || document.saving
                               ? null
                               : _saveWorkspaceDocument,
                           onTest:
-                              document == null ||
+                              !_controller.hasCompleteProject ||
+                                  document == null ||
                                   _actions.testing ||
                                   document.saving
                               ? null
@@ -268,6 +291,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
       ),
     );
   }
+
   Future<List<PokemonSpeciesSummary>> _loadSceneSpecies() async {
     final owner = _pokemon;
     if (owner == null) throw StateError('Catalogue indisponible.');

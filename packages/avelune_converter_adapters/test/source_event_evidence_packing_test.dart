@@ -55,6 +55,39 @@ Map<String, Object?> _context(int index) => {
       },
     };
 
+Map<String, Object?> _parallelContext(int index) => _context(index)
+  ..['proof'] = {
+    'parallelDormancy': {
+      'sourceSnapshotHash': 'a' * 64,
+      'normalizationHash': 'b' * 64,
+      'profileHash': 'c' * 64,
+      'activeSourceMapIds': [index + 1],
+      'qualified': index.isEven,
+      'refusals': [if (index.isOdd) 'localDormancyRefusal'],
+      'nativeWriteSet': [
+        for (var row = 0; row < 1024; row++)
+          {
+            'sourceMapId': row % 383 + 1,
+            'sourceEventId': row,
+            'pageIndex': 0,
+            'factId': 'fact_$row',
+            'value': true
+          },
+      ],
+      'nativeWriteSetSemantics': 'conservativeMayWriteUpperBound',
+      'potentiallyProjectableEvents': [
+        for (var row = 0; row < 1024; row++) 'event_$row'
+      ],
+      'quarantinedWholeEvents': [
+        for (var row = 0; row < 1024; row++) 'quarantine_$row'
+      ],
+      'nativeSourceWritesToControllerGuards': [index],
+      'wholeRawEventWitnesses': [
+        {'sourceEventId': index, 'sha256': 'f' * 64}
+      ],
+    },
+  };
+
 List<int> _reassemble(List<NativeArtifact> artifacts) {
   final root = jsonDecode(utf8.decode(artifacts.last.bytes)) as Map;
   if (root['kind'] != 'sourceEventProjectionChunks') {
@@ -77,6 +110,84 @@ List<int> _reassemble(List<NativeArtifact> artifacts) {
 }
 
 void main() {
+  test(
+      '383 local dormancy scopes share one exact global writer closure within existing budgets',
+      () {
+    final originals = [
+      for (var index = 0; index < 383; index++) _parallelContext(index)
+    ];
+    expect(
+        () => canonicalJsonOf({'contexts': originals},
+            limits: _limits.jsonLimits),
+        throwsA(isA<ContractError>()));
+    final encoding =
+        SourceEventEvidenceEncoding(enabled: true, limits: _limits);
+    final encoded = [
+      for (final original in originals) encoding.encodeContext(original)
+    ];
+    final payload = {'contexts': encoded, 'tables': encoding.tables};
+    final packed = SourceEventEvidenceArtifacts.pack(payload, limits: _limits);
+    expect((encoding.tables!['parallelNativeWriteClosures'] as Map).length, 1);
+    expect(encoding.tables!['contract'],
+        'source-event-execution-context-tables-v3');
+    expect(_reassemble(packed.artifacts),
+        utf8.encode(canonicalJsonOf(payload, limits: _limits.jsonLimits)));
+    final restored = SourceEventEvidenceEncoding.restoreContexts(
+        encoded, encoding.tables!,
+        limits: _limits);
+    for (var index = 0; index < originals.length; index++) {
+      expect(
+          canonicalHashOf(restored[index]), canonicalHashOf(originals[index]));
+      expect(
+          canonicalJsonOf(restored[index]), canonicalJsonOf(originals[index]));
+    }
+    expect(canonicalJsonOf(payload, limits: _limits.jsonLimits).length,
+        lessThan(1048576));
+  });
+
+  test(
+      'parallel closure references reject dangling tampered duplicate and unused evidence',
+      () {
+    final encoding =
+        SourceEventEvidenceEncoding(enabled: true, limits: _limits);
+    final encoded = [encoding.encodeContext(_parallelContext(0))];
+    Map<String, Object?> tables() =>
+        jsonDecode(canonicalJsonOf(encoding.tables)) as Map<String, Object?>;
+    List<Map<String, Object?>?> contexts() =>
+        (jsonDecode(canonicalJsonOf(encoded)) as List)
+            .map((row) => Map<String, Object?>.from(row as Map))
+            .toList();
+    final missing = tables();
+    (missing['parallelNativeWriteClosures'] as Map).clear();
+    final altered = tables();
+    (((altered['parallelNativeWriteClosures'] as Map).values.single
+            as Map)['nativeWriteSet'] as List)
+        .removeLast();
+    final unused = tables();
+    final extra = {'nativeWriteSet': <Object?>[]};
+    (unused['parallelNativeWriteClosures']
+        as Map)[canonicalHashOf(extra).value] = extra;
+    final dangling = contexts();
+    ((dangling.single!['proof'] as Map)['parallelDormancy']
+        as Map)['nativeWriteClosureRef'] = '0' * 64;
+    final duplicate = contexts();
+    ((duplicate.single!['proof'] as Map)['parallelDormancy']
+        as Map)['nativeWriteSet'] = [];
+    for (final invalid in [missing, altered, unused]) {
+      expect(
+          () => SourceEventEvidenceEncoding.restoreContexts(encoded, invalid,
+              limits: _limits),
+          throwsA(isA<NativeWriteException>()));
+    }
+    for (final invalid in [dangling, duplicate]) {
+      expect(
+          () => SourceEventEvidenceEncoding.restoreContexts(
+              invalid, encoding.tables!,
+              limits: _limits),
+          throwsA(isA<NativeWriteException>()));
+    }
+  });
+
   test('distinct long page scopes fit without repeating every page hash', () {
     const limits = NativeWriteLimits(
         maxArtifacts: 1024,
@@ -98,8 +209,7 @@ void main() {
             },
           },
     ];
-    final encoding =
-        SourceEventEvidenceEncoding(enabled: true, limits: limits);
+    final encoding = SourceEventEvidenceEncoding(enabled: true, limits: limits);
     final encoded = [
       for (final original in originals) encoding.encodeContext(original),
     ];
@@ -370,7 +480,8 @@ void main() {
         throwsA(isA<NativeWriteException>()));
   });
 
-  test('indexed page references reject malformed indexes and altered pages', () {
+  test('indexed page references reject malformed indexes and altered pages',
+      () {
     final encoding =
         SourceEventEvidenceEncoding(enabled: true, limits: _limits);
     final encoded = [encoding.encodeContext(_context(1))];
@@ -390,8 +501,8 @@ void main() {
       lists
         ..clear()
         ..[hash] = pages;
-      ((contexts.single!['proof'] as Map)['mapAutonomyAudit'] as Map)
-          ['pageListRef'] = hash;
+      ((contexts.single!['proof'] as Map)['mapAutonomyAudit']
+          as Map)['pageListRef'] = hash;
       expect(
           () => SourceEventEvidenceEncoding.restoreContexts(contexts, tables,
               limits: _limits),
@@ -405,7 +516,9 @@ void main() {
     ((missingHash['mapAutonomyPages'] as Map)['0'] as Map).remove('sha256');
     final legacy = copyTables()
       ..['contract'] = 'source-event-execution-context-tables-v1';
-    for (final tables in [altered, missingHash, legacy]) {
+    final legacyV2 = copyTables()
+      ..['contract'] = 'source-event-execution-context-tables-v2';
+    for (final tables in [altered, missingHash, legacy, legacyV2]) {
       expect(
           () => SourceEventEvidenceEncoding.restoreContexts(encoded, tables,
               limits: _limits),
@@ -440,10 +553,10 @@ void main() {
     expect(source.maps, isNotEmpty,
         reason: source.diagnostics.map((d) => d.toJson()).toString());
     final analysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.forProject(source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-))
-        .analyze();
+        profile: SourceEventProfile.forProject(
+          source,
+          interpretationProfile: fixtureSourceInterpretationProfile,
+        )).analyze();
     final projection = const SourceEventProjector().project(
         source: source,
         analysis: analysis,

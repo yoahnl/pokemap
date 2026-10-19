@@ -194,11 +194,11 @@ void main() {
       final built = CatalogStorageBuilder().build([]);
       final source = utf8.decode(built.objects[built.root.sha256]!);
       for (final invalid in [
-        source.replaceFirst('"version":1', '"version":2'),
-        source.replaceFirst('"version":1', '"version":1.0'),
+        source.replaceFirst('"version":2', '"version":3'),
+        source.replaceFirst('"version":2', '"version":2.0'),
         source.replaceFirst('"type":"root"', '"type":"unit"'),
         source.replaceFirst('{', '{"unknown":0,'),
-        source.replaceFirst('"version":1', '"version":0,"version":1'),
+        source.replaceFirst('"version":2', '"version":0,"version":2'),
         ' $source',
       ]) {
         final bytes = utf8.encode(invalid);
@@ -342,8 +342,8 @@ void main() {
       final page = await snapshot.page(limit: 1);
       final source = utf8.decode(base64Url.decode(page.nextCursor!));
       for (final invalid in [
-        source.replaceFirst('"version":1', '"version":0,"version":1'),
-        source.replaceFirst('"version":1', '"version":1.0'),
+        source.replaceFirst('"version":2', '"version":0,"version":2'),
+        source.replaceFirst('"version":2', '"version":2.0'),
         ' $source',
       ]) {
         await expectLater(
@@ -434,11 +434,15 @@ void main() {
           ];
       }
     }
-    entries.add({'key': key.toJson(), 'reference': put(json).toJson()});
+    entries.add({
+      'key': key.toJson(),
+      'reference': put(json).toJson(),
+      'summary': CatalogDefinitionSummary(name: id).toJson(),
+    });
   }
   final leaf = put({
     'type': 'leaf',
-    'version': 1,
+    'version': 2,
     'entries': corruption == 'leafOrder' ? entries.reversed.toList() : entries,
   });
   final node = <String, Object?>{
@@ -451,13 +455,13 @@ void main() {
   if (corruption == 'branchOverlap') {
     final branch = put({
       'type': 'branch',
-      'version': 1,
+      'version': 2,
       'children': [node, node],
     });
     return (
       put({
         'type': 'root',
-        'version': 1,
+        'version': 2,
         'definitionCount': 4,
         'index': {
           ...node,
@@ -472,7 +476,7 @@ void main() {
   return (
     put({
       'type': 'root',
-      'version': 1,
+      'version': 2,
       'definitionCount': corruption == 'leafCount' ? 3 : 2,
       'index': node,
     }),

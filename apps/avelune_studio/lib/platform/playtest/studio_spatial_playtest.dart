@@ -166,8 +166,10 @@ final class StudioSpatialPlaytest {
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,
           'map3d.animation@1',
+          SpatialModelClipCapabilities.capabilityId,
           'map3d.terrain-appearance@1',
           SpatialTerrainSurfaceSet.capabilityId,
+          SpatialRamp.fractionalLevelsCapabilityId,
         },
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions(),
@@ -175,12 +177,11 @@ final class StudioSpatialPlaytest {
       ),
       projectFilePath: () async => projectFilePath,
       initialSave: initialSave == null ? null : () async => initialSave,
-      preloadedInitialMap:
-          ({
-            required projectFilePath,
-            required descriptor,
-            required initialSave,
-          }) async => RuntimeInitialMapPreloadResult(bundle: initialMap),
+      preloadedInitialMap: ({
+        required projectFilePath,
+        required descriptor,
+        required initialSave,
+      }) async => RuntimeInitialMapPreloadResult(bundle: initialMap),
       mountSession: mountSession ?? (_) async {},
       unmountSession: unmountSession ?? (_) async {},
       commitCheckpoint: (request) => saves.saveSpatialCheckpoint(

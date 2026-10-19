@@ -36,6 +36,7 @@ part 'trainer_library_panel_support.dart';
 part 'trainer_library_panel_trainer_widgets.dart';
 part 'trainer_library_panel_pokemon_widgets.dart';
 part 'trainer_library_panel_reward_widgets.dart';
+part 'trainer_library_panel_battle_items.dart';
 part 'trainer_library_panel_lifecycle_widgets.dart';
 part 'trainer_library_panel_workspace_widgets.dart';
 
@@ -81,6 +82,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _newRewardMoneyController = TextEditingController(text: '0');
   final _newRewardFlagsController = TextEditingController();
   final _newRewardItemQuantityController = TextEditingController(text: '1');
+  final _newBattleItemControllers = <String, TextEditingController>{};
   final _trainerSearchController = TextEditingController();
   String? _newCharacterId;
   int? _newBattleDifficulty;
@@ -115,6 +117,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _editRewardMoneyController = TextEditingController(text: '0');
   final _editRewardFlagsController = TextEditingController();
   final _editRewardItemQuantityController = TextEditingController(text: '1');
+  final _editBattleItemControllers = <String, TextEditingController>{};
   String? _editCharacterId;
   int? _editBattleDifficulty;
   String? _editBattleBackgroundRelativePath;
@@ -169,6 +172,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
 
   @override
   void dispose() {
+    _clearBattleItemControllers(_newBattleItemControllers);
+    _clearBattleItemControllers(_editBattleItemControllers);
     _newNameController.dispose();
     _newClassController.dispose();
     _newPortraitController.dispose();
@@ -395,23 +400,27 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required EditorNotifier notifier,
     required ProjectManifest project,
   }) async {
-    final validation = _validateTrainerDraft(
-      project: project,
-      name: _newNameController.text,
-      trainerClass: _newClassController.text,
-      battleDifficulty: _newBattleDifficulty,
-      battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
-      battleSpriteRelativePath: _newBattleSpriteRelativePath,
-      portraitElementId: _newPortraitController.text,
-      rewardMoney: _newRewardMoneyController.text,
-      rewardBadgeId: _newRewardBadgeId,
-      rewardFieldAbilityUnlock: _newRewardFieldAbilityUnlock,
-      rewardFlagIds: _splitCommaSeparatedValues(_newRewardFlagsController.text),
-      templateKind: _newTemplateKind,
-      preBattleDialogueId: _newPreBattleDialogueId,
-      victoryDialogueId: _newVictoryDialogueId,
-      defeatDialogueId: _newDefeatDialogueId,
-    );
+    final validation =
+        _battleItemDraftError(_newBattleItemControllers) ??
+        _validateTrainerDraft(
+          project: project,
+          name: _newNameController.text,
+          trainerClass: _newClassController.text,
+          battleDifficulty: _newBattleDifficulty,
+          battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
+          battleSpriteRelativePath: _newBattleSpriteRelativePath,
+          portraitElementId: _newPortraitController.text,
+          rewardMoney: _newRewardMoneyController.text,
+          rewardBadgeId: _newRewardBadgeId,
+          rewardFieldAbilityUnlock: _newRewardFieldAbilityUnlock,
+          rewardFlagIds: _splitCommaSeparatedValues(
+            _newRewardFlagsController.text,
+          ),
+          templateKind: _newTemplateKind,
+          preBattleDialogueId: _newPreBattleDialogueId,
+          victoryDialogueId: _newVictoryDialogueId,
+          defeatDialogueId: _newDefeatDialogueId,
+        );
     setState(() {
       _createTrainerValidationMessage = validation;
     });
@@ -437,6 +446,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       defeatDialogueId: _newDefeatDialogueId,
       moneyReward: int.parse(_newRewardMoneyController.text.trim()),
       rewardItemGrants: _newRewardItemGrants,
+      battleItems: _battleItemsFromDraft(_newBattleItemControllers),
       rewardFlagIds: _splitCommaSeparatedValues(_newRewardFlagsController.text),
       rewardBadgeId: _newRewardBadgeId,
       rewardFieldAbilityUnlock: _newRewardFieldAbilityUnlock,
@@ -463,25 +473,27 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required ProjectManifest project,
     required ProjectTrainerEntry trainer,
   }) async {
-    final validation = _validateTrainerDraft(
-      project: project,
-      name: _editNameController.text,
-      trainerClass: _editClassController.text,
-      battleDifficulty: _editBattleDifficulty,
-      battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
-      battleSpriteRelativePath: _editBattleSpriteRelativePath,
-      portraitElementId: _editPortraitController.text,
-      rewardMoney: _editRewardMoneyController.text,
-      rewardBadgeId: _editRewardBadgeId,
-      rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
-      rewardFlagIds: _splitCommaSeparatedValues(
-        _editRewardFlagsController.text,
-      ),
-      templateKind: _editTemplateKind,
-      preBattleDialogueId: _editPreBattleDialogueId,
-      victoryDialogueId: _editVictoryDialogueId,
-      defeatDialogueId: _editDefeatDialogueId,
-    );
+    final validation =
+        _battleItemDraftError(_editBattleItemControllers) ??
+        _validateTrainerDraft(
+          project: project,
+          name: _editNameController.text,
+          trainerClass: _editClassController.text,
+          battleDifficulty: _editBattleDifficulty,
+          battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
+          battleSpriteRelativePath: _editBattleSpriteRelativePath,
+          portraitElementId: _editPortraitController.text,
+          rewardMoney: _editRewardMoneyController.text,
+          rewardBadgeId: _editRewardBadgeId,
+          rewardFieldAbilityUnlock: _editRewardFieldAbilityUnlock,
+          rewardFlagIds: _splitCommaSeparatedValues(
+            _editRewardFlagsController.text,
+          ),
+          templateKind: _editTemplateKind,
+          preBattleDialogueId: _editPreBattleDialogueId,
+          victoryDialogueId: _editVictoryDialogueId,
+          defeatDialogueId: _editDefeatDialogueId,
+        );
     setState(() {
       _editTrainerValidationMessage = validation;
     });
@@ -508,6 +520,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       defeatDialogueId: _editDefeatDialogueId,
       moneyReward: int.parse(_editRewardMoneyController.text.trim()),
       rewardItemGrants: _editRewardItemGrants,
+      battleItems: _battleItemsFromDraft(_editBattleItemControllers),
       rewardFlagIds: _splitCommaSeparatedValues(
         _editRewardFlagsController.text,
       ),
@@ -662,6 +675,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   }
 
   void _resetCreateTrainerDraft() {
+    _clearBattleItemControllers(_newBattleItemControllers);
     _showCreateForm = false;
     _showCreateAdvanced = false;
     _createTrainerValidationMessage = null;
@@ -992,6 +1006,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   void _startEditingTrainer(ProjectTrainerEntry trainer) {
     ref.read(editorNotifierProvider.notifier).selectTrainer(trainer.id);
     setState(() {
+      _clearBattleItemControllers(_editBattleItemControllers);
+      for (final item in trainer.battleItems.entries) {
+        _editBattleItemControllers[item.key] = TextEditingController(
+          text: '${item.value}',
+        );
+      }
       _editingTrainerId = trainer.id;
       _editNameController.text = trainer.name;
       _editClassController.text = trainer.trainerClass;
@@ -1538,6 +1558,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   // Trainer edition is a presentation concern only. Keeping this reset local
   // avoids pushing UI mode flags into the notifier or the use cases.
   void _closeTrainerEditor() {
+    _clearBattleItemControllers(_editBattleItemControllers);
     _editingTrainerId = null;
     _editTrainerValidationMessage = null;
     _showEditAdvanced = false;

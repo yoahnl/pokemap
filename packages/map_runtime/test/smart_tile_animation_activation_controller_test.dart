@@ -4,6 +4,271 @@ import 'package:map_runtime/src/presentation/flame/smart_tile_animation_activati
 
 void main() {
   group('SmartTileAnimationActivationController', () {
+    test(
+      'holds one-shot grass occlusion without extending the ground clock',
+      () {
+        final fixture = _fixture(
+          SmartTileAnimationActivation.onEnter,
+          channel: SmartTileRenderChannel.actorOcclusion,
+          surface: PathSurfaceKind.tallGrass,
+          loop: SmartTileAnimationLoop.once,
+        );
+        final controller = SmartTileAnimationActivationController(
+          map: fixture.map,
+          catalog: fixture.catalog,
+        );
+        controller.onPlayerEnteredCell(const GridPos(x: 0, y: 0));
+        controller.update(1);
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isTrue,
+        );
+        expect(
+          controller.elapsedMsForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            globalElapsedMs: 1000,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          1000,
+        );
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+          ),
+          isFalse,
+        );
+        expect(
+          controller.elapsedMsForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            globalElapsedMs: 1000,
+          ),
+          0,
+        );
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 1,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('retains the previous grass cell until the step completes and reentry restarts', () {
+      final fixture = _fixture(
+        SmartTileAnimationActivation.onEnter,
+        channel: SmartTileRenderChannel.actorOcclusion,
+        surface: PathSurfaceKind.tallGrass,
+        loop: SmartTileAnimationLoop.once,
+      );
+      final controller = SmartTileAnimationActivationController(
+        map: fixture.map,
+        catalog: fixture.catalog,
+      );
+      controller.onPlayerEnteredCell(const GridPos(x: 0, y: 0));
+      controller.update(1);
+      controller.onPlayerEnteredCell(
+        const GridPos(x: 1, y: 0),
+        previousCell: const GridPos(x: 0, y: 0),
+      );
+      controller.update(0.1);
+      expect(
+        controller.isAnimationActiveForCell(
+          layerId: 'grass',
+          cellX: 0,
+          cellY: 0,
+          channel: SmartTileRenderChannel.actorOcclusion,
+        ),
+        isTrue,
+      );
+      controller.onPlayerStepCompleted();
+      controller.update(0.01);
+      expect(
+        controller.isAnimationActiveForCell(
+          layerId: 'grass',
+          cellX: 0,
+          cellY: 0,
+          channel: SmartTileRenderChannel.actorOcclusion,
+        ),
+        isFalse,
+      );
+      controller.onPlayerEnteredCell(const GridPos(x: 0, y: 0));
+      controller.update(0.05);
+      expect(
+        controller.elapsedMsForCell(
+          layerId: 'grass',
+          cellX: 0,
+          cellY: 0,
+          globalElapsedMs: 2000,
+          channel: SmartTileRenderChannel.actorOcclusion,
+        ),
+        closeTo(50, 1),
+      );
+    });
+
+    test(
+      'finishes an entry cycle after early exit before removing its occlusion',
+      () {
+        final fixture = _fixture(
+          SmartTileAnimationActivation.onEnter,
+          channel: SmartTileRenderChannel.actorOcclusion,
+          surface: PathSurfaceKind.tallGrass,
+          loop: SmartTileAnimationLoop.once,
+        );
+        final controller = SmartTileAnimationActivationController(
+          map: fixture.map,
+          catalog: fixture.catalog,
+        );
+        controller.onPlayerEnteredCell(const GridPos(x: 0, y: 0));
+        controller.update(0.05);
+        controller.onPlayerEnteredCell(const GridPos(x: 1, y: 0));
+        controller.onPlayerStepCompleted();
+        controller.update(0.05);
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isTrue,
+        );
+        controller.update(0.1);
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'spawn holds the resting frame and map reset clears previous occupancy',
+      () {
+        final fixture = _fixture(
+          SmartTileAnimationActivation.onEnter,
+          channel: SmartTileRenderChannel.actorOcclusion,
+          surface: PathSurfaceKind.tallGrass,
+          loop: SmartTileAnimationLoop.once,
+        );
+        final controller = SmartTileAnimationActivationController(
+          map: fixture.map,
+          catalog: fixture.catalog,
+        );
+        controller.resetPlayerOccupancy(const GridPos(x: 0, y: 0));
+        expect(
+          controller.elapsedMsForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            globalElapsedMs: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          200,
+        );
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+          ),
+          isFalse,
+        );
+        controller.update(2);
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isTrue,
+        );
+        controller.resetPlayerOccupancy(null);
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 0,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isFalse,
+        );
+        controller.resetPlayerOccupancy(const GridPos(x: 1, y: 0));
+        expect(
+          controller.isAnimationActiveForCell(
+            layerId: 'grass',
+            cellX: 1,
+            cellY: 0,
+            channel: SmartTileRenderChannel.actorOcclusion,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'keeps non-grass, non-occlusion and looping entry effects transient',
+      () {
+        for (final profile in [
+          (
+            surface: null,
+            channel: SmartTileRenderChannel.actorOcclusion,
+            loop: SmartTileAnimationLoop.once,
+          ),
+          (
+            surface: PathSurfaceKind.tallGrass,
+            channel: SmartTileRenderChannel.ground,
+            loop: SmartTileAnimationLoop.once,
+          ),
+          (
+            surface: PathSurfaceKind.tallGrass,
+            channel: SmartTileRenderChannel.actorOcclusion,
+            loop: SmartTileAnimationLoop.repeat,
+          ),
+        ]) {
+          final fixture = _fixture(
+            SmartTileAnimationActivation.onEnter,
+            surface: profile.surface,
+            channel: profile.channel,
+            loop: profile.loop,
+          );
+          final controller = SmartTileAnimationActivationController(
+            map: fixture.map,
+            catalog: fixture.catalog,
+          );
+          controller.onPlayerEnteredCell(const GridPos(x: 0, y: 0));
+          controller.update(1);
+          expect(
+            controller.isAnimationActiveForCell(
+              layerId: 'grass',
+              cellX: 0,
+              cellY: 0,
+              channel: SmartTileRenderChannel.actorOcclusion,
+            ),
+            isFalse,
+          );
+        }
+      },
+    );
+
     test('keeps legacy layers on the global animation clock', () {
       final fixture = _fixture(SmartTileAnimationActivation.always);
       final controller = SmartTileAnimationActivationController(
@@ -157,9 +422,7 @@ void main() {
         map: fixture.map.copyWith(
           layers: <MapLayer>[
             layer.copyWith(
-              field: const SmartTileField.cell(
-                semanticCells: <int>[0, 0],
-              ),
+              field: const SmartTileField.cell(semanticCells: <int>[0, 0]),
               patternStrokes: const <SmartTilePatternStroke>[
                 SmartTilePatternStroke(
                   id: 'stroke',
@@ -190,8 +453,11 @@ void main() {
 }
 
 ({MapData map, ProjectSmartTileCatalog catalog}) _fixture(
-  SmartTileAnimationActivation activation,
-) {
+  SmartTileAnimationActivation activation, {
+  SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+  PathSurfaceKind? surface,
+  SmartTileAnimationLoop loop = SmartTileAnimationLoop.repeat,
+}) {
   final layer = SmartTileLayer(
     id: 'grass',
     name: 'Tall grass',
@@ -210,31 +476,32 @@ void main() {
       layers: <MapLayer>[layer],
     ),
     catalog: ProjectSmartTileCatalog(
-      animations: const <ProjectSmartTileAnimation>[
+      materials: [
+        ProjectSmartTileMaterial(
+          id: 'grass-material',
+          name: 'Grass',
+          connectionGroupId: 'grass-material',
+          pathSurfaceKind: surface,
+        ),
+      ],
+      animations: <ProjectSmartTileAnimation>[
         ProjectSmartTileAnimation(
           id: 'rustle',
           name: 'Rustle',
+          loop: loop,
           frames: <ProjectSmartTileAnimationFrame>[
             ProjectSmartTileAnimationFrame(
-              frame: SmartTileFrameRef(
-                atlasId: 'atlas',
-                column: 0,
-                row: 0,
-              ),
+              frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
               durationMs: 100,
             ),
             ProjectSmartTileAnimationFrame(
-              frame: SmartTileFrameRef(
-                atlasId: 'atlas',
-                column: 1,
-                row: 0,
-              ),
+              frame: SmartTileFrameRef(atlasId: 'atlas', column: 1, row: 0),
               durationMs: 100,
             ),
           ],
         ),
       ],
-      presets: const <ProjectSmartTilePreset>[
+      presets: <ProjectSmartTilePreset>[
         ProjectSmartTilePreset(
           id: 'grass-preset',
           name: 'Tall grass',
@@ -256,6 +523,7 @@ void main() {
                   id: 'animated',
                   parts: <SmartTileVisualPart>[
                     SmartTileVisualPart(
+                      channel: channel,
                       source: SmartTileVisualSource.animation(
                         animationId: 'rustle',
                       ),

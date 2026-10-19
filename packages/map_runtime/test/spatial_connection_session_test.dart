@@ -243,6 +243,75 @@ void main() {
     expect(session.modelRuntimeState('target', targetModel.id)!.normalizedTime, 0);
   });
 
+  test('raster clocks stay local across neighbors and freeze with presentation',
+      () async {
+    final grass = spatialRasterGrassFixture();
+    final catalog = grass.project.smartTileCatalog;
+    final animation = catalog.animations.single;
+    final layer = grass.map.layers.single as SmartTileLayer;
+    source = source.copyWith(
+      manifest: source.manifest.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: catalog.materials,
+          atlases: catalog.atlases,
+          presets: catalog.presets,
+          animations: [animation.copyWith(frames: [
+            for (final frame in animation.frames) frame.copyWith(durationMs: 500),
+          ])],
+        ),
+      ),
+      map: source.map.copyWith(
+        layers: [layer.copyWith(field: SmartTileField.cell(semanticCells: [
+          for (var index = 0; index < 64; index++) index == 38 ? 1 : 0,
+        ]))],
+        connections: const [MapConnection(
+          direction: MapConnectionDirection.east, targetMapId: 'target',
+        )],
+      ),
+    );
+    target = target.copyWith(
+      manifest: source.manifest,
+      map: target.map.copyWith(
+        layers: [layer.copyWith(field: SmartTileField.cell(semanticCells: [
+          for (var index = 0; index < 64; index++) index == 32 ? 1 : 0,
+        ]))],
+        connections: const [MapConnection(
+          direction: MapConnectionDirection.west, targetMapId: 'source',
+        )],
+      ),
+    );
+    final session = await SpatialExplorationSession.load(source,
+        loadMap: (id) async => id == 'target' ? target : source);
+    addTearDown(session.dispose);
+    await session.loadConnectionNeighbor(source.map.connections.single);
+    session.setVisibleMaps({'source', 'target'});
+    int elapsed(String mapId, int x) =>
+        session.rasterAnimationElapsedMsForCell(mapId, 'grass', x, 4, 5000);
+    expect(elapsed('source', 6), 0);
+    expect(elapsed('target', 0), 0);
+    expect(elapsed('missing', 0), 5000);
+    attemptExit(session, MapConnectionDirection.east);
+    expect(session.bundle.map.id, 'target');
+    session.frame(.1);
+    expect(elapsed('target', 0), inInclusiveRange(99, 100));
+    final beforePause = elapsed('target', 0);
+    session.setLifecyclePaused(true);
+    session.frame(.5);
+    expect(elapsed('target', 0), beforePause);
+    session.setLifecyclePaused(false);
+    session.dialoguePaused = true;
+    session.frame(.5);
+    expect(elapsed('target', 0), beforePause);
+    session.dialoguePaused = false;
+    expect(elapsed('source', 0), 0);
+    attemptExit(session, MapConnectionDirection.west);
+    expect(session.bundle.map.id, 'source');
+    expect(elapsed('target', 0), greaterThanOrEqualTo(beforePause));
+    session.movement.releaseInput();
+    session.frame(1.1);
+    expect(elapsed('target', 0), 0);
+  });
+
   test('retained neighbor collision reads its own map state after promotion',
       () async {
     const connection = MapConnection(

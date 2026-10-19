@@ -353,6 +353,28 @@ final class SecureAuthoringMutationExecutor {
     return receipt;
   }
 
+  Future<void> cleanupRecoveredMutation({required AuthoringIdempotencyScope scope,required String planId,required String operationId,required AuthoringReceipt receipt}) => _transaction.cleanupCompletedReplay(scope:scope,planId:planId,operationId:operationId,receipt:receipt);
+
+  Future<void> auditMutationOutcome({
+    required AuthoringActor actor,
+    required String projectId,
+    required AuthoringActionDescriptor action,
+    required AuthoringPlan plan,
+    required AuthoringAuditDecision decision,
+    AuthoringReceipt? receipt,
+    Object? error,
+    Map<String, Object?> details = const {},
+  }) =>
+      _appendAudit(
+          actor: actor,
+          projectId: projectId,
+          action: action,
+          plan: plan,
+          decision: decision,
+          receipt: receipt,
+          error: error,
+          details: details);
+
   Future<void> _appendAudit({
     required AuthoringActor actor,
     required String projectId,

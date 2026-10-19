@@ -117,6 +117,10 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           '$actor utilise ${event.displayName} sur ${event.targetSpeciesId}',
         );
         lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
+      case BattleTurnStatusCuredItemEvent():
+        final actor = _overlayCombatantLabelForSide(event.side);
+        lines.add('$actor utilise ${event.displayName} sur ${event.targetSpeciesId}');
+        lines.add('${event.targetSpeciesId} est guéri de son problème de statut');
       case BattleTurnMovePpRestoredEvent():
         final actor = _overlayCombatantLabelForSide(event.side);
         lines.add('$actor utilise ${event.displayName} sur ${event.targetSpeciesId}');
@@ -3334,7 +3338,13 @@ class BattleOverlayComponent extends PositionComponent {
       _syncPanelsOnly();
       return;
     }
-    await _fxBundleCache.prewarm(animationPlan.requiredFxIds);
+    final requiredFxIds = animationPlan.requiredFxIds;
+    final fxScope = _fxImageScope;
+    if (fxScope != null && requiredFxIds.isNotEmpty) {
+      _fxBundleCache.updateScope(fxScope,
+        effectIds: requiredFxIds, liveImages: _fxLayer?.liveImages ?? const []);
+    }
+    await _fxBundleCache.prewarm(requiredFxIds);
     final ballItemIds = <String>{
       for (final step in animationPlan.flattenedSteps)
         if (step is PlayBallCaptureSequenceStep && step.ballItemId != null)

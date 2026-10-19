@@ -125,6 +125,10 @@ EditableMapDocument rampDocument(MapData map) => EditableMapDocument(
 );
 
 MapData sourceRampFootprint(SpatialRamp ramp) {
+  if (ramp.lowLevel != ramp.lowLevel.toInt() ||
+      ramp.highLevel != ramp.highLevel.toInt()) {
+    throw ArgumentError('This grid-only fixture requires integral endpoints.');
+  }
   final alongZ =
       ramp.direction == SpatialRampDirection.north ||
       ramp.direction == SpatialRampDirection.south;
@@ -136,12 +140,12 @@ MapData sourceRampFootprint(SpatialRamp ramp) {
     final start = alongZ ? ramp.z : ramp.x;
     final end = start + (alongZ ? ramp.depth : ramp.width);
     if (coordinate < start) {
-      return negativeHigh ? ramp.highLevel : ramp.lowLevel;
+      return (negativeHigh ? ramp.highLevel : ramp.lowLevel).toInt();
     }
     if (coordinate >= end.floor()) {
-      return negativeHigh ? ramp.lowLevel : ramp.highLevel;
+      return (negativeHigh ? ramp.lowLevel : ramp.highLevel).toInt();
     }
-    return ramp.lowLevel;
+    return ramp.lowLevel.toInt();
   });
   return MapData(
     id: ramp.id,

@@ -42,7 +42,7 @@ final class PresentationCinematicDraft {
       );
     }
     final projectBytes = snapshot.manifest == expectedProject
-        ? snapshot.resourceBytes('project')
+        ? snapshot.authoringProjectBytes
         : encodeProjectAuthoringDocument(snapshot, expectedProject);
     return PresentationCinematicDraft._(
       _compactSnapshot(

@@ -3290,7 +3290,7 @@ as SmartTilePatternCollision,
 /// @nodoc
 mixin _$ProjectSmartTilePattern {
 
- String get id; String get name; String get categoryId; SmartTileUsage get usage; int get width; int get height; int get anchorX; int get anchorY; SmartTilePatternRepeatMode get repeatMode; List<SmartTilePatternCell> get cells; int get drawOrder; List<String> get tags; int get sortOrder;
+ String get id; String get name; String get categoryId; SmartTileUsage get usage; int get width; int get height; int get anchorX; int get anchorY; SmartTilePatternRepeatMode get repeatMode;@JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson) SmartTilePatternClippingPolicy get clippingPolicy;@JsonKey(includeIfNull: false) SmartTilePatternConstruction? get construction; List<SmartTilePatternCell> get cells; int get drawOrder; List<String> get tags; int get sortOrder;
 /// Create a copy of ProjectSmartTilePattern
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3303,16 +3303,16 @@ $ProjectSmartTilePatternCopyWith<ProjectSmartTilePattern> get copyWith => _$Proj
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSmartTilePattern&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.usage, usage) || other.usage == usage)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.repeatMode, repeatMode) || other.repeatMode == repeatMode)&&const DeepCollectionEquality().equals(other.cells, cells)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSmartTilePattern&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.usage, usage) || other.usage == usage)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.repeatMode, repeatMode) || other.repeatMode == repeatMode)&&(identical(other.clippingPolicy, clippingPolicy) || other.clippingPolicy == clippingPolicy)&&(identical(other.construction, construction) || other.construction == construction)&&const DeepCollectionEquality().equals(other.cells, cells)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,categoryId,usage,width,height,anchorX,anchorY,repeatMode,const DeepCollectionEquality().hash(cells),drawOrder,const DeepCollectionEquality().hash(tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,categoryId,usage,width,height,anchorX,anchorY,repeatMode,clippingPolicy,construction,const DeepCollectionEquality().hash(cells),drawOrder,const DeepCollectionEquality().hash(tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectSmartTilePattern(id: $id, name: $name, categoryId: $categoryId, usage: $usage, width: $width, height: $height, anchorX: $anchorX, anchorY: $anchorY, repeatMode: $repeatMode, cells: $cells, drawOrder: $drawOrder, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectSmartTilePattern(id: $id, name: $name, categoryId: $categoryId, usage: $usage, width: $width, height: $height, anchorX: $anchorX, anchorY: $anchorY, repeatMode: $repeatMode, clippingPolicy: $clippingPolicy, construction: $construction, cells: $cells, drawOrder: $drawOrder, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -3323,7 +3323,7 @@ abstract mixin class $ProjectSmartTilePatternCopyWith<$Res>  {
   factory $ProjectSmartTilePatternCopyWith(ProjectSmartTilePattern value, $Res Function(ProjectSmartTilePattern) _then) = _$ProjectSmartTilePatternCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String categoryId, SmartTileUsage usage, int width, int height, int anchorX, int anchorY, SmartTilePatternRepeatMode repeatMode, List<SmartTilePatternCell> cells, int drawOrder, List<String> tags, int sortOrder
+ String id, String name, String categoryId, SmartTileUsage usage, int width, int height, int anchorX, int anchorY, SmartTilePatternRepeatMode repeatMode,@JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson) SmartTilePatternClippingPolicy clippingPolicy,@JsonKey(includeIfNull: false) SmartTilePatternConstruction? construction, List<SmartTilePatternCell> cells, int drawOrder, List<String> tags, int sortOrder
 });
 
 
@@ -3340,7 +3340,7 @@ class _$ProjectSmartTilePatternCopyWithImpl<$Res>
 
 /// Create a copy of ProjectSmartTilePattern
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? categoryId = null,Object? usage = null,Object? width = null,Object? height = null,Object? anchorX = null,Object? anchorY = null,Object? repeatMode = null,Object? cells = null,Object? drawOrder = null,Object? tags = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? categoryId = null,Object? usage = null,Object? width = null,Object? height = null,Object? anchorX = null,Object? anchorY = null,Object? repeatMode = null,Object? clippingPolicy = null,Object? construction = freezed,Object? cells = null,Object? drawOrder = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -3351,7 +3351,9 @@ as int,height: null == height ? _self.height : height // ignore: cast_nullable_t
 as int,anchorX: null == anchorX ? _self.anchorX : anchorX // ignore: cast_nullable_to_non_nullable
 as int,anchorY: null == anchorY ? _self.anchorY : anchorY // ignore: cast_nullable_to_non_nullable
 as int,repeatMode: null == repeatMode ? _self.repeatMode : repeatMode // ignore: cast_nullable_to_non_nullable
-as SmartTilePatternRepeatMode,cells: null == cells ? _self.cells : cells // ignore: cast_nullable_to_non_nullable
+as SmartTilePatternRepeatMode,clippingPolicy: null == clippingPolicy ? _self.clippingPolicy : clippingPolicy // ignore: cast_nullable_to_non_nullable
+as SmartTilePatternClippingPolicy,construction: freezed == construction ? _self.construction : construction // ignore: cast_nullable_to_non_nullable
+as SmartTilePatternConstruction?,cells: null == cells ? _self.cells : cells // ignore: cast_nullable_to_non_nullable
 as List<SmartTilePatternCell>,drawOrder: null == drawOrder ? _self.drawOrder : drawOrder // ignore: cast_nullable_to_non_nullable
 as int,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
@@ -3440,10 +3442,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String categoryId,  SmartTileUsage usage,  int width,  int height,  int anchorX,  int anchorY,  SmartTilePatternRepeatMode repeatMode,  List<SmartTilePatternCell> cells,  int drawOrder,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String categoryId,  SmartTileUsage usage,  int width,  int height,  int anchorX,  int anchorY,  SmartTilePatternRepeatMode repeatMode, @JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson)  SmartTilePatternClippingPolicy clippingPolicy, @JsonKey(includeIfNull: false)  SmartTilePatternConstruction? construction,  List<SmartTilePatternCell> cells,  int drawOrder,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectSmartTilePattern() when $default != null:
-return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_that.height,_that.anchorX,_that.anchorY,_that.repeatMode,_that.cells,_that.drawOrder,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_that.height,_that.anchorX,_that.anchorY,_that.repeatMode,_that.clippingPolicy,_that.construction,_that.cells,_that.drawOrder,_that.tags,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -3461,10 +3463,10 @@ return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String categoryId,  SmartTileUsage usage,  int width,  int height,  int anchorX,  int anchorY,  SmartTilePatternRepeatMode repeatMode,  List<SmartTilePatternCell> cells,  int drawOrder,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String categoryId,  SmartTileUsage usage,  int width,  int height,  int anchorX,  int anchorY,  SmartTilePatternRepeatMode repeatMode, @JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson)  SmartTilePatternClippingPolicy clippingPolicy, @JsonKey(includeIfNull: false)  SmartTilePatternConstruction? construction,  List<SmartTilePatternCell> cells,  int drawOrder,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectSmartTilePattern():
-return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_that.height,_that.anchorX,_that.anchorY,_that.repeatMode,_that.cells,_that.drawOrder,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_that.height,_that.anchorX,_that.anchorY,_that.repeatMode,_that.clippingPolicy,_that.construction,_that.cells,_that.drawOrder,_that.tags,_that.sortOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3481,10 +3483,10 @@ return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String categoryId,  SmartTileUsage usage,  int width,  int height,  int anchorX,  int anchorY,  SmartTilePatternRepeatMode repeatMode,  List<SmartTilePatternCell> cells,  int drawOrder,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String categoryId,  SmartTileUsage usage,  int width,  int height,  int anchorX,  int anchorY,  SmartTilePatternRepeatMode repeatMode, @JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson)  SmartTilePatternClippingPolicy clippingPolicy, @JsonKey(includeIfNull: false)  SmartTilePatternConstruction? construction,  List<SmartTilePatternCell> cells,  int drawOrder,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectSmartTilePattern() when $default != null:
-return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_that.height,_that.anchorX,_that.anchorY,_that.repeatMode,_that.cells,_that.drawOrder,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_that.height,_that.anchorX,_that.anchorY,_that.repeatMode,_that.clippingPolicy,_that.construction,_that.cells,_that.drawOrder,_that.tags,_that.sortOrder);case _:
   return null;
 
 }
@@ -3496,7 +3498,7 @@ return $default(_that.id,_that.name,_that.categoryId,_that.usage,_that.width,_th
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectSmartTilePattern implements ProjectSmartTilePattern {
-  const _ProjectSmartTilePattern({required this.id, required this.name, this.categoryId = '', required this.usage, required this.width, required this.height, this.anchorX = 0, this.anchorY = 0, this.repeatMode = SmartTilePatternRepeatMode.tiled, final  List<SmartTilePatternCell> cells = const <SmartTilePatternCell>[], this.drawOrder = 0, final  List<String> tags = const <String>[], this.sortOrder = 0}): assert(id != "", 'id must not be blank'),assert(name != "", 'name must not be blank'),assert(width > 0 && width <= 64, 'width must be between 1 and 64'),assert(height > 0 && height <= 64, 'height must be between 1 and 64'),assert(anchorX >= 0 && anchorX < width, 'anchorX must be in bounds'),assert(anchorY >= 0 && anchorY < height, 'anchorY must be in bounds'),_cells = cells,_tags = tags;
+  const _ProjectSmartTilePattern({required this.id, required this.name, this.categoryId = '', required this.usage, required this.width, required this.height, this.anchorX = 0, this.anchorY = 0, this.repeatMode = SmartTilePatternRepeatMode.tiled, @JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson) this.clippingPolicy = SmartTilePatternClippingPolicy.clip, @JsonKey(includeIfNull: false) this.construction, final  List<SmartTilePatternCell> cells = const <SmartTilePatternCell>[], this.drawOrder = 0, final  List<String> tags = const <String>[], this.sortOrder = 0}): assert(id != "", 'id must not be blank'),assert(name != "", 'name must not be blank'),assert(width > 0 && width <= 64, 'width must be between 1 and 64'),assert(height > 0 && height <= 64, 'height must be between 1 and 64'),assert(anchorX >= 0 && anchorX < width, 'anchorX must be in bounds'),assert(anchorY >= 0 && anchorY < height, 'anchorY must be in bounds'),_cells = cells,_tags = tags;
   factory _ProjectSmartTilePattern.fromJson(Map<String, dynamic> json) => _$ProjectSmartTilePatternFromJson(json);
 
 @override final  String id;
@@ -3508,6 +3510,8 @@ class _ProjectSmartTilePattern implements ProjectSmartTilePattern {
 @override@JsonKey() final  int anchorX;
 @override@JsonKey() final  int anchorY;
 @override@JsonKey() final  SmartTilePatternRepeatMode repeatMode;
+@override@JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson) final  SmartTilePatternClippingPolicy clippingPolicy;
+@override@JsonKey(includeIfNull: false) final  SmartTilePatternConstruction? construction;
  final  List<SmartTilePatternCell> _cells;
 @override@JsonKey() List<SmartTilePatternCell> get cells {
   if (_cells is EqualUnmodifiableListView) return _cells;
@@ -3538,16 +3542,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSmartTilePattern&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.usage, usage) || other.usage == usage)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.repeatMode, repeatMode) || other.repeatMode == repeatMode)&&const DeepCollectionEquality().equals(other._cells, _cells)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSmartTilePattern&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.usage, usage) || other.usage == usage)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.repeatMode, repeatMode) || other.repeatMode == repeatMode)&&(identical(other.clippingPolicy, clippingPolicy) || other.clippingPolicy == clippingPolicy)&&(identical(other.construction, construction) || other.construction == construction)&&const DeepCollectionEquality().equals(other._cells, _cells)&&(identical(other.drawOrder, drawOrder) || other.drawOrder == drawOrder)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,categoryId,usage,width,height,anchorX,anchorY,repeatMode,const DeepCollectionEquality().hash(_cells),drawOrder,const DeepCollectionEquality().hash(_tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,categoryId,usage,width,height,anchorX,anchorY,repeatMode,clippingPolicy,construction,const DeepCollectionEquality().hash(_cells),drawOrder,const DeepCollectionEquality().hash(_tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectSmartTilePattern(id: $id, name: $name, categoryId: $categoryId, usage: $usage, width: $width, height: $height, anchorX: $anchorX, anchorY: $anchorY, repeatMode: $repeatMode, cells: $cells, drawOrder: $drawOrder, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectSmartTilePattern(id: $id, name: $name, categoryId: $categoryId, usage: $usage, width: $width, height: $height, anchorX: $anchorX, anchorY: $anchorY, repeatMode: $repeatMode, clippingPolicy: $clippingPolicy, construction: $construction, cells: $cells, drawOrder: $drawOrder, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -3558,7 +3562,7 @@ abstract mixin class _$ProjectSmartTilePatternCopyWith<$Res> implements $Project
   factory _$ProjectSmartTilePatternCopyWith(_ProjectSmartTilePattern value, $Res Function(_ProjectSmartTilePattern) _then) = __$ProjectSmartTilePatternCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String categoryId, SmartTileUsage usage, int width, int height, int anchorX, int anchorY, SmartTilePatternRepeatMode repeatMode, List<SmartTilePatternCell> cells, int drawOrder, List<String> tags, int sortOrder
+ String id, String name, String categoryId, SmartTileUsage usage, int width, int height, int anchorX, int anchorY, SmartTilePatternRepeatMode repeatMode,@JsonKey(includeIfNull: false, toJson: _patternClippingPolicyToJson) SmartTilePatternClippingPolicy clippingPolicy,@JsonKey(includeIfNull: false) SmartTilePatternConstruction? construction, List<SmartTilePatternCell> cells, int drawOrder, List<String> tags, int sortOrder
 });
 
 
@@ -3575,7 +3579,7 @@ class __$ProjectSmartTilePatternCopyWithImpl<$Res>
 
 /// Create a copy of ProjectSmartTilePattern
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? categoryId = null,Object? usage = null,Object? width = null,Object? height = null,Object? anchorX = null,Object? anchorY = null,Object? repeatMode = null,Object? cells = null,Object? drawOrder = null,Object? tags = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? categoryId = null,Object? usage = null,Object? width = null,Object? height = null,Object? anchorX = null,Object? anchorY = null,Object? repeatMode = null,Object? clippingPolicy = null,Object? construction = freezed,Object? cells = null,Object? drawOrder = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_ProjectSmartTilePattern(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -3586,7 +3590,9 @@ as int,height: null == height ? _self.height : height // ignore: cast_nullable_t
 as int,anchorX: null == anchorX ? _self.anchorX : anchorX // ignore: cast_nullable_to_non_nullable
 as int,anchorY: null == anchorY ? _self.anchorY : anchorY // ignore: cast_nullable_to_non_nullable
 as int,repeatMode: null == repeatMode ? _self.repeatMode : repeatMode // ignore: cast_nullable_to_non_nullable
-as SmartTilePatternRepeatMode,cells: null == cells ? _self._cells : cells // ignore: cast_nullable_to_non_nullable
+as SmartTilePatternRepeatMode,clippingPolicy: null == clippingPolicy ? _self.clippingPolicy : clippingPolicy // ignore: cast_nullable_to_non_nullable
+as SmartTilePatternClippingPolicy,construction: freezed == construction ? _self.construction : construction // ignore: cast_nullable_to_non_nullable
+as SmartTilePatternConstruction?,cells: null == cells ? _self._cells : cells // ignore: cast_nullable_to_non_nullable
 as List<SmartTilePatternCell>,drawOrder: null == drawOrder ? _self.drawOrder : drawOrder // ignore: cast_nullable_to_non_nullable
 as int,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
@@ -3601,7 +3607,7 @@ as int,
 /// @nodoc
 mixin _$SmartTilePatternStroke {
 
- String get id; String get patternId; List<GridPos> get cells; int get phaseX; int get phaseY;
+ String get id; String get patternId; List<GridPos> get cells; int get phaseX; int get phaseY;@JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson) MapRect? get constructionBounds;
 /// Create a copy of SmartTilePatternStroke
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3614,16 +3620,16 @@ $SmartTilePatternStrokeCopyWith<SmartTilePatternStroke> get copyWith => _$SmartT
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTilePatternStroke&&(identical(other.id, id) || other.id == id)&&(identical(other.patternId, patternId) || other.patternId == patternId)&&const DeepCollectionEquality().equals(other.cells, cells)&&(identical(other.phaseX, phaseX) || other.phaseX == phaseX)&&(identical(other.phaseY, phaseY) || other.phaseY == phaseY));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTilePatternStroke&&(identical(other.id, id) || other.id == id)&&(identical(other.patternId, patternId) || other.patternId == patternId)&&const DeepCollectionEquality().equals(other.cells, cells)&&(identical(other.phaseX, phaseX) || other.phaseX == phaseX)&&(identical(other.phaseY, phaseY) || other.phaseY == phaseY)&&(identical(other.constructionBounds, constructionBounds) || other.constructionBounds == constructionBounds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,patternId,const DeepCollectionEquality().hash(cells),phaseX,phaseY);
+int get hashCode => Object.hash(runtimeType,id,patternId,const DeepCollectionEquality().hash(cells),phaseX,phaseY,constructionBounds);
 
 @override
 String toString() {
-  return 'SmartTilePatternStroke(id: $id, patternId: $patternId, cells: $cells, phaseX: $phaseX, phaseY: $phaseY)';
+  return 'SmartTilePatternStroke(id: $id, patternId: $patternId, cells: $cells, phaseX: $phaseX, phaseY: $phaseY, constructionBounds: $constructionBounds)';
 }
 
 
@@ -3634,11 +3640,11 @@ abstract mixin class $SmartTilePatternStrokeCopyWith<$Res>  {
   factory $SmartTilePatternStrokeCopyWith(SmartTilePatternStroke value, $Res Function(SmartTilePatternStroke) _then) = _$SmartTilePatternStrokeCopyWithImpl;
 @useResult
 $Res call({
- String id, String patternId, List<GridPos> cells, int phaseX, int phaseY
+ String id, String patternId, List<GridPos> cells, int phaseX, int phaseY,@JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson) MapRect? constructionBounds
 });
 
 
-
+$MapRectCopyWith<$Res>? get constructionBounds;
 
 }
 /// @nodoc
@@ -3651,17 +3657,30 @@ class _$SmartTilePatternStrokeCopyWithImpl<$Res>
 
 /// Create a copy of SmartTilePatternStroke
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? patternId = null,Object? cells = null,Object? phaseX = null,Object? phaseY = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? patternId = null,Object? cells = null,Object? phaseX = null,Object? phaseY = null,Object? constructionBounds = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,patternId: null == patternId ? _self.patternId : patternId // ignore: cast_nullable_to_non_nullable
 as String,cells: null == cells ? _self.cells : cells // ignore: cast_nullable_to_non_nullable
 as List<GridPos>,phaseX: null == phaseX ? _self.phaseX : phaseX // ignore: cast_nullable_to_non_nullable
 as int,phaseY: null == phaseY ? _self.phaseY : phaseY // ignore: cast_nullable_to_non_nullable
-as int,
+as int,constructionBounds: freezed == constructionBounds ? _self.constructionBounds : constructionBounds // ignore: cast_nullable_to_non_nullable
+as MapRect?,
   ));
 }
+/// Create a copy of SmartTilePatternStroke
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res>? get constructionBounds {
+    if (_self.constructionBounds == null) {
+    return null;
+  }
 
+  return $MapRectCopyWith<$Res>(_self.constructionBounds!, (value) {
+    return _then(_self.copyWith(constructionBounds: value));
+  });
+}
 }
 
 
@@ -3743,10 +3762,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String patternId,  List<GridPos> cells,  int phaseX,  int phaseY)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String patternId,  List<GridPos> cells,  int phaseX,  int phaseY, @JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson)  MapRect? constructionBounds)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SmartTilePatternStroke() when $default != null:
-return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY);case _:
+return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY,_that.constructionBounds);case _:
   return orElse();
 
 }
@@ -3764,10 +3783,10 @@ return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY);
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String patternId,  List<GridPos> cells,  int phaseX,  int phaseY)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String patternId,  List<GridPos> cells,  int phaseX,  int phaseY, @JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson)  MapRect? constructionBounds)  $default,) {final _that = this;
 switch (_that) {
 case _SmartTilePatternStroke():
-return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY);case _:
+return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY,_that.constructionBounds);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3784,10 +3803,10 @@ return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY);
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String patternId,  List<GridPos> cells,  int phaseX,  int phaseY)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String patternId,  List<GridPos> cells,  int phaseX,  int phaseY, @JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson)  MapRect? constructionBounds)?  $default,) {final _that = this;
 switch (_that) {
 case _SmartTilePatternStroke() when $default != null:
-return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY);case _:
+return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY,_that.constructionBounds);case _:
   return null;
 
 }
@@ -3799,7 +3818,7 @@ return $default(_that.id,_that.patternId,_that.cells,_that.phaseX,_that.phaseY);
 
 @JsonSerializable(explicitToJson: true)
 class _SmartTilePatternStroke implements SmartTilePatternStroke {
-  const _SmartTilePatternStroke({required this.id, required this.patternId, required final  List<GridPos> cells, this.phaseX = 0, this.phaseY = 0}): assert(id != "", 'id must not be blank'),assert(patternId != "", 'patternId must not be blank'),_cells = cells;
+  const _SmartTilePatternStroke({required this.id, required this.patternId, required final  List<GridPos> cells, this.phaseX = 0, this.phaseY = 0, @JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson) this.constructionBounds}): assert(id != "", 'id must not be blank'),assert(patternId != "", 'patternId must not be blank'),_cells = cells;
   factory _SmartTilePatternStroke.fromJson(Map<String, dynamic> json) => _$SmartTilePatternStrokeFromJson(json);
 
 @override final  String id;
@@ -3813,6 +3832,7 @@ class _SmartTilePatternStroke implements SmartTilePatternStroke {
 
 @override@JsonKey() final  int phaseX;
 @override@JsonKey() final  int phaseY;
+@override@JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson) final  MapRect? constructionBounds;
 
 /// Create a copy of SmartTilePatternStroke
 /// with the given fields replaced by the non-null parameter values.
@@ -3827,16 +3847,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SmartTilePatternStroke&&(identical(other.id, id) || other.id == id)&&(identical(other.patternId, patternId) || other.patternId == patternId)&&const DeepCollectionEquality().equals(other._cells, _cells)&&(identical(other.phaseX, phaseX) || other.phaseX == phaseX)&&(identical(other.phaseY, phaseY) || other.phaseY == phaseY));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SmartTilePatternStroke&&(identical(other.id, id) || other.id == id)&&(identical(other.patternId, patternId) || other.patternId == patternId)&&const DeepCollectionEquality().equals(other._cells, _cells)&&(identical(other.phaseX, phaseX) || other.phaseX == phaseX)&&(identical(other.phaseY, phaseY) || other.phaseY == phaseY)&&(identical(other.constructionBounds, constructionBounds) || other.constructionBounds == constructionBounds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,patternId,const DeepCollectionEquality().hash(_cells),phaseX,phaseY);
+int get hashCode => Object.hash(runtimeType,id,patternId,const DeepCollectionEquality().hash(_cells),phaseX,phaseY,constructionBounds);
 
 @override
 String toString() {
-  return 'SmartTilePatternStroke(id: $id, patternId: $patternId, cells: $cells, phaseX: $phaseX, phaseY: $phaseY)';
+  return 'SmartTilePatternStroke(id: $id, patternId: $patternId, cells: $cells, phaseX: $phaseX, phaseY: $phaseY, constructionBounds: $constructionBounds)';
 }
 
 
@@ -3847,11 +3867,11 @@ abstract mixin class _$SmartTilePatternStrokeCopyWith<$Res> implements $SmartTil
   factory _$SmartTilePatternStrokeCopyWith(_SmartTilePatternStroke value, $Res Function(_SmartTilePatternStroke) _then) = __$SmartTilePatternStrokeCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String patternId, List<GridPos> cells, int phaseX, int phaseY
+ String id, String patternId, List<GridPos> cells, int phaseX, int phaseY,@JsonKey(includeIfNull: false, toJson: _constructionBoundsToJson) MapRect? constructionBounds
 });
 
 
-
+@override $MapRectCopyWith<$Res>? get constructionBounds;
 
 }
 /// @nodoc
@@ -3864,18 +3884,31 @@ class __$SmartTilePatternStrokeCopyWithImpl<$Res>
 
 /// Create a copy of SmartTilePatternStroke
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? patternId = null,Object? cells = null,Object? phaseX = null,Object? phaseY = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? patternId = null,Object? cells = null,Object? phaseX = null,Object? phaseY = null,Object? constructionBounds = freezed,}) {
   return _then(_SmartTilePatternStroke(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,patternId: null == patternId ? _self.patternId : patternId // ignore: cast_nullable_to_non_nullable
 as String,cells: null == cells ? _self._cells : cells // ignore: cast_nullable_to_non_nullable
 as List<GridPos>,phaseX: null == phaseX ? _self.phaseX : phaseX // ignore: cast_nullable_to_non_nullable
 as int,phaseY: null == phaseY ? _self.phaseY : phaseY // ignore: cast_nullable_to_non_nullable
-as int,
+as int,constructionBounds: freezed == constructionBounds ? _self.constructionBounds : constructionBounds // ignore: cast_nullable_to_non_nullable
+as MapRect?,
   ));
 }
 
+/// Create a copy of SmartTilePatternStroke
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res>? get constructionBounds {
+    if (_self.constructionBounds == null) {
+    return null;
+  }
 
+  return $MapRectCopyWith<$Res>(_self.constructionBounds!, (value) {
+    return _then(_self.copyWith(constructionBounds: value));
+  });
+}
 }
 
 

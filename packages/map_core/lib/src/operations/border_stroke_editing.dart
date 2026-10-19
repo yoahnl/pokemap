@@ -18,6 +18,7 @@ final class BorderStrokeEditingDraft {
   BorderStrokeEditingDraft._({
     required this.baseGeometry,
     required this.mode,
+    required this.preserveTraversal,
     required List<GridPos> sampledPoints,
     required this.pendingStrokeId,
   }) : _sampledPoints = List<GridPos>.unmodifiable(sampledPoints);
@@ -26,20 +27,20 @@ final class BorderStrokeEditingDraft {
     required BorderStrokeGeometry baseGeometry,
     required BorderStrokeEditingMode mode,
     required GridPos pointerDown,
-  }) =>
-      BorderStrokeEditingDraft._(
-        baseGeometry: baseGeometry,
-        mode: mode,
-        sampledPoints: <GridPos>[
-          GridPos(x: pointerDown.x, y: pointerDown.y),
-        ],
-        pendingStrokeId: mode == BorderStrokeEditingMode.draw
-            ? _firstFreeStrokeId(baseGeometry)
-            : null,
-      );
+    bool preserveTraversal = true,
+  }) => BorderStrokeEditingDraft._(
+    baseGeometry: baseGeometry,
+    mode: mode,
+    preserveTraversal: preserveTraversal,
+    sampledPoints: <GridPos>[GridPos(x: pointerDown.x, y: pointerDown.y)],
+    pendingStrokeId: mode == BorderStrokeEditingMode.draw
+        ? _firstFreeStrokeId(baseGeometry)
+        : null,
+  );
 
   final BorderStrokeGeometry baseGeometry;
   final BorderStrokeEditingMode mode;
+  final bool preserveTraversal;
   final List<GridPos> _sampledPoints;
 
   /// ID reserved at pointer down for the one stroke proposed by a draw drag.
@@ -52,6 +53,7 @@ final class BorderStrokeEditingDraft {
     return BorderStrokeEditingDraft._(
       baseGeometry: baseGeometry,
       mode: mode,
+      preserveTraversal: preserveTraversal,
       sampledPoints: <GridPos>[
         ..._sampledPoints,
         GridPos(x: point.x, y: point.y),
@@ -63,9 +65,9 @@ final class BorderStrokeEditingDraft {
   /// Current immutable proposal, or `null` while a draw has fewer than two
   /// distinct rasterized cells.
   BorderStrokeGeometry? get previewGeometry => switch (mode) {
-        BorderStrokeEditingMode.draw => _drawPreview(),
-        BorderStrokeEditingMode.erase => _erasePreview(),
-      };
+    BorderStrokeEditingMode.draw => _drawPreview(),
+    BorderStrokeEditingMode.erase => _erasePreview(),
+  };
 
   BorderStrokeGeometry? _drawPreview() {
     final rasterized = _rasterizeGesture(_sampledPoints);
@@ -90,10 +92,20 @@ final class BorderStrokeEditingDraft {
     final output = <BorderStroke>[];
     var changed = false;
 
-    for (final stroke in baseGeometry.strokes) {
+    for (final originalStroke in baseGeometry.strokes) {
+      final originalIdentity = resolveBorderStrokeLineageIdentityV1(
+        originalStroke,
+      );
+      final stroke = !preserveTraversal && !originalIdentity.preserveTraversal
+          ? canonicalizeBorderStrokeV1(
+              id: originalStroke.id,
+              sampledPoints: originalStroke.points,
+              closed: originalStroke.closed,
+            )
+          : originalStroke;
       final touched = stroke.points.any(erasedCells.contains);
       if (!touched) {
-        output.add(stroke);
+        output.add(originalStroke);
         continue;
       }
       changed = true;
@@ -138,7 +150,7 @@ String _firstFreeStrokeId(BorderStrokeGeometry geometry) {
   };
   const base = 'stroke';
   if (!used.contains(base)) return base;
-  for (var suffix = 2;; suffix += 1) {
+  for (var suffix = 2; ; suffix += 1) {
     final candidate = '${base}_$suffix';
     if (!used.contains(candidate)) return candidate;
   }

@@ -73,7 +73,12 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     final project = _controller.project;
     if (project == null) return;
     var changed = false;
-    for (final view in _views.values) {
+    for (final entry in _views.entries) {
+      if (!_controller.hasCompleteProject &&
+          entry.key != _controller.active?.base.mapId) {
+        continue;
+      }
+      final view = entry.value;
       final characterId = view.character?.id;
       if (characterId != null) {
         final before = view.character;
@@ -130,6 +135,7 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
   }
 
   void _initializePokemon() {
+    if (!_controller.hasCompleteProject) return;
     final port = widget.pokemonPort;
     if (port != null) {
       _pokemon = PokemonWorkspaceController(
@@ -210,8 +216,13 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
       );
       if (loaded == null) return;
       _visuals = loaded.visuals;
+      _visualCatalog = _controller.project;
       _bindResourceManagement(loaded.resources);
       _narrative = loaded.narrative;
+      if (!_controller.hasCompleteProject) {
+        _changed();
+        return;
+      }
       _initializeScenes();
       _initializeStories();
       _initializeEvents();
@@ -219,11 +230,18 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
       _initializeCinematics();
       _initializePresentations();
       if (widget.regionalMapPort case final port?) {
-        _regionalMap = RegionalMapController(port, changed: _changed,
-          mapDraftProblem: (ids) => _controller.documents.values.any((document) =>
-            document.dirty && ids.contains(document.current.id))
-            ? 'Enregistrez les cartes liées avant de publier la carte régionale.' : null,
-          projectChanged: _controller.acceptResources);
+        _regionalMap = RegionalMapController(
+          port,
+          changed: _changed,
+          mapDraftProblem: (ids) =>
+              _controller.documents.values.any(
+                (document) =>
+                    document.dirty && ids.contains(document.current.id),
+              )
+              ? 'Enregistrez les cartes liées avant de publier la carte régionale.'
+              : null,
+          projectChanged: _controller.acceptResources,
+        );
       }
       _initializeWorld();
       _initializeVerification();

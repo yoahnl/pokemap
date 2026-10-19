@@ -359,11 +359,7 @@ void main() {
           );
         }
         expect(
-          tester
-              .widget<StudioSelect>(
-                find.byKey(const ValueKey('spatial-ramp-high-level')),
-              )
-              .value,
+          tester.widget<TextField>(input('high-level')).controller!.text,
           '${footprint.highLevel}',
         );
         expect(

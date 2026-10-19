@@ -99,7 +99,7 @@ final class NativeWriteLimits {
       (planJsonLimits.maxDepth, 64),
       (planJsonLimits.maxNodes, 4000000),
       (planJsonLimits.maxStringCodeUnits, 1048576),
-      (planJsonLimits.maxTextCodeUnits, 25165824),
+      (planJsonLimits.maxTextCodeUnits, 50331648),
     ];
     if (values.any((entry) => entry.$1 <= 0 || entry.$1 > entry.$2)) {
       throw const NativeWriteException(
@@ -676,6 +676,7 @@ final class NativeWriteReceipt {
     required this.projectPath,
     required this.draftHash,
     required this.nativeRevision,
+    required this.importUndoHistoryRetained,
     required Map<String, Sha256Hash> mapHashes,
     required Map<String, Sha256Hash> assetHashes,
     required Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles,
@@ -687,6 +688,7 @@ final class NativeWriteReceipt {
   final String projectPath;
   final Sha256Hash draftHash;
   final String nativeRevision;
+  final bool importUndoHistoryRetained;
   final Map<String, Sha256Hash> mapHashes;
   final Map<String, Sha256Hash> assetHashes;
   final Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles;
@@ -773,7 +775,9 @@ final class NativeProjectWriter {
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
       session = await _NativeSession.open(projectPath,
-          allowedRoot: stagingRoot, mutable: true, profileSink: snapshotProfileSink);
+          allowedRoot: stagingRoot, mutable: true,
+          retainUndoHistory: draft.mapIds.length <= 8,
+          profileSink: snapshotProfileSink);
       final api = session.mutations!;
       final stagedHandles = <String, String>{};
       for (final artifact in draft.artifacts) {
@@ -1083,6 +1087,7 @@ final class NativeProjectWriter {
           projectPath: projectPath,
           draftHash: draft.canonicalHash,
           nativeRevision: snapshot.revision,
+          importUndoHistoryRetained: draft.mapIds.length <= 8,
           mapHashes: mapHashes,
           assetHashes: assetHashes,
           borderSnapshotFiles: borderSnapshotFiles);
@@ -3540,6 +3545,7 @@ final class _NativeSession {
 
   static Future<_NativeSession> open(String root,
       {required String allowedRoot, required bool mutable,
+      bool retainUndoHistory = true,
       ProjectSnapshotLoadProfileSink? profileSink}) async {
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
@@ -3559,6 +3565,7 @@ final class _NativeSession {
         mutations = LocalMapAuthoringMutationApi(
             policy: policy,
             snapshotLoader: snapshots,
+            retainUndoHistory: retainUndoHistory,
             authorizationLimits:
                 const AuthoringSecurityLimits(maxOperationsPerWindow: null));
         await mutations.attachProject(

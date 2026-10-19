@@ -9,6 +9,203 @@ import 'package:test/test.dart';
 import '../support/glb_fixture.dart';
 
 void main() {
+  test('clipped model publication and painting preserve direct JSONL parity', () async {
+    final direct = await _Harness.create('clip_direct', spatial: true, size: 4);
+    final jsonl = await _Harness.create('clip_jsonl', spatial: true, size: 4);
+    addTearDown(direct.dispose);
+    addTearDown(jsonl.dispose);
+    final part = SmartTileVisualPart(
+      source: const SmartTileVisualSource.model3d(modelId: 'unit'),
+      spatialClip: SmartTileSpatialClip(left: 0, top: 0, right: .5, bottom: 1));
+    final preset = ProjectSmartTilePreset(id: 'clip', name: 'Clip', usage: SmartTileUsage.path,
+      topology: SmartTileTopology.uniform, templateHint: SmartTileTemplateHint.simple,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+      transformPolicy: const SmartTileTransformPolicy(), defaultMaterialId: 'grass',
+      allowedMaterialIds: ['grass'], rules: [SmartTileRule(id: 'unit',
+        centerMatch: const SmartTileSlotMatch.material('grass'),
+        candidates: [SmartTileCandidate(id: 'unit', parts: [part])])]);
+    for (final harness in [direct, jsonl]) {
+      final apply = harness == direct ? harness.applyDirectAction : harness.applyJsonlAction;
+      final source = await harness.mutations.artifacts.put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
+      await apply(actionId: 'model3d.import', parameters: {'modelId': 'unit', 'name': 'Unit',
+        'artifactHandle': source.reference.handle}, sequence: 'clip-import');
+      await apply(actionId: 'smart_tile.preset.publish', parameters: {'preset': preset.toJson(),
+        'layer': {'mapId': 'map', 'layerId': 'clipped', 'name': 'Clipped'}}, sequence: 'clip-publish');
+      await apply(actionId: 'smart_tile.cell.paint', parameters: {'mapId': 'map', 'layerId': 'clipped',
+        'materialId': 'grass', 'cells': [{'x': 1, 'y': 1}]}, sequence: 'clip-paint');
+      final opened = await harness.openDirect();
+      final snapshot = await harness.snapshots.load(opened.project);
+      final instances = resolveSpatialSmartTileInstances(map: snapshot.maps.single,
+        catalog: snapshot.manifest.smartTileCatalog);
+      expect(instances.single.clip, isNotNull);
+      expect(instances.single.blocksMovement, isFalse);
+      expect(snapshot.manifest.smartTileCatalog.formatVersion, 9);
+      await harness.readApi.close(opened.workspace);
+      final reopened = await harness.openDirect();
+      final again = await harness.snapshots.load(reopened.project);
+      expect(resolveSpatialSmartTileInstances(map: again.maps.single,
+        catalog: again.manifest.smartTileCatalog), instances);
+    }
+    expect(await direct.projectBytes(), await jsonl.projectBytes());
+    expect(await direct.mapBytes(), await jsonl.mapBytes());
+  });
+
+  group('adaptive native construction direct/JSONL parity', () {
+    test('whole-stamp policy preserves direct JSONL bytes and refuses an entire invalid batch', () async {
+      final direct = await _Harness.create('whole_stamp_direct', size: 20);
+      final jsonl = await _Harness.create('whole_stamp_jsonl', size: 20);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final pattern = _adaptiveBridgePattern().copyWith(
+        id: 'whole-stamp', construction: null, repeatMode: SmartTilePatternRepeatMode.stamp,
+        clippingPolicy: SmartTilePatternClippingPolicy.reject, anchorX: 2, anchorY: 1,
+      );
+      for (final harness in [direct, jsonl]) {
+        final apply = harness == direct ? harness.applyDirectAction : harness.applyJsonlAction;
+        await apply(actionId: 'smart_tile.preset.draft.upsert', parameters: {'draft': _draft().toJson()}, sequence: 'whole-draft');
+        await apply(actionId: 'smart_tile.preset.publish', parameters: {'draftId': 'draft-grass',
+          'layer': {'mapId': 'map', 'layerId': 'terrain', 'name': 'Terrain'}}, sequence: 'whole-publish');
+        await apply(actionId: 'smart_tile.pattern.upsert', parameters: {'pattern': pattern.toJson()}, sequence: 'whole-pattern');
+        await apply(actionId: 'smart_tile.pattern.paint', parameters: {'mapId': 'map', 'layerId': 'terrain',
+          'patternId': pattern.id, 'strokeId': 'valid', 'selection': {'kind': 'stamp', 'anchor': {'x': 2, 'y': 1}}}, sequence: 'whole-valid');
+      }
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      final beforeMap = await direct.mapBytes();
+      final beforeProject = await direct.projectBytes();
+      final parameters = <String,Object?>{'mapId': 'map', 'layerId': 'terrain', 'strokes': [
+        {'patternId': pattern.id, 'strokeId': 'batch-valid', 'selection': {'kind': 'stamp', 'anchor': {'x': 7, 'y': 7}}},
+        {'patternId': pattern.id, 'strokeId': 'batch-invalid', 'selection': {'kind': 'stamp', 'anchor': {'x': 0, 'y': 0}}},
+      ]};
+      await expectLater(direct.planDirect(actionId: 'smart_tile.pattern.paint_batch', parameters: parameters, sequence: 'whole-invalid'),
+        throwsA(isA<MapAuthoringException>().having((e) => e.code, 'code', 'smart_tile.pattern.stamp_out_of_bounds')));
+      final failure = await jsonl.planJsonlFailure(actionId: 'smart_tile.pattern.paint_batch', parameters: parameters, sequence: 'whole-invalid');
+      expect(failure.error?.details['domainCode'], 'smart_tile.pattern.stamp_out_of_bounds');
+      for (final harness in [direct,jsonl]) {
+        expect(await harness.mapBytes(), beforeMap);
+        expect(await harness.projectBytes(), beforeProject);
+        final opened = await harness.openDirect();
+        final snapshot = await harness.snapshots.load(opened.project);
+        expect(snapshot.manifest.smartTileCatalog.patterns.single.clippingPolicy, SmartTilePatternClippingPolicy.reject);
+      }
+    });
+
+    test('publishes, expands, rejects invalid footprints and reopens exactly', () async {
+      final direct = await _Harness.create('construction_direct', size: 20);
+      final jsonl = await _Harness.create('construction_jsonl', size: 20);
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final pattern = _adaptiveBridgePattern();
+      for (final harness in [direct, jsonl]) {
+        final apply = harness == direct
+            ? harness.applyDirectAction
+            : harness.applyJsonlAction;
+        await apply(
+          actionId: 'smart_tile.preset.draft.upsert',
+          parameters: {'draft': _draft().toJson()},
+          sequence: 'construction-draft',
+        );
+        await apply(
+          actionId: 'smart_tile.preset.publish',
+          parameters: {
+            'draftId': 'draft-grass',
+            'layer': {'mapId': 'map', 'layerId': 'terrain', 'name': 'Terrain'},
+          },
+          sequence: 'construction-publish',
+        );
+        await apply(
+          actionId: 'smart_tile.pattern.upsert',
+          parameters: {'pattern': pattern.toJson()},
+          sequence: 'construction-pattern',
+        );
+        await apply(
+          actionId: 'smart_tile.pattern.paint',
+          parameters: {
+            'mapId': 'map',
+            'layerId': 'terrain',
+            'patternId': pattern.id,
+            'strokeId': 'bridge',
+            'selection': {
+              'kind': 'line',
+              'start': {'x': 2, 'y': 2},
+              'end': {'x': 2, 'y': 9},
+            },
+          },
+          sequence: 'construction-paint',
+        );
+      }
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      for (final harness in [direct, jsonl]) {
+        final opened = await harness.openDirect();
+        final snapshot = await harness.snapshots.load(opened.project);
+        final decoded = snapshot.maps.single;
+        final layer = decoded.layers.single as SmartTileLayer;
+        expect(layer.patternStrokes.single.cells, hasLength(40));
+        expect(layer.patternStrokes.single.constructionBounds,
+            const MapRect(pos: GridPos(x: 2, y: 2), size: GridSize(width: 5, height: 8)));
+        expect(snapshot.manifest.smartTileCatalog.formatVersion, 9);
+        expect(snapshot.manifest.smartTileCatalog.patterns.single.construction,
+            pattern.construction);
+      }
+      final beforeMap = await direct.mapBytes();
+      final beforeProject = await direct.projectBytes();
+      for (final invalid in [
+        {
+          'code': 'smart_tile.pattern.construction_size_invalid',
+          'selection': {'kind': 'rectangle', 'start': {'x': 2, 'y': 2}, 'end': {'x': 5, 'y': 7}},
+        },
+        {
+          'code': 'smart_tile.pattern.construction_size_invalid',
+          'selection': {'kind': 'rectangle', 'start': {'x': 2, 'y': 2}, 'end': {'x': 6, 'y': 6}},
+        },
+        {
+          'code': 'smart_tile.pattern.construction_out_of_bounds',
+          'selection': {'kind': 'line', 'start': {'x': 18, 'y': 2}, 'end': {'x': 18, 'y': 7}},
+        },
+      ]) {
+        final parameters = <String, Object?>{
+          'mapId': 'map', 'layerId': 'terrain', 'patternId': pattern.id,
+          'strokeId': 'invalid', 'selection': invalid['selection'],
+        };
+        await expectLater(
+          direct.planDirect(actionId: 'smart_tile.pattern.paint', parameters: parameters,
+              sequence: 'invalid-${invalid['code']}'),
+          throwsA(isA<MapAuthoringException>().having((error) => error.code,
+              'code', invalid['code'])),
+        );
+        final failure = await jsonl.planJsonlFailure(
+          actionId: 'smart_tile.pattern.paint', parameters: parameters,
+          sequence: 'invalid-${invalid['code']}',
+        );
+        expect(failure.error?.details['domainCode'], invalid['code']);
+        expect(await direct.mapBytes(), beforeMap);
+        expect(await jsonl.mapBytes(), beforeMap);
+        expect(await direct.projectBytes(), beforeProject);
+        expect(await jsonl.projectBytes(), beforeProject);
+      }
+    });
+
+    test('describes the typed construction and complete-cross-section gesture', () {
+      for (final descriptor in [
+        ...SmartTileCatalogActions.descriptors,
+        ...SmartTilePatternActions.descriptors,
+      ].where((descriptor) => [
+        'smart_tile.pattern.upsert', 'smart_tile.pattern.upsert_batch',
+        'smart_tile.pattern.paint', 'smart_tile.pattern.paint_batch',
+      ].contains(descriptor.id))) {
+        expect(descriptor.extensions['adaptiveConstruction2d'], isA<Map>());
+        final contract = descriptor.extensions['adaptiveConstruction2d'] as Map;
+        expect(contract['minimumCatalogFormatVersion'], 8);
+        expect(contract['fixedCrossSection'], 'expand_whole');
+        expect(contract['partialPeriods'], 'reject');
+        final clipping = descriptor.extensions['patternClipping'] as Map;
+        expect(clipping['default'], 'clip');
+        expect(clipping['values'], ['clip', 'reject']);
+      }
+    });
+  });
   group('native Smart Tile direct/JSONL parity', () {
     test(
         'fractional model sources publish paint and reopen with pivots identically',
@@ -1540,7 +1737,7 @@ final class _Harness {
     required this.worker,
   });
 
-  static Future<_Harness> create(String suffix, {bool spatial = false}) async {
+  static Future<_Harness> create(String suffix, {bool spatial = false, int size = 1}) async {
     final root = await Directory.systemTemp.createTemp(
       'pokemap_stn03_$suffix',
     );
@@ -1597,8 +1794,8 @@ final class _Harness {
       id: 'map',
       name: 'Map',
       version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
-      spatialScene: spatial ? MapSpatialScene(width: 1, depth: 1) : null,
-      size: GridSize(width: 1, height: 1),
+      spatialScene: spatial ? MapSpatialScene(width: size, depth: size) : null,
+      size: GridSize(width: size, height: size),
     );
     await File('${root.path}/project.json').writeAsBytes(
       _encode(manifest.toJson()),
@@ -2431,6 +2628,19 @@ ProjectSmartTileAtlas _atlas({int columns = 1}) => ProjectSmartTileAtlas(
       columns: columns,
       rows: 1,
     );
+
+ProjectSmartTilePattern _adaptiveBridgePattern() => ProjectSmartTilePattern(
+  id: 'native-bridge', name: 'Native bridge', usage: SmartTileUsage.terrain,
+  width: 5, height: 4,
+  construction: SmartTilePatternConstruction(
+    y: SmartTilePatternRepeatAxis(repeatStart: 1, repeatLength: 2),
+  ),
+  cells: [for (var y = 0; y < 4; y++) for (var x = 0; x < 5; x++)
+    SmartTilePatternCell(x: x, y: y, parts: const [SmartTileVisualPart(
+      source: SmartTileVisualSource.frame(frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0)),
+    )]),
+  ],
+);
 
 ProjectSmartTileAnimation _animation() => const ProjectSmartTileAnimation(
       id: 'wind',

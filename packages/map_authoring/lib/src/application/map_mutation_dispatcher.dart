@@ -9,6 +9,8 @@ import 'dart:async';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../contracts/action_descriptor.dart';
+import '../workspace/catalog/catalog_action_contracts.dart';
+import '../transactions/plan_store.dart';
 import '../domains/project/regional_map_actions.dart';
 import '../domains/project/battle_transition_default_actions.dart';
 import '../domains/project/runtime_audio_actions.dart';
@@ -62,6 +64,7 @@ import '../domains/assets/resource_source_actions.dart';
 import '../support/authoring_performance_observer.dart';
 import '../references/resource_library_scope_guard.dart';
 import '../domains/maps/border_actions.dart';
+import '../domains/maps/border_materialization_batch_actions.dart';
 import '../domains/maps/border_catalog_actions.dart';
 import '../domains/maps/collision_actions.dart';
 import '../domains/maps/entity_actions.dart';
@@ -103,6 +106,7 @@ final class MapMutationDispatcher {
   factory MapMutationDispatcher.canonical({
     ArtifactStore? artifactStore,
     ResourcePackPreparedImportResolver? preparedResourcePackImportResolver,
+    MapMutationDraftBuilder? projectCatalogPartitionBuilder,
     RetainedAssetBlobReader? retainedAssetBlobReader,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
     PresentationMediaProbePort presentationMediaProbe =
@@ -197,6 +201,11 @@ final class MapMutationDispatcher {
     final resourcePacks = ResourcePackActions(
         resolvePreparedImport: preparedResourcePackImportResolver);
     return MapMutationDispatcher([
+      MapMutationActionRegistration(descriptor:projectCatalogPartitionDescriptor,evidence:MutationContractEvidence(proofs:{...MutationContractEvidence.mandatoryCore,MutationContractProof.nonUndoablePolicy},nonUndoableReason:'catalog.partition_not_undoable'),build:projectCatalogPartitionBuilder??(_) => throw AuthoringPlanException(code:'catalog.partition_unavailable',message:'Catalog partitioning requires a local authoring session.')),
+      MapMutationActionRegistration(descriptor: catalogDefinitionUpdateDescriptor, build: (_) => throw AuthoringPlanException(code:'catalog.working_project_required',message:'Catalog metadata editing requires a working catalog project.')),
+      MapMutationActionRegistration(
+          descriptor: BorderMaterializationBatchActions.descriptor,
+          build: const BorderMaterializationBatchActions().build),
       for (final descriptor in ResourcePackActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: resourcePacks.build),

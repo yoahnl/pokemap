@@ -2,6 +2,7 @@ import '../contracts/authoring_receipt.dart';
 import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
+import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'revision_set.dart';
@@ -342,6 +343,23 @@ final class AuthoringRecoveryService {
     AuthoringTransactionJournal journal,
   ) async {
     final record = await _idempotency.recordForRecovery(journal.scope);
+    if (record?.status == AuthoringIdempotencyStatus.completed) {
+      final complete = record!.operationId == journal.operationId &&
+          (journal.status == AuthoringTransactionStatus.committed ||
+              journal.status == AuthoringTransactionStatus.compensated) &&
+          journal.finalReceipt != null &&
+          canonicalAuthoringJson(record.receipt!.toJson()) ==
+              canonicalAuthoringJson(journal.finalReceipt!.toJson());
+      return _inspection(
+        journal,
+        complete
+            ? AuthoringRecoveryDisposition.completed
+            : AuthoringRecoveryDisposition.blocked,
+        complete
+            ? 'The transaction and idempotency receipt are complete.'
+            : 'The completed receipt conflicts with the final journal receipt.',
+      );
+    }
     final states = await _states(journal);
     final stagesValid = await _stagesValid(journal);
     final hasUnexpected =
@@ -371,24 +389,6 @@ final class AuthoringRecoveryService {
         discardable
             ? 'The unreserved intent can be discarded or retried safely.'
             : 'Recovery is blocked because the durable reservation is absent.',
-      );
-    }
-    if (record.status == AuthoringIdempotencyStatus.completed) {
-      final stateMatches = switch (journal.status) {
-        AuthoringTransactionStatus.committed =>
-          states.every((state) => state.isAfter),
-        AuthoringTransactionStatus.compensated =>
-          states.every((state) => state.isBefore),
-        _ => false,
-      };
-      return _inspection(
-        journal,
-        stateMatches
-            ? AuthoringRecoveryDisposition.completed
-            : AuthoringRecoveryDisposition.blocked,
-        stateMatches
-            ? 'The transaction and idempotency receipt are complete.'
-            : 'A completed receipt conflicts with journal or resource state.',
       );
     }
     return _inspection(

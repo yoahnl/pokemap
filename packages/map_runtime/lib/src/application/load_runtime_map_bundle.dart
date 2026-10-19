@@ -254,26 +254,35 @@ ProjectManifest normalizeRuntimeProjectManifest(ProjectManifest manifest) {
 Future<MapData> loadMapDataFromFile(
   String absoluteMapPath, {
   required ProjectManifest? projectDialogueContext,
+  PixelSize? projectTileSize,
 }) async {
-  final maps = await loadMapDataFiles([
-    absoluteMapPath,
-  ], projectDialogueContext: projectDialogueContext);
+  final maps = await loadMapDataFiles(
+    [absoluteMapPath],
+    projectDialogueContext: projectDialogueContext,
+    projectTileSize: projectTileSize,
+  );
   return maps.single;
 }
 
 Future<List<MapData>> loadMapDataFiles(
   List<String> absoluteMapPaths, {
   required ProjectManifest? projectDialogueContext,
+  PixelSize? projectTileSize,
 }) {
   if (absoluteMapPaths.isEmpty) return Future.value(const <MapData>[]);
   return Isolate.run(
-    () => _readMapDataFiles(absoluteMapPaths, projectDialogueContext),
+    () => _readMapDataFiles(
+      absoluteMapPaths,
+      projectDialogueContext,
+      projectTileSize,
+    ),
   );
 }
 
 Future<List<MapData>> _readMapDataFiles(
   List<String> absoluteMapPaths,
   ProjectManifest? projectDialogueContext,
+  PixelSize? projectTileSize,
 ) async {
   final maps = <MapData>[];
   for (final absoluteMapPath in absoluteMapPaths) {
@@ -289,6 +298,7 @@ Future<List<MapData>> _readMapDataFiles(
       final map = _decodeValidateAndComposeMapData(
         text,
         projectDialogueContext,
+        projectTileSize,
       );
       _runtimeLoaderLog(
         'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
@@ -305,10 +315,15 @@ Future<List<MapData>> _readMapDataFiles(
 MapData _decodeValidateAndComposeMapData(
   String text,
   ProjectManifest? projectDialogueContext,
+  PixelSize? projectTileSize,
 ) {
   final raw = jsonDecode(text) as Map<String, dynamic>;
   final map = MapData.fromJson(raw);
-  MapValidator.validate(map, projectDialogueContext: projectDialogueContext);
+  MapValidator.validate(
+    map,
+    projectDialogueContext: projectDialogueContext,
+    projectTileSize: projectTileSize,
+  );
   final visualComposition = buildMapVisualCompositionPlan(map);
   if (!visualComposition.canCompose) {
     final details = visualComposition.diagnostics

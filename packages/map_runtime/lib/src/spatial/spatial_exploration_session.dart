@@ -128,6 +128,19 @@ final class SpatialExplorationSession {
               : _preparedMaps[mapId]?.animations)
           ?.stateFor(instanceId);
 
+  int rasterAnimationElapsedMsForCell(
+      String mapId, String layerId, int cellX, int cellY, int elapsedMs) =>
+      (mapId == bundle.map.id
+              ? _smartTileAnimations
+              : _preparedMaps[mapId]?.animations)
+          ?.rasterElapsedMsForCell(
+            layerId: layerId,
+            cellX: cellX,
+            cellY: cellY,
+            globalElapsedMs: elapsedMs,
+          ) ??
+      elapsedMs;
+
   void attachWorldStateProviders() {
     final source = bundle;
     movement.entityProjection = (entity) => entityProjection == null ? entity :

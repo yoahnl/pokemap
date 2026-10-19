@@ -28,6 +28,236 @@ import '../terrain_creation_test.dart'
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  test('fixed-height whole models remain available only in native spatial channels', () {
+    final fixture = _fixture();
+    for (final channel in SmartTileRenderChannel.values) {
+      final original = fixture.pattern.cells.first.parts.first;
+      final source = original.source as SmartTileModel3dSource;
+      final part = original.copyWith(
+        channel: channel,
+        source: source.copyWith(followTerrain: false),
+      );
+      final pattern = fixture.pattern.copyWith(cells: [
+        SmartTilePatternCell(x: 0, y: 0, parts: [part]),
+      ]);
+      final patterns = availableTerrainPatterns(
+        project: _withStampPatterns(fixture.project, [pattern]),
+        map: fixture.map,
+        preset: fixture.preset,
+      );
+      expect(patterns.map((p) => p.id).contains(pattern.id),
+          [SmartTileRenderChannel.ground, SmartTileRenderChannel.understory,
+            SmartTileRenderChannel.canopy].contains(channel), reason: channel.name);
+    }
+  });
+
+  test('fixed-height static clipped walls remain available in native channels', () {
+    final fixture = _fixture();
+    for (final channel in SmartTileRenderChannel.values) {
+      final original = fixture.pattern.cells.first.parts.first;
+      final source = original.source as SmartTileModel3dSource;
+      final part = original.copyWith(
+        channel: channel,
+        source: source.copyWith(followTerrain: false),
+        spatialClip: SmartTileSpatialClip(left: 0, top: 0, right: 1, bottom: 1),
+      );
+      final pattern = fixture.pattern.copyWith(cells: [
+        SmartTilePatternCell(x: 0, y: 0, parts: [part]),
+      ]);
+      final patterns = availableTerrainPatterns(
+        project: _withStampPatterns(fixture.project, [pattern]),
+        map: fixture.map,
+        preset: fixture.preset,
+      );
+      expect(patterns.map((p) => p.id).contains(pattern.id),
+          [SmartTileRenderChannel.ground, SmartTileRenderChannel.understory,
+            SmartTileRenderChannel.canopy].contains(channel), reason: channel.name);
+    }
+  });
+
+  testWidgets('whole fixed native stamp panel exposes its complete footprint', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final fixture = _adaptiveBridgeFixture();
+    final pattern = fixture.pattern.copyWith(construction: null, repeatMode: SmartTilePatternRepeatMode.stamp,
+      clippingPolicy: SmartTilePatternClippingPolicy.reject);
+    final view = MapWorkspaceViewState()..prepareTerrainPainting(fixture.preset)..selectTerrainPattern(pattern);
+    addTearDown(view.dispose);
+    final document = EditableMapDocument(MapWorkspaceDocument(map: fixture.map, mapId: fixture.map.id, revision: 'r0'));
+    await tester.pumpWidget(MaterialApp(theme: studioTheme(), home: Scaffold(body: MapTerrainToolPanel(
+      document: document, project: _withStampPatterns(fixture.project, [pattern]),
+      visuals: _PatternVisuals(), view: view, onChanged: () {},
+    ))));
+    expect(find.byKey(const ValueKey('terrain-pattern-whole-placement')), findsOneWidget);
+    expect(find.text('Placement entier : 5 × 4 cases'), findsOneWidget);
+    expect(find.text('Tampon'), findsOneWidget);
+  });
+
+  test('whole fixed native stamp previews nothing at an edge and commits a complete anchored envelope', () {
+    final fixture = _adaptiveBridgeFixture();
+    final pattern = fixture.pattern.copyWith(construction: null, repeatMode: SmartTilePatternRepeatMode.stamp,
+      clippingPolicy: SmartTilePatternClippingPolicy.reject, anchorX: 2, anchorY: 1);
+    final catalog = fixture.project.smartTileCatalog;
+    final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+      categories: catalog.categories, atlases: catalog.atlases, materials: catalog.materials,
+      presets: catalog.presets, patterns: [pattern],
+    ));
+    final document = EditableMapDocument(MapWorkspaceDocument(map: fixture.map, mapId: fixture.map.id, revision: 'r0'));
+    final view = MapWorkspaceViewState()..prepareTerrainPainting(fixture.preset)..selectTerrainPattern(pattern);
+    addTearDown(view.dispose);
+    final invalid = MapCanvasStroke.start(map: fixture.map, project: project, view: view,
+      commands: MapEditingCommands(document, project), origin: const GridPos(x: 0, y: 0))!;
+    expect(invalid.preview, fixture.map);
+    expect(() => invalid.commit(), throwsA(isA<ValidationException>().having((e) => e.message,
+      'message', 'Le motif entier doit tenir dans la carte.')));
+    expect(document.undoCount, 0);
+    final valid = MapCanvasStroke.start(map: fixture.map, project: project, view: view,
+      commands: MapEditingCommands(document, project), origin: const GridPos(x: 2, y: 1))!;
+    expect(valid.preview.layers.whereType<SmartTileLayer>().single.patternStrokes.single.cells, hasLength(20));
+    document.commit(valid.commit());
+    document.restore(redo: false);
+    expect(document.current, fixture.map);
+  });
+
+  for (final kind in ['unique adaptive', 'ordinary', 'multiple adaptive', 'visible ordinary with adaptive sibling', 'incomplete template support']) {
+    testWidgets('preset selection initializes $kind construction coherently', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final fixture = _adaptiveBridgeFixture();
+      final catalog = fixture.project.smartTileCatalog;
+      final preset = kind == 'visible ordinary with adaptive sibling'
+          ? fixture.preset.copyWith(rules: [SmartTileRule(
+              id: 'visible', centerMatch: SmartTileSlotMatch.material(fixture.preset.defaultMaterialId),
+              candidates: [SmartTileCandidate(id: 'visible', parts: fixture.pattern.cells.first.parts)],
+            )])
+          : kind == 'incomplete template support'
+          ? fixture.preset.copyWith(coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template))
+          : fixture.preset;
+      final patterns = kind == 'ordinary'
+          ? [fixture.pattern.copyWith(construction: null)]
+          : [fixture.pattern, if (kind == 'multiple adaptive') fixture.pattern.copyWith(id: 'bridge-alt')];
+      final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+        categories: catalog.categories, atlases: catalog.atlases, materials: catalog.materials,
+        presets: [preset], patterns: patterns,
+      ));
+      final view = MapWorkspaceViewState()..prepareTerrainPainting(preset);
+      addTearDown(view.dispose);
+      view.reconcileResources(project, mapId: fixture.map.id, map: fixture.map);
+      final document = EditableMapDocument(MapWorkspaceDocument(
+        map: fixture.map, mapId: fixture.map.id, revision: 'r0',
+      ));
+      await tester.pumpWidget(MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(body: MapTerrainToolPanel(
+          document: document, project: project, visuals: _PatternVisuals(),
+          view: view, onChanged: () {},
+        )),
+      ));
+      final unique = kind == 'unique adaptive';
+      expect(view.terrainPatternId, unique ? fixture.pattern.id : null);
+      expect(find.byKey(const ValueKey('terrain-construction-dimensions')), unique ? findsOneWidget : findsNothing);
+      expect(find.text('Ligne'), unique ? findsOneWidget : findsNothing);
+      expect(jsonEncode(document.current.toJson()), jsonEncode(fixture.map.toJson()));
+      if (unique) {
+        view.selectTerrainPattern(null);
+        view.reconcileResources(project, mapId: fixture.map.id, map: fixture.map);
+        expect(view.terrainPatternId, isNull);
+      }
+    });
+  }
+
+  testWidgets('adaptive construction panel exposes native dimensions and gestures', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final fixture = _adaptiveBridgeFixture();
+    final view = MapWorkspaceViewState()
+      ..prepareTerrainPainting(fixture.preset)
+      ..selectTerrainPattern(fixture.pattern);
+    addTearDown(view.dispose);
+    final document = EditableMapDocument(MapWorkspaceDocument(
+      map: fixture.map, mapId: fixture.map.id, revision: 'r0',
+    ));
+    await tester.pumpWidget(MaterialApp(
+      theme: studioTheme(),
+      home: Scaffold(body: MapTerrainToolPanel(
+        document: document, project: fixture.project, visuals: _PatternVisuals(),
+        view: view, onChanged: () {},
+      )),
+    ));
+    expect(find.byKey(const ValueKey('terrain-construction-dimensions')), findsOneWidget);
+    expect(find.text('Largeur fixe : 5 cases · Hauteur : 4 minimum, par 2'), findsOneWidget);
+    expect(find.text('Ligne'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('terrain-pattern-mode')));
+    await tester.pumpAndSettle();
+    expect(find.text('Rectangle'), findsOneWidget);
+  });
+
+  test('adaptive native bridge selects a full-width line gesture by default', () {
+    final fixture = _adaptiveBridgeFixture();
+    final view = MapWorkspaceViewState()
+      ..prepareTerrainPainting(fixture.preset)
+      ..selectTerrainPattern(fixture.pattern);
+    addTearDown(view.dispose);
+
+    expect(view.terrainPatternMode, SmartTilePatternSelectionKind.line);
+  });
+
+  test('adaptive native bridge survives intermediate lengths, previews and undoes a complete section', () {
+    final fixture = _adaptiveBridgeFixture();
+    final before = jsonEncode(fixture.map.toJson());
+    final document = EditableMapDocument(MapWorkspaceDocument(
+      map: fixture.map, mapId: fixture.map.id, revision: 'r0',
+    ));
+    final view = MapWorkspaceViewState()
+      ..prepareTerrainPainting(fixture.preset)
+      ..selectTerrainPattern(fixture.pattern)
+      ..terrainPatternMode = SmartTilePatternSelectionKind.line;
+    addTearDown(view.dispose);
+    MapCanvasStroke? stroke;
+    expect(() => stroke = MapCanvasStroke.start(
+      map: fixture.map, project: fixture.project, view: view,
+      commands: MapEditingCommands(document, fixture.project),
+      origin: const GridPos(x: 1, y: 1),
+    ), returnsNormally);
+    expect(stroke, isNotNull);
+    expect(jsonEncode(document.current.toJson()), before);
+    expect(stroke!.preview.layers.whereType<SmartTileLayer>().single.patternStrokes, isEmpty);
+    stroke!.paint(const GridPos(x: 1, y: 6));
+    final previewLayer = stroke!.preview.layers.whereType<SmartTileLayer>().single;
+    expect(previewLayer.patternStrokes.single.cells, hasLength(30));
+    expect(previewLayer.patternStrokes.single.constructionBounds,
+        const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 5, height: 6)));
+    stroke!.paint(const GridPos(x: 1, y: 5));
+    expect(stroke!.preview.layers.whereType<SmartTileLayer>().single.patternStrokes, isEmpty);
+    expect(() => stroke!.commit(), throwsA(isA<ValidationException>()));
+    expect(jsonEncode(document.current.toJson()), before);
+    stroke!.paint(const GridPos(x: 1, y: 6));
+    final committed = stroke!.commit();
+    expect(committed, stroke!.preview);
+    document.commit(committed);
+    expect(document.undoCount, 1);
+    document.restore(redo: false);
+    expect(jsonEncode(document.current.toJson()), before);
+  });
+
+  test('adaptive construction picker scopes native families through existing categories', () {
+    final fixture = _adaptiveBridgeFixture();
+    final catalog = fixture.project.smartTileCatalog;
+    final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+      categories: [...catalog.categories, const ProjectSmartTileCategory(id: 'foreign-style', name: 'Foreign')],
+      atlases: catalog.atlases, materials: catalog.materials, presets: catalog.presets,
+      patterns: [fixture.pattern, fixture.pattern.copyWith(id: 'foreign', categoryId: 'foreign-style')],
+    ));
+
+    expect(availableTerrainPatterns(project: project, map: fixture.map, preset: fixture.preset)
+        .map((pattern) => pattern.id), [fixture.pattern.id]);
+  });
   for (final spatial in [true, false]) {
     test('reactive path motifs synchronize material and erase: spatial $spatial', () {
       final fixture = _fixture(spatial: spatial);
@@ -1749,7 +1979,7 @@ void main() {
             map: map,
             preset: fixture.preset,
           ).map((pattern) => pattern.id).toSet(),
-          {fixture.pattern.id, stamp.id, unreferenced.id},
+          {fixture.pattern.id, stamp.id, unreferenced.id, if (spatial) absolute.id},
         );
         final view = MapWorkspaceViewState()
           ..prepareTerrainPainting(fixture.preset);
@@ -1779,7 +2009,7 @@ void main() {
         expect(find.text('Recette source entière'), findsNothing);
         expect(find.text('Motif du catalogue'), findsOneWidget);
         expect(find.text('Source privée ailleurs'), findsNothing);
-        expect(find.text('Eau source à altitude fixe'), findsNothing);
+        expect(find.text('Eau source à altitude fixe'), spatial ? findsOneWidget : findsNothing);
         await tester.tap(find.text('Eau animée').last);
         await tester.pump(const Duration(milliseconds: 300));
         expect(view.terrainPatternId, fixture.pattern.id);
@@ -2302,6 +2532,35 @@ _fixture({bool spatial = true, bool followTerrain = true}) {
       ),
     ],
   );
+  return (project: project, map: map, preset: preset, pattern: pattern);
+}
+
+({ProjectManifest project, MapData map, ProjectSmartTilePreset preset, ProjectSmartTilePattern pattern})
+_adaptiveBridgeFixture() {
+  final base = _fixture(spatial: false);
+  final preset = base.preset.copyWith(
+    categoryId: 'bridge-style', coveragePolicy: SmartTileCoveragePolicy.sparse,
+    status: SmartTilePresetStatus.published, rules: [],
+    coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.explicit),
+  );
+  final part = base.pattern.cells.first.parts.first;
+  final pattern = ProjectSmartTilePattern(
+    id: 'bridge', name: 'Pont natif', categoryId: preset.categoryId,
+    usage: preset.usage, width: 5, height: 4,
+    construction: SmartTilePatternConstruction(
+      y: SmartTilePatternRepeatAxis(repeatStart: 1, repeatLength: 2),
+    ),
+    cells: [for (var y = 0; y < 4; y++) for (var x = 0; x < 5; x++)
+      SmartTilePatternCell(x: x, y: y, parts: [part])],
+  );
+  final catalog = base.project.smartTileCatalog;
+  final project = base.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+    categories: [...catalog.categories, const ProjectSmartTileCategory(id: 'bridge-style', name: 'Pont')],
+    atlases: catalog.atlases, materials: catalog.materials,
+    animations: catalog.animations, presets: [preset], patterns: [pattern],
+  ));
+  final source = base.map.layers.whereType<SmartTileLayer>().single;
+  final map = base.map.copyWith(layers: [source.copyWith(patternStrokes: [])]);
   return (project: project, map: map, preset: preset, pattern: pattern);
 }
 

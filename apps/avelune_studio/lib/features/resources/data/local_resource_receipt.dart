@@ -5,8 +5,10 @@ ResourceMutationReceipt _resourceReceipt(
   String beforeRevision,
   AuthoringPlan plan,
   String? createdTilesetId,
-  String operationId,
-) {
+  String operationId, {
+  ProjectManifest? projectedProject,
+  String? projectedRevision,
+}) {
   final changes = plan.changeSet.changes;
   final manifestChanges = changes.where((c) => c.storageKey == 'project.json');
   if (manifestChanges.length > 1) {
@@ -18,11 +20,13 @@ ResourceMutationReceipt _resourceReceipt(
   if (manifestChanges.isNotEmpty && bytes == null) {
     throw const ResourceFailure('Le manifeste ne peut pas être supprimé.');
   }
-  final manifest = bytes == null
-      ? before
-      : ProjectManifest.fromJson(
-          jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
-        );
+  final manifest =
+      projectedProject ??
+      (bytes == null
+          ? before
+          : ProjectManifest.fromJson(
+              jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+            ));
   if (plan.request.actionId != 'map.library.reorganize' &&
       jsonEncode(before.maps) != jsonEncode(manifest.maps)) {
     throw const ResourceFailure(
@@ -33,9 +37,11 @@ ResourceMutationReceipt _resourceReceipt(
     before: before,
     manifest: manifest,
     beforeRevision: beforeRevision,
-    revision: bytes == null
-        ? beforeRevision
-        : narrativeEventBytesFingerprint(bytes),
+    revision:
+        projectedRevision ??
+        (bytes == null
+            ? beforeRevision
+            : narrativeEventBytesFingerprint(bytes)),
     changedPaths: List.unmodifiable(changes.map((c) => c.storageKey)),
     createdTilesetId: createdTilesetId,
     operationId: operationId,

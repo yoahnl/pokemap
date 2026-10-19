@@ -96,7 +96,7 @@ List<int> _encodeElementDuplicate(
     required String newId,
     required String name,
     required String categoryId}) {
-  final raw = jsonDecode(utf8.decode(snapshot.resourceBytes('project')))
+  final raw = jsonDecode(utf8.decode(snapshot.authoringProjectBytes))
       as Map<String, dynamic>;
   final source = (raw['elements'] as List)
       .where((entry) => entry is Map && entry['id'] == sourceId)

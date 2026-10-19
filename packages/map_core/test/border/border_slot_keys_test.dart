@@ -293,8 +293,8 @@ void main() {
       }
     });
 
-    test('publishes resolver contract version 3', () {
-      expect(borderResolverVersion, 3);
+    test('publishes resolver contract version 4', () {
+      expect(borderResolverVersion, 4);
     });
 
     test('stone-chain row identities distinguish lip and face passes', () {

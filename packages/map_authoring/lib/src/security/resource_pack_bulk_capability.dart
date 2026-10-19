@@ -1,3 +1,4 @@
+import '../catalog_storage/catalog_revert_merge.dart';
 import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../support/authoring_fingerprint.dart';
@@ -18,6 +19,7 @@ final class ResourcePackBulkCapability {
     required this.diffFingerprint,
     required this.logicalOutputLimit,
     this.originEntryId,
+    this.catalogRevert,
   }) {
     for (final value in [actorId, projectId, planId, operationId]) {
       safeAuthoringSecurityIdentifier(value, 'bulk identity');
@@ -37,6 +39,10 @@ final class ResourcePackBulkCapability {
     if (originEntryId != null) {
       safeAuthoringSecurityIdentifier(originEntryId!, 'originEntryId');
     }
+    if (catalogRevert != null && actionId != 'history.revert') {
+      throw ArgumentError(
+          'A catalog merge attestation belongs only to revert.');
+    }
     final paths = <String>{};
     final resources = <String>{};
     String? previous;
@@ -48,7 +54,19 @@ final class ResourcePackBulkCapability {
       }
       previous = item.storageKey;
     }
+    if (catalogRevert != null) {
+      final heads =
+          inventory.where((item) => item.storageKey == 'catalog/HEAD.json');
+      if (heads.length != 1 ||
+          heads.single.beforeRevision != catalogRevert!.currentHeadRevision ||
+          heads.single.afterRevision != catalogRevert!.resultHeadRevision) {
+        throw ArgumentError(
+            'The catalog merge attestation differs from its inventory.');
+      }
+    }
     if (inventory.isEmpty ||
+        (paths.contains('project.json') &&
+            paths.contains('catalog/HEAD.json')) ||
         logicalOutputLimit < 0 ||
         logicalOutputLimit > 20000 ||
         logicalOutputCount > logicalOutputLimit ||
@@ -71,6 +89,7 @@ final class ResourcePackBulkCapability {
   final String actionId;
   final int actionVersion;
   final String? originEntryId;
+  final CatalogRevertMergeAttestation? catalogRevert;
   final List<ResourcePackBulkInventoryEntry> inventory;
   final String diffFingerprint;
   final int logicalOutputLimit;
@@ -144,7 +163,7 @@ final class ResourcePackBulkCapability {
   }
 
   Map<String, Object?> toJson() => {
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'logicalOutputLimit': logicalOutputLimit,
         'actorId': actorId,
         'projectId': projectId,
@@ -154,6 +173,7 @@ final class ResourcePackBulkCapability {
         'actionId': actionId,
         'actionVersion': actionVersion,
         if (originEntryId != null) 'originEntryId': originEntryId,
+        if (catalogRevert != null) 'catalogRevert': catalogRevert!.toJson(),
         'inventory': [for (final item in inventory) item.toJson()],
         'diffFingerprint': diffFingerprint,
         'inventoryFingerprint': inventoryFingerprint,
@@ -166,7 +186,7 @@ final class ResourcePackBulkCapability {
   factory ResourcePackBulkCapability.fromJournalJson(
       Map<String, dynamic> json) {
     try {
-      if (json['schemaVersion'] != 2 || json['inventory'] is! List) {
+      if (json['schemaVersion'] != 3 || json['inventory'] is! List) {
         throw const FormatException();
       }
       final capability = ResourcePackBulkCapability._(
@@ -180,6 +200,10 @@ final class ResourcePackBulkCapability {
           diffFingerprint: json['diffFingerprint'] as String,
           logicalOutputLimit: json['logicalOutputLimit'] as int,
           originEntryId: json['originEntryId'] as String?,
+          catalogRevert: json['catalogRevert'] == null
+              ? null
+              : CatalogRevertMergeAttestation.fromJournalJson(
+                  Map<String, dynamic>.from(json['catalogRevert'] as Map)),
           inventory: List.unmodifiable((json['inventory'] as List).map((item) =>
               ResourcePackBulkInventoryEntry.fromJson(
                   Map<String, dynamic>.from(item as Map)))));
@@ -202,16 +226,25 @@ final class ResourcePackBulkInventoryEntry {
       required this.afterRevision,
       required this.role}) {
     final segments = storageKey.split('/');
+    final isCatalogHead = storageKey == 'catalog/HEAD.json';
+    final isCatalogNamespace = segments.first.toLowerCase() == 'catalog';
     if (segments.any((segment) =>
             segment.isEmpty || segment == '.' || segment == '..') ||
         storageKey.contains(r'\') ||
         storageKey.contains('\u0000') ||
         storageKey.contains(':') ||
         segments.first == '.pokemap' ||
+        (isCatalogNamespace && !isCatalogHead) ||
+        (isCatalogHead &&
+            (resource.kind != 'catalogHead' || resource.id != 'catalog')) ||
+        (resource.kind == 'catalogHead' && !isCatalogHead) ||
         !const {'logical', 'blob', 'metadata'}.contains(role) ||
         (role == 'metadata') !=
-            const {'project.json', 'assets/.pokemap-assets.json'}
-                .contains(storageKey) ||
+            const {
+              'project.json',
+              'assets/.pokemap-assets.json',
+              'catalog/HEAD.json'
+            }.contains(storageKey) ||
         (beforeRevision == null && afterRevision == null)) {
       throw ArgumentError('Invalid bulk inventory resource.');
     }
@@ -320,11 +353,27 @@ final class ResourcePackBulkAuthority {
       required String operationId,
       required String originEntryId,
       required ResourcePackBulkCapability origin,
-      required Iterable<ResourcePackBulkInventoryEntry> verifiedInventory}) {
+      required Iterable<ResourcePackBulkInventoryEntry> verifiedInventory,
+      CatalogRevertMergeAttestation? catalogRevert}) {
     if (origin.projectId != projectId ||
         !const {'history.undo', 'history.redo', 'history.revert'}
             .contains(plan.request.actionId)) {
       throw ArgumentError('Invalid bulk history origin.');
+    }
+    if (catalogRevert != null && !catalogRevert.verified) {
+      throw ArgumentError(
+          'A catalog merge must be verified before certification.');
+    }
+    if (catalogRevert != null) {
+      final heads = origin.inventory
+          .where((item) => item.storageKey == 'catalog/HEAD.json');
+      if (heads.length != 1 ||
+          heads.single.beforeRevision !=
+              catalogRevert.targetBeforeHeadRevision ||
+          heads.single.afterRevision != catalogRevert.targetAfterHeadRevision) {
+        throw ArgumentError(
+            'The catalog merge differs from its certified origin.');
+      }
     }
     final inventory = verifiedInventory.toList()
       ..sort((a, b) => a.storageKey.compareTo(b.storageKey));
@@ -337,6 +386,7 @@ final class ResourcePackBulkAuthority {
         actionId: plan.request.actionId,
         actionVersion: plan.request.actionVersion,
         originEntryId: originEntryId,
+        catalogRevert: catalogRevert,
         inventory: List.unmodifiable(inventory),
         logicalOutputLimit: origin.logicalOutputLimit,
         diffFingerprint: bulkDiffFingerprint(plan.changeSet.diff));

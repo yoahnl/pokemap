@@ -12,6 +12,88 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame transactional load', () {
+    test('loads an earlier save without instances after the running world gains one', () async {
+      final repository = _MemoryGameSaveRepository(null);
+      final earlierGame = _game(
+        repository: repository,
+        sourceState: _targetState(),
+        sourceBundle: _bundle(_targetMapId),
+      );
+      addTearDown(earlierGame.onRemove);
+      await _load(earlierGame);
+      expect(await earlierGame.saveGame(), isTrue);
+      final earlierSave = repository.storedState!;
+      expect(earlierSave.mapInstanceWorldState.instancesByMapId, isEmpty);
+
+      final running = _sourceState().copyWith(
+        mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+          _sourceMapId: MapInstanceRuntimeState(instanceId: 'source-instance'),
+        }),
+      );
+      final game = _game(
+        repository: repository,
+        sourceState: running,
+        runtimeMapBundleLoader: _targetLoader,
+      );
+      addTearDown(game.onRemove);
+      await _load(game);
+      expect(game.gameStateSnapshot.mapInstanceWorldState.instancesByMapId,
+          contains(_sourceMapId));
+
+      expect(await game.loadGame(), isTrue);
+      expect(game.gameStateSnapshot.currentMapId, _targetMapId);
+      expect(game.gameStateSnapshot.playerPosition, earlierSave.playerPosition);
+      expect(game.gameStateSnapshot.mapInstanceWorldState.instancesByMapId, isEmpty);
+      expect(repository.storedState, earlierSave);
+    });
+
+    test('rejects a save missing an instance required by the target map', () async {
+      final repository = _MemoryGameSaveRepository(_targetState());
+      final game = _game(
+        repository: repository,
+        runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async {
+          final target = _bundle(mapId);
+          return target.copyWith(manifest: target.manifest.copyWith(
+            settings: target.manifest.settings.copyWith(
+              mapInstanceRetentionPolicy: MapInstanceRetentionPolicy(
+                viewportWidthTiles: 5,
+                viewportHeightTiles: 5,
+                marginTiles: 0,
+              ),
+            ),
+          ));
+        },
+      );
+      addTearDown(game.onRemove);
+      await _load(game);
+      final before = game.gameStateSnapshot;
+
+      expect(await game.loadGame(), isFalse);
+      _expectSourceRuntimePreserved(game, before);
+      expect(repository.storedState, _targetState());
+      expect(repository.saveCount, 0);
+    });
+
+    test('validates saved instances when the running world has none', () async {
+      final saved = _targetState().copyWith(
+        mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+          _targetMapId: MapInstanceRuntimeState(instanceId: 'target-instance'),
+          'unknown-map': MapInstanceRuntimeState(instanceId: 'unknown-instance'),
+        }),
+      );
+      final repository = _MemoryGameSaveRepository(saved);
+      final game = _game(repository: repository, runtimeMapBundleLoader: _targetLoader);
+      addTearDown(game.onRemove);
+      await _load(game);
+      final before = game.gameStateSnapshot;
+      expect(before.mapInstanceWorldState.instancesByMapId, isEmpty);
+
+      expect(await game.loadGame(), isFalse);
+      _expectSourceRuntimePreserved(game, before);
+      expect(repository.storedState, saved);
+      expect(repository.saveCount, 0);
+    });
+
     for (final savedSolid in [false, true]) {
       test('presentation preflight uses saved solid=$savedSolid instead of running facts', () async {
         final saved = _targetState().copyWith(storyFlags: StoryFlags(activeFlags: savedSolid ? {'solid'} : {}));

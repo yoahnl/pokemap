@@ -13,11 +13,13 @@ final class RuntimePsdkBattleSessionAdapter {
     this._facade,
     this.opponentAi,
     this.ruleset,
-  );
+    Map<String, String> itemDisplayNames,
+  ) : _itemDisplayNames = Map.of(itemDisplayNames);
 
   factory RuntimePsdkBattleSessionAdapter.fromSetup(
     PsdkBattleSetup setup, {
     PsdkBattleAi opponentAi = const PsdkBattleAi(level: 2),
+    Map<String, String> itemDisplayNames = const {},
   }) {
     return RuntimePsdkBattleSessionAdapter._(
       BattleSessionFacade.fromPsdkSetup(
@@ -26,6 +28,7 @@ final class RuntimePsdkBattleSessionAdapter {
       ),
       opponentAi,
       setup.ruleset,
+      itemDisplayNames,
     );
   }
 
@@ -41,7 +44,7 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;
   PsdkBattleWeatherId? _lastTurnWeather;
-  final Map<String, String> _itemDisplayNames = <String, String>{};
+  final Map<String, String> _itemDisplayNames;
 
   BattlePublicState get state => _facade.state;
   BattleEngineDecisionRequest get decisionRequest => _facade.decisionRequest;
@@ -126,7 +129,7 @@ final class RuntimePsdkBattleSessionAdapter {
     required PsdkBattleItemActionEffect effect,
     required bool consumeItem,
   }) {
-    _itemDisplayNames[itemId] = displayName;
+    _itemDisplayNames.putIfAbsent(itemId, () => displayName);
     return submitDecision(
       BattleDecision.item(
         itemId: itemId,
@@ -306,11 +309,37 @@ final class RuntimePsdkBattleSessionAdapter {
               _itemDisplayNames[event.moveId!.substring('item:'.length)] ??
                   event.moveId!.substring('item:'.length),
           event: event,
-          targetPartyIndex:
-              decision is BattleItemDecision ? decision.targetPartyIndex : null,
+          targetPartyIndex: _itemTargetPartyIndex(
+            result,
+            itemId: event.moveId!.substring('item:'.length),
+            user: event.user!,
+            target: event.target,
+          ),
         );
         bagHpHealItemEvents.add(itemEvent);
         timeline.add(BattleTurnBagHpHealItemEvent(itemEvent));
+      } else if (event is BattleStatusCureTimelineEvent &&
+          event.moveId.startsWith('item:')) {
+        final itemId = event.moveId.substring('item:'.length);
+        final partyIndex = _itemTargetPartyIndex(
+          result,
+          itemId: itemId,
+          user: event.user,
+          target: event.target,
+        );
+        final target = partyIndex == null
+            ? result.state.psdkState.battlerAt(PsdkBattleSlotRef(
+                bank: event.target.bank,
+                position: event.target.position,
+              ))
+            : result.state.psdkState.partyForBank(event.target.bank)[partyIndex];
+        timeline.add(BattleTurnStatusCuredItemEvent(
+          side: _legacySideForPosition(event.user),
+          itemId: itemId,
+          displayName: _itemDisplayNames[itemId] ?? itemId,
+          targetSpeciesId: target.speciesId,
+          targetLineupIndex: _lineupIndexFromPsdkId(target.id),
+        ));
       } else if (event is BattleMovePpRestoredTimelineEvent) {
         final target = result.state.psdkState
             .partyForBank(event.target.bank)[event.partyIndex];
@@ -385,6 +414,25 @@ final class RuntimePsdkBattleSessionAdapter {
           List<BattleCaptureAttemptEvent>.unmodifiable(captureAttemptEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(timeline),
     );
+  }
+
+  int? _itemTargetPartyIndex(
+    BattleEngineTurnResult result, {
+    required String itemId,
+    required BattlePositionRef user,
+    required BattlePositionRef target,
+  }) {
+    for (final item
+        in result.timeline.events.whereType<BattleItemTimelineEvent>()) {
+      if (item.itemId == itemId &&
+          item.user.bank == user.bank &&
+          item.user.position == user.position &&
+          item.target?.bank == target.bank &&
+          item.target?.position == target.position) {
+        return item.partyIndex;
+      }
+    }
+    return null;
   }
 
   BattleAction _toLegacyOpponentAction(BattleEngineTurnResult result) {

@@ -131,6 +131,7 @@ final class SceneRuntimePlanIntent {
     this.trainerId,
     this.battleTemplateId,
     this.npcEntityId,
+    this.battleDefeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
     this.presentationCinematicId,
@@ -216,6 +217,7 @@ final class SceneRuntimePlanIntent {
     String? trainerId,
     String? battleTemplateId,
     String? npcEntityId,
+    SceneBattleDefeatRecovery defeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> declaredOutcomes = const <String>[],
   }) {
     return SceneRuntimePlanIntent._(
@@ -224,6 +226,7 @@ final class SceneRuntimePlanIntent {
       trainerId: trainerId,
       battleTemplateId: battleTemplateId,
       npcEntityId: npcEntityId,
+      battleDefeatRecovery: defeatRecovery,
       battleDeclaredOutcomes: declaredOutcomes,
     );
   }
@@ -295,6 +298,7 @@ final class SceneRuntimePlanIntent {
   final String? trainerId;
   final String? battleTemplateId;
   final String? npcEntityId;
+  final SceneBattleDefeatRecovery battleDefeatRecovery;
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
   final String? presentationCinematicId;
@@ -356,6 +360,7 @@ final class SceneRuntimePlanIntent {
           other.trainerId == trainerId &&
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
+          other.battleDefeatRecovery == battleDefeatRecovery &&
           _listEquals(other.battleDeclaredOutcomes, battleDeclaredOutcomes) &&
           other.cinematicId == cinematicId &&
           other.presentationCinematicId == presentationCinematicId &&
@@ -383,7 +388,7 @@ final class SceneRuntimePlanIntent {
         battleKind,
         trainerId,
         battleTemplateId,
-        npcEntityId,
+        Object.hash(npcEntityId, battleDefeatRecovery),
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
         Object.hash(

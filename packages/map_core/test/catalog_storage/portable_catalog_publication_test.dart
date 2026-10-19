@@ -7,6 +7,34 @@ import '../resource_pack_publication_test.dart'
     show presetFixture, modelFixture, borderFixture, guideFixture;
 
 void main() {
+  test('full project materialization reads each stored object once', () async {
+    final project = ProjectManifest(
+      name: 'Bulk catalogue',
+      maps: [],
+      tilesets: [],
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        families: [
+          for (var index = 0; index < 300; index++)
+            ResourceFamily(id: 'family-$index', name: 'Family $index'),
+        ],
+      ),
+    );
+    final built = PortableCatalogPublication.encodeProject(project);
+    final reads = <String, int>{};
+    final snapshot = await CatalogSnapshot.open(
+      root: built.storage.root,
+      readObject: (reference) async {
+        reads.update(reference.sha256, (count) => count + 1, ifAbsent: () => 1);
+        return built.storage.objects[reference.sha256]!;
+      },
+    );
+    final catalog = await PortableProjectCatalog.fromSnapshot(snapshot);
+    reads.clear();
+    expect((await catalog.exportProject()).toJson(), project.toJson());
+    expect(reads.values.every((count) => count == 1), isTrue);
+    expect(reads.length, built.storage.objects.length);
+  });
+
   test(
     'portable units reconstruct native order, supports, files and provenance',
     () {
@@ -978,7 +1006,11 @@ void main() {
               : value is List
               ? value.fold<int>(0, (sum, child) => sum + count(child))
               : 0);
-      final values = List.filled(1000000 - count(base.toJson()) - 1, 0);
+      final canonicalBase = {
+        ...base.toJson(),
+        'resourceLibraryCatalog': const ResourceLibraryCatalog.empty().toJson(),
+      };
+      final values = List.filled(1000000 - count(canonicalBase) - 1, 0);
       final project = base.copyWith(globalProperties: {'values': values});
       final built = PortableCatalogPublication.encodeProject(project);
       expect(

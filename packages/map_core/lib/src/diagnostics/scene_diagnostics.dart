@@ -49,6 +49,7 @@ enum SceneDiagnosticCode {
   conditionItemRefUnknown,
   conditionWorldRuleRefUnknown,
   conditionUnsupportedDimension,
+  battleRecoveryUnsupportedDimension,
   consequenceUnknownFact,
   consequenceFactTypeMismatch,
   consequenceUnknownEvent,
@@ -576,6 +577,18 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           }
         }
       case SceneBattlePayload():
+        if (payload.defeatRecovery == SceneBattleDefeatRecovery.returnToRecoveryPoint &&
+            project.settings.dimension != ProjectDimension.twoD) {
+          diagnostics.add(SceneDiagnostic(
+            code: SceneDiagnosticCode.battleRecoveryUnsupportedDimension,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'Le retour au point de soin après un combat scénarisé exige un projet 2D.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir de continuer la scène après la défaite.',
+          ));
+        }
         final isTrainer = payload.battleKind == 'trainer';
         final isStatic = payload.battleKind == 'static';
         if (payload.battleKind == 'wild') {

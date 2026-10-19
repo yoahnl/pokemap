@@ -9,6 +9,67 @@ import 'resource_pack_import_fixture.dart';
 import 'resource_pack_export_test.dart' as source;
 
 void main() {
+  test('individual descriptions survive native export import and reimport for all resource kinds', () async {
+    final mixed = source.mixedFixture();
+    final manifest = mixed.$1.copyWith(
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        families: mixed.$1.resourceLibraryCatalog.families,
+        entries: [
+          for (final entry in mixed.$1.resourceLibraryCatalog.entries)
+            ResourceLibraryEntry.fromJson({
+              ...entry.toJson(),
+              'description': 'Usage de ${entry.identity}.',
+              'role': entry.resourceKind == 'tileset'
+                  ? 'component'
+                  : entry.role.name,
+            }),
+        ],
+      ),
+    );
+    final fixture = await NativeResourcePackImportFixture.create(
+      sourceManifest: manifest,
+      sourceFiles: mixed.$2,
+    );
+    try {
+      final selection = await fixture.select();
+      final prepared = await fixture.prepare(selection: selection);
+      await fixture.apply(await fixture.plan(prepared));
+      final installed = (await fixture.loader.load(
+        fixture.opened.projectHandle,
+      )).manifest;
+      final archived = fixture
+          .source
+          .archive
+          .inspection
+          .catalog
+          .resourceLibraryCatalog
+          .entries;
+      expect(
+        archived.map((entry) => entry.resourceKind).toSet(),
+        ResourceLibraryCatalog.resourceKinds,
+      );
+      final descriptions = manifest.resourceLibraryCatalog.entries
+          .map((entry) => entry.description)
+          .toSet();
+      for (final entry in archived) {
+        expect(descriptions, contains(entry.description));
+        final target = installed.resourceLibraryCatalog.entries
+            .where(
+              (e) => e.toJson()['description'] == entry.toJson()['description'],
+            )
+            .single;
+        expect(target.toJson()['description'], entry.toJson()['description']);
+        expect(target.role, entry.role);
+        expect(target.placementContext, entry.placementContext);
+      }
+      expect(
+        (await fixture.prepare(selection: selection)).status.name,
+        'alreadyInstalled',
+      );
+    } finally {
+      await fixture.dispose();
+    }
+  });
   test('chosen pattern review counts its support closure and representative reasons', () async {
     final fixture = await ResourcePackImportFixture.create(roots: [], smartTilePatternIds: ['motif']);
     try {

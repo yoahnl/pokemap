@@ -6,6 +6,26 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('SceneBattleRuntimeOutcomeAdapter', () {
+    test('preserves the authored defeat recovery policy', () async {
+      final requests = <SceneBattleRuntimeBattleRequest>[];
+      final adapter = SceneBattleRuntimeOutcomeAdapter(
+        runtimeSourceId: 'scene:recovery',
+        defaultNpcEntityId: 'rival',
+        launcher: _Launcher((request) {
+          requests.add(request);
+          return const SceneBattleRuntimeOutcomeResult.completed(
+            port: SceneBattleRuntimeOutcomePort.defeat,
+          );
+        }),
+      );
+      await adapter.startBattle(SceneRuntimePlanIntent.startBattle(
+        battleKind: 'trainer',
+        trainerId: 'rival',
+        defeatRecovery: SceneBattleDefeatRecovery.returnToRecoveryPoint,
+      ));
+      expect(requests.single.defeatRecovery,
+          SceneBattleDefeatRecovery.returnToRecoveryPoint);
+    });
     test('maps runtime victory to Scene port victory', () async {
       final requests = <SceneBattleRuntimeBattleRequest>[];
       final adapter = SceneBattleRuntimeOutcomeAdapter(
@@ -151,7 +171,7 @@ void main() {
 
       final result = await adapter.startBattle(
         SceneRuntimePlanIntent.startBattle(
-          battleKind: 'wild',
+          battleKind: 'unsupported',
           trainerId: 'trainer_guard',
         ),
       );

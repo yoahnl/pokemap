@@ -7,8 +7,8 @@ List<ProjectSmartTilePattern> availableTerrainPatterns({
 }) {
   final patterns = project.smartTileCatalog.patterns.where((pattern) {
     if (pattern.usage != preset.usage ||
-        pattern.width > 8 ||
-        pattern.height > 8) {
+        pattern.construction == null && (pattern.width > 8 || pattern.height > 8) ||
+        pattern.construction != null && map.spatialScene != null) {
       return false;
     }
     if (map.spatialScene != null &&
@@ -30,7 +30,12 @@ List<ProjectSmartTilePattern> availableTerrainPatterns({
         return switch (part.source) {
           SmartTileModel3dSource(:final modelId, :final followTerrain) =>
             map.spatialScene != null &&
-                followTerrain &&
+                (followTerrain ||
+                    const {
+                          SmartTileRenderChannel.ground,
+                          SmartTileRenderChannel.understory,
+                          SmartTileRenderChannel.canopy,
+                        }.contains(part.channel)) &&
                 project.models3d.any((model) => model.id == modelId) &&
                 project.resourceLibraryCatalog.availableForMap(
                   'model3d',
@@ -54,11 +59,41 @@ List<ProjectSmartTilePattern> availableTerrainPatterns({
       }),
     );
   }).toList();
+  if (preset.categoryId.isNotEmpty && patterns.any(
+    (pattern) => pattern.construction != null && pattern.categoryId == preset.categoryId,
+  )) {
+    patterns.removeWhere((pattern) => pattern.categoryId != preset.categoryId);
+  }
   patterns.sort((left, right) {
     final order = left.sortOrder.compareTo(right.sortOrder);
     return order != 0 ? order : left.name.compareTo(right.name);
   });
   return patterns;
+}
+
+SmartTilePatternSelectionKind defaultTerrainPatternSelection(
+  ProjectSmartTilePattern pattern,
+) {
+  final construction = pattern.construction;
+  if (construction == null) return SmartTilePatternSelectionKind.stamp;
+  return construction.x == null || construction.y == null
+      ? SmartTilePatternSelectionKind.line
+      : SmartTilePatternSelectionKind.rectangle;
+}
+
+String terrainPatternConstructionHint(ProjectSmartTilePattern pattern) {
+  final construction = pattern.construction!;
+  String dimension(String label, int source, SmartTilePatternRepeatAxis? axis) {
+    if (axis == null) return '$label fixe : $source cases';
+    final minimum = axis.minimumLength(source);
+    final maximum = axis.maximumRepeats;
+    final limit = maximum == null
+        ? ''
+        : ', ${source - axis.repeatLength + maximum * axis.repeatLength} maximum';
+    return '$label : $minimum minimum$limit, par ${axis.repeatLength}';
+  }
+  return '${dimension('Largeur', pattern.width, construction.x)} · '
+      '${dimension('Hauteur', pattern.height, construction.y)}';
 }
 
 bool _frameAvailable(

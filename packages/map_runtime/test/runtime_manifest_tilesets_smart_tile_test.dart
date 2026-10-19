@@ -4,6 +4,62 @@ import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
   group('runtime manifest tileset collection', () {
+    test('does not load an authoring default with no rendered tile references', () {
+      const map = MapData(
+        id: 'unused-default', name: 'Unused default', tilesetId: 'large-authoring-atlas',
+        size: GridSize(width: 1, height: 1),
+        layers: [MapLayer.tile(id: 'empty', name: 'Empty', cells: [0])],
+      );
+      expect(collectTilesetIdsReferencedOnMap(map), isEmpty);
+    });
+
+    test('keeps the default atlas when a tile layer references it', () {
+      const map = MapData(
+        id: 'used-default', name: 'Used default', tilesetId: 'painted-atlas',
+        size: GridSize(width: 1, height: 1),
+        layers: [MapLayer.tile(id: 'paint', name: 'Paint', cells: [1],
+          palette: [TileLayerPaletteEntry(tilesetId: 'painted-atlas', localTileId: 0)])],
+      );
+      expect(collectTilesetIdsReferencedOnMap(map), {'painted-atlas'});
+    });
+
+    test('flat Paths load stamped atlases outside preset rules', () {
+      final manifest = ProjectManifest(
+        name: 'Flat paths', maps: [], tilesets: [],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: const [
+            ProjectSmartTileAtlas(id: 'base', name: 'Base', tilesetId: 'floor', columns: 1, rows: 1),
+            ProjectSmartTileAtlas(id: 'detail', name: 'Detail', tilesetId: 'floor-detail', columns: 1, rows: 1),
+            ProjectSmartTileAtlas(id: 'unused', name: 'Unused', tilesetId: 'unused-sheet', columns: 1, rows: 1),
+          ],
+          presets: const [ProjectSmartTilePreset(
+            id: 'path', name: 'Path', usage: SmartTileUsage.path,
+            topology: SmartTileTopology.uniform, coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+            transformPolicy: SmartTileTransformPolicy(), defaultMaterialId: 'stone', allowedMaterialIds: ['stone'],
+            rules: [SmartTileRule(id: 'base', centerMatch: SmartTileSlotMatch(kind: SmartTileMatchKind.material, materialId: 'stone'), candidates: [
+              SmartTileCandidate(id: 'base', parts: [SmartTileVisualPart(source: SmartTileVisualSource.frame(frame: SmartTileFrameRef(atlasId: 'base', column: 0, row: 0)))])
+            ])],
+          )],
+          patterns: const [ProjectSmartTilePattern(
+            id: 'detail', name: 'Detail', usage: SmartTileUsage.path, width: 1, height: 1,
+            cells: [SmartTilePatternCell(x: 0, y: 0, parts: [
+              SmartTileVisualPart(source: SmartTileVisualSource.frame(frame: SmartTileFrameRef(atlasId: 'detail', column: 0, row: 0)))
+            ])],
+          )],
+        ),
+      );
+      const map = MapData(
+        id: 'flat', name: 'Flat', version: ProjectVersion.v8,
+        size: GridSize(width: 1, height: 1),
+        layers: [MapLayer.smartTile(
+          id: 'path', name: 'Path', presetId: 'path', usage: SmartTileUsage.path,
+          field: SmartTileField.cell(semanticCells: [0]),
+          patternStrokes: [SmartTilePatternStroke(id: 'detail', patternId: 'detail', cells: [GridPos(x: 0, y: 0)])],
+        )],
+      );
+      expect(collectAllRuntimeTilesetIds(map, manifest), {'floor', 'floor-detail'});
+    });
     test('spatial cliffs close their texture without any painted layer', () {
       final project = ProjectManifest(name: 'Cliff', maps: [], tilesets: [],
         smartTileCatalog: ProjectSmartTileCatalog(atlases: const [
@@ -17,7 +73,7 @@ void main() {
       expect(collectAllRuntimeTilesetIds(map.copyWith(
         spatialScene: scene.copyWith(cliffFrame: null)), project), isEmpty);
     });
-    test('spatial maps close only referenced pattern frame and animation assets', () {
+    test('flat and spatial maps close only referenced pattern frame and animation assets', () {
       final manifest = ProjectManifest(name: 'Spatial patterns', maps: [], tilesets: [],
         smartTileCatalog: ProjectSmartTileCatalog(
           atlases: const [ProjectSmartTileAtlas(id: 'static', name: 'Static', tilesetId: 'pattern-static', columns: 1, rows: 1),
@@ -39,7 +95,7 @@ void main() {
           field: SmartTileField.cell(semanticCells: [0]), patternStrokes: [
             SmartTilePatternStroke(id: 'flowers', patternId: 'flowers', cells: [GridPos(x: 0, y: 0)])])]);
       expect(collectAllRuntimeTilesetIds(map, manifest), {'pattern-static', 'pattern-animated'});
-      expect(collectAllRuntimeTilesetIds(map.copyWith(version: ProjectVersion.v8, spatialScene: null), manifest), isEmpty);
+      expect(collectAllRuntimeTilesetIds(map.copyWith(version: ProjectVersion.v8, spatialScene: null), manifest), {'pattern-static', 'pattern-animated'});
     });
     test('collects visual-only object layer tilesets', () {
       const map = MapData(
@@ -240,7 +296,6 @@ void main() {
       );
 
       expect(collectAllRuntimeTilesetIds(map, manifest), {
-        'base-world',
         'smart-ground',
         'smart-foreground',
         'smart-animated',
@@ -337,7 +392,7 @@ void main() {
 
       expect(
         collectAllRuntimeTilesetIds(map, manifest).toList(growable: false),
-        <String>['base-world', 'prop-base', 'prop-override'],
+        <String>['prop-base', 'prop-override'],
       );
     });
 
@@ -422,7 +477,7 @@ void main() {
       final expectedAll = collectAllRuntimeTilesetIds(baseMap, manifest);
       final actualAll = collectAllRuntimeTilesetIds(withBorder, manifest);
       expect(actualAll, expectedAll);
-      expect(actualAll, <String>{'base-world', 'ground-tiles'});
+      expect(actualAll, <String>{'ground-tiles'});
       expect(actualAll, isNot(contains('border-snapshot-sha256:${'a' * 64}')));
       expect(
         actualAll,

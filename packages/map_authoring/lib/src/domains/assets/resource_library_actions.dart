@@ -10,6 +10,7 @@ final class ResourceLibraryActions {
   const ResourceLibraryActions();
 
   static const maximumClassificationsPerBatch = 100;
+  static const maximumFamiliesPerBatch = 50;
 
   static final _classificationSchema = {
     'type': 'object',
@@ -21,6 +22,13 @@ final class ResourceLibraryActions {
         'enum': ResourceLibraryCatalog.resourceKinds.toList()
       },
       'resourceId': {'type': 'string', 'minLength': 1},
+      'description': {
+        'type': ['string', 'null'],
+        'minLength': 1,
+        'maxLength': ResourceLibraryEntry.maximumDescriptionLength,
+        'description':
+            'Individual usage description; omitted preserves the previous value; null clears it. Text must be nonblank and trimmed.',
+      },
       'familyId': {
         'type': ['string', 'null'],
         'minLength': 1
@@ -46,6 +54,41 @@ final class ResourceLibraryActions {
   };
 
   static final descriptors = [
+    visualLibraryDescriptor('resource.family.apply_batch',
+        'Atomically create or update up to 50 shared resource families',
+        resourceKinds: const [
+          'project',
+          'resourceFamily'
+        ],
+        inputSchema: const {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['families'],
+          'properties': {
+            'families': {
+              'type': 'array',
+              'minItems': 1,
+              'maxItems': maximumFamiliesPerBatch,
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['operation', 'familyId', 'name'],
+                'properties': {
+                  'operation': {
+                    'type': 'string',
+                    'enum': ['create', 'update']
+                  },
+                  'familyId': {'type': 'string', 'minLength': 1},
+                  'name': {'type': 'string', 'minLength': 1},
+                  'parentId': {
+                    'type': ['string', 'null'],
+                    'minLength': 1
+                  },
+                },
+              },
+            },
+          },
+        }),
     for (final operation in ['create', 'update', 'delete'])
       visualLibraryDescriptor(
           'resource.family.$operation', 'Manage one shared resource family',
@@ -101,7 +144,63 @@ final class ResourceLibraryActions {
     final action = context.request.actionId;
     final ResourceLibraryCatalog next;
     try {
-      if (action == 'resource.classify') {
+      if (action == 'resource.family.apply_batch') {
+        parameters.allow(const {'families'});
+        final entries = values['families'];
+        if (entries is! List ||
+            entries.isEmpty ||
+            entries.length > maximumFamiliesPerBatch) {
+          throw VisualLibraryException('resource_library.family_batch_invalid',
+              'A family batch needs between 1 and 50 create or update operations.');
+        }
+        final families = {
+          for (final family in catalog.families) family.id: family
+        };
+        final identities = <String>{};
+        for (final value in entries) {
+          if (value is! Map || value.keys.any((key) => key is! String)) {
+            throw VisualLibraryException(
+                'resource_library.family_batch_invalid',
+                'Each family operation must be an object.');
+          }
+          final entry = Map<String, Object?>.from(value);
+          final fields = VisualLibraryParameters(entry)
+            ..allow(const {'operation', 'familyId', 'name', 'parentId'});
+          final operation = fields.string('operation');
+          if (operation != 'create' && operation != 'update') {
+            throw VisualLibraryException(
+                'resource_library.family_batch_invalid',
+                'Only create and update family operations are supported.');
+          }
+          final id = fields.string('familyId');
+          if (!identities.add(id)) {
+            throw VisualLibraryException(
+                'resource_library.family_batch_duplicate',
+                'Each family identity can occur only once in a batch.');
+          }
+          if (ResourceLibraryCatalog.predefinedFamilies
+              .any((family) => family.id == id)) {
+            throw VisualLibraryException('resource_library.predefined_family',
+                'Predefined resource families cannot be changed.');
+          }
+          final previous = families[id];
+          if (operation == 'create' && previous != null ||
+              operation == 'update' && previous == null) {
+            throw VisualLibraryException(
+                'resource_library.family_unknown_or_duplicate',
+                'The resource family identity is unavailable.');
+          }
+          families.remove(id);
+          families[id] = ResourceFamily(
+              id: id,
+              name: fields.string('name'),
+              parentId: entry.containsKey('parentId')
+                  ? _nullableIdentifier(entry['parentId'])
+                  : previous?.parentId);
+        }
+        next = ResourceLibraryCatalog(
+            families: families.values, entries: catalog.entries);
+      } else if (action == 'resource.classify') {
         next = _classify(project, catalog, values);
       } else if (action == 'resource.classify_batch') {
         parameters.allow(const {'entries'});
@@ -206,6 +305,7 @@ ResourceLibraryCatalog _classify(ProjectManifest project,
     'mapId',
     'role',
     'placementContext',
+    'description',
   });
   final kind = parameters.string('resourceKind');
   final id = parameters.string('resourceId');
@@ -217,6 +317,11 @@ ResourceLibraryCatalog _classify(ProjectManifest project,
   final entry = ResourceLibraryEntry(
     resourceKind: kind,
     resourceId: id,
+    description: values.containsKey('description')
+        ? values['description'] == null
+            ? null
+            : parameters.string('description')
+        : previous?.description,
     familyId: values.containsKey('familyId')
         ? _nullableIdentifier(values['familyId'])
         : previous?.familyId,
@@ -239,7 +344,8 @@ ResourceLibraryCatalog _classify(ProjectManifest project,
     if (entry.familyId != null ||
         entry.mapId != null ||
         entry.role != ResourceLibraryRole.standard ||
-        entry.placementContext != null)
+        entry.placementContext != null ||
+        entry.description != null)
       entry,
   ]);
 }

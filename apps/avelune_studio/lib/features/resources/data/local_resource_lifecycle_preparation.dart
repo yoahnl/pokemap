@@ -26,6 +26,8 @@ final class _ResourcePreparedContext {
     required this.artifacts,
     required this.plan,
     required this.manifest,
+    this.projectedProject,
+    this.projectedRevision,
     this.artifactHandle,
     this.beforeBytes,
   });
@@ -36,6 +38,8 @@ final class _ResourcePreparedContext {
   final LocalArtifactStore artifacts;
   final AuthoringPlan plan;
   final ProjectManifest manifest;
+  final ProjectManifest? projectedProject;
+  final String? projectedRevision;
   final String? artifactHandle;
   final Uint8List? beforeBytes;
   bool closed = false;
@@ -95,8 +99,7 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
     adapter._requireAvailable();
     if ((expectedSnapshotRevision != null &&
             snapshot.revision != expectedSnapshotRevision) ||
-        narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
-            before.revision) {
+        studioProjectSnapshotRevision(snapshot) != before.revision) {
       throw const ResourceFailure(
         'Le projet a changé depuis l’ouverture. Votre saisie est conservée.',
       );
@@ -135,7 +138,9 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
         assetBlobResourceIdentity(records.single.artifact.digest),
       );
       if (originalBytes == null) {
-        throw const ResourceFailure('La source de cette planche est indisponible.');
+        throw const ResourceFailure(
+          'La source de cette planche est indisponible.',
+        );
       }
       beforeBytes = Uint8List.fromList(originalBytes);
     }
@@ -190,6 +195,10 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
       artifacts: artifacts,
       plan: planned.plan,
       manifest: before.manifest,
+      projectedProject: planned.projectedProject,
+      projectedRevision: snapshot.materializedCatalogProject
+          ? studioProjectPlanRevision(snapshot, planned.plan)
+          : null,
       artifactHandle: artifactHandle,
       beforeBytes: beforeBytes,
     );

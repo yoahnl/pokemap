@@ -80,6 +80,7 @@ void main() {
       );
 
       expect(layer.activeFxCount, equals(1));
+      expect(layer.liveImages.single, same(await cache.loadImage('fireball')));
 
       layer.updateTree(0.10);
       expect(layer.activeFxCount, equals(1));

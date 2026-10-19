@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:math';
 
 import '../ports/project_file_reader.dart';
+import 'catalog_project_materialization.dart';
 
 typedef WorkspaceClock = DateTime Function();
 typedef WorkspaceTokenFactory = String Function(String prefix);
@@ -98,12 +99,16 @@ final class ProjectWorkspaceAccess {
     ProjectResourceIdentityLookup? readIdentity,
     ProjectDirectoryLister? listFiles,
     ProjectResourceProbeLookup? probeResource,
+    ProjectCatalogMaterializer? materializeCatalogProject,
+    Future<void> Function()? requireReadableProject,
     required this.canReuseSnapshots,
   })  : _readBytes = readBytes,
         _openRead = openRead,
         _readIdentity = readIdentity,
         _listFiles = listFiles,
-        _probeResource = probeResource;
+        _probeResource = probeResource,
+        _materializeCatalogProject = materializeCatalogProject,
+        _requireReadableProject = requireReadableProject;
 
   final ProjectHandle projectHandle;
   final String projectName;
@@ -124,6 +129,15 @@ final class ProjectWorkspaceAccess {
   final ProjectResourceIdentityLookup? _readIdentity;
   final ProjectDirectoryLister? _listFiles;
   final ProjectResourceProbeLookup? _probeResource;
+  final ProjectCatalogMaterializer? _materializeCatalogProject;
+  final Future<void> Function()? _requireReadableProject;
+  Future<void> requireReadableProject() async =>
+      await _requireReadableProject?.call();
+  bool get hasCatalogMaterializer => _materializeCatalogProject != null;
+
+  Future<ProjectCatalogMaterialization?> materializeCatalogProject(
+          List<int> descriptorBytes) async =>
+      await _materializeCatalogProject?.call(descriptorBytes);
 
   Future<List<String>?> listFiles(String relativeDirectory) async =>
       await _listFiles?.call(relativeDirectory);
@@ -202,6 +216,8 @@ final class WorkspaceHandleStore {
     ProjectResourceIdentityLookup? readIdentity,
     ProjectDirectoryLister? listFiles,
     ProjectResourceProbeLookup? probeResource,
+    ProjectCatalogMaterializer? materializeCatalogProject,
+    Future<void> Function()? requireReadableProject,
     bool canReuseSnapshots = false,
   }) {
     if (canReuseSnapshots && readIdentity == null) {
@@ -223,6 +239,8 @@ final class WorkspaceHandleStore {
       readIdentity: readIdentity,
       listFiles: listFiles,
       probeResource: probeResource,
+      materializeCatalogProject: materializeCatalogProject,
+      requireReadableProject: requireReadableProject,
       canReuseSnapshots: canReuseSnapshots,
     );
     return RegisteredProjectHandles(
@@ -254,6 +272,12 @@ final class WorkspaceHandleStore {
           ? null
           : (relativePath) => _probeResourceForHandle(handle, relativePath),
       canReuseSnapshots: stored.canReuseSnapshots,
+      requireReadableProject: stored.requireReadableProject == null
+          ? null
+          : () => _requireReadableForHandle(handle),
+      materializeCatalogProject: stored.materializeCatalogProject == null
+          ? null
+          : (bytes) => _materializeCatalogForHandle(handle, bytes),
     );
   }
 
@@ -325,6 +349,23 @@ final class WorkspaceHandleStore {
     return bytes;
   }
 
+  Future<void> _requireReadableForHandle(ProjectHandle handle) async {
+    final stored = _requireActive(handle);
+    await stored.requireReadableProject?.call();
+    _requireActive(handle);
+  }
+
+  Future<ProjectCatalogMaterialization> _materializeCatalogForHandle(
+    ProjectHandle handle,
+    List<int> descriptorBytes,
+  ) async {
+    final stored = _requireActive(handle);
+    final materialized =
+        await stored.materializeCatalogProject!(descriptorBytes);
+    _requireActive(handle);
+    return materialized;
+  }
+
   Future<ProjectResourceIdentity?> _readIdentityForHandle(
     ProjectHandle handle,
     String relativePath,
@@ -390,6 +431,8 @@ final class _StoredProjectAccess {
     this.readIdentity,
     this.listFiles,
     this.probeResource,
+    this.materializeCatalogProject,
+    this.requireReadableProject,
     required this.canReuseSnapshots,
   });
 
@@ -402,6 +445,8 @@ final class _StoredProjectAccess {
   final ProjectResourceIdentityLookup? readIdentity;
   final ProjectDirectoryLister? listFiles;
   final ProjectResourceProbeLookup? probeResource;
+  final ProjectCatalogMaterializer? materializeCatalogProject;
+  final Future<void> Function()? requireReadableProject;
   final bool canReuseSnapshots;
 }
 

@@ -328,6 +328,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                       actorFrames: (dt) =>
                           frames(dt, renderedOrigin, renderedMaps, renderedMapId),
                       modelRuntimeState: widget.session.modelRuntimeState,
+                      rasterAnimationElapsedMsForCell:
+                          widget.session.rasterAnimationElapsedMsForCell,
                       presentationPaused: () =>
                           widget.session.presentationPaused,
                       cameraPose: () {

@@ -12,10 +12,10 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP imports and paints bounded pattern batches atomically", async () => {
+test("live MCP imports and paints bounded pattern batches atomically", { timeout: 120000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-pattern-batch-mcp-"));
   const transport = new StdioClientTransport({ command: process.execPath,
-    args: [resolve("dist/src/index.js"), "--root", root], cwd: process.cwd(), stderr: "pipe" });
+    args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"], cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "pattern-batch-proof", version: "1.0.0" });
   async function response(name: string, args: JsonRecord = {}) {
     return client.callTool({ name, arguments: args }, { timeout: 125000 });

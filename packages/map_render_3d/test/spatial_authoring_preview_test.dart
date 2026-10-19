@@ -7,7 +7,7 @@ import 'package:flame/game.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart' hide Matrix4;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_cell_overlay.dart';
 import 'package:map_render_3d/src/spatial_model_placement_preview.dart';
@@ -238,9 +238,9 @@ void main() {
       );
       final component = renderer.component!;
       expect(component.model, same(original));
-      expect(component.position.x, closeTo(15.75, .000001));
+      expect(component.position.x, closeTo(14.75, .000001));
       expect(component.position.y, 2);
-      expect(component.position.z, closeTo(1.75, .000001));
+      expect(component.position.z, closeTo(3.75, .000001));
       expect(component.scale, Vector3.all(1));
       expect(component.children, hasLength(12));
       expect(
@@ -251,6 +251,42 @@ void main() {
       );
     },
   );
+
+  test('rotated scaled previews keep their authored pivot at the anchor', () async {
+    final renderer = SpatialPlacementPreviewRenderer(
+      World3D(),
+      loadModel: (_) async => model(),
+    );
+    addTearDown(renderer.dispose);
+    final entry = definition('chair', scale: 1.5).copyWith(
+      pivot: Model3dVector3(x: .3, y: .2, z: -.15),
+    );
+    for (final angle in [-90.0, 0.0, 37.0, 90.0, 180.0, 270.0]) {
+      for (final scale in [.5, 2.0]) {
+        await renderer.sync(
+          preview: SpatialModelPlacementPreview(
+            modelId: entry.id,
+            position: Model3dVector3(x: 7.25, y: 2.5, z: -3.75),
+            rotationDegrees: angle,
+            scale: scale,
+          ),
+          models: [entry],
+          color: previewColor,
+          offset: const Offset(10, -4),
+        );
+        final component = renderer.component!;
+        final matrix = Matrix4.compose(
+          component.position,
+          component.rotation,
+          component.scale,
+        );
+        final pivot = matrix.transform3(Vector3(.3, .2, -.15));
+        expect(pivot.x, closeTo(17.25, .00001), reason: '$angle / $scale');
+        expect(pivot.y, closeTo(2.5, .00001), reason: '$angle / $scale');
+        expect(pivot.z, closeTo(-7.75, .00001), reason: '$angle / $scale');
+      }
+    }
+  });
 
   test('moving a loaded ghost reuses its component and parsed model', () async {
     var loads = 0;

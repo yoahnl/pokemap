@@ -1,11 +1,17 @@
 part of 'local_map_workspace_adapter.dart';
 
 class _ProjectDocument {
-  const _ProjectDocument(this.root, this.manifest, this.revision);
+  const _ProjectDocument(
+    this.root,
+    this.manifest,
+    this.revision, {
+    this.complete = true,
+  });
 
   final String root;
   final ProjectManifest manifest;
   final String revision;
+  final bool complete;
 }
 
 extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
@@ -117,6 +123,24 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     ProjectSession session,
     _ProjectDocument project,
   ) async {
+    if (session.storage != ProjectSessionStorage.manifest) {
+      final refreshed = await _readCatalogProject(session);
+      if (jsonEncode(refreshed.manifest.maps) !=
+          jsonEncode(project.manifest.maps)) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le catalogue des cartes a changé. Rouvrez le projet ; vos brouillons restent ouverts.',
+        );
+      }
+      if (!identical(_project(session), project)) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'La session du projet a changé pendant la lecture.',
+        );
+      }
+      _projects[session.sessionId] = refreshed;
+      return refreshed;
+    }
     final bytes = await _reader.readBytes(
       projectRoot: session.directoryPath,
       relativePath: 'project.json',

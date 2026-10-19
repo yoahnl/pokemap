@@ -191,6 +191,55 @@ void main() {
       );
     });
 
+    for (final compensate in [false, true]) {
+      test(
+          'completed recovery stays reconciled after later resource edits '
+          '(compensate: $compensate)', () async {
+        final harness = await _crashAfterFirstPromotion();
+        addTearDown(harness.dispose);
+        final recovery = await harness.reopenRecovery();
+        final receipt = compensate
+            ? await recovery.compensate(harness.operationId)
+            : await recovery.resume(harness.operationId);
+        final journalBefore = (await harness.readJournal())!.toJson();
+        final ledgerBefore = await File(harness.ledgerPath).readAsBytes();
+        final later = utf8.encode('{"id":"a","value":2}');
+        await harness.writeExternalA(later);
+
+        final reopened = await harness.reopenRecovery();
+        expect(
+          (await reopened.inspect()).single.disposition,
+          AuthoringRecoveryDisposition.completed,
+        );
+        expect((await reopened.resume(harness.operationId)).toJson(),
+            receipt.toJson());
+        expect(await harness.readA(), later);
+        expect((await harness.readJournal())!.toJson(), journalBefore);
+        expect(await File(harness.ledgerPath).readAsBytes(), ledgerBefore);
+      });
+    }
+
+    test('completed recovery rejects a conflicting final receipt', () async {
+      final harness = await _crashAfterFirstPromotion();
+      addTearDown(harness.dispose);
+      final recovery = await harness.reopenRecovery();
+      final receipt = await recovery.resume(harness.operationId);
+      final journal = (await harness.readJournal())!;
+      final conflicting = AuthoringReceipt.fromJson({
+        ...receipt.toJson(),
+        'createdAtUtc':
+            harness.now.add(const Duration(seconds: 1)).toIso8601String(),
+      });
+      await harness.gateway.writeJournal(
+        journal.copyWith(finalReceipt: conflicting),
+      );
+
+      expect(
+        (await recovery.inspect()).single.disposition,
+        AuthoringRecoveryDisposition.blocked,
+      );
+    });
+
     test('unreserved preparation can be discarded only while targets match',
         () async {
       var crashed = false;

@@ -51,6 +51,18 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (entry.value == 'instance' || entry.value == 'instances')
+            'model3dClip': {
+              'field': 'clip',
+              'capability': SpatialModelClipCapabilities.capabilityId,
+              'coordinates': ['left', 'top', 'right', 'bottom'],
+              'units': 'cells_relative_to_instance_pivot_before_rotation',
+              'sourceAdmission': 'inspected_static_glb_without_node_or_material_animations',
+              'blocksMovement': false,
+              'animationIndex': null,
+              'attachedRamp': 'unsupported',
+              'mapBoundsReference': 'rotated_clip_center',
+            },
           if (entry.value == 'instances' || entry.value == 'instanceIds') ...{
             'maximumInstanceCount': maximumInstancesPerBatch,
             'batchAtomicity': 'all_or_nothing',
@@ -205,13 +217,14 @@ MapData _upsertInstance(SemanticMapActionContext context) {
     'animationLoop',
     'animationSpeed',
     'blocksMovement',
+    'clip',
   }));
   _requireAuthoredInstance(context.map, instance.id,
       allowManualEnvironment: true);
-  return const SpatialMapOperations().upsertInstance(context.map, instance,
-      model: context.manifest.models3d
-          .where((model) => model.id == instance.modelId)
-          .firstOrNull);
+  final model = context.manifest.models3d
+      .where((model) => model.id == instance.modelId).firstOrNull;
+  _requireStaticClip(instance, model);
+  return const SpatialMapOperations().upsertInstance(context.map, instance, model: model);
 }
 
 MapData _configureNavigation(SemanticMapActionContext context) {
@@ -354,6 +367,7 @@ MapData _upsertInstances(SemanticMapActionContext context) {
       'animationLoop',
       'animationSpeed',
       'blocksMovement',
+      'clip',
     }));
     _requireAuthoredInstance(context.map, instance.id,
         allowManualEnvironment: true);
@@ -379,10 +393,28 @@ MapData _upsertInstances(SemanticMapActionContext context) {
             'animationIndex': instance.animationIndex
           });
     }
+    _requireStaticClip(instance, model);
     instances.add(instance);
   }
   return const SpatialMapOperations().upsertInstances(context.map, instances,
       models: context.manifest.models3d);
+}
+
+void _requireStaticClip(SpatialModelInstance instance, ProjectModel3dEntry? model) {
+  if (instance.clip == null) return;
+  if (model == null) {
+    throw semanticFailure('map3d.instance.model_not_found',
+        'A clipped instance requires an existing model.', details: {'modelId': instance.modelId});
+  }
+  if (model.inspection.animations.isNotEmpty) {
+    throw semanticFailure('map3d.instance.clip_animated_model',
+        'Clipped instances require a static GLB without node or material animations.',
+        details: {'modelId': model.id, 'instanceId': instance.id});
+  }
+  if (model.rampProfile != null) {
+    throw semanticFailure('map3d.instance.clip_ramp_model',
+        'Clipped instances cannot use an attached ramp profile.', details: {'modelId': model.id});
+  }
 }
 
 int _changedInstances(MapSpatialScene before, MapSpatialScene after) {
@@ -492,13 +524,13 @@ Map<String, Object?> _schema(String field) => switch (field) {
                     'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
                   },
                   'lowLevel': {
-                    'type': 'integer',
+                    'type': 'number',
                     'minimum': 0,
-                    'maximum': MapSpatialScene.maximumTerrainLevel - 1
+                    'exclusiveMaximum': MapSpatialScene.maximumTerrainLevel
                   },
                   'highLevel': {
-                    'type': 'integer',
-                    'minimum': 1,
+                    'type': 'number',
+                    'exclusiveMinimum': 0,
                     'maximum': MapSpatialScene.maximumTerrainLevel
                   },
                   'direction': {
@@ -578,7 +610,14 @@ Map<String, Object?> _schema(String field) => switch (field) {
               'exclusiveMinimum': 0,
               'maximum': 16
             },
-            'blocksMovement': {'type': 'boolean'}
+            'blocksMovement': {'type': 'boolean'},
+            'clip': {
+              'type': ['object', 'null'],
+              'additionalProperties': false,
+              'required': ['left', 'top', 'right', 'bottom'],
+              'properties': {for (final coordinate in ['left', 'top', 'right', 'bottom'])
+                coordinate: {'type': 'number'}}
+            }
           }
         },
       _ => {

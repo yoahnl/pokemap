@@ -56,8 +56,12 @@ MapData _addManualPlacement(
           id: placementId,
           modelId: modelId,
           position: position,
-          blocksMovement: paletteItem.collisionMode !=
-              EnvironmentCollisionMode.forceDisabled),
+          blocksMovement: switch (paletteItem.collisionMode) {
+            EnvironmentCollisionMode.useElementDefault =>
+              target.models[modelId]!.blocksMovementByDefault,
+            EnvironmentCollisionMode.forceEnabled => true,
+            EnvironmentCollisionMode.forceDisabled => false,
+          }),
     ]));
   }
   final element = target.elements[elementId]!;

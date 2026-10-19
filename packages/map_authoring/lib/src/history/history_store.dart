@@ -1,3 +1,5 @@
+import '../catalog_storage/catalog_revert_merge.dart';
+import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
@@ -67,11 +69,14 @@ final class AuthoringHistoryRecorder
   const AuthoringHistoryRecorder({
     required AuthoringHistoryStore store,
     required AuthoringContentBlobStore blobs,
+    CatalogStorageStore? catalogStore,
   })  : _store = store,
-        _blobs = blobs;
+        _blobs = blobs,
+        _catalogStore = catalogStore;
 
   final AuthoringHistoryStore _store;
   final AuthoringContentBlobStore _blobs;
+  final CatalogStorageStore? _catalogStore;
 
   @override
   Future<void> record(AuthoringCommittedMutation mutation) async {
@@ -110,6 +115,10 @@ final class AuthoringHistoryRecorder
         committedAt: DateTime.parse(mutation.receipt.createdAtUtc).toUtc(),
         changes: retained,
         bulkCapability: mutation.bulkCapability,
+        nonUndoableReason:
+            mutation.receipt.actionId == 'project.catalog.partition'
+                ? 'catalog.partition_not_undoable'
+                : null,
       ),
     );
   }
@@ -129,11 +138,19 @@ final class AuthoringHistoryRecorder
       throw const AuthoringHistoryException('history.bulk_origin_invalid',
           'The canonical bulk origin is unavailable.');
     }
+    final attestation = capability.catalogRevert;
+    if (attestation != null && _catalogStore == null) {
+      throw const AuthoringHistoryException('history.bulk_origin_invalid',
+          'Catalog merge recovery requires the canonical catalog store.');
+    }
+    final verified =
+        attestation == null ? null : await attestation.reverify(_catalogStore!);
     verifyBulkHistoryMutation(
         origin: origin,
         actionId: capability.actionId,
         inventory: capability.inventory,
-        diff: intendedReceipt.diff);
+        diff: intendedReceipt.diff,
+        catalogRevert: verified);
   }
 
   @override
@@ -164,7 +181,8 @@ Future<void> bindCanonicalBulkHistoryPlan(
     required AuthoringPlan plan,
     required String actorId,
     required String projectId,
-    required String operationId}) async {
+    required String operationId,
+    CatalogRevertMergeAttestation? catalogRevert}) async {
   final context =
       AuthoringHistoryContext.fromExtensions(plan.request.extensions);
   if (context.targetEntryId == null) return;
@@ -181,7 +199,8 @@ Future<void> bindCanonicalBulkHistoryPlan(
       origin: origin,
       actionId: plan.request.actionId,
       inventory: inventory,
-      diff: plan.changeSet.diff);
+      diff: plan.changeSet.diff,
+      catalogRevert: catalogRevert);
   plan.bindBulkCapability(ResourcePackBulkAuthority.certifyHistory(
       plan: plan,
       actorId: actorId,
@@ -189,14 +208,16 @@ Future<void> bindCanonicalBulkHistoryPlan(
       operationId: operationId,
       originEntryId: origin.entryId,
       origin: certificate,
-      verifiedInventory: inventory));
+      verifiedInventory: inventory,
+      catalogRevert: catalogRevert));
 }
 
 void verifyBulkHistoryMutation(
     {required AuthoringHistoryEntry origin,
     required String actionId,
     required Iterable<ResourcePackBulkInventoryEntry> inventory,
-    required AuthoringDiff diff}) {
+    required AuthoringDiff diff,
+    CatalogRevertMergeAttestation? catalogRevert}) {
   final certificate = origin.bulkCapability;
   final actual = inventory.toList();
   if (certificate == null ||
@@ -204,6 +225,19 @@ void verifyBulkHistoryMutation(
           .contains(actionId)) {
     throw const AuthoringHistoryException('history.bulk_origin_invalid',
         'The bulk history origin is not certified.');
+  }
+  final sourceHead = origin.changes
+      .where(
+          (change) => change.storageKey == CatalogStorageStore.headStorageKey)
+      .firstOrNull;
+  if (catalogRevert != null &&
+      (!catalogRevert.verified ||
+          actionId != 'history.revert' ||
+          sourceHead == null ||
+          sourceHead.beforeRevision != catalogRevert.targetBeforeHeadRevision ||
+          sourceHead.afterRevision != catalogRevert.targetAfterHeadRevision)) {
+    throw const AuthoringHistoryException('history.bulk_origin_invalid',
+        'The catalog merge is not bound to its canonical history origin.');
   }
   final byStorage = {
     for (final change in origin.changes) change.storageKey: change
@@ -219,9 +253,13 @@ void verifyBulkHistoryMutation(
         (actionId == 'history.undo'
             ? item.beforeRevision != source.afterRevision ||
                 item.afterRevision != source.beforeRevision
-            : item.afterRevision != source.afterRevision ||
-                (actionId == 'history.redo' &&
-                    item.beforeRevision != source.beforeRevision))) {
+            : item.storageKey == CatalogStorageStore.headStorageKey &&
+                    catalogRevert != null
+                ? item.beforeRevision != catalogRevert.currentHeadRevision ||
+                    item.afterRevision != catalogRevert.resultHeadRevision
+                : item.afterRevision != source.afterRevision ||
+                    (actionId == 'history.redo' &&
+                        item.beforeRevision != source.beforeRevision))) {
       throw const AuthoringHistoryException('history.bulk_origin_invalid',
           'The history mutation differs from its canonical origin.');
     }

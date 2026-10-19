@@ -73,7 +73,36 @@ final class AuthoringPlan {
     _bulkCapability = capability;
   }
 
-  final AuthoringPayloadOwner _payloadOwner;
+  AuthoringPayloadOwner _payloadOwner;
+  bool _reframed = false;
+
+  AuthoringPlan reframeChangeSet(
+      {required AuthoringChangeSet changeSet,
+      AuthoringRequest? request,
+      String? baseRevision}) {
+    if (_reframed || appliedPayloadReleased) {
+      throw StateError(
+          'The plan payload ownership has already been transferred or released.');
+    }
+    final next = AuthoringPlan(
+        planId: planId,
+        receiptId: receiptId,
+        request: request ?? this.request,
+        baseRevision: baseRevision ?? this.baseRevision,
+        seed: seed,
+        createdAt: createdAt,
+        expiresAt: expiresAt,
+        changeSet: changeSet,
+        payloadOwner: _payloadOwner,
+        preview: preview,
+        referenceImpact: referenceImpact,
+        artifacts: artifacts);
+    _payloadOwner = AuthoringPayloadOwner();
+    _changeSet = null;
+    _reframed = true;
+    return next;
+  }
+
   var _payloadCleanupFailed = false;
   bool get payloadCleanupFailed => _payloadCleanupFailed;
   Future<void> releasePayloads() async {
@@ -106,12 +135,14 @@ final class AuthoringPlan {
   final String projectedRevision;
   bool get appliedPayloadReleased => _changeSet == null;
   bool get applicable =>
-      !request.dryRun && (_changeSet?.changes.isNotEmpty ?? true);
-  String? get nonApplicableReason => request.dryRun
-      ? 'dry_run'
-      : (_changeSet?.changes.isEmpty ?? false)
-          ? 'no_changes'
-          : null;
+      !_reframed && !request.dryRun && (_changeSet?.changes.isNotEmpty ?? true);
+  String? get nonApplicableReason => _reframed
+      ? 'ownership_transferred'
+      : request.dryRun
+          ? 'dry_run'
+          : (_changeSet?.changes.isEmpty ?? false)
+              ? 'no_changes'
+              : null;
 
   Future<void> releaseAppliedPayload() {
     final release = releasePayloads();

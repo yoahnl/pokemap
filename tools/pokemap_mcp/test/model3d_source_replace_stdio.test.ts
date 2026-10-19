@@ -93,6 +93,9 @@ test("live MCP replaces an inspected model source and restores it without changi
     const configureSchema = record(record(configureDescriptor.extensions).inputSchema);
     const collisionSchema = record(record(configureSchema.properties).collisionBounds);
     assert.deepEqual(collisionSchema.type, ["object", "null"]);
+    assert.equal(record(record(configureSchema.properties).blocksMovementByDefault).type, "boolean");
+    const modelKind = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "model3d")!;
+    assert.equal(record(record(modelKind.extensions).blocksMovementByDefault).default, true);
     const request = { name: "Model replacement", folderName: "models", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
     const preview = await call("pokemap_project_create_preview", { request });
@@ -126,8 +129,24 @@ test("live MCP replaces an inspected model source and restores it without changi
     await apply(await plan("model3d.import", { modelId: "tree", name: "Arbre",
       artifactHandle: await stage(afterBytes) }));
     const collisionBounds = { min: { x: .1, y: 0, z: .1 }, max: { x: .4, y: 1, z: .4 } };
+    for (const invalid of [null, 0, "false", {}]) {
+      await plan("model3d.configure", { modelId: "house", blocksMovementByDefault: invalid }, true);
+    }
     await apply(await plan("model3d.configure", { modelId: "house", name: "Maison gardée",
-      scale: 2.5, pivot: { x: 1, y: 2, z: -3 }, collisionBounds }));
+      scale: 2.5, pivot: { x: 1, y: 2, z: -3 }, collisionBounds, blocksMovementByDefault: false }));
+    for (const unchanged of [
+      { modelId: "tree", blocksMovementByDefault: true },
+      { modelId: "house", blocksMovementByDefault: false },
+      { modelId: "house", name: "Maison gardée", scale: 2.5,
+        pivot: { x: 1, y: 2, z: -3 }, collisionBounds, blocksMovementByDefault: false },
+    ]) {
+      const noOp = await plan("model3d.configure", unchanged);
+      assert.equal(noOp.applicable, false);
+      assert.equal(noOp.nonApplicableReason, "no_changes");
+      const projected = record(noOp.plan);
+      assert.equal(record(projected.preview).noOp, true);
+      assert.deepEqual(record(projected.changeSet).changes, []);
+    }
     const manifestPath = join(projectRoot, "project.json");
     const initialManifest = record(JSON.parse((await readFile(manifestPath)).toString()));
     const mapId = String(record((initialManifest.maps as JsonRecord[])[0]).id);
@@ -242,7 +261,7 @@ test("live MCP replaces an inspected model source and restores it without changi
     const queried = await call("pokemap_query", { projectHandle,
       resourceKind: "model3d", operation: "get", ids: ["house"], view: "detail" });
     const after = record((queried.items as JsonRecord[])[0]);
-    for (const key of ["id", "name", "scale", "pivot", "collisionBounds", "sourceAssetId", "relativePath"]) {
+    for (const key of ["id", "name", "scale", "pivot", "collisionBounds", "blocksMovementByDefault", "sourceAssetId", "relativePath"]) {
       assert.deepEqual(after[key], before[key], key);
     }
     assert.equal((record(after.inspection).animations as JsonRecord[]).length, 1);
@@ -273,7 +292,7 @@ test("live MCP replaces an inspected model source and restores it without changi
       resourceKind: "model3d", operation: "batch_get", ids: ["house", "tree"], view: "detail" });
     for (const current of batchAfter.items as JsonRecord[]) {
       const previous = batchModels.find(model => model.id === current.id)!;
-      for (const key of ["id", "name", "scale", "pivot", "collisionBounds", "sourceAssetId", "relativePath"]) {
+      for (const key of ["id", "name", "scale", "pivot", "collisionBounds", "blocksMovementByDefault", "sourceAssetId", "relativePath"]) {
         assert.deepEqual(current[key], previous[key], key);
       }
       assert.equal((record(current.inspection).animations as JsonRecord[]).length, 1);
@@ -293,6 +312,7 @@ test("live MCP replaces an inspected model source and restores it without changi
       resourceKind: "model3d", operation: "get", ids: ["house"], view: "detail" });
     assert.equal((record(record((restored.items as JsonRecord[])[0]).inspection).animations as JsonRecord[]).length, 0);
     assert.deepEqual(record((restored.items as JsonRecord[])[0]).collisionBounds, collisionBounds);
+    assert.equal(record((restored.items as JsonRecord[])[0]).blocksMovementByDefault, false);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
   } finally {
     await client.close();

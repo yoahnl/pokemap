@@ -376,7 +376,7 @@ final class ResourcePackCatalog {
   }
 
   Map<String, Object?> toJson() {
-    final smart = smartTileCatalog.toJson(compact: false)..remove('drafts');
+    final smart = smartTileCatalog.toJson()..remove('drafts');
     return {
       'dynamicDependencies': [
         for (final declaration in dynamicDependencies) declaration.toJson(),

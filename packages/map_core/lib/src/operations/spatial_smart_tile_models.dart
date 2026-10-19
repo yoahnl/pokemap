@@ -264,6 +264,23 @@ void _addModel(
 }) {
   final source = part.source;
   if (source is! SmartTileModel3dSource) return;
+  final clip = part.spatialClip;
+  if (clip != null &&
+      (!const {
+            SmartTileRenderChannel.ground,
+            SmartTileRenderChannel.understory,
+            SmartTileRenderChannel.canopy,
+          }.contains(part.channel) ||
+          source.animationIndex != null ||
+          (source.replacesGround &&
+              (clip.left != 0 ||
+                  clip.top != 0 ||
+                  clip.right != 1 ||
+                  clip.bottom != 1)))) {
+    throw const FormatException(
+      'Model clipping requires static ground, understory or canopy visuals and complete ground replacements.',
+    );
+  }
   if (transform.flipX) {
     throw const FormatException('3D Smart Tiles cannot mirror models.');
   }
@@ -291,11 +308,29 @@ void _addModel(
   };
   final worldX = x + .5 + rotated.$1;
   final worldZ = z + .5 + rotated.$2;
+  final supportDx = clip == null
+      ? dx
+      : dx -
+            source.offsetX +
+            ((clip.left + clip.right) / 2 - .5) * part.footprintWidth;
+  final supportDz = clip == null
+      ? dz
+      : dz -
+            source.offsetZ +
+            ((clip.top + clip.bottom) / 2 - .5) * part.footprintHeight;
+  final supportRotated = switch (transform.quarterTurns % 4) {
+    0 => (supportDx, supportDz),
+    1 => (-supportDz, supportDx),
+    2 => (-supportDx, -supportDz),
+    _ => (supportDz, -supportDx),
+  };
+  final supportX = x + .5 + supportRotated.$1;
+  final supportZ = z + .5 + supportRotated.$2;
   final scene = map.spatialScene!;
-  if (worldX < 0 ||
-      worldZ < 0 ||
-      worldX >= scene.width ||
-      worldZ >= scene.depth) {
+  if (supportX < 0 ||
+      supportZ < 0 ||
+      supportX >= scene.width ||
+      supportZ >= scene.depth) {
     throw const FormatException('A 3D Smart Tile anchor is outside the map.');
   }
   if (source.replacesGround) {
@@ -321,7 +356,9 @@ void _addModel(
         x: worldX,
         z: worldZ,
         y:
-            (source.followTerrain ? scene.worldHeightAt(worldX, worldZ) : 0) +
+            (source.followTerrain
+                ? scene.worldHeightAt(supportX, supportZ)
+                : 0) +
             source.offsetY +
             (source.followTerrain &&
                     !source.replacesGround &&
@@ -334,6 +371,26 @@ void _addModel(
       scale: source.scale,
       animationIndex: source.animationIndex,
       blocksMovement: false,
+      clip: clip == null
+          ? null
+          : SpatialModelClip(
+              left:
+                  clip.left * part.footprintWidth -
+                  part.footprintWidth / 2 -
+                  source.offsetX,
+              top:
+                  clip.top * part.footprintHeight -
+                  part.footprintHeight / 2 -
+                  source.offsetZ,
+              right:
+                  clip.right * part.footprintWidth -
+                  part.footprintWidth / 2 -
+                  source.offsetX,
+              bottom:
+                  clip.bottom * part.footprintHeight -
+                  part.footprintHeight / 2 -
+                  source.offsetZ,
+            ),
     ),
   );
 }

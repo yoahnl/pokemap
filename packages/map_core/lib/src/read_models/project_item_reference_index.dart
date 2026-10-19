@@ -24,6 +24,7 @@ enum ProjectItemReferenceKind {
   condition,
   shopEntry,
   trainerReward,
+  trainerBattleItem,
   trainerHeld,
   trainerBall,
   mapPickup,
@@ -357,6 +358,15 @@ final class _ProjectItemReferenceIndexBuilder {
 
   void _collectTrainers() {
     for (final trainer in project.trainers) {
+      for (final itemId in trainer.battleItems.keys) {
+        _add(
+          itemId: itemId,
+          kind: ProjectItemReferenceKind.trainerBattleItem,
+          sourceKind: 'trainer',
+          sourceId: trainer.id,
+          editablePath: 'trainers[${trainer.id}].battleItems[$itemId]',
+        );
+      }
       for (var index = 0; index < trainer.rewardItemGrants.length; index++) {
         _add(
           itemId: trainer.rewardItemGrants[index].itemId,

@@ -5,9 +5,83 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
 void main() {
   group('RuntimePsdkBattleSessionAdapter', () {
+    test('opponent status cures produce an item narration event', () {
+      final wait = _move(
+        id: 'wait',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+      );
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+          player: _combatant(id: 'player_0', hp: 100, moves: [wait]),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+          opponent: _combatant(
+            id: 'opponent_0',
+            hp: 100,
+            majorStatus: PsdkBattleMajorStatus.poison,
+            moves: [wait],
+          ),
+        ),
+        opponentAi: const PsdkBattleAi(
+          canUseItem: true,
+          itemOptions: [
+            PsdkBattleAiItemOption(
+              itemId: 'antidote',
+              effect: PsdkBattleStatusCureItemEffect.any(),
+            ),
+          ],
+        ),
+        itemDisplayNames: const {'antidote': 'Antidote du projet'},
+      );
+
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final turn = session
+          .createLegacyDisplaySession(isTrainerBattle: true)
+          .state
+          .currentTurn!;
+
+      expect(session.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+      expect(
+        buildBattleTurnLinesForOverlay(turn).join('\n'),
+        contains('Antidote du projet'),
+      );
+    });
+
+    test('opponent healing keeps its target when the player heals a reserve', () {
+      final session = _trainerMedicineSession();
+
+      session.submitBattleItem(
+        itemId: 'potion',
+        displayName: 'Potion',
+        targetPartyIndex: 1,
+        effect: const PsdkBattleHpHealItemEffect.flat(20),
+        consumeItem: true,
+      );
+      final turn = session
+          .createLegacyDisplaySession(isTrainerBattle: true)
+          .state
+          .currentTurn!;
+      final opponentHeal = turn.bagHpHealItemEvents
+          .singleWhere((event) => event.side == BattleSideId.enemy);
+      final playerHeal = turn.bagHpHealItemEvents
+          .singleWhere((event) => event.side == BattleSideId.player);
+
+      expect(opponentHeal.targetSpeciesId, 'opponent_0');
+      expect(opponentHeal.displayName, 'Potion du projet');
+      expect(opponentHeal.targetLineupIndex, 0);
+      expect(playerHeal.targetSpeciesId, 'player_1');
+      expect(playerHeal.targetLineupIndex, 1);
+    });
+
     test('L14 translates weather set and residuals without extra move uses', () {
       final session = _sandstormSession(setWeather: true);
 
@@ -896,6 +970,41 @@ PsdkBattleSetup _setup() {
       moveAccuracy: 1,
       generic: 1,
     ),
+  );
+}
+
+RuntimePsdkBattleSessionAdapter _trainerMedicineSession() {
+  final wait = _move(
+    id: 'trainer_wait',
+    category: PsdkBattleMoveCategory.status,
+    power: 0,
+  );
+  return RuntimePsdkBattleSessionAdapter.fromSetup(
+    PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+      player: _combatant(id: 'player_0', hp: 100, moves: [wait]),
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ),
+      playerReserves: [
+        _combatant(id: 'player_1', hp: 100, currentHp: 20, moves: [wait]),
+      ],
+      opponent: _combatant(
+        id: 'opponent_0',
+        hp: 100,
+        currentHp: 20,
+        moves: [wait],
+      ),
+    ),
+    opponentAi: const PsdkBattleAi(
+      canUseItem: true,
+      itemOptions: [
+        PsdkBattleAiItemOption.hpHeal(itemId: 'potion', amount: 20),
+      ],
+    ),
+    itemDisplayNames: const {'potion': 'Potion du projet'},
   );
 }
 

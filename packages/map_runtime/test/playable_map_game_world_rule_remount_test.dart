@@ -16,6 +16,50 @@ const _sceneIds = ['hide', 'show', 'explicit-absent', 'explicit-present'];
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final mapEnter in [false, true]) {
+  for (final interactive in [false, true]) {
+  for (final cancel in [false, true]) {
+    testWidgets('cinematic sees provisional NPC presence and preserves transaction cancel=$cancel interactive=$interactive mapEnter=$mapEnter', (tester) async {
+      await tester.runAsync(() async {
+        final game = await _mount(tester, initiallyHidden: true, provisionalCinematic: true, interactiveCinematic: interactive, mapEnterCinematic: mapEnter);
+        if (!mapEnter) {
+          _expectActor(game, 'main', present: false);
+          game.debugSetPlayerStateForTest(position: const GridPos(x: 4, y: 5), facing: Direction.east);
+          expect(game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right)), isTrue);
+          game.update(.02);
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+        }
+        for (var i = 0; i < 1000 && (interactive ? game.debugCinematicDialogueLine != 'Ready' : !game.debugIsCinematicPlaying); i++) {
+          game.update(.02);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(game.debugIsCinematicPlaying, isTrue);
+        expect(game.inputAuthoritySnapshot.context, RuntimeInputContext.cinematic);
+        _expectActor(game, 'main', present: true);
+        expect(game.gameStateSnapshot.narrativeFactRuntimeState.overridesByFactId['hidden'], isTrue);
+        if (cancel) {
+          game.debugResetBattleForTest();
+        }
+        for (var i = 0; i < 1000 && (game.debugIsCinematicPlaying || game.debugIsNarrativeSpatialDispatchInFlight || game.debugIsMapActivationDispatchInFlight); i++) {
+          game.update(.02);
+          if (!cancel && interactive && i % 10 == 0) {
+            game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+            game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(game.debugIsCinematicPlaying, isFalse);
+        expect(game.debugIsNarrativeSpatialDispatchInFlight, isFalse);
+        expect(game.debugIsMapActivationDispatchInFlight, isFalse);
+        await _settle(game);
+        expect(game.gameStateSnapshot.narrativeFactRuntimeState.overridesByFactId['hidden'], cancel);
+        _expectActor(game, 'main', present: !cancel);
+      });
+    });
+  }
+  }
+  }
+
   for (final solid in [false, true]) {
     testWidgets('first connected destination instance projects temporary collision solid=$solid before commit', (tester) async {
       await tester.runAsync(() async {
@@ -266,8 +310,43 @@ Future<PlayableMapGame> _mount(
   bool initiallyHidden = false,
   SaveData? saveData,
   String? presentationMode,
+  bool provisionalCinematic = false,
+  bool interactiveCinematic = false,
+  bool mapEnterCinematic = false,
 }) async {
-  RuntimeMapBundle load(String id) => _presentationBundle(id, presentationMode);
+  RuntimeMapBundle load(String id) {
+    final bundle = _presentationBundle(id, presentationMode);
+    if (!provisionalCinematic) return bundle;
+    final scene = _scene('provisional', SceneConsequence.setFact(factId: 'hidden', value: false));
+    return bundle.copyWith(map: bundle.map.copyWith(triggers: [...bundle.map.triggers,
+      if (id == 'main') MapTrigger(id: 'provisional', type: TriggerType.event,
+        area: MapRect(pos: const GridPos(x: 5, y: 5), size: const GridSize(width: 1, height: 1))),
+    ]), manifest: bundle.manifest.copyWith(
+      eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, legacyClaims: const [],
+        records: [...bundle.manifest.eventRegistry!.records, NarrativeEventRecord.configuredStructurallyUnchecked(
+          NarrativeEventDefinition(id: 'evt_019abcde-7000-7000-8000-000000000044', name: 'Provisional',
+            source: mapEnterCinematic ? NarrativeEventSourceRef.mapEnter('main') : NarrativeEventSourceRef.triggerEnter('main', 'provisional'), conditions: const [],
+            sceneId: 'provisional', reusePolicy: NarrativeEventReusePolicy.reusable, priority: 0, order: 4), enabled: true,
+        )]),
+      cinematics: [CinematicAsset(id: 'provisional', title: 'Provisional', mapId: 'main',
+        requiredActors: [CinematicActorRef(actorId: 'npc')],
+        stageContext: CinematicStageContext(actorBindings: [CinematicActorBinding(
+          actorId: 'npc', kind: CinematicActorBindingKind.mapEntity, mapEntityId: 'npc-main',
+        )]),
+        timeline: CinematicTimeline(steps: [interactiveCinematic
+          ? CinematicTimelineStep(id: 'ready', kind: CinematicTimelineStepKind.dialogueLine, dialogueText: 'Ready')
+          : CinematicTimelineStep(id: 'hold', kind: CinematicTimelineStepKind.wait, durationMs: 2000)]),
+      )],
+      scenes: [...bundle.manifest.scenes, SceneAsset(id: scene.id, name: scene.name, graph: SceneGraph(
+        startNodeId: scene.graph.startNodeId,
+        nodes: [...scene.graph.nodes, SceneNode(id: 'cinematic', kind: SceneNodeKind.cinematic,
+          payload: SceneCinematicPayload(cinematicId: 'provisional'))],
+        edges: [scene.graph.edges.first,
+          SceneEdge(id: 'play', kind: SceneEdgeKind.defaultFlow, fromNodeId: 'apply', fromPortId: 'completed', toNodeId: 'cinematic'),
+          SceneEdge(id: 'end', kind: SceneEdgeKind.cinematicCompleted, fromNodeId: 'cinematic', fromPortId: 'completed', toNodeId: 'end')],
+      ))],
+    ));
+  }
   final bundle = load('main');
   final game = PlayableMapGame(
     bundle: bundle,
@@ -320,14 +399,14 @@ Future<PlayableMapGame> _mount(
   await tester.pump();
   addTearDown(game.onRemove);
   for (var i = 0; i < 500; i++) {
-    if (!game.debugIsMapActivationDispatchInFlight &&
+    if ((mapEnterCinematic ? game.debugIsCinematicPlaying : !game.debugIsMapActivationDispatchInFlight) &&
         game.debugIsMapLoaded('neighbor')) {
       break;
     }
     game.update(.016);
     await Future<void>.delayed(const Duration(milliseconds: 1));
   }
-  expect(game.debugIsMapActivationDispatchInFlight, isFalse);
+  if (!mapEnterCinematic) expect(game.debugIsMapActivationDispatchInFlight, isFalse);
   expect(game.debugIsMapLoaded('neighbor'), isTrue);
   await _settle(game);
   return game;

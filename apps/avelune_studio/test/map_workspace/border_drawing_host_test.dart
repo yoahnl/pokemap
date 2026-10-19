@@ -15,6 +15,42 @@ import '../support/map_host_fixture.dart';
 import '../support/border_catalog_fixture.dart';
 
 void main() {
+  testWidgets('native cardinal border draws an angle and saves without rotating sprites', (tester) async {
+    final fixture = await _openWithBorder(tester, nativeOrientations: true);
+    final undoBefore = fixture.document.undoCount;
+    await tester.ensureVisible(find.text('Bordures'));
+    await tester.tap(find.text('Bordures'));
+    await pumpIo(tester, frames: 4);
+    await _chooseModel(tester);
+    await fixture.tapCell(10, 8);
+    await fixture.tapCell(13, 8);
+    await fixture.tapCell(13, 11);
+    await fixture.key(LogicalKeyboardKey.enter);
+    await pumpIo(tester, frames: 6);
+    final feature = fixture.document.current.layers.whereType<BorderLayer>()
+        .single.content.features.single;
+    final placements = feature.materialization!.placements;
+    expect(placements.first.primitiveId, 'lineCap-east');
+    expect(placements.last.primitiveId, 'lineCap-north');
+    expect(placements.singleWhere((p) => p.primitiveId.startsWith('lineCorner')).primitiveId,
+        'lineCorner-east');
+    expect(placements.map((p) => p.transform),
+        everyElement(BorderSpriteTransform(quarterTurns: 0, flipX: false)));
+    expect(fixture.document.undoCount, undoBefore + 1);
+    await tester.tap(find.byKey(const ValueKey('Enregistrer')));
+    for (var index = 0; index < 50 && fixture.document.dirty; index++) {
+      await pumpIo(tester, frames: 3);
+    }
+    expect(fixture.document.dirty, isFalse, reason: fixture.document.error);
+    final reopened = (await tester.runAsync(() async {
+      final adapter = LocalMapWorkspaceAdapter();
+      final project = await adapter.loadProject(fixture.source.session);
+      return adapter.loadMap(fixture.source.session,
+          project.maps.firstWhere((entry) => entry.id == fixture.document.current.id));
+    }))!;
+    expect(reopened.map.layers.whereType<BorderLayer>().single.content.features.single, feature);
+  });
+
   testWidgets('Bordures explains when this project has no published model', (
     tester,
   ) async {
@@ -275,6 +311,7 @@ Future<void> _chooseModel(WidgetTester tester) async {
 Future<MapHostFixture> _openWithBorder(
   WidgetTester tester, {
   BorderBlueprintTemplate template = BorderBlueprintTemplate.connectedLine,
+  bool nativeOrientations = false,
 }) => MapHostFixture.open(
   tester,
   prepareSource: (source) async {
@@ -285,7 +322,7 @@ Future<MapHostFixture> _openWithBorder(
     await projectFile.writeAsString(
       jsonEncode(
         project
-            .copyWith(borderCatalog: testBorderCatalog(template: template))
+            .copyWith(borderCatalog: testBorderCatalog(template: template, nativeOrientations: nativeOrientations))
             .toJson(),
       ),
     );

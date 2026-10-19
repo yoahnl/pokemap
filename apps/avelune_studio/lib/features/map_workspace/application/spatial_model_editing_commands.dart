@@ -86,16 +86,20 @@ class SpatialModelEditingCommands {
     ProjectModel3dEntry model,
     Model3dVector3 position,
   ) {
-    if (!project.models3d.any((item) => item.id == model.id)) {
+    final currentModel = project.models3d
+        .where((item) => item.id == model.id)
+        .firstOrNull;
+    if (currentModel == null) {
       throw StateError('Cette ressource n’existe plus.');
     }
     final instance = SpatialModelInstance(
       id: _id(),
       modelId: model.id,
       position: _position(position.x, position.z),
+      blocksMovement: currentModel.blocksMovementByDefault,
     );
     document.commit(
-      operations.upsertInstance(document.current, instance, model: model),
+      operations.upsertInstance(document.current, instance, model: currentModel),
     );
     document.selectedId = instance.id;
     return selected(instance.id)!;
@@ -212,6 +216,7 @@ class SpatialModelEditingCommands {
       animationLoop: item.animationLoop,
       animationSpeed: item.animationSpeed,
       blocksMovement: item.blocksMovement,
+      clip: item.clip,
     );
     final source = owner(id);
     final map = source == null

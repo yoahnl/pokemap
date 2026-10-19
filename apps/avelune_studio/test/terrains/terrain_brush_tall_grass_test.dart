@@ -1,6 +1,6 @@
 import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('spatial grass brush creates a reactive layer and preserves user activation', () {

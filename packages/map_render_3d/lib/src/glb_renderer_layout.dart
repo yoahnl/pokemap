@@ -8,13 +8,14 @@ import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
+import 'spatial_model_triangle_clip.dart';
 
 final class GlbRendererLayout {
   GlbRendererLayout(Uint8List bytes) {
     final length = ByteData.sublistView(bytes).getUint32(12, Endian.little);
-    json =
-        jsonDecode(utf8.decode(bytes.sublist(20, 20 + length)))
-            as Map<String, dynamic>;
+    json = jsonDecode(
+      utf8.decode(bytes.sublist(20, 20 + length)),
+    ) as Map<String, dynamic>;
     binary = ByteData.sublistView(bytes, 28 + length);
     materials = [
       for (final (index, raw) in ((json['materials'] as List?) ?? []).indexed)
@@ -114,8 +115,15 @@ final class GlbRendererLayout {
         throw const FormatException('Only COLOR_0 is supported.');
       }
       final colorIndex = attributes['COLOR_0'] as int?;
-      if (colorIndex == null) continue;
-      final colorAccessor = json['accessors'][colorIndex];
+      if (colorIndex == null &&
+          attributes.keys.any(
+            (key) => key.startsWith('JOINTS_') || key.startsWith('WEIGHTS_'),
+          )) {
+        continue;
+      }
+      final colorAccessor = colorIndex == null
+          ? null
+          : json['accessors'][colorIndex];
       final positionCount =
           json['accessors'][attributes['POSITION']]['count'] as int;
       final indicesIndex = primitive['indices'] as int?;
@@ -128,7 +136,7 @@ final class GlbRendererLayout {
               0,
               (count, index) => index >= count ? index + 1 : count,
             );
-      if (colorAccessor['count'] != positionCount ||
+      if (colorAccessor != null && colorAccessor['count'] != positionCount ||
           renderedCount > positionCount ||
           renderedCount != surface.vertexCount ||
           sourceIndices != null &&
@@ -140,14 +148,16 @@ final class GlbRendererLayout {
           'COLOR_0 must match the original vertex layout.',
         );
       }
-      final width = switch (colorAccessor['type']) {
+      final width = switch (colorAccessor?['type']) {
+        null => 0,
         'VEC3' => 3,
         'VEC4' => 4,
         _ => throw const FormatException('COLOR_0 must contain RGB or RGBA.'),
       };
-      final colors = _floats(colorIndex, width);
-      if (colors.any((value) => value < 0 || value > 1) ||
-          colors.length ~/ width < surface.vertexCount) {
+      final colors = colorIndex == null ? null : _floats(colorIndex, width);
+      if (colors != null &&
+          (colors.any((value) => value < 0 || value > 1) ||
+              colors.length ~/ width < surface.vertexCount)) {
         throw const FormatException(
           'Invalid COLOR_0 normalized values or count.',
         );
@@ -167,6 +177,7 @@ final class GlbRendererLayout {
       mesh.updateSurface(
         index,
         SpatialModelSurface(
+          materialIndex: materialIndex,
           vertices: [
             for (var i = 0; i < surface.vertexCount; i++)
               Vertex(
@@ -175,12 +186,14 @@ final class GlbRendererLayout {
                     ? Vector2.zero()
                     : Vector2.array(uvs, i * 2),
                 normal: normals == null ? null : Vector3.array(normals, i * 3),
-                color: Color.from(
-                  alpha: width == 4 ? colors[i * width + 3] : 1,
-                  red: colors[i * width],
-                  green: colors[i * width + 1],
-                  blue: colors[i * width + 2],
-                ),
+                color: colors == null
+                    ? const Color(0xffffffff)
+                    : Color.from(
+                        alpha: width == 4 ? colors[i * width + 3] : 1,
+                        red: colors[i * width],
+                        green: colors[i * width + 1],
+                        blue: colors[i * width + 2],
+                      ),
               ),
           ],
           indices: surface.indices.toList(),
@@ -236,18 +249,84 @@ final class SpatialModelSurface extends Surface {
     required List<Vertex> vertices,
     required super.indices,
     required super.material,
-  }) : vertexColors = List.unmodifiable(vertices.map((vertex) => vertex.color)),
+    this.materialIndex,
+  }) : _hasSourceNormals = vertices.firstOrNull?.normal != null,
+       _sourceAttributes = _packSourceAttributes(vertices),
        super(vertices: vertices);
 
-  final List<Color> vertexColors;
+  final int? materialIndex;
+  final bool _hasSourceNormals;
+  final Float32List _sourceAttributes;
+
+  late final List<Color> vertexColors = List.unmodifiable([
+    for (var index = 0; index < vertexCount; index++)
+      Color.from(
+        red: _sourceAttributes[index * 9 + 2],
+        green: _sourceAttributes[index * 9 + 3],
+        blue: _sourceAttributes[index * 9 + 4],
+        alpha: _sourceAttributes[index * 9 + 5],
+      ),
+  ]);
+
+  List<SpatialModelClipVertex> get clipVertices => List.unmodifiable([
+    for (var index = 0; index < vertexCount; index++)
+      SpatialModelClipVertex(
+        x: positions[index * 3],
+        y: positions[index * 3 + 1],
+        z: positions[index * 3 + 2],
+        u: _sourceAttributes[index * 9],
+        v: _sourceAttributes[index * 9 + 1],
+        r: _sourceAttributes[index * 9 + 2],
+        g: _sourceAttributes[index * 9 + 3],
+        b: _sourceAttributes[index * 9 + 4],
+        a: _sourceAttributes[index * 9 + 5],
+        normal: _hasSourceNormals
+            ? (
+                x: _sourceAttributes[index * 9 + 6],
+                y: _sourceAttributes[index * 9 + 7],
+                z: _sourceAttributes[index * 9 + 8],
+              )
+            : null,
+      ),
+  ]);
+
+  int get retainedGeometryBytes =>
+      verticesBytes +
+      indicesBytes +
+      positions.lengthInBytes +
+      _sourceAttributes.lengthInBytes;
+}
+
+Float32List _packSourceAttributes(List<Vertex> vertices) {
+  final hasNormals = vertices.firstOrNull?.normal != null;
+  final values = Float32List(vertices.length * 9);
+  for (final (index, vertex) in vertices.indexed) {
+    if ((vertex.normal != null) != hasNormals) {
+      throw const FormatException(
+        'Source normals must be present for every vertex.',
+      );
+    }
+    values.setRange(index * 9, (index + 1) * 9, [
+      vertex.texCoord.x,
+      vertex.texCoord.y,
+      vertex.color.r,
+      vertex.color.g,
+      vertex.color.b,
+      vertex.color.a,
+      vertex.normal?.x ?? 0,
+      vertex.normal?.y ?? 0,
+      vertex.normal?.z ?? 0,
+    ]);
+  }
+  return values;
 }
 
 Uint8List normalizeGlbAccessors(Uint8List bytes) {
   final header = ByteData.sublistView(bytes);
   final jsonLength = header.getUint32(12, Endian.little);
-  final json =
-      jsonDecode(utf8.decode(bytes.sublist(20, 20 + jsonLength)))
-          as Map<String, dynamic>;
+  final json = jsonDecode(
+    utf8.decode(bytes.sublist(20, 20 + jsonLength)),
+  ) as Map<String, dynamic>;
   final binOffset = 28 + jsonLength;
   final binary = BytesBuilder()..add(bytes.sublist(binOffset));
   final views = json['bufferViews'] as List;

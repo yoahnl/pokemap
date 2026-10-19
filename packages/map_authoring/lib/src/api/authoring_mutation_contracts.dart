@@ -1,3 +1,4 @@
+import 'package:map_core/map_core.dart';
 import '../contracts/action_descriptor.dart';
 import '../contracts/artifact_ref.dart';
 import '../contracts/authoring_receipt.dart';
@@ -82,8 +83,10 @@ final class AuthoringMutationPlanResult {
     required this.snapshotRevision,
     required this.receipt,
     this.publicProjection,
+    this.projectedProject,
   });
 
+  final ProjectManifest? projectedProject;
   final Map<String, Object?>? publicProjection;
   final AuthoringPlan plan;
   final String snapshotRevision;

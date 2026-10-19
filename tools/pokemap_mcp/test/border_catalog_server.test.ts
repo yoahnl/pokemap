@@ -411,7 +411,7 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
   const root = await mkdtemp(join(tmpdir(), "pokemap-horizontal-facade-"));
   const client = new Client({ name: "horizontal-facade-test", version: "1.0.0" });
   const transport = new StdioClientTransport({ command: process.execPath,
-    args: [resolve("dist/src/index.js"), "--root", root, "--dart", process.env.POKEMAP_TEST_DART ?? "dart"],
+    args: [resolve("dist/src/index.js"), "--root", root, "--dart", process.env.POKEMAP_TEST_DART ?? "dart", "--authoring-timeout-ms", "30000"],
     cwd: process.cwd(), stderr: "pipe" });
   await writeFile(join(root, "project.json"), JSON.stringify({
     name: "Facade transport", version: "v8", pokemon: canonicalPokemonConfig(),
@@ -477,11 +477,34 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
     await mutate("border_layer.feature_create", { ...base, featureId: "facade", geometry });
     await mutate("border_layer.materialize_apply", { mapId: "map", layerId: "border", featureId: "facade",
       tileWidthPx: 32, tileHeightPx: 32, resolverVersion: 3 });
+    const batchDescriptor = (catalog.mutationActions as JsonRecord[]).find(value => value.id === "border_layer.materialize_batch_apply");
+    assert.ok(batchDescriptor);
+    assert.equal(record(batchDescriptor.extensions).maximumFeatureCount, 128);
+    for (const [featureId, y] of [["facade-second", 5], ["facade-third", 7]] as const) {
+      await mutate("border_layer.feature_create", { ...base, featureId, geometry: { kind: "stroke", strokes: [
+        { id: featureId, closed: false, points: [1, 2, 3].map(x => ({ x, y })) },
+      ] } });
+    }
+    const beforeBatch = await readFile(join(root, "map.json"));
+    await plan("border_layer.materialize_batch_apply", { mapId: "map", features: [
+      { layerId: "border", featureId: "facade-second" }, { layerId: "border", featureId: "missing" },
+    ], tileWidthPx: 32, tileHeightPx: 32, resolverVersion: 3 }, true);
+    assert.deepEqual(await readFile(join(root, "map.json")), beforeBatch);
+    const historyBefore = (await readFile(join(root, ".pokemap/authoring/history.jsonl"), "utf8")).trimEnd().split("\n");
+    await mutate("border_layer.materialize_batch_apply", { mapId: "map", features: [
+      { layerId: "border", featureId: "facade-second" }, { layerId: "border", featureId: "facade-third" },
+    ], tileWidthPx: 32, tileHeightPx: 32, resolverVersion: 3 });
+    const historyAfter = (await readFile(join(root, ".pokemap/authoring/history.jsonl"), "utf8")).trimEnd().split("\n");
+    assert.equal(historyAfter.length, historyBefore.length + 1);
+    assert.deepEqual(historyAfter.slice(0, historyBefore.length), historyBefore);
     const mapPath = join(root, "map.json"), before = await readFile(mapPath);
     const saved = JSON.parse(before.toString()) as JsonRecord;
     const layer = (saved.layers as JsonRecord[]).find(value => value.id === "border");
     assert.ok(layer);
     const feature = (record(layer.content).features as JsonRecord[])[0]!;
+    const generatedFeatures = record(layer.content).features as JsonRecord[];
+    assert.equal(generatedFeatures.length, 3);
+    for (const generated of generatedFeatures) assert.ok(generated.materialization);
     const placements = record(feature.materialization).placements as JsonRecord[];
     assert.equal(placements.length, 6);
     assert.deepEqual(placements.map(value => record(value.anchorCell).x), [1, 2, 3, 7, 8, 9]);
@@ -495,6 +518,11 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
     }
     const manifest = JSON.parse(await readFile(join(root, "project.json"), "utf8")) as JsonRecord;
     assert.equal(record(manifest.borderCatalog).formatVersion, 11);
+    const lastEntry = record(record(JSON.parse(historyAfter.at(-1)!)).payload).entry;
+    const undo = await toolData(client, "pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
+      entryId: record(lastEntry).entryId, idempotencyKey: "facade-batch-undo" });
+    assert.ok(undo);
+    assert.deepEqual(await readFile(mapPath), beforeBatch);
   } finally {
     if (opened) await toolData(client, "pokemap_workspace", { operation: "close", projectHandle: opened.projectHandle }).catch(() => {});
     await client.close();

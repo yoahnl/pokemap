@@ -56,6 +56,9 @@ extension PokemonCombatValidation on PokemonCombatController {
         ProjectValidator.validateTrainerBallItemReferences([
           selectedTrainer,
         ], itemCatalog: index.itemCatalog);
+        ProjectValidator.validateTrainerBattleItemReferences([
+          selectedTrainer,
+        ], itemCatalog: index.itemCatalog);
       } on ValidationException catch (failure) {
         return failure.toString();
       }

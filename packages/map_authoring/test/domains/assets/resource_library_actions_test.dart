@@ -12,6 +12,70 @@ import 'element_definition_fixture.dart'
 
 void main() {
   for (final action in ['resource.classify', 'resource.classify_batch']) {
+    test(
+        '$action persists individual descriptions and supports omission and clear',
+        () async {
+      Map<String, Object?> parameters(Map<String, Object?> entry) =>
+          action == 'resource.classify'
+              ? entry
+              : {
+                  'entries': [entry]
+                };
+      var project = await _apply(
+          informationFixture(),
+          action,
+          parameters({
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'description': 'Arbre pour les routes.'
+          }));
+      expect(
+          project.resourceLibraryCatalog.entries.single.toJson()['description'],
+          'Arbre pour les routes.');
+      project = await _apply(
+          project,
+          action,
+          parameters({
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'role': 'component'
+          }));
+      expect(
+          project.resourceLibraryCatalog.entries.single.toJson()['description'],
+          'Arbre pour les routes.');
+      project = await _apply(
+          project,
+          action,
+          parameters({
+            'resourceKind': 'element',
+            'resourceId': 'decor',
+            'description': null,
+            'role': 'standard'
+          }));
+      expect(project.resourceLibraryCatalog.isEmpty, isTrue);
+    });
+    test('$action rejects invalid descriptions', () async {
+      for (final value in ['', ' ', ' padded ', 'x' * 2001, 1, false, [], {}]) {
+        final entry = {
+          'resourceKind': 'element',
+          'resourceId': 'decor',
+          'description': value
+        };
+        await expectLater(
+            () => _apply(
+                informationFixture(),
+                action,
+                action == 'resource.classify'
+                    ? entry
+                    : {
+                        'entries': [entry]
+                      }),
+            throwsA(isA<VisualLibraryException>()));
+      }
+    });
+  }
+
+  for (final action in ['resource.classify', 'resource.classify_batch']) {
     Map<String, Object?> parameters(Map<String, Object?> entry) =>
         action == 'resource.classify'
             ? entry
@@ -875,7 +939,8 @@ void main() {
           resourceId: 'decor',
           familyId: 'trees',
           role: ResourceLibraryRole.component,
-          placementContext: ResourcePlacementContext.both)
+          placementContext: ResourcePlacementContext.both,
+          description: 'Arbre pour les routes.')
     ]));
     final duplicated = await _apply(project, 'element.duplicate', {
       'sourceElementId': 'decor',
@@ -893,6 +958,7 @@ void main() {
             .entryFor('element', 'copy')
             ?.placementContext,
         ResourcePlacementContext.both);
+    expect(duplicated.resourceLibraryCatalog.entryFor('element', 'copy')?.description, 'Arbre pour les routes.');
     final deleted =
         await _apply(project, 'element.delete', {'elementId': 'decor'});
     expect(deleted.resourceLibraryCatalog.entries, isEmpty);

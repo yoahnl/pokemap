@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
+import '../../project_session/data/studio_project_document_revision.dart';
 import '../domain/resource_port.dart';
 import '../domain/model_resource_port.dart';
 import '../domain/resource_mutation_preparation.dart';

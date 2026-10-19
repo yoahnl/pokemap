@@ -48,4 +48,87 @@ void main() {
     await expectLater(store.contains(retained.id),
         throwsA(isA<AuthoringContentBlobStoreException>()));
   });
+
+  test('retains intact bytes after a transient metadata timestamp change',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('history-metadata-');
+    addTearDown(() => directory.delete(recursive: true));
+    final store =
+        await FileAuthoringContentBlobStore.open(projectRoot: directory.path);
+    final overrides = _BlobMetadataOverrides();
+    final retained = await IOOverrides.runWithIOOverrides(
+        () => store.put([1, 2, 3]), overrides);
+    final restored = await store.get(retained.id);
+    addTearDown(restored!.release);
+    expect(await restored.readBytes(), [1, 2, 3]);
+    expect(await store.contains(retained.id), isTrue);
+  });
+
+  test('rejects a blob whose metadata timestamps keep changing', () async {
+    final directory = await Directory.systemTemp.createTemp('history-unstable-');
+    addTearDown(() => directory.delete(recursive: true));
+    final store =
+        await FileAuthoringContentBlobStore.open(projectRoot: directory.path);
+    await expectLater(
+        IOOverrides.runWithIOOverrides(() => store.put([1, 2, 3]),
+            _BlobMetadataOverrides(persistent: true)),
+        throwsA(isA<AuthoringContentBlobStoreException>()
+            .having((error) => error.code, 'code', 'history.blob_corrupt')));
+    expect(await store.listIds(), isEmpty);
+  });
+
+  test('rejects changed bytes during a metadata verification retry', () async {
+    final directory = await Directory.systemTemp.createTemp('history-race-');
+    addTearDown(() => directory.delete(recursive: true));
+    final store =
+        await FileAuthoringContentBlobStore.open(projectRoot: directory.path);
+    await expectLater(
+        IOOverrides.runWithIOOverrides(() => store.put([1, 2, 3]),
+            _BlobMetadataOverrides(corruptOnSecondStat: true)),
+        throwsA(isA<AuthoringContentBlobStoreException>()
+            .having((error) => error.code, 'code', 'history.blob_corrupt')));
+    expect(await store.listIds(), isEmpty);
+  });
+}
+
+final class _BlobMetadataOverrides extends IOOverrides {
+  _BlobMetadataOverrides(
+      {this.persistent = false, this.corruptOnSecondStat = false});
+
+  final bool persistent;
+  final bool corruptOnSecondStat;
+  var _observations = 0;
+
+  @override
+  Future<FileStat> stat(String path) async {
+    final result = await super.stat(path);
+    if (!path.endsWith('.blob.tmp')) return result;
+    _observations++;
+    if (corruptOnSecondStat && _observations == 2) {
+      await File(path).writeAsBytes([1, 2, 4], flush: true);
+    }
+    final tick = persistent ? _observations : (_observations == 1 ? 0 : 1);
+    return _MetadataFileStat(
+        result, DateTime.fromMicrosecondsSinceEpoch(1000000 + tick));
+  }
+}
+
+final class _MetadataFileStat implements FileStat {
+  const _MetadataFileStat(this.original, this.changed);
+
+  final FileStat original;
+  @override
+  final DateTime changed;
+  @override
+  DateTime get modified => original.modified;
+  @override
+  DateTime get accessed => original.accessed;
+  @override
+  FileSystemEntityType get type => original.type;
+  @override
+  int get mode => original.mode;
+  @override
+  int get size => original.size;
+  @override
+  String modeString() => original.modeString();
 }

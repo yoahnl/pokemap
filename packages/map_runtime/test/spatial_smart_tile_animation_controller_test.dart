@@ -5,6 +5,56 @@ import 'package:map_runtime/src/spatial/spatial_smart_tile_animation_controller.
 import 'support/spatial_smart_tile_fixture.dart';
 
 void main() {
+  test('raster reactions use local cell time and reset after the existing cycle', () {
+    final fixture = spatialRasterGrassFixture();
+    final controller = SpatialSmartTileAnimationController(
+      map: fixture.map,
+      project: fixture.project,
+    );
+    int elapsed(int x, int y) => controller.rasterElapsedMsForCell(
+      layerId: 'grass',
+      cellX: x,
+      cellY: y,
+      globalElapsedMs: 5000,
+    );
+    expect(elapsed(4, 5), 0);
+    controller.update(.4);
+    expect(elapsed(4, 5), 0);
+    controller.onPlayerEnteredCell(const GridPos(x: 4, y: 5));
+    controller.update(.125);
+    expect(elapsed(4, 5), 125);
+    expect(elapsed(5, 5), 0);
+    controller.onPlayerEnteredCell(const GridPos(x: 3, y: 5));
+    controller.update(.025);
+    expect(elapsed(3, 5), 0);
+    expect(elapsed(4, 5), 150);
+    for (final dt in [double.nan, double.infinity, 0.0, -1.0]) {
+      controller.update(dt);
+    }
+    expect(elapsed(4, 5), 150);
+    controller.update(.051);
+    expect(elapsed(4, 5), 0);
+    controller.onPlayerEnteredCell(const GridPos(x: 4, y: 5));
+    controller.update(.05);
+    expect(elapsed(4, 5), 50);
+    expect(elapsed(-1, 5), 0);
+  });
+
+  test('raster always layers retain the supplied global clock', () {
+    final fixture = spatialRasterGrassFixture(
+      activation: SmartTileAnimationActivation.always,
+    );
+    final controller = SpatialSmartTileAnimationController(
+      map: fixture.map,
+      project: fixture.project,
+    );
+    controller.onPlayerEnteredCell(const GridPos(x: 4, y: 5));
+    controller.update(.1);
+    expect(controller.rasterElapsedMsForCell(
+      layerId: 'grass', cellX: 4, cellY: 5, globalElapsedMs: 5000,
+    ), 5000);
+  });
+
   test(
     'only the entered authored cell plays once, including offset models',
     () {

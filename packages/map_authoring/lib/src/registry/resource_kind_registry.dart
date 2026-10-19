@@ -148,6 +148,13 @@ final class AuthoringResourceKindRegistry {
                   kind == 'resourceLibraryEntry') ...{
                 'catalogFormatVersion':
                     ResourceLibraryCatalog.currentFormatVersion,
+                'description': {
+                  'type': ['string', 'null'],
+                  'minLength': 1,
+                  'maxLength': ResourceLibraryEntry.maximumDescriptionLength,
+                  'classificationOmitted': 'preserve',
+                  'classificationNull': 'clear',
+                },
                 'placementContext': {
                   'type': ['string', 'null'],
                   'enum': [
@@ -724,7 +731,15 @@ final class AuthoringResourceKindRegistry {
           id: 'model3d',
           version: 1,
           displayName: '3D model',
-          summary: 'Inspected project-owned GLB model and authoring transform',
+          summary: 'Inspected project-owned GLB model, authoring transform and default movement blocking for new instances',
+          extensions: const {
+            'blocksMovementByDefault': {
+              'type': 'boolean',
+              'default': true,
+              'serializedDefaultOmitted': true,
+              'instanceOverrideField': 'blocksMovement',
+            },
+          },
         ),
         for (final kind in const [
           'resourcePackJob',
@@ -746,7 +761,7 @@ final class AuthoringResourceKindRegistry {
               'uriTemplate': 'pokemap://project/{projectHandle}/resource-pack/{resourceKind}/{handle}',
             },
           ),
-      ],
+      ].map(_catalogStorageDescriptor),
       queryableResourceKindIds: const {
         'resourcePackJob',
         'resourcePackInspection',
@@ -920,4 +935,12 @@ int _positiveVersion(int value) {
   } on FormatException catch (error) {
     throw ArgumentError.value(value, 'version', error.message);
   }
+}
+
+AuthoringResourceKindDescriptor _catalogStorageDescriptor(AuthoringResourceKindDescriptor descriptor) {
+  if(descriptor.id=='map') return AuthoringResourceKindDescriptor(id:descriptor.id,version:descriptor.version,displayName:descriptor.displayName,summary:descriptor.summary,extensions:{...descriptor.extensions,'partitionedStorage':{'formats':['avelune.working-catalog.v1','avelune.portable-catalog.v2'],'summary':'projectMapEntries','detail':'selectedMapAndReferences','search':'projectMapMetadata','filters':['id','name','groupId','relativePath'],'sort':['id:ascending'],'mutationAction':'map.save','snapshotRevision':'catalogRootAndSelectedMapRevision','rowRevision':'selectedMapSnapshotRevision','portableReadOnly':true}});
+
+  const kinds={'project','tileset','element','model3d','character','environmentPreset','smartTileAtlas','smartTileMaterial','smartTilePattern','smartTileAnimation','smartTilePreset','borderBlueprint','borderSnapshot','resourceFamily','resourceLibraryEntry','elementCategory','tilesetFolder'};
+  if(!kinds.contains(descriptor.id)) return descriptor;
+  return AuthoringResourceKindDescriptor(id:descriptor.id,version:descriptor.version,displayName:descriptor.displayName,summary:descriptor.summary,extensions:{...descriptor.extensions,'partitionedStorage':{'formats':['avelune.working-catalog.v1','avelune.portable-catalog.v2'],'summary':'indexOnly','detail':'selectedDefinition','search':'boundedMemoryIndexScan','sort':['id:ascending'],'filters':['id','name','description','tags','familyId','placementContext','mapId','role','resourceKind','revision'],'placementContextFilterIncludesBoth':true,'publicPageSize':200,'internalIndexPageSize':128,'mutationAction':descriptor.id=='project'?null:'catalog.definition.update','portableReadOnly':true,'fullProjectRead':'explicitMaterializationRequired','fullProjectReadExtension':'materializeProject',if(descriptor.id=='project') 'partitionAction':'project.catalog.partition'}});
 }

@@ -12,7 +12,7 @@ void main() {
       expect(basic.profileId, 'basic');
       expect(basic.aiLevel, 1);
       expect(basic.switchPolicy, PsdkBattleAiSwitchPolicy.never);
-      expect(basic.itemPolicy, PsdkBattleAiItemPolicy.disabled);
+      expect(basic.itemPolicy, PsdkBattleAiItemPolicy.authoredOptionsOnly);
 
       expect(tactical.profileId, 'tactical');
       expect(tactical.aiLevel, 2);
@@ -62,7 +62,7 @@ void main() {
             ),
           ],
         ).canUseItem,
-        isFalse,
+        isTrue,
       );
     });
 

@@ -113,6 +113,7 @@ final class ResourcePackBorderDraft {
     'cornerModelId': request.cornerModelId,
     'innerCornerModelId': request.innerCornerModelId,
     'primitiveModelIds': request.primitiveModelIds,
+    'sequenceLength': request.sequenceLength,
     'primitiveModelSettings': {
       for (final e in request.primitiveModelSettings.entries)
         e.key: [

@@ -30,6 +30,8 @@ import 'spatial_scene_neighbor.dart';
 import 'spatial_scene_components.dart';
 import 'spatial_model_placement_preview.dart';
 import 'spatial_runtime_model_index.dart';
+import 'spatial_clipped_model_cache.dart';
+import 'spatial_model_source_clip.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -123,6 +125,7 @@ class SpatialSceneView extends StatefulWidget {
     this.sceneOffset = Offset.zero,
     this.animationPreview,
     this.modelRuntimeState,
+    this.rasterAnimationElapsedMsForCell,
     this.presentationPaused,
     this.cameraPose,
     this.resourceBudget,
@@ -132,6 +135,14 @@ class SpatialSceneView extends StatefulWidget {
   final String? resourceIdentity;
   final SpatialModelRuntimeState? Function(String mapId, String instanceId)?
   modelRuntimeState;
+  final int Function(
+    String mapId,
+    String layerId,
+    int cellX,
+    int cellY,
+    int elapsedMs,
+  )?
+  rasterAnimationElapsedMsForCell;
   final bool Function()? presentationPaused;
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
@@ -412,6 +423,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     }
     if (modelSourcesChanged) {
       game.clearModelResourceCache(retire: true);
+      game.loadedModelSources.clear();
+      game.clippedModelCache.clear();
       game.sceneChunks.clear();
       game.placementRenderer.clear();
     }
@@ -633,6 +646,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       renderedConfiguration ?? configuration;
   bool refreshing = false;
   final Map<String, Future<Model>> cache = {};
+  final loadedModelSources = <String, Model>{};
+  final clippedModelCache = SpatialClippedModelCache();
   Map<
     String,
     ({_SceneModelComponent component, Vector3 position, Model3dVector3 anchor})
@@ -910,7 +925,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             selectedCell: placement.active ? snapshot.selectedCell : null,
           );
           sceneGround = ground;
-          ground.resolve((groundElapsed * 1000).round());
+          ground.resolve(
+            (groundElapsed * 1000).round(),
+            animationElapsedMsForCell: snapshot.rasterAnimationElapsedMsForCell,
+          );
           nextGrounds.add(ground);
           components.addAll(ground.components);
         }
@@ -960,7 +978,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
         if (!modelsReady || ticket != generation || closed) return false;
         for (final instance in scene.instances) {
           final definition = placementDefinitions[instance.modelId]!;
-          final model = await ModelByteLoader.loadCached(
+          final sourceModel = await ModelByteLoader.loadCached(
             cache,
             definition.sourceAssetId,
             () => placement.modelLoader(definition.id),
@@ -969,6 +987,14 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             onResident: retainModelReservation,
           );
           if (ticket != generation || closed) return false;
+          loadedModelSources[definition.sourceAssetId] = sourceModel;
+          final sourceClip = spatialModelSourceClip(instance, definition);
+          final clipped = sourceClip == null
+              ? null
+              : clippedModelCache.resolve(sourceModel, sourceClip);
+          if (sourceClip != null && clipped == null) continue;
+          final model = clipped?.model ?? sourceModel;
+          final visibleBounds = clipped?.bounds ?? definition.inspection.bounds;
           final scale = definition.scale * instance.scale;
           final rotation = Quaternion.axisAngle(
             Vector3(0, 1, 0),
@@ -981,11 +1007,12 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
                 definition.pivot.z,
               ) *
               scale;
-          rotation.rotate(pivot);
+          rotation.asRotationMatrix().transform(pivot);
           final animationKey = (placement.map?.id ?? '__scene__', instance.id);
           final previous = animationModels[animationKey];
           final component = _SceneModelComponent(
             model: model,
+            visibleBounds: visibleBounds,
             playback: identical(previous?.model, model)
                 ? ModelPlaybackState.from(previous!.playback)
                 : null,
@@ -1008,14 +1035,14 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
                     snapshot.selectedContent?.id == instance.id
                 ? spatialSelectionFrame(
                     Vector3(
-                      definition.inspection.bounds.min.x,
-                      definition.inspection.bounds.min.y,
-                      definition.inspection.bounds.min.z,
+                      visibleBounds.min.x,
+                      visibleBounds.min.y,
+                      visibleBounds.min.z,
                     ),
                     Vector3(
-                      definition.inspection.bounds.max.x,
-                      definition.inspection.bounds.max.y,
-                      definition.inspection.bounds.max.z,
+                      visibleBounds.max.x,
+                      visibleBounds.max.y,
+                      visibleBounds.max.z,
                     ),
                     .04 / scale,
                     snapshot.selectionColor ?? snapshot.edge,
@@ -1075,11 +1102,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           cache.removeWhere((id, _) {
             if (modelIds.contains(id)) return false;
             modelReservations.remove(id)?.release();
+            final source = loadedModelSources.remove(id);
+            if (source != null) clippedModelCache.releaseSource(source);
             return true;
           });
-          for (final lease in retiredReservations) {
-            lease.release();
-          }
+          for (final lease in retiredReservations) { lease.release(); }
           retiredReservations.clear();
           for (final entry in nextAnimationModels.entries) {
             final previous = animationModels[entry.key];
@@ -1269,7 +1296,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       if (dt.isFinite && dt > 0) groundElapsed += dt;
       for (final ground in grounds.where((ground) => ground.plan.animated)) {
         final previous = ground.components;
-        if (ground.resolve((groundElapsed * 1000).round())) {
+        if (ground.resolve(
+          (groundElapsed * 1000).round(),
+          animationElapsedMsForCell:
+              visibleConfiguration.rasterAnimationElapsedMsForCell,
+        )) {
           final retained = ground.components.toSet();
           final previousSet = previous.toSet();
           sceneComponents.replaceSubset(
@@ -1494,7 +1525,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
         : SpatialSceneContentHit(
             kind: SpatialSceneContentKind.model,
             id: model.id,
-            cell: (model.position.x.floor(), model.position.z.floor()),
+            cell: (
+              model.supportPosition.x.floor(),
+              model.supportPosition.z.floor(),
+            ),
           );
   }
 
@@ -1510,7 +1544,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           .where((model) => model.id == instance.modelId)
           .firstOrNull;
       if (definition == null) continue;
-      final bounds = definition.inspection.bounds;
+      final bounds = instance.clip == null
+          ? definition.inspection.bounds
+          : modelComponents[instance.id]?.component.visibleBounds;
+      if (bounds == null) continue;
       final angle = instance.rotationDegrees * math.pi / 180;
       final scale = instance.scale * definition.scale;
       final projected = <Offset>[];
@@ -1630,6 +1667,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     configuration.controller.removeListener(syncCamera);
     configuration.animationPreview?.removeListener(syncAnimations);
     clearModelResourceCache();
+    loadedModelSources.clear();
+    clippedModelCache.clear();
     modelComponents.clear();
     animationModels.clear();
     runtimeModelIndex = SpatialRuntimeModelIndex(const {});
@@ -1704,8 +1743,29 @@ final class _SceneGround {
   List<MeshComponent> underlays = [];
   bool initialized = false;
 
-  bool resolve(int elapsedMs) {
-    final next = plan.resolve(elapsedMs);
+  bool resolve(
+    int elapsedMs, {
+    int Function(
+      String mapId,
+      String layerId,
+      int cellX,
+      int cellY,
+      int elapsedMs,
+    )?
+    animationElapsedMsForCell,
+  }) {
+    final next = plan.resolve(
+      elapsedMs,
+      animationElapsedMsForCell: animationElapsedMsForCell == null
+          ? null
+          : (layerId, cellX, cellY, elapsedMs) => animationElapsedMsForCell(
+              mapId,
+              layerId,
+              cellX,
+              cellY,
+              elapsedMs,
+            ),
+    );
     var changed = !initialized || next.length != visuals.length;
     var geometryChanged = changed;
     for (var index = 0; !geometryChanged && index < next.length; index++) {
@@ -1763,6 +1823,7 @@ final class _SceneGround {
 class _SceneModelComponent extends AnimatedModelComponent {
   _SceneModelComponent({
     required super.model,
+    required this.visibleBounds,
     super.position,
     super.rotation,
     super.scale,
@@ -1770,6 +1831,7 @@ class _SceneModelComponent extends AnimatedModelComponent {
     super.playback,
     super.runtimePoseBefore,
   });
+  final Model3dBounds visibleBounds;
   @override
   bool isVisible(CameraComponent3D camera) => true;
 }

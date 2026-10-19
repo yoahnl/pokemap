@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_library_bindings.dart';
@@ -14,6 +15,58 @@ import '../support/uwu_resource_host.dart';
 import '../../../../packages/map_authoring/test/support/glb_fixture.dart';
 
 void main() {
+  testWidgets(
+    'individual description edits saves reopens and clears through Studio',
+    (tester) async {
+      final host = await UwUResourceHost.open(tester);
+      final item = resourceCatalog(host.navigation.workspace.project!)
+          .firstWhere((item) => item.canonicalKind == 'element');
+      Future<void> edit(String text) async {
+        final pending = classifyResource(
+          tester.element(find.byType(Scaffold).first),
+          host.navigation,
+          item,
+        );
+        await pumpIo(tester);
+        final field = find.descendant(
+          of: find.byKey(const ValueKey('resource-classify-description')),
+          matching: find.byType(TextField),
+        );
+        expect(field, findsOneWidget);
+        await tester.enterText(field, 'x' * 2001);
+        await tester.pump();
+        expect(
+          tester
+              .widget<StudioButton>(
+                find.byKey(const ValueKey('resource-management-save')),
+              )
+              .onPressed,
+          isNull,
+        );
+        await tester.enterText(field, text);
+        await tester.pump();
+        await host.tap('resource-management-save');
+        await pending;
+      }
+
+      await edit('Arbre pour les routes.');
+      expect(
+        (await host.reopen()).resourceLibraryCatalog
+            .entryFor(item.canonicalKind, item.id)
+            ?.toJson()['description'],
+        'Arbre pour les routes.',
+      );
+      await edit('');
+      expect(
+        (await host.reopen()).resourceLibraryCatalog
+            .entryFor(item.canonicalKind, item.id)
+            ?.toJson()['description'],
+        isNull,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'context-only classification saves reopens and clears all seven resource kinds',
     (tester) async {

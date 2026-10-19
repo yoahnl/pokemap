@@ -24,6 +24,7 @@ enum CatalogDefinitionKind {
   fileBinding,
   provenance,
   catalogMetadata,
+  workspaceState,
 }
 
 final class CatalogDefinitionKey implements Comparable<CatalogDefinitionKey> {
@@ -165,21 +166,158 @@ final class CatalogDefinitionUnit {
   final List<CatalogDefinitionKey> references;
   Map<String, Object?> toJson() => {
     'type': 'unit',
-    'version': 1,
+    'version': 2,
     'key': key.toJson(),
     'payload': payload,
     'references': references.map((r) => r.toJson()).toList(),
   };
 }
 
+final class CatalogDefinitionSummary {
+  static const _maxMetadataBytes = 8192;
+
+  CatalogDefinitionSummary({
+    required this.name,
+    this.description,
+    Iterable<String> tags = const [],
+    this.familyId,
+    this.mapId,
+    this.role,
+    this.placementContext,
+  }) : tags = List.unmodifiable(tags) {
+    for (final value in [name, familyId, mapId, role, placementContext]) {
+      if (value != null && (value.isEmpty || value.length > 512)) {
+        throw const FormatException('catalog.summary: invalid string');
+      }
+    }
+    if ((description?.length ?? 0) > 2000 ||
+        this.tags.any((tag) => tag.isEmpty || tag.length > 128) ||
+        utf8.encode(jsonEncode(toJson())).length > _maxMetadataBytes) {
+      throw const FormatException('catalog.summary: metadata budget');
+    }
+  }
+
+  factory CatalogDefinitionSummary.fromUnit(CatalogDefinitionUnit unit) {
+    final value = unit.payload['value'];
+    var data = value is Map ? _map(value) : unit.payload;
+    if (unit.key.kind == CatalogDefinitionKind.borderRecord) {
+      final draft = data['draft'];
+      if (draft is Map && draft['definition'] is Map) {
+        data = _map(draft['definition']);
+      }
+    }
+    String? string(String field) {
+      final value = data[field];
+      if (value != null && value is! String) {
+        throw const FormatException('catalog.summary: invalid metadata type');
+      }
+      return value as String?;
+    }
+
+    final rawTags = data['tags'];
+    if (rawTags != null &&
+        (rawTags is! List || rawTags.any((tag) => tag is! String))) {
+      throw const FormatException('catalog.summary: invalid tags');
+    }
+    return CatalogDefinitionSummary(
+      name: string('name') ?? string('resourceId') ?? unit.key.id,
+      description: string('description'),
+      tags: (rawTags as List?)?.cast<String>() ?? const [],
+      familyId: string('familyId'),
+      mapId: string('mapId'),
+      role:
+          string('role') ??
+          (unit.key.kind == CatalogDefinitionKind.resourceLibraryEntry
+              ? 'standard'
+              : null),
+      placementContext: string('placementContext'),
+    );
+  }
+
+  factory CatalogDefinitionSummary.fromJson(Map<String, Object?> json) {
+    _keys(json, {
+      'name',
+      'description',
+      'tags',
+      'familyId',
+      'mapId',
+      'role',
+      'placementContext',
+    });
+    for (final field in [
+      'name',
+      'description',
+      'familyId',
+      'mapId',
+      'role',
+      'placementContext',
+    ]) {
+      if ((field == 'name' && json[field] is! String) ||
+          (json[field] != null && json[field] is! String)) {
+        throw const FormatException('catalog.summary: invalid metadata type');
+      }
+    }
+    final tags = _list(json['tags'], _maxMetadataBytes);
+    if (tags.any((tag) => tag is! String)) {
+      throw const FormatException('catalog.summary: invalid tags');
+    }
+    return CatalogDefinitionSummary(
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      tags: tags.cast<String>(),
+      familyId: json['familyId'] as String?,
+      mapId: json['mapId'] as String?,
+      role: json['role'] as String?,
+      placementContext: json['placementContext'] as String?,
+    );
+  }
+
+  final String name;
+  final String? description;
+  final List<String> tags;
+  final String? familyId;
+  final String? mapId;
+  final String? role;
+  final String? placementContext;
+
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'description': description,
+    'tags': tags,
+    'familyId': familyId,
+    'mapId': mapId,
+    'role': role,
+    'placementContext': placementContext,
+  };
+
+  bool matches(String text) => [
+    name,
+    description ?? '',
+    ...tags,
+  ].any((value) => value.toLowerCase().contains(text));
+}
+
 final class CatalogIndexEntry {
-  CatalogIndexEntry({required this.key, required this.reference});
+  CatalogIndexEntry({
+    required this.key,
+    required this.reference,
+    required this.summary,
+  });
   final CatalogDefinitionKey key;
   final CatalogObjectReference reference;
+  final CatalogDefinitionSummary summary;
   Map<String, Object?> toJson() => {
     'key': key.toJson(),
     'reference': reference.toJson(),
+    'summary': summary.toJson(),
   };
+}
+
+void _verifySummary(CatalogIndexEntry entry, CatalogDefinitionUnit unit) {
+  if (jsonEncode(entry.summary.toJson()) !=
+      jsonEncode(CatalogDefinitionSummary.fromUnit(unit).toJson())) {
+    throw const FormatException('catalog.summary: definition mismatch');
+  }
 }
 
 final class CatalogStorageBuild {
@@ -193,6 +331,35 @@ final class CatalogStorageBuild {
   final CatalogObjectReference root;
   final Map<String, List<int>> objects;
   final int definitionCount;
+}
+
+Iterable<List<CatalogIndexEntry>> _indexGroups(
+  List<CatalogIndexEntry> entries,
+  CatalogStorageLimits limits,
+) sync* {
+  final overhead = _encode({
+    'type': 'leaf',
+    'version': 2,
+    'entries': [],
+  }).length;
+  var group = <CatalogIndexEntry>[];
+  var bytes = overhead;
+  for (final entry in entries) {
+    final size = _encode(entry.toJson()).length;
+    if (overhead + size > limits.maxIndexBytes) {
+      throw const FormatException('catalog.index: entry byte limit');
+    }
+    if (group.isNotEmpty &&
+        (group.length == limits.indexPageSize ||
+            bytes + size + 1 > limits.maxIndexBytes)) {
+      yield group;
+      group = [];
+      bytes = overhead;
+    }
+    bytes += size + (group.isEmpty ? 0 : 1);
+    group.add(entry);
+  }
+  if (group.isNotEmpty) yield group;
 }
 
 final class CatalogStorageBuilder {
@@ -246,18 +413,15 @@ final class CatalogStorageBuilder {
           (key) => CatalogIndexEntry(
             key: key,
             reference: put(units[key]!.toJson(), limits.maxUnitBytes),
+            summary: CatalogDefinitionSummary.fromUnit(units[key]!),
           ),
         )
         .toList();
     final nodes = <_Node>[];
-    for (var i = 0; i < entries.length; i += limits.indexPageSize) {
-      final group = entries.sublist(
-        i,
-        (i + limits.indexPageSize).clamp(0, entries.length),
-      );
+    for (final group in _indexGroups(entries, limits)) {
       final ref = put({
         'type': 'leaf',
-        'version': 1,
+        'version': 2,
         'entries': group.map((e) => e.toJson()).toList(),
       }, limits.maxIndexBytes);
       nodes.add(_Node(group.first.key, group.last.key, group.length, 0, ref));
@@ -276,7 +440,7 @@ final class CatalogStorageBuilder {
         }
         final ref = put({
           'type': 'branch',
-          'version': 1,
+          'version': 2,
           'children': group.map((n) => n.toJson()).toList(),
         }, limits.maxIndexBytes);
         next.add(
@@ -293,7 +457,7 @@ final class CatalogStorageBuilder {
     }
     final root = put({
       'type': 'root',
-      'version': 1,
+      'version': 2,
       'definitionCount': units.length,
       'index': level.isEmpty ? null : level.single.toJson(),
     }, limits.maxIndexBytes);
@@ -305,6 +469,17 @@ final class CatalogDefinitionPage {
   CatalogDefinitionPage._(Iterable<CatalogIndexEntry> items, this.nextCursor)
     : items = List.unmodifiable(items);
   final List<CatalogIndexEntry> items;
+  final String? nextCursor;
+}
+
+final class CatalogSearchPage {
+  CatalogSearchPage({
+    required Iterable<CatalogIndexEntry> items,
+    required this.totalAvailable,
+    this.nextCursor,
+  }) : items = List.unmodifiable(items);
+  final List<CatalogIndexEntry> items;
+  final int totalAvailable;
   final String? nextCursor;
 }
 
@@ -356,7 +531,7 @@ final class CatalogStoragePatch {
       readObject: readObject,
       limits: _limits,
     );
-    snapshot._validatedStoredBytes = _storedBytes;
+    snapshot._admittedStoredBytes = _storedBytes;
     return snapshot;
   }
 }
@@ -457,12 +632,13 @@ final class CatalogSnapshot {
           item,
         ) {
           final entry = _map(item);
-          _keys(entry, {'key', 'reference'});
+          _keys(entry, {'key', 'reference', 'summary'});
           return CatalogIndexEntry(
             key: CatalogDefinitionKey.fromJson(_map(entry['key'])),
             reference: CatalogObjectReference.fromJson(
               _map(entry['reference']),
             ),
+            summary: CatalogDefinitionSummary.fromJson(_map(entry['summary'])),
           );
         }).toList();
         _ordered(page.map((entry) => entry.key).toList());
@@ -529,13 +705,13 @@ final class CatalogSnapshot {
       if (dependencies.any((key) => !keys.contains(key))) {
         throw const FormatException('catalog.validate: missing dependency');
       }
-      units.add(
-        CatalogDefinitionUnit(
-          key: key,
-          payload: _map(value['payload']),
-          references: dependencies,
-        ),
+      final unit = CatalogDefinitionUnit(
+        key: key,
+        payload: _map(value['payload']),
+        references: dependencies,
       );
+      _verifySummary(entry, unit);
+      units.add(unit);
     }
     return CatalogStorageRead._(units, references.values, storedBytes);
   }
@@ -545,7 +721,7 @@ final class CatalogSnapshot {
   final CatalogStorageLimits limits;
   final int definitionCount;
   final _Node? _index;
-  int? _validatedStoredBytes;
+  int? _admittedStoredBytes;
 
   Future<CatalogStoragePatch> patch({
     Iterable<CatalogDefinitionUnit> upserts = const [],
@@ -569,7 +745,7 @@ final class CatalogSnapshot {
       }
       changed[key] = null;
     }
-    if (_validatedStoredBytes == null) {
+    if (_admittedStoredBytes == null) {
       await validate();
     }
     final dependencies = <CatalogDefinitionKey>{};
@@ -606,6 +782,11 @@ final class CatalogSnapshot {
   }
 
   Future<CatalogDefinitionUnit?> lookup(CatalogDefinitionKey key) async {
+    final entry = await indexEntry(key);
+    return entry == null ? null : _unit(entry);
+  }
+
+  Future<CatalogIndexEntry?> indexEntry(CatalogDefinitionKey key) async {
     final index = _index;
     if (index == null || !_contains(index, key)) {
       return null;
@@ -616,7 +797,7 @@ final class CatalogSnapshot {
       exact: key,
       take: 1,
     );
-    return entries.isEmpty ? null : _unit(entries.single);
+    return entries.isEmpty ? null : entries.single;
   }
 
   Future<CatalogDefinitionPage> page({
@@ -645,7 +826,7 @@ final class CatalogSnapshot {
       }
       _keys(parsed, {'root', 'kind', 'after', 'version'});
       if (parsed['version'] is! int ||
-          parsed['version'] != 1 ||
+          parsed['version'] != 2 ||
           parsed['root'] != root.sha256 ||
           parsed['kind'] != kind?.name) {
         throw const FormatException(
@@ -665,7 +846,7 @@ final class CatalogSnapshot {
               'root': root.sha256,
               'kind': kind?.name,
               'after': items.last.key.toJson(),
-              'version': 1,
+              'version': 2,
             }),
           )
         : null;
@@ -722,11 +903,120 @@ final class CatalogSnapshot {
     return List.unmodifiable(result);
   }
 
+  Future<CatalogSearchPage> search({
+    CatalogDefinitionKind? kind,
+    String text = '',
+    int limit = 50,
+    String? cursor,
+    String? familyId,
+    String? placementContext,
+  }) async {
+    if (limit < 1 ||
+        limit > limits.indexPageSize ||
+        text.length > 512 ||
+        (familyId?.length ?? 0) > 512 ||
+        (placementContext?.length ?? 0) > 512) {
+      throw ArgumentError('catalog.search: invalid search budget');
+    }
+    final normalized = text.trim().toLowerCase();
+    final signature = jsonEncode([
+      kind?.name,
+      normalized,
+      familyId,
+      placementContext,
+    ]);
+    CatalogDefinitionKey? after;
+    if (cursor != null) {
+      if (cursor.length > 4096) {
+        throw const FormatException('catalog.cursor: byte limit');
+      }
+      try {
+        final source = utf8.decode(
+          base64Url.decode(base64Url.normalize(cursor)),
+        );
+        final data = _map(jsonDecode(source));
+        if (utf8.decode(_encode(data)) != source) {
+          throw const FormatException('catalog.cursor: non canonical JSON');
+        }
+        _keys(data, {'version', 'root', 'query', 'after'});
+        if (data['version'] is! int ||
+            data['version'] != 2 ||
+            data['root'] != root.sha256 ||
+            data['query'] != signature) {
+          throw const FormatException('catalog.cursor: query mismatch');
+        }
+        after = CatalogDefinitionKey.fromJson(_map(data['after']));
+        if (kind != null && after.kind != kind) {
+          throw const FormatException('catalog.cursor: kind mismatch');
+        }
+      } catch (_) {
+        throw const FormatException('catalog.cursor: invalid search cursor');
+      }
+    }
+    var total = 0;
+    final selected = <CatalogIndexEntry>[];
+    String? indexCursor;
+    do {
+      final current = await page(
+        kind: kind,
+        limit: limits.indexPageSize,
+        cursor: indexCursor,
+      );
+      for (final entry in current.items) {
+        final summary = entry.summary;
+        if (!summary.matches(normalized) ||
+            (familyId != null && summary.familyId != familyId) ||
+            (placementContext != null &&
+                summary.placementContext != placementContext)) {
+          continue;
+        }
+        total++;
+        if ((after == null || entry.key.compareTo(after) > 0) &&
+            selected.length <= limit) {
+          selected.add(entry);
+        }
+      }
+      indexCursor = current.nextCursor;
+    } while (indexCursor != null);
+    final more = selected.length > limit;
+    final items = selected.take(limit).toList();
+    return CatalogSearchPage(
+      items: items,
+      totalAvailable: total,
+      nextCursor: more
+          ? base64Url.encode(
+              _encode({
+                'version': 2,
+                'root': root.sha256,
+                'query': signature,
+                'after': items.last.key.toJson(),
+              }),
+            )
+          : null,
+    );
+  }
+
   Future<void> validate() async {
     await objectReferences();
   }
 
-  Future<List<CatalogObjectReference>> objectReferences() async {
+  Future<void> admitIndex() async {
+    await _inspectObjectReferences(validateUnits: false);
+  }
+
+  Future<List<CatalogObjectReference>> objectReferences() =>
+      _inspectObjectReferences(validateUnits: true);
+
+  Future<List<CatalogDefinitionUnit>> readAllUnits() async {
+    final units = <CatalogDefinitionUnit>[];
+    await _inspectObjectReferences(validateUnits: true, onUnit: units.add);
+    return List.unmodifiable(units);
+  }
+
+  Future<List<CatalogObjectReference>> _inspectObjectReferences({
+    required bool validateUnits,
+    void Function(CatalogDefinitionUnit)? onUnit,
+  }) async {
     await _read(root, _readObject, limits, limits.maxIndexBytes);
     var bytes = root.byteLength;
     final objects = <String, CatalogObjectReference>{root.sha256: root};
@@ -756,17 +1046,20 @@ final class CatalogSnapshot {
         'catalog.validate: definition count mismatch',
       );
     }
-    final keys = entries.map((e) => e.key).toSet();
     for (final entry in entries) {
       admit(entry.reference);
     }
-    for (final entry in entries) {
-      final unit = await _unit(entry);
-      if (unit.references.any((k) => !keys.contains(k))) {
-        throw const FormatException('catalog.validate: missing dependency');
+    if (validateUnits) {
+      final keys = entries.map((e) => e.key).toSet();
+      for (final entry in entries) {
+        final unit = await _unit(entry);
+        if (unit.references.any((k) => !keys.contains(k))) {
+          throw const FormatException('catalog.validate: missing dependency');
+        }
+        onUnit?.call(unit);
       }
     }
-    _validatedStoredBytes = bytes;
+    _admittedStoredBytes = bytes;
     return List.unmodifiable(objects.values);
   }
 
@@ -787,11 +1080,13 @@ final class CatalogSnapshot {
       limits.maxReferencesPerUnit,
     ).map((r) => CatalogDefinitionKey.fromJson(_map(r))).toList();
     _ordered(refs);
-    return CatalogDefinitionUnit(
+    final unit = CatalogDefinitionUnit(
       key: key,
       payload: _map(json['payload']),
       references: refs,
     );
+    _verifySummary(entry, unit);
+    return unit;
   }
 
   Future<List<CatalogIndexEntry>> _collect({
@@ -827,10 +1122,11 @@ final class CatalogSnapshot {
         final values = _list(json['entries'], limits.indexPageSize);
         final entries = values.map((v) {
           final map = _map(v);
-          _keys(map, {'key', 'reference'});
+          _keys(map, {'key', 'reference', 'summary'});
           return CatalogIndexEntry(
             key: CatalogDefinitionKey.fromJson(_map(map['key'])),
             reference: CatalogObjectReference.fromJson(_map(map['reference'])),
+            summary: CatalogDefinitionSummary.fromJson(_map(map['summary'])),
           );
         }).toList();
         _ordered(entries.map((e) => e.key).toList());
@@ -908,7 +1204,7 @@ final class _CatalogPatchBuilder {
   _Node _leaf(List<CatalogIndexEntry> entries) {
     final reference = _put({
       'type': 'leaf',
-      'version': 1,
+      'version': 2,
       'entries': entries.map((entry) => entry.toJson()).toList(),
     }, limits.maxIndexBytes);
     return _Node(
@@ -927,7 +1223,7 @@ final class _CatalogPatchBuilder {
     }
     final reference = _put({
       'type': 'branch',
-      'version': 1,
+      'version': 2,
       'children': children.map((child) => child.toJson()).toList(),
     }, limits.maxIndexBytes);
     return _Node(
@@ -940,10 +1236,7 @@ final class _CatalogPatchBuilder {
   }
 
   List<_Node> _leaves(List<CatalogIndexEntry> entries) => [
-    for (var i = 0; i < entries.length; i += limits.indexPageSize)
-      _leaf(
-        entries.sublist(i, (i + limits.indexPageSize).clamp(0, entries.length)),
-      ),
+    for (final group in _indexGroups(entries, limits)) _leaf(group),
   ];
 
   List<_Node> _branches(List<_Node> children) => [
@@ -975,13 +1268,14 @@ final class _CatalogPatchBuilder {
         _envelope(json, 'leaf', {'entries'});
         for (final item in _list(json['entries'], limits.indexPageSize)) {
           final value = _map(item);
-          _keys(value, {'key', 'reference'});
+          _keys(value, {'key', 'reference', 'summary'});
           final key = CatalogDefinitionKey.fromJson(_map(value['key']));
           entries[key] = CatalogIndexEntry(
             key: key,
             reference: CatalogObjectReference.fromJson(
               _map(value['reference']),
             ),
+            summary: CatalogDefinitionSummary.fromJson(_map(value['summary'])),
           );
         }
       }
@@ -1004,6 +1298,7 @@ final class _CatalogPatchBuilder {
             entries[mutation.key] = CatalogIndexEntry(
               key: mutation.key,
               reference: reference,
+              summary: CatalogDefinitionSummary.fromUnit(unit),
             );
             modified = true;
           } else {
@@ -1093,12 +1388,12 @@ final class _CatalogPatchBuilder {
         snapshot.definitionCount,
         {},
         limits,
-        snapshot._validatedStoredBytes!,
+        snapshot._admittedStoredBytes!,
       );
     }
     final root = _put({
       'type': 'root',
-      'version': 1,
+      'version': 2,
       'definitionCount': count,
       'index': index?.toJson(),
     }, limits.maxIndexBytes);
@@ -1138,7 +1433,7 @@ final class _CatalogPatchBuilder {
       (sum, bytes) => sum + bytes.length,
     );
     final storedBytes =
-        snapshot._validatedStoredBytes! - removedBytes + addedBytes;
+        snapshot._admittedStoredBytes! - removedBytes + addedBytes;
     if (storedBytes > limits.maxStoredBytes) {
       throw const FormatException('catalog.patch: total byte limit');
     }
@@ -1227,7 +1522,7 @@ void _keys(Map<String, Object?> json, Set<String> expected) {
 
 void _envelope(Map<String, Object?> json, String type, Set<String> fields) {
   _keys(json, {'type', 'version', ...fields});
-  if (json['type'] != type || json['version'] is! int || json['version'] != 1) {
+  if (json['type'] != type || json['version'] is! int || json['version'] != 2) {
     throw const FormatException('catalog: unsupported object type or version');
   }
 }

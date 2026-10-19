@@ -38,6 +38,10 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
   }
 
   void _show(WorkspaceSpace space) {
+    if (space != WorkspaceSpace.map && !_controller.hasCompleteProject) {
+      unawaited(_materializeWorkshops(destination: space));
+      return;
+    }
     if (_space == WorkspaceSpace.pokemon &&
         space != _space &&
         (_pokemon?.hasPendingChanges == true ||

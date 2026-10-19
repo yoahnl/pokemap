@@ -362,7 +362,7 @@ as ProjectSurfaceLayoutVariant,
 @override
 @pragma('vm:prefer-inline')
 $ProjectSurfaceLayoutVariantCopyWith<$Res> get compact {
-
+  
   return $ProjectSurfaceLayoutVariantCopyWith<$Res>(_self.compact, (value) {
     return _then(_self.copyWith(compact: value));
   });
@@ -371,7 +371,7 @@ $ProjectSurfaceLayoutVariantCopyWith<$Res> get compact {
 @override
 @pragma('vm:prefer-inline')
 $ProjectSurfaceLayoutVariantCopyWith<$Res> get regular {
-
+  
   return $ProjectSurfaceLayoutVariantCopyWith<$Res>(_self.regular, (value) {
     return _then(_self.copyWith(regular: value));
   });
@@ -380,7 +380,7 @@ $ProjectSurfaceLayoutVariantCopyWith<$Res> get regular {
 @override
 @pragma('vm:prefer-inline')
 $ProjectSurfaceLayoutVariantCopyWith<$Res> get expanded {
-
+  
   return $ProjectSurfaceLayoutVariantCopyWith<$Res>(_self.expanded, (value) {
     return _then(_self.copyWith(expanded: value));
   });
@@ -593,7 +593,7 @@ as ProjectSurfaceLayoutVariant,
 @override
 @pragma('vm:prefer-inline')
 $ProjectSurfaceLayoutVariantCopyWith<$Res> get compact {
-
+  
   return $ProjectSurfaceLayoutVariantCopyWith<$Res>(_self.compact, (value) {
     return _then(_self.copyWith(compact: value));
   });
@@ -602,7 +602,7 @@ $ProjectSurfaceLayoutVariantCopyWith<$Res> get compact {
 @override
 @pragma('vm:prefer-inline')
 $ProjectSurfaceLayoutVariantCopyWith<$Res> get regular {
-
+  
   return $ProjectSurfaceLayoutVariantCopyWith<$Res>(_self.regular, (value) {
     return _then(_self.copyWith(regular: value));
   });
@@ -611,7 +611,7 @@ $ProjectSurfaceLayoutVariantCopyWith<$Res> get regular {
 @override
 @pragma('vm:prefer-inline')
 $ProjectSurfaceLayoutVariantCopyWith<$Res> get expanded {
-
+  
   return $ProjectSurfaceLayoutVariantCopyWith<$Res>(_self.expanded, (value) {
     return _then(_self.copyWith(expanded: value));
   });
@@ -686,7 +686,7 @@ as ProjectResponsiveSurfaceLayoutProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title {
-
+  
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.title, (value) {
     return _then(_self.copyWith(title: value));
   });
@@ -695,7 +695,7 @@ $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title {
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu {
-
+  
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.pauseMenu, (value) {
     return _then(_self.copyWith(pauseMenu: value));
   });
@@ -704,7 +704,7 @@ $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu {
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue {
-
+  
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
   });
@@ -931,7 +931,7 @@ as ProjectResponsiveSurfaceLayoutProfile?,
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title {
-
+  
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.title, (value) {
     return _then(_self.copyWith(title: value));
   });
@@ -940,7 +940,7 @@ $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title {
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu {
-
+  
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.pauseMenu, (value) {
     return _then(_self.copyWith(pauseMenu: value));
   });
@@ -949,7 +949,7 @@ $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu {
 @override
 @pragma('vm:prefer-inline')
 $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue {
-
+  
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
   });

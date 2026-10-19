@@ -84,6 +84,7 @@ class MapWorkspaceViewState {
   ProjectSmartTilePreset? terrain;
   String? terrainMaterialId;
   String? terrainPatternId;
+  bool _selectInitialTerrainConstruction = false;
   SmartTilePatternSelectionKind terrainPatternMode =
       SmartTilePatternSelectionKind.stamp;
   ProjectCharacterEntry? character;
@@ -282,6 +283,7 @@ class MapWorkspaceViewState {
   }
 
   void prepareTerrainPainting(ProjectSmartTilePreset preset) {
+    _selectInitialTerrainConstruction = true;
     paletteTab = 'Terrains';
     if (terrain?.id != preset.id) terrainPatternId = null;
     if (terrain?.id != preset.id ||
@@ -301,6 +303,8 @@ class MapWorkspaceViewState {
     terrainPatternId = pattern?.id;
     if (pattern?.repeatMode == SmartTilePatternRepeatMode.stamp) {
       terrainPatternMode = SmartTilePatternSelectionKind.stamp;
+    } else if (pattern?.construction != null) {
+      terrainPatternMode = defaultTerrainPatternSelection(pattern!);
     }
     spatialTerrainMode = SpatialTerrainMode.ground;
     tool = StudioMapTool.terrain;
@@ -401,6 +405,7 @@ class MapWorkspaceViewState {
         tool = StudioMapTool.select;
       }
       if (terrain == null) {
+        _selectInitialTerrainConstruction = false;
         terrainMaterialId = null;
         terrainPatternId = null;
       } else if (!terrain!.allowedMaterialIds.contains(terrainMaterialId)) {
@@ -416,6 +421,37 @@ class MapWorkspaceViewState {
           terrainPatternId = null;
         } else if (pattern.repeatMode == SmartTilePatternRepeatMode.stamp) {
           terrainPatternMode = SmartTilePatternSelectionKind.stamp;
+        } else if (pattern.construction?.x != null &&
+            pattern.construction?.y != null &&
+            terrainPatternMode == SmartTilePatternSelectionKind.line) {
+          terrainPatternMode = SmartTilePatternSelectionKind.rectangle;
+        }
+      }
+      if (_selectInitialTerrainConstruction && map != null && terrain != null) {
+        _selectInitialTerrainConstruction = false;
+        if (terrainPatternId == null &&
+            terrain!.categoryId.isNotEmpty &&
+            terrain!.status == SmartTilePresetStatus.published &&
+            terrain!.coveragePolicy == SmartTileCoveragePolicy.sparse &&
+            terrain!.rules.isEmpty &&
+            terrain!.coverageProfile.mode == SmartTileCoverageMode.explicit &&
+            terrain!.coverageProfile.requiredScenarios.isEmpty &&
+            !terrain!.coverageProfile.allowFallback) {
+          final constructions =
+              availableTerrainPatterns(
+                    project: project,
+                    map: map,
+                    preset: terrain!,
+                  )
+                  .where(
+                    (pattern) =>
+                        pattern.construction != null &&
+                        pattern.categoryId == terrain!.categoryId,
+                  )
+                  .toList();
+          if (constructions.length == 1) {
+            selectTerrainPattern(constructions.single);
+          }
         }
       }
     }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
@@ -63,6 +65,60 @@ final class SpatialCameraProfile {
   };
 }
 
+final class SpatialModelClip {
+  SpatialModelClip({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  }) {
+    if (![left, top, right, bottom].every((value) => value.isFinite) ||
+        left >= right ||
+        top >= bottom) {
+      throw const FormatException(
+        'Model clips require a finite non-empty XZ rectangle.',
+      );
+    }
+  }
+
+  factory SpatialModelClip.fromJson(Map<String, dynamic> json) {
+    const fields = ['left', 'top', 'right', 'bottom'];
+    if (json.length != fields.length ||
+        fields.any((field) => json[field] is! num)) {
+      throw const FormatException(
+        'Model clips require exactly four numeric XZ coordinates.',
+      );
+    }
+    return SpatialModelClip(
+      left: (json['left'] as num).toDouble(),
+      top: (json['top'] as num).toDouble(),
+      right: (json['right'] as num).toDouble(),
+      bottom: (json['bottom'] as num).toDouble(),
+    );
+  }
+
+  final double left, top, right, bottom;
+
+  Map<String, dynamic> toJson() => {
+    'left': left,
+    'top': top,
+    'right': right,
+    'bottom': bottom,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SpatialModelClip &&
+          left == other.left &&
+          top == other.top &&
+          right == other.right &&
+          bottom == other.bottom;
+
+  @override
+  int get hashCode => Object.hash(left, top, right, bottom);
+}
+
 final class SpatialModelInstance {
   SpatialModelInstance({
     required this.id,
@@ -74,6 +130,7 @@ final class SpatialModelInstance {
     this.animationLoop = true,
     this.animationSpeed = 1,
     this.blocksMovement = true,
+    this.clip,
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
         modelId.isEmpty ||
@@ -84,7 +141,8 @@ final class SpatialModelInstance {
         (animationIndex != null && animationIndex! < 0) ||
         !animationSpeed.isFinite ||
         animationSpeed <= 0 ||
-        animationSpeed > 16) {
+        animationSpeed > 16 ||
+        (clip != null && (animationIndex != null || blocksMovement))) {
       throw const FormatException('Invalid spatial model placement.');
     }
   }
@@ -95,6 +153,20 @@ final class SpatialModelInstance {
   final bool animationLoop;
   final double animationSpeed;
   final bool blocksMovement;
+  final SpatialModelClip? clip;
+  Model3dVector3 get supportPosition {
+    final clip = this.clip;
+    if (clip == null) return position;
+    final dx = clip.left / 2 + clip.right / 2;
+    final dz = clip.top / 2 + clip.bottom / 2;
+    final angle = rotationDegrees * math.pi / 180;
+    return Model3dVector3(
+      x: position.x + dx * math.cos(angle) + dz * math.sin(angle),
+      y: position.y,
+      z: position.z - dx * math.sin(angle) + dz * math.cos(angle),
+    );
+  }
+
   SpatialModelInstance copyWith({
     Model3dVector3? position,
     double? rotationDegrees,
@@ -104,6 +176,8 @@ final class SpatialModelInstance {
     bool clearAnimation = false,
     bool? animationLoop,
     double? animationSpeed,
+    SpatialModelClip? clip,
+    bool clearClip = false,
   }) => SpatialModelInstance(
     id: id,
     modelId: modelId,
@@ -116,6 +190,7 @@ final class SpatialModelInstance {
     animationLoop: animationLoop ?? this.animationLoop,
     animationSpeed: animationSpeed ?? this.animationSpeed,
     blocksMovement: blocksMovement ?? this.blocksMovement,
+    clip: clearClip ? null : clip ?? this.clip,
   );
   @override
   bool operator ==(Object other) =>
@@ -129,7 +204,8 @@ final class SpatialModelInstance {
           other.animationIndex == animationIndex &&
           other.animationLoop == animationLoop &&
           other.animationSpeed == animationSpeed &&
-          other.blocksMovement == blocksMovement;
+          other.blocksMovement == blocksMovement &&
+          other.clip == clip;
   @override
   int get hashCode => Object.hash(
     id,
@@ -141,6 +217,7 @@ final class SpatialModelInstance {
     animationLoop,
     animationSpeed,
     blocksMovement,
+    clip,
   );
 
   factory SpatialModelInstance.fromJson(Map<String, dynamic> json) =>
@@ -156,6 +233,13 @@ final class SpatialModelInstance {
         animationLoop: json['animationLoop'] as bool? ?? true,
         animationSpeed: (json['animationSpeed'] as num?)?.toDouble() ?? 1,
         blocksMovement: json['blocksMovement'] as bool,
+        clip: switch (json['clip']) {
+          null => null,
+          Map<String, dynamic> value => SpatialModelClip.fromJson(value),
+          _ => throw const FormatException(
+            'Model clips require a rectangle object.',
+          ),
+        },
       );
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -167,6 +251,7 @@ final class SpatialModelInstance {
     'animationLoop': animationLoop,
     'animationSpeed': animationSpeed,
     'blocksMovement': blocksMovement,
+    if (clip != null) 'clip': clip!.toJson(),
   };
 }
 
@@ -232,15 +317,16 @@ final class MapSpatialScene {
           'A ramp surface must reference an existing model instance.',
         );
       }
-      if (surface.blocksMovement) {
+      if (surface.blocksMovement || surface.clip != null) {
         throw const FormatException('A ramp surface must allow movement.');
       }
     }
     for (final instance in this.instances) {
-      if (instance.position.x < 0 ||
-          instance.position.z < 0 ||
-          instance.position.x >= width ||
-          instance.position.z >= depth) {
+      final support = instance.supportPosition;
+      if (support.x < 0 ||
+          support.z < 0 ||
+          support.x >= width ||
+          support.z >= depth) {
         throw const FormatException('A spatial placement is outside the map.');
       }
     }

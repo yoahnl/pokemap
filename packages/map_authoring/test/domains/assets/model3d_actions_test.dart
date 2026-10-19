@@ -6,6 +6,100 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  for (final defaultBlocking in [true, false]) {
+    test('configure unchanged model default blocking $defaultBlocking is a no-op', () async {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      await f.apply(await f.plan());
+      if (!defaultBlocking) {
+        await f.apply(await f.planAction('model3d.configure', {
+          'modelId': 'house', 'blocksMovementByDefault': false,
+        }));
+      }
+      final before = await f.projectFile.readAsBytes();
+      final snapshot = await f.snapshots.load(f.project);
+      final model = snapshot.manifest.models3d.single;
+      final variants = [
+        {'modelId': model.id, 'blocksMovementByDefault': defaultBlocking},
+        {'modelId': model.id, 'name': model.name, 'scale': model.scale,
+          'pivot': model.pivot.toJson(), 'collisionBounds': null, 'rampProfile': null,
+          'blocksMovementByDefault': defaultBlocking},
+      ];
+      for (var i = 0; i < variants.length; i++) {
+        final plan = await f.mutations.planMutation(f.project, AuthoringRequest(
+          requestId: 'same-$defaultBlocking-$i', actionId: 'model3d.configure',
+          actionVersion: 1, workspaceHandle: f.workspace.value,
+          expectedRevision: snapshot.revision, idempotencyKey: 'same-$defaultBlocking-$i',
+          parameters: variants[i],
+        ));
+        expect(plan.plan.changeSet.changes, isEmpty);
+        expect(plan.plan.changeSet.diff.entries, isEmpty);
+        expect(plan.applicable, false);
+        expect(plan.nonApplicableReason, 'no_changes');
+        expect(plan.plan.preview['noOp'], true);
+        expect(jsonEncode(plan.toJson()), contains('no_changes'));
+        final jsonl = await f.planAction('model3d.configure', variants[i]);
+        expect(jsonl.status, AuthoringResultStatus.success, reason: jsonEncode(jsonl.toJson()));
+        final jsonPlan = jsonl.data['plan'] as Map;
+        expect(jsonPlan['applicable'], false);
+        expect(jsonPlan['nonApplicableReason'], 'no_changes');
+        expect((jsonPlan['preview'] as Map)['noOp'], true);
+        expect(await f.projectFile.readAsBytes(), before);
+      }
+    });
+  }
+
+  test('JSONL configures default blocking and preserves explicit instances and replacement', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect((await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final map = await f.addPlacement();
+    final beforeMap = await map.readAsBytes();
+    final configured = await f.planAction('model3d.configure', {
+      'modelId': 'house',
+      'blocksMovementByDefault': false,
+    });
+    expect(configured.status, AuthoringResultStatus.success, reason: jsonEncode(configured.toJson()));
+    final diff = ((configured.data['plan'] as Map)['changeSet'] as Map)['diff'];
+    expect(jsonEncode(diff), contains('"blocksMovementByDefault":false'));
+    expect((await f.apply(configured)).status, AuthoringResultStatus.success);
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.blocksMovementByDefault, false);
+    expect(await map.readAsBytes(), beforeMap);
+    expect((await f.apply(await f.planReplacement(animatedGlb()))).status, AuthoringResultStatus.success);
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.blocksMovementByDefault, false);
+    expect(await map.readAsBytes(), beforeMap);
+    expect((await f.apply(await f.planAction('model3d.configure', {'modelId': 'house', 'name': 'Decor'}))).status, AuthoringResultStatus.success);
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.blocksMovementByDefault, false);
+    expect((await f.apply(await f.planAction('model3d.configure', {'modelId': 'house', 'blocksMovementByDefault': true}))).status, AuthoringResultStatus.success);
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.toJson(), isNot(contains('blocksMovementByDefault')));
+  });
+  test('JSONL refuses null and nonboolean default blocking without publication', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    await f.apply(await f.plan());
+    final before = await f.projectFile.readAsBytes();
+    for (final invalid in [null, 0, 'false', <String, Object?>{}]) {
+      final result = await f.planAction('model3d.configure', {'modelId': 'house', 'blocksMovementByDefault': invalid});
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(await f.projectFile.readAsBytes(), before);
+    }
+  });
+  test('default blocking is a discoverable nonnullable model configuration', () {
+    final descriptor = Model3dActions.descriptors.singleWhere((d) => d.id == 'model3d.configure');
+    final schema = descriptor.extensions['inputSchema'] as Map;
+    expect((schema['properties'] as Map)['blocksMovementByDefault'], {
+      'type': 'boolean',
+      'description': 'Default for newly placed model instances; existing instance overrides are unchanged.',
+    });
+    expect(descriptor.summary, contains('default movement blocking'));
+    final kind = AuthoringResourceKindRegistry.canonical().find('model3d')!;
+    expect(kind.extensions['blocksMovementByDefault'], {
+      'type': 'boolean',
+      'default': true,
+      'serializedDefaultOmitted': true,
+      'instanceOverrideField': 'blocksMovement',
+    });
+  });
   test('JSONL publishes and paints a reusable 3D path model', () async {
     final f = await _Fixture.create();
     addTearDown(f.dispose);
