@@ -707,6 +707,8 @@ void main() {
               maxTextCodeUnits: 6000)),
       sourceCatalogStudyWriteLimitsFor(1),
       sourceCatalogStudyWriteLimitsFor(383),
+      sourceCatalogStudyWriteLimitsFor(383,
+          includeNativeCatalog: true, fullGameContent: true),
     ];
     final hashes = <Sha256Hash>{};
     for (final limits in policies) {

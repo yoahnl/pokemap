@@ -213,7 +213,7 @@ final class LiteralAutotileComposer {
           maxContainerEntries: math.min(4096, limits.jsonLimits.maxNodes),
           maxTotalEntries: math.min(100000, limits.jsonLimits.maxNodes),
           maxStringBytes: limits.maxArtifactBytes,
-          maxTotalStringBytes: limits.maxTotalArtifactBytes,
+          maxTotalStringBytes: math.min(limits.maxTotalArtifactBytes, 268435456),
           maxTotalLocationCodeUnits: limits.jsonLimits.maxTextCodeUnits,
         ));
     final root = document.node(document.rootId);

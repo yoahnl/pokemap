@@ -635,7 +635,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     });
   }
   for (final name in [
-    'Trainer(0)',
+    'Trainer(-1)',
     'Trainer(1000)',
     'Trainer(x)',
     'Trainer(1) Trainer(2)',

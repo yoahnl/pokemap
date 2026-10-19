@@ -171,7 +171,8 @@ final class ConverterStudySettings {
     }
     writeLimits ??=
         sourceCatalogStudyWriteLimitsFor(selectedSourceMapIds.length,
-            includeNativeCatalog: true);
+            includeNativeCatalog: true,
+            fullGameContent: contentScope == ConverterContentScope.full);
     writeLimits.validate();
     _validateNormalizationLimits(normalizationLimits);
     _workflowPath(parentPath);

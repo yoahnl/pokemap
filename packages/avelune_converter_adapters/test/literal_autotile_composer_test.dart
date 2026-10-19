@@ -165,6 +165,28 @@ void main() {
         throwsA(isA<LiteralAutotileFailure>().having(
             (failure) => failure.code, 'code', 'autotile.profile.sections')));
   }, skip: !Platform.isMacOS);
+  test('AUTO-02 large full conversion keeps bounded script decoding', () async {
+    final source = await _Source.open(OriginalAutotileFixture.simple().pngBytes,
+        scriptsBytes: syntheticInterpretationArchive);
+    addTearDown(source.close);
+    final interpretation = SourceInterpretationProfile.fromJson({
+      ...syntheticSourceInterpretationProfile.toJson(),
+      'capabilities': ['autotiles'],
+      'sections': {
+        for (final role in ['TilemapRenderer', 'AutotileExpander', 'TileDrawingHelper'])
+          'autotiles.$role': syntheticSourceInterpretationProfile.sections['events.Interpreter'],
+      },
+    });
+    final profile = await const LiteralAutotileComposer().inspectProfile(
+        snapshot: source.snapshot,
+        files: source.files,
+        interpretationProfile: interpretation,
+        limits: sourceCatalogStudyWriteLimitsFor(383,
+            includeNativeCatalog: true, fullGameContent: true));
+    expect(profile.clockAttested, isTrue);
+    expect(profile.extendedAttested, isTrue);
+    expect(profile.sourceSnapshotHash, source.snapshot.canonicalHash);
+  }, skip: !Platform.isMacOS);
   for (final format in OriginalAutotileFormat.values) {
     test('AUTO-02 exact Kanto profile ${format.name} three frame clock',
         () async {

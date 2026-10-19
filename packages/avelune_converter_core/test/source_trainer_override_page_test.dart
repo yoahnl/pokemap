@@ -6,6 +6,105 @@ import 'package:test/test.dart';
 import 'support/trainer_program_fixture.dart';
 
 void main() {
+  for (final variant in ['comments', 'sprite', 'hiddenIdle', 'interaction']) {
+    test('recognizes the bounded trainer page variant $variant', () async {
+      final source = await trainerSource(
+          eventName: variant == 'interaction' ? 'Trainer(0)' : 'Trainer(2)',
+          mutate: (pages) {
+            if (variant == 'comments') {
+              (pages.first.fields['@list'] as List)
+                  .insertAll(0, <TrainerRubyObject>[
+                trainerCommand(108, ['Before the gym victory.']),
+                trainerCommand(408, ['Ordinary editor annotation.']),
+              ]);
+            }
+            final override = trainerPages()[1];
+            final condition =
+                override.fields['@condition'] as TrainerRubyObject;
+            condition.fields['@self_switch_valid'] = false;
+            condition.fields['@switch1_valid'] = true;
+            if (variant == 'sprite') {
+              (override.fields['@graphic'] as TrainerRubyObject)
+                  .fields['@character_name'] = 'trainer_ALTERNATE';
+            }
+            if (variant == 'hiddenIdle') {
+              override.fields['@list'] = [trainerCommand(0, [])];
+              override.fields['@walk_anime'] = false;
+              override.fields['@through'] = true;
+              (override.fields['@graphic'] as TrainerRubyObject)
+                  .fields['@character_name'] = '';
+            }
+            pages.add(override);
+          });
+      final analysis = analyzeTrainerSource(source);
+      final event = analysis.eventAt(417, 23)!;
+      final program =
+          event.pages.first.body.nodes.single as SourceTrainerProgramNode;
+      expect(program.detectionDistance, variant == 'interaction' ? 0 : 2);
+      expect(
+          program.requiredGameplayBindings
+              .contains('sourceTrainerSightAndApproach'),
+          variant != 'interaction');
+      expect(program.sourcePageRefs, hasLength(3));
+      expect(
+          program.isBoundToSourceEvent(
+              source: source,
+              profile: analysis.profile,
+              sourceMapId: 417,
+              event: source.maps.single.map.events.single),
+          isTrue);
+      if (variant == 'sprite') {
+        expect(event.pages.last.graphic!.characterName, 'trainer_ALTERNATE');
+      }
+      if (variant == 'hiddenIdle') {
+        expect(event.pages.last.isEmpty, isTrue);
+        expect(event.pages.last.graphic!.walkAnime, isFalse);
+      }
+    });
+  }
+  for (final defect in [
+    'orphanContinuation',
+    'script',
+    'nonText',
+    'visibleIdle',
+    'spriteOpacity'
+  ]) {
+    test('refuses the unsafe bounded trainer variant $defect', () async {
+      final source = await trainerSource(mutate: (pages) {
+        if (defect == 'orphanContinuation' ||
+            defect == 'script' ||
+            defect == 'nonText') {
+          (pages.first.fields['@list'] as List).insert(
+              0,
+              trainerCommand(
+                  defect == 'orphanContinuation'
+                      ? 408
+                      : defect == 'script'
+                          ? 355
+                          : 108,
+                  [defect == 'nonText' ? 17 : 'customEffect()']));
+        }
+        final override = trainerPages()[1];
+        final condition = override.fields['@condition'] as TrainerRubyObject;
+        condition.fields['@self_switch_valid'] = false;
+        condition.fields['@switch1_valid'] = true;
+        if (defect == 'visibleIdle') override.fields['@walk_anime'] = false;
+        if (defect == 'spriteOpacity') {
+          final graphic = override.fields['@graphic'] as TrainerRubyObject;
+          graphic.fields['@character_name'] = 'trainer_ALTERNATE';
+          graphic.fields['@opacity'] = 128;
+        }
+        pages.add(override);
+      });
+      expect(
+          analyzeTrainerSource(source)
+              .eventAt(417, 23)!
+              .pages
+              .expand((page) => page.body.nodes)
+              .whereType<SourceTrainerProgramNode>(),
+          isEmpty);
+    });
+  }
   for (final sample in [
     (hidden: false, through: false, turn: true),
     (hidden: true, through: false, turn: false),

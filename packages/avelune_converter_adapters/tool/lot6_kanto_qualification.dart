@@ -208,7 +208,8 @@ Future<void> main(List<String> args) async {
     final prepared = await workflow.prepareStudy();
     final draft = prepared.nativeDraft;
     if (draft != null) {
-      final budget = sourceCatalogStudyWriteLimitsFor(383, includeNativeCatalog: true);
+      final budget = sourceCatalogStudyWriteLimitsFor(383, includeNativeCatalog: true,
+          fullGameContent: contentScope == ConverterContentScope.full);
       final images = <Map<String, Object?>>[];
       final nativeImages = <String, int>{};
       for (final role in ['native', 'sourceWitness']) {
@@ -224,11 +225,30 @@ Future<void> main(List<String> args) async {
       final retainedPixels = images.fold<int>(0, (sum, image) => sum + (image['pixels'] as int));
       final logicalPixels = draft.mutations.expand(nativeImportParameters)
           .fold<int>(0, (sum, row) => sum + (nativeImages[row['artifactHandle']] ?? 0));
+      final nativeBytes = draft.artifacts.fold<int>(0, (sum, artifact) => sum + artifact.bytes.length);
+      final witnessBytes = draft.sourceArtifacts.fold<int>(0, (sum, artifact) => sum + artifact.bytes.length);
+      final artifactVolumes = <Map<String, Object?>>[];
+      final mediaBytes = <String, int>{};
+      for (final role in ['native', 'sourceWitness']) {
+        for (final artifact in role == 'native' ? draft.artifacts : draft.sourceArtifacts) {
+          final key = '$role:${artifact.reference.mediaType}';
+          mediaBytes[key] = (mediaBytes[key] ?? 0) + artifact.bytes.length;
+          artifactVolumes.add({'role': role, 'handle': artifact.handle,
+            'mediaType': artifact.reference.mediaType, 'byteLength': artifact.bytes.length});
+        }
+      }
+      artifactVolumes.sort((a, b) => (b['byteLength'] as int).compareTo(a['byteLength'] as int));
       final budgetProof = {'kind': 'actualFullPreparedKantoImageBudget',
         'nativeDraftHash': draft.canonicalHash.value, 'images': images,
         'retainedPixels': retainedPixels, 'logicalImportPixels': logicalPixels,
         'maxTotalImagePixels': budget.maxTotalImagePixels,
         'maxSingleImagePixels': budget.maxImagePixels,
+        'nativeArtifactBytes': nativeBytes, 'sourceWitnessBytes': witnessBytes,
+        'retainedArtifactBytes': nativeBytes + witnessBytes,
+        'maxTotalArtifactBytes': budget.maxTotalArtifactBytes,
+        'retainedByteAccounting': 'bothNativeAndSourceWitnessRoles',
+        'artifactBytesByRoleAndMediaType': mediaBytes,
+        'largestArtifacts': artifactVolumes.take(10).toList(),
         'derivedBordersCheckedSeparatelyBeforeStagingByNativeWriter': true,
         'sourceScriptsExecuted': 0};
       await File('${evidence.path}/prepared-image-budget.json')

@@ -11,8 +11,17 @@ import 'support/literal_tile_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 
 void main() {
-  for (final hidden in [false, true]) {
-    test('native global trainer override cannot launch battle hidden=$hidden',
+  for (final variant in [
+    'visible',
+    'hidden',
+    'sprite',
+    'hiddenIdle',
+    'interaction',
+    'comments'
+  ]) {
+    final hidden = variant == 'hidden' || variant == 'hiddenIdle';
+    final alternateSprite = variant == 'sprite';
+    test('native global trainer override cannot launch battle $variant',
         () async {
       const roster = (type: 'FRLG_BUGCATCHER', name: 'Brent', version: 0);
       final trainer = nativeTrainerFixtureEvent(roster, 1);
@@ -35,6 +44,8 @@ void main() {
             }),
             'Graphics/Characters/OriginalTrainer.png':
                 image.encodePng(image.Image(width: 128, height: 192)),
+            'Graphics/Characters/AlternateTrainer.png':
+                image.encodePng(image.Image(width: 128, height: 192)),
           },
           maps: [
             LiteralFixtureMap(id: 1, width: 4, height: 3, layers: [
@@ -46,13 +57,32 @@ void main() {
                   id: 1,
                   x: 1,
                   y: 1,
-                  name: trainer.name,
+                  name: variant == 'interaction'
+                      ? 'Original Trainer(0)'
+                      : trainer.name,
                   pages: [
-                    ...trainer.pages,
+                    LiteralFixtureEventPage(
+                        characterName: 'OriginalTrainer',
+                        trigger: 2,
+                        commands: [
+                          if (variant == 'comments') ...[
+                            const LiteralFixtureEventCommand(
+                                108, ['Before the gym victory.']),
+                            const LiteralFixtureEventCommand(
+                                408, ['Ordinary editor annotation.']),
+                          ],
+                          ...trainer.pages.first.commands,
+                        ]),
+                    after,
                     LiteralFixtureEventPage(
                         globalSwitch: 1,
                         through: hidden,
-                        characterName: hidden ? '' : 'OriginalTrainer',
+                        walkAnime: variant != 'hiddenIdle',
+                        characterName: hidden
+                            ? ''
+                            : variant == 'sprite'
+                                ? 'AlternateTrainer'
+                                : 'OriginalTrainer',
                         commands: hidden
                             ? const [LiteralFixtureEventCommand(0, [])]
                             : [
@@ -87,6 +117,8 @@ void main() {
       expect(binding.nativeTrainer.team.single.level, 16);
       final charset = source.snapshot.entries.singleWhere((entry) =>
           entry.relativePath == 'Graphics/Characters/OriginalTrainer.png');
+      final alternate = source.snapshot.entries.singleWhere((entry) =>
+          entry.relativePath == 'Graphics/Characters/AlternateTrainer.png');
       final projection = const SourceEventProjector().project(
           source: source,
           analysis: analysis,
@@ -106,13 +138,55 @@ void main() {
                     sourceFileId: charset.fileId,
                     sourceFileHash: charset.sha256!,
                     sourcePattern: 0,
-                    sourceDirection: 2)
+                    sourceDirection: 2),
+            sourceEventCharacterBindingKey(
+                    characterName: 'AlternateTrainer',
+                    pattern: 0,
+                    direction: 2):
+                SourceEventCharacterBinding(
+                    characterId: 'native_alternate',
+                    sourceSnapshotHash: source.snapshot.canonicalHash,
+                    sourceFileId: alternate.fileId,
+                    sourceFileHash: alternate.sha256!,
+                    sourcePattern: 0,
+                    sourceDirection: 2),
           },
           trainerBindings: bindings.byEventIdentity);
       final row = (projection.semanticEvidence['events'] as List).single as Map;
       expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
+      if (alternateSprite) {
+        final missingBinding = const SourceEventProjector().project(
+            source: source,
+            analysis: analysis,
+            nativeMaps: {
+              1: const MapData(
+                  id: 'native_1',
+                  name: 'Arena',
+                  size: GridSize(width: 4, height: 3),
+                  layers: [])
+            },
+            characterBindings: {
+              sourceEventCharacterBindingKey(
+                      characterName: 'OriginalTrainer',
+                      pattern: 0,
+                      direction: 2):
+                  SourceEventCharacterBinding(
+                      characterId: 'native_trainer',
+                      sourceSnapshotHash: source.snapshot.canonicalHash,
+                      sourceFileId: charset.fileId,
+                      sourceFileHash: charset.sha256!,
+                      sourcePattern: 0,
+                      sourceDirection: 2)
+            },
+            trainerBindings: bindings.byEventIdentity);
+        final missingRow =
+            (missingBinding.semanticEvidence['events'] as List).single as Map;
+        expect(missingRow['status'], 'quarantinedWholeEvent');
+        expect(missingRow['gaps'], contains('characterBindingMissing'));
+      }
       final map = projection.nativeMaps[1]!;
       final entity = map.entities.single;
+      expect(entity.npc!.lineOfSightRange, variant == 'interaction' ? 0 : 2);
       SceneAsset scene(int page) => projection.scenes
           .singleWhere((scene) => scene.metadata['sourcePageIndex'] == '$page');
       expect(
@@ -181,7 +255,11 @@ void main() {
             expect((decision as NarrativeEventDispatchHandled).sceneId,
                 scene(2).id);
           } else {
-            expect(variant!.characterId, 'native_trainer');
+            expect(
+                variant!.characterId,
+                global && alternateSprite
+                    ? 'native_alternate'
+                    : 'native_trainer');
             expect(decision, isA<NarrativeEventDispatchHandled>());
             expect(
                 (decision as NarrativeEventDispatchHandled).sceneId,

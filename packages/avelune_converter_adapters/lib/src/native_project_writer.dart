@@ -61,7 +61,8 @@ final class NativeWriteLimits {
   ContractLimits get planJsonLimits => _planJsonLimits ?? jsonLimits;
 
   ContractLimits get artifactEvidenceJsonLimits =>
-      _aggregateEvidenceJsonLimits(maxTotalArtifactBytes);
+      _aggregateEvidenceJsonLimits(maxTotalArtifactBytes > 268435456
+          ? 268435456 : maxTotalArtifactBytes);
   ContractLimits get draftEvidenceJsonLimits =>
       _aggregateEvidenceJsonLimits(maxTotalDraftJsonBytes,
           maxNodes: maxDraftEvidenceJsonNodes);
@@ -86,7 +87,7 @@ final class NativeWriteLimits {
       (maxArtifacts, nativeMaxUniqueArtifacts),
       (maxMutations, nativeMaxLogicalMutations),
       (maxArtifactBytes, 67108864),
-      (maxTotalArtifactBytes, 268435456),
+      (maxTotalArtifactBytes, 536870912),
       (maxTotalDraftJsonBytes, 268435456),
       (maxDraftEvidenceJsonNodes ?? jsonLimits.maxNodes, 16000000),
       (maxImagePixels, 16777216),
@@ -429,14 +430,21 @@ final class NativeProjectDraft {
         artifacts: artifacts, sourceArtifacts: sourceArtifacts, limits: limits);
     _validateNativeDraftCollectionBudget(mapCount: mapIds.length,
         mutations: mutations, compositionEvidence: compositionEvidence, limits: limits);
-    var total = 0;
-    for (final artifact in [...artifacts, ...sourceArtifacts]) {
-      total += artifact.bytes.length;
-      if (artifact.bytes.length > limits.maxArtifactBytes ||
-          total > limits.maxTotalArtifactBytes) {
-        throw const NativeWriteException(
-            'native.quota.artifact', 'Aggregate artifact budget exceeded');
-      }
+    final artifactBytes = artifacts.fold<int>(0, (sum, artifact) => sum + artifact.bytes.length);
+    final sourceArtifactBytes = sourceArtifacts.fold<int>(0, (sum, artifact) => sum + artifact.bytes.length);
+    final total = artifactBytes + sourceArtifactBytes;
+    final largest = [...artifacts, ...sourceArtifacts].fold<int>(0,
+        (maximum, artifact) => artifact.bytes.length > maximum ? artifact.bytes.length : maximum);
+    if (largest > limits.maxArtifactBytes || total > limits.maxTotalArtifactBytes) {
+      final inferredStage = const ['assetLibrary', 'sourceCatalogs', 'sourceEvents',
+        'sourceSemantics', 'composition'].firstWhere(compositionEvidence.containsKey,
+            orElse: () => 'unspecified');
+      throw NativeWriteException('native.quota.artifact',
+          'Artifact byte budget exceeded: inferredStage=$inferredStage, '
+          'artifacts=${artifacts.length}/$artifactBytes bytes, '
+          'sourceArtifacts=${sourceArtifacts.length}/$sourceArtifactBytes bytes, '
+          'totalBytes=$total/${limits.maxTotalArtifactBytes}, '
+          'largestArtifactBytes=$largest/${limits.maxArtifactBytes}');
     }
     if (!source.canPlan ||
         !source.archive.isSealed ||

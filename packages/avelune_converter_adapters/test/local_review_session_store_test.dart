@@ -321,13 +321,16 @@ void main() {
         _error('session.store.document'));
   });
 
-  for (final world in [false, true]) {
-    test('plan budget resume survives exact disk reopen world=$world',
+  for (final policy in ['custom', 'world', 'full']) {
+    test('plan budget resume survives exact disk reopen policy=$policy',
         () async {
-      final limits = world
-          ? sourceCatalogStudyWriteLimitsFor(383)
-          : const NativeWriteLimits(
-              planJsonLimits: ContractLimits(maxTextCodeUnits: 200000));
+      final limits = switch (policy) {
+        'world' => sourceCatalogStudyWriteLimitsFor(383),
+        'full' => sourceCatalogStudyWriteLimitsFor(383,
+            includeNativeCatalog: true, fullGameContent: true),
+        _ => const NativeWriteLimits(
+            planJsonLimits: ContractLimits(maxTextCodeUnits: 200000)),
+      };
       final custom = LocalReviewResumeSettings(
           sourceRootPath: source.path,
           destinationParentPath: destination.path,

@@ -200,6 +200,7 @@ Future<NormalizedSourceProject> trainerSource({
   int eventId = 23,
   String eventName = 'Dresseur Trainer(6)',
   String trainerName = "Élodie d'Arc",
+  List<String?>? variableNames,
   void Function(List<TrainerRubyObject>)? mutate,
 }) async {
   final pages = trainerPages(name: trainerName);
@@ -245,6 +246,7 @@ Future<NormalizedSourceProject> trainerSource({
     ],
     'Data/System.rxdata': TrainerRubyObject('RPG::System', {
       '@switches': ['', 'Ready'],
+      if (variableNames != null) '@variables': variableNames,
     }),
   };
   final bytes = {

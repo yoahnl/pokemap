@@ -206,7 +206,7 @@ void main() {
     for (final excessive in [
       const NativeWriteLimits(maxArtifacts: 4097),
       const NativeWriteLimits(maxArtifactBytes: 67108865),
-      const NativeWriteLimits(maxTotalArtifactBytes: 268435457),
+      const NativeWriteLimits(maxTotalArtifactBytes: 536870913),
       const NativeWriteLimits(maxTotalDraftJsonBytes: 268435457),
       const NativeWriteLimits(maxImagePixels: 16777217),
       const NativeWriteLimits(maxTotalImagePixels: 134217729),

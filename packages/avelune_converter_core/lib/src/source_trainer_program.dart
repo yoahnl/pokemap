@@ -13,6 +13,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       required bool afterDialogueFacesPlayer,
       required List<String> challengeLines,
       required List<String> afterWinLines,
+      required this.victoryContinuation,
       required this.endSpeechComment,
       required this.sourceTriggerCode,
       required this.sourceMoveType,
@@ -34,6 +35,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       sourceTriggerCode,
       sourceMoveType;
   final List<String> challengeLines, afterWinLines;
+  final SourceEventBlock victoryContinuation;
   final SourcePreservedData rawDataRef;
   final List<SourcePreservedData> sourcePageRefs;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
@@ -43,7 +45,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
   List<String> get requiredGameplayBindings => [
         'nativeTrainerDefinitionVersion$trainerVersion',
         'nativeTrainerBattleOutcome',
-        'sourceTrainerSightAndApproach',
+        if (detectionDistance > 0) 'sourceTrainerSightAndApproach',
         'sourceTrainerLockAndUnlock',
         'sourceWinnerSelfSwitchA',
         'sourceAfterWinDialogueAndFacing',
@@ -89,6 +91,11 @@ final class SourceTrainerProgramNode extends SourceEventNode {
         'sourceMoveType': sourceMoveType,
         'challengeLines': challengeLines,
         'afterWinLines': afterWinLines,
+        'victoryContinuation': {
+          'span': victoryContinuation.span.toJson(),
+          'nodes': victoryContinuation.nodes.map(_sourceTrainerVictoryNode).toList(),
+          'execution': 'battleVictoryOnly',
+        },
         'endSpeechComment': endSpeechComment,
         'sourceEndSpeechCommentRuntimeDialogue': false,
         'sourceBattleVictoryTextBinding': 'pbsTrainerLoseText',
@@ -101,7 +108,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
           'pbNoticePlayer',
           'challengeDialogue',
           'TrainerBattle.start',
-          'selfAOnlyOnWin',
+          'orderedVictoryContinuation',
           'pbTrainerEnd',
         ],
         'rawDataRef': rawDataRef.toJson(),
@@ -134,7 +141,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
   }
   try {
     final distance = int.parse(distanceMatch[1]!);
-    if (distance < 1 || !_sourceTrainerEventContext(analyzer, mapId, event)) {
+    if (!_sourceTrainerEventContext(analyzer, mapId, event)) {
       return null;
     }
     final values = <Map<String, Object?>>[];
@@ -225,11 +232,17 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     if (values.length == 3 && !_sourceTrainerEmptyOverride(values[2])) {
+      final firstOverrideMetadata = Map.of(firstMetadata);
+      firstOverrideMetadata['graphic'] = Map.of(firstMetadata['graphic'] as Map)
+        ..remove('character_name');
       final overrideMetadata = Map.of(values[2])
         ..remove('condition')
         ..remove('trigger')
         ..remove('list');
-      if (canonicalJsonOf(firstMetadata) != canonicalJsonOf(overrideMetadata)) {
+      overrideMetadata['graphic'] = Map.of(overrideMetadata['graphic'] as Map)
+        ..remove('character_name');
+      if (canonicalJsonOf(firstOverrideMetadata) !=
+          canonicalJsonOf(overrideMetadata)) {
         return null;
       }
     }
@@ -253,8 +266,21 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     if (battleMatch == null || battleMatch[1] != introMatch[1]) return null;
     final arguments = _sourceTrainerLiteralArguments(battleMatch[2]!);
     if (arguments == null) return null;
-    encounter.expect(123, 1, const ['A', 0]);
-    encounter.expect(0, 1, const []);
+    final victoryParser = _SourceEventParser(analyzer, event.pages.first.commands,
+        _eventLocator(path, mapId, event.sourceEventId, 0), mapId,
+        event.sourceEventId, analyzer._switchNames(), references.first)
+      ..index = encounter.index;
+    final victory = victoryParser._block(1);
+    if (!_sourceTrainerVictoryContinuation(victory,
+        analyzer.selfFactId(mapId, event.sourceEventId, 'A'))) {
+      return null;
+    }
+    final terminal = (values.first['list'] as List)[victoryParser.index - 1] as Map;
+    if (terminal['code'] != 0 || terminal['indent'] != 1 ||
+        canonicalJsonOf(terminal['parameters']) != '[]') {
+      return null;
+    }
+    encounter.index = victoryParser.index;
     encounter.expect(412, 0, const []);
     encounter.expect(355, 0, const ['pbTrainerEnd']);
     encounter.expect(0, 0, const []);
@@ -324,6 +350,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
               index == 2 ? override!.facing : after.facing,
           challengeLines: challenge,
           afterWinLines: index == 2 ? override!.lines : after.lines,
+          victoryContinuation: victory,
           endSpeechComment: endSpeech,
           sourceTriggerCode: page.triggerCode,
           sourceMoveType: values[index]['move_type'] as int,
@@ -339,6 +366,53 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     return null;
   }
 }
+
+bool _sourceTrainerVictoryContinuation(SourceEventBlock block, String ownFact) {
+  if (block.isQuarantined || block.nodes.isEmpty || block.nodes.length > 4) {
+    return false;
+  }
+  var ownWrites = 0, foreignWrites = 0, adjustments = 0, messages = 0, sounds = 0;
+  for (final node in block.nodes) {
+    switch (node) {
+      case SourceSelfSwitchNode():
+        if (node.letter != 'A' || !node.value) return false;
+        if (node.factId == ownFact) {
+          ownWrites++;
+        } else {
+          foreignWrites++;
+        }
+      case SourceVariableAdjustNode():
+        if (node.firstId != node.lastId || node.subtract || node.operand != 1 ||
+            node.factIds.length != 1) {
+          return false;
+        }
+        adjustments++;
+      case SourceTextNode():
+        if (node.followingChoice != null || node.annotations.isNotEmpty) return false;
+        messages++;
+      case SourceSoundEffectNode():
+        if (node.pitch != 100) return false;
+        sounds++;
+      default:
+        return false;
+    }
+  }
+  return ownWrites == 1 && foreignWrites <= 2 && adjustments <= 1 &&
+      messages <= 1 && sounds <= 1 &&
+      (adjustments == 0 || foreignWrites == 0 && messages == 0 && sounds == 0);
+}
+
+Map<String, Object?> _sourceTrainerVictoryNode(SourceEventNode node) => {
+  'span': node.span.toJson(),
+  ...switch (node) {
+    SourceSelfSwitchNode() => {'kind': 'selfSwitch', 'factId': node.factId,
+      'letter': node.letter, 'value': node.value},
+    SourceVariableAdjustNode() => node.toJson(),
+    SourceTextNode() => {'kind': 'text', 'text': node.text},
+    SourceSoundEffectNode() => node.toJson(),
+    _ => throw StateError('Unqualified source trainer victory continuation'),
+  },
+};
 
 bool _sourceTrainerEventContext(
     SourceEventAnalyzer analyzer, int mapId, SourceEvent event) {
@@ -447,6 +521,7 @@ final class _SourceTrainerRawFields {
           'RPG::MoveRoute' => const {'@repeat', '@skippable', '@list'},
           'RPG::MoveCommand' => const {'@code', '@parameters'},
           'RPG::EventCommand' => const {'@code', '@indent', '@parameters'},
+          'RPG::AudioFile' => const {'@name', '@volume', '@pitch'},
           _ => throw const FormatException(),
         };
         final fields = _eventFields(document, id, node.className!);
@@ -556,7 +631,11 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
   if (!const [0, 1, 2, 3].contains(page['move_type']) ||
       !const [1, 2, 3, 4, 5, 6].contains(page['move_speed']) ||
       !const [1, 2, 3, 4, 5, 6].contains(page['move_frequency']) ||
-      page['walk_anime'] != true ||
+      (page['walk_anime'] != true &&
+          !(index == 2 &&
+              _sourceTrainerEmptyOverride(page) &&
+              (graphic['character_name'] as String).isEmpty &&
+              page['walk_anime'] == false)) ||
       page['step_anime'] != false ||
       page['direction_fix'] != false ||
       (page['through'] != false &&
@@ -656,7 +735,14 @@ String? _sourceTrainerLiteralName(String literal) {
 }
 
 final class _SourceTrainerProgramCursor {
-  _SourceTrainerProgramCursor(this.commands);
+  _SourceTrainerProgramCursor(this.commands) {
+    while (!isDone && (commands[index] as Map)['code'] == 108) {
+      literal(108);
+      while (!isDone && (commands[index] as Map)['code'] == 408) {
+        literal(408);
+      }
+    }
+  }
   final List commands;
   var index = 0;
   bool get isDone => index == commands.length;

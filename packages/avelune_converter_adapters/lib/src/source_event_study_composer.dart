@@ -313,6 +313,13 @@ final class SourceEventStudyComposer {
     };
     final sounds = <String, SourceEventSoundBinding>{};
     final soundEvidence = <Map<String, Object?>>[];
+    final trainerVictorySounds = {
+      for (final event in selectedEvents.where((event) => !event.isQuarantined))
+        for (final page in event.pages)
+          for (final program in page.body.nodes.whereType<SourceTrainerProgramNode>())
+            if (program.kind == SourceTrainerProgramKind.encounter)
+              ..._soundNames(program.victoryContinuation),
+    };
     final inlineSounds = {
       if (const ['Audio_Play', 'Messages', 'MessageConfig', 'DrawText'].every(
           (role) => profile.interpretationProfile?.sections.containsKey('events.$role') == true))
@@ -321,6 +328,7 @@ final class SourceEventStudyComposer {
     };
     for (final name in {
       ...inlineSounds,
+      ...trainerVictorySounds,
       for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
           (transitionIds.contains(event.identity) || event.pages.any((page) =>
               _pickups(page.body).any((pickup) => pickup.helper == SourceItemGrantHelper.receiveItem)))))
@@ -329,7 +337,7 @@ final class SourceEventStudyComposer {
       try {
         final binding = await const SourceEventSoundResolver().read(
           source: source, files: recording, name: name, limits: limits,
-          policy: transitionSounds.contains(name) || inlineSounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
+          policy: transitionSounds.contains(name) || inlineSounds.contains(name) || trainerVictorySounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
               : SourceEventSoundPolicy.nativeAuthoredVolume,
           cancellation: cancellation);
         sounds[name] = binding;
@@ -979,6 +987,10 @@ final class SourceEventStudyComposer {
 Iterable<String> _soundNames(SourceEventBlock block, {bool dialogueOnly = false}) sync* {
   for (final node in block.nodes) {
     switch (node) {
+      case SourceTrainerProgramNode():
+        if (node.kind == SourceTrainerProgramKind.encounter) {
+          yield* _soundNames(node.victoryContinuation, dialogueOnly: dialogueOnly);
+        }
       case SourceSoundEffectNode():
         if (!dialogueOnly) yield node.name;
       case SourceWarpNode():

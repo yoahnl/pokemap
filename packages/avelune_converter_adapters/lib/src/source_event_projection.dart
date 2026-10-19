@@ -471,6 +471,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
     SourceSelfSwitchNode() => [node.factId, node.letter, node.value],
+    SourceTrainerProgramNode() => node.toJson(),
     SourceExitEventNode() => node.toJson(),
     SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
       'ownerMapId': node.sourceMapId, 'ownerEventId': node.sourceEventId,
@@ -493,6 +494,10 @@ Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     yield node;
     switch (node) {
+      case SourceTrainerProgramNode():
+        if (node.kind == SourceTrainerProgramKind.encounter) {
+          yield* _sourceControlNodes(node.victoryContinuation);
+        }
       case SourceCommonEventCallNode():
         yield* _sourceControlNodes(node.body);
       case SourceConditionalNode():
@@ -2221,7 +2226,7 @@ final class _ProjectionBuilder {
         continue;
       }
       if (graphic.tileId != 0 || graphic.characterName.isEmpty ||
-          graphic.characterName != initial.characterName || graphic.hue != 0 ||
+          (page.originalPageIndex != 2 && graphic.characterName != initial.characterName) || graphic.hue != 0 ||
           graphic.direction != initial.direction || _sourceFacingDirection(graphic.direction) == null ||
           graphic.pattern != 0 || graphic.opacity != 255 || graphic.blendType != 0 ||
           !graphic.walkAnime || graphic.stepAnime || graphic.directionFix ||
@@ -2253,6 +2258,12 @@ final class _ProjectionBuilder {
     if (binding.nativeTrainer.victoryDialogueId != null ||
         binding.nativeTrainer.defeatDialogueId != null) {
       gaps.add('sourceTrainerNativeSpeechConflict');
+    }
+    gaps.addAll(_sourceControlGaps(event));
+    for (final program in binding.programs.where((program) =>
+        program.kind == SourceTrainerProgramKind.encounter)) {
+      _blockGaps(event, program.victoryContinuation, gaps,
+          checkCharacterBindings: checkCharacterBindings);
     }
     return gaps;
   }
@@ -3411,7 +3422,11 @@ final class _ProjectionBuilder {
           if (_sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
             gaps.add('sourceSoundBindingMissing');
           }
-          if (!_isSourceTransition(event) && !_isItemGiver(event)) {
+          if (!_isSourceTransition(event) && !_isItemGiver(event) &&
+              !event.pages.expand((page) => page.body.nodes)
+                  .whereType<SourceTrainerProgramNode>().any((program) =>
+                      program.kind == SourceTrainerProgramKind.encounter &&
+                      program.victoryContinuation.nodes.contains(node))) {
             gaps.add('sourcePresentationUnsupported');
           }
         case SourceToneNode():
@@ -3551,6 +3566,9 @@ final class _ProjectionBuilder {
           if (node.pcAvailabilityCondition case final condition?) _collectFacts(condition, ids);
         case SourceTrainerProgramNode(:final defeatedFactId):
           ids.add(defeatedFactId);
+          if (node.kind == SourceTrainerProgramKind.encounter) {
+            _blockFacts(node.victoryContinuation, ids);
+          }
         case SourcePokedexRewardProgramNode(:final rewardFactId):
           ids.add(rewardFactId);
         case SourceConditionalNode(
@@ -4469,7 +4487,8 @@ final class _SceneBuilder {
     }
     final messages = program.kind == SourceTrainerProgramKind.encounter
         ? program.challengeLines : program.afterWinLines;
-    final commands = page.sourcePage.commands.where((command) => command.code == 101).toList();
+    final commands = page.sourcePage.commands.where((command) =>
+        command.code == 101 && command.indent == 0).toList();
     if (messages.length != commands.length) {
       throw const NativeWriteException('events.trainer.dialogue_binding',
           'Every source trainer message requires its complete raw command span');
@@ -4486,7 +4505,7 @@ final class _SceneBuilder {
         ));
         _edge(afterVictory, 'completed', next, SceneEdgeKind.actionCompleted);
       }
-      final winner = _fact(program.defeatedFactId, true, afterVictory);
+      final winner = _block(program.victoryContinuation, afterVictory);
       final speech = _dialogue(program.span, null, null, winner,
           dialogueKey: 'trainer_pbs_lose_text',
           feedbackLines: [_staticSourceTextFeedback(binding.nativeVictorySpeech)!]);

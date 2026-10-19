@@ -23,23 +23,25 @@ const sourceCatalogStudyWriteLimits = NativeWriteLimits(
   jsonLimits: ContractLimits(maxTextCodeUnits: 8388608),
 );
 
-const _sourceWorldStudyWriteLimits = NativeWriteLimits(
+NativeWriteLimits _sourceWorldStudyWriteLimits({
+  int maxTotalArtifactBytes = 268435456,
+}) => NativeWriteLimits(
   maxArtifacts: nativeMaxUniqueArtifacts,
   maxMutations: nativeMaxLogicalMutations,
   maxArtifactBytes: 67108864,
-  maxTotalArtifactBytes: 268435456,
+  maxTotalArtifactBytes: maxTotalArtifactBytes,
   maxTotalDraftJsonBytes: 268435456,
   maxDraftEvidenceJsonNodes: 8000000,
   maxImagePixels: 16777216,
   maxTotalImagePixels: 134217728,
   maxMapCells: 4194304,
-  jsonLimits: ContractLimits(
+  jsonLimits: const ContractLimits(
     maxDepth: 64,
     maxNodes: 4000000,
     maxStringCodeUnits: 1048576,
     maxTextCodeUnits: 16777216,
   ),
-  planJsonLimits: ContractLimits(
+  planJsonLimits: const ContractLimits(
     maxDepth: 64,
     maxNodes: 4000000,
     maxStringCodeUnits: 1048576,
@@ -48,9 +50,10 @@ const _sourceWorldStudyWriteLimits = NativeWriteLimits(
 );
 
 NativeWriteLimits sourceCatalogStudyWriteLimitsFor(int selectedMapCount,
-    {bool includeNativeCatalog = false}) {
+    {bool includeNativeCatalog = false, bool fullGameContent = false}) {
   if (includeNativeCatalog || selectedMapCount > 8) {
-    return _sourceWorldStudyWriteLimits;
+    return _sourceWorldStudyWriteLimits(maxTotalArtifactBytes:
+        fullGameContent && selectedMapCount > 8 ? 536870912 : 268435456);
   }
   final mapCount = selectedMapCount.clamp(1, 8);
   return NativeWriteLimits(
