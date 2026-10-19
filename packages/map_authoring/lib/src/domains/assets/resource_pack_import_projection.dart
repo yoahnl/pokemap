@@ -35,6 +35,12 @@ final class ResourcePackImportProjection {
       final id = node.resource?.id ?? node.support?.id ?? node.fileId!;
       final owner = node.support?.owner?.id;
       final key = resourcePackNativeKey(kind, id, owner);
+      if (kind == 'resourceFamily' &&
+          ResourceLibraryCatalog.predefinedFamilies
+              .any((family) => family.id == id)) {
+        mapping[key] = id;
+        continue;
+      }
       selectedKeys.add(key);
       mapping[key] = kind == 'borderSnapshot'
           ? sourceNodes[key]!['id'] as String
@@ -369,7 +375,11 @@ Map<String, Map<String, dynamic>> indexResourcePackDefinitions(
     index('tilesetElementGroup', raw['elementGroups'], raw['id'] as String);
   }
   final library = json['resourceLibraryCatalog'] as Map? ?? const {};
-  index('resourceFamily', library['families']);
+  index('resourceFamily', [
+    for (final family in ResourceLibraryCatalog.predefinedFamilies)
+      family.toJson(),
+    ...library['families'] as List? ?? const [],
+  ]);
   final smart = json['smartTileCatalog'] as Map? ?? const {};
   for (final entry in const {
     'categories': 'smartTileCategory',
