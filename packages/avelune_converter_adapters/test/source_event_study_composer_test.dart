@@ -11,9 +11,74 @@ import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
+import 'support/declared_program_fixture.dart';
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+
+  test('shared native catalog preserves independent trade composition', () async {
+    final binding = (fixtureSourceInterpretationProfile.toJson()['declaredPrograms']
+            as List).cast<Map>().singleWhere((row) => row['family'] == 'partyTrade');
+    final pages = (binding['pages'] as Map).values.cast<Map>().toList();
+    final charset = (pages.single['graphic'] as Map)['character_name'] as String;
+    final fixture = await createDeclaredProgramFixture(
+        namespace: 'shared-native-trade-catalog',
+        profile: fixtureSourceInterpretationProfile,
+        extraFiles: {
+          'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = $charset\n'),
+          'Graphics/Characters/$charset.png': image.encodePng(
+              image.Image(width: 128, height: 192, numChannels: 4)),
+          'PBS/pokemon.txt': utf8.encode('[RATTATA]\nName = Rattata\n'),
+          'PBS/encounters.txt': utf8.encode('[17]\nLand,11\n100,RATTATA,3,5\n'),
+          'Data/species.dat': literalFixtureMarshal({
+            const LiteralFixtureSymbol('RATTATA'): LiteralFixtureObject(
+                'GameData::Species', {
+              '@id': const LiteralFixtureSymbol('RATTATA'),
+              '@species': const LiteralFixtureSymbol('RATTATA'),
+              '@form': 0,
+              '@real_name': 'Rattata',
+            }),
+          }),
+        },
+        maps: {
+          17: [
+            for (final id in [2, 3])
+              DeclaredProgramFixtureEvent(id: id, name: 'Trade $id',
+                  x: id * 3, y: 3,
+                  pages: pages.map((page) => Map<String, Object?>.from(page)).toList()),
+          ],
+        });
+    final pbs = await const SourcePbsParser().read(
+        snapshot: fixture.source.snapshot, files: fixture.files);
+    final qualification = await NativeEncounterCatalogQualification.prepare(
+        snapshot: fixture.source.snapshot, source: pbs, files: fixture.files,
+        nativeCatalog: NativePsdkTrainerBundle.builtin(), selectedSourceMapIds: [17]);
+    final catalog = qualification.bundle;
+    final before = canonicalHashOf(catalog.toJson(), limits: nativePsdkCatalogShardJsonLimits);
+    final literal = await const LiteralTileComposer().compose(
+        source: fixture.source, files: fixture.files, selectedSourceMapIds: [17],
+        projectName: 'Shared native catalog', parentPath: '/private/tmp',
+        folderName: 'unused-shared-native-catalog');
+    final semantic = (await const SourceSemanticStudyComposer().compose(
+        source: fixture.source, base: literal, files: fixture.files))!;
+    Future<SourceEventStudyComposition> compose(NativePsdkCatalog supplied) async =>
+        (await SourceEventStudyComposer(nativeEncounterQualification: qualification,
+            nativeTrainerCatalog: supplied).compose(source: fixture.source,
+            base: semantic, files: fixture.files))!;
+    final composed = await compose(catalog);
+    final replay = await compose(qualification.bundle);
+    final rows = (composed.projection.semanticEvidence['events'] as List).cast<Map>();
+    expect(rows, hasLength(2));
+    expect(rows.every((row) => row['nativePartyTrade'] is Map), isTrue,
+        reason: jsonEncode(rows.map((row) => {
+          'status': row['status'], 'gaps': row['gaps'], 'keys': row.keys.toList(),
+        }).toList()));
+    expect(composed.projection.semanticEvidence['usedPartyTrade'], isTrue);
+    expect(replay.draft.canonicalHash, composed.draft.canonicalHash);
+    expect(canonicalHashOf(catalog.toJson(), limits: nativePsdkCatalogShardJsonLimits), before);
+    expect(canonicalHashOf(qualification.bundle.toJson(),
+        limits: nativePsdkCatalogShardJsonLimits), before);
+  });
 
   test('foreign self-switch survives canonical mutation write and strict reopen', () async {
     final temporary = await Directory.systemTemp.createTemp('foreign-self-switch-native-');

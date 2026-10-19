@@ -70,9 +70,11 @@ final class SourceEventStudyComposer {
   }) async {
     cancellation?.check();
     limits.validate();
+    late final nativeCatalog =
+        nativeEncounterQualification?.bundle ?? nativeTrainerCatalog;
     if (nativeTrainerCatalog != null && nativeEncounterQualification != null &&
         canonicalHashOf(nativeTrainerCatalog!.toJson(), limits: nativePsdkCatalogShardJsonLimits) !=
-            canonicalHashOf(nativeEncounterQualification!.bundle.toJson(), limits: nativePsdkCatalogShardJsonLimits)) {
+            canonicalHashOf(nativeCatalog!.toJson(), limits: nativePsdkCatalogShardJsonLimits)) {
       throw ContractError('native_catalog.encounter_qualification_identity', r'$',
           'Trainer events require the exact active encounter catalog.');
     }
@@ -358,7 +360,7 @@ final class SourceEventStudyComposer {
       }
     }
     final trainerBindings = await const SourceTrainerEventBindingResolver().read(
-        nativeCatalog: nativeEncounterQualification?.bundle ?? nativeTrainerCatalog,
+        nativeCatalog: nativeCatalog,
         qualification: nativeTrainerQualification,
         source: source, analysis: analysis, files: recording,
         limits: limits, cancellation: cancellation);
@@ -366,11 +368,11 @@ final class SourceEventStudyComposer {
     for (final event in selectedEvents.where((e) => e.pages.expand((p) => p.body.nodes).any((n) => n is SourcePokedexRewardProgramNode))) {
       final binding = await const SourcePokedexRewardBindingResolver().read(source: source,
           analysis: analysis, files: recording, sourceMapId: event.sourceMapId,
-          sourceEventId: event.sourceEventId, nativeCatalog: nativeEncounterQualification?.bundle ?? nativeTrainerCatalog,
+          sourceEventId: event.sourceEventId, nativeCatalog: nativeCatalog,
           cancellation: cancellation);
       if (binding != null) pokedexReward[event.identity] = binding;
     }
-    final pokemonGiftCatalog = nativeEncounterQualification?.bundle ?? nativeTrainerCatalog ??
+    final pokemonGiftCatalog = nativeCatalog ??
         (selectedEvents.any((event) => event.pages.any((page) =>
             page.body.nodes.whereType<SourcePokemonGiftNode>().isNotEmpty))
           ? NativePsdkCatalogManifest.builtin() : null);
@@ -383,7 +385,7 @@ final class SourceEventStudyComposer {
     for (final event in selectedEvents) {
       final binding = const SourcePartyTradeBindingResolver().resolve(source: source,
           analysis: analysis, sourceMapId: event.sourceMapId, sourceEventId: event.sourceEventId,
-          nativeCatalog: nativeEncounterQualification?.bundle ?? nativeTrainerCatalog);
+          nativeCatalog: nativeCatalog);
       if (binding != null) partyTrade[event.identity] = binding;
       if (event.pages.expand((p) => p.body.nodes).any((node) => node is SourceTownMapProgramNode)) {
         try {
