@@ -24,6 +24,7 @@ extension _PlayableMapMovingProps on PlayableMapGame {
         _world.map.spatialScene != null ||
         _world.map.version == ProjectVersion.v9 ||
         _movingPropsRunning ||
+        _fieldObstacleMovement != null ||
         _player.isStepping ||
         _player.isJumping ||
         _sceneActorRouteTargets.isNotEmpty ||

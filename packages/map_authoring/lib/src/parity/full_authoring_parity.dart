@@ -615,7 +615,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.editor:
           '../../apps/avelune_studio/test/map_workspace/slide_zone_editing_test.dart',
       AuthoringTransport.mcp:
-          '../../tools/pokemap_mcp/test/slide_zone_stdio.test.ts',
+          '../../tools/pokemap_mcp/test/sliding_block_stdio.test.ts',
     };
   }
   if (actionId == 'gameplay_zone.set_field_action_payload') {
@@ -648,10 +648,10 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   if (actionId == 'entity.set_field_obstacle') {
     return const {
-      AuthoringTransport.directApi: 'test/domains/maps/field_obstacle_transport_test.dart',
-      AuthoringTransport.cli: 'test/domains/maps/field_obstacle_transport_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/field_obstacle_inspector_test.dart',
-      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/field_obstacle_stdio.test.ts',
+      AuthoringTransport.directApi: 'test/domains/maps/slide_zone_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/slide_zone_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/slide_zone_editing_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/sliding_block_stdio.test.ts',
     };
   }
   if (actionId == 'entity.set_presentation') {

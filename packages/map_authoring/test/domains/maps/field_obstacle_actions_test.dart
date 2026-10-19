@@ -78,6 +78,16 @@ void main() {
       'visual': 'existingProjectElement',
       'clearValue': null,
       'parameters': ['mapId', 'entityId', 'fieldObstacle'],
+      'strengthBoulder': {
+        'ordinaryPushCells': 1,
+        'slideZone': 'movementEffect.slide',
+        'slideDirection': 'push',
+        'stops': ['obstacle', 'zoneExit'],
+        'savedPosition': 'lastCommittedCell',
+        'saveDuringTraversal': false,
+        'checkpointDuringTraversal': false,
+        'reload': 'stationary',
+      },
     });
   });
   test('Cut action changes only the typed field obstacle payload', () {
@@ -220,13 +230,13 @@ void main() {
         'test/domains/maps/field_obstacle_actions_test.dart');
     expect(action.endToEndEvidence, {
       AuthoringTransport.directApi:
-          'test/domains/maps/field_obstacle_transport_test.dart',
+          'test/domains/maps/slide_zone_transport_test.dart',
       AuthoringTransport.cli:
-          'test/domains/maps/field_obstacle_transport_test.dart',
+          'test/domains/maps/slide_zone_transport_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/map_workspace/field_obstacle_inspector_test.dart',
+          '../../apps/avelune_studio/test/map_workspace/slide_zone_editing_test.dart',
       AuthoringTransport.mcp:
-          '../../tools/pokemap_mcp/test/field_obstacle_stdio.test.ts',
+          '../../tools/pokemap_mcp/test/sliding_block_stdio.test.ts',
     });
   });
 }

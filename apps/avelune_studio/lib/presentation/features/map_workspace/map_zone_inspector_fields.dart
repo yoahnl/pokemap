@@ -279,7 +279,7 @@ List<Widget> zonePayloadFields({
       if (effect.effectKind == MovementEffectZoneKind.slide) ...[
         const SizedBox(height: 12),
         const Text(
-          'En 2D, le joueur glisse dans sa direction d’entrée jusqu’à un obstacle ou la sortie de la zone. Les commandes reprennent à l’arrêt.',
+          'En 2D, le joueur et les rochers poussés avec Force glissent dans leur direction d’entrée jusqu’à un obstacle ou la sortie de la zone. Les commandes reprennent à l’arrêt.',
         ),
       ],
       if (effect.effectKind == MovementEffectZoneKind.movementCost) ...[

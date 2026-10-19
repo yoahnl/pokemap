@@ -29,6 +29,7 @@ final class _ResolvedOverworldInteraction {
 extension _PlayableMapInteractions on PlayableMapGame {
   bool _canResolveOverworldInteraction({bool duringDispatch = false, bool allowSliding = false}) {
     if ((!duringDispatch && !allowSliding && _playerSlide.isSliding) ||
+        (!allowSliding && _fieldObstacleMovement != null) ||
         _diveTransferInFlight ||
         _isRemoved ||
         _currentMapActivationId == null ||
@@ -779,12 +780,14 @@ extension _PlayableMapInteractions on PlayableMapGame {
       runtimeMap: projected.map,
       movingPlatformWorldState: state.movingPlatformWorldState,
       instance: instance,
+      movingPropWorldState: state.movingPropWorldState,
     );
     loaded?.foregroundLayers.applyFieldObstacleProjection(
       instances: state.mapInstanceWorldState,
       runtimeMap: projected.map,
       movingPlatformWorldState: state.movingPlatformWorldState,
       instance: instance,
+      movingPropWorldState: state.movingPropWorldState,
     );
     _syncGameStateFromWorld();
   }
@@ -857,19 +860,16 @@ extension _PlayableMapInteractions on PlayableMapGame {
     final from = _world.player.pos;
     _world = decision.movement.world;
     _applyIntrinsicFieldObstacleState(decision.gameState);
-    final loaded = _loadedMapsById[_activeMapId];
     final duration = _sprintPressed
         ? PlayerComponent.kRunStepSeconds
         : PlayerComponent.kDefaultStepSeconds;
-    for (final layers in [loaded?.backgroundLayers, loaded?.foregroundLayers]) {
-      layers?.animateFieldObstaclePush(
-        entityId: decision.entityId,
-        from: front,
-        to: GridPos(x: front.x + direction.dx, y: front.y + direction.dy),
-        durationSeconds: duration,
-      );
-    }
-    _handleGameplayMovementResult(decision.movement, previousPlayerPos: from);
+    _startFieldObstacleMovement(
+      decision: decision,
+      playerFrom: from,
+      obstacleFrom: front,
+      direction: direction,
+      durationSeconds: duration,
+    );
     _publishOverworldInteractions();
     return true;
   }

@@ -156,7 +156,10 @@ export 'src/gameplay_connection.dart'
     show resolveConnectedMapTargetPos, resolveMapConnectionForPosition;
 export 'src/gameplay_hazard.dart' show GameplayHazardEffect;
 export 'src/gameplay_movement_effect.dart'
-    show GameplayMovementEffect, GameplayMovementEffectKind;
+    show
+        GameplayMovementEffect,
+        GameplayMovementEffectKind,
+        resolveGameplaySlideEffectAt;
 export 'src/gameplay_slide_controller.dart' show GameplaySlideController;
 export 'src/committed_movement.dart'
     show

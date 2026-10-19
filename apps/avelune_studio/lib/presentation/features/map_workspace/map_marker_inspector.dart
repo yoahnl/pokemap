@@ -266,7 +266,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                 FieldObstacleKind.cutTree =>
                   'Requiert Coupe débloquée et un Pokémon apte à l’utiliser.',
                 FieldObstacleKind.strengthBoulder =>
-                  'Requiert Force débloquée et un Pokémon apte à l’utiliser.',
+                  'Requiert Force débloquée et un Pokémon apte à l’utiliser. Sur une zone Glissade, le rocher continue jusqu’à un obstacle ou la sortie de la zone.',
                 FieldObstacleKind.rockSmashRock => 'Requiert Éclate-Roc débloquée et un Pokémon apte à l’utiliser.',
               },
               selected: entity.fieldObstacle?.kind == kind,

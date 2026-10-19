@@ -181,6 +181,7 @@ import 'warp_presentation_renderer.dart';
 part 'playable_map_game_support.dart';
 part 'playable_map_game_cinematic_poses.dart';
 part 'playable_map_game_interactions.dart';
+part 'playable_map_game_field_obstacle_slide.dart';
 part 'playable_map_game_repel.dart';
 part 'playable_map_game_bicycle.dart';
 part 'playable_map_game_fishing.dart';
@@ -599,6 +600,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   late GameplayWorldState _world;
   late PlayerComponent _player;
   final GameplaySlideController _playerSlide = GameplaySlideController();
+  _RuntimeFieldObstacleMovement? _fieldObstacleMovement;
   bool _playerSupportsRunning = false;
   String _activeMapId = '';
   String? _previousMapId;
@@ -951,6 +953,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _installMapActivation(MapActivation activation) {
+    _cancelFieldObstacleMovement();
     _cancelPendingDirectedJump();
     _playerSlide.reset();
     _currentMapActivationId = activation.activationId;
@@ -971,6 +974,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _fieldObstacleMovement != null ||
       _playerSlide.isSliding ||
       _pendingInteractiveEncounter != null || _activeInteractiveEncounterAttemptId != null ||
       _fishingFlow != null ||
@@ -2697,7 +2701,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   FishingAttemptPhase? get fishingPhase => _fishingFlow?.phase;
 
-  bool get canCapturePlayerCheckpoint => !_playerSlide.isSliding && !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
+  bool get canCapturePlayerCheckpoint => _fieldObstacleMovement == null && !_playerSlide.isSliding && !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
 
   GameState get gameStateSnapshot =>
       isLoaded ? _captureGameStateFromWorld() : _gameState;
@@ -3224,7 +3228,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         .where((token) => !externalTokens.contains(token))
         .toList(growable: false);
     final internalSurface = internalTokens.isEmpty
-        ? (_playerSlide.isSliding
+        ? (_playerSlide.isSliding || _fieldObstacleMovement?.suppressMovement == true
             ? RuntimeInputSurface.blocked
             : RuntimeInputSurface.world)
         : internalTokens.last.surface;
@@ -3440,6 +3444,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _cancelInteractiveEncounter();
       }
       if (owner == RuntimeExternalInputLock.gameCompletion) {
+        _cancelFieldObstacleMovement();
         _playerSlide.reset();
         _slideSuppressedMovementControls.clear();
       }
@@ -4670,7 +4675,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void setPlayerMovementMode(MovementMode movementMode) {
-    if (_playerSlide.isSliding) return;
+    if (_playerSlide.isSliding || _fieldObstacleMovement != null) return;
     _setPlayerMovementMode(movementMode);
   }
 
@@ -4881,6 +4886,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void onRemove() {
+    _cancelFieldObstacleMovement();
     _isRemoved = true;
     _playerSlide.reset();
     _slideSuppressedMovementControls.clear();
@@ -5275,7 +5281,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     // developer host) leaves it unhandled instead of opening product UI from
     // inside Flame.
     if (control == RuntimeInputControl.menu) {
-      return _playerSlide.isSliding;
+      return _playerSlide.isSliding || _fieldObstacleMovement != null;
     }
 
     // Flutter overlays such as the pause menu sit outside Flame and therefore
@@ -5419,7 +5425,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (inputAuthority.context == RuntimeInputContext.blocked ||
         inputAuthority.context == RuntimeInputContext.transition) {
       if (_isMovementControl(control)) {
-        if (_playerSlide.isSliding && event.isPress) {
+        if ((_playerSlide.isSliding || _fieldObstacleMovement?.suppressMovement == true) && event.isPress) {
           _slideSuppressedMovementControls.add(control);
         }
         _releaseMovementControl(control);
@@ -5556,6 +5562,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
+
+    _advanceFieldObstacleMovement(dt);
+    if (_fieldObstacleMovement != null) {
+      if (_externalInputLocks.isEmpty && _inputLocks.snapshot.acceptsOverworldInput) {
+        _scriptedEntityMovementController?.update(dt);
+        _processPendingSceneNpcMoves();
+      }
+      return;
+    }
 
     if (_movingPropsRunning) {
       _clearPressedMovementControls();
@@ -5901,7 +5916,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _clearPressedMovementControls();
       return;
     }
-    if (_player.isStepping) {
+    if (_player.isStepping || _fieldObstacleMovement != null) {
       return;
     }
 
@@ -6096,8 +6111,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     int? attemptedX,
     int? attemptedY,
     bool attemptedOutOfBounds = false,
+    bool? repelActiveForStepOverride,
   }) {
-    final repelActiveForStep = _gameState.repelState.isActive;
+    final repelActiveForStep = repelActiveForStepOverride ?? _gameState.repelState.isActive;
     if (publishMovement && (result is Moved ||
         result is WarpTriggered ||
         result is PlacedElementInteracted)) {
@@ -12695,6 +12711,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       maps[entry.key] = applyFieldObstacleWorldStateToMap(
         map: maps[entry.key]!, instances: state.mapInstanceWorldState,
         movingPlatformWorldState: state.movingPlatformWorldState,
+        movingPropWorldState: state.movingPropWorldState,
         instance: state.mapInstanceWorldState.instanceRef(entry.key)!, project: activeBundle.manifest,
         npcMapPresencePredicate: _npcPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
         mapEntityPresencePredicate: _mapEntityPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
@@ -12745,6 +12762,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         authoringMap: authored ?? bundle.map,
         instances: state.mapInstanceWorldState,
         movingPlatformWorldState: state.movingPlatformWorldState,
+        movingPropWorldState: state.movingPropWorldState,
         instance: instance,
         project: bundle.manifest,
         npcMapPresencePredicate: _npcPresencePredicateFor(bundle.manifest, gameStateOverride: state),
@@ -15168,6 +15186,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// - Obstacles via world.isBlocked() sur les cases STRICTEMENT entre
   ///   le NPC et le joueur (exclut case du NPC et case du joueur)
   void _checkTrainerLineOfSight() {
+    if (_fieldObstacleMovement != null) return;
     // Condition de stabilité runtime stricte
     if (_flowPhase != _RuntimeFlowPhase.overworld) return;
     if (_dialogueOverlay != null) return;
@@ -16816,10 +16835,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if (targetInstance != null) {
         target.backgroundLayers.applyFieldObstacleProjection(
             instances: nextInstances, instance: targetInstance, runtimeMap: targetBundle.map,
-            movingPlatformWorldState: transitionState.movingPlatformWorldState);
+            movingPlatformWorldState: transitionState.movingPlatformWorldState,
+            movingPropWorldState: transitionState.movingPropWorldState);
         target.foregroundLayers.applyFieldObstacleProjection(
             instances: nextInstances, instance: targetInstance, runtimeMap: targetBundle.map,
-            movingPlatformWorldState: transitionState.movingPlatformWorldState);
+            movingPlatformWorldState: transitionState.movingPlatformWorldState,
+            movingPropWorldState: transitionState.movingPropWorldState);
       }
       _replaceLogicalMapInstances(nextInstances);
       target.bundle = targetBundle;
@@ -16945,6 +16966,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _clearTransientUiState({_SceneWarpPresentationOwner? preservedWarpOwner}) {
+    _cancelFieldObstacleMovement();
     _cancelInteractiveEncounter();
     _cancelPendingDirectedJump();
     _playerSlide.reset();

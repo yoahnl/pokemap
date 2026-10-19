@@ -15,6 +15,103 @@ import '../../../../map_distribution/test/support/spatial_package_fixture.dart'
 
 void main() {
   test(
+      'canonical export preserves a Strength block and slide zone and refuses their spatial use',
+      () async {
+    final root = await _createPlayableProject();
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final mapFile = File(p.join(root.path, 'maps/start.json'));
+    final original = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>);
+    final project = original.copyWith(
+      tilesets: const [
+        ProjectTilesetEntry(
+            id: 'props', name: 'Props', relativePath: 'assets/props.png')
+      ],
+      elementCategories: const [
+        ProjectElementCategory(id: 'props', name: 'Props')
+      ],
+      elements: const [
+        ProjectElementEntry(
+            id: 'rock-visual',
+            name: 'Rocher',
+            tilesetId: 'props',
+            categoryId: 'props',
+            frames: [
+              TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))
+            ])
+      ],
+    );
+    final visual = File(p.join(root.path, 'assets/props.png'));
+    await visual.parent.create(recursive: true);
+    await visual
+        .writeAsBytes(image.encodePng(image.Image(width: 32, height: 32)));
+    final initial = MapData.fromJson(
+        jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
+    var map = const EntityActions().create(
+        initial,
+        const MapEntity(
+          id: 'rock',
+          name: 'Rocher',
+          kind: MapEntityKind.custom,
+          pos: GridPos(x: 2, y: 1),
+          editorVisual: MapEntityEditorVisual(elementId: 'rock-visual'),
+        ));
+    map = const EntityActions().setFieldObstacle(map,
+        project: project,
+        entityId: 'rock',
+        fieldObstacle: const MapEntityFieldObstacleData(
+            kind: FieldObstacleKind.strengthBoulder));
+    map = const TriggerZoneActions().createZone(map,
+        zone: const MapGameplayZone(
+          id: 'ice',
+          name: 'Glace',
+          kind: GameplayZoneKind.movementEffect,
+          area: MapRect(
+              pos: GridPos(x: 1, y: 1), size: GridSize(width: 4, height: 2)),
+          movementEffect: MovementEffectZonePayload(),
+        ));
+    await projectFile.writeAsString(jsonEncode(project.toJson()));
+    await mapFile.writeAsString(jsonEncode(map.toJson()));
+    final before = await mapFile.readAsBytes();
+    final service = CanonicalGamePackageExportService(
+        pokemonValidator: _acceptPokemonProjection);
+    final artifact = await service.build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(artifact.certification.gameplayReadinessReport.isPlayable, isTrue);
+    final archive =
+        ZipDecoder().decodeBytes(artifact.packageBytes, verify: true);
+    final exported = MapData.fromJson(jsonDecode(
+            utf8.decode(archive.findFile('project/maps/start.json')!.content))
+        as Map<String, dynamic>);
+    expect(exported, map);
+    expect(await mapFile.readAsBytes(), before);
+    await projectFile.writeAsString(jsonEncode(project.copyWith(
+      version: ProjectVersion.v9,
+      settings: project.settings.copyWith(dimension: ProjectDimension.threeD),
+    ).toJson()));
+    await mapFile.writeAsString(jsonEncode(map
+        .copyWith(
+            version: ProjectVersion.v9,
+            layers: const [],
+            visualStack: null,
+            spatialScene:
+                MapSpatialScene(width: map.size.width, depth: map.size.height))
+        .toJson()));
+    await expectLater(
+        service.build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'runtime3d.gameplay_unsupported')
+            .having((error) => error.toString(), 'reason',
+                contains('outside map3d.gameplay@1'))));
+  });
+  test(
       'canonical profile authoring persists the metadata used by the next export',
       () async {
     final root = await _createPlayableProject();

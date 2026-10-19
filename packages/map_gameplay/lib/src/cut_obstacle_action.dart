@@ -174,6 +174,8 @@ MapData applyFieldObstacleWorldStateToMap(
     MapData? authoringMap,
     MovingPlatformWorldState movingPlatformWorldState =
         const MovingPlatformWorldState.empty(),
+    MovingPropWorldState movingPropWorldState =
+        const MovingPropWorldState.empty(),
     ProjectManifest? project,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate}) {
@@ -261,6 +263,7 @@ MapData applyFieldObstacleWorldStateToMap(
     instance: instance,
     project: project,
     movingPlatformWorldState: movingPlatformWorldState,
+    movingPropWorldState: movingPropWorldState,
     npcMapPresencePredicate: npcMapPresencePredicate,
     mapEntityPresencePredicate: mapEntityPresencePredicate,
   );
@@ -278,6 +281,7 @@ MapData applyFieldObstacleWorldStateToMap(
           entities: projected.entities.where((entity) => entity.id != id).toList()),
       playerPos: const GridPos(x: 0, y: 0),
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
       project: project,
       tileWidth: project?.settings.tileWidth ?? 16,
       tileHeight: project?.settings.tileHeight ?? 16,

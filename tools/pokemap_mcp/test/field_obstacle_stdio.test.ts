@@ -80,6 +80,11 @@ test("live MCP discovers all three native field obstacles and persists set, clea
       kinds: ["cutTree", "strengthBoulder", "rockSmashRock"], resetPolicies: ["mapInstance"], entityKind: "custom", blocksMovement: true,
       footprint: { width: 1, height: 1 }, mapMode: "2d", visual: "existingProjectElement", clearValue: null,
       parameters: ["mapId", "entityId", "fieldObstacle"],
+      strengthBoulder: {
+        ordinaryPushCells: 1, slideZone: "movementEffect.slide", slideDirection: "push",
+        stops: ["obstacle", "zoneExit"], savedPosition: "lastCommittedCell",
+        saveDuringTraversal: false, checkpointDuringTraversal: false, reload: "stationary",
+      },
     });
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const initial = await call("pokemap_validate", { projectHandle: workspace.projectHandle });

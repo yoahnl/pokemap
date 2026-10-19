@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 import 'map_catalog_fixture.dart';
@@ -18,7 +19,7 @@ const _zone = MapGameplayZone(
   kind: GameplayZoneKind.movementEffect,
   area: MapRect(
     pos: GridPos(x: 1, y: 1),
-    size: GridSize(width: 3, height: 2),
+    size: GridSize(width: 4, height: 2),
   ),
   movementEffect: _cost,
 );
@@ -35,7 +36,7 @@ void main() {
       AuthoringTransport.editor:
           '../../apps/avelune_studio/test/map_workspace/slide_zone_editing_test.dart',
       AuthoringTransport.mcp:
-          '../../tools/pokemap_mcp/test/slide_zone_stdio.test.ts',
+          '../../tools/pokemap_mcp/test/sliding_block_stdio.test.ts',
     };
     expect(evidence.endToEndEvidence, paths);
     expect(evidence.endToEndVerifiedTransports, paths.keys.toSet());
@@ -56,6 +57,7 @@ void main() {
     expect(extension['parameters'], ['mapId', 'zoneId', 'payload']);
     final slide = extension['slide'] as Map;
     expect(slide['mapMode'], '2d');
+    expect(slide['affectedActors'], ['player', 'strengthBoulder']);
     expect(slide['direction'], 'entry');
     expect(slide['stops'], ['obstacle', 'zoneExit']);
     expect(slide['inputDuringTraversal'], false);
@@ -66,11 +68,31 @@ void main() {
 
   for (final jsonl in [false, true]) {
     test(
-        'slide ${jsonl ? 'JSONL' : 'direct API'} plans, applies, queries, '
+        'sliding block ${jsonl ? 'JSONL' : 'direct API'} plans, applies, queries, '
         'undoes and cold reopens without changing unrelated content', () async {
       final root = await Directory.systemTemp.createTemp('slide-authoring-');
       addTearDown(() => root.delete(recursive: true));
-      final map = catalogMap('cave');
+      final initial = catalogMap('cave');
+      final map = initial.copyWith(
+        entities: const [
+          MapEntity(
+            id: 'rock',
+            name: 'Rocher',
+            kind: MapEntityKind.custom,
+            pos: GridPos(x: 2, y: 1),
+            editorVisual: MapEntityEditorVisual(elementId: 'rock-visual'),
+            properties: {'preserved': 'yes'},
+          ),
+        ],
+        layers: [
+          initial.layers.first,
+          MapLayer.collision(
+            id: 'collision',
+            name: 'Collision',
+            collisions: List.generate(30, (index) => index == 11),
+          ),
+        ],
+      );
       final mapFile = File('${root.path}/maps/cave.json');
       await mapFile.parent.create();
       await mapFile.writeAsString(jsonEncode(map.toJson()));
@@ -83,7 +105,23 @@ void main() {
             relativePath: 'maps/cave.json',
           ),
         ],
-        tilesets: [],
+        tilesets: [
+          ProjectTilesetEntry(
+              id: 'props', name: 'Props', relativePath: 'props.png'),
+        ],
+        elementCategories: [ProjectElementCategory(id: 'props', name: 'Props')],
+        elements: [
+          ProjectElementEntry(
+            id: 'rock-visual',
+            name: 'Rocher',
+            tilesetId: 'props',
+            categoryId: 'props',
+            frames: [
+              TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))
+            ],
+          ),
+        ],
       );
       final projectFile = File('${root.path}/project.json');
       await projectFile.writeAsString(jsonEncode(project.toJson()));
@@ -227,17 +265,51 @@ void main() {
         ));
       }
 
+      const obstacle =
+          MapEntityFieldObstacleData(kind: FieldObstacleKind.strengthBoulder);
+      await apply('entity.set_field_obstacle', {
+        'entityId': 'rock',
+        'fieldObstacle': obstacle.toJson(),
+      });
+      expect((await query()).entities.single.fieldObstacle, obstacle);
       await apply('gameplay_zone.create', {'zone': _zone.toJson()});
       expect((await query()).gameplayZones.single, _zone);
       await apply('gameplay_zone.set_movement_effect_payload', {
         'zoneId': 'ice',
         'payload': _slide.toJson(),
       });
-      final expected = map.copyWith(gameplayZones: [
-        _zone.copyWith(movementEffect: _slide),
-      ]);
+      final expected = map.copyWith(
+        entities: [map.entities.single.copyWith(fieldObstacle: obstacle)],
+        gameplayZones: [_zone.copyWith(movementEffect: _slide)],
+      );
       expect(await query(), expected);
       final beforeFailure = await mapFile.readAsBytes();
+      for (final payload in [
+        {...obstacle.toJson(), 'movementPolicy': 'untilBlocked'},
+        {'kind': 'iceBlock', 'resetPolicy': 'mapInstance'},
+      ]) {
+        final invalid = await request('entity.set_field_obstacle', {
+          'entityId': 'rock',
+          'fieldObstacle': payload,
+        });
+        if (jsonl) {
+          final result = await wireResult('plan', {
+            'projectHandle': projectHandle.value,
+            'request': invalid.toJson(),
+          });
+          expect(result.status, AuthoringResultStatus.failure);
+          expect(result.error!.details['domainCode'],
+              'entity.field_obstacle_invalid');
+        } else {
+          await expectLater(
+              mutations.plan(projectHandle, invalid),
+              throwsA(
+                isA<MapAuthoringException>().having((error) => error.code,
+                    'code', 'entity.field_obstacle_invalid'),
+              ));
+        }
+        expect(await mapFile.readAsBytes(), beforeFailure);
+      }
       for (final payload in [
         {..._slide.toJson(), 'direction': 'east'},
         {
@@ -282,9 +354,85 @@ void main() {
       await api.close(workspaceHandle);
       final cold = await _coldRead(root, jsonl: jsonl);
       expect(cold, expected);
+      _expectSlidingBlockMoves(cold);
       expect(await projectFile.readAsBytes(), projectBefore);
     });
   }
+}
+
+void _expectSlidingBlockMoves(MapData map) {
+  final instances = MapInstanceWorldState(instancesByMapId: {
+    map.id: MapInstanceRuntimeState(instanceId: 'cave-1', strengthActive: true),
+  });
+  var state = GameState(
+    saveId: 'sliding-block',
+    currentMapId: map.id,
+    playerPosition: const GridPos(x: 1, y: 1),
+    playerFacing: EntityFacing.east,
+    party: PlayerParty(members: [
+      PlayerPokemon(
+        speciesId: 'machop',
+        natureId: 'hardy',
+        abilityId: 'guts',
+        level: 20,
+        currentHp: 30,
+        knownMoveIds: [FieldAbility.strength.moveId],
+      )
+    ]),
+    progression: const PlayerProgression(
+        unlockedFieldAbilities: [FieldAbility.strength]),
+    mapInstanceWorldState: instances,
+  );
+  final scope = instances.instanceRef(map.id)!;
+  final world = GameplayWorldState.initial(
+    map: map,
+    playerPos: state.playerPosition,
+    playerFacing: Direction.east,
+  );
+  final pushed = commitStrengthPush(
+    ticket: FieldObstacleTicket(
+      fieldAction: const FieldActionTicket(
+          ability: FieldAbility.strength,
+          targetCell: GridPos(x: 2, y: 1),
+          issuedAtStateRevision: 7),
+      instance: scope,
+      entityId: 'rock',
+      playerPosition: state.playerPosition,
+      playerFacing: state.playerFacing,
+    ),
+    world: world,
+    gameState: state,
+    currentStateRevision: 7,
+    authoringMap: map,
+  ) as StrengthPushApplied;
+  expect(pushed.slide, isNotNull);
+  state = pushed.gameState;
+  var current = pushed.movement.world;
+  var slide = pushed.slide;
+  for (var count = 0; slide != null && count < 10; count++) {
+    final result = stepFieldObstacleSlide(
+      slide: slide,
+      world: current,
+      gameState: state,
+      authoringMap: map,
+    );
+    if (result is FieldObstacleSlideStopped) {
+      expect(result.reason, FieldObstacleBlockReason.blockedDestination);
+      slide = null;
+    } else {
+      expect(result, isA<FieldObstacleSlideMoved>());
+      final moved = result as FieldObstacleSlideMoved;
+      state = moved.gameState;
+      current = moved.world;
+      slide = moved.slide;
+    }
+  }
+  expect(slide, isNull);
+  expect(current.map.entities.single.pos, const GridPos(x: 4, y: 1));
+  final restored = GameState.fromJson(state.toJson());
+  expect(restored.mapInstanceWorldState.fieldObstaclePosition(scope, 'rock'),
+      const GridPos(x: 4, y: 1));
+  expect(map.entities.single.pos, const GridPos(x: 2, y: 1));
 }
 
 Future<MapData> _coldRead(Directory root, {required bool jsonl}) async {

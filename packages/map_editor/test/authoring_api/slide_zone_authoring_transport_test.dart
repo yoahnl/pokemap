@@ -168,6 +168,7 @@ void main() {
     );
     await _pump(tester, container);
     expect(find.textContaining('direction d’entrée'), findsOneWidget);
+    expect(find.textContaining('rochers poussés avec Force'), findsOneWidget);
     expect(find.text('Movement Cost'), findsNothing);
     await tester.ensureVisible(find.text('Save Zone'));
     await tester.tap(find.text('Save Zone'));

@@ -56,6 +56,9 @@ void main() {
           FieldObstacleResetPolicy.mapInstance,
         );
         expect(find.text('Arbre à couper'), findsWidgets);
+        if (kind == FieldObstacleKind.strengthBoulder) {
+          expect(find.textContaining('zone Glissade'), findsOneWidget);
+        }
         expect(
           find.text(
             kind == FieldObstacleKind.strengthBoulder

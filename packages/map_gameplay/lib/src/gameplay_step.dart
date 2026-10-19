@@ -546,44 +546,8 @@ GameplayStepResult resolveGameplayArrival(GameplayWorldState world,
   return Moved(
     movedWorld,
     hazardEffect: _resolveHazardEffectAt(movedWorld, targetPos),
-    movementEffect: _resolveSlideEffectAt(movedWorld, targetPos, direction),
+    movementEffect: resolveGameplaySlideEffectAt(movedWorld.map, targetPos, direction),
     platformControl: platformControl,
-  );
-}
-
-GameplayMovementEffect? _resolveSlideEffectAt(
-  GameplayWorldState world,
-  GridPos position,
-  Direction direction,
-) {
-  if (world.map.spatialScene != null || world.map.version == ProjectVersion.v9) {
-    return null;
-  }
-  MapGameplayZone? best;
-  for (final zone in world.map.gameplayZones) {
-    if (zone.kind != GameplayZoneKind.movementEffect ||
-        !gameplayZoneContainsPosition(zone, position)) {
-      continue;
-    }
-    if (best == null || zone.priority >= best.priority) {
-      best = zone;
-    }
-  }
-  final payload = best?.movementEffect;
-  if (best == null ||
-      payload?.effectKind != MovementEffectZoneKind.slide ||
-      payload!.movementCost <= 0 ||
-      payload.directedJump != null ||
-      best.cellMask != null ||
-      best.id.trim().isEmpty) {
-    return null;
-  }
-  return GameplayMovementEffect.slide(
-    zoneId: best.id,
-    zoneName: best.name.trim().isEmpty ? best.id : best.name,
-    position: position,
-    priority: best.priority,
-    direction: direction,
   );
 }
 

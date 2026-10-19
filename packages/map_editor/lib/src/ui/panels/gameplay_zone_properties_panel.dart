@@ -382,7 +382,7 @@ class _GameplayZonePropertiesPanelState
           const SizedBox(height: 8),
           if (_movementEffectKind == MovementEffectZoneKind.slide)
             const Text(
-              'En 2D, le joueur glisse dans sa direction d’entrée jusqu’à un obstacle ou la sortie de la zone. Les commandes reprennent à l’arrêt.',
+              'En 2D, le joueur et les rochers poussés avec Force glissent dans leur direction d’entrée jusqu’à un obstacle ou la sortie de la zone. Les commandes reprennent à l’arrêt.',
             ),
           if (_movementEffectKind == MovementEffectZoneKind.movementCost)
             _labeledField(

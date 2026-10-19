@@ -11,6 +11,8 @@ MapData applyNpcInstancePosesToMap({
   ProjectManifest? project,
   MovingPlatformWorldState movingPlatformWorldState =
       const MovingPlatformWorldState.empty(),
+  MovingPropWorldState movingPropWorldState =
+      const MovingPropWorldState.empty(),
   NpcMapPresencePredicate? npcMapPresencePredicate,
   MapEntityPresencePredicate? mapEntityPresencePredicate,
 }) {
@@ -113,6 +115,7 @@ MapData applyNpcInstancePosesToMap({
       playerPos: const GridPos(x: 0, y: 0),
       project: project,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
       tileWidth: project?.settings.tileWidth ?? 16,
       tileHeight: project?.settings.tileHeight ?? 16,
       npcMapPresencePredicate: npcMapPresencePredicate,

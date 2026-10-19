@@ -163,6 +163,7 @@ class MapLayersComponent extends PositionComponent {
     required MapInstanceRef instance,
     required MapData runtimeMap,
     required MovingPlatformWorldState movingPlatformWorldState,
+    MovingPropWorldState movingPropWorldState = const MovingPropWorldState.empty(),
   }) {
     if (runtimeMap.id != bundle.map.id || runtimeMap.size != bundle.map.size || runtimeMap.version != bundle.map.version) {
       throw StateError('Field obstacle rendering requires the matching runtime map.');
@@ -172,12 +173,16 @@ class MapLayersComponent extends PositionComponent {
       ..._fieldObstacleAuthoringEntities,
     ]);
     final projected = applyFieldObstacleWorldStateToMap(
-        map: authored, instances: instances, instance: instance, movingPlatformWorldState: movingPlatformWorldState, project: bundle.manifest,
+        map: authored, instances: instances, instance: instance, movingPlatformWorldState: movingPlatformWorldState, movingPropWorldState: movingPropWorldState, project: bundle.manifest,
         npcMapPresencePredicate: npcMapPresencePredicate, mapEntityPresencePredicate: mapEntityPresencePredicate);
     _entitySpatialIndex = _buildEntitySpatialIndex(bundle.copyWith(map: projected));
   }
 
   final _fieldObstacleMotions = <String, ({GridPos from, GridPos to, double startedAt, double duration})>{};
+
+  void cancelFieldObstaclePush(String entityId) {
+    _fieldObstacleMotions.remove(entityId);
+  }
 
   void animateFieldObstaclePush({required String entityId, required GridPos from,
     required GridPos to, required double durationSeconds}) {
