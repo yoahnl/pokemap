@@ -113,6 +113,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   final Map<String, TextEditingController> _textControllers = {};
   String? _submissionError;
   List<SceneActionPickerOption>? _loadedWarpOptions;
+  List<SceneActionPickerOption>? _loadedPropOptions;
   String? _warpReferenceError;
   bool _warpReferenceLoading = false;
   int _warpReferenceRequest = 0;
@@ -138,6 +139,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.openRegionalMap ||
       id == NarrativeCommandIds.openPartyTrade ||
@@ -229,7 +231,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
-              (command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'minimum' ? '0' :
+              (command.id == NarrativeCommandIds.setPropState ? '350' :
+              command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'minimum' ? '0' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'maximum' ? '100' :
               (command.id == NarrativeCommandIds.receivePokemonFromCatalog && parameter.id == 'nicknameMaxGraphemes' ? '12' :
               command.id == NarrativeCommandIds.warp && !parameter.required ? '' :
@@ -250,6 +253,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           final value = initial ?? '';
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
+        case NarrativeCommandParameterKind.movingProps:
+          _values[parameter.id] = initial ?? '[]';
         default:
           final options = _optionsFor(parameter.kind);
           final strictWarpOption = command.id == NarrativeCommandIds.warp &&
@@ -297,11 +302,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   void _loadWarpReferences({bool selectFirst = false}) {
     final request = ++_warpReferenceRequest;
     _loadedWarpOptions = null;
+    _loadedPropOptions = null;
     _warpReferenceError = null;
     _warpReferenceLoading = false;
     final load = widget.loadWarpMap;
-    final mapId = _values['destinationMapId'];
-    if (_command.id != NarrativeCommandIds.warp ||
+    final isProp = _command.id == NarrativeCommandIds.setPropState;
+    final mapId = _values[isProp ? 'mapId' : 'destinationMapId'];
+    if ((_command.id != NarrativeCommandIds.warp && !isProp) ||
         load == null ||
         mapId == null ||
         !_optionsFor(
@@ -315,6 +322,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         if (!mounted || request != _warpReferenceRequest) return;
         setState(() {
           _warpReferenceLoading = false;
+          if (isProp) {
+            if (map == null || map.id != mapId || map.spatialScene != null ||
+                map.movingProps.map((prop) => prop.id).toSet().length != map.movingProps.length) {
+              _warpReferenceError = 'La carte des décors mobiles est absente ou incohérente.';
+              return;
+            }
+            _loadedPropOptions = [for (final prop in map.movingProps)
+              SceneActionPickerOption(id: prop.id, parentId: map.id,
+                label: '${widget.project?.elements.where((element) => element.id == map.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})')];
+            return;
+          }
           if (map == null ||
               map.id != mapId ||
               map.warps.map((warp) => warp.id).toSet().length !=
@@ -459,6 +477,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   bool _hasValidValue(NarrativeCommandParameterDescriptor parameter) {
     final rawValue = _values[parameter.id];
     final value = rawValue?.trim();
+    if (parameter.kind == NarrativeCommandParameterKind.movingProps) {
+      try {
+        final payload = buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values) as SceneActionPayload;
+        final command = payload.interactiveCommand! as SceneSetPropStateInteractiveCommand;
+        return command.propIds.every((id) => _optionsFor(parameter.kind).any((option) => option.id == id));
+      } catch (_) { return false; }
+    }
     if (_command.id == NarrativeCommandIds.warp &&
         (parameter.id == 'arrivalFacing' || parameter.id == 'transition') &&
         rawValue != value) {
@@ -552,7 +577,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _runtimeAllows(_command) &&
       (!_is2DPresentationCommand(_command.id) ||
           widget.project?.settings.dimension == ProjectDimension.twoD) &&
-      (_command.id != NarrativeCommandIds.warp ||
+      ((_command.id != NarrativeCommandIds.warp && _command.id != NarrativeCommandIds.setPropState) ||
           !_warpReferenceLoading && _warpReferenceError == null) &&
       _missingParameters.isEmpty &&
       _validWarpPresentation &&
@@ -687,6 +712,32 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   Widget _buildParameter(NarrativeCommandParameterDescriptor parameter) {
+    if (parameter.kind == NarrativeCommandParameterKind.movingProps) {
+      final selected = <String>{};
+      try { selected.addAll((jsonDecode(_values['propIds'] ?? '[]') as List).cast<String>()); } catch (_) {}
+      final options = _optionsFor(parameter.kind);
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(parameter.label),
+        if (_warpReferenceLoading) const PokeMapDiagnosticCallout(
+          severity: PokeMapDiagnosticSeverity.info, title: 'Chargement des décors mobiles', message: 'Lecture de la carte sélectionnée.'),
+        if (_warpReferenceError != null) PokeMapDiagnosticCallout(
+          severity: PokeMapDiagnosticSeverity.error, title: 'Décors indisponibles', message: _warpReferenceError!),
+        if (!_warpReferenceLoading && _warpReferenceError == null && options.isEmpty)
+          const PokeMapDiagnosticCallout(severity: PokeMapDiagnosticSeverity.info,
+            title: 'Aucun décor mobile', message: 'Configurez les décors mobiles dans les propriétés des décors de cette carte.'),
+        for (final missing in selected.difference(options.map((option) => option.id).toSet()))
+          PokeMapDiagnosticCallout(severity: PokeMapDiagnosticSeverity.error,
+            title: 'Décor supprimé', message: 'Une référence sélectionnée n’existe plus.',
+            actionLabel: 'Retirer la référence absente',
+            onAction: () => setState(() => _values['propIds'] = jsonEncode(selected.difference({missing}).toList()))),
+        for (final option in options)
+          PokeMapToggleTile(key: ValueKey('scene-prop-${option.id}'), label: option.label,
+            value: selected.contains(option.id), onChanged: (value) => setState(() {
+              final next = {...selected}; value ? next.add(option.id) : next.remove(option.id);
+              _values['propIds'] = jsonEncode(next.toList());
+            })),
+      ]);
+    }
     if (_isGift && parameter.id == 'moveIds') {
       return ScenePokemonGiftMovesEditor(
         key: ValueKey('gift-moves-$_commandId'),
@@ -862,6 +913,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.movingProps) {
+      return _loadedPropOptions ?? [for (final option in widget.pickerOptions[kind] ?? const <SceneActionPickerOption>[])
+        if (option.parentId == _values['mapId']) option];
+    }
     if (kind == NarrativeCommandParameterKind.fact &&
         _command.id == NarrativeCommandIds.adjustIntegerFact) {
       final facts = widget.project?.facts ?? const <NarrativeFactDefinition>[];
@@ -933,6 +988,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return options;
     }
     return switch (kind) {
+      NarrativeCommandParameterKind.movingPropState => const [
+        SceneActionPickerOption(id: 'open', label: 'Ouvert'),
+        SceneActionPickerOption(id: 'closed', label: 'Fermé'),
+      ],
       NarrativeCommandParameterKind.pokemonGiftNicknamePolicy => const [
         SceneActionPickerOption(id: 'offer', label: 'Proposer un surnom'),
         SceneActionPickerOption(id: 'disabled', label: 'Conserver le nom de l’espèce'),
@@ -1061,6 +1120,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         }
       }
       _applyOptionParameters(parameter.kind, value);
+      if (_command.id == NarrativeCommandIds.setPropState && parameter.id == 'mapId') {
+        _values['propIds'] = '[]';
+        _loadWarpReferences();
+      }
       if (_command.id == NarrativeCommandIds.warp &&
           parameter.id == 'destinationMapId') {
         _values.remove('warpId');

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_authoring/map_authoring_editing.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 
@@ -35,12 +36,16 @@ class MapEditingCommands {
       document.error = 'Ce décor dépasse les limites de la carte.';
       return;
     }
-    document.commit(
-      upsertMapPlacedElement(
+    try {
+      document.commit(const MovingPropEditing().reconcilePlacementChanges(
+        before: document.current, project: project, after: upsertMapPlacedElement(
         document.current,
         instance: instance.copyWith(pos: position),
-      ),
-    );
+      )));
+    } on FormatException {
+      document.error = 'Le décor mobile ou son rail dépasse les limites de la carte.';
+      return;
+    }
     document.stackPosition = position;
     document.stackPixelPosition = null;
   }
@@ -48,6 +53,10 @@ class MapEditingCommands {
   void deleteSelected() {
     final id = document.selectedId;
     if (id == null) return;
+    if (document.current.movingProps.any((prop) => prop.placedElementId == id)) {
+      document.error = 'Retirez le déplacement du décor avant de supprimer son visuel.';
+      return;
+    }
     document.commit(removeMapPlacedElement(document.current, instanceId: id));
   }
 
@@ -59,18 +68,22 @@ class MapEditingCommands {
   }) {
     try {
       document.commit(
-        setMapPlacedElementGeometry(
+        const MovingPropEditing().reconcilePlacementChanges(before: document.current, project: project,
+          after: setMapPlacedElementGeometry(
           document.current,
           manifest: project,
           instanceId: id,
           pixelX: x,
           pixelY: y,
           pixelSize: size,
-        ),
+        )),
       );
       document.stackPosition = document.selected?.pos;
       document.stackPixelPosition = PixelPosition(leftPx: x, topPx: y);
       return true;
+    } on FormatException {
+      document.error = 'Le décor mobile ou son rail dépasse les limites de la carte.';
+      return false;
     } on ValidationException {
       document.error =
           'Ce décor dépasse les limites de la carte ou sa taille autorisée.';

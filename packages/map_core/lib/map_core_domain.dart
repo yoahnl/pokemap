@@ -28,6 +28,8 @@ export 'src/models/geometry.dart';
 export 'src/models/tileset.dart';
 export 'src/models/tileset_transparent_color.dart';
 export 'src/models/map_data.dart';
+export 'src/models/moving_prop.dart';
+export 'src/operations/moving_prop_operations.dart';
 export 'src/models/map_spatial_scene.dart';
 export 'src/operations/spatial_model_clip_capabilities.dart';
 export 'src/models/spatial_terrain_surface.dart';

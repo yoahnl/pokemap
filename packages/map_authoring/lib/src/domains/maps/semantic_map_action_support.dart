@@ -375,6 +375,7 @@ Map<String, Object?> semanticMapSummary(MapData map) => {
       if (map.spatialScene != null) 'spatialScene': map.spatialScene!.toJson(),
       'placedElementCount': map.placedElements.length,
       'movingPlatformCount': map.movingPlatforms.length,
+      'movingPropCount': map.movingProps.length,
       'entityCount': map.entities.length,
       'warpCount': map.warps.length,
       'connectionCount': map.connections.length,

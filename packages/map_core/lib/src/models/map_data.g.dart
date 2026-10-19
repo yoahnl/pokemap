@@ -39,6 +39,11 @@ _MapData _$MapDataFromJson(Map<String, dynamic> json) => _MapData(
           )
           .toList() ??
       const [],
+  movingProps:
+      (json['movingProps'] as List<dynamic>?)
+          ?.map((e) => MovingPropDefinition.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
   entities:
       (json['entities'] as List<dynamic>?)
           ?.map((e) => MapEntity.fromJson(e as Map<String, dynamic>))
@@ -86,6 +91,7 @@ Map<String, dynamic> _$MapDataToJson(_MapData instance) => <String, dynamic>{
   'layers': instance.layers.map((e) => e.toJson()).toList(),
   'placedElements': instance.placedElements.map((e) => e.toJson()).toList(),
   'movingPlatforms': instance.movingPlatforms.map((e) => e.toJson()).toList(),
+  'movingProps': instance.movingProps.map((e) => e.toJson()).toList(),
   'entities': instance.entities.map((e) => e.toJson()).toList(),
   'connections': instance.connections.map((e) => e.toJson()).toList(),
   'warps': instance.warps.map((e) => e.toJson()).toList(),

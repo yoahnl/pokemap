@@ -25,6 +25,7 @@ export 'src/border_directed_jump_binding.dart';
 export 'src/directed_jump_plan.dart';
 
 export 'src/moving_platform_gameplay.dart';
+export 'src/moving_prop_gameplay.dart';
 
 export 'src/collision/border_collision_geometry.dart'
     show

@@ -784,6 +784,11 @@ final class _NarrativeDependencyIndexBuilder {
             owner: mapKey, path: 'maps[${map.id}].movingPlatforms[${platform.id}]',
             scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingPlatform');
       }
+      for (final prop in map.movingProps) {
+        _definition(NarrativeDependencyTargetKind.sourceMap, prop.id, prop.id,
+            owner: mapKey, path: 'maps[${map.id}].movingProps[${prop.id}]',
+            scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingProp');
+      }
       for (final instance in map.spatialScene?.instances ?? const []) {
         final owner = _definition(
           NarrativeDependencyTargetKind.sourceMap,
@@ -2510,6 +2515,13 @@ final class _NarrativeDependencyIndexBuilder {
             path: '$path.animationIndex',
             criticality: NarrativeDependencyCriticality.runtimeBlocking,
           );
+        }
+      case SceneSetPropStateInteractiveCommand(:final mapId, :final propIds):
+        _usage(target: _mapKey(mapId), owner: owner, path: '$path.mapId',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        for (var index = 0; index < propIds.length; index++) {
+          _usage(target: _mapSourceChildKey(mapId, 'movingProp', propIds[index]), owner: owner,
+              path: '$path.propIds[$index]', criticality: NarrativeDependencyCriticality.runtimeBlocking);
         }
       case SceneMovePlatformInteractiveCommand(:final mapId, :final platformId):
         _usage(target: _mapKey(mapId), owner: owner, path: '$path.mapId',

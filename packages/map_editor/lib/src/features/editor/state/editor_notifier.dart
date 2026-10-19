@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show MapAuthoringException, smartTileCanonicalLayerActionRequiredCode;
+    show MapAuthoringException, MovingPropEditing, smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -13608,6 +13608,32 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  void upsertMovingProp(MovingPropDefinition prop) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) return;
+    try {
+      final updated = const MovingPropEditing().upsert(map: map, project: project, prop: prop);
+      _applyMapMutation(previousMap: map, updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId, statusMessage: 'Déplacement du décor configuré');
+    } on FormatException catch (error) {
+      state = state.copyWith(errorMessage: error.message.toString());
+    }
+  }
+
+  void deleteMovingProp(String propId) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) return;
+    try {
+      final updated = const MovingPropEditing().delete(map: map, project: project, propId: propId);
+      _applyMapMutation(previousMap: map, updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId, statusMessage: 'Déplacement du décor retiré');
+    } on FormatException catch (error) {
+      state = state.copyWith(errorMessage: error.message.toString());
+    }
+  }
+
   void setPlacedElementInstanceCollisionApplied({
     required String instanceId,
     required bool applyCollision,
@@ -14600,6 +14626,16 @@ class EditorNotifier extends _$EditorNotifier
         _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease(allowedLeaseToken: mapWriteLeaseToken)) {
       return;
+    }
+    final project = state.project;
+    if (project != null && updatedMap.movingProps.isNotEmpty) {
+      try {
+        updatedMap = const MovingPropEditing().reconcilePlacementChanges(
+          before: previousMap, after: updatedMap, project: project);
+      } on FormatException {
+        state = state.copyWith(errorMessage: 'Le décor mobile ou son rail dépasse les limites de la carte.');
+        return;
+      }
     }
     final outgoingPaletteSession = _rememberActivePaletteContext(state);
     final outgoingPaletteKey = _activePaletteContextKey(state);

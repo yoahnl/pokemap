@@ -510,6 +510,14 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'map.prop.upsert' || actionId == 'map.prop.delete') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/moving_prop_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/moving_prop_actions_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/moving_prop_transport_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/moving_prop_stdio.test.ts',
+    };
+  }
   if (actionId == 'world_rule.upsert_batch') {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/world_rule_batch_transport_test.dart',
@@ -1561,6 +1569,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'map.prop.upsert' || actionId == 'map.prop.delete') {
+    return 'test/domains/maps/moving_prop_actions_test.dart';
+  }
   if (actionId == 'bag.capacity.set') {
     return 'test/domains/gameplay/bag_capacity_authoring_test.dart';
   }

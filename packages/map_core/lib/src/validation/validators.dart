@@ -33,6 +33,7 @@ import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import '../operations/map_entities.dart';
 import '../operations/moving_platform_operations.dart';
+import '../operations/moving_prop_operations.dart';
 import '../operations/map_gameplay_zones.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
@@ -2908,6 +2909,18 @@ class MapValidator {
             code: 'map.platform_invalid',
             details: {'mapId': mapId, 'path': 'movingPlatforms'},
           );
+        }
+      }
+    }
+    if (map.movingProps.isNotEmpty) {
+      final project = projectDialogueContext;
+      if (project != null) {
+        try {
+          validateMovingPropDefinitions(map: map, project: project,
+            tileSize: PixelSize(width: project.settings.tileWidth, height: project.settings.tileHeight));
+        } on FormatException catch (error) {
+          throw ValidationException(error.message.toString(), code: 'map.prop_invalid',
+            details: {'mapId': mapId, 'path': 'movingProps'});
         }
       }
     }

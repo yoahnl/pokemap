@@ -2116,6 +2116,12 @@ buildEventBuilderV2TemplateActionPickerOptions({
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
     ],
+    NarrativeCommandParameterKind.movingProps: [
+      for (final map in maps)
+        for (final prop in map.movingProps)
+          SceneActionPickerOption(id: prop.id, parentId: map.id,
+            label: '${project.elements.where((element) => element.id == map.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})'),
+    ],
     NarrativeCommandParameterKind.movingPlatform: [
       for (final map in maps)
         for (final platform in map.movingPlatforms)

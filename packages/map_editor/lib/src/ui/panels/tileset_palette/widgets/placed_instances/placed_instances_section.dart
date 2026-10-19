@@ -302,6 +302,9 @@ class PlacedElementPropertiesPanel extends ConsumerWidget {
                 value: '${selected.layerName} (${selected.layerId})',
               ),
               _PropertyLine(label: 'ID interne', value: selected.instanceId),
+              MovingPropPanel(key: ValueKey('moving-prop-${selected.instanceId}'),
+                map: snapshot.map!, project: snapshot.project!, placement: selected.instance,
+                onApply: notifier.upsertMovingProp, onDelete: notifier.deleteMovingProp),
               const SizedBox(height: 8),
               _CollisionToggleRow(
                 value: selected.applyCollision,

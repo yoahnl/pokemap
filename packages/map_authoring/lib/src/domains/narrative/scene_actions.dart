@@ -524,6 +524,16 @@ final class SceneActions {
           'motions': ['forward', 'backward', 'rotateClockwise'],
           'outputPorts': ['moved', 'blocked', 'notRiding', 'rotationRequiresPivot'],
         },
+        'movingProps': {
+          'interactiveCommandKind': 'setPropState',
+          'parameters': ['mapId', 'propIds', 'state', 'durationMs'],
+          'states': ['closed', 'open'],
+          'groupSize': {'minimum': 1, 'maximum': 32, 'unique': true},
+          'durationMs': {'minimum': 16, 'maximum': 10000, 'default': 350},
+          'outputPorts': ['moved', 'blocked'],
+          'semantics': 'atomicSynchronizedRailMovementWithDurableState',
+          'dimensions': ['twoD'],
+        },
         'itemGift': {
           'interactiveCommandKind': 'giveItem',
           'parameters': ['itemId', 'quantity'],

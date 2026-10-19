@@ -47,6 +47,8 @@ class GameplayWorldState {
     required this.player,
     required this.borderJumpBindings,
     required this.movingPlatformWorldState,
+    required this.movingPropWorldState,
+    Map<String, PixelOffset> movingPropPositions = const {},
     required ProjectManifest? collisionProject,
     required List<bool> tileCollisionCellCache,
     required List<bool> placedElementCellCollisionCache,
@@ -65,7 +67,8 @@ class GameplayWorldState {
     required int tileHeight,
     this.npcMapPresencePredicate,
     this.mapEntityPresencePredicate,
-  })  : _collisionProject = collisionProject,
+  })  : movingPropPositions = Map.unmodifiable(movingPropPositions),
+        _collisionProject = collisionProject,
         _tileCollisionCellCache = tileCollisionCellCache,
         _placedElementCellCollisionCache = placedElementCellCollisionCache,
         _staticCollisionStorage = staticCollisionStorage,
@@ -89,12 +92,24 @@ class GameplayWorldState {
     MovementMode playerMovementMode = MovementMode.walk,
     ProjectManifest? project,
     MovingPlatformWorldState movingPlatformWorldState = const MovingPlatformWorldState.empty(),
+    MovingPropWorldState? movingPropWorldState,
+    Map<String, PixelOffset> movingPropPositions = const {},
     int tileWidth = 16,
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate,
     GameState? gameState,
   }) {
+    movingPropWorldState ??= gameState?.movingPropWorldState ?? const MovingPropWorldState.empty();
+    movingPropWorldState = initializeMovingPropWorldState(map: map, worldState: movingPropWorldState);
+    if (map.movingProps.isNotEmpty) {
+      if (project == null) throw const FormatException('Moving props require a project catalog.');
+      validateMovingPropDefinitions(map: map, project: project,
+          tileSize: PixelSize(width: tileWidth, height: tileHeight));
+    }
+    map = applyMovingPropWorldStateToMap(map: map, worldState: movingPropWorldState,
+        tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight), positions: movingPropPositions);
     map = _projectEntityPresentations(map, project, gameState);
     map = applyMovingPlatformWorldStateToMap(map: map,
         worldState: movingPlatformWorldState,
@@ -119,6 +134,8 @@ class GameplayWorldState {
     return GameplayWorldState._(
       collisionProject: project,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
       map: map,
       player: GameplayPlayerState.fromGridSpawn(
         cell: playerPos,
@@ -207,12 +224,24 @@ class GameplayWorldState {
     MapData map, {
     ProjectManifest? project,
     MovingPlatformWorldState movingPlatformWorldState = const MovingPlatformWorldState.empty(),
+    MovingPropWorldState? movingPropWorldState,
+    Map<String, PixelOffset> movingPropPositions = const {},
     int tileWidth = 16,
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate,
     GameState? gameState,
   }) {
+    movingPropWorldState ??= gameState?.movingPropWorldState ?? const MovingPropWorldState.empty();
+    movingPropWorldState = initializeMovingPropWorldState(map: map, worldState: movingPropWorldState);
+    if (map.movingProps.isNotEmpty) {
+      if (project == null) throw const FormatException('Moving props require a project catalog.');
+      validateMovingPropDefinitions(map: map, project: project,
+          tileSize: PixelSize(width: tileWidth, height: tileHeight));
+    }
+    map = applyMovingPropWorldStateToMap(map: map, worldState: movingPropWorldState,
+        tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight), positions: movingPropPositions);
     map = _projectEntityPresentations(map, project, gameState);
     map = applyMovingPlatformWorldStateToMap(map: map,
         worldState: movingPlatformWorldState,
@@ -257,6 +286,8 @@ class GameplayWorldState {
     final world = GameplayWorldState._(
       collisionProject: project,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
       map: map,
       player: player,
       borderJumpBindings: borderBindings,
@@ -341,6 +372,11 @@ class GameplayWorldState {
   final List<bool> _tileCollisionCellCache;
   final ProjectManifest? _collisionProject;
   final MovingPlatformWorldState movingPlatformWorldState;
+  final MovingPropWorldState movingPropWorldState;
+  final Map<String, PixelOffset> movingPropPositions;
+  late final List<PixelRect> _movingPropRects = movingPropCollisionRects(
+      map: map, worldState: movingPropWorldState, positions: movingPropPositions)
+      .toList(growable: false);
   final List<bool> _placedElementCellCollisionCache;
   final WorldCollisionStorage _staticCollisionStorage;
   final Map<int, List<MapEntity>> _blockingEntityByPos;
@@ -371,8 +407,20 @@ class GameplayWorldState {
       {bool playerContact = false,
       BorderCollisionExclusion? borderExclusion,
       Set<String> ignoredSupportableTerrainLayerIds = const {},
+      Set<String> ignoredMovingPropIds = const {},
       String? ignoredEntityId, String? permittedWaterfallZoneId}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
+    for (var index = 0; index < map.movingProps.length; index++) {
+      final prop = map.movingProps[index];
+      if (ignoredMovingPropIds.contains(prop.id)) continue;
+      final obstacle = _movingPropRects[index];
+      if (rect.leftPx < obstacle.leftPx + obstacle.widthPx &&
+          rect.leftPx + rect.widthPx > obstacle.leftPx &&
+          rect.topPx < obstacle.topPx + obstacle.heightPx &&
+          rect.topPx + rect.heightPx > obstacle.topPx) {
+        return true;
+      }
+    }
     for (final zone in map.gameplayZones) {
       if (zone.kind != GameplayZoneKind.fieldAction ||
           zone.fieldAction?.actionKind != FieldActionZoneKind.waterfall ||
@@ -475,6 +523,13 @@ class GameplayWorldState {
               false)) {
         return true;
       }
+    }
+    final center = PixelRect(leftPx: cellX * _tileWidth + _tileWidth ~/ 2,
+        topPx: cellY * _tileHeight + _tileHeight ~/ 2, widthPx: 1, heightPx: 1);
+    if (_movingPropRects.any((rect) =>
+            center.leftPx >= rect.leftPx && center.leftPx < rect.leftPx + rect.widthPx &&
+            center.topPx >= rect.topPx && center.topPx < rect.topPx + rect.heightPx)) {
+      return true;
     }
     return _staticCollisionStorage.isCellCenterBlocked(
       cellX,
@@ -675,6 +730,8 @@ class GameplayWorldState {
         map: projected,
         project: project,
         movingPlatformWorldState: worldState,
+        movingPropWorldState: movingPropWorldState,
+        movingPropPositions: movingPropPositions,
         playerPos: player.pos,
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
@@ -696,6 +753,8 @@ class GameplayWorldState {
     return GameplayWorldState._(
       collisionProject: _collisionProject,
       movingPlatformWorldState: worldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
       map: projected,
       player: player,
       borderJumpBindings: borderJumpBindings,
@@ -735,10 +794,64 @@ class GameplayWorldState {
     );
   }
 
+  GameplayWorldState withMovingPropState({
+    required ProjectManifest project,
+    required MovingPropWorldState worldState,
+    Map<String, PixelOffset> positions = const {},
+  }) {
+    worldState = initializeMovingPropWorldState(map: map, worldState: worldState);
+    final tile = PixelSize(width: _tileWidth, height: _tileHeight);
+    final projected = applyMovingPropWorldStateToMap(
+        map: map, worldState: worldState, tileSize: tile, positions: positions);
+    final sameProject = identical(project, _collisionProject);
+    if (!sameProject) {
+      validateMovingPropDefinitions(map: projected, project: project, tileSize: tile);
+    }
+    final tiles = sameProject ? _tileCollisionCellCache :
+        _buildTileCollisionCellCache(projected, project: project);
+    final placed = sameProject ? _placedElementCellCollisionCache :
+        _buildPlacedElementCellCollisionCache(projected, project: project);
+    Map<int, PlacedElementBehaviorActivation> behaviors(MapPlacedElementTriggerType trigger) =>
+        _buildPlacedElementBehaviorByPos(projected, project: project, tileSize: tile, trigger: trigger);
+    return GameplayWorldState._(
+      map: projected,
+      collisionProject: project,
+      movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: worldState,
+      movingPropPositions: positions,
+      player: player,
+      borderJumpBindings: sameProject ? borderJumpBindings :
+          _bindBorderJumps(projected, project, _tileWidth, _tileHeight),
+      tileCollisionCellCache: tiles,
+      placedElementCellCollisionCache: placed,
+      staticCollisionStorage: sameProject ? _staticCollisionStorage :
+          _buildStaticCollisionStorage(projected, project: project,
+              tileWidth: _tileWidth, tileHeight: _tileHeight,
+              tileCollisionCellCache: tiles, placedElementCellCollisionCache: placed,
+              movingPlatformWorldState: movingPlatformWorldState),
+      blockingEntityByPos: _blockingEntityByPos,
+      warpCandidatesByPos: _warpCandidatesByPos,
+      entityByPos: _entityByPos,
+      actionBehaviorByPos: behaviors(MapPlacedElementTriggerType.onAction),
+      enterBehaviorByPos: behaviors(MapPlacedElementTriggerType.onEnter),
+      bumpBehaviorByPos: behaviors(MapPlacedElementTriggerType.onBump),
+      exitBehaviorByPos: behaviors(MapPlacedElementTriggerType.onExit),
+      nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(projected, project: project, tileSize: tile),
+      placedElementCoverageByPos: _buildPlacedElementCoverageByPos(projected, project: project, tileSize: tile),
+      waterCellCache: _waterCellCache,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
+    );
+  }
+
   GameplayWorldState withPlayer(GameplayPlayerState player) =>
       GameplayWorldState._(
       collisionProject: _collisionProject,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
         map: map,
         player: player,
         tileCollisionCellCache: _tileCollisionCellCache,
@@ -773,6 +886,8 @@ class GameplayWorldState {
     return GameplayWorldState._(
       collisionProject: _collisionProject,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
       map: map,
       player: player,
       tileCollisionCellCache: _tileCollisionCellCache,
@@ -813,6 +928,8 @@ class GameplayWorldState {
     return GameplayWorldState._(
       collisionProject: _collisionProject,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
       map: map,
       player: player,
       tileCollisionCellCache: _tileCollisionCellCache,
@@ -855,6 +972,7 @@ class GameplayWorldState {
     ]);
     return GameplayWorldState.initial(map: source, project: project,
       gameState: gameState, movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState, movingPropPositions: movingPropPositions,
       playerPos: player.pos, tileWidth: _tileWidth, tileHeight: _tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
       mapEntityPresencePredicate: mapEntityPresencePredicate).withPlayer(player);
@@ -927,6 +1045,8 @@ class GameplayWorldState {
     return GameplayWorldState._(
       collisionProject: _collisionProject,
       movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      movingPropPositions: movingPropPositions,
       map: updatedMap,
       player: player,
       tileCollisionCellCache: _tileCollisionCellCache,

@@ -77,10 +77,11 @@ Future<AuthoringQueryPage> querySceneSimulation(
   if (snapshot.manifest.settings.dimension != ProjectDimension.twoD &&
       plan.nodes.any((node) =>
           node.intent.interactiveCommand is SceneWhiteOutInteractiveCommand ||
+          node.intent.interactiveCommand is SceneSetPropStateInteractiveCommand ||
           node.intent.kind == SceneRuntimePlanIntentKind.startBattle &&
               node.intent.battleDefeatRecovery == SceneBattleDefeatRecovery.returnToRecoveryPoint)) {
     throw NarrativeAuthoringException('scene.simulation_unsupported_dimension',
-        'Scene defeat recovery is available only in a 2D project.');
+        'This Scene command is available only in a 2D project.');
   }
   for (final entry in ports.entries) {
     final node = nodes[entry.key];
@@ -94,6 +95,7 @@ Future<AuthoringQueryPage> querySceneSimulation(
   final used = <String>{};
   final consequences = <Map<String, Object?>>[];
   final defeatRecoveries = <Map<String, Object?>>[];
+  final propMovements = <Map<String, Object?>>[];
   String? missingInput;
   String output(SceneRuntimePlanIntent intent) {
     final node =
@@ -105,6 +107,15 @@ Future<AuthoringQueryPage> querySceneSimulation(
           'Scene simulation requires an explicit output for ${node.id}.');
     }
     used.add(node.id);
+    if (intent.interactiveCommand case final SceneSetPropStateInteractiveCommand command) {
+      propMovements.add({
+        'nodeId': node.id,
+        'command': command.toJson(),
+        'selectedOutputPort': port,
+        'collisionChecked': false,
+        'motionExecuted': false,
+      });
+    }
     if (intent.interactiveCommand is SceneWhiteOutInteractiveCommand ||
         intent.kind == SceneRuntimePlanIntentKind.startBattle &&
             port == 'defeat' &&
@@ -172,6 +183,7 @@ Future<AuthoringQueryPage> querySceneSimulation(
               .toList(),
           'proposedConsequences': consequences,
           'proposedDefeatRecoveries': completed ? defeatRecoveries : const [],
+          'proposedPropMovements': completed ? propMovements : const [],
           'outcomesByNodeId': result.context.lastOutcomeByNodeId,
           'branchProvenance': result.context.branchProvenance
               .map((branch) => {

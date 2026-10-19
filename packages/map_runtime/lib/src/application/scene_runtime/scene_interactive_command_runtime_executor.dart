@@ -19,6 +19,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.giveItem,
     this.moveNpc,
     this.movePlatform,
+    this.setPropState,
     this.openShop,
     this.openHeal,
     this.whiteOut,
@@ -39,6 +40,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? giveItem;
   final SceneInteractiveCommandHandler? moveNpc;
   final SceneInteractiveCommandHandler? movePlatform;
+  final SceneInteractiveCommandHandler? setPropState;
   final SceneInteractiveCommandHandler? openShop;
   final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? whiteOut;
@@ -74,6 +76,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
         ),
       SceneInteractiveCommandKind.warp => await warp(command),
       SceneInteractiveCommandKind.movePlatform => await _executeRequired(command, handler: movePlatform),
+      SceneInteractiveCommandKind.setPropState => await _executeRequired(command, handler: setPropState),
       SceneInteractiveCommandKind.moveNpc => await _executeRequired(
           command,
           handler: moveNpc,

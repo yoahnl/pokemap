@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MapData {
 
- String get id; String get name; GridSize get size; ProjectVersion get version;@JsonKey(includeIfNull: false) MapSpatialScene? get spatialScene;@JsonKey(includeIfNull: false) MapVisualStackConfig? get visualStack; String get tilesetId; List<MapLayer> get layers; List<MapPlacedElement> get placedElements; List<MovingPlatformDefinition> get movingPlatforms; List<MapEntity> get entities; List<MapConnection> get connections; List<MapWarp> get warps; List<MapTrigger> get triggers;/// Zones gameplay (rencontres, déplacement, dangers, etc.).
+ String get id; String get name; GridSize get size; ProjectVersion get version;@JsonKey(includeIfNull: false) MapSpatialScene? get spatialScene;@JsonKey(includeIfNull: false) MapVisualStackConfig? get visualStack; String get tilesetId; List<MapLayer> get layers; List<MapPlacedElement> get placedElements; List<MovingPlatformDefinition> get movingPlatforms; List<MovingPropDefinition> get movingProps; List<MapEntity> get entities; List<MapConnection> get connections; List<MapWarp> get warps; List<MapTrigger> get triggers;/// Zones gameplay (rencontres, déplacement, dangers, etc.).
 /// Séparées des triggers (logiques scriptées) et des layers visuelles.
  List<MapGameplayZone> get gameplayZones; MapMetadata get mapMetadata; Map<String, dynamic> get properties; List<MapEventDefinition> get events;
 /// Create a copy of MapData
@@ -30,16 +30,16 @@ $MapDataCopyWith<MapData> get copyWith => _$MapDataCopyWithImpl<MapData>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.size, size) || other.size == size)&&(identical(other.version, version) || other.version == version)&&(identical(other.spatialScene, spatialScene) || other.spatialScene == spatialScene)&&(identical(other.visualStack, visualStack) || other.visualStack == visualStack)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&const DeepCollectionEquality().equals(other.layers, layers)&&const DeepCollectionEquality().equals(other.placedElements, placedElements)&&const DeepCollectionEquality().equals(other.movingPlatforms, movingPlatforms)&&const DeepCollectionEquality().equals(other.entities, entities)&&const DeepCollectionEquality().equals(other.connections, connections)&&const DeepCollectionEquality().equals(other.warps, warps)&&const DeepCollectionEquality().equals(other.triggers, triggers)&&const DeepCollectionEquality().equals(other.gameplayZones, gameplayZones)&&(identical(other.mapMetadata, mapMetadata) || other.mapMetadata == mapMetadata)&&const DeepCollectionEquality().equals(other.properties, properties)&&const DeepCollectionEquality().equals(other.events, events));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.size, size) || other.size == size)&&(identical(other.version, version) || other.version == version)&&(identical(other.spatialScene, spatialScene) || other.spatialScene == spatialScene)&&(identical(other.visualStack, visualStack) || other.visualStack == visualStack)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&const DeepCollectionEquality().equals(other.layers, layers)&&const DeepCollectionEquality().equals(other.placedElements, placedElements)&&const DeepCollectionEquality().equals(other.movingPlatforms, movingPlatforms)&&const DeepCollectionEquality().equals(other.movingProps, movingProps)&&const DeepCollectionEquality().equals(other.entities, entities)&&const DeepCollectionEquality().equals(other.connections, connections)&&const DeepCollectionEquality().equals(other.warps, warps)&&const DeepCollectionEquality().equals(other.triggers, triggers)&&const DeepCollectionEquality().equals(other.gameplayZones, gameplayZones)&&(identical(other.mapMetadata, mapMetadata) || other.mapMetadata == mapMetadata)&&const DeepCollectionEquality().equals(other.properties, properties)&&const DeepCollectionEquality().equals(other.events, events));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,size,version,spatialScene,visualStack,tilesetId,const DeepCollectionEquality().hash(layers),const DeepCollectionEquality().hash(placedElements),const DeepCollectionEquality().hash(movingPlatforms),const DeepCollectionEquality().hash(entities),const DeepCollectionEquality().hash(connections),const DeepCollectionEquality().hash(warps),const DeepCollectionEquality().hash(triggers),const DeepCollectionEquality().hash(gameplayZones),mapMetadata,const DeepCollectionEquality().hash(properties),const DeepCollectionEquality().hash(events));
+int get hashCode => Object.hashAll([runtimeType,id,name,size,version,spatialScene,visualStack,tilesetId,const DeepCollectionEquality().hash(layers),const DeepCollectionEquality().hash(placedElements),const DeepCollectionEquality().hash(movingPlatforms),const DeepCollectionEquality().hash(movingProps),const DeepCollectionEquality().hash(entities),const DeepCollectionEquality().hash(connections),const DeepCollectionEquality().hash(warps),const DeepCollectionEquality().hash(triggers),const DeepCollectionEquality().hash(gameplayZones),mapMetadata,const DeepCollectionEquality().hash(properties),const DeepCollectionEquality().hash(events)]);
 
 @override
 String toString() {
-  return 'MapData(id: $id, name: $name, size: $size, version: $version, spatialScene: $spatialScene, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, movingPlatforms: $movingPlatforms, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
+  return 'MapData(id: $id, name: $name, size: $size, version: $version, spatialScene: $spatialScene, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, movingPlatforms: $movingPlatforms, movingProps: $movingProps, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
 }
 
 
@@ -50,7 +50,7 @@ abstract mixin class $MapDataCopyWith<$Res>  {
   factory $MapDataCopyWith(MapData value, $Res Function(MapData) _then) = _$MapDataCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, GridSize size, ProjectVersion version,@JsonKey(includeIfNull: false) MapSpatialScene? spatialScene,@JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack, String tilesetId, List<MapLayer> layers, List<MapPlacedElement> placedElements, List<MovingPlatformDefinition> movingPlatforms, List<MapEntity> entities, List<MapConnection> connections, List<MapWarp> warps, List<MapTrigger> triggers, List<MapGameplayZone> gameplayZones, MapMetadata mapMetadata, Map<String, dynamic> properties, List<MapEventDefinition> events
+ String id, String name, GridSize size, ProjectVersion version,@JsonKey(includeIfNull: false) MapSpatialScene? spatialScene,@JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack, String tilesetId, List<MapLayer> layers, List<MapPlacedElement> placedElements, List<MovingPlatformDefinition> movingPlatforms, List<MovingPropDefinition> movingProps, List<MapEntity> entities, List<MapConnection> connections, List<MapWarp> warps, List<MapTrigger> triggers, List<MapGameplayZone> gameplayZones, MapMetadata mapMetadata, Map<String, dynamic> properties, List<MapEventDefinition> events
 });
 
 
@@ -67,7 +67,7 @@ class _$MapDataCopyWithImpl<$Res>
 
 /// Create a copy of MapData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? size = null,Object? version = null,Object? spatialScene = freezed,Object? visualStack = freezed,Object? tilesetId = null,Object? layers = null,Object? placedElements = null,Object? movingPlatforms = null,Object? entities = null,Object? connections = null,Object? warps = null,Object? triggers = null,Object? gameplayZones = null,Object? mapMetadata = null,Object? properties = null,Object? events = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? size = null,Object? version = null,Object? spatialScene = freezed,Object? visualStack = freezed,Object? tilesetId = null,Object? layers = null,Object? placedElements = null,Object? movingPlatforms = null,Object? movingProps = null,Object? entities = null,Object? connections = null,Object? warps = null,Object? triggers = null,Object? gameplayZones = null,Object? mapMetadata = null,Object? properties = null,Object? events = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -79,7 +79,8 @@ as MapVisualStackConfig?,tilesetId: null == tilesetId ? _self.tilesetId : tilese
 as String,layers: null == layers ? _self.layers : layers // ignore: cast_nullable_to_non_nullable
 as List<MapLayer>,placedElements: null == placedElements ? _self.placedElements : placedElements // ignore: cast_nullable_to_non_nullable
 as List<MapPlacedElement>,movingPlatforms: null == movingPlatforms ? _self.movingPlatforms : movingPlatforms // ignore: cast_nullable_to_non_nullable
-as List<MovingPlatformDefinition>,entities: null == entities ? _self.entities : entities // ignore: cast_nullable_to_non_nullable
+as List<MovingPlatformDefinition>,movingProps: null == movingProps ? _self.movingProps : movingProps // ignore: cast_nullable_to_non_nullable
+as List<MovingPropDefinition>,entities: null == entities ? _self.entities : entities // ignore: cast_nullable_to_non_nullable
 as List<MapEntity>,connections: null == connections ? _self.connections : connections // ignore: cast_nullable_to_non_nullable
 as List<MapConnection>,warps: null == warps ? _self.warps : warps // ignore: cast_nullable_to_non_nullable
 as List<MapWarp>,triggers: null == triggers ? _self.triggers : triggers // ignore: cast_nullable_to_non_nullable
@@ -190,10 +191,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapSpatialScene? spatialScene, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MovingPlatformDefinition> movingPlatforms,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapSpatialScene? spatialScene, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MovingPlatformDefinition> movingPlatforms,  List<MovingPropDefinition> movingProps,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapData() when $default != null:
-return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.movingPlatforms,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
+return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.movingPlatforms,_that.movingProps,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
   return orElse();
 
 }
@@ -211,10 +212,10 @@ return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapSpatialScene? spatialScene, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MovingPlatformDefinition> movingPlatforms,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapSpatialScene? spatialScene, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MovingPlatformDefinition> movingPlatforms,  List<MovingPropDefinition> movingProps,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)  $default,) {final _that = this;
 switch (_that) {
 case _MapData():
-return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.movingPlatforms,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
+return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.movingPlatforms,_that.movingProps,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -231,10 +232,10 @@ return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapSpatialScene? spatialScene, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MovingPlatformDefinition> movingPlatforms,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapSpatialScene? spatialScene, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MovingPlatformDefinition> movingPlatforms,  List<MovingPropDefinition> movingProps,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)?  $default,) {final _that = this;
 switch (_that) {
 case _MapData() when $default != null:
-return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.movingPlatforms,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
+return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.movingPlatforms,_that.movingProps,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
   return null;
 
 }
@@ -246,7 +247,7 @@ return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,
 
 @JsonSerializable(explicitToJson: true)
 class _MapData implements MapData {
-  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v8, @JsonKey(includeIfNull: false) this.spatialScene, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MovingPlatformDefinition> movingPlatforms = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_movingPlatforms = movingPlatforms,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events;
+  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v8, @JsonKey(includeIfNull: false) this.spatialScene, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MovingPlatformDefinition> movingPlatforms = const [], final  List<MovingPropDefinition> movingProps = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_movingPlatforms = movingPlatforms,_movingProps = movingProps,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events;
   factory _MapData.fromJson(Map<String, dynamic> json) => _$MapDataFromJson(json);
 
 @override final  String id;
@@ -275,6 +276,13 @@ class _MapData implements MapData {
   if (_movingPlatforms is EqualUnmodifiableListView) return _movingPlatforms;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_movingPlatforms);
+}
+
+ final  List<MovingPropDefinition> _movingProps;
+@override@JsonKey() List<MovingPropDefinition> get movingProps {
+  if (_movingProps is EqualUnmodifiableListView) return _movingProps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_movingProps);
 }
 
  final  List<MapEntity> _entities;
@@ -345,16 +353,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.size, size) || other.size == size)&&(identical(other.version, version) || other.version == version)&&(identical(other.spatialScene, spatialScene) || other.spatialScene == spatialScene)&&(identical(other.visualStack, visualStack) || other.visualStack == visualStack)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&const DeepCollectionEquality().equals(other._layers, _layers)&&const DeepCollectionEquality().equals(other._placedElements, _placedElements)&&const DeepCollectionEquality().equals(other._movingPlatforms, _movingPlatforms)&&const DeepCollectionEquality().equals(other._entities, _entities)&&const DeepCollectionEquality().equals(other._connections, _connections)&&const DeepCollectionEquality().equals(other._warps, _warps)&&const DeepCollectionEquality().equals(other._triggers, _triggers)&&const DeepCollectionEquality().equals(other._gameplayZones, _gameplayZones)&&(identical(other.mapMetadata, mapMetadata) || other.mapMetadata == mapMetadata)&&const DeepCollectionEquality().equals(other._properties, _properties)&&const DeepCollectionEquality().equals(other._events, _events));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.size, size) || other.size == size)&&(identical(other.version, version) || other.version == version)&&(identical(other.spatialScene, spatialScene) || other.spatialScene == spatialScene)&&(identical(other.visualStack, visualStack) || other.visualStack == visualStack)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&const DeepCollectionEquality().equals(other._layers, _layers)&&const DeepCollectionEquality().equals(other._placedElements, _placedElements)&&const DeepCollectionEquality().equals(other._movingPlatforms, _movingPlatforms)&&const DeepCollectionEquality().equals(other._movingProps, _movingProps)&&const DeepCollectionEquality().equals(other._entities, _entities)&&const DeepCollectionEquality().equals(other._connections, _connections)&&const DeepCollectionEquality().equals(other._warps, _warps)&&const DeepCollectionEquality().equals(other._triggers, _triggers)&&const DeepCollectionEquality().equals(other._gameplayZones, _gameplayZones)&&(identical(other.mapMetadata, mapMetadata) || other.mapMetadata == mapMetadata)&&const DeepCollectionEquality().equals(other._properties, _properties)&&const DeepCollectionEquality().equals(other._events, _events));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,size,version,spatialScene,visualStack,tilesetId,const DeepCollectionEquality().hash(_layers),const DeepCollectionEquality().hash(_placedElements),const DeepCollectionEquality().hash(_movingPlatforms),const DeepCollectionEquality().hash(_entities),const DeepCollectionEquality().hash(_connections),const DeepCollectionEquality().hash(_warps),const DeepCollectionEquality().hash(_triggers),const DeepCollectionEquality().hash(_gameplayZones),mapMetadata,const DeepCollectionEquality().hash(_properties),const DeepCollectionEquality().hash(_events));
+int get hashCode => Object.hashAll([runtimeType,id,name,size,version,spatialScene,visualStack,tilesetId,const DeepCollectionEquality().hash(_layers),const DeepCollectionEquality().hash(_placedElements),const DeepCollectionEquality().hash(_movingPlatforms),const DeepCollectionEquality().hash(_movingProps),const DeepCollectionEquality().hash(_entities),const DeepCollectionEquality().hash(_connections),const DeepCollectionEquality().hash(_warps),const DeepCollectionEquality().hash(_triggers),const DeepCollectionEquality().hash(_gameplayZones),mapMetadata,const DeepCollectionEquality().hash(_properties),const DeepCollectionEquality().hash(_events)]);
 
 @override
 String toString() {
-  return 'MapData(id: $id, name: $name, size: $size, version: $version, spatialScene: $spatialScene, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, movingPlatforms: $movingPlatforms, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
+  return 'MapData(id: $id, name: $name, size: $size, version: $version, spatialScene: $spatialScene, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, movingPlatforms: $movingPlatforms, movingProps: $movingProps, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
 }
 
 
@@ -365,7 +373,7 @@ abstract mixin class _$MapDataCopyWith<$Res> implements $MapDataCopyWith<$Res> {
   factory _$MapDataCopyWith(_MapData value, $Res Function(_MapData) _then) = __$MapDataCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, GridSize size, ProjectVersion version,@JsonKey(includeIfNull: false) MapSpatialScene? spatialScene,@JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack, String tilesetId, List<MapLayer> layers, List<MapPlacedElement> placedElements, List<MovingPlatformDefinition> movingPlatforms, List<MapEntity> entities, List<MapConnection> connections, List<MapWarp> warps, List<MapTrigger> triggers, List<MapGameplayZone> gameplayZones, MapMetadata mapMetadata, Map<String, dynamic> properties, List<MapEventDefinition> events
+ String id, String name, GridSize size, ProjectVersion version,@JsonKey(includeIfNull: false) MapSpatialScene? spatialScene,@JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack, String tilesetId, List<MapLayer> layers, List<MapPlacedElement> placedElements, List<MovingPlatformDefinition> movingPlatforms, List<MovingPropDefinition> movingProps, List<MapEntity> entities, List<MapConnection> connections, List<MapWarp> warps, List<MapTrigger> triggers, List<MapGameplayZone> gameplayZones, MapMetadata mapMetadata, Map<String, dynamic> properties, List<MapEventDefinition> events
 });
 
 
@@ -382,7 +390,7 @@ class __$MapDataCopyWithImpl<$Res>
 
 /// Create a copy of MapData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? size = null,Object? version = null,Object? spatialScene = freezed,Object? visualStack = freezed,Object? tilesetId = null,Object? layers = null,Object? placedElements = null,Object? movingPlatforms = null,Object? entities = null,Object? connections = null,Object? warps = null,Object? triggers = null,Object? gameplayZones = null,Object? mapMetadata = null,Object? properties = null,Object? events = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? size = null,Object? version = null,Object? spatialScene = freezed,Object? visualStack = freezed,Object? tilesetId = null,Object? layers = null,Object? placedElements = null,Object? movingPlatforms = null,Object? movingProps = null,Object? entities = null,Object? connections = null,Object? warps = null,Object? triggers = null,Object? gameplayZones = null,Object? mapMetadata = null,Object? properties = null,Object? events = null,}) {
   return _then(_MapData(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -394,7 +402,8 @@ as MapVisualStackConfig?,tilesetId: null == tilesetId ? _self.tilesetId : tilese
 as String,layers: null == layers ? _self._layers : layers // ignore: cast_nullable_to_non_nullable
 as List<MapLayer>,placedElements: null == placedElements ? _self._placedElements : placedElements // ignore: cast_nullable_to_non_nullable
 as List<MapPlacedElement>,movingPlatforms: null == movingPlatforms ? _self._movingPlatforms : movingPlatforms // ignore: cast_nullable_to_non_nullable
-as List<MovingPlatformDefinition>,entities: null == entities ? _self._entities : entities // ignore: cast_nullable_to_non_nullable
+as List<MovingPlatformDefinition>,movingProps: null == movingProps ? _self._movingProps : movingProps // ignore: cast_nullable_to_non_nullable
+as List<MovingPropDefinition>,entities: null == entities ? _self._entities : entities // ignore: cast_nullable_to_non_nullable
 as List<MapEntity>,connections: null == connections ? _self._connections : connections // ignore: cast_nullable_to_non_nullable
 as List<MapConnection>,warps: null == warps ? _self._warps : warps // ignore: cast_nullable_to_non_nullable
 as List<MapWarp>,triggers: null == triggers ? _self._triggers : triggers // ignore: cast_nullable_to_non_nullable

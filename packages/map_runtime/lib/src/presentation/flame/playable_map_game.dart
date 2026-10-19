@@ -190,6 +190,7 @@ part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
 part 'playable_map_game_warp_presentation.dart';
+part 'playable_map_game_moving_props.dart';
 
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
@@ -617,6 +618,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   _PendingDirectedJump? _pendingDirectedJump;
   ({MovingPlatformControlActivation activation, String mapId, String? mapActivationId})? _pendingMovingPlatformControl;
   bool _movingPlatformControlRunning = false;
+  bool _movingPropsRunning = false;
   final PlacedElementWarpTraversalController
       _placedElementWarpTraversalController =
       PlacedElementWarpTraversalController();
@@ -971,6 +973,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _sceneActorRouteTargets.isNotEmpty ||
       _pendingDirectedJump != null ||
       _pendingMovingPlatformControl != null ||
+      _movingPropsRunning ||
       _flowPhase == _RuntimeFlowPhase.mapTransition ||
       _flowPhase == _RuntimeFlowPhase.battleTransition ||
       _flowPhase == _RuntimeFlowPhase.battle ||
@@ -3546,6 +3549,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   @visibleForTesting
+  PixelOffset? debugMovingPropPosition(String propId) {
+    final prop = _world.map.movingProps.where((item) => item.id == propId).firstOrNull;
+    final element = _world.map.placedElements.where((item) => item.id == prop?.placedElementId).firstOrNull;
+    if (element == null) return null;
+    return PixelOffset(x: element.pos.x * _world.tileWidthPx + element.pixelOffset.x,
+      y: element.pos.y * _world.tileHeightPx + element.pixelOffset.y);
+  }
+
+  @visibleForTesting
+  bool debugMovingPropsCollide(PixelRect rect) => _world.worldStaticObstaclesCollidePixelRect(rect);
+
+  @visibleForTesting
   bool debugTryEnqueueBattleRequestForTest(BattleStartRequest request) {
     return _tryEnqueueBattleRequest(request);
   }
@@ -4052,6 +4067,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       movingPlatformWorldState: initializeMovingPlatformWorldState(
         map: _world.map,
         worldState: state.movingPlatformWorldState,
+      ),
+      movingPropWorldState: initializeMovingPropWorldState(
+        map: _world.map,
+        worldState: state.movingPropWorldState,
       ),
       playerPosition: _world.player.pos,
       playerPixelPosition: PixelOffset(
@@ -4925,6 +4944,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           map: _bundle.map,
           worldState: _gameState.movingPlatformWorldState,
         ),
+        movingPropWorldState: initializeMovingPropWorldState(
+          map: _bundle.map,
+          worldState: _gameState.movingPropWorldState,
+        ),
       );
       _bundle = await prepareBorderRuntimeBundle(
         _projectMovingPlatformBundle(_bundle, _gameState),
@@ -5001,6 +5024,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                   ?.gameState.movingPlatformWorldState ??
               _gameState.movingPlatformWorldState,
+          movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
@@ -5023,6 +5047,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                   ?.gameState.movingPlatformWorldState ??
               _gameState.movingPlatformWorldState,
+          movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
           map: _bundle.map,
           playerPos: _gameState.playerPosition,
           playerFacing: _gameState.playerFacing.asDirection,
@@ -5047,6 +5072,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             _bundle.map,
             gameState: _gameState,
             movingPlatformWorldState: _gameState.movingPlatformWorldState,
+            movingPropWorldState: _gameState.movingPropWorldState,
             project: _bundle.manifest,
             tileWidth: _bundle.manifest.settings.tileWidth,
             tileHeight: _bundle.manifest.settings.tileHeight,
@@ -5067,6 +5093,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                     ?.gameState.movingPlatformWorldState ??
                 _gameState.movingPlatformWorldState,
+            movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
             map: _bundle.map,
             playerPos: const GridPos(x: 0, y: 0),
             project: _bundle.manifest,
@@ -5501,6 +5528,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
+
+    if (_movingPropsRunning) {
+      _clearPressedMovementControls();
+      return;
+    }
 
     if (_pendingMovingPlatformControl != null) {
       _clearPressedMovementControls();
@@ -8286,6 +8318,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       movingPlatformWorldState: _activeNarrativeSceneWorkingSession
               ?.gameState.movingPlatformWorldState ??
           _gameState.movingPlatformWorldState,
+      movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
       map: updatedMap,
       playerPos: playerState.pos,
       playerFacing: playerState.facing,
@@ -8605,6 +8638,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       movingPlatformWorldState: _activeNarrativeSceneWorkingSession
               ?.gameState.movingPlatformWorldState ??
           _gameState.movingPlatformWorldState,
+      movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
       map: updatedMap,
       playerPos: playerState.pos,
       playerFacing: playerState.facing,
@@ -9053,6 +9087,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       movingPlatformWorldState: _activeNarrativeSceneWorkingSession
               ?.gameState.movingPlatformWorldState ??
           _gameState.movingPlatformWorldState,
+      movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
       map: updatedMap,
       playerPos: _world.player.pos,
       playerFacing: _world.player.facing,
@@ -12215,6 +12250,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           command,
           currentGameState: currentGameState,
         ),
+        setPropState: (command) => _executeSceneSetPropStateCommand(
+          command,
+          currentGameState: currentGameState,
+        ),
         openWorldService: _executeSceneWorldServiceRequest,
         railJourney: (command) => _executeSceneRailJourneyCommand(
           command,
@@ -12583,6 +12622,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final maps = <String, MapData>{activeBundle.map.id: activeBundle.map};
     for (final mapId in {
       ...state.movingPlatformWorldState.platformsByMap.keys,
+      ...state.movingPropWorldState.propsByMap.keys,
       ...state.mapInstanceWorldState.instancesByMapId.keys,
     }) {
       if (!activeBundle.manifest.maps.any((entry) => entry.id == mapId)) {
@@ -12609,6 +12649,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       project: activeBundle.manifest,
       maps: maps.values,
       worldState: state.movingPlatformWorldState,
+      movingPropWorldState: state.movingPropWorldState,
+      gameState: state,
       npcMapPresencePredicate: _npcPresencePredicateFor(
         activeBundle.manifest,
         gameStateOverride: state,
@@ -12617,6 +12659,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         activeBundle.manifest,
         gameStateOverride: state,
       ),
+    );
+    validateGameplayMovingPropWorldState(
+      project: activeBundle.manifest,
+      maps: maps.values,
+      worldState: state.movingPropWorldState,
+      movingPlatformWorldState: state.movingPlatformWorldState,
+      gameState: state,
+      npcMapPresencePredicate: _npcPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
+      mapEntityPresencePredicate: _mapEntityPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
     );
   }
 
@@ -12646,9 +12697,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
     }
     return bundle.copyWith(
-      map: applyMovingPlatformWorldStateToMap(
-        map: map,
-        worldState: state.movingPlatformWorldState,
+      map: applyMovingPropWorldStateToMap(
+        map: applyMovingPlatformWorldStateToMap(
+          map: map,
+          worldState: state.movingPlatformWorldState,
+          tileSize: PixelSize(
+            width: bundle.manifest.settings.tileWidth,
+            height: bundle.manifest.settings.tileHeight,
+          ),
+        ),
+        worldState: state.movingPropWorldState,
         tileSize: PixelSize(
           width: bundle.manifest.settings.tileWidth,
           height: bundle.manifest.settings.tileHeight,
@@ -12700,6 +12758,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     final ids = worldState.map.movingPlatforms
         .map((platform) => platform.placedElementId)
+        .followedBy(worldState.map.movingProps.map((prop) => prop.placedElementId))
         .toSet();
     final visuals = worldState.map.placedElements
         .where((element) => ids.contains(element.id))
@@ -14636,6 +14695,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                 ?.gameState.movingPlatformWorldState ??
             _gameState.movingPlatformWorldState,
+        movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
         map: updatedMap,
         playerPos: _world.player.pos,
         playerFacing: _world.player.facing,
@@ -15693,6 +15753,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       preparedWorld = GameplayWorldState.initial(
         gameState: loadedState,
         movingPlatformWorldState: loadedState.movingPlatformWorldState,
+        movingPropWorldState: loadedState.movingPropWorldState,
         map: newBundle.map,
         project: newBundle.manifest,
         playerPos: loadedState.playerPosition,
@@ -16157,6 +16218,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         () => GameplayWorldState.initial(
           gameState: destinationState,
           movingPlatformWorldState: destinationState.movingPlatformWorldState,
+          movingPropWorldState: destinationState.movingPropWorldState,
           map: newBundle.map,
           playerPos: warp.targetPos,
           playerFacing: arrivalFacing?.asDirection ?? sourceFacing,
@@ -16473,6 +16535,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       movingPlatformWorldState: _activeNarrativeSceneWorkingSession
               ?.gameState.movingPlatformWorldState ??
           _gameState.movingPlatformWorldState,
+      movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
       map: map,
       playerPos: safePos,
       playerFacing: fallbackFacing,
@@ -16493,6 +16556,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                 ?.gameState.movingPlatformWorldState ??
             _gameState.movingPlatformWorldState,
+        movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
         map: map,
         playerPos: spawn.pos,
         playerFacing: fallbackFacing,
@@ -16515,6 +16579,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             movingPlatformWorldState: _activeNarrativeSceneWorkingSession
                     ?.gameState.movingPlatformWorldState ??
                 _gameState.movingPlatformWorldState,
+            movingPropWorldState: _activeNarrativeSceneWorkingSession?.gameState.movingPropWorldState ?? _gameState.movingPropWorldState,
             map: map,
             playerPos: GridPos(x: x, y: y),
             playerFacing: fallbackFacing,
@@ -16638,6 +16703,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       final newWorld = GameplayWorldState.initial(
         gameState: destinationState,
         movingPlatformWorldState: destinationState.movingPlatformWorldState,
+        movingPropWorldState: destinationState.movingPropWorldState,
         map: targetBundle.map,
         playerPos: targetPos,
         playerFacing: _world.player.facing,

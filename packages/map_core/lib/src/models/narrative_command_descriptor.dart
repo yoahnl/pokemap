@@ -32,6 +32,8 @@ enum NarrativeCommandParameterKind {
   modelInstance,
   movingPlatform,
   movingPlatformMotion,
+  movingProps,
+  movingPropState,
   modelAnimation,
   npc,
   character,

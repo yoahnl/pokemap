@@ -21,6 +21,7 @@ final class MapHistoryDelta {
     required _ValueDelta<String>? tilesetId,
     required _MapLayersDelta? layers,
     required _ReversibleListDelta<MapPlacedElement>? placedElements,
+    required _ReversibleListDelta<MovingPropDefinition>? movingProps,
     required _ReversibleListDelta<MapEntity>? entities,
     required _ReversibleListDelta<MapConnection>? connections,
     required _ReversibleListDelta<MapWarp>? warps,
@@ -38,6 +39,7 @@ final class MapHistoryDelta {
        _tilesetId = tilesetId,
        _layers = layers,
        _placedElements = placedElements,
+       _movingProps = movingProps,
        _entities = entities,
        _connections = connections,
        _warps = warps,
@@ -58,6 +60,7 @@ final class MapHistoryDelta {
       tilesetId: _valueDelta(before.tilesetId, after.tilesetId),
       layers: _MapLayersDelta.between(before.layers, after.layers),
       placedElements: _listDelta(before.placedElements, after.placedElements),
+      movingProps: _listDelta(before.movingProps, after.movingProps),
       entities: _listDelta(before.entities, after.entities),
       connections: _listDelta(before.connections, after.connections),
       warps: _listDelta(before.warps, after.warps),
@@ -78,6 +81,7 @@ final class MapHistoryDelta {
   final _ValueDelta<String>? _tilesetId;
   final _MapLayersDelta? _layers;
   final _ReversibleListDelta<MapPlacedElement>? _placedElements;
+  final _ReversibleListDelta<MovingPropDefinition>? _movingProps;
   final _ReversibleListDelta<MapEntity>? _entities;
   final _ReversibleListDelta<MapConnection>? _connections;
   final _ReversibleListDelta<MapWarp>? _warps;
@@ -99,6 +103,7 @@ final class MapHistoryDelta {
       _changed(_tilesetId) +
       (_layers?.changedValueCount ?? 0) +
       (_placedElements?.changedValueCount ?? 0) +
+      (_movingProps?.changedValueCount ?? 0) +
       (_entities?.changedValueCount ?? 0) +
       (_connections?.changedValueCount ?? 0) +
       (_warps?.changedValueCount ?? 0) +
@@ -118,6 +123,7 @@ final class MapHistoryDelta {
       _retained(_tilesetId) +
       (_layers?.retainedBytes ?? 0) +
       (_placedElements?.retainedBytes ?? 0) +
+      (_movingProps?.retainedBytes ?? 0) +
       (_entities?.retainedBytes ?? 0) +
       (_connections?.retainedBytes ?? 0) +
       (_warps?.retainedBytes ?? 0) +
@@ -172,6 +178,9 @@ final class MapHistoryDelta {
       result = result.copyWith(
         placedElements: delta.apply(result.placedElements, direction),
       );
+    }
+    if (_movingProps case final delta?) {
+      result = result.copyWith(movingProps: delta.apply(result.movingProps, direction));
     }
     if (_entities case final delta?) {
       result = result.copyWith(

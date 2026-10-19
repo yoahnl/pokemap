@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import '../../editing/moving_prop_editing.dart';
 
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
@@ -375,6 +376,12 @@ final class PlacedElementActions {
       );
     }
 
+    try {
+      updated = const MovingPropEditing().reconcilePlacementChanges(
+        before: context.map, after: updated, project: context.manifest);
+    } on FormatException catch (error) {
+      throw semanticFailure('placed_element.mutation_invalid', error.message.toString());
+    }
     return context.draftMap(
       after: updated,
       operation: actionId,

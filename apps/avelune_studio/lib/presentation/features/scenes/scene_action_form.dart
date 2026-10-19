@@ -127,6 +127,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _commands.where((command) => command.id == _commandId).firstOrNull;
 
   bool _is2DPresentationCommand(String? id) =>
+      id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
@@ -199,7 +200,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
           : data[parameter.id];
       if (value is String || value is num || value is bool) {
         _values[parameter.id] = '$value';
-      } else if (value is List && parameter.id == 'moveIds') {
+      } else if (value is List && (parameter.id == 'moveIds' || parameter.id == 'propIds')) {
         _values[parameter.id] = jsonEncode(value);
       }
     }
@@ -266,6 +267,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
     }
     if (commandId == NarrativeCommandIds.playModelAnimation) {
       _values['speed'] = '1';
+    } else if (commandId == NarrativeCommandIds.setPropState) {
+      _values['durationMs'] = '350';
+      _values['state'] = 'open';
+      _values['propIds'] = '[]';
     } else if (commandId == NarrativeCommandIds.wait) {
       _values['durationMs'] = '0';
     } else if (commandId == NarrativeCommandIds.worldTone) {
@@ -282,12 +287,23 @@ class _SceneActionFormState extends State<SceneActionForm> {
   bool get _valid {
     final command = _command;
     if (command == null) return false;
+    if (command.id == NarrativeCommandIds.setPropState) {
+      if (_referenceLoading || _referenceError != null || _referenceMap == null) return false;
+      try {
+        final built = _buildPayload() as SceneActionPayload;
+        final command = built.interactiveCommand! as SceneSetPropStateInteractiveCommand;
+        if (command.propIds.any((id) => !_movingProps.containsKey(id))) return false;
+      } catch (_) {
+        return false;
+      }
+    }
     if (_isGift &&
         (_speciesLoading || _speciesError != null || !_giftMovesValid)) {
       return false;
     }
     for (final parameter in command.parameters) {
       final value = _values[parameter.id];
+      if (parameter.kind == NarrativeCommandParameterKind.movingProps) continue;
       if (value == null || value.trim().isEmpty) {
         if (parameter.required) return false;
         continue;
@@ -442,6 +458,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
           map.id: map.name,
     },
     NarrativeCommandParameterKind.warp => _warpPoints,
+    NarrativeCommandParameterKind.movingPropState => const {'closed': 'Fermé', 'open': 'Ouvert'},
     NarrativeCommandParameterKind.characterDirection =>
       _commandId == NarrativeCommandIds.warp
           ? const {
@@ -620,6 +637,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       } else if (parameter.id == 'mapId') {
         _values.remove('instanceId');
         _values.remove('animationIndex');
+        if (_commandId == NarrativeCommandIds.setPropState) _values['propIds'] = '[]';
         _loadReferenceMap();
       } else if (parameter.id == 'instanceId') {
         _values.remove('animationIndex');
@@ -659,6 +677,29 @@ class _SceneActionFormState extends State<SceneActionForm> {
         },
         onChanged: changed,
       );
+    }
+    if (parameter.kind == NarrativeCommandParameterKind.movingProps) {
+      final selected = <String>{};
+      try { selected.addAll((jsonDecode(_values['propIds'] ?? '[]') as List).cast<String>()); } catch (_) {}
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(parameter.label),
+        if (_referenceLoading) const StudioNotice('Chargement des décors mobiles…'),
+        if (_referenceError != null) StudioNotice(_referenceError!),
+        if (!_referenceLoading && _referenceError == null && _movingProps.isEmpty)
+          const StudioNotice('Configurez les décors mobiles dans les propriétés des décors de cette carte.'),
+        for (final missing in selected.difference(_movingProps.keys.toSet())) ...[
+          const StudioNotice('Un décor sélectionné n’existe plus. Retirez-le de la sélection.'),
+          StudioButton(label: 'Retirer la référence absente', secondary: true,
+              onPressed: () => changed(jsonEncode(selected.difference({missing}).toList()))),
+        ],
+        for (final entry in _movingProps.entries)
+          StudioToggleRow(key: ValueKey('scene-prop-${entry.key}'), label: entry.value,
+            value: selected.contains(entry.key), onChanged: (value) {
+              final next = {...selected};
+              value ? next.add(entry.key) : next.remove(entry.key);
+              changed(jsonEncode(next.toList()));
+            }),
+      ]);
     }
     if (parameter.kind == NarrativeCommandParameterKind.boolean) {
       return StudioToggleRow(

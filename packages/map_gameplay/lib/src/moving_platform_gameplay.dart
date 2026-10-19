@@ -117,6 +117,8 @@ void validateGameplayMovingPlatformWorldState(
     {required ProjectManifest project,
     required Iterable<MapData> maps,
     required MovingPlatformWorldState worldState,
+    MovingPropWorldState movingPropWorldState = const MovingPropWorldState.empty(),
+    GameState? gameState,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate}) {
   final materializedMaps = maps.toList();
@@ -132,6 +134,8 @@ void validateGameplayMovingPlatformWorldState(
         map: map,
         project: project,
         movingPlatformWorldState: state,
+        movingPropWorldState: movingPropWorldState,
+        gameState: gameState,
         playerPos: const GridPos(x: 0, y: 0),
         tileWidth: tile.width,
         tileHeight: tile.height,

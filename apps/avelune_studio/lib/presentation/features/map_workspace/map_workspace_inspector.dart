@@ -14,6 +14,7 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_tool_strip_selection.dart';
 import 'map_decor_geometry_panel.dart';
+import 'map_moving_prop_panel.dart';
 import 'map_catalogue_properties.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../resources/resource_catalog.dart';
@@ -429,6 +430,9 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   if (entry != null) ...[
+                    const SizedBox(height: 12),
+                    MapMovingPropPanel(key: ValueKey('moving-prop-${selected.id}'),
+                      document: document, project: project, placement: selected, onChanged: onChanged),
                     const SizedBox(height: 12),
                     MapDecorGeometryPanel(
                       key: ValueKey('decor-geometry-${selected.id}'),

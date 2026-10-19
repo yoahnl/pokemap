@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../runtime/character_custom_animation_runtime_contract.dart';
 import 'rail_journey.dart';
 import 'moving_platform.dart';
+import 'moving_prop.dart';
 import 'enums.dart';
 import 'scene_actor_route.dart';
 import 'scene_warp_presentation.dart';
@@ -20,6 +21,7 @@ enum SceneInteractiveCommandKind {
   actorVisibility,
   moveNpc,
   movePlatform,
+  setPropState,
   openShop,
   openHeal,
   whiteOut,
@@ -115,6 +117,13 @@ abstract base class SceneInteractiveCommand {
     required String platformId,
     required MovingPlatformMotion motion,
   }) = SceneMovePlatformInteractiveCommand;
+
+  factory SceneInteractiveCommand.setPropState({
+    required String mapId,
+    required List<String> propIds,
+    required MovingPropState state,
+    int durationMs,
+  }) = SceneSetPropStateInteractiveCommand;
 
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
@@ -213,6 +222,8 @@ abstract base class SceneInteractiveCommand {
         mapId: _required(json, 'mapId'), platformId: _required(json, 'platformId'),
         motion: _requiredEnum(json, 'motion', MovingPlatformMotion.values),
       ),
+      SceneInteractiveCommandKind.setPropState =>
+        SceneSetPropStateInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
         shopId: _required(json, 'shopId'),
       ),
@@ -756,6 +767,71 @@ final class ScenePlayModelAnimationInteractiveCommand
     speed,
     blocksMovementAfter,
   );
+}
+
+@immutable
+final class SceneSetPropStateInteractiveCommand extends SceneInteractiveCommand {
+  SceneSetPropStateInteractiveCommand({
+    required this.mapId,
+    required List<String> propIds,
+    required this.state,
+    this.durationMs = 350,
+  }) : propIds = List.unmodifiable(propIds) {
+    if (mapId.isEmpty || mapId.trim() != mapId ||
+        this.propIds.isEmpty || this.propIds.length > 32 ||
+        this.propIds.toSet().length != this.propIds.length ||
+        this.propIds.any((id) => id.isEmpty || id.trim() != id) ||
+        durationMs < 16 || durationMs > 10000) {
+      throw const FormatException('Prop movement requires a map, 1..32 unique props and a duration of 16..10000 ms.');
+    }
+  }
+
+  factory SceneSetPropStateInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    const fields = {'kind', 'mapId', 'propIds', 'state', 'durationMs'};
+    if (json.keys.any((key) => !fields.contains(key)) ||
+        json['kind'] != 'setPropState' || json['mapId'] is! String ||
+        json['propIds'] is! List ||
+        (json['propIds'] as List).any((id) => id is! String) ||
+        json['durationMs'] is! int) {
+      throw const FormatException('Invalid prop movement fields.');
+    }
+    return SceneSetPropStateInteractiveCommand(
+      mapId: json['mapId'] as String,
+      propIds: List<String>.from(json['propIds'] as List),
+      state: MovingPropState.values.firstWhere((value) => value.name == json['state'],
+          orElse: () => throw const FormatException('Invalid prop state.')),
+      durationMs: json['durationMs'] as int,
+    );
+  }
+
+  final String mapId;
+  final List<String> propIds;
+  final MovingPropState state;
+  final int durationMs;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.setPropState;
+
+  @override
+  List<String> get outputPortIds => const ['moved', 'blocked'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'mapId': mapId,
+    'propIds': propIds,
+    'state': state.name,
+    'durationMs': durationMs,
+  };
+
+  @override
+  bool operator ==(Object other) => other is SceneSetPropStateInteractiveCommand &&
+      other.mapId == mapId && other.state == state && other.durationMs == durationMs &&
+      other.propIds.length == propIds.length &&
+      List.generate(propIds.length, (index) => index).every((index) => other.propIds[index] == propIds[index]);
+
+  @override
+  int get hashCode => Object.hash(mapId, Object.hashAll(propIds), state, durationMs);
 }
 
 @immutable

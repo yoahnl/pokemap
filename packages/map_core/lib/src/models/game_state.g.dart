@@ -93,6 +93,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
       : MovingPlatformWorldState.fromJson(
           json['movingPlatformWorldState'] as Map<String, dynamic>,
         ),
+  movingPropWorldState: json['movingPropWorldState'] == null
+      ? const MovingPropWorldState.empty()
+      : MovingPropWorldState.fromJson(
+          json['movingPropWorldState'] as Map<String, dynamic>,
+        ),
   mapInstanceWorldState:
       readMapInstanceWorldStateJson(json, 'mapInstanceWorldState') == null
       ? const MapInstanceWorldState.empty()
@@ -192,6 +197,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'playerSpatialPosition': instance.playerSpatialPosition?.toJson(),
       'spatialWorldState': instance.spatialWorldState.toJson(),
       'movingPlatformWorldState': instance.movingPlatformWorldState.toJson(),
+      'movingPropWorldState': instance.movingPropWorldState.toJson(),
       'mapInstanceWorldState': instance.mapInstanceWorldState.toJson(),
       'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
       'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,

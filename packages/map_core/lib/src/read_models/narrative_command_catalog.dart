@@ -45,6 +45,7 @@ abstract final class NarrativeCommandIds {
       'setPauseMenuEntryVisibility';
   static const moveNpc = 'moveNpc';
   static const movePlatform = 'movePlatform';
+  static const setPropState = 'setPropState';
   static const playCharacterAnimation = 'playCharacterAnimation';
   static const playModelAnimation = 'playModelAnimation';
   static const railJourney = 'railJourney';
@@ -704,6 +705,18 @@ final class NarrativeCommandCatalog {
         'Échanger deux Pokémon de l’équipe',
         'FG-055',
         const [],
+        isPersistent: true,
+      ),
+      interactive(
+        NarrativeCommandIds.setPropState,
+        'Déplacer des décors mobiles',
+        'FG-082',
+        [
+          _parameter('mapId', 'Carte', NarrativeCommandParameterKind.map),
+          _parameter('propIds', 'Décors à synchroniser', NarrativeCommandParameterKind.movingProps),
+          _parameter('state', 'État souhaité', NarrativeCommandParameterKind.movingPropState),
+          _parameter('durationMs', 'Durée du mouvement (ms)', NarrativeCommandParameterKind.integer),
+        ],
         isPersistent: true,
       ),
       interactive(

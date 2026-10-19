@@ -2,6 +2,7 @@ import '../models/game_state.dart';
 import '../models/save_data.dart';
 import '../models/spatial_world_state.dart';
 import '../models/moving_platform.dart';
+import '../models/moving_prop.dart';
 import '../models/map_instance_world_state.dart';
 
 Map<String, dynamic> strictGameStateSaveJson(GameState state) {
@@ -24,6 +25,11 @@ GameState gameStateFromStrictSaveJson(Map<String, dynamic> json) {
     throw const FormatException('The save is missing its moving platform world state.');
   }
   MovingPlatformWorldState.fromJson(Map<String, dynamic>.from(platforms));
+  final props = json['movingPropWorldState'];
+  if (props is! Map) {
+    throw const FormatException('The save is missing its moving prop world state.');
+  }
+  MovingPropWorldState.fromJson(Map<String, dynamic>.from(props));
   final instances = json['mapInstanceWorldState'];
   if (instances is! Map) {
     throw const FormatException('The save is missing its map instance state.');
@@ -52,6 +58,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     playerSpatialPosition: normalizedSaveData.playerSpatialPosition,
     spatialWorldState: normalizedSaveData.spatialWorldState,
     movingPlatformWorldState: normalizedSaveData.movingPlatformWorldState,
+    movingPropWorldState: normalizedSaveData.movingPropWorldState,
     mapInstanceWorldState: normalizedSaveData.mapInstanceWorldState,
     playerMovementMode: normalizedSaveData.playerMovementMode,
     playerFacing: normalizedSaveData.playerFacing,
@@ -99,6 +106,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     playerSpatialPosition: normalizedGameState.playerSpatialPosition,
     spatialWorldState: normalizedGameState.spatialWorldState,
     movingPlatformWorldState: normalizedGameState.movingPlatformWorldState,
+    movingPropWorldState: normalizedGameState.movingPropWorldState,
     mapInstanceWorldState: normalizedGameState.mapInstanceWorldState,
     playerMovementMode: normalizedGameState.playerMovementMode,
     playerFacing: normalizedGameState.playerFacing,

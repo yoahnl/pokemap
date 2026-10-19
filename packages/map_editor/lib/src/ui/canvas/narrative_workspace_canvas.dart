@@ -5069,6 +5069,11 @@ _buildSceneActionPickerOptions(
       for (final map in project.maps)
         SceneActionPickerOption(id: map.id, label: map.name),
     ],
+    NarrativeCommandParameterKind.movingProps: [
+      for (final prop in activeMap?.movingProps ?? const <MovingPropDefinition>[])
+        SceneActionPickerOption(id: prop.id, parentId: activeMap!.id,
+          label: '${project.elements.where((element) => element.id == activeMap.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})'),
+    ],
     NarrativeCommandParameterKind.movingPlatform: [
       for (final platform in activeMap?.movingPlatforms ?? const <MovingPlatformDefinition>[])
         SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}',

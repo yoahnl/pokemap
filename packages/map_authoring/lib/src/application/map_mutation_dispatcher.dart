@@ -4,6 +4,7 @@ import '../domains/maps/spatial_map_actions.dart';
 import '../domains/maps/spatial_terrain_surface_actions.dart';
 import '../domains/maps/dive_pair_actions.dart';
 import '../domains/maps/moving_platform_actions.dart';
+import '../domains/maps/moving_prop_actions.dart';
 import 'dart:async';
 
 import 'package:map_distribution/map_distribution.dart';
@@ -218,6 +219,9 @@ final class MapMutationDispatcher {
       for (final descriptor in MovingPlatformActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const MovingPlatformActions().build),
+      for (final descriptor in MovingPropActions.descriptors)
+        MapMutationActionRegistration(
+            descriptor: descriptor, build: const MovingPropActions().build),
       for (final descriptor in SpatialMapActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const SpatialMapActions().build),

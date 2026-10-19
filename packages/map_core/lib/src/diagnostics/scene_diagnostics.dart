@@ -64,6 +64,7 @@ enum SceneDiagnosticCode {
   consequenceInvalidPlayerAvatar,
   commandUnknownNpc,
   commandUnknownPlatform,
+  commandUnknownProp,
   commandUnknownWarp,
   commandUnknownRailJourney,
   commandUnknownMap,
@@ -1576,6 +1577,23 @@ void _diagnoseActionConsequenceAgainstProject(
   }
 
   final consequence = payload.consequence;
+  if (interactiveCommand is SceneSetPropStateInteractiveCommand) {
+    final map = mapsById[interactiveCommand.mapId];
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnsupportedDimension,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Les décors mobiles nécessitent une carte 2D.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node));
+    }
+    if (map == null || interactiveCommand.propIds.any((id) =>
+        map.movingProps.where((value) => value.id == id).length != 1)) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownProp,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Un décor mobile sélectionné est absent ou ambigu sur cette carte.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir des décors mobiles de la carte.'));
+    }
+  }
   if (consequence == null) {
     return;
   }

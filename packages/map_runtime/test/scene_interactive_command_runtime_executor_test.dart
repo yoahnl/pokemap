@@ -20,6 +20,7 @@ void main() {
       waitForActorRoutes: handler,
       moveNpc: handler,
       movePlatform: handler,
+      setPropState: handler,
       openShop: handler,
       openHeal: handler,
       whiteOut: handler,
@@ -66,6 +67,7 @@ void main() {
         platformId: 'platform',
         motion: MovingPlatformMotion.forward,
       ),
+      SceneInteractiveCommand.setPropState(mapId: 'map.port', propIds: const ['gate'], state: MovingPropState.open),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.whiteOut(),
@@ -106,6 +108,7 @@ void main() {
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.whiteOut(),
       SceneInteractiveCommand.wait(durationMs: 0),
+      SceneInteractiveCommand.setPropState(mapId: 'map.port', propIds: const ['gate'], state: MovingPropState.open),
       SceneInteractiveCommand.waitForActorRoutes(mapId: 'map.port'),
       SceneInteractiveCommand.worldTone(red: 0, green: 0, blue: 0, gray: 0, durationMs: 300),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
