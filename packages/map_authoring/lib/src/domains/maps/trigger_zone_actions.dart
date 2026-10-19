@@ -50,7 +50,7 @@ final class TriggerZoneActions {
       ),
       (
         'gameplay_zone.set_field_action_payload',
-        'Set a typed Flash, Cascade or Dive payload (2D)'
+        'Set a typed Flash, Cascade, Dive or Whirlpool payload (2D)'
       ),
       ('gameplay_zone.clear_payload', 'Clear a gameplay-zone payload'),
       ('gameplay_zone.set_priority', 'Set gameplay-zone priority'),
@@ -63,7 +63,7 @@ final class TriggerZoneActions {
             'rawTilesetRequired': false,
             'fieldActionZone': {
               'mapMode': '2d',
-              'actionKinds': ['darkness', 'waterfall', 'dive'],
+              'actionKinds': ['darkness', 'waterfall', 'dive', 'whirlpool'],
               'dive': {
                 'roles': ['surface', 'underwater'],
                 'pointSize': [1, 1],
@@ -85,6 +85,26 @@ final class TriggerZoneActions {
                 'stepDurationMs': 250,
                 'lifetime': 'traversal',
                 'saveDuringTraversal': false,
+                'intermediateTriggers': false,
+                'consumesPp': false,
+              },
+              'whirlpool': {
+                'required': ['entry', 'path', 'exit', 'direction'],
+                'requiresSurf': true,
+                'fieldAbility': 'whirlpool',
+                'gate': ['consciousPartyMove', 'unlockedFieldAbility', 'surfMode'],
+                'coordinateSpace': 'zoneRelative',
+                'pathMinCells': 1,
+                'pathMaxCells': 256,
+                'directions': ['north', 'south', 'east', 'west'],
+                'contiguous': true,
+                'stepDurationMs': 250,
+                'lifetime': 'traversal',
+                'zonePersistence': 'persistent',
+                'saveDuringTraversal': false,
+                'checkpointDuringTraversal': false,
+                'interruption': 'rollbackEntry',
+                'arrivalMovementMode': 'surf',
                 'intermediateTriggers': false,
                 'consumesPp': false,
               },

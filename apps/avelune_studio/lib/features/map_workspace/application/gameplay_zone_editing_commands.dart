@@ -53,7 +53,7 @@ class GameplayZoneEditingCommands {
     if (zone.kind == GameplayZoneKind.fieldAction &&
         (document.current.spatialScene != null ||
             document.current.version == ProjectVersion.v9)) {
-      return 'Flash et les zones sombres sont disponibles sur les cartes 2D uniquement.';
+      return 'Les actions de terrain sont disponibles sur les cartes 2D uniquement.';
     }
     if (zone.kind != GameplayZoneKind.encounter) return null;
     final id = zone.encounter?.encounterTableId;
@@ -259,16 +259,17 @@ class GameplayZoneEditingCommands {
     );
   }
 
-  List<MapConnectionDirection> waterfallDirections(MapGameplayZone zone) => [
-    if (zone.area.size.height >= 3) ...[
-      MapConnectionDirection.north,
-      MapConnectionDirection.south,
-    ],
-    if (zone.area.size.width >= 3) ...[
-      MapConnectionDirection.east,
-      MapConnectionDirection.west,
-    ],
-  ];
+  List<MapConnectionDirection> fieldTraversalDirections(MapGameplayZone zone) =>
+      [
+        if (zone.area.size.height >= 3) ...[
+          MapConnectionDirection.north,
+          MapConnectionDirection.south,
+        ],
+        if (zone.area.size.width >= 3) ...[
+          MapConnectionDirection.east,
+          MapConnectionDirection.west,
+        ],
+      ];
 
   void configureWaterfall(
     String id, {
@@ -277,17 +278,58 @@ class GameplayZoneEditingCommands {
     int? line,
     int? entryIndex,
     int? exitIndex,
+  }) => _configureFieldTraversal(
+    id,
+    FieldActionZoneKind.waterfall,
+    direction: direction,
+    requiresSurf: requiresSurf,
+    line: line,
+    entryIndex: entryIndex,
+    exitIndex: exitIndex,
+  );
+
+  void configureWhirlpool(
+    String id, {
+    MapConnectionDirection? direction,
+    int? line,
+    int? entryIndex,
+    int? exitIndex,
+  }) => _configureFieldTraversal(
+    id,
+    FieldActionZoneKind.whirlpool,
+    direction: direction,
+    line: line,
+    entryIndex: entryIndex,
+    exitIndex: exitIndex,
+  );
+
+  void _configureFieldTraversal(
+    String id,
+    FieldActionZoneKind kind, {
+    MapConnectionDirection? direction,
+    bool? requiresSurf,
+    int? line,
+    int? entryIndex,
+    int? exitIndex,
   }) {
     final zone = selected(id);
     if (zone == null) return;
-    final previous = zone.fieldAction?.waterfall;
+    final waterfall = kind == FieldActionZoneKind.waterfall
+        ? zone.fieldAction?.waterfall
+        : null;
+    final whirlpool = kind == FieldActionZoneKind.whirlpool
+        ? zone.fieldAction?.whirlpool
+        : null;
+    final previousDirection = waterfall?.direction ?? whirlpool?.direction;
+    final previousEntry = waterfall?.entry ?? whirlpool?.entry;
+    final previousExit = waterfall?.exit ?? whirlpool?.exit;
     final facing =
         direction ??
-        previous?.direction ??
-        waterfallDirections(zone).firstOrNull;
-    if (facing == null || !waterfallDirections(zone).contains(facing)) {
+        previousDirection ??
+        fieldTraversalDirections(zone).firstOrNull;
+    if (facing == null || !fieldTraversalDirections(zone).contains(facing)) {
       throw const ValidationException(
-        'Dessinez au moins trois cases dans le sens de la cascade.',
+        'Dessinez au moins trois cases dans le sens du passage.',
       );
     }
     final vertical =
@@ -297,51 +339,58 @@ class GameplayZoneEditingCommands {
         facing == MapConnectionDirection.south ||
         facing == MapConnectionDirection.east;
     final length = vertical ? zone.area.size.height : zone.area.size.width;
-    final preserve = previous?.direction == facing;
+    final preserve = previousDirection == facing;
     final cross =
         line ??
-        (preserve ? (vertical ? previous!.entry.x : previous!.entry.y) : 0);
+        (preserve ? (vertical ? previousEntry!.x : previousEntry!.y) : 0);
     final start =
         entryIndex ??
         (preserve
-            ? (vertical ? previous!.entry.y : previous!.entry.x)
+            ? (vertical ? previousEntry!.y : previousEntry!.x)
             : forward
             ? 0
             : length - 1);
     final end =
         exitIndex ??
         (preserve
-            ? (vertical ? previous!.exit.y : previous!.exit.x)
+            ? (vertical ? previousExit!.y : previousExit!.x)
             : forward
             ? (length > 258 ? 257 : length - 1)
             : (length > 258 ? length - 258 : 0));
     if ((end - start) * (forward ? 1 : -1) < 2 || (end - start).abs() > 257) {
       throw const ValidationException(
-        'La cascade exige une entrée, un trajet et une sortie distincts (256 cases de trajet maximum).',
+        'Le passage exige une entrée, un trajet et une sortie distincts (256 cases de trajet maximum).',
       );
     }
     GridPos cell(int along) =>
         vertical ? GridPos(x: cross, y: along) : GridPos(x: along, y: cross);
+    final path = [
+      for (var i = start + (forward ? 1 : -1); i != end; i += forward ? 1 : -1)
+        cell(i),
+    ];
     document.commit(
       const TriggerZoneActions().setFieldActionPayload(
         document.current,
         zoneId: id,
         payload: FieldActionZonePayload(
-          actionKind: FieldActionZoneKind.waterfall,
-          waterfall: WaterfallZonePayload(
-            entry: cell(start),
-            path: [
-              for (
-                var i = start + (forward ? 1 : -1);
-                i != end;
-                i += forward ? 1 : -1
-              )
-                cell(i),
-            ],
-            exit: cell(end),
-            direction: facing,
-            requiresSurf: requiresSurf ?? previous?.requiresSurf ?? true,
-          ),
+          actionKind: kind,
+          waterfall: kind == FieldActionZoneKind.waterfall
+              ? WaterfallZonePayload(
+                  entry: cell(start),
+                  path: path,
+                  exit: cell(end),
+                  direction: facing,
+                  requiresSurf: requiresSurf ?? waterfall?.requiresSurf ?? true,
+                )
+              : null,
+          whirlpool: kind == FieldActionZoneKind.whirlpool
+              ? WhirlpoolZonePayload(
+                  entry: cell(start),
+                  path: path,
+                  exit: cell(end),
+                  direction: facing,
+                )
+              : null,
         ),
       ),
     );

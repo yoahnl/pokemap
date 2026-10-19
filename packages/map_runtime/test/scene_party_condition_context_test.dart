@@ -9,6 +9,7 @@ void main() {
     for (final source in [
       SceneConditionSource.partyCanReceivePokemon(),
       SceneConditionSource.partyCanUseFieldAbility(ability: FieldAbility.surf),
+      SceneConditionSource.partyCanUseFieldAbility(ability: FieldAbility.whirlpool),
     ]) {
       final context = await loadRuntimeScenePartyConditionContext(
         scene: _scene(source), projectRootDirectory: '/unused',
@@ -17,6 +18,7 @@ void main() {
       );
       expect(context.availableMoveIds, isNull);
       expect(context.supportedFieldAbilities, contains(FieldAbility.surf));
+      expect(context.supportedFieldAbilities, contains(FieldAbility.whirlpool));
     }
     expect(loader.reads, 0);
   });

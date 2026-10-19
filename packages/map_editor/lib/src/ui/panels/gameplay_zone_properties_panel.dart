@@ -311,6 +311,13 @@ class _GameplayZonePropertiesPanelState
           ),
         const SizedBox(height: 8),
 
+        if (_selectedKind == GameplayZoneKind.fieldAction) ...[
+          const Text(
+            'Configurez Flash, Cascade, Plongée et Tourbillon dans Avelune Studio. Cet inspecteur conserve leur trajet sans proposer de formulaire de configuration.',
+          ),
+          const SizedBox(height: 8),
+        ],
+
         // ── Payload fields per kind ────────────────────────────────────────────
         if (_selectedKind == GameplayZoneKind.encounter) ...[
           const _SectionDivider('Encounter'),
@@ -1317,7 +1324,7 @@ class _GameplayZonePropertiesPanelState
       GameplayZoneKind.movement => 'Movement',
       GameplayZoneKind.movementEffect => 'Movement Effect',
       GameplayZoneKind.hazard => 'Hazard',
-      GameplayZoneKind.fieldAction => 'Flash (Avelune Studio)',
+      GameplayZoneKind.fieldAction => 'Actions de terrain (Avelune Studio)',
       GameplayZoneKind.special => 'Special',
       GameplayZoneKind.custom => 'Custom',
     };

@@ -11,6 +11,7 @@ const twoDSceneFieldAbilities = <FieldAbility>{
   FieldAbility.flash,
   FieldAbility.rockSmash,
   FieldAbility.waterfall,
+  FieldAbility.whirlpool,
   FieldAbility.dive,
 };
 

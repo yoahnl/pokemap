@@ -10,7 +10,7 @@ final class _ResolvedOverworldInteraction {
     this.isIntrinsicFieldObstacle = false,
     this.isIntrinsicInteractiveEncounter = false,
     this.flashZoneId,
-    this.waterfallZoneId,
+    this.fieldTraversalZoneId,
     this.diveZoneId,
   });
 
@@ -22,7 +22,7 @@ final class _ResolvedOverworldInteraction {
   final bool isIntrinsicFieldObstacle;
   final bool isIntrinsicInteractiveEncounter;
   final String? flashZoneId;
-  final String? waterfallZoneId;
+  final String? fieldTraversalZoneId;
   final String? diveZoneId;
 }
 
@@ -342,16 +342,18 @@ extension _PlayableMapInteractions on PlayableMapGame {
             diveZoneId: dive.id,
           );
         }
-        final waterfall = findWaterfallTarget(
+        final fieldTraversal = findWaterfallTarget(
           map: _world.map,
           gameState: _gameState,
-        );
-        if (waterfall != null) {
-          final prepared = prepareWaterfallInteraction(
+        ) ?? findWhirlpoolTarget(map: _world.map, gameState: _gameState);
+        if (fieldTraversal != null) {
+          final kind = fieldTraversal.fieldAction!.actionKind;
+          final prepared = prepareFieldTraversalInteraction(
+            kind: kind,
             map: _world.map,
             gameState: _gameState,
             stateRevision: _gameStateRevision,
-            zoneId: waterfall.id,
+            zoneId: fieldTraversal.id,
             world: _world,
             project: _bundle.manifest,
           );
@@ -364,9 +366,9 @@ extension _PlayableMapInteractions on PlayableMapGame {
                   mapActivationId: _currentMapActivationId!,
                   mapId: _activeMapId,
                   targetKind: RuntimeOverworldInteractionTargetKind.gameplayZone,
-                  targetId: waterfall.id,
+                  targetId: fieldTraversal.id,
                   actionId: narrativeEventCanonicalSha256(
-                    jsonEncode(['waterfall', waterfall.toJson()]),
+                    jsonEncode([kind.name, fieldTraversal.toJson()]),
                   ),
                 ),
                 verb: RuntimeOverworldInteractionVerb.interact,
@@ -379,7 +381,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
                 ),
               ),
               result: result,
-              waterfallZoneId: waterfall.id,
+              fieldTraversalZoneId: fieldTraversal.id,
             );
           }
         }
@@ -591,13 +593,17 @@ extension _PlayableMapInteractions on PlayableMapGame {
       unawaited(_openDiveInteraction(diveZoneId));
       return;
     }
-    final waterfallZoneId = interaction.waterfallZoneId;
-    if (waterfallZoneId != null) {
-      final prepared = prepareWaterfallInteraction(
+    final fieldTraversalZoneId = interaction.fieldTraversalZoneId;
+    if (fieldTraversalZoneId != null) {
+      final zone = findGameplayZoneById(_world.map, fieldTraversalZoneId);
+      if (zone == null) return;
+      final kind = zone.fieldAction!.actionKind;
+      final prepared = prepareFieldTraversalInteraction(
+        kind: kind,
         map: _world.map,
         gameState: _gameState,
         stateRevision: _gameStateRevision,
-        zoneId: waterfallZoneId,
+        zoneId: fieldTraversalZoneId,
         world: _world,
         project: _bundle.manifest,
       );
@@ -605,12 +611,12 @@ extension _PlayableMapInteractions on PlayableMapGame {
       _openDialogue(
         prepared.session,
         onDialogueFinished: (outcome) {
-          if (outcome != 'waterfall-confirmed' || prepared.ticket == null) return;
+          if (outcome != '${kind.name}-confirmed' || prepared.ticket == null) return;
           unawaited(
-            _traverseWaterfall(prepared.ticket!).then((completed) {
+            _traverseFieldTerrain(prepared.ticket!).then((completed) {
               if (!completed && !_isRemoved) {
                 _showNotification(
-                  'La traversée de la cascade n’est plus disponible.',
+                  'La traversée n’est plus disponible.',
                 );
               }
             }),

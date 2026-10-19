@@ -112,6 +112,7 @@ MovementMode fieldActionMovementMode(FieldAbility ability) {
     FieldAbility.flash ||
     FieldAbility.rockSmash ||
     FieldAbility.waterfall ||
+    FieldAbility.whirlpool ||
     FieldAbility.dive =>
       MovementMode.walk,
   };

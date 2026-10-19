@@ -402,6 +402,7 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
     if (dive == null ||
         payload.darkness != null ||
         payload.waterfall != null ||
+        payload.whirlpool != null ||
         zone.area.size != const GridSize(width: 1, height: 1)) {
       throw const ValidationException('Dive requires an exclusive 1x1 point.');
     }
@@ -427,19 +428,27 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
     }
     return;
   }
-  if (payload.actionKind == FieldActionZoneKind.waterfall) {
-    final route = payload.waterfall;
-    if (route == null ||
+  if (payload.actionKind == FieldActionZoneKind.waterfall ||
+      payload.actionKind == FieldActionZoneKind.whirlpool) {
+    final waterfall = payload.waterfall;
+    final whirlpool = payload.whirlpool;
+    final isWhirlpool = payload.actionKind == FieldActionZoneKind.whirlpool;
+    final entry = isWhirlpool ? whirlpool?.entry : waterfall?.entry;
+    final path = isWhirlpool ? whirlpool?.path : waterfall?.path;
+    final exit = isWhirlpool ? whirlpool?.exit : waterfall?.exit;
+    final direction = isWhirlpool ? whirlpool?.direction : waterfall?.direction;
+    if (entry == null || path == null || exit == null || direction == null ||
+        (isWhirlpool ? waterfall != null : whirlpool != null) ||
         payload.darkness != null ||
         payload.dive != null ||
-        route.path.isEmpty ||
-        route.path.length > 256) {
+        path.isEmpty ||
+        path.length > 256) {
       throw const ValidationException(
-        'Waterfall requires an exclusive finite route of 1 to 256 intermediate cells.',
+        'Field traversal requires its exclusive bounded cardinal route.',
       );
     }
-    final cells = [route.entry, ...route.path, route.exit];
-    final (dx, dy) = switch (route.direction) {
+    final cells = [entry, ...path, exit];
+    final (dx, dy) = switch (direction) {
       MapConnectionDirection.north => (0, -1),
       MapConnectionDirection.south => (0, 1),
       MapConnectionDirection.east => (1, 0),
@@ -455,7 +464,7 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
               (cell.x != cells[i - 1].x + dx ||
                   cell.y != cells[i - 1].y + dy))) {
         throw const ValidationException(
-          'Waterfall entry, path and exit must be contiguous, follow their direction and stay inside the zone.',
+          'Field traversal entry, path and exit must be contiguous, follow their direction and stay inside the zone.',
         );
       }
     }
@@ -463,6 +472,7 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
   }
   if (payload.darkness == null ||
       payload.waterfall != null ||
+      payload.whirlpool != null ||
       payload.dive != null) {
     throw const ValidationException(
       'Darkness requires its exclusive typed payload.',

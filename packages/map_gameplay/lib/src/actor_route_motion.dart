@@ -5,6 +5,7 @@ import 'collision/pixel_movement_resolver.dart';
 import 'direction.dart';
 import 'gameplay_player_state.dart';
 import 'gameplay_world_state.dart';
+import 'field_traversal_geometry.dart';
 
 final class ActorRouteMotionPlan {
   const ActorRouteMotionPlan._({
@@ -32,7 +33,7 @@ ActorRouteMotionPlan? planActorRouteMove({
   required EntityFacing direction,
   required bool through,
   String? initialCollisionOwnerEntityId,
-  MapGameplayZone? waterfallZone,
+  MapGameplayZone? fieldTraversalZone,
   ProjectManifest? project,
   Iterable<GridPos> dynamicBlockedCells = const [],
   Iterable<PixelRect> characterReservations = const [],
@@ -45,7 +46,7 @@ ActorRouteMotionPlan? planActorRouteMove({
         deltaY: direction.asDirection.dy,
         through: through,
         initialCollisionOwnerEntityId: initialCollisionOwnerEntityId,
-        waterfallZone: waterfallZone,
+        fieldTraversalZone: fieldTraversalZone,
         project: project,
         dynamicBlockedCells: dynamicBlockedCells,
         characterReservations: characterReservations);
@@ -93,7 +94,7 @@ ActorRouteMotionPlan? _planActorRouteMove({
   required int deltaY,
   required bool through,
   String? initialCollisionOwnerEntityId,
-  MapGameplayZone? waterfallZone,
+  MapGameplayZone? fieldTraversalZone,
   ProjectManifest? project,
   Iterable<GridPos> dynamicBlockedCells = const [],
   Iterable<PixelRect> characterReservations = const [],
@@ -277,28 +278,26 @@ ActorRouteMotionPlan? _planActorRouteMove({
               .any((rect) => _intersects(rect, ownerContact)))) {
     return null;
   }
-  if (waterfallZone != null) {
-    final zone = waterfallZone;
+  if (fieldTraversalZone != null) {
+    final zone = fieldTraversalZone;
     validateFieldActionZone(world.map, zone);
     if (!isPlayer ||
         through ||
-        zone.fieldAction?.waterfall == null ||
+        !isFieldTraversalZone(zone) ||
         findGameplayZoneById(world.map, zone.id) != zone) {
       return null;
     }
-    final route = zone.fieldAction!.waterfall!;
-    final cells = [route.entry, ...route.path, route.exit]
-        .map(
-          (cell) =>
-              GridPos(x: zone.area.pos.x + cell.x, y: zone.area.pos.y + cell.y),
-        )
-        .toList();
+    final cells = fieldTraversalRouteCells(zone);
     final index = cells.indexOf(from);
     if (index < 0 ||
         index >= cells.length - 1 ||
         cells[index + 1] != to ||
-        (route.requiresSurf &&
+        (fieldTraversalRequiresSurf(zone) &&
             world.player.movementMode != MovementMode.surf)) {
+      return null;
+    }
+    if (zone.fieldAction!.actionKind == FieldActionZoneKind.whirlpool &&
+        cells.any((cell) => movementTerrainAt(world.map, cell.x, cell.y) != GameplayMovementTerrain.surf)) {
       return null;
     }
   }
@@ -313,7 +312,7 @@ ActorRouteMotionPlan? _planActorRouteMove({
       final areas = areasAt(movementRect);
       if (collisionWorld.worldStaticObstaclesCollidePixelRect(footprint,
           playerContact: isPlayer,
-          permittedWaterfallZoneId: waterfallZone?.id)) {
+          permittedFieldTraversalZoneId: fieldTraversalZone?.id)) {
         return true;
       }
       if (!isPlayer && _intersects(footprint, playerContact)) return true;

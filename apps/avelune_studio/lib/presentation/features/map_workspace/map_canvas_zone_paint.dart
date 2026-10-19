@@ -25,8 +25,9 @@ extension _MapCanvasZonePaint on MapCanvasOverlay {
         );
         continue;
       }
-      if (zone.fieldAction?.waterfall != null) {
-        _paintWaterfallRoute(canvas, zone);
+      if (zone.fieldAction?.waterfall != null ||
+          zone.fieldAction?.whirlpool != null) {
+        _paintFieldTraversalRoute(canvas, zone);
       }
       _paintBadge(
         canvas,
@@ -37,23 +38,28 @@ extension _MapCanvasZonePaint on MapCanvasOverlay {
     }
   }
 
-  void _paintWaterfallRoute(Canvas canvas, MapGameplayZone zone) {
-    final route = zone.fieldAction!.waterfall!;
+  void _paintFieldTraversalRoute(Canvas canvas, MapGameplayZone zone) {
+    final waterfall = zone.fieldAction!.waterfall;
+    final whirlpool = zone.fieldAction!.whirlpool;
+    final routeEntry = waterfall?.entry ?? whirlpool!.entry;
+    final routeExit = waterfall?.exit ?? whirlpool!.exit;
+    final routePath = waterfall?.path ?? whirlpool!.path;
+    final direction = waterfall?.direction ?? whirlpool!.direction;
     Offset center(GridPos cell) => Offset(
       (zone.area.pos.x + cell.x + .5) * cellWidth,
       (zone.area.pos.y + cell.y + .5) * cellHeight,
     );
-    final entry = center(route.entry), exit = center(route.exit);
+    final entry = center(routeEntry), exit = center(routeExit);
     final paint = Paint()
       ..color = color
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
     canvas.drawLine(entry, exit, paint);
-    for (final cell in route.path) {
+    for (final cell in routePath) {
       canvas.drawCircle(center(cell), 3, Paint()..color = color);
     }
     canvas.drawCircle(entry, cellWidth * .18, paint);
-    final (dx, dy) = switch (route.direction) {
+    final (dx, dy) = switch (direction) {
       MapConnectionDirection.north => (0.0, -1.0),
       MapConnectionDirection.south => (0.0, 1.0),
       MapConnectionDirection.east => (1.0, 0.0),

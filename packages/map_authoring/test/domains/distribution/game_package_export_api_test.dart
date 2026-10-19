@@ -15,6 +15,74 @@ import '../../../../map_distribution/test/support/spatial_package_fixture.dart'
 
 void main() {
   test(
+      'canonical Whirlpool export keeps the shared route and water and refuses 3D',
+      () async {
+    final root = await _createPlayableProject();
+    addTearDown(() => root.delete(recursive: true));
+    await File(p.join(root.path, 'data/pokemon/catalogs/moves.json'))
+        .writeAsString(jsonEncode({
+      'entries': [
+        {'id': 'surf'},
+        {'id': 'whirlpool'},
+      ]
+    }));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final mapFile = File(p.join(root.path, 'maps/start.json'));
+    final project = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>);
+    final original = MapData.fromJson(
+        jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
+    final zone = MapGameplayZone.fromJson(jsonDecode(
+        File('../map_core/test/fixtures/whirlpool_field_zone.json')
+            .readAsStringSync()) as Map<String, dynamic>);
+    var map = const TriggerZoneActions().createZone(original,
+        zone: const MapGameplayZone(
+            id: 'water',
+            kind: GameplayZoneKind.movement,
+            area: MapRect(
+                pos: GridPos(x: 0, y: 0), size: GridSize(width: 8, height: 8)),
+            movement: MovementZonePayload(requiredMode: MovementMode.surf)));
+    map = const TriggerZoneActions().createZone(map, zone: zone);
+    await mapFile.writeAsString(jsonEncode(map.toJson()));
+    final before = await mapFile.readAsBytes();
+    final service = CanonicalGamePackageExportService(
+        pokemonValidator: _acceptPokemonProjection);
+    final artifact = await service.build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(artifact.certification.gameplayReadinessReport.isPlayable, isTrue);
+    final archive =
+        ZipDecoder().decodeBytes(artifact.packageBytes, verify: true);
+    final exported = MapData.fromJson(jsonDecode(
+            utf8.decode(archive.findFile('project/maps/start.json')!.content))
+        as Map<String, dynamic>);
+    expect(exported, map);
+    expect(exported.gameplayZones.last.fieldAction!.toJson(),
+        zone.fieldAction!.toJson());
+    expect(await mapFile.readAsBytes(), before);
+    await projectFile.writeAsString(jsonEncode(project
+        .copyWith(
+            version: ProjectVersion.v9,
+            settings:
+                project.settings.copyWith(dimension: ProjectDimension.threeD))
+        .toJson()));
+    await mapFile.writeAsString(jsonEncode(map
+        .copyWith(
+            version: ProjectVersion.v9,
+            layers: const [],
+            visualStack: null,
+            spatialScene: MapSpatialScene(width: 8, depth: 8))
+        .toJson()));
+    await expectLater(
+        service.build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>().having(
+            (error) => error.code, 'code', 'runtime3d.gameplay_unsupported')));
+  });
+  test(
       'canonical export preserves a Strength block and slide zone and refuses their spatial use',
       () async {
     final root = await _createPlayableProject();
@@ -89,10 +157,13 @@ void main() {
         as Map<String, dynamic>);
     expect(exported, map);
     expect(await mapFile.readAsBytes(), before);
-    await projectFile.writeAsString(jsonEncode(project.copyWith(
-      version: ProjectVersion.v9,
-      settings: project.settings.copyWith(dimension: ProjectDimension.threeD),
-    ).toJson()));
+    await projectFile.writeAsString(jsonEncode(project
+        .copyWith(
+          version: ProjectVersion.v9,
+          settings:
+              project.settings.copyWith(dimension: ProjectDimension.threeD),
+        )
+        .toJson()));
     await mapFile.writeAsString(jsonEncode(map
         .copyWith(
             version: ProjectVersion.v9,
@@ -107,7 +178,8 @@ void main() {
             profile: _profile(),
             mode: GamePackageExportMode.localTest),
         throwsA(isA<GamePackageExportException>()
-            .having((error) => error.code, 'code', 'runtime3d.gameplay_unsupported')
+            .having(
+                (error) => error.code, 'code', 'runtime3d.gameplay_unsupported')
             .having((error) => error.toString(), 'reason',
                 contains('outside map3d.gameplay@1'))));
   });

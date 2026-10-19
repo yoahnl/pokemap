@@ -33,5 +33,6 @@ const _$FieldAbilityEnumMap = {
   FieldAbility.flash: 'flash',
   FieldAbility.rockSmash: 'rock_smash',
   FieldAbility.waterfall: 'waterfall',
+  FieldAbility.whirlpool: 'whirlpool',
   FieldAbility.dive: 'dive',
 };

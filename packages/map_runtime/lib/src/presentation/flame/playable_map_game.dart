@@ -514,7 +514,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   int _committedMovementRevision = 0;
   bool _repelPromptInFlight = false;
   RepelState? _repelPresentedExpiration;
-  bool _waterfallTraversalActive = false;
+  void Function()? _cancelFieldTerrainTraversal;
   bool _diveTransferInFlight = false;
   RuntimeCommittedMovement? _lastCommittedMovement;
   bool _isPublishingCommittedMovement = false;
@@ -953,6 +953,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _installMapActivation(MapActivation activation) {
+    _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _cancelPendingDirectedJump();
     _playerSlide.reset();
@@ -2701,7 +2702,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   FishingAttemptPhase? get fishingPhase => _fishingFlow?.phase;
 
-  bool get canCapturePlayerCheckpoint => _fieldObstacleMovement == null && !_playerSlide.isSliding && !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
+  bool get canCapturePlayerCheckpoint => _cancelFieldTerrainTraversal == null && _fieldObstacleMovement == null && !_playerSlide.isSliding && !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
 
   GameState get gameStateSnapshot =>
       isLoaded ? _captureGameStateFromWorld() : _gameState;
@@ -3444,6 +3445,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _cancelInteractiveEncounter();
       }
       if (owner == RuntimeExternalInputLock.gameCompletion) {
+        _cancelFieldTerrainTraversal?.call();
         _cancelFieldObstacleMovement();
         _playerSlide.reset();
         _slideSuppressedMovementControls.clear();
@@ -4886,6 +4888,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void onRemove() {
+    _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _isRemoved = true;
     _playerSlide.reset();
@@ -5281,7 +5284,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     // developer host) leaves it unhandled instead of opening product UI from
     // inside Flame.
     if (control == RuntimeInputControl.menu) {
-      return _playerSlide.isSliding || _fieldObstacleMovement != null;
+      return _cancelFieldTerrainTraversal != null || _playerSlide.isSliding || _fieldObstacleMovement != null;
     }
 
     // Flutter overlays such as the pause menu sit outside Flame and therefore
@@ -6292,14 +6295,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
   }
 
-  void _publishCommittedMovement(CommittedMovement movement) {
+  int? _publishCommittedMovement(CommittedMovement movement) {
     final activationId = _currentMapActivationId;
-    if (_isRemoved || activationId == null) return;
+    if (_isRemoved || activationId == null) return null;
     if (const CommittedMovementStepPolicy(
           forcedMovement: ForcedMovementStepPolicy.include,
         ).unitsFor(movement) !=
         1) {
-      return;
+      return null;
     }
     final committed = RuntimeCommittedMovement(
       mapId: _activeMapId,
@@ -6309,6 +6312,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     );
     _lastCommittedMovement = committed;
     _advanceRepelForCommittedMovement(movement);
+    final committedStateRevision = _gameStateRevision;
     _isPublishingCommittedMovement = true;
     try {
       onCommittedMovement?.call(committed);
@@ -6320,6 +6324,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } finally {
       _isPublishingCommittedMovement = false;
     }
+    return committedStateRevision;
   }
 
   void _checkStepEncounter({required bool repelActiveForStep}) {
@@ -12792,12 +12797,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     GameplayWorldState world,
     GameState state,
   ) {
-    for (final zone in world.map.gameplayZones.where(isWaterfallZone)) {
+    for (final zone in world.map.gameplayZones.where(isFieldTraversalZone)) {
       validateFieldActionZone(world.map, zone);
-      final path = waterfallRouteCells(zone);
+      final path = fieldTraversalRouteCells(zone);
       if (path.skip(1).take(path.length - 2).contains(state.playerPosition)) {
         throw StateError(
-          'Saved player position is inside a transient Cascade passage.',
+          'Saved player position is inside a transient field passage.',
         );
       }
     }
@@ -16966,6 +16971,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _clearTransientUiState({_SceneWarpPresentationOwner? preservedWarpOwner}) {
+    _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _cancelInteractiveEncounter();
     _cancelPendingDirectedJump();

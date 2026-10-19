@@ -129,7 +129,7 @@ void main() {
       );
       expect(
         find.text(
-          'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour utiliser Flash.',
+          'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour une action de terrain.',
         ),
         findsOneWidget,
       );

@@ -1,0 +1,17 @@
+{
+  "id": "whirlpool",
+  "kind": "fieldAction",
+  "area": {
+    "pos": {"x": 2, "y": 1},
+    "size": {"width": 1, "height": 4}
+  },
+  "fieldAction": {
+    "actionKind": "whirlpool",
+    "whirlpool": {
+      "entry": {"x": 0, "y": 3},
+      "path": [{"x": 0, "y": 2}, {"x": 0, "y": 1}],
+      "exit": {"x": 0, "y": 0},
+      "direction": "north"
+    }
+  }
+}

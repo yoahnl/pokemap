@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 import 'movement_terrain_policy.dart';
+import 'field_traversal_geometry.dart';
 
 import 'direction.dart';
 import 'border_directed_jump_binding.dart';
@@ -408,7 +409,7 @@ class GameplayWorldState {
       BorderCollisionExclusion? borderExclusion,
       Set<String> ignoredSupportableTerrainLayerIds = const {},
       Set<String> ignoredMovingPropIds = const {},
-      String? ignoredEntityId, String? permittedWaterfallZoneId}) {
+      String? ignoredEntityId, String? permittedFieldTraversalZoneId}) {
     if (rect.widthPx <= 0 || rect.heightPx <= 0) return false;
     for (var index = 0; index < map.movingProps.length; index++) {
       final prop = map.movingProps[index];
@@ -422,14 +423,14 @@ class GameplayWorldState {
       }
     }
     for (final zone in map.gameplayZones) {
-      if (zone.kind != GameplayZoneKind.fieldAction ||
-          zone.fieldAction?.actionKind != FieldActionZoneKind.waterfall ||
-          zone.id == permittedWaterfallZoneId) {
+      if (!isFieldTraversalZone(zone) ||
+          zone.id == permittedFieldTraversalZoneId) {
         continue;
       }
-      for (final cell in zone.fieldAction!.waterfall!.path) {
-        final left = (zone.area.pos.x + cell.x) * _tileWidth;
-        final top = (zone.area.pos.y + cell.y) * _tileHeight;
+      final route = fieldTraversalRouteCells(zone);
+      for (final cell in route.skip(1).take(route.length - 2)) {
+        final left = cell.x * _tileWidth;
+        final top = cell.y * _tileHeight;
         if (rect.leftPx < left + _tileWidth &&
             rect.leftPx + rect.widthPx > left &&
             rect.topPx < top + _tileHeight &&
@@ -514,13 +515,10 @@ class GameplayWorldState {
       return true;
     }
     for (final zone in map.gameplayZones) {
-      if (zone.fieldAction?.actionKind == FieldActionZoneKind.waterfall &&
-          (zone.fieldAction?.waterfall?.path.any(
-                (cell) =>
-                    zone.area.pos.x + cell.x == cellX &&
-                    zone.area.pos.y + cell.y == cellY,
-              ) ??
-              false)) {
+      if (!isFieldTraversalZone(zone)) continue;
+      final route = fieldTraversalRouteCells(zone);
+      if (route.skip(1).take(route.length - 2).any(
+          (cell) => cell.x == cellX && cell.y == cellY)) {
         return true;
       }
     }

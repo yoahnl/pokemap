@@ -42,13 +42,13 @@ void main() {
         .requireMutationAction('gameplay_zone.set_field_action_payload');
     const paths = {
       AuthoringTransport.directApi:
-          'test/domains/maps/flash_zone_transport_test.dart',
+          'test/domains/maps/whirlpool_zone_transport_test.dart',
       AuthoringTransport.cli:
-          'test/domains/maps/flash_zone_transport_test.dart',
+          'test/domains/maps/whirlpool_zone_transport_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/map_workspace/flash_zone_editing_test.dart',
+          '../../apps/avelune_studio/test/map_workspace/whirlpool_zone_editing_test.dart',
       AuthoringTransport.mcp:
-          '../../tools/pokemap_mcp/test/flash_zone_stdio.test.ts',
+          '../../tools/pokemap_mcp/test/whirlpool_zone_stdio.test.ts',
     };
     expect(evidence.endToEndEvidence, paths);
     expect(evidence.endToEndVerifiedTransports, paths.keys.toSet());

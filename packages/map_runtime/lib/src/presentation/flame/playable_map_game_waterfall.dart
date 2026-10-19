@@ -1,17 +1,18 @@
 part of 'playable_map_game.dart';
 
-extension _PlayableMapWaterfall on PlayableMapGame {
-  Future<bool> _traverseWaterfall(WaterfallActionTicket ticket) async {
+extension _PlayableMapFieldTraversal on PlayableMapGame {
+  Future<bool> _traverseFieldTerrain(FieldTraversalActionTicket ticket) async {
     if (!isLoaded ||
         _isRemoved ||
-        _waterfallTraversalActive ||
+        _cancelFieldTerrainTraversal != null ||
         _activeNarrativeSceneWorkingSession != null ||
         !_canResolveOverworldInteraction() ||
         _hasCheckpointUnsafeRuntimeWorkForSave ||
         _player.isStepping ||
         _player.isJumping ||
-        validateWaterfallTicket(
+        validateFieldTraversalTicket(
               ticket: ticket,
+              ability: ticket.fieldAction.ability,
               map: _world.map,
               gameState: gameStateSnapshot,
               currentStateRevision: _gameStateRevision,
@@ -19,7 +20,9 @@ extension _PlayableMapWaterfall on PlayableMapGame {
             null) {
       return false;
     }
-    final evaluation = evaluateWaterfallAttempt(
+    final evaluation = evaluateFieldTraversalAttempt(
+      ability: ticket.fieldAction.ability,
+      kind: ticket.zone.fieldAction!.actionKind,
       map: _world.map,
       gameState: gameStateSnapshot,
       zoneId: ticket.zone.id,
@@ -33,7 +36,7 @@ extension _PlayableMapWaterfall on PlayableMapGame {
           .map((e) => e.value.contactRect)
           .whereType<PixelRect>(),
     );
-    if (evaluation is! CanUseWaterfall) return false;
+    if (evaluation.reason != null) return false;
     final activation = _currentMapActivationId;
     final actor = _player;
     final original = _world.player;
@@ -44,19 +47,62 @@ extension _PlayableMapWaterfall on PlayableMapGame {
     );
     var revision = _gameStateRevision;
     var completed = false;
+    var finished = false;
     bool scopeCurrent() =>
         !_isRemoved &&
         _currentMapActivationId == activation &&
         identical(_player, actor);
     bool current() =>
+        !finished &&
         scopeCurrent() &&
         _gameStateRevision == revision &&
         findGameplayZoneById(_world.map, ticket.zone.id) == ticket.zone &&
         _gameState.mapInstanceWorldState.instanceRef(_activeMapId) ==
             ticket.instance &&
-        (!ticket.zone.fieldAction!.waterfall!.requiresSurf ||
+        (!fieldTraversalRequiresSurf(ticket.zone) ||
             _world.player.movementMode == MovementMode.surf);
-    _waterfallTraversalActive = true;
+    late final void Function() cancel;
+    void finish() {
+      if (finished) return;
+      finished = true;
+      if (!completed && scopeCurrent()) {
+        _world = _world.withPlayer(
+          _world.player.copyWith(
+            pos: original.pos,
+            playerPositionPx: original.playerPositionPx,
+            facing: original.facing,
+            movementMode: original.movementMode,
+          ),
+        );
+        actor.syncState(_world.player, snapToGrid: true);
+        _runtimeNpcPositions['player'] = original.pos;
+        _scriptedEntityMovementController?.syncTrackedEntityPosition(
+          'player',
+          original.pos,
+        );
+        _syncGameStateFromWorld();
+        _synchronizeTriggerEnterOccupancy();
+      }
+      if (scopeCurrent()) {
+        _scriptedNpcReservedOccupiedCellsByEntity.remove('player');
+      }
+      _sceneActorRouteTargets.remove(target);
+      if (identical(_cancelFieldTerrainTraversal, cancel)) {
+        _cancelFieldTerrainTraversal = null;
+      }
+      _inputLocks.release(
+        owner: RuntimeInputLockOwner.scriptedMovement,
+        token: token,
+      );
+      _publishInputAuthoritySnapshot();
+      _publishOverworldInteractions();
+    }
+
+    cancel = () {
+      finish();
+      _processSceneActorRouteWaits();
+    };
+    _cancelFieldTerrainTraversal = cancel;
     _sceneActorRouteTargets.add(target);
     _clearPressedMovementControls();
     _publishInputAuthoritySnapshot();
@@ -66,9 +112,9 @@ extension _PlayableMapWaterfall on PlayableMapGame {
         final plan = planActorRouteMove(
           world: _world,
           target: target,
-          direction: waterfallFacing(ticket.zone),
+          direction: fieldTraversalFacing(ticket.zone),
           through: false,
-          waterfallZone: ticket.zone,
+          fieldTraversalZone: ticket.zone,
           dynamicBlockedCells: _scriptedNpcReservedOccupiedCellsByEntity.entries
               .where((e) => e.key != 'player')
               .expand((e) => e.value.cells),
@@ -79,6 +125,11 @@ extension _PlayableMapWaterfall on PlayableMapGame {
               .whereType<PixelRect>(),
         );
         if (plan == null || plan.to != cell) return false;
+        _reserveScriptedNpcStepOccupiedCells(
+          entityId: 'player',
+          fromAnchorPos: plan.from,
+          toAnchorPos: plan.to,
+        );
         actor.startStep(plan.playerState!, durationSeconds: .25);
         final expectedPosition = Vector2(
           actor.mapOrigin.x +
@@ -112,9 +163,9 @@ extension _PlayableMapWaterfall on PlayableMapGame {
           final revalidated = planActorRouteMove(
             world: _world,
             target: target,
-            direction: waterfallFacing(ticket.zone),
+            direction: fieldTraversalFacing(ticket.zone),
             through: false,
-            waterfallZone: ticket.zone,
+            fieldTraversalZone: ticket.zone,
             dynamicBlockedCells: _scriptedNpcReservedOccupiedCellsByEntity
                 .entries
                 .where((e) => e.key != 'player')
@@ -133,7 +184,10 @@ extension _PlayableMapWaterfall on PlayableMapGame {
           }
           continuationValidated = true;
         } finally {
-          if (physicalCompletionAcquired && scopeCurrent()) {
+          if (!finished && scopeCurrent()) {
+            _scriptedNpcReservedOccupiedCellsByEntity.remove('player');
+          }
+          if (!finished && physicalCompletionAcquired && scopeCurrent()) {
             _world = _world.withPlayer(
               _world.player.copyWith(
                 pos: plan.to,
@@ -147,14 +201,16 @@ extension _PlayableMapWaterfall on PlayableMapGame {
               plan.to,
             );
             _syncGameStateFromWorld();
-            if (continuationValidated) revision = _gameStateRevision;
-            _publishCommittedMovement(
+            final committedRevision = _publishCommittedMovement(
               CommittedMovement(
                 kind: CommittedMovementKind.forced,
                 fromCell: plan.from,
                 toCell: plan.to,
               ),
             );
+            if (continuationValidated && committedRevision != null) {
+              revision = committedRevision;
+            }
           }
         }
       }
@@ -165,7 +221,7 @@ extension _PlayableMapWaterfall on PlayableMapGame {
         previousPos: evaluation.cells.length > 1
             ? evaluation.cells[evaluation.cells.length - 2]
             : original.pos,
-        direction: waterfallFacing(ticket.zone).asDirection,
+        direction: fieldTraversalFacing(ticket.zone).asDirection,
       );
       _world = arrival.world;
       _syncGameStateFromWorld();
@@ -178,35 +234,10 @@ extension _PlayableMapWaterfall on PlayableMapGame {
       completed = true;
       return true;
     } on Object catch (error) {
-      debugPrint('[waterfall] traversal interrupted: $error');
+      debugPrint('[field-traversal] traversal interrupted: $error');
       return false;
     } finally {
-      if (!completed && scopeCurrent()) {
-        _world = _world.withPlayer(
-          _world.player.copyWith(
-            pos: original.pos,
-            playerPositionPx: original.playerPositionPx,
-            facing: original.facing,
-            movementMode: original.movementMode,
-          ),
-        );
-        actor.syncState(_world.player, snapToGrid: true);
-        _runtimeNpcPositions['player'] = original.pos;
-        _scriptedEntityMovementController?.syncTrackedEntityPosition(
-          'player',
-          original.pos,
-        );
-        _syncGameStateFromWorld();
-        _synchronizeTriggerEnterOccupancy();
-      }
-      _sceneActorRouteTargets.remove(target);
-      _waterfallTraversalActive = false;
-      _inputLocks.release(
-        owner: RuntimeInputLockOwner.scriptedMovement,
-        token: token,
-      );
-      _publishInputAuthoritySnapshot();
-      _publishOverworldInteractions();
+      finish();
     }
   }
 }

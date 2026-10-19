@@ -291,6 +291,7 @@ void main() {
         var interrupt = true;
         game = await mountWaterfall(
           tester,
+          repelState: RepelState.active(itemId: 'repel', steps: 100),
           onMovement: (movement) {
             movements.add(movement);
             saveDuring = game.saveGame();
@@ -321,12 +322,14 @@ void main() {
         expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 4));
         expect(game.playerMovementMode, MovementMode.surf);
         expect(movements.length, 1);
+        expect(game.gameStateSnapshot.repelState.remainingSteps, 99);
         expect(await saveDuring, isFalse);
         expect(game.gameStateSnapshot.party, party);
         interrupt = false;
         await confirm();
         expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 1));
         expect(movements.length, 4);
+        expect(game.gameStateSnapshot.repelState.remainingSteps, 96);
         expect(game.debugEncounterCheckCount, 1);
       });
     },
@@ -338,6 +341,7 @@ Future<PlayableMapGame> mountWaterfall(
   GameState? restored,
   SceneAsset? scene,
   bool finalWarp = false,
+  RepelState? repelState,
   void Function(RuntimeCommittedMovement)? onMovement,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-flash-player-');
@@ -427,7 +431,7 @@ Future<PlayableMapGame> mountWaterfall(
       ),
     ],
   );
-  final state =
+  final initialState =
       restored ??
       const GameState(
         saveId: 'flash-player',
@@ -452,6 +456,9 @@ Future<PlayableMapGame> mountWaterfall(
           unlockedFieldAbilities: [FieldAbility.waterfall],
         ),
       );
+  final state = repelState == null
+      ? initialState
+      : initialState.copyWith(repelState: repelState);
   final bundle = RuntimeMapBundle(
     projectRootDirectory: root.path,
     tilesetAbsolutePathsById: const {},

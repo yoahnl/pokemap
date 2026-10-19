@@ -242,6 +242,7 @@ abstract class FieldActionZonePayload with _$FieldActionZonePayload {
     required FieldActionZoneKind actionKind,
     @JsonKey(includeIfNull: false) DarknessZonePayload? darkness,
     @JsonKey(includeIfNull: false) WaterfallZonePayload? waterfall,
+    @JsonKey(includeIfNull: false) WhirlpoolZonePayload? whirlpool,
     @JsonKey(includeIfNull: false) DiveZonePayload? dive,
   }) = _FieldActionZonePayload;
 
@@ -253,7 +254,7 @@ FieldActionZonePayload _fieldActionZonePayloadFromJson(
   Map<String, dynamic> json,
 ) {
   final kind = json['actionKind'];
-  const kinds = {'darkness', 'waterfall', 'dive'};
+  const kinds = {'darkness', 'waterfall', 'whirlpool', 'dive'};
   if (!kinds.contains(kind) ||
       json.keys.any((key) => key != 'actionKind' && key != kind) ||
       json[kind] is! Map) {
@@ -323,6 +324,38 @@ WaterfallZonePayload _waterfallZonePayloadFromJson(Map<String, dynamic> json) {
     return _$WaterfallZonePayloadFromJson(json);
   } on Object {
     throw const FormatException('Unsupported waterfall payload.');
+  }
+}
+
+@freezed
+abstract class WhirlpoolZonePayload with _$WhirlpoolZonePayload {
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory WhirlpoolZonePayload({
+    required GridPos entry,
+    required List<GridPos> path,
+    required GridPos exit,
+    required MapConnectionDirection direction,
+  }) = _WhirlpoolZonePayload;
+
+  factory WhirlpoolZonePayload.fromJson(Map<String, dynamic> json) =>
+      _whirlpoolZonePayloadFromJson(json);
+}
+
+WhirlpoolZonePayload _whirlpoolZonePayloadFromJson(Map<String, dynamic> json) {
+  bool cell(Object? raw) =>
+      raw is Map && raw.length == 2 && raw['x'] is int && raw['y'] is int;
+  final path = json['path'];
+  if (json.length != 4 ||
+      !json.keys.every(const {'entry', 'path', 'exit', 'direction'}.contains) ||
+      !cell(json['entry']) || !cell(json['exit']) || path is! List ||
+      path.isEmpty || path.length > 256 || !path.every(cell) ||
+      !{'north', 'south', 'east', 'west'}.contains(json['direction'])) {
+    throw const FormatException('Whirlpool requires integer cells and a cardinal route of at most 256 intermediate cells.');
+  }
+  try {
+    return _$WhirlpoolZonePayloadFromJson(json);
+  } on Object {
+    throw const FormatException('Unsupported whirlpool payload.');
   }
 }
 

@@ -193,7 +193,13 @@ _FieldActionZonePayload _$FieldActionZonePayloadFromJson(
 ) {
   $checkKeys(
     json,
-    allowedKeys: const ['actionKind', 'darkness', 'waterfall', 'dive'],
+    allowedKeys: const [
+      'actionKind',
+      'darkness',
+      'waterfall',
+      'whirlpool',
+      'dive',
+    ],
   );
   return _FieldActionZonePayload(
     actionKind: $enumDecode(_$FieldActionZoneKindEnumMap, json['actionKind']),
@@ -207,6 +213,11 @@ _FieldActionZonePayload _$FieldActionZonePayloadFromJson(
         : WaterfallZonePayload.fromJson(
             json['waterfall'] as Map<String, dynamic>,
           ),
+    whirlpool: json['whirlpool'] == null
+        ? null
+        : WhirlpoolZonePayload.fromJson(
+            json['whirlpool'] as Map<String, dynamic>,
+          ),
     dive: json['dive'] == null
         ? null
         : DiveZonePayload.fromJson(json['dive'] as Map<String, dynamic>),
@@ -219,12 +230,14 @@ Map<String, dynamic> _$FieldActionZonePayloadToJson(
   'actionKind': _$FieldActionZoneKindEnumMap[instance.actionKind]!,
   'darkness': ?instance.darkness?.toJson(),
   'waterfall': ?instance.waterfall?.toJson(),
+  'whirlpool': ?instance.whirlpool?.toJson(),
   'dive': ?instance.dive?.toJson(),
 };
 
 const _$FieldActionZoneKindEnumMap = {
   FieldActionZoneKind.dive: 'dive',
   FieldActionZoneKind.waterfall: 'waterfall',
+  FieldActionZoneKind.whirlpool: 'whirlpool',
   FieldActionZoneKind.darkness: 'darkness',
 };
 
@@ -263,6 +276,29 @@ Map<String, dynamic> _$WaterfallZonePayloadToJson(
   'exit': instance.exit.toJson(),
   'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
   'requiresSurf': instance.requiresSurf,
+};
+
+_WhirlpoolZonePayload _$WhirlpoolZonePayloadFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(json, allowedKeys: const ['entry', 'path', 'exit', 'direction']);
+  return _WhirlpoolZonePayload(
+    entry: GridPos.fromJson(json['entry'] as Map<String, dynamic>),
+    path: (json['path'] as List<dynamic>)
+        .map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    exit: GridPos.fromJson(json['exit'] as Map<String, dynamic>),
+    direction: $enumDecode(_$MapConnectionDirectionEnumMap, json['direction']),
+  );
+}
+
+Map<String, dynamic> _$WhirlpoolZonePayloadToJson(
+  _WhirlpoolZonePayload instance,
+) => <String, dynamic>{
+  'entry': instance.entry.toJson(),
+  'path': instance.path.map((e) => e.toJson()).toList(),
+  'exit': instance.exit.toJson(),
+  'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
 };
 
 _DiveZonePayload _$DiveZonePayloadFromJson(Map<String, dynamic> json) {

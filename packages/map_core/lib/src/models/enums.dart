@@ -328,6 +328,8 @@ enum FieldActionZoneKind {
   dive,
   @JsonValue('waterfall')
   waterfall,
+  @JsonValue('whirlpool')
+  whirlpool,
   @JsonValue('darkness')
   darkness,
 }
@@ -391,6 +393,8 @@ enum FieldAbility {
   rockSmash,
   @JsonValue('waterfall')
   waterfall,
+  @JsonValue('whirlpool')
+  whirlpool,
   @JsonValue('dive')
   dive;
 
@@ -403,6 +407,7 @@ enum FieldAbility {
         FieldAbility.flash => 'flash',
         FieldAbility.rockSmash => 'rock_smash',
         FieldAbility.waterfall => 'waterfall',
+        FieldAbility.whirlpool => 'whirlpool',
         FieldAbility.dive => 'dive',
       };
 }

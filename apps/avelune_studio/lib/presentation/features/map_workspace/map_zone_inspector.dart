@@ -85,14 +85,14 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
         if (zone.smartTileProvenance != null) ...[
           const SizedBox(height: 6),
           Text(
-            'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour utiliser Flash.',
+            'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour une action de terrain.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
         if (!_commands.supportsDarkness) ...[
           const SizedBox(height: 6),
           Text(
-            'Flash et les zones sombres sont disponibles sur les cartes 2D uniquement.',
+            'Les actions de terrain sont disponibles sur les cartes 2D uniquement.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

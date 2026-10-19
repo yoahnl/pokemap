@@ -621,13 +621,13 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if (actionId == 'gameplay_zone.set_field_action_payload') {
     return const {
       AuthoringTransport.directApi:
-          'test/domains/maps/flash_zone_transport_test.dart',
+          'test/domains/maps/whirlpool_zone_transport_test.dart',
       AuthoringTransport.cli:
-          'test/domains/maps/flash_zone_transport_test.dart',
+          'test/domains/maps/whirlpool_zone_transport_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/map_workspace/flash_zone_editing_test.dart',
+          '../../apps/avelune_studio/test/map_workspace/whirlpool_zone_editing_test.dart',
       AuthoringTransport.mcp:
-          '../../tools/pokemap_mcp/test/flash_zone_stdio.test.ts',
+          '../../tools/pokemap_mcp/test/whirlpool_zone_stdio.test.ts',
     };
   }
   if (actionId == 'entity.set_healing_display') {
@@ -1605,7 +1605,7 @@ String _contractTestFor(String actionId) {
     return 'test/domains/maps/slide_zone_transport_test.dart';
   }
   if (actionId == 'gameplay_zone.set_field_action_payload') {
-    return 'test/domains/maps/flash_zone_transport_test.dart';
+    return 'test/domains/maps/whirlpool_zone_transport_test.dart';
   }
   if (actionId == 'entity.set_healing_display') {
     return 'test/domains/maps/healing_display_actions_test.dart';

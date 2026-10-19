@@ -494,6 +494,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       'flash': 'Flash',
       'rock_smash': 'Éclate-Roc',
       'waterfall': 'Cascade',
+      'whirlpool': 'Tourbillon',
       'dive': 'Plongée',
     },
     NarrativeCommandParameterKind.completionOutcome => const {

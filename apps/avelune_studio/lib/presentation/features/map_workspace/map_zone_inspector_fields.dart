@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/gameplay_zone_editing_commands.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_dive_zone_panel.dart';
 
@@ -34,14 +35,18 @@ List<Widget> zonePayloadFields({
             'darkness': 'Zone sombre (Flash · 2D)',
             if (zone.area.size == const GridSize(width: 1, height: 1))
               'dive': 'Plongée · 2D',
-            if (commands.waterfallDirections(zone).isNotEmpty)
+            if (commands.fieldTraversalDirections(zone).isNotEmpty) ...{
               'waterfall': 'Cascade · 2D',
+              'whirlpool': 'Tourbillon · 2D',
+            },
           },
           onChanged: (kind) => onChanged(
             () => kind == 'dive'
                 ? commands.configureDive(zone.id)
                 : kind == 'waterfall'
                 ? commands.configureWaterfall(zone.id)
+                : kind == 'whirlpool'
+                ? commands.configureWhirlpool(zone.id)
                 : commands.configureDarkness(zone.id),
           ),
         );
@@ -58,17 +63,47 @@ List<Widget> zonePayloadFields({
     ];
   }
   final waterfall = fieldAction?.waterfall;
-  if (waterfall != null) {
-    final direction = waterfall.direction;
+  final whirlpool = fieldAction?.whirlpool;
+  if (waterfall != null || whirlpool != null) {
+    final direction = waterfall?.direction ?? whirlpool!.direction;
+    final entry = waterfall?.entry ?? whirlpool!.entry;
+    final exit = waterfall?.exit ?? whirlpool!.exit;
+    final path = waterfall?.path ?? whirlpool!.path;
+    final actionName = whirlpool != null ? 'Tourbillon' : 'Cascade';
     final vertical =
         direction == MapConnectionDirection.north ||
         direction == MapConnectionDirection.south;
     final forward =
         direction == MapConnectionDirection.south ||
         direction == MapConnectionDirection.east;
-    final start = vertical ? waterfall.entry.y : waterfall.entry.x;
-    final end = vertical ? waterfall.exit.y : waterfall.exit.x;
+    final start = vertical ? entry.y : entry.x;
+    final end = vertical ? exit.y : exit.x;
     final length = vertical ? zone.area.size.height : zone.area.size.width;
+    void configure({
+      MapConnectionDirection? direction,
+      int? line,
+      int? entryIndex,
+      int? exitIndex,
+    }) {
+      if (whirlpool != null) {
+        commands.configureWhirlpool(
+          zone.id,
+          direction: direction,
+          line: line,
+          entryIndex: entryIndex,
+          exitIndex: exitIndex,
+        );
+      } else {
+        commands.configureWaterfall(
+          zone.id,
+          direction: direction,
+          line: line,
+          entryIndex: entryIndex,
+          exitIndex: exitIndex,
+        );
+      }
+    }
+
     String directionName(MapConnectionDirection value) => switch (value) {
       MapConnectionDirection.north => 'Vers le haut',
       MapConnectionDirection.south => 'Vers le bas',
@@ -81,7 +116,7 @@ List<Widget> zonePayloadFields({
       Map<String, String> options,
       void Function(String) changed,
     ) => StudioSelect(
-      key: ValueKey('waterfall-${zone.id}-$label-$value'),
+      key: ValueKey('${fieldAction!.actionKind.name}-${zone.id}-$label-$value'),
       label: label,
       value: value,
       options: options,
@@ -94,18 +129,16 @@ List<Widget> zonePayloadFields({
         'Sens de traversée',
         direction.name,
         {
-          for (final d in commands.waterfallDirections(zone))
+          for (final d in commands.fieldTraversalDirections(zone))
             d.name: directionName(d),
         },
-        (next) => commands.configureWaterfall(
-          zone.id,
-          direction: MapConnectionDirection.values.byName(next),
-        ),
+        (next) =>
+            configure(direction: MapConnectionDirection.values.byName(next)),
       ),
       const SizedBox(height: 8),
       select(
         vertical ? 'Colonne du passage' : 'Ligne du passage',
-        '${vertical ? waterfall.entry.x : waterfall.entry.y}',
+        '${vertical ? entry.x : entry.y}',
         {
           for (
             var i = 0;
@@ -114,44 +147,45 @@ List<Widget> zonePayloadFields({
           )
             '$i': '${i + 1}',
         },
-        (next) => commands.configureWaterfall(zone.id, line: int.parse(next)),
+        (next) => configure(line: int.parse(next)),
       ),
       const SizedBox(height: 8),
-      select(
-        'Entrée (case du rectangle)',
-        '$start',
-        {
-          for (var i = 0; i < length; i++)
-            if ((end - i) * (forward ? 1 : -1) >= 2 && (end - i).abs() <= 257)
-              '$i': '${i + 1}',
-        },
-        (next) =>
-            commands.configureWaterfall(zone.id, entryIndex: int.parse(next)),
-      ),
+      select('Entrée (case du rectangle)', '$start', {
+        for (var i = 0; i < length; i++)
+          if ((end - i) * (forward ? 1 : -1) >= 2 && (end - i).abs() <= 257)
+            '$i': '${i + 1}',
+      }, (next) => configure(entryIndex: int.parse(next))),
       const SizedBox(height: 8),
-      select(
-        'Sortie (case du rectangle)',
-        '$end',
-        {
-          for (var i = 0; i < length; i++)
-            if ((i - start) * (forward ? 1 : -1) >= 2 &&
-                (i - start).abs() <= 257)
-              '$i': '${i + 1}',
-        },
-        (next) =>
-            commands.configureWaterfall(zone.id, exitIndex: int.parse(next)),
-      ),
+      select('Sortie (case du rectangle)', '$end', {
+        for (var i = 0; i < length; i++)
+          if ((i - start) * (forward ? 1 : -1) >= 2 && (i - start).abs() <= 257)
+            '$i': '${i + 1}',
+      }, (next) => configure(exitIndex: int.parse(next))),
       const SizedBox(height: 8),
-      select(
-        'Surf requis',
-        '${waterfall.requiresSurf}',
-        const {'true': 'Oui', 'false': 'Non'},
-        (next) =>
-            commands.configureWaterfall(zone.id, requiresSurf: next == 'true'),
-      ),
+      if (waterfall != null)
+        select(
+          'Surf requis',
+          '${waterfall.requiresSurf}',
+          const {'true': 'Oui', 'false': 'Non'},
+          (next) => commands.configureWaterfall(
+            zone.id,
+            requiresSurf: next == 'true',
+          ),
+        ),
+      if (whirlpool != null) const StudioNotice('Surf obligatoire'),
+      if (whirlpool != null) ...[
+        const SizedBox(height: 8),
+        StudioNotice(
+          commands.project.badges.any(
+                (badge) => badge.fieldAbilityUnlock == FieldAbility.whirlpool,
+              )
+              ? 'Déblocage Tourbillon : ${commands.project.badges.where((badge) => badge.fieldAbilityUnlock == FieldAbility.whirlpool).map((badge) => badge.label).join(', ')}. Dans Histoire, ajoutez « Donner un badge » et choisissez le badge par son nom. « Débloquer une capacité terrain » permet aussi de choisir Tourbillon directement.'
+              : 'Aucun badge ne débloque Tourbillon. Dans Histoire, ajoutez « Débloquer une capacité terrain » et choisissez Tourbillon.',
+        ),
+      ],
       const SizedBox(height: 8),
       Text(
-        'Trajet : ${waterfall.path.length} cases entre l’entrée et la sortie. Placez le joueur à l’entrée dans le sens indiqué. Cascade exige un Pokémon conscient connaissant l’attaque et son déblocage. Aucun PP dépensé. Traversée 2D à pas de 0,25 s ; sauvegarde disponible après l’arrivée.',
+        'Trajet : ${path.length} cases entre l’entrée et la sortie. Placez le joueur à l’entrée dans le sens indiqué. $actionName exige un Pokémon conscient connaissant l’attaque et son déblocage. Aucun PP dépensé. ${whirlpool != null ? 'Tout le passage doit être sur l’eau. La zone reste présente et le joueur reste en Surf à l’arrivée. ' : ''}Traversée 2D à pas de 0,25 s ; sauvegarde disponible après l’arrivée.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ];

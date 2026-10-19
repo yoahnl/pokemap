@@ -387,3 +387,6 @@ export 'src/npc_fixed_route_controller.dart';
 export 'src/flash_zone_action.dart';
 
 export 'src/waterfall_action.dart';
+export 'src/whirlpool_action.dart';
+export 'src/field_traversal_action.dart';
+export 'src/field_traversal_geometry.dart';

@@ -2205,6 +2205,7 @@ String _fieldAbilityLabel(FieldAbility ability) => switch (ability) {
   FieldAbility.flash => 'Flash',
   FieldAbility.rockSmash => 'Éclate-Roc',
   FieldAbility.waterfall => 'Cascade',
+  FieldAbility.whirlpool => 'Tourbillon',
   FieldAbility.dive => 'Plongée',
   FieldAbility.fly => 'Vol',
 };
