@@ -2951,7 +2951,7 @@ final class _ProjectionBuilder {
         continue;
       }
       for (final layer in map.layers) {
-        final tile = layer.cells[position.$2 * map.width + position.$1];
+        final tile = layer.cellAt(position.$2 * map.width + position.$1);
         if (tile != 0 && tileset.passages.valueAt(tile, 0, 0) & 0x80 == 0x80) {
           return true;
         }

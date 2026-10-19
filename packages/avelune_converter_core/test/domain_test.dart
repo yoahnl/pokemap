@@ -47,6 +47,28 @@ void main() {
     expect(ir.map.layers.first.cells, [384, 385, 386, 387, 388, 389]);
     expect(ir.map.layers.first.cells[1 * ir.map.width + 2], 389);
   });
+  test('IR layer point reads preserve values, bounds and source isolation', () {
+    final input = fixture('source_map_ir');
+    final ir = SourceMapIr.fromJson(input);
+    for (final layer in ir.map.layers) {
+      final cells = layer.cells;
+      for (var index = 0; index < cells.length; index++) {
+        expect(layer.cellAt(index), cells[index]);
+      }
+      expect(() => layer.cellAt(-1), throwsRangeError);
+      expect(() => layer.cellAt(cells.length), throwsRangeError);
+      expect(() => cells[0] = 0, throwsUnsupportedError);
+    }
+    ((input['map'] as Map)['layers'] as List)[0]['cells'][0] = 0;
+    expect(ir.map.layers.first.cellAt(0), 384);
+  });
+  for (final invalidCell in <Object?>[null, 3.5, 'tile']) {
+    test('IR rejects a non-integer cell before point access: $invalidCell', () {
+      final input = fixture('source_map_ir');
+      ((input['map'] as Map)['layers'] as List)[0]['cells'][5] = invalidCell;
+      expect(() => SourceMapIr.fromJson(input), throwsFormatException);
+    });
+  }
   test('IR rejects a short layer', () {
     final input = fixture('source_map_ir');
     ((input['map'] as Map)['layers'] as List)[0]['cells'].removeLast();

@@ -440,6 +440,8 @@ final class SourceTileLayer extends _JsonRecord {
 
   int get sourceZ => _json['sourceZ'] as int;
 
+  int cellAt(int index) => (_json['cells'] as List)[index] as int;
+
   List<int> get cells => List<int>.unmodifiable(
       (_json['cells'] as List).map((value) => value as int));
 }
