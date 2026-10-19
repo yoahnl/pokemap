@@ -152,6 +152,8 @@ void main() {
 }
 
 Map<String, SceneNodePayload Function()> _canonicalSamples() => {
+  NarrativeCommandIds.whiteOut: () =>
+      SceneActionPayload.interactive(SceneInteractiveCommand.whiteOut()),
   NarrativeCommandIds.setFact: () => SceneActionPayload.consequence(
     SceneConsequence.setFact(factId: 'fact_gate', value: true),
   ),

@@ -27,6 +27,7 @@ abstract final class NarrativeCommandIds {
   static const actorVisibility = 'actorVisibility';
   static const openShop = 'openShop';
   static const openHeal = 'openHeal';
+  static const whiteOut = 'whiteOut';
   static const openPc = 'openPc';
   static const openRegionalMap = 'openRegionalMap';
   static const openPartyTrade = 'openPartyTrade';
@@ -679,6 +680,18 @@ final class NarrativeCommandCatalog {
         'Ouvrir le PC',
         'FG-091',
         const [],
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.whiteOut,
+        label: 'Défaite et retour au point de reprise',
+        description: 'Déclare une défaite scénarisée : soigne l’équipe, applique la pénalité et rejoint le point de reprise à la fin réussie de la Scene. Une seule récupération par Scene. Disponible en 2D.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: supported,
+        fgLotId: 'FG-093',
+        wireId: 'SceneInteractiveCommand.whiteOut',
+        parameters: const [],
+        isAwaitable: true,
+        isPersistent: true,
       ),
       interactive(
         NarrativeCommandIds.openRegionalMap,

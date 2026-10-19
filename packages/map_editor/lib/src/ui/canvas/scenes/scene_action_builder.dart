@@ -138,6 +138,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.openRegionalMap ||
       id == NarrativeCommandIds.openPartyTrade ||
       id == NarrativeCommandIds.waitForActorRoutes ||
@@ -633,6 +634,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                 .map((parameter) => parameter.label)
                 .toList(),
           ),
+          if (_commandId == NarrativeCommandIds.whiteOut)
+            const PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.info,
+              title: 'Défaite scénarisée',
+              message: 'À la fin réussie de la Scene, l’équipe est soignée, la pénalité de défaite est appliquée et le joueur revient au point de reprise. Une seule récupération par Scene.',
+            ),
           if (_isActorCommand(_command.id))
             if (widget.project case final project?)
               SceneActorActionBuilder(

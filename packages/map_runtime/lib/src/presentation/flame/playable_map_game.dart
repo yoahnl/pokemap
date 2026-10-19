@@ -97,6 +97,7 @@ import '../../application/scene_runtime/cinematic_runtime_playback_controller.da
 import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_consequence_runtime_writer.dart';
+import '../../application/scene_runtime/scene_game_completion_metadata.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
@@ -627,6 +628,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   String? _pendingSceneBattleRequestId;
   SceneBattleDefeatRecovery _pendingSceneBattleDefeatRecovery =
       SceneBattleDefeatRecovery.continueScene;
+  final _sceneDefeatRecoveryReceipts = <_NarrativeSceneDefeatRecoveryReceipt>[];
+  bool _sceneDefeatRecoveryPublicationInFlight = false;
+  final _sceneDefeatRecoveryCompletionEndingIds = <String>{};
+  bool _sceneDefeatRecoveryCompletionRetryPending = false;
   _NarrativeSceneWorkingSession? _activeNarrativeSceneWorkingSession;
   PlayerServiceRuntimeController? _playerServiceRuntimeController;
   Completer<SceneDialogueRuntimeAwaitableResult>?
@@ -1478,11 +1483,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       (committedGameState) {
         if (_isRemoved) return;
         final activation = session.deferredMapActivation;
-        if (activation == null) return;
-        _applyNarrativeGameState(committedGameState);
-        _installMapActivation(activation);
-        _resetTriggerEnterOccupancy();
-        unawaited(_dispatchCompletedMapActivation(activation));
+        if (activation != null || session.defeatRecoveryApplied) {
+          _applyNarrativeGameState(committedGameState);
+        }
+        if (activation != null) {
+          _installMapActivation(activation);
+          _resetTriggerEnterOccupancy();
+          unawaited(_dispatchCompletedMapActivation(activation));
+        }
+        if (session.defeatRecoveryApplied) {
+          _queueSceneDefeatRecoveryCheckpoint(session.defeatRecoveryMoneyLost,
+            committedGameState: committedGameState,
+            gameCompletion: session.defeatRecoveryGameCompletion);
+        }
       });
     session.defersMapActivation = defersMapActivation;
     final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
@@ -1532,10 +1545,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               'Finish Game requires an active session completion port.',
             );
           }
-          coordinator.queue(gameCompletion);
+          if (session.defeatRecoveryApplied) {
+            session.defeatRecoveryGameCompletion = gameCompletion;
+          } else {
+            coordinator.queue(gameCompletion);
+          }
         }
         session.gameState = hydratedGameState;
         session.commit();
+        if (!defersMapActivation && session.defeatRecoveryApplied) {
+          _queueSceneDefeatRecoveryCheckpoint(session.defeatRecoveryMoneyLost,
+            committedGameState: hydratedGameState,
+            gameCompletion: session.defeatRecoveryGameCompletion);
+        }
         return NarrativeSceneExecutionResult.completed(
           updatedGameState: hydratedGameState,
           qualifiedOutcomes: result.qualifiedOutcomes,
@@ -1597,6 +1619,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     final completionCoordinator = _gameCompletionCoordinator;
     if (completionCoordinator != null) {
+      if (_sceneDefeatRecoveryCompletionEndingIds.contains(
+        gameState.metadata[sceneGameCompletionEndingMetadataKey],
+      )) {
+        _sceneDefeatRecoveryCompletionRetryPending = true;
+        unawaited(Future<void>.delayed(Duration.zero, _emitPendingSceneDefeatRecoveryCheckpoint));
+        return;
+      }
       unawaited(
         completionCoordinator.onGameStateCommitted(gameState).catchError(
           (Object error, StackTrace stackTrace,
@@ -3537,6 +3566,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   @visibleForTesting
+  Future<GameState> debugReadNarrativeGameStateForTest() =>
+      _narrativeStateTransactions.read();
+
+  @visibleForTesting
   bool get debugIsLoadActivationWorkInFlight => _isLoadActivationWorkInFlight;
 
   @visibleForTesting
@@ -5421,6 +5454,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } finally {
       _refreshLogicalMapInstances();
       _publishInputAuthoritySnapshot();
+      if (_sceneDefeatRecoveryReceipts.isNotEmpty || _sceneDefeatRecoveryCompletionRetryPending) {
+        unawaited(_emitPendingSceneDefeatRecoveryCheckpoint());
+      }
     }
   }
 
@@ -11153,7 +11189,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (request == null) return state;
     session.defeatRecoveryRequest = null;
     final checkpoint = _RuntimeSpatialSnapshot(
-      gameState: state,
+      gameState: _gameState,
       bundle: _bundle,
       authoredBundle: _runtimeBundleByMapId[_activeMapId] ?? _bundle,
       world: _world,
@@ -11179,7 +11215,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     session.gameState = state;
     session.defersMapActivation = true;
     _applyNarrativeGameState(state);
-    final recoveryPoint = await _resolveDefeatFallbackPoint(request.context);
+    final recoveryPoint = await _resolveDefeatFallbackPoint(null);
     if (!_scenePresentationScopeIsCurrent(session)) {
       throw StateError('The scripted defeat recovery owner changed.');
     }
@@ -11189,6 +11225,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       activePlayerLineupIndex: request.activePlayerLineupIndex,
       requestCheckpoint: false,
       allowMapActivationWork: true,
+      rethrowOnFailure: true,
+      notify: false,
     );
     await _defeatRecoveryFuture;
     if (!_scenePresentationScopeIsCurrent(session) ||
@@ -11198,21 +11236,100 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('The scripted defeat recovery did not reach its recorded point.');
     }
     session.gameState = _gameState;
+    session.defeatRecoveryApplied = true;
+    session.defeatRecoveryMoneyLost = state.trainerProfile.money - _gameState.trainerProfile.money;
     return _gameState;
   }
 
+  void _queueSceneDefeatRecoveryCheckpoint(int moneyLost, {
+    required GameState committedGameState,
+    SceneFinishGameConsequence? gameCompletion,
+  }) {
+    if (_isRemoved) return;
+    _sceneDefeatRecoveryReceipts.add(_NarrativeSceneDefeatRecoveryReceipt(
+      moneyLost: moneyLost,
+      committedGameState: committedGameState,
+      gameCompletion: gameCompletion,
+    ));
+    unawaited(Future<void>.delayed(
+      Duration.zero,
+      _emitPendingSceneDefeatRecoveryCheckpoint,
+    ));
+  }
+
+  bool get _canPublishSceneDefeatRecovery => !_isRemoved &&
+      _activeNarrativeSceneWorkingSession == null &&
+      !_hasCheckpointUnsafeRuntimeWorkForSave && canCapturePlayerCheckpoint;
+
+  Future<void> _emitPendingSceneDefeatRecoveryCheckpoint() async {
+    if (_sceneDefeatRecoveryPublicationInFlight ||
+        (_sceneDefeatRecoveryReceipts.isEmpty && !_sceneDefeatRecoveryCompletionRetryPending) ||
+        !_canPublishSceneDefeatRecovery) {
+      return;
+    }
+    _sceneDefeatRecoveryPublicationInFlight = true;
+    try {
+      while (_sceneDefeatRecoveryReceipts.isNotEmpty && _canPublishSceneDefeatRecovery) {
+        final receipt = _sceneDefeatRecoveryReceipts.first;
+        if (receipt.checkpointPending) {
+          receipt.checkpointPending = false;
+          _showNotification(_defeatRecoveryMessage(receipt.moneyLost));
+          try {
+            await defeatRecoveryCheckpointEmitter?.call();
+          } catch (error, stackTrace) {
+            debugPrint('[whiteout] recovered state checkpoint failed: $error\n$stackTrace');
+            _showNotification(runtimeLocale.toLowerCase().startsWith('fr')
+                ? 'Le retour au point de reprise est effectué, mais la sauvegarde a échoué. Sauvegardez depuis le menu.'
+                : 'Recovery completed, but saving failed. Save again from the menu.');
+          }
+        }
+        if (!_canPublishSceneDefeatRecovery) return;
+        _sceneDefeatRecoveryReceipts.removeAt(0);
+        final completion = receipt.gameCompletion;
+        if (completion == null) continue;
+        final coordinator = _gameCompletionCoordinator!;
+        _sceneDefeatRecoveryCompletionEndingIds.add(completion.endingId);
+        coordinator.queue(completion);
+        try {
+          await coordinator.onGameStateCommitted(receipt.committedGameState);
+          _sceneDefeatRecoveryCompletionEndingIds.remove(completion.endingId);
+        } catch (error, stackTrace) {
+          debugPrint('[whiteout] recovered state completion failed: $error\n$stackTrace');
+          _showNotification('Fin de partie impossible.');
+        }
+      }
+      if (!_sceneDefeatRecoveryCompletionRetryPending || !_canPublishSceneDefeatRecovery) return;
+      _sceneDefeatRecoveryCompletionRetryPending = false;
+      final endingId = _gameState.metadata[sceneGameCompletionEndingMetadataKey];
+      if (!_sceneDefeatRecoveryCompletionEndingIds.contains(endingId)) return;
+      try {
+        await _gameCompletionCoordinator!.onGameStateCommitted(_gameState);
+        _sceneDefeatRecoveryCompletionEndingIds.remove(endingId);
+      } catch (error, stackTrace) {
+        debugPrint('[whiteout] recovered state completion retry failed: $error\n$stackTrace');
+        _showNotification('Fin de partie impossible.');
+      }
+    } finally {
+      _sceneDefeatRecoveryPublicationInFlight = false;
+    }
+  }
+
   Future<void> _applyDefeatRecovery(
-    RuntimeActiveBattleContext battleContext, {
+    RuntimeActiveBattleContext? battleContext, {
     required int activePlayerLineupIndex,
     bool requestCheckpoint = true,
     bool allowMapActivationWork = false,
+    bool rethrowOnFailure = false,
+    bool notify = true,
   }) async {
     final recoveryLock = _inputLocks.acquire(
       owner: RuntimeInputLockOwner.checkpoint,
       surface: RuntimeInputSurface.transition,
     );
     try {
-      final fallbackPoint = await _resolveDefeatFallbackPoint(battleContext);
+      final fallbackPoint = await _resolveDefeatFallbackPoint(
+        rethrowOnFailure ? null : battleContext,
+      );
       final capsLoader = defeatRecoveryCapsLoader;
       final caps = capsLoader == null
           ? await loadRuntimePlayerServiceRecoveryCaps(
@@ -11280,9 +11397,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _player.syncState(_world.player, snapToGrid: true);
         _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       }
-      _showNotification(_defeatRecoveryMessage(recovery.moneyLost));
+      if (notify) _showNotification(_defeatRecoveryMessage(recovery.moneyLost));
       if (requestCheckpoint) await defeatRecoveryCheckpointEmitter?.call();
     } catch (error, stackTrace) {
+      if (rethrowOnFailure || battleContext == null) rethrow;
       debugPrint('[whiteout] recovery failed: $error\n$stackTrace');
       _gameState = applyRuntimeDefeatRecoveryToGameState(
         gameState: _gameState,
@@ -11318,7 +11436,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   Future<PlayerRecoveryPoint> _resolveDefeatFallbackPoint(
-    RuntimeActiveBattleContext battleContext,
+    RuntimeActiveBattleContext? battleContext,
   ) async {
     final recorded = PlayerRecoveryPoint.tryRead(_gameState);
     if (recorded != null) return recorded;
@@ -11335,6 +11453,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         facing: spawn.facing.asFacing,
       );
     } catch (_) {
+      if (battleContext == null) rethrow;
       final respawn = _resolveWhiteoutLiteRespawn(battleContext);
       return PlayerRecoveryPoint(
         mapId: _activeMapId,
@@ -11847,7 +11966,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               'Finish Game requires an active session completion port.',
             );
           }
-          coordinator.queue(gameCompletion);
+          if (session.defeatRecoveryApplied) {
+            session.defeatRecoveryGameCompletion = gameCompletion;
+          } else {
+            coordinator.queue(gameCompletion);
+          }
         }
         _applyNarrativeGameState(session.gameState);
         final outcomes = <NarrativeOutcomeRef>[
@@ -11859,6 +11982,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               outcomeId: outcomeId,
             ),
         ];
+        if (session.defeatRecoveryApplied && outcomes.isNotEmpty) {
+          final beforePublication = await _narrativeStateTransactions.read();
+          session.registerCompensation(() async {
+            await _narrativeStateTransactions.transact<void>((_) =>
+              NarrativeEventStateTransaction.commit(beforePublication, null));
+          });
+        }
         await _publishRootNarrativeOutcomes(outcomes);
         session.commit();
         final activation = session.deferredMapActivation;
@@ -11866,6 +11996,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           _installMapActivation(activation);
           _resetTriggerEnterOccupancy();
           unawaited(_dispatchCompletedMapActivation(activation));
+        }
+        if (session.defeatRecoveryApplied) {
+          _queueSceneDefeatRecoveryCheckpoint(session.defeatRecoveryMoneyLost,
+            committedGameState: _gameState,
+            gameCompletion: session.defeatRecoveryGameCompletion);
         }
       }
     } catch (error, stackTrace) {
@@ -12033,6 +12168,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
       },
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
+        whiteOut: (command) async {
+          if (command is! SceneWhiteOutInteractiveCommand ||
+              _bundle.manifest.settings.dimension != ProjectDimension.twoD ||
+              presentationSession == null ||
+              !_scenePresentationScopeIsCurrent(presentationSession)) {
+            throw StateError('White-out requires an active 2D Scene transaction.');
+          }
+          presentationSession.defeatRecoveryRequest ??=
+              const _NarrativeSceneDefeatRecoveryRequest.scripted();
+          return 'completed';
+        },
         wait: (command) =>
             _executeSceneWaitCommand(command, session: presentationSession),
         waitForActorRoutes: (command) => _executeSceneWaitForActorRoutesCommand(
@@ -15397,7 +15543,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// runtime précédent est remonté et la sauvegarde fautive reste intacte.
   Future<bool> loadGame() async {
     if (_isRemoved || _fishingPreparationInFlight || _bicycleToggleInFlight) return false;
-    if (_hasCheckpointUnsafeRuntimeWork) {
+    if (_sceneDefeatRecoveryReceipts.isNotEmpty ||
+        _sceneDefeatRecoveryPublicationInFlight ||
+        _sceneDefeatRecoveryCompletionRetryPending ||
+        _hasCheckpointUnsafeRuntimeWork) {
       _logCheckpointInterlock('load');
       return false;
     }

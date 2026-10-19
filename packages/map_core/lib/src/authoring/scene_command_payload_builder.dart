@@ -172,6 +172,9 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         null => SceneInteractiveCommand.openPc(),
       },
     ),
+    NarrativeCommandIds.whiteOut => parameters.isEmpty
+        ? SceneActionPayload.interactive(SceneInteractiveCommand.whiteOut())
+        : throw const FormatException('White-out commands do not accept options.'),
     NarrativeCommandIds.openPartyTrade =>
       parameters.isEmpty
           ? SceneActionPayload.interactive(

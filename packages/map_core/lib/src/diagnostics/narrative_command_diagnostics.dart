@@ -88,7 +88,8 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
       ),
     ];
   }
-  if ((command is SceneWaitInteractiveCommand ||
+  if ((command is SceneWhiteOutInteractiveCommand ||
+          command is SceneWaitInteractiveCommand ||
           command is SceneWorldToneInteractiveCommand ||
           command is ScenePlaySoundEffectInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {

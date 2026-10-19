@@ -228,6 +228,19 @@ extension _SceneInspectorFields on SceneInspector {
         Text(
           'Résultats : ${authorableSceneOutputPortsForNodeInGraph(node, session.current.graph).map((p) => p.id).join(', ')}',
         ),
+        StudioSelect(
+          key: const ValueKey('scene-battle-defeat-recovery-picker'),
+          label: 'Après une défaite',
+          value: value.defeatRecovery.name,
+          options: const {
+            'continueScene': 'Continuer la scène',
+            'returnToRecoveryPoint': 'Revenir au point de reprise',
+          },
+          onChanged: project.settings.dimension != ProjectDimension.twoD ? null : (id) => payload(
+            node, SceneBattlePayload.fromJson({...value.toJson(), 'defeatRecovery': id}),
+          ),
+        ),
+        const StudioNotice('Le retour au point de reprise a lieu à la fin réussie de la Scene. L’équipe est soignée et la pénalité de défaite est appliquée. Disponible uniquement en 2D.'),
       ];
     }
     if (value is SceneBranchByOutcomePayload) {

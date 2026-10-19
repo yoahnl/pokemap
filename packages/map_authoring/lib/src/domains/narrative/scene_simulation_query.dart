@@ -74,6 +74,14 @@ Future<AuthoringQueryPage> querySceneSimulation(
     SceneRuntimePlanIntentKind.requestStructuredInteraction,
   };
   final nodes = {for (final node in plan.nodes) node.id: node};
+  if (snapshot.manifest.settings.dimension != ProjectDimension.twoD &&
+      plan.nodes.any((node) =>
+          node.intent.interactiveCommand is SceneWhiteOutInteractiveCommand ||
+          node.intent.kind == SceneRuntimePlanIntentKind.startBattle &&
+              node.intent.battleDefeatRecovery == SceneBattleDefeatRecovery.returnToRecoveryPoint)) {
+    throw NarrativeAuthoringException('scene.simulation_unsupported_dimension',
+        'Scene defeat recovery is available only in a 2D project.');
+  }
   for (final entry in ports.entries) {
     final node = nodes[entry.key];
     if (node == null ||
@@ -85,6 +93,7 @@ Future<AuthoringQueryPage> querySceneSimulation(
   }
   final used = <String>{};
   final consequences = <Map<String, Object?>>[];
+  final defeatRecoveries = <Map<String, Object?>>[];
   String? missingInput;
   String output(SceneRuntimePlanIntent intent) {
     final node =
@@ -96,6 +105,16 @@ Future<AuthoringQueryPage> querySceneSimulation(
           'Scene simulation requires an explicit output for ${node.id}.');
     }
     used.add(node.id);
+    if (intent.interactiveCommand is SceneWhiteOutInteractiveCommand ||
+        intent.kind == SceneRuntimePlanIntentKind.startBattle &&
+            port == 'defeat' &&
+            intent.battleDefeatRecovery == SceneBattleDefeatRecovery.returnToRecoveryPoint) {
+      defeatRecoveries.add({
+        'nodeId': node.id,
+        'source': intent.interactiveCommand is SceneWhiteOutInteractiveCommand ? 'whiteOut' : 'battleDefeat',
+        'activation': 'afterSuccessfulSceneCompletion',
+      });
+    }
     return port;
   }
 
@@ -152,6 +171,7 @@ Future<AuthoringQueryPage> querySceneSimulation(
                   })
               .toList(),
           'proposedConsequences': consequences,
+          'proposedDefeatRecoveries': completed ? defeatRecoveries : const [],
           'outcomesByNodeId': result.context.lastOutcomeByNodeId,
           'branchProvenance': result.context.branchProvenance
               .map((branch) => {

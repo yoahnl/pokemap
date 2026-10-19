@@ -21,6 +21,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.movePlatform,
     this.openShop,
     this.openHeal,
+    this.whiteOut,
     this.openPc,
     this.playCharacterAnimation,
     this.playModelAnimation,
@@ -40,6 +41,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? movePlatform;
   final SceneInteractiveCommandHandler? openShop;
   final SceneInteractiveCommandHandler? openHeal;
+  final SceneInteractiveCommandHandler? whiteOut;
   final SceneInteractiveCommandHandler? openPc;
   final SceneInteractiveCommandHandler? playCharacterAnimation;
   final SceneInteractiveCommandHandler? playModelAnimation;
@@ -84,6 +86,10 @@ final class SceneInteractiveCommandRuntimeExecutor {
           command,
           legacyHandler: openHeal,
         ),
+      SceneInteractiveCommandKind.whiteOut => await _executeRequired(
+        command,
+        handler: whiteOut,
+      ),
       SceneInteractiveCommandKind.openPc => await _executeService(
           command,
           legacyHandler: openPc,

@@ -785,6 +785,19 @@ final class _FlameSceneActorRouteExecutionPort
   }) => visibilityAction(target, visible: visible);
 }
 
+final class _NarrativeSceneDefeatRecoveryReceipt {
+  _NarrativeSceneDefeatRecoveryReceipt({
+    required this.moneyLost,
+    required this.committedGameState,
+    this.gameCompletion,
+  });
+
+  final int moneyLost;
+  final GameState committedGameState;
+  final SceneFinishGameConsequence? gameCompletion;
+  bool checkpointPending = true;
+}
+
 final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
@@ -794,6 +807,9 @@ final class _NarrativeSceneWorkingSession {
   bool defersMapActivation = false;
   MapActivation? deferredMapActivation;
   _NarrativeSceneDefeatRecoveryRequest? defeatRecoveryRequest;
+  bool defeatRecoveryApplied = false;
+  int defeatRecoveryMoneyLost = 0;
+  SceneFinishGameConsequence? defeatRecoveryGameCompletion;
   final actorRouteStates = <Object, ActorRouteTransientState>{};
   final actorRouteCleanup = <void Function()>[];
 
@@ -837,7 +853,11 @@ final class _NarrativeSceneWorkingSession {
 final class _NarrativeSceneDefeatRecoveryRequest {
   const _NarrativeSceneDefeatRecoveryRequest(this.context, this.activePlayerLineupIndex);
 
-  final RuntimeActiveBattleContext context;
+  const _NarrativeSceneDefeatRecoveryRequest.scripted()
+      : context = null,
+        activePlayerLineupIndex = 0;
+
+  final RuntimeActiveBattleContext? context;
   final int activePlayerLineupIndex;
 }
 

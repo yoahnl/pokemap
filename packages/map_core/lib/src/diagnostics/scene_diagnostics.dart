@@ -1287,6 +1287,16 @@ void _diagnoseActionConsequenceAgainstProject(
       }
     }
   }
+  if (interactiveCommand is SceneWhiteOutInteractiveCommand &&
+      project.settings.dimension != ProjectDimension.twoD) {
+    diagnostics.add(SceneDiagnostic(
+      code: SceneDiagnosticCode.commandUnsupportedDimension,
+      severity: SceneDiagnosticSeverity.error,
+      message: 'La défaite scénarisée avec retour au point de reprise nécessite un projet 2D.',
+      sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+      suggestedFixLabel: 'Utiliser cette commande dans un projet 2D.',
+    ));
+  }
   if ((interactiveCommand is SceneWaitInteractiveCommand ||
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||

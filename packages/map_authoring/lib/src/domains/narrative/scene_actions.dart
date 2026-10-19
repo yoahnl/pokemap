@@ -356,6 +356,16 @@ final class SceneActions {
     'saveResume': 'committedRecoveredState',
   };
 
+  static const _whiteOutContract = {
+    'interactiveCommandKind': 'whiteOut',
+    'parameters': [],
+    'projectDimension': 'twoD',
+    'activation': 'afterSuccessfulSceneCompletion',
+    'effects': ['healParty', 'defeatMoneyPenalty', 'returnToRecordedRecoveryPoint'],
+    'saveResume': 'committedRecoveredState',
+    'outputPorts': ['completed'],
+  };
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'scene.graph.patch',
@@ -364,6 +374,7 @@ final class SceneActions {
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
+        'whiteOut': _whiteOutContract,
         'adjustIntegerFact': _adjustIntegerFactContract,
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
@@ -484,6 +495,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
+        'whiteOut': _whiteOutContract,
         'adjustIntegerFact': _adjustIntegerFactContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,

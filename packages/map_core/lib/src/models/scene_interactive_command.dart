@@ -22,6 +22,7 @@ enum SceneInteractiveCommandKind {
   movePlatform,
   openShop,
   openHeal,
+  whiteOut,
   openPc,
   openRegionalMap,
   openPartyTrade,
@@ -124,6 +125,8 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.openPc({String storageId}) =
       SceneOpenPcInteractiveCommand;
 
+  factory SceneInteractiveCommand.whiteOut() = SceneWhiteOutInteractiveCommand;
+
   factory SceneInteractiveCommand.openRegionalMap() =
       SceneOpenRegionalMapInteractiveCommand;
 
@@ -214,6 +217,7 @@ abstract base class SceneInteractiveCommand {
         shopId: _required(json, 'shopId'),
       ),
       SceneInteractiveCommandKind.openHeal => SceneOpenHealInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.whiteOut => SceneWhiteOutInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openPc => SceneOpenPcInteractiveCommand(
         storageId: _optional(json, 'storageId'),
       ),
@@ -932,6 +936,33 @@ final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
 
   @override
   int get hashCode => Object.hash(requiresConfirmation, displayEntityId);
+}
+
+@immutable
+final class SceneWhiteOutInteractiveCommand extends SceneInteractiveCommand {
+  const SceneWhiteOutInteractiveCommand();
+
+  factory SceneWhiteOutInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json.keys.any((key) => key != 'kind')) {
+      throw const FormatException('White-out commands do not accept options.');
+    }
+    return const SceneWhiteOutInteractiveCommand();
+  }
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.whiteOut;
+
+  @override
+  List<String> get outputPortIds => const ['completed'];
+
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name};
+
+  @override
+  bool operator ==(Object other) => other is SceneWhiteOutInteractiveCommand;
+
+  @override
+  int get hashCode => kind.hashCode;
 }
 
 @immutable

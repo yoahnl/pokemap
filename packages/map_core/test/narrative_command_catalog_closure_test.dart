@@ -35,6 +35,7 @@ void main() {
       NarrativeCommandIds.actorVisibility,
       NarrativeCommandIds.openShop,
       NarrativeCommandIds.openHeal,
+      NarrativeCommandIds.whiteOut,
       NarrativeCommandIds.openPc,
       NarrativeCommandIds.openRegionalMap,
       NarrativeCommandIds.openPartyTrade,
@@ -115,6 +116,7 @@ void main() {
       NarrativeCommandIds.movePlatform: 'SceneInteractiveCommand.movePlatform',
       NarrativeCommandIds.openShop: 'SceneInteractiveCommand.openShop',
       NarrativeCommandIds.openHeal: 'SceneInteractiveCommand.openHeal',
+      NarrativeCommandIds.whiteOut: 'SceneInteractiveCommand.whiteOut',
       NarrativeCommandIds.openPc: 'SceneInteractiveCommand.openPc',
       NarrativeCommandIds.openRegionalMap: 'SceneInteractiveCommand.openRegionalMap',
       NarrativeCommandIds.openPartyTrade:

@@ -127,6 +127,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _commands.where((command) => command.id == _commandId).firstOrNull;
 
   bool _is2DPresentationCommand(String? id) =>
+      id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
@@ -512,6 +513,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
         onChanged: _commands.isEmpty ? null : _choose,
       ),
       if (_commands.isEmpty) const StudioNotice('Aucune commande disponible.'),
+      if (_commandId == NarrativeCommandIds.whiteOut)
+        const StudioNotice('À la fin réussie de la Scene, l’équipe est soignée, la pénalité de défaite est appliquée et le joueur revient au point de reprise. Une seule récupération par Scene.'),
       if (_isGift && _speciesLoading)
         const StudioNotice('Chargement des Pokémon…'),
       if (_isGift && _speciesError != null)

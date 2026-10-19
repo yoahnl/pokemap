@@ -22,6 +22,7 @@ void main() {
       movePlatform: handler,
       openShop: handler,
       openHeal: handler,
+      whiteOut: handler,
       openPc: handler,
       openWorldService: (request) async {
         calls.add(switch (request) {
@@ -67,6 +68,7 @@ void main() {
       ),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
+      SceneInteractiveCommand.whiteOut(),
       SceneInteractiveCommand.openPc(),
       SceneInteractiveCommand.openRegionalMap(),
         SceneInteractiveCommand.openPartyTrade(),
@@ -102,6 +104,7 @@ void main() {
   test('presentation commands require their dedicated consumer', () async {
     final executor = SceneInteractiveCommandRuntimeExecutor(warp: (_) async => 'completed');
     for (final command in <SceneInteractiveCommand>[
+      SceneInteractiveCommand.whiteOut(),
       SceneInteractiveCommand.wait(durationMs: 0),
       SceneInteractiveCommand.waitForActorRoutes(mapId: 'map.port'),
       SceneInteractiveCommand.worldTone(red: 0, green: 0, blue: 0, gray: 0, durationMs: 300),
