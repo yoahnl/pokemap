@@ -103,6 +103,27 @@ final class TriggerZoneActions {
             },
           },
         })
+      else if (entry.$1 == 'gameplay_zone.set_movement_effect_payload')
+        AuthoringActionDescriptor.fromJson({
+          ...semanticActionDescriptor(entry.$1, entry.$2).toJson(),
+          'extensions': {
+            'semanticIds': true,
+            'rawTilesetRequired': false,
+            'movementEffectZone': {
+              'effectKinds': ['slide', 'movementCost', 'directedJump'],
+              'parameters': ['mapId', 'zoneId', 'payload'],
+              'slide': {
+                'mapMode': '2d',
+                'direction': 'entry',
+                'stops': ['obstacle', 'zoneExit'],
+                'inputDuringTraversal': false,
+                'saveDuringTraversal': false,
+                'reload': 'stationary',
+                'movementCostConsumed': false,
+              },
+            },
+          },
+        })
       else
         semanticActionDescriptor(entry.$1, entry.$2),
   ]);
@@ -124,6 +145,12 @@ final class TriggerZoneActions {
   MapData setMovementPayload(MapData map,
           {required String zoneId, required MovementZonePayload payload}) =>
       _setZonePayload(map, zoneId, GameplayZoneKind.movement, payload.toJson());
+
+  MapData setMovementEffectPayload(MapData map,
+          {required String zoneId,
+          required MovementEffectZonePayload payload}) =>
+      _setZonePayload(
+          map, zoneId, GameplayZoneKind.movementEffect, payload.toJson());
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;

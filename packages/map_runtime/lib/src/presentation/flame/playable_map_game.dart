@@ -598,6 +598,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   late final bool _isProjectNewGameBoot;
   late GameplayWorldState _world;
   late PlayerComponent _player;
+  final GameplaySlideController _playerSlide = GameplaySlideController();
   bool _playerSupportsRunning = false;
   String _activeMapId = '';
   String? _previousMapId;
@@ -610,6 +611,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Map<RuntimeExternalInputLock, RuntimeInputLockToken>
       _externalInputLocks = <RuntimeExternalInputLock, RuntimeInputLockToken>{};
   final Set<RuntimeInputControl> _pressedMovementControls =
+      <RuntimeInputControl>{};
+  final Set<RuntimeInputControl> _slideSuppressedMovementControls =
       <RuntimeInputControl>{};
   RuntimeInputControl? _lastMovementControl;
   bool _sprintPressed = false;
@@ -949,6 +952,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   void _installMapActivation(MapActivation activation) {
     _cancelPendingDirectedJump();
+    _playerSlide.reset();
     _currentMapActivationId = activation.activationId;
   }
 
@@ -967,6 +971,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           _inFlightRootOutcomePublicationCount > 0);
 
   bool get _hasCheckpointUnsafeRuntimeWork =>
+      _playerSlide.isSliding ||
       _pendingInteractiveEncounter != null || _activeInteractiveEncounterAttemptId != null ||
       _fishingFlow != null ||
       _sceneWorldWaitCount > 0 ||
@@ -2692,7 +2697,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   FishingAttemptPhase? get fishingPhase => _fishingFlow?.phase;
 
-  bool get canCapturePlayerCheckpoint => !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
+  bool get canCapturePlayerCheckpoint => !_playerSlide.isSliding && !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
 
   GameState get gameStateSnapshot =>
       isLoaded ? _captureGameStateFromWorld() : _gameState;
@@ -3219,7 +3224,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         .where((token) => !externalTokens.contains(token))
         .toList(growable: false);
     final internalSurface = internalTokens.isEmpty
-        ? RuntimeInputSurface.world
+        ? (_playerSlide.isSliding
+            ? RuntimeInputSurface.blocked
+            : RuntimeInputSurface.world)
         : internalTokens.last.surface;
     final context = switch (internalSurface) {
       RuntimeInputSurface.world => RuntimeInputContext.overworld,
@@ -3431,6 +3438,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if (owner == RuntimeExternalInputLock.lifecycle) {
         _cancelPlayerFishing(notify: false);
         _cancelInteractiveEncounter();
+      }
+      if (owner == RuntimeExternalInputLock.gameCompletion) {
+        _playerSlide.reset();
+        _slideSuppressedMovementControls.clear();
       }
       if (isLoaded) {
         _clearPressedMovementControls();
@@ -4659,6 +4670,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void setPlayerMovementMode(MovementMode movementMode) {
+    if (_playerSlide.isSliding) return;
+    _setPlayerMovementMode(movementMode);
+  }
+
+  void _setPlayerMovementMode(MovementMode movementMode) {
     if (!isLoaded) {
       return;
     }
@@ -4727,7 +4743,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     debugPrint(
       '[field_action] exit mode=${nextMode.name} at x=${pos.x} y=${pos.y}',
     );
-    setPlayerMovementMode(nextMode);
+    _setPlayerMovementMode(nextMode);
   }
 
   /// Lance un déplacement scripté ponctuel pour un PNJ.
@@ -4866,6 +4882,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   @override
   void onRemove() {
     _isRemoved = true;
+    _playerSlide.reset();
+    _slideSuppressedMovementControls.clear();
     if (_observingMemoryPressure) {
       WidgetsBinding.instance.removeObserver(this);
       _observingMemoryPressure = false;
@@ -5229,6 +5247,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// directement des `LogicalKeyboardKey`.
   bool handleRuntimeInputEvent(RuntimeInputEvent event) {
     final control = event.control;
+    if (_isMovementControl(control)) {
+      if (event.isRelease || !event.isRepeat) {
+        _slideSuppressedMovementControls.remove(control);
+      } else if (_slideSuppressedMovementControls.contains(control)) {
+        return true;
+      }
+    }
 
     if (_isFishingBusy) {
       if (_fishingFlow != null && _externalInputLocks.isEmpty &&
@@ -5250,7 +5275,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     // developer host) leaves it unhandled instead of opening product UI from
     // inside Flame.
     if (control == RuntimeInputControl.menu) {
-      return false;
+      return _playerSlide.isSliding;
     }
 
     // Flutter overlays such as the pause menu sit outside Flame and therefore
@@ -5394,6 +5419,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (inputAuthority.context == RuntimeInputContext.blocked ||
         inputAuthority.context == RuntimeInputContext.transition) {
       if (_isMovementControl(control)) {
+        if (_playerSlide.isSliding && event.isPress) {
+          _slideSuppressedMovementControls.add(control);
+        }
         _releaseMovementControl(control);
       }
       if (inputAuthority.context == RuntimeInputContext.blocked &&
@@ -5762,7 +5790,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
     }
 
-    if (!inputAuthoritySnapshot.acceptsOverworldInput) {
+    if (!inputAuthoritySnapshot.acceptsOverworldInput &&
+        !(_playerSlide.isSliding && _inputLocks.snapshot.acceptsOverworldInput)) {
       _clearPressedMovementControls();
       return;
     }
@@ -5876,12 +5905,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
 
-    final intent = _intentFromPressedMovementControls();
+    final slideDirection = _playerSlide.direction;
+    final slideIntent = slideDirection == null
+        ? null
+        : _playerSlide.nextIntent(
+            world: _world,
+            pixelsPerStep: _playerStepPixels(slideDirection),
+          );
+    final intent = slideIntent ?? _intentFromPressedMovementControls();
     if (intent == null) {
       _player.syncState(_world.player);
       return;
     }
-    if (intent is MoveIntent && _tryPushStrengthObstacle(intent.direction)) return;
+    if (slideIntent == null && intent is MoveIntent &&
+        _tryPushStrengthObstacle(intent.direction)) {
+      return;
+    }
     final attemptedDirection = intent is MoveIntent ? intent.direction : null;
     final attemptedX = attemptedDirection == null
         ? null
@@ -5896,7 +5935,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             attemptedX >= _world.map.size.width ||
             attemptedY >= _world.map.size.height);
 
-    final previousPlayerPos = _world.player.pos;
+    final previousWorld = _world;
+    final previousPlayerPos = previousWorld.player.pos;
     final result = stepGameplayWorld(
       _world,
       intent,
@@ -5908,6 +5948,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           .map((reservation) => reservation.contactRect)
           .whereType<PixelRect>(),
     );
+    if (intent is MoveIntent) {
+      _playerSlide.recordStep(
+        previousWorld: previousWorld,
+        intent: intent,
+        result: result,
+      );
+      if (slideIntent != null || _playerSlide.isSliding) {
+        _slideSuppressedMovementControls.addAll(_pressedMovementControls);
+        _clearPressedMovementControls();
+        _sprintPressed = false;
+      }
+    }
     if (result is Jumped) {
       _startDirectedJump(result);
       return;
@@ -5918,6 +5970,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _handleGameplayMovementResult(
       result,
       previousPlayerPos: previousPlayerPos,
+      movementKindOverride:
+          slideIntent == null ? null : CommittedMovementKind.forced,
       attemptedDirection: attemptedDirection,
       attemptedX: attemptedX,
       attemptedY: attemptedY,
@@ -6037,6 +6091,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required GridPos previousPlayerPos,
     bool animatePlayer = true,
     bool publishMovement = true,
+    CommittedMovementKind? movementKindOverride,
     Direction? attemptedDirection,
     int? attemptedX,
     int? attemptedY,
@@ -6048,7 +6103,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         result is PlacedElementInteracted)) {
       _publishCommittedMovement(
         CommittedMovement(
-          kind: switch (_world.player.movementMode) {
+          kind: movementKindOverride ?? switch (_world.player.movementMode) {
             MovementMode.surf => CommittedMovementKind.surf,
             MovementMode.bicycle => CommittedMovementKind.bicycle,
             _ => CommittedMovementKind.walk,
@@ -16866,6 +16921,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   void _clearTransientUiState({_SceneWarpPresentationOwner? preservedWarpOwner}) {
     _cancelInteractiveEncounter();
     _cancelPendingDirectedJump();
+    _playerSlide.reset();
     _preservingConnectionInput = false;
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled by transient UI reset.',

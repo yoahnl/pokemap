@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 class AddGameplayZoneToMapUseCase {
@@ -44,8 +45,15 @@ class UpdateGameplayZoneOnMapUseCase {
       hazard: hazard,
       special: special,
     );
-    MapValidator.validate(updated, projectDialogueContext: manifest);
-    return updated;
+    final canonical = movementEffect is MovementEffectZonePayload
+        ? const TriggerZoneActions().setMovementEffectPayload(
+            updated,
+            zoneId: id?.trim() ?? zoneId,
+            payload: movementEffect,
+          )
+        : updated;
+    MapValidator.validate(canonical, projectDialogueContext: manifest);
+    return canonical;
   }
 }
 

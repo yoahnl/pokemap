@@ -157,6 +157,7 @@ export 'src/gameplay_connection.dart'
 export 'src/gameplay_hazard.dart' show GameplayHazardEffect;
 export 'src/gameplay_movement_effect.dart'
     show GameplayMovementEffect, GameplayMovementEffectKind;
+export 'src/gameplay_slide_controller.dart' show GameplaySlideController;
 export 'src/committed_movement.dart'
     show
         CommittedMovementKind,

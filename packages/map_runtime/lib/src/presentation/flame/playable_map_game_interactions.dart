@@ -27,8 +27,9 @@ final class _ResolvedOverworldInteraction {
 }
 
 extension _PlayableMapInteractions on PlayableMapGame {
-  bool _canResolveOverworldInteraction({bool duringDispatch = false}) {
-    if (_diveTransferInFlight ||
+  bool _canResolveOverworldInteraction({bool duringDispatch = false, bool allowSliding = false}) {
+    if ((!duringDispatch && !allowSliding && _playerSlide.isSliding) ||
+        _diveTransferInFlight ||
         _isRemoved ||
         _currentMapActivationId == null ||
         _onLoadInProgress ||

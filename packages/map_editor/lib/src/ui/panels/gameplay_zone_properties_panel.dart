@@ -380,21 +380,28 @@ class _GameplayZonePropertiesPanelState
           const SizedBox(height: 8),
           _buildMovementEffectKindDropdown(context, coral),
           const SizedBox(height: 8),
-          _labeledField(
-            context,
-            label: 'Movement Cost',
-            controller:
-                TextEditingController(text: _movementEffectCost.toString())
-                  ..selection = TextSelection.collapsed(
-                    offset: _movementEffectCost.toString().length,
-                  ),
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (v) {
-              final parsed = int.tryParse(v);
-              if (parsed != null) setState(() => _movementEffectCost = parsed);
-            },
-          ),
+          if (_movementEffectKind == MovementEffectZoneKind.slide)
+            const Text(
+              'En 2D, le joueur glisse dans sa direction d’entrée jusqu’à un obstacle ou la sortie de la zone. Les commandes reprennent à l’arrêt.',
+            ),
+          if (_movementEffectKind == MovementEffectZoneKind.movementCost)
+            _labeledField(
+              context,
+              label: 'Movement Cost',
+              controller:
+                  TextEditingController(text: _movementEffectCost.toString())
+                    ..selection = TextSelection.collapsed(
+                      offset: _movementEffectCost.toString().length,
+                    ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (v) {
+                final parsed = int.tryParse(v);
+                if (parsed != null) {
+                  setState(() => _movementEffectCost = parsed);
+                }
+              },
+            ),
           const SizedBox(height: 8),
         ],
 

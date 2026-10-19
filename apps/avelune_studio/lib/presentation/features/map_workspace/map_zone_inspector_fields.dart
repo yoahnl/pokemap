@@ -264,7 +264,7 @@ List<Widget> zonePayloadFields({
             DropdownMenuItem(
               value: kind,
               child: Text(
-                kind.name,
+                kind == MovementEffectZoneKind.slide ? 'Glissade' : kind.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -276,25 +276,35 @@ List<Widget> zonePayloadFields({
                 () => commands.updateMovementEffect(zone.id, effectKind: kind),
               ),
       ),
-      const SizedBox(height: 12),
-      DropdownButtonFormField<int>(
-        key: ValueKey('zone-cost-${zone.id}-${effect.movementCost}'),
-        initialValue: effect.movementCost.clamp(1, 4),
-        isExpanded: true,
-        decoration: const InputDecoration(labelText: 'Coût par pas'),
-        items: const [
-          DropdownMenuItem(value: 1, child: Text('1 (normal)')),
-          DropdownMenuItem(value: 2, child: Text('2')),
-          DropdownMenuItem(value: 3, child: Text('3')),
-          DropdownMenuItem(value: 4, child: Text('4')),
-        ],
-        onChanged: (cost) => cost == null
-            ? null
-            : onChanged(
-                () =>
-                    commands.updateMovementEffect(zone.id, movementCost: cost),
-              ),
-      ),
+      if (effect.effectKind == MovementEffectZoneKind.slide) ...[
+        const SizedBox(height: 12),
+        const Text(
+          'En 2D, le joueur glisse dans sa direction d’entrée jusqu’à un obstacle ou la sortie de la zone. Les commandes reprennent à l’arrêt.',
+        ),
+      ],
+      if (effect.effectKind == MovementEffectZoneKind.movementCost) ...[
+        const SizedBox(height: 12),
+        DropdownButtonFormField<int>(
+          key: ValueKey('zone-cost-${zone.id}-${effect.movementCost}'),
+          initialValue: effect.movementCost.clamp(1, 4),
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Coût par pas'),
+          items: const [
+            DropdownMenuItem(value: 1, child: Text('1 (normal)')),
+            DropdownMenuItem(value: 2, child: Text('2')),
+            DropdownMenuItem(value: 3, child: Text('3')),
+            DropdownMenuItem(value: 4, child: Text('4')),
+          ],
+          onChanged: (cost) => cost == null
+              ? null
+              : onChanged(
+                  () => commands.updateMovementEffect(
+                    zone.id,
+                    movementCost: cost,
+                  ),
+                ),
+        ),
+      ],
     ];
   }
 

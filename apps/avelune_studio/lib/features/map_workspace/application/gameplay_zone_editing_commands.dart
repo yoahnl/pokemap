@@ -248,10 +248,10 @@ class GameplayZoneEditingCommands {
     final payload = selected(id)?.movementEffect;
     if (payload == null) return;
     document.commit(
-      updateGameplayZoneOnMap(
+      const TriggerZoneActions().setMovementEffectPayload(
         document.current,
         zoneId: id,
-        movementEffect: payload.copyWith(
+        payload: payload.copyWith(
           effectKind: effectKind ?? payload.effectKind,
           movementCost: movementCost ?? payload.movementCost,
         ),

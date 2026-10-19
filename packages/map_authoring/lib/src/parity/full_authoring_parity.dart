@@ -606,6 +606,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/dive_pair_stdio.test.ts',
     };
   }
+  if (actionId == 'gameplay_zone.set_movement_effect_payload') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/slide_zone_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/slide_zone_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/slide_zone_editing_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/slide_zone_stdio.test.ts',
+    };
+  }
   if (actionId == 'gameplay_zone.set_field_action_payload') {
     return const {
       AuthoringTransport.directApi:
@@ -1588,6 +1600,9 @@ String _contractTestFor(String actionId) {
   }
   if (actionId.startsWith('gameplay_zone.dive.')) {
     return 'test/domains/maps/dive_pair_actions_test.dart';
+  }
+  if (actionId == 'gameplay_zone.set_movement_effect_payload') {
+    return 'test/domains/maps/slide_zone_transport_test.dart';
   }
   if (actionId == 'gameplay_zone.set_field_action_payload') {
     return 'test/domains/maps/flash_zone_transport_test.dart';

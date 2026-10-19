@@ -11,7 +11,7 @@ final class _NpcFixedRouteRuntimeEntry {
 
 extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
   bool get _npcFixedRoutesPaused =>
-      !_canResolveOverworldInteraction() ||
+      !_canResolveOverworldInteraction(allowSliding: true) ||
       _dialogueOverlay != null ||
       _hasPendingDialogueLoad ||
       _pendingBattleRequest != null ||
