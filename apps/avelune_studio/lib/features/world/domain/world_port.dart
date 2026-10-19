@@ -20,6 +20,11 @@ abstract interface class WorldPort {
     required WorldRuleDefinition current,
   });
 
+  Future<ResourceMutationReceipt> publishRuleBatch({
+    required List<({WorldRuleDefinition? base, WorldRuleDefinition current})>
+    rules,
+  });
+
   Future<ResourceMutationReceipt> deleteRule(WorldRuleDefinition base);
 
   /// The maps the target pickers, usages and simulation read.

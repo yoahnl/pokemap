@@ -24,6 +24,17 @@ class Ui12HeldWorldPort implements WorldPort {
   }
 
   @override
+  Future<ResourceMutationReceipt> publishRuleBatch({
+    required List<({WorldRuleDefinition? base, WorldRuleDefinition current})>
+    rules,
+  }) async {
+    sentRules.addAll(rules.map((publication) => publication.current));
+    if (ruleGate case final gate?) await gate.future;
+    if (ruleFailure case final failure?) throw failure;
+    return delegate.publishRuleBatch(rules: rules);
+  }
+
+  @override
   Future<ResourceMutationReceipt> publishFact({
     required NarrativeFactDefinition? base,
     required NarrativeFactDefinition current,

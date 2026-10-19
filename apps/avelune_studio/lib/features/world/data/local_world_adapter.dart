@@ -89,6 +89,36 @@ class LocalWorldAdapter implements WorldPort {
   );
 
   @override
+  Future<ResourceMutationReceipt> publishRuleBatch({
+    required List<({WorldRuleDefinition? base, WorldRuleDefinition current})>
+    rules,
+  }) {
+    if (rules.isEmpty || rules.length > maxWorldRuleBatchSize) {
+      throw const WorldFailure('Enregistrez entre 1 et 128 règles à la fois.');
+    }
+    return _transaction.run(
+      actionId: 'world_rule.upsert_batch',
+      parameters: (project) {
+        for (final publication in rules) {
+          final existing = project.worldRules
+              .where((rule) => rule.id == publication.current.id)
+              .firstOrNull;
+          if (existing != publication.base) {
+            throw const WorldFailure(
+              'Cette règle a changé sur le disque. Vos brouillons sont conservés.',
+            );
+          }
+        }
+        return {
+          'rules': [
+            for (final publication in rules) publication.current.toJson(),
+          ],
+        };
+      },
+    );
+  }
+
+  @override
   Future<ResourceMutationReceipt> deleteRule(WorldRuleDefinition base) =>
       _transaction.run(
         actionId: 'world_rule.delete',

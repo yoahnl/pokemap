@@ -44,6 +44,7 @@ AuthoringMutationDraft narrativeProjectDraft(
   Object? before,
   Object? after,
   Map<String, Object?> preview = const {},
+  bool includeInspectionPreview = false,
 }) {
   final project = AuthoringResourceRef(
     kind: 'project',
@@ -90,6 +91,7 @@ AuthoringMutationDraft narrativeProjectDraft(
     preview: {
       'operation': operation,
       'path': path,
+      if (includeInspectionPreview) ...afterInspection.toJson(),
       ...preview,
       'diagnosticDelta': modernNarrativeDiagnosticDelta(
         before: beforeInspection.diagnostics,

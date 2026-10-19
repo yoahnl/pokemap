@@ -49,6 +49,15 @@ class Ui12WidgetWorldPort implements WorldPort {
   }
 
   @override
+  Future<ResourceMutationReceipt> publishRuleBatch({
+    required List<({WorldRuleDefinition? base, WorldRuleDefinition current})>
+    rules,
+  }) {
+    writes++;
+    return _run(() => delegate.publishRuleBatch(rules: rules));
+  }
+
+  @override
   Future<ResourceMutationReceipt> deleteRule(WorldRuleDefinition base) {
     writes++;
     return _run(() => delegate.deleteRule(base));

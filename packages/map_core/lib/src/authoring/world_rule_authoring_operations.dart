@@ -4,6 +4,18 @@ import '../models/narrative_event_definition.dart';
 import '../models/project_manifest.dart';
 import '../models/world_rule.dart';
 
+const maxWorldRuleBatchSize = 128;
+
+final class WorldRuleBatchException implements Exception {
+  const WorldRuleBatchException({required this.index, required this.cause});
+
+  final int index;
+  final Object cause;
+
+  @override
+  String toString() => 'WorldRuleBatchException(index: $index, cause: $cause)';
+}
+
 final class WorldRuleCreationResult {
   const WorldRuleCreationResult({
     required this.updatedProject,
@@ -131,15 +143,87 @@ WorldRuleRemovalResult removeWorldRule(
   );
 }
 
+ProjectManifest upsertWorldRules(
+  ProjectManifest manifest, {
+  required List<WorldRuleDefinition> rules,
+  List<MapData> maps = const <MapData>[],
+}) {
+  if (rules.isEmpty || rules.length > maxWorldRuleBatchSize) {
+    throw ArgumentError.value(
+      rules.length,
+      'rules',
+      'A world rule batch requires 1 to $maxWorldRuleBatchSize rules.',
+    );
+  }
+  final batchIds = <String>{};
+  for (var index = 0; index < rules.length; index++) {
+    if (!batchIds.add(rules[index].id)) {
+      throw WorldRuleBatchException(
+        index: index,
+        cause: ArgumentError.value(
+          rules[index].id,
+          'rule.id',
+          'World rule batch ids must be unique.',
+        ),
+      );
+    }
+  }
+  final worldRules = manifest.worldRules.toList(growable: true);
+  final positions = <String, int>{};
+  for (var index = 0; index < worldRules.length; index++) {
+    positions.putIfAbsent(worldRules[index].id, () => index);
+  }
+  final existingIds = positions.keys.toSet();
+  for (var index = 0; index < rules.length; index++) {
+    final rule = rules[index];
+    final position = positions[rule.id];
+    if (position != null) {
+      worldRules[position] = rule;
+      continue;
+    }
+    final canonicalId = _uniqueWorldRuleId(rule.label, existingIds);
+    if (rule.id != canonicalId) {
+      throw WorldRuleBatchException(
+        index: index,
+        cause: ArgumentError.value(
+          rule.id,
+          'rule.id',
+          'must equal the canonical generated id $canonicalId',
+        ),
+      );
+    }
+    existingIds.add(rule.id);
+    worldRules.add(rule);
+  }
+  final references = _WorldRuleAuthoringReferences(manifest, maps);
+  for (var index = 0; index < rules.length; index++) {
+    try {
+      _validateWorldRuleForAuthoring(
+        manifest,
+        rules[index],
+        maps: maps,
+        references: references,
+      );
+    } on Object catch (error) {
+      throw WorldRuleBatchException(index: index, cause: error);
+    }
+  }
+  return manifest.copyWith(worldRules: worldRules);
+}
+
 void _validateWorldRuleForAuthoring(
   ProjectManifest manifest,
   WorldRuleDefinition rule, {
   required List<MapData> maps,
+  _WorldRuleAuthoringReferences? references,
 }) {
   final sourceId = rule.source.sourceId.trim();
   if (sourceId.isEmpty) {
     throw ArgumentError.value(
-        sourceId, 'source.sourceId', 'World rule source id is required.');
+      sourceId,
+      'source.sourceId',
+      'World rule source id is required.',
+    );
   }
   if (!isWorldRuleSourcePredicateCompatible(
     rule.source.kind,
@@ -197,20 +281,19 @@ void _validateWorldRuleForAuthoring(
       'World rule dialogue override id is required.',
     );
   }
-  _validateSourceReferences(manifest, rule, maps: maps);
-  _validateTargetReferences(manifest, rule, maps: maps);
-  _validateEffectReferences(manifest, rule);
+  final context = references ?? _WorldRuleAuthoringReferences(manifest, maps);
+  _validateSourceReferences(rule, context);
+  _validateTargetReferences(rule, context);
+  _validateEffectReferences(rule, context);
 }
 
 void _validateSourceReferences(
-  ProjectManifest manifest,
-  WorldRuleDefinition rule, {
-  required List<MapData> maps,
-}) {
+  WorldRuleDefinition rule,
+  _WorldRuleAuthoringReferences references,
+) {
   switch (rule.source.kind) {
     case WorldRuleSourceKind.fact:
-      final factIds = manifest.facts.map((fact) => fact.id).toSet();
-      if (!factIds.contains(rule.source.sourceId)) {
+      if (!references.factIds.contains(rule.source.sourceId)) {
         throw ArgumentError.value(
           rule.source.sourceId,
           'source.sourceId',
@@ -218,7 +301,7 @@ void _validateSourceReferences(
         );
       }
     case WorldRuleSourceKind.storyStepCompletion:
-      final stepIds = _storyStepIds(manifest);
+      final stepIds = references.storyStepIds;
       if (stepIds.isNotEmpty && !stepIds.contains(rule.source.sourceId)) {
         throw ArgumentError.value(
           rule.source.sourceId,
@@ -227,7 +310,7 @@ void _validateSourceReferences(
         );
       }
     case WorldRuleSourceKind.consumedEvent:
-      final eventIds = _eventIds(manifest, maps);
+      final eventIds = references.eventIds;
       if (eventIds.isNotEmpty && !eventIds.contains(rule.source.sourceId)) {
         throw ArgumentError.value(
           rule.source.sourceId,
@@ -239,17 +322,11 @@ void _validateSourceReferences(
 }
 
 void _validateTargetReferences(
-  ProjectManifest manifest,
-  WorldRuleDefinition rule, {
-  required List<MapData> maps,
-}) {
+  WorldRuleDefinition rule,
+  _WorldRuleAuthoringReferences references,
+) {
   if (rule.target.kind == WorldRuleTargetKind.narrativeEvent) {
-    final eventIds = {
-      for (final record
-          in manifest.eventRegistry?.records ?? const <NarrativeEventRecord>[])
-        record.id,
-    };
-    if (!eventIds.contains(rule.target.eventId)) {
+    if (!references.narrativeEventIds.contains(rule.target.eventId)) {
       throw ArgumentError.value(
         rule.target.eventId,
         'target.eventId',
@@ -258,23 +335,24 @@ void _validateTargetReferences(
     }
     return;
   }
-  final manifestMapIds = manifest.maps.map((map) => map.id).toSet();
-  final mapsById = {for (final map in maps) map.id: map};
-  if (!manifestMapIds.contains(rule.target.mapId) &&
-      !mapsById.containsKey(rule.target.mapId)) {
+  if (!references.manifestMapIds.contains(rule.target.mapId) &&
+      !references.mapsById.containsKey(rule.target.mapId)) {
     throw ArgumentError.value(
       rule.target.mapId,
       'target.mapId',
       'Unknown map for world rule target.',
     );
   }
-  final map = mapsById[rule.target.mapId];
+  final map = references.mapsById[rule.target.mapId];
   if (map == null) {
     return;
   }
   switch (rule.target.kind) {
     case WorldRuleTargetKind.mapEntity:
-      final entityIds = map.entities.map((entity) => entity.id).toSet();
+      final entityIds = references.entityIdsByMap.putIfAbsent(
+        map.id,
+        () => map.entities.map((entity) => entity.id).toSet(),
+      );
       if (!entityIds.contains(rule.target.entityId)) {
         throw ArgumentError.value(
           rule.target.entityId,
@@ -299,7 +377,10 @@ void _validateTargetReferences(
         );
       }
     case WorldRuleTargetKind.mapEvent:
-      final eventIds = map.events.map((event) => event.id).toSet();
+      final eventIds = references.eventIdsByMap.putIfAbsent(
+        map.id,
+        () => map.events.map((event) => event.id).toSet(),
+      );
       if (!eventIds.contains(rule.target.eventId)) {
         throw ArgumentError.value(
           rule.target.eventId,
@@ -313,20 +394,42 @@ void _validateTargetReferences(
 }
 
 void _validateEffectReferences(
-  ProjectManifest manifest,
   WorldRuleDefinition rule,
+  _WorldRuleAuthoringReferences references,
 ) {
   if (rule.effect.kind != WorldRuleEffectKind.npcDialogueOverride) {
     return;
   }
-  final dialogueIds = manifest.dialogues.map((dialogue) => dialogue.id).toSet();
-  if (!dialogueIds.contains(rule.effect.dialogueId)) {
+  if (!references.dialogueIds.contains(rule.effect.dialogueId)) {
     throw ArgumentError.value(
       rule.effect.dialogueId,
       'effect.dialogueId',
       'Unknown dialogue for world rule effect.',
     );
   }
+}
+
+final class _WorldRuleAuthoringReferences {
+  _WorldRuleAuthoringReferences(this.manifest, this.maps);
+
+  final ProjectManifest manifest;
+  final List<MapData> maps;
+
+  late final factIds = manifest.facts.map((fact) => fact.id).toSet();
+  late final storyStepIds = _storyStepIds(manifest);
+  late final eventIds = _eventIds(manifest, maps);
+  late final narrativeEventIds = {
+    for (final record
+        in manifest.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+      record.id,
+  };
+  late final manifestMapIds = manifest.maps.map((map) => map.id).toSet();
+  late final mapsById = {for (final map in maps) map.id: map};
+  final entityIdsByMap = <String, Set<String>>{};
+  final eventIdsByMap = <String, Set<String>>{};
+  late final dialogueIds = manifest.dialogues
+      .map((dialogue) => dialogue.id)
+      .toSet();
 }
 
 MapEntity? _findEntity(MapData map, String entityId) {
@@ -357,7 +460,9 @@ Set<String> _eventIds(ProjectManifest manifest, List<MapData> maps) {
 }
 
 String _uniqueWorldRuleId(String label, Iterable<String> existingIds) {
-  final existing = existingIds.toSet();
+  final existing = existingIds is Set<String>
+      ? existingIds
+      : existingIds.toSet();
   final slug = _slugify(label);
   final base = 'world_rule_${slug.isEmpty ? 'item' : slug}';
   if (!existing.contains(base)) {

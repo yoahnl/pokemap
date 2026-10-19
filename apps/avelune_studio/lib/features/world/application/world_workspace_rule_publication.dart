@@ -51,20 +51,22 @@ extension WorldWorkspaceRulePublication on WorldWorkspaceController {
 
   /// Creation names the rule canonically and refuses any other identity, so a
   /// new rule only receives its final id here.
-  WorldRuleDefinition _canonicalRule(WorldRuleDefinition current) =>
-      addWorldRule(
-        project,
-        label: current.label,
-        description: current.description,
-        enabled: current.enabled,
-        source: current.source,
-        target: current.target,
-        effect: current.effect,
-        priority: current.priority,
-        tags: current.tags,
-        debugTechnicalLabel: current.debugTechnicalLabel,
-        maps: maps,
-      ).createdRule;
+  WorldRuleDefinition _canonicalRule(
+    WorldRuleDefinition current, {
+    ProjectManifest? manifest,
+  }) => addWorldRule(
+    manifest ?? project,
+    label: current.label,
+    description: current.description,
+    enabled: current.enabled,
+    source: current.source,
+    target: current.target,
+    effect: current.effect,
+    priority: current.priority,
+    tags: current.tags,
+    debugTechnicalLabel: current.debugTechnicalLabel,
+    maps: maps,
+  ).createdRule;
 
   /// A rule cannot be written before the state it reads. That dependency is
   /// named to the author instead of surfacing the authoring error.
@@ -121,12 +123,132 @@ extension WorldWorkspaceRulePublication on WorldWorkspaceController {
     );
   }
 
-  /// The rule drafts join the workspace-wide protections: closing the project
-  /// with an unsaved relation goes through the same choice as any document.
   Future<bool> saveAll() async {
-    for (final id in pendingRules.keys.toList()) {
-      if (!await saveRuleWithDependency(id)) return false;
+    if (_closed || saving) return false;
+    final ids = pendingRules.keys.toList();
+    if (ids.isEmpty) return true;
+    final List<
+      ({String id, WorldRuleDefinition? base, WorldRuleDefinition current})
+    >
+    prepared;
+    try {
+      prepared = _prepareRuleBatch(ids);
+    } on Object catch (failure) {
+      return _fail(failure);
     }
-    return pendingRules.isEmpty;
+    final dependencies = <String, NarrativeFactDefinition>{};
+    for (final publication in prepared) {
+      final dependency = _draftedSource(publication.current.source);
+      if (dependency != null) dependencies[dependency.id] = dependency;
+    }
+    final savedFacts = <String>[];
+    for (final dependency in dependencies.values) {
+      final publication = saveFact(dependency.id);
+      final generation = _generation;
+      final saved = await publication;
+      if (_closed || generation != _generation) return false;
+      if (!saved) {
+        return _ruleBatchFailure(savedFacts, error ?? 'écriture refusée');
+      }
+      savedFacts.add(dependency.label);
+    }
+    final List<
+      ({String id, WorldRuleDefinition? base, WorldRuleDefinition current})
+    >
+    publications;
+    try {
+      publications = dependencies.isEmpty ? prepared : _prepareRuleBatch(ids);
+    } on Object catch (failure) {
+      return _ruleBatchFailure(savedFacts, failure);
+    }
+    final ticket = ++_generation;
+    loading = saving = true;
+    error = null;
+    changed();
+    try {
+      if (_closed || ticket != _generation) return false;
+      final receipt = await port.publishRuleBatch(
+        rules: [
+          for (final publication in publications)
+            (base: publication.base, current: publication.current),
+        ],
+      );
+      if (_closed || ticket != _generation) return false;
+      narrative.workspace.acceptResources(receipt.before, receipt.manifest);
+      var removed = false;
+      for (final publication in publications) {
+        if (!pendingRules.containsKey(publication.id)) {
+          removed = true;
+          continue;
+        }
+        _adoptRule(publication.id, publication.current);
+      }
+      invalidate();
+      return !removed && pendingRules.isEmpty;
+    } on Object catch (failure) {
+      return ticket == _generation
+          ? _ruleBatchFailure(savedFacts, failure)
+          : false;
+    } finally {
+      if (!_closed && ticket == _generation) {
+        loading = saving = false;
+        changed();
+      }
+    }
+  }
+
+  List<({String id, WorldRuleDefinition? base, WorldRuleDefinition current})>
+  _prepareRuleBatch(List<String> ids) {
+    if (ids.length > maxWorldRuleBatchSize) {
+      throw const WorldFailure('Enregistrez au maximum 128 règles à la fois.');
+    }
+    final manifest = project.copyWith(facts: facts);
+    var projected = manifest;
+    final publications =
+        <
+          ({String id, WorldRuleDefinition? base, WorldRuleDefinition current})
+        >[];
+    for (final id in ids) {
+      final draft = pendingRules[id];
+      if (draft == null) {
+        throw const WorldFailure(
+          'Un brouillon a été retiré pendant l’enregistrement.',
+        );
+      }
+      final current = draft.complete;
+      if (current == null) {
+        throw WorldFailure(
+          'Il manque ${draft.missing.join(', ')} à la règle « ${draft.label} ».',
+        );
+      }
+      final base = ruleBase(id);
+      final sent = base == null
+          ? _canonicalRule(current, manifest: projected)
+          : current;
+      publications.add((id: id, base: base, current: sent));
+      if (base == null) {
+        projected = projected.copyWith(
+          worldRules: [...projected.worldRules, sent],
+        );
+      }
+    }
+    upsertWorldRules(
+      manifest,
+      rules: [for (final publication in publications) publication.current],
+      maps: maps,
+    );
+    return publications;
+  }
+
+  bool _ruleBatchFailure(List<String> savedFacts, Object failure) {
+    if (savedFacts.isEmpty) return _fail(failure);
+    final states = savedFacts.map((label) => '« $label »').join(', ');
+    return _fail(
+      WorldFailure(
+        '${savedFacts.length == 1 ? 'L’état $states a' : 'Les états $states ont'} '
+        'bien été enregistré${savedFacts.length == 1 ? '' : 's'}, mais pas les '
+        'règles : $failure',
+      ),
+    );
   }
 }

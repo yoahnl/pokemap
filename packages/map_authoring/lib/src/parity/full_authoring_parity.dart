@@ -510,6 +510,14 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'world_rule.upsert_batch') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/narrative/world_rule_batch_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/narrative/world_rule_batch_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/world_rule_batch_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/world_rule_batch_stdio.test.ts',
+    };
+  }
   if (actionId == 'project.battle_transitions.update') {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/battle_transition_catalogue_actions_test.dart',
@@ -1471,6 +1479,9 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'world_rule.upsert_batch') {
+    return 'test/domains/narrative/world_rule_batch_transport_test.dart';
+  }
   if (actionId == 'event_v2.record_upsert_batch') {
     return 'test/domains/narrative/event_record_batch_transport_test.dart';
   }

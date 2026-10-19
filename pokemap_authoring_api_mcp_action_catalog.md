@@ -1830,6 +1830,7 @@ world_rule.list
 world_rule.get
 world_rule.create
 world_rule.update
+world_rule.upsert_batch
 world_rule.clone
 world_rule.enable
 world_rule.disable
@@ -1839,6 +1840,18 @@ world_rule.delete_apply
 world_rule.simulate
 world_rule.validate
 ```
+
+`world_rule.upsert_batch` crée ou met à jour atomiquement de 1 à 128 règles
+complètes dans `rules`, avec des IDs uniques. Les règles existantes conservent
+leur position ; les nouvelles suivent l’ordre reçu et doivent porter l’ID
+canonique de leur libellé, avec suffixe de collision si nécessaire. Le batch
+produit un seul draft, une validation des règles changées et une transaction.
+Un membre invalide refuse l’ensemble. Les diagnostics avant/après sont
+conservés sans exiger qu’un projet déjà diagnostiqué soit entièrement publiable.
+Les révisions, la prévisualisation, le rejeu et l’historique utilisent les
+contrats canoniques. La suppression reste unitaire. Les éventuels Facts
+préalables restent des publications distinctes ; leur succès suivi d’un refus
+des règles doit être signalé comme partiel par Studio.
 
 ## 16. Events, Scenes, Storylines et cinématiques
 
