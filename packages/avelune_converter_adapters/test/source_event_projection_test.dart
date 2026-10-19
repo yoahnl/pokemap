@@ -724,9 +724,14 @@ Future<({GameState state, List<String> shown})> _runNumericScene(
           return intent.declaredOutputPortIds.contains(choice) ? choice : 'completed';
         },
         applyConsequence: (consequence) {
-          final set = consequence as SceneSetFactConsequence;
-          final write = writer.setFactValue(gameState: state, factId: set.factId,
-              value: set.narrativeValue);
+          final write = switch (consequence) {
+            SceneSetFactConsequence() => writer.setFactValue(gameState: state,
+              factId: consequence.factId, value: consequence.narrativeValue),
+            SceneAdjustIntegerFactConsequence() => writer.adjustIntegerFact(gameState: state,
+              factId: consequence.factId, delta: consequence.delta,
+              minimum: consequence.minimum, maximum: consequence.maximum),
+            _ => throw StateError('Unexpected consequence ${consequence.kind}'),
+          };
           expect(write.success, isTrue);
           state = write.gameState;
           return 'completed';
@@ -1058,6 +1063,144 @@ void main() {
       });
     }
   }, skip: scriptsPath == null);
+  group('literal arithmetic progression', () {
+    for (final entry in <(int, int, int, int)>[
+      (1, 0, 1, 1), (2, 0, 1, -1), (1, 4, -2, 2), (2, 4, -2, 6),
+      (1, 99999999, -1, 99999999), (2, -99999999, -1, -99999999),
+      (1, 99999998, 2147483647, 99999999),
+      (2, -99999998, 2147483647, -99999999),
+      (2, 0, -2147483648, 99999999), (1, 0, -2147483648, -99999999),
+    ]) {
+      test('literal arithmetic follows source precheck and clamp $entry', () async {
+        final source = await _events([_page([
+          _command(122, [7, 7, entry.$1, 0, entry.$3]),
+          _command(111, [1, 7, 0, entry.$4, 0]),
+          _command(101, ['expected'], indent: 1), _command(411, []),
+          _command(101, ['incorrect'], indent: 1), _command(412, []), _command(0, []),
+        ])], interpretationProfile: fixtureSourceInterpretationProfile);
+        final result = _projectEvents(source);
+        expect(result.scenes, hasLength(1), reason: jsonEncode(result.semanticEvidence));
+        final factId = result.facts.single.id;
+        final initial = const GameState(saveId: 'arithmetic').copyWith(
+          narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(valuesByFactId: {
+            if (entry.$2 != 0) factId: NarrativeValue.integer(entry.$2),
+          }));
+        final run = await _runNumericScene(result, result.scenes.single, initial: initial);
+        expect(run.shown, ['expected']);
+        final value = NarrativeFactRuntimeResolver.fromFacts(result.facts).resolve(
+          factId: factId, runtimeState: run.state.narrativeFactRuntimeState,
+          storyFlags: run.state.storyFlags) as NarrativeFactRuntimeResolved;
+        expect(value.narrativeValue, NarrativeValue.integer(entry.$4));
+        expect(run.state.scriptVariables.values, isEmpty);
+        expect(jsonEncode(result.semanticEvidence), contains('integerVariableAdjust'));
+      });
+    }
+    test('range arithmetic checks each current value and later branches see sequential writes', () async {
+      final source = await _events([_page([
+        _command(122, [3, 3, 0, 0, 99999999]),
+        _command(122, [4, 4, 0, 0, 5]),
+        _command(122, [3, 5, 1, 0, -1]),
+        _command(122, [5, 5, 1, 0, 2]),
+        _command(111, [1, 5, 0, 1, 0]),
+        _command(101, ['sequential'], indent: 1), _command(412, []), _command(0, []),
+      ])], interpretationProfile: fixtureSourceInterpretationProfile);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1), reason: jsonEncode(result.semanticEvidence));
+      final run = await _runNumericScene(result, result.scenes.single);
+      expect(run.shown, ['sequential']);
+      for (final entry in {3: 99999999, 4: 4, 5: 1}.entries) {
+        expect(run.state.narrativeFactRuntimeState.valuesByFactId[
+          sourceEventIntegerVariableBindingId(_analyzer(source).variableFactId(entry.key))],
+          NarrativeValue.integer(entry.value));
+      }
+    });
+    test('literal increments are reusable and accumulate across native invocations', () async {
+      final source = await _events([_page([
+        _command(122, [7, 7, 1, 0, 1]), _command(0, []),
+      ])], interpretationProfile: fixtureSourceInterpretationProfile);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1), reason: jsonEncode(result.semanticEvidence));
+      final first = await _runNumericScene(result, result.scenes.single);
+      final second = await _runNumericScene(result, result.scenes.single, initial: first.state);
+      expect(second.state.narrativeFactRuntimeState.valuesByFactId[result.facts.single.id],
+        NarrativeValue.integer(2));
+      expect(second.state.consumedEventIds, isEmpty);
+    });
+    test('arithmetic inside a represented common event uses the same persistent fact', () async {
+      final source = await _events([_page([
+        _command(117, [1]), _command(111, [1, 7, 0, 2, 0]),
+        _command(101, ['common updated'], indent: 1), _command(412, []), _command(0, []),
+      ])], interpretationProfile: fixtureSourceInterpretationProfile,
+        commonEvents: [null, _RubyObject('RPG::CommonEvent', {
+          '@id': 1, '@name': 'Counter', '@trigger': 0, '@switch_id': 1,
+          '@list': [_command(122, [7, 7, 1, 0, 2]), _command(0, [])],
+        })]);
+      final result = _projectEvents(source);
+      expect(result.scenes, hasLength(1), reason: jsonEncode(result.semanticEvidence));
+      final run = await _runNumericScene(result, result.scenes.single);
+      expect(run.shown, ['common updated']);
+      expect(run.state.narrativeFactRuntimeState.valuesByFactId[result.facts.single.id],
+        NarrativeValue.integer(2));
+    });
+    test('a forged arithmetic operand cannot borrow an original command witness', () async {
+      final source = await _events([_page([
+        _command(122, [7, 7, 1, 0, 1]), _command(0, []),
+      ])], interpretationProfile: fixtureSourceInterpretationProfile);
+      final analysis = _analyzer(source).analyze();
+      final original = analysis.eventAt(1, 1)!;
+      final page = original.pages.single;
+      final node = page.body.nodes.single as SourceVariableAdjustNode;
+      final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+        sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+        identity: original.identity, name: original.name, x: original.x, y: original.y,
+        locator: original.locator, pages: [SourceEventPageAnalysis(
+          sourcePage: page.sourcePage, locator: page.locator, condition: page.condition,
+          graphic: page.graphic, rawDataRef: page.rawDataRef, diagnostics: [],
+          body: SourceEventBlock(span: page.body.span, nodes: [
+            SourceVariableAdjustNode(node.span, firstId: node.firstId, lastId: node.lastId,
+              subtract: node.subtract, operand: 99, factIds: node.factIds),
+          ]))]);
+      final result = _projectEvents(source, analysis: SourceEventAnalysis(
+        profile: analysis.profile, events: [forged], diagnostics: []));
+      expect(result.scenes, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(jsonEncode(result.semanticEvidence), contains('sourceNumericControlSourceMismatch'));
+    });
+    for (final opcode in [999, 355]) {
+      test('an unrepresented arithmetic writer still blocks dependent readers $opcode', () async {
+        final source = await _events([_page([
+          _command(111, [1, 7, 0, 1, 0]), _command(101, ['reader'], indent: 1),
+          _command(412, []), _command(0, []),
+        ])], interpretationProfile: fixtureSourceInterpretationProfile, extraEvents: {
+          2: _event(2, [_page([
+            _command(122, [7, 7, 1, 0, 1]),
+            _command(opcode, opcode == 355 ? ['unknown_call()'] : []), _command(0, []),
+          ])]),
+        });
+        final result = _projectEvents(source);
+        expect(result.scenes, isEmpty);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceVariableWriterUnqualified'));
+      });
+    }
+    test('arithmetic writer refusal propagates through dependent events', () async {
+      final source = await _events([_page([
+        _command(111, [1, 8, 0, 1, 0]), _command(101, ['dependent'], indent: 1),
+        _command(412, []), _command(0, []),
+      ])], interpretationProfile: fixtureSourceInterpretationProfile, extraEvents: {
+        2: _event(2, [_page([
+          _command(111, [1, 7, 0, 1, 0]), _command(122, [8, 8, 1, 0, 1], indent: 1),
+          _command(412, []), _command(0, []),
+        ])]),
+        3: _event(3, [_page([
+          _command(355, [r'$game_variables[7] = unknown_call()']), _command(0, []),
+        ])]),
+      });
+      final result = _projectEvents(source);
+      expect(result.scenes, isEmpty);
+      expect(result.facts, isEmpty);
+      expect(jsonEncode(result.semanticEvidence), contains('sourceVariableWriterUnqualified'));
+    });
+  });
   group('generic native numeric control', () {
     test('annotations have no runtime effect and range writes persist', () async {
       final source = await _events([_page([

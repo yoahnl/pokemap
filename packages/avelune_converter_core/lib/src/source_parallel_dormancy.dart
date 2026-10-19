@@ -326,6 +326,7 @@ void _auditSourceFactWriteBlock(
           if (!allowed) throw const FormatException();
         }
       case SourceVariableSetNode():
+      case SourceVariableAdjustNode():
         break;
       case SourceAnnotationNode():
       case SourceExitEventNode():

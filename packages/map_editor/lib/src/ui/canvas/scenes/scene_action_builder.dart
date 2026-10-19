@@ -207,6 +207,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
               (_is2DPresentationCommand(command.id) ||
                   command.id == NarrativeCommandIds.warp ||
                   command.id == NarrativeCommandIds.setPlayerAvatar ||
+                  command.id == NarrativeCommandIds.adjustIntegerFact ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? command.id == NarrativeCommandIds.warp && presentation is Map
@@ -227,13 +228,15 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
+              (command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'minimum' ? '0' :
+              command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'maximum' ? '100' :
               (command.id == NarrativeCommandIds.receivePokemonFromCatalog && parameter.id == 'nicknameMaxGraphemes' ? '12' :
               command.id == NarrativeCommandIds.warp && !parameter.required ? '' :
               ((command.id == NarrativeCommandIds.worldTone ||
                        command.id == NarrativeCommandIds.wait) &&
                       parameter.id == 'durationMs'
                   ? '0'
-                  : '1'));
+                  : '1')));
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
         case NarrativeCommandParameterKind.number:
@@ -279,7 +282,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         oldWidget.loadMoves != widget.loadMoves) {
       _giftMovesValid = false;
     }
-    if ((_isGift || _commandId == NarrativeCommandIds.setPlayerAvatar) &&
+    if ((_isGift || _commandId == NarrativeCommandIds.setPlayerAvatar ||
+        _commandId == NarrativeCommandIds.adjustIntegerFact) &&
         oldWidget.initialPayload != widget.initialPayload) {
       _seedParameterValues(_command);
     }
@@ -461,6 +465,16 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     if (value == null || value.isEmpty) return false;
     if (parameter.kind == NarrativeCommandParameterKind.integer) {
+      if (_command.id == NarrativeCommandIds.adjustIntegerFact) {
+        final parsed = int.tryParse(value);
+        if (parsed == null || parsed.toString() != value) return false;
+        try {
+          NarrativeValue.integer(parsed);
+          return true;
+        } on ArgumentError {
+          return false;
+        }
+      }
       if ((_command.id == NarrativeCommandIds.worldTone ||
            _command.id == NarrativeCommandIds.wait) &&
           parameter.id == 'durationMs') {
@@ -541,7 +555,20 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           !_warpReferenceLoading && _warpReferenceError == null) &&
       _missingParameters.isEmpty &&
       _validWarpPresentation &&
+      _validIntegerAdjustment &&
       (!_isGift || _giftMovesValid);
+
+  bool get _validIntegerAdjustment {
+    if (_command.id != NarrativeCommandIds.adjustIntegerFact) return true;
+    try {
+      buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values);
+      return true;
+    } on ArgumentError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -703,7 +730,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   signed: true,
                 )
               : parameter.kind == NarrativeCommandParameterKind.integer
-              ? TextInputType.number
+              ? TextInputType.numberWithOptions(signed: _command.id == NarrativeCommandIds.adjustIntegerFact)
               : null,
           errorText:
               _values[parameter.id]?.isNotEmpty == true &&
@@ -774,7 +801,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                 'catalogue du projet. Sélectionnez une cible valide avant de '
                 'publier.',
           );
-          if (_command.id != NarrativeCommandIds.setPlayerAvatar || options.isEmpty) {
+          final canReplaceTarget = _command.id == NarrativeCommandIds.setPlayerAvatar ||
+              (_command.id == NarrativeCommandIds.adjustIntegerFact &&
+                  parameter.kind == NarrativeCommandParameterKind.fact);
+          if (!canReplaceTarget || options.isEmpty) {
             return diagnostic;
           }
           return Column(
@@ -786,7 +816,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                 label: parameter.label,
                 value: '',
                 items: [
-                  const PokeMapDropdownItem(value: '', label: 'Choisir un avatar'),
+                  PokeMapDropdownItem(value: '', label:
+                    _command.id == NarrativeCommandIds.adjustIntegerFact
+                      ? 'Choisir un compteur' : 'Choisir un avatar'),
                   for (final option in options)
                     PokeMapDropdownItem(value: option.id, label: option.label),
                 ],
@@ -823,6 +855,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.fact &&
+        _command.id == NarrativeCommandIds.adjustIntegerFact) {
+      final facts = widget.project?.facts ?? const <NarrativeFactDefinition>[];
+      return [for (final fact in facts)
+        if (fact.valueKind == NarrativeValueKind.integer &&
+            facts.where((candidate) => candidate.id == fact.id).length == 1)
+          SceneActionPickerOption(id: fact.id, label: fact.label)];
+    }
     if (kind == NarrativeCommandParameterKind.character) {
       final project = widget.project;
       if (project == null) return const [];

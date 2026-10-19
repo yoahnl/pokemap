@@ -2714,6 +2714,15 @@ final class _NarrativeDependencyIndexBuilder {
   ) {
     if (consequence is SceneSetMapEventInstanceBooleanConsequence) {
       _collectMapInstanceOwner(owner, consequence.mapId, consequence.eventId, path, 'eventId');
+    } else if (consequence is SceneAdjustIntegerFactConsequence) {
+      _usage(
+        target: NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.fact,
+          consequence.factId,
+        ),
+        owner: owner,
+        path: '$path.factId',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,);
     } else if (consequence is SceneSetFactConsequence) {
       _usage(
         target: NarrativeDependencyKey(

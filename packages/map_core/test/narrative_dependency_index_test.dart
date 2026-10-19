@@ -3,6 +3,25 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeDependencyIndex contract', () {
+    test('integer adjustment is a blocking typed Fact dependency', () {
+      final scene = SceneAsset(id: 'scene.adjust', name: 'Adjust',
+        graph: SceneGraph(startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'adjust', kind: SceneNodeKind.action,
+            payload: SceneActionPayload(consequence:
+              SceneConsequence.adjustIntegerFact(factId: 'counter', delta: 1,
+                minimum: -10, maximum: 10))),
+        ]));
+      final index = buildNarrativeDependencyIndex(project: _project(
+        facts: [NarrativeFactDefinition(id: 'counter', label: 'Counter',
+          initialValue: NarrativeValue.integer(0))], scenes: [scene]));
+      final usage = index.usages.singleWhere((usage) => usage.target.id == 'counter');
+      expect(usage.target.kind, NarrativeDependencyTargetKind.fact);
+      expect(usage.resolution, NarrativeDependencyResolution.resolved);
+      expect(usage.path, endsWith('consequence.factId'));
+      expect(usage.criticality, NarrativeDependencyCriticality.runtimeBlocking);
+    });
+
     test('resolves inventory conditions against the project item catalog', () {
       final scene = SceneAsset(
         id: 'scene.inventory',

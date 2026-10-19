@@ -370,6 +370,15 @@ Iterable<FactManagerUsage> _collectFactUsages(ProjectManifest project) sync* {
       }
       if (payload is SceneActionPayload) {
         final consequence = payload.consequence;
+        if (consequence is SceneAdjustIntegerFactConsequence) {
+          yield FactManagerUsage(
+            kind: FactManagerUsageKind.sceneConsequence,
+            factId: consequence.factId,
+            ownerId: scene.id,
+            ownerLabel: scene.name,
+            details: 'Ajustement entier ${node.title ?? node.id}',
+          );
+        }
         if (consequence is SceneSetFactConsequence) {
           yield FactManagerUsage(
             kind: FactManagerUsageKind.sceneConsequence,

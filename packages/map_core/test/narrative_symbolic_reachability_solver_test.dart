@@ -3,6 +3,24 @@ import 'package:test/test.dart';
 
 void main() {
   group('Narrative symbolic reachability solver', () {
+    test('integer adjustment erases exact knowledge and remains indeterminate', () {
+      final report = solveNarrativeSceneSymbolically(
+        _consequenceSequenceScene([
+          SceneConsequence.adjustIntegerFact(factId: 'counter', delta: 1,
+            minimum: -10, maximum: 10),
+        ]),
+        initialState: NarrativeSymbolicState(factValues: {
+          'counter': NarrativeValue.integer(4),
+        }),
+      );
+      expect(report.verdict, NarrativeSymbolicVerdict.indeterminate);
+      expect(report.terminalStates, isNotEmpty);
+      expect(report.terminalStates.every((state) =>
+        state.indeterminate && !state.factValues.containsKey('counter')), isTrue);
+      expect(report.issues.any((issue) =>
+        issue.code == NarrativeSymbolicIssueCode.unsupportedCommand), isTrue);
+    });
+
     test('memoizes the semantic key of an immutable symbolic state', () {
       final state = NarrativeSymbolicState(
         factValues: {

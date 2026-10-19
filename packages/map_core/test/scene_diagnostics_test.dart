@@ -3,6 +3,62 @@ import 'package:test/test.dart';
 
 void main() {
   group('Scene diagnostics', () {
+    test('integer adjustment requires one integer Fact in the project', () {
+      final consequence = SceneConsequence.adjustIntegerFact(
+        factId: 'counter',
+        delta: 1,
+        minimum: -10,
+        maximum: 10,
+      );
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_adjust',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload(consequence: consequence),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+      final integer = NarrativeFactDefinition(
+        id: 'counter',
+        label: 'Counter',
+        initialValue: NarrativeValue.integer(0),
+      );
+      for (final facts in <List<NarrativeFactDefinition>>[
+        [],
+        [NarrativeFactDefinition(id: 'counter', label: 'Boolean')],
+        [integer, integer],
+      ]) {
+        final diagnostics = diagnoseSceneAgainstProject(
+          scene,
+          _project(facts: facts),
+        );
+        expect(
+          diagnostics.diagnostics.where(
+            (diagnostic) =>
+                diagnostic.nodeId == 'node_adjust' &&
+                (diagnostic.code ==
+                        SceneDiagnosticCode.consequenceUnknownFact ||
+                    diagnostic.code ==
+                        SceneDiagnosticCode.consequenceFactTypeMismatch),
+          ),
+          hasLength(1),
+        );
+      }
+      final valid = diagnoseSceneAgainstProject(
+        scene,
+        _project(facts: [integer]),
+      );
+      expect(valid.byCode(SceneDiagnosticCode.consequenceUnknownFact), isEmpty);
+      expect(
+        valid.byCode(SceneDiagnosticCode.consequenceFactTypeMismatch),
+        isEmpty,
+      );
+    });
+
+
     test('V1-08 minimal draft has no blocking error', () {
       final result = createSceneDraftInProject(
         _project(),

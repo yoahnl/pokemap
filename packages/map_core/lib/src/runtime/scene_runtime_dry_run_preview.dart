@@ -337,6 +337,11 @@ _PreviewConsequenceResult _previewConsequence({
   late final String before;
   late final String after;
   switch (consequence) {
+    case SceneAdjustIntegerFactConsequence():
+      return const _PreviewConsequenceResult(
+        message:
+            'Integer Fact adjustment requires typed runtime state; this preview does not simulate it.',
+      );
     case SceneSetFactConsequence():
       final previous = state.factValueById[consequence.factId];
       before = '${consequence.factId}=${previous ?? 'unset'}';

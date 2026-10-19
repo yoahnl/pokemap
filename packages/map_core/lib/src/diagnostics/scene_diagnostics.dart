@@ -10,6 +10,7 @@ import '../models/map_data.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
+import '../models/narrative_value.dart';
 import '../operations/scene_actor_reference.dart';
 import '../operations/scene_player_avatar.dart';
 import '../operations/map_healing_display.dart';
@@ -49,6 +50,7 @@ enum SceneDiagnosticCode {
   conditionWorldRuleRefUnknown,
   conditionUnsupportedDimension,
   consequenceUnknownFact,
+  consequenceFactTypeMismatch,
   consequenceUnknownEvent,
   consequenceUnknownMapEventOwner,
   consequenceUnknownStoryStep,
@@ -902,6 +904,8 @@ void _diagnoseConsequenceShape(
   List<SceneDiagnostic> diagnostics,
 ) {
   switch (consequence) {
+    case SceneAdjustIntegerFactConsequence():
+      break;
     case SceneSetMapEventInstanceBooleanConsequence():
       break;
     case SceneSetPlayerAvatarConsequence():
@@ -1554,6 +1558,27 @@ void _diagnoseActionConsequenceAgainstProject(
   }
 
   switch (consequence) {
+    case SceneAdjustIntegerFactConsequence():
+      final matches = project.facts
+          .where((fact) => fact.id == consequence.factId)
+          .toList();
+      if (matches.length != 1 ||
+          matches.single.valueKind != NarrativeValueKind.integer) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: matches.length != 1
+                ? SceneDiagnosticCode.consequenceUnknownFact
+                : SceneDiagnosticCode.consequenceFactTypeMismatch,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'L’ajustement doit cibler un Fact entier unique du projet.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un Fact entier existant.',
+          ),
+        );
+      }
     case SceneSetMapEventInstanceBooleanConsequence():
       if (!_nativeEntityReferenceValid(consequence.mapId, consequence.eventId,
           projectMapCounts: projectMapCounts, mapsById: mapsById)) {

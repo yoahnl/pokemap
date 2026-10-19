@@ -30,6 +30,19 @@ final class ScenePreSessionInteractionCueBindingDraft {
 final class SceneActions {
   const SceneActions();
 
+  static const _adjustIntegerFactContract = {
+    'consequenceKind': 'adjustIntegerFact',
+    'parameters': ['factId', 'delta', 'minimum', 'maximum'],
+    'factReference': 'knownUniqueIntegerFact',
+    'integerRange': [-9007199254740991, 9007199254740991],
+    'bounds': 'minimumMustNotExceedMaximum',
+    'operation': 'clamp(current + delta, minimum, maximum)',
+    'persistentField': 'narrativeFactRuntimeState',
+    'atomicity': 'sceneTransaction',
+    'projectDimensions': ['twoD', 'threeD'],
+    'outputPorts': ['completed'],
+  };
+
   static const _partyConditionContract = {
     'sourceKind': 'partyState',
     'sourceId': 'predicateName',
@@ -339,6 +352,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'adjustIntegerFact': _adjustIntegerFactContract,
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
@@ -444,6 +458,7 @@ final class SceneActions {
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
+        'adjustIntegerFact': _adjustIntegerFactContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'setPlayerAvatar': _setPlayerAvatarContract,

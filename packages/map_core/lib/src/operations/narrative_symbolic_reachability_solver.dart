@@ -1215,6 +1215,9 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           }
         case SceneActionPayload(:final consequence):
           switch (consequence) {
+            case SceneAdjustIntegerFactConsequence(:final factId):
+              reads.add('fact:$factId');
+              writes.add('fact:$factId');
             case SceneSetMapEventInstanceBooleanConsequence(:final mapId, :final eventId, :final key):
               writes.add('instance:$mapId:$eventId:$key');
             case SceneSetFactConsequence(:final factId):
@@ -1440,6 +1443,21 @@ NarrativeSymbolicState _applyAction({
   final consequence = payload.consequence;
   if (consequence != null) {
     switch (consequence) {
+      case SceneAdjustIntegerFactConsequence(:final factId):
+        final values = {...next.factValues}..remove(factId);
+        next = next.copyWith(indeterminate: true, factValues: values);
+        addIssue(
+          NarrativeSymbolicIssue(
+            code: NarrativeSymbolicIssueCode.unsupportedCommand,
+            verdict: NarrativeSymbolicVerdict.indeterminate,
+            message:
+                'Le solveur ne calcule pas les ajustements de Facts entiers.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            eventId: eventId,
+            provenance: next.provenance,
+          ),
+        );
       case SceneSetMapEventInstanceBooleanConsequence():
         next = next.copyWith(indeterminate: true);
         addIssue(NarrativeSymbolicIssue(

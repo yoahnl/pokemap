@@ -4,6 +4,52 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('adjustIntegerFact preserves its explicit bounded integer wire', () {
+    final json = <String, dynamic>{
+      'kind': 'adjustIntegerFact',
+      'factId': 'fact_counter',
+      'delta': -3,
+      'minimum': -10,
+      'maximum': 20,
+      'label': 'Counter',
+      'notes': 'Bounded',
+    };
+    final decoded = SceneConsequence.fromJson(json);
+    expect(decoded.toJson(), json);
+    expect(SceneConsequence.fromJson(jsonDecode(jsonEncode(json))), decoded);
+    expect(SceneConsequence.fromJson({...json, 'delta': 2}), isNot(decoded));
+  });
+
+  test(
+    'adjustIntegerFact refuses invalid bounds and noninteger wire values',
+    () {
+      final json = <String, dynamic>{
+        'kind': 'adjustIntegerFact',
+        'factId': 'fact_counter',
+        'delta': 1,
+        'minimum': -10,
+        'maximum': 20,
+      };
+      for (final replacement in <Map<String, Object?>>[
+        {'minimum': 21},
+        {'minimum': -9007199254740992},
+        {'maximum': 9007199254740992},
+        {'delta': 9007199254740992},
+        {'delta': 1.5},
+        {'minimum': null},
+        {'maximum': '20'},
+        {'factId': ' '},
+        {'unexpected': 1},
+      ]) {
+        expect(
+          () => SceneConsequence.fromJson({...json, ...replacement}),
+          throwsA(anyOf(isA<ArgumentError>(), isA<FormatException>())),
+        );
+      }
+    },
+  );
+
+
   group('SceneConsequence V0', () {
     test('setFact stores factId and value', () {
       final consequence = SceneConsequence.setFact(

@@ -804,6 +804,7 @@ Object? _node(SourceEventNode node) => {
       'value': switch (node) {
         SourceAnnotationNode() => node.toJson(),
         SourceVariableSetNode() => node.toJson(),
+        SourceVariableAdjustNode() => node.toJson(),
         SourceExitEventNode() => node.toJson(),
         SourceUnknownNode() => [node.command.toJson(), node.reason],
         SourceScriptNode() => node.script,

@@ -419,6 +419,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
+    SourceVariableAdjustNode() => node.toJson(),
     SourceExitEventNode() => node.toJson(),
     SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
       'ownerMapId': node.sourceMapId, 'ownerEventId': node.sourceEventId,
@@ -468,6 +469,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
+    SourceVariableAdjustNode() => node.toJson(),
     SourceSelfSwitchNode() => [node.factId, node.letter, node.value],
     SourceExitEventNode() => node.toJson(),
     SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
@@ -532,6 +534,7 @@ Set<String> _sourceControlVariables(SourceEventDefinition event, String namespac
     condition(page.condition);
     for (final node in _sourceControlNodes(page.body)) {
       if (node is SourceVariableSetNode) ids.addAll(node.factIds);
+      if (node is SourceVariableAdjustNode) ids.addAll(node.factIds);
       if (node is SourceConditionalNode) condition(node.condition);
       if (node is SourceTextNode) ids.addAll(sourceDialogueVariableIds(node.text).map((id) => 'source:$namespace:variable:$id'));
       if (node is SourceChoiceNode) {
@@ -1261,7 +1264,7 @@ final class _ProjectionBuilder {
                   : null,
               'adaptedCommands': [
                 for (final node in _sourceControlNodes(page.body))
-                  if (node is SourceCommonEventCallNode || node is SourceAnnotationNode || node is SourceVariableSetNode ||
+                  if (node is SourceCommonEventCallNode || node is SourceAnnotationNode || node is SourceVariableSetNode || node is SourceVariableAdjustNode ||
                       node is SourceExitEventNode || (node is SourceConditionalNode &&
                       node.condition.kind == SourceEventConditionKind.variableComparison)) {
                     ...(_sourceControlNode(node) as Map<String, Object?>),
@@ -2437,7 +2440,20 @@ final class _ProjectionBuilder {
   void _prepareVariableWriterAudit({required bool checkCharacterBindings}) {
     if (_unqualifiedVariableWriters != null) return;
     final exempt = <ConverterId>{};
+    final representedArithmetic = <(int, int, int, int)>{};
     for (final event in analysis.events) {
+      if (maps.containsKey(event.sourceMapId) &&
+          _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+        for (final page in event.pages) {
+          for (final node in _sourceControlNodes(page.body).whereType<SourceVariableAdjustNode>()) {
+            if (node.span.locator.file == page.locator.file &&
+                node.span.firstCommandIndex == node.span.lastCommandIndex) {
+              representedArithmetic.add((event.sourceMapId, event.sourceEventId,
+                page.originalPageIndex, node.span.firstCommandIndex));
+            }
+          }
+        }
+      }
       if (maps.containsKey(event.sourceMapId) &&
           (elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
           _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
@@ -2584,7 +2600,7 @@ final class _ProjectionBuilder {
         for (final page in event.pages) {
           final observed = pageRuby[(map.map.sourceMapId, event.sourceEventId, page.originalPageIndex)]!;
           if (!observed.complete) _incompleteVariableRubyCensus = true;
-          for (final command in page.commands) {
+          for (final (commandIndex, command) in page.commands.indexed) {
             final params = command.parameters;
             if (command.code == 122) {
               final validRange = params.length >= 2 && params[0] is int && params[1] is int &&
@@ -2592,7 +2608,9 @@ final class _ProjectionBuilder {
                   (params[1] as int) <= 5000;
               if (!validRange) { _dynamicVariableWriter = true; continue; }
               final isLiteral = params.length == 5 && params[2] == 0 && params[3] == 0 && params[4] is int;
-              if (!isLiteral) {
+              final isRepresentedArithmetic = representedArithmetic.contains((
+                map.map.sourceMapId, event.sourceEventId, page.originalPageIndex, commandIndex));
+              if (!isLiteral && !isRepresentedArithmetic) {
                 for (var id = params[0] as int; id <= (params[1] as int); id++) { writes.add(id); }
               }
             } else if (command.code == 103 || command.code == 105) {
@@ -2627,7 +2645,28 @@ final class _ProjectionBuilder {
         }
       }
     }
-    _unqualifiedVariableWriters = Set.unmodifiable(writes);
+    final arithmeticEvents = _sourceControlAnalysis.events.where((event) =>
+      !exempt.contains(event.identity) && event.pages.any((page) =>
+        _sourceControlNodes(page.body).any((node) => node is SourceVariableAdjustNode))).toList();
+    var arithmeticRefusalChanged = true;
+    while (arithmeticRefusalChanged) {
+      _unqualifiedVariableWriters = Set.unmodifiable(writes);
+      arithmeticRefusalChanged = false;
+      for (final event in arithmeticEvents) {
+        final supplied = analysis.eventAt(event.sourceMapId, event.sourceEventId);
+        if (maps.containsKey(event.sourceMapId) && supplied != null &&
+            _gaps(supplied, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+          continue;
+        }
+        for (final page in event.pages) {
+          for (final node in _sourceControlNodes(page.body).whereType<SourceVariableAdjustNode>()) {
+            for (var id = node.firstId; id <= node.lastId; id++) {
+              if (writes.add(id)) arithmeticRefusalChanged = true;
+            }
+          }
+        }
+      }
+    }
   }
 
   Set<String> _sourceControlGaps(SourceEventDefinition event) {
@@ -3090,6 +3129,7 @@ final class _ProjectionBuilder {
           _blockGaps(event, whenFalse, gaps, checkCharacterBindings: checkCharacterBindings);
         case SourceAnnotationNode():
         case SourceVariableSetNode():
+        case SourceVariableAdjustNode():
         case SourceExitEventNode():
           break;
         case SourceSwitchNode():
@@ -3313,6 +3353,7 @@ final class _ProjectionBuilder {
         case SourceCommonEventCallNode():
           _blockFacts(node.body, ids);
         case SourceVariableSetNode(:final factIds):
+        case SourceVariableAdjustNode(:final factIds):
         case SourceSwitchNode(:final factIds):
           ids.addAll(factIds);
         case SourceSelfSwitchNode(:final factId):
@@ -3950,6 +3991,21 @@ final class _SceneBuilder {
               factId: sourceEventIntegerVariableBindingId(id), value: NarrativeValue.integer(value))));
             _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
             next = action;
+          }
+        case SourceVariableAdjustNode(:final factIds, :final delta, :final subtract):
+          for (final id in factIds.reversed) {
+            final factId = sourceEventIntegerVariableBindingId(id);
+            final action = _node(SceneActionPayload.consequence(
+              SceneConsequence.adjustIntegerFact(factId: factId, delta: delta,
+                minimum: -99999999, maximum: 99999999)));
+            _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+            final guard = _node(SceneConditionPayload(conditionSource:
+              SceneConditionSource.factValue(factId: factId,
+                operator: subtract ? NarrativeFactOperator.greaterThan : NarrativeFactOperator.lessThan,
+                expectedValue: NarrativeValue.integer(subtract ? -99999999 : 99999999))));
+            _edge(guard, 'true', action, SceneEdgeKind.conditionTrue);
+            _edge(guard, 'false', next, SceneEdgeKind.conditionFalse);
+            next = guard;
           }
         case SourceMoveRouteBarrierNode():
           next = _interactive(SceneInteractiveCommand.waitForActorRoutes(

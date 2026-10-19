@@ -3,6 +3,67 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test(
+    'integer adjustments observe staged writes and roll back a rejected batch',
+    () {
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_counter',
+              label: 'Counter',
+              initialValue: NarrativeValue.integer(0),
+            ),
+            NarrativeFactDefinition(id: 'fact_boolean', label: 'Boolean'),
+          ],
+        ),
+      );
+      const original = GameState(saveId: 'adjust');
+      final changes = [
+        SceneConsequence.setFactValue(
+          factId: 'fact_counter',
+          value: NarrativeValue.integer(7),
+        ),
+        SceneConsequence.adjustIntegerFact(
+          factId: 'fact_counter',
+          delta: 5,
+          minimum: -10,
+          maximum: 10,
+        ),
+        SceneConsequence.adjustIntegerFact(
+          factId: 'fact_counter',
+          delta: -3,
+          minimum: -10,
+          maximum: 10,
+        ),
+      ];
+      final applied = writer.applyAll(original, changes);
+      expect(applied.success, isTrue);
+      expect(applied.appliedConsequences, hasLength(3));
+      expect(
+        applied.gameState.narrativeFactRuntimeState.valueFor('fact_counter'),
+        NarrativeValue.integer(7),
+      );
+      final failed = writer.applyAll(original, [
+        ...changes,
+        SceneConsequence.adjustIntegerFact(
+          factId: 'fact_boolean',
+          delta: 1,
+          minimum: 0,
+          maximum: 10,
+        ),
+      ]);
+      expect(failed.success, isFalse);
+      expect(
+        failed.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.factTypeMismatch,
+      );
+      expect(identical(failed.gameState, original), isTrue);
+      expect(failed.appliedConsequences, isEmpty);
+    },
+  );
+
+
   group('SceneConsequenceRuntimeWriter', () {
     test('pause menu visibility writes one persistent save override', () {
       const state = GameState(saveId: 'pause-menu');

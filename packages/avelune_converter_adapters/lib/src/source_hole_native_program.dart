@@ -313,6 +313,7 @@ String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({
                 switch (node) {
                   SourceAnnotationNode() => node.toJson(),
                   SourceVariableSetNode() => node.toJson(),
+                  SourceVariableAdjustNode() => node.toJson(),
                   SourceExitEventNode() => node.toJson(),
                   SourceUnknownNode() => {
                       'type': 'unknown',

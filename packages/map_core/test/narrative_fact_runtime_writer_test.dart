@@ -2,6 +2,186 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('integer Fact adjustment', () {
+    final counter = NarrativeFactDefinition(
+      id: 'fact_counter',
+      label: 'Counter',
+      initialValue: NarrativeValue.integer(4),
+    );
+
+    test(
+      'reads defaults then staged values and survives saved integer state',
+      () {
+        final writer = NarrativeFactRuntimeWriter(
+          NarrativeFactRuntimeResolver.fromFacts([counter]),
+        );
+        const original = GameState(saveId: 'counter');
+        final first = writer.adjustIntegerFact(
+          gameState: original,
+          factId: counter.id,
+          delta: 3,
+          minimum: -10,
+          maximum: 20,
+        );
+        final second = writer.adjustIntegerFact(
+          gameState: first.gameState,
+          factId: counter.id,
+          delta: -2,
+          minimum: -10,
+          maximum: 20,
+        );
+        expect(
+          first.gameState.narrativeFactRuntimeState.valueFor(counter.id),
+          NarrativeValue.integer(7),
+        );
+        expect(
+          second.gameState.narrativeFactRuntimeState.valueFor(counter.id),
+          NarrativeValue.integer(5),
+        );
+        final restored = gameStateFromSaveData(
+          saveDataFromGameState(second.gameState),
+        );
+        final third = writer.adjustIntegerFact(
+          gameState: restored,
+          factId: counter.id,
+          delta: 1,
+          minimum: -10,
+          maximum: 20,
+        );
+        expect(
+          third.gameState.narrativeFactRuntimeState.valueFor(counter.id),
+          NarrativeValue.integer(6),
+        );
+        expect(original.narrativeFactRuntimeState.valuesByFactId, isEmpty);
+        expect(third.gameState.storyFlags, original.storyFlags);
+      },
+    );
+
+    test('clamps exact large sums in both directions and equal bounds', () {
+      const limit = 9007199254740991;
+      for (final value in [limit, -limit]) {
+        final fact = NarrativeFactDefinition(
+          id: 'fact_large',
+          label: 'Large',
+          initialValue: NarrativeValue.integer(value),
+        );
+        final writer = NarrativeFactRuntimeWriter(
+          NarrativeFactRuntimeResolver.fromFacts([fact]),
+        );
+        final result = writer.adjustIntegerFact(
+          gameState: const GameState(saveId: 'large'),
+          factId: fact.id,
+          delta: value,
+          minimum: -limit,
+          maximum: limit,
+        );
+        expect(
+          result.gameState.narrativeFactRuntimeState.valueFor(fact.id),
+          NarrativeValue.integer(value),
+        );
+        final fixed = writer.adjustIntegerFact(
+          gameState: result.gameState,
+          factId: fact.id,
+          delta: -value,
+          minimum: 3,
+          maximum: 3,
+        );
+        expect(
+          fixed.gameState.narrativeFactRuntimeState.valueFor(fact.id),
+          NarrativeValue.integer(3),
+        );
+      }
+    });
+
+    test(
+      'rejects unknown ambiguous invalid-key and noninteger Facts atomically',
+      () {
+        const original = GameState(saveId: 'rejected');
+        for (final entry in [
+          (
+            const <NarrativeFactDefinition>[],
+            'fact_missing',
+            NarrativeFactRuntimeWriteErrorCode.unknownFact,
+          ),
+          (
+            [counter, counter],
+            counter.id,
+            NarrativeFactRuntimeWriteErrorCode.ambiguousFact,
+          ),
+          (
+            [counter],
+            ' ${counter.id}',
+            NarrativeFactRuntimeWriteErrorCode.invalidRuntimeKey,
+          ),
+          (
+            [NarrativeFactDefinition(id: counter.id, label: 'Boolean')],
+            counter.id,
+            NarrativeFactRuntimeWriteErrorCode.typeMismatch,
+          ),
+        ]) {
+          final result =
+              NarrativeFactRuntimeWriter(
+                NarrativeFactRuntimeResolver.fromFacts(entry.$1),
+              ).adjustIntegerFact(
+                gameState: original,
+                factId: entry.$2,
+                delta: 1,
+                minimum: -2,
+                maximum: 2,
+              );
+          expect(result.errorCode, entry.$3);
+          expect(identical(result.gameState, original), isTrue);
+        }
+        final malformedOverride = original.copyWith(
+          narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+            valuesByFactId: {counter.id: const NarrativeValue.string('bad')},
+          ),
+        );
+        final rejected =
+            NarrativeFactRuntimeWriter(
+              NarrativeFactRuntimeResolver.fromFacts([counter]),
+            ).adjustIntegerFact(
+              gameState: malformedOverride,
+              factId: counter.id,
+              delta: 1,
+              minimum: -2,
+              maximum: 2,
+            );
+        expect(
+          rejected.errorCode,
+          NarrativeFactRuntimeWriteErrorCode.typeMismatch,
+        );
+        expect(identical(rejected.gameState, malformedOverride), isTrue);
+      },
+    );
+
+    test('rejects invalid integer parameters without mutating input', () {
+      final writer = NarrativeFactRuntimeWriter(
+        NarrativeFactRuntimeResolver.fromFacts([counter]),
+      );
+      const original = GameState(saveId: 'bounds');
+      for (final values in [
+        (1, 3, 2),
+        (9007199254740992, -2, 2),
+        (1, -9007199254740992, 2),
+        (1, -2, 9007199254740992),
+      ]) {
+        expect(
+          () => writer.adjustIntegerFact(
+            gameState: original,
+            factId: counter.id,
+            delta: values.$1,
+            minimum: values.$2,
+            maximum: values.$3,
+          ),
+          throwsArgumentError,
+        );
+      }
+      expect(original.narrativeFactRuntimeState.valuesByFactId, isEmpty);
+    });
+  });
+
+
   group('NarrativeFactRuntimeWriter', () {
     test('writes explicit false and synchronizes both legacy stores', () {
       final resolver = NarrativeFactRuntimeResolver.fromFacts([

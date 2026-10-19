@@ -8,6 +8,7 @@ import 'scene_pokemon_gift_moves.dart';
 
 enum SceneConsequenceKind {
   setFact,
+  adjustIntegerFact,
   setMapEventInstanceBoolean,
   markEventConsumed,
   completeStoryStep,
@@ -45,6 +46,15 @@ abstract base class SceneConsequence {
     String? label,
     String? notes,
   }) = SceneSetFactConsequence.typed;
+
+  factory SceneConsequence.adjustIntegerFact({
+    required String factId,
+    required int delta,
+    required int minimum,
+    required int maximum,
+    String? label,
+    String? notes,
+  }) = SceneAdjustIntegerFactConsequence;
 
   factory SceneConsequence.setMapEventInstanceBoolean({
     required String mapId,
@@ -181,6 +191,8 @@ abstract base class SceneConsequence {
     final kind = _readKind(json['kind']);
     return switch (kind) {
       SceneConsequenceKind.setFact => SceneSetFactConsequence.fromJson(json),
+      SceneConsequenceKind.adjustIntegerFact =>
+        SceneAdjustIntegerFactConsequence.fromJson(json),
       SceneConsequenceKind.setMapEventInstanceBoolean =>
         SceneSetMapEventInstanceBooleanConsequence.fromJson(json),
       SceneConsequenceKind.markEventConsumed =>
@@ -298,6 +310,86 @@ String _instanceBooleanIdentity(String value, String field) {
 }
 
 @immutable
+final class SceneAdjustIntegerFactConsequence extends SceneConsequence {
+  SceneAdjustIntegerFactConsequence({
+    required String factId,
+    required this.delta,
+    required this.minimum,
+    required this.maximum,
+    String? label,
+    String? notes,
+  }) : factId = factId.trim(),
+       label = _trimOptional(label),
+       notes = _trimOptional(notes) {
+    if (this.factId.isEmpty) {
+      throw ArgumentError.value(factId, 'factId');
+    }
+    NarrativeValue.integer(delta);
+    NarrativeValue.integer(minimum);
+    NarrativeValue.integer(maximum);
+    if (minimum > maximum) {
+      throw ArgumentError('minimum must not exceed maximum');
+    }
+  }
+
+  factory SceneAdjustIntegerFactConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    if (json.keys.any(
+      (key) => !const {
+        'kind',
+        'factId',
+        'delta',
+        'minimum',
+        'maximum',
+        'label',
+        'notes',
+      }.contains(key),
+    )) {
+      throw const FormatException('Unsupported integer Fact adjustment field.');
+    }
+    return SceneAdjustIntegerFactConsequence(
+      factId: _readRequiredString(json, 'factId'),
+      delta: _readRequiredInt(json, 'delta'),
+      minimum: _readRequiredInt(json, 'minimum'),
+      maximum: _readRequiredInt(json, 'maximum'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.adjustIntegerFact;
+  final String factId;
+  final int delta, minimum, maximum;
+  final String? label, notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+    'kind': 'adjustIntegerFact',
+    'factId': factId,
+    'delta': delta,
+    'minimum': minimum,
+    'maximum': maximum,
+    'label': label,
+    'notes': notes,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneAdjustIntegerFactConsequence &&
+          other.factId == factId &&
+          other.delta == delta &&
+          other.minimum == minimum &&
+          other.maximum == maximum &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode =>
+      Object.hash(factId, delta, minimum, maximum, label, notes);
+}
 final class SceneSetFactConsequence extends SceneConsequence {
   SceneSetFactConsequence({
     required String factId,
@@ -1402,6 +1494,7 @@ SceneConsequenceKind _readKind(Object? value) {
 String _kindToJson(SceneConsequenceKind kind) {
   return switch (kind) {
     SceneConsequenceKind.setFact => 'setFact',
+    SceneConsequenceKind.adjustIntegerFact => 'adjustIntegerFact',
     SceneConsequenceKind.setMapEventInstanceBoolean => 'setMapEventInstanceBoolean',
     SceneConsequenceKind.markEventConsumed => 'markEventConsumed',
     SceneConsequenceKind.completeStoryStep => 'completeStoryStep',

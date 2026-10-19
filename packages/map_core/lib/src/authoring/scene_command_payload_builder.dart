@@ -30,6 +30,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         value: parameters['value'] == 'true',
       ),
     ),
+    NarrativeCommandIds.adjustIntegerFact => _buildIntegerFactAdjustment(parameters),
     NarrativeCommandIds.setPlayerAvatar => SceneActionPayload.consequence(
       SceneConsequence.setPlayerAvatar(
         characterId: parameters['characterId'] ?? '',
@@ -242,6 +243,28 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       'An unsupported Narrative command cannot produce a Scene payload.',
     ),
   };
+}
+
+SceneActionPayload _buildIntegerFactAdjustment(Map<String, String> parameters) {
+  const fields = {'factId', 'delta', 'minimum', 'maximum'};
+  if (parameters.length != fields.length ||
+      !fields.every(parameters.containsKey)) {
+    throw const FormatException('An integer adjustment requires its Fact and all three numeric fields.');
+  }
+  int value(String key) {
+    final raw = parameters[key]!;
+    final parsed = int.tryParse(raw);
+    if (parsed == null || parsed.toString() != raw) {
+      throw FormatException('Integer adjustment $key must be a canonical integer.');
+    }
+    return parsed;
+  }
+  return SceneActionPayload.consequence(SceneConsequence.adjustIntegerFact(
+    factId: parameters['factId']!,
+    delta: value('delta'),
+    minimum: value('minimum'),
+    maximum: value('maximum'),
+  ));
 }
 Map<String, dynamic> _catalogGiftParameters(
   String commandId,

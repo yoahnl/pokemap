@@ -4,6 +4,7 @@ import '../models/scene_consequence.dart';
 
 abstract final class NarrativeCommandIds {
   static const setFact = 'setFact';
+  static const adjustIntegerFact = 'adjustIntegerFact';
   static const setMapEventInstanceBoolean = 'setMapEventInstanceBoolean';
   static const markEventConsumed = 'markEventConsumed';
   static const completeStoryStep = 'completeStoryStep';
@@ -139,6 +140,12 @@ final class NarrativeCommandCatalog {
       consequence(NarrativeCommandIds.setFact, 'Définir un Fact', 'FG-080', [
         _parameter('factId', 'Fact', NarrativeCommandParameterKind.fact),
         _parameter('value', 'Valeur', NarrativeCommandParameterKind.boolean),
+      ]),
+      consequence(NarrativeCommandIds.adjustIntegerFact, 'Modifier un compteur', 'FG-080', [
+        _parameter('factId', 'Compteur', NarrativeCommandParameterKind.fact),
+        _parameter('delta', 'Variation', NarrativeCommandParameterKind.integer),
+        _parameter('minimum', 'Minimum', NarrativeCommandParameterKind.integer),
+        _parameter('maximum', 'Maximum', NarrativeCommandParameterKind.integer),
       ]),
       consequence(
         NarrativeCommandIds.markEventConsumed,

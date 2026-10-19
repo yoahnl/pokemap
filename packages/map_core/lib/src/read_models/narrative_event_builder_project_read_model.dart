@@ -1539,11 +1539,24 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
       }
       final consequence = payload.consequence!;
       final summary = switch (consequence) {
-        SceneSetFactConsequence(:final factId, :final value, :final label) =>
+        SceneSetFactConsequence(:final factId, :final narrativeValue, :final label) =>
           NarrativeEventProjectedConsequenceSummary(
             kind: consequence.kind,
             humanLabel:
-                'Définit « ${label ?? factLabels[factId] ?? 'Fact lié'} » à ${value ? 'vrai' : 'faux'}.',
+                'Définit « ${label ?? factLabels[factId] ?? 'Fact lié'} » à ${_narrativeValueLabel(narrativeValue)}.',
+            debugReference: 'fact:${_debugIdentity(factId)}',
+          ),
+        SceneAdjustIntegerFactConsequence(
+          :final factId,
+          :final delta,
+          :final minimum,
+          :final maximum,
+          :final label,
+        ) =>
+          NarrativeEventProjectedConsequenceSummary(
+            kind: consequence.kind,
+            humanLabel:
+                'Ajuste « ${label ?? factLabels[factId] ?? 'Fact lié'} » de $delta, entre $minimum et $maximum.',
             debugReference: 'fact:${_debugIdentity(factId)}',
           ),
         SceneMarkEventConsumedConsequence(
@@ -1583,7 +1596,8 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
       if (!seenConsequences.add(consequenceKey)) continue;
       consequences.add(summary);
       final sourceKey = switch (consequence) {
-        SceneSetFactConsequence(:final factId) => (
+        SceneSetFactConsequence(:final factId) ||
+        SceneAdjustIntegerFactConsequence(:final factId) => (
             WorldRuleSourceKind.fact,
             factId
           ),
@@ -1642,8 +1656,15 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
 
 String _projectedConsequenceKey(SceneConsequence consequence) {
   return switch (consequence) {
-    SceneSetFactConsequence(:final factId, :final value) =>
-      'setFact|${_debugIdentity(factId)}|$value',
+    SceneSetFactConsequence(:final factId, :final narrativeValue) =>
+      'setFact|${_debugIdentity(factId)}|${narrativeValue.toJson()}',
+    SceneAdjustIntegerFactConsequence(
+      :final factId,
+      :final delta,
+      :final minimum,
+      :final maximum,
+    ) =>
+      'adjustIntegerFact|${_debugIdentity(factId)}|$delta|$minimum|$maximum',
     SceneMarkEventConsumedConsequence(:final mapId, :final eventId) =>
       'markEventConsumed|${_debugIdentity(mapId)}|${_debugIdentity(eventId)}',
     SceneCompleteStoryStepConsequence(:final stepId) =>

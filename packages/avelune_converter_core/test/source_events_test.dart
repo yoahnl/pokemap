@@ -942,6 +942,23 @@ void main() {
         expect(node.value, value.clamp(-99999999, 99999999));
       }
     });
+    for (final operation in [1, 2]) {
+      test('literal arithmetic preserves operation, operand and every target $operation', () async {
+        final source = await _events([_page([
+          _command(122, [3, 5, operation, 0, -2147483648]), _command(0, []),
+        ])]);
+        final event = _analyzer(source).analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isFalse);
+        final node = event.pages.single.body.nodes.single as SourceVariableAdjustNode;
+        expect(node.firstId, 3);
+        expect(node.lastId, 5);
+        expect(node.operand, -2147483648);
+        expect(node.subtract, operation == 2);
+        expect(node.factIds, [for (var id = 3; id <= 5; id++)
+          'source:${source.snapshot.logicalProjectNamespace.value}:variable:$id']);
+        expect(node.toJson()['operator'], operation == 2 ? 'subtract' : 'add');
+      });
+    }
     test('variable ID 5000 requires a plain metadata name and 5001 stays rejected', () async {
       for (final id in [5000, 5001]) {
         final source = await _events([_page([_command(122, [id, id, 0, 0, 0]), _command(0, [])])],
@@ -980,7 +997,8 @@ void main() {
     }
     for (final parameters in [
       [0, 1, 0, 0, 1], [2, 1, 0, 0, 1], [1, 128, 0, 0, 1],
-      [5001, 5001, 0, 0, 1], [1, 1, 1, 0, 1], [1, 1, 0, 1, 2],
+      [5001, 5001, 0, 0, 1], [1, 1, 3, 0, 1], [1, 1, 0, 1, 2],
+      [1, 1, 1, 1, 2], [1, 1, 2, 1, 2], [1, 1, 6, 0, 1],
       [1, 1, 0, 0, 'name'], [1, 1, 0, 0, [1, 2]],
     ]) {
       test('invalid or dynamic numeric write is quarantined $parameters', () async {

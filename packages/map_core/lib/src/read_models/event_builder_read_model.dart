@@ -936,6 +936,16 @@ EventBuilderWorldImpactReadModel? _buildSceneConsequenceWorldImpact(
   required Map<String, String> eventLabels,
 }) {
   return switch (consequence) {
+    SceneAdjustIntegerFactConsequence(:final factId) =>
+      EventBuilderWorldImpactReadModel(
+        kind: EventBuilderWorldImpactKind.fact,
+        sourceId: factId,
+        label: _worldImpactLabel(
+          EventBuilderWorldImpactKind.fact,
+          factLabels[factId] ?? factId,
+        ),
+        reason: 'Fact entier ajusté par la Scene liée.',
+      ),
     SceneSetFactConsequence(:final factId) => EventBuilderWorldImpactReadModel(
         kind: EventBuilderWorldImpactKind.fact,
         sourceId: factId,

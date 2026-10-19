@@ -402,6 +402,23 @@ final class SourceVariableSetNode extends SourceEventNode {
   };
 }
 
+final class SourceVariableAdjustNode extends SourceEventNode {
+  SourceVariableAdjustNode(super.span, {required this.firstId, required this.lastId,
+    required this.subtract, required this.operand, required List<String> factIds})
+      : factIds = List.unmodifiable(factIds);
+  final int firstId, lastId, operand;
+  final bool subtract;
+  final List<String> factIds;
+  int get delta => subtract ? -operand : operand;
+  Map<String, Object?> toJson() => {
+    'kind': 'integerVariableAdjust', 'span': span.toJson(),
+    'firstId': firstId, 'lastId': lastId, 'operandValue': operand,
+    'factIds': factIds, 'operator': subtract ? 'subtract' : 'add',
+    'operand': 'literal', 'minimum': -99999999, 'maximum': 99999999,
+    'skipAtCurrentBound': subtract ? 'minimum' : 'maximum',
+  };
+}
+
 final class SourceExitEventNode extends SourceEventNode {
   const SourceExitEventNode(super.span);
   Map<String, Object?> toJson() => {
@@ -1773,7 +1790,7 @@ final class _SourceEventParser {
         return _commonEvent();
       case 122:
         final values = _literalIntegerParameters(command, 5);
-        if (values[2] != 0 || values[3] != 0) {
+        if (!const [0, 1, 2].contains(values[2]) || values[3] != 0) {
           return _unknown('events.dynamic_variable_assignment');
         }
         final first = values[0], last = values[1];
@@ -1784,6 +1801,12 @@ final class _SourceEventParser {
           if (!analyzer._validVariable(id)) return _unknown('events.invalid_variable_metadata');
         }
         final current = index++;
+        if (values[2] != 0) {
+          return SourceVariableAdjustNode(_span(current, current), firstId: first,
+            lastId: last, subtract: values[2] == 2, operand: values[4], factIds: [
+              for (var id = first; id <= last; id++) analyzer.variableFactId(id),
+            ]);
+        }
         return SourceVariableSetNode(_span(current, current), firstId: first,
           lastId: last, sourceValue: values[4], factIds: [
             for (var id = first; id <= last; id++) analyzer.variableFactId(id),

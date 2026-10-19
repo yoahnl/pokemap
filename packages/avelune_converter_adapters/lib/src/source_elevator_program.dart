@@ -762,6 +762,7 @@ Object? _node(SourceEventNode node) => {
         SourceSoundEffectNode() => node.toJson(),
         SourceAnnotationNode() => node.toJson(),
         SourceVariableSetNode() => node.toJson(),
+        SourceVariableAdjustNode() => node.toJson(),
         SourceExitEventNode() => node.toJson(),
         SourceUnknownNode() => {
             'command': node.command.toJson(),

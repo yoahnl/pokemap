@@ -13,6 +13,7 @@ void main() {
     const declared = <String>{
       NarrativeCommandIds.setMapEventInstanceBoolean,
       NarrativeCommandIds.setFact,
+      NarrativeCommandIds.adjustIntegerFact,
       NarrativeCommandIds.markEventConsumed,
       NarrativeCommandIds.completeStoryStep,
       NarrativeCommandIds.giveItem,
@@ -23,6 +24,7 @@ void main() {
       NarrativeCommandIds.grantRailStamp,
       NarrativeCommandIds.givePokemon,
       NarrativeCommandIds.givePokemonFromCatalog,
+      NarrativeCommandIds.receivePokemonFromCatalog,
       NarrativeCommandIds.giveConfiguredStarter,
       NarrativeCommandIds.warp,
       NarrativeCommandIds.wait,
@@ -97,6 +99,8 @@ void main() {
 
     expect(published, {
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
+      NarrativeCommandIds.receivePokemonFromCatalog:
+          'SceneInteractiveCommand.receivePokemonFromCatalog',
       NarrativeCommandIds.warp: 'SceneInteractiveCommand.warp',
       NarrativeCommandIds.wait: 'SceneInteractiveCommand.wait',
       NarrativeCommandIds.waitForActorRoutes:

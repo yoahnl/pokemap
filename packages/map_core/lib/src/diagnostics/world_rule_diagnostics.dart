@@ -137,6 +137,14 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
   final storyStepIds = _storyStepIds(project);
   final consumedEventIds = _eventIds(project, maps);
   final producibleFactValues = _producibleFactValues(project);
+  final adjustedFactIds = <String>{
+    for (final scene in project.scenes)
+      for (final node in scene.graph.nodes)
+        if (node.payload case SceneActionPayload(
+          consequence: SceneAdjustIntegerFactConsequence(:final factId),
+        ))
+          factId,
+  };
   final producibleStoryStepIds = _producibleStoryStepIds(project);
 
   for (final rule in project.worldRules) {
@@ -152,6 +160,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
       diagnostics,
       factResolver: factResolver,
       producibleFactValues: producibleFactValues,
+      adjustedFactIds: adjustedFactIds,
       producibleStoryStepIds: producibleStoryStepIds,
     );
     _diagnoseTarget(
@@ -575,6 +584,7 @@ void _diagnoseSourceProducibility(
   List<WorldRuleDiagnostic> diagnostics, {
   required NarrativeFactRuntimeResolver factResolver,
   required Map<String, Set<NarrativeValue>> producibleFactValues,
+  required Set<String> adjustedFactIds,
   required Set<String> producibleStoryStepIds,
 }) {
   if (rule.source.kind == WorldRuleSourceKind.storyStepCompletion) {
@@ -609,6 +619,7 @@ void _diagnoseSourceProducibility(
   if (resolution is! NarrativeFactRuntimeResolved) {
     return;
   }
+  if (adjustedFactIds.contains(rule.source.sourceId)) return;
   final expected = rule.source.resolvedExpectedFactValue;
   final operator = rule.source.resolvedFactOperator;
   final producible = producibleFactValues[rule.source.sourceId] ?? const {};

@@ -483,6 +483,29 @@ class _NodeInspectorBody extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ] else if (node.payload case SceneActionPayload(
+            consequence: final SceneAdjustIntegerFactConsequence adjustment,
+          )) ...[
+            _InspectorSection(title: 'Modifier un compteur', children: [
+              if (onUpdateActionConsequence != null && project != null)
+                SceneActionBuilder(
+                  key: ValueKey('integer-adjustment-inspector-${node.id}'),
+                  initialPayload: node.payload as SceneActionPayload,
+                  project: project,
+                  allowCommandSelection: false,
+                  onSubmit: (payload) {
+                    final selected = (payload as SceneActionPayload).consequence! as SceneAdjustIntegerFactConsequence;
+                    onUpdateActionConsequence!(nodeId: node.id,
+                      consequence: SceneConsequence.adjustIntegerFact(
+                        factId: selected.factId, delta: selected.delta,
+                        minimum: selected.minimum, maximum: selected.maximum,
+                        label: adjustment.label, notes: adjustment.notes));
+                  },
+                )
+              else
+                const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour configurer le compteur.'),
+            ]),
+            const SizedBox(height: 10),
+          ] else if (node.payload case SceneActionPayload(
             interactiveCommand: SceneReceivePokemonFromCatalogInteractiveCommand(),
           )) ...[
             _InspectorSection(
@@ -1495,6 +1518,15 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         label: 'Valeur',
         value: _sceneNarrativeValueLabel(consequence.narrativeValue),
       ),
+      if (consequence.narrativeValue.kind == NarrativeValueKind.integer)
+        _SceneIntegerFactValueEditor(
+          key: ValueKey('integer-set-${node.id}-${consequence.factId}'),
+          value: consequence.narrativeValue.intValue,
+          onChanged: onUpdatePayload == null ? null : (value) =>
+              onUpdatePayload!(nodeId: node.id, consequence: SceneConsequence.setFactValue(
+                factId: consequence.factId, value: NarrativeValue.integer(value),
+                label: consequence.label, notes: consequence.notes)),
+        ),
       const SizedBox(height: 4),
       Wrap(
         spacing: 6,
@@ -1870,6 +1902,8 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         value: option.valueKind == consequence.narrativeValue.kind
             ? consequence.narrativeValue
             : option.initialValue,
+        label: consequence.label,
+        notes: consequence.notes,
       ),
     );
   }
@@ -1926,9 +1960,89 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
       consequence: SceneConsequence.setFact(
         factId: consequence.factId,
         value: value,
+        label: consequence.label,
+        notes: consequence.notes,
       ),
     );
   }
+}
+
+class _SceneIntegerFactValueEditor extends StatefulWidget {
+  const _SceneIntegerFactValueEditor({super.key, required this.value, this.onChanged});
+  final int value;
+  final Future<bool> Function(int)? onChanged;
+
+  @override
+  State<_SceneIntegerFactValueEditor> createState() => _SceneIntegerFactValueEditorState();
+}
+
+class _SceneIntegerFactValueEditorState extends State<_SceneIntegerFactValueEditor> {
+  late final TextEditingController _controller;
+  bool _saving = false;
+  bool _rejected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.value}');
+  }
+
+  @override
+  void didUpdateWidget(_SceneIntegerFactValueEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) _controller.text = '${widget.value}';
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int? get _value {
+    final raw = _controller.text.trim();
+    final value = int.tryParse(raw);
+    if (value == null || value.toString() != raw) return null;
+    try {
+      NarrativeValue.integer(value);
+      return value;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-integer-value'),
+        label: 'Valeur du compteur',
+        controller: _controller,
+        enabled: widget.onChanged != null && !_saving,
+        keyboardType: const TextInputType.numberWithOptions(signed: true),
+        errorText: _value == null ? 'Saisissez un entier valide.' : null,
+        onChanged: (_) => setState(() => _rejected = false),
+      ),
+      const SizedBox(height: 6),
+      PokeMapButton(
+        key: const ValueKey('scene-consequence-integer-apply'),
+        onPressed: widget.onChanged == null || _value == null || _saving ? null : () async {
+          setState(() => _saving = true);
+          try {
+            final accepted = await widget.onChanged!(_value!);
+            if (mounted) setState(() => _rejected = !accepted);
+          } finally {
+            if (mounted) setState(() => _saving = false);
+          }
+        },
+        child: const Text('Appliquer la valeur'),
+      ),
+      if (_rejected)
+        const PokeMapDiagnosticCallout(severity: PokeMapDiagnosticSeverity.error,
+          title: 'Valeur non appliquée', message: 'Le projet a refusé cette modification.'),
+    ],
+  );
 }
 
 class _GameplayConsequenceEditSheet extends StatefulWidget {
@@ -3520,6 +3634,15 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
         label: 'value',
         value: _sceneNarrativeValueLabel(consequence.narrativeValue),
       ),
+    ];
+  }
+  if (consequence is SceneAdjustIntegerFactConsequence) {
+    return [
+      const _InspectorRow(label: 'Conséquence', value: 'Modifier un compteur'),
+      _InspectorRow(label: 'Fact', value: consequence.factId),
+      _InspectorRow(label: 'Variation', value: '${consequence.delta}'),
+      _InspectorRow(label: 'Minimum', value: '${consequence.minimum}'),
+      _InspectorRow(label: 'Maximum', value: '${consequence.maximum}'),
     ];
   }
   if (consequence is SceneMarkEventConsumedConsequence) {

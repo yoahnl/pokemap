@@ -1373,6 +1373,7 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
             if (completedStepIds.add(stepId)) changed = true;
           case SceneMarkEventConsumedConsequence(:final eventId):
             if (reachableEventIds.add(eventId)) changed = true;
+          case SceneAdjustIntegerFactConsequence():
           case SceneGiveItemConsequence():
           case SceneTakeItemConsequence():
           case SceneGiveMoneyConsequence():

@@ -18,6 +18,7 @@ abstract final class SpatialGameplayCapabilities {
   static const productionExportEnabled = false;
   static const commandIds = <String>{
     NarrativeCommandIds.setFact,
+    NarrativeCommandIds.adjustIntegerFact,
     NarrativeCommandIds.markEventConsumed,
     NarrativeCommandIds.completeStoryStep,
     NarrativeCommandIds.giveItem,

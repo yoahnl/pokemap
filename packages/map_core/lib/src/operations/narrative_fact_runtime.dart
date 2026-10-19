@@ -315,6 +315,55 @@ final class NarrativeFactRuntimeWriter {
 
   final NarrativeFactRuntimeResolver resolver;
 
+  NarrativeFactRuntimeWriteResult adjustIntegerFact({
+    required GameState gameState,
+    required String factId,
+    required int delta,
+    required int minimum,
+    required int maximum,
+  }) {
+    NarrativeValue.integer(delta);
+    NarrativeValue.integer(minimum);
+    NarrativeValue.integer(maximum);
+    if (minimum > maximum) {
+      throw ArgumentError('minimum must not exceed maximum');
+    }
+    final resolution = resolver.resolve(
+      factId: factId,
+      runtimeState: gameState.narrativeFactRuntimeState,
+      storyFlags: gameState.storyFlags,
+    );
+    if (resolution is NarrativeFactRuntimeResolved) {
+      if (resolution.fact.valueKind != NarrativeValueKind.integer ||
+          resolution.narrativeValue.kind != NarrativeValueKind.integer) {
+        return NarrativeFactRuntimeWriteRejected(
+          gameState: gameState,
+          errorCode: NarrativeFactRuntimeWriteErrorCode.typeMismatch,
+          message: 'Fact "$factId" requires an integer value for adjustment.',
+        );
+      }
+      final sum =
+          BigInt.from(resolution.narrativeValue.intValue) + BigInt.from(delta);
+      final low = BigInt.from(minimum), high = BigInt.from(maximum);
+      final bounded = sum < low
+          ? low
+          : sum > high
+          ? high
+          : sum;
+      return _apply(
+        gameState,
+        resolution.fact,
+        resolution.runtimeKey,
+        NarrativeValue.integer(bounded.toInt()),
+      );
+    }
+    return setFactValue(
+      gameState: gameState,
+      factId: factId,
+      value: NarrativeValue.integer(0),
+    );
+  }
+
   NarrativeFactRuntimeWriteResult setFact({
     required GameState gameState,
     required String factId,

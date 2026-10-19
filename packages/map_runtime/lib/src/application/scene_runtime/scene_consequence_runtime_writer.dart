@@ -189,10 +189,19 @@ final class SceneConsequenceRuntimeWriter {
           consequence as SceneSetMapEventInstanceBooleanConsequence,
         ),
       SceneConsequenceKind.setFact => _applySetFact(
-          gameState,
-          consequence as SceneSetFactConsequence,
-          factWriter,
+        gameState,
+        consequence as SceneSetFactConsequence,
+        factWriter,
+      ),
+      SceneConsequenceKind.adjustIntegerFact => _factWriteResult(
+        factWriter.adjustIntegerFact(
+          gameState: gameState,
+          factId: (consequence as SceneAdjustIntegerFactConsequence).factId,
+          delta: consequence.delta,
+          minimum: consequence.minimum,
+          maximum: consequence.maximum,
         ),
+      ),
       SceneConsequenceKind.markEventConsumed => _applyMarkEventConsumed(
           gameState,
           consequence as SceneMarkEventConsumedConsequence,
@@ -337,6 +346,12 @@ final class SceneConsequenceRuntimeWriter {
       factId: consequence.factId,
       value: consequence.narrativeValue,
     );
+    return _factWriteResult(result);
+  }
+
+  _SceneConsequenceRuntimeWriteStep _factWriteResult(
+    NarrativeFactRuntimeWriteResult result,
+  ) {
     if (result is NarrativeFactRuntimeWriteRejected) {
       return _SceneConsequenceRuntimeWriteStep.failed(
         switch (result.errorCode) {

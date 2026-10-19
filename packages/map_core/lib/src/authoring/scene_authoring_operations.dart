@@ -1987,6 +1987,12 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
 
 void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
   switch (consequence) {
+    case SceneAdjustIntegerFactConsequence():
+      _trimRequired(
+        consequence.factId,
+        'consequence.factId',
+        'Integer adjustment requires a fact id.',
+      );
     case SceneSetMapEventInstanceBooleanConsequence():
       _trimRequired(consequence.mapId, 'consequence.mapId', 'Map instance owner requires a map id.');
       _trimRequired(consequence.eventId, 'consequence.eventId', 'Map instance owner requires an entity id.');
@@ -2769,6 +2775,7 @@ String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
 
 String _defaultConsequenceActionTitle(SceneConsequence consequence) {
   return switch (consequence) {
+    SceneAdjustIntegerFactConsequence() => 'Ajuster un Fact entier',
     SceneSetMapEventInstanceBooleanConsequence() => 'Définir un booléen de cette instance',
     SceneSetFactConsequence() => 'Définir un Fact',
     SceneMarkEventConsumedConsequence() => 'Marquer event consommé',

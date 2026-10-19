@@ -2,6 +2,28 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'integer adjustments stop boolean-only preview without invented state',
+    () {
+      final result = previewSceneRuntimePath(
+        _consequencePlan([
+          SceneConsequence.adjustIntegerFact(
+            factId: 'counter',
+            delta: 1,
+            minimum: -10,
+            maximum: 10,
+          ),
+        ]),
+        input: SceneDryRunInputState(),
+      );
+      expect(result.status, SceneDryRunPreviewStatus.failed);
+      expect(result.message, contains('typed runtime state'));
+      expect(result.consequenceChanges, isEmpty);
+      expect(result.consequenceState.factValueById, isEmpty);
+    },
+  );
+
+
   group('Scene runtime dry-run preview', () {
     test('waits for explicit input then previews the selected dialogue path',
         () {
@@ -190,7 +212,7 @@ void main() {
       expect(result.status, SceneDryRunPreviewStatus.completed);
       expect(
         result.consequenceChanges.map((change) => change.consequence.kind),
-        SceneConsequenceKind.values,
+        consequences.map((consequence) => consequence.kind),
       );
       expect(result.consequenceState.factValueById['fact_gate'], isTrue);
       expect(
