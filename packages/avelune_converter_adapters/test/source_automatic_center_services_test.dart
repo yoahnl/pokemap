@@ -269,6 +269,31 @@ void main() {
       if (mode == 'valid') {
         final result = await future;
         expect(result!.elements, hasLength(6));
+        final original = analysis.eventAt(17, 4)!;
+        expect(result.isBoundToEvent(source: fixture.source,
+            analysis: analysis, event: original), isTrue);
+        final forged = SourceEventDefinition(sourceMapId: original.sourceMapId,
+            sourceEventId: original.sourceEventId, sourceFileId: original.sourceFileId,
+            identity: original.identity, name: original.name, x: original.x + 1,
+            y: original.y, locator: original.locator, pages: original.pages);
+        for (final forgedAnalysis in [
+          SourceEventAnalysis(profile: analysis.profile, events: [
+            for (final event in analysis.events)
+              if (event.identity == original.identity) forged else event,
+          ], diagnostics: analysis.diagnostics),
+          SourceEventAnalysis(profile: analysis.profile,
+              events: [...analysis.events, original], diagnostics: analysis.diagnostics),
+        ]) {
+          final reads = fixture.files.reads.length;
+          expect(result.isBoundToEvent(source: fixture.source,
+              analysis: forgedAnalysis, event: forgedAnalysis.eventAt(17, 4)!), isFalse);
+          await expectLater(const SourceHealingDisplayBindingResolver().read(
+              source: fixture.source, analysis: forgedAnalysis,
+              sourceMapId: 17, sourceEventId: 4, files: fixture.files),
+              throwsA(isA<SourceHealingDisplayBindingUnavailable>()));
+          expect(fixture.files.reads.length, reads);
+        }
+
         expect(result.elements.every((element) => element.frames.length == 4),
             isTrue);
         for (final variant in result.elements.indexed) {

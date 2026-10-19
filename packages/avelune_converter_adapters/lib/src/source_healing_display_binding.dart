@@ -95,8 +95,7 @@ final class SourceHealingDisplayBinding {
     }
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-            .analyze()
-            .eventAt(program.sourceMapId, program.sourceEventId);
+            .analyzeEventAt(program.sourceMapId, program.sourceEventId);
     return expected != null &&
         event.pages.every(
             (page) => page.body.nodes.isEmpty && page.diagnostics.isEmpty) &&
@@ -154,8 +153,7 @@ final class SourceHealingDisplayBindingResolver {
     }
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-            .analyze()
-            .eventAt(sourceMapId, sourceEventId);
+            .analyzeEventAt(sourceMapId, sourceEventId);
     if (expected == null ||
         events.single.pages.any((page) =>
             page.body.nodes.isNotEmpty || page.diagnostics.isNotEmpty) ||

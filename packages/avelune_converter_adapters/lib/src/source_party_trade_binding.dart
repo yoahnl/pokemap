@@ -41,8 +41,7 @@ final class SourcePartyTradeBinding {
     }
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-            .analyze()
-            .eventAt(sourceMapId, sourceEventId);
+            .analyzeEventAt(sourceMapId, sourceEventId);
     if (expected == null ||
         expected.isQuarantined ||
         expected.pages.length != 1 ||

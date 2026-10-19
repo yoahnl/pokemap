@@ -309,8 +309,7 @@ final class SourceExternalWarpBindingResolver {
 bool _externalEventMatchesSource(NormalizedSourceProject source,
     SourceEventProfile profile, SourceEventDefinition event) {
   final expected = SourceEventAnalyzer.forProject(source, profile: profile)
-      .analyze()
-      .eventAt(event.sourceMapId, event.sourceEventId);
+      .analyzeEventAt(event.sourceMapId, event.sourceEventId);
   if (expected == null ||
       expected.isQuarantined ||
       event.pages.any((page) => _externalBlockShape(page.body) == null)) {

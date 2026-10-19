@@ -890,7 +890,19 @@ final class SourceEventAnalyzer {
       profile.sourceSnapshotHash == project.snapshot.canonicalHash &&
       profile.normalizationHash == project.canonicalHash;
 
-  SourceEventAnalysis analyze() {
+  SourceEventAnalysis analyze() => _analyze();
+
+  SourceEventDefinition? analyzeEventAt(int sourceMapId, int sourceEventId) {
+    final maps = project.maps.where((map) => map.map.sourceMapId == sourceMapId).toList();
+    if (maps.length > 1) throw StateError('Source map identity must be unique');
+    if (maps.isEmpty) return null;
+    final events = maps.single.map.events.where((event) => event.sourceEventId == sourceEventId).toList();
+    if (events.length > 1) throw StateError('Source event identity must be unique');
+    if (events.isEmpty) return null;
+    return _analyze(sourceMapId: sourceMapId, sourceEventId: sourceEventId).events.single;
+  }
+
+  SourceEventAnalysis _analyze({int? sourceMapId, int? sourceEventId}) {
     final events = <SourceEventDefinition>[];
     final diagnostics = <SourceEventDiagnostic>[];
     final invalidGraphicPages = {
@@ -907,10 +919,12 @@ final class SourceEventAnalyzer {
     final switches = _switchNames();
     final qualified = _isQualified;
     for (final map in project.maps) {
+      if (sourceMapId != null && map.map.sourceMapId != sourceMapId) continue;
       final mapFile = project.sourceFiles[map.map.sourceFileId];
       final path = mapFile?.entry.relativePath ??
           'Data/Map${map.map.sourceMapId}.rxdata';
       for (final event in map.map.events) {
+        if (sourceEventId != null && event.sourceEventId != sourceEventId) continue;
         final eventLocator =
             _eventLocator(path, map.map.sourceMapId, event.sourceEventId);
         final pages = <SourceEventPageAnalysis>[];

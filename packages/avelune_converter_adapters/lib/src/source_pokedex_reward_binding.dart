@@ -120,8 +120,7 @@ final class SourcePokedexRewardBindingResolver {
     if (programs.where((p) => p.pickup != null).length != 1 || programs.firstWhere((p) => p.pickup != null).pickup!.quantity != 1) return null;
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-            .analyze()
-            .eventAt(sourceMapId, sourceEventId);
+            .analyzeEventAt(sourceMapId, sourceEventId);
     if (expected == null ||
         canonicalJsonOf(_eventFingerprint(expected)) !=
             canonicalJsonOf(_eventFingerprint(event))) {

@@ -62,8 +62,7 @@ bool sourceShopEventMatchesSource(
   }
   final fresh =
       SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-          .analyze()
-          .eventAt(event.sourceMapId, event.sourceEventId);
+          .analyzeEventAt(event.sourceMapId, event.sourceEventId);
   return fresh != null &&
       !fresh.isQuarantined &&
       _sourceShopEventShape(fresh) == _sourceShopEventShape(event);

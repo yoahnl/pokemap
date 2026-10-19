@@ -633,6 +633,109 @@ _RubyObject _strengthPage() => _page([
     ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
 
 void main() {
+  group('authoritative single event analysis', () {
+    Map<String, Object?> shape(SourceEventDefinition event) => {
+      'identity': event.identity.value, 'map': event.sourceMapId,
+      'event': event.sourceEventId, 'file': event.sourceFileId.value,
+      'name': event.name, 'x': event.x, 'y': event.y,
+      'locator': event.locator.toJson(), 'quarantined': event.isQuarantined,
+      'pages': [for (final page in event.pages) {
+        'source': page.sourcePage.toJson(),
+        'condition': page.condition.toJson(),
+        'raw': page.rawDataRef?.toJson(),
+        'graphic': page.graphic == null ? null : [
+          page.graphic!.characterName, page.graphic!.direction,
+          page.graphic!.tileId, page.graphic!.through,
+        ],
+        'diagnostics': page.diagnostics.map((d) => d.toJson()).toList(),
+        'nodes': [for (final node in page.body.nodes) {
+          'kind': node.runtimeType.toString(), 'span': node.span.toJson(),
+          if (node is SourceTextNode) 'text': node.text,
+          if (node is SourceSelfSwitchNode) ...{
+            'fact': node.factId, 'letter': node.letter, 'value': node.value,
+          },
+          if (node is SourceCommonEventCallNode) 'call': {
+            'id': node.commonEventId, 'map': node.sourceMapId,
+            'event': node.sourceEventId, 'span': node.body.span.toJson(),
+            'text': node.body.nodes.whereType<SourceTextNode>().map((n) => n.text).toList(),
+          },
+          if (node is SourceUnknownNode) ...{
+            'command': node.command.toJson(), 'reason': node.reason,
+          },
+        }],
+      }],
+    };
+    test('matches the full pass while preserving cross-map and common-event context', () async {
+      final data = _project(maps: {
+        1: _map(events: {1: _event(1, [_page([
+          _command(101, ['Original text']),
+          _command(355, ['pbSetSelfSwitch(2, "A", true, 8)']),
+          _command(117, [1]), _command(0, []),
+        ]), _withCondition(_page([_command(0, [])]), {
+          '@switch1_valid': true, '@switch1_id': 1,
+        })])}),
+        8: _map(events: {2: _event(2, [_page([_command(0, [])])])}),
+      });
+      data['Data/System.rxdata'] = _MarshalFixture().dump(_RubyObject('RPG::System', {
+        '@switches': ['', 'Ready'], '@variables': ['', 'Counter'],
+      }));
+      data['Data/CommonEvents.rxdata'] = _MarshalFixture().dump([null,
+        _RubyObject('RPG::CommonEvent', {'@id': 1, '@name': 'Original common',
+          '@trigger': 0, '@switch_id': 1, '@list': [
+            _command(101, ['Common text']), _command(0, []),
+          ]})]);
+      final source = await _normalize(_source(data), includeEventSystem: true);
+      final analyzer = _analyzer(source), full = _analyzer(source).analyze();
+      for (final event in full.events) {
+        expect(shape(analyzer.analyzeEventAt(event.sourceMapId, event.sourceEventId)!), shape(event));
+      }
+      final selected = analyzer.analyzeEventAt(1, 1)!;
+      expect(selected.isQuarantined, isFalse);
+      expect(selected.pages.first.body.nodes.whereType<SourceSelfSwitchNode>().single.factId,
+          analyzer.selfFactId(8, 2, 'A'));
+      expect(selected.pages.first.body.nodes.whereType<SourceCommonEventCallNode>(), hasLength(1));
+      expect(analyzer.analyzeEventAt(99, 1), isNull);
+      expect(analyzer.analyzeEventAt(1, 99), isNull);
+    });
+    test('retains profile and invalid-graphic refusals from the same parser', () async {
+      final page = _page([_command(355, ['unsupported()']), _command(0, [])]);
+      (page.fields['@graphic'] as _RubyObject).fields['@direction'] = 9;
+      final source = await _events([page]);
+      for (final analyzer in [_analyzer(source), _analyzer(source, scriptsHash: '0' * 64)]) {
+        final target = analyzer.analyzeEventAt(1, 1)!;
+        expect(target.isQuarantined, isTrue);
+        expect(shape(target), shape(analyzer.analyze().requireEvent(1, 1)));
+      }
+    });
+    test('fresh source bytes cannot reuse an earlier event result', () async {
+      final original = await _events([_page([_command(101, ['Before']), _command(0, [])])]);
+      final changed = await _events([_page([_command(101, ['After']), _command(0, [])])]);
+      final before = _analyzer(original).analyzeEventAt(1, 1)!;
+      final after = _analyzer(changed).analyzeEventAt(1, 1)!;
+      expect((before.pages.single.body.nodes.single as SourceTextNode).text, 'Before');
+      expect((after.pages.single.body.nodes.single as SourceTextNode).text, 'After');
+      expect(after.pages.single.rawDataRef!.contentHash,
+          isNot(before.pages.single.rawDataRef!.contentHash));
+    });
+    test('duplicate source event identities are refused before authoritative analysis', () async {
+      final data = _project(maps: {1: _map(events: {
+        1: _event(1, [_page([])]), 2: _event(2, [_page([])]),
+      })});
+      const path = 'Data/Map001.rxdata';
+      final bytes = data[path]!.toList();
+      final document = const MarshalDecoder().decode(bytes, sourcePath: path);
+      final eventField = document.node(document.rootId).instanceVariables.singleWhere(
+          (field) => document.node(field.key).text().text == '@events');
+      final duplicateKey = document.node(document.node(eventField.value).pairs.last.key);
+      bytes[duplicateKey.location.byteOffset + 1] = 6;
+      data[path] = bytes;
+      final source = await _normalize(_source(data));
+      expect(source.diagnostics.map((diagnostic) => diagnostic.code),
+          contains('normalization.duplicate_event_id'));
+      expect(source.maps, isEmpty);
+      expect(_analyzer(source).analyzeEventAt(1, 1), isNull);
+    });
+  });
   group('literal foreign self-switch statements', () {
     for (final (script, target, value) in [
       ('pbSetSelfSwitch(1, "A", true)', (1, 1), true),

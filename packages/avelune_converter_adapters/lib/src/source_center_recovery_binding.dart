@@ -79,8 +79,7 @@ final class SourceCenterRecoveryResolver {
       throw const SourceCenterRecoveryBindingUnavailable('source_unqualified');
     }
     final nurse = SourceEventAnalyzer.forProject(source, profile: profile)
-        .analyze()
-        .eventAt(sourceMapId, sourceEventId);
+        .analyzeEventAt(sourceMapId, sourceEventId);
     if (nurse == null ||
         nurse.isQuarantined ||
         nurse.pages.length != 2 ||
