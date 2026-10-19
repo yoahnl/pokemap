@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/home/domain/recent_studio_project.dart';
 import '../../shared/widgets/layout/studio_application_frame.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -22,6 +23,9 @@ class StudioHomeScreen extends StatefulWidget {
     this.onClose,
     this.onCreate,
     this.onCreateMap,
+    this.onOptimizeLibrary,
+    this.optimizingLibrary = false,
+    this.libraryOptimizationError,
     required this.onDestination,
     this.recentProjects = const [],
     required this.onRecent,
@@ -39,6 +43,9 @@ class StudioHomeScreen extends StatefulWidget {
   final bool busy, canTest;
   final VoidCallback onOpen;
   final VoidCallback? onResume, onExport, onClose, onCreate, onCreateMap;
+  final VoidCallback? onOptimizeLibrary;
+  final bool optimizingLibrary;
+  final String? libraryOptimizationError;
   final ValueChanged<String> onDestination, onMap;
   final List<RecentStudioProject> recentProjects;
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
@@ -167,6 +174,9 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         smallWindow: bounds.maxWidth < 600,
       );
       final tools = StudioHomeTools(
+        onOptimizeLibrary: widget.onOptimizeLibrary,
+        optimizingLibrary: widget.optimizingLibrary,
+        libraryOptimizationError: widget.libraryOptimizationError,
         onDestination: widget.onDestination,
         hasProject: widget.projectName != null,
         canTest: widget.canTest,

@@ -66,6 +66,7 @@ class StudioWorkspaceHost extends ConsumerWidget {
     }
     final sessions = ref.read(projectSessionControllerProvider);
     return ProjectCatalogPartitionPanel(
+      home: StudioHomeScope.of(context)!,
       registerExitGuard: registerExitGuard,
       partition: () => LocalProjectCatalogPartitionAdapter().partition(session),
       reopen: () async {

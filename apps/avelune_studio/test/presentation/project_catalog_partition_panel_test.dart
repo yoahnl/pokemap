@@ -25,18 +25,20 @@ void main() {
                   child: Offstage(
                     offstage: home.visible,
                     child: ProjectCatalogPartitionPanel(
-            home: home,
-            registerExitGuard: (_) {},
-            partition: () async {
-              partitions++;
-            },
-            reopen: () async {
-              reopens++;
-            },
-            childBuilder: (guard) {
-              guard(() async => allowed);
-              return const SizedBox.expand(key: ValueKey('workspace-content'));
-            },
+                      home: home,
+                      registerExitGuard: (_) {},
+                      partition: () async {
+                        partitions++;
+                      },
+                      reopen: () async {
+                        reopens++;
+                      },
+                      childBuilder: (guard) {
+                        guard(() async => allowed);
+                        return const SizedBox.expand(
+                          key: ValueKey('workspace-content'),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -62,12 +64,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Optimiser la bibliothèque'), findsNothing);
-      expect(tester.getRect(find.byKey(const ValueKey('workspace-content'))),
-          const Rect.fromLTWH(0, 0, 800, 600));
+      expect(
+        tester.getRect(find.byKey(const ValueKey('workspace-content'))),
+        const Rect.fromLTWH(0, 0, 800, 600),
+      );
       home.showHome();
       await tester.pumpAndSettle();
       expect(find.text('Optimiser la bibliothèque'), findsOneWidget);
-      await tester.ensureVisible(find.byKey(const ValueKey('project-catalog-partition')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('project-catalog-partition')),
+      );
       await tester.tap(find.byKey(const ValueKey('project-catalog-partition')));
       await tester.pumpAndSettle();
       expect(find.text('Optimiser la bibliothèque ?'), findsNothing);

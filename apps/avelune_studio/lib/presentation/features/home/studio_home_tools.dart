@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../theme/studio_tokens.dart';
 
 class StudioHomeTools extends StatelessWidget {
@@ -11,10 +13,16 @@ class StudioHomeTools extends StatelessWidget {
     required this.canTest,
     required this.busy,
     this.dense = false,
+    this.onOptimizeLibrary,
+    this.optimizingLibrary = false,
+    this.libraryOptimizationError,
   });
   final ValueChanged<String> onDestination;
   final bool hasProject, canTest, busy;
   final bool dense;
+  final VoidCallback? onOptimizeLibrary;
+  final bool optimizingLibrary;
+  final String? libraryOptimizationError;
 
   @override
   Widget build(BuildContext context) {
@@ -66,10 +74,28 @@ class StudioHomeTools extends StatelessWidget {
     ];
     return StudioPanel(
       title: 'Vos outils de création',
-      actions: [StudioButton(key: const ValueKey('home-tool-regionalMap'), label: 'Carte régionale',
-        icon: Icons.public, secondary: true, onPressed: busy ? null : () => onDestination('regionalMap'))],
+      actions: [
+        StudioButton(
+          key: const ValueKey('home-tool-regionalMap'),
+          label: 'Carte régionale',
+          icon: Icons.public,
+          secondary: true,
+          onPressed: busy ? null : () => onDestination('regionalMap'),
+        ),
+        if (onOptimizeLibrary != null)
+          StudioButton(
+            key: const ValueKey('project-catalog-partition'),
+            label: optimizingLibrary
+                ? 'Préparation de la bibliothèque…'
+                : 'Optimiser la bibliothèque',
+            icon: Icons.tune,
+            secondary: true,
+            onPressed: busy || optimizingLibrary ? null : onOptimizeLibrary,
+          ),
+      ],
       compact: true,
       children: [
+        if (libraryOptimizationError case final error?) StudioNotice(error),
         Text(
           'Tout ce dont vous avez besoin, au même endroit.',
           style: TextStyle(color: colors.onSurfaceVariant),
@@ -80,9 +106,8 @@ class StudioHomeTools extends StatelessWidget {
             final scale = MediaQuery.textScalerOf(context).scale(1);
             final titleStyle = DefaultTextStyle.of(context).style;
             final titleHeight =
-                MediaQuery.textScalerOf(
-                  context,
-                ).scale(titleStyle.fontSize ?? 14) *
+                MediaQuery.textScalerOf(context)
+                    .scale(titleStyle.fontSize ?? 14) *
                 (titleStyle.height ?? 1.5) *
                 2;
             final descriptionHeight =

@@ -12,9 +12,26 @@ class StudioHomeNavigation extends ChangeNotifier {
   ProjectManifest? mapLibrary;
   Widget Function(String)? mapPreviewBuilder;
   Future<bool> Function()? allowSwitch;
+  VoidCallback? onOptimizeLibrary;
+  bool optimizingLibrary = false;
+  String? libraryOptimizationError;
   void Function(String, String?)? onNavigate;
   (String, String?)? _pending;
   bool _disposed = false;
+
+  void updateLibraryOptimization({
+    VoidCallback? onOptimize,
+    bool busy = false,
+    String? error,
+  }) {
+    if (_disposed) return;
+    onOptimizeLibrary = onOptimize;
+    optimizingLibrary = busy;
+    libraryOptimizationError = error;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed) notifyListeners();
+    });
+  }
 
   void showHome() {
     visible = true;
@@ -65,6 +82,9 @@ class StudioHomeNavigation extends ChangeNotifier {
   }
 
   void reset() {
+    onOptimizeLibrary = null;
+    optimizingLibrary = false;
+    libraryOptimizationError = null;
     maps = const [];
     mapLibrary = null;
     canTest = false;

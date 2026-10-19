@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring_project_creation.dart';
+
 import '../../../features/home/application/recent_projects_controller.dart';
 import '../../../features/home/domain/recent_studio_project.dart';
 import '../../../features/project_session/application/project_session_controller.dart';
@@ -123,8 +125,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     } catch (_) {
       if (mounted && generation == _pickerGeneration) {
         setState(
-          () => _pickerError =
-              'Le sélecteur de dossier est indisponible. Saisissez le chemin puis réessayez.',
+          () => _pickerError = 'Le sélecteur de dossier est indisponible. Saisissez le chemin puis réessayez.',
         );
       }
     } finally {
@@ -218,7 +219,10 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
     final state = widget.session.state;
     final project = state.project;
     final busy =
-        _creating || _picking || state.status == ProjectSessionStatus.opening;
+        _creating ||
+        _picking ||
+        _home.optimizingLibrary ||
+        state.status == ProjectSessionStatus.opening;
     final homeVisible =
         _home.visible || project == null || widget.workspaceBuilder == null;
     return StudioHomeScope(
@@ -252,6 +256,9 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                   projectName: project?.name,
                   projectPath: project?.directoryPath,
                   busy: busy,
+                  onOptimizeLibrary: _home.onOptimizeLibrary,
+                  optimizingLibrary: _home.optimizingLibrary,
+                  libraryOptimizationError: _home.libraryOptimizationError,
                   onCreate: widget.creationPort == null ? null : _createProject,
                   canTest: _home.canTest,
                   onOpen: () => _open(browse: true),
