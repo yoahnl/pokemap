@@ -387,6 +387,7 @@ void main() {
       LiteralFixtureTileset(id: 1, terrainTags: {384: 7})
     ]);
     final result = await _compose(fixture);
+    expect(result.mutations, hasLength(1));
     final maps = {...result.nativeMaps};
     maps[100] = maps[100]!.copyWith(gameplayZones: const [
       MapGameplayZone(
@@ -444,6 +445,7 @@ void main() {
         final source = await const RmxpSourceNormalizer().normalize(
             snapshot: fixture.snapshot,
             files: fixture.files,
+            interpretationProfile: fixtureSourceInterpretationProfile,
             selectedMapIds: {98, 100, 105, if (multiple) 101},
             includeConnections: true,
             includeEventSystem: true);
@@ -600,6 +602,7 @@ Future<_Fixture> _fixture(List<List<Object>>? rows,
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: fixture.snapshot,
       files: fixture.files,
+      interpretationProfile: fixtureSourceInterpretationProfile,
       selectedMapIds: selectedIds.toSet(),
       includeConnections: rows != null);
   final literal = await const LiteralTileComposer().compose(

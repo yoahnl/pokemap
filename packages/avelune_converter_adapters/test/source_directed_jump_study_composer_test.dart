@@ -23,7 +23,10 @@ Future<JumpFixture> jumpFixture(
     List<LiteralFixtureEvent> events = const [],
     bool includeEventSystem = false,
     bool lowerTransparentPixel = false,
-    bool upperOpaquePixel = false}) async {
+    bool upperOpaquePixel = false,
+    bool ledgeAtWestEdge = false,
+    List<LiteralFixtureMap> connectedMaps = const [],
+    List<List<Object>> connectionRows = const []}) async {
   final atlas = image.Image(width: 256, height: 64, numChannels: 4);
   for (var y = 0; y < 32; y++) {
     for (var x = 0; x < 32; x++) {
@@ -43,15 +46,18 @@ Future<JumpFixture> jumpFixture(
   final cellCount = width * 5;
   final middle = List<int>.filled(cellCount, 0);
   for (var x = 1; x <= runLength; x++) {
-    middle[width * 2 + x] = 392 + (x - 1) % 3;
+    middle[width * 2 + x - (ledgeAtWestEdge ? 1 : 0)] = 392 + (x - 1) % 3;
   }
   final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
 
     includeEventSystem: includeEventSystem,
-    scriptsBytes:
-        await File(Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS']!)
+    scriptsBytes: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null
+        ? syntheticInterpretationArchive
+        : await File(Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS']!)
             .readAsBytes(),
     extraFiles: {
+      if (connectionRows.isNotEmpty)
+        'Data/map_connections.dat': literalFixtureMarshal(connectionRows),
       'PBS/metadata.txt': [
         91,
         49,
@@ -100,7 +106,8 @@ Future<JumpFixture> jumpFixture(
             middle,
             List.filled(cellCount, 0)
           ],
-          events: events)
+          events: events),
+      ...connectedMaps
     ],
     tilesets: [
       LiteralFixtureTileset(
@@ -113,16 +120,17 @@ Future<JumpFixture> jumpFixture(
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: fixture.snapshot,
       files: fixture.files,
-      selectedMapIds: {98},
+      interpretationProfile: fixtureSourceInterpretationProfile,
+      selectedMapIds: {98, ...connectedMaps.map((map) => map.id)},
+      includeConnections: connectionRows.isNotEmpty,
       includeEventSystem: includeEventSystem);
   final base = await const LiteralTileComposer().compose(
       source: source,
       files: fixture.files,
-      selectedSourceMapIds: [98],
+      selectedSourceMapIds: [98, ...connectedMaps.map((map) => map.id)],
       projectName: 'Original ledge',
       parentPath: '/private/tmp',
       folderName: 'original-ledge');
-  final native = base.nativeMaps[98]!;
   final imported = base.draft!.mutations
       .singleWhere((m) => m.actionId == 'tileset.import_image');
   final id = imported.parameters['tilesetId'] as String;
@@ -130,10 +138,11 @@ Future<JumpFixture> jumpFixture(
       name: 'Original ledge',
       version: ProjectVersion.v8,
       maps: [
-        ProjectMapEntry(
-            id: native.id,
-            name: native.name,
-            relativePath: 'maps/${native.id}.json')
+        for (final map in base.nativeMaps.values)
+          ProjectMapEntry(
+              id: map.id,
+              name: map.name,
+              relativePath: 'maps/${map.id}.json')
       ],
       tilesets: [
         ProjectTilesetEntry(
@@ -166,6 +175,63 @@ void main() {
   final scripts = Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'];
   void qualified(String name, Future<void> Function() body) =>
       test(name, body, skip: scripts == null);
+  test('connection arrivals preserve only intersecting ledges across offset neighbors', () async {
+    LiteralFixtureMap neighbor(int id) => LiteralFixtureMap(
+        id: id, width: 3, height: 2, layers: [
+          List.filled(6, 384), List.filled(6, 0), List.filled(6, 0)
+        ]);
+    final f = await jumpFixture(ledgeAtWestEdge: true,
+        connectedMaps: [neighbor(99), neighbor(100)], connectionRows: [
+          [99, 'E', 0, 98, 'W', 0],
+          [100, 'E', 0, 98, 'W', 2],
+        ]);
+    final result = await composeJump(f);
+    expect(result.evidence['importedJumpCount'], 2);
+    final gaps = (result.evidence['diagnostics'] as List).cast<Map>().where(
+        (row) => row['code'] == 'jumps.connection_arrival_unqualified').toList();
+    expect(gaps, hasLength(1));
+    expect(gaps.single['via'], [0, 2]);
+    expect(gaps.single['sourceMapId'], 98);
+    expect(gaps.single['qualified'], isFalse);
+    expect(gaps.single['locator'], containsPair('mapId', 98));
+    final row = (result.evidence['rows'] as List).cast<Map>().singleWhere(
+        (row) => row['via'].toString() == '[0, 2]' && row['direction'] == 'down');
+    expect(row['nativeStatus'], 'preservedOnly');
+    final map = result.nativeMaps[98]!;
+    final original = f.base.nativeMaps[98]!;
+    final layer = map.layers.whereType<TileLayer>().singleWhere(
+        (layer) => layer.name == 'Source Z 1');
+    final sourceLayer = original.layers.whereType<TileLayer>().singleWhere(
+        (layer) => layer.name == 'Source Z 1');
+    expect(layer.cells[map.size.width * 2], sourceLayer.cells[map.size.width * 2]);
+    final connections = await const SourceConnectionStudyComposer().compose(
+        source: f.base.draft!.source, files: f.fixture.files,
+        nativeMaps: result.nativeMaps);
+    expect(connections.mutations, hasLength(2));
+    expect(() => const SourceEventArrivalValidator().validateConnections(
+        manifest: result.project, maps: connections.nativeMaps.values.toList(),
+        source: f.base.draft!.source, connectionMutations: connections.mutations),
+        returnsNormally);
+  });
+  test('inactive connections do not suppress a separate source ledge', () async {
+    final f = await jumpFixture(ledgeAtWestEdge: true, connectedMaps: [
+      LiteralFixtureMap(id: 100, width: 3, height: 2, layers: [
+        List.filled(6, 384), List.filled(6, 0), List.filled(6, 0)
+      ], events: const [
+        LiteralFixtureEvent(id: 7, x: 2, y: 1, pages: [])
+      ])
+    ], connectionRows: [[100, 'E', 0, 98, 'W', 2]]);
+    final admission = await const SourceConnectionStudyComposer().compose(
+        source: f.base.draft!.source, nativeMaps: f.base.nativeMaps,
+        files: f.fixture.files);
+    expect(admission.mutations, isEmpty);
+    expect((admission.evidence['diagnostics'] as List).cast<Map>()
+        .map((row) => row['code']), contains('connections.border_events_unqualified'));
+    final result = await composeJump(f);
+    expect(result.evidence['importedJumpCount'], 3);
+    expect((result.evidence['diagnostics'] as List).cast<Map>()
+        .where((row) => row['code'] == 'jumps.connection_arrival_unqualified'), isEmpty);
+  });
   qualified(
       'local ledge indices retain exact ownership away from the global first tile',
       () async {

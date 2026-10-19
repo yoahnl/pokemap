@@ -8,6 +8,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'literal_tile_composer.dart';
+import 'source_connection_study_composer.dart';
 import 'native_project_writer.dart';
 
 final class SourceDirectedJumpStudyComposition {
@@ -553,6 +554,23 @@ final class SourceDirectedJumpStudyComposer {
       });
     }
     evidence['sourceFiles'] = dataEvidence;
+    final connectionAdmission = await const SourceConnectionStudyComposer().compose(
+        source: source, nativeMaps: maps, files: files, limits: limits,
+        cancellation: cancellation);
+    final admittedConnectionIds = connectionAdmission.mutations
+        .expand((mutation) => mutation.sourceEntityIds).toSet();
+    final connectionArrivals = <int, Map<GridPos,
+        List<(NormalizedMapConnection, SourceConnectionArrival)>>>{};
+    for (final connection in source.connections) {
+      cancellation?.check();
+      if (!admittedConnectionIds.contains(connection.identity)) continue;
+      for (final arrival in sourceConnectionArrivals(source: source,
+          connection: connection, nativeMaps: maps, cancellation: cancellation)) {
+        if (arrival.passage.isPassable != true) continue;
+        (connectionArrivals.putIfAbsent(arrival.targetSourceMapId, () => {})
+            .putIfAbsent(arrival.targetPosition, () => [])).add((connection, arrival));
+      }
+    }
     final candidates = <int, List<_Jump>>{};
     var cellCount = 0;
     for (final id in selected) {
@@ -618,6 +636,35 @@ final class SourceDirectedJumpStudyComposer {
             }
             if (_hasSourceEventFootprint(original, [from, via, landing])) {
               gap('jumps.source_event_footprint');
+              continue;
+            }
+            final arrivals = connectionArrivals[id]?[GridPos(x: x, y: y)];
+            if (arrivals != null && arrivals.isNotEmpty) {
+              gap('jumps.connection_arrival_unqualified');
+              diagnostics.last.addAll({
+                'locator': SourceLocator.fromJson({
+                  'file': source.sourceFiles[original.sourceFileId]!.entry.relativePath,
+                  'mapId': id, 'eventId': null, 'pageIndex': null,
+                  'commandIndex': null, 'tileId': null, 'line': null,
+                }).toJson(),
+                'nativeMapId': native.id,
+                'qualified': false,
+                'nativeCollisionPolicy': 'canonicalLedgeRequiresFullCarrierCell',
+                'preservedPolicy': 'literalGraphicAndStaticDirectionalPassage',
+                'connectionArrivals': [
+                  for (final (connection, arrival) in arrivals) {
+                    'connectionIdentity': connection.identity.value,
+                    'connectionLocator': connection.locator.toJson(),
+                    'sourceMapId': arrival.sourceMapId,
+                    'sourcePosition': arrival.sourcePosition.toJson(),
+                    'direction': arrival.direction.name,
+                    'targetPosition': arrival.targetPosition.toJson(),
+                    'sourceEntryStatus': arrival.passage.status.name,
+                    'sourceEntryHash': canonicalHashOf(arrival.passage.toJson(),
+                        limits: limits.jsonLimits).value,
+                  }
+                ],
+              });
               continue;
             }
             final ledges = via.stack

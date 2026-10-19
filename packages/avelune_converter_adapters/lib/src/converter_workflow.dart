@@ -1705,11 +1705,11 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         final capabilities = _nativeCapabilities();
         final requestedItemSymbols = {...?events?.sourceItems?.bindings.keys,
           ...?events?.sourceItems?.quarantinedSymbols.keys};
-        if (settings.missingItemBindings.any((value) => !requestedItemSymbols.contains(value.sourceSymbol))) {
+        if ((events != null || composition.draft != null) && settings.missingItemBindings.any((value) => !requestedItemSymbols.contains(value.sourceSymbol))) {
           throw const ConverterWorkflowFailure('workflow.item_binding.unused',
               'An explicit item binding does not address an item requested by the selected source events.');
         }
-        if (settings.missingItemBindings.any((value) =>
+        if ((events != null || composition.draft != null) && settings.missingItemBindings.any((value) =>
             events?.sourceItems?.bindings[value.sourceSymbol]?.pickupQualified != true ||
             events?.sourceItems?.quarantinedSymbols.containsKey(value.sourceSymbol) == true)) {
           throw const ConverterWorkflowFailure('workflow.item_binding.invalid',
@@ -2556,6 +2556,8 @@ ConversionPlan? _previewPlan(
       final reason = switch (code) {
         'jumps.source_event_footprint' =>
           'A source event intersects departure, intermediate or landing cells',
+        'jumps.connection_arrival_unqualified' =>
+          'A source connection arrives on this ledge; its graphic and static passage remain preserved without a blocking native jump',
         'jumps.orientation_unqualified' =>
           'The source direction has no qualified native ledge glyph',
         'jumps.source_glyph_unqualified' =>

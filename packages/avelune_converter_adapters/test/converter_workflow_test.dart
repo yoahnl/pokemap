@@ -18,6 +18,91 @@ import 'support/native_media_source_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 
 void main() {
+  for (final (blockedLiteral, qualifiedProfile) in [(true, true), (false, true), (false, false)]) {
+    test('explicit unused item binding preserves literal blockers only when projection is absent blocked=$blockedLiteral qualified=$qualifiedProfile', () async {
+      final harness = await _WorkflowHarness.create(includeEventSystem: true,
+          extraFiles: {
+            'Data/Scripts.rxdata': syntheticInterpretationArchive,
+            'Data/items.dat': literalFixtureMarshal(<Object?, Object?>{}),
+            'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = TestPlayer\n'),
+            'Graphics/Characters/TestPlayer.png': image.encodePng(
+                image.Image(width: 128, height: 192, numChannels: 4)),
+          }, maps: [
+            LiteralFixtureMap(id: 1, layers: [
+              [blockedLiteral ? 79 : 384, 384, 384],
+              [0, 0, 0], [0, 0, 0]
+            ], events: const [
+              LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+                LiteralFixtureEventPage(commands: [
+                  LiteralFixtureEventCommand(101, ['Original greeting']),
+                  LiteralFixtureEventCommand(0, []),
+                ])
+              ])
+            ])
+          ], tilesets: [
+            LiteralFixtureTileset(id: 1, autotileNames: const ['OriginalWater'])
+          ], autotilePngs: {'OriginalWater': OriginalAutotileFixture.standard().pngBytes});
+      try {
+        final donor = await Directory('${harness.root.path}/donor/Data').create(recursive: true);
+        await File('${donor.path}/items.dat').writeAsBytes(literalFixtureMarshal({
+          const LiteralFixtureSymbol('ETHER'): const LiteralFixtureObject('GameData::Item', {
+            '@id': LiteralFixtureSymbol('ETHER'), '@real_name': 'Ether',
+            '@real_name_plural': 'Ethers', '@real_portion_name': null,
+            '@real_portion_name_plural': null, '@pocket': 2, '@price': 600,
+            '@sell_price': 300, '@bp_price': 1, '@field_use': 1,
+            '@battle_use': 2, '@flags': ['Fling_30'], '@consumable': true,
+            '@show_quantity': null, '@move': null,
+            '@real_description': 'Original source Ether', '@pbs_file_suffix': '',
+          })
+        }));
+        final snapshot = await harness.workflow.scanSource(ConverterSourceSelection(
+            rootPath: harness.sourceRoot, supplementalRootPaths: [donor.parent.path],
+            logicalProjectNamespace: harness.selection.logicalProjectNamespace));
+        final entry = snapshot.entries.singleWhere((entry) =>
+            entry.relativePath == '_converter_sources/1/Data/items.dat');
+        final binding = SourceMissingItemBinding.fromJson({
+          'kind': 'sourceMissingItemBinding', 'version': 1,
+          'sourceSymbol': 'ETHER', 'sourceSnapshotHash': snapshot.canonicalHash.value,
+          'sourceFileId': entry.fileId.value, 'sourceRelativePath': entry.relativePath,
+          'sourceSha256': entry.sha256!.value, 'reason': 'Original source item selection',
+          'humanConfirmed': true,
+        });
+        final profile = qualifiedProfile ? syntheticSourceInterpretationProfile
+            : SourceInterpretationProfile.fromJson({
+                ...syntheticSourceInterpretationProfile.toJson(),
+                'capabilities': ['events'],
+              });
+        if (!qualifiedProfile) {
+          harness.workflow.updateSettings(harness.settings(snapshot, selected: [1],
+              interpretationProfile: profile));
+          final literalOnly = await harness.workflow.prepareStudy();
+          expect(literalOnly.canApprove, isTrue);
+          expect(literalOnly.nativeDraft, isNotNull);
+          expect(literalOnly.nativeDraft!.compositionEvidence['sourceSemantics'], isNull);
+          expect(literalOnly.nativeDraft!.compositionEvidence['sourceEvents'], isNull);
+        }
+        harness.workflow.updateSettings(harness.settings(snapshot, selected: [1],
+            interpretationProfile: profile, missingItemBindings: [binding]));
+        if (blockedLiteral) {
+          final prepared = await harness.workflow.prepareStudy();
+          expect(prepared.canApprove, isFalse);
+          expect(prepared.nativeDraft, isNull);
+          expect(prepared.composition.diagnostics.where((diagnostic) =>
+              diagnostic.code == 'literal.autotile.animation_unverified' &&
+              diagnostic.blocksPlanning), isNotEmpty);
+          expect(harness.workflow.state.prepared, same(prepared));
+          expect(() => harness.approve(prepared), _throwsWorkflow('workflow.blocked'));
+        } else {
+          await expectLater(harness.workflow.prepareStudy(),
+              _throwsWorkflow('workflow.item_binding.unused'));
+          expect(harness.workflow.state.prepared, isNull);
+        }
+        expect(harness.workflow.state.approval, isNull);
+        expect(harness.nativeStages, isEmpty);
+        expect(await harness.output.list().toList(), isEmpty);
+      } finally { await harness.close(); }
+    });
+  }
   test('explicit malformed donor item refuses preparation without publishing an applied decision', () async {
     final harness = await _WorkflowHarness.create(includeEventSystem: true,
       extraFiles: {'Data/Scripts.rxdata': syntheticInterpretationArchive,
