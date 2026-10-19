@@ -31,7 +31,7 @@ const _sourceWorldStudyWriteLimits = NativeWriteLimits(
   maxTotalDraftJsonBytes: 268435456,
   maxDraftEvidenceJsonNodes: 8000000,
   maxImagePixels: 16777216,
-  maxTotalImagePixels: 41943040,
+  maxTotalImagePixels: 134217728,
   maxMapCells: 4194304,
   jsonLimits: ContractLimits(
     maxDepth: 64,

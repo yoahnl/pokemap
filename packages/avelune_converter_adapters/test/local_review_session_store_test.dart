@@ -369,7 +369,7 @@ void main() {
             projectName: settings.projectName,
             folderName: settings.folderName,
             writeLimits: NativeWriteLimits(maxTotalImagePixels: total)));
-    for (final total in [1, 16777216, 33554432]) {
+    for (final total in [1, 16777216, 33554432, 41943040, 41943041, 134217728]) {
       final row = envelope(total);
       expect(
           LocalReviewResumeSettings.fromJson(row.resumeSettings.toJson())
@@ -401,7 +401,7 @@ void main() {
     expect(await file.readAsString(), prior);
   });
 
-  for (final total in [null, true, 0, -1, 41943041, 2.5, '2']) {
+  for (final total in [null, true, 0, -1, 134217729, 2.5, '2']) {
     test('aggregate image budget resume refuses invalid total $total', () {
       expect(
           () => LocalReviewResumeSettings.fromJson(

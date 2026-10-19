@@ -737,7 +737,7 @@ void main() {
 
   test('aggregate image budget recipe preserves explicit boundaries and hashes',
       () {
-    for (final total in [1, 16777216, 33554432]) {
+    for (final total in [1, 16777216, 33554432, 41943040, 41943041, 134217728]) {
       final recipe = connectionRecipe(2,
           writeLimits: NativeWriteLimits(maxTotalImagePixels: total));
       final decoded = ConverterStudyPlanRecipe.decode(recipe.encode());
@@ -771,7 +771,7 @@ void main() {
             .having((error) => error.code, 'code', 'workflow.recipe.invalid')));
   });
 
-  for (final value in [null, true, 0, -1, 41943041, 2.5, '2']) {
+  for (final value in [null, true, 0, -1, 134217729, 2.5, '2']) {
     test('aggregate image budget recipe refuses resigned invalid total $value',
         () {
       expect(

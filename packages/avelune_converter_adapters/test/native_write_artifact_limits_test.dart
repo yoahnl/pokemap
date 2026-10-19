@@ -26,7 +26,17 @@ void main() {
             .having((error) => error.code, 'code', 'native.invalid_limits')));
   });
 
-  for (final pixels in [-1, 0, 41943041, 1000000000]) {
+  test('world image budget admits its ceiling while keeping one PNG bounded', () {
+    const limits = NativeWriteLimits(maxTotalImagePixels: 134217728);
+    expect(limits.validate, returnsNormally);
+    expect(limits.maxImagePixels, 16777216);
+    expect(const NativeWriteLimits(maxTotalImagePixels: 41943040).validate,
+        returnsNormally);
+    expect(const NativeWriteLimits(maxTotalImagePixels: 41943041).validate,
+        returnsNormally);
+  });
+
+  for (final pixels in [-1, 0, 134217729, 1000000000]) {
     test('aggregate image budget refuses invalid total $pixels', () {
       expect(
           NativeWriteLimits(maxTotalImagePixels: pixels).validate,

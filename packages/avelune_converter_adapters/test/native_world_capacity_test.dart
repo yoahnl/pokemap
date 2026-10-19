@@ -108,7 +108,7 @@ void main() {
       expect(limits.maxTotalArtifactBytes, 268435456);
       expect(limits.maxArtifacts, 4096);
       expect(limits.maxImagePixels, 16777216);
-      expect(limits.maxTotalImagePixels, 41943040);
+      expect(limits.maxTotalImagePixels, 134217728);
       expect(limits.validate, returnsNormally);
     }
     expect(const NativeWriteLimits().maxMutations, 256);
@@ -167,10 +167,10 @@ void main() {
     expect(
         sourceCatalogStudyWriteLimitsFor(1, includeNativeCatalog: true)
             .maxTotalImagePixels,
-        41943040);
-    expect(const NativeWriteLimits(maxTotalImagePixels: 41943040).validate,
+        134217728);
+    expect(const NativeWriteLimits(maxTotalImagePixels: 134217728).validate,
         returnsNormally);
-    for (final total in [0, -1, 41943041]) {
+    for (final total in [0, -1, 134217729]) {
       expect(
           NativeWriteLimits(maxTotalImagePixels: total).validate,
           throwsA(isA<NativeWriteException>()
