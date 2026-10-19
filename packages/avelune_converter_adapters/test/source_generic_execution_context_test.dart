@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
@@ -12,6 +13,10 @@ import 'support/literal_tile_fixture.dart';
 Future<LiteralTileFixture> _fixture(int map,
         {bool writer = false,
         bool unguarded = false,
+        bool twoDoors = false,
+        bool remoteParallel = false,
+        bool remoteWriter = false,
+        bool remoteDoorTarget = false,
         Map<String, List<int>> extra = const {}}) =>
     LiteralTileFixture.create(
         namespace: 'generic-context-$map',
@@ -49,9 +54,44 @@ Future<LiteralTileFixture> _fixture(int map,
                       355, ['pbSetSelfSwitch(${map + 3},"C",true)']),
                   const LiteralFixtureEventCommand(0, [])
                 ])
-              ])
-          ])
+              ]),
+            if (twoDoors)
+              for (var index = 0; index < 2; index++)
+                LiteralFixtureEvent(id: map + 5 + index, x: index + 1, y: 0,
+                    pages: [LiteralFixtureEventPage(trigger: 1, commands: [
+                      const LiteralFixtureEventCommand(250, [LiteralFixtureObject('RPG::AudioFile',
+                        {'@name': 'Exit Door', '@volume': 80, '@pitch': 100})]),
+                      LiteralFixtureEventCommand(223, [_tone(-255), 0]),
+                      const LiteralFixtureEventCommand(106, [1]),
+                      LiteralFixtureEventCommand(201, [0,
+                        remoteDoorTarget && index == 1 ? map + 100 : map, 1, 0, 0, 0]),
+                      LiteralFixtureEventCommand(223, [_tone(0), 0]),
+                      const LiteralFixtureEventCommand(0, []),
+                    ])])
+          ]),
+          if (remoteParallel || remoteWriter)
+            LiteralFixtureMap(id: map + 100, events: [
+              if (remoteParallel)
+                LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: const [
+                  LiteralFixtureEventPage(trigger: 4, commands: [
+                    LiteralFixtureEventCommand(355, ['opaque_remote_controller()']),
+                    LiteralFixtureEventCommand(0, [])])]),
+              if (remoteWriter)
+                LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+                  LiteralFixtureEventPage(commands: [
+                    LiteralFixtureEventCommand(355,
+                        ['pbSetSelfSwitch(${map + 3},"C",true,$map)']),
+                    const LiteralFixtureEventCommand(0, [])])]),
+            ])
         ]);
+
+LiteralFixtureUserDefined _tone(double channel) {
+  final bytes = ByteData(32);
+  for (var index = 0; index < 3; index++) {
+    bytes.setFloat64(index * 8, channel, Endian.little);
+  }
+  return LiteralFixtureUserDefined('Tone', bytes.buffer.asUint8List());
+}
 
 Future<NormalizedSourceProject> _source(LiteralTileFixture fixture) =>
     const RmxpSourceNormalizer().normalize(
@@ -108,6 +148,92 @@ final class _ChangedFiles implements SourceFilePort {
 }
 
 void main() {
+  test('local dormancy scopes retain remote native writers and reject unsafe destinations', () async {
+    for (final remoteWriter in [false, true]) {
+      final fixture = await _fixture(83, twoDoors: true,
+          remoteParallel: !remoteWriter, remoteWriter: remoteWriter,
+          remoteDoorTarget: !remoteWriter);
+      final source = await _source(fixture);
+      final profile = SourceEventProfile.forProject(source);
+      final auditor = SourceParallelDormancyAuditor.forProject(source, profile: profile);
+      expect(auditor.audit().isQualified, isFalse);
+      final local = auditor.audit(activeSourceMapIds: {83});
+      expect(local.activeSourceMapIds, {83});
+      expect(local.isQualified, !remoteWriter, reason: local.refusals.toString());
+      expect(local.permitsDormantParallelPage(183, 86,
+          source.maps.first.map.events.first.pages.first), isFalse);
+      expect(() => local.activeSourceMapIds.add(183), throwsUnsupportedError);
+      expect(auditor.audit(activeSourceMapIds: {999}).isQualified, isFalse);
+      final analysis = SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+      final programs = sourceStaticDoorPrograms(source: source, analysis: analysis);
+      expect(programs, hasLength(2));
+      final maps = {for (final map in source.maps)
+        map.map.sourceMapId: MapData(id: 'native_${map.map.sourceMapId}', name: map.map.name,
+            size: GridSize(width: map.map.width, height: map.map.height), layers: const [])};
+      final base = NativeProjectDraft(source: source, projectName: 'Scoped doors',
+          parentPath: Directory.systemTemp.path, folderName: 'scoped-doors',
+          mapIds: {for (final entry in maps.entries) entry.key: entry.value.id},
+          artifacts: const [], mutations: [for (final entry in maps.entries)
+            NativeMutation(operationId: ConverterId('map_${entry.key}'), actionId: 'map.save',
+                sourceEntityIds: const [], targetEntityIds: [ConverterId(entry.value.id)],
+                parameters: {'mapId': entry.value.id, 'map': entry.value.toJson()})]);
+      final omittedActors = SourceEventAnalysis(profile: profile,
+          events: analysis.events.where((event) => programs.containsKey(event.identity)).toList(),
+          diagnostics: const []);
+      final batch = await const SourceEventExecutionContextResolver().readStaticTransfers(
+          source: source, base: base, nativeMaps: maps, files: fixture.files,
+          programs: programs, analysis: omittedActors);
+      for (final entry in programs.entries) {
+        final single = await const SourceEventExecutionContextResolver().read(
+            source: source, base: base, nativeMaps: maps, files: fixture.files,
+            staticDoorProgram: entry.value, staticDoorAnalysis: analysis);
+        expect(batch[entry.key]!.toJson(), single.toJson());
+        expect(single.isQualified, !remoteWriter && entry.value.targetSourceMapId == 83,
+            reason: single.refusals.toString());
+      }
+      if (remoteWriter) {
+        expect(local.refusals, contains('sourceDormancyControllerWriterExecutable'));
+      }
+    }
+  });
+  test('batched doors retain independent source dormancy proofs and refusals', () async {
+    for (final (writer, unguarded) in [(false, false), (true, false), (false, true)]) {
+      final fixture = await _fixture(83, writer: writer, unguarded: unguarded, twoDoors: true);
+      final source = await _source(fixture);
+      final analysis = SourceEventAnalyzer.forProject(source,
+          profile: SourceEventProfile.forProject(source)).analyze();
+      final programs = sourceStaticDoorPrograms(source: source, analysis: analysis);
+      expect(programs, hasLength(2));
+      final maps = {83: MapData(id: 'native_83', name: 'Native test map',
+          size: const GridSize(width: 3, height: 1), layers: const [])};
+      final base = NativeProjectDraft(source: source, projectName: 'Door proof',
+          parentPath: Directory.systemTemp.path, folderName: 'door-proof',
+          mapIds: const {83: 'native_83'}, artifacts: const [], mutations: [
+            NativeMutation(operationId: ConverterId('map_83'), actionId: 'map.save',
+                sourceEntityIds: const [], targetEntityIds: [ConverterId('native_83')],
+                parameters: {'mapId': 'native_83', 'map': maps[83]!.toJson()})]);
+      final omittedActors = SourceEventAnalysis(profile: analysis.profile,
+          events: analysis.events.where((event) => programs.containsKey(event.identity)).toList(),
+          diagnostics: const []);
+      final batch = await const SourceEventExecutionContextResolver().readStaticTransfers(
+          source: source, base: base, nativeMaps: maps, files: fixture.files,
+          programs: programs, analysis: omittedActors);
+      for (final entry in programs.entries) {
+        final individual = await const SourceEventExecutionContextResolver().read(
+            source: source, base: base, nativeMaps: maps, files: fixture.files,
+            staticDoorProgram: entry.value, staticDoorAnalysis: analysis);
+        expect(batch[entry.key]!.toJson(), individual.toJson());
+        expect(batch[entry.key]!.isQualified, !writer && !unguarded,
+            reason: batch[entry.key]!.refusals.toString());
+      }
+      final changed = _ChangedFiles(fixture.files, source.maps.single.map.sourceFileId);
+      await expectLater(const SourceEventExecutionContextResolver().readStaticTransfers(
+          source: source, base: base, nativeMaps: maps, files: changed,
+          programs: programs, analysis: analysis),
+          throwsA(isA<NativeWriteException>().having((error) => error.code,
+              'code', 'events.execution.witness.changed')));
+    }
+  });
   test('excluded optional execution archives are unknown rather than absent',
       () async {
     for (final excluded in [

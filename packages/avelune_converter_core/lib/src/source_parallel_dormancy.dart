@@ -5,13 +5,16 @@ final class SourceParallelDormancyAudit {
       this.sourceSnapshotHash,
       this.normalizationHash,
       this.profileHash,
+      Set<int> activeSourceMapIds,
       List<String> refusals,
       Map<String, Object?> proof,
       Map<(int, int, int), SourcePreservedData> controllerPages)
-      : refusals = List.unmodifiable(refusals),
+      : activeSourceMapIds = Set.unmodifiable(activeSourceMapIds),
+        refusals = List.unmodifiable(refusals),
         _proof = canonicalJsonOf(proof),
         _controllerPages = Map.unmodifiable(controllerPages);
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash;
+  final Set<int> activeSourceMapIds;
   final List<String> refusals;
   final String _proof;
   final Map<(int, int, int), SourcePreservedData> _controllerPages;
@@ -19,6 +22,7 @@ final class SourceParallelDormancyAudit {
   bool permitsDormantParallelPage(
           int mapId, int eventId, SourceEventPage page) =>
       isQualified &&
+      activeSourceMapIds.contains(mapId) &&
       page.triggerCode == 4 &&
       page.rawDataRef ==
           _controllerPages[(mapId, eventId, page.originalPageIndex)]?.id;
@@ -28,6 +32,7 @@ final class SourceParallelDormancyAudit {
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
         'profileHash': profileHash.value,
+        'activeSourceMapIds': activeSourceMapIds.toList()..sort(),
         'qualified': isQualified,
         'refusals': refusals,
         ...jsonDecode(_proof) as Map<String, dynamic>
@@ -36,13 +41,41 @@ final class SourceParallelDormancyAudit {
 
 SourceParallelDormancyAudit auditSourceParallelDormancy(
     {required NormalizedSourceProject source,
-    required SourceEventProfile profile}) {
+    required SourceEventProfile profile}) =>
+    SourceParallelDormancyAuditor.forProject(source, profile: profile).audit();
+
+final class SourceParallelDormancyAuditor {
+  SourceParallelDormancyAuditor.forProject(this.source, {required this.profile});
+  final NormalizedSourceProject source;
+  final SourceEventProfile profile;
+  late final SourceEventAnalyzer _analyzer =
+      SourceEventAnalyzer.forProject(source, profile: profile);
+  late final SourceEventAnalysis _analysis = _analyzer.analyze();
+  late final _writes = _sourceDormancyNativeWrites(_analysis, _analyzer);
+
+  SourceParallelDormancyAudit audit({Set<int>? activeSourceMapIds}) =>
+      _auditSourceParallelDormancy(source: source, profile: profile,
+          analyzer: _analyzer, analysis: _analysis, nativeWrites: _writes,
+          activeSourceMapIds: activeSourceMapIds ??
+              source.maps.map((map) => map.map.sourceMapId).toSet());
+}
+
+SourceParallelDormancyAudit _auditSourceParallelDormancy(
+    {required NormalizedSourceProject source,
+    required SourceEventProfile profile,
+    required SourceEventAnalyzer analyzer,
+    required SourceEventAnalysis analysis,
+    required ({List<Map<String, Object?>> writes, List<String> projected,
+      List<String> quarantined, List<String> refusals}) nativeWrites,
+    required Set<int> activeSourceMapIds}) {
   final refusals = <String>{};
   final controllerPages = <(int, int, int), SourcePreservedData>{};
   final witnesses = <Map<String, Object?>>[];
-  final projected = <String>[], quarantined = <String>[];
-  final writes = <Map<String, Object?>>[];
-  final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+  final representedMapIds = source.maps.map((map) => map.map.sourceMapId).toSet();
+  if (activeSourceMapIds.isEmpty || !representedMapIds.containsAll(activeSourceMapIds)) {
+    refusals.add('sourceDormancyScopeUnqualified');
+  }
+  refusals.addAll(nativeWrites.refusals);
   if (!analyzer._isQualified ||
       !source.canPlan ||
       source.snapshot.state != SourceScanState.complete ||
@@ -50,10 +83,10 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
           SourceEventProfile.forProject(source).canonicalHash) {
     refusals.add('sourceDormancyProfileUnqualified');
   }
-  final analysis = analyzer.analyze();
   final targets = <String>{};
   for (final event in analysis.events
-      .where((event) => event.pages.any((page) => page.triggerCode == 4))) {
+      .where((event) => activeSourceMapIds.contains(event.sourceMapId) &&
+          event.pages.any((page) => page.triggerCode == 4))) {
     try {
       final rawMap = source.maps
           .where((map) => map.map.sourceMapId == event.sourceMapId)
@@ -124,8 +157,7 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
       refusals.add('sourceDormancyControllerUnqualified');
     }
   }
-  for (final event in analysis.events) {
-    try {
+  for (final event in analysis.events.where((event) => activeSourceMapIds.contains(event.sourceMapId))) {
       for (final page in event.pages.where((page) => page.triggerCode == 4)) {
         final key =
             (event.sourceMapId, event.sourceEventId, page.originalPageIndex);
@@ -134,24 +166,9 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
           refusals.add('sourceDormancyUnexpectedParallel');
         }
       }
-      if (event.isQuarantined) {
-        quarantined.add(event.identity.value);
-        continue;
-      }
-      projected.add(event.identity.value);
-      for (final page in event.pages) {
-        _auditSourceFactWriteBlock(page.body, event, analyzer, writes);
-      }
-    } on FormatException {
-      refusals.add(
-          'sourceDormancyWriterUnqualified:${event.sourceMapId}:${event.sourceEventId}');
-    } on TypeError {
-      refusals.add(
-          'sourceDormancyWriterUnqualified:${event.sourceMapId}:${event.sourceEventId}');
-    }
   }
   final targetWrites =
-      writes.where((write) => targets.contains(write['factId'])).toList();
+      nativeWrites.writes.where((write) => targets.contains(write['factId'])).toList();
   if (targetWrites.isNotEmpty) {
     refusals.add('sourceDormancyControllerWriterExecutable');
   }
@@ -159,6 +176,7 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
       source.snapshot.canonicalHash,
       source.canonicalHash,
       profile.canonicalHash,
+      activeSourceMapIds,
       refusals.toList()..sort(),
       {
         'controllerPages': [
@@ -172,9 +190,9 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
         'controllerGuardFactIds': targets.toList()..sort(),
         'nativeControllerExecution': false,
         'nativeSourceWritesToControllerGuards': targetWrites,
-        'potentiallyProjectableEvents': projected..sort(),
-        'quarantinedWholeEvents': quarantined..sort(),
-        'nativeWriteSet': writes,
+        'potentiallyProjectableEvents': nativeWrites.projected,
+        'quarantinedWholeEvents': nativeWrites.quarantined,
+        'nativeWriteSet': nativeWrites.writes,
         'nativeWriteSetSemantics': 'conservativeMayWriteUpperBound',
         'wholeRawEventWitnesses': witnesses,
         'freshInitialControllerGuards': false,
@@ -184,6 +202,31 @@ SourceParallelDormancyAudit auditSourceParallelDormancy(
             'freshWholeEventQuarantineAndExhaustiveTypedNativeWriteClosure'
       },
       controllerPages);
+}
+
+({List<Map<String, Object?>> writes, List<String> projected,
+  List<String> quarantined, List<String> refusals}) _sourceDormancyNativeWrites(
+    SourceEventAnalysis analysis, SourceEventAnalyzer analyzer) {
+  final writes = <Map<String, Object?>>[];
+  final projected = <String>[], quarantined = <String>[], refusals = <String>[];
+  for (final event in analysis.events) {
+    try {
+      if (event.isQuarantined) {
+        quarantined.add(event.identity.value);
+        continue;
+      }
+      projected.add(event.identity.value);
+      for (final page in event.pages) {
+        _auditSourceFactWriteBlock(page.body, event, analyzer, writes);
+      }
+    } on FormatException {
+      refusals.add('sourceDormancyWriterUnqualified:${event.sourceMapId}:${event.sourceEventId}');
+    } on TypeError {
+      refusals.add('sourceDormancyWriterUnqualified:${event.sourceMapId}:${event.sourceEventId}');
+    }
+  }
+  return (writes: List.unmodifiable(writes), projected: List.unmodifiable(projected..sort()),
+    quarantined: List.unmodifiable(quarantined..sort()), refusals: List.unmodifiable(refusals));
 }
 
 void _auditSourceFactWriteBlock(

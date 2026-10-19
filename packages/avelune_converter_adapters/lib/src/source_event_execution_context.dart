@@ -238,6 +238,8 @@ final class SourceEventExecutionContextResolver {
     final authoritativeSourceAnalysis = SourceEventAnalyzer.forProject(source,
             profile: SourceEventProfile.forProject(source))
         .analyze();
+    final parallelDormancyAuditor = SourceParallelDormancyAuditor.forProject(
+        source, profile: authoritativeSourceAnalysis.profile);
     final result = <ConverterId, SourceEventExecutionContext>{};
     final witnesses = <String, Map<String, Object?>>{};
     final retained = <String, Future<NormalizedSourceProject>>{};
@@ -281,6 +283,7 @@ final class SourceEventExecutionContextResolver {
           elevatorProgram: elevator,
           staticDoorAnalysis: staticProgram == null ? null : analysis,
           authoritativeSourceAnalysis: authoritativeSourceAnalysis,
+          parallelDormancyAuditor: parallelDormancyAuditor,
           nativeMapHashes: hashes,
           baseCompositionHash: compositionHash,
           baseMutations: baseMutations,
@@ -305,6 +308,7 @@ final class SourceEventExecutionContextResolver {
     SourceEventAnalysis? staticDoorAnalysis,
     SourceHoleNativeProgram? holeProgram,
     SourceEventAnalysis? authoritativeSourceAnalysis,
+    SourceParallelDormancyAuditor? parallelDormancyAuditor,
     Map<int, Sha256Hash>? nativeMapHashes,
     Sha256Hash? baseCompositionHash,
     List<NativeMutation>? baseMutations,
@@ -709,9 +713,16 @@ final class SourceEventExecutionContextResolver {
     } else if (unrepresentedRetainedMapIds.isNotEmpty) {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
-    final dormancy =
-        auditSourceParallelDormancy(source: source, profile: profile);
-    if (!dormancy.isQualified) {
+    final dormancyScope = attestedMapIds.intersection(representedMapIds);
+    final dormancy = (parallelDormancyAuditor ??
+        SourceParallelDormancyAuditor.forProject(source, profile: profile))
+        .audit(activeSourceMapIds: dormancyScope);
+    if (dormancy.sourceSnapshotHash != snapshotHash ||
+        dormancy.normalizationHash != normalizationHash ||
+        dormancy.profileHash != profile.canonicalHash ||
+        dormancy.activeSourceMapIds.length != dormancyScope.length ||
+        !dormancy.activeSourceMapIds.containsAll(dormancyScope) ||
+        !dormancy.isQualified) {
       refusals.add('sourceParallelDormancyUnqualified');
     }
     final pages = [
