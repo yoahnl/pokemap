@@ -42,11 +42,16 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
     bool terminalGraphic = false,
     bool activeFixed = false,
     bool activeGraphic = false,
+    int? initialSwitch,
+    String? initialSelfSwitch,
+    int? initialVariable,
     int moveSpeed = 3}) async {
   final fixture = await LiteralTileFixture.create(
       interpretationProfile: syntheticSourceInterpretationProfile,
       scriptsBytes: syntheticInterpretationArchive,
       includeEventSystem: true,
+      switchNames: const [null, 'Ready'],
+      variableNames: const [null, 'Count'],
       extraFiles: {
         'Data/map_connections.dat': literalFixtureMarshal([]),
         if (terminalGraphic || activeFixed || activeGraphic)
@@ -57,6 +62,10 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
           LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [
             LiteralFixtureEventPage(
                 trigger: trigger,
+                globalSwitch: initialSwitch,
+                selfSwitch: initialSelfSwitch,
+                variableId: initialVariable,
+                variableThreshold: initialVariable == null ? 0 : 3,
                 commands: commands,
                 characterName: activeFixed || activeGraphic ? 'Wall' : '',
                 directionFix: activeFixed,
@@ -164,6 +173,57 @@ Future<SourceEventProjection> _projection(LiteralTileFixture fixture,
 }
 
 void main() {
+  for (final kind in ['global', 'self', 'combined', 'numeric']) {
+    test('finite autorun preserves its $kind initial guard', () async {
+      final source = await _source(const [
+        LiteralFixtureEventCommand(106, [2]),
+        LiteralFixtureEventCommand(101, ['Guarded sequence.']),
+        LiteralFixtureEventCommand(123, ['A', 0]),
+      ], trigger: 3, terminal: true,
+        initialSwitch: kind == 'self' || kind == 'numeric' ? null : 1,
+        initialSelfSwitch: kind == 'global' || kind == 'numeric' ? null : 'B',
+        initialVariable: kind == 'numeric' ? 1 : null);
+      final event = source.analysis.events.single;
+      final programs = sourceSequencePrograms(
+          source: source.fixture.source, analysis: source.analysis);
+      expect(programs, hasLength(1));
+      expect(programs.values.single.isBoundTo(source: source.fixture.source,
+          analysis: source.analysis, event: event), isTrue);
+      final projection = await _projection(source.fixture);
+      expect(projection.scenes, hasLength(2),
+          reason: jsonEncode(projection.semanticEvidence));
+      final encoded = jsonEncode(projection.semanticEvidence);
+      expect(encoded, contains('finiteAutorun'));
+      final sceneJson = jsonEncode(projection.scenes.map((scene) => scene.toJson()).toList());
+      expect(sceneJson, contains('wait'));
+      final registryJson = jsonEncode(projection.registry.toJson());
+      expect(registryJson, contains('entityAutorun'));
+      expect(registryJson, contains('"kind":"fact"'));
+      if (kind == 'numeric') {
+        expect(registryJson, contains('"operator":"greaterThanOrEqual"'));
+        expect(registryJson, contains('"expectedValue":3'));
+      }
+      final condition = event.pages.first.condition;
+      for (final guard in condition.kind == SourceEventConditionKind.all
+          ? condition.children : [condition]) {
+        expect(registryJson, contains(guard.kind == SourceEventConditionKind.variableAtLeast
+            ? sourceEventIntegerVariableBindingId(guard.factId!)
+            : sourceEventFactBindingId(guard.factId!)));
+      }
+      expect(sceneJson, contains(sourceEventFactBindingId(
+          (event.pages.first.body.nodes.last as SourceSelfSwitchNode).factId)));
+    });
+  }
+  test('guarded autorun still requires its final dominant self-switch page', () async {
+    for (final terminal in [false, true]) {
+      final source = await _source(const [
+        LiteralFixtureEventCommand(106, [2]),
+        LiteralFixtureEventCommand(123, ['A', 0]),
+      ], trigger: 3, terminal: terminal, terminalSwitch: 'B', initialSwitch: 1);
+      expect(sourceSequencePrograms(source: source.fixture.source,
+          analysis: source.analysis), isEmpty);
+    }
+  });
   test('tone remains asynchronous and wait retains source ticks', () async {
     final bytes = ByteData(32)..setFloat64(0, -64, Endian.little);
     final source = await _source([

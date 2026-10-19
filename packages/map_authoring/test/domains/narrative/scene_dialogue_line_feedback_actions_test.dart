@@ -37,6 +37,74 @@ SceneDialogueLinePolicy _policy(
             audioCue: audioCue));
 
 void main() {
+  test('reveal cue contract publishes rune offset bounds and one effect per line', () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.dispose);
+    final described = fixture.api.describeMutations();
+    final actions = described['actions'] as List;
+    final action = actions.cast<Map>().singleWhere((value) => value['id'] == _actionId);
+    final extensions = action['extensions'] as Map;
+    final linePolicy = extensions['linePolicy'] as Map;
+    expect(linePolicy['audioCue'], {
+      'cardinality': 'atMostOnePerLine',
+      'revealOffset': {
+        'type': 'integer',
+        'default': 0,
+        'minimum': 0,
+        'maximum': 1048576,
+        'unit': 'unicodeRunesBeforeInterpolation',
+        'bound': 'compiledLineTextRuneLength',
+        'nonzeroRole': 'effect',
+        'trigger': 'onceWhenRevealReachesOffset',
+      },
+    });
+  });
+
+  test('direct API and JSONL apply reveal cues and reject out of line offsets atomically', () async {
+    for (final jsonl in [false, true]) {
+      final fixture = await _Fixture.create(mediaAssets: [CinematicMediaAsset(
+        id: 'cue', label: 'Found', kind: CinematicMediaAssetKind.sound,
+        relativePath: 'media/found.ogg')]);
+      addTearDown(fixture.dispose);
+      final worker = JsonlWorker(api: fixture.readApi, mutations: fixture.api);
+      Future<AuthoringResult> command(String name, Map<String, Object?> args) async =>
+        AuthoringResult.fromJson(jsonDecode(await worker.processLine(jsonEncode(
+          {'id': name, 'command': name, 'args': args}))) as Map<String, dynamic>);
+      final linePolicy = _policy().toJson();
+      (linePolicy['feedback'] as Map)['audioCue'] = {
+        'mediaAssetId': 'cue', 'cueId': 'reveal-cue', 'volume': 0.64,
+        'revealOffset': 3,
+      };
+      final request = await fixture.request(_actionId, {
+        'sceneId': 'scene', 'nodeId': 'dialogue', 'linePolicy': linePolicy});
+      final planned = jsonl ? (await command('plan', {
+        'projectHandle': fixture.opened.projectHandle.value, 'request': request.toJson()})).data
+        : await fixture.api.plan(fixture.opened.projectHandle, request);
+      final applied = jsonl ? (await command('apply', {
+        'projectHandle': fixture.opened.projectHandle.value, 'planId': planned['planId'],
+        'operationId': 'reveal-cue'})).data : await fixture.api.apply(fixture.opened.projectHandle,
+        planId: planned['planId'] as String, operationId: 'reveal-cue');
+      expect(applied['receipt'], isNotNull);
+      final loaded = await fixture.loader.load(fixture.opened.projectHandle);
+      final feedback = _payload(loaded.manifest).linePolicies.first.feedback;
+      expect(feedback.audioCue!.toJson()['revealOffset'], 3);
+      expect(feedback.audioCue!.volume, 0.64);
+      expect(feedback.audioCue!.role, DialogueAudioCueRole.effect);
+      for (final offset in [-1, 7, 1048577, 1.5]) {
+        final before = await fixture.projectFile.readAsBytes();
+        final invalid = jsonDecode(jsonEncode(linePolicy)) as Map<String, dynamic>;
+        ((invalid['feedback'] as Map)['audioCue'] as Map)['revealOffset'] = offset;
+        final request = await fixture.request(_actionId, {
+          'sceneId': 'scene', 'nodeId': 'dialogue', 'linePolicy': invalid});
+        final rejected = await command('plan', {'projectHandle': fixture.opened.projectHandle.value,
+          'request': request.toJson()});
+        expect(rejected.status, AuthoringResultStatus.failure);
+        expect(rejected.error!.details['domainCode'], 'scene.dialogue.line_feedback.invalid');
+        expect(await fixture.projectFile.readAsBytes(), before);
+      }
+    }
+  });
+
   test('EV04 escaped Yarn Fact text remains a snapshot and deletion dependency',
       () async {
     final fixture = await _Fixture.create(facts: [
@@ -107,6 +175,35 @@ void main() {
       expect(jsonEncode(blocked.toJson()), contains('fact.delete_rejected'));
       expect(await fixture.sourceFile.readAsString(), source);
     }
+  });
+
+  test('canonical update binds audio-only reveal offsets to compiled Unicode runes', () {
+    final project = _project().copyWith(cinematicMediaAssets: [
+      CinematicMediaAsset(id: 'cue', label: 'Found', kind: CinematicMediaAssetKind.sound,
+        relativePath: 'media/found.ogg'),
+      CinematicMediaAsset(id: 'other', label: 'Other', kind: CinematicMediaAssetKind.sound,
+        relativePath: 'media/other.ogg'),
+    ]);
+    final document = const YarnDialogueCompiler().compile(_source.replaceFirst('Found!', 'A😀'));
+    SceneDialogueLinePolicy policy({int offset = 2, String mediaId = 'cue', double volume = 0.64}) =>
+      SceneDialogueLinePolicy(nodeName: 'Start', lineIndex: 0, feedback: DialogueLineFeedback.fromJson({
+        'segments': <Object>[], 'advance': {'kind': 'confirm'},
+        'audioCue': {'mediaAssetId': mediaId, 'cueId': 'reveal-runes', 'volume': volume,
+          'role': 'effect', 'revealOffset': offset},
+      }));
+    final first = const SceneActions().updateDialogueLineFeedback(project,
+      maps: const [], sceneId: 'scene', nodeId: 'dialogue', linePolicy: policy(), dialogue: document);
+    final updated = const SceneActions().updateDialogueLineFeedback(first,
+      maps: const [], sceneId: 'scene', nodeId: 'dialogue',
+      linePolicy: policy(mediaId: 'other', volume: 0.32), dialogue: document);
+    final cue = _payload(updated).linePolicies.first.feedback.audioCue!;
+    expect(cue.toJson()['revealOffset'], 2);
+    expect(cue.mediaAssetId, 'other');
+    expect(cue.volume, 0.32);
+    expect(cue.role, DialogueAudioCueRole.effect);
+    expect(() => const SceneActions().updateDialogueLineFeedback(updated,
+      maps: const [], sceneId: 'scene', nodeId: 'dialogue',
+      linePolicy: policy(offset: 3), dialogue: document), _invalid());
   });
 
   test('canonical scene feedback accepts and preserves bounded music effects',
@@ -517,14 +614,14 @@ final class _Fixture {
   File get sourceFile => File('${directory.path}/dialogues/choice.yarn');
 
   static Future<_Fixture> create(
-      {List<SceneDialogueLinePolicy>? linePolicies, List<NarrativeFactDefinition> facts = const []}) async {
+      {List<SceneDialogueLinePolicy>? linePolicies, List<NarrativeFactDefinition> facts = const [], List<CinematicMediaAsset> mediaAssets = const []}) async {
     final directory =
         await Directory.systemTemp.createTemp('scene_line_feedback_');
     await Directory('${directory.path}/dialogues').create();
     await File('${directory.path}/dialogues/choice.yarn')
         .writeAsString(_source);
     await File('${directory.path}/project.json').writeAsString(
-        jsonEncode(_project(linePolicies: linePolicies).copyWith(facts: facts).toJson()));
+        jsonEncode(_project(linePolicies: linePolicies).copyWith(facts: facts, cinematicMediaAssets: mediaAssets).toJson()));
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [directory.path], fileReader: reader);

@@ -1881,8 +1881,14 @@ final class _ProjectionBuilder {
   bool get _dialogueTextQualified => const ['Messages', 'MessageConfig', 'DrawText'].every(
       (role) => analysis.profile.interpretationProfile?.sections.containsKey('events.$role') == true);
 
-  DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text) {
+  DialogueLineFeedback? _textFeedback(SourceEventDefinition event, String text,
+      {void Function(String reason)? onRefusal}) {
     if (text.contains('{{')) return null;
+    if (sourceDialogueSoundNames(text).isNotEmpty && (!_dialogueTextQualified ||
+        !analysis.profile.interpretationProfile!.sections.containsKey('events.Audio_Play'))) {
+      onRefusal?.call('sourceTextAudioProfileUnqualified');
+      return null;
+    }
     if (!_dialogueTextQualified) {
       return _supportsStaticSign(event) ? _staticSourceSignFeedback(text)
           : _staticSourceTextFeedback(_isItemGiver(event)
@@ -1890,6 +1896,14 @@ final class _ProjectionBuilder {
     }
     return parseSourceDialogueText(_supportsStaticSign(event) && text.startsWith(_sourceSignWindowControl)
         ? text.substring(_sourceSignWindowControl.length) : text,
+        onRefusal: onRefusal,
+        soundEffect: (name, volume, pitch, offset) {
+          final binding = _sound(name);
+          if (binding == null) return null;
+          return DialogueAudioCue(mediaAssetId: binding.mediaId,
+              cueId: 'source_text_se_${canonicalHashOf({'name': name, 'text': text, 'offset': offset}).value}',
+              volume: binding.gainForVolume(volume), revealOffset: offset);
+        },
         variablePlaceholder: (id) => _sourceControlAnalyzer.isIntegerVariableDeclared(id)
             ? dialogueFactPlaceholder(sourceEventIntegerVariableBindingId(_sourceControlAnalyzer.variableFactId(id))) : null);
   }
@@ -1897,7 +1911,7 @@ final class _ProjectionBuilder {
   String? _choiceText(SourceEventDefinition event, String text) {
     if (!_dialogueTextQualified) return text.trim().isNotEmpty && !text.contains(r'\') && !text.contains('{{') ? text : null;
     final feedback = _textFeedback(event, text);
-    if (feedback == null || feedback.plainText.trim().isEmpty || feedback.revealIntervalMicros != null ||
+    if (feedback == null || feedback.plainText.trim().isEmpty || feedback.audioCue != null || feedback.revealIntervalMicros != null ||
         feedback.advance.kind != DialogueLineAdvanceKind.confirm ||
         feedback.segments.whereType<DialogueTextSegment>().any((segment) => segment.style != null)) {
       return null;
@@ -3109,8 +3123,9 @@ final class _ProjectionBuilder {
           }
           _blockGaps(event, node.body, gaps, checkCharacterBindings: checkCharacterBindings);
         case SourceTextNode(:final text, :final followingChoice):
-          if (_textFeedback(event, text) == null) {
-            gaps.add('sourceTextControlUnsupported');
+          final textRefusals = <String>{};
+          if (_textFeedback(event, text, onRefusal: textRefusals.add) == null) {
+            gaps.addAll(textRefusals.isEmpty ? {'sourceTextControlUnsupported'} : textRefusals);
           }
           if (followingChoice != null) {
             _choiceGaps(event, followingChoice, gaps,
@@ -3215,8 +3230,14 @@ final class _ProjectionBuilder {
           }
         case SourceShopProgramNode():
           if (_shopBinding(event, node) == null) gaps.add('sourceShopBindingsMissing');
-        case SourceScriptNode():
         case SourceUnknownNode():
+          if (node.reason == 'events.actor_appearance_unsupported') {
+            gaps.add('sourceActorAppearanceUnsupported');
+          } else if (node.reason == 'events.move_route_appearance_unsupported') {
+            gaps.add('sourceRouteAppearanceUnsupported');
+          }
+          gaps.add('sourceCommandUnqualified');
+        case SourceScriptNode():
           gaps.add('sourceCommandUnqualified');
         case SourceCenterServiceProgramNode():
           gaps.add('sourceCenterServiceBindingsMissing');
@@ -3231,8 +3252,8 @@ final class _ProjectionBuilder {
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
         case SourceSoundEffectNode():
-          if (node.pitch != 100 ||
-              _sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
+          if (node.pitch != 100) gaps.add('sourceSoundPitchUnsupported');
+          if (_sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
             gaps.add('sourceSoundBindingMissing');
           }
           if (!_isSourceTransition(event) && !_isItemGiver(event)) {
@@ -3266,7 +3287,8 @@ final class _ProjectionBuilder {
               gaps.add('sourceRoutePrimitiveUnsupported');
             }
             for (final step in node.steps.where((step) => step.soundName != null)) {
-              if (step.soundPitch != 100 || _sound(step.soundName!) == null) {
+              if (step.soundPitch != 100) gaps.add('sourceSoundPitchUnsupported');
+              if (_sound(step.soundName!) == null) {
                 gaps.add('sourceSoundBindingMissing');
               }
             }

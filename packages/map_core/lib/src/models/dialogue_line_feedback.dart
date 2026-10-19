@@ -238,6 +238,7 @@ final class DialogueAudioCue {
     required this.mediaAssetId,
     required this.cueId,
     this.volume = 1.0,
+    this.revealOffset = 0,
     this.role = DialogueAudioCueRole.effect,
     this.bgmInterruption,
   }) {
@@ -249,11 +250,17 @@ final class DialogueAudioCue {
     if (bgmInterruption != null && role != DialogueAudioCueRole.musicEffect) {
       throw ArgumentError('BGM interruption requires a music effect cue.');
     }
+    if (revealOffset < 0 ||
+        revealOffset > 1048576 ||
+        revealOffset != 0 && role != DialogueAudioCueRole.effect) {
+      throw ArgumentError.value(revealOffset, 'revealOffset');
+    }
   }
 
   final String mediaAssetId;
   final String cueId;
   final double volume;
+  final int revealOffset;
   final DialogueAudioCueRole role;
   final DialogueBgmInterruption? bgmInterruption;
 
@@ -261,7 +268,7 @@ final class DialogueAudioCue {
     _fields(
       json,
       {'mediaAssetId', 'cueId'},
-      {'volume', 'role', 'bgmInterruption'},
+      {'volume', 'role', 'bgmInterruption', 'revealOffset'},
     );
     final volume = json.containsKey('volume') ? json['volume'] : 1.0;
     if (volume is! num || !volume.isFinite || volume < 0 || volume > 1) {
@@ -283,6 +290,9 @@ final class DialogueAudioCue {
         mediaAssetId: _string(json['mediaAssetId']),
         cueId: _string(json['cueId']),
         volume: volume.toDouble(),
+        revealOffset: json.containsKey('revealOffset')
+            ? _nonnegative(json['revealOffset'])
+            : 0,
         role: role,
         bgmInterruption: json.containsKey('bgmInterruption')
             ? DialogueBgmInterruption.fromJson(_object(json['bgmInterruption']))
@@ -297,6 +307,7 @@ final class DialogueAudioCue {
     'mediaAssetId': mediaAssetId,
     'cueId': cueId,
     if (volume != 1.0) 'volume': volume,
+    if (revealOffset != 0) 'revealOffset': revealOffset,
     if (role != DialogueAudioCueRole.effect) 'role': role.name,
     if (bgmInterruption != null) 'bgmInterruption': bgmInterruption!.toJson(),
   };
@@ -307,12 +318,19 @@ final class DialogueAudioCue {
       mediaAssetId == other.mediaAssetId &&
       cueId == other.cueId &&
       volume == other.volume &&
+      revealOffset == other.revealOffset &&
       role == other.role &&
       bgmInterruption == other.bgmInterruption;
 
   @override
-  int get hashCode =>
-      Object.hash(mediaAssetId, cueId, volume, role, bgmInterruption);
+  int get hashCode => Object.hash(
+    mediaAssetId,
+    cueId,
+    volume,
+    revealOffset,
+    role,
+    bgmInterruption,
+  );
 }
 
 final class DialogueLineFeedback {
@@ -325,6 +343,10 @@ final class DialogueLineFeedback {
     if (revealIntervalMicros != null && revealIntervalMicros! < 0) {
       throw ArgumentError.value(revealIntervalMicros, 'revealIntervalMicros');
     }
+    if (segments.isNotEmpty &&
+        (audioCue?.revealOffset ?? 0) > plainText.runes.length) {
+      throw ArgumentError.value(audioCue!.revealOffset, 'revealOffset');
+    }
   }
 
   final List<DialogueLineSegment> segments;
@@ -335,6 +357,11 @@ final class DialogueLineFeedback {
   String get plainText => segments.map((segment) => segment.plainText).join();
 
   void validateText(String text) {
+    if ((audioCue?.revealOffset ?? 0) > text.runes.length) {
+      throw const FormatException(
+        'Dialogue cue reveal offset exceeds line text.',
+      );
+    }
     if (segments.isNotEmpty && plainText != text) {
       throw const FormatException(
         'Dialogue segments must reproduce the line text exactly.',
@@ -342,20 +369,84 @@ final class DialogueLineFeedback {
     }
   }
 
-  DialogueLineFeedback mapText(String Function(String) transform) =>
-      DialogueLineFeedback(
-        segments: segments
-            .expand<DialogueLineSegment>((segment) {
-              if (segment is DialogueIconSegment) return [segment];
-              final text = segment as DialogueTextSegment;
-              final mapped = transform(text.text);
-              return mapped.isEmpty ? const [] : [DialogueTextSegment(mapped, style: text.style)];
-            })
-            .toList(growable: false),
-        revealIntervalMicros: revealIntervalMicros,
-        advance: advance,
-        audioCue: audioCue,
-      );
+  DialogueLineFeedback mapText(
+    String Function(String) transform, {
+    String? sourceText,
+  }) {
+    final mappedSegments = segments
+        .expand<DialogueLineSegment>((segment) {
+          if (segment is DialogueIconSegment) return [segment];
+          final text = segment as DialogueTextSegment;
+          final mapped = transform(text.text);
+          return mapped.isEmpty
+              ? const []
+              : [DialogueTextSegment(mapped, style: text.style)];
+        })
+        .toList(growable: false);
+    final cue = audioCue;
+    var offset = cue?.revealOffset ?? 0;
+    if (offset > 0) {
+      final sourceSegments = segments.isEmpty
+          ? [
+              DialogueTextSegment(
+                sourceText ??
+                    (throw const FormatException(
+                      'Cue remapping requires source line text.',
+                    )),
+              ),
+            ]
+          : segments;
+      var remaining = offset;
+      offset = 0;
+      for (final segment in sourceSegments) {
+        if (remaining == 0) break;
+        final length = segment.plainText.runes.length;
+        if (segment is DialogueIconSegment) {
+          offset++;
+        } else {
+          final text = (segment as DialogueTextSegment).text;
+          final mapped = transform(text);
+          if (remaining >= length) {
+            offset += mapped.runes.length;
+          } else {
+            final prefix = transform(
+              String.fromCharCodes(text.runes.take(remaining)),
+            );
+            final suffix = transform(
+              String.fromCharCodes(text.runes.skip(remaining)),
+            );
+            if ('$prefix$suffix' != mapped) {
+              throw const FormatException(
+                'Dialogue cue falls inside an indivisible text substitution.',
+              );
+            }
+            offset += prefix.runes.length;
+          }
+        }
+        remaining = (remaining - length).clamp(0, remaining);
+      }
+      if (remaining != 0) {
+        throw const FormatException(
+          'Dialogue cue reveal offset exceeds line text.',
+        );
+      }
+    }
+    return DialogueLineFeedback(
+      segments: mappedSegments,
+      revealIntervalMicros: revealIntervalMicros,
+      advance: advance,
+      audioCue: cue == null
+          ? null
+          : DialogueAudioCue(
+              mediaAssetId: cue.mediaAssetId,
+              cueId: cue.cueId,
+              volume: cue.volume,
+              role: cue.role,
+              bgmInterruption: cue.bgmInterruption,
+              revealOffset: offset,
+            ),
+    );
+  }
 
   factory DialogueLineFeedback.fromJson(Map<String, dynamic> json) {
     _fields(

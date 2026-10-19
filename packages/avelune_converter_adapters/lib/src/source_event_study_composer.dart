@@ -17,6 +17,7 @@ import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
 import 'source_event_sound_binding.dart';
+import 'source_dialogue_text.dart';
 import 'source_sequence_program.dart';
 import 'source_event_character_import.dart';
 import 'source_character_presentation_binding.dart';
@@ -312,7 +313,14 @@ final class SourceEventStudyComposer {
     };
     final sounds = <String, SourceEventSoundBinding>{};
     final soundEvidence = <Map<String, Object?>>[];
+    final inlineSounds = {
+      if (const ['Audio_Play', 'Messages', 'MessageConfig', 'DrawText'].every(
+          (role) => profile.interpretationProfile?.sections.containsKey('events.$role') == true))
+        for (final event in selectedEvents.where((event) => !event.isQuarantined))
+          for (final page in event.pages) ..._soundNames(page.body, dialogueOnly: true),
+    };
     for (final name in {
+      ...inlineSounds,
       for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
           (transitionIds.contains(event.identity) || event.pages.any((page) =>
               _pickups(page.body).any((pickup) => pickup.helper == SourceItemGrantHelper.receiveItem)))))
@@ -321,7 +329,7 @@ final class SourceEventStudyComposer {
       try {
         final binding = await const SourceEventSoundResolver().read(
           source: source, files: recording, name: name, limits: limits,
-          policy: transitionSounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
+          policy: transitionSounds.contains(name) || inlineSounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
               : SourceEventSoundPolicy.nativeAuthoredVolume,
           cancellation: cancellation);
         sounds[name] = binding;
@@ -550,6 +558,15 @@ final class SourceEventStudyComposer {
             holePrograms: holePrograms, holeContexts: holeContexts,
             elevatorPrograms: elevatorPrograms, elevatorContexts: elevatorContexts,
         limits: limits);
+    final dialogueSoundMediaIds = projection.scenes
+        .expand((scene) => scene.graph.nodes)
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .expand((payload) => payload.linePolicies)
+        .map((policy) => policy.feedback.audioCue)
+        .whereType<DialogueAudioCue>()
+        .map((cue) => cue.mediaAssetId)
+        .toSet();
     final usedExternalWarps = projection.semanticEvidence['usedExternalWarps'] == true
         ? externalWarps : null;
     final admittedIdentities = (projection.semanticEvidence['events'] as List).cast<Map>()
@@ -871,7 +888,13 @@ final class SourceEventStudyComposer {
           for (final diagnostic in (binding.evidence['diagnostics'] as List? ?? const []).cast<Map>())
             canonicalJsonOf(diagnostic): diagnostic,
       }.values.toList(),
-      'sounds': soundEvidence,
+      'sounds': [
+        for (final row in soundEvidence) {
+          ...row,
+          if (sounds[row['sourceName']] case final binding?)
+            'usesDialogueFeedback': dialogueSoundMediaIds.contains(binding.mediaId),
+        },
+      ],
       'externalWarpBindings': externalWarpEvidence,
       if (usedExternalWarps != null) 'externalWarps': usedExternalWarps.evidence,
       'centerRecovery': centerRecoveryEvidence,
@@ -953,35 +976,38 @@ final class SourceEventStudyComposer {
   }
 }
 
-Iterable<String> _soundNames(SourceEventBlock block) sync* {
+Iterable<String> _soundNames(SourceEventBlock block, {bool dialogueOnly = false}) sync* {
   for (final node in block.nodes) {
     switch (node) {
       case SourceSoundEffectNode():
-        yield node.name;
+        if (!dialogueOnly) yield node.name;
       case SourceWarpNode():
-        if (node.originalProgram != null) yield node.originalProgram!.sound.name;
+        if (!dialogueOnly && node.originalProgram != null) yield node.originalProgram!.sound.name;
       case SourceForcedMoveRouteNode():
         for (final step in node.steps) {
-          if (step.soundName != null) yield step.soundName!;
+          if (!dialogueOnly && step.soundName != null) yield step.soundName!;
         }
+      case SourceCommonEventCallNode():
+        yield* _soundNames(node.body, dialogueOnly: dialogueOnly);
       case SourceConditionalNode():
-        yield* _soundNames(node.whenTrue);
-        yield* _soundNames(node.whenFalse);
+        yield* _soundNames(node.whenTrue, dialogueOnly: dialogueOnly);
+        yield* _soundNames(node.whenFalse, dialogueOnly: dialogueOnly);
       case SourceTextNode():
+        if (dialogueOnly) yield* sourceDialogueSoundNames(node.text);
         final choice = node.followingChoice;
         if (choice != null) {
           for (final branch in choice.branches) {
-            yield* _soundNames(branch.body);
+            yield* _soundNames(branch.body, dialogueOnly: dialogueOnly);
           }
           if (choice.cancelBranch != null) {
-            yield* _soundNames(choice.cancelBranch!);
+            yield* _soundNames(choice.cancelBranch!, dialogueOnly: dialogueOnly);
           }
         }
       case SourceChoiceNode():
         for (final branch in node.branches) {
-          yield* _soundNames(branch.body);
+          yield* _soundNames(branch.body, dialogueOnly: dialogueOnly);
         }
-        if (node.cancelBranch != null) yield* _soundNames(node.cancelBranch!);
+        if (node.cancelBranch != null) yield* _soundNames(node.cancelBranch!, dialogueOnly: dialogueOnly);
       default:
         break;
     }

@@ -87,12 +87,15 @@ final class LiteralFixtureEvent {
 
 final class LiteralFixtureEventPage {
   const LiteralFixtureEventPage({required this.commands, this.selfSwitch,
-    this.globalSwitch, this.characterName = '', this.pattern = 0, this.tileId = 0,
+    this.globalSwitch, this.variableId, this.variableThreshold = 0,
+    this.characterName = '', this.pattern = 0, this.tileId = 0,
     this.direction = 2, this.trigger = 0, this.through = false,
     this.moveType = 0, this.directionFix = false, this.moveSpeed = 3});
   final List<LiteralFixtureEventCommand> commands;
   final String? selfSwitch;
   final int? globalSwitch;
+  final int? variableId;
+  final int variableThreshold;
   final String characterName;
   final int pattern;
   final int tileId;
@@ -371,9 +374,9 @@ _Object _fixtureEvent(LiteralFixtureEvent event) => _Object('RPG::Event', {
   '@pages': [for (final page in event.pages) _Object('RPG::Event::Page', {
     '@condition': _Object('RPG::Event::Page::Condition', {
       '@switch1_valid': page.globalSwitch != null, '@switch2_valid': false,
-      '@variable_valid': false, '@self_switch_valid': page.selfSwitch != null,
+      '@variable_valid': page.variableId != null, '@self_switch_valid': page.selfSwitch != null,
       '@switch1_id': page.globalSwitch ?? 1, '@switch2_id': 1,
-      '@variable_id': 1, '@variable_value': 0,
+      '@variable_id': page.variableId ?? 1, '@variable_value': page.variableThreshold,
       '@self_switch_ch': page.selfSwitch ?? 'A',
     }),
     '@graphic': _Object('RPG::Event::Page::Graphic', {

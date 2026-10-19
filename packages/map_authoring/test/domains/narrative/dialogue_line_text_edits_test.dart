@@ -9,6 +9,56 @@ const _beforeText = 'Tell me, do you like to fish?';
 const _afterText = 'Dis-moi, tu aimes la pêche ?';
 
 void main() {
+  for (final jsonl in [false, true]) {
+    test('whole line edits retain inline cue offsets, JSONL=$jsonl', () async {
+      final f = await _Fixture.create(withAudio: true, inlineOffset: 6);
+      addTearDown(f.dispose);
+      final request = await f.request('dialogue.source_update',
+          f.parameters('dialogue.source_update',
+              source: f.sourceText.replaceFirst(_beforeText, _afterText),
+              edits: [_edit()]));
+      if (jsonl) {
+        final worker = JsonlWorker(api: f.readApi, mutations: f.api);
+        final plan = AuthoringResult.fromJson(jsonDecode(await worker.processLine(
+            jsonEncode({'id': 'plan-inline', 'command': 'plan', 'args': {
+              'projectHandle': f.opened.projectHandle.value,
+              'request': request.toJson(),
+            }}))) as Map<String, dynamic>);
+        expect(plan.status, AuthoringResultStatus.success, reason: jsonEncode(plan.toJson()));
+        final applied = AuthoringResult.fromJson(jsonDecode(await worker.processLine(
+            jsonEncode({'id': 'apply-inline', 'command': 'apply', 'args': {
+              'projectHandle': f.opened.projectHandle.value,
+              'planId': plan.data['planId'], 'operationId': 'inline-edit',
+            }}))) as Map<String, dynamic>);
+        expect(applied.status, AuthoringResultStatus.success, reason: jsonEncode(applied.toJson()));
+      } else {
+        final plan = await f.api.planMutation(f.opened.projectHandle, request);
+        await f.api.apply(f.opened.projectHandle,
+            planId: plan.planId, operationId: 'inline-edit');
+      }
+      final after = await f.loader.load(f.opened.projectHandle);
+      expect(after.manifest.scenes.single, _replaceSceneText(f.project.scenes.single));
+      final feedback = _payload(after.manifest.scenes.single).linePolicies.single.feedback;
+      expect(feedback.audioCue!.revealOffset, 6);
+      expect(feedback.audioCue, _payload(f.project.scenes.single).linePolicies.single.feedback.audioCue);
+    });
+  }
+  for (final emptySegments in [false, true]) {
+    test('short line refuses inline cue atomically, emptySegments=$emptySegments', () async {
+      final f = await _Fixture.create(withAudio: true,
+          inlineOffset: 6, withEmptySegments: emptySegments);
+      addTearDown(f.dispose);
+      final projectBytes = await f.projectFile.readAsBytes();
+      await expectLater(f.api.planMutation(f.opened.projectHandle,
+          await f.request('dialogue.source_update',
+              f.parameters('dialogue.source_update',
+                  source: f.sourceText.replaceFirst(_beforeText, 'Court'),
+                  edits: [{..._edit(), 'afterText': 'Court'}]))),
+          _domain('dialogue.line_text_edits_audio_cue_out_of_bounds'));
+      expect(await f.projectFile.readAsBytes(), projectBytes);
+      expect(await f.sourceFile.readAsString(), f.sourceText);
+    });
+  }
   test('the public line text edit codec is exact and rejects malformed scopes',
       () {
     final edit =
@@ -614,6 +664,7 @@ final class _Fixture {
   static Future<_Fixture> create({
     int copies = 1,
     bool withAudio = false,
+    int? inlineOffset,
     bool withEditedRichLine = false,
     bool withUneditedRichLine = false,
     bool withUneditedIconLine = false,
@@ -644,6 +695,12 @@ final class _Fixture {
           'bgmInterruption': {'fadeOutMs': 200, 'fadeInMs': 1000},
         },
       });
+      if (inlineOffset != null) {
+        feedback['audioCue'] = {
+          'mediaAssetId': 'pickup', 'cueId': 'fishing_guru',
+          'volume': 0.75, 'revealOffset': inlineOffset,
+        };
+      }
     }
     if (withEditedRichLine) {
       feedback['segments'] = [

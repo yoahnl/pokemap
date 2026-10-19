@@ -237,7 +237,7 @@ class DialogueSession {
             text: transform(text),
             characterId: characterId,
             portraitStateId: portraitStateId,
-            feedback: feedback?.mapText(transform),
+            feedback: feedback?.mapText(transform, sourceText: text),
           ),
         DialogueWaitingForChoice(:final choices, :final selectedIndex, :final policy) =>
           DialogueWaitingForChoice(
@@ -339,7 +339,7 @@ List<YarnStep> _mapSteps(
                 transform(text),
                 characterId: characterId,
                 portraitStateId: portraitStateId,
-                feedback: feedback?.mapText(transform),
+                feedback: feedback?.mapText(transform, sourceText: text),
               ),
             YarnStepJump(:final targetNode) => YarnStepJump(targetNode),
             YarnStepChoiceBlock(:final choices, :final policy) => YarnStepChoiceBlock(

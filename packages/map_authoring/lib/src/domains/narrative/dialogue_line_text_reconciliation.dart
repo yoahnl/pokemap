@@ -48,6 +48,24 @@ ProjectManifest reconcileDialogueLineTextEdits({
       !changedScopes.containsAll(byScope.keys)) {
     _invalid('Line text edits must cover every compiled text change exactly.');
   }
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneYarnDialoguePayload || payload.dialogueId != dialogueId) continue;
+      for (final policy in payload.linePolicies) {
+        final edit = byScope[(policy.nodeName, policy.lineIndex)];
+        if (edit != null &&
+            (policy.feedback.audioCue?.revealOffset ?? 0) > edit.afterText.runes.length) {
+          throw NarrativeAuthoringException(
+            'dialogue.line_text_edits_audio_cue_out_of_bounds',
+            'The edited line is shorter than its audio cue position. Update the cue explicitly.',
+            details: {'sceneId': scene.id, 'nodeId': node.id,
+              'nodeName': policy.nodeName, 'lineIndex': policy.lineIndex},
+          );
+        }
+      }
+    }
+  }
   validateDialogueSceneStarts(
     project: project,
     dialogueId: dialogueId,
@@ -122,7 +140,13 @@ SceneDialogueLinePolicy _replacePolicy(
   return SceneDialogueLinePolicy(
     nodeName: policy.nodeName,
     lineIndex: policy.lineIndex,
-    feedback: policy.feedback.mapText((text) => edit.afterText),
+    feedback: DialogueLineFeedback(
+      segments: [DialogueTextSegment(edit.afterText,
+          style: (policy.feedback.segments.single as DialogueTextSegment).style)],
+      revealIntervalMicros: policy.feedback.revealIntervalMicros,
+      advance: policy.feedback.advance,
+      audioCue: policy.feedback.audioCue,
+    ),
   );
 }
 

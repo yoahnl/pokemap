@@ -102,6 +102,13 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
       assert.equal(edits.type, "array");
       assert.equal(record(edits.items).type, "object");
     }
+    const cueContract = record(record(record(actions.get(feedbackAction)!.extensions).linePolicy).audioCue);
+    assert.equal(cueContract.cardinality, "atMostOnePerLine");
+    assert.deepEqual(cueContract.revealOffset, {
+      type: "integer", default: 0, minimum: 0, maximum: 1048576,
+      unit: "unicodeRunesBeforeInterpolation", bound: "compiledLineTextRuneLength",
+      nonzeroRole: "effect", trigger: "onceWhenRevealReachesOffset",
+    });
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     async function plan(actionId: string, parameters: JsonRecord, failure = false): Promise<JsonRecord> {
       assert.ok(workspace);
@@ -169,6 +176,22 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
       audioCue: { mediaAssetId: "pickup", cueId: "item-found", volume: 0.64,
         role: "musicEffect", bgmInterruption: { fadeOutMs: 200, fadeInMs: 1000 } },
     } };
+    const revealPolicy = { ...linePolicy, feedback: { ...linePolicy.feedback,
+      audioCue: { mediaAssetId: "pickup", cueId: "reveal-found", volume: 0.64, revealOffset: 3 } } };
+    await mutate(feedbackAction, { sceneId: "scene", nodeId: "dialogue", linePolicy: revealPolicy });
+    assert.deepEqual(dialoguePayload(await scene()).linePolicies, [revealPolicy]);
+    for (const audioCue of [
+      { ...revealPolicy.feedback.audioCue, revealOffset: -1 },
+      { ...revealPolicy.feedback.audioCue, revealOffset: 7 },
+      { ...revealPolicy.feedback.audioCue, revealOffset: 1048577 },
+      { ...revealPolicy.feedback.audioCue, revealOffset: 1.5 },
+      { ...revealPolicy.feedback.audioCue, role: "musicEffect" },
+    ]) {
+      const refused = await plan(feedbackAction, { sceneId: "scene", nodeId: "dialogue",
+        linePolicy: { ...revealPolicy, feedback: { ...revealPolicy.feedback, audioCue } } }, true);
+      assert.equal(refused.domainCode, "scene.dialogue.line_feedback.invalid");
+      assert.deepEqual(dialoguePayload(await scene()).linePolicies, [revealPolicy]);
+    }
     await mutate(feedbackAction, { sceneId: "scene", nodeId: "dialogue", linePolicy });
     let after = await scene();
     assert.deepEqual(dialoguePayload(after).linePolicies, [linePolicy]);
@@ -244,8 +267,9 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     assert.equal(referencedFact.domainCode, "fact.delete_rejected");
     console.log(JSON.stringify({ liveCatalog: true, actions: [choiceAction, feedbackAction, audioAction, mapAudioAction],
       choicePoliciesApplied: 3, lineFeedbackApplied: true, audioArtifactImported: true,
-      musicEffectPolicyApplied: true, mapVolumeAppliedAndPreserved: true,
-      exactRejections: 11, typedFactSourcePreserved: true, typedFactDeletionBlocked: true,
+      musicEffectPolicyApplied: true, revealCueApplied: true, revealOffsetContractVerified: true,
+      mapVolumeAppliedAndPreserved: true,
+      exactRejections: 16, typedFactSourcePreserved: true, typedFactDeletionBlocked: true,
       explicitLineTextEditActions: 2, reopenedThroughMcp: true }));
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = undefined;

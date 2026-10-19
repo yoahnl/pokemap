@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -11,6 +13,147 @@ import 'package:map_runtime/src/presentation/flame/dialogue_text_speed.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('changing text speed cannot bypass a pending inline cue start', () async {
+    final gate = Completer<void>();
+    final port = _Port()..gate = gate;
+    var finished = 0;
+    final overlay = DialogueOverlayComponent(
+      session: _session().withLinePolicies([
+        SceneDialogueLinePolicy(nodeName: 'Start', lineIndex: 0,
+          feedback: DialogueLineFeedback(
+            audioCue: DialogueAudioCue(mediaAssetId: 'fanfare', cueId: 'inline', revealOffset: 2))),
+      ]),
+      viewportSize: Vector2(320, 240), feedbackPlaybackPort: port,
+      textSpeed: RuntimeDialogueTextSpeed.normal,
+      onFinished: (_) => finished++);
+    await overlay.onLoad();
+    overlay.advance();
+    overlay.setTextSpeed(RuntimeDialogueTextSpeed.instant);
+    overlay.advance();
+    expect((overlay.currentSession.state as DialogueShowingLine).text, 'Found!');
+    expect(port.played, ['inline']);
+    expect(finished, 0);
+    gate.complete();
+    await Future<void>.delayed(Duration.zero);
+    overlay.advance();
+    expect((overlay.currentSession.state as DialogueShowingLine).text, 'Pocket.');
+    overlay.onRemove();
+  });
+
+  test(
+    'inline cue waits for unicode reveal threshold and plays only once',
+    () async {
+      final port = _Port();
+      final overlay = _inlineOverlay(port: port);
+      await overlay.onLoad();
+      expect(port.played, isEmpty);
+      overlay.update(0.024);
+      expect(overlay.visibleText, isEmpty);
+      expect(port.played, isEmpty);
+      overlay.update(0.026);
+      expect(overlay.visibleText, '😀a');
+      expect(port.played, ['inline']);
+      await Future<void>.delayed(Duration.zero);
+      overlay.update(1);
+      overlay.advance();
+      overlay.advance();
+      overlay.onRemove();
+      expect(port.played, ['inline']);
+    },
+  );
+
+  test(
+    'manual and instant reveal trigger inline cue without duplicate input',
+    () async {
+      for (final instant in [false, true]) {
+        final port = _Port();
+        final overlay = _inlineOverlay(
+          port: port,
+          interval: instant ? 0 : 25000,
+        );
+        await overlay.onLoad();
+        expect(port.played, instant ? ['inline'] : isEmpty);
+        overlay.advance();
+        overlay.advance();
+        await Future<void>.delayed(Duration.zero);
+        expect(port.played, ['inline']);
+        overlay.onRemove();
+      }
+    },
+  );
+
+  test('removes a hidden inline cue without playing it', () async {
+    final port = _Port();
+    final overlay = _inlineOverlay(port: port);
+    await overlay.onLoad();
+    overlay.onRemove();
+    overlay.update(10);
+    overlay.advance();
+    expect(port.played, isEmpty);
+  });
+
+  test(
+    'a revisited cue id is not replayed on a later line in the session',
+    () async {
+      final port = _Port();
+      final overlay = DialogueOverlayComponent(
+        session: _session().withLinePolicies([
+          for (final index in [0, 1])
+            SceneDialogueLinePolicy(
+              nodeName: 'Start',
+              lineIndex: index,
+              feedback: DialogueLineFeedback(
+                revealIntervalMicros: 25000,
+                audioCue: DialogueAudioCue(
+                  mediaAssetId: 'fanfare',
+                  cueId: 'inline',
+                  revealOffset: 2,
+                ),
+              ),
+            ),
+        ]),
+        viewportSize: Vector2(320, 240),
+        feedbackPlaybackPort: port,
+        onFinished: (_) {},
+      );
+      await overlay.onLoad();
+      overlay.advance();
+      await Future<void>.delayed(Duration.zero);
+      overlay.advance();
+      await Future<void>.delayed(Duration.zero);
+      overlay.advance();
+      overlay.update(1);
+      expect(port.played, ['inline']);
+      overlay.onRemove();
+    },
+  );
+
+  test('session remaps unsegmented cue after unicode substitution', () {
+    final session =
+        DialogueSession.start(
+          parseYarnFile('title: Start\n---\n{{ player_name }}!\n==='),
+          'Start',
+        )!.withLinePolicies([
+          SceneDialogueLinePolicy(
+            nodeName: 'Start',
+            lineIndex: 0,
+            feedback: DialogueLineFeedback(
+              audioCue: DialogueAudioCue(
+                mediaAssetId: 'fanfare',
+                cueId: 'inline',
+                revealOffset: '{{ player_name }}'.runes.length,
+              ),
+            ),
+          ),
+        ]);
+    final mapped = session.mapText(
+      (value) => value.replaceAll('{{ player_name }}', '😀Tom'),
+    );
+    final state = mapped.state as DialogueShowingLine;
+    expect(state.text, '😀Tom!');
+    expect(state.feedback!.audioCue!.revealOffset, 4);
+  });
 
   test(
     'attaches exact scoped line feedback and preserves it across mapping',
@@ -245,6 +388,33 @@ void main() {
   });
 }
 
+DialogueOverlayComponent _inlineOverlay({
+  required _Port port,
+  int interval = 25000,
+}) => DialogueOverlayComponent(
+  session:
+      DialogueSession.start(
+        parseYarnFile('title: Start\n---\n😀abc\n==='),
+        'Start',
+      )!.withLinePolicies([
+        SceneDialogueLinePolicy(
+          nodeName: 'Start',
+          lineIndex: 0,
+          feedback: DialogueLineFeedback(
+            revealIntervalMicros: interval,
+            audioCue: DialogueAudioCue(
+              mediaAssetId: 'fanfare',
+              cueId: 'inline',
+              revealOffset: 2,
+            ),
+          ),
+        ),
+      ]),
+  viewportSize: Vector2(320, 240),
+  feedbackPlaybackPort: port,
+  onFinished: (_) {},
+);
+
 DialogueSession _session() => DialogueSession.start(
   parseYarnFile('''
 title: Start
@@ -284,12 +454,14 @@ DialogueOverlayComponent _overlay({
 
 final class _Port implements DialogueFeedbackPlaybackPort {
   final played = <String>[];
+  Completer<void>? gate;
   @override
   Future<void> playCue(
     DialogueAudioCue cue, {
     required String playbackId,
   }) async {
     played.add(cue.cueId);
+    await gate?.future;
   }
 }
 

@@ -1555,9 +1555,12 @@ final class _SourceEventParser {
         } else {
           nodes.add(_node(indent));
         }
-      } on FormatException {
+      } on FormatException catch (error) {
         if (index == before) {
-          nodes.add(_unknown('events.invalid_command_parameters'));
+          nodes.add(_unknown(command.code == 209 &&
+                  error.message == 'events.move_route_appearance_unsupported'
+              ? 'events.move_route_appearance_unsupported'
+              : 'events.invalid_command_parameters'));
         } else {
           _diagnostic('events.invalid_command_structure', before,
               math.max(before, index - 1));
@@ -1995,6 +1998,8 @@ final class _SourceEventParser {
         }
         _diagnostic('events.script_group_quarantined', first, index - 1);
         return SourceScriptNode(_span(first, index - 1), script);
+      case 322:
+        return _unknown('events.actor_appearance_unsupported');
       default:
         return _unknown('events.unknown_command');
     }
@@ -2237,6 +2242,7 @@ final class _SourceEventParser {
       38 => SourceMoveRouteStepKind.throughOff,
       39 => SourceMoveRouteStepKind.alwaysOnTopOn,
       40 => SourceMoveRouteStepKind.alwaysOnTopOff,
+      41 => throw const FormatException('events.move_route_appearance_unsupported'),
       44 => SourceMoveRouteStepKind.soundEffect,
       _ => throw const FormatException(),
     };

@@ -2,6 +2,138 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('cue reveal offset is strict bounded and restricted to effects', () {
+    final cue = DialogueAudioCue.fromJson({
+      'mediaAssetId': 'fanfare',
+      'cueId': 'item',
+      'revealOffset': 2,
+    });
+    expect(cue.toJson()['revealOffset'], 2);
+    expect(
+      cue,
+      isNot(DialogueAudioCue(mediaAssetId: 'fanfare', cueId: 'item')),
+    );
+    for (final value in [-1, 1048577, 1.0, null, '2']) {
+      expect(
+        () => DialogueAudioCue.fromJson({
+          'mediaAssetId': 'fanfare',
+          'cueId': 'item',
+          'revealOffset': value,
+        }),
+        throwsFormatException,
+      );
+    }
+    expect(
+      () => DialogueAudioCue.fromJson({
+        'mediaAssetId': 'fanfare',
+        'cueId': 'item',
+        'revealOffset': 2,
+        'role': 'musicEffect',
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'reveal offset counts runes and rejects positions outside line text',
+    () {
+      final feedback = DialogueLineFeedback.fromJson({
+        'segments': [
+          {'kind': 'text', 'text': '😀a'},
+        ],
+        'advance': {'kind': 'confirm'},
+        'audioCue': {
+          'mediaAssetId': 'fanfare',
+          'cueId': 'item',
+          'revealOffset': 2,
+        },
+      });
+      feedback.validateText('😀a');
+      expect(() => feedback.validateText('😀'), throwsFormatException);
+      expect(
+        () => DialogueLineFeedback.fromJson({
+          ...feedback.toJson(),
+          'audioCue': {
+            'mediaAssetId': 'fanfare',
+            'cueId': 'item',
+            'revealOffset': 3,
+          },
+        }),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'text substitution remaps cue after placeholders using unicode runes',
+    () {
+      final text = '😀{{ player_name }} found it';
+      final offset = '😀{{ player_name }}'.runes.length;
+      final feedback = DialogueLineFeedback.fromJson({
+        'segments': [
+          {'kind': 'text', 'text': text},
+        ],
+        'advance': {'kind': 'confirm'},
+        'audioCue': {
+          'mediaAssetId': 'fanfare',
+          'cueId': 'item',
+          'revealOffset': offset,
+        },
+      });
+      final mapped = feedback.mapText(
+        (value) => value.replaceAll('{{ player_name }}', 'É😀'),
+      );
+      expect(mapped.plainText, '😀É😀 found it');
+      expect(mapped.audioCue!.toJson()['revealOffset'], 3);
+      mapped.validateText(mapped.plainText);
+    },
+  );
+
+  test('text substitution refuses an ambiguous cue inside a placeholder', () {
+    final feedback = DialogueLineFeedback.fromJson({
+      'segments': [
+        {'kind': 'text', 'text': '{{ player_name }} found it'},
+      ],
+      'advance': {'kind': 'confirm'},
+      'audioCue': {
+        'mediaAssetId': 'fanfare',
+        'cueId': 'item',
+        'revealOffset': 4,
+      },
+    });
+    expect(
+      () => feedback.mapText(
+        (value) => value.replaceAll('{{ player_name }}', 'Tom'),
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('cue remapping preserves styled segments and icon rune boundaries', () {
+    final feedback = DialogueLineFeedback(
+      segments: [
+        DialogueTextSegment(
+          '😀',
+          style: DialogueSegmentStyle(colorArgb: 0xff123456),
+        ),
+        DialogueIconSegment(assetId: 'pocket', widthPx: 16, heightPx: 16),
+        DialogueTextSegment('{{ player_name }}!'),
+      ],
+      audioCue: DialogueAudioCue(
+        mediaAssetId: 'fanfare',
+        cueId: 'item',
+        revealOffset: 2 + '{{ player_name }}'.runes.length,
+      ),
+    );
+    final mapped = feedback.mapText(
+      (value) => value.replaceAll('{{ player_name }}', 'É😀'),
+    );
+    expect(mapped.audioCue!.revealOffset, 4);
+    expect(mapped.segments[0], feedback.segments[0]);
+    expect(mapped.segments[1], feedback.segments[1]);
+    mapped.validateText('😀\uFFFCÉ😀!');
+  });
+
   test('typed cue interruption is bounded and restricted to music effects', () {
     final interruption = DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 60000);
     expect(

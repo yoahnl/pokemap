@@ -145,6 +145,7 @@ class DialogueOverlayComponent extends PositionComponent {
         _iconLeases[icon.assetId] = lease;
       }
     }
+    _resetRevealForCurrentState();
     await _beginLineFeedback();
     if (_finished) return;
     _cursorPainter = TextPainter(
@@ -154,7 +155,6 @@ class DialogueOverlayComponent extends PositionComponent {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    _resetRevealForCurrentState();
     _rebuildPainters();
     _presentationReady = true;
     _publishPresentationSnapshot();
@@ -174,12 +174,18 @@ class DialogueOverlayComponent extends PositionComponent {
     _linePlaybackReady = false;
     final state = _session.state;
     final cue = state is DialogueShowingLine ? state.feedback?.audioCue : null;
-    if (cue != null && _playedCues.add(cue.cueId)) {
+    if (cue != null) {
       final port = feedbackPlaybackPort;
-      if (port == null) throw StateError('Dialogue feedback audio port is missing.');
-      await port.playCue(cue, playbackId: '$_playbackScope:${cue.cueId}');
+      if (port == null) {
+        throw StateError('Dialogue feedback audio port is missing.');
+      }
+      if (_visibleRuneCount >= cue.revealOffset && _playedCues.add(cue.cueId)) {
+        await port.playCue(cue, playbackId: '$_playbackScope:${cue.cueId}');
+      }
     }
-    _linePlaybackReady = true;
+    if (!_finished && identical(state, _session.state)) {
+      _linePlaybackReady = true;
+    }
   }
 
   void _startLineFeedback() {
@@ -228,7 +234,9 @@ class DialogueOverlayComponent extends PositionComponent {
       }
       _rebuildLinePainters(state);
       _publishPresentationSnapshot();
+      _startLineFeedback();
     }
+    if (!_linePlaybackReady) return;
     if (!_autoAdvance || !isCurrentLineFullyRevealed) return;
     _waitElapsedMicros += availableMicros;
     final delay = state.feedback!.advance.delayMicros;
@@ -549,5 +557,8 @@ class DialogueOverlayComponent extends PositionComponent {
       _visibleRuneCount = state.text.runes.length;
     }
     _revealAccumulatorSeconds = 0;
+    if (_presentationReady && !_finished && _linePlaybackReady) {
+      _startLineFeedback();
+    }
   }
 }

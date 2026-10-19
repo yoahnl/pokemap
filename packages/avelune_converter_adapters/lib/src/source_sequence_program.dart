@@ -106,7 +106,14 @@ bool _isSequence(SourceEventDefinition event) {
     }
   }
   final first = event.pages.first;
-  if (first.condition.kind != SourceEventConditionKind.always) return false;
+  if (_conditions(first.condition).any((condition) => !const {
+    SourceEventConditionKind.globalSwitch,
+    SourceEventConditionKind.selfSwitch,
+    SourceEventConditionKind.variableAtLeast,
+    SourceEventConditionKind.variableComparison,
+  }.contains(condition.kind))) {
+    return false;
+  }
   final autorun = first.triggerCode == 3;
   if (autorun) {
     if (event.pages.length != 2) return false;
