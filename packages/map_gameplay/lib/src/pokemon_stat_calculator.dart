@@ -1,5 +1,12 @@
 import 'package:map_core/map_core.dart';
 
+export 'package:map_core/map_core.dart'
+    show
+        PokemonNatureStat,
+        PokemonNatureEffect,
+        canonicalPokemonNatureIds,
+        canonicalPokemonNatureEffect;
+
 /// Nature policy selected by each stat consumer.
 ///
 /// [neutral] remains available for deliberately nature-agnostic projections.
@@ -7,29 +14,7 @@ import 'package:map_core/map_core.dart';
 /// nature id, so an unknown value fails closed instead of becoming neutral.
 enum PokemonNatureStatPolicy { neutral, canonical }
 
-enum PokemonNatureStat {
-  attack,
-  defense,
-  specialAttack,
-  specialDefense,
-  speed,
-}
-
-/// Canonical mainline-style 110/90 nature modifiers.
-///
-/// Detailed project authoring remains outside RM-028 (`FG-206`), but the pure
-/// gameplay rule must still understand every persisted canonical nature.
-final class PokemonNatureEffect {
-  const PokemonNatureEffect({
-    required this.id,
-    this.increasedStat,
-    this.decreasedStat,
-  });
-
-  final String id;
-  final PokemonNatureStat? increasedStat;
-  final PokemonNatureStat? decreasedStat;
-
+extension PokemonNatureStatModifier on PokemonNatureEffect {
   int apply(int value, PokemonNatureStat stat) {
     if (increasedStat == stat) {
       return (value * 110) ~/ 100;
@@ -41,159 +26,6 @@ final class PokemonNatureEffect {
   }
 }
 
-const canonicalPokemonNatureIds = <String>[
-  'hardy',
-  'lonely',
-  'brave',
-  'adamant',
-  'naughty',
-  'bold',
-  'docile',
-  'relaxed',
-  'impish',
-  'lax',
-  'timid',
-  'hasty',
-  'serious',
-  'jolly',
-  'naive',
-  'modest',
-  'mild',
-  'quiet',
-  'bashful',
-  'rash',
-  'calm',
-  'gentle',
-  'sassy',
-  'careful',
-  'quirky',
-];
-
-const _canonicalPokemonNatureEffects = <String, PokemonNatureEffect>{
-  'hardy': PokemonNatureEffect(id: 'hardy'),
-  'lonely': PokemonNatureEffect(
-    id: 'lonely',
-    increasedStat: PokemonNatureStat.attack,
-    decreasedStat: PokemonNatureStat.defense,
-  ),
-  'brave': PokemonNatureEffect(
-    id: 'brave',
-    increasedStat: PokemonNatureStat.attack,
-    decreasedStat: PokemonNatureStat.speed,
-  ),
-  'adamant': PokemonNatureEffect(
-    id: 'adamant',
-    increasedStat: PokemonNatureStat.attack,
-    decreasedStat: PokemonNatureStat.specialAttack,
-  ),
-  'naughty': PokemonNatureEffect(
-    id: 'naughty',
-    increasedStat: PokemonNatureStat.attack,
-    decreasedStat: PokemonNatureStat.specialDefense,
-  ),
-  'bold': PokemonNatureEffect(
-    id: 'bold',
-    increasedStat: PokemonNatureStat.defense,
-    decreasedStat: PokemonNatureStat.attack,
-  ),
-  'docile': PokemonNatureEffect(id: 'docile'),
-  'relaxed': PokemonNatureEffect(
-    id: 'relaxed',
-    increasedStat: PokemonNatureStat.defense,
-    decreasedStat: PokemonNatureStat.speed,
-  ),
-  'impish': PokemonNatureEffect(
-    id: 'impish',
-    increasedStat: PokemonNatureStat.defense,
-    decreasedStat: PokemonNatureStat.specialAttack,
-  ),
-  'lax': PokemonNatureEffect(
-    id: 'lax',
-    increasedStat: PokemonNatureStat.defense,
-    decreasedStat: PokemonNatureStat.specialDefense,
-  ),
-  'timid': PokemonNatureEffect(
-    id: 'timid',
-    increasedStat: PokemonNatureStat.speed,
-    decreasedStat: PokemonNatureStat.attack,
-  ),
-  'hasty': PokemonNatureEffect(
-    id: 'hasty',
-    increasedStat: PokemonNatureStat.speed,
-    decreasedStat: PokemonNatureStat.defense,
-  ),
-  'serious': PokemonNatureEffect(id: 'serious'),
-  'jolly': PokemonNatureEffect(
-    id: 'jolly',
-    increasedStat: PokemonNatureStat.speed,
-    decreasedStat: PokemonNatureStat.specialAttack,
-  ),
-  'naive': PokemonNatureEffect(
-    id: 'naive',
-    increasedStat: PokemonNatureStat.speed,
-    decreasedStat: PokemonNatureStat.specialDefense,
-  ),
-  'modest': PokemonNatureEffect(
-    id: 'modest',
-    increasedStat: PokemonNatureStat.specialAttack,
-    decreasedStat: PokemonNatureStat.attack,
-  ),
-  'mild': PokemonNatureEffect(
-    id: 'mild',
-    increasedStat: PokemonNatureStat.specialAttack,
-    decreasedStat: PokemonNatureStat.defense,
-  ),
-  'quiet': PokemonNatureEffect(
-    id: 'quiet',
-    increasedStat: PokemonNatureStat.specialAttack,
-    decreasedStat: PokemonNatureStat.speed,
-  ),
-  'bashful': PokemonNatureEffect(id: 'bashful'),
-  'rash': PokemonNatureEffect(
-    id: 'rash',
-    increasedStat: PokemonNatureStat.specialAttack,
-    decreasedStat: PokemonNatureStat.specialDefense,
-  ),
-  'calm': PokemonNatureEffect(
-    id: 'calm',
-    increasedStat: PokemonNatureStat.specialDefense,
-    decreasedStat: PokemonNatureStat.attack,
-  ),
-  'gentle': PokemonNatureEffect(
-    id: 'gentle',
-    increasedStat: PokemonNatureStat.specialDefense,
-    decreasedStat: PokemonNatureStat.defense,
-  ),
-  'sassy': PokemonNatureEffect(
-    id: 'sassy',
-    increasedStat: PokemonNatureStat.specialDefense,
-    decreasedStat: PokemonNatureStat.speed,
-  ),
-  'careful': PokemonNatureEffect(
-    id: 'careful',
-    increasedStat: PokemonNatureStat.specialDefense,
-    decreasedStat: PokemonNatureStat.specialAttack,
-  ),
-  'quirky': PokemonNatureEffect(id: 'quirky'),
-};
-
-PokemonNatureEffect canonicalPokemonNatureEffect(String natureId) {
-  final normalizedId = natureId.trim().toLowerCase();
-  final effect = _canonicalPokemonNatureEffects[normalizedId];
-  if (effect == null) {
-    throw ArgumentError.value(
-      natureId,
-      'natureId',
-      'Unsupported canonical Pokemon nature.',
-    );
-  }
-  return effect;
-}
-
-/// Deterministic opponent values until advanced stat authoring exists.
-///
-/// The trainer profile deliberately uses middle IVs rather than coupling
-/// battle stats to `battleDifficulty`, whose contract only controls AI.
 enum PokemonOpponentStatProfile {
   wildV0(
     profileId: 'pokemap-wild-zero-v0',
@@ -203,16 +35,9 @@ enum PokemonOpponentStatProfile {
   ),
   trainerV0(
     profileId: 'pokemap-trainer-balanced-v0',
-    natureId: 'hardy',
-    ivs: PokemonStatSpread(
-      hp: 15,
-      attack: 15,
-      defense: 15,
-      specialAttack: 15,
-      specialDefense: 15,
-      speed: 15,
-    ),
-    evs: PokemonStatSpread(),
+    natureId: standardTrainerPokemonNatureId,
+    ivs: standardTrainerPokemonIvs,
+    evs: standardTrainerPokemonEvs,
   );
 
   const PokemonOpponentStatProfile({
@@ -364,6 +189,21 @@ final class PokemonStatCalculator {
       ),
     );
   }
+}
+
+PokemonCalculatedStats calculateTrainerPokemonStats({
+  required ProjectTrainerPokemonEntry member,
+  required PokemonBaseStats baseStats,
+}) {
+  final configuration = resolveTrainerPokemonStats(member);
+  return const PokemonStatCalculator().calculate(
+    baseStats: baseStats,
+    ivs: configuration.ivs,
+    evs: configuration.evs,
+    level: member.level,
+    naturePolicy: PokemonNatureStatPolicy.canonical,
+    natureId: configuration.natureId,
+  );
 }
 
 void _validateSpread(

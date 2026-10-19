@@ -55,12 +55,14 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonNatureStatPolicy,
         PokemonNatureStat,
         PokemonNatureEffect,
+        PokemonNatureStatModifier,
         canonicalPokemonNatureIds,
         canonicalPokemonNatureEffect,
         PokemonOpponentStatProfile,
         PokemonBaseStats,
         PokemonCalculatedStats,
-        PokemonStatCalculator;
+        PokemonStatCalculator,
+        calculateTrainerPokemonStats;
 export 'src/player_pokemon_hydrator.dart'
     show
         PlayerPokemonHydrationOrigin,

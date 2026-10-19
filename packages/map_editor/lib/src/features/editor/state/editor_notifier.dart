@@ -15716,6 +15716,9 @@ class EditorNotifier extends _$EditorNotifier
     String? formId,
     String? gender,
     bool shiny = false,
+    String? natureId,
+    PokemonStatSpread? ivs,
+    PokemonStatSpread? evs,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -15734,6 +15737,9 @@ class EditorNotifier extends _$EditorNotifier
         formId: formId,
         gender: gender,
         shiny: shiny,
+        natureId: natureId,
+        ivs: ivs,
+        evs: evs,
       );
       state = state.copyWith(
         project: updated,
@@ -15758,6 +15764,9 @@ class EditorNotifier extends _$EditorNotifier
     Object? formId = _trainerUnset,
     Object? gender = _trainerUnset,
     bool? shiny,
+    Object? natureId = _trainerUnset,
+    Object? ivs = _trainerUnset,
+    Object? evs = _trainerUnset,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -15777,6 +15786,9 @@ class EditorNotifier extends _$EditorNotifier
         formId: _trainerFieldUpdate<String>(formId),
         gender: _trainerFieldUpdate<String>(gender),
         shiny: shiny,
+        natureId: _trainerFieldUpdate<String>(natureId),
+        ivs: _trainerFieldUpdate<PokemonStatSpread>(ivs),
+        evs: _trainerFieldUpdate<PokemonStatSpread>(evs),
       );
       state = state.copyWith(
         project: updated,

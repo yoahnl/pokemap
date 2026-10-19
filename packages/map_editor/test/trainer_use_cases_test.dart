@@ -389,6 +389,9 @@ void main() {
           formId: ' base ',
           gender: ' female ',
           shiny: true,
+          natureId: 'adamant',
+          ivs: standardTrainerPokemonIvs,
+          evs: const PokemonStatSpread(hp: 252, attack: 252, speed: 6),
         );
 
         final addedPokemon = projectWithPokemon.trainers.single.team.single;
@@ -398,6 +401,9 @@ void main() {
         expect(addedPokemon.formId, 'base');
         expect(addedPokemon.gender, 'female');
         expect(addedPokemon.shiny, isTrue);
+        expect(addedPokemon.natureId, 'adamant');
+        expect(addedPokemon.ivs, standardTrainerPokemonIvs);
+        expect(addedPokemon.evs!.speed, 6);
 
         final updatedProject = await updateUseCase.execute(
           workspace,
@@ -421,6 +427,53 @@ void main() {
         expect(updatedPokemon.formId, isNull);
         expect(updatedPokemon.gender, isNull);
         expect(updatedPokemon.shiny, isFalse);
+        expect(updatedPokemon.natureId, 'adamant');
+        expect(updatedPokemon.ivs, standardTrainerPokemonIvs);
+        expect(updatedPokemon.evs, addedPokemon.evs);
+        final custom = await updateUseCase.execute(
+          workspace,
+          updatedProject,
+          trainerId: 'misty',
+          pokemonIndex: 0,
+          natureId: const TrainerFieldUpdate<String>.set('bold'),
+          ivs: const TrainerFieldUpdate<PokemonStatSpread>.set(
+            PokemonStatSpread(attack: 31),
+          ),
+          evs: const TrainerFieldUpdate<PokemonStatSpread>.set(
+            PokemonStatSpread(defense: 252),
+          ),
+        );
+        expect(custom.trainers.single.team.single.natureId, 'bold');
+        expect(custom.trainers.single.team.single.ivs!.attack, 31);
+        expect(custom.trainers.single.team.single.evs!.defense, 252);
+        final cleared = await updateUseCase.execute(
+          workspace,
+          custom,
+          trainerId: 'misty',
+          pokemonIndex: 0,
+          natureId: const TrainerFieldUpdate<String>.set(null),
+          ivs: const TrainerFieldUpdate<PokemonStatSpread>.set(null),
+          evs: const TrainerFieldUpdate<PokemonStatSpread>.set(null),
+        );
+        final standard = cleared.trainers.single.team.single;
+        expect(standard.natureId, isNull);
+        expect(standard.ivs, isNull);
+        expect(standard.evs, isNull);
+        expect(standard.moves, updatedPokemon.moves);
+        final saveCount = repository.savedProjects.length;
+        await expectLater(
+          updateUseCase.execute(
+            workspace,
+            custom,
+            trainerId: 'misty',
+            pokemonIndex: 0,
+            evs: const TrainerFieldUpdate<PokemonStatSpread>.set(
+              PokemonStatSpread(hp: 252, attack: 252, speed: 7),
+            ),
+          ),
+          throwsA(isA<ValidationException>()),
+        );
+        expect(repository.savedProjects, hasLength(saveCount));
       },
     );
 

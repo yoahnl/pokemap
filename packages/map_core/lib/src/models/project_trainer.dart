@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../operations/trainer_pokemon_stats.dart';
 import 'enums.dart';
+import 'save_data.dart';
 
 part 'project_trainer.freezed.dart';
 part 'project_trainer.g.dart';
@@ -38,6 +40,40 @@ Map<String, dynamic> _projectTrainerEntryJson(Map<String, dynamic> json) {
     key: 'moneyReward',
     owner: 'ProjectTrainerEntry',
   );
+}
+
+PokemonStatSpread? _projectTrainerStatSpreadFromJson(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is! Map ||
+      value.length != trainerPokemonStatKeys.length ||
+      !trainerPokemonStatKeys.every(value.containsKey) ||
+      value.values.any((stat) => stat is! int)) {
+    throw FormatException(
+      'Trainer ivs/evs must contain exactly six integer stat values.',
+      value,
+    );
+  }
+  return PokemonStatSpread.fromJson(Map<String, dynamic>.from(value));
+}
+
+Map<String, dynamic> _projectTrainerPokemonJson(Map<String, dynamic> json) {
+  final natureId = json['natureId'];
+  if (natureId != null && natureId is! String) {
+    throw FormatException('Trainer natureId must be a string.', natureId);
+  }
+  return json;
+}
+
+ProjectTrainerPokemonEntry _validatedTrainerPokemonEntry(
+  ProjectTrainerPokemonEntry member,
+) {
+  final issues = validateTrainerPokemonStats(member);
+  if (issues.isNotEmpty) {
+    throw FormatException(issues.first.message);
+  }
+  return member;
 }
 
 /// Preset auteur optionnel d'un dresseur.
@@ -114,8 +150,9 @@ abstract class ProjectTrainerItemGrant with _$ProjectTrainerItemGrant {
 }
 
 /// Entrée Pokémon dans l'équipe d'un [ProjectTrainerEntry].
-@freezed
+@Freezed(fromJson: true, toJson: true)
 abstract class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectTrainerPokemonEntry({
     required String speciesId,
     required int level,
@@ -124,6 +161,17 @@ abstract class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
     @Default([]) List<String> moves,
     String? heldItemId,
     @JsonKey(includeIfNull: false) String? ballItemId,
+    @JsonKey(includeIfNull: false) String? natureId,
+    @JsonKey(
+      includeIfNull: false,
+      fromJson: _projectTrainerStatSpreadFromJson,
+    )
+    PokemonStatSpread? ivs,
+    @JsonKey(
+      includeIfNull: false,
+      fromJson: _projectTrainerStatSpreadFromJson,
+    )
+    PokemonStatSpread? evs,
 
     /// Override d'ability authoré — BETA-TRN-003.
     ///
@@ -139,7 +187,9 @@ abstract class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
   }) = _ProjectTrainerPokemonEntry;
 
   factory ProjectTrainerPokemonEntry.fromJson(Map<String, dynamic> json) =>
-      _$ProjectTrainerPokemonEntryFromJson(json);
+      _validatedTrainerPokemonEntry(
+        _$ProjectTrainerPokemonEntryFromJson(_projectTrainerPokemonJson(json)),
+      );
 }
 
 /// Fiche projet d'un dresseur, référencé depuis [MapEntityNpcData.trainerId].

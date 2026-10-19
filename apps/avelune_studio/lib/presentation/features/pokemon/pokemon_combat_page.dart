@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
@@ -16,11 +17,13 @@ class PokemonCombatPage extends StatefulWidget {
     required this.combat,
     required this.index,
     this.onOpenReference,
+    this.loadTrainerSpecies,
   });
 
   final PokemonCombatController combat;
   final PokemonWorkspaceIndex index;
   final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<PokemonSpeciesFile?> Function(String id)? loadTrainerSpecies;
 
   @override
   State<PokemonCombatPage> createState() => _PokemonCombatPageState();
@@ -142,6 +145,7 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
             MediaQuery.textScalerOf(context).scale(14) > 20;
         final detail = combat.view == PokemonCombatView.trainers
             ? PokemonCombatTrainerDetail(
+                loadSpecies: widget.loadTrainerSpecies,
                 combat: combat,
                 index: widget.index,
                 references: combat.trainer == null

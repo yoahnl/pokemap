@@ -137,6 +137,108 @@ void main() {
       );
     });
 
+    test('calculates trainer standard and independent authored overrides', () {
+      const standard = ProjectTrainerPokemonEntry(
+        speciesId: 'bulbasaur',
+        level: 50,
+      );
+      const ivs = PokemonStatSpread(
+        hp: 31,
+        attack: 31,
+        defense: 31,
+        specialAttack: 31,
+        specialDefense: 31,
+        speed: 31,
+      );
+      const evs = PokemonStatSpread(hp: 252, attack: 252, speed: 6);
+      final cases = [
+        (member: standard, expected: [112, 61, 61, 77, 77, 57]),
+        (
+          member: standard.copyWith(natureId: 'adamant'),
+          expected: [112, 67, 61, 69, 77, 57],
+        ),
+        (
+          member: standard.copyWith(ivs: ivs),
+          expected: [120, 69, 69, 85, 85, 65],
+        ),
+        (
+          member: standard.copyWith(evs: evs),
+          expected: [144, 93, 61, 77, 77, 58],
+        ),
+        (
+          member: standard.copyWith(
+            natureId: 'adamant',
+            ivs: ivs,
+            evs: evs,
+          ),
+          expected: [152, 111, 69, 76, 85, 66],
+        ),
+      ];
+      for (final entry in cases) {
+        final stats = calculateTrainerPokemonStats(
+          member: entry.member,
+          baseStats: bulbasaur,
+        );
+        expect(
+          [
+            stats.maxHp,
+            stats.attack,
+            stats.defense,
+            stats.specialAttack,
+            stats.specialDefense,
+            stats.speed,
+          ],
+          entry.expected,
+          reason: entry.member.toString(),
+        );
+      }
+      final reset = cases.last.member.copyWith(
+        natureId: null,
+        ivs: null,
+        evs: null,
+      );
+      final resetStats = calculateTrainerPokemonStats(
+        member: reset,
+        baseStats: bulbasaur,
+      );
+      expect(resetStats.maxHp, 112);
+      expect(resetStats.attack, 61);
+      expect(resetStats.specialAttack, 77);
+    });
+
+    test('trainer validation rejects invalid constructor overrides', () {
+      const standard = ProjectTrainerPokemonEntry(
+        speciesId: 'bulbasaur',
+        level: 50,
+      );
+      for (final member in [
+        standard.copyWith(natureId: ' Bold '),
+        standard.copyWith(natureId: 'unknown'),
+        standard.copyWith(ivs: const PokemonStatSpread(hp: 32)),
+        standard.copyWith(evs: const PokemonStatSpread(hp: 253)),
+        standard.copyWith(
+          evs: const PokemonStatSpread(hp: 252, attack: 252, speed: 7),
+        ),
+      ]) {
+        expect(
+          () => calculateTrainerPokemonStats(
+            member: member,
+            baseStats: bulbasaur,
+          ),
+          throwsArgumentError,
+        );
+        expect(validateTrainerPokemonStats(member), isNotEmpty);
+      }
+    });
+
+    test('preserves normalized nature lookup for non-trainer consumers', () {
+      final effect = canonicalPokemonNatureEffect(' BOLD ');
+      expect(effect.id, 'bold');
+      expect(effect.apply(100, PokemonNatureStat.defense), 110);
+      expect(effect.apply(100, PokemonNatureStat.attack), 90);
+      expect(effect.apply(100, PokemonNatureStat.speed), 100);
+    });
+
     test('rejects values outside the persisted stat contract', () {
       expect(
         () => const PokemonBaseStats(

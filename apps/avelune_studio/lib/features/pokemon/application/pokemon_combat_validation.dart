@@ -64,6 +64,8 @@ extension PokemonCombatValidation on PokemonCombatController {
       }
       if (selectedTrainer.team.isEmpty) return 'Ajoutez un Pokémon à l’équipe.';
       for (final pokemon in selectedTrainer.team) {
+        final statIssues = validateTrainerPokemonStats(pokemon);
+        if (statIssues.isNotEmpty) return statIssues.first.message;
         if (pokemon.moves.isEmpty) {
           return 'Ajoutez au moins une attaque à chaque Pokémon du dresseur.';
         }

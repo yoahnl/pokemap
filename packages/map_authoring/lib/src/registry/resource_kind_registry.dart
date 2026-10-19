@@ -643,6 +643,18 @@ final class AuthoringResourceKindRegistry {
         summary: 'Trainer, encounter, shop, badge, character or New Game data',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'trainerPokemonStats',
+        version: 1,
+        displayName: 'Trainer Pokemon stats',
+        summary: 'Calculated per-member stats with effective nature, IVs and EVs',
+        extensions: const {
+          'queryIdFormat': '<trainerId>:<pokemonIndex>',
+          'readOnly': true,
+          'derived': true,
+          'statKeys': trainerPokemonStatKeys,
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'characterStudioCatalog',
         version: 1,
         displayName: 'Character Studio catalog',
@@ -801,6 +813,7 @@ final class AuthoringResourceKindRegistry {
         'runtimeSmokeProfile',
         'battleTransitionDefinition',
         'pokemonDocument',
+        'trainerPokemonStats',
         'projectPresentationProfile',
         'projectPresentationPreset',
         'presentationPreviewContext',

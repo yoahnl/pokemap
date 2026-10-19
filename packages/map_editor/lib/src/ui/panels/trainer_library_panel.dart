@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart' as gameplay;
 import 'package:path/path.dart' as p;
 
 import '../../app/providers/core/repository_providers.dart';
@@ -151,6 +152,20 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   late final List<TextEditingController> _pokemonMoveControllers =
       List<TextEditingController>.generate(4, (_) => TextEditingController());
   bool _pokemonShiny = false;
+  bool _pokemonAdvancedStats = false;
+  String _pokemonNatureId = standardTrainerPokemonNatureId;
+  final _pokemonIvControllers = {
+    for (final stat in trainerPokemonStatKeys)
+      stat: TextEditingController(
+        text: '${standardTrainerPokemonIvs.toJson()[stat]}',
+      ),
+  };
+  final _pokemonEvControllers = {
+    for (final stat in trainerPokemonStatKeys)
+      stat: TextEditingController(
+        text: '${standardTrainerPokemonEvs.toJson()[stat]}',
+      ),
+  };
   String? _pokemonValidationMessage;
 
   // -------------------------------------------------------------------------
@@ -198,6 +213,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _editRewardItemQuantityController.dispose();
 
     _pokemonSpeciesController.dispose();
+    for (final controller in [
+      ..._pokemonIvControllers.values,
+      ..._pokemonEvControllers.values,
+    ]) {
+      controller.dispose();
+    }
     _pokemonLevelController.dispose();
     _pokemonItemController.dispose();
     _pokemonBallController.dispose();
@@ -1344,6 +1365,27 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     });
   }
 
+  void _setPokemonStatsMode(String value) {
+    setState(() {
+      _pokemonAdvancedStats = value == 'advanced';
+      if (!_pokemonAdvancedStats) _resetPokemonStats();
+      _pokemonValidationMessage = null;
+    });
+  }
+
+  void _setPokemonNature(String value) =>
+      setState(() => _pokemonNatureId = value);
+
+  void _resetPokemonStats() {
+    _pokemonNatureId = standardTrainerPokemonNatureId;
+    for (final stat in trainerPokemonStatKeys) {
+      _pokemonIvControllers[stat]!.text =
+          '${standardTrainerPokemonIvs.toJson()[stat]}';
+      _pokemonEvControllers[stat]!.text =
+          '${standardTrainerPokemonEvs.toJson()[stat]}';
+    }
+  }
+
   // Keeping the shared Pokémon draft reset in one place avoids tiny
   // field-reset mismatches between add/edit/cancel flows.
   void _resetPokemonDraftFields() {
@@ -1356,6 +1398,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _pokemonGenderController.clear();
     _clearTextControllers(_pokemonMoveControllers);
     _pokemonShiny = false;
+    _pokemonAdvancedStats = false;
+    _resetPokemonStats();
   }
 
   void _startAddingPokemon(String trainerId) {
@@ -1391,6 +1435,17 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
             : '';
       }
       _pokemonShiny = pokemon.shiny;
+      _pokemonAdvancedStats =
+          pokemon.natureId != null ||
+          pokemon.ivs != null ||
+          pokemon.evs != null;
+      _pokemonNatureId = pokemon.natureId ?? standardTrainerPokemonNatureId;
+      for (final stat in trainerPokemonStatKeys) {
+        _pokemonIvControllers[stat]!.text =
+            '${(pokemon.ivs ?? standardTrainerPokemonIvs).toJson()[stat]}';
+        _pokemonEvControllers[stat]!.text =
+            '${(pokemon.evs ?? standardTrainerPokemonEvs).toJson()[stat]}';
+      }
       _closeTrainerEditor();
       _showCreateForm = false;
     });
@@ -1444,6 +1499,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
             formId: draft.formId,
             gender: draft.gender,
             shiny: draft.shiny,
+            natureId: draft.natureId,
+            ivs: draft.ivs,
+            evs: draft.evs,
           )
         : await notifier.updateTrainerPokemon(
             trainerId: trainerId,
@@ -1456,6 +1514,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
             formId: draft.formId,
             gender: draft.gender,
             shiny: draft.shiny,
+            natureId: draft.natureId,
+            ivs: draft.ivs,
+            evs: draft.evs,
           );
     if (!mounted) {
       return;
@@ -1489,6 +1550,10 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     setState(() {
       if (_isEditingPokemon(trainerId, pokemonIndex)) {
         _closePokemonEditor();
+      } else if (_activePokemonTrainerId == trainerId &&
+          _editingPokemonIndex != null &&
+          pokemonIndex < _editingPokemonIndex!) {
+        _editingPokemonIndex = _editingPokemonIndex! - 1;
       }
     });
   }
@@ -1506,6 +1571,13 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       formId: _normalizeOptionalField(_pokemonFormController.text),
       gender: _normalizeOptionalField(_pokemonGenderController.text),
       shiny: _pokemonShiny,
+      natureId: _pokemonAdvancedStats ? _pokemonNatureId : null,
+      ivs: _pokemonAdvancedStats
+          ? _trainerSpreadFromControllers(_pokemonIvControllers)
+          : null,
+      evs: _pokemonAdvancedStats
+          ? _trainerSpreadFromControllers(_pokemonEvControllers)
+          : null,
     );
   }
 
@@ -1514,6 +1586,13 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required PokedexSpeciesDetail? speciesDetail,
   }) {
     final draft = _buildPokemonDraft();
+    final statError = _trainerStatDraftError(
+      advanced: _pokemonAdvancedStats,
+      natureId: _pokemonNatureId,
+      ivControllers: _pokemonIvControllers,
+      evControllers: _pokemonEvControllers,
+    );
+    if (statError != null) return statError;
     if (draft.speciesId.isEmpty) {
       return 'Species ID cannot be empty.';
     }

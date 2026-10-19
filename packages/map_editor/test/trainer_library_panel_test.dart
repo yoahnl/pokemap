@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -387,6 +388,9 @@ void main() {
       expect(pokemon.formId, 'blossom');
       expect(pokemon.gender, 'female');
       expect(pokemon.shiny, isFalse);
+      expect(pokemon.natureId, isNull);
+      expect(pokemon.ivs, isNull);
+      expect(pokemon.evs, isNull);
       final pokemonRow = find.byKey(Key('trainer-library-pokemon-row-${trainer.id}-0'));
       tester.widget<CupertinoButton>(
         find.descendant(of: pokemonRow, matching: find.byType(CupertinoButton)).first,
@@ -500,6 +504,470 @@ void main() {
 
       trainer = container.read(editorNotifierProvider).project!.trainers.single;
       expect(trainer.battleDifficulty, isNull);
+    },
+  );
+
+  testWidgets('authors individual trainer stats with strict raw drafts', (
+    tester,
+  ) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, id) async => _detailsById[id]!,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = const EditorState(
+      projectRootPath: '/tmp/trainers_stats_test',
+      project: ProjectManifest(
+        name: 'Stats',
+        maps: [],
+        tilesets: [],
+        trainers: [
+          ProjectTrainerEntry(
+            id: 'misty',
+            name: 'Misty',
+            trainerClass: 'Leader',
+            team: [
+              ProjectTrainerPokemonEntry(
+                speciesId: 'bulbasaur',
+                level: 50,
+                moves: ['tackle'],
+                shiny: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    await pumpTrainerPanel(tester, container);
+    await settleTrainerUi(tester);
+    final row = find.byKey(const Key('trainer-library-pokemon-row-misty-0'));
+    tester
+        .widget<CupertinoButton>(
+          find
+              .descendant(of: row, matching: find.byType(CupertinoButton))
+              .first,
+        )
+        .onPressed!();
+    await settleTrainerUi(tester);
+    final mode = find.byKey(const Key('trainer-library-pokemon-stats-mode'));
+    expect(mode, findsOneWidget);
+    expect(tester.widget<PokeMapDropdownField<String>>(mode).value, 'standard');
+    tester.widget<PokeMapDropdownField<String>>(mode).onChanged('advanced');
+    await settleTrainerUi(tester);
+    final nature = tester.widget<PokeMapDropdownField<String>>(
+      find.byKey(const Key('trainer-library-pokemon-nature')),
+    );
+    for (final group in ['ivs', 'evs']) {
+      for (final stat in trainerPokemonStatKeys) {
+        final field = find.byKey(Key('trainer-library-pokemon-$group-$stat'));
+        await tester.ensureVisible(field);
+        await settleTrainerUi(tester);
+        expect(field.hitTestable(), findsOneWidget);
+      }
+    }
+    for (final key in [
+      'trainer-library-pokemon-save-button',
+      'trainer-library-pokemon-cancel-button',
+    ]) {
+      final command = find.byKey(Key(key));
+      await tester.ensureVisible(command);
+      await settleTrainerUi(tester);
+      expect(command.hitTestable(), findsOneWidget);
+    }
+    expect(nature.items, hasLength(25));
+    expect(
+      nature.items.firstWhere((value) => value.value == 'adamant').label,
+      contains('Attaque +10%'),
+    );
+    nature.onChanged('adamant');
+    await settleTrainerUi(tester);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const Key('trainer-library-pokemon-preview-attack')),
+          )
+          .data,
+      'Attaque : 67',
+    );
+    await selectTrainerLevel(tester, 25);
+    await settleTrainerUi(tester);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const Key('trainer-library-pokemon-preview-attack')),
+          )
+          .data,
+      'Attaque : 36',
+    );
+    await selectTrainerLevel(tester, 50);
+    final iv = find.byKey(const Key('trainer-library-pokemon-ivs-attack'));
+    await tester.ensureVisible(iv);
+    await tester.enterText(iv, '2.5');
+    await settleTrainerUi(tester);
+    expect(
+      find.byKey(const Key('trainer-library-pokemon-stats-preview')),
+      findsNothing,
+    );
+    tester
+        .widget<CupertinoButton>(
+          find.byKey(const Key('trainer-library-pokemon-save-button')),
+        )
+        .onPressed!();
+    await settleTrainerUi(tester);
+    expect(
+      notifier.state.project!.trainers.single.team.single.natureId,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: iv, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      '2.5',
+    );
+    await tester.enterText(iv, '31');
+    await settleTrainerUi(tester);
+    expect(
+      find.byKey(const Key('trainer-library-pokemon-stats-preview')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const Key('trainer-library-pokemon-preview-attack')),
+          )
+          .data,
+      'Attaque : 75',
+    );
+    for (final invalid in ['-1', '32', '1.0', 'abc', '0x10', '']) {
+      await tester.enterText(iv, invalid);
+      await settleTrainerUi(tester);
+      expect(
+        find.byKey(const Key('trainer-library-pokemon-stats-preview')),
+        findsNothing,
+      );
+      tester
+          .widget<CupertinoButton>(
+            find.byKey(const Key('trainer-library-pokemon-save-button')),
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      expect(
+        notifier.state.project!.trainers.single.team.single.natureId,
+        isNull,
+      );
+    }
+    await tester.enterText(iv, '31');
+    Future<void> ev(String stat, String value) async {
+      final field = find.byKey(Key('trainer-library-pokemon-evs-$stat'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, value);
+      await settleTrainerUi(tester);
+    }
+
+    for (final invalid in ['2.5', '-1', '253']) {
+      await ev('hp', invalid);
+      expect(
+        find.byKey(const Key('trainer-library-pokemon-stats-preview')),
+        findsNothing,
+      );
+      tester
+          .widget<CupertinoButton>(
+            find.byKey(const Key('trainer-library-pokemon-save-button')),
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      expect(
+        notifier.state.project!.trainers.single.team.single.natureId,
+        isNull,
+      );
+    }
+    await ev('hp', '252');
+    await ev('attack', '252');
+    await ev('speed', '7');
+    expect(find.text('Total EV : 511/510'), findsOneWidget);
+    expect(
+      find.byKey(const Key('trainer-library-pokemon-stats-preview')),
+      findsNothing,
+    );
+    tester
+        .widget<CupertinoButton>(
+          find.byKey(const Key('trainer-library-pokemon-save-button')),
+        )
+        .onPressed!();
+    await settleTrainerUi(tester);
+    expect(
+      notifier.state.project!.trainers.single.team.single.natureId,
+      isNull,
+    );
+    await ev('speed', '6');
+    expect(find.text('Total EV : 510/510'), findsOneWidget);
+    tester
+        .widget<CupertinoButton>(
+          find.byKey(const Key('trainer-library-pokemon-save-button')),
+        )
+        .onPressed!();
+    await settleTrainerUi(tester);
+    final saved = notifier.state.project!.trainers.single.team.single;
+    expect(saved.natureId, 'adamant');
+    expect(saved.ivs!.attack, 31);
+    expect(saved.evs, const PokemonStatSpread(hp: 252, attack: 252, speed: 6));
+    expect(saved.shiny, isTrue);
+    Future<void> reopen() async {
+      tester
+          .widget<CupertinoButton>(
+            find
+                .descendant(of: row, matching: find.byType(CupertinoButton))
+                .first,
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+    }
+
+    await reopen();
+    expect(tester.widget<PokeMapDropdownField<String>>(mode).value, 'advanced');
+    await tester.ensureVisible(iv);
+    await tester.enterText(iv, 'broken');
+    tester
+        .widget<CupertinoButton>(
+          find.byKey(const Key('trainer-library-pokemon-cancel-button')),
+        )
+        .onPressed!();
+    await settleTrainerUi(tester);
+    await reopen();
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: iv, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      '31',
+    );
+    tester.widget<PokeMapDropdownField<String>>(mode).onChanged('standard');
+    await settleTrainerUi(tester);
+    expect(
+      find.byKey(const Key('trainer-library-pokemon-nature')),
+      findsNothing,
+    );
+    tester
+        .widget<CupertinoButton>(
+          find.byKey(const Key('trainer-library-pokemon-save-button')),
+        )
+        .onPressed!();
+    await settleTrainerUi(tester);
+    final standard = notifier.state.project!.trainers.single.team.single;
+    expect(standard.natureId, isNull);
+    expect(standard.ivs, isNull);
+    expect(standard.evs, isNull);
+    expect(standard.shiny, isTrue);
+  });
+
+  testWidgets(
+    'preview hides stale species and teammate deletion keeps the active draft',
+    (tester) async {
+      final waiting = Completer<PokedexSpeciesDetail>();
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+          pokedexMovesCatalogLoaderProvider.overrideWithValue(
+            (_) async => _movesCatalogView,
+          ),
+          pokedexSpeciesDetailLoaderProvider.overrideWithValue((_, id) async {
+            if (id == 'waiting') return waiting.future;
+            if (id == 'bulbasaur') return _buildDetail();
+            throw EditorNotFoundException('Missing $id');
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = const EditorState(
+        projectRootPath: '/tmp/trainers_stats_lifecycle',
+        project: ProjectManifest(
+          name: 'Stats',
+          maps: [],
+          tilesets: [],
+          trainers: [
+            ProjectTrainerEntry(
+              id: 'misty',
+              name: 'Misty',
+              trainerClass: 'Leader',
+              team: [
+                ProjectTrainerPokemonEntry(
+                  speciesId: 'bulbasaur',
+                  level: 10,
+                  moves: ['tackle'],
+                ),
+                ProjectTrainerPokemonEntry(
+                  speciesId: 'bulbasaur',
+                  level: 20,
+                  moves: ['tackle'],
+                ),
+                ProjectTrainerPokemonEntry(
+                  speciesId: 'bulbasaur',
+                  level: 50,
+                  moves: ['tackle'],
+                  shiny: true,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      await pumpTrainerPanel(tester, container);
+      await settleTrainerUi(tester);
+      final row = find.byKey(const Key('trainer-library-pokemon-row-misty-2'));
+      tester
+          .widget<CupertinoButton>(
+            find
+                .descendant(of: row, matching: find.byType(CupertinoButton))
+                .first,
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      tester
+          .widget<PokeMapDropdownField<String>>(
+            find.byKey(const Key('trainer-library-pokemon-stats-mode')),
+          )
+          .onChanged('advanced');
+      await settleTrainerUi(tester);
+      final iv = find.byKey(const Key('trainer-library-pokemon-ivs-attack'));
+      await tester.ensureVisible(iv);
+      await tester.enterText(iv, 'broken');
+      tester
+          .widget<CupertinoButton>(
+            find
+                .descendant(
+                  of: find.byKey(
+                    const Key('trainer-library-pokemon-row-misty-0'),
+                  ),
+                  matching: find.byType(CupertinoButton),
+                )
+                .last,
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      expect(notifier.state.project!.trainers.single.team, hasLength(2));
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(of: iv, matching: find.byType(EditableText)),
+            )
+            .controller
+            .text,
+        'broken',
+      );
+      await tester.enterText(iv, '31');
+      await settleTrainerUi(tester);
+      final toggle = find.byKey(
+        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+      );
+      await tester.ensureVisible(toggle);
+      await settleTrainerUi(tester);
+      await tester.tap(toggle);
+      await settleTrainerUi(tester);
+      final species = find.byKey(
+        const Key('trainer-library-pokemon-species-field'),
+      );
+      await tester.ensureVisible(species);
+      await tester.enterText(species, 'waiting');
+      await settleTrainerUi(tester);
+      final preview = find.byKey(
+        const Key('trainer-library-pokemon-stats-preview'),
+      );
+      expect(preview, findsNothing);
+      final original = _buildDetail().species;
+      waiting.complete(
+        PokedexSpeciesDetail(
+          species: PokemonSpeciesFile.fromJson({
+            ...original.toJson(),
+            'id': 'waiting',
+            'baseStats': {...original.baseStats.toJson(), 'atk': 100},
+          }),
+        ),
+      );
+      await settleTrainerUi(tester);
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const Key('trainer-library-pokemon-preview-attack')),
+            )
+            .data,
+        'Attaque : 120',
+      );
+      await tester.enterText(species, 'missing');
+      await settleTrainerUi(tester);
+      expect(preview, findsNothing);
+      await tester.enterText(species, 'bulbasaur');
+      await settleTrainerUi(tester);
+      tester
+          .widget<CupertinoButton>(
+            find.byKey(const Key('trainer-library-pokemon-save-button')),
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      final saved = notifier.state.project!.trainers.single.team;
+      expect(saved.first.level, 20);
+      expect(saved.first.ivs, isNull);
+      expect(saved.last.level, 50);
+      expect(saved.last.ivs!.attack, 31);
+      expect(saved.last.shiny, isTrue);
+      final editedRow = find.byKey(
+        const Key('trainer-library-pokemon-row-misty-1'),
+      );
+      tester
+          .widget<CupertinoButton>(
+            find
+                .descendant(
+                  of: editedRow,
+                  matching: find.byType(CupertinoButton),
+                )
+                .first,
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      tester
+          .widget<CupertinoButton>(
+            find
+                .descendant(
+                  of: editedRow,
+                  matching: find.byType(CupertinoButton),
+                )
+                .last,
+          )
+          .onPressed!();
+      await settleTrainerUi(tester);
+      expect(
+        find.byKey(const Key('trainer-library-pokemon-stats-mode')),
+        findsNothing,
+      );
     },
   );
 
@@ -1399,6 +1867,7 @@ void main() {
           )
           .first,
     );
+    await settleTrainerUi(tester);
     await tester.tap(
       find.byKey(
         const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
@@ -1522,6 +1991,7 @@ void main() {
             )
             .first,
       );
+      await settleTrainerUi(tester);
       await tester.tap(
         find.byKey(
           const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
@@ -2081,6 +2551,7 @@ void main() {
             )
             .first,
       );
+      await settleTrainerUi(tester);
       await tester.tap(
         find.byKey(
           const Key('trainer-library-pokemon-raw-fallback-toggle-button'),

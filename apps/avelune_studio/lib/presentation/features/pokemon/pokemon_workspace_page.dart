@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
@@ -199,6 +200,21 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                             'Ce projet ne fournit pas la préparation des combats.',
                       )
                     : PokemonCombatPage(
+                        loadTrainerSpecies: (id) async {
+                          final summary = index.entries
+                              .where((entry) => entry.id == id)
+                              .firstOrNull;
+                          if (summary == null) return null;
+                          final bundle = await controller.port.loadSpecies(
+                            summary,
+                          );
+                          final document = bundle.species.document;
+                          if (document == null ||
+                              bundle.species.problem != null) {
+                            return null;
+                          }
+                          return PokemonSpeciesFile.fromJson(document);
+                        },
                         combat: controller.combat!,
                         index: index,
                         onOpenReference: widget.onOpenReference,

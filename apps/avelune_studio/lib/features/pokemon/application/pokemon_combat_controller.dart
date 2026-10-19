@@ -278,6 +278,132 @@ final class PokemonCombatController {
     changed();
   }
 
+  void setTrainerStatsMode(int index, bool advanced) {
+    final current = trainer?.current;
+    if (current == null ||
+        saving ||
+        index < 0 ||
+        index >= current.team.length) {
+      return;
+    }
+    final member = current.team[index];
+    if (advanced &&
+        (member.natureId != null || member.ivs != null || member.evs != null)) {
+      return;
+    }
+    numericInputs.removeWhere(
+      (key, _) =>
+          key.startsWith('team$index:ivs:') ||
+          key.startsWith('team$index:evs:'),
+    );
+    fieldErrors.removeWhere(
+      (key, _) =>
+          key.startsWith('team$index:ivs:') ||
+          key.startsWith('team$index:evs:') ||
+          key == 'team$index:nature',
+    );
+    _editTrainerMember(
+      index,
+      member.copyWith(
+        natureId: advanced
+            ? member.natureId ?? standardTrainerPokemonNatureId
+            : null,
+        ivs: advanced ? member.ivs ?? standardTrainerPokemonIvs : null,
+        evs: advanced ? member.evs ?? standardTrainerPokemonEvs : null,
+      ),
+    );
+  }
+
+  void setTrainerNature(int index, String natureId) {
+    final current = trainer?.current;
+    if (current == null || saving) return;
+    _editTrainerMember(index, current.team[index].copyWith(natureId: natureId));
+  }
+
+  void editTrainerStat(int index, String group, String stat, String raw) {
+    final current = trainer?.current;
+    if (current == null ||
+        saving ||
+        !trainerPokemonStatKeys.contains(stat) ||
+        (group != 'ivs' && group != 'evs')) {
+      return;
+    }
+    final key = 'team$index:$group:$stat';
+    numericInputs[key] = raw;
+    final value = RegExp(r'^-?[0-9]+$').hasMatch(raw)
+        ? int.tryParse(raw)
+        : null;
+    final max = group == 'ivs' ? 31 : 252;
+    if (value == null || value < 0 || value > max) {
+      fieldErrors[key] = 'Saisissez un entier de 0 à $max.';
+      changed();
+      return;
+    }
+    fieldErrors.remove(key);
+    final member = current.team[index];
+    final source = group == 'ivs'
+        ? member.ivs ?? standardTrainerPokemonIvs
+        : member.evs ?? standardTrainerPokemonEvs;
+    final spread = PokemonStatSpread.fromJson({
+      ...source.toJson(),
+      stat: value,
+    });
+    final updated = group == 'ivs'
+        ? member.copyWith(ivs: spread)
+        : member.copyWith(evs: spread);
+    final totalKey = 'team$index:evs:total';
+    fieldErrors.remove(totalKey);
+    if (validateTrainerPokemonStats(updated)
+        .any((issue) => issue.code == 'trainer.pokemon.evs.total_exceeded')) {
+      fieldErrors[totalKey] = 'Le total des EV ne doit pas dépasser 510.';
+    }
+    _editTrainerMember(index, updated);
+  }
+
+  void _editTrainerMember(int index, ProjectTrainerPokemonEntry member) {
+    editTrainer(
+      (value) => value.copyWith(
+        team: [
+          for (var i = 0; i < value.team.length; i++)
+            if (i == index) member else value.team[i],
+        ],
+      ),
+    );
+  }
+
+  void deleteTeamMember(int index) {
+    final current = trainer?.current;
+    if (current == null ||
+        saving ||
+        index < 0 ||
+        index >= current.team.length) {
+      return;
+    }
+    for (final values in [numericInputs, fieldErrors]) {
+      final remapped = <String, String>{};
+      for (final entry in values.entries) {
+        final match = RegExp(r'^team([0-9]+):').firstMatch(entry.key);
+        final owner = match == null ? null : int.parse(match.group(1)!);
+        if (owner == index) continue;
+        final key = owner != null && owner > index
+            ? 'team${owner - 1}:${entry.key.substring(match!.end)}'
+            : entry.key;
+        remapped[key] = entry.value;
+      }
+      values
+        ..clear()
+        ..addAll(remapped);
+    }
+    editTrainer(
+      (value) => value.copyWith(
+        team: [
+          for (var i = 0; i < value.team.length; i++)
+            if (i != index) value.team[i],
+        ],
+      ),
+    );
+  }
+
   String numericValue(String key, int current) =>
       numericInputs[key] ?? '$current';
 

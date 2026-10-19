@@ -193,6 +193,12 @@ class _TrainerPokemonEditorCard extends StatefulWidget {
     required this.genderController,
     required this.moveControllers,
     required this.shiny,
+    required this.advancedStats,
+    required this.natureId,
+    required this.ivControllers,
+    required this.evControllers,
+    required this.onStatsModeChanged,
+    required this.onNatureChanged,
     required this.validationMessage,
     required this.onToggleShiny,
     required this.onCancel,
@@ -210,6 +216,12 @@ class _TrainerPokemonEditorCard extends StatefulWidget {
   final TextEditingController genderController;
   final List<TextEditingController> moveControllers;
   final bool shiny;
+  final bool advancedStats;
+  final String natureId;
+  final Map<String, TextEditingController> ivControllers;
+  final Map<String, TextEditingController> evControllers;
+  final ValueChanged<String> onStatsModeChanged;
+  final ValueChanged<String> onNatureChanged;
   final String? validationMessage;
   final ValueChanged<bool> onToggleShiny;
   final VoidCallback onCancel;
@@ -279,6 +291,12 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
   }
 
   void _bindDraftControllers() {
+    for (final controller in [
+      ...widget.ivControllers.values,
+      ...widget.evControllers.values,
+    ]) {
+      controller.addListener(_onDraftFieldChanged);
+    }
     widget.speciesController.addListener(_onDraftFieldChanged);
     widget.levelController.addListener(_onDraftFieldChanged);
     widget.itemController.addListener(_onDraftFieldChanged);
@@ -291,6 +309,12 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
   }
 
   void _unbindDraftControllers() {
+    for (final controller in [
+      ...widget.ivControllers.values,
+      ...widget.evControllers.values,
+    ]) {
+      controller.removeListener(_onDraftFieldChanged);
+    }
     widget.speciesController.removeListener(_onDraftFieldChanged);
     widget.levelController.removeListener(_onDraftFieldChanged);
     widget.itemController.removeListener(_onDraftFieldChanged);
@@ -322,6 +346,148 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
     setState(() {
       _showRawFallbacks = !_showRawFallbacks;
     });
+  }
+
+  Widget _buildStatsFields(PokedexSpeciesDetail? detail, int? level) {
+    final error = _trainerStatDraftError(
+      advanced: widget.advancedStats,
+      natureId: widget.natureId,
+      ivControllers: widget.ivControllers,
+      evControllers: widget.evControllers,
+    );
+    final ivs = _trainerSpreadFromControllers(widget.ivControllers);
+    final evs = _trainerSpreadFromControllers(widget.evControllers);
+    final evTotal = evs?.toJson().values.cast<int>().fold(0, (a, b) => a + b);
+    gameplay.PokemonCalculatedStats? stats;
+    if (error == null &&
+        detail != null &&
+        level != null &&
+        level >= 1 &&
+        level <= 100) {
+      final base = detail.species.baseStats;
+      try {
+        stats = gameplay.calculateTrainerPokemonStats(
+          member: ProjectTrainerPokemonEntry(
+            speciesId: widget.speciesController.text.trim(),
+            level: level,
+            natureId: widget.advancedStats ? widget.natureId : null,
+            ivs: widget.advancedStats ? ivs : null,
+            evs: widget.advancedStats ? evs : null,
+          ),
+          baseStats: gameplay.PokemonBaseStats(
+            hp: base.hp,
+            attack: base.atk,
+            defense: base.def,
+            specialAttack: base.spa,
+            specialDefense: base.spd,
+            speed: base.spe,
+          ),
+        );
+      } on ArgumentError {
+        stats = null;
+      }
+    }
+    final calculated = stats;
+    return PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapDropdownField<String>(
+            key: const Key('trainer-library-pokemon-stats-mode'),
+            label: 'Statistiques individuelles',
+            value: widget.advancedStats ? 'advanced' : 'standard',
+            items: const [
+              PokeMapDropdownItem(value: 'standard', label: 'Standard'),
+              PokeMapDropdownItem(
+                value: 'advanced',
+                label: 'Personnaliser (avancé)',
+              ),
+            ],
+            onChanged: widget.onStatsModeChanged,
+          ),
+          if (widget.advancedStats) ...[
+            const SizedBox(height: 10),
+            PokeMapDropdownField<String>(
+              key: const Key('trainer-library-pokemon-nature'),
+              label: 'Nature',
+              value: widget.natureId,
+              items: [
+                for (final id in canonicalPokemonNatureIds)
+                  PokeMapDropdownItem(
+                    value: id,
+                    label: _trainerNatureLabel(id),
+                  ),
+              ],
+              onChanged: widget.onNatureChanged,
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final entry in {
+                  'ivs': (widget.ivControllers, 31, 'IV'),
+                  'evs': (widget.evControllers, 252, 'EV'),
+                }.entries)
+                  for (final stat in trainerPokemonStatKeys)
+                    SizedBox(
+                      width: 140,
+                      child: PokeMapTextField(
+                        fieldKey: Key(
+                          'trainer-library-pokemon-${entry.key}-$stat',
+                        ),
+                        label: '${entry.value.$3} ${_trainerStatLabels[stat]}',
+                        controller: entry.value.$1[stat],
+                        keyboardType: TextInputType.number,
+                        errorText: switch (_trainerStrictInteger(
+                          entry.value.$1[stat]!.text,
+                        )) {
+                          final int value
+                              when value >= 0 && value <= entry.value.$2 =>
+                            null,
+                          _ => 'Entier de 0 à ${entry.value.$2}',
+                        },
+                      ),
+                    ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Total EV : ${evTotal ?? '—'}/510',
+              key: const Key('trainer-library-pokemon-ev-total'),
+            ),
+            if (error != null) Text(error),
+          ],
+          const SizedBox(height: 10),
+          if (calculated != null)
+            Wrap(
+              key: const Key('trainer-library-pokemon-stats-preview'),
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                for (final entry in {
+                  'hp': calculated.maxHp,
+                  'attack': calculated.attack,
+                  'defense': calculated.defense,
+                  'specialAttack': calculated.specialAttack,
+                  'specialDefense': calculated.specialDefense,
+                  'speed': calculated.speed,
+                }.entries)
+                  Text(
+                    '${_trainerStatLabels[entry.key]} : ${entry.value}',
+                    key: Key('trainer-library-pokemon-preview-${entry.key}'),
+                  ),
+              ],
+            )
+          else
+            Text(
+              error != null || level == null || level < 1 || level > 100
+                  ? 'Aperçu indisponible : corrigez les valeurs saisies.'
+                  : 'Aperçu indisponible : statistiques de base de l’espèce non chargées.',
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildRawFallbackSection(BuildContext context) {
@@ -511,9 +677,13 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             FutureBuilder<PokedexSpeciesDetail?>(
               future: _speciesDetailFuture,
               builder: (context, snapshot) {
-                final detail = snapshot.data;
-                final guidedMoves = snapshot.connectionState ==
-                            ConnectionState.waiting &&
+                final detail =
+                    snapshot.connectionState == ConnectionState.done &&
+                        snapshot.data?.species.id == speciesId
+                    ? snapshot.data
+                    : null;
+                final guidedMoves =
+                    snapshot.connectionState == ConnectionState.waiting &&
                         speciesId.isNotEmpty
                     ? const _TrainerGuidedMoveSuggestions(
                         description:
@@ -605,6 +775,8 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    _buildStatsFields(detail, level),
                     const SizedBox(height: 12),
                     const InspectorEmbeddedSectionLabel('MOVES'),
                     const SizedBox(height: 8),
@@ -786,6 +958,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   minimumSize: const Size(1, 28),
                   onPressed: widget.onCancel,
+                  key: const Key('trainer-library-pokemon-cancel-button'),
                   child: const Text('Annuler', style: TextStyle(fontSize: 13)),
                 ),
                 CupertinoButton.filled(

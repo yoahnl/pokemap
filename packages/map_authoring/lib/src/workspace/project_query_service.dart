@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
@@ -44,6 +45,89 @@ final class ProjectQueryService {
 
   final void Function()? onEventV2CatalogBuilt;
   final void Function(String eventId)? onEventV2ValidationBuilt;
+
+  Future<AuthoringQueryPage> queryAsync(
+    ProjectSnapshot snapshot,
+    AuthoringQueryRequest request,
+  ) =>
+      switch (request.resourceKind) {
+        'trainerPokemonStats' => queryTrainerPokemonStats(snapshot, request),
+        'pokemonDocument' => queryPokemonDocuments(snapshot, request),
+        'scene' => queryScenes(snapshot, request),
+        _ => Future.value(query(snapshot, request)),
+      };
+
+  Future<AuthoringQueryPage> queryTrainerPokemonStats(
+    ProjectSnapshot snapshot,
+    AuthoringQueryRequest request,
+  ) async {
+    if (request.resourceKind != 'trainerPokemonStats' ||
+        request.extensions.isNotEmpty) {
+      throw const AuthoringQueryException('query.action_resource_mismatch',
+          'Trainer Pokemon stats accept the generic query contract only.');
+    }
+    final members = <String, ProjectTrainerPokemonEntry>{};
+    final records = <_QueryRecord>[];
+    for (final trainer in snapshot.manifest.trainers) {
+      for (var index = 0; index < trainer.team.length; index++) {
+        final member = trainer.team[index];
+        final configuration = resolveTrainerPokemonStats(member);
+        final id = '${trainer.id}:$index';
+        members[id] = member;
+        final detail = <String, Object?>{
+          'id': id,
+          'trainerId': trainer.id,
+          'pokemonIndex': index,
+          'speciesId': member.speciesId,
+          'level': member.level,
+          'natureId': configuration.natureId,
+          'ivs': configuration.ivs.toJson(),
+          'evs': configuration.evs.toJson(),
+        };
+        records.add(_QueryRecord(
+          summary: detail,
+          detail: detail,
+          searchName: '${trainer.name} ${member.speciesId}',
+        ));
+      }
+    }
+    final inputFilters = <String, Object?>{
+      for (final entry in request.filters.entries)
+        if (entry.key != 'stats' && !entry.key.startsWith('stats.'))
+          entry.key: entry.value,
+    };
+    final selected = _applyOperation(records, request)
+        .where((record) => _matchesFilters(record.detail, inputFilters));
+    final species = <String, PokemonBaseStats>{};
+    final calculated = <_QueryRecord>[];
+    for (final record in selected) {
+      final member = members[record.id]!;
+      final baseStats = species[member.speciesId] ??=
+          await _trainerPokemonBaseStats(snapshot, member.speciesId);
+      final stats = calculateTrainerPokemonStats(
+        member: member,
+        baseStats: baseStats,
+      );
+      final detail = <String, Object?>{
+        ...record.detail,
+        'stats': <String, Object?>{
+          'hp': stats.maxHp,
+          'attack': stats.attack,
+          'defense': stats.defense,
+          'specialAttack': stats.specialAttack,
+          'specialDefense': stats.specialDefense,
+          'speed': stats.speed,
+        },
+      };
+      calculated.add(_QueryRecord(
+        summary: detail,
+        detail: detail,
+        searchName: record.name,
+      ));
+    }
+    return _queryRecordsPage(snapshot, request, calculated,
+        operationApplied: true);
+  }
 
   Future<AuthoringQueryPage> queryPokemonDocuments(
     ProjectSnapshot snapshot,
@@ -189,6 +273,10 @@ final class ProjectQueryService {
     AuthoringQueryRequest request, {
     Set<String>? availableMoveIds,
   }) {
+    if (request.resourceKind == 'trainerPokemonStats') {
+      throw const AuthoringQueryException('query.async_required',
+          'Trainer Pokemon stats require queryAsync.');
+    }
     if (request.resourceKind == 'pokemonDocument' &&
         request.view == AuthoringQueryView.detail &&
         request.operation != AuthoringQueryOperation.summary &&
@@ -219,7 +307,7 @@ final class ProjectQueryService {
       );
     }
     final characterStudioRecords = _characterStudioRecords(snapshot, request);
-    var records = worldGraphActionRecords ??
+    final records = worldGraphActionRecords ??
         itemActionRecords ??
         characterStudioRecords ??
         _records(
@@ -229,42 +317,87 @@ final class ProjectQueryService {
           onEventV2CatalogBuilt: onEventV2CatalogBuilt,
           onEventV2ValidationBuilt: onEventV2ValidationBuilt,
         );
-    records = _applyOperation(records, request);
-    records = records
-        .where((record) => _matchesFilters(record.detail, request.filters))
-        .toList(growable: false);
-    final ordered = records.toList()
-      ..sort(_comparator(_effectiveSort(request)));
-    final offset = _cursorOffset(snapshot, request);
-    if (offset > ordered.length) {
-      throw const AuthoringQueryException(
-        'query.cursor_invalid',
-        'The query cursor offset is invalid.',
-      );
+    return _queryRecordsPage(snapshot, request, records);
+  }
+}
+
+AuthoringQueryPage _queryRecordsPage(ProjectSnapshot snapshot,
+    AuthoringQueryRequest request, List<_QueryRecord> records,
+    {bool operationApplied = false}) {
+  if (!operationApplied) records = _applyOperation(records, request);
+  records = records
+      .where((record) => _matchesFilters(record.detail, request.filters))
+      .toList(growable: false);
+  final ordered = records.toList()..sort(_comparator(_effectiveSort(request)));
+  final offset = _cursorOffset(snapshot, request);
+  if (offset > ordered.length) {
+    throw const AuthoringQueryException(
+      'query.cursor_invalid',
+      'The query cursor offset is invalid.',
+    );
+  }
+  final end = (offset + request.pageSize).clamp(0, ordered.length);
+  final pageRecords = ordered.sublist(offset, end);
+  final useDetail = request.operation != AuthoringQueryOperation.summary &&
+      request.view == AuthoringQueryView.detail;
+  final items = [
+    for (final record in pageRecords)
+      _applyFieldMask(
+        useDetail ? record.detail : record.summary,
+        request.fieldMask,
+      ),
+  ];
+  final nextCursor = end < ordered.length
+      ? _encodeCursor(
+          revision: snapshot.revision,
+          signature: request.signature,
+          offset: end,
+        )
+      : null;
+  return AuthoringQueryPage(
+    snapshotRevision: snapshot.revision,
+    items: items,
+    totalAvailable: ordered.length,
+    nextCursor: nextCursor,
+  );
+}
+
+Future<PokemonBaseStats> _trainerPokemonBaseStats(
+  ProjectSnapshot snapshot,
+  String speciesId,
+) async {
+  try {
+    final bytes = await snapshot.readResourceBytes(
+      pokemonSpeciesResourceIdentity(speciesId),
+    );
+    if (bytes == null) throw const FormatException();
+    final json = jsonDecode(utf8.decode(bytes));
+    if (json is! Map<String, dynamic> || json['id'] != speciesId) {
+      throw const FormatException();
     }
-    final end = (offset + request.pageSize).clamp(0, ordered.length);
-    final pageRecords = ordered.sublist(offset, end);
-    final useDetail = request.operation != AuthoringQueryOperation.summary &&
-        request.view == AuthoringQueryView.detail;
-    final items = [
-      for (final record in pageRecords)
-        _applyFieldMask(
-          useDetail ? record.detail : record.summary,
-          request.fieldMask,
-        ),
-    ];
-    final nextCursor = end < ordered.length
-        ? _encodeCursor(
-            revision: snapshot.revision,
-            signature: request.signature,
-            offset: end,
-          )
-        : null;
-    return AuthoringQueryPage(
-      snapshotRevision: snapshot.revision,
-      items: items,
-      totalAvailable: ordered.length,
-      nextCursor: nextCursor,
+    final values = json['baseStats'];
+    if (values is! Map ||
+        const ['hp', 'atk', 'def', 'spa', 'spd', 'spe'].any(
+          (key) =>
+              values[key] is! int ||
+              (values[key] as int) < 1 ||
+              (values[key] as int) > 255,
+        )) {
+      throw const FormatException();
+    }
+    final species = PokemonSpeciesFile.fromJson(json);
+    return PokemonBaseStats(
+      hp: species.baseStats.hp,
+      attack: species.baseStats.atk,
+      defense: species.baseStats.def,
+      specialAttack: species.baseStats.spa,
+      specialDefense: species.baseStats.spd,
+      speed: species.baseStats.spe,
+    ).validated();
+  } on Object {
+    throw const AuthoringQueryException(
+      'query.trainer_pokemon_species_unavailable',
+      'Trainer Pokemon stats require an available species with valid base stats.',
     );
   }
 }
@@ -2584,8 +2717,8 @@ Map<String, Object?> _applyFieldMask(
   }
   final selected = <String, Object?>{
     'id': source['id'],
-    'name': source['name'],
-    'resourceKind': source['resourceKind'],
+    if (source.containsKey('name')) 'name': source['name'],
+    if (source.containsKey('resourceKind')) 'resourceKind': source['resourceKind'],
   };
   for (final path in fieldMask) {
     final value = _readPath(source, path);
@@ -2734,13 +2867,15 @@ final class _QueryRecord {
   const _QueryRecord({
     required this.summary,
     required this.detail,
+    this.searchName,
   });
 
   final Map<String, Object?> summary;
   final Map<String, Object?> detail;
+  final String? searchName;
 
   String get id => detail['id']! as String;
-  String get name => detail['name']! as String;
+  String get name => searchName ?? detail['name']! as String;
 }
 
 final class _QueryCursor {

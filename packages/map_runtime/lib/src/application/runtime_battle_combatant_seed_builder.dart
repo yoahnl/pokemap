@@ -811,14 +811,9 @@ class RuntimeBattleCombatantSeedBuilder {
       combatantLabel:
           'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
     );
-    const opponentProfile = PokemonOpponentStatProfile.trainerV0;
-    final calculatedStats = _calculateResolvedStats(
+    final calculatedStats = _calculateTrainerStats(
       species: species,
-      level: teamMember.level,
-      ivs: opponentProfile.ivs,
-      evs: opponentProfile.evs,
-      natureId: opponentProfile.natureId,
-      profileLabel: opponentProfile.profileId,
+      teamMember: teamMember,
     );
 
     return RuntimeBattleCombatantSeed(
@@ -877,14 +872,9 @@ class RuntimeBattleCombatantSeedBuilder {
       combatantLabel:
           'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
     );
-    const opponentProfile = PokemonOpponentStatProfile.trainerV0;
-    final calculatedStats = _calculateResolvedStats(
+    final calculatedStats = _calculateTrainerStats(
       species: species,
-      level: teamMember.level,
-      ivs: opponentProfile.ivs,
-      evs: opponentProfile.evs,
-      natureId: opponentProfile.natureId,
-      profileLabel: opponentProfile.profileId,
+      teamMember: teamMember,
     );
 
     return RuntimePsdkBattleCombatantSeed(
@@ -1004,6 +994,30 @@ class RuntimeBattleCombatantSeedBuilder {
       );
     }
     return currentPpByMoveId;
+  }
+
+  PokemonCalculatedStats _calculateTrainerStats({
+    required RuntimePokemonSpecies species,
+    required ProjectTrainerPokemonEntry teamMember,
+  }) {
+    try {
+      return calculateTrainerPokemonStats(
+        member: teamMember,
+        baseStats: PokemonBaseStats(
+          hp: species.baseHp,
+          attack: species.baseAttack,
+          defense: species.baseDefense,
+          specialAttack: species.baseSpecialAttack,
+          specialDefense: species.baseSpecialDefense,
+          speed: species.baseSpeed,
+        ),
+      );
+    } on ArgumentError catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les stats du Pokémon du dresseur ne respectent pas le contrat battle.',
+        debugDetails: 'speciesId=${species.id}, member=$teamMember, error=$error',
+      );
+    }
   }
 
   PokemonCalculatedStats _calculateResolvedStats({

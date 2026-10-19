@@ -282,7 +282,7 @@ as int,
 mixin _$ProjectTrainerPokemonEntry {
 
  String get speciesId; int get level;/// IDs de capacités (ordre libre, max 4 recommandé — non enforced).
- List<String> get moves; String? get heldItemId;@JsonKey(includeIfNull: false) String? get ballItemId;/// Override d'ability authoré — BETA-TRN-003.
+ List<String> get moves; String? get heldItemId;@JsonKey(includeIfNull: false) String? get ballItemId;@JsonKey(includeIfNull: false) String? get natureId;@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) PokemonStatSpread? get ivs;@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) PokemonStatSpread? get evs;/// Override d'ability authoré — BETA-TRN-003.
 ///
 /// Absent, le runtime retombe sur l'ability primaire de l'espèce, le
 /// comportement historique. Renseigné, il doit exister dans le catalogue
@@ -301,16 +301,16 @@ $ProjectTrainerPokemonEntryCopyWith<ProjectTrainerPokemonEntry> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTrainerPokemonEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.level, level) || other.level == level)&&const DeepCollectionEquality().equals(other.moves, moves)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.ballItemId, ballItemId) || other.ballItemId == ballItemId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.formId, formId) || other.formId == formId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.shiny, shiny) || other.shiny == shiny));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTrainerPokemonEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.level, level) || other.level == level)&&const DeepCollectionEquality().equals(other.moves, moves)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.ballItemId, ballItemId) || other.ballItemId == ballItemId)&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.evs, evs) || other.evs == evs)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.formId, formId) || other.formId == formId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.shiny, shiny) || other.shiny == shiny));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,speciesId,level,const DeepCollectionEquality().hash(moves),heldItemId,ballItemId,abilityId,formId,gender,shiny);
+int get hashCode => Object.hash(runtimeType,speciesId,level,const DeepCollectionEquality().hash(moves),heldItemId,ballItemId,natureId,ivs,evs,abilityId,formId,gender,shiny);
 
 @override
 String toString() {
-  return 'ProjectTrainerPokemonEntry(speciesId: $speciesId, level: $level, moves: $moves, heldItemId: $heldItemId, ballItemId: $ballItemId, abilityId: $abilityId, formId: $formId, gender: $gender, shiny: $shiny)';
+  return 'ProjectTrainerPokemonEntry(speciesId: $speciesId, level: $level, moves: $moves, heldItemId: $heldItemId, ballItemId: $ballItemId, natureId: $natureId, ivs: $ivs, evs: $evs, abilityId: $abilityId, formId: $formId, gender: $gender, shiny: $shiny)';
 }
 
 
@@ -321,11 +321,11 @@ abstract mixin class $ProjectTrainerPokemonEntryCopyWith<$Res>  {
   factory $ProjectTrainerPokemonEntryCopyWith(ProjectTrainerPokemonEntry value, $Res Function(ProjectTrainerPokemonEntry) _then) = _$ProjectTrainerPokemonEntryCopyWithImpl;
 @useResult
 $Res call({
- String speciesId, int level, List<String> moves, String? heldItemId,@JsonKey(includeIfNull: false) String? ballItemId, String? abilityId, String? formId, String? gender, bool shiny
+ String speciesId, int level, List<String> moves, String? heldItemId,@JsonKey(includeIfNull: false) String? ballItemId,@JsonKey(includeIfNull: false) String? natureId,@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) PokemonStatSpread? ivs,@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) PokemonStatSpread? evs, String? abilityId, String? formId, String? gender, bool shiny
 });
 
 
-
+$PokemonStatSpreadCopyWith<$Res>? get ivs;$PokemonStatSpreadCopyWith<$Res>? get evs;
 
 }
 /// @nodoc
@@ -338,21 +338,48 @@ class _$ProjectTrainerPokemonEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectTrainerPokemonEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? speciesId = null,Object? level = null,Object? moves = null,Object? heldItemId = freezed,Object? ballItemId = freezed,Object? abilityId = freezed,Object? formId = freezed,Object? gender = freezed,Object? shiny = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? speciesId = null,Object? level = null,Object? moves = null,Object? heldItemId = freezed,Object? ballItemId = freezed,Object? natureId = freezed,Object? ivs = freezed,Object? evs = freezed,Object? abilityId = freezed,Object? formId = freezed,Object? gender = freezed,Object? shiny = null,}) {
   return _then(_self.copyWith(
 speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
 as int,moves: null == moves ? _self.moves : moves // ignore: cast_nullable_to_non_nullable
 as List<String>,heldItemId: freezed == heldItemId ? _self.heldItemId : heldItemId // ignore: cast_nullable_to_non_nullable
 as String?,ballItemId: freezed == ballItemId ? _self.ballItemId : ballItemId // ignore: cast_nullable_to_non_nullable
-as String?,abilityId: freezed == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
+as String?,natureId: freezed == natureId ? _self.natureId : natureId // ignore: cast_nullable_to_non_nullable
+as String?,ivs: freezed == ivs ? _self.ivs : ivs // ignore: cast_nullable_to_non_nullable
+as PokemonStatSpread?,evs: freezed == evs ? _self.evs : evs // ignore: cast_nullable_to_non_nullable
+as PokemonStatSpread?,abilityId: freezed == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
 as String?,formId: freezed == formId ? _self.formId : formId // ignore: cast_nullable_to_non_nullable
 as String?,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as String?,shiny: null == shiny ? _self.shiny : shiny // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
+/// Create a copy of ProjectTrainerPokemonEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PokemonStatSpreadCopyWith<$Res>? get ivs {
+    if (_self.ivs == null) {
+    return null;
+  }
 
+  return $PokemonStatSpreadCopyWith<$Res>(_self.ivs!, (value) {
+    return _then(_self.copyWith(ivs: value));
+  });
+}/// Create a copy of ProjectTrainerPokemonEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PokemonStatSpreadCopyWith<$Res>? get evs {
+    if (_self.evs == null) {
+    return null;
+  }
+
+  return $PokemonStatSpreadCopyWith<$Res>(_self.evs!, (value) {
+    return _then(_self.copyWith(evs: value));
+  });
+}
 }
 
 
@@ -434,10 +461,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String speciesId,  int level,  List<String> moves,  String? heldItemId, @JsonKey(includeIfNull: false)  String? ballItemId,  String? abilityId,  String? formId,  String? gender,  bool shiny)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String speciesId,  int level,  List<String> moves,  String? heldItemId, @JsonKey(includeIfNull: false)  String? ballItemId, @JsonKey(includeIfNull: false)  String? natureId, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson)  PokemonStatSpread? ivs, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson)  PokemonStatSpread? evs,  String? abilityId,  String? formId,  String? gender,  bool shiny)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectTrainerPokemonEntry() when $default != null:
-return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.ballItemId,_that.abilityId,_that.formId,_that.gender,_that.shiny);case _:
+return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.ballItemId,_that.natureId,_that.ivs,_that.evs,_that.abilityId,_that.formId,_that.gender,_that.shiny);case _:
   return orElse();
 
 }
@@ -455,10 +482,10 @@ return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.b
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String speciesId,  int level,  List<String> moves,  String? heldItemId, @JsonKey(includeIfNull: false)  String? ballItemId,  String? abilityId,  String? formId,  String? gender,  bool shiny)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String speciesId,  int level,  List<String> moves,  String? heldItemId, @JsonKey(includeIfNull: false)  String? ballItemId, @JsonKey(includeIfNull: false)  String? natureId, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson)  PokemonStatSpread? ivs, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson)  PokemonStatSpread? evs,  String? abilityId,  String? formId,  String? gender,  bool shiny)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectTrainerPokemonEntry():
-return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.ballItemId,_that.abilityId,_that.formId,_that.gender,_that.shiny);case _:
+return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.ballItemId,_that.natureId,_that.ivs,_that.evs,_that.abilityId,_that.formId,_that.gender,_that.shiny);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -475,10 +502,10 @@ return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.b
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String speciesId,  int level,  List<String> moves,  String? heldItemId, @JsonKey(includeIfNull: false)  String? ballItemId,  String? abilityId,  String? formId,  String? gender,  bool shiny)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String speciesId,  int level,  List<String> moves,  String? heldItemId, @JsonKey(includeIfNull: false)  String? ballItemId, @JsonKey(includeIfNull: false)  String? natureId, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson)  PokemonStatSpread? ivs, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson)  PokemonStatSpread? evs,  String? abilityId,  String? formId,  String? gender,  bool shiny)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectTrainerPokemonEntry() when $default != null:
-return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.ballItemId,_that.abilityId,_that.formId,_that.gender,_that.shiny);case _:
+return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.ballItemId,_that.natureId,_that.ivs,_that.evs,_that.abilityId,_that.formId,_that.gender,_that.shiny);case _:
   return null;
 
 }
@@ -487,10 +514,10 @@ return $default(_that.speciesId,_that.level,_that.moves,_that.heldItemId,_that.b
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _ProjectTrainerPokemonEntry implements ProjectTrainerPokemonEntry {
-  const _ProjectTrainerPokemonEntry({required this.speciesId, required this.level, final  List<String> moves = const [], this.heldItemId, @JsonKey(includeIfNull: false) this.ballItemId, this.abilityId, this.formId, this.gender, this.shiny = false}): _moves = moves;
+  const _ProjectTrainerPokemonEntry({required this.speciesId, required this.level, final  List<String> moves = const [], this.heldItemId, @JsonKey(includeIfNull: false) this.ballItemId, @JsonKey(includeIfNull: false) this.natureId, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) this.ivs, @JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) this.evs, this.abilityId, this.formId, this.gender, this.shiny = false}): _moves = moves;
   factory _ProjectTrainerPokemonEntry.fromJson(Map<String, dynamic> json) => _$ProjectTrainerPokemonEntryFromJson(json);
 
 @override final  String speciesId;
@@ -506,6 +533,9 @@ class _ProjectTrainerPokemonEntry implements ProjectTrainerPokemonEntry {
 
 @override final  String? heldItemId;
 @override@JsonKey(includeIfNull: false) final  String? ballItemId;
+@override@JsonKey(includeIfNull: false) final  String? natureId;
+@override@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) final  PokemonStatSpread? ivs;
+@override@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) final  PokemonStatSpread? evs;
 /// Override d'ability authoré — BETA-TRN-003.
 ///
 /// Absent, le runtime retombe sur l'ability primaire de l'espèce, le
@@ -530,16 +560,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTrainerPokemonEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.level, level) || other.level == level)&&const DeepCollectionEquality().equals(other._moves, _moves)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.ballItemId, ballItemId) || other.ballItemId == ballItemId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.formId, formId) || other.formId == formId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.shiny, shiny) || other.shiny == shiny));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTrainerPokemonEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.level, level) || other.level == level)&&const DeepCollectionEquality().equals(other._moves, _moves)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.ballItemId, ballItemId) || other.ballItemId == ballItemId)&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.evs, evs) || other.evs == evs)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.formId, formId) || other.formId == formId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.shiny, shiny) || other.shiny == shiny));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,speciesId,level,const DeepCollectionEquality().hash(_moves),heldItemId,ballItemId,abilityId,formId,gender,shiny);
+int get hashCode => Object.hash(runtimeType,speciesId,level,const DeepCollectionEquality().hash(_moves),heldItemId,ballItemId,natureId,ivs,evs,abilityId,formId,gender,shiny);
 
 @override
 String toString() {
-  return 'ProjectTrainerPokemonEntry(speciesId: $speciesId, level: $level, moves: $moves, heldItemId: $heldItemId, ballItemId: $ballItemId, abilityId: $abilityId, formId: $formId, gender: $gender, shiny: $shiny)';
+  return 'ProjectTrainerPokemonEntry(speciesId: $speciesId, level: $level, moves: $moves, heldItemId: $heldItemId, ballItemId: $ballItemId, natureId: $natureId, ivs: $ivs, evs: $evs, abilityId: $abilityId, formId: $formId, gender: $gender, shiny: $shiny)';
 }
 
 
@@ -550,11 +580,11 @@ abstract mixin class _$ProjectTrainerPokemonEntryCopyWith<$Res> implements $Proj
   factory _$ProjectTrainerPokemonEntryCopyWith(_ProjectTrainerPokemonEntry value, $Res Function(_ProjectTrainerPokemonEntry) _then) = __$ProjectTrainerPokemonEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String speciesId, int level, List<String> moves, String? heldItemId,@JsonKey(includeIfNull: false) String? ballItemId, String? abilityId, String? formId, String? gender, bool shiny
+ String speciesId, int level, List<String> moves, String? heldItemId,@JsonKey(includeIfNull: false) String? ballItemId,@JsonKey(includeIfNull: false) String? natureId,@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) PokemonStatSpread? ivs,@JsonKey(includeIfNull: false, fromJson: _projectTrainerStatSpreadFromJson) PokemonStatSpread? evs, String? abilityId, String? formId, String? gender, bool shiny
 });
 
 
-
+@override $PokemonStatSpreadCopyWith<$Res>? get ivs;@override $PokemonStatSpreadCopyWith<$Res>? get evs;
 
 }
 /// @nodoc
@@ -567,14 +597,17 @@ class __$ProjectTrainerPokemonEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectTrainerPokemonEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? speciesId = null,Object? level = null,Object? moves = null,Object? heldItemId = freezed,Object? ballItemId = freezed,Object? abilityId = freezed,Object? formId = freezed,Object? gender = freezed,Object? shiny = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? speciesId = null,Object? level = null,Object? moves = null,Object? heldItemId = freezed,Object? ballItemId = freezed,Object? natureId = freezed,Object? ivs = freezed,Object? evs = freezed,Object? abilityId = freezed,Object? formId = freezed,Object? gender = freezed,Object? shiny = null,}) {
   return _then(_ProjectTrainerPokemonEntry(
 speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
 as int,moves: null == moves ? _self._moves : moves // ignore: cast_nullable_to_non_nullable
 as List<String>,heldItemId: freezed == heldItemId ? _self.heldItemId : heldItemId // ignore: cast_nullable_to_non_nullable
 as String?,ballItemId: freezed == ballItemId ? _self.ballItemId : ballItemId // ignore: cast_nullable_to_non_nullable
-as String?,abilityId: freezed == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
+as String?,natureId: freezed == natureId ? _self.natureId : natureId // ignore: cast_nullable_to_non_nullable
+as String?,ivs: freezed == ivs ? _self.ivs : ivs // ignore: cast_nullable_to_non_nullable
+as PokemonStatSpread?,evs: freezed == evs ? _self.evs : evs // ignore: cast_nullable_to_non_nullable
+as PokemonStatSpread?,abilityId: freezed == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
 as String?,formId: freezed == formId ? _self.formId : formId // ignore: cast_nullable_to_non_nullable
 as String?,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as String?,shiny: null == shiny ? _self.shiny : shiny // ignore: cast_nullable_to_non_nullable
@@ -582,7 +615,31 @@ as bool,
   ));
 }
 
+/// Create a copy of ProjectTrainerPokemonEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PokemonStatSpreadCopyWith<$Res>? get ivs {
+    if (_self.ivs == null) {
+    return null;
+  }
 
+  return $PokemonStatSpreadCopyWith<$Res>(_self.ivs!, (value) {
+    return _then(_self.copyWith(ivs: value));
+  });
+}/// Create a copy of ProjectTrainerPokemonEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PokemonStatSpreadCopyWith<$Res>? get evs {
+    if (_self.evs == null) {
+    return null;
+  }
+
+  return $PokemonStatSpreadCopyWith<$Res>(_self.evs!, (value) {
+    return _then(_self.copyWith(evs: value));
+  });
+}
 }
 
 

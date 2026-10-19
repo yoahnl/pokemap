@@ -10,6 +10,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_combat_detail_header.dart';
 import 'pokemon_combat_species_picker.dart';
+import 'pokemon_combat_trainer_stats.dart';
 
 class PokemonCombatTrainerDetail extends StatelessWidget {
   const PokemonCombatTrainerDetail({
@@ -20,6 +21,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
     required this.onDelete,
     this.onOpenReference,
     this.onBack,
+    this.loadSpecies,
   });
 
   final PokemonCombatController combat;
@@ -28,6 +30,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
   final VoidCallback onDelete;
   final Future<void> Function(String kind, String id)? onOpenReference;
   final VoidCallback? onBack;
+  final Future<PokemonSpeciesFile?> Function(String id)? loadSpecies;
 
   @override
   Widget build(BuildContext context) {
@@ -316,17 +319,19 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Retirer de l’équipe',
-                  onPressed: () => combat.editTrainer(
-                    (current) => current.copyWith(
-                      team: [
-                        for (var i = 0; i < current.team.length; i++)
-                          if (i != indexInTeam) current.team[i],
-                      ],
-                    ),
-                  ),
+                  onPressed: () => combat.deleteTeamMember(indexInTeam),
                   icon: const Icon(Icons.delete_outline),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            PokemonCombatTrainerStats(
+              key: ValueKey('${trainer.id}:$indexInTeam:stats'),
+              trainerId: trainer.id,
+              indexInTeam: indexInTeam,
+              member: pokemon,
+              combat: combat,
+              loadSpecies: loadSpecies,
             ),
             const SizedBox(height: 8),
             Text('Attaques (${pokemon.moves.length}/4)'),

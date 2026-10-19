@@ -334,7 +334,23 @@ AuthoringActionDescriptor _descriptor(
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
       extensions: id == 'campaign.trainer.upsert'
-          ? const {
+          ? {
+              'trainerPokemonStats': {
+                'fields': [
+                  'value.team[].natureId',
+                  'value.team[].ivs',
+                  'value.team[].evs'
+                ],
+                'standard': {
+                  'natureId': standardTrainerPokemonNatureId,
+                  'ivs': standardTrainerPokemonIvs.toJson(),
+                  'evs': standardTrainerPokemonEvs.toJson(),
+                },
+                'iv': {'min': 0, 'max': 31, 'integer': true},
+                'ev': {'min': 0, 'max': 252, 'integer': true, 'totalMax': 510},
+                'aiIndependent': true,
+                'previewResourceKind': 'trainerPokemonStats',
+              },
               'trainerBattleItems': {
                 'field': 'value.battleItems',
                 'maxDistinctItems': 16,

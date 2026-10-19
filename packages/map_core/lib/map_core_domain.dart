@@ -133,6 +133,8 @@ export 'src/catalogs/narrative_spatial_event_source_catalog.dart';
 export 'src/catalogs/narrative_outcome_event_source_catalog.dart';
 export 'src/catalogs/narrative_event_project_catalog.dart';
 export 'src/models/project_trainer.dart';
+export 'src/models/pokemon_nature.dart';
+export 'src/operations/trainer_pokemon_stats.dart';
 export 'src/models/scenario_asset.dart';
 export 'src/models/scene_asset.dart';
 export 'src/models/dialogue_line_feedback.dart';

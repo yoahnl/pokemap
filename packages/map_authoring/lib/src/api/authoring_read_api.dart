@@ -162,13 +162,7 @@ final class AuthoringReadApi
     if (request.extensions['actionId'] == 'scene.simulate') {
       return querySceneSimulation(snapshot, request);
     }
-    if (request.resourceKind == 'scene') {
-      return _queryService.queryScenes(snapshot, request);
-    }
-    if (request.resourceKind == 'pokemonDocument') {
-      return _queryService.queryPokemonDocuments(snapshot, request);
-    }
-    return _queryService.query(snapshot, request);
+    return _queryService.queryAsync(snapshot, request);
   }
 
   @override

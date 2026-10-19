@@ -1352,6 +1352,44 @@ AuthoringResourceParity _resourceParity(
   String owner, {
   required Set<String> queryableResourceKinds,
 }) {
+  if (kind == 'trainerPokemonStats') {
+    return AuthoringResourceParity(
+      resourceKind: kind,
+      canonicalOwnerKind: owner,
+      cells: {
+        for (final capability in AuthoringParityCapability.values)
+          capability: switch (capability) {
+            AuthoringParityCapability.mutation ||
+            AuthoringParityCapability.durability ||
+            AuthoringParityCapability.replay ||
+            AuthoringParityCapability.history ||
+            AuthoringParityCapability.references ||
+            AuthoringParityCapability.visualization =>
+              AuthoringParityCell.notApplicable(
+                capability: capability,
+                justification:
+                    'trainerPokemonStats is a read-only derived view. Trainer and species resources own persisted data, references and history.',
+              ),
+            AuthoringParityCapability.read
+                when !queryableResourceKinds.contains(kind) =>
+              AuthoringParityCell.missing(
+                capability: capability,
+                justification:
+                    'The derived trainer stats query resource is unpublished.',
+              ),
+            _ => AuthoringParityCell.supported(
+                capability: capability,
+                evidence: const [
+                  'lib/src/workspace/project_query_service.dart',
+                  'test/workspace/trainer_pokemon_stats_query_test.dart',
+                  '../map_editor/test/authoring_api/editor_trainer_pokemon_stats_query_test.dart',
+                  '../../tools/pokemap_mcp/test/trainer_pokemon_stats_stdio.test.ts',
+                ],
+              ),
+          },
+      },
+    );
+  }
   if (resourcePackTemporaryKinds.contains(kind)) {
     return AuthoringResourceParity(
       resourceKind: kind,
@@ -1949,6 +1987,7 @@ const _semanticOwners = <String, String>{
   'shop': 'campaignContent',
   'badge': 'campaignContent',
   'trainer': 'campaignContent',
+  'trainerPokemonStats': 'campaignContent',
   'character': 'campaignContent',
   'characterStudioCatalog': 'project',
   'characterStudioCharacter': 'project',
@@ -1978,6 +2017,7 @@ const _semanticOwners = <String, String>{
 };
 
 const _requiredDirectReadResourceKinds = <String>{
+  'trainerPokemonStats',
   'resourcePackJob',
   'resourcePackInspection',
   'resourcePackEntry',

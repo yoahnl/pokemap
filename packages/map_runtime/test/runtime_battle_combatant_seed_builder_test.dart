@@ -714,6 +714,66 @@ void main() {
       expect(psdkSeed.abilityId, equals('swift-swim'));
     });
 
+    test('uses authored trainer IV EV and nature in both battle lanes',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      final member = ProjectTrainerPokemonEntry.fromJson(<String, dynamic>{
+        'speciesId': 'sproutle',
+        'level': 50,
+        'moves': <String>['vine_whip'],
+        'natureId': 'adamant',
+        'ivs': <String, int>{
+          'hp': 31,
+          'attack': 31,
+          'defense': 31,
+          'specialAttack': 31,
+          'specialDefense': 31,
+          'speed': 31,
+        },
+        'evs': <String, int>{
+          'hp': 252,
+          'attack': 252,
+          'defense': 0,
+          'specialAttack': 0,
+          'specialDefense': 0,
+          'speed': 6,
+        },
+      });
+
+      final seed = await builder.buildTrainerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        teamMember: member,
+        trainerName: 'Ace Jules',
+      );
+      final psdkSeed = await builder.buildTrainerPsdkCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        itemCatalog: _heldItemCatalog,
+        teamMember: member,
+        trainerName: 'Ace Jules',
+      );
+
+      expect(seed.maxHp, 152);
+      expect(seed.stats.attack, 111);
+      expect(seed.stats.defense, 69);
+      expect(seed.stats.specialAttack, 76);
+      expect(seed.stats.specialDefense, 85);
+      expect(seed.stats.speed, 66);
+      expect(psdkSeed.maxHp, seed.maxHp);
+      expect(psdkSeed.stats.attack, seed.stats.attack);
+      expect(psdkSeed.stats.defense, seed.stats.defense);
+      expect(psdkSeed.stats.specialAttack, seed.stats.specialAttack);
+      expect(psdkSeed.stats.specialDefense, seed.stats.specialDefense);
+      expect(psdkSeed.stats.speed, seed.stats.speed);
+    });
+
     test('builds a trainer combatant seed from explicit trainer moves',
         () async {
       await _writePokemonFixtures(tempProjectRoot);

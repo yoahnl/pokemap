@@ -344,6 +344,15 @@ final class EditorAuthoringReadSession {
     return _queries.query(_snapshot, request).toJson();
   }
 
+  Future<Map<String, Object?>> queryAsync(AuthoringQueryRequest request) async {
+    _beginOperation();
+    try {
+      return (await _queries.queryAsync(_snapshot, request)).toJson();
+    } finally {
+      _endOperation();
+    }
+  }
+
   /// Validation is deliberately fresh. It uses the canonical API again so an
   /// external edit is visible instead of being hidden by the UI snapshot.
   Future<Map<String, Object?>> validateFresh() async {

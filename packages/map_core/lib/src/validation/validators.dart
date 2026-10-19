@@ -21,6 +21,7 @@ import '../models/project_manifest.dart';
 import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
+import '../operations/trainer_pokemon_stats.dart';
 import '../models/items/project_item_definition.dart';
 import '../read_models/trainer_battle_item_capability.dart';
 import '../models/rail_journey.dart';
@@ -2499,6 +2500,19 @@ class ProjectValidator {
       }
       for (var i = 0; i < trainer.team.length; i++) {
         final pokemon = trainer.team[i];
+        final statIssues = validateTrainerPokemonStats(pokemon);
+        if (statIssues.isNotEmpty) {
+          final issue = statIssues.first;
+          throw ValidationException(
+            'Trainer $id team[$i] ${issue.message}',
+            code: issue.code,
+            details: {
+              'trainerId': id,
+              'teamIndex': i,
+              'field': issue.field,
+            },
+          );
+        }
         if (pokemon.ballItemId case final ballItemId?) {
           _validateTrainerBallItemId(id, i, ballItemId);
         }

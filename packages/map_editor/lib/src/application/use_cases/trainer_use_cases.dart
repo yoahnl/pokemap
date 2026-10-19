@@ -396,6 +396,9 @@ class AddTrainerPokemonUseCase {
     String? formId,
     String? gender,
     bool shiny = false,
+    String? natureId,
+    PokemonStatSpread? ivs,
+    PokemonStatSpread? evs,
   }) async {
     final index = project.trainers.indexWhere((t) => t.id == trainerId);
     if (index < 0) {
@@ -419,6 +422,9 @@ class AddTrainerPokemonUseCase {
       formId: formId?.trim().isEmpty == true ? null : formId?.trim(),
       gender: gender?.trim().isEmpty == true ? null : gender?.trim(),
       shiny: shiny,
+      natureId: natureId,
+      ivs: ivs,
+      evs: evs,
     );
     final trainer = project.trainers[index];
     final updatedTrainer = trainer.copyWith(team: [...trainer.team, pokemon]);
@@ -452,6 +458,12 @@ class UpdateTrainerPokemonUseCase {
     TrainerFieldUpdate<String> formId = const TrainerFieldUpdate<String>.keep(),
     TrainerFieldUpdate<String> gender = const TrainerFieldUpdate<String>.keep(),
     bool? shiny,
+    TrainerFieldUpdate<String> natureId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<PokemonStatSpread> ivs =
+        const TrainerFieldUpdate<PokemonStatSpread>.keep(),
+    TrainerFieldUpdate<PokemonStatSpread> evs =
+        const TrainerFieldUpdate<PokemonStatSpread>.keep(),
   }) async {
     final trainerIndex = project.trainers.indexWhere((t) => t.id == trainerId);
     if (trainerIndex < 0) {
@@ -500,6 +512,15 @@ class UpdateTrainerPokemonUseCase {
       );
     }
     final team = List<ProjectTrainerPokemonEntry>.from(trainer.team);
+    if (!natureId.isKeep) {
+      updatedPokemon = updatedPokemon.copyWith(natureId: natureId.valueOrNull);
+    }
+    if (!ivs.isKeep) {
+      updatedPokemon = updatedPokemon.copyWith(ivs: ivs.valueOrNull);
+    }
+    if (!evs.isKeep) {
+      updatedPokemon = updatedPokemon.copyWith(evs: evs.valueOrNull);
+    }
     team[pokemonIndex] = updatedPokemon;
     final updatedTrainer = trainer.copyWith(team: team);
     await _validateTrainerBalls(workspace, updatedTrainer);

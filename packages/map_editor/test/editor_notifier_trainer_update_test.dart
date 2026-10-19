@@ -102,49 +102,89 @@ void main() {
     });
 
     test(
-        'updateTrainerPokemon leaves held item, form and gender untouched when only the level changes',
-        () async {
-      final notifier = container.read(editorNotifierProvider.notifier);
-      notifier.state = const EditorState(
-        projectRootPath: '/tmp/project',
-        project: ProjectManifest(
-          name: 'trainer_pokemon_partial_update_test',
-          maps: <ProjectMapEntry>[],
-          tilesets: <ProjectTilesetEntry>[],
-          trainers: <ProjectTrainerEntry>[
-            ProjectTrainerEntry(
-              id: 'mira',
-              name: 'Mira',
-              trainerClass: 'Rookie',
-              team: <ProjectTrainerPokemonEntry>[
-                ProjectTrainerPokemonEntry(
-                  speciesId: 'sparkitten',
-                  level: 6,
-                  moves: <String>['scratch'],
-                  heldItemId: 'oran_berry',
-                  formId: 'base',
-                  gender: 'female',
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
+      'updateTrainerPokemon leaves held item, form and gender untouched when only the level changes',
+      () async {
+        final notifier = container.read(editorNotifierProvider.notifier);
+        notifier.state = const EditorState(
+          projectRootPath: '/tmp/project',
+          project: ProjectManifest(
+            name: 'trainer_pokemon_partial_update_test',
+            maps: <ProjectMapEntry>[],
+            tilesets: <ProjectTilesetEntry>[],
+            trainers: <ProjectTrainerEntry>[
+              ProjectTrainerEntry(
+                id: 'mira',
+                name: 'Mira',
+                trainerClass: 'Rookie',
+                team: <ProjectTrainerPokemonEntry>[
+                  ProjectTrainerPokemonEntry(
+                    speciesId: 'sparkitten',
+                    level: 6,
+                    moves: <String>['scratch'],
+                    heldItemId: 'oran_berry',
+                    formId: 'base',
+                    gender: 'female',
+                    natureId: 'adamant',
+                    ivs: standardTrainerPokemonIvs,
+                    evs: PokemonStatSpread(hp: 252),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
 
-      final success = await notifier.updateTrainerPokemon(
-        trainerId: 'mira',
-        pokemonIndex: 0,
-        level: 9,
-      );
+        final success = await notifier.updateTrainerPokemon(
+          trainerId: 'mira',
+          pokemonIndex: 0,
+          level: 9,
+        );
 
-      expect(success, isTrue);
-      final updatedPokemon =
-          notifier.state.project!.trainers.single.team.single;
-      expect(updatedPokemon.level, 9);
-      expect(updatedPokemon.heldItemId, 'oran_berry');
-      expect(updatedPokemon.formId, 'base');
-      expect(updatedPokemon.gender, 'female');
-    });
+        expect(success, isTrue);
+        final updatedPokemon =
+            notifier.state.project!.trainers.single.team.single;
+        expect(updatedPokemon.level, 9);
+        expect(updatedPokemon.heldItemId, 'oran_berry');
+        expect(updatedPokemon.formId, 'base');
+        expect(updatedPokemon.gender, 'female');
+        expect(updatedPokemon.natureId, 'adamant');
+        expect(updatedPokemon.ivs, standardTrainerPokemonIvs);
+        expect(updatedPokemon.evs, const PokemonStatSpread(hp: 252));
+        expect(
+          await notifier.updateTrainerPokemon(
+            trainerId: 'mira',
+            pokemonIndex: 0,
+            natureId: 'bold',
+            ivs: const PokemonStatSpread(attack: 31),
+            evs: const PokemonStatSpread(defense: 252),
+          ),
+          isTrue,
+        );
+        expect(
+          notifier.state.project!.trainers.single.team.single.natureId,
+          'bold',
+        );
+        expect(
+          notifier.state.project!.trainers.single.team.single.ivs!.attack,
+          31,
+        );
+        expect(
+          await notifier.updateTrainerPokemon(
+            trainerId: 'mira',
+            pokemonIndex: 0,
+            natureId: null,
+            ivs: null,
+            evs: null,
+          ),
+          isTrue,
+        );
+        final standard = notifier.state.project!.trainers.single.team.single;
+        expect(standard.natureId, isNull);
+        expect(standard.ivs, isNull);
+        expect(standard.evs, isNull);
+        expect(standard.heldItemId, 'oran_berry');
+      },
+    );
   });
 }
 

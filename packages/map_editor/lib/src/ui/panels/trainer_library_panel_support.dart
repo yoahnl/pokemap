@@ -73,6 +73,9 @@ class _TrainerPokemonDraft {
     required this.formId,
     required this.gender,
     required this.shiny,
+    required this.natureId,
+    required this.ivs,
+    required this.evs,
   });
 
   final String speciesId;
@@ -83,6 +86,67 @@ class _TrainerPokemonDraft {
   final String? formId;
   final String? gender;
   final bool shiny;
+  final String? natureId;
+  final PokemonStatSpread? ivs;
+  final PokemonStatSpread? evs;
+}
+
+const _trainerStatLabels = {
+  'hp': 'PV',
+  'attack': 'Attaque',
+  'defense': 'Défense',
+  'specialAttack': 'Attaque Spé.',
+  'specialDefense': 'Défense Spé.',
+  'speed': 'Vitesse',
+};
+
+String _trainerNatureLabel(String id) {
+  final effect = canonicalPokemonNatureEffect(id);
+  final name = '${id[0].toUpperCase()}${id.substring(1)}';
+  if (effect.increasedStat == null) return '$name — neutre';
+  return '$name — ${_trainerStatLabels[effect.increasedStat!.name]} +10%, ${_trainerStatLabels[effect.decreasedStat!.name]} −10%';
+}
+
+int? _trainerStrictInteger(String raw) =>
+    RegExp(r'^-?[0-9]+$').hasMatch(raw) ? int.tryParse(raw) : null;
+
+PokemonStatSpread? _trainerSpreadFromControllers(
+  Map<String, TextEditingController> controllers,
+) {
+  final values = {
+    for (final stat in trainerPokemonStatKeys)
+      stat: _trainerStrictInteger(controllers[stat]!.text),
+  };
+  if (values.values.any((value) => value == null)) return null;
+  return PokemonStatSpread.fromJson(values);
+}
+
+String? _trainerStatDraftError({
+  required bool advanced,
+  required String natureId,
+  required Map<String, TextEditingController> ivControllers,
+  required Map<String, TextEditingController> evControllers,
+}) {
+  if (!advanced) return null;
+  if (!canonicalPokemonNatureIds.contains(natureId)) {
+    return 'Choisissez une nature reconnue.';
+  }
+  for (final entry in {
+    'IV': (ivControllers, 31),
+    'EV': (evControllers, 252),
+  }.entries) {
+    for (final stat in trainerPokemonStatKeys) {
+      final value = _trainerStrictInteger(entry.value.$1[stat]!.text);
+      if (value == null || value < 0 || value > entry.value.$2) {
+        return '${entry.key} ${_trainerStatLabels[stat]} : entier de 0 à ${entry.value.$2} requis.';
+      }
+    }
+  }
+  final evs = _trainerSpreadFromControllers(evControllers)!;
+  if (evs.toJson().values.cast<int>().fold(0, (a, b) => a + b) > 510) {
+    return 'Le total des EV ne doit pas dépasser 510.';
+  }
+  return null;
 }
 
 class _TrainerGuidedMoveSuggestions {

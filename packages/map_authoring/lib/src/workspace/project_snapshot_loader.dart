@@ -891,6 +891,8 @@ final class ProjectSnapshotLoader {
             pokemon.speciesId,
           for (final starter in manifest.newGame.starterOptions)
             starter.pokemon.speciesId,
+          for (final trainer in manifest.trainers)
+            for (final member in trainer.team) member.speciesId,
         }.toList()
           ..sort();
         for (final speciesId in speciesIds) {

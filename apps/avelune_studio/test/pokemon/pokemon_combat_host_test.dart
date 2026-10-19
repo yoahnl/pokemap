@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_combat_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
+import 'package:avelune_studio/presentation/features/pokemon/pokemon_combat_trainer_detail.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +76,51 @@ void main() {
       await pumpIo(tester);
       await tester.tap(find.text('Bulbizarre').last);
       await pumpIo(tester);
+      expect(
+        find.byKey(const ValueKey('chef_gare:0:stats-mode')),
+        findsOneWidget,
+      );
+      final mode = tester.widget<StudioSelect>(
+        find.byKey(const ValueKey('chef_gare:0:stats-mode')),
+      );
+      expect(mode.value, 'standard');
+      mode.onChanged!('advanced');
+      await pumpIo(tester);
+      final nature = tester.widget<StudioSelect>(
+        find.byKey(const ValueKey('chef_gare:0:nature')),
+      );
+      expect(nature.options, hasLength(25));
+      expect(nature.options['adamant'], contains('Attaque +10%'));
+      nature.onChanged!('adamant');
+      await pumpIo(tester);
+      final iv = find.descendant(
+        of: find.byKey(const ValueKey('chef_gare:0:ivs:attack')),
+        matching: find.byType(TextField),
+      );
+      await tester.ensureVisible(iv);
+      await tester.enterText(iv, '2.5');
+      await pumpIo(tester);
+      expect(
+        find.byKey(const ValueKey('chef_gare:0:stats-preview')),
+        findsNothing,
+      );
+      await tester.tap(find.text('Enregistrer').last);
+      await pumpIo(tester);
+      expect(tester.widget<TextField>(iv).controller!.text, '2.5');
+      await tester.enterText(iv, '31');
+      await pumpIo(tester);
+      final ev = find.descendant(
+        of: find.byKey(const ValueKey('chef_gare:0:evs:speed')),
+        matching: find.byType(TextField),
+      );
+      await tester.ensureVisible(ev);
+      await pumpIo(tester);
+      await tester.enterText(ev, '6');
+      await pumpIo(tester);
+      expect(
+        find.byKey(const ValueKey('chef_gare:0:stats-preview')),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Enregistrer').last);
       await pumpIo(tester);
       expect(workspace.combat!.dirty, isTrue);
@@ -84,6 +130,7 @@ void main() {
         'Ajouter une attaque',
       );
       await tester.ensureVisible(movePicker);
+      await pumpIo(tester);
       await tester.tap(movePicker);
       await pumpIo(tester);
       await tester.tap(find.text('Charge').last);
@@ -101,7 +148,17 @@ void main() {
       final stockPicker = find.byKey(
         const ValueKey('chef_gare:battle-item-picker'),
       );
-      await tester.ensureVisible(stockPicker);
+      await tester.scrollUntilVisible(
+        stockPicker,
+        -300,
+        scrollable: find
+            .descendant(
+              of: find.byType(PokemonCombatTrainerDetail),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await pumpIo(tester);
       final stockSelect = tester.widget<StudioSelect>(stockPicker);
       expect(stockSelect.options, contains('potion'));
       expect(stockSelect.options, isNot(contains('revive')));
@@ -169,7 +226,17 @@ void main() {
       final refillPicker = find.byKey(
         const ValueKey('chef_gare:battle-item-picker'),
       );
-      await tester.ensureVisible(refillPicker);
+      await tester.scrollUntilVisible(
+        refillPicker,
+        -300,
+        scrollable: find
+            .descendant(
+              of: find.byType(PokemonCombatTrainerDetail),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await pumpIo(tester);
       tester.widget<StudioSelect>(refillPicker).onChanged!('potion');
       await pumpIo(tester);
       await tester.ensureVisible(quantity);
@@ -270,6 +337,9 @@ void main() {
       expect(table.entries.single.speciesId, 'bulbasaur');
       expect(trainer.team.single.speciesId, 'bulbasaur');
       expect(trainer.team.single.toJson()['ballItemId'], 'poke-ball');
+      expect(trainer.team.single.natureId, 'adamant');
+      expect(trainer.team.single.ivs!.attack, 31);
+      expect(trainer.team.single.evs, const PokemonStatSpread(speed: 6));
       expect(trainer.battleItems, {'potion': 2});
       expect(
         map.entities
