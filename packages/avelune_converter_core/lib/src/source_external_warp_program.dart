@@ -196,7 +196,7 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
     if (destination == null ||
         transfer[0] != 0 ||
         transfer[5] != 1 ||
-        !const {2, 4, 6, 8}.contains(direction) ||
+        !const {0, 2, 4, 6, 8}.contains(direction) ||
         x < 0 ||
         y < 0 ||
         x >= destination.map.width ||
