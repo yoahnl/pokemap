@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+const _transitionIds = ['transition-c', 'transition-a', 'transition-b'];
+
 void main() {
   test('encounter behavior executes through direct API and JSONL', () async {
     final direct = await _EncounterBehaviorHarness.create('direct');
@@ -51,23 +53,26 @@ void main() {
 
       await harness.executeDirect(
         battleTransitionIds: <String>[
-          battleWildTransitionIds[2],
-          battleWildTransitionIds[0],
+          _transitionIds[2],
+          _transitionIds[0],
+          _transitionIds[2],
         ],
         suffix: 'transitions',
       );
 
       expect(
         (await harness.behavior())?.encounter.battleTransitionIds,
-        <String>[battleWildTransitionIds[0], battleWildTransitionIds[2]],
-        reason: 'validées, dédoublonnées et remises dans l’ordre du contrat '
-            'partagé de map_core',
+        <String>[_transitionIds[0], _transitionIds[2]],
+        reason: 'validées, dédoublonnées et remises dans l’ordre des '
+            'transitions déclarées dans le projet',
       );
     });
 
     test('refusent un identifiant inconnu au lieu de l’ignorer', () async {
       final harness = await _EncounterBehaviorHarness.create('unknown');
       addTearDown(harness.dispose);
+      final mapFile = File('${harness.root.path}/maps/route.json');
+      final before = await mapFile.readAsBytes();
 
       await expectLater(
         harness.executeDirect(
@@ -78,6 +83,7 @@ void main() {
         reason: 'un id inconnu doit être un refus explicite, jamais un '
             'silence qui laisse croire au choix',
       );
+      expect(await mapFile.readAsBytes(), before);
     });
 
     test('survivent à une mise à jour qui ne parle pas de transitions',
@@ -88,7 +94,7 @@ void main() {
       addTearDown(harness.dispose);
 
       await harness.executeDirect(
-        battleTransitionIds: <String>[battleWildTransitionIds[1]],
+        battleTransitionIds: <String>[_transitionIds[1]],
         suffix: 'preserve-set',
       );
       // Une mise à jour RÉELLE mais muette sur les transitions : sans la
@@ -100,7 +106,7 @@ void main() {
 
       expect(
         (await harness.behavior())?.encounter.battleTransitionIds,
-        <String>[battleWildTransitionIds[1]],
+        <String>[_transitionIds[1]],
         reason: 'un appelant qui ignore ce champ ne doit pas détruire ce '
             'qu’un autre a posé',
       );
@@ -121,7 +127,7 @@ void main() {
       await harness.executeDirect(
         suffix: 'priority-untouched',
         priority: null,
-        battleTransitionIds: <String>[battleWildTransitionIds.first],
+        battleTransitionIds: <String>[_transitionIds.first],
       );
 
       expect(
@@ -382,6 +388,19 @@ ProjectManifest _manifest() {
   return ProjectManifest(
     name: 'Smart Tile encounter transport fixture',
     version: ProjectVersion.v8,
+    battleTransitions: ProjectBattleTransitionConfig(
+      definitions: [
+        for (final id in _transitionIds)
+          BattleTransitionDefinition.fromJson({
+            'id': id,
+            'label': id,
+            'usages': ['wild'],
+            'phases': [
+              {'kind': 'fadeToBlack', 'durationSeconds': 0.2},
+            ],
+          }),
+      ],
+    ),
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'route',

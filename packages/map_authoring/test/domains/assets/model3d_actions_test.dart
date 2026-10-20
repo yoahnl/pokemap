@@ -169,7 +169,7 @@ void main() {
     expect(placements, hasLength(1));
     expect(placements.single.modelId, 'house');
     expect(placements.single.animationIndex, 0);
-    expect(placements.single.position, Model3dVector3(x: 2.5, y: 0, z: 2.5));
+    expect(placements.single.position.toJson(), {'x': 2.5, 'y': 0.001, 'z': 2.5});
     expect(map.spatialScene!.instances, hasLength(1));
     final deletion = await f.planAction('model3d.delete', {'modelId': 'house'});
     expect(deletion.status, AuthoringResultStatus.failure);

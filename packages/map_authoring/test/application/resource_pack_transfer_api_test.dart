@@ -841,7 +841,10 @@ void main() {
       'families and all authors page within the escaped MCP envelope and bind cursors to their section',
       () async {
     final mixed = source.mixedFixture();
-    final largeName = '🌲' * 62000;
+    final largeName = '🌲' * 256;
+    expect(largeName.length, 512);
+    expect(() => CatalogDefinitionSummary(name: '${largeName}x'),
+        throwsFormatException);
     final authorNames = [for (var i = 0; i < 3000; i++) 'Auteur $i «"\\ ${'é' * 70}'];
     final original = source.metadata();
     final fixture = await NativeResourcePackImportFixture.create(
@@ -864,7 +867,7 @@ void main() {
       final families = await transfer('entries', {'inspectionHandle': owner, 'section': 'families', 'limit': 50});
       final family = (families['items'] as List).cast<Map>().singleWhere((row) => row['labelComplete'] == false);
       expect(family['labelComplete'], isFalse);
-      expect(family['labelLength'], 62000);
+      expect(family['labelLength'], 256);
       expect((family['label'] as String).runes.length, 160);
       final chosen = await transfer('selection.create', {'mode': 'archive', 'inspectionHandle': owner});
       final familySelection = await transfer('selection.select_filtered', {'selectionHandle': chosen['selectionHandle'], 'revision': chosen['revision'], 'filter': {'familyId': family['id']}});
