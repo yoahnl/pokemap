@@ -8,6 +8,7 @@ import '../application/dialogue_runtime_models.dart';
 import '../application/load_dialogue_content.dart';
 import '../application/load_runtime_map_bundle.dart';
 import '../application/resolve_dialogue.dart';
+import '../application/runtime_project_catalog.dart';
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'runtime_initial_map_preloader.dart';
@@ -92,7 +93,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
     final snapshot = await _readProjectSnapshot(projectFilePath);
     final catalog = bundle.projectCatalog;
     final publicationIsCurrent = catalog == null
-        ? _snapshotContent(snapshot.project) ==
+        ? _snapshotContent(await loadProjectManifestFromFile(projectFilePath)) ==
             _snapshotContent(normalizeRuntimeProjectManifest(bundle.manifest))
         : await catalog.isCurrentPublication();
     if (!publicationIsCurrent ||
@@ -517,12 +518,10 @@ String _snapshotContent(Object value) =>
 
 final class _RuntimeNewGameProjectSnapshot {
   const _RuntimeNewGameProjectSnapshot({
-    required this.project,
     required this.map,
     required this.revision,
   });
 
-  final ProjectManifest project;
   final MapData map;
   final String revision;
 }
@@ -531,79 +530,90 @@ Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
   String projectFilePath,
 ) async {
   final projectFile = File(projectFilePath);
-  final projectBytes = await projectFile.readAsBytes();
-  final project = decodeRuntimeProjectManifest(utf8.decode(projectBytes));
-  final startMapId = project.newGame.startMapId.trim();
-  final mapEntries = project.maps.where((entry) => entry.id == startMapId);
-  if (!project.newGame.enabled ||
-      startMapId.isEmpty ||
-      mapEntries.length != 1) {
-    throw StateError('The project does not define one launchable start map.');
-  }
-  final projectRoot = p.normalize(p.absolute(projectFile.parent.path));
-  final relativeMapPath =
-      mapEntries.single.relativePath.trim().replaceAll(r'\', '/');
-  final mapPath = p.normalize(p.join(projectRoot, relativeMapPath));
-  if (!p.isWithin(projectRoot, mapPath)) {
-    throw StateError('The start map path is outside the project.');
-  }
-  final mapBytes = await File(mapPath).readAsBytes();
-  final mapJson = jsonDecode(utf8.decode(mapBytes));
-  if (mapJson is! Map<String, dynamic>) {
-    throw const FormatException('The start map must be an object.');
-  }
-  final fingerprintEntries = <NarrativeProjectFingerprintEntry>[
-    NarrativeProjectFingerprintEntry(
-      relativePath: 'project.json',
-      bytes: projectBytes,
-    ),
-    NarrativeProjectFingerprintEntry(
-      relativePath: relativeMapPath,
-      bytes: mapBytes,
-    ),
-  ];
-  if (project.presentationCinematics.isNotEmpty) {
-    for (final relativePath in const <String>[
-      'assets/.pokemap-media.json',
-      'assets/.pokemap-assets.json',
-    ]) {
-      final file = File(p.joinAll(<String>[
-        projectRoot,
-        ...relativePath.split('/'),
-      ]));
-      if (await file.exists()) {
-        fingerprintEntries.add(
-          NarrativeProjectFingerprintEntry(
-            relativePath: relativePath,
-            bytes: await file.readAsBytes(),
-          ),
-        );
+  final catalog = await RuntimeProjectCatalog.open(projectFilePath);
+  try {
+    final projectBytes = await projectFile.readAsBytes();
+    final project = catalog.projectMetadata;
+    final startMapId = project.newGame.startMapId.trim();
+    final mapEntries = project.maps.where((entry) => entry.id == startMapId);
+    if (!project.newGame.enabled ||
+        startMapId.isEmpty ||
+        mapEntries.length != 1) {
+      throw StateError('The project does not define one launchable start map.');
+    }
+    final projectRoot = p.normalize(p.absolute(projectFile.parent.path));
+    final relativeMapPath =
+        mapEntries.single.relativePath.trim().replaceAll(r'\', '/');
+    final mapPath = p.normalize(p.join(projectRoot, relativeMapPath));
+    if (!p.isWithin(projectRoot, mapPath)) {
+      throw StateError('The start map path is outside the project.');
+    }
+    final mapBytes = await File(mapPath).readAsBytes();
+    final mapJson = jsonDecode(utf8.decode(mapBytes));
+    if (mapJson is! Map<String, dynamic>) {
+      throw const FormatException('The start map must be an object.');
+    }
+    final fingerprintEntries = <NarrativeProjectFingerprintEntry>[
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: projectBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: relativeMapPath,
+        bytes: mapBytes,
+      ),
+    ];
+    if (project.presentationCinematics.isNotEmpty) {
+      for (final relativePath in const <String>[
+        'assets/.pokemap-media.json',
+        'assets/.pokemap-assets.json',
+      ]) {
+        final file = File(p.joinAll(<String>[
+          projectRoot,
+          ...relativePath.split('/'),
+        ]));
+        if (await file.exists()) {
+          fingerprintEntries.add(
+            NarrativeProjectFingerprintEntry(
+              relativePath: relativePath,
+              bytes: await file.readAsBytes(),
+            ),
+          );
+        }
+      }
+      final mediaStore = Directory(
+        p.join(projectRoot, 'assets', '.pokemap-store'),
+      );
+      if (await mediaStore.exists()) {
+        final blobs = await mediaStore
+            .list(followLinks: false)
+            .where((entity) => entity is File)
+            .cast<File>()
+            .toList();
+        blobs.sort((left, right) => left.path.compareTo(right.path));
+        for (final blob in blobs) {
+          final relativePath = p.relative(blob.path, from: projectRoot);
+          fingerprintEntries.add(
+            NarrativeProjectFingerprintEntry(
+              relativePath: relativePath.replaceAll(r'\', '/'),
+              bytes: await blob.readAsBytes(),
+            ),
+          );
+        }
       }
     }
-    final mediaStore = Directory(
-      p.join(projectRoot, 'assets', '.pokemap-store'),
+    if (!await catalog.isCurrentPublication()) {
+      throw const RuntimeNewGameException(
+        code: 'new_game.project_changed',
+        safeMessage: 'Le contenu du jeu a changé pendant le chargement. '
+            'Relancez la préparation de la partie.',
+      );
+    }
+    return _RuntimeNewGameProjectSnapshot(
+      map: MapData.fromJson(mapJson),
+      revision: computeNarrativeProjectFingerprint(fingerprintEntries),
     );
-    if (await mediaStore.exists()) {
-      final blobs = await mediaStore
-          .list(followLinks: false)
-          .where((entity) => entity is File)
-          .cast<File>()
-          .toList();
-      blobs.sort((left, right) => left.path.compareTo(right.path));
-      for (final blob in blobs) {
-        final relativePath = p.relative(blob.path, from: projectRoot);
-        fingerprintEntries.add(
-          NarrativeProjectFingerprintEntry(
-            relativePath: relativePath.replaceAll(r'\', '/'),
-            bytes: await blob.readAsBytes(),
-          ),
-        );
-      }
-    }
+  } finally {
+    catalog.dispose();
   }
-  return _RuntimeNewGameProjectSnapshot(
-    project: project,
-    map: MapData.fromJson(mapJson),
-    revision: computeNarrativeProjectFingerprint(fingerprintEntries),
-  );
 }

@@ -8,117 +8,117 @@ import 'package:map_runtime/map_runtime.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (final changeUnusedResource in [false, true]) {
-    test(
-      'map-scoped catalog keeps full publication guard, changed=$changeUnusedResource',
-      () async {
-        final directory = await Directory.systemTemp.createTemp(
-          'new-game-catalog-',
-        );
-        addTearDown(() => directory.delete(recursive: true));
-        const used = ProjectTilesetEntry(
-          id: 'used',
-          name: 'Used',
-          relativePath: 'used.png',
-        );
-        const unused = ProjectTilesetEntry(
-          id: 'unused',
-          name: 'Unused',
-          relativePath: 'unused.png',
-        );
-        final project = ProjectManifest(
-          name: 'Catalog new game',
-          maps: const [
-            ProjectMapEntry(
-              id: 'start',
-              name: 'Start',
-              relativePath: 'start.json',
-            ),
-          ],
-          tilesets: const [used, unused],
-          newGame: const ProjectNewGameConfig(
-            enabled: true,
-            startMapId: 'start',
-          ),
-        );
-        final map = MapData(
-          id: 'start',
-          name: 'Start',
-          size: GridSize(width: 4, height: 4),
-          tilesetId: 'used',
-          layers: [
-            TileLayer(
-              id: 'ground',
-              name: 'Ground',
-              palette: const [
-                TileLayerPaletteEntry(tilesetId: 'used', localTileId: 0),
-              ],
-              cells: List.filled(16, 0),
-            ),
-          ],
-        );
-        final projectFile = File('${directory.path}/project.json');
-        final originalBytes = utf8.encode(jsonEncode(project.toJson()));
-        await projectFile.writeAsBytes(originalBytes);
-        await File('${directory.path}/start.json')
-            .writeAsString(jsonEncode(map.toJson()));
-        var imageLoaderCalled = false;
-        final preloader = RuntimeInitialMapPreloader(
-          projectFilePath: () async => projectFile.path,
-          loadSave: (_) async => null,
-          tilesetImageLoader:
-              (
-                paths, {
-                transparentColorByTilesetId = const {},
-                onProgress,
-              }) async {
-                imageLoaderCalled = true;
-                expect(paths.keys, ['used']);
-                if (changeUnusedResource) {
-                  await projectFile.writeAsString(
-                    jsonEncode(
-                      project
-                          .copyWith(
-                            tilesets: [
-                              used,
-                              unused.copyWith(name: 'Unused changed'),
-                            ],
-                          )
-                          .toJson(),
-                    ),
-                  );
-                }
-                return {};
-              },
-        );
-        final flow = RuntimeProjectNewGameFlowPort(
-          projectFilePath: () async => projectFile.path,
-          initialMapPreloader: preloader,
-        );
-        addTearDown(flow.clear);
-        if (changeUnusedResource) {
-          await expectLater(
-            flow.prepare(),
-            throwsA(
-              isA<RuntimeNewGameException>().having(
-                (error) => error.code,
-                'code',
-                'new_game.project_changed',
+  for (final portable in [false, true]) {
+    for (final changeUnusedResource in [false, true]) {
+      test(
+        'map-scoped catalog keeps full publication guard, portable=$portable, changed=$changeUnusedResource',
+        () async {
+          final directory = await Directory.systemTemp.createTemp(
+            'new-game-catalog-',
+          );
+          addTearDown(() => directory.delete(recursive: true));
+          const used = ProjectTilesetEntry(
+            id: 'used',
+            name: 'Used',
+            relativePath: 'used.png',
+          );
+          const unused = ProjectTilesetEntry(
+            id: 'unused',
+            name: 'Unused',
+            relativePath: 'unused.png',
+          );
+          final project = ProjectManifest(
+            name: 'Catalog new game',
+            maps: const [
+              ProjectMapEntry(
+                id: 'start',
+                name: 'Start',
+                relativePath: 'start.json',
               ),
+            ],
+            tilesets: const [used, unused],
+            newGame: const ProjectNewGameConfig(
+              enabled: true,
+              startMapId: 'start',
             ),
           );
-        } else {
-          final prepared = await flow.prepare();
-          expect(prepared.project.tilesets.map((entry) => entry.id), ['used']);
-          expect(
-            await flow.readCurrentProjectRevision(),
-            prepared.projectRevision,
+          final map = MapData(
+            id: 'start',
+            name: 'Start',
+            size: GridSize(width: 4, height: 4),
+            tilesetId: 'used',
+            layers: [
+              TileLayer(
+                id: 'ground',
+                name: 'Ground',
+                palette: const [
+                  TileLayerPaletteEntry(tilesetId: 'used', localTileId: 0),
+                ],
+                cells: List.filled(16, 0),
+              ),
+            ],
           );
-          expect(await projectFile.readAsBytes(), originalBytes);
-        }
-        expect(imageLoaderCalled, isTrue);
-      },
-    );
+          final projectFile = File('${directory.path}/project.json');
+          await _writeProject(projectFile, project, portable: portable);
+          final originalBytes = await projectFile.readAsBytes();
+          await File('${directory.path}/start.json')
+              .writeAsString(jsonEncode(map.toJson()));
+          var imageLoaderCalled = false;
+          final preloader = RuntimeInitialMapPreloader(
+            projectFilePath: () async => projectFile.path,
+            loadSave: (_) async => null,
+            tilesetImageLoader:
+                (
+                  paths, {
+                  transparentColorByTilesetId = const {},
+                  onProgress,
+                }) async {
+                  imageLoaderCalled = true;
+                  expect(paths.keys, ['used']);
+                  if (changeUnusedResource) {
+                    await _writeProject(
+                      projectFile,
+                      project.copyWith(
+                        tilesets: [
+                          used,
+                          unused.copyWith(name: 'Unused changed'),
+                        ],
+                      ),
+                      portable: portable,
+                    );
+                  }
+                  return {};
+                },
+          );
+          final flow = RuntimeProjectNewGameFlowPort(
+            projectFilePath: () async => projectFile.path,
+            initialMapPreloader: preloader,
+          );
+          addTearDown(flow.clear);
+          if (changeUnusedResource) {
+            await expectLater(
+              flow.prepare(),
+              throwsA(
+                isA<RuntimeNewGameException>().having(
+                  (error) => error.code,
+                  'code',
+                  'new_game.project_changed',
+                ),
+              ),
+            );
+          } else {
+            final prepared = await flow.prepare();
+            expect(prepared.project.tilesets.map((entry) => entry.id), ['used']);
+            expect(
+              await flow.readCurrentProjectRevision(),
+              prepared.projectRevision,
+            );
+            expect(await projectFile.readAsBytes(), originalBytes);
+          }
+          expect(imageLoaderCalled, isTrue);
+        },
+      );
+    }
   }
 
   final publishedProject = Platform.environment['AVELUNE_NEW_GAME_PROJECT'];
@@ -253,4 +253,22 @@ void main() {
       }
     });
   }
+}
+
+Future<void> _writeProject(
+  File file,
+  ProjectManifest project, {
+  required bool portable,
+}) async {
+  if (!portable) {
+    await file.writeAsString(jsonEncode(project.toJson()));
+    return;
+  }
+  final publication = PortableCatalogPublication.encodeProject(project);
+  final objects = Directory('${file.parent.path}/catalog/objects');
+  await objects.create(recursive: true);
+  for (final entry in publication.storage.objects.entries) {
+    await File('${objects.path}/${entry.key}.json').writeAsBytes(entry.value);
+  }
+  await file.writeAsString(jsonEncode(publication.descriptor));
 }

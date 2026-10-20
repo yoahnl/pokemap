@@ -331,6 +331,7 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
 
   final MethodChannel _channel;
   final _inputs = StreamController<RuntimeInputEvent>.broadcast(sync: true);
+  final _pressedInputs = <RuntimeInputControl>{};
   Stream<RuntimeInputEvent> get inputs => _inputs.stream;
   int _generation = 0;
   int _sequence = 0;
@@ -406,19 +407,30 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
     if (!_attached) return;
     _attached = false;
     _generation++;
+    _releaseInputs();
     _channel.setMethodCallHandler(null);
   }
 
   void _accept(Object? payload, int generation) {
     if (!_attached || generation != _generation) return;
     if (payload == null) {
+      _releaseInputs();
       value = null;
       return;
     }
     final next = AveluneGameplayCompanionSnapshot.fromPayload(payload);
     final current = value;
     if (current != null && (next.sessionId != current.sessionId || next.revision <= current.revision)) return;
+    _releaseInputs();
     value = next;
+  }
+
+  void _releaseInputs() {
+    final controls = _pressedInputs.toList(growable: false);
+    _pressedInputs.clear();
+    for (final control in controls) {
+      _inputs.add(RuntimeInputEvent.release(control));
+    }
   }
 
   void _acceptInput(Object? payload) {
@@ -434,6 +446,11 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
       'release' => RuntimeInputEvent.release(control),
       _ => throw const FormatException('Invalid companion input phase.'),
     };
+    if (event.isRelease) {
+      _pressedInputs.remove(control);
+    } else if (!event.isRepeat) {
+      _pressedInputs.add(control);
+    }
     _inputs.add(event);
   }
 

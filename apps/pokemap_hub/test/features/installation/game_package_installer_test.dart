@@ -315,6 +315,83 @@ void main() {
       );
     });
 
+    test('keeps the event loop responsive during project validation', () async {
+      final package = await writeTestPackage(packages);
+      var validationYielded = false;
+      var smokeObservedYield = false;
+      final service = installer(
+        smoke: (_, _) async {
+          smokeObservedYield = validationYielded;
+        },
+      );
+
+      await service.install(
+        package,
+        source: GamePackageInstallSource.localFile,
+        onProgress: (event) {
+          if (event.stage == GameInstallStage.validatingProject) {
+            Timer.run(() => validationYielded = true);
+          }
+        },
+      );
+
+      expect(smokeObservedYield, isTrue);
+    });
+
+    test(
+      'cancels during project validation before smoke or publication',
+      () async {
+        final package = await writeTestPackage(packages);
+        final cancellation = GameInstallCancellationToken();
+        var smokeCalled = false;
+        final service = installer(
+          smoke: (_, _) async {
+            smokeCalled = true;
+          },
+        );
+
+        await expectLater(
+          service.install(
+            package,
+            source: GamePackageInstallSource.localFile,
+            cancellationToken: cancellation,
+            onProgress: (event) {
+              if (event.stage == GameInstallStage.validatingProject) {
+                Timer.run(cancellation.cancel);
+              }
+            },
+          ),
+          throwsA(
+            isA<GameInstallationException>().having(
+              (error) => error.diagnostic.code,
+              'code',
+              GameInstallationErrorCode.cancelled,
+            ),
+          ),
+        );
+
+        expect(smokeCalled, isFalse);
+        expect(
+          await Directory(
+            p.join(
+              root.path,
+              'PokeMap',
+              'games',
+              'games.example.adventure',
+              'versions',
+            ),
+          ).exists(),
+          isFalse,
+        );
+        expect(
+          (await GameLibraryStore(
+            supportRoot: Directory(p.join(root.path, 'PokeMap')),
+          ).load()).library.games,
+          isEmpty,
+        );
+      },
+    );
+
     test('cancels during extraction without publishing a version', () async {
       final package = await writeTestPackage(packages, extraFiles: 4);
       final cancellation = GameInstallCancellationToken();

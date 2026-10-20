@@ -12,6 +12,29 @@ import 'package:pokemap_hub/embedding/avelune_gameplay_companion_app.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final control in ['secondary', 'menu']) {
+    testWidgets('companion root resumes via $control', (tester) async {
+      final calls = await _mountMenu(tester);
+      const channel = MethodChannel('com.avelune.runtime/companion');
+      for (final phase in ['press', 'release']) {
+        await _nativeCall(channel, 'input', {
+          'sessionId': 'session-grid',
+          'revision': 8,
+          'control': control,
+          'phase': phase,
+          'isRepeat': false,
+        });
+        await tester.pumpAndSettle();
+      }
+      expect(calls, hasLength(1));
+      expect(calls.single['kind'], 'player');
+      expect((calls.single['payload'] as Map)['action'], 'resume');
+      expect((calls.single['payload'] as Map)['snapshotRevision'], 7);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   for (final (size, textScale) in [
     (const Size(538, 468), 1.0),
     (const Size(390, 844), 1.0),
@@ -265,6 +288,92 @@ void main() {
     expect(remote.value, isNull);
   });
 
+  test('menu revision releases held input without accepting stale releases', () async {
+    const channel = MethodChannel('avelune.gameplay.test.revision-input');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final state = _savedSnapshot();
+    messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
+    final remote = AveluneGameplayCompanionRemote(channel: channel);
+    final policy = PlayerInputSourcePolicy(touchAvailable: false);
+    const owner = PlayerInputOwner(PlayerInputSource.controller, deviceId: 'owner-input-relay');
+    final accepted = <RuntimeInputEvent>[];
+    final subscription = remote.inputs.listen((event) {
+      accepted.addAll(policy.route(event, owner: owner));
+    });
+    addTearDown(() async {
+      await subscription.cancel();
+      remote.dispose();
+      messenger.setMockMethodCallHandler(channel, null);
+    });
+    await remote.attach();
+    final input = {
+      'sessionId': state.sessionId,
+      'revision': state.revision,
+      'control': 'down',
+      'phase': 'press',
+      'isRepeat': false,
+    };
+    await _nativeCall(channel, 'input', input);
+    await _nativeCall(channel, 'stateChanged', {...state.toPayload(), 'revision': 9});
+    await _nativeCall(channel, 'input', {...input, 'revision': 9});
+    await _nativeCall(channel, 'input', {...input, 'phase': 'release'});
+    expect(accepted, [
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+      const RuntimeInputEvent.release(RuntimeInputControl.down),
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+    ]);
+    await _nativeCall(channel, 'input', {...input, 'revision': 9, 'phase': 'release'});
+    await _nativeCall(channel, 'input', {...input, 'revision': 9});
+    expect(accepted, [
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+      const RuntimeInputEvent.release(RuntimeInputControl.down),
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+      const RuntimeInputEvent.release(RuntimeInputControl.down),
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+    ]);
+  });
+
+  for (final disconnect in ['detach', 'stop', 'surface']) {
+    test('menu $disconnect releases held input', () async {
+      final channel = MethodChannel('avelune.gameplay.test.$disconnect-input');
+      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final state = _savedSnapshot();
+      messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
+      final remote = AveluneGameplayCompanionRemote(channel: channel);
+      final inputs = <RuntimeInputEvent>[];
+      final subscription = remote.inputs.listen(inputs.add);
+      addTearDown(() async {
+        await subscription.cancel();
+        remote.dispose();
+        messenger.setMockMethodCallHandler(channel, null);
+      });
+      await remote.attach();
+      await _nativeCall(channel, 'input', {
+        'sessionId': state.sessionId,
+        'revision': state.revision,
+        'control': 'menu',
+        'phase': 'press',
+        'isRepeat': false,
+      });
+      switch (disconnect) {
+        case 'detach':
+          remote.detach();
+        case 'stop':
+          await _nativeCall(channel, 'stateChanged', null);
+        case 'surface':
+          await _nativeCall(channel, 'stateChanged', {
+            ...state.toPayload(),
+            'revision': state.revision + 1,
+            'companionAttached': false,
+          });
+      }
+      expect(inputs, [
+        const RuntimeInputEvent.press(RuntimeInputControl.menu),
+        const RuntimeInputEvent.release(RuntimeInputControl.menu),
+      ]);
+    });
+  }
+
   test('remote input accepts only the active menu envelope', () async {
     const channel = MethodChannel('avelune.gameplay.test.input');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -279,11 +388,18 @@ void main() {
       messenger.setMockMethodCallHandler(channel, null);
     });
     await remote.attach();
-    final input = {'sessionId': state.sessionId, 'revision': state.revision, 'control': 'primary', 'phase': 'press', 'isRepeat': false};
+    final input = {'sessionId': state.sessionId, 'revision': state.revision, 'control': 'down', 'phase': 'press', 'isRepeat': false};
     await _nativeCall(channel, 'input', {...input, 'revision': state.revision - 1});
     await _nativeCall(channel, 'input', {...input, 'sessionId': 'old-session'});
     await _nativeCall(channel, 'input', input);
-    expect(inputs, [const RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+    await _nativeCall(channel, 'stateChanged', {...state.toPayload(), 'revision': state.revision - 1});
+    await _nativeCall(channel, 'stateChanged', {...state.toPayload(), 'sessionId': 'old-session', 'revision': state.revision + 1});
+    await _nativeCall(channel, 'input', {...input, 'isRepeat': true});
+    expect(inputs, [
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+      const RuntimeInputEvent.press(RuntimeInputControl.down, isRepeat: true),
+    ]);
+    expect(remote.value!.revision, state.revision);
   });
 }
 

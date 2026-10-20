@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
@@ -27,13 +30,19 @@ final class InstallStaging {
   final GamePackageInspector inspector;
   final Random _random;
 
-  Future<GamePackageInspectionResult> inspect(File file) async {
-    final source = await FilePackageSource.open(file);
-    try {
-      return inspector.inspectSourceSync(source);
-    } finally {
-      await source.close();
-    }
+  Future<GamePackageInspectionResult> inspect(File file) {
+    final path = file.path;
+    final packageInspector = inspector;
+    return Isolate.run(() => _inspectPackageFile(path, packageInspector));
+  }
+
+  Future<void> validateProject(
+    Directory stagedVersion,
+    GamePackageManifest manifest,
+  ) {
+    final path = stagedVersion.path;
+    final policy = inspector.policy;
+    return Isolate.run(() => _validateStagedProject(path, manifest, policy));
   }
 
   Future<Directory> createTransactionRoot() async {
@@ -169,4 +178,78 @@ final class InstallStaging {
       await input.close();
     }
   }
+}
+
+Future<GamePackageInspectionResult> _inspectPackageFile(
+  String path,
+  GamePackageInspector inspector,
+) async {
+  final source = await FilePackageSource.open(File(path));
+  try {
+    return inspector.inspectSourceSync(source);
+  } finally {
+    await source.close();
+  }
+}
+
+void _validateStagedProject(
+  String stagedPath,
+  GamePackageManifest manifest,
+  GamePackageSecurityPolicy policy,
+) {
+  final inventory = {
+    for (final entry in manifest.content.files) entry.path: entry,
+  };
+  List<int>? readPayload(String path) {
+    PackagePathPolicy.validate(path, errorPath: path);
+    final entry = inventory[path];
+    if (entry == null) return null;
+    var current = stagedPath;
+    final segments = p.posix.split(path);
+    for (var index = 0; index < segments.length; index++) {
+      current = p.join(current, segments[index]);
+      final type = FileSystemEntity.typeSync(current, followLinks: false);
+      final expected = index == segments.length - 1
+          ? FileSystemEntityType.file
+          : FileSystemEntityType.directory;
+      if (type != expected) {
+        throw GamePackageFormatException(
+          code: 'unsafeEntry',
+          path: path,
+          message: 'Staged payload must use regular files and directories.',
+        );
+      }
+    }
+    final file = File(current);
+    if (entry.size > policy.maxFileBytes || file.lengthSync() != entry.size) {
+      throw GamePackageFormatException(
+        code: 'sizeMismatch',
+        path: path,
+        message: 'Staged payload size differs from its inventory.',
+      );
+    }
+    final handle = file.openSync();
+    try {
+      final bytes = handle.readSync(entry.size);
+      if (bytes.length != entry.size ||
+          handle.lengthSync() != entry.size ||
+          sha256.convert(bytes).toString() != entry.sha256) {
+        throw GamePackageFormatException(
+          code: 'hashMismatch',
+          path: path,
+          message: 'Staged payload changed during project validation.',
+        );
+      }
+      return bytes;
+    } finally {
+      handle.closeSync();
+    }
+  }
+
+  GamePackageProjectValidator(policy).validate(
+    manifest,
+    Uint8List.fromList(readPayload('project/project.json')!),
+    payloadPaths: inventory.keys.toSet(),
+    readPayload: readPayload,
+  );
 }
