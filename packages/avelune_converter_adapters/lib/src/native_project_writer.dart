@@ -836,8 +836,8 @@ final class NativeProjectWriter {
           created.transactionReceipt.status != AuthoringReceiptStatus.applied ||
           created.transactionReceipt.actionId != nativeProjectCreationActionId ||
           created.transactionReceipt.actionVersion != 1 ||
-          canonicalJsonOf(created.manifest.toJson()) !=
-              canonicalJsonOf(prepared.manifest.toJson())) {
+          canonicalJsonOf(created.manifest.toJson(), limits: limits.draftEvidenceJsonLimits) !=
+              canonicalJsonOf(prepared.manifest.toJson(), limits: limits.draftEvidenceJsonLimits)) {
         throw const NativeWriteException('native.creation.mismatch',
             'Canonical creation receipt differs from the approved native project');
       }
@@ -854,8 +854,8 @@ final class NativeProjectWriter {
       final snapshot = await session.snapshots
           .load(session.project, policy: ProjectSnapshotLoadPolicy.strict);
       if (snapshot.loadDiagnostics.isNotEmpty ||
-          canonicalJsonOf(snapshot.manifest.toJson()) !=
-              canonicalJsonOf(prepared.manifest.toJson())) {
+          canonicalJsonOf(snapshot.manifest.toJson(), limits: limits.draftEvidenceJsonLimits) !=
+              canonicalJsonOf(prepared.manifest.toJson(), limits: limits.draftEvidenceJsonLimits)) {
         throw const NativeWriteException('native.verify.manifest',
             'Fresh native manifest differs from the approved draft');
       }
