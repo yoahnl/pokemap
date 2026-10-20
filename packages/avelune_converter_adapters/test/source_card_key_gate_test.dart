@@ -13,9 +13,20 @@ import 'package:test/test.dart';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 import 'support/source_map_music_fixture.dart';
 
 const _charset = 'OBJ_FRLG_Silph Gate_H';
+const _explorationSymbols = [
+  'REPEL',
+  'SUPERREPEL',
+  'MAXREPEL',
+  'ESCAPEROPE',
+  'BICYCLE',
+  'OLDROD',
+  'GOODROD',
+  'SUPERROD'
+];
 
 List<LiteralFixtureEventCommand> _commands({String defect = ''}) => [
       LiteralFixtureEventCommand(111, [
@@ -57,15 +68,19 @@ List<LiteralFixtureEventCommand> _commands({String defect = ''}) => [
     ];
 
 Future<
-    ({
-      NormalizedSourceProject source,
-      LiteralFixtureFiles files,
-      SourceEventAnalysis analysis,
-      Map<String, SourceEventCharacterBinding> characters,
-      Map<String, SourceEventSoundBinding> sounds,
-      Map<String, SourceEventItemBinding> items,
-      SourceEventCharacterImport character
-    })> _input({String defect = '', bool includeOtherMap = false}) async {
+        ({
+          NormalizedSourceProject source,
+          LiteralFixtureFiles files,
+          SourceEventAnalysis analysis,
+          Map<String, SourceEventCharacterBinding> characters,
+          Map<String, SourceEventSoundBinding> sounds,
+          Map<String, SourceEventItemBinding> items,
+          SourceEventCharacterImport character
+        })>
+    _input(
+        {String defect = '',
+        bool includeOtherMap = false,
+        bool explorationItems = false}) async {
   final profile = SourceInterpretationProfile.fromJson({
     ...syntheticSourceInterpretationProfile.toJson(),
     'sections': {
@@ -101,7 +116,10 @@ Future<
             })
         }),
         'PBS/items.txt': utf8.encode(
-            '[CARDKEY]\nName = Card Key\nNamePlural = Card Keys\nPocket = 8\nPrice = 0\nFlags = KeyItem\nConsumable = false\nDescription = A card key.\n'),
+            '[CARDKEY]\nName = Card Key\nNamePlural = Card Keys\nPocket = 8\nPrice = 0\nFlags = KeyItem\nConsumable = false\nDescription = A card key.\n${explorationItems ? [
+                for (var i = 0; i < _explorationSymbols.length; i++)
+                  '[${_explorationSymbols[i]}]\nName = ${_explorationSymbols[i]}\nNamePlural = ${_explorationSymbols[i]}s\nPocket = ${i >= 4 ? 8 : 1}\nPrice = 100\nSellPrice = 50\nFieldUse = 2\nFlags = ${i >= 4 ? 'KeyItem' : i == 3 ? '' : 'Repel,Fling_30'}\nConsumable = ${i < 4}\nDescription = Source exploration item\n'
+              ].join() : ''}'),
         'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = Player\n'),
         'PBS/map_metadata.txt': utf8.encode('[214]\nMapPosition = 1,0,0\n'),
         'Graphics/Characters/Player.png': image
@@ -131,7 +149,33 @@ Future<
             '@move': null,
             '@real_description': 'A card key.',
             '@pbs_file_suffix': ''
-          })
+          }),
+          if (explorationItems)
+            for (var i = 0; i < _explorationSymbols.length; i++)
+              LiteralFixtureSymbol(_explorationSymbols[i]):
+                  LiteralFixtureObject('GameData::Item', {
+                '@id': LiteralFixtureSymbol(_explorationSymbols[i]),
+                '@real_name': _explorationSymbols[i],
+                '@real_name_plural': '${_explorationSymbols[i]}s',
+                '@real_portion_name': null,
+                '@real_portion_name_plural': null,
+                '@pocket': i >= 4 ? 8 : 1,
+                '@price': 100,
+                '@sell_price': 50,
+                '@bp_price': 0,
+                '@field_use': 2,
+                '@battle_use': 0,
+                '@flags': i >= 4
+                    ? ['KeyItem']
+                    : i == 3
+                        ? <String>[]
+                        : ['Repel', 'Fling_30'],
+                '@consumable': i < 4,
+                '@show_quantity': null,
+                '@move': null,
+                '@real_description': 'Source exploration item',
+                '@pbs_file_suffix': '',
+              }),
         }),
       },
       maps: [
@@ -686,4 +730,179 @@ void main() {
         (composed.draft.compositionEvidence['sourceEvents'] as Map)['sounds'],
         isEmpty);
   });
+  test('empty admitted party trades do not request an unrelated native catalog',
+      () async {
+    final input = await _input();
+    final literal = await const LiteralTileComposer().compose(
+        source: input.source,
+        files: input.files,
+        selectedSourceMapIds: [214],
+        projectName: 'No party trades',
+        parentPath: '/private/tmp',
+        folderName: 'unused');
+    final semantic = (await const SourceSemanticStudyComposer()
+        .compose(source: input.source, base: literal, files: input.files))!;
+    final events = (await const SourceEventStudyComposer()
+        .compose(source: input.source, base: semantic, files: input.files))!;
+    expect(
+        (events.draft.compositionEvidence['sourceEvents'] as Map)['partyTrade'],
+        isEmpty);
+    final catalogs = (await const SourceCatalogStudyComposer().compose(
+        source: input.source, base: events.draft, files: input.files))!;
+    expect(
+        catalogs.draft.mutations
+            .where((m) => m.actionId == 'pokemon.species.write'),
+        isEmpty);
+    expect(
+        (catalogs.draft.compositionEvidence['sourceCatalogs']
+            as Map)['projection'],
+        isNot(contains('nativeMediaSpeciesBindings')));
+  });
+  final engineRoot = Platform.environment['AVELUNE_CARD_GATE_ENGINE_ROOT'];
+  final configurationRoot =
+      Platform.environment['AVELUNE_CARD_GATE_CONFIGURATION_ROOT'] ??
+          engineRoot;
+  test(
+      'real workflow scans approves and publishes the Card Key gate with an explicit source audio oracle',
+      () async {
+    final input = await _input(explorationItems: true);
+    final root = await Directory.systemTemp.createTemp('card-key-workflow-');
+    final workflow = ConverterWorkflow(checkpoint: (phase, _, __) {
+      stdout.writeln('card-key-workflow phase=${phase.name}');
+    });
+    try {
+      final sourceRoot = await Directory('${root.path}/source').create();
+      final output = await Directory('${root.path}/output').create();
+      for (final entry in input.files.bytes.entries) {
+        final file = File('${sourceRoot.path}/${entry.key}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value, flush: true);
+      }
+      final nativeSource =
+          nativeMediaSourceFiles(NativePsdkCatalogManifest.builtin());
+      nativeSource['PBS/encounters.txt'] =
+          utf8.encode('[214]\nLand,11\n100,RATTATA,2,3\n');
+      for (final entry in nativeSource.entries) {
+        final file = File('${sourceRoot.path}/${entry.key}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value, flush: true);
+      }
+      const required = [
+        (
+          'Game.exe',
+          14732288,
+          '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04'
+        ),
+        (
+          'Game.ini',
+          121,
+          '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6'
+        ),
+        (
+          'mkxp.json',
+          6212,
+          '90a3aee82895e48e6c767f973b637d27856cccfd575f48b78d04191cb3e7d35f'
+        ),
+      ];
+      final oracleHashes = <String, Sha256Hash>{};
+      for (final entry in required) {
+        final bytes = await File(
+                '${entry.$1 == 'Game.exe' ? engineRoot : configurationRoot}/${entry.$1}')
+            .readAsBytes();
+        expect(bytes.length, entry.$2, reason: entry.$1);
+        expect(literalFixtureHash(bytes).value, entry.$3, reason: entry.$1);
+        oracleHashes[entry.$1] = literalFixtureHash(bytes);
+        await File('${sourceRoot.path}/${entry.$1}')
+            .writeAsBytes(bytes, flush: true);
+      }
+      final snapshot = await workflow.scanSource(ConverterSourceSelection(
+          rootPath: await sourceRoot.resolveSymbolicLinks(),
+          logicalProjectNamespace: ConverterId('card-key-real-workflow')));
+      expect(snapshot.state, SourceScanState.complete);
+      workflow.updateSettings(ConverterStudySettings(
+          projectName: 'Card Key workflow',
+          parentPath: await output.resolveSymbolicLinks(),
+          folderName: 'native',
+          selectedSourceMapIds: [214],
+          interpretationProfile: input.source.interpretationProfile,
+          profileAcknowledgement: SourceStudyAcknowledgement(
+              sourceSnapshotHash: snapshot.canonicalHash,
+              profileEvidenceHash: snapshot.profile.evidenceHash,
+              humanConfirmed: true,
+              reason:
+                  'Controlled original gate fixture with an explicit source audio oracle; binary bytes are never executed.')));
+      final prepared = await workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue,
+          reason: jsonEncode({
+            'nativeDraft': prepared.nativeDraft != null,
+            'normalization': prepared.normalizedSource.diagnostics
+                .where((e) => e.blocksPlanning)
+                .map((e) => e.toJson())
+                .toList(),
+            'findings': prepared.previewPlan?.findings
+                .where((e) => e.blocksStudy)
+                .map((e) => e.toJson())
+                .toList(),
+          }));
+      final sourceEvents =
+          prepared.nativeDraft!.compositionEvidence['sourceEvents'] as Map;
+      final event =
+          ((sourceEvents['projection'] as Map)['events'] as List).single as Map;
+      expect(event['status'], 'adaptedStaticSemantics');
+      expect(event['gaps'], isEmpty);
+      expect(
+          prepared.previewPlan!.operations.map((o) => o.targetActionId),
+          containsAll([
+            'entity.set_presentation',
+            'scene.upsert',
+            'scene.dialogue.audioMedia.import',
+          ]));
+      final approval = workflow.approvePrepared(
+          sessionRevision: prepared.sessionRevision,
+          preparationHash: prepared.preparationHash,
+          humanConfirmed: true);
+      expect(approval.approvedPlan.approvedByHuman, isTrue);
+      final result = await workflow.writeApproved(approval);
+      expect(result.published, isTrue);
+      expect(result.receipt.verified, isTrue);
+      expect(result.sourceUnchanged, isTrue);
+      const reader = LocalProjectFileReader();
+      final handles = WorkspaceHandleStore();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [await output.resolveSymbolicLinks()],
+          fileReader: reader);
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(result.projectPath);
+      try {
+        final native = await ProjectSnapshotLoader(handles: handles).load(
+            opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.strict);
+        expect(native.loadDiagnostics, isEmpty);
+        final gate = native.maps.single.entities.singleWhere((e) =>
+            e.properties['sourceEventIdentity'] == event['sourceIdentity']);
+        expect(gate.pos, const GridPos(x: 2, y: 1));
+        expect(resolveEntityCollisionCells(gate).length, 4);
+        expect(gate.presentation!.variants, hasLength(2));
+        expect(native.manifest.cinematicMediaAssets.map((m) => m.label).toSet(),
+            {'ItemGet', 'frlg_gateopen'});
+      } finally {
+        opener.closeWorkspace(opened.workspaceHandle);
+      }
+      for (final entry in oracleHashes.entries) {
+        expect(
+            literalFixtureHash(await File(
+                    '${entry.key == 'Game.exe' ? engineRoot : configurationRoot}/${entry.key}')
+                .readAsBytes()),
+            entry.value);
+      }
+    } finally {
+      await workflow.dispose();
+      await root.delete(recursive: true);
+    }
+  },
+      timeout: const Timeout(Duration(minutes: 2)),
+      skip: engineRoot == null
+          ? 'Requires an explicit AVELUNE_CARD_GATE_ENGINE_ROOT; no engine binary is committed or executed.'
+          : false);
 }

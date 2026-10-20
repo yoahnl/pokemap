@@ -161,8 +161,8 @@ final class SourceCatalogStudyComposer {
     final native = encounters?.bundle ?? nativeTrainerCatalog ??
         NativePsdkCatalogManifest.builtin();
     final sourceEvents = base.compositionEvidence['sourceEvents'];
-    final nativePartyTrade =
-        sourceEvents is Map && sourceEvents['partyTrade'] is Map;
+    final partyTrades = sourceEvents is Map ? sourceEvents['partyTrade'] : null;
+    final nativePartyTrade = partyTrades is Map && partyTrades.isNotEmpty;
     final giftEvidence = sourceEvents is Map ? sourceEvents['pokemonGiftBindings'] : null;
     final nativeGift = giftEvidence is Map && giftEvidence['activationQualified'] == true;
     if (nativeGift) {
