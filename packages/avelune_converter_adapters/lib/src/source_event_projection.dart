@@ -1560,16 +1560,24 @@ final class _ProjectionBuilder {
                       'collisionFootprintChanged': false,
                     },
                 if (gaps.isEmpty)
-                  for (final node in page.body.nodes
+                  for (final node in _sourceControlNodes(page.body)
                       .whereType<SourceInteractionFacingNode>())
                     {
                       'sourceOpcodes': [209, 509],
                       'span': node.span.toJson(),
                       'rawDataRefs':
                           node.rawDataRefs.map((ref) => ref.toJson()).toList(),
-                      'nativeContract': 'npcFacingAtEntityInteract',
-                      'equivalence':
-                          'finalFacingIsIdempotentDuringStationaryFrontInteraction',
+                      'nativeContract': _supportsExplicitStationaryFacing(event)
+                          ? 'sourceOrderedPlayerFacingEntityActorRoute'
+                          : 'npcFacingAtEntityInteract',
+                      'equivalence': _supportsExplicitStationaryFacing(event)
+                          ? 'explicitCardinalFrontFacingAtSourceCommandPosition'
+                          : 'finalFacingIsIdempotentDuringStationaryFrontInteraction',
+                      if (_supportsExplicitStationaryFacing(event)) ...{
+                        'sourceAsynchronousTimingParity': false,
+                        'nativeRouteJoinedBeforeSourceContinuation': true,
+                        'sourceReadOrWriteOfFacingStateQualified': false,
+                      },
                       'persistentFacingCertified': false,
                     },
               ],
@@ -2006,6 +2014,7 @@ final class _ProjectionBuilder {
 
   bool _supportsInteractionFacing(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_supportsExplicitStationaryFacing(event)) return true;
     if (_pokemonGiftBinding(event) != null && maps[event.sourceMapId]!.spatialScene == null) {
       return true;
     }
@@ -2071,6 +2080,69 @@ final class _ProjectionBuilder {
           ? nodes.take(nodes.length - 1) : nodes);
     });
   }
+
+  final _explicitStationaryFacing = <SourceEventDefinition, bool>{};
+
+  bool _supportsExplicitStationaryFacing(SourceEventDefinition event) =>
+      _explicitStationaryFacing.putIfAbsent(event, () {
+    final map = maps[event.sourceMapId]!;
+    if (event.isQuarantined || map.spatialScene != null || map.version == ProjectVersion.v9 ||
+        _eventFootprint(event) != const GridSize(width: 1, height: 1) ||
+        !event.pages.expand((page) => _sourceControlNodes(page.body))
+            .any((node) => node is SourceInteractionFacingNode) ||
+        !event.pages.expand((page) => _sourceControlNodes(page.body)).any((node) =>
+            node is SourceSelfSwitchNode || node is SourceSwitchNode ||
+            node is SourceVariableSetNode || node is SourceVariableAdjustNode ||
+            node is SourcePickupNode)) {
+      return false;
+    }
+    bool condition(SourceEventCondition value) => switch (value.kind) {
+      SourceEventConditionKind.always || SourceEventConditionKind.globalSwitch ||
+      SourceEventConditionKind.selfSwitch || SourceEventConditionKind.variableAtLeast ||
+      SourceEventConditionKind.variableComparison || SourceEventConditionKind.itemPresence => true,
+      SourceEventConditionKind.all => value.children.every(condition),
+      _ => false,
+    };
+    late final bool Function(SourceEventBlock) block;
+    bool choice(SourceChoiceNode value) => value.branches.every((branch) => block(branch.body)) &&
+        (value.cancelBranch == null || block(value.cancelBranch!));
+    block = (value) => value.nodes.every((node) => switch (node) {
+      SourceTextNode() => node.followingChoice == null || choice(node.followingChoice!),
+      SourceChoiceNode() => choice(node),
+      SourceConditionalNode() => condition(node.condition) && block(node.whenTrue) && block(node.whenFalse),
+      SourceAnnotationNode() || SourceSelfSwitchNode() || SourceSwitchNode() ||
+      SourceVariableSetNode() || SourceVariableAdjustNode() || SourceInteractionFacingNode() ||
+      SourceExitEventNode() => true,
+      SourcePickupNode() => node.helper == SourceItemGrantHelper.receiveItem,
+      _ => false,
+    });
+    if (event.pages.isEmpty || event.pages.any((page) {
+      final graphic = page.graphic;
+      return page.triggerCode != 0 || graphic == null || graphic.characterName.isEmpty ||
+          graphic.moveType != 0 || graphic.directionFix || graphic.through ||
+          !condition(page.condition) || !block(page.body);
+    }) || _sourceContextEvents.any((other) => other.sourceMapId == event.sourceMapId &&
+        other.pages.any((page) => const [3, 4].contains(page.triggerCode) && !page.isEmpty))) {
+      return false;
+    }
+    final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    if (expected == null || expected.name != event.name || expected.x != event.x ||
+        expected.y != event.y || _sourceControlFingerprint(expected) != _sourceControlFingerprint(event) ||
+        expected.pages.length != event.pages.length) {
+      return false;
+    }
+    Object? graphic(SourceEventGraphic? value) => value == null ? null : [
+      value.tileId, value.characterName, value.hue, value.direction, value.pattern,
+      value.opacity, value.blendType, value.moveType, value.moveSpeed, value.moveFrequency,
+      value.walkAnime, value.stepAnime, value.directionFix, value.through,
+      value.alwaysOnTop, value.moveRouteNodeId,
+    ];
+    return List.generate(event.pages.length, (index) => index).every((index) =>
+        canonicalJsonOf(graphic(expected.pages[index].graphic)) ==
+            canonicalJsonOf(graphic(event.pages[index].graphic)) &&
+        _sourceCommonProgramHash(expected.pages[index].body) ==
+            _sourceCommonProgramHash(event.pages[index].body));
+  });
 
   bool _supportsStationaryNpcRotation(
       SourceEventDefinition event, SourceForcedMoveRouteNode route) {
@@ -4900,6 +4972,29 @@ final class _SceneBuilder {
         case SourcePortraitPresentationNode():
           next = _portrait(node, next);
         case SourceInteractionFacingNode():
+          if (projection._supportsExplicitStationaryFacing(event)) {
+            final mapId = projection.maps[event.sourceMapId]!.id;
+            final joined = _interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: mapId), next);
+            var dispatch = eventEnd;
+            for (final facing in EntityFacing.values) {
+              final toward = switch (facing) {
+                EntityFacing.north => EntityFacing.south,
+                EntityFacing.south => EntityFacing.north,
+                EntityFacing.east => EntityFacing.west,
+                EntityFacing.west => EntityFacing.east,
+              };
+              final route = _interactive(SceneInteractiveCommand.actorRoute(
+                target: SceneActorTarget.entity(mapId: mapId, entityId: projection._key(event, 'anchor')),
+                steps: [SceneActorRouteStep.face(direction: toward, yieldAfter: true)]), joined);
+              final guard = _node(SceneConditionPayload(conditionSource:
+                  SceneConditionSource.playerFacing(direction: facing)));
+              _edge(guard, 'true', route, SceneEdgeKind.conditionTrue);
+              _edge(guard, 'false', dispatch, SceneEdgeKind.conditionFalse);
+              dispatch = guard;
+            }
+            next = dispatch;
+          }
+          break;
         case SourceAnnotationNode():
           break;
         case SourceExitEventNode():
