@@ -73,11 +73,14 @@ void main() {
     final project = await _project(
         root, 'matched', [_ball('poke_ball'), _ball('story_ball')]);
 
+    final profiles = <ProjectSnapshotLoadProfile>[];
     final result = await provisionProjectCaptureSprites(
       projectPath: project.path,
       loadPack: () async => pack,
+      profileSink: profiles.add,
     );
 
+    expect(profiles.any((profile) => profile.cacheHit), isTrue);
     expect(result['importedItems'], ['poke_ball']);
     expect(result['unavailableItems'], ['story_ball']);
     final catalog = await _catalog(project);
@@ -96,6 +99,42 @@ void main() {
     expect(
         (result['receipts'] as List).map((entry) => (entry as Map)['actionId']),
         ['asset.import_batch', 'item.update']);
+  });
+
+  test(
+      'cached provisioning rejects a blob changed after its first certification',
+      () async {
+    final project =
+        await _project(root, 'changed-certified-blob', [_ball('poke_ball')]);
+    await _unavailableUnrelatedAsset(project, sprite);
+    final artifact =
+        ContentArtifactRef.fromBytes(sprite, mediaType: 'image/png');
+    final logical = File(p.join(project.path, 'assets/unrelated.png'));
+    await logical.parent.create(recursive: true);
+    await logical.writeAsBytes(sprite);
+    final blob = File(p.join(project.path, assetBlobStorageKey(artifact)));
+    await blob.parent.create(recursive: true);
+    await blob.writeAsBytes(sprite);
+    var changed = false;
+
+    await expectLater(
+      provisionProjectCaptureSprites(
+        projectPath: project.path,
+        loadPack: () async => pack,
+        profileSink: (profile) {
+          if (!changed && profile.cacheHit) {
+            changed = true;
+            blob.writeAsBytesSync([...sprite, 1]);
+          }
+        },
+      ),
+      throwsA(isA<ProjectSnapshotException>().having(
+          (error) => error.code, 'code', 'project.asset_blob_mismatch')),
+    );
+    expect(changed, isTrue);
+    expect(
+        (await _catalog(project)).entries.single.capture!.animationSpritePath,
+        isNull);
   });
 
   test('preserves explicit custom references without loading the pack',

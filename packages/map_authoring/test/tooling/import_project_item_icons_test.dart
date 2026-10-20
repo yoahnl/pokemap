@@ -8,6 +8,7 @@ import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart'
     show
+        ProjectSnapshotLoadProfile,
         ProjectItemIconPack,
         ProjectItemIconProvisioningCancelled,
         ProjectItemIconProvisioningPartialFailure,
@@ -127,11 +128,14 @@ void main() {
     final ids = [for (var index = 0; index < 201; index++) 'item-$index'];
     await _writePack(source, {for (final id in ids) id: potion});
     final project = await _project(root, 'multiple-batches', ids);
+    final profiles = <ProjectSnapshotLoadProfile>[];
+    final output = await provisionProjectItemIcons(
+      projectPath: project.path,
+      loadPack: () => _loadPack(source),
+      profileSink: profiles.add,
+    );
 
-    final result = await _run(project, source);
-
-    expect(result.exitCode, 0, reason: result.stderr.toString());
-    final output = jsonDecode(result.stdout as String) as Map;
+    expect(profiles.any((profile) => profile.cacheHit), isTrue);
     expect(output['importedItems'], unorderedEquals(ids));
     expect(output['receipts'], hasLength(2));
     final assets = await _assets(project);

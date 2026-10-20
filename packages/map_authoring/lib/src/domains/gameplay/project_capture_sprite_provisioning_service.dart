@@ -16,6 +16,8 @@ import '../../ports/artifact_store.dart';
 import '../../ports/project_file_reader.dart';
 import '../../workspace/project_open_service.dart';
 import '../../workspace/project_snapshot_loader.dart';
+import '../../workspace/project_snapshot_cache.dart';
+import '../../workspace/project_snapshot_fingerprint_cache.dart';
 import '../../workspace/workspace_handle_store.dart';
 import '../../workspace/workspace_policy.dart';
 import '../assets/asset_store.dart';
@@ -34,6 +36,7 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
   required String projectPath,
   required Future<ProjectCaptureSpritePack> Function() loadPack,
   bool Function()? shouldContinue,
+  ProjectSnapshotLoadProfileSink? profileSink,
 }) async {
   _requireCurrent(shouldContinue);
   if (!p.isAbsolute(projectPath) ||
@@ -54,7 +57,12 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
   final opener =
       ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
   final opened = await opener.openProject(root);
-  final snapshots = ProjectSnapshotLoader(handles: handles);
+  final snapshots = ProjectSnapshotLoader(
+    handles: handles,
+    snapshotCache: ProjectSnapshotCache(),
+    fingerprintCache: ProjectSnapshotFingerprintCache(),
+    profileSink: profileSink,
+  );
   LocalMapAuthoringMutationApi? api;
   Directory? staging;
   final imported = <String>[];
