@@ -2323,23 +2323,29 @@ final class _ProjectionBuilder {
       SourceEventConditionKind.all => value.children.every(condition),
       _ => false,
     };
-    late bool Function(SourceEventBlock) block;
-    bool choice(SourceChoiceNode value) => value.branches.every((branch) => block(branch.body)) &&
-        (value.cancelBranch == null || block(value.cancelBranch!));
-    block = (SourceEventBlock value) => value.nodes.every((node) => switch (node) {
-      SourceTextNode(:final followingChoice) => followingChoice == null || choice(followingChoice),
-      SourceChoiceNode() => choice(node),
-      SourceConditionalNode() => condition(node.condition) && block(node.whenTrue) && block(node.whenFalse),
+    late bool Function(SourceEventBlock, bool) block;
+    bool choice(SourceChoiceNode value, bool allowRotation) => value.branches.every((branch) => block(branch.body, allowRotation)) &&
+        (value.cancelBranch == null || block(value.cancelBranch!, allowRotation));
+    block = (SourceEventBlock value, bool allowRotation) => value.nodes.every((node) => switch (node) {
+      SourceTextNode(:final followingChoice) => followingChoice == null || choice(followingChoice, allowRotation),
+      SourceChoiceNode() => choice(node, allowRotation),
+      SourceConditionalNode() => condition(node.condition) && block(node.whenTrue, allowRotation) && block(node.whenFalse, allowRotation),
       SourceAnnotationNode() || SourceSwitchNode() || SourceSelfSwitchNode() ||
       SourceVariableSetNode() || SourceVariableAdjustNode() || SourceExitEventNode() => true,
+      SourceForcedMoveRouteNode() => allowRotation && _supportsStationaryNpcRotation(event, node),
+      SourceMoveRouteBarrierNode() => allowRotation && value.nodes.indexOf(node) > 0 &&
+          value.nodes[value.nodes.indexOf(node) - 1] is SourceForcedMoveRouteNode &&
+          _supportsStationaryNpcRotation(event,
+              value.nodes[value.nodes.indexOf(node) - 1] as SourceForcedMoveRouteNode),
       _ => false,
     });
     if (event.pages.any((page) => page.triggerCode != 0 ||
         page.graphic == null || page.graphic!.moveType != 0 ||
-        page.graphic!.stepAnime || !condition(page.condition) || !block(page.body) ||
+        page.graphic!.stepAnime || !condition(page.condition) || !block(page.body, !page.graphic!.directionFix) ||
         page.sourcePage.commands.any((command) => !const {
           0, 101, 401, 102, 402, 403, 404, 108, 408, 111, 411, 412, 115, 121, 122, 123,
-        }.contains(command.code)))) {
+        }.contains(command.code) && (page.graphic!.directionFix ||
+            !const {209, 509, 210}.contains(command.code))))) {
       return false;
     }
     final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);

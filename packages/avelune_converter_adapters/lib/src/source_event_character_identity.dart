@@ -5,7 +5,8 @@ bool sourceEventUsesFixedDirectionPresentation(SourceEventDefinition event) =>
     event.pages.every((page) => page.triggerCode == 0 &&
         page.sourcePage.commands.every((command) => const {
           0, 101, 401, 102, 402, 403, 404, 108, 408, 111, 411, 412, 115, 121, 122, 123,
-        }.contains(command.code)));
+        }.contains(command.code) || (page.graphic?.directionFix == false &&
+            const {209, 509, 210}.contains(command.code))));
 
 String sourceFixedDirectionCharacterId({
   required SourceSnapshot snapshot,
