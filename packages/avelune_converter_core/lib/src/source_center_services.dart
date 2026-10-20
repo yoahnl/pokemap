@@ -267,8 +267,9 @@ SourceTextNode _declaredText(
 }
 
 final class _SourceCenterPageValue {
-  _SourceCenterPageValue(this.document);
+  _SourceCenterPageValue(this.document, {this.allowTone = false});
   final MarshalDocument document;
+  final bool allowTone;
   final active = <int>{};
   var nodes = 0;
 
@@ -327,6 +328,11 @@ final class _SourceCenterPageValue {
             for (final field in fields.entries)
               field.key.substring(1): read(field.value, depth + 1)
           };
+        case MarshalKind.userDefined:
+          if (!allowTone || node.className != 'Tone' || node.bytes?.length != 32) {
+            throw const FormatException();
+          }
+          return {'__class__': 'Tone', 'bytes': base64Encode(node.bytes!)};
         default:
           throw const FormatException();
       }

@@ -606,6 +606,19 @@ final class SourceInteractionFacingNode extends SourceEventNode {
   final List<SourcePreservedData> rawDataRefs;
 }
 
+final class SourceRelativeFacingRouteNode extends SourceEventNode {
+  SourceRelativeFacingRouteNode._(super.span,
+      {required List<SourcePreservedData> rawDataRefs, required this.profileHash})
+      : rawDataRefs = List.unmodifiable(rawDataRefs);
+  final List<SourcePreservedData> rawDataRefs;
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {'kind': 'relativeFacingRoute',
+    'span': span.toJson(), 'sourceTarget': 0, 'sourceSteps': [26, 15, 25],
+    'sourceWaitTicks': 8, 'sourceBarrier': 210,
+    'profileHash': profileHash.value,
+    'rawDataRefs': rawDataRefs.map((ref) => ref.toJson()).toList()};
+}
+
 enum SourceMoveRouteStepKind {
   moveDown,
   moveLeft,
@@ -2168,6 +2181,50 @@ final class _SourceEventParser {
         .elements;
     if (list.isEmpty) throw const FormatException();
     _facingMoveCommand(doc, list.last, 0);
+    if (target == 0 && !repeat && !skippable && list.length == 4) {
+      final initial = _facingFields(doc, list.first, 'RPG::MoveCommand',
+          const {'@code', '@parameters'});
+      if (_eventInt(doc, _eventField(initial, '@code')) == 26) {
+        final references = <SourcePreservedData>[route];
+        void validate(int id, int code) {
+          if (code != 15) {
+            _facingMoveCommand(doc, id, code);
+            return;
+          }
+          final fields = _facingFields(doc, id, 'RPG::MoveCommand',
+              const {'@code', '@parameters'});
+          final args = _facingArray(doc, _eventField(fields, '@parameters'), 1);
+          if (_eventInt(doc, _facingPlain(doc, _eventField(fields, '@code'), MarshalKind.integer)) != 15 ||
+              _eventInt(doc, _facingPlain(doc, args.single, MarshalKind.integer)) != 8) {
+            throw const FormatException();
+          }
+        }
+        for (final (offset, code) in const [26, 15, 25].indexed) {
+          validate(list[offset], code);
+          final position = first + offset + 1;
+          if (position >= commands.length) throw const FormatException();
+          final copy = commands[position];
+          if (copy.code != 509 || copy.indent != indent ||
+              copy.originalIndex != command.originalIndex + offset + 1) {
+            throw const FormatException();
+          }
+          final copyRaw = _rawFacingParameters(copy, 1);
+          final reference = _facingReference(copy, 0, copyRaw.single);
+          validate(reference.nodeId, code);
+          references.add(reference);
+        }
+        final barrierIndex = first + 4;
+        if (barrierIndex >= commands.length || commands[barrierIndex].code != 210 ||
+            commands[barrierIndex].indent != indent ||
+            commands[barrierIndex].originalIndex != command.originalIndex + 4) {
+          throw const FormatException();
+        }
+        _rawFacingParameters(commands[barrierIndex], 0);
+        index = barrierIndex + 1;
+        return SourceRelativeFacingRouteNode._(_span(first, barrierIndex),
+            rawDataRefs: references, profileHash: analyzer.profile.canonicalHash);
+      }
+    }
     if (list.length == 2) {
       final only = _facingFields(
           doc, list.first, 'RPG::MoveCommand', const {'@code', '@parameters'});

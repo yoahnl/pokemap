@@ -7,6 +7,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 
 final class _Symbol {
   const _Symbol(this.value);
@@ -341,10 +342,10 @@ Future<void> _realOracle(String studyPath) async {
   expect(files.reads['Data/trainers.dat'], 1);
   expect(files.reads['Data/species.dat'], 1);
   final analysis = SourceEventAnalyzer.forProject(normalized,
-          profile: SourceEventProfile.forProject(normalized,
-interpretationProfile: fixtureSourceInterpretationProfile,
-))
-      .analyze();
+      profile: SourceEventProfile.forProject(
+        normalized,
+        interpretationProfile: fixtureSourceInterpretationProfile,
+      )).analyze();
   final eventBindings = await const SourceTrainerEventBindingResolver()
       .read(source: normalized, analysis: analysis, files: files);
   expect(eventBindings.byEventIdentity, hasLength(197),
@@ -391,18 +392,9 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     return entry;
   }
 
-  final authoredMoves = select(
-      (entry) => entry.party.any((member) => member.field('Moves') != null));
   final heldItem = select(
       (entry) => entry.party.any((member) => member.field('Item') != null));
-  final bag = select((entry) =>
-      entry.fieldsNamed('Items').any((field) => field.values.isNotEmpty));
-  final negativeRequests = [
-    grunt,
-    authoredMoves.identity!,
-    heldItem.identity!,
-    bag.identity!
-  ];
+  final negativeRequests = [grunt, heldItem.identity!];
   final negative = await NativeTrainerCatalogQualification.prepare(
       normalizedSource: normalized,
       source: pbs,
@@ -410,15 +402,9 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       nativeCatalog: catalog,
       requestedTrainers: [requested.first, ...negativeRequests]);
   expect(negative.trainers, hasLength(1));
-  expect(negative.refusals, hasLength(4));
+  expect(negative.refusals, hasLength(2));
   expect(negative.refusals[0].code, 'native_trainer.pbs_ambiguous');
   expect(negative.refusals[1].code, 'native_trainer.party_override');
-  expect(negative.refusals[2].code, 'native_trainer.party_override');
-  expect(
-      negative.refusals[3].code,
-      bag.party.any((member) => member.fields.isNotEmpty)
-          ? 'native_trainer.party_override'
-          : 'native_trainer.trainer_override');
   print(jsonEncode({
     'kind': 'nativeTrainerRealDataQualification',
     'requested': requested.length,
@@ -451,6 +437,364 @@ interpretationProfile: fixtureSourceInterpretationProfile,
 }
 
 void main() {
+  final authoredFiles = <String, List<int>>{
+    'PBS/moves.txt': utf8.encode(
+        '[TACKLE]\nName = Tackle\nType = NORMAL\nCategory = Physical\nPower = 40\nAccuracy = 100\nTotalPP = 35\nTarget = NearOther\nFunctionCode = None\n'
+        '[QUICKATTACK]\nName = Quick Attack\nType = NORMAL\nCategory = Physical\nPower = 40\nAccuracy = 100\nTotalPP = 30\nPriority = 1\nTarget = NearOther\nFunctionCode = None\n'),
+    'Data/moves.dat': literalFixtureMarshal({
+      for (final value in [
+        (symbol: 'TACKLE', name: 'Tackle', pp: 35, priority: 0),
+        (symbol: 'QUICKATTACK', name: 'Quick Attack', pp: 30, priority: 1)
+      ])
+        LiteralFixtureSymbol(value.symbol):
+            LiteralFixtureObject('GameData::Move', {
+          '@id': LiteralFixtureSymbol(value.symbol),
+          '@real_name': value.name,
+          '@type': const LiteralFixtureSymbol('NORMAL'),
+          '@category': 0,
+          '@power': 40,
+          '@accuracy': 100,
+          '@total_pp': value.pp,
+          '@target': const LiteralFixtureSymbol('NearOther'),
+          '@priority': value.priority,
+          '@function_code': 'None',
+          '@flags': <String>[],
+          '@effect_chance': 0,
+          '@real_description': '',
+          '@pbs_file_suffix': '',
+        }),
+    }),
+    'PBS/items.txt': utf8.encode(
+        '[FULLHEAL]\nName = Full Heal\nNamePlural = Full Heals\nPocket = 2\nPrice = 400\nSellPrice = 100\nFieldUse = OnPokemon\nBattleUse = OnPokemon\nFlags = Fling_30\n'),
+    'Data/items.dat': literalFixtureMarshal({
+      const LiteralFixtureSymbol('FULLHEAL'):
+          const LiteralFixtureObject('GameData::Item', {
+        '@id': LiteralFixtureSymbol('FULLHEAL'),
+        '@real_name': 'Full Heal',
+        '@real_name_plural': 'Full Heals',
+        '@pocket': 2,
+        '@price': 400,
+        '@sell_price': 100,
+        '@bp_price': 1,
+        '@field_use': 1,
+        '@battle_use': 1,
+        '@flags': ['Fling_30'],
+        '@consumable': true,
+        '@move': null,
+        '@real_description': '',
+        '@pbs_file_suffix': '',
+      }),
+    }),
+  };
+  test(
+      'authored moves keep their exact PBS compiled order and native identities',
+      () async {
+    final source = await _source([
+      _roster(party: [
+        _member(fields: {
+          'moves': [const _Symbol('QUICKATTACK'), const _Symbol('TACKLE')],
+        })
+      ])
+    ],
+        pbs:
+            '[ARBITRARY,Joey,0]\nLoseText = Good game!\nPokemon = RATTATA,16\nMoves = QUICKATTACK,TACKLE\n',
+        extraFiles: authoredFiles);
+    final result = await _prepare(source);
+    expect(result.refusals.map((value) => value.toJson()), isEmpty);
+    expect(
+        result.trainers.single.team.single.moves, ['quick_attack', 'tackle']);
+  });
+  test('authored trainer medicines retain repeated source quantities',
+      () async {
+    final source = await _source(
+        [_roster(items: List.filled(5, const _Symbol('FULLHEAL')))],
+        pbs:
+            '[ARBITRARY,Joey,0]\nLoseText = Good game!\nItems = FULLHEAL,FULLHEAL,FULLHEAL,FULLHEAL,FULLHEAL\nPokemon = RATTATA,16\n',
+        extraFiles: authoredFiles);
+    final result = await _prepare(source);
+    expect(result.refusals, isEmpty);
+    expect(result.trainers.single.battleItems, {'full-heal': 5});
+    expect(result.battleItemDefinitions.single.id, 'full-heal');
+  });
+  Future<
+      ({LiteralTileFixture fixture, SourcePbsProject pbs})> authoredMoveSource({
+    String moves = 'QUICKATTACK,TACKLE',
+    List<String> compiledMoves = const ['QUICKATTACK', 'TACKLE'],
+    Map<String, List<int>> overrides = const {},
+  }) =>
+      _source(
+          [
+            _roster(party: [
+              _member(fields: {
+                'moves': compiledMoves.map(_Symbol.new).toList(),
+              })
+            ])
+          ],
+          pbs:
+              '[ARBITRARY,Joey,0]\nLoseText = Good game!\nPokemon = RATTATA,16\nMoves = $moves\n',
+          extraFiles: {...authoredFiles, ...overrides});
+  test('authored move order must agree with the compiled trainer roster',
+      () async {
+    final result = await _prepare(
+        await authoredMoveSource(compiledMoves: ['TACKLE', 'QUICKATTACK']));
+    expect(result.trainers, isEmpty);
+    expect(result.refusals.single.code, 'native_trainer.roster_changed');
+  });
+  test('unknown authored move identities never fall back to native defaults',
+      () async {
+    final result = await _prepare(await authoredMoveSource(
+        moves: 'CUSTOMMOVE', compiledMoves: ['CUSTOMMOVE']));
+    expect(result.trainers, isEmpty);
+    expect(result.refusals.single.code, 'native_trainer.authored_pbs_identity');
+  });
+  test('authored moves require the exact compiled move witness', () async {
+    final result = await _prepare(await authoredMoveSource(
+        overrides: {'Data/moves.dat': literalFixtureMarshal({})}));
+    expect(result.trainers, isEmpty);
+    expect(result.refusals.single.code,
+        'native_trainer.authored_compiled_identity');
+  });
+  test('custom source move functions are refused before native binding',
+      () async {
+    final altered = utf8
+        .decode(authoredFiles['PBS/moves.txt']!)
+        .replaceAll('FunctionCode = None', 'FunctionCode = CustomRuby');
+    final result = await _prepare(await authoredMoveSource(
+        overrides: {'PBS/moves.txt': utf8.encode(altered)}));
+    expect(result.trainers, isEmpty);
+    expect(
+        result.refusals.single.code, 'native_trainer.authored_catalog_changed');
+  });
+  test('source move names cannot impersonate the declared native move',
+      () async {
+    final altered = utf8
+        .decode(authoredFiles['PBS/moves.txt']!)
+        .replaceAll('Name = Quick Attack', 'Name = Custom Move');
+    final result = await _prepare(await authoredMoveSource(
+        overrides: {'PBS/moves.txt': utf8.encode(altered)}));
+    expect(result.trainers, isEmpty);
+    expect(
+        result.refusals.single.code, 'native_trainer.authored_catalog_changed');
+  });
+  test(
+      'matching PBS and compiled custom functions do not redefine standard moves',
+      () async {
+    final altered = utf8
+        .decode(authoredFiles['PBS/moves.txt']!)
+        .replaceAll('FunctionCode = None', 'FunctionCode = CustomRuby');
+    final result = await _prepare(
+        await authoredMoveSource(moves: 'TACKLE', compiledMoves: [
+      'TACKLE'
+    ], overrides: {
+      'PBS/moves.txt': utf8.encode(altered),
+      'Data/moves.dat': literalFixtureMarshal({
+        const LiteralFixtureSymbol('TACKLE'):
+            const LiteralFixtureObject('GameData::Move', {
+          '@id': LiteralFixtureSymbol('TACKLE'),
+          '@real_name': 'Tackle',
+          '@type': LiteralFixtureSymbol('NORMAL'),
+          '@category': 0,
+          '@power': 40,
+          '@accuracy': 100,
+          '@total_pp': 35,
+          '@target': LiteralFixtureSymbol('NearOther'),
+          '@priority': 0,
+          '@function_code': 'CustomRuby',
+          '@flags': [],
+          '@effect_chance': 0,
+        }),
+      }),
+    }));
+    expect(result.trainers, isEmpty);
+    expect(
+        result.refusals.single.code, 'native_trainer.authored_catalog_changed');
+  });
+  test(
+      'authored fixed damage keeps Avelune metadata with declared source differences',
+      () async {
+    final result = await _prepare(
+        await authoredMoveSource(moves: 'SONICBOOM', compiledMoves: [
+          'SONICBOOM'
+        ], overrides: {
+          'PBS/moves.txt': utf8.encode(
+              '[SONICBOOM]\nName = Sonic Boom\nType = NORMAL\nCategory = Special\nPower = 1\nAccuracy = 90\nTotalPP = 20\nTarget = NearOther\nFunctionCode = FixedDamage20\n'),
+          'Data/moves.dat': literalFixtureMarshal({
+            const LiteralFixtureSymbol('SONICBOOM'):
+                const LiteralFixtureObject('GameData::Move', {
+              '@id': LiteralFixtureSymbol('SONICBOOM'),
+              '@real_name': 'Sonic Boom',
+              '@type': LiteralFixtureSymbol('NORMAL'),
+              '@category': 1,
+              '@power': 1,
+              '@accuracy': 90,
+              '@total_pp': 20,
+              '@target': LiteralFixtureSymbol('NearOther'),
+              '@priority': 0,
+              '@function_code': 'FixedDamage20',
+              '@flags': [],
+              '@effect_chance': 0,
+            }),
+          }),
+        }),
+        catalog: NativePsdkCatalogManifest.builtin());
+    expect(result.refusals.map((refusal) => refusal.toJson()), isEmpty);
+    expect(result.trainers.single.team.single.moves, ['sonic_boom']);
+    final evidence =
+        ((result.evidence['authoredBindings'] as Map)['bindings'] as List)
+            .single as Map;
+    expect(evidence['sourceCategory'], 'Special');
+    expect(evidence['nativeCategory'], 'physical');
+    expect(evidence['nativeEngineMethod'], 's_fixed_damage');
+  });
+  test('trainer medicine quantities must agree with the compiled roster',
+      () async {
+    final source = await _source([
+      _roster(items: [const _Symbol('FULLHEAL')])
+    ],
+        pbs:
+            '[ARBITRARY,Joey,0]\nLoseText = Good game!\nItems = FULLHEAL,FULLHEAL\nPokemon = RATTATA,16\n',
+        extraFiles: authoredFiles);
+    final result = await _prepare(source);
+    expect(result.trainers, isEmpty);
+    expect(result.refusals.single.code, 'native_trainer.roster_changed');
+  });
+  test('trainer medicine use overrides remain refused', () async {
+    final source = await _source(
+        [
+          _roster(items: [const _Symbol('FULLHEAL')])
+        ],
+        pbs:
+            '[ARBITRARY,Joey,0]\nLoseText = Good game!\nItems = FULLHEAL\nPokemon = RATTATA,16\n',
+        extraFiles: {
+          ...authoredFiles,
+          'PBS/items.txt': utf8.encode(utf8
+              .decode(authoredFiles['PBS/items.txt']!)
+              .replaceAll('BattleUse = OnPokemon', 'BattleUse = OnFoe'))
+        });
+    final result = await _prepare(source);
+    expect(result.trainers, isEmpty);
+    expect(result.refusals.single.code, startsWith('native_trainer.authored_'));
+  });
+  test(
+      'sealed authored qualification binds without a historical roster whitelist',
+      () async {
+    final source = await authoredMoveSource();
+    final native = NativePsdkTrainerBundle.builtin();
+    final qualification = await _prepare(source, catalog: native);
+    final result = const NativeTrainerCatalogBindings().bind(
+        source: source.pbs,
+        requestedTrainers: [_key(source.pbs.logicalProjectNamespace)],
+        native: native,
+        movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults,
+        qualification: qualification);
+    expect(
+        result.trainers.single.team.single.moves, ['quick_attack', 'tackle']);
+    expect(
+        result.evidence['qualificationHash'], qualification.evidenceHash.value);
+    final other =
+        await authoredMoveSource(moves: 'TACKLE', compiledMoves: ['TACKLE']);
+    expect(
+        () => const NativeTrainerCatalogBindings().bind(
+            source: other.pbs,
+            requestedTrainers: [_key(other.pbs.logicalProjectNamespace)],
+            native: native,
+            movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults,
+            qualification: qualification),
+        _error('native_trainer.qualification_context'));
+  });
+  test(
+      'published native bundle retains the exact qualified authored move order',
+      () async {
+    final native = NativePsdkTrainerBundle.builtin();
+    final source =
+        await authoredMoveSource(overrides: nativeMediaSourceFiles(native));
+    final qualification = await _prepare(source, catalog: native);
+    expect(qualification.refusals, isEmpty);
+    final published = await const SourceCatalogProjector().read(
+        source: source.fixture.source,
+        pbs: source.pbs,
+        files: source.fixture.files,
+        nativeMapIds: {1: 'native_map'},
+        requestedTrainerKeys: [_key(source.pbs.logicalProjectNamespace)],
+        nativeTrainerQualification: qualification,
+        nativeTrainerBundle: native,
+        nativeTrainerMovePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults);
+    expect(published.trainers.single.team.single.moves,
+        ['quick_attack', 'tackle']);
+    final moves = published.documents
+        .singleWhere((document) =>
+            document.relativePath == 'data/pokemon/catalogs/moves.json')
+        .document;
+    expect((moves['entries'] as List).map((entry) => (entry as Map)['id']),
+        containsAll(['quick_attack', 'tackle']));
+    expect(published.artifacts, isNotEmpty);
+  });
+  test('published authored trainers require their exact compiled qualification',
+      () async {
+    final native = NativePsdkTrainerBundle.builtin();
+    final source =
+        await authoredMoveSource(overrides: nativeMediaSourceFiles(native));
+    await expectLater(
+        const SourceCatalogProjector().read(
+            source: source.fixture.source,
+            pbs: source.pbs,
+            files: source.fixture.files,
+            nativeMapIds: {1: 'native_map'},
+            requestedTrainerKeys: [_key(source.pbs.logicalProjectNamespace)],
+            nativeTrainerKeys: [_key(source.pbs.logicalProjectNamespace)],
+            nativeTrainerBundle: native,
+            nativeTrainerMovePolicy:
+                NativeTrainerMovePolicy.nativeAveluneDefaults),
+        _error('native_trainer.projection_binding'));
+  });
+  test('published authored trainers reject source changes after qualification',
+      () async {
+    final native = NativePsdkTrainerBundle.builtin();
+    final source =
+        await authoredMoveSource(overrides: nativeMediaSourceFiles(native));
+    final qualification = await _prepare(source, catalog: native);
+    source.fixture.files.overrides['Data/trainers.dat'] =
+        literalFixtureMarshal({});
+    await expectLater(
+        const SourceCatalogProjector().read(
+            source: source.fixture.source,
+            pbs: source.pbs,
+            files: source.fixture.files,
+            nativeMapIds: {1: 'native_map'},
+            requestedTrainerKeys: [_key(source.pbs.logicalProjectNamespace)],
+            nativeTrainerQualification: qualification,
+            nativeTrainerBundle: native,
+            nativeTrainerMovePolicy:
+                NativeTrainerMovePolicy.nativeAveluneDefaults),
+        _error('native_trainer.source_changed'));
+  });
+  test('authored witnesses and medicine definitions survive proof roundtrip',
+      () async {
+    final source = await authoredMoveSource();
+    final native = NativePsdkTrainerBundle.builtin();
+    final qualification = await _prepare(source, catalog: native);
+    final artifacts = qualification.artifacts();
+    final restored = await NativeTrainerCatalogQualification.fromArtifacts(
+        evidence: artifacts.evidence,
+        artifacts: artifacts.artifacts,
+        normalizedSource: source.fixture.source,
+        files: source.fixture.files,
+        nativeCatalog: native);
+    expect(restored.evidenceHash, qualification.evidenceHash);
+    expect(
+        restored.trainers.single.team.single.moves, ['quick_attack', 'tackle']);
+    final witness = source.fixture.snapshot.entries
+        .singleWhere((file) => file.relativePath == 'Data/moves.dat');
+    source.fixture.files.overrides[witness.relativePath] = [0];
+    await expectLater(
+        restored.validateContext(
+            normalizedSource: source.fixture.source,
+            source: source.pbs,
+            files: source.fixture.files,
+            nativeCatalog: native,
+            requestedTrainers: [_key(source.pbs.logicalProjectNamespace)]),
+        _error('native_trainer.source_changed'));
+  });
   final study = Platform.environment['AVELUNE_NATIVE_TRAINER_STUDY'];
   test(
       'real oracle qualifies 189 exact identities and refuses absent ARTHUR locally',
@@ -722,7 +1066,11 @@ void main() {
               '[ARBITRARY,Joey]\nPokemon = RATTATA,16\n${override.key} = ${override.value}\n');
       final result = await _prepare(source);
       expect(result.trainers, isEmpty);
-      expect(result.refusals.single.code, 'native_trainer.party_override');
+      expect(
+          result.refusals.single.code,
+          override.key == 'Moves'
+              ? 'native_trainer.roster_changed'
+              : 'native_trainer.party_override');
     });
   }
 
@@ -738,7 +1086,7 @@ void main() {
       ])
     ]);
     expect((await _prepare(source)).refusals.single.code,
-        'native_trainer.compiled_override');
+        'native_trainer.roster_changed');
   });
 
   test('compiled identities remain exact and duplicate records refuse locally',
@@ -944,7 +1292,7 @@ void main() {
       _key(source.pbs.logicalProjectNamespace, name: 'Bag')
     ]);
     expect(result.trainers, hasLength(1));
-    expect(result.refusals.single.code, 'native_trainer.compiled_override');
+    expect(result.refusals.single.code, 'native_trainer.roster_changed');
   });
 
   test('source LoseText is preserved as evidence and must match compiled text',
@@ -992,7 +1340,7 @@ void main() {
     final source = await _source([_roster()],
         pbs: '[ARBITRARY,Joey]\nItems = POTION\nPokemon = RATTATA,16\n');
     expect((await _prepare(source)).refusals.single.code,
-        'native_trainer.trainer_override');
+        'native_trainer.roster_changed');
   });
 
   test('compiled witness hash and length are verified before decode', () async {

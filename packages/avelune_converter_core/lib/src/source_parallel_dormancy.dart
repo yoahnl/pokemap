@@ -253,6 +253,8 @@ void _auditSourceFactWriteBlock(
 
   for (final node in block.nodes) {
     switch (node) {
+        case SourceGymBadgePresentationNode():
+          break;
       case SourceCommonEventCallNode():
         _auditSourceFactWriteBlock(node.body, event, analyzer, writes);
       case SourceTextNode(:final followingChoice):
@@ -291,6 +293,14 @@ void _auditSourceFactWriteBlock(
         }
         write(factId, value);
       case SourceTrainerProgramNode(:final defeatedFactId):
+        if (node.gymLeader != null) {
+          if (node.kind == SourceTrainerProgramKind.encounter) {
+            _auditSourceFactWriteBlock(node.victoryContinuation, event, analyzer, writes);
+          } else if (node.gymStageBody != null) {
+            _auditSourceFactWriteBlock(node.gymStageBody!, event, analyzer, writes);
+          }
+          break;
+        }
         if (defeatedFactId !=
             analyzer.selfFactId(event.sourceMapId, event.sourceEventId, 'A')) {
           throw const FormatException();
@@ -339,6 +349,7 @@ void _auditSourceFactWriteBlock(
       case SourceWaitNode():
       case SourceSoundEffectNode():
       case SourceInteractionFacingNode():
+      case SourceRelativeFacingRouteNode():
       case SourceMoveRouteBarrierNode():
       case SourcePlayerVisibilityNode():
       case SourceTempSwitchNode():

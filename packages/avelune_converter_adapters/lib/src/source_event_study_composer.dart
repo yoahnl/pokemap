@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 import 'native_mutation_batches.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
+import 'source_event_character_identity.dart';
 import 'source_event_evidence.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_event_execution_context.dart';
@@ -486,7 +487,8 @@ final class SourceEventStudyComposer {
         final key = sourceEventCharacterBindingKey(
             characterName: graphic.characterName,
             pattern: graphic.pattern,
-            direction: graphic.direction);
+            direction: graphic.direction,
+            fixedDirection: graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event));
         if (!visited.add(key)) continue;
         final presentation = resolveSourceCharacterPresentation(snapshot: source.snapshot,
             profile: source.interpretationProfile, charsetName: graphic.characterName);
@@ -501,6 +503,7 @@ final class SourceEventStudyComposer {
               charsetName: visualAdaptation?.actualCharsetName ?? graphic.characterName,
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
+              fixedDirection: graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event),
               limits: limits,
               cancellation: cancellation);
           bindings[key] = imported.binding;
@@ -580,6 +583,9 @@ final class SourceEventStudyComposer {
     final admittedIdentities = (projection.semanticEvidence['events'] as List).cast<Map>()
         .where((row) => row['status'] == 'adaptedStaticSemantics')
         .map((row) => ConverterId(row['sourceIdentity'] as String)).toSet();
+    final usedGyms = trainerBindings.byEventIdentity.entries
+        .where((entry) => admittedIdentities.contains(entry.key) && entry.value.gymLeader != null)
+        .map((entry) => entry.value.gymLeader!).toList();
     final usedHealingDisplay = healingDisplay.entries.where((e) => admittedIdentities.contains(e.key)).map((e) => e.value).toList();
     final usedCenterRecovery = centerRecovery.entries.where((e) => admittedIdentities.contains(e.key)).map((e) => e.value).toList();
     final usedPickupBindingKeys =
@@ -609,6 +615,10 @@ final class SourceEventStudyComposer {
     }
     final preservedFileIds =
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
+    for (final gym in usedGyms) {
+      preservedFileIds.addAll([gym.settingsFile.fileId.value,
+        gym.metadataFile.fileId.value, gym.audioFile.fileId.value]);
+    }
     if (usedExternalWarps != null) {
       preservedFileIds.addAll(usedExternalWarps.files.map((file) => file.fileId.value));
     }
@@ -822,6 +832,7 @@ final class SourceEventStudyComposer {
         ...usedHealingDisplay.expand((b) => b.artifacts),
         if (usedExternalWarps != null) ...usedExternalWarps.artifacts,
         ...usedCenterRecovery.map((b) => b.artifact),
+        ...usedGyms.map((gym) => gym.artifact),
         ...pickupArtifacts,
         ...sounds.values.map((binding) => binding.artifact),
         ...musicBindings.values.expand((entry) => entry.artifacts),
@@ -841,11 +852,13 @@ final class SourceEventStudyComposer {
       ..sort((a, b) => a.handle.compareTo(b.handle));
     final importedMutations = <NativeMutation>[];
     final operations = <ConverterId, NativeMutation>{};
+    final badgeOperations = <String, NativeMutation>{};
     for (final entry in [
       if (usedExternalWarps != null) ...usedExternalWarps.mutations,
       ...characterMutations,
       ...usedHealingDisplay.expand((b) => b.mutations),
       if (usedFieldObstacles != null) ...usedFieldObstacles.mutations,
+      ...usedGyms.expand((gym) => [gym.audioMutation, gym.badgeMutation]),
       ...usedTownMap.expand((b) => b.mutations.where((entry) => entry.actionId == 'asset.import')),
       ...usedCenterRecovery.map((b) => b.mutation),
       ...pickupMutations,
@@ -853,6 +866,18 @@ final class SourceEventStudyComposer {
       ...musicBindings.values.expand((entry) => entry.importMutations),
       ...catalogMutations
     ]) {
+      if (entry.actionId == 'campaign.badge.upsert') {
+        final id = entry.targetEntityIds.single.value;
+        final previous = badgeOperations[id];
+        if (previous != null) {
+          if (canonicalJsonOf(previous.parameters) != canonicalJsonOf(entry.parameters)) {
+            throw const NativeWriteException('events.gym.badge_conflict',
+                'One source badge cannot have conflicting native definitions.');
+          }
+          continue;
+        }
+        badgeOperations[id] = entry;
+      }
       final prior = operations[entry.operationId];
       if (prior != null) {
         if (canonicalJsonOf(prior.toJson(0)) !=
@@ -991,6 +1016,7 @@ Iterable<String> _soundNames(SourceEventBlock block, {bool dialogueOnly = false}
         if (node.kind == SourceTrainerProgramKind.encounter) {
           yield* _soundNames(node.victoryContinuation, dialogueOnly: dialogueOnly);
         }
+        if (node.gymStageBody != null) yield* _soundNames(node.gymStageBody!, dialogueOnly: dialogueOnly);
       case SourceSoundEffectNode():
         if (!dialogueOnly) yield node.name;
       case SourceWarpNode():
@@ -1270,6 +1296,9 @@ Future<({MapInstanceRetentionPolicy policy, Map<String, Object?> evidence})>
 Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     switch (node) {
+      case SourceTrainerProgramNode():
+        if (node.kind == SourceTrainerProgramKind.encounter) yield* _pickups(node.victoryContinuation);
+        if (node.gymStageBody != null) yield* _pickups(node.gymStageBody!);
       case SourcePickupNode():
         yield node;
       case SourceConditionalNode():
@@ -1300,6 +1329,9 @@ Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
 Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     switch (node) {
+      case SourceTrainerProgramNode():
+        if (node.kind == SourceTrainerProgramKind.encounter) yield* _itemSymbols(node.victoryContinuation);
+        if (node.gymStageBody != null) yield* _itemSymbols(node.gymStageBody!);
       case SourcePickupNode():
         yield node.sourceSymbol;
       case SourceShopProgramNode():

@@ -29,6 +29,7 @@ import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
 import 'source_dialogue_text.dart';
+import 'source_event_character_identity.dart';
 
 DialogueLineFeedback? _staticSourceTextFeedback(String source, {bool allowNativePlaceholders = false}) =>
     parseSourceDialogueText(source, allowPlayerName: false, allowTiming: false, allowLiteralEscapes: false,
@@ -40,11 +41,14 @@ DialogueLineFeedback? _pokedexRewardTextFeedback(String source, PokedexSpeciesRa
 
 const _sourceSignWindowControl = r'\w[signskin]';
 
-DialogueLineFeedback? _staticSourceSignFeedback(String source) {
-  if (!source.startsWith(_sourceSignWindowControl)) return null;
-  final text = source.substring(_sourceSignWindowControl.length);
+DialogueLineFeedback? _staticSourceSignFeedback(String source,
+    {bool allowPlayerName = false, bool allowUnstyled = false}) {
+  final styled = source.startsWith(_sourceSignWindowControl);
+  if (!styled && !allowUnstyled) return null;
+  final text = styled ? source.substring(_sourceSignWindowControl.length) : source;
   if (text.trim().isEmpty) return null;
-  return _staticSourceTextFeedback(text);
+  return parseSourceDialogueText(text, allowPlayerName: allowPlayerName,
+      allowTiming: false, allowLiteralEscapes: false);
 }
 
 int? _staticSignWidth(SourceEventDefinition event) {
@@ -64,27 +68,36 @@ EntityFacing? _sourceFacingDirection(int? direction) => switch (direction) {
   _ => null,
 };
 
-SourceTextNode? _staticSignText(SourceEventNode node) {
-  if (node is SourceConditionalNode) {
+List<SourceTextNode>? _staticSignTexts(SourceEventBlock block) {
+  var nodes = block.nodes;
+  if (nodes.length == 1 && nodes.single is SourceConditionalNode) {
+    final node = nodes.single as SourceConditionalNode;
     if (node.condition.kind != SourceEventConditionKind.playerFacing ||
         _sourceFacingDirection(node.condition.sourceDirection) == null ||
-        !node.condition.expectedValue || node.whenTrue.nodes.length != 1 ||
+        !node.condition.expectedValue ||
         node.whenFalse.nodes.isNotEmpty) {
       return null;
     }
-    node = node.whenTrue.nodes.single;
+    nodes = node.whenTrue.nodes;
   }
-  return node is SourceTextNode && node.followingChoice == null ? node : null;
+  if (nodes.isEmpty || nodes.length > 16 || nodes.any((node) =>
+      node is! SourceTextNode || node.followingChoice != null ||
+      node.annotations.isNotEmpty)) {
+    return null;
+  }
+  return nodes.cast<SourceTextNode>();
 }
 
 String sourceEventCharacterBindingKey(
         {required String characterName,
         required int pattern,
-        required int direction}) =>
+        required int direction,
+        bool fixedDirection = false}) =>
     canonicalJsonOf({
       'characterName': characterName,
       'pattern': pattern,
-      'direction': direction
+      'direction': direction,
+      if (fixedDirection) 'fixedDirection': true,
     });
 
 String sourcePickupFeedbackBindingKey(
@@ -178,13 +191,15 @@ final class SourceEventCharacterBinding {
       required this.sourceFileId,
       required this.sourceFileHash,
       required this.sourcePattern,
-      required this.sourceDirection});
+      required this.sourceDirection,
+      this.fixedDirection = false});
   final String characterId;
   final Sha256Hash sourceSnapshotHash;
   final ConverterId sourceFileId;
   final Sha256Hash sourceFileHash;
   final int sourcePattern;
   final int sourceDirection;
+  final bool fixedDirection;
 }
 
 final class SourceEventProjection {
@@ -447,6 +462,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourceSoundEffectNode() => node.toJson(),
     SourceScriptNode() => {'script': node.script},
     SourceInteractionFacingNode() => {'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
+    SourceRelativeFacingRouteNode() => node.toJson(),
     SourceForcedMoveRouteNode() => node.toJson(),
     SourceMoveRouteBarrierNode() => node.toJson(),
     SourcePlayerVisibilityNode() => node.toJson(),
@@ -456,6 +472,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourcePokemonGiftNode() => node.toJson(),
     SourceShopProgramNode() => node.toJson(),
     SourceTrainerProgramNode() => node.toJson(),
+    SourceGymBadgePresentationNode() => node.toJson(),
     SourcePokedexRewardProgramNode() => node.toJson(),
     SourceCenterServiceProgramNode() => node.toJson(),
     SourceTownMapProgramNode() => node.toJson(),
@@ -470,6 +487,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
     SourceAnnotationNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
+    SourceRelativeFacingRouteNode() => node.toJson(),
     SourceSelfSwitchNode() => [node.factId, node.letter, node.value],
     SourceTrainerProgramNode() => node.toJson(),
     SourceExitEventNode() => node.toJson(),
@@ -498,6 +516,7 @@ Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
         if (node.kind == SourceTrainerProgramKind.encounter) {
           yield* _sourceControlNodes(node.victoryContinuation);
         }
+        if (node.gymStageBody != null) yield* _sourceControlNodes(node.gymStageBody!);
       case SourceCommonEventCallNode():
         yield* _sourceControlNodes(node.body);
       case SourceConditionalNode():
@@ -701,6 +720,7 @@ final class _ProjectionBuilder {
   final _arrivalOwnerChecks = <ConverterId>{};
   final _arrivalOwnerDependencies = <ConverterId, Set<ConverterId>>{};
   final _stationaryRotationSourceMatches = <SourceEventDefinition, bool>{};
+  final _fixedDirectionSourceMatches = <SourceEventDefinition, bool>{};
   _SourceSelfSwitchQualification? _selfSwitchQualification;
   final _selfSwitchQualificationProofs = <Map<String, Object?>>[];
   late final Map<String, SourceEventDefinition> _selfSwitchTargets = {
@@ -1152,6 +1172,21 @@ final class _ProjectionBuilder {
             'sourceArrivalAutorunPagesPreserved': event.pages.where((page) => !page.body.nodes.whereType<SourceWarpNode>().any((node) => node.originalProgram != null))
                 .map((page) => page.rawDataRef!.toJson()).toList(),
           },
+        if (gaps.isEmpty && _supportsFixedDirectionPresentation(event))
+          'nativeFixedDirectionPresentation': {
+            'nativeContract': 'editableCharacterWithOneSourcePoseForEveryNativeFacing',
+            'nativeFacingStateLocked': false,
+            'sourceInternalFacingParityQualified': false,
+            'sourceOracle': 'Game_Character:165-169,815-825,868-875',
+            'rawDataRefs': [for (final page in event.pages) page.rawDataRef!.toJson()],
+            'pages': [for (final page in event.pages)
+              if (page.graphic!.directionFix) {
+                'sourcePageIndex': page.originalPageIndex,
+                'sourcePattern': page.graphic!.pattern,
+                'sourceDirection': page.graphic!.direction,
+              }],
+            'sourceScriptsExecuted': 0,
+          },
         if (gaps.isEmpty && _isHealingDisplayFamily(event))
           'nativeHealingDisplay': {
             ...healingDisplayBinding[event.identity]!.evidence,
@@ -1301,6 +1336,31 @@ final class _ProjectionBuilder {
                   ? _eventId(event, 'page_${page.originalPageIndex}')
                   : null,
               'adaptedCommands': [
+                if (gaps.isEmpty)
+                  for (final node in _sourceControlNodes(page.body).whereType<SourceRelativeFacingRouteNode>()) {
+                    ...node.toJson(),
+                    'rawDataRefs': [page.rawDataRef!.toJson(), ...node.rawDataRefs.map((ref) => ref.toJson())],
+                    'nativeContract': 'stationaryFrontRelativeFacingActorRoute',
+                    'nativeSteps': ['faceAway', 'wait400ms', 'faceToward', 'awaitActorRoutes'],
+                    'sourceRoutePassTimingParityQualified': false,
+                    'persistentFacingCertified': false,
+                    'sourceScriptsExecuted': 0,
+                  },
+                if (gaps.isEmpty && _dialogueTextQualified)
+                  for (final node in _sourceControlNodes(page.body).whereType<SourceTextNode>())
+                    if (sourceDialoguePlainItalicPresentation(node.text) case final presentation?) {
+                      'nativeContract': 'avelunePlainTextFromSourceItalic',
+                      'span': node.span.toJson(),
+                      'rawDataRefs': [page.rawDataRef!.toJson()],
+                      'sourceFileHash': source.sourceFiles[event.sourceFileId]!.contentHash.value,
+                      'sourceItalicSpans': presentation.spans,
+                      'repairedClosingTags': presentation.repairedClosingTags,
+                      'sourceMalformedClosingTag': presentation.repairedClosingTags > 0 ? r'<\i>' : null,
+                      'sourceItalicStyleParityQualified': false,
+                      'sourceRubyRenderingParityQualified': false,
+                      'nativePresentation': 'plainTextWithAllSourceWordsPreserved',
+                      'sourceScriptsExecuted': 0,
+                    },
                 for (final node in _sourceControlNodes(page.body))
                   if (node is SourceCommonEventCallNode || node is SourceAnnotationNode || node is SourceVariableSetNode || node is SourceVariableAdjustNode ||
                       node is SourceExitEventNode || (node is SourceConditionalNode &&
@@ -1382,31 +1442,38 @@ final class _ProjectionBuilder {
                     'equivalenceScope': ['plainText', 'frontActionAcrossFootprint'],
                   },
                 if (gaps.isEmpty && _supportsStaticSign(event))
-                  for (final node in [_staticSignText(page.body.nodes.single)!])
+                  for (final commandNode in page.body.nodes)
+                    for (final node in commandNode is SourceConditionalNode
+                        ? commandNode.whenTrue.nodes.cast<SourceTextNode>()
+                        : [commandNode as SourceTextNode])
                     {
                       'sourceOpcodes': [
-                        if (page.body.nodes.single is SourceConditionalNode) 111,
+                        if (commandNode is SourceConditionalNode && commandNode.whenTrue.nodes.length == 1) 111,
                         101,
                         if (node.span.firstCommandIndex !=
                             node.span.lastCommandIndex)
                           401,
-                        if (page.body.nodes.single is SourceConditionalNode) 412,
+                        if (commandNode is SourceConditionalNode && commandNode.whenTrue.nodes.length == 1) 412,
                       ],
-                      'span': page.body.nodes.single.span.toJson(),
+                      'span': commandNode is SourceConditionalNode && commandNode.whenTrue.nodes.length > 1
+                          ? node.span.toJson() : commandNode.span.toJson(),
+                      if (commandNode is SourceConditionalNode && commandNode.whenTrue.nodes.length > 1) ...{
+                        'guardSpan': commandNode.span.toJson(),
+                        'guardSourceOpcodes': [111, 412],
+                      },
                       'rawDataRefs': [page.rawDataRef!.toJson()],
-                      'sourceControl': _sourceSignWindowControl,
+                      'sourceControl': node.text.startsWith(_sourceSignWindowControl)
+                          ? _sourceSignWindowControl : null,
                       'nativeFootprint': {'width': _staticSignWidth(event), 'height': 1},
                       'targetStyle': 'aveluneNativeDialogue',
                       'nativeContract': 'staticSignDialogueAtTerrainBump',
                       'equivalenceScope': ['plainText', 'frontTerrainBump',
-                        if (page.body.nodes.single is SourceConditionalNode)
+                        if (commandNode is SourceConditionalNode)
                           'playerFacingBoolean'],
-                      if (page.body.nodes.single is SourceConditionalNode) ...{
-                        'sourceFacingDirection': (page.body.nodes.single as SourceConditionalNode)
-                            .condition.sourceDirection,
+                      if (commandNode is SourceConditionalNode) ...{
+                        'sourceFacingDirection': commandNode.condition.sourceDirection,
                         'nativeFacingDirection': _sourceFacingDirection(
-                            (page.body.nodes.single as SourceConditionalNode)
-                                .condition.sourceDirection)!.name,
+                            commandNode.condition.sourceDirection)!.name,
                       },
                       'windowSkinParityQualified': false,
                     },
@@ -1622,6 +1689,7 @@ final class _ProjectionBuilder {
             'sourceFileHash': entry.value.sourceFileHash.value,
             'sourcePattern': entry.value.sourcePattern,
             'sourceDirection': entry.value.sourceDirection,
+            if (entry.value.fixedDirection) 'fixedDirection': true,
           }
       },
       'pickupBindings': {
@@ -1933,9 +2001,153 @@ final class _ProjectionBuilder {
     });
   }
 
+  final _relativeFacingSourceMatches = <SourceEventDefinition, bool>{};
+
+  bool _supportsRelativeFacingRoute(SourceEventDefinition event) =>
+      _relativeFacingSourceMatches.putIfAbsent(event, () {
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9 ||
+        event.isQuarantined || _eventFootprint(event).width != 1 ||
+        _eventFootprint(event).height != 1) {
+      return false;
+    }
+    bool condition(SourceEventCondition value) => switch (value.kind) {
+      SourceEventConditionKind.always || SourceEventConditionKind.globalSwitch ||
+      SourceEventConditionKind.selfSwitch || SourceEventConditionKind.variableAtLeast ||
+      SourceEventConditionKind.variableComparison || SourceEventConditionKind.itemPresence => true,
+      SourceEventConditionKind.all => value.children.every(condition),
+      _ => false,
+    };
+    bool block(SourceEventBlock value) => value.nodes.every((node) => switch (node) {
+      SourceTextNode() => node.followingChoice == null,
+      SourceAnnotationNode() || SourceVariableSetNode() || SourceVariableAdjustNode() ||
+      SourceSwitchNode() || SourceSelfSwitchNode() || SourcePickupNode() => true,
+      SourceRelativeFacingRouteNode() => node.profileHash == analysis.profile.canonicalHash,
+      SourceConditionalNode() => condition(node.condition) && block(node.whenTrue) && block(node.whenFalse),
+      _ => false,
+    });
+    if (event.pages.isEmpty || event.pages.any((page) {
+      final graphic = page.graphic;
+      return page.triggerCode != 0 || graphic == null || graphic.characterName.isEmpty ||
+          graphic.moveType != 0 || graphic.directionFix || graphic.through ||
+          !condition(page.condition) || !block(page.body);
+    })) {
+      return false;
+    }
+    if (_sourceContextEvents.any((other) => other.sourceMapId == event.sourceMapId &&
+        other.pages.any((page) => const [3, 4].contains(page.triggerCode) && !page.isEmpty))) {
+      return false;
+    }
+    final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    if (expected == null || expected.name != event.name || expected.x != event.x ||
+        expected.y != event.y || _sourceControlFingerprint(expected) != _sourceControlFingerprint(event) ||
+        expected.pages.length != event.pages.length) {
+      return false;
+    }
+    Object? graphic(SourceEventGraphic? value) => value == null ? null : [
+      value.tileId, value.characterName, value.hue, value.direction, value.pattern,
+      value.opacity, value.blendType, value.moveType, value.moveSpeed, value.moveFrequency,
+      value.walkAnime, value.stepAnime, value.directionFix, value.through,
+      value.alwaysOnTop, value.moveRouteNodeId,
+    ];
+    return List.generate(event.pages.length, (index) => index).every((index) =>
+        canonicalJsonOf(graphic(expected.pages[index].graphic)) ==
+            canonicalJsonOf(graphic(event.pages[index].graphic)) &&
+        _sourceCommonProgramHash(expected.pages[index].body) ==
+            _sourceCommonProgramHash(event.pages[index].body));
+  });
+
+  final _staticSignSourceMatches = <SourceEventDefinition, bool>{};
+
+  bool _staticSignSourceBound(SourceEventDefinition event) =>
+      _staticSignSourceMatches.putIfAbsent(event, () {
+    final expected = _authoritativeSourceAnalysis.eventAt(
+        event.sourceMapId, event.sourceEventId);
+    if (expected == null || expected.identity != event.identity ||
+        expected.sourceFileId != event.sourceFileId || expected.name != event.name ||
+        expected.x != event.x || expected.y != event.y || expected.pages.length != 1) {
+      return false;
+    }
+    final original = expected.pages.single, supplied = event.pages.single;
+    Object? graphicValue(SourceEventGraphic? value) => value == null ? null : [
+      value.tileId, value.characterName, value.hue, value.direction,
+      value.pattern, value.opacity, value.blendType, value.moveType,
+      value.moveSpeed, value.moveFrequency, value.walkAnime, value.stepAnime,
+      value.directionFix, value.through, value.alwaysOnTop, value.moveRouteNodeId,
+    ];
+    return canonicalJsonOf(expected.locator.toJson()) == canonicalJsonOf(event.locator.toJson()) &&
+        canonicalJsonOf(original.sourcePage.toJson()) == canonicalJsonOf(supplied.sourcePage.toJson()) &&
+        canonicalJsonOf(original.rawDataRef?.toJson()) == canonicalJsonOf(supplied.rawDataRef?.toJson()) &&
+        canonicalJsonOf(original.condition.toJson()) == canonicalJsonOf(supplied.condition.toJson()) &&
+        canonicalJsonOf(graphicValue(original.graphic)) == canonicalJsonOf(graphicValue(supplied.graphic)) &&
+        _sourceCommonProgramHash(original.body) == _sourceCommonProgramHash(supplied.body);
+  });
+
+  bool _supportsFixedDirectionPresentation(SourceEventDefinition event) =>
+      _fixedDirectionSourceMatches.putIfAbsent(event, () {
+    if (event.isQuarantined || event.pages.isEmpty ||
+        !sourceEventUsesFixedDirectionPresentation(event) ||
+        _eventFootprint(event).width != 1 || _eventFootprint(event).height != 1 ||
+        maps[event.sourceMapId]!.spatialScene != null ||
+        maps[event.sourceMapId]!.version == ProjectVersion.v9) {
+      return false;
+    }
+    bool condition(SourceEventCondition value) => switch (value.kind) {
+      SourceEventConditionKind.always || SourceEventConditionKind.globalSwitch ||
+      SourceEventConditionKind.selfSwitch || SourceEventConditionKind.variableAtLeast ||
+      SourceEventConditionKind.variableComparison => true,
+      SourceEventConditionKind.all => value.children.every(condition),
+      _ => false,
+    };
+    late bool Function(SourceEventBlock) block;
+    bool choice(SourceChoiceNode value) => value.branches.every((branch) => block(branch.body)) &&
+        (value.cancelBranch == null || block(value.cancelBranch!));
+    block = (SourceEventBlock value) => value.nodes.every((node) => switch (node) {
+      SourceTextNode(:final followingChoice) => followingChoice == null || choice(followingChoice),
+      SourceChoiceNode() => choice(node),
+      SourceConditionalNode() => condition(node.condition) && block(node.whenTrue) && block(node.whenFalse),
+      SourceAnnotationNode() || SourceSwitchNode() || SourceSelfSwitchNode() ||
+      SourceVariableSetNode() || SourceVariableAdjustNode() || SourceExitEventNode() => true,
+      _ => false,
+    });
+    if (event.pages.any((page) => page.triggerCode != 0 ||
+        page.graphic == null || page.graphic!.moveType != 0 ||
+        page.graphic!.stepAnime || !condition(page.condition) || !block(page.body) ||
+        page.sourcePage.commands.any((command) => !const {
+          0, 101, 401, 102, 402, 403, 404, 108, 408, 111, 411, 412, 115, 121, 122, 123,
+        }.contains(command.code)))) {
+      return false;
+    }
+    final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    if (expected == null || expected.identity != event.identity ||
+        expected.sourceFileId != event.sourceFileId || expected.name != event.name ||
+        expected.x != event.x || expected.y != event.y ||
+        expected.pages.length != event.pages.length ||
+        canonicalJsonOf(expected.locator.toJson()) != canonicalJsonOf(event.locator.toJson())) {
+      return false;
+    }
+    Object? graphicValue(SourceEventGraphic? value) => value == null ? null : [
+      value.tileId, value.characterName, value.hue, value.direction, value.pattern,
+      value.opacity, value.blendType, value.moveType, value.moveSpeed, value.moveFrequency,
+      value.walkAnime, value.stepAnime, value.directionFix, value.through,
+      value.alwaysOnTop, value.moveRouteNodeId,
+    ];
+    return List.generate(event.pages.length, (index) => index).every((index) {
+      final original = expected.pages[index], supplied = event.pages[index];
+      return supplied.rawDataRef != null &&
+          canonicalJsonOf(original.sourcePage.toJson()) == canonicalJsonOf(supplied.sourcePage.toJson()) &&
+          canonicalJsonOf(original.rawDataRef?.toJson()) == canonicalJsonOf(supplied.rawDataRef?.toJson()) &&
+          canonicalJsonOf(original.condition.toJson()) == canonicalJsonOf(supplied.condition.toJson()) &&
+          canonicalJsonOf(original.locator.toJson()) == canonicalJsonOf(supplied.locator.toJson()) &&
+          canonicalJsonOf(graphicValue(original.graphic)) == canonicalJsonOf(graphicValue(supplied.graphic)) &&
+          _sourceCommonProgramHash(original.body) == _sourceCommonProgramHash(supplied.body);
+    });
+  });
+
   bool _supportsStaticSign(SourceEventDefinition event) {
     if (event.pages.length != 1 || event.isQuarantined ||
-        maps[event.sourceMapId]!.spatialScene != null) {
+        maps[event.sourceMapId]!.spatialScene != null ||
+        !_staticSignSourceBound(event)) {
       return false;
     }
     final width = _staticSignWidth(event);
@@ -1959,13 +2171,21 @@ final class _ProjectionBuilder {
         graphic.alwaysOnTop ||
         graphic.hue != 0 ||
         graphic.opacity != 255 ||
-        graphic.blendType != 0 ||
-        page.body.nodes.length != 1) {
+        graphic.blendType != 0) {
       return false;
     }
-    final node = _staticSignText(page.body.nodes.single);
-    if (node == null ||
-        _staticSourceSignFeedback(node.text) == null) {
+    final texts = _staticSignTexts(page.body);
+    if (texts == null || texts.indexed.any((entry) => _staticSourceSignFeedback(
+        entry.$2.text, allowPlayerName: _dialogueTextQualified,
+        allowUnstyled: entry.$1 > 0) == null)) {
+      return false;
+    }
+    final footprint = semanticResolver.resolveStaticBumpFootprint(
+        event: event, page: page, mapEvents: _sourceContextEvents,
+        width: width, height: 1);
+    if (footprint.kind != SourceEventTouchKind.front ||
+        footprint.reason != 'stationaryFootprintTilesBlocked' ||
+        !_nativeTouchFootprintMatches(event, SourceEventTouchKind.front)) {
       return false;
     }
     final touch = _touch(event, page);
@@ -1987,6 +2207,8 @@ final class _ProjectionBuilder {
       _hasReceiveItem(page.body));
 
   bool _hasReceiveItem(SourceEventBlock block) => block.nodes.any((node) => switch (node) {
+    SourceTrainerProgramNode() => node.kind == SourceTrainerProgramKind.encounter &&
+        _hasReceiveItem(node.victoryContinuation),
     SourcePickupNode() => node.helper == SourceItemGrantHelper.receiveItem,
     SourceConditionalNode() => _hasReceiveItem(node.whenTrue) || _hasReceiveItem(node.whenFalse),
     SourceTextNode() => node.followingChoice != null && _choiceHasReceiveItem(node.followingChoice!),
@@ -2010,12 +2232,13 @@ final class _ProjectionBuilder {
       return null;
     }
     if (!_dialogueTextQualified) {
-      return _supportsStaticSign(event) ? _staticSourceSignFeedback(text)
+      return _supportsStaticSign(event) ? _staticSourceSignFeedback(text, allowUnstyled: true)
           : _staticSourceTextFeedback(_isItemGiver(event)
               ? text.replaceAll(r'\PN', '{{ player_name }}') : text, allowNativePlaceholders: _isItemGiver(event));
     }
+    final plainItalic = sourceDialoguePlainItalicPresentation(text);
     return parseSourceDialogueText(_supportsStaticSign(event) && text.startsWith(_sourceSignWindowControl)
-        ? text.substring(_sourceSignWindowControl.length) : text,
+        ? text.substring(_sourceSignWindowControl.length) : plainItalic?.text ?? text,
         onRefusal: onRefusal,
         soundEffect: (name, volume, pitch, offset) {
           final binding = _sound(name);
@@ -2207,6 +2430,10 @@ final class _ProjectionBuilder {
     }
     final gaps = <String>{};
     final map = maps[event.sourceMapId]!;
+    if (binding.nativeTrainer.battleItems.keys.any((id) =>
+        binding.battleItemDefinitions.where((item) => item.id == id).length != 1)) {
+      gaps.add('sourceTrainerBattleItemDefinitionMissing');
+    }
     if (map.spatialScene != null || map.version == ProjectVersion.v9) {
       gaps.add('sourceTrainerSpatialUnsupported');
     }
@@ -2230,6 +2457,11 @@ final class _ProjectionBuilder {
     final initial = event.pages.first.graphic!;
     for (final page in event.pages) {
       final graphic = page.graphic!;
+      final stage = page.body.nodes.singleOrNull;
+      if (binding.gymLeader != null && stage is SourceTrainerProgramNode &&
+          const {SourceGymLeaderStage.hiddenPickup, SourceGymLeaderStage.removed}.contains(stage.gymStage)) {
+        continue;
+      }
       if (page.originalPageIndex == 2 && page.isEmpty && graphic.characterName.isEmpty) {
         continue;
       }
@@ -2273,7 +2505,18 @@ final class _ProjectionBuilder {
       _blockGaps(event, program.victoryContinuation, gaps,
           checkCharacterBindings: checkCharacterBindings);
     }
+    for (final program in binding.programs.where((program) => program.gymStageBody != null)) {
+      _blockGaps(event, program.gymStageBody!, gaps,
+          checkCharacterBindings: checkCharacterBindings);
+    }
     return gaps;
+  }
+
+  bool _qualifiedGymStageContains(SourceEventDefinition event, SourceEventNode node) {
+    final binding = trainerBindings[event.identity];
+    return binding?.gymLeader != null && binding!.isBoundToEvent(source: source,
+        analysis: analysis, event: event) && binding.programs.any((program) =>
+            program.gymStageBody?.nodes.contains(node) == true);
   }
 
   late final SourceEventAnalysis _townMapSourceAnalysis =
@@ -3000,15 +3243,17 @@ final class _ProjectionBuilder {
           (graphic.characterName.isNotEmpty &&
               (graphic.pattern < 0 ||
                   graphic.pattern > 3 ||
-                  (graphic.directionFix && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
+                  (graphic.directionFix && !_supportsFixedDirectionPresentation(event) && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
                     page.originalPageIndex == 1 && page.isEmpty))))) {
         gaps.add('pageGraphicContractUnsupported');
       }
       if (checkCharacterBindings && graphic.characterName.isNotEmpty) {
+        final fixedDirection = graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event);
         final binding = characterBindings[sourceEventCharacterBindingKey(
             characterName: graphic.characterName,
             pattern: graphic.pattern,
-            direction: graphic.direction)];
+            direction: graphic.direction,
+            fixedDirection: fixedDirection)];
         final file = source.snapshot.entries
             .where((f) => f.fileId == binding?.sourceFileId)
             .firstOrNull;
@@ -3017,6 +3262,10 @@ final class _ProjectionBuilder {
             binding.sourceSnapshotHash != sourceSnapshotHash ||
             binding.sourcePattern != graphic.pattern ||
             binding.sourceDirection != graphic.direction ||
+            binding.fixedDirection != fixedDirection ||
+            (fixedDirection && file?.sha256 != null && binding.characterId !=
+                sourceFixedDirectionCharacterId(snapshot: source.snapshot, imageFile: file!,
+                    pattern: graphic.pattern, direction: graphic.direction)) ||
             file?.sha256 != binding.sourceFileHash ||
             file?.relativePath !=
                 resolveSourceCharacterPresentation(snapshot: source.snapshot, profile: source.interpretationProfile, charsetName: graphic.characterName)?.actualSourceFile.relativePath) {
@@ -3280,6 +3529,14 @@ final class _ProjectionBuilder {
       {bool checkCharacterBindings = true}) {
     for (final node in block.nodes) {
       switch (node) {
+        case SourceGymBadgePresentationNode():
+          final trainer = trainerBindings[event.identity];
+          final gym = trainer?.gymLeader;
+          if (trainer == null || gym == null ||
+              !gym.isBoundTo(source, analysis.profile, trainer.programs.first) ||
+              _textFeedback(event, node.announcement.text) == null) {
+            gaps.add('sourceGymLeaderBindingsMissing');
+          }
         case SourceCommonEventCallNode():
           if (node.sourceMapId != event.sourceMapId || node.sourceEventId != event.sourceEventId ||
               node.body.isQuarantined) {
@@ -3335,10 +3592,12 @@ final class _ProjectionBuilder {
           }
           break;
         case SourceInteractionFacingNode():
-          if (!_supportsInteractionFacing(event,
+          if (!_qualifiedGymStageContains(event, node) && !_supportsInteractionFacing(event,
               checkCharacterBindings: checkCharacterBindings)) {
             gaps.add('interactionFacingUnsupported');
           }
+        case SourceRelativeFacingRouteNode():
+          if (!_supportsRelativeFacingRoute(event)) gaps.add('relativeInteractionFacingUnsupported');
         case SourceWarpNode(
             :final targetSourceMapId,
             :final x,
@@ -3430,7 +3689,7 @@ final class _ProjectionBuilder {
           if (_sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
             gaps.add('sourceSoundBindingMissing');
           }
-          if (!_isSourceTransition(event) && !_isItemGiver(event) &&
+          if (!_isSourceTransition(event) && !_isItemGiver(event) && !_qualifiedGymStageContains(event, node) &&
               !event.pages.expand((page) => page.body.nodes)
                   .whereType<SourceTrainerProgramNode>().any((program) =>
                       program.kind == SourceTrainerProgramKind.encounter &&
@@ -3439,7 +3698,7 @@ final class _ProjectionBuilder {
           }
         case SourceToneNode():
         case SourceWaitNode():
-          if (!_isSourceTransition(event)) {
+          if (!_isSourceTransition(event) && !_qualifiedGymStageContains(event, node)) {
             gaps.add('sourcePresentationUnsupported');
           }
         case SourceForcedMoveRouteNode():
@@ -3577,6 +3836,7 @@ final class _ProjectionBuilder {
           if (node.kind == SourceTrainerProgramKind.encounter) {
             _blockFacts(node.victoryContinuation, ids);
           }
+          if (node.gymStageBody != null) _blockFacts(node.gymStageBody!, ids);
         case SourcePokedexRewardProgramNode(:final rewardFactId):
           ids.add(rewardFactId);
         case SourceConditionalNode(
@@ -3667,7 +3927,8 @@ final class _ProjectionBuilder {
     final character = characterBindings[sourceEventCharacterBindingKey(
         characterName: graphic.characterName,
         pattern: graphic.pattern,
-        direction: graphic.direction)];
+        direction: graphic.direction,
+        fixedDirection: graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event))];
     NarrativeEventConditionExpression pageExpression(int index) {
       final guard = _all([
         _pageGuard(event, projectedPages[index].condition),
@@ -3682,7 +3943,8 @@ final class _ProjectionBuilder {
       final pageGraphic = page.graphic!;
       final boundCharacter = pageGraphic.characterName.isEmpty ? null :
         characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
-          pattern: pageGraphic.pattern, direction: pageGraphic.direction)];
+          pattern: pageGraphic.pattern, direction: pageGraphic.direction,
+          fixedDirection: pageGraphic.directionFix && sourceEventUsesFixedDirectionPresentation(event))];
       final guard = _all([_pageGuard(event, page.condition),
         _not(_any(projectedPages.skip(index + 1).map((value) => _pageGuard(event, value.condition)).toList()))]);
       if (guard.constant == false) continue;
@@ -4193,8 +4455,48 @@ final class _SceneBuilder {
           _commonDialoguePrefix = previousPrefix;
         case SourceTextNode(:final text, :final followingChoice):
           next = _dialogue(node.span, text, followingChoice, next);
+        case SourceGymBadgePresentationNode():
+          final binding = projection.trainerBindings[event.identity]?.gymLeader;
+          if (binding == null) {
+            throw const NativeWriteException('events.gym.binding',
+                'The complete gym reward assets are required.');
+          }
+          final speech = _dialogue(node.announcement.span, null, null, next,
+              feedbackLines: [binding.feedback(
+                  projection._textFeedback(event, node.announcement.text)!,
+                  '${sceneId}_badge')]);
+          next = _node(SceneActionPayload.consequence(
+              SceneConsequence.awardBadge(badgeId: binding.badge.id)));
+          _edge(next, 'completed', speech, SceneEdgeKind.actionCompleted);
         case SourceChoiceNode():
           next = _dialogue(node.span, null, node, next);
+        case SourceRelativeFacingRouteNode():
+          if (!projection._supportsRelativeFacingRoute(event)) {
+            throw const NativeWriteException('events.relative_facing.binding',
+                'A relative facing route requires its complete stationary source event.');
+          }
+          final mapId = projection.maps[event.sourceMapId]!.id;
+          final joined = _interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: mapId), next);
+          var dispatch = eventEnd;
+          for (final away in EntityFacing.values) {
+            final toward = switch (away) {
+              EntityFacing.north => EntityFacing.south,
+              EntityFacing.south => EntityFacing.north,
+              EntityFacing.east => EntityFacing.west,
+              EntityFacing.west => EntityFacing.east,
+            };
+            final route = _interactive(SceneInteractiveCommand.actorRoute(
+                target: SceneActorTarget.entity(mapId: mapId, entityId: projection._key(event, 'anchor')),
+                steps: [SceneActorRouteStep.face(direction: away, yieldAfter: true),
+                  SceneActorRouteStep.wait(durationMs: 400),
+                  SceneActorRouteStep.face(direction: toward, yieldAfter: true)]), joined);
+            final guard = _node(SceneConditionPayload(conditionSource:
+                SceneConditionSource.playerFacing(direction: away)));
+            _edge(guard, 'true', route, SceneEdgeKind.conditionTrue);
+            _edge(guard, 'false', dispatch, SceneEdgeKind.conditionFalse);
+            dispatch = guard;
+          }
+          next = dispatch;
         case SourceInteractionFacingNode():
         case SourceAnnotationNode():
           break;
@@ -4493,6 +4795,15 @@ final class _SceneBuilder {
       throw const NativeWriteException('events.trainer.bindings_missing',
           'A source trainer program requires its qualified native battle bindings');
     }
+    for (final item in binding.battleItemDefinitions) {
+      final existing = projection.usedItems[item.id];
+      if (existing != null && canonicalJsonOf(existing.toJson()) != canonicalJsonOf(item.toJson())) {
+        throw const NativeWriteException('events.trainer.item_conflict',
+            'A qualified trainer item cannot replace a conflicting native definition.');
+      }
+      projection.usedItems[item.id] = item;
+    }
+    if (program.gymStageBody != null) return _block(program.gymStageBody!, next);
     final messages = program.kind == SourceTrainerProgramKind.encounter
         ? program.challengeLines : program.afterWinLines;
     final commands = page.sourcePage.commands.where((command) =>
@@ -4683,7 +4994,8 @@ final class _SceneBuilder {
       {List<DialogueLineFeedback>? feedbackLines, Map<int, String>? choiceTargets,
       String? dialogueKey, int? defaultChoiceIndex}) {
     final feedback = feedbackLines ??
-        (text != null && text.contains(r'\')
+        (text != null && (text.contains(r'\') ||
+            sourceDialoguePlainItalicPresentation(text) != null)
             ? [projection._textFeedback(event, text)!]
             : const <DialogueLineFeedback>[]);
     final id = projection._key(

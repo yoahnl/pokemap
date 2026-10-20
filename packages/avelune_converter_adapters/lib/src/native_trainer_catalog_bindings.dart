@@ -2,6 +2,8 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 
 import 'native_psdk_trainer_bundle.dart';
+import 'native_psdk_catalog.dart';
+import 'native_trainer_catalog_qualification.dart';
 
 enum NativeTrainerMovePolicy { unresolved, nativeAveluneDefaults }
 
@@ -13,10 +15,15 @@ final class NativeTrainerCatalogBindings {
     required Iterable<SourcePbsIdentity> requestedTrainers,
     required NativePsdkCatalog native,
     required NativeTrainerMovePolicy movePolicy,
+    NativeTrainerCatalogQualification? qualification,
   }) {
     if (movePolicy == NativeTrainerMovePolicy.unresolved) {
       throw ContractError('native_trainer.move_policy_required', r'$',
           'Trainer move selection requires an explicit native policy.');
+    }
+    if (qualification != null) {
+      return _qualifiedBinding(
+          source, requestedTrainers, native, qualification);
     }
     final referenceRosters = native.evidence['sourceTrainerRosters'];
     final referenceRoster = native.evidence['sourceRosterFile'];
@@ -51,6 +58,12 @@ final class NativeTrainerCatalogBindings {
       if (entry == null || entry.party.isEmpty || entry.party.length > 6) {
         throw ContractError('native_trainer.source_missing', key.key,
             'A unique nonempty source trainer party is required.');
+      }
+      if (entry.fields.any((field) =>
+          !const {'Pokemon', 'LoseText'}.contains(field.key) &&
+          !entry.party.any((member) => member.fields.contains(field)))) {
+        throw ContractError('native_trainer.trainer_override', key.key,
+            'Authored trainer inventories require a sealed compiled qualification.');
       }
       if (entry.party.any((member) => member.headerField.values.length != 2)) {
         throw ContractError('native_trainer.member_invalid', key.key,
@@ -157,6 +170,68 @@ final class NativeTrainerCatalogBindings {
       'trainers': rows,
     });
   }
+}
+
+NativeTrainerCatalogBindingResult _qualifiedBinding(
+    SourcePbsProject source,
+    Iterable<SourcePbsIdentity> requestedTrainers,
+    NativePsdkCatalog native,
+    NativeTrainerCatalogQualification qualification) {
+  final requested = requestedTrainers.toList();
+  if (requested.length > 64 ||
+      requested.map((identity) => identity.key).toSet().length !=
+          requested.length ||
+      qualification.evidence['sourceSnapshotHash'] !=
+          source.sourceSnapshotHash.value ||
+      qualification.evidence['sourcePbsHash'] != source.canonicalHash.value ||
+      qualification.evidence['nativeCatalogHash'] !=
+          canonicalHashOf(native.toJson(),
+                  limits: nativePsdkCatalogShardJsonLimits)
+              .value) {
+    throw ContractError('native_trainer.qualification_context', r'$',
+        'Qualified trainer bindings require the exact sealed PBS and active native catalog.');
+  }
+  final trainers = <ProjectTrainerEntry>[];
+  final rows = <Map<String, Object?>>[];
+  for (final identity in requested) {
+    final entry = source.lookup(identity);
+    final matches = qualification.rows
+        .where((row) =>
+            canonicalJsonOf(row['sourceIdentity']) ==
+            canonicalJsonOf(identity.toJson()))
+        .toList();
+    if (identity.family != SourcePbsFamily.trainers ||
+        identity.namespace != source.logicalProjectNamespace ||
+        entry == null ||
+        matches.length != 1 ||
+        matches.single['sourceRosterHash'] !=
+            canonicalHashOf(entry.toJson()).value) {
+      throw ContractError('native_trainer.qualification_identity', identity.key,
+          'The requested trainer must have one exact qualified roster proof.');
+    }
+    final trainer = qualification.trainers
+        .singleWhere((trainer) => trainer.id == identity.sourceId.value);
+    if (canonicalJsonOf(trainer.toJson()) !=
+        canonicalJsonOf(matches.single['nativeTrainer'])) {
+      throw ContractError('native_trainer.qualification_roster', identity.key,
+          'The native roster must agree with its qualified proof.');
+    }
+    trainers.add(trainer);
+    rows.add(matches.single);
+  }
+  return NativeTrainerCatalogBindingResult(trainers: trainers, evidence: {
+    'kind': 'nativeTrainerCatalogBindings',
+    'version': 2,
+    'sourceSnapshotHash': source.sourceSnapshotHash.value,
+    'sourcePbsHash': source.canonicalHash.value,
+    'qualificationHash': qualification.evidenceHash.value,
+    'movePolicy': 'nativeDefaultsForUnspecifiedAndQualifiedAuthoredMoves',
+    'authoredBindings': qualification.evidence['authoredBindings'],
+    'trainers': rows,
+    'runtimeBattleBuilderQualified': false,
+    'sourceScriptsExecuted': 0,
+    'aiCalls': 0,
+  });
 }
 
 final class NativeTrainerCatalogBindingResult {

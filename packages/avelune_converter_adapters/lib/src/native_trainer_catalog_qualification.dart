@@ -4,11 +4,13 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'native_project_writer.dart';
 import 'native_psdk_catalog.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_source_species_bindings.dart';
+import 'native_trainer_authored_bindings.dart';
 
 final class NativeTrainerQualificationLimits {
   const NativeTrainerQualificationLimits(
@@ -44,6 +46,15 @@ final class NativeTrainerCatalogQualification {
   final List<ProjectTrainerEntry> trainers;
   final List<NativeTrainerQualificationRefusal> refusals;
   final Map<String, Object?> evidence;
+  List<ProjectItemDefinition> get battleItemDefinitions => [
+        for (final row
+            in (evidence['authoredBindings'] as Map)['bindings'] as List)
+          if (row['domain'] == 'item' &&
+              trainers.any((trainer) => trainer.battleItems
+                  .containsKey((row['nativeItem'] as Map)['id'])))
+            ProjectItemDefinition.fromJson(
+                (row['nativeItem'] as Map).cast<String, dynamic>()),
+      ];
   List<Map<String, Object?>> get rows =>
       (evidence['trainers'] as List).cast<Map<String, Object?>>();
   late final Sha256Hash evidenceHash =
@@ -150,12 +161,14 @@ final class NativeTrainerCatalogQualification {
               'The requested trainer has duplicate PBS identities.');
         }
         final entry = entries.single;
-        if (entry.party.any((member) => member.fields.isNotEmpty)) {
+        if (entry.party.any(
+            (member) => member.fields.any((field) => field.key != 'Moves'))) {
           _invalid('party_override',
               'Authored member properties require explicit native bindings; no defaults were substituted.');
         }
-        if (entry.fields.any(
-            (field) => field.key != 'Pokemon' && field.key != 'LoseText')) {
+        if (entry.fields.any((field) =>
+            !const {'Pokemon', 'LoseText', 'Items'}.contains(field.key) &&
+            !entry.party.any((member) => member.fields.contains(field)))) {
           _invalid('trainer_override',
               'Authored trainer properties require explicit native bindings.');
         }
@@ -196,11 +209,18 @@ final class NativeTrainerCatalogQualification {
             {
               'species': member.headerField.values.first,
               'level': int.parse(member.headerField.values.last),
+              if (member.fields.any((field) => field.key == 'Moves'))
+                'moves': _authoredMoves(member),
             }
         ];
         if (canonicalJsonOf(roster) != canonicalJsonOf(record.party)) {
           _invalid('roster_changed',
               'PBS and compiled rosters disagree in exact ordered species or levels.');
+        }
+        if (canonicalJsonOf(_authoredItems(entry)) !=
+            canonicalJsonOf(record.items)) {
+          _invalid('roster_changed',
+              'PBS and compiled trainer item inventories disagree.');
         }
         final loses = entry.fieldsNamed('LoseText');
         if (loses.length > 1 ||
@@ -265,6 +285,19 @@ final class NativeTrainerCatalogQualification {
         };
       }
     }
+    final authored = await NativeTrainerAuthoredBindings.read(
+        snapshot: snapshot,
+        source: source,
+        files: cached,
+        native: nativeCatalog,
+        moveSymbols: {
+          for (final pair in valid.values)
+            for (final member in pair.$1.party) ..._authoredMoves(member)
+        },
+        itemSymbols: {
+          for (final pair in valid.values) ..._authoredItems(pair.$1)
+        },
+        cancellation: cancellation);
     final trainers = <ProjectTrainerEntry>[];
     final rows = <Map<String, Object?>>[];
     final abilities = nativeCatalog.catalogs['abilities']?.entries
@@ -299,7 +332,14 @@ final class NativeTrainerCatalogQualification {
                 'Every trainer species, form, learnset and primary ability must be closed in the active catalog.');
           }
           final level = int.parse(member.headerField.values.last);
-          final moves = nativeTrainerDefaultMoveIds(learnset, level);
+          final explicit = _authoredMoves(member);
+          final moves = explicit.isEmpty
+              ? nativeTrainerDefaultMoveIds(learnset, level)
+              : [
+                  for (final symbol in explicit)
+                    authored.moves[symbol] ??
+                        (throw authored.errors['move:$symbol']!),
+                ];
           if (moves.isEmpty || moves.length > 4) {
             _invalid('native_defaults',
                 'Native defaults require one through four moves.');
@@ -350,13 +390,30 @@ final class NativeTrainerCatalogQualification {
             'nativeSpeciesHash': canonicalHashOf(species.toJson()).value,
             'nativeLearnsetHash': canonicalHashOf(learnset.toJson()).value,
             'nativeAbilityId': species.abilities.primary,
+            'movePolicy': explicit.isEmpty
+                ? 'nativeAveluneDefaults'
+                : 'authoredSourceIdentities',
+            'sourceMoveSymbols': explicit,
             'moves': moveRows
           });
+        }
+        final battleItems = <String, int>{};
+        for (final symbol in _authoredItems(entry)) {
+          final item = authored.items[symbol] ??
+              (throw authored.errors['item:$symbol']!);
+          battleItems.update(item.id, (count) => count + 1, ifAbsent: () => 1);
+        }
+        if (battleItems.length > trainerBattleItemMaxDistinctCount ||
+            battleItems.values
+                .any((count) => count > trainerBattleItemMaxQuantity)) {
+          _invalid('items_quota',
+              'Authored trainer medicines exceed the native inventory bounds.');
         }
         final trainer = ProjectTrainerEntry(
             id: identity.sourceId.value,
             name: identity.trainerName!,
             trainerClass: identity.trainerType!,
+            battleItems: battleItems,
             team: List.unmodifiable(team),
             tags: const [
               'source-imported',
@@ -412,6 +469,7 @@ final class NativeTrainerCatalogQualification {
       'compiledTrainerWitness': witness.toJson(),
       'nativeCatalogHash': catalogHash,
       'movePolicy': 'nativeAveluneDefaultsOnlyWithoutAuthoredMoves',
+      'authoredBindings': authored.evidence,
       'abilityPolicy': 'nativeSpeciesPrimary',
       'battleLogic': 'avelune',
       'requestedTrainers':
@@ -466,7 +524,9 @@ final class NativeTrainerCatalogQualification {
     for (final entry in normalizedSource.snapshot.entries.where((entry) =>
         pbsFiles.contains(entry.fileId) ||
         entry.relativePath == 'Data/trainers.dat' ||
-        entry.relativePath == 'Data/species.dat')) {
+        entry.relativePath == 'Data/species.dat' ||
+        entry.relativePath == 'Data/moves.dat' ||
+        entry.relativePath == 'Data/items.dat')) {
       final bytes = await files.read(entry.fileId);
       cancellation?.check();
       if (bytes.length != entry.byteLength ||
@@ -474,6 +534,11 @@ final class NativeTrainerCatalogQualification {
         _invalid('source_changed',
             'Trainer source bytes changed after qualification.');
       }
+    }
+    if ((evidence['authoredBindings'] as Map)['nativeItemCatalogHash'] !=
+        canonicalHashOf(mvpItemCatalog.toJson()).value) {
+      _invalid('catalog_changed',
+          'The active native battle medicine catalog changed.');
     }
     if (evidence['nativeCatalogHash'] != _catalogHash(nativeCatalog)) {
       _invalid('catalog_changed',
@@ -704,7 +769,37 @@ Object? _freeze(Object? value) => value is Map
         ? List<Object?>.unmodifiable(value.map(_freeze))
         : value;
 
-const _policy = 'essentials21.1-exact-pbs-compiled-roster-native-defaults-v1';
+List<String> _authoredMoves(SourcePbsTrainerPokemon member) {
+  final fields = member.fields.where((field) => field.key == 'Moves').toList();
+  if (fields.isEmpty) return const [];
+  if (fields.length != 1 ||
+      fields.single.values.isEmpty ||
+      fields.single.values.length > 4 ||
+      fields.single.values.toSet().length != fields.single.values.length ||
+      fields.single.values
+          .any((value) => !RegExp(r'^[A-Z][A-Z0-9_]*$').hasMatch(value))) {
+    _invalid('party_override',
+        'Authored moves require one ordered unique list of one through four exact symbols.');
+  }
+  return fields.single.values;
+}
+
+List<String> _authoredItems(SourcePbsEntry entry) {
+  final fields = entry.fieldsNamed('Items');
+  if (fields.isEmpty) return const [];
+  if (fields.length != 1 ||
+      fields.single.values.isEmpty ||
+      fields.single.values.length >
+          trainerBattleItemMaxDistinctCount * trainerBattleItemMaxQuantity ||
+      fields.single.values
+          .any((value) => !RegExp(r'^[A-Z][A-Z0-9_]*$').hasMatch(value))) {
+    _invalid('trainer_override',
+        'Authored trainer medicines require one bounded ordered symbol list.');
+  }
+  return fields.single.values;
+}
+
+const _policy = 'essentials21.1-exact-pbs-compiled-roster-authored-native-v2';
 
 void _validateLimits(NativeTrainerQualificationLimits limits) {
   if (limits.maxRequestedTrainers < 1 ||
@@ -748,9 +843,10 @@ final class _CachedFiles implements SourceFilePort {
 }
 
 final class _CompiledTrainer {
-  const _CompiledTrainer(this.party, this.loseText, this.suffix, this.offset,
-      this.graphPath, this.error);
+  const _CompiledTrainer(this.party, this.items, this.loseText, this.suffix,
+      this.offset, this.graphPath, this.error);
   final List<Map<String, Object?>> party;
+  final List<String> items;
   final String loseText;
   final String suffix;
   final int offset;
@@ -825,7 +921,9 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
       final object = document.node(pair.value);
       if (object.kind != MarshalKind.object ||
           object.className != 'GameData::Trainer') {
-        (result[sourceIdentity.key] ??= []).add(_CompiledTrainer(const [],
+        (result[sourceIdentity.key] ??= []).add(_CompiledTrainer(
+            const [],
+            const [],
             '',
             '',
             object.location.byteOffset,
@@ -863,10 +961,25 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
         error ??= 'compiled_identity';
       }
       final items = fields['@items'];
+      final itemSymbols = <String>[];
       if (items == null ||
           items.kind != MarshalKind.array ||
-          items.elements.isNotEmpty) {
+          items.extensions.isNotEmpty ||
+          items.userClass != null ||
+          items.instanceVariables.isNotEmpty ||
+          items.elements.length >
+              trainerBattleItemMaxDistinctCount *
+                  trainerBattleItemMaxQuantity) {
         error ??= 'compiled_override';
+      } else {
+        for (final child in items.elements) {
+          final symbol = _text(document.node(child), MarshalKind.symbol);
+          if (symbol == null || symbol.isEmpty) {
+            error ??= 'compiled_override';
+          } else {
+            itemSymbols.add(symbol);
+          }
+        }
       }
       final lose = _text(fields['@real_lose_text'], MarshalKind.string);
       final suffix = _text(fields['@pbs_file_suffix'], MarshalKind.string);
@@ -896,8 +1009,8 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
             }
             member[name] = document.node(field.value);
           }
-          if (member.length != 2 ||
-              !member.keys.every({'species', 'level'}.contains)) {
+          if (!const [2, 3].contains(member.length) ||
+              !member.keys.every({'species', 'level', 'moves'}.contains)) {
             error ??= 'compiled_override';
           }
           final symbol = _text(member['species'], MarshalKind.symbol);
@@ -905,11 +1018,36 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
           if (symbol == null || symbol.isEmpty || level == null || level < 1) {
             error ??= 'member_invalid';
           }
-          members.add({'species': symbol, 'level': level});
+          final moves = <String>[];
+          if (member['moves'] case final authored?) {
+            if (authored.kind != MarshalKind.array ||
+                authored.extensions.isNotEmpty ||
+                authored.userClass != null ||
+                authored.instanceVariables.isNotEmpty ||
+                authored.elements.isEmpty ||
+                authored.elements.length > 4) {
+              error ??= 'compiled_override';
+            } else {
+              for (final child in authored.elements) {
+                final move = _text(document.node(child), MarshalKind.symbol);
+                if (move == null || move.isEmpty || moves.contains(move)) {
+                  error ??= 'compiled_override';
+                } else {
+                  moves.add(move);
+                }
+              }
+            }
+          }
+          members.add({
+            'species': symbol,
+            'level': level,
+            if (member.containsKey('moves')) 'moves': moves
+          });
         }
       }
       (result[sourceIdentity.key] ??= []).add(_CompiledTrainer(
           members,
+          itemSymbols,
           lose ?? '',
           suffix ?? '',
           object.location.byteOffset,

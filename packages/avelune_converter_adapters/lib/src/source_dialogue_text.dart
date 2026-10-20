@@ -34,6 +34,37 @@ const _formattingEntities = {
   '&m;',
   '&f;'
 };
+
+({String text, int spans, int repairedClosingTags})? sourceDialoguePlainItalicPresentation(
+    String source) {
+  if (!source.contains('<i>')) return null;
+  final text = StringBuffer();
+  var index = 0, spans = 0, repaired = 0;
+  var open = false;
+  while (index < source.length) {
+    if (source[index] == '>') return null;
+    if (source[index] != '<') {
+      text.write(source[index++]);
+      continue;
+    }
+    if (source.startsWith('<i>', index)) {
+      if (open) return null;
+      open = true;
+      index += 3;
+    } else if (source.startsWith('</i>', index) || source.startsWith(r'<\i>', index)) {
+      if (!open) return null;
+      if (source.startsWith(r'<\i>', index)) repaired++;
+      open = false;
+      spans++;
+      index += 4;
+    } else {
+      return null;
+    }
+  }
+  return open || spans == 0 ? null :
+      (text: text.toString(), spans: spans, repairedClosingTags: repaired);
+}
+
 final _variableControl = RegExp(r'\\v\[([0-9]+)\]', caseSensitive: false);
 final _speedControl = RegExp(r'\\ts\[([0-9]*)\]', caseSensitive: false);
 final _autoWaitControl =

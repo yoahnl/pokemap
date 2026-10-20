@@ -84,6 +84,19 @@ Matcher _code(String code) =>
     throwsA(isA<ContractError>().having((error) => error.code, 'code', code));
 
 void main() {
+  test('authored trainer inventory cannot bypass compiled qualification',
+      () async {
+    final source = await _source(_teams.replaceFirst('[FRLG_BUGCATCHER,Brent]',
+        '[FRLG_BUGCATCHER,Brent]\nItems = FULLHEAL'));
+    final identity = source.entries.first.identity!;
+    expect(
+        () => const NativeTrainerCatalogBindings().bind(
+            source: source,
+            requestedTrainers: [identity],
+            native: NativePsdkTrainerBundle.builtin(),
+            movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults),
+        _code('native_trainer.trainer_override'));
+  });
   test('ships the bounded native reference without a local PSDK checkout', () {
     final native = NativePsdkTrainerBundle.builtin();
     expect(native.speciesById, hasLength(68));

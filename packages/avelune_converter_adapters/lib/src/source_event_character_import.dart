@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_event_projection.dart';
+import 'source_event_character_identity.dart';
 
 final class SourceEventCharacterImport {
   const SourceEventCharacterImport._({
@@ -15,6 +16,7 @@ final class SourceEventCharacterImport {
     required this.charsetName,
     required this.sourcePattern,
     required this.sourceDirection,
+    required this.fixedDirection,
     required this.sheetWidth,
     required this.sheetHeight,
     required this.character,
@@ -28,6 +30,7 @@ final class SourceEventCharacterImport {
   final String charsetName;
   final int sourcePattern;
   final int sourceDirection;
+  final bool fixedDirection;
   final int sheetWidth;
   final int sheetHeight;
   final ProjectCharacterEntry character;
@@ -50,6 +53,7 @@ final class SourceEventCharacterImport {
         characterName: charsetName,
         pattern: sourcePattern,
         direction: sourceDirection,
+        fixedDirection: fixedDirection,
       );
   SourceEventCharacterBinding get binding => SourceEventCharacterBinding(
         characterId: character.id,
@@ -58,6 +62,7 @@ final class SourceEventCharacterImport {
         sourceFileHash: imageFile.sha256!,
         sourcePattern: sourcePattern,
         sourceDirection: sourceDirection,
+        fixedDirection: fixedDirection,
       );
   Map<String, Object?> get evidence => {
         'kind': 'sourceEventCharacterImport',
@@ -67,6 +72,13 @@ final class SourceEventCharacterImport {
         'charsetName': charsetName,
         'sourcePattern': sourcePattern,
         'sourceDirection': sourceDirection,
+        if (fixedDirection) 'fixedDirectionPresentation': {
+          'kind': 'oneSourcePoseForEveryNativeFacing',
+          'sourceDirection': sourceDirection,
+          'nativeFacingStateLocked': false,
+          'sourceInternalFacingParityQualified': false,
+          'sourceOracle': 'Game_Character:165-169,815-825,868-875',
+        },
         'sourceOriginal': {
           'rawSha256': imageFile.sha256!.value,
           'byteLength': imageBytes.length,
@@ -142,6 +154,7 @@ final class SourceEventCharacterImporter {
     required String charsetName,
     required int sourcePattern,
     required int sourceDirection,
+    bool fixedDirection = false,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -230,10 +243,13 @@ final class SourceEventCharacterImporter {
       ...imageIdentity,
       'kind': 'sourceEventCharacter',
       'sourcePattern': sourcePattern,
+      if (fixedDirection) 'fixedSourceDirection': sourceDirection,
     }).value.substring(0, 32);
     final tilesetId = 'source_event_$imageKey';
     final assetId = 'image_$tilesetId';
-    final characterId = 'source-event-$characterKey';
+    final characterId = fixedDirection ? sourceFixedDirectionCharacterId(
+        snapshot: snapshot, imageFile: entry, pattern: sourcePattern,
+        direction: sourceDirection) : 'source-event-$characterKey';
     final stableName = 'Source Event $characterKey';
     final character = ProjectCharacterEntry(
       id: characterId,
@@ -253,7 +269,7 @@ final class SourceEventCharacterImporter {
               CharacterAnimationFrame(
                 source: TilesetSourceRect(
                   x: sourcePattern * 64,
-                  y: _row(direction) * nativeHeight,
+                  y: _row(fixedDirection ? sourceDirection : direction) * nativeHeight,
                   width: 64,
                   height: nativeHeight,
                 ),
@@ -321,6 +337,7 @@ final class SourceEventCharacterImporter {
       charsetName: charsetName,
       sourcePattern: sourcePattern,
       sourceDirection: sourceDirection,
+      fixedDirection: fixedDirection,
       sheetWidth: width,
       sheetHeight: height,
       character: character,

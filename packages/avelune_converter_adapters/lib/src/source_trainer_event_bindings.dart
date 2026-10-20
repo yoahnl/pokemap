@@ -3,10 +3,10 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'native_psdk_trainer_bundle.dart';
-import 'native_trainer_catalog_bindings.dart';
 import 'native_trainer_catalog_qualification.dart';
 import 'native_psdk_catalog.dart';
 import 'source_catalog_selection.dart';
+import 'source_gym_leader_binding.dart';
 
 final class SourceTrainerEventBindings {
   SourceTrainerEventBindings._(
@@ -37,8 +37,11 @@ final class SourceTrainerEventBinding {
     required this.sourceMapId,
     required this.sourceEventId,
     required this.eventHash,
+    this.gymLeader,
+    required List<ProjectItemDefinition> battleItemDefinitions,
     required List<SourceTrainerProgramNode> programs,
   })  : programs = List.unmodifiable(programs),
+        battleItemDefinitions = List.unmodifiable(battleItemDefinitions),
         nativeTrainerHash = canonicalHashOf(nativeTrainer.toJson());
 
   final SourcePbsIdentity sourceIdentity;
@@ -57,6 +60,8 @@ final class SourceTrainerEventBinding {
   final ConverterId eventIdentity;
   final int sourceMapId, sourceEventId;
   final List<SourceTrainerProgramNode> programs;
+  final SourceGymLeaderBinding? gymLeader;
+  final List<ProjectItemDefinition> battleItemDefinitions;
 
   String get nativeVictorySpeech =>
       loseText == null || loseText!.isEmpty ? '...' : loseText!;
@@ -80,6 +85,8 @@ final class SourceTrainerEventBinding {
     final originals = maps.single.map.events
         .where((event) => event.sourceEventId == sourceEventId);
     return originals.length == 1 &&
+        (programs.first.gymLeader == null ? gymLeader == null :
+            gymLeader?.isBoundTo(source, analysis.profile, programs.first) == true) &&
         programs.every((program) => program.isBoundToSourceEvent(
             source: source,
             profile: analysis.profile,
@@ -89,6 +96,7 @@ final class SourceTrainerEventBinding {
 
   Map<String, Object?> toJson() => {
         'kind': 'sourceTrainerEventBinding',
+        if (gymLeader != null) 'gymLeader': gymLeader!.toJson(),
         'version': 1,
         'sourceIdentity': sourceIdentity.toJson(),
         'sourceEventIdentity': eventIdentity.value,
@@ -104,7 +112,8 @@ final class SourceTrainerEventBinding {
         'nativeBundleHash': nativeBundleHash.value,
         'nativeTrainerId': nativeTrainer.id,
         'nativeTrainerHash': nativeTrainerHash.value,
-        'movePolicy': NativeTrainerMovePolicy.nativeAveluneDefaults.name,
+        'movePolicy': 'nativeDefaultsForUnspecifiedAndQualifiedAuthoredMoves',
+        'battleItemDefinitions': battleItemDefinitions.map((item) => item.toJson()).toList(),
         'nativeAbilityPolicy': 'speciesPrimary',
         'nativeStatProfile': 'trainerV0',
         'loseText': loseText,
@@ -201,7 +210,7 @@ final class SourceTrainerEventBindingResolver {
             expected.eventAt(event.sourceMapId, event.sourceEventId);
         if (original == null ||
             event.isQuarantined ||
-            !const [2, 3].contains(event.pages.length) ||
+            !const [2, 3, 4].contains(event.pages.length) ||
             canonicalJsonOf(_eventFingerprint(event)) !=
                 canonicalJsonOf(_eventFingerprint(original))) {
           throw ContractError(
@@ -222,6 +231,10 @@ final class SourceTrainerEventBindingResolver {
           programs.add(page.body.nodes.single as SourceTrainerProgramNode);
         }
         final program = programs.first;
+        if (event.pages.length == 4 && program.gymLeader == null) {
+          throw ContractError('events.trainer.program_binding', event.identity.value,
+              'Four source stages require the complete qualified gym grammar.');
+        }
         final identity = SourcePbsIdentity(
             namespace: source.snapshot.logicalProjectNamespace,
             family: SourcePbsFamily.trainers,
@@ -240,7 +253,9 @@ final class SourceTrainerEventBindingResolver {
         final entry = pbs.lookup(identity);
         if (entry == null ||
             entry.fields.any((field) =>
-                !const {'LoseText', 'Pokemon'}.contains(field.key)) ||
+                !const {'LoseText', 'Pokemon'}.contains(field.key) &&
+                !(program.gymLeader != null && field.key == 'Items') &&
+                !(field.key == 'Moves' && entry.party.any((member) => member.fields.contains(field)))) ||
             entry.fieldsNamed('LoseText').length > 1) {
           throw ContractError('events.trainer.header_unsupported', identity.key,
               'Trainer metadata requires an explicit native semantic binding.');
@@ -255,6 +270,10 @@ final class SourceTrainerEventBindingResolver {
         final document = pbs.documents.singleWhere((document) =>
             document.file.relativePath == entry.headerLocator.file);
         final binding = SourceTrainerEventBinding._(
+            gymLeader: program.gymLeader == null ? null :
+                await const SourceGymLeaderBindingResolver().read(source: source,
+                    analysis: analysis, event: event, program: program, files: files,
+                    limits: limits, cancellation: cancellation),
             sourceIdentity: identity,
             nativeTrainer: trainer,
             sourceRosterFile: document.file,
@@ -270,6 +289,8 @@ final class SourceTrainerEventBindingResolver {
             sourceMapId: event.sourceMapId,
             sourceEventId: event.sourceEventId,
             eventHash: canonicalHashOf(_eventFingerprint(original)),
+            battleItemDefinitions: qualification.battleItemDefinitions
+                .where((item) => trainer.battleItems.containsKey(item.id)).toList(),
             programs: programs);
         if (!binding.isBoundToEvent(
             source: source, analysis: analysis, event: event)) {

@@ -18,6 +18,12 @@ final class TrainerRubyString {
   final List<MapEntry<String, Object?>> fields;
 }
 
+final class TrainerRubyUserDefined {
+  TrainerRubyUserDefined(this.name, this.bytes);
+  final String name;
+  final List<int> bytes;
+}
+
 TrainerRubyObject trainerCommand(int code, List<Object?> parameters,
         {int indent = 0}) =>
     TrainerRubyObject('RPG::EventCommand',
@@ -135,6 +141,9 @@ final class _Dump {
         ]
       ];
     }
+    if (input is TrainerRubyUserDefined) {
+      return [0x75, ...symbol(input.name), ...packed(input.bytes.length), ...input.bytes];
+    }
     if (input is String) {
       final bytes = utf8.encode(input);
       return [0x22, ...packed(bytes.length), ...bytes];
@@ -201,6 +210,7 @@ Future<NormalizedSourceProject> trainerSource({
   String eventName = 'Dresseur Trainer(6)',
   String trainerName = "Élodie d'Arc",
   List<String?>? variableNames,
+  List<String?>? switchNames,
   void Function(List<TrainerRubyObject>)? mutate,
 }) async {
   final pages = trainerPages(name: trainerName);
@@ -245,7 +255,7 @@ Future<NormalizedSourceProject> trainerSource({
       })
     ],
     'Data/System.rxdata': TrainerRubyObject('RPG::System', {
-      '@switches': ['', 'Ready'],
+      '@switches': switchNames ?? ['', 'Ready'],
       if (variableNames != null) '@variables': variableNames,
     }),
   };

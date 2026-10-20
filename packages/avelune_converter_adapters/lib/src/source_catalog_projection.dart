@@ -778,6 +778,22 @@ final class _Run {
 
   Future<List<Map<String, Object?>>> _publishNativeBundle(
       NativePsdkCatalog bundle, List<ProjectTrainerEntry> trainers) async {
+    final qualifiedRows = trainerQualification?.rows ?? const [];
+    final qualifiedTrainers = <String, List<Object?>>{};
+    for (final row in qualifiedRows) {
+      final trainer = row['nativeTrainer'] as Map;
+      (qualifiedTrainers[trainer['id'] as String] ??= []).add(trainer);
+    }
+    if (trainers.length != qualifiedRows.length ||
+        trainers.map((trainer) => trainer.id).toSet().length !=
+            trainers.length ||
+        trainers.any((trainer) =>
+            qualifiedTrainers[trainer.id]?.length != 1 ||
+            canonicalJsonOf(trainer.toJson()) !=
+                canonicalJsonOf(qualifiedTrainers[trainer.id]!.single))) {
+      throw ContractError('native_trainer.active_qualification_binding', r'$',
+          'Every published trainer must exactly match its sealed qualified roster, inventory, abilities and move order.');
+    }
     for (final trainer in trainers) {
       for (final member in trainer.team) {
         final species = bundle.speciesById[member.speciesId];
@@ -785,14 +801,11 @@ final class _Run {
         if (species == null ||
             learnset == null ||
             member.abilityId != species.abilities.primary ||
-            canonicalJsonOf(member.moves) !=
-                canonicalJsonOf(
-                    nativeTrainerDefaultMoveIds(learnset, member.level)) ||
             member.moves.any((move) => !bundle.movesById.containsKey(move))) {
           throw ContractError(
               'native_trainer.active_catalog_binding',
               trainer.id,
-              'The active native catalogue must exactly cover every qualified trainer member, ability and default move order.');
+              'The active native catalogue must exactly cover every qualified trainer member, ability and qualified move.');
         }
       }
     }

@@ -14,6 +14,9 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       required List<String> challengeLines,
       required List<String> afterWinLines,
       required this.victoryContinuation,
+      this.gymLeader,
+      this.gymStageBody,
+      this.gymStage,
       required this.endSpeechComment,
       required this.sourceTriggerCode,
       required this.sourceMoveType,
@@ -36,6 +39,9 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       sourceMoveType;
   final List<String> challengeLines, afterWinLines;
   final SourceEventBlock victoryContinuation;
+  final SourceGymLeaderPolicy? gymLeader;
+  final SourceEventBlock? gymStageBody;
+  final SourceGymLeaderStage? gymStage;
   final SourcePreservedData rawDataRef;
   final List<SourcePreservedData> sourcePageRefs;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
@@ -47,7 +53,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
         'nativeTrainerBattleOutcome',
         if (detectionDistance > 0) 'sourceTrainerSightAndApproach',
         'sourceTrainerLockAndUnlock',
-        'sourceWinnerSelfSwitchA',
+        gymLeader == null ? 'sourceWinnerSelfSwitchA' : 'sourceGymVictoryRewards',
         'sourceAfterWinDialogueAndFacing',
         if (sourceMoveType != 0) 'sourceAutonomousMovement',
       ];
@@ -91,6 +97,12 @@ final class SourceTrainerProgramNode extends SourceEventNode {
         'sourceMoveType': sourceMoveType,
         'challengeLines': challengeLines,
         'afterWinLines': afterWinLines,
+        if (gymLeader != null) 'gymLeader': gymLeader!.toJson(),
+        if (gymStage != null) 'gymStage': gymStage!.name,
+        if (gymStageBody != null) 'gymStageBody': {
+          'span': gymStageBody!.span.toJson(),
+          'nodes': gymStageBody!.nodes.map(_sourceGymLeaderVictoryNode).toList(),
+        },
         'victoryContinuation': {
           'span': victoryContinuation.span.toJson(),
           'nodes': victoryContinuation.nodes.map(_sourceTrainerVictoryNode).toList(),
@@ -101,9 +113,16 @@ final class SourceTrainerProgramNode extends SourceEventNode {
         'sourceBattleVictoryTextBinding': 'pbsTrainerLoseText',
         'sourceDefeatedCondition': 'battleOutcomeEquals1',
         'defeatedFactId': defeatedFactId,
-        'sourceSelfSwitchLetter': 'A',
+        'sourceSelfSwitchLetter': gymLeader == null ? 'A' : null,
         'facesPlayerAfterDialogue': facesPlayerAfterDialogue,
-        'sourceEncounterOrder': const [
+        'sourceEncounterOrder': gymLeader != null ? const [
+          'greetingDialogue',
+          'pbTrainerIntro',
+          'challengeDialogue',
+          'TrainerBattle.start',
+          'orderedVictoryContinuation',
+          'pbTrainerEnd',
+        ] : const [
           'pbTrainerIntro',
           'pbNoticePlayer',
           'challengeDialogue',
@@ -132,8 +151,10 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
   final distanceMatch =
       RegExp(r'^[^()\r\n]*\bTrainer\(([0-9]{1,3})\)$', caseSensitive: false)
           .firstMatch(event.name);
+  if (distanceMatch == null) {
+    return _sourceGymLeaderProgramBlock(analyzer, mapId, event, page, locator);
+  }
   if (!analyzer._isQualified ||
-      distanceMatch == null ||
       !const [2, 3].contains(event.pages.length) ||
       event.pages.indexed
           .any((entry) => entry.$1 != entry.$2.originalPageIndex)) {
@@ -410,7 +431,7 @@ Map<String, Object?> _sourceTrainerVictoryNode(SourceEventNode node) => {
     SourceVariableAdjustNode() => node.toJson(),
     SourceTextNode() => {'kind': 'text', 'text': node.text},
     SourceSoundEffectNode() => node.toJson(),
-    _ => throw StateError('Unqualified source trainer victory continuation'),
+    _ => _sourceGymLeaderVictoryNode(node),
   },
 };
 
@@ -467,8 +488,9 @@ bool _sourceTrainerEventContext(
 }
 
 final class _SourceTrainerRawFields {
-  _SourceTrainerRawFields(this.document);
+  _SourceTrainerRawFields(this.document, {this.allowTone = false});
   final MarshalDocument document;
+  final bool allowTone;
   final active = <int>{};
   var nodes = 0;
 
@@ -544,6 +566,10 @@ final class _SourceTrainerRawFields {
         for (final child in node.elements) {
           validate(child, depth + 1);
         }
+      } else if (allowTone && node.kind == MarshalKind.userDefined &&
+          node.className == 'Tone' && node.bytes?.length == 32 &&
+          node.instanceVariables.isEmpty) {
+        return;
       } else if (!const {
             MarshalKind.nil,
             MarshalKind.boolean,
