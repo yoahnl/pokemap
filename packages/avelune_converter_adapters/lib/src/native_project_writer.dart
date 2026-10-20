@@ -1367,6 +1367,10 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }.contains(mutation.actionId);
     final semantic = draft.compositionEvidence.containsKey('sourceSemantics') &&
         const {
+          'smart_tile.atlas.upsert',
+          'smart_tile.material.upsert',
+          'smart_tile.animation.upsert',
+          'smart_tile.preset.publish',
           'gameplay_zone.create',
           'connection.create_bidirectional_apply',
           'border.blueprint.draft.upsert', 'border.blueprint.publish',
@@ -1502,6 +1506,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final smartTileAtlases = <ProjectSmartTileAtlas>[];
   final smartTileMaterials = <ProjectSmartTileMaterial>[];
   final smartTilePresets = <ProjectSmartTilePreset>[];
+  final smartTileAnimations = <ProjectSmartTileAnimation>[];
   var borderCatalog = ProjectBorderCatalog();
   final borderSnapshots = <String, NativeArtifact>{};
   final validatedBorderSnapshotBytes = <String, List<int>>{};
@@ -1650,7 +1655,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }
         elements.add(element);
       case 'smart_tile.atlas.upsert':
-        _requireLibraryMutation(library, mutation);
+        if (!semantics.operationIds.contains(mutation.operationId)) {
+          _requireLibraryMutation(library, mutation);
+        }
         _allowParameters(parameters, const {'atlas'});
         final atlas = ProjectSmartTileAtlas.fromJson(
             Map<String, dynamic>.from(parameters['atlas'] as Map));
@@ -1662,7 +1669,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }
         smartTileAtlases.add(atlas);
       case 'smart_tile.material.upsert':
-        _requireLibraryMutation(library, mutation);
+        if (!semantics.operationIds.contains(mutation.operationId)) {
+          _requireLibraryMutation(library, mutation);
+        }
         _allowParameters(parameters, const {'material'});
         final material = ProjectSmartTileMaterial.fromJson(
             Map<String, dynamic>.from(parameters['material'] as Map));
@@ -1672,8 +1681,23 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'Terrain materials require their unique approved identity');
         }
         smartTileMaterials.add(material);
+      case 'smart_tile.animation.upsert':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'animation'});
+        final animation = ProjectSmartTileAnimation.fromJson(
+            Map<String, dynamic>.from(parameters['animation'] as Map));
+        if (smartTileAnimations.any((entry) => entry.id == animation.id) ||
+            !_targetIds(mutation.targetEntityIds, {animation.id}) ||
+            animation.frames.any((frame) => !smartTileAtlases.any(
+                (atlas) => atlas.id == frame.frame.atlasId))) {
+          throw const NativeWriteException('native.semantics.grass_animation',
+              'Source grass animations require unique attested frames and preceding atlases');
+        }
+        smartTileAnimations.add(animation);
       case 'smart_tile.preset.publish':
-        _requireLibraryMutation(library, mutation);
+        if (!semantics.operationIds.contains(mutation.operationId)) {
+          _requireLibraryMutation(library, mutation);
+        }
         _allowParameters(parameters, const {'preset'});
         final preset = ProjectSmartTilePreset.fromJson(
             Map<String, dynamic>.from(parameters['preset'] as Map));
@@ -2415,6 +2439,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       smartTileCatalog: ProjectSmartTileCatalog(
           atlases: smartTileAtlases,
           materials: smartTileMaterials,
+          animations: smartTileAnimations,
           presets: smartTilePresets),
       characters: characters,
       characterStudioCatalog: ProjectCharacterStudioCatalog(

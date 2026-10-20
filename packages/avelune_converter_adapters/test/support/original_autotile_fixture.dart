@@ -5,6 +5,11 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:image/image.dart' as image;
 
+Uint8List originalIndexedAutotilePng({required bool hasTransparency}) =>
+    base64Decode(hasTransparency
+        ? 'iVBORw0KGgoAAAANSUhEUgAAAKAAAAAgBAMAAABnUW7GAAAAMFBMVEUR7x8e5CYr2S04zjRFwztSuEJfrUlsolB5l1eGjF6TgWWgdmyta3O6YHrHVYHUSoj6cFotAAAAEHRSTlMASf8ASf8ASf8ASf8ASf8AcP/B/AAAAJtJREFUeJztlDENgFAQQ4sFLGABC1jAwreABSxgAQtYwAIWQAIJCctbmsutN3V43V5adcPU1v28/+zHedmO6/kTuAPugQe5AvAIPAHPcgXgBrwAr3IF4A14Bz7kCsAn8EUHcoWoJEUtOkmKWnSSFLXoJClq0UlS1KKTpOzU6EDZqdGBslOjA2WnRgfKTo0OVH9Yf1h/WH9Yf/jlC9S7+z0G6vscAAAAAElFTkSuQmCC'
+        : 'iVBORw0KGgoAAAANSUhEUgAAAKAAAAAgBAMAAABnUW7GAAAAMFBMVEUR7x8e5CYr2S04zjRFwztSuEJfrUlsolB5l1eGjF6TgWWgdmyta3O6YHrHVYHUSoj6cFotAAAAm0lEQVR4nO2UMQ2AUBBDiwUsYAELWMDCt4AFLGABC1jAAhZAAgkJy1uay603dXjdXlp1w9TW/bz/7Md52Y7r+RO4A+6BB7kC8Ag8Ac9yBeAGvACvcgXgDXgHPuQKwCfwRQdyhagkRS06SYpadJIUtegkKWrRSVLUopOk7NToQNmp0YGyU6MDZadGB8pOjQ5Uf1h/WH9Yf1h/+OUL1Lv7PQbq+xwAAAAASUVORK5CYII=');
+
 enum OriginalAutotileFormat { standard, extended, simple }
 
 final class OriginalAutotileSourceRect {

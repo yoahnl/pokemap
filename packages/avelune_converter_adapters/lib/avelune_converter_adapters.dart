@@ -74,3 +74,5 @@ export 'src/source_card_key_gate_audio.dart';
 export 'src/builtin_source_interpretation_profiles.dart';
 
 export 'src/source_decorative_pokemon_binding.dart';
+
+export 'src/source_grass_rustle_compiler.dart';

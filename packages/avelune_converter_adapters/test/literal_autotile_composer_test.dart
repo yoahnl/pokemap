@@ -12,6 +12,47 @@ import 'support/literal_tile_fixture.dart';
 import 'support/original_autotile_fixture.dart';
 
 void main() {
+  for (final hasTransparency in [false, true]) {
+    test(
+        'AUTO-04 indexed 4-bit ${hasTransparency ? 'RGBA transparency' : 'RGB opacity'} survives every frame and variant',
+        () async {
+      final png = originalIndexedAutotilePng(hasTransparency: hasTransparency);
+      expect(png[24], 4);
+      expect(png[25], 3);
+      final decodedSource = image.decodePng(Uint8List.fromList(png))!;
+      expect(decodedSource.palette!.numChannels, hasTransparency ? 4 : 3);
+      final source = await _Source.open(png);
+      addTearDown(source.close);
+      final result = await _compose(source);
+      final output = image.decodePng(Uint8List.fromList(result.artifact.bytes))!;
+      expect(result.sourceFrameCount, 5);
+      expect(result.sourceArtifact.bytes, png);
+      for (var frame = 0; frame < 5; frame++) {
+        for (var variant = 0; variant < 48; variant++) {
+          for (var y = 0; y < 32; y++) {
+            for (var x = 0; x < 32; x++) {
+              final sourceX = frame * 32 + x;
+              final index = (sourceX + y * 3 + frame) % 16;
+              final pixel = output.getPixel(
+                  variant % 8 * 32 + x, (frame * 6 + variant ~/ 8) * 32 + y);
+              expect([
+                pixel.r,
+                pixel.g,
+                pixel.b,
+                pixel.a
+              ], [
+                17 + index * 13,
+                239 - index * 11,
+                31 + index * 7,
+                hasTransparency ? [0, 73, 255][index % 3] : 255
+              ], reason: 'frame=$frame variant=$variant x=$x y=$y');
+            }
+          }
+        }
+      }
+      await source.files.verifyUnchanged();
+    }, skip: !Platform.isMacOS);
+  }
   test('AUTO-02 common attested clock helper derives bounded source duration',
       () {
     expect(

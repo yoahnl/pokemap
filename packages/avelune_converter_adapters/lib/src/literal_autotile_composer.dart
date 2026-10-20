@@ -405,6 +405,7 @@ final class LiteralAutotileComposer {
           'Autotile PNG could not be decoded at its admitted dimensions',
           locator: reference.locator);
     }
+    final palette = decoded.palette;
     final scanlines = Uint8List(rawLength);
     for (var frame = 0; frame < frameCount; frame++) {
       cancellation?.check();
@@ -420,7 +421,8 @@ final class LiteralAutotileComposer {
                 (targetY + y) * rowBytes + 1 + targetX * 4 * channelBytes;
             for (var x = 0; x < 16; x++) {
               final pixel = decoded.getPixel(sourceX + x, sourceY + y);
-              for (final value in [pixel.r, pixel.g, pixel.b, pixel.a]) {
+              final alpha = palette?.getAlpha(pixel.index.toInt()) ?? pixel.a;
+              for (final value in [pixel.r, pixel.g, pixel.b, alpha]) {
                 if (channelBytes == 2) scanlines[target++] = value.toInt() >> 8;
                 scanlines[target++] = value.toInt() & 255;
               }

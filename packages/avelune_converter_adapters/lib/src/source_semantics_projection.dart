@@ -11,6 +11,7 @@ import 'literal_tile_composer.dart';
 import 'native_project_writer.dart';
 import 'source_encounter_terrain_binding.dart';
 import 'source_player_character_import.dart';
+import 'source_grass_rustle_compiler.dart';
 
 final class SourceOcclusionLayout {
   factory SourceOcclusionLayout.resolve({
@@ -294,8 +295,12 @@ final class SourceSemanticsProjector {
           'Projection requires exact admitted literal and player source bindings');
     }
     final resolver = SourceSemanticResolver.forProject(source);
+    final grassRustle = await const SourceGrassRustleCompiler().compile(
+        source: source, files: files,
+        nativeMapIds: {for (final entry in base.nativeMaps.entries) entry.key: entry.value.id},
+        limits: limits, cancellation: cancellation);
     final run = _ProjectionRun(source, base, player, resolver, limits,
-        cancellation, includeNativeSurfTraversal);
+        cancellation, includeNativeSurfTraversal, grassRustle);
     await run.project();
     return run.finish();
   }
@@ -333,7 +338,7 @@ final class _OcclusionPage {
 
 final class _ProjectionRun {
   _ProjectionRun(this.source, this.base, this.player, this.resolver,
-      this.limits, this.cancellation, this.includeNativeSurfTraversal);
+      this.limits, this.cancellation, this.includeNativeSurfTraversal, this.grassRustle);
 
   final NormalizedSourceProject source;
   final LiteralTileComposition base;
@@ -342,6 +347,7 @@ final class _ProjectionRun {
   final NativeWriteLimits limits;
   final ScanCancellation? cancellation;
   final bool includeNativeSurfTraversal;
+  final SourceGrassRustleComposition? grassRustle;
   SourceEncounterTerrainBindingResult? encounterTerrain;
   final maps = <int, MapData>{};
   final artifacts = <NativeArtifact>[];
@@ -359,6 +365,8 @@ final class _ProjectionRun {
   static const categoryId = 'ac12-source-semantics';
 
   Future<void> project() async {
+    artifacts.addAll(grassRustle?.artifacts ?? const []);
+    mutations.addAll(grassRustle?.mutations ?? const []);
     if (includeNativeSurfTraversal) {
       encounterTerrain = const SourceEncounterTerrainBinding().bind(
           source: source,
@@ -535,7 +543,7 @@ final class _ProjectionRun {
           },
           raisedCells: raised);
       var output = native.copyWith(
-          layers: layers,
+          layers: [if (grassRustle?.layersBySourceMapId[id] case final layer?) layer, ...layers],
           placedElements: placed,
           gameplayZones: [
             ...native.gameplayZones,
@@ -975,6 +983,7 @@ final class _ProjectionRun {
       'sourceScriptsExecuted': 0,
       'aiCalls': 0,
       'sourceEventsScope': 'AC13Deferred',
+      if (grassRustle != null) 'grassRustle': grassRustle!.evidence,
       if (includeNativeSurfTraversal) 'includeNativeSurfTraversal': true,
       if (encounterTerrain != null)
         'encounterTerrainBinding': encounterTerrain!.evidence,

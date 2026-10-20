@@ -408,6 +408,10 @@ ProjectManifest _sourceSemanticNativeProject({
   final elements = <ProjectElementEntry>[];
   final characters = <ProjectCharacterEntry>[];
   final customAnimationDefinitions = <CharacterCustomAnimationDefinition>[];
+  final smartAtlases = <ProjectSmartTileAtlas>[];
+  final smartMaterials = <ProjectSmartTileMaterial>[];
+  final smartAnimations = <ProjectSmartTileAnimation>[];
+  final smartPresets = <ProjectSmartTilePreset>[];
   String? defaultCharacter;
   final byHandle = {for (final artifact in artifacts) artifact.handle: artifact};
   for (final m in mutations) {
@@ -430,6 +434,14 @@ ProjectManifest _sourceSemanticNativeProject({
         elements.addAll((p['elements'] as List).map((entry) => ProjectElementEntry.fromJson(Map<String, dynamic>.from(entry as Map))));
       case 'element.upsert':
         elements.add(ProjectElementEntry.fromJson(Map<String, dynamic>.from(p['element'] as Map)));
+      case 'smart_tile.atlas.upsert':
+        smartAtlases.add(ProjectSmartTileAtlas.fromJson(Map<String, dynamic>.from(p['atlas'] as Map)));
+      case 'smart_tile.material.upsert':
+        smartMaterials.add(ProjectSmartTileMaterial.fromJson(Map<String, dynamic>.from(p['material'] as Map)));
+      case 'smart_tile.animation.upsert':
+        smartAnimations.add(ProjectSmartTileAnimation.fromJson(Map<String, dynamic>.from(p['animation'] as Map)));
+      case 'smart_tile.preset.publish':
+        smartPresets.add(ProjectSmartTilePreset.fromJson(Map<String, dynamic>.from(p['preset'] as Map)));
       case 'characterStudio.character.create':
         final name = p['name'] as String;
         characters.add(ProjectCharacterEntry(id: name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-'), name: name,
@@ -464,6 +476,8 @@ ProjectManifest _sourceSemanticNativeProject({
   return ProjectManifest(name: projectName, version: ProjectVersion.v8,
     maps: [for (final id in mapIds.keys) ProjectMapEntry(id: maps[id]!.id, name: maps[id]!.name, relativePath: 'maps/${maps[id]!.id}.json')],
     tilesets: tilesets.values.toList(), elementCategories: categories, elements: elements, characters: characters,
+    smartTileCatalog: ProjectSmartTileCatalog(atlases: smartAtlases, materials: smartMaterials,
+      animations: smartAnimations, presets: smartPresets),
     characterStudioCatalog: ProjectCharacterStudioCatalog(
       customAnimationDefinitions: customAnimationDefinitions,
     ),
