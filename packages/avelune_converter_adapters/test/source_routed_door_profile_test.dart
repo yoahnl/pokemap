@@ -28,7 +28,7 @@ LiteralFixtureUserDefined _tone(double value) {
   return LiteralFixtureUserDefined('Tone', bytes.buffer.asUint8List());
 }
 
-Future<LiteralTileFixture> _fixture(String charset, {bool declared = true, bool wrongPin = false}) async {
+Future<LiteralTileFixture> routedDoorFixture(String charset, {bool declared = true, bool wrongPin = false, bool unknownArrivalScript = false}) async {
   final pixels = literalFixtureAtlas();
   final profile = SourceInterpretationProfile.fromJson({
     ...syntheticSourceInterpretationProfile.toJson(),
@@ -64,8 +64,9 @@ Future<LiteralTileFixture> _fixture(String charset, {bool declared = true, bool 
           const LiteralFixtureEventCommand(208, [1], indent: 1),
           ..._route(-1, [1], indent: 1),
           ..._route(0, [18, 15, 17, 15, 16, 15], indent: 1),
+          const LiteralFixtureEventCommand(0, [], indent: 1),
           const LiteralFixtureEventCommand(412, []),
-          const LiteralFixtureEventCommand(355, ['setTempSwitchOn("A")']),
+          LiteralFixtureEventCommand(355, [unknownArrivalScript ? 'unqualifiedEffect()' : 'setTempSwitchOn("A")']),
           const LiteralFixtureEventCommand(0, []),
         ]),
       ])]), LiteralFixtureMap(id: 9)]);
@@ -74,7 +75,7 @@ Future<LiteralTileFixture> _fixture(String charset, {bool declared = true, bool 
 void main() {
   test('routed door presentation is declared independently of charset names', () async {
     for (final charset in ['CopperGate', 'CrystalPortal']) {
-      final fixture = await _fixture(charset);
+      final fixture = await routedDoorFixture(charset);
       final analysis = SourceEventAnalyzer.forProject(fixture.source,
           profile: SourceEventProfile.forProject(fixture.source)).analyze();
       final programs = sourceRoutedDoorPrograms(source: fixture.source, analysis: analysis);
@@ -87,8 +88,8 @@ void main() {
     }
   });
   test('routed door mismatched patterns require an explicit attested binding', () async {
-    for (final fixture in [await _fixture('Undeclared', declared: false),
-      await _fixture('Changed', wrongPin: true)]) {
+    for (final fixture in [await routedDoorFixture('Undeclared', declared: false),
+      await routedDoorFixture('Changed', wrongPin: true)]) {
       final analysis = SourceEventAnalyzer.forProject(fixture.source,
           profile: SourceEventProfile.forProject(fixture.source)).analyze();
       expect(sourceRoutedDoorPrograms(source: fixture.source, analysis: analysis), isEmpty);

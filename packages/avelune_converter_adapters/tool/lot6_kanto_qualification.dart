@@ -8,6 +8,7 @@ import 'package:avelune_converter_adapters/src/native_mutation_batches.dart';
 import 'package:path/path.dart' as path;
 import 'lot6_connection_preflight.dart';
 import 'lot6_source_decision_refresh.dart';
+import 'lot6_routed_door_patterns.dart';
 
 Future<void> main(List<String> args) async {
   if (args.length < 2 || args.length > 3 || !const {'world', 'full'}.contains(args[1])) {
@@ -39,7 +40,7 @@ Future<void> main(List<String> args) async {
   const baseProfilePath = '/Users/karim/Project/avelune project/Inventaires/Kanto EV-10/source_profile_ev10_pickups.json';
   final rawProfile = Map<String, Object?>.from(jsonDecode(
       await File(baseProfilePath).readAsString()) as Map);
-  final interpretationProfile = SourceInterpretationProfile.fromJson({
+  var interpretationProfile = SourceInterpretationProfile.fromJson({
     ...rawProfile,
     'profileId': 'kanto-lot6-native-services-and-inline-audio',
     'presentationBindings': {
@@ -170,6 +171,18 @@ Future<void> main(List<String> args) async {
         supplementalRootPaths: selection.supplementalRootPaths);
     sourceTree = tree;
     final files = await SnapshotSourceFiles.bind(source: tree, snapshot: snapshot);
+    if (contentScope == ConverterContentScope.full) {
+      final patterns = await deriveLot6RoutedDoorPatterns(
+          snapshot: snapshot, files: files, profile: interpretationProfile);
+      interpretationProfile = patterns.profile;
+      await File(profilePath).writeAsString(
+          jsonEncode(interpretationProfile.toJson()), flush: true);
+      await File('${evidence.path}/routed-door-pattern-declarations.json')
+          .writeAsString(jsonEncode(patterns.evidence), flush: true);
+      result['interpretationProfileHash'] = interpretationProfile.canonicalHash.value;
+      result['routedDoorPatternDeclarations'] = patterns.evidence;
+      await save();
+    }
     final dependencySource = await const RmxpSourceNormalizer().normalize(
         snapshot: snapshot, files: files, selectedMapIds: {295},
         includeEventSystem: true, interpretationProfile: interpretationProfile);
