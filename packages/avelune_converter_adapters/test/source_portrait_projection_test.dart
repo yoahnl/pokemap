@@ -15,6 +15,9 @@ import '../../avelune_converter_core/test/support/trainer_program_fixture.dart';
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
 
+Future<LiteralTileFixture> sourcePortraitWorkflowFixture() async =>
+    (await _fixture()).fixture;
+
 Object? _literal(Object? value) => switch (value) {
       TrainerRubyObject() => LiteralFixtureObject(value.name, {
           for (final field in value.fields.entries)

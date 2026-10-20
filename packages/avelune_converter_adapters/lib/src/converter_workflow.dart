@@ -2356,6 +2356,7 @@ const _nativeStudyActions = [
   'smart_tile.preset.publish',
   'characterStudio.character.create',
   'characterStudio.character.update',
+  'characterStudio.animationDefinition.create',
   'characterStudio.animationClip.upsert',
   'characterStudio.character.setDefault',
   'event_v2.registry_mode.set',
@@ -2365,6 +2366,7 @@ const _nativeStudyActions = [
   'warp.create',
   'dialogue.create',
   'scene.upsert',
+  'cinematic.upsert',
   'regionalMap.region.upsert',
   'regionalMap.poi.upsert',
   'world_rule.create',
@@ -2454,6 +2456,15 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'Canonical shop action exposure and strict admission of the complete prepared action inventory, with unknown actions still refused; native stock application and runtime journeys are separate.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:native study declares supported canonical shop capability before approval',
+                },
+              if (action == 'characterStudio.animationDefinition.create' ||
+                  action == 'cinematic.upsert')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Closed source portrait programs retain custom animation definitions, clips and three native cinematic stages through canonical publication and strict fresh reopen. Unknown programs and unbound assets remain refused.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_portrait_projection_test.dart:portrait composer publishes canonical editable clips and cinematics for strict reopening',
                 },
               if (action.startsWith('border.blueprint.') ||
                   action.startsWith('border_layer.'))
