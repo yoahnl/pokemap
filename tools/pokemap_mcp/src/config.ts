@@ -13,6 +13,7 @@ export interface PokeMapMcpConfig {
   dartExecutable: string;
   flutterExecutable: string;
   authoringTimeoutMs?: number;
+  exportTimeoutMs?: number;
 }
 
 export class PokeMapMcpConfigError extends Error {
@@ -33,6 +34,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   let dartExecutable = "dart";
   let flutterExecutable = "flutter";
   let authoringTimeoutMs: number | undefined;
+  let exportTimeoutMs: number | undefined;
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
     const value = args[index + 1];
@@ -63,6 +65,12 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
         authoringTimeoutMs = Number(value);
         if (!Number.isInteger(authoringTimeoutMs) || authoringTimeoutMs < 1 || authoringTimeoutMs > 120_000) {
           throw new PokeMapMcpConfigError("Authoring timeout must be an integer between 1 and 120000 milliseconds.");
+        }
+        break;
+      case "--export-timeout-ms":
+        exportTimeoutMs = Number(value);
+        if (!Number.isInteger(exportTimeoutMs) || exportTimeoutMs < 1 || exportTimeoutMs > 600_000) {
+          throw new PokeMapMcpConfigError("Export timeout must be an integer between 1 and 600000 milliseconds.");
         }
         break;
       case "--repository-root":
@@ -107,6 +115,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     dartExecutable,
     flutterExecutable,
     ...(authoringTimeoutMs === undefined ? {} : {authoringTimeoutMs}),
+    ...(exportTimeoutMs === undefined ? {} : {exportTimeoutMs}),
   };
 }
 
