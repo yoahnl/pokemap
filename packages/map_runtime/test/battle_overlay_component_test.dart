@@ -1842,7 +1842,7 @@ void main() {
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onBagHpHealItemUseRequested: (action, entry) {
+        onBagHpHealItemUseRequested: (action, entry, {request}) {
           final result = switch (action.itemId) {
             'potion' => tryApplyRuntimeBattleItemUse(
                 itemId: 'potion',
@@ -2009,7 +2009,7 @@ void main() {
         ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onBagHpHealItemUseRequested: (action, entry) {
+        onBagHpHealItemUseRequested: (action, entry, {request}) {
           final result = switch (action.itemId) {
             'potion' => tryApplyRuntimeBattleItemUse(
                 itemId: 'potion',
@@ -2167,7 +2167,7 @@ void main() {
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onBagHpHealItemUseRequested: (action, entry) {
+        onBagHpHealItemUseRequested: (action, entry, {request}) {
           final result = switch (action.itemId) {
             'potion' => tryApplyRuntimeBattleItemUse(
                 itemId: 'potion',
@@ -2328,7 +2328,7 @@ void main() {
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onBagHpHealItemUseRequested: (action, entry) {
+        onBagHpHealItemUseRequested: (action, entry, {request}) {
           final result = switch (action.itemId) {
             'potion' => tryApplyRuntimeBattleItemUse(
                 itemId: 'potion',
@@ -2492,7 +2492,7 @@ void main() {
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onBagHpHealItemUseRequested: (action, entry) {
+        onBagHpHealItemUseRequested: (action, entry, {request}) {
           final result = switch (action.itemId) {
             'potion' => tryApplyRuntimeBattleItemUse(
                 itemId: 'potion',

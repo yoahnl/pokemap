@@ -75,6 +75,24 @@ final class PokemonRulesetMechanics {
         },
       );
 
+  static const PokemonRulesetMechanics standardV1 = PokemonRulesetMechanics._(
+    reference: PokemonRulesetProfile.standardV1Reference,
+    typeChart: PokemonTypeChartPolicy.mainlineModernV1,
+    maxLevel: 100,
+    experience: PokemonExperiencePolicy.pokeMapSimpleV1,
+    capture: PokemonCapturePolicy.pokeMapMvpV1,
+    moveMachine: PokemonMoveMachinePolicy.authoredConsumabilityV1,
+    criticalHit: PokemonCriticalHitPolicy.mainlineGen9,
+    speedTie: PokemonSpeedTiePolicy.mainlineGen9SeededRandom,
+    friendship: PokemonFriendshipPolicy.mainline0255V1,
+    evolution: PokemonEvolutionPolicy.pokeMapBetaV1,
+    disabledFeatures: <PokemonDisabledFeature>{
+      PokemonDisabledFeature.breeding,
+      PokemonDisabledFeature.modernGimmicks,
+      PokemonDisabledFeature.online,
+    },
+  );
+
   final PokemonRulesetReference reference;
   final PokemonTypeChartPolicy typeChart;
   final int maxLevel;
@@ -106,6 +124,7 @@ final class PokemonRulesetProfile {
 
   static const int currentSchemaVersion = 1;
   static const String canonicalProfileId = 'pokemap-beta-v1';
+  static const String standardProfileId = 'pokemap-standard-v1';
   static const String canonicalTypeChartId = 'mainline-modern-v1';
   static const String canonicalExperiencePolicyId = 'pokemap-simple-exp-v1';
   static const String canonicalCapturePolicyId = 'pokemap-capture-mvp-v1';
@@ -121,9 +140,19 @@ final class PokemonRulesetProfile {
     'modern-gimmicks',
     'online',
   ];
+  static const List<String> standardDisabledFeatures = <String>[
+    'breeding',
+    'modern-gimmicks',
+    'online',
+  ];
   static const PokemonRulesetReference pokeMapBetaV1Reference =
       PokemonRulesetReference(
         profileId: canonicalProfileId,
+        schemaVersion: currentSchemaVersion,
+      );
+  static const PokemonRulesetReference standardV1Reference =
+      PokemonRulesetReference(
+        profileId: standardProfileId,
         schemaVersion: currentSchemaVersion,
       );
 
@@ -140,6 +169,21 @@ final class PokemonRulesetProfile {
     friendshipPolicyId: canonicalFriendshipPolicyId,
     evolutionPolicyId: canonicalEvolutionPolicyId,
     disabledFeatures: canonicalDisabledFeatures,
+  );
+
+  static const PokemonRulesetProfile standardV1 = PokemonRulesetProfile._(
+    schemaVersion: currentSchemaVersion,
+    profileId: standardProfileId,
+    typeChartId: canonicalTypeChartId,
+    maxLevel: 100,
+    experiencePolicyId: canonicalExperiencePolicyId,
+    capturePolicyId: canonicalCapturePolicyId,
+    moveMachinePolicyId: canonicalMoveMachinePolicyId,
+    criticalHitPolicyId: canonicalCriticalHitPolicyId,
+    speedTiePolicyId: canonicalSpeedTiePolicyId,
+    friendshipPolicyId: canonicalFriendshipPolicyId,
+    evolutionPolicyId: canonicalEvolutionPolicyId,
+    disabledFeatures: standardDisabledFeatures,
   );
 
   factory PokemonRulesetProfile.fromJson(Map<String, dynamic> json) {
@@ -216,11 +260,17 @@ final class PokemonRulesetProfile {
 
   PokemonRulesetMechanics get mechanics {
     requireSupported();
-    return PokemonRulesetMechanics.pokeMapBetaV1;
+    return profileId == standardProfileId
+        ? PokemonRulesetMechanics.standardV1
+        : PokemonRulesetMechanics.pokeMapBetaV1;
   }
 
   void requireSupported() {
-    _requirePolicy('profileId', profileId, canonicalProfileId);
+    if (profileId != canonicalProfileId && profileId != standardProfileId) {
+      throw FormatException(
+        'Unsupported Pokemon ruleset profileId "$profileId".',
+      );
+    }
     _requirePolicy('typeChartId', typeChartId, canonicalTypeChartId);
     if (maxLevel != 100) {
       throw FormatException(
@@ -262,7 +312,10 @@ final class PokemonRulesetProfile {
       evolutionPolicyId,
       canonicalEvolutionPolicyId,
     );
-    if (!_sameStrings(disabledFeatures, canonicalDisabledFeatures)) {
+    final expectedFeatures = profileId == standardProfileId
+        ? standardDisabledFeatures
+        : canonicalDisabledFeatures;
+    if (!_sameStrings(disabledFeatures, expectedFeatures)) {
       throw FormatException(
         'Unsupported Pokemon ruleset disabledFeatures: $disabledFeatures.',
       );

@@ -64,6 +64,9 @@ _ProjectTrainerEntry _$ProjectTrainerEntryFromJson(
   id: json['id'] as String,
   name: json['name'] as String,
   trainerClass: json['trainerClass'] as String,
+  battleFormat:
+      $enumDecodeNullable(_$BattleFormatEnumMap, json['battleFormat']) ??
+      BattleFormat.singles,
   battleDifficulty: (json['battleDifficulty'] as num?)?.toInt(),
   battleItems: json['battleItems'] == null
       ? const <String, int>{}
@@ -125,6 +128,7 @@ Map<String, dynamic> _$ProjectTrainerEntryToJson(
   'id': instance.id,
   'name': instance.name,
   'trainerClass': instance.trainerClass,
+  'battleFormat': _$BattleFormatEnumMap[instance.battleFormat]!,
   'battleDifficulty': instance.battleDifficulty,
   'battleItems': instance.battleItems,
   'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
@@ -148,6 +152,11 @@ Map<String, dynamic> _$ProjectTrainerEntryToJson(
   'defeatDialogueId': ?instance.defeatDialogueId,
   'team': instance.team.map((e) => e.toJson()).toList(),
   'tags': instance.tags,
+};
+
+const _$BattleFormatEnumMap = {
+  BattleFormat.singles: 'singles',
+  BattleFormat.doubles: 'doubles',
 };
 
 const _$FieldAbilityEnumMap = {

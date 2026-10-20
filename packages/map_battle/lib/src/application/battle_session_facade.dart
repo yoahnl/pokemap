@@ -50,8 +50,11 @@ final class BattleSessionFacade {
   BattlePublicState get state => _engine.snapshot();
   BattleEngineDecisionRequest get decisionRequest => _engine.currentRequest;
 
-  BattleEngineTurnResult submit(BattleDecision decision) {
-    final request = decisionRequest;
+  BattleEngineTurnResult submit(
+    BattleDecision decision, {
+    BattleEngineDecisionRequest? request,
+  }) {
+    final current = decisionRequest;
     // Mega/shift/no-action remain trusted engine extension actions. The facade
     // is the player/runtime authority for the canonical RM-022/RM-023 command
     // families.
@@ -60,12 +63,12 @@ final class BattleSessionFacade {
         decision is BattleItemDecision ||
         decision is BattleFleeDecision ||
         decision is BattleCaptureDecision;
-    if (isCanonicalPlayerCommand && !request.allows(decision)) {
+    if (isCanonicalPlayerCommand && !current.allows(decision)) {
       throw BattleDecisionRejectedError(
-        requestKind: request.kind,
+        requestKind: current.kind,
         decision: decision,
       );
     }
-    return _engine.submit(decision);
+    return _engine.submit(decision, request: request);
   }
 }

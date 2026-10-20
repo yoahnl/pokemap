@@ -1,6 +1,7 @@
 import 'dart:ui' show Rect, Size;
 
 import 'package:flutter/foundation.dart';
+import 'package:map_battle/map_battle.dart';
 
 /// Mode visible de la chrome battle rendue côté Flutter.
 ///
@@ -12,6 +13,7 @@ import 'package:flutter/foundation.dart';
 enum BattleCommandOverlayMode {
   root,
   fight,
+  moveTarget,
   bag,
   bagMedicineTarget,
   bagMedicineMoveTarget,
@@ -44,6 +46,7 @@ enum BattlePresentationPhase {
 enum BattleCommandOverlayEntryKind {
   root,
   move,
+  target,
   bag,
   party,
   medicineTarget,
@@ -158,6 +161,8 @@ class BattleCommandOverlayHudSnapshot {
     this.xpTweenDurationMs,
     this.xpTweenRevision = 0,
     this.isRevealed = true,
+    this.slot,
+    this.combatantId = '',
   });
 
   /// BETA-BAT-028 : la barre d'info est-elle entrée en scène ?
@@ -169,6 +174,11 @@ class BattleCommandOverlayHudSnapshot {
   final bool isRevealed;
 
   final Rect rect;
+  final BattleSlotRef? slot;
+  final String combatantId;
+  BattleSlotRef get effectiveSlot => slot ?? BattleSlotRef.active(
+    isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
+  );
   final String ownerLabel;
   final String speciesLabel;
   final int level;
@@ -218,6 +228,8 @@ class BattleCommandOverlayHudSnapshot {
     }
     return other is BattleCommandOverlayHudSnapshot &&
         other.rect == rect &&
+        other.slot == slot &&
+        other.combatantId == combatantId &&
         other.ownerLabel == ownerLabel &&
         other.speciesLabel == speciesLabel &&
         other.level == level &&
@@ -241,7 +253,7 @@ class BattleCommandOverlayHudSnapshot {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
         rect,
         ownerLabel,
         speciesLabel,
@@ -260,7 +272,9 @@ class BattleCommandOverlayHudSnapshot {
         experienceProgressTarget,
         xpTweenDurationMs,
         xpTweenRevision,
-      );
+        slot,
+        combatantId,
+      ]);
 }
 
 class BattleCommandOverlaySnapshot {
@@ -280,6 +294,9 @@ class BattleCommandOverlaySnapshot {
     required this.entries,
     required this.interactionsEnabled,
     required this.canGoBack,
+    this.additionalHuds = const [],
+    this.actorSlot,
+    this.actorCombatantId,
   });
 
   /// Identifiant monotone d'une version visible de la présentation.
@@ -294,6 +311,11 @@ class BattleCommandOverlaySnapshot {
   final Rect panelRect;
   final BattleCommandOverlayHudSnapshot enemyHud;
   final BattleCommandOverlayHudSnapshot playerHud;
+  final List<BattleCommandOverlayHudSnapshot> additionalHuds;
+  final BattleSlotRef? actorSlot;
+  final String? actorCombatantId;
+  List<BattleCommandOverlayHudSnapshot> get combatantHuds =>
+      [enemyHud, playerHud, ...additionalHuds];
   final String battleLabel;
   final String title;
   final String prompt;
@@ -316,6 +338,9 @@ class BattleCommandOverlaySnapshot {
         other.panelRect == panelRect &&
         other.enemyHud == enemyHud &&
         other.playerHud == playerHud &&
+        listEquals(other.additionalHuds, additionalHuds) &&
+        other.actorSlot == actorSlot &&
+        other.actorCombatantId == actorCombatantId &&
         other.battleLabel == battleLabel &&
         other.title == title &&
         other.prompt == prompt &&
@@ -326,7 +351,7 @@ class BattleCommandOverlaySnapshot {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
         revision,
         phase,
         forcedReplacement,
@@ -342,7 +367,10 @@ class BattleCommandOverlaySnapshot {
         Object.hashAll(entries),
         interactionsEnabled,
         canGoBack,
-      );
+        Object.hashAll(additionalHuds),
+        actorSlot,
+        actorCombatantId,
+      ]);
 }
 
 /// Commande fermée envoyée par la présentation Flutter au runtime.

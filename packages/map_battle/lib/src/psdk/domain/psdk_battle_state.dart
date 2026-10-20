@@ -58,8 +58,8 @@ class PsdkBattleState {
 
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
     final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
-      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(setup.player),
-      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(setup.opponent),
+      for (final entry in setup.combatants.entries)
+        entry.key: PsdkBattleCombatant.fromSetup(entry.value),
     };
     return PsdkBattleState(
       ruleset: setup.ruleset,
@@ -75,6 +75,7 @@ class PsdkBattleState {
         ],
       },
       field: setup.field,
+      playerParticipantPartyIndexes: setup.isSingles ? const {0} : const {0, 1},
     );
   }
 

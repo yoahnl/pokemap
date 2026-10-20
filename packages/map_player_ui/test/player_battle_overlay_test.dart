@@ -9,6 +9,48 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  for (final viewport in const [Size(390, 844), Size(844, 390)]) {
+    testWidgets('doubles Player renders four HUDs and forwards target authority at $viewport', (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+      final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
+      final width = (viewport.width * .44).clamp(0.0, 198.0);
+      BattleCommandOverlayHudSnapshot hud(String name, bool player, int row) => BattleCommandOverlayHudSnapshot(
+        rect: Rect.fromLTWH(player ? viewport.width - width - 8 : 8,
+          player ? layout.commandPanelRect.top - 8 - (2 - row) * 68 : 8 + row * 68, width, 64),
+        ownerLabel: player ? 'Joueur' : 'Dresseur', speciesLabel: name, combatantId: name,
+        level: 20, currentHp: 30, maxHp: 40, isPlayerSide: player,
+        experienceProgress: player ? .25 : null,
+      );
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(tester, onCommand: commands.add,
+        snapshot: BattleCommandOverlaySnapshot(
+          revision: 32, mode: BattleCommandOverlayMode.moveTarget,
+          viewportSize: viewport, panelRect: layout.commandPanelRect,
+          playerHud: hud('Pico', true, 0), enemyHud: hud('Roca', false, 0),
+          additionalHuds: [hud('Mousse', true, 1), hud('Flamme', false, 1)],
+          battleLabel: 'Combat double', title: 'Cible', prompt: 'Choisis une cible pour Mousse.',
+          narrationLines: const [], interactionsEnabled: true, canGoBack: true,
+          entries: const [BattleCommandOverlayEntry(
+            index: 1, kind: BattleCommandOverlayEntryKind.target, primaryLabel: 'Flamme',
+            secondaryLabel: 'Nv. 20', enabled: true, selected: true,
+            tone: BattleCommandOverlayEntryTone.attack,
+          )],
+        ),
+      );
+      expect(find.text('Pico'), findsOneWidget);
+      expect(find.text('Mousse'), findsOneWidget);
+      expect(find.text('Roca'), findsOneWidget);
+      expect(find.text('Flamme'), findsNWidgets(2));
+      await tester.tap(find.byKey(const ValueKey<String>('battle-entry-1')));
+      expect(commands.single, isA<BattleSelectEntryCommand>()
+        .having((command) => command.entryIndex, 'target index', 1)
+        .having((command) => command.snapshotRevision, 'revision', 32)
+        .having((command) => command.expectedMode, 'mode', BattleCommandOverlayMode.moveTarget));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final viewport in const [Size(390, 844), Size(960, 540)]) {
     testWidgets('PP move targeting keeps slots and disabled full moves at $viewport', (tester) async {
       addTearDown(() => tester.binding.setSurfaceSize(null));

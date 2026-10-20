@@ -1,6 +1,4 @@
-import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_setup.dart';
-import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import 'battle_bank.dart';
 import 'battle_battler.dart';
@@ -25,20 +23,7 @@ final class BattleTopology {
   }
 
   factory BattleTopology.fromPsdkSetup(PsdkBattleSetup setup) {
-    return BattleTopology(
-      banks: <BattleBank>[
-        _bankFromPsdkSetup(
-          bank: psdkPlayerSlot.bank,
-          position: psdkPlayerSlot.position,
-          setup: setup.player,
-        ),
-        _bankFromPsdkSetup(
-          bank: psdkOpponentSlot.bank,
-          position: psdkOpponentSlot.position,
-          setup: setup.opponent,
-        ),
-      ],
-    );
+    return BattleTopology.fromPsdkState(PsdkBattleState.fromSetup(setup));
   }
 
   factory BattleTopology.fromPsdkState(PsdkBattleState state) {
@@ -59,7 +44,9 @@ final class BattleTopology {
         bank: slot.bank,
         position: slot.position,
         partyId: slot.bank,
-        partyIndex: slot.position,
+        partyIndex: state
+            .partyForBank(slot.bank)
+            .indexWhere((member) => member.id == entry.value.id),
         combatant: entry.value,
       );
       slotsByBank
@@ -76,7 +63,24 @@ final class BattleTopology {
           index: bankIndex,
           slots: slotsByBank[bankIndex]!,
           parties: <BattleParty>[
-            BattleParty(id: bankIndex, battlers: battlersByBank[bankIndex]!),
+            BattleParty(
+              id: bankIndex,
+              battlers: [
+                for (var index = 0;
+                    index < state.partyForBank(bankIndex).length;
+                    index++)
+                  battlersByBank[bankIndex]!
+                          .where((battler) => battler.partyIndex == index)
+                          .firstOrNull ??
+                      BattleBattler.fromPsdkCombatant(
+                        bank: bankIndex,
+                        position: -1,
+                        partyId: bankIndex,
+                        partyIndex: index,
+                        combatant: state.partyForBank(bankIndex)[index],
+                      ),
+              ],
+            ),
           ],
         ),
     ]..sort(
@@ -175,27 +179,4 @@ final class BattleTopology {
 
 bool _isAdjacentPosition(BattleBattler user, BattleBattler target) {
   return (target.position - user.position).abs() <= 1;
-}
-
-BattleBank _bankFromPsdkSetup({
-  required int bank,
-  required int position,
-  required PsdkBattleCombatantSetup setup,
-}) {
-  final battler = BattleBattler.fromPsdkSetup(
-    bank: bank,
-    position: position,
-    partyId: bank,
-    partyIndex: 0,
-    setup: setup,
-  );
-  return BattleBank(
-    index: bank,
-    slots: <BattleSlot>[
-      BattleSlot(position: position, activeBattler: battler),
-    ],
-    parties: <BattleParty>[
-      BattleParty(id: bank, battlers: <BattleBattler>[battler]),
-    ],
-  );
 }

@@ -19,6 +19,7 @@ import '../models/moving_platform.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/project_presentation_profile.dart';
+import '../models/pokemon_ruleset_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
 import '../operations/trainer_pokemon_stats.dart';
@@ -2341,6 +2342,28 @@ class ProjectValidator {
         .toSet();
     for (final trainer in manifest.trainers) {
       _validateTrainerBattleItems(trainer);
+      if (trainer.battleFormat == BattleFormat.doubles) {
+        if (trainer.team.length < 2 || trainer.team.length > 6) {
+          throw ValidationException(
+            'Double trainer ${trainer.id} requires two to six Pokemon.',
+            code: 'trainer.double_team_size_invalid',
+          );
+        }
+        if (trainer.tags.contains('static-encounter')) {
+          throw ValidationException(
+            'Static encounter trainer ${trainer.id} cannot use doubles.',
+            code: 'trainer.static_double_unsupported',
+          );
+        }
+        if (manifest.pokemon.ruleset.mechanics.disabledFeatures.contains(
+          PokemonDisabledFeature.doubleBattles,
+        )) {
+          throw ValidationException(
+            'Double trainer ${trainer.id} requires the Standard ruleset.',
+            code: 'trainer.battle_format_feature_disabled',
+          );
+        }
+      }
       final id = trainer.id.trim();
       if (id.isEmpty) {
         throw const ValidationException('Trainer ID cannot be empty');

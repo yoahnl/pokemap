@@ -211,7 +211,9 @@ final class SpawnFxStep extends BattleAnimationStep {
   const SpawnFxStep({
     required this.effectId,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.from,
     required this.to,
     required this.durationSeconds,
@@ -231,7 +233,11 @@ final class SpawnFxStep extends BattleAnimationStep {
 
   final String effectId;
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final BattleVisualAnchor from;
   final BattleVisualAnchor to;
   final double durationSeconds;
@@ -273,7 +279,9 @@ final class PlaySpriteSheetFxStep extends BattleAnimationStep {
   const PlaySpriteSheetFxStep({
     required this.assetId,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.anchor,
     required this.frameWidth,
     required this.frameHeight,
@@ -293,7 +301,11 @@ final class PlaySpriteSheetFxStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final BattleVisualAnchor anchor;
   final int frameWidth;
   final int frameHeight;
@@ -326,12 +338,15 @@ final class SpriteSheetOnCombatantStep extends BattleAnimationStep {
   const SpriteSheetOnCombatantStep({
     required this.assetId,
     required this.side,
+    this.slotIndex = 0,
     required this.frameWidth,
     required this.frameHeight,
     required this.frameCount,
     required this.frameDurationSeconds,
     this.attackerSide,
+    this.attackerSlotIndex = 0,
     this.defenderSide,
+    this.defenderSlotIndex = 0,
     this.columns,
     this.originX,
     this.originY,
@@ -346,8 +361,14 @@ final class SpriteSheetOnCombatantStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final BattleSideId? attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef? get attackerSlot => attackerSide == null ? null : BattleSlotRef(side: attackerSide!, slotIndex: attackerSlotIndex);
   final BattleSideId? defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef? get defenderSlot => defenderSide == null ? null : BattleSlotRef(side: defenderSide!, slotIndex: defenderSlotIndex);
   final int frameWidth;
   final int frameHeight;
   final int frameCount;
@@ -379,8 +400,11 @@ final class PlayRmxpAnimationStep extends BattleAnimationStep {
   const PlayRmxpAnimationStep({
     required this.animationId,
     required this.subjectSide,
+    this.subjectSlotIndex = 0,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.phase,
     required this.placementSpec,
     this.sdkMoveId,
@@ -390,8 +414,14 @@ final class PlayRmxpAnimationStep extends BattleAnimationStep {
 
   final int animationId;
   final BattleSideId subjectSide;
+  final int subjectSlotIndex;
+  BattleSlotRef get subjectSlot => BattleSlotRef(side: subjectSide, slotIndex: subjectSlotIndex);
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final RmxpPlacementPhase phase;
   final RmxpPlacementSpec placementSpec;
   final String? sdkMoveId;
@@ -408,6 +438,7 @@ final class ParticleBurstStep extends BattleAnimationStep {
   const ParticleBurstStep({
     required this.assetId,
     required this.side,
+    this.slotIndex = 0,
     required this.anchor,
     required this.particleCount,
     required this.durationSeconds,
@@ -422,6 +453,8 @@ final class ParticleBurstStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final BattleVisualAnchor anchor;
   final int particleCount;
   final double durationSeconds;
@@ -437,13 +470,19 @@ final class ParticleBurstStep extends BattleAnimationStep {
 final class PlaySdkParticleSequenceStep extends BattleAnimationStep {
   const PlaySdkParticleSequenceStep({
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.particles,
     required this.durationSeconds,
   });
 
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final List<SdkParticleSpec> particles;
   final double durationSeconds;
 }
@@ -490,7 +529,9 @@ final class SdkFallingParticlesStep extends BattleAnimationStep {
   const SdkFallingParticlesStep({
     required this.assetId,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.anchor,
     required this.particleCount,
     required this.durationSeconds,
@@ -510,7 +551,11 @@ final class SdkFallingParticlesStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final BattleVisualAnchor anchor;
   final int particleCount;
   final double durationSeconds;
@@ -532,7 +577,9 @@ final class SdkRadiusParticleStep extends BattleAnimationStep {
   const SdkRadiusParticleStep({
     required this.assetId,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.anchor,
     required this.particleCount,
     required this.startRadiusPx,
@@ -549,7 +596,11 @@ final class SdkRadiusParticleStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final BattleVisualAnchor anchor;
   final int particleCount;
   final double startRadiusPx;
@@ -568,7 +619,9 @@ final class SdkScalarParticleStep extends BattleAnimationStep {
   const SdkScalarParticleStep({
     required this.assetId,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.anchor,
     required this.startScaleX,
     required this.startScaleY,
@@ -588,7 +641,11 @@ final class SdkScalarParticleStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final BattleVisualAnchor anchor;
   final double startScaleX;
   final double startScaleY;
@@ -610,7 +667,9 @@ final class SdkParticleZoomStep extends BattleAnimationStep {
   const SdkParticleZoomStep({
     required this.assetId,
     required this.attackerSide,
+    this.attackerSlotIndex = 0,
     required this.defenderSide,
+    this.defenderSlotIndex = 0,
     required this.anchor,
     required this.startScale,
     required this.endScale,
@@ -626,7 +685,11 @@ final class SdkParticleZoomStep extends BattleAnimationStep {
 
   final String assetId;
   final BattleSideId attackerSide;
+  final int attackerSlotIndex;
+  BattleSlotRef get attackerSlot => BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
   final BattleSideId defenderSide;
+  final int defenderSlotIndex;
+  BattleSlotRef get defenderSlot => BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
   final BattleVisualAnchor anchor;
   final double startScale;
   final double endScale;
@@ -657,12 +720,15 @@ final class WeatherParticleStep extends BattleAnimationStep {
 final class CombatantMotionStep extends BattleAnimationStep {
   const CombatantMotionStep({
     required this.side,
+    this.slotIndex = 0,
     required this.motionKind,
     required this.durationSeconds,
     this.distancePx = 0,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final BattleCombatantMotionKind motionKind;
   final double durationSeconds;
   final double distancePx;
@@ -689,21 +755,27 @@ final class PlaySeStep extends BattleAnimationStep {
 final class CombatantFlashStep extends BattleAnimationStep {
   const CombatantFlashStep({
     required this.side,
+    this.slotIndex = 0,
     required this.durationSeconds,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final double durationSeconds;
 }
 
 final class CombatantShakeStep extends BattleAnimationStep {
   const CombatantShakeStep({
     required this.side,
+    this.slotIndex = 0,
     required this.amplitudePx,
     required this.durationSeconds,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final double amplitudePx;
   final double durationSeconds;
 }
@@ -711,11 +783,14 @@ final class CombatantShakeStep extends BattleAnimationStep {
 final class CombatantToneStep extends BattleAnimationStep {
   const CombatantToneStep({
     required this.side,
+    this.slotIndex = 0,
     required this.colorArgb,
     required this.durationSeconds,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final int colorArgb;
   final double durationSeconds;
 }
@@ -723,6 +798,7 @@ final class CombatantToneStep extends BattleAnimationStep {
 final class CombatantCompressStep extends BattleAnimationStep {
   const CombatantCompressStep({
     required this.side,
+    this.slotIndex = 0,
     required this.scaleX,
     required this.scaleY,
     required this.durationSeconds,
@@ -730,6 +806,8 @@ final class CombatantCompressStep extends BattleAnimationStep {
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final double scaleX;
   final double scaleY;
   final double durationSeconds;
@@ -739,6 +817,7 @@ final class CombatantCompressStep extends BattleAnimationStep {
 final class CombatantEllipseStep extends BattleAnimationStep {
   const CombatantEllipseStep({
     required this.side,
+    this.slotIndex = 0,
     required this.radiusX,
     required this.radiusY,
     required this.turns,
@@ -746,6 +825,8 @@ final class CombatantEllipseStep extends BattleAnimationStep {
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final double radiusX;
   final double radiusY;
   final int turns;
@@ -789,22 +870,28 @@ final class BattleCameraResetStep extends BattleAnimationStep {
 final class FaintCombatantStep extends BattleAnimationStep {
   const FaintCombatantStep({
     required this.side,
+    this.slotIndex = 0,
     required this.durationSeconds,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final double durationSeconds;
 }
 
 final class HudHpTweenStep extends BattleAnimationStep {
   const HudHpTweenStep({
     required this.side,
+    this.slotIndex = 0,
     required this.fromHp,
     required this.toHp,
     this.durationMs = 320,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final int fromHp;
   final int toHp;
   final int durationMs;
@@ -822,11 +909,14 @@ final class HudHpTweenStep extends BattleAnimationStep {
 final class PlayBallSequenceStep extends BattleAnimationStep {
   const PlayBallSequenceStep({
     required this.side,
+    this.slotIndex = 0,
     required this.kind,
     this.ballItemId,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final BattleBallSequenceKind kind;
   final String? ballItemId;
 
@@ -924,11 +1014,14 @@ final class ShowTeamInfoStep extends BattleAnimationStep {
 final class StatStageAuraStep extends BattleAnimationStep {
   const StatStageAuraStep({
     required this.side,
+    this.slotIndex = 0,
     required this.isRise,
     this.durationSeconds = 1.5,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final bool isRise;
   final double durationSeconds;
 
@@ -990,20 +1083,28 @@ final class HudXpTweenStep extends BattleAnimationStep {
 final class SwapCombatantVisualStep extends BattleAnimationStep {
   const SwapCombatantVisualStep({
     required this.side,
+    this.slotIndex = 0,
+    this.initialHp,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  final int? initialHp;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
 }
 
 final class BarrierPulseStep extends BattleAnimationStep {
   const BarrierPulseStep({
     required this.side,
+    this.slotIndex = 0,
     required this.colorArgb,
     required this.durationSeconds,
     this.style = BattleBarrierStyle.protect,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final int colorArgb;
   final double durationSeconds;
   final BattleBarrierStyle style;

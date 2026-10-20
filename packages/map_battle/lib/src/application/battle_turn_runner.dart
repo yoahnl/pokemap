@@ -59,11 +59,6 @@ final class BattleEngineTurnResult {
   final BattleEngineDecisionRequest? nextRequest;
 }
 
-/// Executes exactly one PSDK-style singles turn against a mutable context.
-///
-/// Lot 4 intentionally keeps this runner small and explicit. It is the seam
-/// where later PSDK actions, handlers and effects will replace the temporary
-/// action construction below without changing the public [BattleEngine] API.
 final class BattleTurnRunner {
   BattleTurnRunner(
     this._context, {
@@ -92,8 +87,9 @@ final class BattleTurnRunner {
   /// A forced replacement is not a voluntary switch action: it must not
   /// increment the turn, enqueue an opponent action, or run end-turn effects.
   BattleEngineTurnResult replaceFaintedPlayer(
-    BattleSwitchDecision decision,
-  ) {
+    BattleSwitchDecision decision, {
+    PsdkBattleSlotRef actor = psdkPlayerSlot,
+  }) {
     final previousState = _context.state;
     final previousRng = _context.rng;
     final previousTurnNumber = _context.turnNumber;
@@ -102,7 +98,7 @@ final class BattleTurnRunner {
     try {
       final switched = _resolveSwitchAction(
         PsdkBattleSwitchAction(
-          user: psdkPlayerSlot,
+          user: actor,
           partyIndex: decision.partyIndex,
         ),
       );
@@ -119,8 +115,8 @@ final class BattleTurnRunner {
       timeline.add(
         BattleSwitchOutTimelineEvent(
           turn: _context.turnNumber,
-          battler: _fromPsdkSlot(psdkPlayerSlot),
-          speciesId: _context.state.battlerAt(psdkPlayerSlot).speciesId,
+          battler: _fromPsdkSlot(actor),
+          speciesId: _context.state.battlerAt(actor).speciesId,
         ),
       );
       _context.applyStateAndRng(
@@ -131,8 +127,8 @@ final class BattleTurnRunner {
         ..add(
           BattleSwitchInTimelineEvent(
             turn: _context.turnNumber,
-            battler: _fromPsdkSlot(psdkPlayerSlot),
-            speciesId: _context.state.battlerAt(psdkPlayerSlot).speciesId,
+            battler: _fromPsdkSlot(actor),
+            speciesId: _context.state.battlerAt(actor).speciesId,
           ),
         )
         ..addPsdkAll(switched.events);
@@ -163,6 +159,12 @@ final class BattleTurnRunner {
   }
 
   BattleEngineTurnResult run(BattleDecision playerDecision) {
+    return runChoices({psdkPlayerSlot: playerDecision});
+  }
+
+  BattleEngineTurnResult runChoices(
+    Map<PsdkBattleSlotRef, BattleDecision> playerChoices,
+  ) {
     if (!_context.canBattleContinue) {
       return BattleEngineTurnResult(
         state: BattlePublicState.fromContext(_context),
@@ -177,18 +179,33 @@ final class BattleTurnRunner {
     final previousTurnNumber = _context.turnNumber;
 
     const actionMapper = PsdkBattleActionDecisionMapper();
+    final opponentChoices = <PsdkBattleSlotRef, BattleDecision>{};
+    final reserved = <int>{};
+    final itemQuantities = _opponentItemQuantities == null
+        ? null
+        : Map<String, int>.of(_opponentItemQuantities!);
+    for (final user
+        in _context.state.aliveSlots().where((slot) => slot.bank == 1)) {
+      final decision = _opponentDecision(user, reserved, itemQuantities);
+      opponentChoices[user] = decision;
+      if (decision is BattleSwitchDecision) {
+        reserved.add(decision.partyIndex);
+      }
+      if (decision is BattleItemDecision &&
+          itemQuantities != null &&
+          decision.consumeItem) {
+        itemQuantities[decision.itemId] =
+            (itemQuantities[decision.itemId] ?? 0) - 1;
+      }
+    }
     final ordered = PsdkBattleActionQueue(
       actions: <PsdkBattleAction>[
-        actionMapper.map(
-          state: _context.state,
-          user: psdkPlayerSlot,
-          decision: playerDecision,
-        ),
-        actionMapper.map(
-          state: _context.state,
-          user: psdkOpponentSlot,
-          decision: _opponentDecision(),
-        ),
+        for (final choice in {...playerChoices, ...opponentChoices}.entries)
+          actionMapper.map(
+            state: _context.state,
+            user: choice.key,
+            decision: choice.value,
+          ),
       ],
     ).ordered(
       rng: _context.rng,
@@ -197,6 +214,10 @@ final class BattleTurnRunner {
     );
     _requireEnabledFeatures(ordered.actions);
     var actions = ordered.actions;
+    final actorIds = {
+      for (final action in actions)
+        action.user: _context.state.battlerAt(action.user).id,
+    };
 
     _context.beginTurn();
     final timeline = BattleTimelineBuilder()
@@ -217,6 +238,9 @@ final class BattleTurnRunner {
 
       for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
         final action = actions[actionIndex];
+        if (_context.state.battlerAt(action.user).id != actorIds[action.user]) {
+          continue;
+        }
         if (action is PsdkBattleCaptureAction) {
           final capture = const BattleCaptureActionHandler().attempt(
             context: _context,
@@ -241,10 +265,12 @@ final class BattleTurnRunner {
         }
         if (action is PsdkBattleItemAction) {
           final item = _resolveItemAction(action);
-          if (action.user == psdkPlayerSlot && !item.applied) {
+          if (_context.setup.isSingles &&
+              action.user.bank == 0 &&
+              !item.applied) {
             throw BattleDecisionRejectedError(
               requestKind: BattleEngineDecisionRequestKind.turnChoice,
-              decision: playerDecision,
+              decision: playerChoices[action.user]!,
             );
           }
           _context.applyStateAndRng(
@@ -284,10 +310,28 @@ final class BattleTurnRunner {
         }
         if (action is PsdkBattleSwitchAction) {
           final switched = _resolveSwitchAction(action);
+          if (switched.applied) {
+            timeline.add(
+              BattleSwitchOutTimelineEvent(
+                turn: _context.turnNumber,
+                battler: _fromPsdkSlot(action.user),
+                speciesId: _context.state.battlerAt(action.user).speciesId,
+              ),
+            );
+          }
           _context.applyStateAndRng(
             nextState: switched.state,
             nextRng: switched.rng,
           );
+          if (switched.applied) {
+            timeline.add(
+              BattleSwitchInTimelineEvent(
+                turn: _context.turnNumber,
+                battler: _fromPsdkSlot(action.user),
+                speciesId: _context.state.battlerAt(action.user).speciesId,
+              ),
+            );
+          }
           timeline.addPsdkAll(switched.events);
           final outcome = _context.resolveOutcome();
           if (outcome != null) {
@@ -308,17 +352,12 @@ final class BattleTurnRunner {
         }
 
         final user = _context.state.battlerAt(action.user);
-        final target = _context.state.battlerAt(action.target);
         final usesSyntheticStruggle =
             action.moveSlot == canonicalStruggleMoveSlot &&
                 action.move.id == canonicalStruggleMoveId;
         final moveBeforePp =
             usesSyntheticStruggle ? action.move : user.moves[action.moveSlot];
-        final moveAllowsFaintedOriginalTarget =
-            moveBeforePp.battleEngineMethod == 's_dragon_darts';
-        if (user.isFainted ||
-            user.switching ||
-            (target.isFainted && !moveAllowsFaintedOriginalTarget)) {
+        if (user.isFainted || user.switching) {
           continue;
         }
 
@@ -636,6 +675,16 @@ final class BattleTurnRunner {
           break;
         }
       }
+      if (_context.canBattleContinue) {
+        final endTurn = _resolveEndTurn();
+        timeline.addPsdkAll(endTurn.events);
+        _resolveAutomaticOpponentFaintReplacements(timeline);
+        final outcome = _context.resolveOutcome();
+        if (outcome != null) {
+          _context.finish(outcome);
+          timeline.add(BattleEndedTimelineEvent(outcome: outcome));
+        }
+      }
     } catch (_) {
       // Lot 4 keeps turn submission atomic from the public engine boundary.
       // Unknown PSDK handlers must fail loudly, but they must not leave behind
@@ -648,16 +697,6 @@ final class BattleTurnRunner {
       rethrow;
     }
 
-    if (_context.canBattleContinue) {
-      final endTurn = _resolveEndTurn();
-      timeline.addPsdkAll(endTurn.events);
-      _resolveAutomaticOpponentFaintReplacements(timeline);
-      final outcome = _context.resolveOutcome();
-      if (outcome != null) {
-        _context.finish(outcome);
-        timeline.add(BattleEndedTimelineEvent(outcome: outcome));
-      }
-    }
     final publicState = BattlePublicState.fromContext(_context);
     return BattleEngineTurnResult(
       state: publicState,
@@ -689,10 +728,14 @@ final class BattleTurnRunner {
     }
   }
 
-  BattleDecision _opponentDecision() {
+  BattleDecision _opponentDecision(
+    PsdkBattleSlotRef user,
+    Set<int> reservedPartyIndexes,
+    Map<String, int>? itemQuantities,
+  ) {
     final ai = _opponentAi;
     if (ai == null) {
-      final moves = _context.state.battlerAt(psdkOpponentSlot).moves;
+      final moves = _context.state.battlerAt(user).moves;
       for (var moveSlot = 0; moveSlot < moves.length; moveSlot += 1) {
         if (moves[moveSlot].hasUsablePp) {
           return BattleDecision.fight(moveSlot: moveSlot);
@@ -704,9 +747,14 @@ final class BattleTurnRunner {
     }
     return ai.chooseDecision(
       state: _context.state,
-      user: psdkOpponentSlot,
-      target: psdkPlayerSlot,
-      remainingItemQuantities: _opponentItemQuantities,
+      user: user,
+      target: _context.state
+              .foesOf(user)
+              .where((slot) => slot.position == user.position)
+              .firstOrNull ??
+          _context.state.foesOf(user).first,
+      remainingItemQuantities: itemQuantities,
+      reservedPartyIndexes: reservedPartyIndexes,
     );
   }
 
@@ -814,58 +862,64 @@ final class BattleTurnRunner {
     const switchHandler = BattleSwitchHandler();
     final attemptedReplacementKeys = <String>{};
 
-    while (_context.canBattleContinue) {
-      final active = _context.state.battlerAt(psdkOpponentSlot);
-      if (!active.isFainted) {
-        return;
-      }
+    final slots = _context.state.combatants.keys
+        .where((slot) => slot.bank == 1)
+        .toList()
+      ..sort((left, right) => left.position.compareTo(right.position));
+    for (final slot in slots) {
+      while (_context.canBattleContinue) {
+        final active = _context.state.battlerAt(slot);
+        if (!active.isFainted) {
+          break;
+        }
 
-      final partyIndex = _firstAvailableReplacementPartyIndex(
-        state: _context.state,
-        slot: psdkOpponentSlot,
-      );
-      if (partyIndex == null) {
-        return;
-      }
-
-      final replacementKey = '${active.id}:$partyIndex';
-      if (!attemptedReplacementKeys.add(replacementKey)) {
-        return;
-      }
-
-      final switched = switchHandler.switchCombatant(
-        context: BattleHandlerContext(
+        final partyIndex = _firstAvailableReplacementPartyIndex(
           state: _context.state,
-          rng: _context.rng,
-          turn: _context.turnNumber,
-          user: psdkOpponentSlot,
-        ),
-        target: psdkOpponentSlot,
-        partyIndex: partyIndex,
-      );
-      if (!switched.applied) {
-        return;
-      }
+          slot: slot,
+        );
+        if (partyIndex == null) {
+          break;
+        }
 
-      timeline.add(
-        BattleSwitchOutTimelineEvent(
-          turn: _context.turnNumber,
-          battler: _fromPsdkSlot(psdkOpponentSlot),
-          speciesId: _context.state.battlerAt(psdkOpponentSlot).speciesId,
-        ),
-      );
-      _context.applyStateAndRng(
-        nextState: switched.state,
-        nextRng: switched.rng,
-      );
-      timeline.add(
-        BattleSwitchInTimelineEvent(
-          turn: _context.turnNumber,
-          battler: _fromPsdkSlot(psdkOpponentSlot),
-          speciesId: _context.state.battlerAt(psdkOpponentSlot).speciesId,
-        ),
-      );
-      timeline.addPsdkAll(switched.events);
+        final replacementKey = '${slot.position}:${active.id}:$partyIndex';
+        if (!attemptedReplacementKeys.add(replacementKey)) {
+          break;
+        }
+
+        final switched = switchHandler.switchCombatant(
+          context: BattleHandlerContext(
+            state: _context.state,
+            rng: _context.rng,
+            turn: _context.turnNumber,
+            user: slot,
+          ),
+          target: slot,
+          partyIndex: partyIndex,
+        );
+        if (!switched.applied) {
+          break;
+        }
+
+        timeline.add(
+          BattleSwitchOutTimelineEvent(
+            turn: _context.turnNumber,
+            battler: _fromPsdkSlot(slot),
+            speciesId: _context.state.battlerAt(slot).speciesId,
+          ),
+        );
+        _context.applyStateAndRng(
+          nextState: switched.state,
+          nextRng: switched.rng,
+        );
+        timeline.add(
+          BattleSwitchInTimelineEvent(
+            turn: _context.turnNumber,
+            battler: _fromPsdkSlot(slot),
+            speciesId: _context.state.battlerAt(slot).speciesId,
+          ),
+        );
+        timeline.addPsdkAll(switched.events);
+      }
     }
   }
 
@@ -1153,8 +1207,7 @@ final class BattleTurnRunner {
         continue;
       }
       final user = _context.state.battlerAt(action.user);
-      final target = _context.state.battlerAt(action.target);
-      if (!user.isFainted && !target.isFainted) {
+      if (!user.isFainted && !user.switching) {
         return true;
       }
     }
@@ -1172,8 +1225,7 @@ final class BattleTurnRunner {
         continue;
       }
       final user = _context.state.battlerAt(action.user);
-      final target = _context.state.battlerAt(action.target);
-      if (user.isFainted || target.isFainted) {
+      if (user.isFainted || user.switching) {
         return null;
       }
       return BattleAnnouncedMove(

@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_combat_list.dart';
 import 'pokemon_combat_table_detail.dart';
 import 'pokemon_combat_trainer_detail.dart';
@@ -171,6 +172,23 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
               );
         return Column(
           children: [
+            StudioSelect(
+              key: const ValueKey('combat-project-ruleset'),
+              label: 'Règles du projet',
+              value: snapshot.project.pokemon.ruleset.profileId,
+              options: const {
+                'pokemap-beta-v1': 'Classique · combats simples',
+                'pokemap-standard-v1': 'Standard · combats simples et doubles',
+              },
+              onChanged: combat.operationActive || combat.dirty
+                  ? null
+                  : (value) => combat.setRuleset(
+                      value == PokemonRulesetProfile.standardProfileId
+                          ? PokemonRulesetProfile.standardV1
+                          : PokemonRulesetProfile.pokeMapBetaV1,
+                    ),
+            ),
+            const SizedBox(height: 12),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(

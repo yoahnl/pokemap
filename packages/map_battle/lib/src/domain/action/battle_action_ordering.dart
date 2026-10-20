@@ -35,6 +35,37 @@ final class PsdkBattleActionOrdering {
       nextRng = tie.nextRng;
       tieOrder[indexed[0].action.user] = tie.firstActsFirst ? 0 : 1;
       tieOrder[indexed[1].action.user] = tie.firstActsFirst ? 1 : 0;
+    } else {
+      final groups = <String, List<PsdkBattleFightAction>>{};
+      for (final action in actions.whereType<PsdkBattleFightAction>()) {
+        groups
+            .putIfAbsent(
+                '${_bucket(action)}:${_movePriority(action)}:${_speed(action)}',
+                () => [])
+            .add(action);
+      }
+      for (final group in groups.values.where((group) => group.length > 1)) {
+        if (group.length == 2) {
+          final tie = rules.resolvePsdkSpeedTie(nextRng);
+          nextRng = tie.nextRng;
+          if (!tie.firstActsFirst) {
+            final first = group[0];
+            group[0] = group[1];
+            group[1] = first;
+          }
+        } else {
+          for (var index = group.length - 1; index > 0; index--) {
+            final roll = nextRng.generic.nextIntInclusive(min: 0, max: index);
+            nextRng = nextRng.copyWith(generic: roll.next);
+            final previous = group[index];
+            group[index] = group[roll.value];
+            group[roll.value] = previous;
+          }
+        }
+        for (var index = 0; index < group.length; index++) {
+          tieOrder[group[index].user] = index;
+        }
+      }
     }
 
     indexed.sort((left, right) {

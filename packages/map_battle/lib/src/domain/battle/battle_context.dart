@@ -126,6 +126,8 @@ final class BattlePublicState {
   Map<PsdkBattleSlotRef, PsdkBattleCombatant> get combatants =>
       _state.combatants;
 
+  List<PsdkBattleCombatant> partyForBank(int bank) => _state.partyForBank(bank);
+
   Set<int> get playerParticipantPartyIndexes =>
       _state.playerParticipantPartyIndexes;
 

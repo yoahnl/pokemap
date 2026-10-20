@@ -10,6 +10,11 @@ final class PokemonCombatSnapshot {
 abstract interface class PokemonCombatPort {
   Future<PokemonCombatSnapshot> load();
 
+  Future<void> setRuleset(
+    PokemonRulesetProfile before,
+    PokemonRulesetProfile after,
+  );
+
   Future<void> saveTable(
     ProjectEncounterTable? before,
     ProjectEncounterTable after,

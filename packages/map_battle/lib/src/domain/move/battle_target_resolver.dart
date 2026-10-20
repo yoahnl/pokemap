@@ -1,6 +1,7 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../battle/battle_slot.dart';
 import 'battle_move_execution.dart';
 
@@ -29,6 +30,7 @@ final class BattleTargetResolver {
           user: user,
           candidates: state.adjacentFoesOf(user),
           targets: _requestedOrFirst(
+            state: state,
             requested: requestedSlot,
             candidates: state.adjacentFoesOf(user),
             fallback: psdkSinglesFoeOf(user),
@@ -39,15 +41,18 @@ final class BattleTargetResolver {
           user: user,
           candidates: state.foesOf(user),
           targets: _requestedOrFirst(
+            state: state,
             requested: requestedSlot,
             candidates: state.foesOf(user),
           ),
         ),
       PsdkBattleMoveTarget.adjacentAlly => _requestedOrFirst(
+          state: state,
           requested: requestedSlot,
           candidates: state.alliesOf(user),
         ),
       PsdkBattleMoveTarget.adjacentAllyOrSelf => _requestedOrFirst(
+          state: state,
           requested: requestedSlot,
           candidates: <PsdkBattleSlotRef>[
             user,
@@ -145,14 +150,23 @@ List<PsdkBattleSlotRef> _randomOne({
 }
 
 List<PsdkBattleSlotRef> _requestedOrFirst({
+  required PsdkBattleState state,
   required PsdkBattleSlotRef? requested,
   required List<PsdkBattleSlotRef> candidates,
   PsdkBattleSlotRef? fallback,
 }) {
   if (requested != null) {
-    return candidates.contains(requested)
-        ? <PsdkBattleSlotRef>[requested]
-        : const <PsdkBattleSlotRef>[];
+    if (candidates.contains(requested)) {
+      return [requested];
+    }
+    if (state.combatants[requested]?.isFainted == true) {
+      final replacement =
+          candidates.where((slot) => slot.bank == requested.bank).firstOrNull;
+      if (replacement != null) {
+        return [replacement];
+      }
+    }
+    return const [];
   }
   if (candidates.isNotEmpty) {
     return <PsdkBattleSlotRef>[candidates.first];

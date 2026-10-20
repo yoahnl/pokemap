@@ -195,6 +195,23 @@ double _mod1Multiplier(BattleMoveDamageContext context, String moveType) {
   multiplier *= _burnMod1Multiplier(context);
   multiplier *= _weatherMod1Multiplier(context, moveType);
   multiplier *= _terrainMod1Multiplier(context, moveType);
+  final state = context.state;
+  final target = context.targetSlot;
+  final spread = switch (context.move.target) {
+    PsdkBattleMoveTarget.allAdjacent ||
+    PsdkBattleMoveTarget.allAdjacentFoes ||
+    PsdkBattleMoveTarget.allFoes ||
+    PsdkBattleMoveTarget.allBattlers ||
+    PsdkBattleMoveTarget.allAllies =>
+      true,
+    _ => false,
+  };
+  if (state != null &&
+      target != null &&
+      spread &&
+      state.alliesOf(target).isNotEmpty) {
+    multiplier *= 0.75;
+  }
   return multiplier;
 }
 

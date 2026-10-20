@@ -29,6 +29,17 @@ final class LocalPokemonCombatAdapter implements PokemonCombatPort {
   }
 
   @override
+  Future<void> setRuleset(
+    PokemonRulesetProfile before,
+    PokemonRulesetProfile after,
+  ) => _change(
+    current: (snapshot) => snapshot.manifest.pokemon.ruleset.toJson(),
+    before: before.toJson(),
+    action: 'pokemon.ruleset.set',
+    parameters: {'profile': after.toJson()},
+  );
+
+  @override
   Future<void> saveTable(
     ProjectEncounterTable? before,
     ProjectEncounterTable after,

@@ -26,6 +26,7 @@ final class BattleAnimationRunner {
     this.onPlaySe,
     required this.onBarrierPulse,
     required this.onSwapCombatantVisual,
+    this.onSwapCombatantVisualSlot,
     this.onSpriteSheetFx,
     this.onSpriteSheetOnCombatant,
     this.onParticleBurst,
@@ -70,6 +71,7 @@ final class BattleAnimationRunner {
   final void Function(PlaySeStep step)? onPlaySe;
   final void Function(BarrierPulseStep step) onBarrierPulse;
   final void Function(BattleSideId side) onSwapCombatantVisual;
+  final void Function(BattleSlotRef slot)? onSwapCombatantVisualSlot;
   final void Function(PlaySpriteSheetFxStep step)? onSpriteSheetFx;
   final void Function(SpriteSheetOnCombatantStep step)?
       onSpriteSheetOnCombatant;
@@ -620,7 +622,11 @@ final class BattleAnimationRunner {
       case BarrierPulseStep():
         onBarrierPulse(step);
       case SwapCombatantVisualStep(:final side):
-        onSwapCombatantVisual(side);
+        if (onSwapCombatantVisualSlot case final callback?) {
+          callback(step.slot);
+        } else {
+          onSwapCombatantVisual(side);
+        }
       case ShowDefeatedTrainerStep():
         onShowDefeatedTrainer?.call();
       case HudHpTweenStep():

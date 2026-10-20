@@ -1,0 +1,326 @@
+{
+  "fixtureVersion": 1,
+  "betaProfile": {
+    "schemaVersion": 1,
+    "profileId": "pokemap-beta-v1",
+    "typeChartId": "mainline-modern-v1",
+    "maxLevel": 100,
+    "experiencePolicyId": "pokemap-simple-exp-v1",
+    "capturePolicyId": "pokemap-capture-mvp-v1",
+    "moveMachinePolicyId": "authored-consumability-v1",
+    "criticalHitPolicyId": "mainline-gen9-critical",
+    "speedTiePolicyId": "mainline-gen9-seeded-random",
+    "friendshipPolicyId": "mainline-0-255-v1",
+    "evolutionPolicyId": "pokemap-beta-evolution-v1",
+    "disabledFeatures": ["breeding", "double-battles", "modern-gimmicks", "online"]
+  },
+  "standardProfile": {
+    "schemaVersion": 1,
+    "profileId": "pokemap-standard-v1",
+    "typeChartId": "mainline-modern-v1",
+    "maxLevel": 100,
+    "experiencePolicyId": "pokemap-simple-exp-v1",
+    "capturePolicyId": "pokemap-capture-mvp-v1",
+    "moveMachinePolicyId": "authored-consumability-v1",
+    "criticalHitPolicyId": "mainline-gen9-critical",
+    "speedTiePolicyId": "mainline-gen9-seeded-random",
+    "friendshipPolicyId": "mainline-0-255-v1",
+    "evolutionPolicyId": "pokemap-beta-evolution-v1",
+    "disabledFeatures": ["breeding", "modern-gimmicks", "online"]
+  },
+  "project": {
+    "name": "Trainer battle format",
+    "version": "v8",
+    "maps": [
+      {
+        "id": "format-map",
+        "name": "Format map",
+        "relativePath": "maps/format.json"
+      }
+    ],
+    "tilesets": [],
+    "pokemon": {
+      "enabled": false,
+      "ruleset": {
+        "schemaVersion": 1,
+        "profileId": "pokemap-beta-v1",
+        "typeChartId": "mainline-modern-v1",
+        "maxLevel": 100,
+        "experiencePolicyId": "pokemap-simple-exp-v1",
+        "capturePolicyId": "pokemap-capture-mvp-v1",
+        "moveMachinePolicyId": "authored-consumability-v1",
+        "criticalHitPolicyId": "mainline-gen9-critical",
+        "speedTiePolicyId": "mainline-gen9-seeded-random",
+        "friendshipPolicyId": "mainline-0-255-v1",
+        "evolutionPolicyId": "pokemap-beta-evolution-v1",
+        "disabledFeatures": [
+          "breeding",
+          "double-battles",
+          "modern-gimmicks",
+          "online"
+        ]
+      }
+    },
+    "trainers": [
+      {
+        "id": "format-trainer",
+        "name": "Format trainer",
+        "trainerClass": "Trainer",
+        "battleFormat": "singles",
+        "battleDifficulty": 7,
+        "team": [
+          {
+            "speciesId": "bulbasaur",
+            "level": 20,
+            "moves": [
+              "tackle"
+            ]
+          },
+          {
+            "speciesId": "bulbasaur",
+            "level": 21,
+            "moves": [
+              "tackle"
+            ]
+          },
+          {
+            "speciesId": "bulbasaur",
+            "level": 22,
+            "moves": [
+              "tackle"
+            ]
+          },
+          {
+            "speciesId": "bulbasaur",
+            "level": 23,
+            "moves": [
+              "tackle"
+            ]
+          },
+          {
+            "speciesId": "bulbasaur",
+            "level": 24,
+            "moves": [
+              "tackle"
+            ]
+          },
+          {
+            "speciesId": "bulbasaur",
+            "level": 25,
+            "moves": [
+              "tackle"
+            ]
+          }
+        ],
+        "tags": []
+      }
+    ]
+  },
+  "map": {
+    "id": "format-map",
+    "name": "Format map",
+    "version": "v8",
+    "size": {
+      "width": 4,
+      "height": 4
+    },
+    "layers": []
+  },
+  "singles": {
+    "id": "format-trainer",
+    "name": "Format trainer",
+    "trainerClass": "Trainer",
+    "battleFormat": "singles",
+    "battleDifficulty": 7,
+    "team": [
+      {
+        "speciesId": "bulbasaur",
+        "level": 20,
+        "moves": [
+          "tackle"
+        ]
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 21,
+        "moves": [
+          "tackle"
+        ]
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 22,
+        "moves": [
+          "tackle"
+        ]
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 23,
+        "moves": [
+          "tackle"
+        ]
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 24,
+        "moves": [
+          "tackle"
+        ]
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 25,
+        "moves": [
+          "tackle"
+        ]
+      }
+    ],
+    "tags": []
+  },
+  "doubles": {
+    "id": "format-trainer",
+    "name": "Format trainer",
+    "trainerClass": "Trainer",
+    "battleFormat": "doubles",
+    "battleDifficulty": 7,
+    "team": [
+      {
+        "speciesId": "bulbasaur",
+        "level": 20,
+        "moves": [
+          "tackle"
+        ],
+        "natureId": "adamant",
+        "ivs": {
+          "hp": 31,
+          "attack": 30,
+          "defense": 29,
+          "specialAttack": 28,
+          "specialDefense": 27,
+          "speed": 26
+        },
+        "evs": {
+          "hp": 0,
+          "attack": 0,
+          "defense": 0,
+          "specialAttack": 0,
+          "specialDefense": 0,
+          "speed": 0
+        }
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 22,
+        "moves": [
+          "tackle"
+        ]
+      }
+    ],
+    "tags": []
+  },
+  "staticTrainer": {
+    "id": "format-trainer",
+    "name": "Format trainer",
+    "trainerClass": "Trainer",
+    "battleFormat": "doubles",
+    "battleDifficulty": 7,
+    "team": [
+      {
+        "speciesId": "bulbasaur",
+        "level": 20,
+        "moves": [
+          "tackle"
+        ],
+        "natureId": "adamant",
+        "ivs": {
+          "hp": 31,
+          "attack": 30,
+          "defense": 29,
+          "specialAttack": 28,
+          "specialDefense": 27,
+          "speed": 26
+        },
+        "evs": {
+          "hp": 0,
+          "attack": 0,
+          "defense": 0,
+          "specialAttack": 0,
+          "specialDefense": 0,
+          "speed": 0
+        }
+      },
+      {
+        "speciesId": "bulbasaur",
+        "level": 22,
+        "moves": [
+          "tackle"
+        ]
+      }
+    ],
+    "tags": [
+      "static-encounter"
+    ]
+  },
+  "trainerBattlePayload": {
+    "kind": "battle",
+    "battleKind": "trainer",
+    "trainerId": "format-trainer",
+    "declaredOutcomes": [
+      "victory",
+      "defeat"
+    ]
+  },
+  "staticBattlePayload": {
+    "kind": "battle",
+    "battleKind": "static",
+    "trainerId": "format-trainer",
+    "battleTemplateId": "static:format-trainer",
+    "declaredOutcomes": [
+      "victory",
+      "defeat"
+    ]
+  },
+  "invalidFormats": [
+    null,
+    true,
+    2,
+    "single",
+    "double",
+    "triples",
+    ""
+  ],
+  "invalidDoubleTeamSizes": [
+    0,
+    1,
+    7
+  ],
+  "domainCodes": {
+    "invalidFormat": "trainer.battle_format_invalid",
+    "invalidDoubleTeamSize": "trainer.double_team_size_invalid",
+    "staticDoublesUnsupported": "trainer.static_double_unsupported",
+    "featureDisabled": "trainer.battle_format_feature_disabled",
+    "rulesetDowngrade": "pokemon.ruleset.projected_state_invalid",
+    "stalePlan": "plan.stale"
+  },
+  "descriptor": {
+    "field": "value.battleFormat",
+    "values": [
+      "singles",
+      "doubles"
+    ],
+    "default": "singles",
+    "doublesTeamSize": {
+      "min": 2,
+      "max": 6
+    },
+    "requiredProfileForDoubles": "pokemap-standard-v1",
+    "activePerSide": {
+      "singles": 1,
+      "doubles": 2
+    },
+    "trainersPerSide": 1,
+    "selection": "explicit",
+    "staticEncounterDoubles": false
+  }
+}

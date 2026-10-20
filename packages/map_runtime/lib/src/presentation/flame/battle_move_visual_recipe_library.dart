@@ -17,6 +17,8 @@ class BattleMoveVisualRecipeContext {
     required this.damage,
     required this.didHit,
     required this.didCrit,
+    this.attackerSlotIndex = 0,
+    this.targetSlotIndex = 0,
   });
 
   final BattleResolvedMoveVisual resolvedMove;
@@ -27,6 +29,8 @@ class BattleMoveVisualRecipeContext {
   final int? damage;
   final bool didHit;
   final bool didCrit;
+  final int attackerSlotIndex;
+  final int targetSlotIndex;
 }
 
 final class BattleMoveVisualRecipeLibrary {
@@ -88,6 +92,7 @@ final class BattleMoveVisualRecipeLibrary {
       BattleMoveVisualRecipeId.protectBarrier => <BattleAnimationStep>[
           BarrierPulseStep(
             side: ctx.targetSide ?? ctx.attackerSide,
+            slotIndex: ctx.targetSlotIndex,
             colorArgb: 0xAA95E7B9,
             durationSeconds: 0.24,
           ),
@@ -123,7 +128,9 @@ final class BattleMoveVisualRecipeLibrary {
           SpawnFxStep(
             effectId: 'electroball',
             attackerSide: ctx.attackerSide,
+            attackerSlotIndex: ctx.attackerSlotIndex,
             defenderSide: ctx.attackerSide,
+            defenderSlotIndex: ctx.attackerSlotIndex,
             from: BattleVisualAnchor.attackerCenter,
             to: BattleVisualAnchor.attackerCenter,
             durationSeconds: 0.24,
@@ -461,8 +468,11 @@ final class BattleMoveVisualRecipeLibrary {
           animationId: userAnimationId,
           sdkMoveId: ctx.resolvedMove.sdkMoveId,
           subjectSide: ctx.attackerSide,
+          subjectSlotIndex: ctx.attackerSlotIndex,
           attackerSide: ctx.attackerSide,
+          attackerSlotIndex: ctx.attackerSlotIndex,
           defenderSide: defenderSide,
+          defenderSlotIndex: ctx.targetSlotIndex,
           phase: RmxpPlacementPhase.user,
           placementSpec: RmxpMovePlacementCatalog.resolve(
             sdkMoveId: ctx.resolvedMove.sdkMoveId,
@@ -483,8 +493,11 @@ final class BattleMoveVisualRecipeLibrary {
           animationId: targetAnimationId,
           sdkMoveId: ctx.resolvedMove.sdkMoveId,
           subjectSide: defenderSide,
+          subjectSlotIndex: ctx.targetSlotIndex,
           attackerSide: ctx.attackerSide,
+          attackerSlotIndex: ctx.attackerSlotIndex,
           defenderSide: defenderSide,
+          defenderSlotIndex: ctx.targetSlotIndex,
           phase: RmxpPlacementPhase.target,
           placementSpec: RmxpMovePlacementCatalog.resolve(
             sdkMoveId: ctx.resolvedMove.sdkMoveId,
@@ -509,6 +522,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: heavy ? 0.18 : 0.14,
         distancePx: heavy ? 34 : 24,
@@ -516,7 +530,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'impact',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: heavy ? 0.16 : 0.12,
@@ -525,11 +541,13 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.1,
       ),
       if (heavy)
         CombatantShakeStep(
           side: targetSide,
+          slotIndex: ctx.targetSlotIndex,
           amplitudePx: 10,
           durationSeconds: 0.14,
         ),
@@ -542,7 +560,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'leftslash',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderHead,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.14,
@@ -550,6 +570,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.1,
       ),
     ];
@@ -560,6 +581,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.16,
         distancePx: 24,
@@ -575,6 +597,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.09,
       ),
     ];
@@ -585,6 +608,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.16,
         distancePx: 24,
@@ -611,10 +635,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.09,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -630,7 +656,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: effectId,
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: defenderSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.26,
@@ -642,7 +670,9 @@ final class BattleMoveVisualRecipeLibrary {
         SpawnFxStep(
           effectId: 'impact',
           attackerSide: ctx.attackerSide,
+          attackerSlotIndex: ctx.attackerSlotIndex,
           defenderSide: ctx.targetSide!,
+          defenderSlotIndex: ctx.targetSlotIndex,
           from: BattleVisualAnchor.defenderCenter,
           to: BattleVisualAnchor.defenderCenter,
           durationSeconds: 0.12,
@@ -652,6 +682,7 @@ final class BattleMoveVisualRecipeLibrary {
       steps.add(
         CombatantFlashStep(
           side: ctx.targetSide!,
+          slotIndex: ctx.targetSlotIndex,
           durationSeconds: 0.1,
         ),
       );
@@ -664,7 +695,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'shine',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: ctx.attackerSide,
+        defenderSlotIndex: ctx.attackerSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.22,
@@ -683,7 +716,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'angry',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderHead,
         to: BattleVisualAnchor.defenderHead,
         durationSeconds: 0.22,
@@ -691,6 +726,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.14,
       ),
@@ -703,7 +739,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.2,
@@ -711,6 +749,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -733,7 +772,9 @@ final class BattleMoveVisualRecipeLibrary {
       PlaySpriteSheetFxStep(
         assetId: assetId,
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.defenderCenter,
         frameWidth: spec.frameWidth,
         frameHeight: spec.frameHeight,
@@ -763,7 +804,9 @@ final class BattleMoveVisualRecipeLibrary {
       PlaySpriteSheetFxStep(
         assetId: assetId,
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: ctx.targetSide ?? ctx.attackerSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.attackerCenter,
         frameWidth: spec.frameWidth,
         frameHeight: spec.frameHeight,
@@ -793,7 +836,9 @@ final class BattleMoveVisualRecipeLibrary {
             ? 'hand_front_left'
             : 'hand_front_right',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.defenderHead,
         offsetX: ctx.attackerSide == BattleSideId.player ? -16 : 16,
         offsetY: -48,
@@ -810,6 +855,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantCompressStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         scaleX: 0.2,
         scaleY: -0.6,
         durationSeconds: 0.30,
@@ -817,7 +863,9 @@ final class BattleMoveVisualRecipeLibrary {
       SdkFallingParticlesStep(
         assetId: 'circle_particle',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.defenderCenter,
         particleCount: 18,
         durationSeconds: 0.34,
@@ -848,7 +896,9 @@ final class BattleMoveVisualRecipeLibrary {
             SdkScalarParticleStep(
               assetId: 'seed',
               attackerSide: ctx.attackerSide,
+              attackerSlotIndex: ctx.attackerSlotIndex,
               defenderSide: targetSide,
+              defenderSlotIndex: ctx.targetSlotIndex,
               anchor: BattleVisualAnchor.attackerHead,
               offsetX: -12 + ((i % 3) * 12),
               offsetY: -10 + ((i % 2) * 8),
@@ -872,7 +922,9 @@ final class BattleMoveVisualRecipeLibrary {
             SdkParticleZoomStep(
               assetId: 'seed_growth',
               attackerSide: ctx.attackerSide,
+              attackerSlotIndex: ctx.attackerSlotIndex,
               defenderSide: targetSide,
+              defenderSlotIndex: ctx.targetSlotIndex,
               anchor: BattleVisualAnchor.defenderCenter,
               offsetX: entry.offset,
               offsetY: 16,
@@ -902,7 +954,9 @@ final class BattleMoveVisualRecipeLibrary {
       SdkFallingParticlesStep(
         assetId: 'circle_blurry_m_2',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.defenderHead,
         particleCount: 24,
         durationSeconds: 0.82,
@@ -919,11 +973,13 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantToneStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         colorArgb: colorArgb,
         durationSeconds: 1.00,
       ),
       CombatantCompressStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         scaleX: -0.2,
         scaleY: 0.2,
         durationSeconds: 0.75,
@@ -943,6 +999,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantCompressStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         scaleX: 0.15,
         scaleY: -0.4,
         durationSeconds: 0.30,
@@ -953,7 +1010,9 @@ final class BattleMoveVisualRecipeLibrary {
           SdkRadiusParticleStep(
             assetId: 'circle_blurry_m_2',
             attackerSide: ctx.attackerSide,
+            attackerSlotIndex: ctx.attackerSlotIndex,
             defenderSide: ctx.targetSide ?? ctx.attackerSide,
+            defenderSlotIndex: ctx.targetSlotIndex,
             anchor: BattleVisualAnchor.attackerCenter,
             particleCount: 18,
             startRadiusPx: 18,
@@ -967,7 +1026,9 @@ final class BattleMoveVisualRecipeLibrary {
           SdkRadiusParticleStep(
             assetId: 'star_4_ring_l',
             attackerSide: ctx.attackerSide,
+            attackerSlotIndex: ctx.attackerSlotIndex,
             defenderSide: ctx.targetSide ?? ctx.attackerSide,
+            defenderSlotIndex: ctx.targetSlotIndex,
             anchor: BattleVisualAnchor.attackerHead,
             particleCount: 10,
             startRadiusPx: 14,
@@ -981,7 +1042,9 @@ final class BattleMoveVisualRecipeLibrary {
           SdkParticleZoomStep(
             assetId: 'star_4_ring_l',
             attackerSide: ctx.attackerSide,
+            attackerSlotIndex: ctx.attackerSlotIndex,
             defenderSide: ctx.targetSide ?? ctx.attackerSide,
+            defenderSlotIndex: ctx.targetSlotIndex,
             anchor: BattleVisualAnchor.attackerHead,
             offsetY: -12,
             startScale: 0.25,
@@ -1002,6 +1065,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantEllipseStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         radiusX: ctx.attackerSide == BattleSideId.player ? 18 : 11,
         radiusY: ctx.attackerSide == BattleSideId.player ? 9 : -5,
         turns: 2,
@@ -1020,7 +1084,9 @@ final class BattleMoveVisualRecipeLibrary {
       PlaySpriteSheetFxStep(
         assetId: 'thunder_02',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.defenderCenter,
         frameWidth: thunder.frameWidth,
         frameHeight: thunder.frameHeight,
@@ -1053,16 +1119,19 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.22,
         distancePx: 30,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -1076,6 +1145,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.22,
         distancePx: 28,
@@ -1083,7 +1153,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'rightslash',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderHead,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.18,
@@ -1093,10 +1165,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -1111,7 +1185,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.26,
@@ -1124,7 +1200,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.30,
@@ -1138,16 +1216,19 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.30,
         distancePx: 42,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.12,
       ),
@@ -1161,6 +1242,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.40,
         distancePx: 40,
@@ -1182,10 +1264,12 @@ final class BattleMoveVisualRecipeLibrary {
       const WaitStep(durationSeconds: 0.05),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -1199,6 +1283,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.16,
         distancePx: 30,
@@ -1244,10 +1329,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -1261,6 +1348,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 34,
@@ -1343,10 +1431,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.18,
       ),
@@ -1360,6 +1450,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.22,
         distancePx: 38,
@@ -1401,10 +1492,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -1418,6 +1511,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.28,
         distancePx: 54,
@@ -1449,10 +1543,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 11,
         durationSeconds: 0.16,
       ),
@@ -1466,6 +1562,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 34,
@@ -1496,10 +1593,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -1513,6 +1612,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.20,
         distancePx: 38,
@@ -1552,10 +1652,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.15,
       ),
@@ -1621,10 +1723,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -1739,10 +1843,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.12,
       ),
@@ -1866,10 +1972,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.16,
       ),
@@ -1946,10 +2054,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.14,
       ),
@@ -2050,10 +2160,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.16,
       ),
@@ -2094,6 +2206,7 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     );
@@ -2173,10 +2286,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -2222,12 +2337,14 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     );
     steps.add(
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -2275,6 +2392,7 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     );
@@ -2317,6 +2435,7 @@ final class BattleMoveVisualRecipeLibrary {
     final steps = <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.12,
       ),
@@ -2360,6 +2479,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -2427,6 +2547,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.12,
       ),
@@ -2440,6 +2561,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.12,
       ),
@@ -2488,6 +2610,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -2546,6 +2669,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -2596,6 +2720,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.16,
       ),
@@ -2686,6 +2811,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.16,
       ),
@@ -2723,7 +2849,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'poisonwisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.30,
@@ -2739,7 +2867,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.30,
@@ -2762,6 +2892,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.28,
         distancePx: 44,
@@ -2783,10 +2914,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -2799,6 +2932,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.16,
       ),
@@ -2857,6 +2991,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.40,
       ),
@@ -2873,6 +3008,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.18,
       ),
@@ -3120,6 +3256,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       BarrierPulseStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         colorArgb: colorArgb,
         durationSeconds: 0.28,
         style: style,
@@ -3168,6 +3305,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 5,
         durationSeconds: 0.12,
       ),
@@ -3216,6 +3354,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.16,
       ),
@@ -3275,7 +3414,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'waterwisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.18,
@@ -3306,16 +3447,19 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.30,
         distancePx: 42,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -3357,6 +3501,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.34,
         distancePx: 48,
@@ -3410,10 +3555,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.18,
       ),
@@ -3427,6 +3574,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.28,
         distancePx: 38,
@@ -3452,6 +3600,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -3468,6 +3617,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.24,
         distancePx: 34,
@@ -3506,6 +3656,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -3522,6 +3673,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.30,
         distancePx: 42,
@@ -3558,10 +3710,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -3578,7 +3732,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'electroball',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.22,
@@ -3591,7 +3747,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'electroball',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.24,
@@ -3604,7 +3762,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'electroball',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.26,
@@ -3628,6 +3788,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 28,
@@ -3677,10 +3838,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -3694,6 +3857,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.22,
         distancePx: 32,
@@ -3722,6 +3886,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -3734,6 +3899,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 32,
@@ -3758,10 +3924,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -3818,6 +3986,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.12,
       ),
@@ -3903,6 +4072,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -4023,6 +4193,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.26,
         distancePx: 46,
@@ -4039,10 +4210,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -4146,6 +4319,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -4244,6 +4418,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -4319,6 +4494,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -4357,6 +4533,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -4408,10 +4585,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -4538,6 +4717,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.24,
         distancePx: 34,
@@ -4577,10 +4757,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -4594,6 +4776,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 28,
@@ -4621,10 +4804,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -4707,12 +4892,14 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     );
     steps.add(
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.16,
       ),
@@ -4747,10 +4934,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -4772,6 +4961,7 @@ final class BattleMoveVisualRecipeLibrary {
         ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.24,
         distancePx: 36,
@@ -4836,12 +5026,14 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     );
     steps.add(
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -4856,6 +5048,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.14,
         distancePx: 24,
@@ -4884,10 +5077,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -4956,6 +5151,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5012,16 +5208,19 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 28,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -5068,16 +5267,19 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.30,
         distancePx: 44,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.16,
       ),
@@ -5116,16 +5318,19 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.30,
         distancePx: 44,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.16,
       ),
@@ -5139,6 +5344,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.26,
         distancePx: 40,
@@ -5192,6 +5398,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5208,6 +5415,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.28,
         distancePx: 40,
@@ -5224,10 +5432,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.14,
       ),
@@ -5241,6 +5451,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.14,
         distancePx: 22,
@@ -5269,6 +5480,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5285,6 +5497,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 26,
@@ -5321,10 +5534,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.14,
       ),
@@ -5375,10 +5590,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -5428,6 +5645,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5478,10 +5696,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.12,
       ),
@@ -5527,6 +5747,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5539,6 +5760,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.20,
         distancePx: 30,
@@ -5564,6 +5786,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5592,6 +5815,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.12,
       ),
@@ -5610,6 +5834,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.12,
       ),
@@ -5653,6 +5878,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5708,10 +5934,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -5729,6 +5957,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.20,
         distancePx: 28,
@@ -5768,6 +5997,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5784,6 +6014,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.30,
         distancePx: 44,
@@ -5799,10 +6030,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.12,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 12,
         durationSeconds: 0.16,
       ),
@@ -5840,6 +6073,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.16,
         distancePx: 24,
@@ -5855,6 +6089,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5877,6 +6112,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.20,
         distancePx: 30,
@@ -5913,6 +6149,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -5962,10 +6199,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -5979,6 +6218,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.18,
         distancePx: 28,
@@ -6003,6 +6243,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6015,6 +6256,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.22,
         distancePx: 34,
@@ -6050,6 +6292,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6089,6 +6332,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6128,6 +6372,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6177,6 +6422,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6224,6 +6470,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6274,6 +6521,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6324,6 +6572,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -6364,6 +6613,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.14,
       ),
@@ -6415,6 +6665,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.12,
       ),
@@ -6460,6 +6711,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.12,
       ),
@@ -6521,6 +6773,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -6748,6 +7001,7 @@ final class BattleMoveVisualRecipeLibrary {
         ),
       CombatantFlashStep(
         side: ctx.targetSide ?? ctx.attackerSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -6831,6 +7085,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 32,
@@ -6847,10 +7102,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -6972,7 +7229,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.40,
@@ -6987,7 +7246,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.40,
@@ -7003,7 +7264,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.40,
@@ -7018,7 +7281,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'wisp',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.40,
@@ -7138,10 +7403,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -7198,10 +7465,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.16,
       ),
@@ -7256,10 +7525,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.18,
       ),
@@ -7365,6 +7636,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -7377,6 +7649,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.32,
         distancePx: 40,
@@ -7417,10 +7690,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.16,
       ),
@@ -7535,6 +7810,7 @@ final class BattleMoveVisualRecipeLibrary {
       ...accentSteps,
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 28,
@@ -7567,10 +7843,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -7646,6 +7924,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -7663,7 +7942,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'flareball',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.screenCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.24,
@@ -7681,7 +7962,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'flareball',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.screenCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.24,
@@ -7700,7 +7983,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'flareball',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.screenCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.24,
@@ -7718,7 +8003,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'rock3',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.screenCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.22,
@@ -7736,7 +8023,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'rock3',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.screenCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.22,
@@ -7755,7 +8044,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'rock3',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.screenCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.22,
@@ -7785,10 +8076,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -7805,6 +8098,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.20,
       ),
@@ -7872,6 +8166,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.20,
       ),
@@ -7932,6 +8227,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.18,
       ),
@@ -8067,6 +8363,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.12,
       ),
@@ -8150,10 +8447,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.16,
       ),
@@ -8167,6 +8466,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.14,
         distancePx: 90,
@@ -8195,10 +8495,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -8244,10 +8546,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -8303,6 +8607,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -8356,15 +8661,18 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.14,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.14,
       ),
@@ -8378,6 +8686,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.12,
         distancePx: 90,
@@ -8431,10 +8740,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -8495,6 +8806,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -8597,10 +8909,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.16,
       ),
@@ -8726,6 +9040,7 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.24,
       ),
@@ -9071,6 +9386,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.16,
       ),
@@ -9124,13 +9440,16 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 5,
         durationSeconds: 0.14,
       ),
       SpawnFxStep(
         effectId: 'pointer',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: ctx.attackerSide,
+        defenderSlotIndex: ctx.attackerSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.attackerCenter,
         durationSeconds: 0.22,
@@ -9160,6 +9479,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 5,
         durationSeconds: 0.16,
       ),
@@ -9284,10 +9604,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -9340,10 +9662,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 10,
         durationSeconds: 0.16,
       ),
@@ -9493,10 +9817,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -9547,6 +9873,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -9640,6 +9967,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -10079,6 +10407,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 34,
@@ -10111,6 +10440,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       const WaitStep(durationSeconds: 0.05),
@@ -10821,10 +11151,12 @@ final class BattleMoveVisualRecipeLibrary {
       const WaitStep(durationSeconds: 0.08),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -10909,6 +11241,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.20,
         distancePx: 36,
@@ -10925,10 +11258,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 9,
         durationSeconds: 0.16,
       ),
@@ -11054,7 +11389,9 @@ final class BattleMoveVisualRecipeLibrary {
     return SpawnFxStep(
       effectId: effectId,
       attackerSide: ctx.attackerSide,
+      attackerSlotIndex: ctx.attackerSlotIndex,
       defenderSide: targetSide,
+      defenderSlotIndex: ctx.targetSlotIndex,
       from: BattleVisualAnchor.attackerCenter,
       to: BattleVisualAnchor.attackerCenter,
       durationSeconds: durationSeconds,
@@ -11079,7 +11416,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: effectId,
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: ctx.targetSide ?? ctx.attackerSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.attackerCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.24,
@@ -11112,7 +11451,9 @@ final class BattleMoveVisualRecipeLibrary {
     return SpawnFxStep(
       effectId: effectId,
       attackerSide: ctx.attackerSide,
+      attackerSlotIndex: ctx.attackerSlotIndex,
       defenderSide: targetSide,
+      defenderSlotIndex: ctx.targetSlotIndex,
       from: from,
       to: to,
       durationSeconds: durationSeconds,
@@ -11153,7 +11494,9 @@ final class BattleMoveVisualRecipeLibrary {
     return SpawnFxStep(
       effectId: effectId,
       attackerSide: ctx.attackerSide,
+      attackerSlotIndex: ctx.attackerSlotIndex,
       defenderSide: ctx.attackerSide,
+      defenderSlotIndex: ctx.attackerSlotIndex,
       from: from,
       to: to,
       durationSeconds: durationSeconds,
@@ -11195,7 +11538,9 @@ final class BattleMoveVisualRecipeLibrary {
     return SpawnFxStep(
       effectId: effectId,
       attackerSide: ctx.attackerSide,
+      attackerSlotIndex: ctx.attackerSlotIndex,
       defenderSide: targetSide,
+      defenderSlotIndex: ctx.targetSlotIndex,
       from: from,
       to: to,
       durationSeconds: durationSeconds,
@@ -11237,7 +11582,9 @@ final class BattleMoveVisualRecipeLibrary {
     return SpawnFxStep(
       effectId: effectId,
       attackerSide: ctx.attackerSide,
+      attackerSlotIndex: ctx.attackerSlotIndex,
       defenderSide: targetSide,
+      defenderSlotIndex: ctx.targetSlotIndex,
       from: from,
       to: to,
       durationSeconds: durationSeconds,
@@ -11462,6 +11809,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -11505,6 +11853,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
     ];
@@ -11623,6 +11972,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.12,
       ),
@@ -11689,10 +12039,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.14,
       ),
@@ -11855,6 +12207,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -11915,6 +12268,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -12065,6 +12419,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.18,
         distancePx: 28,
@@ -12106,10 +12461,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -12123,6 +12480,7 @@ final class BattleMoveVisualRecipeLibrary {
     return <BattleAnimationStep>[
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.fastDash,
         durationSeconds: 0.18,
         distancePx: 28,
@@ -12165,10 +12523,12 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -12258,6 +12618,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
     ];
@@ -12312,6 +12673,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 7,
         durationSeconds: 0.16,
       ),
@@ -12331,7 +12693,9 @@ final class BattleMoveVisualRecipeLibrary {
       PlaySpriteSheetFxStep(
         assetId: 'thunder_02',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         anchor: BattleVisualAnchor.defenderCenter,
         frameWidth: thunder.frameWidth,
         frameHeight: thunder.frameHeight,
@@ -12362,11 +12726,13 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantToneStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         colorArgb: 0xCCFFF06A,
         durationSeconds: 0.18,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 4,
         durationSeconds: 0.12,
       ),
@@ -12454,6 +12820,7 @@ final class BattleMoveVisualRecipeLibrary {
       ),
       CombatantShakeStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         amplitudePx: 5,
         durationSeconds: 0.18,
       ),
@@ -12519,7 +12886,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'tatsugiri',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.30,
@@ -12534,7 +12903,9 @@ final class BattleMoveVisualRecipeLibrary {
       SpawnFxStep(
         effectId: 'tatsugiri',
         attackerSide: ctx.attackerSide,
+        attackerSlotIndex: ctx.attackerSlotIndex,
         defenderSide: targetSide,
+        defenderSlotIndex: ctx.targetSlotIndex,
         from: BattleVisualAnchor.defenderCenter,
         to: BattleVisualAnchor.defenderCenter,
         durationSeconds: 0.60,
@@ -12572,16 +12943,19 @@ final class BattleMoveVisualRecipeLibrary {
       const WaitStep(durationSeconds: 0.04),
       CombatantMotionStep(
         side: ctx.attackerSide,
+        slotIndex: ctx.attackerSlotIndex,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: 0.18,
         distancePx: 24,
       ),
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.10,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -12706,10 +13080,12 @@ final class BattleMoveVisualRecipeLibrary {
     steps.addAll(<BattleAnimationStep>[
       CombatantFlashStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         durationSeconds: 0.08,
       ),
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 8,
         durationSeconds: 0.12,
       ),
@@ -12772,6 +13148,7 @@ final class BattleMoveVisualRecipeLibrary {
     steps.add(
       CombatantShakeStep(
         side: targetSide,
+        slotIndex: ctx.targetSlotIndex,
         amplitudePx: 6,
         durationSeconds: 0.12,
       ),

@@ -2,11 +2,43 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('doubles companion transport retains four slots and the current actor', () {
+    BattleCommandOverlayHudSnapshot hud(BattleSideId side, int index) =>
+        BattleCommandOverlayHudSnapshot(
+          rect: Rect.fromLTWH(index * 100, 0, 90, 60),
+          ownerLabel: side.name, speciesLabel: '${side.name}$index',
+          combatantId: '${side.name}-$index',
+          slot: BattleSlotRef(side: side, slotIndex: index),
+          level: 20, currentHp: 30, maxHp: 40,
+          isPlayerSide: side == BattleSideId.player,
+        );
+    final source = BattleCommandOverlaySnapshot(
+      revision: 31, mode: BattleCommandOverlayMode.moveTarget,
+      viewportSize: const Size(390, 844),
+      panelRect: const Rect.fromLTWH(0, 600, 390, 244),
+      enemyHud: hud(BattleSideId.enemy, 0), playerHud: hud(BattleSideId.player, 0),
+      additionalHuds: [hud(BattleSideId.player, 1), hud(BattleSideId.enemy, 1)],
+      actorSlot: const BattleSlotRef(side: BattleSideId.player, slotIndex: 1),
+      actorCombatantId: 'player-1', battleLabel: 'Doubles', title: 'Cible',
+      prompt: 'Choisis une cible.', narrationLines: const [], entries: const [],
+      interactionsEnabled: true, canGoBack: true,
+    );
+    final payload = jsonDecode(jsonEncode(
+      RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(source),
+    )) as Map<String, dynamic>;
+    final decoded = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(payload);
+    expect(decoded, source);
+    expect(decoded.combatantHuds.map((hud) => hud.effectiveSlot).toSet(), hasLength(4));
+    expect(decoded.actorSlot, const BattleSlotRef(side: BattleSideId.player, slotIndex: 1));
+    expect(decoded.actorCombatantId, 'player-1');
+  });
+
   test('world bag command crosses transport without a Pokemon target', () {
     final command = RuntimeCompanionPresentationCodec.decodePlayerCommand({
       'action': RuntimePlayerAction.useBagItem.name,

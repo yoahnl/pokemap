@@ -92,6 +92,7 @@ final class PsdkBattleAi {
     required PsdkBattleSlotRef user,
     required PsdkBattleSlotRef target,
     Map<String, int>? remainingItemQuantities,
+    Set<int> reservedPartyIndexes = const {},
   }) {
     final itemDecision = canUseItem
         ? _chooseItemDecision(
@@ -115,6 +116,7 @@ final class PsdkBattleAi {
             user: user,
             target: target,
             activeChoice: activeChoice,
+            reservedPartyIndexes: reservedPartyIndexes,
           )
         : null;
     if (switchDecision != null) {
@@ -130,7 +132,15 @@ final class PsdkBattleAi {
           ? const BattleDecision.noAction()
           : const BattleDecision.struggle();
     }
-    return BattleDecision.fight(moveSlot: activeChoice.moveSlot);
+    return BattleDecision.fight(
+      moveSlot: activeChoice.moveSlot,
+      target: switch (activeChoice.move.target) {
+        PsdkBattleMoveTarget.adjacentFoe ||
+        PsdkBattleMoveTarget.anyFoe =>
+          target,
+        _ => null,
+      },
+    );
   }
 
   BattleItemDecision? _chooseItemDecision({
@@ -170,8 +180,8 @@ final class PsdkBattleAi {
     required PsdkBattleSlotRef user,
     required PsdkBattleSlotRef target,
     required PsdkBattleAiMoveChoice? activeChoice,
+    required Set<int> reservedPartyIndexes,
   }) {
-    final active = state.battlerAt(user);
     final activeScore = activeChoice?.score.value ?? 0.0;
     final party = state.partyForBank(user.bank);
     PsdkMoveScore? bestReserveScore;
@@ -179,7 +189,10 @@ final class PsdkBattleAi {
 
     for (var partyIndex = 0; partyIndex < party.length; partyIndex += 1) {
       final candidate = party[partyIndex];
-      if (candidate.id == active.id || candidate.isFainted) {
+      if (candidate.isFainted ||
+          reservedPartyIndexes.contains(partyIndex) ||
+          state.combatants.entries.any((entry) =>
+              entry.key.bank == user.bank && entry.value.id == candidate.id)) {
         continue;
       }
       final candidateScore = _bestMoveScoreForBattler(

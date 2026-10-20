@@ -186,7 +186,7 @@ void main() {
         itemCapabilityResolver: ItemCapabilityResolver(_catalog),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) => fail('PP selection must not choose an attack'),
-        onBagMovePpItemUseRequested: (_, _, slot) {
+        onBagMovePpItemUseRequested: (_, _, slot, {request}) {
           selected = slot;
           return true;
         },

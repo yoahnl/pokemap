@@ -41,6 +41,66 @@ void main() {
       expect(mechanics.maxLevel, 100);
     });
 
+    test(
+      'standard profile enables only doubles with the same rule policies',
+      () {
+        final json = PokemonRulesetProfile.pokeMapBetaV1.toJson()
+          ..['profileId'] = 'pokemap-standard-v1'
+          ..['disabledFeatures'] = ['breeding', 'modern-gimmicks', 'online'];
+        final standard = PokemonRulesetProfile.fromJson(json);
+        final beta = PokemonRulesetProfile.pokeMapBetaV1.mechanics;
+        final mechanics = standard.mechanics;
+
+        expect(standard.toJson(), json);
+        expect(
+          mechanics.reference,
+          const PokemonRulesetReference(
+            profileId: 'pokemap-standard-v1',
+            schemaVersion: 1,
+          ),
+        );
+        expect(
+          mechanics.disabledFeatures,
+          beta.disabledFeatures.difference({
+            PokemonDisabledFeature.doubleBattles,
+          }),
+        );
+        expect(mechanics.typeChart, beta.typeChart);
+        expect(mechanics.maxLevel, beta.maxLevel);
+        expect(mechanics.experience, beta.experience);
+        expect(mechanics.capture, beta.capture);
+        expect(mechanics.moveMachine, beta.moveMachine);
+        expect(mechanics.criticalHit, beta.criticalHit);
+        expect(mechanics.speedTie, beta.speedTie);
+        expect(mechanics.friendship, beta.friendship);
+        expect(mechanics.evolution, beta.evolution);
+      },
+    );
+
+    test(
+      'beta cannot silently enable doubles by forging disabled features',
+      () {
+        final json = PokemonRulesetProfile.pokeMapBetaV1.toJson()
+          ..['disabledFeatures'] = ['breeding', 'modern-gimmicks', 'online'];
+
+        expect(
+          () => PokemonRulesetProfile.fromJson(json),
+          throwsFormatException,
+        );
+        expect(
+          PokemonRulesetProfile.pokeMapBetaV1.mechanics.disabledFeatures,
+          contains(PokemonDisabledFeature.doubleBattles),
+        );
+      },
+    );
+
+    test('standard cannot declare a different disabled feature contract', () {
+      final json = PokemonRulesetProfile.pokeMapBetaV1.toJson()
+        ..['profileId'] = 'pokemap-standard-v1';
+
+      expect(() => PokemonRulesetProfile.fromJson(json), throwsFormatException);
+    });
+
     test('a new project config writes the explicit beta profile', () {
       const config = ProjectPokemonConfig(
         ruleset: PokemonRulesetProfile.pokeMapBetaV1,

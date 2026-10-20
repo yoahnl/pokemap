@@ -60,7 +60,54 @@ class BattlePartyMenuModel {
 
 BattlePartyMenuModel buildBattlePartyMenuModel({
   required BattleSession session,
+  BattleEngineDecisionRequest? engineRequest,
+  List<BattleCombatant>? playerParty,
+  Iterable<int> activeLineupIndexes = const [],
 }) {
+  if (engineRequest != null && playerParty != null) {
+    final activeIndexes = activeLineupIndexes.toSet();
+    final mode = engineRequest.kind == BattleEngineDecisionRequestKind.forcedReplacement
+        ? BattlePartyMenuMode.forcedReplacement
+        : engineRequest.switchChoices.isEmpty
+            ? BattlePartyMenuMode.unavailable
+            : BattlePartyMenuMode.voluntarySwitch;
+    final actor = session.state.player;
+    BattlePartyMenuEntry entry(BattleCombatant combatant, int visualIndex) {
+      final choiceIndex = engineRequest.switchChoices.indexWhere(
+        (choice) => playerParty[choice.partyIndex].lineupIndex == combatant.lineupIndex,
+      );
+      final active = activeIndexes.contains(combatant.lineupIndex);
+      final allowed = choiceIndex >= 0 && !active;
+      return BattlePartyMenuEntry(
+        visualIndex: visualIndex,
+        reserveIndex: allowed ? choiceIndex : null,
+        speciesId: combatant.speciesId,
+        level: combatant.level,
+        currentHp: combatant.currentHp,
+        maxHp: combatant.maxHp,
+        isActive: active,
+        isFainted: combatant.isFainted,
+        isSelectable: allowed,
+        disabledReason: allowed ? null : active
+            ? BattlePartyMenuDisabledReason.activePokemon
+            : combatant.isFainted ? BattlePartyMenuDisabledReason.fainted
+            : BattlePartyMenuDisabledReason.notAllowedByCurrentRequest,
+        playerChoice: allowed ? PlayerBattleChoiceSwitch(choiceIndex) : null,
+      );
+    }
+    final activeEntry = entry(actor, 0);
+    final reserves = <BattlePartyMenuEntry>[
+      for (final combatant in playerParty)
+        if (combatant.lineupIndex != actor.lineupIndex)
+          entry(combatant, 1 + playerParty.indexOf(combatant)),
+    ];
+    return BattlePartyMenuModel(
+      mode: mode,
+      activeEntry: activeEntry,
+      reserveEntries: List.unmodifiable(reserves),
+      allEntries: List.unmodifiable([activeEntry, ...reserves]),
+    );
+  }
   final request = session.decisionRequest;
   final mode = _modeForRequest(request);
   final allowedSwitchChoices = <int, PlayerBattleChoiceSwitch>{

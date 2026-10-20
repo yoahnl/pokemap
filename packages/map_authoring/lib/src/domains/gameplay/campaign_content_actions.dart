@@ -335,6 +335,17 @@ AuthoringActionDescriptor _descriptor(
       requiredPermissions: const [AuthoringPermission.projectWrite],
       extensions: id == 'campaign.trainer.upsert'
           ? {
+              'trainerBattleFormat': {
+                'field': 'value.battleFormat',
+                'values': ['singles', 'doubles'],
+                'default': 'singles',
+                'doublesTeamSize': {'min': 2, 'max': 6},
+                'requiredProfileForDoubles': 'pokemap-standard-v1',
+                'activePerSide': {'singles': 1, 'doubles': 2},
+                'trainersPerSide': 1,
+                'selection': 'explicit',
+                'staticEncounterDoubles': false,
+              },
               'trainerPokemonStats': {
                 'fields': [
                   'value.team[].natureId',
@@ -407,6 +418,16 @@ Object _decode(CampaignContentKind kind, Map<String, dynamic> json) =>
     };
 
 ProjectTrainerEntry _trainerFromJson(Map<String, dynamic> json) {
+  if (json.containsKey('battleFormat')) {
+    try {
+      BattleFormat.fromJson(json['battleFormat']);
+    } on FormatException {
+      throw ValidationException(
+        'Trainer battleFormat must be singles or doubles.',
+        code: 'trainer.battle_format_invalid',
+      );
+    }
+  }
   final team = json['team'];
   if (team is List) {
     for (var i = 0; i < team.length; i++) {

@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
+import '../../application/runtime_battle_presentation.dart';
 import '../../infrastructure/runtime_ui_image.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_bag_menu_model.dart';
@@ -495,6 +496,8 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
+    this.onPlayerDecision,
+    RuntimeBattlePresentation? presentation,
     this.onBagHpHealItemUseRequested,
     this.onBagMovePpItemUseRequested,
     this.medicineBattleState,
@@ -525,6 +528,7 @@ class BattleOverlayComponent extends PositionComponent {
     bool allowMedicineReserveTargets = true,
     Map<int, double> playerExperienceProgressByLineupIndex = const {},
   })  : _session = session,
+        _battlePresentation = presentation,
         _gameState = gameState,
         _itemCapabilityResolver = itemCapabilityResolver ??
             ItemCapabilityResolver(ItemCatalogSnapshot.empty()),
@@ -551,6 +555,27 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   BattleSession _session;
+  RuntimeBattlePresentation? _battlePresentation;
+  RuntimeBattlePresentation? _previousBattlePresentation;
+  bool get _isDoubles => _battlePresentation?.isDoubles ?? false;
+  final Map<BattleSlotRef, BattleSceneCombatantComponent> _additionalCombatants = {};
+  final Map<BattleSlotRef, BattleCombatant> _displayedCombatantsBySlot = {};
+  final void Function(BattleDecision decision, BattleEngineDecisionRequest request)? onPlayerDecision;
+  PlayerBattleChoiceFight? _pendingTargetChoice;
+  BattleEngineDecisionRequest? _pendingTargetRequest;
+  int _selectedTargetIndex = 0;
+
+  BattleCombatant _combatantDataAt(BattleSlotRef slot) {
+    final projected = _battlePresentation?.combatantAt(slot);
+    if (projected != null) return projected.combatant;
+    if (slot.slotIndex != 0 || _isDoubles) {
+      throw StateError('Missing battle occupant at $slot.');
+    }
+    return slot.side == BattleSideId.player ? _session.state.player : _session.state.enemy;
+  }
+
+  BattleCombatantSceneGeometry _geometryFor(BattleSlotRef slot) =>
+      currentSceneLayout.combatantGeometry(slot, doubles: _isDoubles);
   GameState _gameState;
   final ItemCapabilityResolver _itemCapabilityResolver;
 
@@ -571,13 +596,15 @@ class BattleOverlayComponent extends PositionComponent {
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final bool Function(
     BattleBagMenuActionMedicineTarget action,
-    BattleMedicineTargetEntry entry,
-  )? onBagHpHealItemUseRequested;
+    BattleMedicineTargetEntry entry, {
+    BattleEngineDecisionRequest? request,
+  })? onBagHpHealItemUseRequested;
   final bool Function(
     BattleBagMenuActionMedicineTarget action,
     BattleMedicineTargetEntry entry,
-    int moveIndex,
-  )? onBagMovePpItemUseRequested;
+    int moveIndex, {
+    BattleEngineDecisionRequest? request,
+  })? onBagMovePpItemUseRequested;
   final BattleState Function()? medicineBattleState;
   final ValueChanged<BattleCommandOverlaySnapshot?>?
       onCommandOverlaySnapshotChanged;
@@ -669,7 +696,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleSceneLayout? _sceneLayout;
   BattleAnimationPlan _activeAnimationPlan =
       const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
-  Set<BattleSideId> _presentationLockedCombatantSides = <BattleSideId>{};
+  Set<BattleSlotRef> _presentationLockedCombatantSlots = <BattleSlotRef>{};
 
   /// BETA-BAT-025 : le sauvage capturé reste dans sa Ball jusqu'au démontage
   /// du combat — la resynchronisation de fin de plan le remettrait debout.
@@ -704,7 +731,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// recette du 2026-08-24. Rempli quand le plan d'intro est armé, vidé au
   /// démarrage de l'intro : à partir de là, c'est le plan qui pilote les
   /// sprites, et la sync de fin de plan les remet légitimement en place.
-  Set<BattleSideId> _introHeldCombatantSides = <BattleSideId>{};
+  Set<BattleSlotRef> _introHeldCombatantSlots = <BattleSlotRef>{};
   BattleCombatant? _displayedEnemyCombatant;
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
@@ -720,6 +747,7 @@ class BattleOverlayComponent extends PositionComponent {
   int _selectedMedicineMoveIndex = 0;
   String? _bagFeedbackMessage;
   BattleBagMenuActionMedicineTarget? _selectedMedicineAction;
+  BattleEngineDecisionRequest? _selectedMedicineRequest;
   BattleCommandOverlaySnapshot? _currentCommandOverlaySnapshot;
   int _commandOverlayRevision = 0;
   final Map<String, String?> _bagIconAssetPathByItemId = <String, String?>{};
@@ -840,7 +868,7 @@ class BattleOverlayComponent extends PositionComponent {
     _pendingIntroPlan = null;
     // À partir d'ici c'est le PLAN qui pilote les sprites d'entrée : les
     // poses retenues n'ont plus à survivre à une synchronisation.
-    _introHeldCombatantSides = <BattleSideId>{};
+    _introHeldCombatantSlots = <BattleSlotRef>{};
     _introPlayed = true;
     _animationRunner?.start(plan);
     _handleAnimationPresentationChanged();
@@ -1042,15 +1070,13 @@ class BattleOverlayComponent extends PositionComponent {
     add(
       BattleStatAuraComponent(
         sheet: sheet,
-        targetSpriteRect: step.side == BattleSideId.player
-            ? layout.playerSpriteRect
-            : layout.enemySpriteRect,
+        targetSpriteRect: _geometryFor(step.slot).spriteRect,
         durationSeconds: step.durationSeconds,
         // Toujours depuis le sprite du JOUEUR : la référence garde la même
         // taille d'aura des deux côtés, l'ennemi ne la rétrécit pas.
         auraSize: layout.playerSpriteRect.height *
             BattleStatAuraComponent.auraToPlayerSpriteRatio,
-        priority: (_combatantForSide(step.side)?.priority ?? 10) + 2,
+        priority: (_combatantForSlot(step.slot)?.priority ?? 10) + 2,
       ),
     );
   }
@@ -1195,10 +1221,7 @@ class BattleOverlayComponent extends PositionComponent {
   void _handleBallSequenceStep(PlayBallSequenceStep step) {
     final sheet = _ballSheetImages[step.ballItemId];
     if (sheet == null) return;
-    final layout = currentSceneLayout;
-    final spriteRect = step.side == BattleSideId.player
-        ? layout.playerSpriteRect
-        : layout.enemySpriteRect;
+    final spriteRect = _geometryFor(step.slot).spriteRect;
     final targetCenter = Offset(
       spriteRect.center.dx,
       spriteRect.bottom - spriteRect.height * 0.25,
@@ -1218,7 +1241,7 @@ class BattleOverlayComponent extends PositionComponent {
         cellSize: _ballCellSize,
         onOpen: () {
           playSfx?.call('ball_open', volume: 100, pitch: 100);
-          _spawnBallFlash(step.side);
+          _spawnBallFlash(step.side, slotIndex: step.slotIndex);
         },
       ),
     );
@@ -1236,7 +1259,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// rétrécir de 30 % parce que le sauvage est plus loin la rendait à nouveau
   /// minuscule à la capture.
   double get _ballCellSize =>
-      currentSceneLayout.playerSpriteRect.height * (64 / 96);
+      _geometryFor(const BattleSlotRef.active(BattleSideId.player)).spriteRect.height * (64 / 96);
 
   @visibleForTesting
   double get debugBallCellSize => _ballCellSize;
@@ -1246,17 +1269,16 @@ class BattleOverlayComponent extends PositionComponent {
   /// Recette du 2026-08-24 : « ça manque de l'espèce de flash jolie ». La
   /// référence (Platine) projette un éclat blanc au point d'apparition juste
   /// avant que le Pokémon prenne forme.
-  void _spawnBallFlash(BattleSideId side) {
-    final rect = side == BattleSideId.player
-        ? currentSceneLayout.playerSpriteRect
-        : currentSceneLayout.enemySpriteRect;
+  void _spawnBallFlash(BattleSideId side, {int slotIndex = 0}) {
+    final slot = BattleSlotRef(side: side, slotIndex: slotIndex);
+    final rect = _geometryFor(slot).spriteRect;
     final flash = BattleBallFlashComponent(
       center: Offset(
         rect.center.dx,
         rect.bottom - rect.height * 0.32,
       ),
       radiusPx: rect.height * 0.62,
-      priority: (_combatantForSide(side)?.priority ?? 10) + 3,
+      priority: (_combatantForSlot(slot)?.priority ?? 10) + 3,
     );
     // En microtask : ce flash naît DANS le `update` du composant de Ball
     // (son callback d'ouverture), donc en pleine itération updateTree —
@@ -1363,7 +1385,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// porte un drain à venir pour un camp, le snapshot publie le PV d'avant ;
   /// chaque drain joué avance la référence à son `toHp` ; la fin de la
   /// présentation rend la main à l'état réel.
-  final Map<BattleSideId, int> _presentationHeldHp = <BattleSideId, int>{};
+  final Map<BattleSlotRef, int> _presentationHeldHp = <BattleSlotRef, int>{};
 
   bool get isTurnPresentationActive =>
       (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
@@ -1427,13 +1449,13 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   String get currentPlayerHudSpeciesText => _hudSpeciesDisplayText(
-        _displayedPlayerCombatant ?? _session.state.player,
+        _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.player)] ?? _displayedPlayerCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.player)),
         isPlayerSide: true,
       );
 
   @visibleForTesting
   String get currentEnemyHudSpeciesText => _hudSpeciesDisplayText(
-        _displayedEnemyCombatant ?? _session.state.enemy,
+        _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.enemy)] ?? _displayedEnemyCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.enemy)),
         isPlayerSide: false,
       );
 
@@ -1620,6 +1642,26 @@ class BattleOverlayComponent extends PositionComponent {
       '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
     );
 
+    if (_isDoubles) {
+      for (final active in _battlePresentation!.activeCombatants.where((entry) => entry.slot.slotIndex != 0)) {
+        final geometry = _geometryFor(active.slot);
+        final component = BattleSceneCombatantComponent(
+          sceneSpriteRect: geometry.spriteRect,
+          scenePlatformRect: geometry.platformRect,
+          sceneFootAnchor: geometry.footAnchor,
+          spriteFootXRatio: active.slot.side == BattleSideId.player ? 0.68 : 0.5,
+          isPlayerSide: active.slot.side == BattleSideId.player,
+          speciesLabel: resolveSpeciesDisplayName(active.combatant.speciesId),
+          visualAssetCache: visualAssetCache,
+        );
+        _additionalCombatants[active.slot] = component;
+        add(component);
+        await component.loaded;
+        if (!isLoadingAttached()) return;
+      }
+      _applyViewportLayout(size);
+    }
+
     // BETA-BAT-022 : la planche de Poké Ball se charge au montage — l'intro
     // ET les remplacements en vivent. Si elle manque, l'intro retombe sur le
     // glissement historique et les étapes Ball des remplacements ne montrent
@@ -1664,9 +1706,11 @@ class BattleOverlayComponent extends PositionComponent {
       // termine onLoad — d'où l'enregistrement des côtés retenus.
       // Parité `actor_sprites` / `enemy_sprites` de la référence, qui posent
       // `zoom = 0` sur les Pokémon avant toute animation d'entrée.
-      _introHeldCombatantSides = <BattleSideId>{
-        BattleSideId.enemy,
-        BattleSideId.player,
+      _introHeldCombatantSlots = {
+        if (_battlePresentation == null) ...[
+          const BattleSlotRef.active(BattleSideId.enemy),
+          const BattleSlotRef.active(BattleSideId.player),
+        ] else ..._battlePresentation!.activeCombatants.map((entry) => entry.slot),
       };
       // Parité `show_team_info` : les barres entrent APRÈS l'annonce.
       _teamInfoRevealed = false;
@@ -1699,6 +1743,9 @@ class BattleOverlayComponent extends PositionComponent {
         _introTrainerSprite = sprite;
         add(sprite);
       }
+      for (final component in _additionalCombatants.values) {
+        component.holdMaterializeHidden();
+      }
       _pendingIntroPlan = buildBattleIntroAnimationPlan(
         session: _session,
         slideDistancePx: introSlideDistancePx,
@@ -1707,6 +1754,27 @@ class BattleOverlayComponent extends PositionComponent {
         enemyBallItemId: enemyUsesBall ? enemyBallItemId : null,
         hasEnemyTrainerSprite: _introTrainerImage != null,
       );
+      if (_isDoubles) {
+        _pendingIntroPlan = BattleAnimationPlan(steps: [
+          ..._pendingIntroPlan!.steps,
+          for (final active in _battlePresentation!.activeCombatants.where((entry) => entry.slot.slotIndex != 0)) ...[
+            ShowMessageStep(message: '${resolveSpeciesDisplayName(active.combatant.speciesId)} rejoint le combat !'),
+            PlayBallSequenceStep(
+              side: active.slot.side,
+              slotIndex: active.slot.slotIndex,
+              kind: active.slot.side == BattleSideId.player ? BattleBallSequenceKind.sendOutThrown : BattleBallSequenceKind.sendOutHeld,
+              ballItemId: resolveCombatantBallItemId?.call(active.slot.side, active.lineupIndex),
+            ),
+            CombatantMotionStep(
+              side: active.slot.side,
+              slotIndex: active.slot.slotIndex,
+              motionKind: BattleCombatantMotionKind.materializeIn,
+              durationSeconds: 0.1,
+            ),
+            PlayCryStep(speciesId: active.combatant.speciesId),
+          ],
+        ]);
+      }
     }
 
     _fxLayer = BattleFxLayerComponent(
@@ -1739,6 +1807,7 @@ class BattleOverlayComponent extends PositionComponent {
       ),
       onBarrierPulse: _handleBarrierPulseStep,
       onSwapCombatantVisual: _handleSwapCombatantVisualStep,
+      onSwapCombatantVisualSlot: _handleSwapCombatantVisualSlot,
       onSpriteSheetFx: _handleSpriteSheetFxStep,
       onSpriteSheetOnCombatant: _handleSpriteSheetOnCombatantStep,
       onParticleBurst: _handleParticleBurstStep,
@@ -1811,12 +1880,26 @@ class BattleOverlayComponent extends PositionComponent {
   /// - l'évolution du tour ne doit pas recréer une logique parallèle de décor ;
   /// - un vrai resolver contextuel plus riche restera un sujet futur côté
   ///   runtime, pas un effet secondaire de `BattleSession`.
-  void updateState(BattleSession newSession, {GameState? gameState}) {
+  void updateState(BattleSession newSession, {
+    GameState? gameState,
+    RuntimeBattlePresentation? presentation,
+  }) {
     final previousSession = _session;
+    final previousPresentation = _battlePresentation;
+    _previousBattlePresentation = previousPresentation;
+    _battlePresentation = presentation ?? _battlePresentation;
+    _pendingTargetChoice = null;
+    _pendingTargetRequest = null;
+    if (_isDoubles && !identical(previousPresentation?.request, _battlePresentation?.request)) {
+      _menuMode = BattleCommandMenuMode.root;
+      _selectedChoiceIndex = 0;
+    }
     final presentationGeneration = ++_presentationGeneration;
     final animationPlan = _turnAnimationPlanner.build(
       previousSession: previousSession,
       newSession: newSession,
+      combatantsBefore: previousPresentation?.combatantsBySlot,
+      combatantsAfter: _battlePresentation?.combatantsBySlot,
       moveCatalog: _moveCatalog,
       resolver: _moveVisualResolver,
     );
@@ -1826,6 +1909,7 @@ class BattleOverlayComponent extends PositionComponent {
       _gameState = gameState;
     }
     _selectedMedicineAction = null;
+    _selectedMedicineRequest = null;
     _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage = null;
     _capturedEnemyHeldInBall = false;
@@ -1833,10 +1917,16 @@ class BattleOverlayComponent extends PositionComponent {
     _presentationHeldHp.clear();
     for (final step
         in animationPlan.flattenedSteps.whereType<HudHpTweenStep>()) {
-      _presentationHeldHp.putIfAbsent(step.side, () => step.fromHp);
+      _presentationHeldHp.putIfAbsent(step.slot, () => step.fromHp);
     }
-    _presentationLockedCombatantSides =
-        _lockedCombatantSidesFor(animationPlan).toSet();
+    _presentationLockedCombatantSlots =
+        _lockedCombatantSlotsFor(animationPlan).toSet();
+    for (final slot in _presentationLockedCombatantSlots) {
+      final previous = previousPresentation?.combatantAt(slot)?.combatant;
+      if (previous != null) {
+        _presentationHeldHp[slot] = previous.currentHp;
+      }
+    }
     _resetBattleCamera();
     _animationRunner?.cancel(
       clearMessage: animationPlan.isEmpty,
@@ -1868,15 +1958,23 @@ class BattleOverlayComponent extends PositionComponent {
     _applyBattleCameraTransform();
     _syncFieldAmbientState();
     _enemyCombatant?.updateSceneGeometry(
-      sceneSpriteRect: layout.enemySpriteRect,
-      scenePlatformRect: layout.enemyPlatformRect,
-      sceneFootAnchor: layout.enemyFootAnchor,
+      sceneSpriteRect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).spriteRect,
+      scenePlatformRect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).platformRect,
+      sceneFootAnchor: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).footAnchor,
     );
     _playerCombatant?.updateSceneGeometry(
-      sceneSpriteRect: layout.playerSpriteRect,
-      scenePlatformRect: layout.playerPlatformRect,
-      sceneFootAnchor: layout.playerFootAnchor,
+      sceneSpriteRect: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).spriteRect,
+      scenePlatformRect: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).platformRect,
+      sceneFootAnchor: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).footAnchor,
     );
+    for (final entry in _additionalCombatants.entries) {
+      final geometry = _geometryFor(entry.key);
+      entry.value.updateSceneGeometry(
+        sceneSpriteRect: geometry.spriteRect,
+        scenePlatformRect: geometry.platformRect,
+        sceneFootAnchor: geometry.footAnchor,
+      );
+    }
     _debugPanel?.position = Vector2(size.x - 248, 32);
     _applyBattleCameraTransform();
     _notifyOutcomePresented();
@@ -1925,6 +2023,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool validateSelectedChoice() {
+    if (_pendingTargetChoice != null) {
+      return selectMoveTargetEntry(_selectedTargetIndex);
+    }
     if (_postBattleDecision != null) {
       return _submitPostBattleDecision(_postBattleDecisionSelectedIndex);
     }
@@ -2110,7 +2211,7 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     _selectedMedicineMoveIndex = index;
-    return onBagMovePpItemUseRequested?.call(action, target, index) ?? false;
+    return onBagMovePpItemUseRequested?.call(action, target, index, request: _selectedMedicineRequest) ?? false;
   }
 
   BattleMedicineTargetEntry? _selectedMedicineEntry() {
@@ -2156,6 +2257,12 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool handleEscape() {
+    if (_pendingTargetChoice != null) {
+      _pendingTargetChoice = null;
+      _pendingTargetRequest = null;
+      _syncPanelsOnly();
+      return true;
+    }
     if (!_acceptsPlayerCommands || isTurnPresentationActive) {
       return false;
     }
@@ -2176,6 +2283,7 @@ class BattleOverlayComponent extends PositionComponent {
       }
       if (menuModel.mode == BattleCommandMenuMode.bagMedicineTarget) {
         _selectedMedicineAction = null;
+    _selectedMedicineRequest = null;
         _selectedMedicineTargetIndex = 0;
         _bagFeedbackMessage = null;
         _menuMode = BattleCommandMenuMode.bag;
@@ -2223,20 +2331,45 @@ class BattleOverlayComponent extends PositionComponent {
 
   Future<void> _syncVisualState({
     BattleSession? previousSession,
-    Set<BattleSideId> preserveDisplayedCombatantSides = const <BattleSideId>{},
+    Set<BattleSlotRef> preserveDisplayedCombatantSlots = const <BattleSlotRef>{},
     required int presentationGeneration,
   }) async {
     if (!_isCurrentPresentationGeneration(presentationGeneration)) {
       return;
     }
     _syncFieldAmbientState();
+    if (_isDoubles) {
+      for (final active in _battlePresentation!.activeCombatants) {
+        final old = _previousBattlePresentation?.combatantAt(active.slot);
+        final displayed = preserveDisplayedCombatantSlots.contains(active.slot) && old != null ? old.combatant : active.combatant;
+        final component = _combatantForSlot(active.slot);
+        if (component == null) continue;
+        final sprite = await _resolveCombatantSpriteSpec(
+          speciesId: displayed.speciesId,
+          isPlayerSide: active.slot.side == BattleSideId.player,
+        );
+        if (!_isCurrentPresentationGeneration(presentationGeneration)) return;
+        _displayedCombatantsBySlot[active.slot] = displayed;
+        await component.sync(
+          speciesLabel: resolveSpeciesDisplayName(displayed.speciesId),
+          spriteSpec: sprite,
+        );
+        if (!_isCurrentPresentationGeneration(presentationGeneration)) return;
+        if (!displayed.isFainted && !preserveDisplayedCombatantSlots.contains(active.slot) && !_introHeldCombatantSlots.contains(active.slot)) {
+          component.snapToBattlePose();
+        }
+      }
+      _syncPanelsOnly();
+      _notifyOutcomePresented();
+      return;
+    }
     final displayedEnemyCombatant =
-        preserveDisplayedCombatantSides.contains(BattleSideId.enemy) &&
+        preserveDisplayedCombatantSlots.contains(const BattleSlotRef.active(BattleSideId.enemy)) &&
                 previousSession != null
             ? previousSession.state.enemy
             : _session.state.enemy;
     final displayedPlayerCombatant =
-        preserveDisplayedCombatantSides.contains(BattleSideId.player) &&
+        preserveDisplayedCombatantSlots.contains(const BattleSlotRef.active(BattleSideId.player)) &&
                 previousSession != null
             ? previousSession.state.player
             : _session.state.player;
@@ -2286,12 +2419,12 @@ class BattleOverlayComponent extends PositionComponent {
     _restoreAliveCombatantPoseAfterSync(
       side: BattleSideId.enemy,
       combatant: displayedEnemyCombatant,
-      preserveDisplayedCombatantSides: preserveDisplayedCombatantSides,
+      preserveDisplayedCombatantSlots: preserveDisplayedCombatantSlots,
     );
     _restoreAliveCombatantPoseAfterSync(
       side: BattleSideId.player,
       combatant: displayedPlayerCombatant,
-      preserveDisplayedCombatantSides: preserveDisplayedCombatantSides,
+      preserveDisplayedCombatantSlots: preserveDisplayedCombatantSlots,
     );
     _syncPanelsOnly();
     _notifyOutcomePresented();
@@ -2300,9 +2433,9 @@ class BattleOverlayComponent extends PositionComponent {
   void _restoreAliveCombatantPoseAfterSync({
     required BattleSideId side,
     required BattleCombatant combatant,
-    required Set<BattleSideId> preserveDisplayedCombatantSides,
+    required Set<BattleSlotRef> preserveDisplayedCombatantSlots,
   }) {
-    if (preserveDisplayedCombatantSides.contains(side) || combatant.isFainted) {
+    if (preserveDisplayedCombatantSlots.contains(BattleSlotRef.active(side)) || combatant.isFainted) {
       return;
     }
     // BETA-BAT-025 : un sauvage CAPTURÉ reste dans sa Ball, comme un K.O.
@@ -2318,7 +2451,7 @@ class BattleOverlayComponent extends PositionComponent {
     // même onLoad : au lever du rideau, les deux combattants étaient debout à
     // leur place et l'intro rejouait leur arrivée par-dessus. Tant que le
     // plan d'intro attend son départ, les poses d'entrée tiennent.
-    if (_introHeldCombatantSides.contains(side)) {
+    if (_introHeldCombatantSlots.contains(BattleSlotRef.active(side))) {
       return;
     }
 
@@ -2490,16 +2623,19 @@ class BattleOverlayComponent extends PositionComponent {
       mode: BattleCommandOverlayMode.decision,
       viewportSize: layout.viewportSize,
       panelRect: layout.commandPanelRect,
+      additionalHuds: _additionalHudSnapshots(),
+      actorSlot: _isDoubles ? runtimeBattleSlot(_battlePresentation!.request.actor) : null,
+      actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
       enemyHud: _buildHudSnapshot(
-        rect: layout.enemyHudRect,
+        rect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).hudRect,
         ownerLabel: 'ENNEMI',
-        combatant: _displayedEnemyCombatant ?? _session.state.enemy,
+        combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.enemy)] ?? _displayedEnemyCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.enemy)),
         isPlayerSide: false,
       ),
       playerHud: _buildHudSnapshot(
-        rect: layout.playerHudRect,
+        rect: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).hudRect,
         ownerLabel: 'JOUEUR',
-        combatant: _displayedPlayerCombatant ?? _session.state.player,
+        combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.player)] ?? _displayedPlayerCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.player)),
         isPlayerSide: true,
       ),
       battleLabel: _titleForSession(),
@@ -2549,6 +2685,8 @@ class BattleOverlayComponent extends PositionComponent {
         partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
             menuModel.mode == BattleCommandMenuMode.pokemon &&
             !_presentationPendingOrRunning;
+    final choosingTarget = _pendingTargetChoice != null;
+    final actor = _isDoubles ? _battlePresentation!.combatantAt(runtimeBattleSlot(_battlePresentation!.request.actor)) : null;
     final snapshot = BattleCommandOverlaySnapshot(
       revision: ++_commandOverlayRevision,
       phase: isForcedReplacement
@@ -2557,37 +2695,71 @@ class BattleOverlayComponent extends PositionComponent {
               ? BattlePresentationPhase.choosingCommand
               : BattlePresentationPhase.presentingTurn,
       forcedReplacement: isForcedReplacement,
-      mode: _overlayModeForMenuMode(menuModel.mode),
+      mode: choosingTarget ? BattleCommandOverlayMode.moveTarget : _overlayModeForMenuMode(menuModel.mode),
       viewportSize: layout.viewportSize,
       panelRect: layout.commandPanelRect,
+      additionalHuds: _additionalHudSnapshots(),
+      actorSlot: _isDoubles ? runtimeBattleSlot(_battlePresentation!.request.actor) : null,
+      actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
       enemyHud: _buildHudSnapshot(
-        rect: layout.enemyHudRect,
+        rect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).hudRect,
         ownerLabel: 'ENNEMI',
-        combatant: _displayedEnemyCombatant ?? _session.state.enemy,
+        combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.enemy)] ?? _displayedEnemyCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.enemy)),
         isPlayerSide: false,
       ),
       playerHud: _buildHudSnapshot(
-        rect: layout.playerHudRect,
+        rect: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).hudRect,
         ownerLabel: 'JOUEUR',
-        combatant: _displayedPlayerCombatant ?? _session.state.player,
+        combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.player)] ?? _displayedPlayerCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.player)),
         isPlayerSide: true,
       ),
       battleLabel: _titleForSession(),
-      title: menuModel.isRootMode ? 'COMMANDS' : menuModel.choiceGroupTitle,
-      prompt: prompt,
+      title: choosingTarget ? 'TARGET' : menuModel.isRootMode ? 'COMMANDS' : menuModel.choiceGroupTitle,
+      prompt: choosingTarget ? 'Choisis la cible de ${resolveSpeciesDisplayName(actor!.combatant.speciesId)}.' : actor != null && menuModel.isRootMode ? 'Que doit faire ${resolveSpeciesDisplayName(actor.combatant.speciesId)} ?' : prompt,
       narrationLines: List<String>.unmodifiable(narrationLines),
-      entries: _buildCommandOverlayEntries(
+      entries: choosingTarget ? _moveTargetEntries() : _buildCommandOverlayEntries(
         menuModel: menuModel,
         partyMenuModel: partyMenuModel,
         bagMenuModel: bagMenuModel,
         medicineTargetMenuModel: medicineTargetMenuModel,
       ),
       interactionsEnabled: interactionsEnabled,
-      canGoBack: _canGoBackFrom(menuModel, partyMenuModel),
+      canGoBack: choosingTarget || _canGoBackFrom(menuModel, partyMenuModel),
     );
     _currentCommandOverlaySnapshot = snapshot;
     onCommandOverlaySnapshotChanged?.call(snapshot);
     _primeBagIconAssetPaths(bagMenuModel);
+  }
+
+  List<BattleCommandOverlayEntry> _moveTargetEntries() {
+    final targets = _pendingMoveTargets;
+    return List.unmodifiable([
+      for (var index = 0; index < targets.length; index++)
+        BattleCommandOverlayEntry(
+          index: index,
+          kind: BattleCommandOverlayEntryKind.target,
+          primaryLabel: resolveSpeciesDisplayName(_battlePresentation!.combatantAt(runtimeBattleSlot(targets[index]))!.combatant.speciesId),
+          secondaryLabel: '${_battlePresentation!.combatantAt(runtimeBattleSlot(targets[index]))!.combatant.currentHp}/${_battlePresentation!.combatantAt(runtimeBattleSlot(targets[index]))!.combatant.maxHp} PV',
+          enabled: true,
+          selected: index == _selectedTargetIndex,
+          tone: BattleCommandOverlayEntryTone.neutral,
+        ),
+    ]);
+  }
+
+  List<BattleCommandOverlayHudSnapshot> _additionalHudSnapshots() {
+    if (!_isDoubles) return const [];
+    return List.unmodifiable([
+      for (final active in _battlePresentation!.activeCombatants.where((entry) => entry.slot.slotIndex != 0))
+        _buildHudSnapshot(
+          rect: _geometryFor(active.slot).hudRect,
+          ownerLabel: active.slot.side == BattleSideId.player ? 'JOUEUR' : 'ENNEMI',
+          combatant: _displayedCombatantsBySlot[active.slot] ?? active.combatant,
+          isPlayerSide: active.slot.side == BattleSideId.player,
+          slot: active.slot,
+          combatantId: active.combatantId,
+        ),
+    ]);
   }
 
   BattleCommandOverlayHudSnapshot _buildHudSnapshot({
@@ -2595,11 +2767,21 @@ class BattleOverlayComponent extends PositionComponent {
     required String ownerLabel,
     required BattleCombatant combatant,
     required bool isPlayerSide,
+    BattleSlotRef? slot,
+    String combatantId = '',
   }) {
-    final targetSide = isPlayerSide ? BattleSideId.player : BattleSideId.enemy;
+    final targetSide = slot ?? BattleSlotRef.active(
+      isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
+    );
+    final currentProjection = _battlePresentation?.combatantAt(targetSide);
+    final previousProjection = _previousBattlePresentation?.combatantAt(targetSide);
+    final displayedIdentity = currentProjection?.lineupIndex == combatant.lineupIndex
+        ? currentProjection?.combatantId
+        : previousProjection?.combatantId;
     final presentationStep = _animationRunner?.currentHpTweenStep;
-    final isHpTweenStep = presentationStep?.side == targetSide;
-    final xpStep = isPlayerSide ? _animationRunner?.currentXpTweenStep : null;
+    final isHpTweenStep = presentationStep?.slot == targetSide;
+    final xpStep = isPlayerSide && targetSide.slotIndex == 0
+        ? _animationRunner?.currentXpTweenStep : null;
     final heldHp = _presentationHeldHp[targetSide];
     final koIsPresented = !isHpTweenStep && (heldHp == null || heldHp <= 0);
     final statusLabel = combatant.isFainted && koIsPresented
@@ -2607,6 +2789,8 @@ class BattleOverlayComponent extends PositionComponent {
         : combatant.majorStatus?.id.name.toUpperCase();
     return BattleCommandOverlayHudSnapshot(
       rect: rect,
+      slot: targetSide,
+      combatantId: displayedIdentity ?? combatantId,
       isRevealed: _teamInfoRevealed,
       ownerLabel: ownerLabel,
       speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
@@ -2628,7 +2812,7 @@ class BattleOverlayComponent extends PositionComponent {
       statusLabel: statusLabel?.trim().isEmpty ?? true ? null : statusLabel,
       experienceProgress: isPlayerSide
           ? (xpStep?.fromProgress ??
-              _presentationXpProgress ??
+              (targetSide.slotIndex == 0 ? _presentationXpProgress : null) ??
               _playerExperienceProgressByLineupIndex[combatant.lineupIndex])
           : null,
       experienceProgressTarget: xpStep?.toProgress,
@@ -2810,6 +2994,16 @@ class BattleOverlayComponent extends PositionComponent {
     required int horizontalDelta,
     required int verticalDelta,
   }) {
+    if (_pendingTargetChoice != null && !isTurnPresentationActive) {
+      final targets = _pendingMoveTargets;
+      if (targets.isEmpty) return false;
+      final next = (_selectedTargetIndex + (verticalDelta != 0 ? verticalDelta : horizontalDelta))
+          .clamp(0, targets.length - 1);
+      if (next == _selectedTargetIndex) return false;
+      _selectedTargetIndex = next;
+      _syncPanelsOnly();
+      return true;
+    }
     if (_postBattleDecision != null) {
       return _movePostBattleDecisionSelection(
         verticalDelta != 0 ? verticalDelta : horizontalDelta,
@@ -2927,7 +3121,72 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleChoiceSelected(PlayerBattleChoice choice) {
+    if (_isDoubles && onPlayerDecision != null) {
+      final request = _battlePresentation!.request;
+      if (choice case PlayerBattleChoiceFight(:final moveIndex)) {
+        final option = request.fightChoices
+            .where((option) => option.moveSlot == moveIndex)
+            .firstOrNull;
+        final chooseTarget = option != null && (switch (option.target) {
+          PsdkBattleMoveTarget.adjacentFoe ||
+          PsdkBattleMoveTarget.anyFoe ||
+          PsdkBattleMoveTarget.adjacentAlly ||
+          PsdkBattleMoveTarget.adjacentAllyOrSelf => true,
+          _ => false,
+        });
+        if (chooseTarget && option.legalTargets.length > 1) {
+          _pendingTargetChoice = PlayerBattleChoiceFight(moveIndex);
+          _pendingTargetRequest = request;
+          _selectedTargetIndex = 0;
+          _syncPanelsOnly();
+          return;
+        }
+        final decision = option == null && request.canStruggle
+            ? const BattleDecision.struggle()
+            : BattleDecision.fight(
+                moveSlot: moveIndex,
+                target: chooseTarget && option.legalTargets.length == 1
+                    ? option.legalTargets.single : null,
+              );
+        onPlayerDecision!(decision, request);
+        return;
+      }
+      if (choice case PlayerBattleChoiceSwitch(:final reserveIndex)) {
+        if (reserveIndex < 0 || reserveIndex >= request.switchChoices.length) return;
+        onPlayerDecision!(BattleDecision.switchPokemon(
+          partyIndex: request.switchChoices[reserveIndex].partyIndex,
+        ), request);
+        return;
+      }
+      return;
+    }
     onPlayerChoice(choice);
+  }
+
+  List<PsdkBattleSlotRef> get _pendingMoveTargets {
+    final request = _pendingTargetRequest;
+    final choice = _pendingTargetChoice;
+    if (request == null || choice == null ||
+        !identical(request, _battlePresentation?.request)) {
+      return const [];
+    }
+    return request.fightChoices
+        .where((option) => option.moveSlot == choice.moveIndex)
+        .firstOrNull?.legalTargets ?? const [];
+  }
+
+  bool selectMoveTargetEntry(int index) {
+    if (!_acceptsPlayerCommands || isTurnPresentationActive) return false;
+    final targets = _pendingMoveTargets;
+    final choice = _pendingTargetChoice;
+    final request = _pendingTargetRequest;
+    if (choice == null || request == null || index < 0 || index >= targets.length) return false;
+    final decision = BattleDecision.fight(moveSlot: choice.moveIndex, target: targets[index]);
+    if (!request.allows(decision)) return false;
+    _pendingTargetChoice = null;
+    _pendingTargetRequest = null;
+    onPlayerDecision?.call(decision, request);
+    return true;
   }
 
   void _handlePartyEntrySelected(BattlePartyMenuEntry entry) {
@@ -2935,7 +3194,7 @@ class BattleOverlayComponent extends PositionComponent {
     if (choice == null) {
       return;
     }
-    onPlayerChoice(choice);
+    _handleChoiceSelected(choice);
   }
 
   bool _handleMedicineTargetEntrySelected(BattleMedicineTargetEntry entry) {
@@ -2967,7 +3226,7 @@ class BattleOverlayComponent extends PositionComponent {
     // - l'overlay ne patche plus sa session localement ;
     // - cela évite de mentir sur l'ordre du tour et garde `PlayableMapGame`
     //   propriétaire unique du vrai BattleSession / GameState.
-    return onBagHpHealItemUseRequested?.call(selectedMedicineAction, entry) ??
+    return onBagHpHealItemUseRequested?.call(selectedMedicineAction, entry, request: _selectedMedicineRequest) ??
         false;
   }
 
@@ -2987,6 +3246,7 @@ class BattleOverlayComponent extends PositionComponent {
       // - aucune consommation ni soin ici ;
       // - seulement la préparation du ciblage pour le seam runtime réel.
       _selectedMedicineAction = action;
+      _selectedMedicineRequest = _isDoubles ? _battlePresentation!.request : null;
       _selectedMedicineTargetIndex = _firstSelectableMedicineTargetIndex();
       _bagFeedbackMessage = null;
       _menuMode = BattleCommandMenuMode.bagMedicineTarget;
@@ -3004,6 +3264,7 @@ class BattleOverlayComponent extends PositionComponent {
         return;
       case BattleCommandRootAction.bag:
         _selectedMedicineAction = null;
+    _selectedMedicineRequest = null;
         _selectedMedicineTargetIndex = 0;
         _menuMode = BattleCommandMenuMode.bag;
         _selectedBagIndex = _firstSelectableBagIndex();
@@ -3032,11 +3293,19 @@ class BattleOverlayComponent extends PositionComponent {
       selectedRootIndex: _selectedRootIndex,
       selectedChoiceIndex: _selectedChoiceIndex,
       resolveMoveDisplayName: resolveMoveDisplayName,
+      engineRequest: _isDoubles ? _battlePresentation!.request : null,
     );
   }
 
   BattlePartyMenuModel _currentPartyMenuModel() {
-    return buildBattlePartyMenuModel(session: _session);
+    return buildBattlePartyMenuModel(
+      session: _session,
+      engineRequest: _isDoubles ? _battlePresentation!.request : null,
+      playerParty: _isDoubles ? _battlePresentation!.playerParty : null,
+      activeLineupIndexes: _battlePresentation?.activeCombatants
+          .where((entry) => entry.slot.side == BattleSideId.player)
+          .map((entry) => entry.lineupIndex) ?? const [],
+    );
   }
 
   BattleBagMenuModel _currentBagMenuModel() {
@@ -3125,6 +3394,7 @@ class BattleOverlayComponent extends PositionComponent {
     if (_menuMode != BattleCommandMenuMode.bagMedicineTarget &&
         _menuMode != BattleCommandMenuMode.bagMedicineMoveTarget) {
       _selectedMedicineAction = null;
+    _selectedMedicineRequest = null;
     }
   }
 
@@ -3155,6 +3425,7 @@ class BattleOverlayComponent extends PositionComponent {
     if (_menuMode != BattleCommandMenuMode.bagMedicineTarget &&
         _menuMode != BattleCommandMenuMode.bagMedicineMoveTarget) {
       _selectedMedicineAction = null;
+    _selectedMedicineRequest = null;
     }
   }
 
@@ -3327,14 +3598,14 @@ class BattleOverlayComponent extends PositionComponent {
   }) async {
     await _syncVisualState(
       previousSession: previousSession,
-      preserveDisplayedCombatantSides: _presentationLockedCombatantSides,
+      preserveDisplayedCombatantSlots: _presentationLockedCombatantSlots,
       presentationGeneration: presentationGeneration,
     );
     if (!_isCurrentPresentationGeneration(presentationGeneration)) {
       return;
     }
     if (animationPlan.isEmpty) {
-      _presentationLockedCombatantSides = <BattleSideId>{};
+      _presentationLockedCombatantSlots = <BattleSlotRef>{};
       _syncPanelsOnly();
       return;
     }
@@ -3360,7 +3631,7 @@ class BattleOverlayComponent extends PositionComponent {
     _animationRunner?.start(animationPlan);
   }
 
-  Set<BattleSideId> _lockedCombatantSidesFor(BattleAnimationPlan plan) {
+  Set<BattleSlotRef> _lockedCombatantSlotsFor(BattleAnimationPlan plan) {
     // `flattenedSteps`, jamais `steps` : le contrat du plan prévient qu'un
     // scan de surface « renverrait silencieusement rien » pour une étape
     // imbriquée dans un groupe. Ici le prix d'un tel silence est un sprite
@@ -3368,7 +3639,7 @@ class BattleOverlayComponent extends PositionComponent {
     // recette du 2026-08-25.
     return plan.flattenedSteps
         .whereType<SwapCombatantVisualStep>()
-        .map((step) => step.side)
+        .map((step) => step.slot)
         .toSet();
   }
 
@@ -3379,7 +3650,7 @@ class BattleOverlayComponent extends PositionComponent {
       return;
     }
     _resetBattleCamera();
-    _presentationLockedCombatantSides = <BattleSideId>{};
+    _presentationLockedCombatantSlots = <BattleSlotRef>{};
     _presentationHeldHp.clear();
     _activeAnimationPlan =
         const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
@@ -3395,6 +3666,13 @@ class BattleOverlayComponent extends PositionComponent {
       sceneSize: sceneSize ?? size.clone(),
       stageRect: currentSceneLayout.stageRect,
       resolveAnchor: _resolveBattleVisualAnchor,
+      resolveSlotAnchor: ({required anchor, required attackerSlot, required defenderSlot}) => _resolveBattleVisualAnchor(
+        anchor: anchor,
+        attackerSide: attackerSlot.side,
+        defenderSide: defenderSlot.side,
+        attackerSlotIndex: attackerSlot.slotIndex,
+        defenderSlotIndex: defenderSlot.slotIndex,
+      ),
     );
   }
 
@@ -3529,7 +3807,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   void _handleRmxpAnimationStep(PlayRmxpAnimationStep step) {
     final fxLayer = _fxLayer;
-    final combatant = _combatantForSide(step.subjectSide);
+    final combatant = _combatantForSlot(step.subjectSlot);
     if (fxLayer == null) {
       return;
     }
@@ -3593,7 +3871,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleCombatantMotionStep(CombatantMotionStep step) {
-    final combatant = _combatantForSide(step.side);
+    final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
     }
@@ -3641,12 +3919,12 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleCombatantFlashStep(CombatantFlashStep step) {
-    _combatantForSide(step.side)
+    _combatantForSlot(step.slot)
         ?.triggerHitFlash(duration: step.durationSeconds);
   }
 
   void _handleCombatantShakeStep(CombatantShakeStep step) {
-    final combatant = _combatantForSide(step.side);
+    final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
     }
@@ -3659,7 +3937,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleCombatantToneStep(CombatantToneStep step) {
-    final combatant = _combatantForSide(step.side);
+    final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
     }
@@ -3672,7 +3950,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleCombatantCompressStep(CombatantCompressStep step) {
-    final combatant = _combatantForSide(step.side);
+    final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
     }
@@ -3687,7 +3965,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleCombatantEllipseStep(CombatantEllipseStep step) {
-    final combatant = _combatantForSide(step.side);
+    final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
     }
@@ -3753,10 +4031,13 @@ class BattleOverlayComponent extends PositionComponent {
       offset: offset,
       scale: scale,
     );
+    for (final component in _additionalCombatants.values) {
+      component.applyBattleCameraTransform(offset: offset, scale: scale);
+    }
   }
 
   void _handleFaintCombatantStep(FaintCombatantStep step) {
-    final combatant = _combatantForSide(step.side);
+    final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
     }
@@ -3764,7 +4045,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleHudHpTweenStep(HudHpTweenStep step) {
-    _presentationHeldHp[step.side] = step.toHp;
+    _presentationHeldHp[step.slot] = step.toHp;
   }
 
   void _handleHudXpTweenStep(HudXpTweenStep step) {
@@ -3773,7 +4054,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   void _handleBarrierPulseStep(BarrierPulseStep step) {
     final fxLayer = _fxLayer;
-    final targetRect = _combatantRenderedRectForSide(step.side);
+    final targetRect = _combatantRenderedRectForSlot(step.slot);
     if (fxLayer == null || targetRect == null) {
       return;
     }
@@ -3792,13 +4073,44 @@ class BattleOverlayComponent extends PositionComponent {
     );
   }
 
-  BattleSceneCombatantComponent? _combatantForSide(BattleSideId side) {
-    return side == BattleSideId.player ? _playerCombatant : _enemyCombatant;
+  void _handleSwapCombatantVisualSlot(BattleSlotRef slot) {
+    if (!_isDoubles) {
+      _handleSwapCombatantVisualStep(slot.side);
+      return;
+    }
+    unawaited(() async {
+      final generation = _presentationGeneration;
+      final data = _combatantDataAt(slot);
+      final component = _combatantForSlot(slot);
+      if (component == null) return;
+      final sprite = await _resolveCombatantSpriteSpec(
+        speciesId: data.speciesId,
+        isPlayerSide: slot.side == BattleSideId.player,
+      );
+      if (!_isCurrentPresentationGeneration(generation)) return;
+      _displayedCombatantsBySlot[slot] = data;
+      await component.sync(speciesLabel: resolveSpeciesDisplayName(data.speciesId), spriteSpec: sprite);
+      if (!_isCurrentPresentationGeneration(generation)) return;
+      component.snapToBattlePose();
+      _presentationLockedCombatantSlots.remove(slot);
+      _presentationHeldHp[slot] = _activeAnimationPlan.flattenedSteps
+          .whereType<SwapCombatantVisualStep>()
+          .where((step) => step.slot == slot)
+          .firstOrNull?.initialHp ?? data.currentHp;
+      _syncPanelsOnly();
+    }());
   }
 
-  Rect? _combatantRenderedRectForSide(BattleSideId side) {
-    return _combatantForSide(side)?.currentCameraNeutralRenderedSpriteRect;
+  BattleSceneCombatantComponent? _combatantForSide(BattleSideId side) =>
+      _combatantForSlot(BattleSlotRef.active(side));
+
+  BattleSceneCombatantComponent? _combatantForSlot(BattleSlotRef slot) {
+    if (slot.slotIndex != 0) return _additionalCombatants[slot];
+    return slot.side == BattleSideId.player ? _playerCombatant : _enemyCombatant;
   }
+
+  Rect? _combatantRenderedRectForSlot(BattleSlotRef slot) =>
+      _combatantForSlot(slot)?.currentCameraNeutralRenderedSpriteRect;
 
   void _syncFieldAmbientState() {
     _fxLayer?.syncFieldAmbient(
@@ -3811,7 +4123,11 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleVisualAnchor anchor,
     required BattleSideId attackerSide,
     required BattleSideId defenderSide,
+    int attackerSlotIndex = 0,
+    int defenderSlotIndex = 0,
   }) {
+    final attackerSlot = BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
+    final defenderSlot = BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
     Offset centerFor(Rect? rect, Rect fallbackRect) {
       final effectiveRect = rect ?? fallbackRect;
       return effectiveRect.center;
@@ -3856,12 +4172,12 @@ class BattleOverlayComponent extends PositionComponent {
     }
 
     Offset impactFor({
-      required BattleSideId side,
+      required BattleSlotRef slot,
       required Rect? rect,
       required Rect fallbackRect,
       required Offset opponentCenter,
     }) {
-      final combatant = _combatantForSide(side);
+      final combatant = _combatantForSlot(slot);
       if (combatant != null) {
         return combatant.currentCameraNeutralImpactAnchorToward(
           opponentCenter: opponentCenter,
@@ -3875,9 +4191,9 @@ class BattleOverlayComponent extends PositionComponent {
       );
     }
 
-    Offset footFor(BattleSideId side, Rect? rect, Rect fallbackRect) {
+    Offset footFor(BattleSlotRef slot, Rect? rect, Rect fallbackRect) {
       final footAnchor =
-          _combatantForSide(side)?.currentCameraNeutralFootAnchor;
+          _combatantForSlot(slot)?.currentCameraNeutralFootAnchor;
       if (footAnchor != null) {
         return footAnchor;
       }
@@ -3886,14 +4202,12 @@ class BattleOverlayComponent extends PositionComponent {
     }
 
     final layout = currentSceneLayout;
-    final attackerRect = _combatantRenderedRectForSide(attackerSide);
-    final defenderRect = _combatantRenderedRectForSide(defenderSide);
-    final attackerFallback = attackerSide == BattleSideId.player
-        ? layout.playerCombatantBoundsRect
-        : layout.enemyCombatantBoundsRect;
-    final defenderFallback = defenderSide == BattleSideId.player
-        ? layout.playerCombatantBoundsRect
-        : layout.enemyCombatantBoundsRect;
+    final attackerRect = _combatantRenderedRectForSlot(attackerSlot);
+    final defenderRect = _combatantRenderedRectForSlot(defenderSlot);
+    final attackerGeometry = _geometryFor(attackerSlot);
+    final defenderGeometry = _geometryFor(defenderSlot);
+    final attackerFallback = attackerGeometry.spriteRect.expandToInclude(attackerGeometry.platformRect);
+    final defenderFallback = defenderGeometry.spriteRect.expandToInclude(defenderGeometry.platformRect);
     final stageRect = layout.stageRect;
 
     final offset = switch (anchor) {
@@ -3908,7 +4222,7 @@ class BattleOverlayComponent extends PositionComponent {
       BattleVisualAnchor.attackerHand =>
         handFor(attackerRect, attackerFallback, defenderFallback),
       BattleVisualAnchor.attackerFoot =>
-        footFor(attackerSide, attackerRect, attackerFallback),
+        footFor(attackerSlot, attackerRect, attackerFallback),
       BattleVisualAnchor.defenderCenter =>
         centerFor(defenderRect, defenderFallback),
       BattleVisualAnchor.defenderBody =>
@@ -3920,13 +4234,13 @@ class BattleOverlayComponent extends PositionComponent {
       BattleVisualAnchor.defenderHand =>
         handFor(defenderRect, defenderFallback, attackerFallback),
       BattleVisualAnchor.defenderImpact => impactFor(
-          side: defenderSide,
+          slot: defenderSlot,
           rect: defenderRect,
           fallbackRect: defenderFallback,
           opponentCenter: centerFor(attackerRect, attackerFallback),
         ),
       BattleVisualAnchor.defenderFoot =>
-        footFor(defenderSide, defenderRect, defenderFallback),
+        footFor(defenderSlot, defenderRect, defenderFallback),
       BattleVisualAnchor.stageCenter => stageRect.center,
       BattleVisualAnchor.stageTop => Offset(stageRect.center.dx, stageRect.top),
       BattleVisualAnchor.stageBottom =>
@@ -3975,7 +4289,7 @@ class BattleOverlayComponent extends PositionComponent {
         sceneCombatant.snapToBattlePose();
       }
     }
-    _presentationLockedCombatantSides.remove(side);
+    _presentationLockedCombatantSlots.remove(BattleSlotRef.active(side));
     _syncPanelsOnly();
   }
 

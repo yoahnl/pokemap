@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:map_core/map_core.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import '../session/player_input.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
@@ -916,10 +917,24 @@ abstract final class RuntimeCompanionPresentationCodec {
             : data['iconAssetPath'] as String,
       );
 
+  static Map<String, Object?>? _encodeBattleSlot(BattleSlotRef? slot) => slot == null
+      ? null : {'side': slot.side.name, 'slotIndex': slot.slotIndex};
+
+  static BattleSlotRef? _decodeBattleSlot(Object? value) {
+    if (value == null) return null;
+    final data = _map(value);
+    return BattleSlotRef(
+      side: BattleSideId.values.byName(data['side'] as String),
+      slotIndex: data['slotIndex'] as int,
+    );
+  }
+
   static Map<String, Object?> encodeBattleCommandOverlayHudSnapshot(
           BattleCommandOverlayHudSnapshot value) =>
       {
         'isRevealed': value.isRevealed,
+        'slot': _encodeBattleSlot(value.slot),
+        'combatantId': value.combatantId,
         'rect': [
           value.rect.left,
           value.rect.top,
@@ -951,6 +966,8 @@ abstract final class RuntimeCompanionPresentationCodec {
           Map<String, dynamic> data) =>
       BattleCommandOverlayHudSnapshot(
         isRevealed: data['isRevealed'] as bool,
+        slot: _decodeBattleSlot(data['slot']),
+        combatantId: data['combatantId'] as String,
         rect: Rect.fromLTRB(
             (data['rect'] as List)[0].toDouble(),
             (data['rect'] as List)[1].toDouble(),
@@ -1002,6 +1019,9 @@ abstract final class RuntimeCompanionPresentationCodec {
           value.panelRect.right,
           value.panelRect.bottom
         ],
+        'additionalHuds': value.additionalHuds.map(encodeBattleCommandOverlayHudSnapshot).toList(),
+        'actorSlot': _encodeBattleSlot(value.actorSlot),
+        'actorCombatantId': value.actorCombatantId,
         'enemyHud': encodeBattleCommandOverlayHudSnapshot(value.enemyHud),
         'playerHud': encodeBattleCommandOverlayHudSnapshot(value.playerHud),
         'battleLabel': value.battleLabel,
@@ -1028,6 +1048,9 @@ abstract final class RuntimeCompanionPresentationCodec {
             (data['panelRect'] as List)[1].toDouble(),
             (data['panelRect'] as List)[2].toDouble(),
             (data['panelRect'] as List)[3].toDouble()),
+        additionalHuds: (data['additionalHuds'] as List).map((value) => decodeBattleCommandOverlayHudSnapshot(_map(value))).toList(),
+        actorSlot: _decodeBattleSlot(data['actorSlot']),
+        actorCombatantId: data['actorCombatantId'] as String?,
         enemyHud: decodeBattleCommandOverlayHudSnapshot(_map(data['enemyHud'])),
         playerHud:
             decodeBattleCommandOverlayHudSnapshot(_map(data['playerHud'])),

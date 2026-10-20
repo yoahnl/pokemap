@@ -308,6 +308,12 @@ const _index = PokemonWorkspaceIndex(
 );
 
 class _Port implements PokemonCombatPort {
+  @override
+  Future<void> setRuleset(
+    PokemonRulesetProfile before,
+    PokemonRulesetProfile after,
+  ) => throw UnimplementedError();
+
   PokemonCombatSnapshot snapshot = const PokemonCombatSnapshot(
     project: ProjectManifest(
       name: 'Stats',

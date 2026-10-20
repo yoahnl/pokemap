@@ -61,6 +61,8 @@ final class BattleTurnAnimationPlanner {
     required BattleSession newSession,
     required RuntimeMoveCatalog moveCatalog,
     required BattleMoveVisualResolver resolver,
+    Map<BattleSlotRef, BattleCombatant>? combatantsBefore,
+    Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
   }) {
     final turnResult = newSession.state.currentTurn;
     if (turnResult == null) {
@@ -85,6 +87,16 @@ final class BattleTurnAnimationPlanner {
       playerAfter: newSession.state.player,
       enemyAfter: newSession.state.enemy,
       turnResult: turnResult,
+      combatantsBefore: combatantsBefore,
+      combatantsAfter: combatantsAfter,
+      partyHpBefore: {
+        for (final combatant in [previousSession.state.player, ...previousSession.state.playerReserve])
+          (BattleSideId.player, combatant.lineupIndex): combatant.currentHp,
+        for (final combatant in [previousSession.state.enemy, ...previousSession.state.enemyReserve])
+          (BattleSideId.enemy, combatant.lineupIndex): combatant.currentHp,
+        for (final entry in (combatantsBefore ?? <BattleSlotRef, BattleCombatant>{}).entries)
+          (entry.key.side, entry.value.lineupIndex): entry.value.currentHp,
+      },
       moveCatalog: moveCatalog,
       resolver: resolver,
     );
@@ -113,25 +125,39 @@ final class BattleTurnAnimationPlanner {
     required BattleTurnResult turnResult,
     required RuntimeMoveCatalog moveCatalog,
     required BattleMoveVisualResolver resolver,
+    Map<BattleSlotRef, BattleCombatant>? combatantsBefore,
+    Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
+    Map<(BattleSideId, int), int>? partyHpBefore,
   }) {
-    final trackedHp = <BattleSideId, int>{
-      BattleSideId.player: playerBefore.currentHp,
-      BattleSideId.enemy: enemyBefore.currentHp,
+    final before = combatantsBefore ?? {
+      const BattleSlotRef.active(BattleSideId.player): playerBefore,
+      const BattleSlotRef.active(BattleSideId.enemy): enemyBefore,
     };
-    // BETA-BAT-011 : cette map porte le nom AFFICHABLE, pas l'identifiant. Son
-    // ancien nom annonçait un identifiant tout en étant interpolé dans des
-    // messages joueur — c'est précisément le mensonge qui a laissé « machop »
-    // atteindre l'écran.
-    final trackedDisplayName = <BattleSideId, String>{
-      BattleSideId.player: speciesDisplayName(playerBefore.speciesId),
-      BattleSideId.enemy: speciesDisplayName(enemyBefore.speciesId),
+    final after = combatantsAfter ?? {
+      const BattleSlotRef.active(BattleSideId.player): ?playerAfter,
+      const BattleSlotRef.active(BattleSideId.enemy): ?enemyAfter,
+    };
+    final trackedHp = <BattleSlotRef, int>{
+      for (final entry in before.entries) entry.key: entry.value.currentHp,
+    };
+    final trackedLineup = {
+      for (final entry in before.entries) entry.key: entry.value.lineupIndex,
+    };
+    final trackedPartyHp = <(BattleSideId, int), int>{
+      ...?partyHpBefore,
+      for (final entry in before.entries)
+        (entry.key.side, entry.value.lineupIndex): entry.value.currentHp,
+    };
+    final trackedDisplayName = <BattleSlotRef, String>{
+      for (final entry in before.entries)
+        entry.key: speciesDisplayName(entry.value.speciesId),
     };
     final replacementRequiredSides = turnResult.timeline
         .whereType<BattleTurnSwitchEvent>()
         .map((event) => event.event)
         .where(
             (event) => event.kind == BattleSwitchEventKind.replacementRequired)
-        .map((event) => event.side)
+        .map((event) => event.slot)
         .toSet();
     final steps = <BattleAnimationStep>[];
 
@@ -156,7 +182,7 @@ final class BattleTurnAnimationPlanner {
             steps.add(
               ShowMessageStep(
                 message:
-                    '${_presentationCombatantName(execution.attackerSide, trackedDisplayName)} utilise ${moveDisplayName(execution.move.id, execution.move.name)} !',
+                    '${_presentationCombatantName(execution.attackerSlot, trackedDisplayName)} utilise ${moveDisplayName(execution.move.id, execution.move.name)} !',
               ),
             );
             final resolvedMove = resolver.resolve(execution.move);
@@ -169,6 +195,8 @@ final class BattleTurnAnimationPlanner {
                     execution: execution,
                     attackerSide: execution.attackerSide,
                     targetSide: execution.targetSide,
+                    attackerSlotIndex: execution.attackerSlot.slotIndex,
+                    targetSlotIndex: execution.targetSlot?.slotIndex ?? 0,
                     damage: execution.damage,
                     didHit: execution.didHit,
                     didCrit: execution.didCrit,
@@ -185,12 +213,12 @@ final class BattleTurnAnimationPlanner {
             // dégât. L'alternative aurait été de retirer l'étape des 112
             // recettes qui l'émettent, pour le même résultat et un diff sans
             // rapport avec le sujet.
-            final targetSideForFlash = execution.targetSide;
+            final targetSideForFlash = execution.targetSlot;
             if (targetSideForFlash != null) {
               recipeSteps.removeWhere(
                 (step) =>
                     step is CombatantFlashStep &&
-                    step.side == targetSideForFlash,
+                    step.slot == targetSideForFlash,
               );
             }
             steps.addAll(recipeSteps);
@@ -204,7 +232,7 @@ final class BattleTurnAnimationPlanner {
             steps.add(
               ShowMessageStep(
                 message:
-                    '${_presentationCombatantName(execution.targetSide!, trackedDisplayName)} évite l’attaque !',
+                    '${_presentationCombatantName(execution.targetSlot!, trackedDisplayName)} évite l’attaque !',
               ),
             );
           }
@@ -218,7 +246,7 @@ final class BattleTurnAnimationPlanner {
             steps.add(
               ShowMessageStep(
                 message:
-                    'Ça n’affecte pas ${_presentationCombatantName(execution.targetSide!, trackedDisplayName)}…',
+                    'Ça n’affecte pas ${_presentationCombatantName(execution.targetSlot!, trackedDisplayName)}…',
               ),
             );
           } else if (execution.didHit &&
@@ -229,7 +257,7 @@ final class BattleTurnAnimationPlanner {
               // clignotement pour Doux Baiser. Un move OFFENSIF encaissé à 0
               // dégât garde son clignotement d'une seconde (BETA-BAT-013).
               (execution.damage > 0 || execution.move.power > 0)) {
-            final targetSide = execution.targetSide!;
+            final targetSide = execution.targetSlot!;
             final hpFrom = trackedHp[targetSide] ?? 0;
             final hpTo = (hpFrom - execution.damage).clamp(0, hpFrom);
             trackedHp[targetSide] = hpTo;
@@ -253,11 +281,13 @@ final class BattleTurnAnimationPlanner {
                   // la recette a déclaré. Un coup à animation RMXP n'en émet
                   // aucun, et devait quand même faire clignoter sa cible.
                   CombatantFlashStep(
-                    side: targetSide,
+                    side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                     durationSeconds: _damageBlinkSeconds,
                   ),
                   HudHpTweenStep(
-                    side: targetSide,
+                    side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                     fromHp: hpFrom,
                     toHp: hpTo,
                     durationMs: (drainSeconds * 1000).round(),
@@ -295,7 +325,8 @@ final class BattleTurnAnimationPlanner {
               if (!replacementRequiredSides.contains(targetSide)) {
                 steps.add(
                   FaintCombatantStep(
-                    side: targetSide,
+                    side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                     // BETA-BAT-013 : la chute de la référence est de 0,1 s,
                     // fondu et descente en parallèle.
                     durationSeconds: 0.1,
@@ -317,13 +348,12 @@ final class BattleTurnAnimationPlanner {
                   '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
             ),
           );
-          final visibleTargetSide = event.side == BattleSideId.player &&
-                  playerBefore.lineupIndex == event.targetLineupIndex
-              ? BattleSideId.player
-              : event.side == BattleSideId.enemy &&
-                      enemyBefore.lineupIndex == event.targetLineupIndex
-                  ? BattleSideId.enemy
-                  : null;
+          trackedPartyHp[(event.side, event.targetLineupIndex)] = event.hpAfter;
+          final visibleTargetSide = trackedLineup.entries
+              .where((entry) => entry.key.side == event.side &&
+                  entry.value == event.targetLineupIndex)
+              .map((entry) => entry.key)
+              .firstOrNull;
           steps.add(
             ShowMessageStep(
               message:
@@ -334,7 +364,8 @@ final class BattleTurnAnimationPlanner {
             trackedHp[visibleTargetSide] = event.hpAfter;
             steps.add(
               HudHpTweenStep(
-                side: visibleTargetSide,
+                side: visibleTargetSide.side,
+                slotIndex: visibleTargetSide.slotIndex,
                 fromHp: event.hpBefore,
                 toHp: event.hpAfter,
               ),
@@ -406,6 +437,7 @@ final class BattleTurnAnimationPlanner {
               steps.add(
                 BarrierPulseStep(
                   side: event.actorSide,
+                  slotIndex: event.actorSlot.slotIndex,
                   colorArgb: 0xAA95E7B9,
                   durationSeconds: 0.24,
                 ),
@@ -430,6 +462,8 @@ final class BattleTurnAnimationPlanner {
                     execution: null,
                     attackerSide: event.actorSide,
                     targetSide: event.targetSide,
+                    attackerSlotIndex: event.actorSlot.slotIndex,
+                    targetSlotIndex: event.targetSlot?.slotIndex ?? event.actorSlot.slotIndex,
                     damage: null,
                     didHit: false,
                     didCrit: false,
@@ -456,6 +490,8 @@ final class BattleTurnAnimationPlanner {
                     execution: null,
                     attackerSide: event.actorSide,
                     targetSide: event.targetSide,
+                    attackerSlotIndex: event.actorSlot.slotIndex,
+                    targetSlotIndex: event.targetSlot?.slotIndex ?? event.actorSlot.slotIndex,
                     damage: null,
                     didHit: false,
                     didCrit: false,
@@ -471,7 +507,7 @@ final class BattleTurnAnimationPlanner {
           ));
           switch (event.kind) {
             case BattleFieldEventKind.weatherResidualDamage:
-              final targetSide = event.targetSide;
+              final targetSide = event.targetSlot;
               final damage = event.damage;
               final hpTo = event.remainingHp;
               if (targetSide != null &&
@@ -481,7 +517,8 @@ final class BattleTurnAnimationPlanner {
                 final hpFrom = hpTo + damage;
                 trackedHp[targetSide] = hpTo;
                 steps.add(HudHpTweenStep(
-                  side: targetSide,
+                  side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                   fromHp: hpFrom,
                   toHp: hpTo,
                   durationMs: (_hpDrainSeconds(damage) * 1000).round(),
@@ -490,7 +527,8 @@ final class BattleTurnAnimationPlanner {
                   steps.add(const PlaySeStep(seName: 'down', pitch: 80));
                   if (!replacementRequiredSides.contains(targetSide)) {
                     steps.add(FaintCombatantStep(
-                      side: targetSide,
+                      side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                       durationSeconds: 0.1,
                     ));
                   }
@@ -552,15 +590,16 @@ final class BattleTurnAnimationPlanner {
           } else if (event.kind == BattleStealthRockEventKind.damagedOnEntry &&
               event.targetSlot != null &&
               event.damage != null) {
-            final targetSide = event.targetSlot!.side;
+            final targetSide = event.targetSlot!;
             final hpFrom = trackedHp[targetSide] ?? 0;
             final hpTo = (hpFrom - event.damage!).clamp(0, hpFrom);
             trackedHp[targetSide] = hpTo;
             steps.add(
               SpawnFxStep(
                 effectId: 'impact',
-                attackerSide: _oppositeSide(targetSide),
-                defenderSide: targetSide,
+                attackerSide: _oppositeSide(targetSide.side),
+                defenderSide: targetSide.side,
+                defenderSlotIndex: targetSide.slotIndex,
                 from: BattleVisualAnchor.defenderCenter,
                 to: BattleVisualAnchor.defenderCenter,
                 durationSeconds: 0.12,
@@ -569,7 +608,8 @@ final class BattleTurnAnimationPlanner {
             );
             steps.add(
               HudHpTweenStep(
-                side: targetSide,
+                side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                 fromHp: hpFrom,
                 toHp: hpTo,
               ),
@@ -578,7 +618,8 @@ final class BattleTurnAnimationPlanner {
               if (!replacementRequiredSides.contains(targetSide)) {
                 steps.add(
                   FaintCombatantStep(
-                    side: targetSide,
+                    side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                     // BETA-BAT-013 : la chute de la référence est de 0,1 s,
                     // fondu et descente en parallèle.
                     durationSeconds: 0.1,
@@ -611,15 +652,16 @@ final class BattleTurnAnimationPlanner {
           } else if (event.kind == BattleSpikesEventKind.damagedOnEntry &&
               event.targetSlot != null &&
               event.damage != null) {
-            final targetSide = event.targetSlot!.side;
+            final targetSide = event.targetSlot!;
             final hpFrom = trackedHp[targetSide] ?? 0;
             final hpTo = (hpFrom - event.damage!).clamp(0, hpFrom);
             trackedHp[targetSide] = hpTo;
             steps.add(
               SpawnFxStep(
                 effectId: 'impact',
-                attackerSide: _oppositeSide(targetSide),
-                defenderSide: targetSide,
+                attackerSide: _oppositeSide(targetSide.side),
+                defenderSide: targetSide.side,
+                defenderSlotIndex: targetSide.slotIndex,
                 from: BattleVisualAnchor.defenderCenter,
                 to: BattleVisualAnchor.defenderCenter,
                 durationSeconds: 0.12,
@@ -628,7 +670,8 @@ final class BattleTurnAnimationPlanner {
             );
             steps.add(
               HudHpTweenStep(
-                side: targetSide,
+                side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                 fromHp: hpFrom,
                 toHp: hpTo,
               ),
@@ -637,7 +680,8 @@ final class BattleTurnAnimationPlanner {
               if (!replacementRequiredSides.contains(targetSide)) {
                 steps.add(
                   FaintCombatantStep(
-                    side: targetSide,
+                    side: targetSide.side,
+                    slotIndex: targetSide.slotIndex,
                     // BETA-BAT-013 : la chute de la référence est de 0,1 s,
                     // fondu et descente en parallèle.
                     durationSeconds: 0.1,
@@ -664,55 +708,59 @@ final class BattleTurnAnimationPlanner {
             steps.add(
               PlayBallSequenceStep(
                 side: event.side,
+                slotIndex: event.slot.slotIndex,
                 kind: BattleBallSequenceKind.recall,
                 ballItemId: resolveCombatantBallItemId?.call(
                   event.side,
-                  event.side == BattleSideId.player
-                      ? playerBefore.lineupIndex
-                      : enemyBefore.lineupIndex,
+                  before[event.slot]?.lineupIndex ?? 0,
                 ),
               ),
             );
             steps.add(
               CombatantMotionStep(
                 side: event.side,
+                slotIndex: event.slot.slotIndex,
                 motionKind: BattleCombatantMotionKind.materializeOut,
                 durationSeconds: 0.1,
               ),
             );
-            steps.add(SwapCombatantVisualStep(side: event.side));
+            final incoming = after[event.slot];
+            final incomingHp = incoming == null ? null :
+                trackedPartyHp[(event.side, incoming.lineupIndex)] ?? incoming.currentHp;
+            if (incoming != null && incomingHp != null) {
+              trackedLineup[event.slot] = incoming.lineupIndex;
+              trackedHp[event.slot] = incomingHp;
+            }
+            steps.add(SwapCombatantVisualStep(
+              side: event.side, slotIndex: event.slot.slotIndex, initialHp: incomingHp,
+            ));
             steps.add(
               PlayBallSequenceStep(
                 side: event.side,
+                slotIndex: event.slot.slotIndex,
                 kind: BattleBallSequenceKind.sendOutHeld,
-                ballItemId: switch (event.side) {
-                  BattleSideId.player when playerAfter != null =>
+                ballItemId: after[event.slot] == null ? null :
                     resolveCombatantBallItemId?.call(
                       event.side,
-                      playerAfter.lineupIndex,
+                      after[event.slot]!.lineupIndex,
                     ),
-                  BattleSideId.enemy when enemyAfter != null =>
-                    resolveCombatantBallItemId?.call(
-                      event.side,
-                      enemyAfter.lineupIndex,
-                    ),
-                  _ => null,
-                },
               ),
             );
             steps.add(
               CombatantMotionStep(
                 side: event.side,
+                slotIndex: event.slot.slotIndex,
                 motionKind: BattleCombatantMotionKind.materializeIn,
                 durationSeconds: 0.1,
               ),
             );
-            trackedDisplayName[event.side] =
+            trackedDisplayName[event.slot] =
                 speciesDisplayName(event.toSpeciesId!);
           } else {
             steps.add(
               FaintCombatantStep(
                 side: event.side,
+                slotIndex: event.slot.slotIndex,
                 durationSeconds: 0.2,
               ),
             );
@@ -726,6 +774,7 @@ final class BattleTurnAnimationPlanner {
             steps.add(
               StatStageAuraStep(
                 side: event.side,
+                slotIndex: event.slot.slotIndex,
                 isRise: event.amount > 0,
               ),
             );
@@ -890,10 +939,10 @@ String _presentationCombatantLabel(BattleSideId side) {
 }
 
 String _presentationCombatantName(
-  BattleSideId side,
-  Map<BattleSideId, String> displayNameBySide,
+  BattleSlotRef slot,
+  Map<BattleSlotRef, String> displayNameBySide,
 ) {
-  return displayNameBySide[side] ?? _presentationCombatantLabel(side);
+  return displayNameBySide[slot] ?? _presentationCombatantLabel(slot.side);
 }
 
 /// Les textes de changement d'étage de la référence — BETA-BAT-021.
@@ -904,9 +953,9 @@ String _presentationCombatantName(
 /// « énormément ». Un changement refusé dit « ne peut plus … ».
 String _messageForStatStageEvent(
   BattleTurnStatStageEvent event,
-  Map<BattleSideId, String> displayNameBySide,
+  Map<BattleSlotRef, String> displayNameBySide,
 ) {
-  final target = _presentationCombatantName(event.side, displayNameBySide);
+  final target = _presentationCombatantName(event.slot, displayNameBySide);
   final label = switch (event.stat) {
     BattleStatId.attack => 'L’Attaque',
     BattleStatId.defense => 'La Défense',
@@ -934,10 +983,10 @@ String _messageForStatStageEvent(
 
 String _messageForStatusEvent(
   BattleStatusEvent event,
-  Map<BattleSideId, String> displayNameBySide,
+  Map<BattleSlotRef, String> displayNameBySide,
 ) {
   final target =
-      _presentationCombatantName(event.targetSide, displayNameBySide);
+      _presentationCombatantName(event.targetSlot, displayNameBySide);
   return switch (event.kind) {
     // Recette du 2026-08-24 : les textes d'application suivent la référence
     // (« [X] est empoisonné ! »), avec le nom affichable du Pokémon plutôt
@@ -966,9 +1015,9 @@ String _messageForStatusEvent(
 
 String _messageForVolatileEvent(
   BattleVolatileEvent event,
-  Map<BattleSideId, String> displayNameBySide,
+  Map<BattleSlotRef, String> displayNameBySide,
 ) {
-  final actor = _presentationCombatantName(event.actorSide, displayNameBySide);
+  final actor = _presentationCombatantName(event.actorSlot, displayNameBySide);
   return switch (event.kind) {
     BattleVolatileEventKind.protectActivated => '$actor se protège !',
     BattleVolatileEventKind.protectBlocked =>
@@ -988,11 +1037,11 @@ String _messageForVolatileEvent(
 
 String _messageForFieldEvent(
   BattleFieldEvent event,
-  Map<BattleSideId, String> displayNameBySide,
+  Map<BattleSlotRef, String> displayNameBySide,
 ) {
-  final target = event.targetSide == null
+  final target = event.targetSlot == null
       ? null
-      : _presentationCombatantName(event.targetSide!, displayNameBySide);
+      : _presentationCombatantName(event.targetSlot!, displayNameBySide);
   return switch (event.kind) {
     BattleFieldEventKind.weatherSet => event.weather == BattleWeatherId.rain
         ? 'La pluie commence à tomber.'

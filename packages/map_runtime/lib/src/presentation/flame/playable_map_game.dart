@@ -2605,6 +2605,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           BattleCommandOverlayMode.continueOnly =>
             selectBattleChoiceEntry(entryIndex,
         ),
+          BattleCommandOverlayMode.moveTarget => _battleOverlay?.selectMoveTargetEntry(entryIndex) ?? false,
           BattleCommandOverlayMode.bag => selectBattleBagEntry(entryIndex),
           BattleCommandOverlayMode.pokemon =>
             selectBattlePartyEntry(entryIndex),
@@ -9323,6 +9324,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   GameState get _battleRuntimeGameState =>
       _activeNarrativeSceneWorkingSession?.gameState ?? _gameState;
 
+  GameState get _battleOverlayGameState {
+    final session = _psdkBattleSession;
+    return session == null ? _battleRuntimeGameState : runtimeBattleStateWithAvailableItems(
+      session: session, gameState: _battleRuntimeGameState,
+    );
+  }
+
   void _replaceBattleRuntimeGameState(GameState gameState) {
     final session = _activeNarrativeSceneWorkingSession;
     if (session != null) {
@@ -9475,6 +9483,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         'selectPlayerBattleLineup',
         () => _battleSetupMapper
             .selectPlayerBattleLineup(_battleRuntimeGameState.party,
+          activeCount: _psdkBattleSetupMapper.requiresDoubles(
+            _bundle.manifest,
+            request,
+          ) ? 2 : 1,
         ),
       );
 
@@ -9494,6 +9506,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           ),
         );
       } on RuntimeBattleSetupException catch (psdkSetupError) {
+        if (_psdkBattleSetupMapper.requiresDoubles(_bundle.manifest, request)) {
+          rethrow;
+        }
         debugPrint(
           '[battle][psdk] PSDK setup failed, trying legacy bridge: '
           '${psdkSetupError.message} '
@@ -9733,12 +9748,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           resolveSpeciesDisplayName: (speciesId) =>
               battleSpeciesDisplayNames[speciesId] ?? speciesId,
           onPlayerChoice: _onPlayerBattleChoice,
+          presentation: _psdkBattleSession?.presentation,
+          onPlayerDecision: (decision, request) => _onPlayerBattleChoice(
+            const PlayerBattleChoiceContinue(),
+            engineDecision: decision,
+            engineRequest: request,
+          ),
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
-          onBagMovePpItemUseRequested: (action, entry, moveIndex) =>
+          onBagMovePpItemUseRequested: (action, entry, moveIndex, {request}) =>
               _onBattleBagHpHealItemUseRequested(
                 action,
                 entry,
                 targetMoveIndex: moveIndex,
+                request: request,
               ),
           medicineBattleState: _psdkBattleSession?.createLegacyWriteBackState,
           onCommandOverlaySnapshotChanged: (snapshot) {
@@ -10032,7 +10054,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   ///
   /// **Lock anti-spam** : `_isBattleResolving` empêche le spam clavier
   /// pendant la résolution d'un tour.
-  void _onPlayerBattleChoice(PlayerBattleChoice choice) {
+  void _onPlayerBattleChoice(
+    PlayerBattleChoice choice, {
+    BattleDecision? engineDecision,
+    BattleEngineDecisionRequest? engineRequest,
+  }) {
     if (_battleSession == null) {
       return;
     }
@@ -10075,7 +10101,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             allowFlee: request?.allowsPlayerFlee ?? false,
           );
         } else {
-          psdkSession.submitPlayerChoice(choice);
+          if (engineDecision != null) {
+            psdkSession.submitDecision(engineDecision, request: engineRequest);
+          } else {
+            psdkSession.submitPlayerChoice(choice);
+          }
           _battleSession = psdkSession.createLegacyDisplaySession(
             isTrainerBattle: isTrainerBattle,
             trainerId: trainerId,
@@ -10108,11 +10138,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
       }
 
+      if (psdkSession != null && psdkSession.isDoubles) {
+        final committed = commitRuntimeResolvedBattleItems(
+          session: psdkSession,
+          gameState: _battleRuntimeGameState,
+          itemCatalog: _itemCatalogSnapshot,
+        );
+        _replaceBattleRuntimeGameState(committed.state);
+      }
+
       // Mettre à jour l'UI avec le nouvel état
       final overlay = _battleOverlay;
       overlay?.updateState(
         _battleSession!,
-        gameState: _battleRuntimeGameState);
+        gameState: _battleOverlayGameState,
+        presentation: psdkSession?.presentation,
+      );
 
       // Vérifier si le combat est fini
       if (psdkSession != null && psdkSession.state.isFinished) {
@@ -10153,6 +10194,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     BattleBagMenuActionMedicineTarget action,
     BattleMedicineTargetEntry entry, {
     int? targetMoveIndex,
+    BattleEngineDecisionRequest? request,
   }) {
     final battleSession = _battleSession;
     final activeBattleContext = _activeBattleContext;
@@ -10170,9 +10212,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     try {
       final psdkSession = _psdkBattleSession;
       if (psdkSession != null) {
-        final request = activeBattleContext.request;
-        final isTrainerBattle = request is TrainerBattleStartRequest;
-        final trainerId = isTrainerBattle ? request.trainerId : null;
+        final battleRequest = activeBattleContext.request;
+        final isTrainerBattle = battleRequest is TrainerBattleStartRequest;
+        final trainerId = isTrainerBattle ? battleRequest.trainerId : null;
         final result = tryApplyRuntimePsdkBattleItemUse(
           psdkSession: psdkSession,
           displaySession: battleSession,
@@ -10181,9 +10223,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           itemId: action.itemId,
           targetLineupIndex: entry.lineupIndex,
           targetMoveIndex: targetMoveIndex,
+          request: request,
           isTrainerBattle: isTrainerBattle,
           trainerId: trainerId,
-          allowCapture: _battleRequestAllowsCapture(request),
+          allowCapture: _battleRequestAllowsCapture(battleRequest),
           itemCatalog: _itemCatalogSnapshot,
         );
         if (result == null) {
@@ -10195,7 +10238,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         final overlay = _battleOverlay;
         overlay?.updateState(
           _battleSession!,
-          gameState: _battleRuntimeGameState,
+          gameState: _battleOverlayGameState,
+          presentation: psdkSession.presentation,
         );
 
         if (psdkSession.state.isFinished) {

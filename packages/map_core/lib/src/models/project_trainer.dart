@@ -11,6 +11,20 @@ const trainerBattleItemMaxDistinctCount = 16;
 const trainerBattleItemMinQuantity = 1;
 const trainerBattleItemMaxQuantity = 99;
 
+enum BattleFormat {
+  singles,
+  doubles;
+
+  static BattleFormat fromJson(Object? value) => switch (value) {
+    'singles' => singles,
+    'doubles' => doubles,
+    _ => throw FormatException(
+      'ProjectTrainerEntry.battleFormat must be singles or doubles.',
+      value,
+    ),
+  };
+}
+
 Map<String, int> _projectTrainerBattleItemsFromJson(Object? value) {
   if (value is! Map) {
     throw FormatException(
@@ -32,6 +46,9 @@ Map<String, int> _projectTrainerBattleItemsFromJson(Object? value) {
 }
 
 Map<String, dynamic> _projectTrainerEntryJson(Map<String, dynamic> json) {
+  if (json.containsKey('battleFormat')) {
+    BattleFormat.fromJson(json['battleFormat']);
+  }
   if (json.containsKey('battleItems')) {
     _projectTrainerBattleItemsFromJson(json['battleItems']);
   }
@@ -202,6 +219,7 @@ abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
 
     /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
     required String trainerClass,
+    @Default(BattleFormat.singles) BattleFormat battleFormat,
 
     /// Difficulté produit battle exprimée sur l'échelle lisible `1..10`.
     ///

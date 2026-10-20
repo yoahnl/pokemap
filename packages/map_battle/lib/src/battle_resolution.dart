@@ -263,9 +263,12 @@ final class BattleTurnStatStageEvent extends BattleTurnEvent {
     required this.stat,
     required this.amount,
     required this.currentStage,
+    this.slotIndex = 0,
   });
 
   final BattleSideId side;
+  final int slotIndex;
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
   final BattleStatId stat;
 
   /// Le nombre d'étages RÉELLEMENT appliqués — négatif à la baisse, nul si

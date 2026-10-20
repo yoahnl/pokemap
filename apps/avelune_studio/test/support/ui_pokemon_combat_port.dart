@@ -28,6 +28,12 @@ final class UiPokemonCombatPort implements PokemonCombatPort {
       (await WidgetResourcePort.serial(tester, source.load))!;
 
   @override
+  Future<void> setRuleset(
+    PokemonRulesetProfile before,
+    PokemonRulesetProfile after,
+  ) => _write(() => source.setRuleset(before, after));
+
+  @override
   Future<void> saveTable(
     ProjectEncounterTable? before,
     ProjectEncounterTable after,

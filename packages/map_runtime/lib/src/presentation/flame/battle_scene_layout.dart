@@ -1,6 +1,21 @@
 import 'dart:math' as math;
 
 import 'package:flutter/painting.dart';
+import 'package:map_battle/map_battle.dart';
+
+final class BattleCombatantSceneGeometry {
+  const BattleCombatantSceneGeometry({
+    required this.spriteRect,
+    required this.platformRect,
+    required this.footAnchor,
+    required this.hudRect,
+  });
+
+  final Rect spriteRect;
+  final Rect platformRect;
+  final Offset footAnchor;
+  final Rect hudRect;
+}
 
 /// Bornes de l'échelle de texte de combat.
 ///
@@ -78,6 +93,65 @@ final class BattleSceneLayout {
 
   Rect get playerCombatantBoundsRect =>
       playerSpriteRect.expandToInclude(playerPlatformRect);
+
+  BattleCombatantSceneGeometry combatantGeometry(
+    BattleSlotRef slot, {
+    bool doubles = false,
+  }) {
+    final player = slot.side == BattleSideId.player;
+    if (!doubles) {
+      return BattleCombatantSceneGeometry(
+        spriteRect: player ? playerSpriteRect : enemySpriteRect,
+        platformRect: player ? playerPlatformRect : enemyPlatformRect,
+        footAnchor: player ? playerFootAnchor : enemyFootAnchor,
+        hudRect: player ? playerHudRect : enemyHudRect,
+      );
+    }
+    if (slot.slotIndex < 0 || slot.slotIndex > 1) {
+      throw ArgumentError.value(slot, 'slot');
+    }
+    final field = Rect.fromLTRB(
+      sceneRect.left + 8,
+      sceneRect.top + 8,
+      sceneRect.right - 8,
+      commandPanelRect.top - 8,
+    );
+    final hudHeight = (field.height * 0.13).clamp(56.0, 64.0).toDouble();
+    final hudWidth = math.min(field.width * 0.46, 198.0);
+    final hudTop = player
+        ? field.bottom - (2 - slot.slotIndex) * (hudHeight + 4)
+        : field.top + slot.slotIndex * (hudHeight + 4);
+    final foot = Offset(
+      field.left + field.width * (player
+          ? (slot.slotIndex == 0 ? 0.14 : 0.34)
+          : (slot.slotIndex == 0 ? 0.68 : 0.84)),
+      field.top + field.height * (player
+          ? (slot.slotIndex == 0 ? 0.68 : 0.94)
+          : (slot.slotIndex == 0 ? 0.34 : 0.52)),
+    );
+    final spriteWidth = math.min(field.width * 0.22, player ? 144.0 : 112.0);
+    final spriteHeight = math.min(field.height * 0.28, player ? 148.0 : 116.0);
+    return BattleCombatantSceneGeometry(
+      spriteRect: Rect.fromLTWH(
+        foot.dx - spriteWidth / 2,
+        foot.dy - spriteHeight,
+        spriteWidth,
+        spriteHeight,
+      ),
+      platformRect: Rect.fromCenter(
+        center: foot,
+        width: spriteWidth * 1.1,
+        height: spriteHeight * 0.16,
+      ),
+      footAnchor: foot,
+      hudRect: Rect.fromLTWH(
+        player ? field.right - hudWidth : field.left,
+        hudTop,
+        hudWidth,
+        hudHeight,
+      ),
+    );
+  }
 
   factory BattleSceneLayout.forViewport({
     required Size viewportSize,

@@ -25,11 +25,33 @@ final class BattleFxRuntimeContext {
     required this.sceneSize,
     required this.resolveAnchor,
     this.stageRect,
+    this.resolveSlotAnchor,
   });
 
   final Vector2 sceneSize;
   final Rect? stageRect;
   final BattleVisualAnchorResolver resolveAnchor;
+  final Vector2 Function({
+    required BattleVisualAnchor anchor,
+    required BattleSlotRef attackerSlot,
+    required BattleSlotRef defenderSlot,
+  })? resolveSlotAnchor;
+
+  Vector2 anchorFor({
+    required BattleVisualAnchor anchor,
+    required BattleSideId attackerSide,
+    required BattleSideId defenderSide,
+    int attackerSlotIndex = 0,
+    int defenderSlotIndex = 0,
+  }) => resolveSlotAnchor?.call(
+    anchor: anchor,
+    attackerSlot: BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex),
+    defenderSlot: BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex),
+  ) ?? resolveAnchor(
+    anchor: anchor,
+    attackerSide: attackerSide,
+    defenderSide: defenderSide,
+  );
 }
 
 final class BattleFxLayerComponent extends PositionComponent {
@@ -148,18 +170,22 @@ final class BattleFxLayerComponent extends PositionComponent {
   ) async {
     final sprite = await fxBundleCache.loadSprite(step.effectId);
     final startPosition = ctx
-        .resolveAnchor(
+        .anchorFor(
           anchor: step.from,
           attackerSide: step.attackerSide,
+          attackerSlotIndex: step.attackerSlotIndex,
           defenderSide: step.defenderSide,
+          defenderSlotIndex: step.defenderSlotIndex,
         )
         .clone()
       ..add(Vector2(step.fromOffsetX, step.fromOffsetY));
     final endPosition = ctx
-        .resolveAnchor(
+        .anchorFor(
           anchor: step.to,
           attackerSide: step.attackerSide,
+          attackerSlotIndex: step.attackerSlotIndex,
           defenderSide: step.defenderSide,
+          defenderSlotIndex: step.defenderSlotIndex,
         )
         .clone()
       ..add(Vector2(step.toOffsetX, step.toOffsetY));
@@ -186,10 +212,12 @@ final class BattleFxLayerComponent extends PositionComponent {
     final spec = BattleFxCatalog.require(step.assetId);
     final image = await fxBundleCache.loadImage(step.assetId);
     final anchorPosition = ctx
-        .resolveAnchor(
+        .anchorFor(
           anchor: step.anchor,
           attackerSide: step.attackerSide,
+          attackerSlotIndex: step.attackerSlotIndex,
           defenderSide: step.defenderSide,
+          defenderSlotIndex: step.defenderSlotIndex,
         )
         .clone()
       ..add(Vector2(step.offsetX, step.offsetY));
@@ -222,14 +250,16 @@ final class BattleFxLayerComponent extends PositionComponent {
         (step.side == BattleSideId.player
             ? BattleSideId.enemy
             : BattleSideId.player);
-    final anchor = step.side == attackerSide
+    final anchor = step.side == attackerSide && step.slotIndex == (step.attackerSide == null ? step.slotIndex : step.attackerSlotIndex)
         ? BattleVisualAnchor.attackerCenter
         : BattleVisualAnchor.defenderCenter;
     await playSpriteSheetFx(
       PlaySpriteSheetFxStep(
         assetId: step.assetId,
         attackerSide: attackerSide,
+        attackerSlotIndex: step.attackerSide == null ? step.slotIndex : step.attackerSlotIndex,
         defenderSide: defenderSide,
+        defenderSlotIndex: step.defenderSide == null ? step.slotIndex : step.defenderSlotIndex,
         anchor: anchor,
         frameWidth: step.frameWidth,
         frameHeight: step.frameHeight,
@@ -259,10 +289,12 @@ final class BattleFxLayerComponent extends PositionComponent {
         ? BattleSideId.player
         : BattleSideId.enemy;
     final center = ctx
-        .resolveAnchor(
+        .anchorFor(
           anchor: step.anchor,
           attackerSide: anchorSide,
+          attackerSlotIndex: step.slotIndex,
           defenderSide: anchorSide,
+          defenderSlotIndex: step.slotIndex,
         )
         .clone();
     final count = step.particleCount.clamp(0, 160);
@@ -305,10 +337,12 @@ final class BattleFxLayerComponent extends PositionComponent {
     for (final particle in step.particles) {
       final sprite = await fxBundleCache.loadSprite(particle.assetId);
       final anchorPosition = ctx
-          .resolveAnchor(
+          .anchorFor(
             anchor: particle.anchor,
             attackerSide: step.attackerSide,
+            attackerSlotIndex: step.attackerSlotIndex,
             defenderSide: step.defenderSide,
+            defenderSlotIndex: step.defenderSlotIndex,
           )
           .clone();
       add(
@@ -339,10 +373,12 @@ final class BattleFxLayerComponent extends PositionComponent {
     BattleFxRuntimeContext ctx,
   ) async {
     final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.resolveAnchor(
+    final anchorPosition = ctx.anchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
     final count = step.particleCount.clamp(0, 160);
     for (var i = 0; i < count; i++) {
@@ -378,10 +414,12 @@ final class BattleFxLayerComponent extends PositionComponent {
     BattleFxRuntimeContext ctx,
   ) async {
     final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.resolveAnchor(
+    final anchorPosition = ctx.anchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
     final count = step.particleCount.clamp(0, 160);
     for (var i = 0; i < count; i++) {
@@ -420,10 +458,12 @@ final class BattleFxLayerComponent extends PositionComponent {
     BattleFxRuntimeContext ctx,
   ) async {
     final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.resolveAnchor(
+    final anchorPosition = ctx.anchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
     add(
       BattleSdkParticleComponent(
@@ -451,10 +491,12 @@ final class BattleFxLayerComponent extends PositionComponent {
     BattleFxRuntimeContext ctx,
   ) async {
     final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.resolveAnchor(
+    final anchorPosition = ctx.anchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
     add(
       BattleSdkParticleComponent(
@@ -489,41 +531,53 @@ final class BattleFxLayerComponent extends PositionComponent {
   }) async {
     final animation = BattleSdkRmxpAnimationCatalog.require(step.animationId);
     final image = await fxBundleCache.loadImage(animation.assetId);
-    final subjectAnchor = step.subjectSide == step.attackerSide
+    final subjectAnchor = step.subjectSlot == step.attackerSlot
         ? BattleVisualAnchor.attackerBody
         : BattleVisualAnchor.defenderImpact;
-    final anchorPosition = ctx.resolveAnchor(
+    final anchorPosition = ctx.anchorFor(
       anchor: subjectAnchor,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
-    final placementAnchorPosition = ctx.resolveAnchor(
+    final placementAnchorPosition = ctx.anchorFor(
       anchor: step.placementSpec.anchor ??
           _defaultAnchorForRmxpPlacement(step, subjectAnchor),
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
-    final projectileSourceAnchorPosition = ctx.resolveAnchor(
+    final projectileSourceAnchorPosition = ctx.anchorFor(
       anchor:
           step.placementSpec.sourceAnchor ?? BattleVisualAnchor.attackerMouth,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
-    final projectileTargetAnchorPosition = ctx.resolveAnchor(
+    final projectileTargetAnchorPosition = ctx.anchorFor(
       anchor:
           step.placementSpec.targetAnchor ?? BattleVisualAnchor.defenderImpact,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
-    final attackerAnchorPosition = ctx.resolveAnchor(
+    final attackerAnchorPosition = ctx.anchorFor(
       anchor: BattleVisualAnchor.attackerCenter,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
-    final defenderAnchorPosition = ctx.resolveAnchor(
+    final defenderAnchorPosition = ctx.anchorFor(
       anchor: BattleVisualAnchor.defenderCenter,
       attackerSide: step.attackerSide,
+      attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
+      defenderSlotIndex: step.defenderSlotIndex,
     );
     add(
       BattleRmxpAnimationComponent(

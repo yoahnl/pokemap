@@ -134,6 +134,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
             panelRect: snapshot.panelRect,
             enemyHud: snapshot.enemyHud,
             playerHud: snapshot.playerHud,
+            additionalHuds: snapshot.additionalHuds,
+            actorSlot: snapshot.actorSlot,
+            actorCombatantId: snapshot.actorCombatantId,
             battleLabel: snapshot.battleLabel,
             title: snapshot.title,
             prompt: snapshot.prompt,
@@ -168,6 +171,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
             overlay.selectRootEntry(entryIndex),
           BattleCommandOverlayMode.fight =>
             overlay.selectChoiceEntry(entryIndex),
+          BattleCommandOverlayMode.moveTarget =>
+            overlay.selectMoveTargetEntry(entryIndex),
           BattleCommandOverlayMode.continueOnly =>
             overlay.validateSelectedChoice(),
           BattleCommandOverlayMode.bag => overlay.selectBagEntry(entryIndex),
@@ -263,8 +268,11 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         pokemonConfig: bundle.manifest.pokemon,
       );
       if (!_current(generation)) return;
-      final lineup = mapper.selectPlayerBattleLineup(hydrated.party);
-      final setup = await RuntimePsdkBattleSetupMapper().map(
+      final psdkMapper = RuntimePsdkBattleSetupMapper();
+      final lineup = mapper.selectPlayerBattleLineup(hydrated.party,
+        activeCount: psdkMapper.requiresDoubles(bundle.manifest, request) ? 2 : 1,
+      );
+      final setup = await psdkMapper.map(
         bundle: bundle,
         gameState: hydrated,
         request: request,
@@ -343,7 +351,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       overlay = BattleOverlayComponent(
         resourceBudget: bundle.resourceBudget,
         session: displaySession!,
-        gameState: _working!,
+        presentation: _engine!.presentation,
+        gameState: _overlayGameState,
         introEnabled: true,
         viewportSize: Vector2(640, 480),
         safeAreaPadding: _viewSafeAreaPadding,
@@ -372,6 +381,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           lineupIndex: index,
         ),
         onPlayerChoice: (choice) => unawaited(submitChoice(choice)),
+        onPlayerDecision: (decision, request) => unawaited(submitChoice(
+          const PlayerBattleChoiceContinue(), decision: decision, request: request,
+        )),
         onCommandOverlaySnapshotChanged: (snapshot) {
           if (_current(generation) &&
               (snapshot == null || identical(battleOverlay, overlay))) {
@@ -383,8 +395,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           }
         },
         onBagHpHealItemUseRequested: _useMedicine,
-        onBagMovePpItemUseRequested: (action, entry, moveIndex) =>
-            _useMedicine(action, entry, targetMoveIndex: moveIndex),
+        onBagMovePpItemUseRequested: (action, entry, moveIndex, {request}) =>
+            _useMedicine(action, entry, targetMoveIndex: moveIndex, request: request),
         medicineBattleState: _engine!.createLegacyWriteBackState,
       );
       if (request is TrainerBattleStartRequest) {
@@ -458,7 +470,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     );
   }
 
-  Future<bool> submitChoice(PlayerBattleChoice choice) async {
+  Future<bool> submitChoice(PlayerBattleChoice choice, {
+    BattleDecision? decision,
+    BattleEngineDecisionRequest? request,
+  }) async {
     if (phase != SpatialBattlePhase.battle ||
         isPaused ||
         battleOverlay?.isTurnPresentationActive == true ||
@@ -466,7 +481,12 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         _disposed) {
       return false;
     }
-    if (!_engine!.allowsPlayerChoice(choice)) return false;
+    if (_engine!.isDoubles && !identical(request, _engine!.decisionRequest)) return false;
+    if (decision == null) {
+      if (!_engine!.allowsPlayerChoice(choice)) return false;
+    } else if (!(request ?? _engine!.decisionRequest).allows(decision)) {
+      return false;
+    }
     _resolving = true;
     final generation = _generation;
     try {
@@ -488,8 +508,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         );
         _working = submission.updatedGameState;
         _captureReceipt = submission.receipt;
+      } else if (decision != null) {
+        _engine!.submitDecision(decision, request: request);
       } else {
-        _engine!.submitPlayerChoice(choice);
+        _engine!.submitPlayerChoice(choice, request: request);
       }
       await _presentTurn(generation);
       return _current(generation);
@@ -507,11 +529,12 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     BattleBagMenuActionMedicineTarget action,
     BattleMedicineTargetEntry entry, {
     int? targetMoveIndex,
+    BattleEngineDecisionRequest? request,
   }) {
     if (phase != SpatialBattlePhase.battle || isPaused || _resolving) {
       return false;
     }
-    final request = context!.request;
+    final battleRequest = context!.request;
     final result = tryApplyRuntimePsdkBattleItemUse(
       psdkSession: _engine!,
       displaySession: displaySession!,
@@ -520,9 +543,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       itemId: action.itemId,
       targetLineupIndex: entry.lineupIndex,
       targetMoveIndex: targetMoveIndex,
-      isTrainerBattle: request is TrainerBattleStartRequest,
+      request: request,
+      isTrainerBattle: battleRequest is TrainerBattleStartRequest,
       trainerId:
-          request is TrainerBattleStartRequest ? request.trainerId : null,
+          battleRequest is TrainerBattleStartRequest ? battleRequest.trainerId : null,
       allowCapture: _allowsCapture,
       itemCatalog: _items!,
     );
@@ -548,11 +572,22 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     }
   }
 
+  GameState get _overlayGameState => runtimeBattleStateWithAvailableItems(
+    session: _engine!, gameState: _working!,
+  );
+
   Future<void> _presentTurn(int generation) async {
+    if (_engine!.isDoubles) {
+      _working = commitRuntimeResolvedBattleItems(
+        session: _engine!, gameState: _working!, itemCatalog: _items!,
+      ).state;
+    }
     displaySession = _display();
     final overlay = battleOverlay;
     if (overlay != null && overlay.isMounted) {
-      overlay.updateState(displaySession!, gameState: _working!);
+      overlay.updateState(displaySession!,
+        gameState: _overlayGameState, presentation: _engine!.presentation,
+      );
       await overlay.waitForTurnPresentationComplete();
     }
     await _waitUntilResumed(generation);

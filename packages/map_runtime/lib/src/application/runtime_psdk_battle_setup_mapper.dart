@@ -29,6 +29,16 @@ final class RuntimePsdkBattleSetupMapper {
   final RuntimeItemCatalogLoader itemCatalogLoader;
   final RuntimeBattleCombatantSeedBuilder combatantSeedBuilder;
 
+  bool requiresDoubles(ProjectManifest manifest, BattleStartRequest request) {
+    final trainerId = switch (request) {
+      TrainerBattleStartRequest(:final trainerId) => trainerId,
+      StaticBattleStartRequest(:final opponentProfileId) => opponentProfileId,
+      WildBattleStartRequest() => null,
+    };
+    return trainerId != null &&
+        _findTrainer(manifest, trainerId).battleFormat == BattleFormat.doubles;
+  }
+
   Future<PsdkBattleSetup> map({
     required RuntimeMapBundle bundle,
     required GameState gameState,
@@ -36,6 +46,19 @@ final class RuntimePsdkBattleSetupMapper {
     int? playerPartyIndex,
     ItemCatalogSnapshot? itemCatalog,
   }) async {
+    final doubles = requiresDoubles(bundle.manifest, request);
+    if (doubles && request is! TrainerBattleStartRequest) {
+      throw RuntimeBattleSetupException(
+        'Le format duo est réservé aux combats de dresseurs.',
+      );
+    }
+    if (doubles &&
+        bundle.manifest.pokemon.ruleset.mechanics.disabledFeatures
+            .contains(PokemonDisabledFeature.doubleBattles)) {
+      throw RuntimeBattleSetupException(
+        'Le profil de règles du projet ne permet pas les combats duo.',
+      );
+    }
     final resolvedItemCatalog = itemCatalog ??
         await itemCatalogLoader.loadSnapshot(
           projectRootDirectory: bundle.projectRootDirectory,
@@ -48,6 +71,7 @@ final class RuntimePsdkBattleSetupMapper {
     final playerSelection = RuntimeBattleSetupMapper().selectPlayerBattleLineup(
       gameState.party,
       playerPartyIndex: playerPartyIndex,
+      activeCount: doubles ? 2 : 1,
     );
     final playerPokemon = gameState.party.members[playerSelection.activeIndex];
 
@@ -94,6 +118,12 @@ final class RuntimePsdkBattleSetupMapper {
           if (trainer.team.isEmpty) {
             throw RuntimeBattleSetupException(
               'Le dresseur "${trainer.name}" n’a aucun Pokémon dans son équipe.',
+              debugDetails: 'trainerId=${trainer.id}',
+            );
+          }
+          if (doubles && trainer.team.length < 2) {
+            throw RuntimeBattleSetupException(
+              'Un combat duo exige deux Pokémon dans l’équipe du dresseur.',
               debugDetails: 'trainerId=${trainer.id}',
             );
           }
@@ -168,6 +198,44 @@ final class RuntimePsdkBattleSetupMapper {
         }(),
     };
 
+    const rngSeeds = PsdkBattleRngSeeds(
+      moveDamage: 17,
+      moveCritical: 23,
+      moveAccuracy: 31,
+      generic: 47,
+    );
+    if (doubles) {
+      final player = [playerSeed, ...playerReserveSeeds];
+      final opponent = [enemyLineup.active, ...enemyLineup.reserve];
+      PsdkBattleCombatantSetup project(
+        RuntimePsdkBattleCombatantSeed seed,
+        int index,
+        String prefix,
+      ) => seed.toPsdkBattleCombatantSetup(
+        lineupIndex: index,
+        idPrefix: prefix,
+      );
+      return PsdkBattleSetup.doubles(
+        ruleset: bundle.manifest.pokemon.ruleset,
+        player: [
+          for (var index = 0; index < 2; index++)
+            project(player[index], index, 'player'),
+        ],
+        playerReserves: [
+          for (var index = 2; index < player.length; index++)
+            project(player[index], index, 'player'),
+        ],
+        opponent: [
+          for (var index = 0; index < 2; index++)
+            project(opponent[index], index, 'opponent'),
+        ],
+        opponentReserves: [
+          for (var index = 2; index < opponent.length; index++)
+            project(opponent[index], index, 'opponent'),
+        ],
+        rngSeeds: rngSeeds,
+      );
+    }
     return PsdkBattleSetup.singles(
       ruleset: bundle.manifest.pokemon.ruleset,
       player: playerSeed.toPsdkBattleCombatantSetup(
@@ -194,12 +262,7 @@ final class RuntimePsdkBattleSetupMapper {
               ),
             ),
       ),
-      rngSeeds: const PsdkBattleRngSeeds(
-        moveDamage: 17,
-        moveCritical: 23,
-        moveAccuracy: 31,
-        generic: 47,
-      ),
+      rngSeeds: rngSeeds,
       canFlee: request.allowsPlayerFlee,
       canCapture: request is WildBattleStartRequest &&
           playerHasAtLeastOneRuntimeCaptureItem(

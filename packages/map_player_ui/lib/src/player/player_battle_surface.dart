@@ -128,6 +128,21 @@ final class PlayerBattleViewportLayout {
 }
 
 @immutable
+final class PlayerBattleAdditionalHud {
+  const PlayerBattleAdditionalHud({
+    required this.identity,
+    required this.rect,
+    required this.data,
+    required this.isPlayerSide,
+  });
+
+  final String identity;
+  final Rect rect;
+  final PlayerBattleHudViewData data;
+  final bool isPlayerSide;
+}
+
+@immutable
 final class PlayerBattleViewData {
   const PlayerBattleViewData({
     required this.revision,
@@ -143,6 +158,7 @@ final class PlayerBattleViewData {
     this.viewportLayout,
     this.forcedReplacement = false,
     this.panelKind = PlayerBattlePanelKind.commands,
+    this.additionalHuds = const [],
   });
 
   final int revision;
@@ -158,6 +174,7 @@ final class PlayerBattleViewData {
   final PlayerBattleViewportLayout? viewportLayout;
   final bool forcedReplacement;
   final PlayerBattlePanelKind panelKind;
+  final List<PlayerBattleAdditionalHud> additionalHuds;
 }
 
 sealed class PlayerBattleAction {
@@ -226,7 +243,7 @@ class PlayerBattleSurface extends StatelessWidget {
       );
     }
     if (data.viewportLayout case final layout?
-        when _usesCanonicalBattleStructure(context.playerBattleProfile)) {
+        when data.additionalHuds.isNotEmpty || _usesCanonicalBattleStructure(context.playerBattleProfile)) {
       return _buildViewportLayout(context, layout);
     }
     return _buildAdaptiveLayout(context);
@@ -272,6 +289,23 @@ class PlayerBattleSurface extends StatelessWidget {
             'player-battle-responsive-${breakpoint.name}',
           ),
           children: <Widget>[
+            for (final hud in data.additionalHuds)
+              Positioned.fromRect(
+                key: ValueKey(hud.identity),
+                rect: hud.rect,
+                child: AnimatedSlide(
+                  offset: hud.data.isRevealed ? Offset.zero : Offset(0, hud.isPlayerSide ? 2 : -2),
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: _BattleHud(
+                    data: hud.data,
+                    sideId: hud.isPlayerSide ? 'player' : 'enemy',
+                    identity: hud.identity,
+                    profile: battle,
+                    dense: true,
+                  ),
+                ),
+              ),
             Positioned.fromRect(
               rect: layout.enemyHudRect,
               // BETA-BAT-028 : parité `show_team_info` — la barre glisse en
@@ -500,12 +534,14 @@ class _BattleHud extends StatelessWidget {
   const _BattleHud({
     required this.data,
     required this.sideId,
+    this.identity,
     required this.profile,
     required this.dense,
   });
 
   final PlayerBattleHudViewData data;
   final String sideId;
+  final String? identity;
   final ProjectBattlePresentationProfile? profile;
   final bool dense;
 
@@ -561,7 +597,7 @@ class _BattleHud extends StatelessWidget {
       borderColorOverride: paletteBorder,
       textColorOverride: paletteText,
       child: Semantics(
-        key: ValueKey<String>('battle-hud-semantics-$sideId'),
+        key: ValueKey<String>('battle-hud-semantics-${identity ?? sideId}'),
         container: true,
         label: '${data.ownerLabel}, ${data.speciesLabel}'
             '${data.genderSymbol == null ? '' : ' ${data.genderSymbol}'}, '
@@ -593,7 +629,7 @@ class _BattleHud extends StatelessWidget {
                   Expanded(
                     child: Text(
                       data.speciesLabel,
-                      key: ValueKey<String>('battle-species-$sideId'),
+                      key: ValueKey<String>('battle-species-${identity ?? sideId}'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.playerTypography
@@ -615,7 +651,7 @@ class _BattleHud extends StatelessWidget {
                   if (data.genderSymbol case final gender?) ...<Widget>[
                     const SizedBox(width: PlayerSpacing.xxs),
                     _BattleGenderSymbol(
-                      key: ValueKey<String>('battle-gender-$sideId'),
+                      key: ValueKey<String>('battle-gender-${identity ?? sideId}'),
                       symbol: gender,
                     ),
                   ],
@@ -624,7 +660,7 @@ class _BattleHud extends StatelessWidget {
                     const SizedBox(width: PlayerSpacing.xxs),
                     Text(
                       context.playerL10n.levelLabel(data.level),
-                      key: ValueKey<String>('battle-level-$sideId'),
+                      key: ValueKey<String>('battle-level-${identity ?? sideId}'),
                       maxLines: 1,
                       style: context.playerTypography
                           .numbersStyle(
@@ -645,7 +681,7 @@ class _BattleHud extends StatelessWidget {
                   vertical: dense ? 2 : PlayerSpacing.xxs,
                 ),
                 child: SizedBox(
-                  key: ValueKey<String>('battle-hud-divider-$sideId'),
+                  key: ValueKey<String>('battle-hud-divider-${identity ?? sideId}'),
                   height: 1,
                   child: ColoredBox(
                     color: paletteBorder.withValues(alpha: .48),
@@ -671,7 +707,7 @@ class _BattleHud extends StatelessWidget {
                     if (!largeText) ...<Widget>[
                       Text(
                         context.playerL10n.hpAbbreviation,
-                        key: ValueKey<String>('battle-hp-label-$sideId'),
+                        key: ValueKey<String>('battle-hp-label-${identity ?? sideId}'),
                         style: context.playerTypography
                             .combatStyle(
                               Theme.of(context).textTheme.labelSmall ??
@@ -710,7 +746,7 @@ class _BattleHud extends StatelessWidget {
                           animatedHp.round(),
                           data.maxHp,
                         ),
-                        key: ValueKey<String>('battle-exact-hp-$sideId'),
+                        key: ValueKey<String>('battle-exact-hp-${identity ?? sideId}'),
                         maxLines: 1,
                         style: context.playerTypography
                             .numbersStyle(
@@ -749,7 +785,7 @@ class _BattleHud extends StatelessWidget {
                       if (!largeText) ...<Widget>[
                         Text(
                           context.playerL10n.experienceAbbreviation,
-                          key: ValueKey<String>('battle-xp-label-$sideId'),
+                          key: ValueKey<String>('battle-xp-label-${identity ?? sideId}'),
                           style: context.playerTypography
                               .numbersStyle(
                                 Theme.of(context).textTheme.labelSmall ??
@@ -765,7 +801,7 @@ class _BattleHud extends StatelessWidget {
                       ],
                       Expanded(
                         child: _BattleExperienceBar(
-                          key: ValueKey<String>('battle-xp-$sideId'),
+                          key: ValueKey<String>('battle-xp-${identity ?? sideId}'),
                           value: animatedXp,
                           color: chrome.water,
                           backgroundColor:

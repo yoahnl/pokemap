@@ -70,6 +70,54 @@ RuntimeBattleItemApplyResult? tryApplyRuntimeBattleItemUse({
   );
 }
 
+GameState runtimeBattleStateWithAvailableItems({
+  required RuntimePsdkBattleSessionAdapter session,
+  required GameState gameState,
+}) {
+  var bag = gameState.bag;
+  for (final entry in session.pendingItemQuantities.entries) {
+    final result = const BagOperations().take(BagTakeRequest(
+      bag: bag, itemId: entry.key, quantity: entry.value,
+    ));
+    if (!result.isSuccess) {
+      throw StateError('Reserved battle items are absent from the bag.');
+    }
+    bag = result.bag;
+  }
+  return gameState.copyWith(bag: bag);
+}
+
+({GameState state, Map<BattlePositionRef, ItemConsumptionReceipt> receipts})
+    commitRuntimeResolvedBattleItems({
+  required RuntimePsdkBattleSessionAdapter session,
+  required GameState gameState,
+  required ItemCatalogSnapshot itemCatalog,
+}) {
+  final events = session.resolvedItemEvents;
+  var bag = gameState.bag;
+  final receipts = <BattlePositionRef, ItemConsumptionReceipt>{};
+  for (final event in events) {
+    final definition = itemCatalog.definitionFor(event.itemId);
+    if (definition == null) {
+      throw StateError('Resolved battle item is missing from the catalog.');
+    }
+    final result = const BagOperations().consume(BagConsumeRequest(
+      bag: bag,
+      itemId: event.itemId,
+      quantity: 1,
+      reason: ItemConsumptionReason.appliedEffect,
+      itemTags: definition.tags,
+    ));
+    if (!result.isSuccess || result.consumptionReceipt == null) {
+      throw StateError('Resolved battle item cannot be consumed from the bag.');
+    }
+    bag = result.bag;
+    receipts[event.user] = result.consumptionReceipt!;
+  }
+  session.acknowledgeResolvedItemEvents(events);
+  return (state: gameState.copyWith(bag: bag), receipts: Map.unmodifiable(receipts));
+}
+
 RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   required RuntimePsdkBattleSessionAdapter psdkSession,
   required BattleSession displaySession,
@@ -80,9 +128,13 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   required bool isTrainerBattle,
   required ItemCatalogSnapshot itemCatalog,
   int? targetMoveIndex,
+  BattleEngineDecisionRequest? request,
   String? trainerId,
   bool allowCapture = false,
 }) {
+  if (psdkSession.isDoubles && !identical(request, psdkSession.decisionRequest)) {
+    return null;
+  }
   if (psdkSession.decisionRequest.kind !=
       BattleEngineDecisionRequestKind.turnChoice) {
     return null;
@@ -106,7 +158,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   final party = psdkSession.state.psdkState.partyForBank(psdkPlayerSlot.bank);
   final targetPartyIndex = party.indexWhere(
     (candidate) =>
-        _runtimeLineupIndexFromPsdkId(candidate.id) == targetLineupIndex,
+        psdkSession.lineupIndexForCombatantId(candidate.id) == targetLineupIndex,
   );
   if (targetPartyIndex < 0) {
     return null;
@@ -137,14 +189,16 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   final selectedMove = effect is ProjectItemRestorePpEffectDefinition
       ? targetBefore.moves[targetMoveIndex!]
       : null;
-  var itemRequestState = projectedGameState;
+  var itemRequestState = runtimeBattleStateWithAvailableItems(
+    session: psdkSession, gameState: projectedGameState,
+  );
   if (selectedMove != null) {
     final members = [...projectedGameState.party.members];
     members[runtimePartyIndex] = members[runtimePartyIndex].copyWith(
       knownMoveIds: [selectedMove.id],
       currentPpByMoveId: {selectedMove.id: selectedMove.currentPp},
     );
-    itemRequestState = projectedGameState.copyWith(
+    itemRequestState = itemRequestState.copyWith(
       party: projectedGameState.party.copyWith(members: members),
     );
   }
@@ -169,25 +223,28 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     throw StateError('Item consumption does not match its canonical policy.');
   }
 
+  final actor = psdkSession.decisionRequest.actor;
   final turn = psdkSession.submitBattleItem(
     itemId: itemId,
     displayName: definition.displayName,
     targetPartyIndex: targetPartyIndex,
     effect: battleEffect,
     consumeItem: shouldConsume,
+    request: request,
   );
   final itemEvents = turn.timeline.events
       .whereType<BattleItemTimelineEvent>()
       .where(
         (event) =>
             event.itemId == itemId &&
-            event.user.bank == psdkPlayerSlot.bank &&
+            event.user.bank == actor.bank &&
+            event.user.position == actor.position &&
             event.partyIndex == targetPartyIndex,
       )
       .toList(growable: false);
   final expectedItemEventKind = shouldConsume ? 'item_consumed' : 'item_used';
-  if (itemEvents.length != 1 ||
-      itemEvents.single.kind != expectedItemEventKind) {
+  if (!psdkSession.isDoubles && (itemEvents.length != 1 ||
+      itemEvents.single.kind != expectedItemEventKind)) {
     throw StateError(
       'Accepted battle item must emit one event matching its consumption '
       'policy.',
@@ -202,8 +259,12 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     allowCapture: allowCapture,
     allowFlee: displaySession.setup.allowFlee,
   );
-  final withWriteBack = writePlayerBattleLineupBackToPartySlots(
-    gameState: projectedGameState.copyWith(bag: itemUseResult.state.bag),
+  final committed = psdkSession.isDoubles
+      ? commitRuntimeResolvedBattleItems(
+          session: psdkSession, gameState: gameState, itemCatalog: itemCatalog,
+        ) : null;
+  final withWriteBack = turn.timeline.events.isEmpty ? gameState : writePlayerBattleLineupBackToPartySlots(
+    gameState: committed?.state ?? projectedGameState.copyWith(bag: itemUseResult.state.bag),
     context: context,
     battleState: psdkSession.createLegacyWriteBackState(),
   );
@@ -215,7 +276,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     effectKind: _runtimeEffectKind(effect),
     targetSpeciesId: targetAfter.speciesId,
     targetLineupIndex: targetLineupIndex,
-    appliedAmount: selectedMove == null
+    appliedAmount: itemEvents.isEmpty ? 0 : selectedMove == null
         ? (targetAfter.currentHp - targetBefore.currentHp).clamp(
             0,
             targetAfter.maxHp,
@@ -224,12 +285,15 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
             .whereType<BattleMovePpRestoredTimelineEvent>()
             .singleWhere((event) =>
                 event.itemId == itemId &&
-                event.user.bank == psdkPlayerSlot.bank &&
+                event.user.bank == actor.bank &&
+                event.user.position == actor.position &&
                 event.target.bank == psdkPlayerSlot.bank &&
                 event.partyIndex == targetPartyIndex &&
                 event.moveSlot == targetMoveIndex)
             .amount,
-    consumptionReceipt: consumptionReceipt,
+    consumptionReceipt: psdkSession.isDoubles
+        ? committed?.receipts[BattlePositionRef(bank: actor.bank, position: actor.position)]
+        : consumptionReceipt,
   );
 }
 
@@ -439,14 +503,6 @@ PsdkBattleMajorStatus? _psdkStatusForGameplayItemStatus(String statusId) {
     'freeze' || 'frozen' => PsdkBattleMajorStatus.freeze,
     _ => null,
   };
-}
-
-int _runtimeLineupIndexFromPsdkId(String id) {
-  final separator = id.lastIndexOf('_');
-  if (separator < 0 || separator == id.length - 1) {
-    return 0;
-  }
-  return int.tryParse(id.substring(separator + 1)) ?? 0;
 }
 
 _RuntimeBattleHpHealItemSpec? _runtimeHpHealItemSpecForItemId(

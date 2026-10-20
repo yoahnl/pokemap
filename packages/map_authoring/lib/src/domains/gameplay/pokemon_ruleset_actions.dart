@@ -60,6 +60,15 @@ final class PokemonRulesetActions {
         id: 'pokemon.ruleset.set',
         version: 1,
         summary: 'Set the validated project Pokemon ruleset profile',
+        extensions: {
+          'profiles': {
+            'default': PokemonRulesetProfile.canonicalProfileId,
+            'values': [
+              PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+              PokemonRulesetProfile.standardV1.toJson(),
+            ],
+          },
+        },
         inputSchemaId: 'pokemap.authoring/pokemon.ruleset.set.input.v1',
         outputSchemaId: 'pokemap.authoring/pokemon.ruleset.set.output.v1',
         riskLevel: AuthoringRiskLevel.medium,

@@ -44,6 +44,16 @@ class BattleMobileCommandOverlay extends StatelessWidget {
           key: const Key('battle-mobile-command-overlay'),
           clipBehavior: Clip.none,
           children: <Widget>[
+            for (final hud in snapshot.additionalHuds)
+              _positionedRect(
+                hud.rect,
+                IgnorePointer(
+                  child: _BattleHudCard(
+                    key: ValueKey('battle-mobile-hud-${hud.effectiveSlot.side.name}-${hud.effectiveSlot.slotIndex}-${hud.combatantId}'),
+                    snapshot: hud,
+                  ),
+                ),
+              ),
             _positionedRect(
               snapshot.enemyHud.rect,
               IgnorePointer(

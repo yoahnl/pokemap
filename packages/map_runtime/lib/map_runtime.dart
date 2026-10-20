@@ -227,6 +227,7 @@ export 'src/application/npc_runtime_presence.dart'
     show isNpcRuntimePresentOnMap;
 export 'src/application/runtime_battle_move_bridge.dart'
     show RuntimeBattleMoveBridge;
+export 'src/application/runtime_battle_presentation.dart';
 export 'src/application/runtime_battle_move_bridge_diagnostics.dart'
     show RuntimeBattleMoveBridgeDiagnostics;
 export 'src/application/runtime_battle_setup_exception.dart'

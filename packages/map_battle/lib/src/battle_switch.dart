@@ -3,7 +3,6 @@ import 'battle_topology.dart';
 /// Petite taxonomie des événements de switch/réserve visibles dans un tour.
 ///
 /// BE10 reste volontairement très borné :
-/// - pas de système de slots façon doubles ;
 /// - pas de pipeline générique de selfSwitch / forceSwitch ;
 /// - pas de journal universel ;
 /// - seulement ce qu'il faut pour ne pas muter les actifs/réserves en silence.
@@ -27,17 +26,20 @@ final class BattleSwitchEvent {
     required this.fromSpeciesId,
     required this.toSpeciesId,
     required this.wasForced,
+    this.slotIndex = 0,
   }) : kind = BattleSwitchEventKind.switched;
 
   const BattleSwitchEvent.replacementRequired({
     required this.side,
     required this.fromSpeciesId,
+    this.slotIndex = 0,
   })  : kind = BattleSwitchEventKind.replacementRequired,
         toSpeciesId = null,
         wasForced = true;
 
   /// Side concerné par le switch ou la demande de remplacement.
   final BattleSideId side;
+  final int slotIndex;
 
   final BattleSwitchEventKind kind;
 
@@ -61,9 +63,5 @@ final class BattleSwitchEvent {
   String get actor => side.actorId;
 
   /// Slot concerné par l'événement.
-  ///
-  /// En singles, tous les switches/remplacements portent encore sur le slot
-  /// actif `0` du side concerné. Exposer explicitement cette référence rend la
-  /// topologie réelle sans ouvrir de système multi-slot.
-  BattleSlotRef get slot => BattleSlotRef.active(side);
+  BattleSlotRef get slot => BattleSlotRef(side: side, slotIndex: slotIndex);
 }

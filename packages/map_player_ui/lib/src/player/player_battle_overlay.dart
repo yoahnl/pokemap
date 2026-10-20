@@ -34,6 +34,15 @@ class PlayerBattleOverlay extends StatelessWidget {
         revision: snapshot.revision,
         enemy: _hud(snapshot.enemyHud),
         player: _hud(snapshot.playerHud),
+        additionalHuds: [
+          for (final hud in snapshot.additionalHuds)
+            PlayerBattleAdditionalHud(
+              identity: 'battle-hud-${hud.effectiveSlot.side.name}-${hud.effectiveSlot.slotIndex}-${hud.combatantId}',
+              rect: hud.rect,
+              data: _hud(hud),
+              isPlayerSide: hud.isPlayerSide,
+            ),
+        ],
         viewportLayout: PlayerBattleViewportLayout(
           viewportSize: snapshot.viewportSize,
           panelRect: snapshot.panelRect,
@@ -88,6 +97,7 @@ String _localizedBattleTitle(
       BattleCommandOverlayMode.bagMedicineMoveTarget => localizations.battleMoves,
       BattleCommandOverlayMode.bag => localizations.battleBag,
       BattleCommandOverlayMode.bagMedicineTarget => localizations.battleTarget,
+      BattleCommandOverlayMode.moveTarget => localizations.battleTarget,
       BattleCommandOverlayMode.pokemon => localizations.battlePokemon,
       BattleCommandOverlayMode.continueOnly => localizations.battleContinue,
       BattleCommandOverlayMode.decision => localizations.battleDecision,
@@ -163,6 +173,7 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
     BattleCommandOverlayMode.fight ||
     BattleCommandOverlayMode.bagMedicineMoveTarget => PlayerBattlePanelKind.moves,
     BattleCommandOverlayMode.bagMedicineTarget => PlayerBattlePanelKind.target,
+    BattleCommandOverlayMode.moveTarget => PlayerBattlePanelKind.target,
     BattleCommandOverlayMode.bag ||
     BattleCommandOverlayMode.pokemon =>
       PlayerBattlePanelKind.target,

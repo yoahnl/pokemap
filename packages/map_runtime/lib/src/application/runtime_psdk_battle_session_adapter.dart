@@ -2,6 +2,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
 import 'runtime_battle_status_bridge.dart';
+import 'runtime_battle_presentation.dart';
 
 /// Runtime adapter around the clean PSDK battle facade.
 ///
@@ -13,6 +14,7 @@ final class RuntimePsdkBattleSessionAdapter {
     this._facade,
     this.opponentAi,
     this.ruleset,
+    this.isDoubles,
     Map<String, String> itemDisplayNames,
   ) : _itemDisplayNames = Map.of(itemDisplayNames);
 
@@ -28,6 +30,7 @@ final class RuntimePsdkBattleSessionAdapter {
       ),
       opponentAi,
       setup.ruleset,
+      !setup.isSingles,
       itemDisplayNames,
     );
   }
@@ -40,14 +43,49 @@ final class RuntimePsdkBattleSessionAdapter {
   /// and proves that authored difficulty reached the PSDK path.
   final PsdkBattleAi opponentAi;
   final PokemonRulesetProfile ruleset;
+  final bool isDoubles;
   static const _statusBridge = RuntimeBattleStatusBridge();
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;
   PsdkBattleWeatherId? _lastTurnWeather;
   final Map<String, String> _itemDisplayNames;
+  final Map<String, int> _pendingItemQuantities = {};
+  List<BattleItemTimelineEvent> _resolvedItemEvents = const [];
+
+  Map<String, int> get pendingItemQuantities => Map.unmodifiable(_pendingItemQuantities);
+  List<BattleItemTimelineEvent> get resolvedItemEvents => _resolvedItemEvents;
+
+  void acknowledgeResolvedItemEvents(List<BattleItemTimelineEvent> events) {
+    if (!identical(events, _resolvedItemEvents)) {
+      throw StateError('Battle item consumption is no longer current.');
+    }
+    _resolvedItemEvents = const [];
+  }
 
   BattlePublicState get state => _facade.state;
   BattleEngineDecisionRequest get decisionRequest => _facade.decisionRequest;
+
+  RuntimeBattlePresentation get presentation {
+    final entries = state.combatants.entries.toList()
+      ..sort((a, b) {
+        final bank = a.key.bank.compareTo(b.key.bank);
+        return bank == 0 ? a.key.position.compareTo(b.key.position) : bank;
+      });
+    return RuntimeBattlePresentation(
+      activeCombatants: [
+        for (final entry in entries)
+          RuntimeBattleActiveCombatantProjection(
+            slot: runtimeBattleSlot(entry.key),
+            combatantId: entry.value.id,
+            lineupIndex: lineupIndexForCombatantId(entry.value.id),
+            combatant: _toLegacyCombatant(entry.value),
+          ),
+      ],
+      playerParty: state.partyForBank(0).map(_toLegacyCombatant),
+      request: decisionRequest,
+      isDoubles: isDoubles,
+    );
+  }
 
   BattleState createLegacyWriteBackState() => _toLegacyDisplayState(
         phase: state.isFinished ? BattlePhase.finished : BattlePhase.playerChoice,
@@ -109,17 +147,36 @@ final class RuntimePsdkBattleSessionAdapter {
     return events.single.ballId;
   }
 
-  BattleEngineTurnResult submitDecision(BattleDecision decision) {
+  BattleEngineTurnResult submitDecision(
+    BattleDecision decision, {
+    BattleEngineDecisionRequest? request,
+  }) {
+    if (_resolvedItemEvents.isNotEmpty) {
+      throw StateError('Resolved battle items must be committed before another choice.');
+    }
     final previousWeather = state.psdkState.field.weather?.id;
-    final result = _facade.submit(decision);
+    final result = _facade.submit(decision, request: request);
+    if (isDoubles && result.timeline.events.isNotEmpty) {
+      _pendingItemQuantities.clear();
+      _resolvedItemEvents = List.unmodifiable(result.timeline.events
+          .whereType<BattleItemTimelineEvent>()
+          .where((event) => event.user.bank == 0 && event.kind == 'item_consumed'));
+    }
     _lastDecision = decision;
     _lastTurnResult = result;
     _lastTurnWeather = previousWeather;
     return result;
   }
 
-  BattleEngineTurnResult submitPlayerChoice(PlayerBattleChoice choice) {
-    return submitDecision(decisionForPlayerChoice(choice));
+  BattleEngineTurnResult submitPlayerChoice(
+    PlayerBattleChoice choice, {
+    BattleEngineDecisionRequest? request,
+    PsdkBattleSlotRef? target,
+  }) {
+    return submitDecision(
+      decisionForPlayerChoice(choice, target: target),
+      request: request,
+    );
   }
 
   BattleEngineTurnResult submitBattleItem({
@@ -128,25 +185,34 @@ final class RuntimePsdkBattleSessionAdapter {
     required int? targetPartyIndex,
     required PsdkBattleItemActionEffect effect,
     required bool consumeItem,
+    BattleEngineDecisionRequest? request,
   }) {
     _itemDisplayNames.putIfAbsent(itemId, () => displayName);
-    return submitDecision(
+    final result = submitDecision(
       BattleDecision.item(
         itemId: itemId,
-        target: psdkPlayerSlot,
+        target: decisionRequest.actor,
         targetPartyIndex: targetPartyIndex,
         effect: effect,
         consumeItem: consumeItem,
         highPriority: true,
       ),
+      request: request,
     );
+    if (isDoubles && result.timeline.events.isEmpty && consumeItem) {
+      _pendingItemQuantities.update(itemId, (quantity) => quantity + 1, ifAbsent: () => 1);
+    }
+    return result;
   }
 
   /// Canonical decision represented by the legacy presentation choice.
-  BattleDecision decisionForPlayerChoice(PlayerBattleChoice choice) {
+  BattleDecision decisionForPlayerChoice(
+    PlayerBattleChoice choice, {
+    PsdkBattleSlotRef? target,
+  }) {
     return switch (choice) {
       PlayerBattleChoiceFight(:final moveIndex) =>
-        _decisionForFightChoice(moveIndex),
+        _decisionForFightChoice(moveIndex, target: target),
       PlayerBattleChoiceSwitch(:final reserveIndex) =>
         BattleDecision.switchPokemon(
           partyIndex: _partyIndexForReserveChoice(reserveIndex),
@@ -191,7 +257,7 @@ final class RuntimePsdkBattleSessionAdapter {
     // le joueur ne voit rien du tout.
     final coveredMoveUses = <String>{};
     // L'espèce qui quitte le terrain, en attente de son `switch_in`.
-    final pendingSwitchOutSpecies = <BattleSideId, String?>{};
+    final pendingSwitchOutSpecies = <BattleSlotRef, String?>{};
     for (final event in result.timeline.events) {
       if (event is BattleDamageTimelineEvent) {
         coveredMoveUses.add(_moveUseKey(event.user, event.moveId));
@@ -212,7 +278,7 @@ final class RuntimePsdkBattleSessionAdapter {
           final fieldEvent = BattleFieldEvent.weatherResidualDamage(
             weather: weather,
             targetSlot:
-                BattleSlotRef.active(_legacySideForPosition(event.target)),
+                _legacySlotForPosition(event.target),
             damage: event.damage,
             remainingHp: event.remainingHp,
           );
@@ -260,7 +326,7 @@ final class RuntimePsdkBattleSessionAdapter {
           BattleTurnStatusEvent(
             BattleStatusEvent.applied(
               targetSlot:
-                  BattleSlotRef.active(_legacySideForPosition(event.target)),
+                  _legacySlotForPosition(event.target),
               status: _legacyMajorStatusId(event.status),
               sourceMoveId: event.moveId,
             ),
@@ -269,7 +335,7 @@ final class RuntimePsdkBattleSessionAdapter {
       } else if (event is BattleEffectTimelineEvent &&
           event.effectId == 'confusion') {
         final actorSlot =
-            BattleSlotRef.active(_legacySideForPosition(event.target));
+            _legacySlotForPosition(event.target);
         final volatileEvent = switch (event.kind) {
           'effect_added' =>
             BattleVolatileEvent.confusionApplied(actorSlot: actorSlot),
@@ -291,6 +357,7 @@ final class RuntimePsdkBattleSessionAdapter {
           timeline.add(
             BattleTurnStatStageEvent(
               side: _legacySideForPosition(event.target),
+              slotIndex: event.target.position,
               stat: stat,
               amount: event.amount,
               currentStage: event.currentStage,
@@ -338,7 +405,7 @@ final class RuntimePsdkBattleSessionAdapter {
           itemId: itemId,
           displayName: _itemDisplayNames[itemId] ?? itemId,
           targetSpeciesId: target.speciesId,
-          targetLineupIndex: _lineupIndexFromPsdkId(target.id),
+          targetLineupIndex: lineupIndexForCombatantId(target.id),
         ));
       } else if (event is BattleMovePpRestoredTimelineEvent) {
         final target = result.state.psdkState
@@ -348,7 +415,7 @@ final class RuntimePsdkBattleSessionAdapter {
           itemId: event.itemId,
           displayName: _itemDisplayNames[event.itemId] ?? event.itemId,
           targetSpeciesId: target.speciesId,
-          targetLineupIndex: _lineupIndexFromPsdkId(target.id),
+          targetLineupIndex: lineupIndexForCombatantId(target.id),
           moveSlot: event.moveSlot,
           moveId: event.moveId,
           moveName: target.moves[event.moveSlot].name,
@@ -368,17 +435,20 @@ final class RuntimePsdkBattleSessionAdapter {
         // L'espèce sortante est retenue ici et consommée par le `switch_in`
         // qui suit : les deux événements forment une paire, et c'est le
         // second qui porte l'animation complète.
-        pendingSwitchOutSpecies[_legacySideForPosition(event.battler)] =
+        pendingSwitchOutSpecies[_legacySlotForPosition(event.battler)] =
             event.speciesId;
       } else if (event is BattleSwitchInTimelineEvent) {
         final side = _legacySideForPosition(event.battler);
-        final fromSpeciesId = pendingSwitchOutSpecies.remove(side);
+        final fromSpeciesId = pendingSwitchOutSpecies.remove(
+          _legacySlotForPosition(event.battler),
+        );
         final toSpeciesId = event.speciesId;
         if (fromSpeciesId != null && toSpeciesId != null) {
           timeline.add(
             BattleTurnSwitchEvent(
               BattleSwitchEvent.switched(
                 side: side,
+                slotIndex: event.battler.position,
                 fromSpeciesId: fromSpeciesId,
                 toSpeciesId: toSpeciesId,
                 // Un remplacement d'adversaire après K.O. est forcé ; un
@@ -404,7 +474,9 @@ final class RuntimePsdkBattleSessionAdapter {
     }
 
     return BattleTurnResult(
-      playerAction: _toLegacyPlayerAction(decision, result),
+      playerAction: isDoubles
+          ? const BattleActionNone()
+          : _toLegacyPlayerAction(decision, result),
       enemyAction: _toLegacyOpponentAction(result),
       executions: List<BattleMoveExecution>.unmodifiable(executions),
       fieldEvents: List<BattleFieldEvent>.unmodifiable(fieldEvents),
@@ -462,14 +534,14 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleMoveExecution _toLegacyMissedExecution(
       BattleMoveMissedTimelineEvent event) {
     return BattleMoveExecution(
-      attackerSlot: BattleSlotRef.active(_legacySideForPosition(event.user)),
+      attackerSlot: _legacySlotForPosition(event.user),
       move: _legacyMoveForTimelineMove(
         user: event.user,
         moveId: event.moveId,
         moveName: event.moveId,
       ),
       targetKind: BattleMoveExecutionTargetKind.combatant,
-      targetSlot: BattleSlotRef.active(_legacySideForPosition(event.target)),
+      targetSlot: _legacySlotForPosition(event.target),
       damage: 0,
       didHit: false,
     );
@@ -478,14 +550,14 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleMoveExecution _toLegacyImmuneExecution(
       BattleMoveImmuneTimelineEvent event) {
     return BattleMoveExecution(
-      attackerSlot: BattleSlotRef.active(_legacySideForPosition(event.user)),
+      attackerSlot: _legacySlotForPosition(event.user),
       move: _legacyMoveForTimelineMove(
         user: event.user,
         moveId: event.moveId,
         moveName: event.moveId,
       ),
       targetKind: BattleMoveExecutionTargetKind.combatant,
-      targetSlot: BattleSlotRef.active(_legacySideForPosition(event.target)),
+      targetSlot: _legacySlotForPosition(event.target),
       damage: 0,
       didHit: true,
       typeEffectivenessMultiplier: 0.0,
@@ -495,16 +567,14 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleMoveExecution _toLegacyStatusMoveExecution(
       BattleMoveDeclaredTimelineEvent event) {
     return BattleMoveExecution(
-      attackerSlot: BattleSlotRef.active(_legacySideForPosition(event.user)),
+      attackerSlot: _legacySlotForPosition(event.user),
       move: _legacyMoveForTimelineMove(
         user: event.user,
         moveId: event.moveId,
         moveName: event.moveName,
       ),
       targetKind: BattleMoveExecutionTargetKind.combatant,
-      targetSlot: BattleSlotRef.active(
-        _legacySideForPosition(event.targets.first),
-      ),
+      targetSlot: _legacySlotForPosition(event.targets.first),
       damage: 0,
       didHit: true,
     );
@@ -533,14 +603,12 @@ final class RuntimePsdkBattleSessionAdapter {
 
   BattleMoveExecution _toLegacyDamageExecution(
       BattleDamageTimelineEvent event) {
-    final attackerSide = _legacySideForPosition(event.user);
-    final targetSide = _legacySideForPosition(event.target);
     final move = _legacyMoveForTimelineDamage(event);
     return BattleMoveExecution(
-      attackerSlot: BattleSlotRef.active(attackerSide),
+      attackerSlot: _legacySlotForPosition(event.user),
       move: move,
       targetKind: BattleMoveExecutionTargetKind.combatant,
-      targetSlot: BattleSlotRef.active(targetSide),
+      targetSlot: _legacySlotForPosition(event.target),
       damage: event.damage,
       didHit: true,
       didCrit: event.critical ?? false,
@@ -567,7 +635,7 @@ final class RuntimePsdkBattleSessionAdapter {
       itemId: itemId,
       displayName: displayName,
       side: side,
-      targetLineupIndex: _lineupIndexFromPsdkId(target.id),
+      targetLineupIndex: lineupIndexForCombatantId(target.id),
       targetSpeciesId: target.speciesId,
       hpBefore: event.remainingHp - event.amount,
       hpAfter: event.remainingHp,
@@ -642,7 +710,7 @@ final class RuntimePsdkBattleSessionAdapter {
       final PsdkBattleHpHealItemEffect hpEffect => BattleActionBagHpHealItemUse(
           itemId: itemId,
           displayName: _itemDisplayNames[itemId] ?? itemId,
-          targetLineupIndex: _lineupIndexFromPsdkId(
+          targetLineupIndex: lineupIndexForCombatantId(
             targetPartyIndex == null
                 ? state.psdkState.battlerAt(target).id
                 : state.psdkState
@@ -732,6 +800,12 @@ final class RuntimePsdkBattleSessionAdapter {
         : BattleSideId.enemy;
   }
 
+  BattleSlotRef _legacySlotForPosition(BattlePositionRef position) =>
+      BattleSlotRef(
+        side: _legacySideForPosition(position),
+        slotIndex: position.position,
+      );
+
   bool _samePosition(BattlePositionRef position, PsdkBattleSlotRef slot) {
     return position.bank == slot.bank && position.position == slot.position;
   }
@@ -748,13 +822,16 @@ final class RuntimePsdkBattleSessionAdapter {
     return switchChoices[reserveIndex].partyIndex;
   }
 
-  BattleDecision _decisionForFightChoice(int moveIndex) {
+  BattleDecision _decisionForFightChoice(
+    int moveIndex, {
+    PsdkBattleSlotRef? target,
+  }) {
     final realMoveCount =
-        state.psdkState.battlerAt(psdkPlayerSlot).moves.length;
+        state.psdkState.battlerAt(decisionRequest.actor).moves.length;
     if (decisionRequest.canStruggle && moveIndex == realMoveCount) {
       return const BattleDecision.struggle();
     }
-    return BattleDecision.fight(moveSlot: moveIndex);
+    return BattleDecision.fight(moveSlot: moveIndex, target: target);
   }
 
   BattleSetup _toLegacyDisplaySetup({
@@ -767,12 +844,12 @@ final class RuntimePsdkBattleSessionAdapter {
     return BattleSetup(
       ruleset: ruleset,
       playerPokemon: _toLegacyCombatantData(
-        psdkState.battlerAt(psdkPlayerSlot),
+        psdkState.battlerAt(isDoubles ? decisionRequest.actor : psdkPlayerSlot),
         includeStruggle: decisionRequest.canStruggle,
       ),
       playerReservePokemon: _legacyReserveForBank(
         bank: psdkPlayerSlot.bank,
-        activeId: psdkState.battlerAt(psdkPlayerSlot).id,
+        activeId: psdkState.battlerAt(isDoubles ? decisionRequest.actor : psdkPlayerSlot).id,
       ),
       enemyPokemon: _toLegacyCombatantData(
         psdkState.battlerAt(psdkOpponentSlot),
@@ -816,7 +893,11 @@ final class RuntimePsdkBattleSessionAdapter {
   }) {
     return <BattleCombatantData>[
       for (final combatant in state.psdkState.partyForBank(bank))
-        if (combatant.id != activeId) _toLegacyCombatantData(combatant),
+        if (combatant.id != activeId &&
+            (!isDoubles || !state.combatants.entries.any(
+              (entry) => entry.key.bank == bank && entry.value.id == combatant.id,
+            )))
+          _toLegacyCombatantData(combatant),
     ];
   }
 
@@ -840,7 +921,7 @@ final class RuntimePsdkBattleSessionAdapter {
       maxHp: combatant.maxHp,
       currentHp: combatant.currentHp,
       stats: _toLegacyStats(combatant.stats),
-      lineupIndex: _lineupIndexFromPsdkId(combatant.id),
+      lineupIndex: lineupIndexForCombatantId(combatant.id),
       typing: _toLegacyTyping(combatant.types),
       majorStatus:
           _statusBridge.legacyFromPsdkBattleStatus(combatant.majorStatus),
@@ -856,7 +937,7 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleCombatant _toLegacyCombatant(PsdkBattleCombatant combatant) {
     return BattleCombatant(
       speciesId: combatant.speciesId,
-      lineupIndex: _lineupIndexFromPsdkId(combatant.id),
+      lineupIndex: lineupIndexForCombatantId(combatant.id),
       level: combatant.level,
       currentHp: combatant.currentHp,
       maxHp: combatant.maxHp,
@@ -1003,12 +1084,16 @@ final class RuntimePsdkBattleSessionAdapter {
     };
   }
 
-  int _lineupIndexFromPsdkId(String id) {
-    final separator = id.lastIndexOf('_');
-    if (separator < 0 || separator == id.length - 1) {
-      return 0;
+  int lineupIndexForCombatantId(String id) {
+    for (final bank in const [0, 1]) {
+      final index = state.partyForBank(bank).indexWhere(
+        (combatant) => combatant.id == id,
+      );
+      if (index >= 0) {
+        return index;
+      }
     }
-    return int.tryParse(id.substring(separator + 1)) ?? 0;
+    throw StateError('Battle combatant is absent from both parties: $id.');
   }
 }
 

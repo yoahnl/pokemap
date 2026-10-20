@@ -45,9 +45,13 @@ final class BattleSwitchHandler {
     required PsdkBattleState state,
     required PsdkBattleSlotRef target,
   }) {
-    final active = state.battlerAt(target);
+    final activeIds = {
+      for (final entry in state.combatants.entries)
+        if (entry.key.bank == target.bank) entry.value.id,
+    };
     return state.partyForBank(target.bank).any(
-          (candidate) => !candidate.isFainted && candidate.id != active.id,
+          (candidate) =>
+              !candidate.isFainted && !activeIds.contains(candidate.id),
         );
   }
 
@@ -117,7 +121,8 @@ final class BattleSwitchHandler {
 
     final active = context.state.battlerAt(target);
     final replacement = party[partyIndex];
-    if (replacement.id == active.id) {
+    if (context.state.combatants.entries.any((entry) =>
+        entry.key.bank == target.bank && entry.value.id == replacement.id)) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,

@@ -256,7 +256,11 @@ class RuntimeBattleSetupMapper {
   RuntimePlayerBattleLineupSelection selectPlayerBattleLineup(
     PlayerParty party, {
     int? playerPartyIndex,
+    int activeCount = 1,
   }) {
+    if (activeCount != 1 && activeCount != 2) {
+      throw ArgumentError.value(activeCount, 'activeCount');
+    }
     final activeIndex = playerPartyIndex ?? selectUsablePartyMemberIndex(party);
     if (activeIndex < 0 || activeIndex >= party.members.length) {
       throw RuntimeBattleSetupException(
@@ -281,6 +285,19 @@ class RuntimeBattleSetupMapper {
         continue;
       }
       reserveIndices.add(i);
+    }
+    if (activeCount == 2) {
+      final partnerIndex = reserveIndices
+          .where((index) => !party.members[index].isFainted)
+          .firstOrNull;
+      if (partnerIndex == null) {
+        throw RuntimeBattleSetupException(
+          'Un combat duo exige deux Pokémon conscients dans votre équipe.',
+        );
+      }
+      reserveIndices
+        ..remove(partnerIndex)
+        ..insert(0, partnerIndex);
     }
 
     return RuntimePlayerBattleLineupSelection(

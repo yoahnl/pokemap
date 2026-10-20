@@ -119,7 +119,35 @@ BattleCommandMenuModel buildBattleCommandMenuModel({
   required int selectedChoiceIndex,
   BattleMoveDisplayNameResolver resolveMoveDisplayName =
       _defaultMoveDisplayName,
+  BattleEngineDecisionRequest? engineRequest,
 }) {
+  if (engineRequest != null) {
+    final forced = engineRequest.kind == BattleEngineDecisionRequestKind.forcedReplacement;
+    final resolvedMode = forced ? BattleCommandMenuMode.pokemon : mode;
+    final moves = <PlayerBattleChoiceFight>[
+      for (final option in engineRequest.fightChoices)
+        PlayerBattleChoiceFight(option.moveSlot),
+      if (engineRequest.canStruggle)
+        PlayerBattleChoiceFight(session.state.player.moves.length - 1),
+    ];
+    final entries = resolvedMode == BattleCommandMenuMode.fight
+        ? moves.map((choice) => _entryForChoice(session, choice, resolveMoveDisplayName)).toList()
+        : <BattleCommandChoiceEntry>[];
+    return BattleCommandMenuModel(
+      mode: resolvedMode,
+      rootEntries: [
+        BattleCommandRootEntry(action: BattleCommandRootAction.fight, label: 'FIGHT', subtitle: '${moves.length} moves', enabled: moves.isNotEmpty && !forced),
+        BattleCommandRootEntry(action: BattleCommandRootAction.bag, label: 'BAG', subtitle: 'Items', enabled: engineRequest.kind == BattleEngineDecisionRequestKind.turnChoice),
+        BattleCommandRootEntry(action: BattleCommandRootAction.pokemon, label: 'POKÉMON', subtitle: 'Team', enabled: engineRequest.switchChoices.isNotEmpty),
+        BattleCommandRootEntry(action: BattleCommandRootAction.run, label: 'RUN', subtitle: 'Unavailable', enabled: engineRequest.canFlee),
+      ],
+      selectedRootIndex: selectedRootIndex.clamp(0, 3),
+      choiceEntries: entries,
+      selectedChoiceIndex: entries.isEmpty ? 0 : selectedChoiceIndex.clamp(0, entries.length - 1),
+      choiceColumns: 2,
+      choiceGroupTitle: _choiceGroupTitleFor(resolvedMode),
+    );
+  }
   final request = session.decisionRequest;
   final normalizedMode = normalizeBattleCommandMenuMode(
     request: request,

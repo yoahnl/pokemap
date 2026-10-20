@@ -4,12 +4,10 @@ import 'psdk_battle_combatant.dart';
 import 'psdk_battle_field.dart';
 import 'psdk_battle_rng.dart';
 import 'psdk_battle_slots.dart';
+import '../../pokemon_battle_rules.dart';
 
 /// Input setup for the parallel PSDK engine.
 ///
-/// Only singles are accepted in this first tranche. The named constructor is a
-/// deliberate guardrail: callers cannot accidentally build a half-supported
-/// multi battle and receive misleading events.
 class PsdkBattleSetup {
   factory PsdkBattleSetup.singlesPokeMapBetaV1ForTest({
     required PsdkBattleCombatantSetup player,
@@ -87,6 +85,37 @@ class PsdkBattleSetup {
     }
   }
 
+  PsdkBattleSetup.doubles({
+    required this.ruleset,
+    required List<PsdkBattleCombatantSetup> player,
+    required List<PsdkBattleCombatantSetup> opponent,
+    required this.rngSeeds,
+    this.field = const PsdkBattleFieldState(),
+    List<PsdkBattleCombatantSetup> playerReserves = const [],
+    List<PsdkBattleCombatantSetup> opponentReserves = const [],
+  })  : combatants = Map.unmodifiable({
+          for (var position = 0; position < player.length; position++)
+            PsdkBattleSlotRef(bank: 0, position: position): player[position],
+          for (var position = 0; position < opponent.length; position++)
+            PsdkBattleSlotRef(bank: 1, position: position): opponent[position],
+        }),
+        parties = Map.unmodifiable({
+          0: List<PsdkBattleCombatantSetup>.unmodifiable(
+              [...player, ...playerReserves]),
+          1: List<PsdkBattleCombatantSetup>.unmodifiable(
+              [...opponent, ...opponentReserves]),
+        }),
+        isSingles = false,
+        isTrainerBattle = true,
+        canCapture = false,
+        canFlee = false {
+    ruleset.requireSupported();
+    PokemonBattleRules.fromProfile(ruleset)
+        .requireFeatureEnabled(PokemonDisabledFeature.doubleBattles);
+    _validateDoublesParty(player, playerReserves, 'player');
+    _validateDoublesParty(opponent, opponentReserves, 'opponent');
+  }
+
   final Map<PsdkBattleSlotRef, PsdkBattleCombatantSetup> combatants;
   final PokemonRulesetProfile ruleset;
   final Map<int, List<PsdkBattleCombatantSetup>> parties;
@@ -104,5 +133,27 @@ class PsdkBattleSetup {
     return List<PsdkBattleCombatantSetup>.unmodifiable(
       parties[bank] ?? const <PsdkBattleCombatantSetup>[],
     );
+  }
+}
+
+void _validateDoublesParty(
+  List<PsdkBattleCombatantSetup> active,
+  List<PsdkBattleCombatantSetup> reserves,
+  String name,
+) {
+  if (active.length != 2 || active.length + reserves.length > 6) {
+    throw ArgumentError.value(active.length, name,
+        'Doubles require two active battlers and at most six party members.');
+  }
+  if (active.any((battler) => battler.currentHp <= 0)) {
+    throw ArgumentError.value(
+        name, 'active', 'Doubles require two conscious active battlers.');
+  }
+  final ids = <String>{};
+  for (final battler in [...active, ...reserves]) {
+    if (!ids.add(battler.id)) {
+      throw ArgumentError.value(
+          battler.id, name, 'Duplicate party combatant identity.');
+    }
   }
 }

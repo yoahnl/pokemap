@@ -213,6 +213,63 @@ final class PokemonCombatController {
     changed();
   }
 
+  void setTrainerBattleFormat(BattleFormat value) {
+    if (_disposed || operationActive || trainer == null) return;
+    if (value == BattleFormat.doubles) {
+      if (snapshot!.project.pokemon.ruleset.mechanics.disabledFeatures.contains(
+        PokemonDisabledFeature.doubleBattles,
+      )) {
+        error = 'Choisissez les règles Standard pour les combats doubles.';
+        changed();
+        return;
+      }
+      if (trainer!.current.tags.contains('static-encounter')) {
+        error = 'Les rencontres uniques utilisent un combat simple.';
+        changed();
+        return;
+      }
+    }
+    error = null;
+    editTrainer((current) => current.copyWith(battleFormat: value));
+  }
+
+  Future<void> setRuleset(PokemonRulesetProfile value) async {
+    if (_disposed || snapshot == null || operationActive) return;
+    if (dirty) {
+      error = 'Enregistrez ou annulez la fiche avant de changer les règles.';
+      changed();
+      return;
+    }
+    final before = snapshot!.project.pokemon.ruleset;
+    if (before == value) return;
+    if (value.mechanics.disabledFeatures.contains(
+          PokemonDisabledFeature.doubleBattles,
+        ) &&
+        snapshot!.project.trainers.any(
+          (trainer) => trainer.battleFormat == BattleFormat.doubles,
+        )) {
+      error =
+          'Repassez les combats doubles en simples avant de choisir Classique.';
+      changed();
+      return;
+    }
+    saving = true;
+    error = null;
+    changed();
+    try {
+      await port.setRuleset(before, value);
+      if (_disposed) return;
+      saving = false;
+      await load(refresh: true);
+      notice = 'Règles du projet enregistrées.';
+    } on Object catch (failure) {
+      if (!_disposed) error = 'Changement de règles refusé : $failure';
+    } finally {
+      saving = false;
+      if (!_disposed) changed();
+    }
+  }
+
   void addTrainerBattleItem(String itemId, PokemonWorkspaceIndex index) {
     final current = trainer?.current;
     if (current == null ||

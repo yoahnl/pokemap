@@ -58,14 +58,16 @@ void main() {
         picker.onChanged!(kind.name);
         await tester.pump();
         expect(combat.table!.current.encounterKind, kind);
-        final fishing = {
+        final perAttempt = {
           EncounterKind.oldRod,
           EncounterKind.goodRod,
           EncounterKind.superRod,
+          EncounterKind.headbutt,
+          EncounterKind.special,
         }.contains(kind);
         expect(
           find.text(
-            fishing
+            perAttempt
                 ? 'Probabilité par tentative (0 à 100 %)'
                 : 'Probabilité par pas (0 à 100 %)',
           ),
@@ -187,6 +189,12 @@ class FishingCommercePort implements PokemonCommercePort {
 }
 
 class FishingCombatPort implements PokemonCombatPort {
+  @override
+  Future<void> setRuleset(
+    PokemonRulesetProfile before,
+    PokemonRulesetProfile after,
+  ) => throw UnimplementedError();
+
   final table = const ProjectEncounterTable(
     id: 'all-kinds',
     name: 'All kinds',

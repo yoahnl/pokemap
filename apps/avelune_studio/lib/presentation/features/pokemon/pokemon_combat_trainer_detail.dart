@@ -86,6 +86,21 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
+              StudioSelect(
+                key: ValueKey('${trainer.id}:battle-format'),
+                label: 'Format du combat',
+                value: trainer.battleFormat.name,
+                options: const {
+                  'singles': 'Simple · 1 Pokémon par camp',
+                  'doubles': 'Double · 2 Pokémon par camp',
+                },
+                onChanged: combat.operationActive
+                    ? null
+                    : (value) => combat.setTrainerBattleFormat(
+                        BattleFormat.fromJson(value),
+                      ),
+              ),
+              const SizedBox(height: 20),
               _battleItems(trainer),
               const SizedBox(height: 20),
               Text('Équipe', style: Theme.of(context).textTheme.titleMedium),

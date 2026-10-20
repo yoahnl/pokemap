@@ -177,6 +177,12 @@ PokemonCombatSnapshot _snapshot(String characterId) => PokemonCombatSnapshot(
 );
 
 final class _ControlledCombatPort implements PokemonCombatPort {
+  @override
+  Future<void> setRuleset(
+    PokemonRulesetProfile before,
+    PokemonRulesetProfile after,
+  ) => throw UnimplementedError();
+
   Completer<PokemonCombatSnapshot> pending = Completer();
 
   @override

@@ -65,13 +65,25 @@ final class BattleEngineSetup {
           opponentReserves: opponentReserves,
         );
 
-  BattleEngineSetup.fromPsdk(PsdkBattleSetup setup) : _psdkSetup = setup {
-    if (!setup.isSingles) {
-      throw ArgumentError(
-        'Lot 4 only exposes the already-supported PSDK singles topology.',
-      );
-    }
-  }
+  BattleEngineSetup.doubles({
+    required PokemonRulesetProfile ruleset,
+    required List<PsdkBattleCombatantSetup> player,
+    required List<PsdkBattleCombatantSetup> opponent,
+    required PsdkBattleRngSeeds rngSeeds,
+    PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    List<PsdkBattleCombatantSetup> playerReserves = const [],
+    List<PsdkBattleCombatantSetup> opponentReserves = const [],
+  }) : _psdkSetup = PsdkBattleSetup.doubles(
+          ruleset: ruleset,
+          player: player,
+          opponent: opponent,
+          rngSeeds: rngSeeds,
+          field: field,
+          playerReserves: playerReserves,
+          opponentReserves: opponentReserves,
+        );
+
+  BattleEngineSetup.fromPsdk(PsdkBattleSetup setup) : _psdkSetup = setup;
 
   final PsdkBattleSetup _psdkSetup;
 

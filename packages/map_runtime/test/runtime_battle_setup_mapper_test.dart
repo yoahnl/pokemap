@@ -1003,6 +1003,147 @@ void main() {
       expect(setup.allowCapture, isFalse);
     });
 
+    test('L32 maps explicit doubles to four slots and conscious partners',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        ruleset: PokemonRulesetProfile.standardV1,
+        trainers: [_l32AuthoredTrainer()],
+      );
+      final gameState = _l32PlayerState();
+      final before = gameState.toJson();
+
+      final setup = await RuntimePsdkBattleSetupMapper().map(
+        bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest),
+        gameState: gameState,
+        request: _trainerRequest(),
+        playerPartyIndex: 2,
+      );
+
+      expect(setup.isSingles, isFalse);
+      expect(setup.combatants.keys.toSet(), {
+        const PsdkBattleSlotRef(bank: 0, position: 0),
+        const PsdkBattleSlotRef(bank: 0, position: 1),
+        const PsdkBattleSlotRef(bank: 1, position: 0),
+        const PsdkBattleSlotRef(bank: 1, position: 1),
+      });
+      expect(setup.player.speciesId, 'aquafi');
+      expect(
+        setup.combatants[const PsdkBattleSlotRef(bank: 0, position: 1)]!
+            .speciesId,
+        'sproutle',
+      );
+      expect(
+        setup.combatants.values.every(
+          (combatant) => combatant.currentHp > 0,
+        ),
+        isTrue,
+      );
+      expect(setup.partyForBank(0).map((member) => member.speciesId),
+          ['aquafi', 'sproutle', 'sproutle', 'sparkitten']);
+      expect(setup.partyForBank(0)[2].currentHp, 0);
+      expect(setup.partyForBank(0).map((member) => member.id).toSet(),
+          hasLength(4));
+      expect(setup.partyForBank(1), hasLength(3));
+      expect(setup.canCapture, isFalse);
+      expect(setup.canFlee, isFalse);
+      expect(setup.isTrainerBattle, isTrue);
+      expect(gameState.toJson(), before);
+    });
+
+    test('L32 refuses doubles with only one conscious player member', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        ruleset: PokemonRulesetProfile.standardV1,
+        trainers: [_l32AuthoredTrainer()],
+      );
+
+      await expectLater(
+        RuntimePsdkBattleSetupMapper().map(
+          bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest),
+          gameState: _l32PlayerState(fainted: const {0, 1, 3}),
+          request: _trainerRequest(),
+          playerPartyIndex: 2,
+        ),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
+    });
+
+    test('L32 refuses doubles with only one authored opponent', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        ruleset: PokemonRulesetProfile.standardV1,
+        trainers: [_l32AuthoredTrainer()],
+      );
+
+      await expectLater(
+        RuntimePsdkBattleSetupMapper().map(
+          bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest.copyWith(
+            trainers: [_l32AuthoredTrainer(teamSize: 1)],
+          )),
+          gameState: _l32PlayerState(),
+          request: _trainerRequest(),
+        ),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
+    });
+
+    test('L32 refuses an explicit doubles static encounter profile', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        ruleset: PokemonRulesetProfile.standardV1,
+        trainers: [_l32AuthoredTrainer()],
+      );
+
+      await expectLater(
+        RuntimePsdkBattleSetupMapper().map(
+          bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest.copyWith(
+            trainers: [_l32AuthoredTrainer(tags: const ['static-encounter'])],
+          )),
+          gameState: _l32PlayerState(),
+          request: _staticRequest(),
+        ),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
+    });
+
+    test('L32 refuses doubles under the unchanged beta ruleset', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        ruleset: PokemonRulesetProfile.standardV1,
+        trainers: [_l32AuthoredTrainer()],
+      );
+      await expectLater(
+        RuntimePsdkBattleSetupMapper().map(
+          bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest.copyWith(
+            pokemon: manifest.pokemon.copyWith(ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+          )),
+          gameState: _l32PlayerState(),
+          request: _trainerRequest(),
+        ),
+        throwsA(isA<RuntimeBattleSetupException>()),
+      );
+    });
+
+    test('L32 keeps a multi-member trainer singles without an authored format',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: [_l32AuthoredTrainer(battleFormat: null)],
+      );
+
+      final setup = await RuntimePsdkBattleSetupMapper().map(
+        bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest),
+        gameState: _l32PlayerState(),
+        request: _trainerRequest(),
+      );
+
+      expect(setup.isSingles, isTrue);
+      expect(setup.combatants, hasLength(2));
+      expect(setup.partyForBank(0), hasLength(4));
+      expect(setup.partyForBank(1), hasLength(3));
+    });
+
     test('maps a trainer battle from the authored trainer team', () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
@@ -2022,6 +2163,55 @@ void main() {
   });
 }
 
+ProjectTrainerEntry _l32AuthoredTrainer({
+  String? battleFormat = 'doubles',
+  int teamSize = 3,
+  List<String> tags = const [],
+}) {
+  const species = ['aquafi', 'sparkitten', 'sproutle'];
+  final trainer = ProjectTrainerEntry(
+    id: 'trainer_ace',
+    name: 'Doubles Trainer',
+    trainerClass: 'Trainer',
+    team: [
+      for (var index = 0; index < teamSize; index++)
+        ProjectTrainerPokemonEntry(
+          speciesId: species[index],
+          level: 12,
+          moves: const ['tackle'],
+        ),
+    ],
+    tags: tags,
+  ).toJson();
+  if (battleFormat == null) {
+    trainer.remove('battleFormat');
+  } else {
+    trainer['battleFormat'] = battleFormat;
+  }
+  return ProjectTrainerEntry.fromJson(trainer);
+}
+
+GameState _l32PlayerState({Set<int> fainted = const {0}}) {
+  const species = ['sproutle', 'sproutle', 'aquafi', 'sparkitten'];
+  const abilities = ['overgrow', 'overgrow', 'torrent', 'blaze'];
+  return GameState(
+    saveId: 'l32-doubles-mapper',
+    party: PlayerParty(members: [
+      for (var index = 0; index < species.length; index++)
+        PlayerPokemon(
+          individualId: 'l32-member-$index',
+          speciesId: species[index],
+          natureId: 'hardy',
+          abilityId: abilities[index],
+          level: 12,
+          knownMoveIds: const ['tackle'],
+          currentPpByMoveId: const {'tackle': 35},
+          currentHp: fainted.contains(index) ? 0 : 21 + index,
+        ),
+    ]),
+  );
+}
+
 GameState _playerStateForTests({
   Bag bag = const Bag(
     entries: <BagEntry>[
@@ -2141,6 +2331,7 @@ StaticBattleStartRequest _staticRequest() {
 Future<ProjectManifest> _writeAndLoadProjectManifest(
   Directory projectRoot, {
   required List<ProjectTrainerEntry> trainers,
+  PokemonRulesetProfile ruleset = PokemonRulesetProfile.pokeMapBetaV1,
 }) async {
   final manifest = ProjectManifest(
     name: 'Battle Mapper Test',
@@ -2153,8 +2344,8 @@ Future<ProjectManifest> _writeAndLoadProjectManifest(
     ],
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers,
-    pokemon: const ProjectPokemonConfig(
-      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    pokemon: ProjectPokemonConfig(
+      ruleset: ruleset,
       dataRoot: 'custom/pokemon',
       speciesDir: 'custom/pokemon/species',
       learnsetsDir: 'custom/pokemon/learnsets',

@@ -52,6 +52,21 @@ extension PokemonCombatValidation on PokemonCombatController {
     }
     final selectedTrainer = trainer?.current;
     if (selectedTrainer != null) {
+      if (selectedTrainer.team.length > 6) {
+        return 'Une équipe contient au maximum six Pokémon.';
+      }
+      if (selectedTrainer.battleFormat == BattleFormat.doubles) {
+        if (selectedTrainer.team.length < 2) {
+          return 'Un combat double demande au moins deux Pokémon.';
+        }
+        if (selectedTrainer.tags.contains('static-encounter')) {
+          return 'Les rencontres uniques utilisent un combat simple.';
+        }
+        if (snapshot!.project.pokemon.ruleset.mechanics.disabledFeatures
+            .contains(PokemonDisabledFeature.doubleBattles)) {
+          return 'Choisissez les règles Standard pour les combats doubles.';
+        }
+      }
       try {
         ProjectValidator.validateTrainerBallItemReferences([
           selectedTrainer,
