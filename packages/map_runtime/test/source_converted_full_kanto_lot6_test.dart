@@ -373,6 +373,11 @@ void main() {
   testWidgets('configured Kanto starter seed boots walks saves and cold reloads',
       (tester) async {
     await tester.runAsync(() async {
+      final watch = Stopwatch()..start();
+      void phase(String name) => stdout.writeln(jsonEncode({
+        'kind': 'kantoConfiguredRuntimePhase', 'phase': name,
+        'elapsedMs': watch.elapsedMilliseconds,
+      }));
       final configured = jsonDecode(await File(configuredStartPath!).readAsString()) as Map;
       expect(configured['kind'], 'convertedNativeStartConfiguration');
       expect(configured['adaptedStart'], isTrue);
@@ -389,6 +394,7 @@ void main() {
       expect(manifest.newGame.startSpawnId, configured['startSpawnId']);
       final bundle = await loadRuntimeMapBundle(
           projectFilePath: projectFile, mapId: manifest.newGame.startMapId);
+      phase('initialBundleLoaded');
       final mapFile = path.join(projectRoot,
           manifest.maps.singleWhere((entry) => entry.id == bundle.map.id).relativePath);
       final mapHash = await _hash(mapFile);
@@ -397,27 +403,13 @@ void main() {
       expect(manifest.newGame.starterOptions.map((option) => option.pokemon.speciesId),
           configured['starterSpeciesIds']);
       final selected = manifest.newGame.starterOptions.first;
-      var draft = NewGameDraft.start(draftId: 'kanto-configured-start',
-          projectRevision: configured['finalRevision'] as String,
-          slotId: 'qualification', config: manifest.newGame);
-      draft = draft.apply(NewGameDraftCommand.selectAvatar(
-          expectedRevision: draft.revision,
-          avatarCharacterId: manifest.newGame.playerAvatarCharacterIds.first)).draft;
-      draft = draft.apply(NewGameDraftCommand.selectStarter(
-          expectedRevision: draft.revision, starterOptionId: selected.id)).draft;
-      final committed = commitNewGameDraft(journal: NewGameSeedCommitJournal.empty(),
-          operationId: 'kanto-configured-start-commit',
-          currentProjectRevision: configured['finalRevision'] as String,
-          expectedDraftRevision: draft.revision, draft: draft);
-      expect(committed.status, NewGameSeedCommitStatus.committed);
-      final state = createNewGameStateFromSeed(project: manifest, startMap: bundle.map,
-          seed: committed.seed!, currentProjectRevision: configured['finalRevision'] as String,
-          tileWidthPx: manifest.settings.tileWidth, tileHeightPx: manifest.settings.tileHeight);
+      final state = _configuredSeed(manifest, bundle.map, configured);
       final saveRoot = await Directory.systemTemp.createTemp('kanto-configured-start-');
       final save = _DiskSave(path.join(saveRoot.path, 'save.json'));
       PlayableMapGame? game;
       try {
         game = await _start(tester, bundle, projectFile, save, initialGameState: state);
+        phase('seedBooted');
         expect(game.debugPlayerGridPosition, spawn.pos);
         expect(game.gameStateSnapshot.party.members.single.speciesId,
             selected.pokemon.speciesId);
@@ -426,6 +418,7 @@ void main() {
         expect(moved, isNot(spawn.pos));
         expect(await game.saveGame(), isTrue);
         final saved = (await save.load())!;
+        phase('movedAndSaved');
         expect(saved.party.members.single.speciesId, selected.pokemon.speciesId);
         expect(saved.playerPosition, moved);
         game.onRemove();
@@ -433,32 +426,17 @@ void main() {
         game = null;
         final reloaded = await loadRuntimeMapBundle(
             projectFilePath: projectFile, mapId: bundle.map.id);
+        phase('coldBundleLoaded');
         game = await _start(tester, reloaded, projectFile, save, initialGameState: state);
         expect(await game.loadGame(), isTrue);
         await _waitUntil(game, () => _idle(game!));
+        phase('coldSaveRestored');
         expect(game.debugPlayerGridPosition, moved);
         expect(game.gameStateSnapshot.party.members.single.speciesId,
             selected.pokemon.speciesId);
         expect(game.gameStateSnapshot.party.members.single.level, configured['starterLevel']);
         expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
         expect(await _walkOneCell(game, reloaded), isNot(moved));
-        final readMapHashes = <String, String>{mapFile: mapHash};
-        final connectionProof = await _tryWorldConnection(
-            game, reloaded, manifest, projectFile, readMapHashes);
-        expect(connectionProof['connectionRoundTripVerified'], isTrue,
-            reason: jsonEncode(connectionProof));
-        final centerProof = await _cityCenterDoorRoundTrip(
-            game, reloaded, referencePath!, projectFile, readMapHashes);
-        expect(centerProof['centerDoorRoundTripVerified'], isTrue);
-        for (final entry in readMapHashes.entries) {
-          expect(await _hash(entry.key), entry.value);
-        }
-        stdout.writeln(jsonEncode({
-          'kind': 'fullKantoConfiguredStartTravelProof',
-          'connection': connectionProof, 'center': centerProof,
-          'readMapFilesUnchanged': readMapHashes.length,
-          'publicCardinalInputOnly': true, 'fullCampaignCertified': false,
-        }));
       } finally {
         game?.onRemove();
         await tester.pumpWidget(const SizedBox.shrink());
@@ -478,6 +456,108 @@ void main() {
       }));
     });
   }, skip: configuredStartPath == null, timeout: const Timeout(Duration(minutes: 5)));
+
+  testWidgets('configured Kanto start travels through connections and Center doors',
+      (tester) async {
+    expect(fullReference, isTrue,
+        reason: 'Configured travel requires AVELUNE_LOT6_KANTO_REFERENCE for the full native source event qualification.');
+    await tester.runAsync(() async {
+      final watch = Stopwatch()..start();
+      void phase(String name) => stdout.writeln(jsonEncode({
+        'kind': 'kantoConfiguredTravelPhase', 'phase': name,
+        'elapsedMs': watch.elapsedMilliseconds,
+      }));
+      final configured = jsonDecode(await File(configuredStartPath!).readAsString()) as Map;
+      expect(configured['kind'], 'convertedNativeStartConfiguration');
+      final projectRoot = configured['projectPath'] as String;
+      expect(path.isAbsolute(projectRoot), isTrue);
+      expect(await Directory(projectRoot).resolveSymbolicLinks(), projectRoot);
+      final projectFile = path.join(projectRoot, 'project.json');
+      final manifestHash = await _hash(projectFile);
+      final manifest = await loadProjectManifestFromFile(projectFile);
+      final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFile, mapId: manifest.newGame.startMapId);
+      phase('bundleLoaded');
+      final state = _configuredSeed(manifest, bundle.map, configured);
+      final mapFile = path.join(projectRoot,
+          manifest.maps.singleWhere((entry) => entry.id == bundle.map.id).relativePath);
+      final readMapHashes = <String, String>{mapFile: await _hash(mapFile)};
+      final saveRoot = await Directory.systemTemp.createTemp('kanto-configured-travel-');
+      final repository = _DiskSave(path.join(saveRoot.path, 'save.json'));
+      PlayableMapGame? game;
+      try {
+        game = await _start(tester, bundle, projectFile,
+            repository, initialGameState: state);
+        phase('seedBooted');
+        final connectionProof = await _tryWorldConnection(
+            game, bundle, manifest, projectFile, readMapHashes);
+        expect(connectionProof['connectionRoundTripVerified'], isTrue,
+            reason: jsonEncode(connectionProof));
+        phase('connectionRoundTrip');
+        final centerProof = await _cityCenterDoorRoundTrip(
+            game, bundle, referencePath!, projectFile, readMapHashes);
+        expect(centerProof['centerDoorRoundTripVerified'], isTrue);
+        phase('centerRoundTrip');
+        final savedMap = game.gameStateSnapshot.currentMapId;
+        final savedPosition = game.debugPlayerGridPosition;
+        expect(await game.saveGame(), isTrue);
+        final saved = (await repository.load())!;
+        expect(saved.currentMapId, savedMap);
+        expect(saved.playerPosition, savedPosition);
+        expect(saved.party.members.single.speciesId,
+            state.party.members.single.speciesId);
+        expect(await game.loadGame(), isTrue);
+        await _waitUntil(game, () => _idle(game!));
+        expect(game.gameStateSnapshot.currentMapId, savedMap);
+        expect(game.debugPlayerGridPosition, savedPosition);
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+        phase('savedAndReloaded');
+        expect(await _hash(projectFile), manifestHash);
+        for (final entry in readMapHashes.entries) {
+          expect(await _hash(entry.key), entry.value);
+        }
+        stdout.writeln(jsonEncode({
+          'kind': 'fullKantoConfiguredStartTravelProof',
+          'connection': connectionProof, 'center': centerProof,
+          'savedAndReloadedAfterCenterVisit': true,
+          'readMapFilesUnchanged': readMapHashes.length,
+          'publicCardinalInputOnly': true, 'manifestUnchanged': true,
+          'fullCampaignCertified': false,
+        }));
+      } finally {
+        game?.onRemove();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await saveRoot.delete(recursive: true);
+      }
+    });
+  }, skip: configuredStartPath == null, timeout: const Timeout(Duration(minutes: 5)));
+}
+
+GameState _configuredSeed(ProjectManifest manifest, MapData map, Map configured) {
+  expect(manifest.maps, hasLength(383));
+  expect(manifest.newGame.enabled, isTrue);
+  expect(manifest.newGame.startMapId, configured['startMapId']);
+  expect(manifest.newGame.startSpawnId, configured['startSpawnId']);
+  expect(map.id, manifest.newGame.startMapId);
+  expect(manifest.newGame.starterOptions.map((option) => option.pokemon.speciesId),
+      configured['starterSpeciesIds']);
+  var draft = NewGameDraft.start(draftId: 'kanto-configured-start',
+      projectRevision: configured['finalRevision'] as String,
+      slotId: 'qualification', config: manifest.newGame);
+  draft = draft.apply(NewGameDraftCommand.selectAvatar(
+      expectedRevision: draft.revision,
+      avatarCharacterId: manifest.newGame.playerAvatarCharacterIds.first)).draft;
+  draft = draft.apply(NewGameDraftCommand.selectStarter(
+      expectedRevision: draft.revision,
+      starterOptionId: manifest.newGame.starterOptions.first.id)).draft;
+  final committed = commitNewGameDraft(journal: NewGameSeedCommitJournal.empty(),
+      operationId: 'kanto-configured-start-commit',
+      currentProjectRevision: configured['finalRevision'] as String,
+      expectedDraftRevision: draft.revision, draft: draft);
+  expect(committed.status, NewGameSeedCommitStatus.committed);
+  return createNewGameStateFromSeed(project: manifest, startMap: map,
+      seed: committed.seed!, currentProjectRevision: configured['finalRevision'] as String,
+      tileWidthPx: manifest.settings.tileWidth, tileHeightPx: manifest.settings.tileHeight);
 }
 
 Future<PlayableMapGame> _start(
@@ -515,7 +595,7 @@ Future<PlayableMapGame> _start(
         game.inputAuthoritySnapshot.acceptsOverworldInput,
   );
   await _ticks(game, 2);
-  await _waitUntil(game, () => _idle(game));
+  await _settleAutoruns(game);
   return game;
 }
 
@@ -691,8 +771,15 @@ Future<Map<String, Object?>> _tryWorldConnection(
     final direction = _cardinals.singleWhere(
         (entry) => entry.$3 == connection.direction).$2;
     await _followPath(game, initial, route);
+    stdout.writeln(jsonEncode({'kind': 'kantoConnectionInputTrace',
+      'phase': 'crossing', 'sourceMapId': initial.map.id,
+      'targetMapId': outside.id, 'sourcePosition': border.toJson(),
+      'expectedArrival': arrivals[border]!.toJson()}));
     await _publicStep(game, direction, outside.id,
         expectedPosition: arrivals[border]);
+    stdout.writeln(jsonEncode({'kind': 'kantoConnectionInputTrace',
+      'phase': 'arrived', 'mapId': game.gameStateSnapshot.currentMapId,
+      'position': game.debugPlayerGridPosition.toJson()}));
     expect(game.debugLastCompletedMapActivation?.reason,
         MapActivationReason.connection);
     final reverse = switch (direction) {
@@ -939,8 +1026,11 @@ Future<Map<String, Object?>> _cityCenterDoorRoundTrip(
       (entry) => entry.id == entrance.command.destinationMapId);
   final insideFile = path.join(path.dirname(projectFile), entry.relativePath);
   readMapHashes[insideFile] = await _hash(insideFile);
-  final inside = await loadMapDataFromFile(insideFile,
-      projectDialogueContext: city.manifest);
+  final insideBundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFile, mapId: entrance.command.destinationMapId);
+  final inside = insideBundle.map;
+  expect(exit.source['mapId'], inside.id);
+  expect(exit.command.destinationMapId, city.map.id);
   final approaches = _approaches(entrance, city.map,
       _worldFor(game, city.map, city.manifest));
   final route = _pathTo(_worldFor(game, city.map, city.manifest),
@@ -951,14 +1041,18 @@ Future<Map<String, Object?>> _cityCenterDoorRoundTrip(
       (warp) => warp.id == entrance.command.warpId).pos;
   await _activateDoor(game, approaches[game.debugPlayerGridPosition]!, entrance,
       expectedPosition: arrival);
-  final bundle = await loadRuntimeMapBundle(
-      projectFilePath: projectFile, mapId: inside.id);
-  final exits = _approaches(exit, inside, _worldFor(game, inside, city.manifest));
-  final back = _pathTo(_worldFor(game, inside, city.manifest),
+  final exits = _approaches(exit, inside, _worldFor(game, inside, insideBundle.manifest));
+  final back = _pathTo(_worldFor(game, inside, insideBundle.manifest),
       game.debugPlayerGridPosition, exits.keys.toSet());
   expect(back, isNotNull);
-  await _followPath(game, bundle, back!);
-  await _activateDoor(game, exits[game.debugPlayerGridPosition]!, exit);
+  await _followPath(game, insideBundle, back!);
+  final returnPosition = city.map.warps.singleWhere(
+      (warp) => warp.id == exit.command.warpId).pos;
+  await _activateDoor(game, exits[game.debugPlayerGridPosition]!, exit,
+      expectedPosition: returnPosition,
+      expectedSettledPosition: _doorAutorunExitPosition(city.manifest, entrance,
+          returnPosition));
+  expect(game.gameStateSnapshot.currentMapId, city.map.id);
   return {'centerDoorRoundTripVerified': true,
     'outsideMapId': city.map.id, 'insideMapId': inside.id,
     'publicCardinalInputs': route.length + back.length + 2};
@@ -969,6 +1063,29 @@ final class _Door {
   final String eventId;
   final Map<String, Object?> source;
   final SceneWarpInteractiveCommand command;
+}
+
+GridPos _doorAutorunExitPosition(ProjectManifest manifest, _Door door,
+    GridPos arrival) {
+  final record = manifest.eventRegistry!.records.singleWhere((record) {
+    final source = record.definitionOrNull?.source;
+    return source?.kind == NarrativeEventSourceKind.entityAutorun &&
+        source!.toJson()['mapId'] == door.source['mapId'] &&
+        source.toJson()['entityId'] == door.source['entityId'];
+  });
+  final scene = manifest.scenes.singleWhere(
+      (scene) => scene.id == record.definitionOrNull!.sceneId);
+  final routes = scene.graph.nodes.map((node) => node.payload)
+      .whereType<SceneActionPayload>()
+      .map((payload) => payload.interactiveCommand)
+      .whereType<SceneActorRouteInteractiveCommand>()
+      .where((route) => route.target.kind == SceneActorTargetKind.player);
+  final moves = routes.expand((route) => route.steps)
+      .whereType<SceneActorMoveStep>().toList();
+  expect(moves, hasLength(1));
+  expect(moves.single.initialCollisionOwnerEntityId, door.source['entityId']);
+  final direction = moves.single.direction.asDirection;
+  return GridPos(x: arrival.x + direction.dx, y: arrival.y + direction.dy);
 }
 
 Future<List<Map>> _qualifiedEventRows(String referencePath, Map delivery) async {
@@ -1386,6 +1503,7 @@ Future<void> _activateDoor(
   Direction direction,
   _Door door, {
   GridPos? expectedPosition,
+  GridPos? expectedSettledPosition,
 }) async {
   final activations = game.debugCompletedMapActivationDispatchCount;
   await _publicStep(game, direction, door.command.destinationMapId,
@@ -1396,9 +1514,9 @@ Future<void> _activateDoor(
   );
   expect(game.debugCompletedMapActivationDispatchCount, activations + 1);
   final arrived = game.debugPlayerGridPosition;
-  await _ticks(game, 30);
+  await _settleAutoruns(game);
   expect(game.gameStateSnapshot.currentMapId, door.command.destinationMapId);
-  expect(game.debugPlayerGridPosition, arrived);
+  expect(game.debugPlayerGridPosition, expectedSettledPosition ?? arrived);
   expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
 }
 
@@ -1409,13 +1527,42 @@ Future<void> _publicStep(
   GridPos? expectedPosition,
 }) async {
   final control = _cardinals.singleWhere((entry) => entry.$2 == direction).$1;
+  final beforeMapId = game.gameStateSnapshot.currentMapId;
+  final beforePosition = game.debugPlayerGridPosition;
+  stdout.writeln(jsonEncode({
+    'kind': 'kantoPublicStep', 'phase': 'press',
+    'direction': direction.name, 'from': beforePosition.toJson(),
+    'expected': expectedPosition?.toJson(),
+    'acceptsInput': game.inputAuthoritySnapshot.acceptsOverworldInput,
+  }));
   expect(
     game.handleRuntimeInputEvent(RuntimeInputEvent.press(control)),
     isTrue,
   );
   try {
-    game.update(.016);
-    await Future<void>.delayed(Duration.zero);
+    final inputWatch = Stopwatch()..start();
+    for (var tick = 0;
+        tick < 4000 && inputWatch.elapsed < const Duration(seconds: 30);
+        tick++) {
+      if (tick > 0 && tick % 8 == 0 &&
+          game.inputAuthoritySnapshot.acceptsOverworldInput) {
+        game.handleRuntimeInputEvent(
+            RuntimeInputEvent.press(control, isRepeat: true));
+      }
+      game.update(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+      if (game.gameStateSnapshot.currentMapId != beforeMapId ||
+          game.debugPlayerGridPosition != beforePosition ||
+          game.debugIsPlayerStepping) {
+        stdout.writeln(jsonEncode({
+          'kind': 'kantoPublicStep', 'phase': 'release', 'tick': tick,
+          'position': game.debugPlayerGridPosition.toJson(),
+          'stepping': game.debugIsPlayerStepping, 'idle': _idle(game),
+          'acceptsInput': game.inputAuthoritySnapshot.acceptsOverworldInput,
+        }));
+        break;
+      }
+    }
   } finally {
     game.handleRuntimeInputEvent(RuntimeInputEvent.release(control));
   }
@@ -1449,16 +1596,33 @@ Future<void> _ticks(PlayableMapGame game, int count) async {
   }
 }
 
+Future<void> _settleAutoruns(PlayableMapGame game) async {
+  var consecutiveIdleFrames = 0;
+  await _waitUntil(game, () {
+    consecutiveIdleFrames = _idle(game) &&
+        !game.debugIsPlayerStepping &&
+        game.inputAuthoritySnapshot.acceptsOverworldInput
+        ? consecutiveIdleFrames + 1 : 0;
+    return consecutiveIdleFrames >= 20;
+  });
+}
+
 Future<void> _waitUntil(PlayableMapGame game, bool Function() done) async {
-  for (var tick = 0; tick < 4000; tick++) {
+  final watch = Stopwatch()..start();
+  for (var tick = 0; tick < 4000 && watch.elapsed < const Duration(seconds: 30); tick++) {
     if (done()) return;
-    game.update(0.016);
+    game.update(0.05);
     await Future<void>.delayed(const Duration(milliseconds: 1));
   }
   fail(
     'LOT6 runtime did not settle: map=${game.gameStateSnapshot.currentMapId}, '
     'phase=${game.debugFlowPhaseName}, position=${game.debugPlayerGridPosition}, '
-    'line=${game.dialoguePresentationListenable.value?.fullText}',
+    'line=${game.dialoguePresentationListenable.value?.fullText}, '
+    'elapsedMs=${watch.elapsedMilliseconds}, stepping=${game.debugIsPlayerStepping}, '
+    'autorun=${game.debugIsEntityAutorunInFlight}, activation=${game.debugIsMapActivationDispatchInFlight}, '
+    'spatial=${game.debugIsNarrativeSpatialDispatchInFlight}, outcome=${game.debugIsNarrativeOutcomeWorkInFlight}, '
+    'load=${game.debugIsLoadActivationWorkInFlight}, dialogueLoad=${game.debugHasPendingDialogueLoad}, '
+    'transition=${game.debugHasPendingMapTransition}, acceptsInput=${game.inputAuthoritySnapshot.acceptsOverworldInput}',
   );
 }
 
