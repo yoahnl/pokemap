@@ -7,6 +7,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/native_mutation_batches.dart';
 import 'package:path/path.dart' as path;
 import 'lot6_connection_preflight.dart';
+import 'lot6_source_decision_refresh.dart';
 
 Future<void> main(List<String> args) async {
   if (args.length < 2 || args.length > 3 || !const {'world', 'full'}.contains(args[1])) {
@@ -33,7 +34,7 @@ Future<void> main(List<String> args) async {
   }
   await evidence.create(recursive: true);
   const evidenceRoot = '/Users/karim/Project/avelune project/Inventaires/Kanto EV-09';
-  final decisions = jsonDecode(await File('$evidenceRoot/preuves/source_adaptations.json').readAsString()) as Map;
+  var decisions = Map<String, Object?>.from(jsonDecode(await File('$evidenceRoot/preuves/source_adaptations.json').readAsString()) as Map);
   const sourceRoot = '/Users/karim/Downloads/The-PMon-World-Project-main/The Pokémon World Project - Kanto';
   const baseProfilePath = '/Users/karim/Project/avelune project/Inventaires/Kanto EV-10/source_profile_ev10_pickups.json';
   final rawProfile = Map<String, Object?>.from(jsonDecode(
@@ -127,7 +128,10 @@ Future<void> main(List<String> args) async {
     });
     await save();
     if (snapshot.canonicalHash.value != decisions['snapshotHash']) {
-      throw StateError('Source inventory changed; regenerate dependency decisions');
+      decisions = refreshLot6SourceDecisionsForRootClippings(snapshot, decisions);
+      result['sourceDecisionRefresh'] = decisions['inventoryRefresh'];
+      await File('${evidence.path}/refreshed-source-decisions.json').writeAsString(jsonEncode(decisions), flush: true);
+      await save();
     }
     final parent = Directory('/Users/karim/Project/avelune project');
     if (await parent.resolveSymbolicLinks() != parent.path ||
