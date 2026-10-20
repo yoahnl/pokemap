@@ -28,7 +28,10 @@ Future<NormalizedSourceProject> _source({
 
 void main() {
   for (final lines in [
-    [r'EndSpeech: You made it clear to me that\nI should ', 'stick with school.'],
+    [
+      r'EndSpeech: You made it clear to me that\nI should ',
+      'stick with school.'
+    ],
     ['EndSpeech: Première ligne.', 'Deuxième ligne.', 'Troisième ligne.'],
   ]) {
     test('retains complete contiguous EndSpeech 108/408 ${lines.length} lines',
@@ -40,7 +43,8 @@ void main() {
       final program =
           event.pages.first.body.nodes.single as SourceTrainerProgramNode;
       expect(program.endSpeechComment, lines.join('\n'));
-      expect(program.toJson()['sourceEndSpeechCommentRuntimeDialogue'], isFalse);
+      expect(
+          program.toJson()['sourceEndSpeechCommentRuntimeDialogue'], isFalse);
       expect(program.toJson()['sourceBattleVictoryTextBinding'],
           'pbsTrainerLoseText');
       expect(program.victoryContinuation.nodes, hasLength(1));
@@ -120,7 +124,8 @@ void main() {
     });
   }
 
-  test('multiline EndSpeech does not weaken raw continuation binding', () async {
+  test('multiline EndSpeech does not weaken raw continuation binding',
+      () async {
     final source = await _source();
     final analysis = analyzeTrainerSource(source);
     final program = analysis.eventAt(94, 8)!.pages.first.body.nodes.single

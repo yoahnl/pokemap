@@ -185,8 +185,8 @@ void main() {
             (pages.last.fields['@condition'] as TrainerRubyObject)
                 .fields['@self_switch_ch'] = 'B';
           case 'extraVictoryEffect':
-            (pages.first.fields['@list'] as List).insert(
-                6, trainerCommand(123, ['B', 0], indent: 1));
+            (pages.first.fields['@list'] as List)
+                .insert(6, trainerCommand(123, ['B', 0], indent: 1));
           case 'thirdPage':
             pages.add(trainerPages().last);
         }
@@ -201,7 +201,8 @@ void main() {
     });
   }
 
-  test('inactive route equivalence preserves complete source binding', () async {
+  test('inactive route equivalence preserves complete source binding',
+      () async {
     final source = await _source();
     final analysis = analyzeTrainerSource(source);
     final program = analysis.eventAt(94, 7)!.pages.first.body.nodes.single

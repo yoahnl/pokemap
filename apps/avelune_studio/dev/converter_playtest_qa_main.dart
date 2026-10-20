@@ -15,12 +15,38 @@ Future<void> main() async {
   if (!kDebugMode || !Platform.isMacOS) {
     throw StateError('Converter playtest QA requires macOS debug mode.');
   }
-  MarionetteBinding.ensureInitialized();
-  final session = ProjectSessionController(LocalProjectSessionAdapter());
-  final service = await developer.Service.getInfo();
-  stdout.writeln(
-    jsonEncode({'vmService': service.serverUri?.toString(), 'pid': pid}),
+  final logs = PrintLogCollector();
+  final originalDebugPrint = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message != null) logs.addLog(message);
+    originalDebugPrint(message, wrapWidth: wrapWidth);
+  };
+  MarionetteBinding.ensureInitialized(
+    MarionetteConfiguration(logCollector: logs),
   );
+  const projectPath = String.fromEnvironment('AVELUNE_CONVERTER_QA_PROJECT');
+  if (projectPath.isEmpty ||
+      !Directory(projectPath).isAbsolute ||
+      await Directory(projectPath).resolveSymbolicLinks() != projectPath) {
+    throw StateError(
+      'AVELUNE_CONVERTER_QA_PROJECT must be a canonical absolute project directory.',
+    );
+  }
+  final session = ProjectSessionController(LocalProjectSessionAdapter());
+  await session.open(projectPath);
+  if (session.state.project?.directoryPath != projectPath ||
+      session.state.problem != null) {
+    throw StateError('The requested converter QA project could not be opened.');
+  }
+  final service = await developer.Service.getInfo();
+  final sessionInfo = {
+    'vmService': service.serverUri?.toString(),
+    'pid': pid,
+    'projectPath': projectPath,
+  };
+  await File('${Directory.systemTemp.path}/avelune-converter-qa-session.json')
+      .writeAsString(jsonEncode(sessionInfo), flush: true);
+  stdout.writeln(jsonEncode(sessionInfo));
   developer.registerExtension('ext.flutter.avelune.converterPlaytestQa', (
     method,
     parameters,
