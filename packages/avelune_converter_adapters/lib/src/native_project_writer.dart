@@ -1504,6 +1504,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final smartTilePresets = <ProjectSmartTilePreset>[];
   var borderCatalog = ProjectBorderCatalog();
   final borderSnapshots = <String, NativeArtifact>{};
+  final validatedBorderSnapshotBytes = <String, List<int>>{};
   var borderResources = SourceBorderReplayResources();
   final characters = <ProjectCharacterEntry>[];
   final customAnimationDefinitions = <CharacterCustomAnimationDefinition>[];
@@ -2165,8 +2166,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           }
         }
         final replay = await replaySourceBorderMutation(
-          resources: SourceBorderReplayResources(catalog: AssetCatalog(records: assetRecords),
-            files: borderResources.files, blobs: borderResources.blobs),
+          resources: borderResources.withCatalog(AssetCatalog(records: assetRecords)),
           project: bootstrap.copyWith(maps: mapEntries, tilesets: tilesetEntries,
             elements: elements, elementCategories: categories, borderCatalog: borderCatalog,
             characters: characters, settings: bootstrap.settings.copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId)),
@@ -2178,12 +2178,16 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         assetRecords..clear()..addAll(borderResources.catalog.records);
         maps..clear()..addAll(replay.maps);
         for (final file in replay.files.entries) {
-          final next = NativeArtifact(bytes: file.value, limits: limits);
           final previous = borderSnapshots[file.key];
+          if (previous != null && identical(validatedBorderSnapshotBytes[file.key], file.value)) {
+            continue;
+          }
+          final next = NativeArtifact(bytes: file.value, limits: limits);
           if (previous != null && previous.rawSha256 != next.rawSha256) {
             throw const NativeWriteException('native.border.snapshot', 'Canonical Border snapshot path has conflicting bytes');
           }
           borderSnapshots[file.key] = next;
+          validatedBorderSnapshotBytes[file.key] = file.value;
         }
         if (mutation.actionId == 'border.blueprint.publish') {
           for (final primitive in parameters['primitiveSources'] as List) {

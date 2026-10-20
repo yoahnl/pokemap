@@ -41,23 +41,71 @@ final class SourceDirectedJumpStudyComposition {
 }
 
 final class SourceBorderReplayResources {
-  SourceBorderReplayResources({
+  factory SourceBorderReplayResources({
     AssetCatalog? catalog,
     Map<String, List<int>> files = const {},
     Map<String, List<int>> blobs = const {},
-  })  : catalog = catalog ?? AssetCatalog(),
+  }) => SourceBorderReplayResources._(
+      catalog: catalog ?? AssetCatalog(),
+      files: {for (final entry in files.entries)
+        entry.key: _OwnedBorderReplayBytes(entry.value)},
+      blobs: {for (final entry in blobs.entries)
+        entry.key: _OwnedBorderReplayBytes(entry.value)},
+      validation: _BorderReplayValidation());
+
+  SourceBorderReplayResources._({
+    required this.catalog,
+    required Map<String, _OwnedBorderReplayBytes> files,
+    required Map<String, _OwnedBorderReplayBytes> blobs,
+    required _BorderReplayValidation validation,
+  })  : _files = Map.unmodifiable(files),
+        _blobs = Map.unmodifiable(blobs),
+        _validation = validation,
         files = Map.unmodifiable({
           for (final entry in files.entries)
-            entry.key: List<int>.unmodifiable(entry.value),
+            entry.key: entry.value.bytes,
         }),
         blobs = Map.unmodifiable({
           for (final entry in blobs.entries)
-            entry.key: List<int>.unmodifiable(entry.value),
+            entry.key: entry.value.bytes,
         });
 
   final AssetCatalog catalog;
   final Map<String, List<int>> files;
   final Map<String, List<int>> blobs;
+  final Map<String, _OwnedBorderReplayBytes> _files, _blobs;
+  final _BorderReplayValidation _validation;
+
+  int get pngValidationCount => _validation.pngValidationCount;
+
+  SourceBorderReplayResources withCatalog(AssetCatalog catalog) =>
+      SourceBorderReplayResources._(catalog: catalog, files: _files,
+        blobs: _blobs, validation: _validation);
+}
+
+final class _BorderReplayValidation {
+  var pngValidationCount = 0;
+}
+
+final class _OwnedBorderReplayBytes {
+  _OwnedBorderReplayBytes(List<int> source)
+      : bytes = List<int>.unmodifiable(source);
+
+  final List<int> bytes;
+  late final ContentArtifactRef artifact =
+      ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png');
+  NativeWriteLimits? _validatedLimits;
+  (int, int)? _dimensions;
+
+  (int, int) validate(NativeWriteLimits limits,
+      _BorderReplayValidation validation) {
+    if (identical(_validatedLimits, limits)) return _dimensions!;
+    validation.pngValidationCount++;
+    final dimensions = const NativePngValidator().validate(bytes, limits: limits);
+    _dimensions = dimensions;
+    _validatedLimits = limits;
+    return dimensions;
+  }
 }
 
 final class SourceBorderMutationReplay {
@@ -79,8 +127,8 @@ final class SourceBorderMutationReplay {
     var project = snapshot.manifest;
     final maps = {for (final map in snapshot.maps) map.id: map};
     var catalog = resources.catalog;
-    final files = Map<String, List<int>>.from(resources.files);
-    final blobs = Map<String, List<int>>.from(resources.blobs);
+    final files = Map<String, _OwnedBorderReplayBytes>.from(resources._files);
+    final blobs = Map<String, _OwnedBorderReplayBytes>.from(resources._blobs);
     var total = 0;
     final changedPaths = <String>{};
     for (final change in changes) {
@@ -170,7 +218,7 @@ final class SourceBorderMutationReplay {
               'Canonical Border snapshots are immutable',
             );
           }
-          files[change.storageKey] = after;
+          files[change.storageKey] = _OwnedBorderReplayBytes(after);
         case 'assetBlob':
           final artifact = ContentArtifactRef.fromBytes(
             after,
@@ -192,7 +240,7 @@ final class SourceBorderMutationReplay {
               'Canonical Border blobs are immutable',
             );
           }
-          blobs[id] = after;
+          blobs[id] = _OwnedBorderReplayBytes(after);
       }
     }
     for (final record in catalog.records) {
@@ -204,10 +252,11 @@ final class SourceBorderMutationReplay {
         );
       }
     }
-    final next = SourceBorderReplayResources(
+    final next = SourceBorderReplayResources._(
       catalog: catalog,
       files: files,
       blobs: blobs,
+      validation: resources._validation,
     );
     _borderReplaySnapshot(project, maps, next, limits, cancellation);
     return SourceBorderMutationReplay._(project, maps, next);
@@ -275,16 +324,13 @@ ProjectSnapshot _borderReplaySnapshot(
   var totalBytes = 0;
   var totalPixels = 0;
   final digests = <String>{};
-  for (final entry in resources.files.entries) {
+  for (final entry in resources._files.entries) {
     cancellation?.check();
     final record = resources.catalog.findByLogicalPath(entry.key);
-    final artifact = ContentArtifactRef.fromBytes(
-      entry.value,
-      mediaType: 'image/png',
-    );
+    final artifact = entry.value.artifact;
     if (record == null ||
         record.artifact != artifact ||
-        !_sameBorderBytes(resources.blobs[artifact.digest], entry.value)) {
+        resources._blobs[artifact.digest]?.artifact != artifact) {
       throw const NativeWriteException(
         'jumps.resource.catalog',
         'Canonical Border files require matching catalog records and retained blobs',
@@ -292,7 +338,7 @@ ProjectSnapshot _borderReplaySnapshot(
     }
     digests.add(artifact.digest);
     storage['borderSnapshot:${entry.key}'] = entry.key;
-    bytes['borderSnapshot:${entry.key}'] = entry.value;
+    bytes['borderSnapshot:${entry.key}'] = entry.value.bytes;
   }
   if (digests.length != resources.blobs.length ||
       !digests.containsAll(resources.blobs.keys)) {
@@ -301,29 +347,26 @@ ProjectSnapshot _borderReplaySnapshot(
       'Canonical Border blobs must belong to published snapshot files',
     );
   }
-  for (final entry in resources.blobs.entries) {
-    final artifact = ContentArtifactRef.fromBytes(
-      entry.value,
-      mediaType: 'image/png',
-    );
+  for (final entry in resources._blobs.entries) {
+    final artifact = entry.value.artifact;
     storage[assetBlobResourceIdentity(entry.key)] = assetBlobStorageKey(
       artifact,
     );
-    bytes[assetBlobResourceIdentity(entry.key)] = entry.value;
+    bytes[assetBlobResourceIdentity(entry.key)] = entry.value.bytes;
   }
   for (final payload in [
-    ...resources.files.values,
-    ...resources.blobs.values,
+    ...resources._files.values,
+    ...resources._blobs.values,
   ]) {
     cancellation?.check();
-    if (payload.length > limits.maxArtifactBytes) {
+    if (payload.bytes.length > limits.maxArtifactBytes) {
       throw const NativeWriteException(
         'jumps.quota.artifact',
         'Canonical Border snapshot exceeds the byte budget',
       );
     }
-    final size = const NativePngValidator().validate(payload, limits: limits);
-    totalBytes += payload.length;
+    final size = payload.validate(limits, resources._validation);
+    totalBytes += payload.bytes.length;
     totalPixels += size.$1 * size.$2;
   }
   if (resources.files.length + resources.blobs.length > limits.maxArtifacts ||
