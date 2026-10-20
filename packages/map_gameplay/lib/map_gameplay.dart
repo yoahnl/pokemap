@@ -174,6 +174,7 @@ export 'src/gameplay_step.dart'
         stepGameplayWorld,
         resolveGameplayArrival,
         resolvePlayerEntityBumpContact,
+        isPlayerFrontInteractionUnobstructed,
         resolvePlayerTriggerBumpContacts;
 export 'src/gameplay_step_result.dart'
     show

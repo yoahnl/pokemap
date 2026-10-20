@@ -526,6 +526,15 @@ extension _PlayableMapInteractions on PlayableMapGame {
           y: _world.player.pos.y + facing.dy,
         )];
     if (event == null) return null;
+    if (!isPlayerFrontInteractionUnobstructed(
+      world: _world,
+      targetRect: MapRect(
+        pos: GridPos(x: event.position.x, y: event.position.y),
+        size: const GridSize(width: 1, height: 1),
+      ),
+    )) {
+      return null;
+    }
     final factContext = ScriptEvaluationContext(
       narrativeFactResolver: _narrativeFactResolver,
     );

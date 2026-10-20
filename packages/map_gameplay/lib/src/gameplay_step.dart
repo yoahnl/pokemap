@@ -763,6 +763,10 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
   final entity = world.entityAt(tx, ty);
 
   if (entity != null && entity.interactionMode == MapEntityInteractionMode.front) {
+    if (!isPlayerFrontInteractionUnobstructed(world: world,
+        targetRect: resolveEntityCollisionFootprint(entity), ignoredEntityId: entity.id)) {
+      return NothingToInteract(world);
+    }
     return switch (entity.kind) {
       MapEntityKind.npc => NpcInteracted(world, entity),
       MapEntityKind.sign => SignInteracted(world, entity),
@@ -824,6 +828,57 @@ GameplayStepResult _resolveInteract(GameplayWorldState world) {
   }
 
   return NothingToInteract(world);
+}
+
+bool isPlayerFrontInteractionUnobstructed({
+  required GameplayWorldState world,
+  required MapRect targetRect,
+  String? ignoredEntityId,
+}) {
+  final player = world.player;
+  final source = player.playerCollisionRectPx;
+  if (player.playerSpriteWidthPx <= 0 || player.playerSpriteHeightPx <= 0 ||
+      !_jumpRectInBounds(world, source) ||
+      PlayerCollisionConventionsV1.projectFeetAnchorToCell(
+        playerCollisionRectPx: source,
+        tileWidthPx: world.tileWidthPx,
+        tileHeightPx: world.tileHeightPx,
+        mapWidthCells: world.map.size.width,
+        mapHeightCells: world.map.size.height,
+      ) != player.pos ||
+      world.worldStaticObstaclesCollidePlayerCollisionRect() ||
+      (ignoredEntityId != null && (ignoredEntityId.isEmpty ||
+        ignoredEntityId.trim() != ignoredEntityId ||
+        world.map.entities.where((candidate) => candidate.id == ignoredEntityId).length != 1))) {
+    return false;
+  }
+  final facing = player.facing;
+  final front = GridPos(x: player.pos.x + facing.dx, y: player.pos.y + facing.dy);
+  if (targetRect.size.width <= 0 || targetRect.size.height <= 0 ||
+      front.x < targetRect.pos.x || front.y < targetRect.pos.y ||
+      front.x >= targetRect.pos.x + targetRect.size.width ||
+      front.y >= targetRect.pos.y + targetRect.size.height) {
+    return false;
+  }
+  final target = PixelRect(leftPx: targetRect.pos.x * world.tileWidthPx,
+    topPx: targetRect.pos.y * world.tileHeightPx,
+    widthPx: targetRect.size.width * world.tileWidthPx,
+    heightPx: targetRect.size.height * world.tileHeightPx);
+  if (!_jumpRectInBounds(world, target)) return false;
+  final distance = facing.dx == 0 ? world.tileHeightPx : world.tileWidthPx;
+  for (var pixel = 1; pixel <= distance; pixel++) {
+    final rect = PixelRect(leftPx: source.leftPx + facing.dx * pixel,
+      topPx: source.topPx + facing.dy * pixel, widthPx: source.widthPx, heightPx: source.heightPx);
+    if (!_jumpRectInBounds(world, rect)) {
+      return false;
+    }
+    if (_bumpRectsOverlap(rect, target)) return true;
+    if (world.worldStaticObstaclesCollidePixelRect(rect,
+        playerContact: true, ignoredEntityId: ignoredEntityId)) {
+      return false;
+    }
+  }
+  return false;
 }
 
 bool _passesBehaviorScopeForMovement({
