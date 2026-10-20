@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:map_authoring/map_authoring.dart' show characterStudioSlug;
 import 'package:map_core/map_core.dart';
 import 'source_directed_jump_study_composer.dart';
 
@@ -406,6 +407,7 @@ ProjectManifest _sourceSemanticNativeProject({
   final categories = <ProjectElementCategory>[];
   final elements = <ProjectElementEntry>[];
   final characters = <ProjectCharacterEntry>[];
+  final customAnimationDefinitions = <CharacterCustomAnimationDefinition>[];
   String? defaultCharacter;
   final byHandle = {for (final artifact in artifacts) artifact.handle: artifact};
   for (final m in mutations) {
@@ -435,8 +437,26 @@ ProjectManifest _sourceSemanticNativeProject({
           frameHeight: p['frameHeight'] as int, tags: (p['tags'] as List).cast<String>()));
       case 'characterStudio.animationClip.upsert':
         final index = characters.indexWhere((c) => c.id == p['characterId']);
-        characters[index] = characters[index].copyWith(animations: [...characters[index].animations,
-          CharacterAnimation.fromJson(Map<String, dynamic>.from(p))]);
+        if (p['kind'] == 'custom') {
+          characters[index] = characters[index].copyWith(customAnimations: [
+            ...characters[index].customAnimations,
+            CharacterCustomAnimationClip.fromJson(Map<String, dynamic>.from(p)),
+          ]);
+        } else {
+          characters[index] = characters[index].copyWith(animations: [...characters[index].animations,
+            CharacterAnimation.fromJson(Map<String, dynamic>.from(p))]);
+        }
+      case 'characterStudio.character.update':
+        final index = characters.indexWhere((c) => c.id == p['characterId']);
+        characters[index] = characters[index].copyWith(name: p['name'] as String);
+      case 'characterStudio.animationDefinition.create':
+        final displayName = p['displayName'] as String;
+        customAnimationDefinitions.add(CharacterCustomAnimationDefinition(
+          id: characterStudioSlug(displayName),
+          displayName: displayName,
+          mode: CharacterCustomAnimationMode.values.byName(p['mode'] as String),
+          sortOrder: customAnimationDefinitions.length,
+        ));
       case 'characterStudio.character.setDefault':
         defaultCharacter = p['characterId'] as String;
     }
@@ -444,6 +464,9 @@ ProjectManifest _sourceSemanticNativeProject({
   return ProjectManifest(name: projectName, version: ProjectVersion.v8,
     maps: [for (final id in mapIds.keys) ProjectMapEntry(id: maps[id]!.id, name: maps[id]!.name, relativePath: 'maps/${maps[id]!.id}.json')],
     tilesets: tilesets.values.toList(), elementCategories: categories, elements: elements, characters: characters,
+    characterStudioCatalog: ProjectCharacterStudioCatalog(
+      customAnimationDefinitions: customAnimationDefinitions,
+    ),
     settings: ProjectSettings(tileWidth: 32, tileHeight: 32, defaultMapWidth: defaultMapWidth,
       defaultMapHeight: defaultMapHeight, defaultPlayerCharacterId: defaultCharacter),
     pokemon: const ProjectPokemonConfig(enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
