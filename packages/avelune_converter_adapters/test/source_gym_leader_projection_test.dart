@@ -17,6 +17,16 @@ import 'support/literal_tile_fixture.dart';
 import 'support/native_trainer_fixture.dart';
 import 'support/native_writer_fixture.dart';
 
+final class _RekeyedGymSourceFiles implements SourceFilePort {
+  const _RekeyedGymSourceFiles(this.files, this.replacement, this.original);
+  final SourceFilePort files;
+  final ConverterId replacement, original;
+
+  @override
+  Future<List<int>> read(ConverterId fileId) =>
+      files.read(fileId == replacement ? original : fileId);
+}
+
 Object? _literal(MarshalDocument document, int id) {
   final node = document.node(id);
   return switch (node.kind) {
@@ -319,6 +329,45 @@ Future<({GameState state, List<String> effects, List<String> dialogues})> _run(S
 }
 
 void main() {
+  test('gym bindings compare only matching inventory identities and preserve exact admission', () async {
+    final fixture = await _fixture();
+    final trainer = fixture.trainers.byEventIdentity.values.single;
+    final binding = trainer.gymLeader!;
+    final comparisons = binding.sourceEntryComparisonCount;
+    expect(binding.isBoundTo(fixture.source, fixture.analysis.profile,
+        trainer.programs.first), isTrue);
+    expect(binding.sourceEntryComparisonCount - comparisons, 3);
+
+    final source = fixture.source, original = binding.audioFile;
+    final replacement = ConverterId('${original.fileId.value}-changed');
+    final snapshot = SourceSnapshot(
+      logicalProjectNamespace: source.snapshot.logicalProjectNamespace,
+      policyHash: source.snapshot.policyHash,
+      entries: [
+        for (final entry in source.snapshot.entries)
+          if (entry.fileId != original.fileId) entry else SourceFileEntry(
+            fileId: replacement, relativePath: entry.relativePath,
+            kind: entry.kind, byteLength: entry.byteLength,
+            sha256: entry.sha256, format: entry.format, family: entry.family),
+      ],
+      diagnostics: source.snapshot.diagnostics,
+      excludedPaths: source.snapshot.excludedPaths,
+      profileEvidence: source.snapshot.profileEvidence,
+      state: source.snapshot.state,
+    );
+    expect(snapshot.canonicalHash, source.snapshot.canonicalHash);
+    final changed = await const RmxpSourceNormalizer().normalize(
+      snapshot: snapshot,
+      files: _RekeyedGymSourceFiles(fixture.files, replacement, original.fileId),
+      includeEventSystem: true,
+      interpretationProfile: source.interpretationProfile,
+    );
+    final beforeRefusal = binding.sourceEntryComparisonCount;
+    expect(binding.isBoundTo(changed, fixture.analysis.profile,
+        trainer.programs.first), isFalse);
+    expect(binding.sourceEntryComparisonCount, beforeRefusal);
+  });
+
   test('qualified authored member moves remain admitted through the trainer event header guard', () async {
     final fixture = await _fixture(authoredTackle: true);
     expect(fixture.trainers.byEventIdentity.values.single.nativeTrainer.team.single.moves, ['tackle']);

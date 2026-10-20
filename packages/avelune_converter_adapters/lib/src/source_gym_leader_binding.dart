@@ -18,14 +18,28 @@ final class SourceGymLeaderBinding {
   final NativeMutation audioMutation, badgeMutation;
   final String mediaId;
   final Sha256Hash sourceHash, profileHash, programHash, policyHash;
+  var _sourceEntryComparisonCount = 0;
+
+  int get sourceEntryComparisonCount => _sourceEntryComparisonCount;
 
   bool isBoundTo(NormalizedSourceProject source, SourceEventProfile profile,
       SourceTrainerProgramNode program) => source.snapshot.canonicalHash == sourceHash &&
       profile.canonicalHash == profileHash && program.gymLeader != null &&
       canonicalHashOf(program.toJson()) == programHash &&
       canonicalHashOf(program.gymLeader!.toJson()) == policyHash &&
-      [audioFile, settingsFile, metadataFile].every((file) => source.snapshot.entries
-          .any((entry) => canonicalJsonOf(entry.toJson()) == canonicalJsonOf(file.toJson())));
+      [audioFile, settingsFile, metadataFile]
+          .every((file) => _hasExactSourceFile(source, file));
+
+  bool _hasExactSourceFile(NormalizedSourceProject source, SourceFileEntry file) {
+    final expected = canonicalJsonOf(file.toJson());
+    return source.snapshot.entries.any((entry) {
+      if (entry.fileId != file.fileId) {
+        return false;
+      }
+      _sourceEntryComparisonCount++;
+      return canonicalJsonOf(entry.toJson()) == expected;
+    });
+  }
 
   DialogueLineFeedback feedback(DialogueLineFeedback line, String cueId) =>
       DialogueLineFeedback(segments: line.segments,

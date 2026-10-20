@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 
+import 'interpretation_profile_fixture.dart';
+
 final class _RubyObject {
   _RubyObject(this.className, this.fields);
   final String className;
@@ -440,6 +442,38 @@ SourceEventAnalysis analyze(NormalizedSourceProject source) =>
       source,
       profile: SourceEventProfile.forProject(source),
     ).analyze();
+
+Future<NormalizedSourceProject> qualifiedTouchSource({
+  bool unsupportedPageField = false,
+}) async {
+  final pages = [
+    for (var index = 0; index < 3; index++)
+      _page([_command(0, [])], trigger: 1),
+  ];
+  if (unsupportedPageField) pages.first.fields['@opaque'] = true;
+  final data = _project(maps: {
+    1: _map(
+      width: 5,
+      height: 5,
+      data: _RubyTable(5, 5, 3, [
+        ...List.filled(25, 384),
+        ...List.filled(50, 0),
+      ]),
+      events: {
+        for (final (index, page) in pages.indexed)
+          index + 1: _event(index + 1, [page], x: index + 1, y: 1),
+      },
+    ),
+  });
+  data['Data/Scripts.rxdata'] = syntheticInterpretationArchive;
+  final files = _source(data);
+  return const RmxpSourceNormalizer().normalize(
+    snapshot: files.snapshot,
+    files: files,
+    includeEventSystem: true,
+    interpretationProfile: syntheticSourceInterpretationProfile,
+  );
+}
 
 Map<String, List<int>> commonEventCallSourceFiles() => _project(maps: {
       1: _map(events: {

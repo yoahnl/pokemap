@@ -366,17 +366,27 @@ final class SourceEventTouchResolution {
       };
 }
 
+final class _SourceTouchQualification {
+  final pages = Map<SourceEventPageAnalysis, bool>.identity();
+  final documents = Map<MarshalDocument, bool>.identity();
+  var pageValidationCount = 0;
+  var documentValidationCount = 0;
+}
+
 final class SourceSemanticResolver {
   const SourceSemanticResolver({required this.profile})
       : _maps = const {},
-        _eventFiles = const {};
+        _eventFiles = const {},
+        _touchQualification = null;
 
   SourceSemanticResolver._(
       {required this.profile,
       required Map<int, _SourceSemanticMap> maps,
-      required Map<ConverterId, SourceSemanticFile> eventFiles})
+      required Map<ConverterId, SourceSemanticFile> eventFiles,
+      required _SourceTouchQualification? touchQualification})
       : _maps = Map.unmodifiable(maps),
-        _eventFiles = Map.unmodifiable(eventFiles);
+        _eventFiles = Map.unmodifiable(eventFiles),
+        _touchQualification = touchQualification;
 
   factory SourceSemanticResolver.forProject(NormalizedSourceProject project) {
     final scriptEntries = project.snapshot.entries
@@ -397,6 +407,8 @@ final class SourceSemanticResolver {
     return SourceSemanticResolver._(
         profile: profile,
         eventFiles: project.sourceFiles,
+        touchQualification:
+            project.archive.isSealed ? _SourceTouchQualification() : null,
         maps: {
           for (final source in project.maps)
             source.map.sourceMapId: _SourceSemanticMap(
@@ -407,6 +419,12 @@ final class SourceSemanticResolver {
   final SourceSemanticProfile profile;
   final Map<int, _SourceSemanticMap> _maps;
   final Map<ConverterId, SourceSemanticFile> _eventFiles;
+  final _SourceTouchQualification? _touchQualification;
+
+  int get touchPageValidationCount =>
+      _touchQualification?.pageValidationCount ?? 0;
+  int get touchDocumentValidationCount =>
+      _touchQualification?.documentValidationCount ?? 0;
 
   bool _plainTouchPage(SourceEventPageAnalysis page) {
     final raw = page.rawDataRef;
@@ -415,6 +433,15 @@ final class SourceSemanticResolver {
       return false;
     }
     final doc = file.document;
+    return _touchQualification?.pages.putIfAbsent(
+          page, () => _validatePlainTouchPage(raw, doc)) ??
+        _validatePlainTouchPage(raw, doc);
+  }
+
+  bool _validatePlainTouchPage(SourcePreservedData raw, MarshalDocument doc) {
+    if (_touchQualification case final qualification?) {
+      qualification.pageValidationCount++;
+    }
     bool plain(MarshalNode node) =>
         node.extensions.isEmpty &&
         node.userClass == null &&
@@ -442,7 +469,10 @@ final class SourceSemanticResolver {
       _eventLiteralText(doc, id);
     }
 
-    try {
+    bool documentIsPlain() {
+      if (_touchQualification case final qualification?) {
+        qualification.documentValidationCount++;
+      }
       for (final node in doc.nodes) {
         if (node.kind == MarshalKind.symbol &&
             const {
@@ -453,6 +483,14 @@ final class SourceSemanticResolver {
             !plain(node)) {
           return false;
         }
+      }
+      return true;
+    }
+
+    try {
+      if (!(_touchQualification?.documents.putIfAbsent(doc, documentIsPlain) ??
+          documentIsPlain())) {
+        return false;
       }
       final value = fields(raw.nodeId, 'RPG::Event::Page', const {
         '@condition',
