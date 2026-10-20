@@ -473,59 +473,122 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   Map<String, MapData> mapsById = const {},
   Set<String>? availableMoveIds,
   Set<String>? availableItemIds,
-}) {
-  final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
-  final soundMediaById = <String, List<CinematicMediaAsset>>{};
-  for (final media in project.cinematicMediaAssets) {
-    soundMediaById.putIfAbsent(media.id, () => []).add(media);
-  }
-  final contracts = buildLinkedAssetContractsSnapshot(project);
-  final dialogueById = <String, DialoguePublicContract>{
-    for (final dialogue in contracts.dialogues) dialogue.id: dialogue,
-  };
-  final trainerIds = contracts.battles
-      .map((battle) => battle.trainerId)
-      .toSet();
-  final staticEncounterTrainerIds = contracts.battles
-      .where(
-        (battle) =>
-            battle.battleKind == BattlePublicContractKind.staticEncounter &&
-            battle.status == LinkedAssetContractStatus.available,
-      )
-      .map((battle) => battle.trainerId)
-      .toSet();
-  final cinematicById = {
-    for (final cinematic in contracts.cinematics) cinematic.id: cinematic,
-  };
-  final factIds = project.facts.map((fact) => fact.id).toSet();
-  final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
-  final projectMapIds = project.maps.map((map) => map.id).toSet();
-  final projectMapCounts = <String, int>{};
-  for (final map in project.maps) {
-    projectMapCounts[map.id] = (projectMapCounts[map.id] ?? 0) + 1;
-  }
-  final starterOptionIds = project.newGame.starterOptions
-      .map((option) => option.id)
-      .toSet();
-  final badgeIds = project.badges.map((badge) => badge.id).toSet();
-  final railJourneyIds =
-      project.railJourneyCatalog?.journeys
-          .map((journey) => journey.id)
-          .toSet() ??
-      <String>{};
-  final storyStepCounts = <String, int>{};
-  for (final storyline in project.storylines) {
-    for (final chapter in storyline.chapters) {
-      for (final step in chapter.steps) {
-        storyStepCounts.update(
-          step.id,
-          (count) => count + 1,
-          ifAbsent: () => 1,
-        );
+}) => SceneProjectDiagnosticsContext(project,
+    mapsById: mapsById,
+    availableMoveIds: availableMoveIds,
+    availableItemIds: availableItemIds).diagnose(scene);
+
+final class SceneProjectDiagnosticsContext {
+  factory SceneProjectDiagnosticsContext(ProjectManifest project, {
+    Map<String, MapData> mapsById = const {},
+    Set<String>? availableMoveIds,
+    Set<String>? availableItemIds,
+  }) {
+    mapsById = Map.unmodifiable(mapsById);
+    availableMoveIds = availableMoveIds == null ? null : Set.unmodifiable(availableMoveIds);
+    availableItemIds = availableItemIds == null ? null : Set.unmodifiable(availableItemIds);
+    final modelsById = {for (final model in project.models3d) model.id: model};
+    final soundMediaById = <String, List<CinematicMediaAsset>>{};
+    for (final media in project.cinematicMediaAssets) {
+      soundMediaById.putIfAbsent(media.id, () => []).add(media);
+    }
+    final contracts = buildLinkedAssetContractsSnapshot(project);
+    final dialogueById = <String, DialoguePublicContract>{
+      for (final dialogue in contracts.dialogues) dialogue.id: dialogue,
+    };
+    final trainerIds = contracts.battles
+        .map((battle) => battle.trainerId)
+        .toSet();
+    final staticEncounterTrainerIds = contracts.battles
+        .where(
+          (battle) =>
+              battle.battleKind == BattlePublicContractKind.staticEncounter &&
+              battle.status == LinkedAssetContractStatus.available,
+        )
+        .map((battle) => battle.trainerId)
+        .toSet();
+    final cinematicById = {
+      for (final cinematic in contracts.cinematics) cinematic.id: cinematic,
+    };
+    final factIds = project.facts.map((fact) => fact.id).toSet();
+    final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
+    final projectMapIds = project.maps.map((map) => map.id).toSet();
+    final projectMapCounts = <String, int>{};
+    for (final map in project.maps) {
+      projectMapCounts[map.id] = (projectMapCounts[map.id] ?? 0) + 1;
+    }
+    final starterOptionIds = project.newGame.starterOptions
+        .map((option) => option.id)
+        .toSet();
+    final badgeIds = project.badges.map((badge) => badge.id).toSet();
+    final railJourneyIds =
+        project.railJourneyCatalog?.journeys
+            .map((journey) => journey.id)
+            .toSet() ??
+        <String>{};
+    final storyStepCounts = <String, int>{};
+    for (final storyline in project.storylines) {
+      for (final chapter in storyline.chapters) {
+        for (final step in chapter.steps) {
+          storyStepCounts.update(
+            step.id,
+            (count) => count + 1,
+            ifAbsent: () => 1,
+          );
+        }
       }
     }
+
+    return SceneProjectDiagnosticsContext._((scene) => _diagnoseSceneAgainstContext(
+      scene, project,
+      mapsById: mapsById,
+      availableMoveIds: availableMoveIds,
+      availableItemIds: availableItemIds,
+      modelsById: modelsById,
+      soundMediaById: soundMediaById,
+      contracts: contracts,
+      dialogueById: dialogueById,
+      trainerIds: trainerIds,
+      staticEncounterTrainerIds: staticEncounterTrainerIds,
+      cinematicById: cinematicById,
+      factIds: factIds,
+      worldRuleIds: worldRuleIds,
+      projectMapIds: projectMapIds,
+      projectMapCounts: projectMapCounts,
+      starterOptionIds: starterOptionIds,
+      badgeIds: badgeIds,
+      railJourneyIds: railJourneyIds,
+      storyStepCounts: storyStepCounts,
+    ));
   }
 
+  const SceneProjectDiagnosticsContext._(this._diagnose);
+  final SceneDiagnosticsReport Function(SceneAsset scene) _diagnose;
+  SceneDiagnosticsReport diagnose(SceneAsset scene) => _diagnose(scene);
+}
+
+SceneDiagnosticsReport _diagnoseSceneAgainstContext(
+  SceneAsset scene, ProjectManifest project, {
+  required Map<String, MapData> mapsById,
+  required Set<String>? availableMoveIds,
+  required Set<String>? availableItemIds,
+  required Map<String, ProjectModel3dEntry> modelsById,
+  required Map<String, List<CinematicMediaAsset>> soundMediaById,
+  required LinkedAssetContractsSnapshot contracts,
+  required Map<String, DialoguePublicContract> dialogueById,
+  required Set<String> trainerIds,
+  required Set<String> staticEncounterTrainerIds,
+  required Map<String, CinematicPublicContract> cinematicById,
+  required Set<String> factIds,
+  required Set<String> worldRuleIds,
+  required Set<String> projectMapIds,
+  required Map<String, int> projectMapCounts,
+  required Set<String> starterOptionIds,
+  required Set<String> badgeIds,
+  required Set<String> railJourneyIds,
+  required Map<String, int> storyStepCounts,
+}) {
+  final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
     switch (payload) {
@@ -797,7 +860,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           badgeIds: badgeIds,
           railJourneyIds: railJourneyIds,
           mapsById: mapsById,
-          modelsById: {for (final model in project.models3d) model.id: model},
+          modelsById: modelsById,
           availableMoveIds: availableMoveIds,
           availableItemIds: availableItemIds,
           diagnostics: diagnostics,
@@ -1514,6 +1577,23 @@ void _diagnoseActionConsequenceAgainstProject(
       );
     }
   }
+  if (interactiveCommand is SceneSetPropStateInteractiveCommand) {
+    final map = mapsById[interactiveCommand.mapId];
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnsupportedDimension,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Les décors mobiles nécessitent une carte 2D.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node));
+    }
+    if (map == null || interactiveCommand.propIds.any((id) =>
+        map.movingProps.where((value) => value.id == id).length != 1)) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownProp,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Un décor mobile sélectionné est absent ou ambigu sur cette carte.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir des décors mobiles de la carte.'));
+    }
+  }
   if (interactiveCommand is SceneMovePlatformInteractiveCommand) {
     final map = mapsById[interactiveCommand.mapId];
     if (map == null || !map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId)) {
@@ -1577,23 +1657,6 @@ void _diagnoseActionConsequenceAgainstProject(
   }
 
   final consequence = payload.consequence;
-  if (interactiveCommand is SceneSetPropStateInteractiveCommand) {
-    final map = mapsById[interactiveCommand.mapId];
-    if (project.settings.dimension != ProjectDimension.twoD) {
-      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnsupportedDimension,
-          severity: SceneDiagnosticSeverity.error,
-          message: 'Les décors mobiles nécessitent une carte 2D.',
-          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node));
-    }
-    if (map == null || interactiveCommand.propIds.any((id) =>
-        map.movingProps.where((value) => value.id == id).length != 1)) {
-      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownProp,
-          severity: SceneDiagnosticSeverity.error,
-          message: 'Un décor mobile sélectionné est absent ou ambigu sur cette carte.',
-          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
-          suggestedFixLabel: 'Choisir des décors mobiles de la carte.'));
-    }
-  }
   if (consequence == null) {
     return;
   }

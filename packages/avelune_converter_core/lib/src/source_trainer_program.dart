@@ -250,6 +250,13 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
       ..remove('condition')
       ..remove('trigger')
       ..remove('list');
+    if (values.length == 2 &&
+        values.every(_sourceTrainerInactiveRotationRoute)) {
+      firstMetadata.remove('move_route');
+      secondMetadata.remove('move_route');
+      firstMetadata.remove('move_frequency');
+      secondMetadata.remove('move_frequency');
+    }
     if (canonicalJsonOf(firstMetadata) != canonicalJsonOf(secondMetadata)) {
       return null;
     }
@@ -278,8 +285,14 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     final challenge = encounter.texts();
     final hasEndSpeech = !encounter.isDone &&
         (encounter.commands[encounter.index] as Map)['code'] == 108;
-    final endSpeech = hasEndSpeech ? encounter.literal(108) : null;
+    var endSpeech = hasEndSpeech ? encounter.literal(108) : null;
     if (endSpeech != null && !endSpeech.startsWith('EndSpeech: ')) return null;
+    if (endSpeech != null) {
+      while (!encounter.isDone &&
+          (encounter.commands[encounter.index] as Map)['code'] == 408) {
+        endSpeech = '$endSpeech\n${encounter.literal(408)}';
+      }
+    }
     final textOnlyAfterWithoutComment = endSpeech == null && values.length == 2 &&
         values.every(_sourceTrainerTextOnlyAfterMovement);
     if (endSpeech == null && !textOnlyAfterWithoutComment) return null;
@@ -714,6 +727,13 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
     }
   }
   return true;
+}
+
+bool _sourceTrainerInactiveRotationRoute(Map<String, Object?> page) {
+  if (page['move_type'] != 0) return false;
+  final steps = (page['move_route'] as Map)['list'] as List;
+  return steps.take(steps.length - 1).every((step) =>
+      const {16, 17, 18, 19, 24}.contains((step as Map)['code']));
 }
 
 bool _sourceTrainerTextOnlyAfterMovement(Map<String, Object?> page) {

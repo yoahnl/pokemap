@@ -11,6 +11,7 @@ import 'package:map_runtime/src/presentation/flame/battle_fx_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
+import 'package:map_runtime/src/presentation/flame/battle_stat_aura_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
 
 import 'support/load_flame_component.dart';
@@ -69,6 +70,191 @@ BattleSession _session() {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'sequential stat auras reload their atlases within the resident budget',
+    () async {
+      await BattleSdkRmxpAnimationCatalog.ensureLoaded();
+      final budget = RuntimeResourceBudget();
+      final cache = BattleFxBundleCache(resourceBudget: budget);
+      final initial = _session();
+      final overlay = BattleOverlayComponent(
+        session: initial,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+        fxBundleCache: cache,
+        resourceBudget: budget,
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      for (
+        var tick = 0;
+        tick < 2000 && overlay.debugStatSheetCount < 2;
+        tick++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      expect(overlay.debugStatSheetCount, 2);
+      final world = await budget.acquire(
+        residentBytes:
+            budget.profile.maximumResidentBytes - budget.residentBytes - 65536,
+      );
+      world.commit();
+      addTearDown(() {
+        overlay.onRemove();
+        cache.dispose();
+        world.release();
+        budget.dispose();
+      });
+      overlay.updateState(
+        initial.applyChoice(const PlayerBattleChoiceFight(0)),
+      );
+      await overlay.waitForPendingVisualSync();
+      expect(overlay.debugStatSheetCount, 0);
+      Future<BattleStatAuraComponent> showAura(int amount) async {
+        overlay.updateState(
+          initial.withRuntimeDisplayState(
+            currentTurn: BattleTurnResult(
+              playerAction: const BattleActionNone(),
+              enemyAction: const BattleActionNone(),
+              executions: const [],
+              timeline: [
+                BattleTurnStatStageEvent(
+                  side: BattleSideId.player,
+                  stat: BattleStatId.attack,
+                  amount: amount,
+                  currentStage: amount,
+                ),
+              ],
+            ),
+          ),
+        );
+        await overlay.waitForPendingVisualSync();
+        for (
+          var tick = 0;
+          tick < 2000 &&
+              overlay.children.whereType<BattleStatAuraComponent>().isEmpty;
+          tick++
+        ) {
+          overlay.updateTree(.025);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(
+          overlay.children.whereType<BattleStatAuraComponent>(),
+          isNotEmpty,
+          reason: 'The $amount aura must render after its atlas was evicted',
+        );
+        return overlay.children.whereType<BattleStatAuraComponent>().single;
+      }
+
+      final up = await showAura(1);
+      for (
+        var tick = 0;
+        tick < 300 &&
+            overlay.children.whereType<BattleStatAuraComponent>().isNotEmpty;
+        tick++
+      ) {
+        overlay.updateTree(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(overlay.children.whereType<BattleStatAuraComponent>(), isEmpty);
+      expect(up.sheet.debugDisposed, isFalse);
+      final down = await showAura(-1);
+      expect(up.sheet.debugDisposed, isTrue);
+      expect(down.sheet.debugDisposed, isFalse);
+      expect(
+        budget.residentBytes,
+        lessThanOrEqualTo(budget.profile.maximumResidentBytes),
+      );
+    },
+  );
+
+  for (final activeAura in [false, true]) {
+    test(
+      'unused warm stat atlases yield residency with activeAura=$activeAura',
+      () async {
+        await BattleSdkRmxpAnimationCatalog.ensureLoaded();
+        final budget = RuntimeResourceBudget();
+        final cache = BattleFxBundleCache(resourceBudget: budget);
+        final initial = _session();
+        final overlay = BattleOverlayComponent(
+          session: initial,
+          viewportSize: Vector2(960, 540),
+          onPlayerChoice: (_) {},
+          fxBundleCache: cache,
+          resourceBudget: budget,
+        );
+        await loadFlameComponent(overlay);
+        await overlay.waitForPendingVisualSync();
+        for (
+          var tick = 0;
+          tick < 2000 && overlay.debugStatSheetCount < 2;
+          tick++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(overlay.debugStatSheetCount, 2);
+        ui.Image? activeSheet;
+        if (activeAura) {
+          overlay.updateState(
+            initial.withRuntimeDisplayState(
+              currentTurn: const BattleTurnResult(
+                playerAction: BattleActionNone(),
+                enemyAction: BattleActionNone(),
+                executions: [],
+                timeline: [
+                  BattleTurnStatStageEvent(
+                    side: BattleSideId.player,
+                    stat: BattleStatId.attack,
+                    amount: -1,
+                    currentStage: -1,
+                  ),
+                ],
+              ),
+            ),
+          );
+          await overlay.waitForPendingVisualSync();
+          for (
+            var tick = 0;
+            tick < 120 &&
+                overlay.children.whereType<BattleStatAuraComponent>().isEmpty;
+            tick++
+          ) {
+            overlay.updateTree(.05);
+            await Future<void>.delayed(Duration.zero);
+          }
+          activeSheet = overlay.children
+              .whereType<BattleStatAuraComponent>()
+              .single
+              .sheet;
+          expect(activeSheet.debugDisposed, isFalse);
+        }
+        final world = await budget.acquire(
+          residentBytes:
+              budget.profile.maximumResidentBytes -
+              budget.residentBytes -
+              65536,
+        );
+        world.commit();
+        addTearDown(() {
+          overlay.onRemove();
+          cache.dispose();
+          world.release();
+          budget.dispose();
+        });
+        overlay.updateState(
+          initial.applyChoice(const PlayerBattleChoiceFight(0)),
+        );
+        await expectLater(overlay.waitForPendingVisualSync(), completes);
+        expect(overlay.debugStatSheetCount, activeAura ? 1 : 0);
+        if (activeSheet != null) expect(activeSheet.debugDisposed, isFalse);
+        expect(
+          budget.residentBytes,
+          lessThanOrEqualTo(budget.profile.maximumResidentBytes),
+        );
+      },
+    );
+  }
 
   test(
     'obsolete prewarmed sheets cannot exhaust the next real turn budget',

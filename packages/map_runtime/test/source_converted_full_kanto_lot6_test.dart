@@ -7,9 +7,13 @@ import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
+import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
+import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
@@ -29,6 +33,8 @@ void main() {
         .setMockMethodCallHandler(audioEvents, null);
   });
   final referencePath = Platform.environment['AVELUNE_LOT6_KANTO_REFERENCE'];
+  final configuredStartPath =
+      Platform.environment['AVELUNE_KANTO_CONFIGURED_START_REFERENCE'];
   final fullReference = referencePath != null &&
       (jsonDecode(File(referencePath).readAsStringSync()) as Map)['contentScope'] == 'full';
   testWidgets(
@@ -41,12 +47,7 @@ void main() {
         final contentScope = delivery['contentScope'];
         expect(contentScope, isIn(['world', 'full']));
         final worldOnly = contentScope == 'world';
-        expect(delivery['kind'], worldOnly
-            ? 'kantoWorldFoundationDelivery'
-            : 'fullKantoCanonicalConverterDelivery');
-        expect(delivery['phase'], 'published');
-        expect(delivery['published'], isTrue);
-        expect(delivery['verified'], isTrue);
+        await _expectPublishedDelivery(delivery, worldOnly: worldOnly);
         expect(delivery['sourceUnchanged'], isTrue);
         expect(delivery['sourceScriptsExecuted'], 0);
         expect(delivery['aiSourceInferenceCalls'], 0);
@@ -208,11 +209,8 @@ void main() {
       (tester) async {
     await tester.runAsync(() async {
       final delivery = jsonDecode(await File(referencePath!).readAsString()) as Map;
-      expect(delivery['kind'], 'fullKantoCanonicalConverterDelivery');
+      await _expectPublishedDelivery(delivery);
       expect(delivery['contentScope'], 'full');
-      expect(delivery['phase'], 'published');
-      expect(delivery['published'], isTrue);
-      expect(delivery['verified'], isTrue);
       expect(delivery['sourceUnchanged'], isTrue);
       expect(delivery['sourceScriptsExecuted'], 0);
       final projectRoot = delivery['projectPath'] as String;
@@ -250,10 +248,12 @@ void main() {
       final saveRoot = await Directory.systemTemp.createTemp('lot6-full-stairs-save-');
       PlayableMapGame? game;
       final verified = <String>[];
+      final soundTrace = _SceneSoundTrace(bundle);
       var publicInputs = 0;
       try {
         game = await _start(tester, bundle, projectFile,
-            _DiskSave(path.join(saveRoot.path, 'save.json')));
+            _DiskSave(path.join(saveRoot.path, 'save.json')),
+            sceneSoundEffectPlaybackPort: soundTrace);
         expect(game.debugPlayerGridPosition, spawn.pos);
         expect(game.gameStateSnapshot.currentMapId, mapId);
         final stairs = {'up': stairsUp, 'down': stairsDown};
@@ -281,6 +281,7 @@ void main() {
               reason: 'lot6.stairs.no_safe_public_route: map=$mapId position=${game.debugPlayerGridPosition} verified=$verified');
         }
         expect(verified.toSet(), {'up', 'down'});
+        expect(soundTrace.calls, hasLength(2));
       } finally {
         game?.onRemove();
         await tester.pumpWidget(const SizedBox.shrink());
@@ -294,6 +295,8 @@ void main() {
         'authoredPreviewSpawn': spawn.pos.toJson(), 'stairsUpVerified': true,
         'stairsDownVerified': true, 'stairsOrder': verified,
         'sameMapFloorTransferVerified': true, 'publicCardinalInputs': publicInputs,
+        'nativeSoundCommandsVerified': soundTrace.calls,
+        'audibleSoundVerified': false,
         'projectAndMapUnchanged': true, 'houseExitCertified': false,
         'houseExitObservedQualification': exit['status'],
         'lot6NativeStartCertified': false, 'fullCampaignCertified': false,
@@ -301,18 +304,197 @@ void main() {
       }));
     });
   }, skip: !fullReference, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('all published Kanto trainer teams build complete Avelune battle seeds', () async {
+    final delivery = jsonDecode(await File(referencePath!).readAsString()) as Map;
+    await _expectPublishedDelivery(delivery);
+    final projectRoot = delivery['projectPath'] as String;
+    final projectFile = path.join(projectRoot, 'project.json');
+    final before = await _hash(projectFile);
+    final manifest = await loadProjectManifestFromFile(projectFile);
+    expect(manifest.trainers, isNotEmpty);
+    final itemPath = path.join(projectRoot, manifest.pokemon.catalogFiles['items']!);
+    final items = ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog.fromJson(
+        Map<String, dynamic>.from(jsonDecode(await File(itemPath).readAsString()) as Map)));
+    final moves = await RuntimeMoveCatalogLoader().load(
+        projectRootDirectory: projectRoot, pokemonConfig: manifest.pokemon);
+    final builder = RuntimeBattleCombatantSeedBuilder();
+    var members = 0;
+    var retainedMoves = 0;
+    RuntimePsdkBattleCombatantSeed? representative;
+    String? representativeTrainerId;
+    for (final trainer in manifest.trainers) {
+      expect(trainer.team, isNotEmpty, reason: trainer.id);
+      expect(trainer.team.length, lessThanOrEqualTo(6), reason: trainer.id);
+      for (final member in trainer.team) {
+        final seed = await builder.buildTrainerPsdkCombatantSeed(
+            projectRootDirectory: projectRoot, pokemonConfig: manifest.pokemon,
+            movesCatalog: moves, itemCatalog: items, teamMember: member,
+            trainerName: trainer.name);
+        expect(seed.speciesId, member.speciesId, reason: trainer.id);
+        expect(seed.level, member.level, reason: trainer.id);
+        expect(seed.maxHp, greaterThan(0), reason: trainer.id);
+        expect(member.moves, isNotEmpty, reason: trainer.id);
+        expect(seed.moves.map((move) => move.id), member.moves, reason: trainer.id);
+        expect(seed.filteredMoveDiagnostics, isEmpty, reason: trainer.id);
+        if (representative == null &&
+            const {'tackle', 'scratch', 'pound'}.contains(seed.moves.first.id)) {
+          representative = seed;
+          representativeTrainerId = trainer.id;
+        }
+        members++;
+        retainedMoves += seed.moves.length;
+      }
+    }
+    expect(representative, isNotNull);
+    final seed = representative!;
+    final battle = RuntimePsdkBattleSessionAdapter.fromSetup(PsdkBattleSetup.singles(
+        ruleset: manifest.pokemon.ruleset,
+        player: seed.toPsdkBattleCombatantSetup(idPrefix: 'player'),
+        opponent: seed.toPsdkBattleCombatantSetup(idPrefix: 'opponent'),
+        rngSeeds: const PsdkBattleRngSeeds(moveDamage: 1, moveCritical: 9,
+            moveAccuracy: 1, generic: 1), isTrainerBattle: true));
+    final turn = battle.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+    expect(turn.timeline.events.whereType<BattleTurnStartedTimelineEvent>().single.turn, 1);
+    expect(turn.timeline.events.whereType<BattleMovePpSpentTimelineEvent>()
+        .where((event) => event.user.bank == 0 && event.moveId == seed.moves.first.id),
+        hasLength(1));
+    expect(await _hash(projectFile), before);
+    stdout.writeln(jsonEncode({
+      'kind': 'fullKantoNativeTrainerSeedRuntimeProof',
+      'trainers': manifest.trainers.length, 'combatants': members,
+      'retainedMoveSlots': retainedMoves, 'filteredMoveSlots': 0,
+      'representativeTrainerId': representativeTrainerId,
+      'aveluneBattleTurnVerified': true, 'projectUnchanged': true,
+      'sourceScriptsExecuted': 0, 'fullCampaignCertified': false,
+    }));
+  }, skip: !fullReference, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets('configured Kanto starter seed boots walks saves and cold reloads',
+      (tester) async {
+    await tester.runAsync(() async {
+      final configured = jsonDecode(await File(configuredStartPath!).readAsString()) as Map;
+      expect(configured['kind'], 'convertedNativeStartConfiguration');
+      expect(configured['adaptedStart'], isTrue);
+      expect(configured['originalSourceIntroductionReproduced'], isFalse);
+      final projectRoot = configured['projectPath'] as String;
+      expect(path.isAbsolute(projectRoot), isTrue);
+      expect(await Directory(projectRoot).resolveSymbolicLinks(), projectRoot);
+      final projectFile = path.join(projectRoot, 'project.json');
+      final manifestHash = await _hash(projectFile);
+      final manifest = await loadProjectManifestFromFile(projectFile);
+      expect(manifest.maps, hasLength(383));
+      expect(manifest.newGame.enabled, isTrue);
+      expect(manifest.newGame.startMapId, configured['startMapId']);
+      expect(manifest.newGame.startSpawnId, configured['startSpawnId']);
+      final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFile, mapId: manifest.newGame.startMapId);
+      final mapFile = path.join(projectRoot,
+          manifest.maps.singleWhere((entry) => entry.id == bundle.map.id).relativePath);
+      final mapHash = await _hash(mapFile);
+      final spawn = bundle.map.entities.singleWhere(
+          (entity) => entity.id == manifest.newGame.startSpawnId);
+      expect(manifest.newGame.starterOptions.map((option) => option.pokemon.speciesId),
+          configured['starterSpeciesIds']);
+      final selected = manifest.newGame.starterOptions.first;
+      var draft = NewGameDraft.start(draftId: 'kanto-configured-start',
+          projectRevision: configured['finalRevision'] as String,
+          slotId: 'qualification', config: manifest.newGame);
+      draft = draft.apply(NewGameDraftCommand.selectAvatar(
+          expectedRevision: draft.revision,
+          avatarCharacterId: manifest.newGame.playerAvatarCharacterIds.first)).draft;
+      draft = draft.apply(NewGameDraftCommand.selectStarter(
+          expectedRevision: draft.revision, starterOptionId: selected.id)).draft;
+      final committed = commitNewGameDraft(journal: NewGameSeedCommitJournal.empty(),
+          operationId: 'kanto-configured-start-commit',
+          currentProjectRevision: configured['finalRevision'] as String,
+          expectedDraftRevision: draft.revision, draft: draft);
+      expect(committed.status, NewGameSeedCommitStatus.committed);
+      final state = createNewGameStateFromSeed(project: manifest, startMap: bundle.map,
+          seed: committed.seed!, currentProjectRevision: configured['finalRevision'] as String,
+          tileWidthPx: manifest.settings.tileWidth, tileHeightPx: manifest.settings.tileHeight);
+      final saveRoot = await Directory.systemTemp.createTemp('kanto-configured-start-');
+      final save = _DiskSave(path.join(saveRoot.path, 'save.json'));
+      PlayableMapGame? game;
+      try {
+        game = await _start(tester, bundle, projectFile, save, initialGameState: state);
+        expect(game.debugPlayerGridPosition, spawn.pos);
+        expect(game.gameStateSnapshot.party.members.single.speciesId,
+            selected.pokemon.speciesId);
+        expect(game.gameStateSnapshot.party.members.single.level, configured['starterLevel']);
+        final moved = await _walkOneCell(game, bundle);
+        expect(moved, isNot(spawn.pos));
+        expect(await game.saveGame(), isTrue);
+        final saved = (await save.load())!;
+        expect(saved.party.members.single.speciesId, selected.pokemon.speciesId);
+        expect(saved.playerPosition, moved);
+        game.onRemove();
+        await tester.pumpWidget(const SizedBox.shrink());
+        game = null;
+        final reloaded = await loadRuntimeMapBundle(
+            projectFilePath: projectFile, mapId: bundle.map.id);
+        game = await _start(tester, reloaded, projectFile, save, initialGameState: state);
+        expect(await game.loadGame(), isTrue);
+        await _waitUntil(game, () => _idle(game!));
+        expect(game.debugPlayerGridPosition, moved);
+        expect(game.gameStateSnapshot.party.members.single.speciesId,
+            selected.pokemon.speciesId);
+        expect(game.gameStateSnapshot.party.members.single.level, configured['starterLevel']);
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+        expect(await _walkOneCell(game, reloaded), isNot(moved));
+        final readMapHashes = <String, String>{mapFile: mapHash};
+        final connectionProof = await _tryWorldConnection(
+            game, reloaded, manifest, projectFile, readMapHashes);
+        expect(connectionProof['connectionRoundTripVerified'], isTrue,
+            reason: jsonEncode(connectionProof));
+        final centerProof = await _cityCenterDoorRoundTrip(
+            game, reloaded, referencePath!, projectFile, readMapHashes);
+        expect(centerProof['centerDoorRoundTripVerified'], isTrue);
+        for (final entry in readMapHashes.entries) {
+          expect(await _hash(entry.key), entry.value);
+        }
+        stdout.writeln(jsonEncode({
+          'kind': 'fullKantoConfiguredStartTravelProof',
+          'connection': connectionProof, 'center': centerProof,
+          'readMapFilesUnchanged': readMapHashes.length,
+          'publicCardinalInputOnly': true, 'fullCampaignCertified': false,
+        }));
+      } finally {
+        game?.onRemove();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await saveRoot.delete(recursive: true);
+      }
+      expect(await _hash(projectFile), manifestHash);
+      expect(await _hash(mapFile), mapHash);
+      stdout.writeln(jsonEncode({
+        'kind': 'fullKantoConfiguredStarterRuntimeProof',
+        'mapCount': manifest.maps.length, 'startMapName': bundle.map.name,
+        'starterSpeciesId': selected.pokemon.speciesId,
+        'starterLevel': configured['starterLevel'],
+        'nativeSeedCommitted': true, 'publicMovementVerified': true,
+        'saveAndColdReloadVerified': true, 'manifestAndStartMapUnchanged': true,
+        'adaptedStart': true, 'originalSourceIntroductionReproduced': false,
+        'starterMenuObserved': false, 'fullCampaignCertified': false,
+      }));
+    });
+  }, skip: configuredStartPath == null, timeout: const Timeout(Duration(minutes: 5)));
 }
 
 Future<PlayableMapGame> _start(
   WidgetTester tester,
   RuntimeMapBundle bundle,
   String projectFile,
-  FileGameSaveRepository repository,
-) async {
+  FileGameSaveRepository repository, {
+  GameState? initialGameState,
+  SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort,
+}) async {
   final game = PlayableMapGame(
     bundle: bundle,
     projectFilePath: projectFile,
     saveRepository: repository,
+    initialGameState: initialGameState,
+    sceneSoundEffectPlaybackPort:
+        sceneSoundEffectPlaybackPort ?? _SceneSoundTrace(bundle),
   );
   game.onGameResize(Vector2(320, 240));
   game.setDialogueFlutterOverlayPreferred(true);
@@ -593,9 +775,14 @@ Future<Map<String, Object?>> _tryCenterExcursion(
     final connection = connections.single;
     final outside = await readMap(outsideId);
     final inside = await readMap(insideId);
+    final worldTimer = Stopwatch()..start();
     final initialWorld = _worldFor(game, initial.map, manifest);
     final outsideWorld = _worldFor(game, outside, manifest);
     final insideWorld = _worldFor(game, inside, manifest);
+    final worldBuildMs = worldTimer.elapsedMilliseconds;
+    final borderDiagnostics = <String, Object?>{};
+    final continuationDiagnostics = <Map<String, Object?>>[];
+    final exitDiagnostics = <String, Object?>{};
     final borderArrivals = <GridPos, GridPos>{};
     final targetSizes = {for (final map in maps.values) map.id: map.size};
     for (var y = 0; y < initial.map.size.height; y++) {
@@ -628,12 +815,18 @@ Future<Map<String, Object?>> _tryCenterExcursion(
       initialWorld,
       game.debugPlayerGridPosition,
       borderArrivals.keys.toSet(),
+      diagnostics: borderDiagnostics,
       acceptsGoal: (border) {
+        final continuationDiagnostic = <String, Object?>{'border': border.toJson()};
         final continuation = _pathTo(
           outsideWorld,
           borderArrivals[border]!,
           entranceApproaches.keys.toSet(),
+          diagnostics: continuationDiagnostic,
         );
+        if (continuationDiagnostics.length < 12) {
+          continuationDiagnostics.add(continuationDiagnostic);
+        }
         if (continuation == null) {
           return false;
         }
@@ -651,7 +844,8 @@ Future<Map<String, Object?>> _tryCenterExcursion(
         .pos;
     final exitApproaches = _approaches(exit, inside, insideWorld);
     final toExit = _safeCell(insideWorld, insideArrival)
-        ? _pathTo(insideWorld, insideArrival, exitApproaches.keys.toSet())
+        ? _pathTo(insideWorld, insideArrival, exitApproaches.keys.toSet(),
+            diagnostics: exitDiagnostics)
         : null;
     final steps =
         (toBorder?.length ?? 513) +
@@ -670,6 +864,12 @@ Future<Map<String, Object?>> _tryCenterExcursion(
         'toEntranceSteps': toEntrance?.length,
         'toExitSteps': toExit?.length,
         'maximumSteps': 512,
+        'worldBuildMs': worldBuildMs,
+        'borderSearch': borderDiagnostics,
+        'continuationSearches': continuationDiagnostics,
+        'continuationDiagnosticsTruncated':
+            (borderDiagnostics['goalHits'] as int? ?? 0) > continuationDiagnostics.length,
+        'exitSearch': exitDiagnostics,
       });
       continue;
     }
@@ -723,6 +923,47 @@ Future<Map<String, Object?>> _tryCenterExcursion(
   };
 }
 
+Future<Map<String, Object?>> _cityCenterDoorRoundTrip(
+  PlayableMapGame game,
+  RuntimeMapBundle city,
+  String referencePath,
+  String projectFile,
+  Map<String, String> readMapHashes,
+) async {
+  final delivery = jsonDecode(await File(referencePath).readAsString()) as Map;
+  final rows = await _qualifiedEventRows(referencePath, delivery);
+  final entrance = _qualifiedDoor(city.manifest, rows, 21, 1);
+  final exit = _qualifiedDoor(city.manifest, rows, 22, 1);
+  expect(entrance.source['mapId'], city.map.id);
+  final entry = city.manifest.maps.singleWhere(
+      (entry) => entry.id == entrance.command.destinationMapId);
+  final insideFile = path.join(path.dirname(projectFile), entry.relativePath);
+  readMapHashes[insideFile] = await _hash(insideFile);
+  final inside = await loadMapDataFromFile(insideFile,
+      projectDialogueContext: city.manifest);
+  final approaches = _approaches(entrance, city.map,
+      _worldFor(game, city.map, city.manifest));
+  final route = _pathTo(_worldFor(game, city.map, city.manifest),
+      game.debugPlayerGridPosition, approaches.keys.toSet());
+  expect(route, isNotNull, reason: 'No safe authored path from Azuria to its Center');
+  await _followPath(game, city, route!);
+  final arrival = inside.warps.singleWhere(
+      (warp) => warp.id == entrance.command.warpId).pos;
+  await _activateDoor(game, approaches[game.debugPlayerGridPosition]!, entrance,
+      expectedPosition: arrival);
+  final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFile, mapId: inside.id);
+  final exits = _approaches(exit, inside, _worldFor(game, inside, city.manifest));
+  final back = _pathTo(_worldFor(game, inside, city.manifest),
+      game.debugPlayerGridPosition, exits.keys.toSet());
+  expect(back, isNotNull);
+  await _followPath(game, bundle, back!);
+  await _activateDoor(game, exits[game.debugPlayerGridPosition]!, exit);
+  return {'centerDoorRoundTripVerified': true,
+    'outsideMapId': city.map.id, 'insideMapId': inside.id,
+    'publicCardinalInputs': route.length + back.length + 2};
+}
+
 final class _Door {
   const _Door(this.eventId, this.source, this.command);
   final String eventId;
@@ -731,12 +972,48 @@ final class _Door {
 }
 
 Future<List<Map>> _qualifiedEventRows(String referencePath, Map delivery) async {
-  final qualification = jsonDecode(await File(path.join(path.dirname(referencePath),
-      'source-event-qualification.json')).readAsString()) as Map;
+  final qualificationPath = delivery['kind'] == 'fullKantoNativeRecoveryDelivery'
+      ? delivery['sourceEventQualificationPath'] as String
+      : path.join(path.dirname(referencePath), 'source-event-qualification.json');
+  if (delivery['kind'] == 'fullKantoNativeRecoveryDelivery') {
+    expect(path.isAbsolute(qualificationPath), isTrue);
+    expect(await File(qualificationPath).resolveSymbolicLinks(), qualificationPath);
+    expect(await _hash(qualificationPath), delivery['sourceEventQualificationSha256']);
+  }
+  final qualification = jsonDecode(await File(qualificationPath).readAsString()) as Map;
   expect(qualification['kind'], 'fullKantoSourceEventQualification');
   expect(qualification['sourceSnapshotHash'], delivery['snapshotHash']);
   expect(qualification['nativeDraftHash'], delivery['nativeDraftHash']);
   return (qualification['events'] as List).cast<Map>();
+}
+
+Future<void> _expectPublishedDelivery(Map delivery, {bool worldOnly = false}) async {
+  if (delivery['kind'] != 'fullKantoNativeRecoveryDelivery') {
+    expect(delivery['kind'], worldOnly
+        ? 'kantoWorldFoundationDelivery'
+        : 'fullKantoCanonicalConverterDelivery');
+    expect(delivery['phase'], 'published');
+    expect(delivery['published'], isTrue);
+    expect(delivery['verified'], isTrue);
+    return;
+  }
+  expect(worldOnly, isFalse);
+  expect(delivery['phase'], 'nativeRecovered');
+  expect(delivery['nativeRecoveryPublished'], isTrue);
+  expect(delivery['nativeRecoveryVerified'], isTrue);
+  expect(delivery['conversionWorkflowPublished'], isFalse);
+  expect(delivery['originalConverterFailureCode'], 'native.admission.json.textQuota');
+  final originalPath = delivery['originalConverterDeliveryPath'] as String;
+  expect(path.isAbsolute(originalPath), isTrue);
+  expect(await File(originalPath).resolveSymbolicLinks(), originalPath);
+  expect(await _hash(originalPath), delivery['originalConverterDeliverySha256']);
+  final original = jsonDecode(await File(originalPath).readAsString()) as Map;
+  expect(original['phase'], 'exception');
+  expect(original['error'], startsWith('native.admission.json.textQuota:'));
+  expect(original['published'], isNot(isTrue));
+  expect(original['snapshotHash'], delivery['snapshotHash']);
+  expect(original['nativeDraftHash'], delivery['nativeDraftHash']);
+  expect(original['mapCount'], delivery['mapCount']);
 }
 
 _Door _qualifiedDoor(ProjectManifest manifest, List<Map> rows,
@@ -872,42 +1149,140 @@ List<(Direction, GridPos)>? _pathTo(
   bool Function(GridPos)? acceptsGoal,
   Map<String, Object?>? diagnostics,
 }) {
+  final timer = Stopwatch()..start();
+  var goalHits = 0;
+  var continuationRejected = 0;
+  var canonicalEdgesEvaluated = 0;
+  final activityVetoes = <String, int>{};
   final queue = Queue<GridPos>()..add(start);
   final parents = <GridPos, (GridPos, Direction)?>{start: null};
-  final states = <GridPos, GameplayWorldState>{start: _planningWorldAt(world, start)};
+  final states = <GridPos, GameplayWorldState>{
+    start: _planningWorldAt(world, start),
+  };
   final results = <String, int>{};
   final jumpLandings = <GridPos>{};
   final rejected = <Map<String, Object?>>[];
+  void finish({int? routeLength}) {
+    diagnostics?.addAll({
+      'elapsedMs': timer.elapsedMilliseconds,
+      'goalCount': goals.length,
+      'goalHits': goalHits,
+      'continuationRejected': continuationRejected,
+      'canonicalEdgesEvaluated': canonicalEdgesEvaluated,
+      'activityVetoEdges': activityVetoes,
+      'visitedCellCount': parents.length,
+      'routeLength': routeLength,
+      'routeLengthLimitReached': routeLength != null && routeLength > 512,
+    });
+  }
+
   while (queue.isNotEmpty && parents.length <= 16384) {
     final current = queue.removeFirst();
-    if (goals.contains(current) && (acceptsGoal?.call(current) ?? true)) {
-      final result = <(Direction, GridPos)>[];
-      var cursor = current;
-      while (parents[cursor] != null) {
-        final parent = parents[cursor]!;
-        result.add((parent.$2, cursor));
-        cursor = parent.$1;
+    if (goals.contains(current)) {
+      goalHits++;
+      if (!(acceptsGoal?.call(current) ?? true)) {
+        continuationRejected++;
+      } else {
+        final result = <(Direction, GridPos)>[];
+        var cursor = current;
+        while (parents[cursor] != null) {
+          final parent = parents[cursor]!;
+          result.add((parent.$2, cursor));
+          cursor = parent.$1;
+        }
+        finish(routeLength: result.length);
+        return result.length > 512 ? null : result.reversed.toList();
       }
-      return result.length > 512 ? null : result.reversed.toList();
     }
     for (final (_, direction, _) in _cardinals) {
       final adjacent = GridPos(
         x: current.x + direction.dx,
         y: current.y + direction.dy,
       );
+      if (adjacent.x < 0 ||
+          adjacent.y < 0 ||
+          adjacent.x >= world.map.size.width ||
+          adjacent.y >= world.map.size.height) {
+        activityVetoes.update(
+          'outOfBounds',
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
+        continue;
+      }
+      if (!_safeActivities(world, adjacent)) {
+        final String reason;
+        if (world.isWaterCell(adjacent.x, adjacent.y)) {
+          reason = 'water';
+        } else if (_trainerSees(world, adjacent)) {
+          reason = 'trainerLineOfSight';
+        } else {
+          final zone = world.map.gameplayZones
+              .where(
+                (zone) =>
+                    const {
+                      GameplayZoneKind.encounter,
+                      GameplayZoneKind.movementEffect,
+                      GameplayZoneKind.hazard,
+                      GameplayZoneKind.special,
+                      GameplayZoneKind.custom,
+                    }.contains(zone.kind) &&
+                    gameplayZoneContainsPosition(zone, adjacent),
+              )
+              .firstOrNull;
+          reason = zone != null
+              ? 'zone:${zone.kind.name}'
+              : world.map.triggers.any(
+                  (trigger) => _contains(trigger.area, adjacent),
+                )
+              ? 'trigger'
+              : world.map.warps.any(
+                  (warp) =>
+                      warp.triggerMode != MapWarpTriggerMode.sceneOnly &&
+                      adjacent.x >= warp.pos.x - warp.triggerPadding.left &&
+                      adjacent.x <= warp.pos.x + warp.triggerPadding.right &&
+                      adjacent.y >= warp.pos.y - warp.triggerPadding.top &&
+                      adjacent.y <= warp.pos.y + warp.triggerPadding.bottom,
+                )
+              ? 'warp'
+              : 'entity';
+        }
+        activityVetoes.update(reason, (count) => count + 1, ifAbsent: () => 1);
+        continue;
+      }
+      canonicalEdgesEvaluated++;
       final result = _cardinalResult(states[current]!, direction);
-      final kind = result is Blocked ? 'Blocked:${result.reason.name}' : result.runtimeType.toString();
+      final kind = result is Blocked
+          ? 'Blocked:${result.reason.name}'
+          : result.runtimeType.toString();
       if (result is Jumped) jumpLandings.add(result.plan.landingPos);
       results.update(kind, (count) => count + 1, ifAbsent: () => 1);
-      final moved = _safeCardinalStep(states[current]!, direction, result: result);
+      final moved = _safeCardinalStep(
+        states[current]!,
+        direction,
+        result: result,
+      );
       if (moved == null && (_safeCell(world, adjacent) || result is Jumped)) {
-        final distance = goals.isEmpty ? 0 : goals.map((goal) =>
-            (goal.x - current.x).abs() + (goal.y - current.y).abs())
-            .reduce((a, b) => a < b ? a : b);
-        rejected.add({'from': current.toJson(), 'to': adjacent.toJson(),
-          'direction': direction.name, 'result': kind, 'goalDistance': distance,
-          if (result is Jumped) 'landing': result.plan.landingPos.toJson()});
-        rejected.sort((a, b) => (a['goalDistance'] as int).compareTo(b['goalDistance'] as int));
+        final distance = goals.isEmpty
+            ? 0
+            : goals
+                  .map(
+                    (goal) =>
+                        (goal.x - current.x).abs() + (goal.y - current.y).abs(),
+                  )
+                  .reduce((a, b) => a < b ? a : b);
+        rejected.add({
+          'from': current.toJson(),
+          'to': adjacent.toJson(),
+          'direction': direction.name,
+          'result': kind,
+          'goalDistance': distance,
+          if (result is Jumped) 'landing': result.plan.landingPos.toJson(),
+        });
+        rejected.sort(
+          (a, b) =>
+              (a['goalDistance'] as int).compareTo(b['goalDistance'] as int),
+        );
         if (rejected.length > 12) rejected.removeLast();
       }
       if (moved == null) continue;
@@ -918,17 +1293,25 @@ List<(Direction, GridPos)>? _pathTo(
       queue.add(next);
     }
   }
+  finish();
   if (diagnostics != null) {
     final positions = parents.keys;
-    diagnostics.addAll({'reachableCellCount': parents.length,
+    diagnostics.addAll({
+      'reachableCellCount': parents.length,
       'reachableBounds': {
         'left': positions.map((p) => p.x).reduce((a, b) => a < b ? a : b),
         'right': positions.map((p) => p.x).reduce((a, b) => a > b ? a : b),
         'top': positions.map((p) => p.y).reduce((a, b) => a < b ? a : b),
-        'bottom': positions.map((p) => p.y).reduce((a, b) => a > b ? a : b)},
-      'canonicalResults': results, 'nearestRejectedEdges': rejected,
-      'jumpLandingsOutsideReachable': jumpLandings.where((position) => !parents.containsKey(position)).map((position) => position.toJson()).toList(),
-      'searchLimitReached': parents.length > 16384});
+        'bottom': positions.map((p) => p.y).reduce((a, b) => a > b ? a : b),
+      },
+      'canonicalResults': results,
+      'nearestRejectedEdges': rejected,
+      'jumpLandingsOutsideReachable': jumpLandings
+          .where((position) => !parents.containsKey(position))
+          .map((position) => position.toJson())
+          .toList(),
+      'searchLimitReached': parents.length > 16384,
+    });
   }
   return null;
 }
@@ -1081,6 +1464,26 @@ Future<void> _waitUntil(PlayableMapGame game, bool Function() done) async {
 
 Future<String> _hash(String file) async =>
     crypto.sha256.convert(await File(file).readAsBytes()).toString();
+
+final class _SceneSoundTrace implements SceneSoundEffectPlaybackPort {
+  _SceneSoundTrace(this.bundle);
+  final RuntimeMapBundle bundle;
+  final calls = <Map<String, Object?>>[];
+
+  @override
+  Future<void> playSoundEffect(String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+  }) async {
+    final media = bundle.manifest.cinematicMediaAssets
+        .singleWhere((asset) => asset.id == mediaAssetId);
+    expect(media.kind, CinematicMediaAssetKind.sound);
+    expect(volume, inInclusiveRange(0.0, 1.0));
+    expect(playbackId, isNotEmpty);
+    expect(await File(path.join(bundle.projectRootDirectory, media.relativePath)).exists(), isTrue);
+    calls.add({'mediaAssetId': mediaAssetId, 'volume': volume});
+  }
+}
 
 final class _DiskSave extends FileGameSaveRepository {
   _DiskSave(this.filePath);

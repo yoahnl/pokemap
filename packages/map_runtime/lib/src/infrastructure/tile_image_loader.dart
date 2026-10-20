@@ -355,8 +355,13 @@ Future<RuntimeTilesetImage> decodeRuntimeTilesetImage(
 }) async {
   final budget = resourceBudget ?? defaultRuntimeResourceBudget;
   _checkEncodedLength(bytes.length, budget);
+  final dimensions = _pngPrefixDimensions(bytes);
+  final allocation = dimensions == null
+      ? (residentBytes: 0, transientBytes: bytes.length * 2)
+      : _imageAllocation(bytes.length, dimensions, transparentColor, budget.profile);
   final reservation = await budget.acquire(
-    transientBytes: bytes.length * 2,
+    residentBytes: allocation.residentBytes,
+    transientBytes: allocation.transientBytes,
     prefetch: prefetch,
     isCurrent: isCurrent,
   );
@@ -365,6 +370,7 @@ Future<RuntimeTilesetImage> decodeRuntimeTilesetImage(
     transparentColor: transparentColor,
     reservation: reservation,
     decoder: _decodeUiImageFromBytes,
+    expectedDimensions: dimensions,
   );
 }
 
@@ -383,8 +389,14 @@ Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
   final budget = resourceBudget ?? defaultRuntimeResourceBudget;
   final length = await file.length();
   _checkEncodedLength(length, budget);
+  final dimensions = await _readPngPrefixDimensions(file, length, budget,
+      prefetch: prefetch, isCurrent: isCurrent);
+  final allocation = dimensions == null
+      ? (residentBytes: 0, transientBytes: length * 2)
+      : _imageAllocation(length, dimensions, transparentColor, budget.profile);
   final reservation = await budget.acquire(
-    transientBytes: length * 2,
+    residentBytes: allocation.residentBytes,
+    transientBytes: allocation.transientBytes,
     prefetch: prefetch,
     isCurrent: isCurrent,
   );
@@ -395,11 +407,71 @@ Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
       transparentColor: transparentColor,
       reservation: reservation,
       decoder: decoder ?? _decodeUiImageFromBytes,
+      expectedDimensions: dimensions,
     );
   } catch (_) {
     reservation.release();
     rethrow;
   }
+}
+
+({int width, int height})? _pngPrefixDimensions(Uint8List bytes) {
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (bytes.length < 33) {
+    return null;
+  }
+  for (var index = 0; index < signature.length; index++) {
+    if (bytes[index] != signature[index]) {
+      return null;
+    }
+  }
+  final header = ByteData.sublistView(bytes, 0, 33);
+  if (header.getUint32(8) != 13 || header.getUint32(12) != 0x49484452) {
+    return null;
+  }
+  return (width: header.getUint32(16), height: header.getUint32(20));
+}
+
+Future<({int width, int height})?> _readPngPrefixDimensions(
+  File file, int length, RuntimeResourceBudget budget, {
+  required bool prefetch,
+  bool Function()? isCurrent,
+}) async {
+  final prefixLength = length < 33 ? length : 33;
+  final reservation = await budget.acquire(
+      transientBytes: prefixLength * 2, prefetch: prefetch, isCurrent: isCurrent);
+  try {
+    final handle = await file.open();
+    try {
+      final prefix = await handle.read(prefixLength);
+      if (prefix.length != prefixLength) {
+        throw const RuntimeResourceAdmissionException('image_changed_during_read');
+      }
+      reservation.ensureCurrent();
+      return _pngPrefixDimensions(prefix);
+    } finally {
+      await handle.close();
+    }
+  } finally {
+    reservation.release();
+  }
+}
+
+({int residentBytes, int transientBytes}) _imageAllocation(
+  int encodedLength,
+  ({int width, int height}) dimensions,
+  TilesetTransparentColor? transparentColor,
+  RuntimeResourceProfile profile,
+) {
+  final scratchFactor = transparentColor != null ||
+          dimensions.height > kRuntimeMaxTilesetChunkHeight ? 4 : 2;
+  final availablePixels =
+      (profile.maximumTransientBytes - encodedLength * 2) ~/ scratchFactor;
+  final pixels = runtimeImageRgbaByteLength(dimensions.width, dimensions.height,
+      maximumBytes: profile.maximumResidentBytes < availablePixels
+          ? profile.maximumResidentBytes : availablePixels);
+  return (residentBytes: pixels,
+      transientBytes: encodedLength * 2 + pixels * scratchFactor);
 }
 
 void _checkEncodedLength(int length, RuntimeResourceBudget budget) {
@@ -445,29 +517,24 @@ Future<RuntimeTilesetImage> _decodeAdmittedImage(
   required TilesetTransparentColor? transparentColor,
   required RuntimeResourceReservation reservation,
   required RuntimeUiImageDecoder decoder,
+  ({int width, int height})? expectedDimensions,
 }) async {
   RuntimeTilesetImage? image;
   try {
     reservation.ensureCurrent();
+    if (expectedDimensions != null &&
+        _pngPrefixDimensions(bytes) != expectedDimensions) {
+      throw const RuntimeResourceAdmissionException('image_dimensions_changed');
+    }
     final dimensions = await inspectRuntimeImageDimensions(bytes);
-    final scratchFactor = transparentColor != null ||
-            dimensions.height > kRuntimeMaxTilesetChunkHeight
-        ? 4
-        : 2;
-    final pixels = runtimeImageRgbaByteLength(
-      dimensions.width,
-      dimensions.height,
-      maximumBytes:
-          reservation.profile.maximumResidentBytes <
-              (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/
-                  scratchFactor
-          ? reservation.profile.maximumResidentBytes
-          : (reservation.profile.maximumTransientBytes - bytes.length * 2) ~/
-              scratchFactor,
-    );
+    if (expectedDimensions != null && dimensions != expectedDimensions) {
+      throw const RuntimeResourceAdmissionException('image_dimensions_changed');
+    }
+    final allocation = _imageAllocation(
+        bytes.length, dimensions, transparentColor, reservation.profile);
     reservation.resize(
-      residentBytes: pixels,
-      transientBytes: bytes.length * 2 + pixels * scratchFactor,
+      residentBytes: allocation.residentBytes,
+      transientBytes: allocation.transientBytes,
     );
     image = await _loadTilesetImageWithUiCodec(
       bytes,

@@ -282,7 +282,13 @@ void main() {
       }
     });
 
-    for (final heldEffectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+    for (final heldEffectId in [
+      'black_sludge',
+      'king_s_rock',
+      'lum_berry',
+      'sitrus_berry',
+      'smoke_ball',
+    ]) {
       test('proven held effect $heldEffectId is authorable and runtime ready',
           () async {
         final scenario = _ItemMutationScenario('item.set_held_effect', {

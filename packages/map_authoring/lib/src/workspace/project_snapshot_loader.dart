@@ -3,6 +3,7 @@ import '../support/authoring_fingerprint.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
@@ -375,8 +376,24 @@ final class ProjectSnapshotLoader {
       {ContentArtifactRef? artifact}) async {
     final before = await access.readResourceIdentity(path);
     if (before == null) return null;
-    final observed = await inspectAuthoringPayload(access.openRead(path),
-        storageKey: path, byteLength: before.byteLength);
+    final binary = artifact != null && !path.toLowerCase().endsWith('.json') &&
+        (artifact.mediaType.startsWith('image/') ||
+         artifact.mediaType.startsWith('audio/') ||
+         artifact.mediaType == 'model/gltf-binary' ||
+         artifact.mediaType == 'application/octet-stream');
+    final canReuse = binary && await _canReuseStoredBinary(access, path, before);
+    final retained = canReuse ? _fingerprintCache?.storedBinaryResource(before) : null;
+    final ProjectStoredResource observed;
+    if (retained != null) {
+      observed = retained;
+    } else {
+      final inspected = await inspectAuthoringPayload(access.openRead(path),
+          storageKey: path, byteLength: before.byteLength);
+      observed = ProjectStoredResource(byteLength: inspected.byteLength,
+          rawSha256: inspected.rawSha256,
+          resourceRevision: inspected.resourceRevision,
+          contentDigest: inspected.contentDigest);
+    }
     if (artifact != null &&
         (observed.contentDigest != artifact.digest ||
             observed.byteLength != artifact.byteLength)) {
@@ -389,7 +406,9 @@ final class ProjectSnapshotLoader {
           'A stored resource differs from its inspected content.');
     }
     final after = await access.readResourceIdentity(path);
-    if (before != after) {
+    final reusable = canReuse && after != null &&
+        await _canReuseStoredBinary(access, path, after);
+    if (before != after || (retained != null && !reusable)) {
       throw const ProjectSnapshotException('project.changed_during_snapshot',
           'A resource changed while its descriptor was loading.');
     }
@@ -397,11 +416,23 @@ final class ProjectSnapshotLoader {
         relativePath: path,
         identity: identity,
         observedIdentity: before,
-        stored: ProjectStoredResource(
-            byteLength: observed.byteLength,
-            rawSha256: observed.rawSha256,
-            resourceRevision: observed.resourceRevision,
-            contentDigest: observed.contentDigest));
+        stored: observed,
+        reusedBinaryDescriptor: retained != null,
+        cacheBinaryDescriptor: reusable);
+  }
+
+  Future<bool> _canReuseStoredBinary(ProjectWorkspaceAccess access, String path,
+      ProjectResourceIdentity identity) async {
+    if (!access.canReuseSnapshots || identity.changedAtMicros == null ||
+        identity.relativePath != path || !File(identity.scope).isAbsolute) {
+      return false;
+    }
+    final lexical = '${identity.scope}${Platform.pathSeparator}$path';
+    try {
+      return await File(lexical).resolveSymbolicLinks() == lexical;
+    } on FileSystemException {
+      return false;
+    }
   }
 
   Future<String> resourcePackManifestRevision(
@@ -1060,7 +1091,9 @@ final class ProjectSnapshotLoader {
           }
           resources.add(loaded);
           profiler?.recordInitialRead(assetBlobReadTimer!);
-          profiler?.recordAssetBlobVerification();
+          if (!loaded.reusedBinaryDescriptor) {
+            profiler?.recordAssetBlobVerification();
+          }
           continue;
         }
         final bytes = await _readRequiredAssetBlob(access, storageKey);
@@ -1181,6 +1214,13 @@ final class ProjectSnapshotLoader {
       for (final resource in resources) {
         identities[resource.relativePath] ??=
             await access.readResourceIdentity(resource.relativePath);
+        if (resource.reusedBinaryDescriptor &&
+            (identities[resource.relativePath] == null ||
+             !await _canReuseStoredBinary(access, resource.relativePath,
+                 identities[resource.relativePath]!))) {
+          throw const ProjectSnapshotException('project.changed_during_snapshot',
+              'A certified binary path changed before snapshot retention.');
+        }
         if (resource.observedIdentity != null &&
             identities[resource.relativePath] != resource.observedIdentity) {
           final recertified = await _readStoredResource(
@@ -1300,6 +1340,13 @@ final class ProjectSnapshotLoader {
         identities: completeIdentities,
         absentResourcePaths: absentResourcePaths,
       );
+      for (final resource in resources) {
+        final identity = completeIdentities[resource.relativePath];
+        if (resource.cacheBinaryDescriptor && identity != null &&
+            await _canReuseStoredBinary(access, resource.relativePath, identity)) {
+          cache?.storeBinaryResource(identity, resource.stored!);
+        }
+      }
     }
     profiler?.recordProjection(projectionTimer!);
 
@@ -1334,6 +1381,12 @@ final class ProjectSnapshotLoader {
         final resource = resources[index];
         if (resource.stored case final descriptor?) {
           try {
+            if (resource.reusedBinaryDescriptor) {
+              final identity = await access.readResourceIdentity(resource.relativePath);
+              matches[index] = identity == resource.observedIdentity && identity != null &&
+                  await _canReuseStoredBinary(access, resource.relativePath, identity);
+              continue;
+            }
             final observed = await inspectAuthoringPayload(
                 access.openRead(resource.relativePath),
                 storageKey: resource.relativePath,
@@ -1557,6 +1610,8 @@ final class _LoadedProjectResource {
     this.bytes,
     this.stored,
     this.observedIdentity,
+    this.reusedBinaryDescriptor = false,
+    this.cacheBinaryDescriptor = false,
   });
 
   final String relativePath;
@@ -1564,6 +1619,8 @@ final class _LoadedProjectResource {
   final ProjectResourceBytes? bytes;
   final ProjectStoredResource? stored;
   final ProjectResourceIdentity? observedIdentity;
+  final bool reusedBinaryDescriptor;
+  final bool cacheBinaryDescriptor;
   int get byteLength => stored?.byteLength ?? bytes!.typedBytes.length;
 }
 

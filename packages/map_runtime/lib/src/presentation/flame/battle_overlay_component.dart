@@ -984,6 +984,23 @@ class BattleOverlayComponent extends PositionComponent {
   @visibleForTesting
   int get debugStatSheetCount => _statSheetImages.length;
 
+  bool _releaseUnusedStatSheets() {
+    final live = Set<ui.Image>.identity()
+      ..addAll(children
+          .whereType<BattleStatAuraComponent>()
+          .map((aura) => aura.sheet));
+    var released = false;
+    for (final entry in _statSheetImages.entries.toList()) {
+      if (live.contains(entry.value)) continue;
+      final lease = _sheetLeases.remove('stat:${entry.key}');
+      if (lease == null) continue;
+      _statSheetImages.remove(entry.key);
+      lease.dispose();
+      released = true;
+    }
+    return released;
+  }
+
   Future<ui.Image?> _loadStatSheet(String sheetName) async {
     if (_ballImagesDisposed) return null;
     final cached = _statSheetImages[sheetName];
@@ -1000,6 +1017,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   Future<ui.Image?> _decodeStatSheet(String sheetName) async {
+    final earlierLoads = _pendingStatSheets.values.toList();
+    if (earlierLoads.isNotEmpty) await Future.wait(earlierLoads);
+    if (_ballImagesDisposed) return null;
     final fileName = battleStatSheetManifest[sheetName];
     if (fileName == null) return null;
     ByteData? bytes;
@@ -1015,12 +1035,23 @@ class BattleOverlayComponent extends PositionComponent {
       }
     }
     if (_ballImagesDisposed) return null;
+    final encodedBytes =
+        bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
     try {
-      final lease = await decodeRuntimeUiImage(
-        bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
-        resourceBudget: _resourceBudget,
-        isCurrent: () => !_ballImagesDisposed,
-      );
+      Future<RuntimeUiImageLease> decode() => decodeRuntimeUiImage(
+            encodedBytes,
+            resourceBudget: _resourceBudget,
+            isCurrent: () => !_ballImagesDisposed,
+          );
+      late final RuntimeUiImageLease lease;
+      try {
+        lease = await decode();
+      } on RuntimeResourceAdmissionException catch (error) {
+        if (error.reason != 'resident_bytes' || !_releaseUnusedStatSheets()) {
+          rethrow;
+        }
+        lease = await decode();
+      }
       try {
         final image = lease.image;
         final cached = _statSheetImages[sheetName];
@@ -3615,7 +3646,14 @@ class BattleOverlayComponent extends PositionComponent {
       _fxBundleCache.updateScope(fxScope,
         effectIds: requiredFxIds, liveImages: _fxLayer?.liveImages ?? const []);
     }
-    await _fxBundleCache.prewarm(requiredFxIds);
+    try {
+      await _fxBundleCache.prewarm(requiredFxIds);
+    } on RuntimeResourceAdmissionException catch (error) {
+      if (error.reason != 'resident_bytes' || !_releaseUnusedStatSheets()) {
+        rethrow;
+      }
+      await _fxBundleCache.prewarm(requiredFxIds);
+    }
     final ballItemIds = <String>{
       for (final step in animationPlan.flattenedSteps)
         if (step is PlayBallCaptureSequenceStep && step.ballItemId != null)

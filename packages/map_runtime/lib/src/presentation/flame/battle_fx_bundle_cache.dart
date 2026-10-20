@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flame/sprite.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
@@ -67,7 +68,16 @@ final class BattleFxBundleCache {
       if (normalizedEffectId.isEmpty || !uniqueIds.add(normalizedEffectId)) {
         continue;
       }
-      await loadImage(normalizedEffectId);
+      try {
+        await loadImage(normalizedEffectId);
+      } on RuntimeResourceAdmissionException catch (error) {
+        final spec = BattleFxCatalog.require(normalizedEffectId);
+        debugPrint('[battle_fx] admission rejected effect=$normalizedEffectId '
+            'reason=${error.reason} resident=${resourceBudget.residentBytes} '
+            'maximum=${resourceBudget.profile.maximumResidentBytes} '
+            'sheetRgba=${spec.width * spec.height * 4} cached=${_images.length}');
+        rethrow;
+      }
     }
   }
 

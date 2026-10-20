@@ -2485,9 +2485,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   await preparation.advance();
   if (projectedEvents != null) {
     try {
-      for (final scene in projectedEvents.scenes) {
-        const SceneActions()
-            .upsert(manifest, maps: maps.values.toList(), scene: scene);
+      for (final _ in const SceneActions()
+            .validateInOrder(manifest, maps: maps.values.toList())) {
         await preparation.advance();
       }
     } on NarrativeAuthoringException catch (error) {

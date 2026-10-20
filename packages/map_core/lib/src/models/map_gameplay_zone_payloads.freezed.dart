@@ -2444,7 +2444,7 @@ as bool,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get entry {
-  
+
   return $GridPosCopyWith<$Res>(_self.entry, (value) {
     return _then(_self.copyWith(entry: value));
   });
@@ -2453,7 +2453,7 @@ $GridPosCopyWith<$Res> get entry {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get exit {
-  
+
   return $GridPosCopyWith<$Res>(_self.exit, (value) {
     return _then(_self.copyWith(exit: value));
   });
@@ -2676,7 +2676,7 @@ as bool,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get entry {
-  
+
   return $GridPosCopyWith<$Res>(_self.entry, (value) {
     return _then(_self.copyWith(entry: value));
   });
@@ -2685,7 +2685,7 @@ $GridPosCopyWith<$Res> get entry {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get exit {
-  
+
   return $GridPosCopyWith<$Res>(_self.exit, (value) {
     return _then(_self.copyWith(exit: value));
   });

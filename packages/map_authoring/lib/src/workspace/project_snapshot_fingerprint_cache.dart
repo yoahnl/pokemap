@@ -1,4 +1,5 @@
 import '../ports/project_file_reader.dart';
+import 'project_snapshot.dart';
 
 /// Remembers fingerprints already computed for unchanged resources.
 ///
@@ -24,6 +25,7 @@ final class ProjectSnapshotFingerprintCache {
   final Map<String, String> _revisions = {};
   final Map<ProjectResourceIdentity, Object> _decoded = {};
   final Set<ProjectResourceIdentity> _certifiedAssetBlobs = {};
+  final Map<ProjectResourceIdentity, ProjectStoredResource> _storedBinaryResources = {};
 
   int hits = 0;
   int misses = 0;
@@ -92,10 +94,26 @@ final class ProjectSnapshotFingerprintCache {
     _decoded[identity] = model;
   }
 
+  ProjectStoredResource? storedBinaryResource(ProjectResourceIdentity identity) =>
+      identity.changedAtMicros == null ? null : _storedBinaryResources[identity];
+
+  void storeBinaryResource(ProjectResourceIdentity identity, ProjectStoredResource resource) {
+    if (identity.changedAtMicros == null || resource.contentDigest == null ||
+        resource.byteLength != identity.byteLength) {
+      return;
+    }
+    if (_storedBinaryResources.length >= maximumIdentityEntries &&
+        !_storedBinaryResources.containsKey(identity)) {
+      _storedBinaryResources.remove(_storedBinaryResources.keys.first);
+    }
+    _storedBinaryResources[identity] = resource;
+  }
+
   void clear() {
     _resourceFingerprints.clear();
     _revisions.clear();
     _decoded.clear();
     _certifiedAssetBlobs.clear();
+    _storedBinaryResources.clear();
   }
 }

@@ -1552,13 +1552,51 @@ final class SceneActions {
     return projected;
   }
 
+  void validateAll(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    ProjectItemCatalog? itemCatalog,
+    void Function(SceneProjectDiagnosticsContext context)? onContextBuilt,
+  }) {
+    for (final _ in validateInOrder(project,
+      maps: maps,
+      itemCatalog: itemCatalog,
+      onContextBuilt: onContextBuilt,
+    )) {}
+  }
+
+  Iterable<SceneAsset> validateInOrder(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    ProjectItemCatalog? itemCatalog,
+    void Function(SceneProjectDiagnosticsContext context)? onContextBuilt,
+  }) sync* {
+    final context = SceneProjectDiagnosticsContext(
+      project,
+      availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
+      mapsById: {for (final map in maps) map.id: map},
+    );
+    onContextBuilt?.call(context);
+    for (final scene in project.scenes) {
+      _validateScenePublication(
+        project,
+        maps: maps,
+        scene: scene,
+        itemCatalog: itemCatalog,
+        context: context,
+      );
+      yield scene;
+    }
+  }
+
   void _validateScenePublication(
     ProjectManifest project, {
     required List<MapData> maps,
     required SceneAsset scene,
     ProjectItemCatalog? itemCatalog,
+    SceneProjectDiagnosticsContext? context,
   }) {
-    final diagnostics = diagnoseSceneAgainstProject(
+    final diagnostics = context?.diagnose(scene) ?? diagnoseSceneAgainstProject(
       scene,
       project,
       availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),

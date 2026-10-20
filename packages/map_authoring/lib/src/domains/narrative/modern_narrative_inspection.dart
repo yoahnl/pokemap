@@ -141,13 +141,13 @@ final class ModernNarrativeInspector {
     final diagnostics = <ModernNarrativeDiagnostic>[];
     final mapsById = {for (final map in maps) map.id: map};
     final availableItemIds = itemCatalog?.entries.map((item) => item.id).toSet();
+    final sceneContext = SceneProjectDiagnosticsContext(
+      project,
+      availableItemIds: availableItemIds,
+      mapsById: mapsById,
+    );
     for (final scene in project.scenes) {
-      final report = diagnoseSceneAgainstProject(
-        scene,
-        project,
-        availableItemIds: availableItemIds,
-        mapsById: mapsById,
-      );
+      final report = sceneContext.diagnose(scene);
       for (final item in report.diagnostics) {
         diagnostics.add(
           ModernNarrativeDiagnostic(

@@ -68,6 +68,60 @@ void main() {
     ]);
   });
 
+  test('editor offers authors and undoes King Rock from canonical truth', () async {
+    final harness = await _EditorItemHarness.create('king-rock');
+    addTearDown(harness.dispose);
+    final gateway = CanonicalItemStudioGateway(
+      queries: harness.queries,
+      mutations: harness.mutations,
+    );
+    final initial = await gateway.load(harness.root.path);
+    expect(
+      initial.heldEffectOptions.map((option) => option.id),
+      contains('king_s_rock'),
+    );
+    final execution = await harness.execute(
+      const _ItemMutationScenario('item.set_held_effect', {
+        'itemId': 'potion',
+        'heldEffectId': 'king_s_rock',
+      }),
+    );
+    final catalog = ProjectItemCatalog.fromJson(execution.afterCatalog);
+    expect(
+      catalog.entries.singleWhere((item) => item.id == 'potion').heldEffectId,
+      'king_s_rock',
+    );
+    expect(execution.restoredCatalog, execution.beforeCatalog);
+    expect(execution.historyEntryCount, 2);
+  });
+
+  test('editor offers authors and undoes Black Sludge from canonical truth', () async {
+    final harness = await _EditorItemHarness.create('black-sludge');
+    addTearDown(harness.dispose);
+    final gateway = CanonicalItemStudioGateway(
+      queries: harness.queries,
+      mutations: harness.mutations,
+    );
+    final initial = await gateway.load(harness.root.path);
+    expect(
+      initial.heldEffectOptions.map((option) => option.id),
+      contains('black_sludge'),
+    );
+    final execution = await harness.execute(
+      const _ItemMutationScenario('item.set_held_effect', {
+        'itemId': 'potion',
+        'heldEffectId': 'black_sludge',
+      }),
+    );
+    final catalog = ProjectItemCatalog.fromJson(execution.afterCatalog);
+    expect(
+      catalog.entries.singleWhere((item) => item.id == 'potion').heldEffectId,
+      'black_sludge',
+    );
+    expect(execution.restoredCatalog, execution.beforeCatalog);
+    expect(execution.historyEntryCount, 2);
+  });
+
   test('editor adapter executes and undoes every item mutation', () async {
     final executedActions = <String>{};
     final receiptIds = <String>{};

@@ -10,6 +10,44 @@ import 'package:map_runtime/src/player/runtime_player_pause_data.dart';
 
 void main() {
   group('runtime held item bridge v0', () {
+    test('authored King Rock resolves to its executable battle effect', () {
+      const catalog = ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: [
+          ProjectItemDefinition(
+            id: 'authored-royal-rock',
+            displayName: 'Roche Royale',
+            pocketId: 'held-items',
+            heldEffectId: 'king_s_rock',
+          ),
+        ],
+      );
+      expect(
+        validateProjectItemCatalog(
+          catalog,
+          capabilityTruth: itemSystemV1CapabilityTruth,
+        ).hasBlockingDiagnostics,
+        isFalse,
+      );
+      final snapshot = ItemCatalogSnapshot.fromCatalog(catalog);
+      final resolution = resolveRuntimeHeldItemEffect(
+        itemCatalog: snapshot,
+        itemId: 'authored-royal-rock',
+      );
+      expect(resolution.status, RuntimeHeldItemSupportStatus.supported);
+      expect(resolution.heldEffectId, 'king_s_rock');
+      expect(
+        PokemonEvolutionHeldItemPolicy.fromCatalog(snapshot)
+            .recognizes('authored-royal-rock'),
+        isTrue,
+      );
+      expect(
+        PokemonEvolutionHeldItemPolicy.fromCatalog(snapshot)
+            .preventsEvolution('authored-royal-rock'),
+        isFalse,
+      );
+    });
+
     test('canonical heldEffectId has three honest support states', () {
       final catalog = ItemCatalogSnapshot.fromCatalog(
         const ProjectItemCatalog(

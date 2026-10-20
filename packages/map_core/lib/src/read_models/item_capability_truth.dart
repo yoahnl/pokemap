@@ -136,6 +136,8 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     ),
   },
   supportedHeldEffectIds: <String>{
+    'black_sludge',
+    'king_s_rock',
     'leftovers',
     'lum_berry',
     'prevent_evolution',

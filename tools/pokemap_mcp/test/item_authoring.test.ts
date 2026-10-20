@@ -100,7 +100,7 @@ const itemMutationScenarios = [
     slug: "item-set-held-effect",
     parameters: { itemId: "potion", heldEffectId: "leftovers" },
   },
-  ...["lum_berry", "sitrus_berry", "smoke_ball"].map((heldEffectId) => ({
+  ...["black_sludge", "king_s_rock", "lum_berry", "sitrus_berry", "smoke_ball"].map((heldEffectId) => ({
     actionId: "item.set_held_effect",
     slug: `item-set-held-${heldEffectId}`,
     parameters: { itemId: "potion", heldEffectId },
@@ -198,7 +198,7 @@ test("MCP describes queries and mutates canonical items", async () => {
     assert.ok((record(battleDescriptor.extensions).effectKinds as string[]).includes("restore_pp"));
     assert.ok(heldDescriptor);
     const heldEffects = record(heldDescriptor.extensions).heldEffectIds as string[];
-    for (const effectId of ["lum_berry", "sitrus_berry", "smoke_ball"]) {
+    for (const effectId of ["black_sludge", "king_s_rock", "lum_berry", "sitrus_berry", "smoke_ball"]) {
       assert.ok(heldEffects.includes(effectId), effectId);
     }
     assert.deepEqual(mutationActions.sort(), [
