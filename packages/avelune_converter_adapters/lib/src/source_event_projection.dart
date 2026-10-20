@@ -1724,6 +1724,11 @@ final class _ProjectionBuilder {
       evidence['executionContextTables'] = contextTables;
     }
     final packedEvidence = SourceEventEvidenceArtifacts.pack(evidence, limits: limits);
+    final enabledRecordIds = {
+      for (final record in records)
+        if (record.when(draft: (_) => false,
+            configured: (_, enabled) => enabled)) record.id,
+    };
     return SourceEventProjection(
         nativeMaps: maps,
         registry: registry,
@@ -1746,9 +1751,8 @@ final class _ProjectionBuilder {
         allEnabledOriginalEventsHaveExecutionContext:
             !events.where((event) => _isSourceTransition(event) &&
               !_eventExecutionContextQualified(event)).any((event) =>
-              records.any((record) => record.when(draft: (_) => false,
-                configured: (definition, enabled) => enabled && event.pages.any((page) =>
-                  definition.id == _eventId(event, 'page_${page.originalPageIndex}'))))),
+              event.pages.any((page) => enabledRecordIds.contains(
+                  _eventId(event, 'page_${page.originalPageIndex}')))),
         retentionPolicy: retentionPolicy);
   }
 
