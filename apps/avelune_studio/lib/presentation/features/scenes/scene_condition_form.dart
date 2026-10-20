@@ -12,11 +12,15 @@ class SceneConditionForm extends StatefulWidget {
     required this.current,
     required this.onApply,
     this.loadMoves,
+    this.loadItems,
+    this.loadMap,
   });
   final ProjectManifest project;
   final SceneConditionPayload current;
   final ValueChanged<SceneConditionSource> onApply;
   final Future<Map<String, String>> Function()? loadMoves;
+  final Future<Map<String, String>> Function()? loadItems;
+  final Future<MapData> Function(String)? loadMap;
   @override
   State<SceneConditionForm> createState() => _SceneConditionFormState();
 }
@@ -30,6 +34,11 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     'playerFacing': 'Orientation du joueur',
     'trainerDefeated': 'Dresseur vaincu',
     'pokedexCaughtCount': 'Pokédex : espèces capturées',
+    'badge': 'Badge obtenu',
+    'inventoryItem': 'Objet dans le sac',
+    'playerAtEntityAnchor': 'Position du joueur',
+    'factLikeStoryFlag': 'État d’histoire',
+    'mapEventInstanceBoolean': 'État local d’une entité',
   };
   static const operators = {
     'equals': 'Est égal à',
@@ -55,10 +64,32 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   String _firstNational = '1';
   String _lastNational = '151';
   String _minimumCount = '20';
+  String _minimumQuantity = '1';
+  String? _mapId;
+  String _instanceKey = '';
+  MapData? _map;
+  bool _mapLoading = false;
+  String? _mapError;
+  int _mapRequest = 0;
+  Map<String, String> _items = const {};
+  bool _itemsLoading = false;
+  String? _itemsError;
+  int _itemRequest = 0;
+
+  bool get _isMapSource =>
+      _family == 'playerAtEntityAnchor' || _family == 'mapEventInstanceBoolean';
+
+  bool get _referencesLoading =>
+      (_isMapSource && _mapLoading) ||
+      (_family == 'inventoryItem' && _itemsLoading);
 
   Map<String, String> get _availableFamilies => {
     for (final entry in families.entries)
-      if (entry.key != 'pokedexCaughtCount' ||
+      if (!const {
+            'pokedexCaughtCount',
+            'playerAtEntityAnchor',
+            'mapEventInstanceBoolean',
+          }.contains(entry.key) ||
           widget.project.settings.dimension == ProjectDimension.twoD)
         entry.key: entry.value,
   };
@@ -74,20 +105,59 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     super.didUpdateWidget(old);
     if (old.current != widget.current ||
         old.project != widget.project ||
-        old.loadMoves != widget.loadMoves) {
+        old.loadMoves != widget.loadMoves ||
+        old.loadItems != widget.loadItems ||
+        old.loadMap != widget.loadMap) {
       _reset();
     }
   }
 
   void _reset() {
+    _moveRequest++;
+    _itemRequest++;
+    _mapRequest++;
+    _moves = const {};
+    _movesLoading = false;
+    _movesError = null;
+    _items = const {};
+    _itemsLoading = false;
+    _itemsError = null;
+    _map = null;
+    _mapLoading = false;
+    _mapError = null;
     final source = widget.current.conditionSource;
     _family = source?.sourceKind.name ?? 'fact';
     _id = source?.sourceId;
     _operator = NarrativeFactOperator.equals;
     _boolean = true;
     _text = '';
+    _minimumQuantity = '1';
+    _mapId = source?.mapId;
+    _instanceKey = source?.key ?? '';
     _unsupported = source != null && !_availableFamilies.containsKey(_family);
     if (_unsupported || source == null) return;
+    if (_family == 'badge' && source.badgeOwnershipExpected == null) {
+      _unsupported = true;
+      return;
+    }
+    if (_family == 'factLikeStoryFlag' &&
+        (source.field != null ||
+            source.value != null ||
+            source.operator == SceneConditionOperator.equals)) {
+      _unsupported = true;
+      return;
+    }
+    if (_family == 'inventoryItem') {
+      final quantity = source.inventoryQuantityThreshold;
+      if (quantity == null) {
+        _unsupported = true;
+        return;
+      }
+      _minimumQuantity = '$quantity';
+      _loadInventoryItems();
+    } else if (_isMapSource) {
+      _loadReferenceMap();
+    }
     if (_family == 'partyState') {
       _partyKind = source.partyConditionKind!;
       _id = source.partyMoveId;
@@ -121,6 +191,20 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
   }
 
   Map<String, String> get _references => switch (_family) {
+    'badge' => {
+      for (final badge in widget.project.badges)
+        if (badge.id.isNotEmpty &&
+            badge.id.trim() == badge.id &&
+            badge.label.trim().isNotEmpty &&
+            widget.project.badges
+                    .where((value) => value.id == badge.id)
+                    .length ==
+                1)
+          badge.id: badge.label,
+    },
+    'inventoryItem' => _items,
+    'factLikeStoryFlag' => _storyFlags,
+    'playerAtEntityAnchor' || 'mapEventInstanceBoolean' => _entities,
     'playerFacing' => {
       'north': 'Nord',
       'south': 'Sud',
@@ -155,8 +239,136 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     _ => {},
   };
 
+  Map<String, String> get _storyFlags => {
+    for (final fact in widget.project.facts)
+      if (fact.valueKind == NarrativeValueKind.boolean &&
+          widget.project.facts.where((value) => value.id == fact.id).length ==
+              1 &&
+          widget.project.facts
+                  .where(
+                    (value) =>
+                        value.id == (fact.legacyFlagName ?? fact.id) ||
+                        value.legacyFlagName ==
+                            (fact.legacyFlagName ?? fact.id),
+                  )
+                  .length ==
+              1)
+        fact.legacyFlagName ?? fact.id: fact.label,
+  };
+
+  Map<String, String> get _maps => {
+    for (final map in widget.project.maps)
+      if (map.id.isNotEmpty &&
+          map.id.trim() == map.id &&
+          widget.project.maps.where((value) => value.id == map.id).length == 1)
+        map.id: map.name,
+  };
+
+  Map<String, String> get _entities => {
+    for (final entity in _map?.entities ?? <MapEntity>[])
+      if (entity.id.isNotEmpty &&
+          entity.id.trim() == entity.id &&
+          _map!.entities.where((value) => value.id == entity.id).length == 1 &&
+          (_family != 'playerAtEntityAnchor' ||
+              (entity.pos.x >= 0 &&
+                  entity.pos.y >= 0 &&
+                  entity.pos.x < _map!.size.width &&
+                  entity.pos.y < _map!.size.height)))
+        entity.id:
+            '${entity.name.isEmpty ? 'Entité' : entity.name} · (${entity.pos.x}, ${entity.pos.y})',
+  };
+
   NarrativeFactDefinition? get _fact =>
       widget.project.facts.where((fact) => fact.id == _id).firstOrNull;
+
+  Future<void> _loadInventoryItems() async {
+    final request = ++_itemRequest;
+    final project = widget.project;
+    _items = const {};
+    _itemsLoading = true;
+    _itemsError = null;
+    try {
+      final load = widget.loadItems;
+      if (load == null) throw StateError('Catalogue indisponible.');
+      final items = await load();
+      if (!mounted ||
+          request != _itemRequest ||
+          project != widget.project ||
+          _family != 'inventoryItem') {
+        return;
+      }
+      if (items.keys.any((id) => id.isEmpty || id.trim() != id) ||
+          items.values.any((label) => label.trim().isEmpty)) {
+        throw StateError('Références d’objets invalides.');
+      }
+      setState(() => _items = Map.unmodifiable(items));
+    } on Object {
+      if (!mounted ||
+          request != _itemRequest ||
+          project != widget.project ||
+          _family != 'inventoryItem') {
+        return;
+      }
+      setState(
+        () => _itemsError = 'Le catalogue des objets est indisponible ou ambigu. La condition actuelle est conservée.',
+      );
+    } finally {
+      if (mounted &&
+          request == _itemRequest &&
+          project == widget.project &&
+          _family == 'inventoryItem') {
+        setState(() => _itemsLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadReferenceMap() async {
+    final request = ++_mapRequest;
+    final project = widget.project;
+    final id = _mapId;
+    _map = null;
+    _mapLoading = false;
+    _mapError = null;
+    if (id == null || !_maps.containsKey(id)) return;
+    _mapLoading = true;
+    try {
+      final load = widget.loadMap;
+      if (load == null) throw StateError('Carte indisponible.');
+      final map = await load(id);
+      if (!mounted ||
+          request != _mapRequest ||
+          project != widget.project ||
+          _mapId != id ||
+          !_isMapSource) {
+        return;
+      }
+      if (map.id != id || map.spatialScene != null) {
+        throw StateError(
+          'La carte choisie doit être une carte 2D correspondante.',
+        );
+      }
+      setState(() => _map = map);
+    } on Object {
+      if (!mounted ||
+          request != _mapRequest ||
+          project != widget.project ||
+          _mapId != id ||
+          !_isMapSource) {
+        return;
+      }
+      setState(
+        () => _mapError = 'La carte est indisponible ou ne correspond pas à une carte 2D. La condition actuelle est conservée.',
+      );
+    } finally {
+      if (mounted &&
+          request == _mapRequest &&
+          project == widget.project &&
+          _mapId == id &&
+          _isMapSource) {
+        setState(() => _mapLoading = false);
+      }
+    }
+  }
 
   Future<void> _loadPartyMoves() async {
     final request = ++_moveRequest;
@@ -245,12 +457,64 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
       }
     }
     final id = _id;
-    if (_unsupported || id == null || !_references.containsKey(id)) return null;
+    if (_unsupported ||
+        _referencesLoading ||
+        id == null ||
+        !_references.containsKey(id)) {
+      return null;
+    }
     final existing = widget.current.conditionSource;
     final debug =
-        existing?.sourceId == id && existing?.sourceKind.name == _family
+        existing?.sourceId == id &&
+            existing?.sourceKind.name == _family &&
+            existing?.mapId == (_isMapSource ? _mapId : null) &&
+            existing?.key ==
+                (_family == 'mapEventInstanceBoolean' ? _instanceKey : null)
         ? existing?.debugTechnicalLabel
         : null;
+    if (_family == 'inventoryItem') {
+      final minimum = int.tryParse(_minimumQuantity);
+      if (minimum == null || minimum < 1 || '$minimum' != _minimumQuantity) {
+        return null;
+      }
+      return SceneConditionSource(
+        sourceKind: SceneConditionSourceKind.inventoryItem,
+        sourceId: id,
+        operator: _boolean
+            ? SceneConditionOperator.isTrue
+            : SceneConditionOperator.isFalse,
+        field: 'minimumQuantity',
+        value: '$minimum',
+        label: _references[id],
+        debugTechnicalLabel: debug,
+      );
+    }
+    if (_isMapSource) {
+      final mapId = _mapId;
+      if (mapId == null || !_maps.containsKey(mapId) || _map?.id != mapId) {
+        return null;
+      }
+      if (_family == 'mapEventInstanceBoolean') {
+        if (_instanceKey.isEmpty || _instanceKey.trim() != _instanceKey) {
+          return null;
+        }
+        return SceneConditionSource.mapEventInstanceBoolean(
+          mapId: mapId,
+          eventId: id,
+          key: _instanceKey,
+          expected: _boolean,
+          label: '${_references[id]} · $_instanceKey',
+          debugTechnicalLabel: debug,
+        );
+      }
+      return SceneConditionSource.playerAtEntityAnchor(
+        mapId: mapId,
+        entityId: id,
+        expected: _boolean,
+        label: _references[id],
+        debugTechnicalLabel: debug,
+      );
+    }
     if (_family != 'fact') {
       return SceneConditionSource(
         sourceKind: SceneConditionSourceKind.values.byName(_family),
@@ -307,6 +571,33 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
     });
   }
 
+  void _selectFamily(String value) {
+    setState(() {
+      _family = value;
+      _id = null;
+      _mapId = null;
+      _instanceKey = '';
+      _minimumQuantity = '1';
+      _boolean = true;
+      _unsupported = false;
+      _moveRequest++;
+      _movesLoading = false;
+      _movesError = null;
+      _moves = const {};
+      _partyKind = ScenePartyConditionKind.canReceivePokemon;
+      _ability = null;
+      _itemRequest++;
+      _itemsLoading = false;
+      _itemsError = null;
+      _items = const {};
+      _mapRequest++;
+      _mapLoading = false;
+      _mapError = null;
+      _map = null;
+      if (value == 'inventoryItem') _loadInventoryItems();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final fact = _family == 'fact' ? _fact : null;
@@ -326,13 +617,36 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
           label: 'Source de la condition',
           value: _family,
           options: _availableFamilies,
-          onChanged: (value) => setState(() {
-            _family = value;
-            _id = null;
-            _unsupported = false;
-          }),
+          onChanged: _selectFamily,
         ),
         const SizedBox(height: 12),
+        if (_isMapSource) ...[
+          StudioSelect(
+            key: const ValueKey('scene-condition-map'),
+            label: 'Carte',
+            value: _mapId,
+            options: _maps,
+            onChanged: (value) => setState(() {
+              _mapId = value;
+              _id = null;
+              _loadReferenceMap();
+            }),
+          ),
+          if (_mapLoading)
+            const StudioNotice('Chargement des entités de la carte…'),
+          if (_mapError != null) StudioNotice(_mapError!, isError: true),
+          if (_mapId != null && !_maps.containsKey(_mapId))
+            const StudioNotice(
+              'La carte référencée est absente ou ambiguë. La condition actuelle est conservée.',
+              isError: true,
+            ),
+          const SizedBox(height: 12),
+        ],
+        if (_family == 'inventoryItem') ...[
+          if (_itemsLoading)
+            const StudioNotice('Chargement des objets du projet…'),
+          if (_itemsError != null) StudioNotice(_itemsError!, isError: true),
+        ],
         if (_family != 'pokedexCaughtCount' && _family != 'partyState')
           StudioSelect(
             label: 'Référence',
@@ -342,11 +656,61 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
           ),
         if (_family != 'pokedexCaughtCount' &&
             _family != 'partyState' &&
+            !_referencesLoading &&
             references.isEmpty) ...[
           const SizedBox(height: 8),
           const StudioNotice(
             'Aucune référence disponible dans ce projet. La condition actuelle reste conservée.',
           ),
+        ],
+        if (_id != null &&
+            !_referencesLoading &&
+            _family != 'partyState' &&
+            _family != 'pokedexCaughtCount' &&
+            !references.containsKey(_id)) ...[
+          const SizedBox(height: 8),
+          const StudioNotice(
+            'La référence actuelle est absente ou ambiguë. Elle reste conservée tant qu’aucune nouvelle condition n’est appliquée.',
+            isError: true,
+          ),
+        ],
+        if (_family == 'inventoryItem' && !_unsupported) ...[
+          const SizedBox(height: 12),
+          StudioDraftField(
+            key: const ValueKey('scene-inventory-minimum'),
+            label: 'Quantité minimale',
+            value: _minimumQuantity,
+            onChanged: (value) => setState(() => _minimumQuantity = value),
+          ),
+          if (int.tryParse(_minimumQuantity) case final minimum?
+              when minimum < 1 || '$minimum' != _minimumQuantity)
+            const StudioNotice(
+              'Choisissez un nombre entier positif.',
+              isError: true,
+            ),
+          if (int.tryParse(_minimumQuantity) == null)
+            const StudioNotice(
+              'Choisissez un nombre entier positif.',
+              isError: true,
+            ),
+        ],
+        if (_family == 'mapEventInstanceBoolean' && !_unsupported) ...[
+          const SizedBox(height: 12),
+          StudioDraftField(
+            key: const ValueKey('scene-instance-boolean-key'),
+            label: 'Nom de l’état local',
+            value: _instanceKey,
+            onChanged: (value) => setState(() => _instanceKey = value),
+          ),
+          const SizedBox(height: 8),
+          const StudioNotice(
+            'Cet état appartient à l’entité choisie dans l’instance courante de la carte. Son nom doit correspondre à celui utilisé par les actions qui le modifient.',
+          ),
+          if (_instanceKey.isEmpty || _instanceKey.trim() != _instanceKey)
+            const StudioNotice(
+              'Choisissez un nom non vide, sans espace au début ni à la fin.',
+              isError: true,
+            ),
         ],
         const SizedBox(height: 12),
         if (_family == 'partyState' && !_unsupported) ...[
@@ -510,6 +874,15 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
                 ? 'Regarde dans cette direction'
                 : _family == 'trainerDefeated'
                 ? 'Dresseur déjà vaincu'
+                : _family == 'badge'
+                ? 'Badge obtenu'
+                : _family == 'inventoryItem'
+                ? 'Présent en quantité suffisante'
+                : _family == 'playerAtEntityAnchor'
+                ? 'Joueur à cette position'
+                : _family == 'mapEventInstanceBoolean' ||
+                      _family == 'factLikeStoryFlag'
+                ? 'État activé'
                 : 'Déjà jouée',
             value: '$_boolean',
             options: _family == 'storyStepCompletion'

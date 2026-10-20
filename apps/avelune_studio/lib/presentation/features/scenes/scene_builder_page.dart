@@ -34,6 +34,7 @@ class SceneBuilderPage extends StatefulWidget {
     required this.onBack,
     this.narrative,
     this.loadMoves,
+    this.loadItems,
     this.loadSpecies,
     this.onTest,
     this.dialogues,
@@ -49,6 +50,7 @@ class SceneBuilderPage extends StatefulWidget {
   final SceneBuilderViewStore views;
   final NarrativeWorkspaceController? narrative;
   final Future<Map<String, String>> Function()? loadMoves;
+  final Future<Map<String, String>> Function()? loadItems;
   final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
   final VoidCallback onBack;
   final String onBackLabel;
@@ -113,6 +115,7 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                 project: linkedProject,
                 loadMap: mapLoader.load,
                 loadMoves: widget.loadMoves,
+                loadItems: widget.loadItems,
                 loadSpecies: widget.loadSpecies,
                 documents: documents,
                 narrative: widget.narrative,

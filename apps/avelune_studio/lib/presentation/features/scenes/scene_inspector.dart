@@ -44,6 +44,7 @@ class SceneInspector extends StatelessWidget {
     this.onCreatePresentation,
     this.loadMap,
     this.loadMoves,
+    this.loadItems,
     this.loadSpecies,
   });
   final SceneLinkedDocuments? documents;
@@ -56,6 +57,7 @@ class SceneInspector extends StatelessWidget {
   final ValueChanged<SceneNode>? onCreatePresentation;
   final Future<MapData> Function(String)? loadMap;
   final Future<Map<String, String>> Function()? loadMoves;
+  final Future<Map<String, String>> Function()? loadItems;
   final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
 
   void edit(SceneAsset Function(SceneAsset) mutation) {

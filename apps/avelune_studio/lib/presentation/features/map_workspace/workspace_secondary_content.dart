@@ -90,6 +90,7 @@ Widget? workspaceSecondaryContent({
   VerificationWorkspaceController? verification,
   required SceneWorkspaceController? scenes,
   Future<Map<String, String>> Function()? loadSceneMoves,
+  Future<Map<String, String>> Function()? loadSceneItems,
   Future<List<PokemonSpeciesSummary>> Function()? loadSceneSpecies,
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
@@ -178,6 +179,7 @@ Widget? workspaceSecondaryContent({
   if (space == WorkspaceSpace.scene && scenes != null) {
     return SceneBuilderPage(
       loadMoves: loadSceneMoves,
+      loadItems: loadSceneItems,
       loadSpecies: loadSceneSpecies,
       onPresentation: onScenePresentation,
       onCreatePresentation: onCreatePresentation,

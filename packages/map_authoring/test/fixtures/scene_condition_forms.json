@@ -1,0 +1,223 @@
+{
+  "project": {
+    "name": "Conditions guidées",
+    "version": "v8",
+    "maps": [
+      {
+        "id": "hall",
+        "name": "Hall",
+        "relativePath": "maps/hall.json"
+      }
+    ],
+    "tilesets": [],
+    "badges": [
+      {
+        "id": "mark",
+        "label": "Insigne du passage"
+      }
+    ],
+    "facts": [
+      {
+        "id": "pass",
+        "label": "Passage ouvert",
+        "defaultValue": false,
+        "legacyFlagName": "pass_open"
+      }
+    ],
+    "scenes": [
+      {
+        "id": "condition_scene",
+        "name": "Branche conditionnelle",
+        "metadata": {
+          "preserved": "yes"
+        },
+        "graph": {
+          "startNodeId": "start",
+          "nodes": [
+            {
+              "id": "start",
+              "kind": "start"
+            },
+            {
+              "id": "check",
+              "kind": "condition",
+              "payload": {
+                "conditionSource": {
+                  "sourceKind": "badge",
+                  "sourceId": "mark",
+                  "operator": "isTrue"
+                }
+              }
+            },
+            {
+              "id": "end",
+              "kind": "end"
+            }
+          ],
+          "edges": [
+            {
+              "id": "enter",
+              "fromNodeId": "start",
+              "fromPortId": "completed",
+              "toNodeId": "check",
+              "kind": "default"
+            },
+            {
+              "id": "yes",
+              "fromNodeId": "check",
+              "fromPortId": "true",
+              "toNodeId": "end",
+              "kind": "conditionTrue"
+            },
+            {
+              "id": "no",
+              "fromNodeId": "check",
+              "fromPortId": "false",
+              "toNodeId": "end",
+              "kind": "conditionFalse"
+            }
+          ]
+        },
+        "layout": {
+          "nodeLayouts": [
+            {
+              "nodeId": "check",
+              "x": 32,
+              "y": 64
+            }
+          ],
+          "edgeLayouts": []
+        }
+      }
+    ],
+    "pokemon": {
+      "enabled": true,
+      "ruleset": {
+        "schemaVersion": 1,
+        "profileId": "pokemap-beta-v1",
+        "typeChartId": "mainline-modern-v1",
+        "maxLevel": 100,
+        "experiencePolicyId": "pokemap-simple-exp-v1",
+        "capturePolicyId": "pokemap-capture-mvp-v1",
+        "moveMachinePolicyId": "authored-consumability-v1",
+        "criticalHitPolicyId": "mainline-gen9-critical",
+        "speedTiePolicyId": "mainline-gen9-seeded-random",
+        "friendshipPolicyId": "mainline-0-255-v1",
+        "evolutionPolicyId": "pokemap-beta-evolution-v1",
+        "disabledFeatures": [
+          "breeding",
+          "double-battles",
+          "modern-gimmicks",
+          "online"
+        ]
+      },
+      "dataRoot": "data/pokemon",
+      "speciesDir": "data/pokemon/species",
+      "learnsetsDir": "data/pokemon/learnsets",
+      "evolutionsDir": "data/pokemon/evolutions",
+      "mediaDir": "data/pokemon/media",
+      "catalogFiles": {
+        "moves": "data/pokemon/catalogs/moves.json",
+        "abilities": "data/pokemon/catalogs/abilities.json",
+        "items": "data/pokemon/catalogs/items.json",
+        "types": "data/pokemon/catalogs/types.json",
+        "growth_rates": "data/pokemon/catalogs/growth_rates.json",
+        "natures": "data/pokemon/catalogs/natures.json",
+        "egg_groups": "data/pokemon/catalogs/egg_groups.json",
+        "habitats": "data/pokemon/catalogs/habitats.json",
+        "encounter_rules": "data/pokemon/catalogs/encounter_rules.json",
+        "generations": "data/pokemon/catalogs/generations.json",
+        "version_groups": "data/pokemon/catalogs/version_groups.json"
+      }
+    }
+  },
+  "map": {
+    "id": "hall",
+    "name": "Hall",
+    "version": "v8",
+    "size": {
+      "width": 4,
+      "height": 4
+    },
+    "entities": [
+      {
+        "id": "door",
+        "kind": "sign",
+        "pos": {
+          "x": 1,
+          "y": 1
+        },
+        "name": "Porte"
+      }
+    ]
+  },
+  "itemCatalog": {
+    "schemaVersion": 1,
+    "entries": [
+      {
+        "id": "kit",
+        "displayName": "Nécessaire",
+        "pocketId": "items"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "sourceKind": "badge",
+      "sourceId": "mark",
+      "operator": "isFalse",
+      "label": "Insigne du passage"
+    },
+    {
+      "sourceKind": "inventoryItem",
+      "sourceId": "kit",
+      "operator": "isFalse",
+      "field": "minimumQuantity",
+      "value": "3",
+      "label": "Moins de trois nécessaires"
+    },
+    {
+      "sourceKind": "factLikeStoryFlag",
+      "sourceId": "pass_open",
+      "operator": "isFalse",
+      "label": "Passage ouvert"
+    },
+    {
+      "sourceKind": "playerAtEntityAnchor",
+      "sourceId": "door",
+      "mapId": "hall",
+      "operator": "isFalse",
+      "label": "Porte du hall"
+    },
+    {
+      "sourceKind": "mapEventInstanceBoolean",
+      "sourceId": "door",
+      "mapId": "hall",
+      "key": "ouverte",
+      "operator": "isFalse",
+      "label": "État de la porte"
+    }
+  ],
+  "invalidSources": [
+    {
+      "sourceKind": "inventoryItem",
+      "sourceId": "kit",
+      "operator": "isTrue",
+      "field": "minimumQuantity",
+      "value": "0"
+    },
+    {
+      "sourceKind": "playerAtEntityAnchor",
+      "sourceId": "absent",
+      "mapId": "hall",
+      "operator": "isTrue"
+    },
+    {
+      "sourceKind": "mapEventInstanceBoolean",
+      "sourceId": "door",
+      "mapId": "hall",
+      "key": "",
+      "operator": "isTrue"
+    }
+  ]
+}
