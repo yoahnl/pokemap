@@ -9,12 +9,15 @@ import 'package:test/test.dart';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'support/literal_tile_fixture.dart';
 
-Future<({SourceEventProjection projection, SourceEventAnalysis analysis})> _project({
+Future<({SourceEventProjection projection, SourceEventAnalysis analysis,
+      NormalizedSourceProject source
+    })> _project({
   int target = 0, bool repeat = false, bool skippable = false,
   List<int> codes = const [26, 15, 25], int ticks = 8,
   bool barrier = true, bool corruptCopy = false, bool warp = false,
   bool orientationRead = false, int moveType = 0,
   bool forgeOwner = false, bool parallel = false,
+  String? passiveContext,
 }) async {
   final steps = [for (final code in codes) LiteralFixtureObject('RPG::MoveCommand',
       {'@code': code, '@parameters': code == 15 ? <Object?>[ticks] : <Object?>[]})];
@@ -48,7 +51,57 @@ Future<({SourceEventProjection projection, SourceEventAnalysis analysis})> _proj
         if (parallel) const LiteralFixtureEvent(id: 2, x: 0, y: 0, name: 'Parallel',
           pages: [LiteralFixtureEventPage(trigger: 4, commands: [
             LiteralFixtureEventCommand(101, ['Concurrent.']), LiteralFixtureEventCommand(0, [])])]),
-      ])]);
+          if (passiveContext != null)
+            LiteralFixtureEvent(
+                id: 3,
+                x: 0,
+                y: 0,
+                name: 'Ordinary screen',
+                pages: [
+                  LiteralFixtureEventPage(
+                      trigger: passiveContext == 'parallel' ? 4 : 3,
+                      selfSwitch: passiveContext == 'condition' ? null : 'A',
+                      commands: [
+                        LiteralFixtureEventCommand(101, [
+                          passiveContext == 'control'
+                              ? r'Unknown\ch[1,2,Yes,No]'
+                              : 'A programme.'
+                        ]),
+                        if (passiveContext == 'route') ...[
+                          LiteralFixtureEventCommand(209, [
+                            0,
+                            LiteralFixtureObject('RPG::MoveRoute', {
+                              '@repeat': false,
+                              '@skippable': false,
+                              '@list': [
+                                const LiteralFixtureObject('RPG::MoveCommand',
+                                    {'@code': 19, '@parameters': <Object?>[]}),
+                                const LiteralFixtureObject('RPG::MoveCommand',
+                                    {'@code': 0, '@parameters': <Object?>[]})
+                              ],
+                            })
+                          ]),
+                          const LiteralFixtureEventCommand(509, [
+                            LiteralFixtureObject('RPG::MoveCommand',
+                                {'@code': 19, '@parameters': <Object?>[]})
+                          ]),
+                        ],
+                        if (passiveContext == 'foreignFlag')
+                          const LiteralFixtureEventCommand(121, [1, 1, 0]),
+                        if (passiveContext == 'variable')
+                          const LiteralFixtureEventCommand(
+                              122, [1, 1, 0, 0, 5]),
+                        if (passiveContext == 'effect')
+                          const LiteralFixtureEventCommand(
+                              355, ['unqualifiedEffect()']),
+                        LiteralFixtureEventCommand(123, [
+                          passiveContext == 'foreignSelf' ? 'B' : 'A',
+                          passiveContext == 'resetTrue' ? 0 : 1
+                        ]),
+                        const LiteralFixtureEventCommand(0, []),
+                      ])
+                ]),
+        ])]);
   var analysis = SourceEventAnalyzer.forProject(fixture.source,
       profile: SourceEventProfile.forProject(fixture.source)).analyze();
   if (forgeOwner) {
@@ -61,7 +114,9 @@ Future<({SourceEventProjection projection, SourceEventAnalysis analysis})> _proj
   }
   final imported = await const SourceEventCharacterImporter().read(snapshot: fixture.snapshot,
       files: fixture.files, charsetName: 'Guide', sourcePattern: 0, sourceDirection: 2);
-  return (analysis: analysis, projection: const SourceEventProjector().project(
+  return (
+    source: fixture.source,
+    analysis: analysis, projection: const SourceEventProjector().project(
       source: fixture.source, analysis: analysis,
       nativeMaps: {1: const MapData(id: 'guide-map', name: 'Guide', size: GridSize(width: 3, height: 3))},
       characterBindings: {imported.bindingKey: imported.binding}));
@@ -137,6 +192,65 @@ void main() {
     expect(row['status'], 'quarantinedWholeEvent');
     expect(row['gaps'], contains('relativeInteractionFacingUnsupported'));
   });
+
+  test('admits a source-bound text autorun that only clears its own condition',
+      () async {
+    final result = await _project(passiveContext: 'safe');
+    final row = (result.projection.semanticEvidence['events'] as List)
+        .cast<Map>()
+        .singleWhere((row) => row['locator']['eventId'] == 1);
+    expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
+    final owner = result.analysis.eventAt(1, 3)!;
+    expect(
+        sourceTextSelfResetAutorunIsBound(
+            source: result.source,
+            profile: result.analysis.profile,
+            event: owner,
+            page: owner.pages.single),
+        isTrue);
+    for (final variant in ['name', 'position']) {
+      final forged = SourceEventDefinition(
+          identity: owner.identity,
+          sourceFileId: owner.sourceFileId,
+          sourceMapId: owner.sourceMapId,
+          sourceEventId: owner.sourceEventId,
+          name: variant == 'name' ? 'Forged' : owner.name,
+          x: variant == 'position' ? 2 : owner.x,
+          y: owner.y,
+          locator: owner.locator,
+          pages: owner.pages);
+      expect(
+          sourceTextSelfResetAutorunIsBound(
+              source: result.source,
+              profile: result.analysis.profile,
+              event: forged,
+              page: owner.pages.single),
+          isFalse);
+    }
+  });
+
+  for (final context in [
+    'route',
+    'foreignFlag',
+    'foreignSelf',
+    'variable',
+    'effect',
+    'parallel',
+    'condition',
+    'resetTrue',
+    'control'
+  ]) {
+    test(
+        'refuses unsafe concurrent context $context without ignoring its effects',
+        () async {
+      final result = await _project(passiveContext: context);
+      final row = (result.projection.semanticEvidence['events'] as List)
+          .cast<Map>()
+          .singleWhere((row) => row['locator']['eventId'] == 1);
+      expect(row['status'], 'quarantinedWholeEvent');
+      expect(row['gaps'], contains('relativeInteractionFacingUnsupported'));
+    });
+  }
 
   for (final variant in ['target', 'repeat', 'skippable', 'movement', 'order',
     'ticks', 'barrier', 'copy', 'warp', 'orientation', 'autonomous']) {

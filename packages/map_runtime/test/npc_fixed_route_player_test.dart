@@ -7,6 +7,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/parse_yarn_dialogue.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
+import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 
 const _id = 'walker';
 const _mapId = 'fixed-route-center';
@@ -61,6 +62,32 @@ void main() {
       expect(encounterRandom.nextInt(100), 31);
     },
   );
+
+  test('owning Scene activity suspends random facing across gaps without dialogue or cinematic overlays', () async {
+    final activity = NarrativeRuntimeActivityGate();
+    final random = _CountingRandom([1, 2, 3]);
+    final game = await _load(
+      _bundle(randomFacing: true),
+      npcRouteRandom: random,
+      narrativeRuntimeActivityGate: activity,
+    );
+    await _pump(game, milliseconds: 600);
+    final before = game.debugNpcActorFacing(_id);
+    final lease = activity.enter(NarrativeRuntimeActivity.sceneActive);
+    addTearDown(lease.close);
+    for (var fragment = 0; fragment < 3; fragment++) {
+      await _pump(game, milliseconds: 6000);
+      expect(game.debugFlowPhaseName, 'overworld');
+      expect(game.debugNpcActorFacing(_id), before);
+      expect(game.debugMapEntityPosition(_id), _origin);
+      expect(random.draws, 0);
+    }
+    lease.close();
+    await _pump(game, milliseconds: 700);
+    expect(random.draws, 0);
+    await _until(game, () => random.draws > 0);
+    expect(game.debugNpcActorFacing(_id), isNot(before));
+  });
 
   for (final lock in RuntimeExternalInputLock.values) {
     test(
@@ -516,6 +543,7 @@ final class _FixedRouteGame extends PlayableMapGame {
     super.initialMapActivationReason,
     super.encounterRandom,
     super.npcRouteRandom,
+    super.narrativeRuntimeActivityGate,
   }) : super(
          projectFilePath: '/tmp/fixed-route-player/project.json',
          dialogueSessionLoader: (_) async => DialogueSession.start(
@@ -534,12 +562,14 @@ Future<PlayableMapGame> _load(
   GameState? state,
   math.Random? encounterRandom,
   math.Random? npcRouteRandom,
+  NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
 }) async {
   final game = _FixedRouteGame(
     bundle: bundle,
     initialGameState: state,
     encounterRandom: encounterRandom,
     npcRouteRandom: npcRouteRandom,
+    narrativeRuntimeActivityGate: narrativeRuntimeActivityGate,
     initialMapActivationReason: state == null
         ? MapActivationReason.initialBoot
         : MapActivationReason.saveRestore,

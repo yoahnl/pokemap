@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 import 'native_mutation_batches.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
+import 'source_portrait_binding.dart';
 import 'source_event_character_identity.dart';
 import 'source_event_evidence.dart';
 import 'source_center_recovery_binding.dart';
@@ -448,6 +449,49 @@ final class SourceEventStudyComposer {
     final stairContexts = {for (final key in stairPrograms.keys) key: localDoorContexts[key]!};
     final holeContexts = {for (final key in holePrograms.keys) key: localDoorContexts[key]!};
     final elevatorContexts = {for (final key in elevatorPrograms.keys) key: localDoorContexts[key]!};
+    final portraitBindings = <ConverterId, SourcePortraitBinding>{};
+    final portraitEvidence = <Map<String, Object?>>[];
+    for (final event in selectedEvents) {
+      final programs = event.pages
+          .expand((page) => page.body.nodes)
+          .whereType<SourcePortraitProgramNode>()
+          .toList();
+      if (programs.isEmpty) continue;
+      try {
+        final binding = await const SourcePortraitBindingResolver().read(
+            source: source,
+            analysis: analysis,
+            event: event,
+            program: programs.single,
+            files: recording,
+            limits: limits,
+            cancellation: cancellation);
+        portraitBindings[event.identity] = binding;
+      } on NativeWriteException catch (error) {
+        if (error.code.contains('changed') ||
+            error.code.contains('quota') ||
+            error.code.contains('hash')) {
+          rethrow;
+        }
+        portraitEvidence.add({
+          'identity': event.identity.value,
+          'status': 'preservedOnly',
+          'code': error.code
+        });
+      } on ContractError catch (error) {
+        if (error.code.contains('changed') ||
+            error.code.contains('quota') ||
+            error.code.contains('hash') ||
+            error.code.contains('limit')) {
+          rethrow;
+        }
+        portraitEvidence.add({
+          'identity': event.identity.value,
+          'status': 'preservedOnly',
+          'code': error.code
+        });
+      }
+    }
     final characterArtifacts = <NativeArtifact>[];
     final characterMutations = <NativeMutation>[];
     final characterEvidence = <Map<String, Object?>>[];
@@ -466,6 +510,7 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
+            portraitBindings: portraitBindings,
             healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -556,7 +601,8 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
-            healingDisplayBinding: healingDisplay,
+        portraitBindings: portraitBindings,
+        healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
             fieldObstacleRefusals: fieldObstacles?.refusals ?? const {},
@@ -583,6 +629,10 @@ final class SourceEventStudyComposer {
     final admittedIdentities = (projection.semanticEvidence['events'] as List).cast<Map>()
         .where((row) => row['status'] == 'adaptedStaticSemantics')
         .map((row) => ConverterId(row['sourceIdentity'] as String)).toSet();
+    final usedPortraits = portraitBindings.entries
+        .where((entry) => admittedIdentities.contains(entry.key))
+        .map((entry) => entry.value)
+        .toList();
     final usedGyms = trainerBindings.byEventIdentity.entries
         .where((entry) => admittedIdentities.contains(entry.key) && entry.value.gymLeader != null)
         .map((entry) => entry.value.gymLeader!).toList();
@@ -615,6 +665,13 @@ final class SourceEventStudyComposer {
     }
     final preservedFileIds =
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
+    for (final portrait in usedPortraits) {
+      preservedFileIds.addAll([
+        portrait.scriptsFile.fileId.value,
+        portrait.actorImport.imageFile.fileId.value,
+        portrait.poseImport.imageFile.fileId.value
+      ]);
+    }
     for (final gym in usedGyms) {
       preservedFileIds.addAll([gym.settingsFile.fileId.value,
         gym.metadataFile.fileId.value, gym.audioFile.fileId.value]);
@@ -829,6 +886,7 @@ final class SourceEventStudyComposer {
         ...usedTownMap.map((b) => b.artifact),
         if (usedFieldObstacles != null) ...usedFieldObstacles.artifacts,
         ...characterArtifacts,
+        ...usedPortraits.expand((portrait) => portrait.artifacts),
         ...usedHealingDisplay.expand((b) => b.artifacts),
         if (usedExternalWarps != null) ...usedExternalWarps.artifacts,
         ...usedCenterRecovery.map((b) => b.artifact),
@@ -856,6 +914,7 @@ final class SourceEventStudyComposer {
     for (final entry in [
       if (usedExternalWarps != null) ...usedExternalWarps.mutations,
       ...characterMutations,
+      ...usedPortraits.expand((portrait) => portrait.mutations),
       ...usedHealingDisplay.expand((b) => b.mutations),
       if (usedFieldObstacles != null) ...usedFieldObstacles.mutations,
       ...usedGyms.expand((gym) => [gym.audioMutation, gym.badgeMutation]),
@@ -914,6 +973,10 @@ final class SourceEventStudyComposer {
       'profile': profile.toJson(),
       'projection': projection.semanticEvidence,
       'characters': characterEvidence,
+      'portraitBindings': [
+        ...portraitEvidence,
+        ...usedPortraits.map((portrait) => portrait.toJson())
+      ],
       'items': items?.evidence,
       'pickups': pickupEvidence,
       'diagnostics': {

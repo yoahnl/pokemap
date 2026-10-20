@@ -65,6 +65,15 @@ const _formattingEntities = {
       (text: text.toString(), spans: spans, repairedClosingTags: repaired);
 }
 
+int sourceDialogueLiteralUnknownICount(String source) {
+  var count = 0;
+  for (var index = 0; index + 1 < source.length; index++) {
+    if (source[index] != r'\') continue;
+    if (source[++index] == 'i') count++;
+  }
+  return count;
+}
+
 final _variableControl = RegExp(r'\\v\[([0-9]+)\]', caseSensitive: false);
 final _speedControl = RegExp(r'\\ts\[([0-9]*)\]', caseSensitive: false);
 final _autoWaitControl =
@@ -144,6 +153,7 @@ DialogueLineFeedback? parseSourceDialogueText(
   bool allowTiming = true,
   bool allowLiteralEscapes = true,
   bool allowNativePlaceholders = false,
+  bool allowLiteralUnknownI = false,
   String? Function(int sourceVariableId)? variablePlaceholder,
   DialogueAudioCue? Function(
           String name, int volume, int pitch, int revealOffset)?
@@ -284,6 +294,11 @@ DialogueLineFeedback? parseSourceDialogueText(
                 ? 0xff3050c8
                 : 0xffe00808,
             shadowColorArgb: 0xffd0d0c8);
+      case 'i':
+        if (!allowLiteralUnknownI || source[index - 1] != 'i') {
+          return refuse('sourceTextControlUnsupported');
+        }
+        text.write(r'\i');
       default:
         return refuse('sourceTextControlUnsupported');
     }

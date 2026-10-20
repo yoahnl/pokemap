@@ -632,6 +632,7 @@ final class SourceDirectedJumpStudyComposer {
         throw const NativeWriteException('jumps.native_binding',
             'Directed Border maps require exact bounded source geometry');
       }
+      Sha256Hash? sourceZ1LayerHash;
       for (var y = 0; y < original.height; y++) {
         cancellation?.check();
         for (var x = 0; x < original.width; x++) {
@@ -760,9 +761,9 @@ final class SourceDirectedJumpStudyComposer {
                         tilesetId: crop.nativeTilesetId,
                         localTileId: crop.nativeLocalTileId) ||
                 provenance.sourceLayerHash !=
-                    canonicalHashOf(original.layers
+                    (sourceZ1LayerHash ??= canonicalHashOf(original.layers
                         .singleWhere((l) => l.sourceZ == 1)
-                        .cells)) {
+                        .cells))) {
               throw const NativeWriteException('jumps.native_glyph',
                   'Source Border requires the exact owned Z1 cell, palette, crop and source layer');
             }

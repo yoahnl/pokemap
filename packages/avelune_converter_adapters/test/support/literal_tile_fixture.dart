@@ -91,7 +91,7 @@ final class LiteralFixtureEventPage {
     this.characterName = '', this.pattern = 0, this.tileId = 0,
     this.direction = 2, this.trigger = 0, this.through = false,
     this.moveType = 0, this.directionFix = false, this.moveSpeed = 3,
-    this.walkAnime = true});
+    this.walkAnime = true, this.autonomousRouteCodes = const [0]});
   final List<LiteralFixtureEventCommand> commands;
   final String? selfSwitch;
   final int? globalSwitch;
@@ -107,6 +107,7 @@ final class LiteralFixtureEventPage {
   final int moveType;
   final bool directionFix;
   final int moveSpeed;
+  final List<int> autonomousRouteCodes;
 }
 
 final class LiteralFixtureEventCommand {
@@ -389,7 +390,8 @@ _Object _fixtureEvent(LiteralFixtureEvent event) => _Object('RPG::Event', {
     '@move_type': page.moveType, '@move_speed': page.moveSpeed, '@move_frequency': 3,
     '@move_route': _Object('RPG::MoveRoute', {
       '@repeat': true, '@skippable': false,
-      '@list': [_Object('RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})],
+      '@list': [for (final code in page.autonomousRouteCodes)
+        _Object('RPG::MoveCommand', {'@code': code, '@parameters': <Object?>[]})],
     }),
     '@walk_anime': page.walkAnime, '@step_anime': false, '@direction_fix': page.directionFix,
     '@through': page.through, '@always_on_top': false, '@trigger': page.trigger,

@@ -306,6 +306,8 @@ void _auditSourceFactWriteBlock(
           throw const FormatException();
         }
         write(defeatedFactId, true);
+      case SourcePortraitProgramNode(:final body):
+        _auditSourceFactWriteBlock(body, event, analyzer, writes);
       case SourcePokedexRewardProgramNode(:final rewardFactId):
         if (rewardFactId !=
             analyzer.selfFactId(event.sourceMapId, event.sourceEventId, 'A')) {
@@ -357,6 +359,7 @@ void _auditSourceFactWriteBlock(
       case SourceShopProgramNode():
       case SourcePickupNode():
       case SourceCenterServiceProgramNode():
+      case SourcePortraitPresentationNode():
       case SourceTownMapProgramNode():
       case SourceFieldObstacleProgramNode():
       case SourcePartyTradeProgramNode():

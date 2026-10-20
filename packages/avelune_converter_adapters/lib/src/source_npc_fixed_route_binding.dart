@@ -127,13 +127,14 @@ final class SourceNpcFixedRouteBindingResolver {
         graphic == null ||
         raw == null ||
         graphic.moveType != 3 ||
-        graphic.characterName.isEmpty ||
+        (graphic.characterName.isEmpty && !page.isEmpty) ||
         graphic.tileId != 0 ||
         graphic.hue != 0 ||
         graphic.opacity != 255 ||
         graphic.blendType != 0 ||
         graphic.directionFix ||
-        graphic.through ||
+        (graphic.through &&
+            !(graphic.characterName.isEmpty && page.isEmpty)) ||
         graphic.alwaysOnTop ||
         !graphic.walkAnime ||
         graphic.stepAnime) {
@@ -305,25 +306,40 @@ Map<String, Object?> _pageData(SourceEventPageAnalysis page) {
       'alwaysOnTop': graphic.alwaysOnTop,
       'moveRouteNodeId': graphic.moveRouteNodeId,
     },
-    'body': [
-      for (final node in page.body.nodes)
-        switch (node) {
-          SourceTextNode() when node.followingChoice == null => {
-              'kind': 'text',
-              'text': node.text,
-              'span': node.span.toJson()
-            },
-          SourceInteractionFacingNode() => {
-              'kind': 'interactionFacing',
-              'span': node.span.toJson(),
-              'rawDataRefs':
-                  node.rawDataRefs.map((ref) => ref.toJson()).toList()
-            },
-          SourceTrainerProgramNode() => node.toJson(),
-          _ => _unavailable('program_shape_unsupported'),
-        }
-    ],
+    'body': _fixedRouteBlockData(page.body),
   };
+}
+
+List<Object?> _fixedRouteBlockData(SourceEventBlock block, [int depth = 0]) {
+  if (depth > 64 || block.isQuarantined) {
+    _unavailable('program_shape_unsupported');
+  }
+  Object? nodeData(SourceEventNode node) => {
+    'span': node.span.toJson(),
+    'value': switch (node) {
+      SourceTextNode() => {'kind': 'text', 'text': node.text,
+        'annotations': node.annotations.map((node) => node.toJson()).toList(),
+        'followingChoice': node.followingChoice == null ? null
+            : nodeData(node.followingChoice!)},
+      SourceAnnotationNode() => node.toJson(),
+      SourceChoiceNode() => {'kind': 'choice', 'cancelType': node.cancelType,
+        'cancellation': node.cancellation.toJson(),
+        'branches': [for (final branch in node.branches) {
+          'index': branch.index, 'label': branch.label,
+          'body': _fixedRouteBlockData(branch.body, depth + 1)}],
+        'cancelBranch': node.cancelBranch == null ? null
+            : _fixedRouteBlockData(node.cancelBranch!, depth + 1)},
+      SourceConditionalNode() when node.condition.isQualified => {
+        'kind': 'conditional', 'condition': node.condition.toJson(),
+        'whenTrue': _fixedRouteBlockData(node.whenTrue, depth + 1),
+        'whenFalse': _fixedRouteBlockData(node.whenFalse, depth + 1)},
+      SourceInteractionFacingNode() => {'kind': 'interactionFacing',
+        'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
+      SourceTrainerProgramNode() => node.toJson(),
+      _ => _unavailable('program_shape_unsupported'),
+    },
+  };
+  return block.nodes.map(nodeData).toList();
 }
 
 Map<String, int> _fields(

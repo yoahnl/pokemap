@@ -366,7 +366,8 @@ final class NativeMutation {
         'fact' ||
         'world_rule' ||
         'dialogue' ||
-        'scene' =>
+        'scene' ||
+        'cinematic' =>
           OperationDomain.events,
         'item' || 'pokemon' || 'campaign' => OperationDomain.catalogs,
         _ => OperationDomain.assets,
@@ -1386,6 +1387,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'element.batch_upsert',
           'characterStudio.character.create',
           'characterStudio.character.update',
+          'characterStudio.animationDefinition.create',
           'characterStudio.animationClip.upsert',
           'characterStudio.character.setDefault',
         }.contains(mutation.actionId);
@@ -1399,6 +1401,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'warp.create',
           'dialogue.create',
           'scene.upsert',
+          'cinematic.upsert',
           'world_rule.create',
           'world_rule.update',
           'event_v2.registry_mode.set',
@@ -1513,6 +1516,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final borderSnapshots = <String, NativeArtifact>{};
   var borderResources = SourceBorderReplayResources();
   final characters = <ProjectCharacterEntry>[];
+  final customAnimationDefinitions = <CharacterCustomAnimationDefinition>[];
+  var cinematics = <CinematicAsset>[];
   final trainersById = <String, ProjectTrainerEntry>{};
   final badges = <BadgeDefinition>[];
   final shops = <ShopDefinition>[];
@@ -1718,6 +1723,24 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         }
         characters[index] =
             characters[index].copyWith(name: _string(parameters, 'name'));
+      case 'characterStudio.animationDefinition.create':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'displayName', 'mode'});
+        final displayName = _string(parameters, 'displayName');
+        final id = characterStudioSlug(displayName);
+        final mode = CharacterCustomAnimationMode.values
+            .byName(_string(parameters, 'mode'));
+        if (!_targetIds(mutation.targetEntityIds, {id}) ||
+            customAnimationDefinitions.any((entry) => entry.id == id) ||
+            CharacterAnimationState.values.any((state) => state.name == id)) {
+          throw const NativeWriteException('native.events.custom_animation',
+              'Custom animation definitions require their exact preceding source program.');
+        }
+        customAnimationDefinitions.add(CharacterCustomAnimationDefinition(
+            id: id,
+            displayName: displayName,
+            mode: mode,
+            sortOrder: customAnimationDefinitions.length));
       case 'characterStudio.animationClip.upsert':
         semantics.requireOperation(mutation);
         final id = _string(parameters, 'characterId');
@@ -1726,10 +1749,43 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           throw const NativeWriteException('native.semantics.character',
               'Semantic player clips require their preceding identity');
         }
-        final clip = CharacterAnimation.fromJson(
+        if (parameters['kind'] == 'custom') {
+          _allowParameters(parameters, const {
+            'characterId',
+            'kind',
+            'definitionId',
+            'direction',
+            'sourceAssetId',
+            'loop',
+            'frames'
+          });
+          final clip = CharacterCustomAnimationClip.fromJson(
             Map<String, dynamic>.from(parameters));
-        characters[index] = characters[index]
-            .copyWith(animations: [...characters[index].animations, clip]);
+          final definitions = customAnimationDefinitions
+              .where((entry) => entry.id == clip.definitionId)
+              .toList();
+          if (!_targetIds(mutation.targetEntityIds, {id}) ||
+              definitions.length != 1 ||
+              definitions.single.mode == CharacterCustomAnimationMode.single &&
+                  clip.direction != null ||
+              definitions.single.mode ==
+                      CharacterCustomAnimationMode.directional &&
+                  clip.direction == null ||
+              !assetRecords.any((entry) => entry.id == clip.sourceAssetId) ||
+              characters[index].customAnimations.any((entry) =>
+                  entry.definitionId == clip.definitionId &&
+                  entry.direction == clip.direction)) {
+            throw const NativeWriteException('native.events.custom_animation',
+                'Custom clips require their exact character, definition and imported source atlas.');
+          }
+          characters[index] = characters[index].copyWith(
+              customAnimations: [...characters[index].customAnimations, clip]);
+        } else {
+          final clip = CharacterAnimation.fromJson(
+              Map<String, dynamic>.from(parameters));
+          characters[index] = characters[index]
+              .copyWith(animations: [...characters[index].animations, clip]);
+        }
       case 'characterStudio.character.setDefault':
         semantics.requireOperation(mutation);
         final id = _string(parameters, 'characterId');
@@ -2249,6 +2305,27 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           throw const NativeWriteException('native.events.field_obstacle',
               'Field obstacles require the exact regenerated typed object action.');
         }
+      case 'cinematic.upsert':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'cinematic'});
+        final cinematic = CinematicAsset.fromJson(
+            Map<String, dynamic>.from(parameters['cinematic'] as Map));
+        if (cinematics.any((entry) => entry.id == cinematic.id) ||
+            !_targetIds(mutation.targetEntityIds, {cinematic.id})) {
+          throw const NativeWriteException('native.events.cinematic',
+              'Cinematics require their exact source-bound identity.');
+        }
+        cinematics = const CinematicActions()
+            .upsert(
+                bootstrap.copyWith(
+                    maps: mapEntries,
+                    characters: characters,
+                    cinematics: cinematics,
+                    characterStudioCatalog: ProjectCharacterStudioCatalog(
+                        customAnimationDefinitions:
+                            customAnimationDefinitions)),
+                cinematic: cinematic)
+            .cinematics;
       case 'item.create':
       case 'fact.create':
       case 'fact.update':
@@ -2346,6 +2423,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           materials: smartTileMaterials,
           presets: smartTilePresets),
       characters: characters,
+      characterStudioCatalog: ProjectCharacterStudioCatalog(
+          customAnimationDefinitions: customAnimationDefinitions),
+      cinematics: cinematics,
       badges: badges,
       shops: shops,
       pokemon: bootstrap.pokemon.copyWith(

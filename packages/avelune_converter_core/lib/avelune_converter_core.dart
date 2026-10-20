@@ -35,10 +35,12 @@ part 'src/source_automatic_center_services.dart';
 part 'src/source_shop_program.dart';
 part 'src/source_trainer_program.dart';
 part 'src/source_gym_leader_program.dart';
+part 'src/source_passive_autorun.dart';
 part 'src/source_pbs.dart';
 
 part 'src/source_pokedex_reward_program.dart';
 part 'src/source_town_map_program.dart';
+part 'src/source_portrait_program.dart';
 part 'src/source_field_obstacle_program.dart';
 part 'src/source_party_trade_program.dart';
 part 'src/source_healing_display_program.dart';

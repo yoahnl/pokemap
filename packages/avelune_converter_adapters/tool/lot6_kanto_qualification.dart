@@ -42,6 +42,22 @@ Future<void> main(List<String> args) async {
   final interpretationProfile = SourceInterpretationProfile.fromJson({
     ...rawProfile,
     'profileId': 'kanto-lot6-native-services-and-inline-audio',
+    'presentationBindings': {
+      ...rawProfile['presentationBindings'] as Map? ?? const {},
+      'characterSubstitutions': [
+        ...(rawProfile['presentationBindings']
+                as Map?)?['characterSubstitutions'] as List? ??
+            const [],
+        {
+          'requestedCharset': 'trainer_SCIENTIST',
+          'actualCharset': 'NPC_FRLG_SCIENTIST',
+          'targetSha256':
+              'bf161720028e8197295d993a916d1ecf940f7701f094c3f0dcaaa967697e3c74',
+          'reason':
+              'Adaptation graphique déclarée du portrait : charset demandé absent ; conserver le scientifique de la scène avec un fichier attesté. Parité visuelle source non qualifiée.',
+        },
+      ],
+    },
     'sections': {
       ...rawProfile['sections'] as Map,
       'events.Audio_Play': {
@@ -119,6 +135,8 @@ Future<void> main(List<String> args) async {
       logicalProjectNamespace: ConverterId('ev09-real-source-defects'),
     );
     final snapshot = await workflow.scanSource(selection);
+    await File('${evidence.path}/source-snapshot.json')
+        .writeAsString(jsonEncode(snapshot.toJson()), flush: true);
     result.addAll({
       'phase': 'sourceScanned',
       'snapshotHash': snapshot.canonicalHash.value,
@@ -391,6 +409,3 @@ Future<void> main(List<String> args) async {
     await workflow.dispose();
   }
 }
-
-
-

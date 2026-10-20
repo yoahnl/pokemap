@@ -88,4 +88,46 @@ void main() {
     final projection = await _project(r'<i>Diary<\i>', qualifiedText: false);
     expect(projection.scenes, isEmpty);
   });
+
+  test(
+      'attested unknown i control remains literal without repairing the source word',
+      () async {
+    const text = r'A new Pokémon was discovered deep\in the jungle.';
+    final projection = await _project(text);
+    final row = (projection.semanticEvidence['events'] as List).single as Map;
+    expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
+    final lines = projection.scenes
+        .expand((s) => s.graph.nodes)
+        .map((n) => n.payload)
+        .whereType<SceneYarnDialoguePayload>()
+        .expand((p) => p.linePolicies)
+        .map((p) => p.feedback.plainText)
+        .toList();
+    expect(lines, [text, text]);
+    final evidence = (row['pages'] as List)
+        .expand((p) => p['adaptedCommands'] as List)
+        .cast<Map>()
+        .where(
+            (p) => p['nativeContract'] == 'literalUnknownSourceMessageControl');
+    expect(evidence, hasLength(2));
+    expect(
+        evidence.every((e) =>
+            e['sourceControl'] == r'\i' &&
+            e['literalOccurrences'] == 1 &&
+            e['sourceTextRepaired'] == false),
+        isTrue);
+  });
+
+  for (final (text, qualified) in [
+    (r'Unknown\q', true),
+    (r'Unknown\j', true),
+    (r'Unknown\I', true),
+    (r'Literal\i', false)
+  ]) {
+    test(
+        'literal i handling does not admit other controls or unqualified text $text/$qualified',
+        () async {
+      expect((await _project(text, qualifiedText: qualified)).scenes, isEmpty);
+    });
+  }
 }
