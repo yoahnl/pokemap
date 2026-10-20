@@ -5,6 +5,7 @@ import '../ports/project_file_reader.dart';
 import '../support/authoring_fingerprint.dart';
 import 'revision_set.dart';
 import '../security/resource_pack_bulk_capability.dart';
+import '../workspace/native_project_creation.dart';
 
 enum AuthoringTransactionCheckpointProfile { perResource, phaseOnly }
 
@@ -122,6 +123,7 @@ final class AuthoringTransactionJournal {
     required this.intendedReceipt,
     this.finalReceipt,
     this.bulkCapability,
+    this.nativeCreationCapability,
   })  : operationId = _safeIdentity(operationId, 'operationId'),
         planId = _safeIdentity(planId, 'planId'),
         createdAt = createdAt.toUtc(),
@@ -129,6 +131,29 @@ final class AuthoringTransactionJournal {
         entries = _sortedEntries(entries) {
     if (this.entries.isEmpty) {
       throw ArgumentError.value(entries, 'entries', 'must not be empty');
+    }
+    final nativeCapability = nativeCreationCapability;
+    if (nativeCapability != null) {
+      if (bulkCapability != null) {
+        throw const FormatException(
+            'A transaction cannot have two bulk capabilities.');
+      }
+      nativeCapability.requireBinding(
+          actorId: scope.actorId,
+          projectId: scope.projectId,
+          planId: this.planId,
+          operationId: this.operationId,
+          actionId: scope.actionId,
+          actionVersion: scope.actionVersion,
+          diff: intendedReceipt.diff,
+          entries: [
+            for (final entry in this.entries)
+              (
+                storageKey: entry.storageKey,
+                beforeRevision: entry.beforeRevision,
+                afterRevision: entry.afterRevision
+              )
+          ]);
     }
     final capability = bulkCapability;
     if (capability != null) {
@@ -253,6 +278,7 @@ final class AuthoringTransactionJournal {
       'finalReceipt',
       'checkpointProfile',
       'bulkCapability',
+      'nativeCreationCapability',
     };
     if (json.keys.any((key) => !keys.contains(key)) ||
         json['schemaVersion'] != 2) {
@@ -281,12 +307,20 @@ final class AuthoringTransactionJournal {
           ? null
           : ResourcePackBulkCapability.fromJournalJson(
               Map<String, dynamic>.from(json['bulkCapability'] as Map));
-      final expectedProfile = capability == null ? 'perResource' : 'phaseOnly';
+      final nativeCapability = json['nativeCreationCapability'] == null
+          ? null
+          : NativeProjectCreationCapability.fromJournalJson(
+              Map<String, dynamic>.from(
+                  json['nativeCreationCapability'] as Map));
+      final expectedProfile = capability == null && nativeCapability == null
+          ? 'perResource'
+          : 'phaseOnly';
       if (json['checkpointProfile'] != expectedProfile) {
         throw const FormatException('Invalid checkpoint profile.');
       }
       return AuthoringTransactionJournal(
         bulkCapability: capability,
+        nativeCreationCapability: nativeCapability,
         operationId: _requiredString(json['operationId'], 'operationId'),
         planId: _requiredString(json['planId'], 'planId'),
         scope: AuthoringIdempotencyScope.fromJson(
@@ -329,8 +363,9 @@ final class AuthoringTransactionJournal {
   final AuthoringReceipt intendedReceipt;
   final AuthoringReceipt? finalReceipt;
   final ResourcePackBulkCapability? bulkCapability;
+  final NativeProjectCreationCapability? nativeCreationCapability;
   AuthoringTransactionCheckpointProfile get checkpointProfile =>
-      bulkCapability == null
+      bulkCapability == null && nativeCreationCapability == null
           ? AuthoringTransactionCheckpointProfile.perResource
           : AuthoringTransactionCheckpointProfile.phaseOnly;
 
@@ -350,6 +385,7 @@ final class AuthoringTransactionJournal {
       entries: entries ?? this.entries,
       intendedReceipt: intendedReceipt,
       bulkCapability: bulkCapability,
+      nativeCreationCapability: nativeCreationCapability,
       finalReceipt: identical(finalReceipt, _unchangedReceipt)
           ? this.finalReceipt
           : finalReceipt as AuthoringReceipt?,
@@ -360,6 +396,8 @@ final class AuthoringTransactionJournal {
         'schemaVersion': 2,
         'checkpointProfile': checkpointProfile.name,
         if (bulkCapability != null) 'bulkCapability': bulkCapability!.toJson(),
+        if (nativeCreationCapability != null)
+          'nativeCreationCapability': nativeCreationCapability!.toJson(),
         'operationId': operationId,
         'planId': planId,
         'scope': scope.toJson(),

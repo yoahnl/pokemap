@@ -1814,7 +1814,6 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         final prepared = request.prepared!;
         final draft = prepared.nativeDraft!;
         final approval = request.approval!;
-        var applied = 0;
         await relay.start(
             ConverterWorkflowPhase.validateNativeBindings, JobUnit.operations);
         final context =
@@ -1906,7 +1905,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
               relay.finish();
               await relay.start(
                   ConverterWorkflowPhase.writeNative, JobUnit.operations,
-                  total: draft.mutations.length);
+                  total: 1);
             }
             await publicationJob!
                 .recordWriteCheckpoint(stage, stagingRoot, projectPath);
@@ -1934,10 +1933,10 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 failure.message,
                 stagingPath: stagingRoot);
           }
-          if (stage == NativeWriteStage.afterMutation) {
+          if (stage == NativeWriteStage.afterCreation) {
             relay.update(JobProgress(
-                done: ++applied,
-                total: draft.mutations.length,
+                done: 1,
+                total: 1,
                 unit: JobUnit.operations));
           }
         });

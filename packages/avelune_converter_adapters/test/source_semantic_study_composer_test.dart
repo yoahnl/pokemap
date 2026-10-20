@@ -267,7 +267,7 @@ scriptsBytes: scripts, extraFiles: {
       final approval = approveNativeFixtureDraft(draft);
       final receipt = await NativeProjectWriter(
           checkpoint: (stage, stagingRoot, projectPath) async {
-        if (stage != NativeWriteStage.afterMutation ||
+        if (stage != NativeWriteStage.afterCreation ||
             mutationIndex++ != firstClip) {
           return;
         }

@@ -242,3 +242,7 @@ export 'src/application/resource_pack_job_service.dart';
 export 'src/api/local_resource_pack_transfer_api.dart';
 
 export 'src/workspace/catalog_project_materialization.dart';
+
+export 'src/workspace/native_project_creation.dart';
+
+export 'src/workspace/native_project_creation_transport.dart';

@@ -20,11 +20,13 @@ final class LocalTransactionFileGateway
   LocalTransactionFileGateway._(
     this._projectRoot,
     this._performanceObserver,
+    this._expectedProjectRoot,
   );
 
   static Future<LocalTransactionFileGateway> open({
     required String projectRoot,
     AuthoringPerformanceObserver? performanceObserver,
+    String? expectedProjectRoot,
   }) async {
     try {
       final directory = Directory(projectRoot);
@@ -34,9 +36,19 @@ final class LocalTransactionFileGateway
           'The transaction project root is not a directory.',
         );
       }
+      final canonicalRoot = await directory.resolveSymbolicLinks();
+      if (expectedProjectRoot != null &&
+          (canonicalRoot != expectedProjectRoot ||
+              await FileSystemEntity.type(projectRoot, followLinks: false) !=
+                  FileSystemEntityType.directory)) {
+        throw const TransactionFileGatewayException(
+            'transaction.project_root_changed',
+            'The reserved project root changed.');
+      }
       return LocalTransactionFileGateway._(
-        await directory.resolveSymbolicLinks(),
+        canonicalRoot,
         performanceObserver,
+        expectedProjectRoot,
       );
     } on TransactionFileGatewayException {
       rethrow;
@@ -49,6 +61,7 @@ final class LocalTransactionFileGateway
   }
 
   final String _projectRoot;
+  final String? _expectedProjectRoot;
   final AuthoringPerformanceObserver? _performanceObserver;
 
   static final Map<String, Future<void>> _projectWriters = {};
@@ -72,6 +85,7 @@ final class LocalTransactionFileGateway
   Future<T> _withFilesystemWriteLock<T>(Future<T> Function() operation) async {
     late final RandomAccessFile lock;
     try {
+      await _requireExpectedProjectRoot();
       final internalRoot = await _ensureInternalRoot();
       lock = await File(_join(internalRoot.path, 'write.lock')).open(
         mode: FileMode.append,
@@ -664,8 +678,21 @@ final class LocalTransactionFileGateway
         return chunk;
       });
 
+  Future<void> _requireExpectedProjectRoot() async {
+    final expected = _expectedProjectRoot;
+    if (expected == null) return;
+    if (await FileSystemEntity.type(expected, followLinks: false) !=
+            FileSystemEntityType.directory ||
+        await Directory(expected).resolveSymbolicLinks() != expected) {
+      throw const TransactionFileGatewayException(
+          'transaction.project_root_changed',
+          'The reserved native project root changed.');
+    }
+  }
+
   Future<T> _guardIo<T>(Future<T> Function() operation) async {
     try {
+      await _requireExpectedProjectRoot();
       return await operation();
     } on TransactionFileGatewayException {
       rethrow;

@@ -2150,6 +2150,9 @@ void main() {
         final result = source.workflow.state.result!;
         expect(result.receipt.verified, isTrue);
         expect(result.receipt.mapHashes, hasLength(2));
+        expect(result.receipt.importUndoHistoryRetained, isFalse);
+        expect(source.nativeStages.where((stage) => stage == NativeWriteStage.beforeCreation), hasLength(1));
+        expect(source.nativeStages.where((stage) => stage == NativeWriteStage.afterCreation), hasLength(1));
         expect(result.published, isTrue);
         expect(result.playableCertified, isFalse);
         await _waitFor(tester, () => inspectedProject != null);
@@ -2211,7 +2214,7 @@ void main() {
       final harness = await tester.runAsync(
         () => _OriginalSource.create(
           checkpoint: (stage, stagingRoot, _) async {
-            if (stage == NativeWriteStage.afterBootstrap && pause) {
+            if (stage == NativeWriteStage.afterCreation && pause) {
               pause = false;
               recoveredFolder = stagingRoot;
               entered.complete();

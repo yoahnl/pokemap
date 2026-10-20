@@ -11,7 +11,7 @@ import 'support/native_writer_fixture.dart';
 
 void main() {
   for (final count in [8, 9]) {
-    test('$count composed maps retain import undo history only through eight',
+    test('$count composed maps use one durable native creation with editable undo after reopen',
         () async {
       final root = await Directory.systemTemp.createTemp('bootstrap-history-');
       addTearDown(() => root.delete(recursive: true));
@@ -40,19 +40,16 @@ void main() {
       final receipt = await const NativeProjectWriter()
           .write(approval.plan, approval.context, draft, limits: limits);
       expect(receipt.verified, isTrue);
-      expect(receipt.importUndoHistoryRetained, count <= 8);
+      expect(receipt.importUndoHistoryRetained, isFalse);
+      expect(receipt.creationTransactionReceipt.actionId, nativeProjectCreationActionId);
+      expect(receipt.creationTransactionReceipt.status, AuthoringReceiptStatus.applied);
       expect(receipt.mapHashes, hasLength(count));
       final files = await readNativeStudyTree(receipt.projectPath);
       final history = _lines(files['.pokemap/authoring/history.jsonl']);
       final blobs = files.keys.where((key) =>
           key.startsWith('.pokemap/authoring/blobs/') && key.endsWith('.blob'));
-      if (count <= 8) {
-        expect(history, hasLength(draft.mutations.length));
-        expect(blobs, isNotEmpty);
-      } else {
-        expect(history, isEmpty);
-        expect(blobs, isEmpty);
-      }
+      expect(history, isEmpty);
+      expect(blobs, isEmpty);
       await _verifyDurability(receipt, draft);
       await _reopenEditUndo(receipt, composition, draft);
       expect(await readNativeStudyTree(source.sourceRootPath!), before);
@@ -76,27 +73,14 @@ Future<void> _verifyDurability(
           Map<String, Object?>.from(row['record'] as Map)))
       .where((record) => record.status == AuthoringIdempotencyStatus.completed)
       .toList();
-  expect(completed.where((record) => record.scope.actionId == 'project.create'),
+  expect(completed.where((record) => record.scope.actionId == nativeProjectCreationActionId),
       hasLength(1));
-  final imported = completed
-      .where((record) => record.scope.actionId != 'project.create')
-      .toList();
-  expect(
-      imported.map((record) => record.operationId),
-      unorderedEquals(
-          draft.mutations.map((mutation) => mutation.operationId.value)));
-  expect(
-      imported.every(
-          (record) => record.receipt?.status == AuthoringReceiptStatus.applied),
-      isTrue);
+  expect(completed, hasLength(1));
+  expect(completed.single.receipt?.receiptId,
+      receipt.creationTransactionReceipt.receiptId);
+  expect(completed.single.receipt?.status, AuthoringReceiptStatus.applied);
   final audit = _lines(files['.pokemap/authoring/audit.jsonl']);
-  expect(audit, hasLength(draft.mutations.length));
-  for (final row in audit) {
-    final record = AuthoringAuditRecord.fromJson(
-        Map<String, Object?>.from(row['record'] as Map));
-    expect(record.decision, AuthoringAuditDecision.succeeded);
-    expect(record.receiptId, isNotNull);
-  }
+  expect(audit, isEmpty);
   final gateway =
       await LocalTransactionFileGateway.open(projectRoot: receipt.projectPath);
   final journals = await gateway.listJournals();
@@ -135,28 +119,16 @@ Future<void> _reopenEditUndo(NativeWriteReceipt receipt,
     }
     final initialHistory =
         await api.listMutationHistory(opened.projectHandle, limit: 100);
-    expect(
-        initialHistory.entries,
-        hasLength(
-            receipt.importUndoHistoryRetained ? draft.mutations.length : 0));
-    if (receipt.importUndoHistoryRetained) {
-      final replay = await api.recoverMutation(opened.projectHandle,
-          operationId: draft.mutations.first.operationId.value);
-      expect(replay.receipt.status, AuthoringReceiptStatus.applied);
-      expect(replay.snapshotRevision, before.revision);
-    } else {
-      await expectLater(
-          api.recoverMutation(opened.projectHandle,
-              operationId: draft.mutations.first.operationId.value),
-          throwsA(isA<AuthoringAuthorizationException>().having(
-              (error) => error.code,
-              'code',
-              'authorization.replay_context_mismatch')));
-      final refused = await snapshots.load(opened.projectHandle,
-          policy: ProjectSnapshotLoadPolicy.strict);
-      expect(refused.revision, before.revision);
-      expect(refused.manifest.toJson(), before.manifest.toJson());
-    }
+    expect(initialHistory.entries, isEmpty);
+    await expectLater(
+        api.recoverMutation(opened.projectHandle,
+            operationId: draft.mutations.first.operationId.value),
+        throwsA(isA<AuthoringRecoveryException>().having(
+            (error) => error.code, 'code', 'recovery.journal_missing')));
+    final refused = await snapshots.load(opened.projectHandle,
+        policy: ProjectSnapshotLoadPolicy.strict);
+    expect(refused.revision, before.revision);
+    expect(refused.manifest.toJson(), before.manifest.toJson());
     expect(
         (await api.listMutationHistory(opened.projectHandle, limit: 100))
             .entries,

@@ -49,6 +49,7 @@ import '../catalog_storage/catalog_storage_store.dart';
 import '../api/local_map_authoring_mutation_api.dart';
 import '../workspace/project_creation_contracts.dart';
 import '../workspace/project_creation_bootstrap_api.dart';
+import '../workspace/native_project_creation_transport.dart';
 import '../workspace/project_pokemon_ruleset_bootstrap_service.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
@@ -68,6 +69,7 @@ final class JsonlWorker {
     ResourcePackTransferApiPort? resourcePacks,
     ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
     ProjectCreationBootstrapApiPort? projectCreation,
+    NativeProjectCreationTransportPort? nativeProjectCreation,
     GamePackageExportApiPort? gameExport,
     GamePackageExportProfileApiPort? exportProfiles,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
@@ -78,6 +80,7 @@ final class JsonlWorker {
        _resourcePacks = resourcePacks,
        _projectBootstrap = projectBootstrap,
        _projectCreation = projectCreation,
+       _nativeProjectCreation = nativeProjectCreation,
        _gameExport = gameExport,
        _exportProfiles = exportProfiles {
     if (maxInputBytes <= 0) {
@@ -110,6 +113,7 @@ final class JsonlWorker {
   final ResourcePackTransferApiPort? _resourcePacks;
   final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
   final ProjectCreationBootstrapApiPort? _projectCreation;
+  final NativeProjectCreationTransportPort? _nativeProjectCreation;
   final GamePackageExportApiPort? _gameExport;
   final GamePackageExportProfileApiPort? _exportProfiles;
   final int maxInputBytes;
@@ -119,6 +123,7 @@ final class JsonlWorker {
   Future<void> close() => _closing ??= _closeWorkspaces();
 
   Future<void> _closeWorkspaces() async {
+    _nativeProjectCreation?.close();
     for (final workspace in _openedWorkspaces.toList()) {
       await _resourcePacks?.closeTransferWorkspace(workspace);
       await _mutations?.detachWorkspace(workspace);
@@ -150,10 +155,11 @@ final class JsonlWorker {
       rejectUnknownContractKeys(decoded, const {'id', 'command', 'args'});
       requestId = requireContractString(decoded['id'], 'id');
       final command = requireContractString(decoded['command'], 'command');
-      creationCommand = command == 'project_create';
+      creationCommand = command == 'project_create' || command == 'project_native_publish';
       final args = _jsonObject(decoded['args'], 'args');
       final timeout =
-          command == 'game_export' ? gameExportTimeout : commandTimeout;
+          command == 'game_export' || command.startsWith('project_native_')
+              ? gameExportTimeout : commandTimeout;
       final data = await _dispatch(command, args,
               requestId: requestId, isCancelled: () => abandoned)
           .timeout(timeout, onTimeout: () {
@@ -613,6 +619,24 @@ final class JsonlWorker {
         final creation = _projectCreation;
         if (creation == null) throw const _UnsupportedWorkerCommand();
         return creation.templates();
+      case 'project_native_prepare':
+        rejectUnknownContractKeys(args, const {'source'});
+        final native = _nativeProjectCreation;
+        if (native == null) throw const _UnsupportedWorkerCommand();
+        return native.prepare(_jsonObject(args['source'], 'args.source'), isCancelled: isCancelled);
+      case 'project_native_plan':
+        final native = _nativeProjectCreation;
+        if (native == null) throw const _UnsupportedWorkerCommand();
+        return native.plan(args, isCancelled: isCancelled);
+      case 'project_native_publish':
+        final native = _nativeProjectCreation;
+        if (native == null) throw const _UnsupportedWorkerCommand();
+        return native.publish(args, isCancelled: isCancelled);
+      case 'project_native_release':
+        rejectUnknownContractKeys(args, const {'preparedHandle'});
+        final native = _nativeProjectCreation;
+        if (native == null) throw const _UnsupportedWorkerCommand();
+        return native.release(requireContractString(args['preparedHandle'], 'args.preparedHandle'));
       case 'project_create_preview':
         rejectUnknownContractKeys(args, const {'request'});
         final creation = _projectCreation;
@@ -905,6 +929,7 @@ final class JsonlWorker {
         gameExport == null &&
         _exportProfiles == null &&
         creation == null &&
+        _nativeProjectCreation == null &&
         _resourcePacks == null) {
       return read;
     }
@@ -973,6 +998,30 @@ final class JsonlWorker {
               'undoable': false,
               'replacesExisting': false,
             },
+          if (_nativeProjectCreation != null)
+            for (final operation in ['prepare', 'plan', 'publish', 'release'])
+              {
+                'id': 'project_native_$operation',
+                'actionId': 'project.create_prepared_native',
+                'actionVersion': 1,
+                'summary': 'Create an exclusively new typed native project through witnessed source preparation and a sealed session plan.',
+                'sourceDescriptor': {'kind': 'nativeProjectCreationSource', 'schemaVersion': 1,
+                  'maximumDescriptorBytes': 500 * 1024 * 1024,
+                  'witnessFields': ['descriptorPath', 'sha256', 'byteLength'],
+                  'blobWitnessFields': ['relativePath', 'sha256', 'byteLength'],
+                  'rootFields': ['kind', 'schemaVersion', 'input'],
+                  'inputFields': ['manifest', 'maps', 'assetCatalog', 'artifacts',
+                    'dialogueSources', 'itemCatalog', 'pokemonCatalogs', 'species',
+                    'learnsets', 'evolutions', 'media', 'borderFrames'],
+                  'artifactFields': ['reference', 'source'],
+                  'borderFrameFields': ['snapshotId', 'frameIndex', 'artifact'],
+                  'blobRoot': 'descriptorParentDirectory',
+                  'inlineBase64': false},
+                'sourcePolicy': 'configuredRootsExactWitnessesNoSymlinks',
+                'handleScope': 'workerSessionOnlyReprepareAfterRestart',
+                'writesDestination': operation == 'publish',
+                'undoable': false, 'replacesExisting': false,
+              },
           if (_resourcePacks != null)
             const {
               'id': 'resource_pack',

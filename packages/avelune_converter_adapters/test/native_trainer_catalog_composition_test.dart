@@ -301,12 +301,10 @@ void main() {
         'sourceArtifacts': composition.draft.sourceArtifacts.length,
         'mutations': composition.draft.mutations.length
       }));
-      var appliedMutations = 0;
       final receipt = await NativeProjectWriter(checkpoint: (stage, _, __) {
-        if (stage == NativeWriteStage.afterMutation &&
-            ++appliedMutations % 50 == 0) {
+        if (stage == NativeWriteStage.afterCreation) {
           stdout
-              .writeln('Native catalogue applied $appliedMutations mutations.');
+              .writeln('Native catalogue published one canonical creation transaction.');
         }
       }).write(approval.plan, approval.context, composition.draft,
           limits: limits);

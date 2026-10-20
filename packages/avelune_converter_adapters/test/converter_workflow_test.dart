@@ -124,6 +124,14 @@ void main() {
       expect(projection.last.total, expandNativeMutationBatches(
           prepared.nativeDraft!, prepared.settings.writeLimits).length);
       expect(projection.last.done, projection.last.total);
+      final publication = events.where((event) =>
+          event.state.phase == ConverterWorkflowPhase.writeNative &&
+          event.state.progress != null).map((event) => event.state.progress!).toList();
+      expect(publication, isNotEmpty);
+      expect(publication.every((progress) => progress.total == 1), isTrue);
+      expect(publication.last.done, 1);
+      expect(result.receipt.creationTransactionReceipt.actionId, nativeProjectCreationActionId);
+      expect(result.receipt.importUndoHistoryRetained, isFalse);
       var done = 0;
       for (final progress in projection) {
         expect(progress.unit, JobUnit.operations);
@@ -1590,7 +1598,7 @@ void main() {
       () async {
     late _WorkflowHarness harness;
     harness = await _WorkflowHarness.create(publicationCheckpoint: (stage) {
-      if (stage == NativePublicationStage.beforeBootstrap) {
+      if (stage == NativePublicationStage.beforeCreation) {
         harness.workflow.cancelCurrentJob();
       }
     });
@@ -1612,8 +1620,8 @@ void main() {
       expect(await Directory(harness.destination).exists(), isFalse);
       final journal = await File(failure.journalPath!).readAsLines();
       final states = journal.map((line) => (jsonDecode(line) as Map)['state']);
-      expect(states, contains('bootstrapIntent'));
-      expect(states, isNot(contains('bootstrapCompleted')));
+      expect(states, contains('creationIntent'));
+      expect(states, isNot(contains('creationCompleted')));
       expect(states, isNot(contains('published')));
       expect(await _diskHashes(harness.sourceRoot), sourceBefore);
     } finally {
@@ -2574,7 +2582,7 @@ void main() {
     var pause = true;
     final harness = await _WorkflowHarness.create(
         nativeCheckpoint: (stage, stagingRoot, _) async {
-      if (stage == NativeWriteStage.afterBootstrap && pause) {
+      if (stage == NativeWriteStage.afterCreation && pause) {
         pause = false;
         cancelledStage = stagingRoot;
         entered.complete();
@@ -2847,7 +2855,7 @@ void main() {
     late _WorkflowHarness harness;
     harness =
         await _WorkflowHarness.create(nativeCheckpoint: (stage, _, __) async {
-      if (stage == NativeWriteStage.afterMutations) {
+      if (stage == NativeWriteStage.afterCreation) {
         await File('${harness.sourceRoot}/README.md')
             .writeAsString('Externally changed original source v21.1\n');
       }
@@ -2876,7 +2884,7 @@ void main() {
     late _WorkflowHarness harness;
     harness =
         await _WorkflowHarness.create(nativeCheckpoint: (stage, _, __) async {
-      if (stage == NativeWriteStage.afterBootstrap) {
+      if (stage == NativeWriteStage.afterCreation) {
         await Directory(harness.destination).create();
         await File('${harness.destination}/sentinel').writeAsString('owned');
       }

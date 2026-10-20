@@ -23,8 +23,8 @@ enum NativePublicationStage {
   journalCreated,
   beforeStage,
   stageCreated,
-  beforeBootstrap,
-  bootstrapCompleted,
+  beforeCreation,
+  creationCompleted,
   nativeSealed,
   publishIntentDurable,
   promotedBeforeReceipt,
@@ -345,12 +345,12 @@ final class NativePublicationJob {
       throw const NativePublicationException('publication.stage.binding',
           'Writer checkpoint differs from its reserved staging');
     }
-    if (stage == NativeWriteStage.beforeBootstrap) {
-      _journal.append('bootstrapIntent', {});
-      await _checkpoint?.call(NativePublicationStage.beforeBootstrap);
-    } else if (stage == NativeWriteStage.afterBootstrap) {
-      _journal.append('bootstrapCompleted', {});
-      await _checkpoint?.call(NativePublicationStage.bootstrapCompleted);
+    if (stage == NativeWriteStage.beforeCreation) {
+      _journal.append('creationIntent', {});
+      await _checkpoint?.call(NativePublicationStage.beforeCreation);
+    } else if (stage == NativeWriteStage.afterCreation) {
+      _journal.append('creationCompleted', {});
+      await _checkpoint?.call(NativePublicationStage.creationCompleted);
     }
   }
 
@@ -1106,8 +1106,8 @@ final class _Journal {
               'reserved',
               'stageIntent',
               'stageCreated',
-              'bootstrapIntent',
-              'bootstrapCompleted',
+              'creationIntent',
+              'creationCompleted',
               'sealed',
               'publishIntent',
               'published'

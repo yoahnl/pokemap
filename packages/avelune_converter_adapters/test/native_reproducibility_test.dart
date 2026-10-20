@@ -17,14 +17,15 @@ void main() {
             leftProjectPath: '/absent-left',
             rightProjectPath: '/absent-right',
             allowedParentPath: '/',
-            expectedOperationIds: ['original']),
+            expectedInventoryFingerprint: 'sha256:${'0' * 64}'),
         throwsFormatException);
   });
-  test('retained bootstrap cannot be invented from absent logs', () {
-    expect(() => recoverNativeBootstrapBytes({}, ['original']),
+  test('native creation cannot be invented from absent logs or fingerprint',
+      () {
+    expect(() => recoverNativeCreationBytes({}, 'sha256:${'0' * 64}'),
         throwsFormatException);
-    expect(() => recoverNativeBootstrapBytes({}, ['original', 'original']),
-        throwsFormatException);
+    expect(
+        () => recoverNativeCreationBytes({}, 'invalid'), throwsFormatException);
   });
   test('comparison tool requires two outputs and an explicit narrow parent',
       () async {
@@ -81,11 +82,12 @@ void main() {
     Future<void> reject(Map<String, Object?> changes) async {
       final capture = {
         'kind': 'nativeReproducibilityExpectations',
-        'version': 1,
+        'version': 2,
         'recipeHash': recipe.canonicalHash.value,
         'nativeDraftHash': recipe.nativeDraftHash.value,
         'approvedPlanHash': recipe.approvedPlanHash.value,
         'operationIds': operations,
+        'creationInventoryFingerprint': 'sha256:${'0' * 64}',
         ...changes
       };
       await File('${root.path}/expectations.json')

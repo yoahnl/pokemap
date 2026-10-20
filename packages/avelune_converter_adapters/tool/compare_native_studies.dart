@@ -56,23 +56,27 @@ Future<int> runNativeStudyComparison(List<String> arguments,
       'recipeHash',
       'nativeDraftHash',
       'approvedPlanHash',
-      'operationIds'
+      'operationIds',
+      'creationInventoryFingerprint'
     };
     if (decoded is! Map<String, dynamic> ||
         decoded.keys.length != keys.length ||
         !decoded.keys.toSet().containsAll(keys) ||
         decoded['kind'] != 'nativeReproducibilityExpectations' ||
-        decoded['version'] != 1 ||
+        decoded['version'] != 2 ||
         decoded['recipeHash'] != recipe.canonicalHash.value ||
         decoded['nativeDraftHash'] != recipe.nativeDraftHash.value ||
-        decoded['approvedPlanHash'] != recipe.approvedPlanHash.value) {
+        decoded['approvedPlanHash'] != recipe.approvedPlanHash.value ||
+        decoded['creationInventoryFingerprint'] is! String ||
+        !RegExp(r'^sha256:[a-f0-9]{64}$')
+            .hasMatch(decoded['creationInventoryFingerprint'] as String)) {
       throw const FormatException(
           'Captured native expectations do not bind the exact recipe.');
     }
     final rawOperations = decoded['operationIds'];
     if (rawOperations is! List ||
         rawOperations.isEmpty ||
-        rawOperations.length > 2048 ||
+        rawOperations.length > 32768 ||
         rawOperations.any((value) => value is! String) ||
         rawOperations.toSet().length != rawOperations.length) {
       throw const FormatException(
@@ -85,13 +89,15 @@ Future<int> runNativeStudyComparison(List<String> arguments,
         leftProjectPath: arguments[6],
         rightProjectPath: arguments[7],
         allowedParentPath: arguments[1],
-        expectedOperationIds: operations);
+        expectedInventoryFingerprint:
+            decoded['creationInventoryFingerprint'] as String);
     output.writeln(jsonEncode({
       ...comparison.toJson(),
       'recipeHash': recipe.canonicalHash.value,
       'nativeDraftHash': recipe.nativeDraftHash.value,
       'approvedPlanHash': recipe.approvedPlanHash.value,
       'expectedOperationIds': operations,
+      'logicalOperationIdsVerifiedAsReceipts': false,
       'expectationsFingerprint': crypto.sha256.convert(bytes).toString(),
       'proofScope': 'closedNativeOutputEquality',
       'transportsObservedByComparator': false

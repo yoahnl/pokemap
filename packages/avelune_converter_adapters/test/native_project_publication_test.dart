@@ -494,7 +494,7 @@ Future<void> main() async {
 
   for (final stage in [
     NativePublicationStage.beforeStage,
-    NativePublicationStage.beforeBootstrap,
+    NativePublicationStage.beforeCreation,
     NativePublicationStage.publishIntentDurable,
     NativePublicationStage.promotedBeforeReceipt
   ]) {

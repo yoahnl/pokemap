@@ -122,7 +122,7 @@ void main() {
     final stages = <NativeWriteStage>[];
     final creation = _RecordingCreation();
     final writer = NativeProjectWriter(
-        creation: creation, checkpoint: (stage, _, __) => stages.add(stage));
+        creation: creation.service, checkpoint: (stage, _, __) => stages.add(stage));
     final checked = approval ?? approveNativeFixtureDraft(draft);
     final before = await _treeBytes(output.path);
     final beforeShape = await _treeShape(output.path);
@@ -130,7 +130,7 @@ void main() {
         writer.write(checked.plan, checked.context, draft,
             limits: limits, cancellation: cancellation),
         throwsA(failureMatcher ?? anyOf(_nativeFailure, isA<ContractError>())));
-    expect(creation.requests, isEmpty);
+    expect(creation.checkpoints, isEmpty);
     expect(stages, isNot(contains(NativeWriteStage.stageCreated)));
     expect(await _treeBytes(output.path), before);
     expect(await _treeShape(output.path), beforeShape);
@@ -161,12 +161,12 @@ void main() {
     final receipt = await NativeProjectWriter(
         snapshotProfileSink: profiles.add,
         checkpoint: (stage, _, __) {
-          if (stage == NativeWriteStage.afterMutations) {
+          if (stage == NativeWriteStage.afterCreation) {
             coldStart = profiles.length;
           }
         }).write(approval.plan, approval.context, fixture.draft);
     expect(receipt.verified, isTrue);
-    expect(profiles.where((profile) => profile.cacheHit), isNotEmpty);
+    expect(profiles, isNotEmpty);
     expect(coldStart, isNotNull);
     expect(profiles[coldStart!].cacheHit, isFalse);
     await sourceUnchanged();
@@ -215,14 +215,14 @@ void main() {
             .having((e) => e.code, 'code', 'native.quota.draft')));
   });
 
-  test('writer revision chain avoids redundant loads and retains cold verification',
+  test('bulk creation performs no mutable snapshot loads and retains cold verification',
       () async {
     final profiles = <ProjectSnapshotLoadProfile>[];
     int? mutableLoads;
     final receipt = await NativeProjectWriter(
         snapshotProfileSink: profiles.add,
         checkpoint: (stage, _, __) {
-          if (stage == NativeWriteStage.afterMutations) {
+          if (stage == NativeWriteStage.afterCreation) {
             mutableLoads = profiles.length;
           }
         }).write(fixture.plan, fixture.context, fixture.draft);
@@ -233,7 +233,7 @@ void main() {
       'cacheHits': profiles.where((profile) => profile.cacheHit).length}));
     expect(receipt.verified, isTrue);
     expect(mutableLoads, isNotNull);
-    expect(mutableLoads, lessThanOrEqualTo(3 * fixture.draft.mutations.length + 2));
+    expect(mutableLoads, 0);
     expect(profiles[mutableLoads!].cacheHit, isFalse);
     final opened = await _NativeProject.open(receipt.projectPath);
     try {
@@ -247,14 +247,14 @@ void main() {
     await sourceUnchanged();
   });
 
-  test('writer revision chain refuses foreign canonical changes before the next operation',
+  test('bulk creation refuses foreign canonical changes before strict verification',
       () async {
     var applied = 0;
     String? foreignRevision;
     NativeWriteException? failure;
     try {
       await NativeProjectWriter(checkpoint: (stage, _, projectPath) async {
-        if (stage != NativeWriteStage.afterMutation || ++applied != 1) return;
+        if (stage != NativeWriteStage.afterCreation || ++applied != 1) return;
         final foreign = await _NativeProject.open(projectPath!);
         try {
           final snapshot = await foreign.load();
@@ -286,9 +286,9 @@ void main() {
       'failureMessage': failure.message, 'foreignRevision': foreignRevision}));
     expect(foreignRevision, isNotNull);
     expect(failure, isNotNull);
-    expect(failure.message, contains('AuthoringPlanException(plan.stale)'));
+    expect(failure.code, 'native.verify.manifest');
     expect(applied, 1,
-        reason: 'The writer must not adopt a foreign revision as the next operation baseline');
+        reason: 'The writer must reject a changed native project after the creation transaction');
     await sourceUnchanged();
   });
 
@@ -1161,19 +1161,19 @@ void main() {
   });
 
   test(
-      'NAT-01 bootstraps empty twoD32 and strict native loader reads map and image',
+      'NAT-01 creates one prepared native project and strict loader reads map and image',
       () async {
     final creation = _RecordingCreation();
     var bootstrapChecked = false;
     final receipt = await NativeProjectWriter(
-      creation: creation,
+      creation: creation.service,
       checkpoint: (stage, _, projectPath) async {
-        if (stage == NativeWriteStage.afterBootstrap) {
+        if (stage == NativeWriteStage.afterCreation) {
           final opened = await _NativeProject.open(projectPath!);
           try {
             final snapshot = await opened.load();
-            expect(snapshot.manifest.maps, isEmpty);
-            expect(snapshot.manifest.tilesets, isEmpty);
+            expect(snapshot.maps.single.toJson(), fixture.expectedMap.toJson());
+            expect(snapshot.manifest.tilesets, hasLength(1));
             expect(snapshot.manifest.characters, isEmpty);
             expect(snapshot.manifest.newGame.enabled, isFalse);
             bootstrapChecked = true;
@@ -1184,10 +1184,9 @@ void main() {
       },
     ).write(fixture.plan, fixture.context, fixture.draft);
     expect(bootstrapChecked, isTrue);
-    expect(creation.requests, hasLength(1));
-    expect(creation.requests.single.template, ProjectCreationTemplate.empty);
-    expect(creation.requests.single.dimension, ProjectDimension.twoD);
-    expect(creation.requests.single.tileSize, 32);
+    expect(creation.checkpoints, [ProjectCreationCheckpoint.beforeReservation,
+      ProjectCreationCheckpoint.afterReservation, ProjectCreationCheckpoint.afterApply]);
+    expect(receipt.importUndoHistoryRetained, isFalse);
     expect(receipt.verified, isTrue);
     expect(receipt.published, isFalse);
     expect(receipt.draftHash, fixture.draft.canonicalHash);
@@ -1324,45 +1323,33 @@ void main() {
     }
   });
 
-  test('NAT-04 offline success never asks HTTP or template to read', () async {
+  test('NAT-04 native bulk creation succeeds offline without HTTP', () async {
     final network = _NetworkTrap();
-    final templateCalls = <Uri>[];
-    final creation = LocalProjectCreationService(
-      readTemplate: (uri) async {
-        templateCalls.add(uri);
-        throw StateError('Template network trap');
-      },
-    );
+    final creation = _RecordingCreation();
     final receipt = await HttpOverrides.runZoned(
-        () => NativeProjectWriter(creation: creation)
+        () => NativeProjectWriter(creation: creation.service)
             .write(fixture.plan, fixture.context, fixture.draft),
         createHttpClient: network.create);
     expect(receipt.verified, isTrue);
     expect(network.calls, 0);
-    expect(templateCalls, isEmpty);
+
     await sourceUnchanged();
   });
 
-  test('NAT-04 refused admission never asks HTTP or template to read',
+  test('NAT-04 refused admission never publishes or asks HTTP',
       () async {
     final network = _NetworkTrap();
-    final templateCalls = <Uri>[];
     final approval = approveNativeFixtureDraft(fixture.draft,
         bindingEvidence: 'native-draft-sha256:${'0' * 64}');
-    final creation = LocalProjectCreationService(
-      readTemplate: (uri) async {
-        templateCalls.add(uri);
-        throw StateError('Template network trap');
-      },
-    );
+    final creation = _RecordingCreation();
     await expectLater(
         HttpOverrides.runZoned(
-            () => NativeProjectWriter(creation: creation)
+            () => NativeProjectWriter(creation: creation.service)
                 .write(approval.plan, approval.context, fixture.draft),
             createHttpClient: network.create),
         throwsA(_nativeFailure));
     expect(network.calls, 0);
-    expect(templateCalls, isEmpty);
+
     expect(await _treeShape(output.path), isEmpty);
     await sourceUnchanged();
   });
@@ -1530,7 +1517,7 @@ void main() {
     await expectLater(
         NativeProjectWriter(checkpoint: (stage, stagingRoot, _) async {
           stagePath ??= stagingRoot;
-          if (stage == NativeWriteStage.afterMutations) {
+          if (stage == NativeWriteStage.afterCreation) {
             await destination.create();
             await File('${destination.path}/external.bin').writeAsBytes([3, 8]);
           }
@@ -1570,7 +1557,7 @@ void main() {
       await NativeProjectWriter(
           checkpoint: (stage, stagingRoot, projectPath) async {
         stages.add(stage);
-        if (stage == NativeWriteStage.afterBootstrap) {
+        if (stage == NativeWriteStage.afterCreation) {
           observedStage = stagingRoot;
           await Directory(projectPath!)
               .rename('$stagingRoot/owned-project-backup');
@@ -1585,7 +1572,8 @@ void main() {
     expect(failure.code, 'native.project.changed');
     expect(failure.stagingPath, observedStage);
     expect(observedStage, isNotNull);
-    expect(stages, isNot(contains(NativeWriteStage.afterMutation)));
+    expect(stages.where((stage) => stage == NativeWriteStage.afterCreation), hasLength(1));
+    expect(stages, isNot(contains(NativeWriteStage.beforeNativeVerify)));
     expect(await _treeBytes(external.projectPath), before);
     expect(await _treeShape(external.projectPath), beforeShape);
     expect(
@@ -1596,8 +1584,8 @@ void main() {
 
   for (final point in [
     NativeWriteStage.stageCreated,
-    NativeWriteStage.afterBootstrap,
-    NativeWriteStage.afterMutation,
+    NativeWriteStage.beforeCreation,
+    NativeWriteStage.afterCreation,
     NativeWriteStage.beforeNativeVerify
   ]) {
     test('failure at ${point.name} keeps staging and source without success',
@@ -1631,6 +1619,39 @@ void main() {
         cancellation: ScanCancellation()..cancel());
   });
 
+  test('cancellation before bulk reservation retains only the empty staging root', () async {
+    final cancellation = ScanCancellation();
+    String? staging;
+    String? project;
+    final creation = _RecordingCreation();
+    await expectLater(NativeProjectWriter(creation: creation.service,
+        checkpoint: (stage, stagingRoot, projectPath) {
+      if (stage == NativeWriteStage.beforeCreation) {
+        staging = stagingRoot;
+        project = projectPath;
+        cancellation.cancel();
+      }
+    }).write(fixture.plan, fixture.context, fixture.draft, cancellation: cancellation),
+        throwsA(isA<NativeWriteException>().having((error) => error.code, 'code', 'native.cancelled')));
+    expect(staging, isNotNull);
+    expect(await Directory(staging!).exists(), isTrue);
+    expect(await Directory(project!).exists(), isFalse);
+    expect(creation.checkpoints, isEmpty);
+    await sourceUnchanged();
+  });
+
+  test('cancellation during canonical reservation refuses writer success', () async {
+    final cancellation = ScanCancellation();
+    final creation = NativeProjectCreationService(checkpoint: (stage, _) async {
+      if (stage == ProjectCreationCheckpoint.afterReservation) cancellation.cancel();
+    });
+    await expectLater(NativeProjectWriter(creation: creation)
+        .write(fixture.plan, fixture.context, fixture.draft, cancellation: cancellation),
+        throwsA(isA<NativeWriteException>().having((error) => error.code, 'code', 'native.cancelled')));
+    expect(await Directory('${output.path}/${fixture.draft.folderName}').exists(), isFalse);
+    await sourceUnchanged();
+  });
+
   test('cancellation after bootstrap retains staging and never verifies',
       () async {
     final cancellation = ScanCancellation();
@@ -1639,7 +1660,7 @@ void main() {
     await expectLater(
         NativeProjectWriter(checkpoint: (stage, stagingRoot, _) {
           stages.add(stage);
-          if (stage == NativeWriteStage.afterBootstrap) {
+          if (stage == NativeWriteStage.afterCreation) {
             stagePath = stagingRoot;
             cancellation.cancel();
           }
@@ -1834,13 +1855,13 @@ void main() {
     final approval = approveNativeFixtureDraft(draft);
     final creation = _RecordingCreation();
     await expectLater(
-        NativeProjectWriter(creation: creation).write(
+        NativeProjectWriter(creation: creation.service).write(
             approval.plan, approval.context, draft,
             limits: const NativeWriteLimits(
                 maxImagePixels: 2048, maxTotalImagePixels: 2048)),
         throwsA(isA<NativeWriteException>()
             .having((error) => error.code, 'code', 'native.quota.image')));
-    expect(creation.requests, isEmpty);
+    expect(creation.checkpoints, isEmpty);
     expect(await _treeShape(output.path), isEmpty);
     await sourceUnchanged();
   });
@@ -2150,31 +2171,11 @@ NativeProjectDraft _replaceLibraryPng(NativeProjectDraft draft,
       evidence: evidence);
 }
 
-final class _RecordingCreation implements ProjectCreationPort {
-  @override
-  ProjectTemplateCatalog get templateCatalog => delegate.templateCatalog;
-  final requests = <ProjectCreationRequest>[];
-  final delegate = const LocalProjectCreationService();
-
-  @override
-  Future<List<int>?> preview(ProjectCreationRequest request) =>
-      delegate.preview(request);
-
-  @override
-  Future<String> validateDestination(ProjectCreationRequest request) =>
-      delegate.validateDestination(request);
-
-  @override
-  Future<ProjectCreationReceipt> create(ProjectCreationRequest request,
-      {void Function(ProjectCreationPhase)? onPhase,
-      bool Function()? isCancelled,
-      String? expectedDestination}) {
-    requests.add(request);
-    return delegate.create(request,
-        onPhase: onPhase,
-        isCancelled: isCancelled,
-        expectedDestination: expectedDestination);
-  }
+final class _RecordingCreation {
+  final checkpoints = <ProjectCreationCheckpoint>[];
+  late final service = NativeProjectCreationService(checkpoint: (stage, _) async {
+    checkpoints.add(stage);
+  });
 }
 
 final class _NetworkTrap {

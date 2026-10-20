@@ -133,7 +133,6 @@ void main() {
         approval.plan, approval.context, draft,
         policy: publicationPolicy);
     addTearDown(publication.close);
-    var applied = 0;
     stdout.writeln(jsonEncode({
       'phase': 'writeNative',
       'mutations': draft.mutations.length,
@@ -150,12 +149,11 @@ void main() {
         checkpoint: (stage, stagingRoot, projectPath) async {
           await publication.recordWriteCheckpoint(
               stage, stagingRoot, projectPath);
-          if (stage == NativeWriteStage.afterMutation &&
-              (++applied % 25 == 0 || applied == draft.mutations.length)) {
+          if (stage == NativeWriteStage.afterCreation) {
             stdout.writeln(jsonEncode({
               'phase': 'writeNative',
-              'applied': applied,
-              'total': draft.mutations.length
+              'publishedCreationTransactions': 1,
+              'preparedLogicalOperations': draft.mutations.length
             }));
           }
         }).write(approval.plan, approval.context, draft, limits: limits);

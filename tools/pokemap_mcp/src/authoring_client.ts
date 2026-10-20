@@ -126,7 +126,7 @@ export class LocalAuthoringClient
 
     const result = await new Promise<AuthoringWorkerSuccess>((resolve, reject) => {
       const timeoutMs =
-        command === "game_export"
+        (command === "game_export" || command.startsWith("project_native_"))
           ? this.#options.exportRequestTimeoutMs
           : this.#options.requestTimeoutMs;
       const timer = setTimeout(() => {

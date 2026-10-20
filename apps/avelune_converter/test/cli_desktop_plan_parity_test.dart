@@ -135,17 +135,13 @@ void main() {
           expect(operations.toSet(), hasLength(operations.length));
           final expectations = <String, Object?>{
             'kind': 'nativeReproducibilityExpectations',
-            'version': 1,
+            'version': 2,
             'recipeHash': recipe.canonicalHash.value,
             'nativeDraftHash': recipe.nativeDraftHash.value,
             'approvedPlanHash': recipe.approvedPlanHash.value,
             'operationIds': operations,
           };
-          final expectationsBytes = utf8.encode(jsonEncode(expectations));
           final expectationsPath = path.join(root.path, 'expectations.json');
-          await File(expectationsPath)
-              .writeAsBytes(expectationsBytes, flush: true);
-          final expectationsHash = literalFixtureHash(expectationsBytes).value;
           expect(await readNativeStudyTree(sourcePath), sourceBefore);
           expect(await Directory(destination).exists(), isFalse);
           expect(await output.list().toList(), isEmpty);
@@ -242,6 +238,16 @@ void main() {
           expect(verified['assetCount'], greaterThan(0));
           expect(verified['nativeRevision'], converted['nativeRevision']);
           final firstOutput = await readNativeStudyTree(destination);
+          final creationRecord = jsonDecode(utf8.decode(firstOutput[
+              '.pokemap/authoring/idempotency.jsonl']!).trimRight().split('\n').last)
+              as Map<String, dynamic>;
+          final creationFingerprint = creationRecord['record']['receipt']['extensions']
+              ['inventoryFingerprint'] as String;
+          recoverNativeCreationBytes(firstOutput, creationFingerprint);
+          expectations['creationInventoryFingerprint'] = creationFingerprint;
+          final expectationsBytes = utf8.encode(jsonEncode(expectations));
+          await File(expectationsPath).writeAsBytes(expectationsBytes, flush: true);
+          final expectationsHash = literalFixtureHash(expectationsBytes).value;
           final firstOutputModes = await _fileModes(destination);
           expect(path.dirname(preserved), path.dirname(destination));
           expect(
@@ -422,7 +428,7 @@ void main() {
             leftProjectPath: setup.preserved,
             rightProjectPath: setup.destination,
             allowedParentPath: setup.output.path,
-            expectedOperationIds: setup.operations,
+            expectedInventoryFingerprint: result.receipt.creationInventoryFingerprint,
           );
           expect(comparison.toJson()['equal'], isTrue);
           expect(comparison.fileCount, setup.firstOutput.length);

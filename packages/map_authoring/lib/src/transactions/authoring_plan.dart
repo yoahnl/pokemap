@@ -8,6 +8,7 @@ import '../contracts/json_contract_support.dart';
 import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
 import '../security/resource_pack_bulk_capability.dart';
+import '../workspace/native_project_creation.dart';
 import 'authoring_payload.dart';
 
 final class AuthoringPlan {
@@ -60,10 +61,25 @@ final class AuthoringPlan {
     }
   }
 
+  NativeProjectCreationCapability? _nativeCreationCapability;
+  NativeProjectCreationCapability? get nativeCreationCapability =>
+      _nativeCreationCapability;
+  void bindNativeCreationCapability(
+      NativeProjectCreationCapability capability) {
+    if (_nativeCreationCapability != null || _bulkCapability != null) {
+      throw StateError('The plan already has a bulk capability.');
+    }
+    capability.requirePlan(this,
+        actorId: capability.actorId,
+        projectId: capability.projectId,
+        operationId: capability.operationId);
+    _nativeCreationCapability = capability;
+  }
+
   ResourcePackBulkCapability? _bulkCapability;
   ResourcePackBulkCapability? get bulkCapability => _bulkCapability;
   void bindBulkCapability(ResourcePackBulkCapability capability) {
-    if (_bulkCapability != null) {
+    if (_bulkCapability != null || _nativeCreationCapability != null) {
       throw StateError('The plan already has a bulk capability.');
     }
     capability.requirePlan(this,

@@ -108,6 +108,7 @@ Future<void> main(List<String> arguments) async {
     api: api,
     mutations: mutations,
     resourcePacks: resourcePacks,
+    nativeProjectCreation: NativeProjectCreationTransport(policy: policy),
     projectCreation: ProjectCreationBootstrapApi(
       policy: policy,
       creation: LocalProjectCreationService(templateCatalog: templates),

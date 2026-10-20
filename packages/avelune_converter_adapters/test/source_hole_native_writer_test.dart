@@ -118,12 +118,8 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     expect(stages, isEmpty);
     stdout.writeln('hole writer: forged policy rejected before staging');
     final approval = approveNativeFixtureDraft(events.draft);
-    var appliedMutations = 0;
     final receipt = await NativeProjectWriter(checkpoint: (stage, _, __) {
-      if (stage == NativeWriteStage.afterMutation) appliedMutations++;
-      if (stage != NativeWriteStage.afterMutation || appliedMutations % 25 == 0) {
-        stdout.writeln('hole writer checkpoint: $stage / $appliedMutations');
-      }
+      stdout.writeln('hole writer checkpoint: $stage');
     })
         .write(approval.plan, approval.context, events.draft, limits: limits);
     expect(receipt.verified, true);

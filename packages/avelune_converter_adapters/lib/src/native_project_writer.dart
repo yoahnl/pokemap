@@ -634,10 +634,8 @@ bool _sameOrderedNativeMutations(List<NativeMutation> actual,
 enum NativeWriteStage {
   beforeStage,
   stageCreated,
-  beforeBootstrap,
-  afterBootstrap,
-  afterMutation,
-  afterMutations,
+  beforeCreation,
+  afterCreation,
   beforeNativeVerify,
   afterNativeVerify,
 }
@@ -745,6 +743,8 @@ final class NativeWriteReceipt {
     required this.draftHash,
     required this.nativeRevision,
     required this.importUndoHistoryRetained,
+    required this.creationTransactionReceipt,
+    required this.creationInventoryFingerprint,
     required Map<String, Sha256Hash> mapHashes,
     required Map<String, Sha256Hash> assetHashes,
     required Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles,
@@ -757,6 +757,8 @@ final class NativeWriteReceipt {
   final Sha256Hash draftHash;
   final String nativeRevision;
   final bool importUndoHistoryRetained;
+  final AuthoringReceipt creationTransactionReceipt;
+  final String creationInventoryFingerprint;
   final Map<String, Sha256Hash> mapHashes;
   final Map<String, Sha256Hash> assetHashes;
   final Map<String, NativeBorderSnapshotReceipt> borderSnapshotFiles;
@@ -777,7 +779,7 @@ final class NativeProjectWriter {
   const NativeProjectWriter(
       {this.creation, this.checkpoint, this.stagingFactory,
       this.snapshotProfileSink, this.preparationCheckpoint});
-  final ProjectCreationPort? creation;
+  final NativeProjectCreationService? creation;
   final NativeWriteCheckpoint? checkpoint;
   final NativeStagingFactory? stagingFactory;
   final ProjectSnapshotLoadProfileSink? snapshotProfileSink;
@@ -800,10 +802,9 @@ final class NativeProjectWriter {
       final prepared =
           await _prepareNativeDraft(plan, context, draft, limits, cancellation,
               _NativePreparationReporter(preparationCheckpoint, cancellation));
-      final creator = creation ?? const LocalProjectCreationService();
-      final requested = _creationRequest(draft, draft.parentPath,
-        retentionPolicy: prepared.bootstrap.settings.mapInstanceRetentionPolicy);
-      requested.validate();
+      final creator = creation ?? const NativeProjectCreationService();
+      final nativeCreation = await creator.prepare(_nativeCreationInput(prepared, draft));
+      _checkCancelled(cancellation);
       _requireAbsolute(draft.parentPath);
       final parent = await Directory(draft.parentPath).resolveSymbolicLinks();
       await _guardDestination(draft, parent);
@@ -821,128 +822,35 @@ final class NativeProjectWriter {
           NativeWriteStage.stageCreated, stagingRoot, projectPath);
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
-      final stageRequest = _creationRequest(draft, stagingRoot,
-        retentionPolicy: prepared.bootstrap.settings.mapInstanceRetentionPolicy);
-      final destination = await creator.validateDestination(stageRequest);
-      if (destination != projectPath) {
-        throw const NativeWriteException('native.destination.changed',
-            'Creation destination differs from the private staging path');
-      }
       await checkpoint?.call(
-          NativeWriteStage.beforeBootstrap, stagingRoot, projectPath);
+          NativeWriteStage.beforeCreation, stagingRoot, projectPath);
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
-      final created = await creator.create(stageRequest,
-          expectedDestination: projectPath,
+      final creationPlan = await creator.plan(prepared: nativeCreation,
+          parentPath: stagingRoot, folderName: draft.folderName,
+          isCancelled: () => cancellation?.isCancelled ?? false);
+      final created = await creator.publish(creationPlan,
           isCancelled: () => cancellation?.isCancelled ?? false);
       if (created.projectPath != projectPath ||
+          created.inventoryFingerprint != nativeCreation.inventoryFingerprint ||
+          created.transactionReceipt.status != AuthoringReceiptStatus.applied ||
+          created.transactionReceipt.actionId != nativeProjectCreationActionId ||
+          created.transactionReceipt.actionVersion != 1 ||
           canonicalJsonOf(created.manifest.toJson()) !=
-              canonicalJsonOf(prepared.bootstrap.toJson())) {
-        throw const NativeWriteException('native.bootstrap.mismatch',
-            'Bootstrap receipt differs from the requested empty project');
+              canonicalJsonOf(prepared.manifest.toJson())) {
+        throw const NativeWriteException('native.creation.mismatch',
+            'Canonical creation receipt differs from the approved native project');
       }
       await checkpoint?.call(
-          NativeWriteStage.afterBootstrap, stagingRoot, projectPath);
+          NativeWriteStage.afterCreation, stagingRoot, projectPath);
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
-      session = await _NativeSession.open(projectPath,
-          allowedRoot: stagingRoot, mutable: true,
-          retainUndoHistory: draft.mapIds.length <= 8,
-          profileSink: snapshotProfileSink);
-      final api = session.mutations!;
-      final stagedHandles = <String, String>{};
-      for (final artifact in draft.artifacts) {
-        _checkCancelled(cancellation);
-        final stored = await api.artifacts.put(artifact.bytes,
-            declaredMediaType: artifact.reference.mediaType);
-        stagedHandles[artifact.handle] = stored.reference.handle;
-        if (stored.reference != artifact.reference) {
-          throw const NativeWriteException('native.artifact.stage',
-              'Native artifact staging changed the content reference');
-        }
-      }
-      final initial = await session.snapshots.load(session.project,
-          policy: ProjectSnapshotLoadPolicy.strict);
-      if (initial.loadDiagnostics.isNotEmpty) {
-        throw const NativeWriteException('native.mutation.revision',
-            'The initial native snapshot has unresolved diagnostics');
-      }
-      var expectedRevision = initial.revision;
-      for (var i = 0; i < draft.mutations.length; i++) {
-        _checkCancelled(cancellation);
-        await _guardStage(draft, parent, stagingRoot);
-        final mutation = draft.mutations[i];
-        final beforeRevision = expectedRevision;
-        final mutationPlan = await api.planMutation(
-            session.project,
-            AuthoringRequest(
-                requestId: '${plan.planId.value}:native:$i',
-                actionId: mutation.actionId,
-                actionVersion: mutation.actionVersion,
-                workspaceHandle: session.workspace.value,
-                expectedRevision: beforeRevision,
-                idempotencyKey: mutation.operationId.value,
-                parameters: mutation.actionId == 'asset.import_batch'
-                    ? {'entries': [
-                        for (final entry in nativeImportParameters(mutation))
-                          {...entry, 'artifactHandle': stagedHandles[entry['artifactHandle']]!}
-                      ]}
-                    : mutation.parameters));
-        if (!mutationPlan.applicable ||
-            mutationPlan.snapshotRevision != beforeRevision) {
-          throw NativeWriteException('native.mutation.plan',
-              'Native mutation cannot be applied: ${mutationPlan.nonApplicableReason ?? mutation.actionId}');
-        }
-        final applied = await api.applyMutation(session.project,
-            planId: mutationPlan.planId,
-            operationId: mutation.operationId.value);
-        if (applied.receipt.status != AuthoringReceiptStatus.applied ||
-            applied.receipt.actionId != mutation.actionId ||
-            applied.receipt.actionVersion != mutation.actionVersion ||
-            applied.receipt.extensions['planId'] != mutationPlan.planId ||
-            applied.receipt.extensions['operationId'] !=
-                mutation.operationId.value ||
-            applied.receipt.beforeRevision == null ||
-            applied.receipt.afterRevision == null ||
-            applied.receipt.beforeRevision == applied.receipt.afterRevision ||
-            (applied.snapshotRevision != null && applied.snapshotRevision == beforeRevision)) {
-          throw NativeWriteException(
-              'native.mutation.receipt',
-              'Native mutation ${mutation.actionId} has inconsistent receipt '
-                  '(status=${applied.receipt.status.name}, '
-                  'plan=${applied.receipt.extensions['planId']}, '
-                  'operation=${applied.receipt.extensions['operationId']}, '
-                  'beforeSnapshot=$beforeRevision, '
-                  'afterSnapshot=${applied.snapshotRevision})');
-        }
-        if (applied.snapshotRevision == null || applied.diagnostic != null) {
-          final observed = await session.snapshots.load(session.project,
-              policy: ProjectSnapshotLoadPolicy.strict);
-          if (observed.loadDiagnostics.isNotEmpty ||
-              observed.revision == beforeRevision ||
-              (applied.snapshotRevision != null &&
-                  observed.revision != applied.snapshotRevision)) {
-            throw const NativeWriteException('native.mutation.revision',
-                'Applied native revision differs from the reloaded snapshot');
-          }
-          expectedRevision = observed.revision;
-        } else {
-          expectedRevision = applied.snapshotRevision!;
-        }
-        await checkpoint?.call(
-            NativeWriteStage.afterMutation, stagingRoot, projectPath);
-      }
-      await session.close();
-      session = null;
-      await checkpoint?.call(
-          NativeWriteStage.afterMutations, stagingRoot, projectPath);
-      _checkCancelled(cancellation);
       await checkpoint?.call(
           NativeWriteStage.beforeNativeVerify, stagingRoot, projectPath);
       _checkCancelled(cancellation);
       await _guardStage(draft, parent, stagingRoot);
       session = await _NativeSession.open(projectPath,
-          allowedRoot: stagingRoot, mutable: false, profileSink: snapshotProfileSink);
+          allowedRoot: stagingRoot, profileSink: snapshotProfileSink);
       final snapshot = await session.snapshots
           .load(session.project, policy: ProjectSnapshotLoadPolicy.strict);
       if (snapshot.loadDiagnostics.isNotEmpty ||
@@ -1158,11 +1066,17 @@ final class NativeProjectWriter {
           projectPath: projectPath,
           draftHash: draft.canonicalHash,
           nativeRevision: snapshot.revision,
-          importUndoHistoryRetained: draft.mapIds.length <= 8,
+          importUndoHistoryRetained: false,
+          creationTransactionReceipt: created.transactionReceipt,
+          creationInventoryFingerprint: created.inventoryFingerprint,
           mapHashes: mapHashes,
           assetHashes: assetHashes,
           borderSnapshotFiles: borderSnapshotFiles);
     } catch (error) {
+      if (cancellation?.isCancelled ?? false) {
+        throw NativeWriteException('native.cancelled', 'Native staging cancelled',
+            stagingPath: stagingRoot);
+      }
       if (error is NativeWriteException) {
         throw NativeWriteException(error.code, error.message,
             stagingPath: stagingRoot ?? error.stagingPath);
@@ -1208,6 +1122,79 @@ final class _PreparedNativeDraft {
   final ProjectItemCatalog? itemCatalog;
   final List<SourceCatalogDocument> pokemonDocuments;
   final Map<String, NativeArtifact> borderSnapshots;
+}
+
+NativeProjectCreationInput _nativeCreationInput(
+    _PreparedNativeDraft prepared, NativeProjectDraft draft) {
+  final artifacts = {for (final artifact in draft.artifacts) artifact.handle: artifact};
+  final catalogs = <PokemonCatalogFile>[];
+  final species = <PokemonSpeciesFile>[];
+  final learnsets = <PokemonLearnsetFile>[];
+  final evolutions = <PokemonEvolutionFile>[];
+  final media = <PokemonMediaFile>[];
+  for (final document in prepared.pokemonDocuments) {
+    final json = Map<String, dynamic>.from(document.document);
+    final String expectedPath;
+    switch (document.kind) {
+      case SourceCatalogDocumentKind.catalog:
+        final value = PokemonCatalogFile.fromJson(json);
+        catalogs.add(value);
+        expectedPath = prepared.manifest.pokemon.catalogFiles[value.catalog] ??
+            (throw const NativeWriteException('native.creation.catalog_identity',
+                'A Pokemon catalogue must have a declared native catalogue identity'));
+      case SourceCatalogDocumentKind.species:
+        final value = PokemonSpeciesFile.fromJson(json);
+        species.add(value);
+        expectedPath = '${prepared.manifest.pokemon.speciesDir}/${value.id}.json';
+      case SourceCatalogDocumentKind.learnset:
+        final value = PokemonLearnsetFile.fromJson(json);
+        learnsets.add(value);
+        expectedPath = '${prepared.manifest.pokemon.learnsetsDir}/${value.speciesId}.json';
+      case SourceCatalogDocumentKind.evolution:
+        final value = PokemonEvolutionFile.fromJson(json);
+        evolutions.add(value);
+        expectedPath = '${prepared.manifest.pokemon.evolutionsDir}/${value.speciesId}.json';
+      case SourceCatalogDocumentKind.media:
+        final value = PokemonMediaFile.fromJson(json);
+        media.add(value);
+        expectedPath = '${prepared.manifest.pokemon.mediaDir}/${value.speciesId}.json';
+    }
+    if (document.relativePath != expectedPath) {
+      throw const NativeWriteException('native.creation.catalog_path',
+          'A source-bound catalogue document must use its canonical native identity path');
+    }
+  }
+  final borderFrames = <NativeProjectCreationBorderFrame>[];
+  final usedBorderPaths = <String>{};
+  for (final snapshot in prepared.manifest.borderCatalog.visualSnapshots) {
+    for (final (index, frame) in snapshot.frames.indexed) {
+      final artifact = prepared.borderSnapshots[frame.relativeAssetPath];
+      if (artifact == null) {
+        throw const NativeWriteException('native.creation.border_frame',
+            'Every published Border snapshot frame requires exact prepared bytes');
+      }
+      usedBorderPaths.add(frame.relativeAssetPath);
+      borderFrames.add(NativeProjectCreationBorderFrame(snapshotId: snapshot.id,
+          frameIndex: index, artifact: NativeProjectCreationArtifact(
+              reference: artifact.reference, bytes: artifact.bytes)));
+    }
+  }
+  if (usedBorderPaths.length != prepared.borderSnapshots.length) {
+    throw const NativeWriteException('native.creation.border_inventory',
+        'Prepared Border frame inventory must equal the published snapshot inventory');
+  }
+  final references = {for (final record in prepared.catalog.records)
+    record.artifact.handle: record.artifact};
+  return NativeProjectCreationInput(manifest: prepared.manifest,
+      maps: prepared.maps.values.toList(), assetCatalog: prepared.catalog,
+      artifacts: [for (final reference in references.values)
+        NativeProjectCreationArtifact(reference: reference,
+            bytes: (artifacts[reference.handle] ??
+                (throw const NativeWriteException('native.creation.artifact',
+                    'Every native logical resource requires an approved retained artifact'))).bytes)],
+      dialogueSources: prepared.dialogueSources, itemCatalog: prepared.itemCatalog,
+      pokemonCatalogs: catalogs, species: species, learnsets: learnsets,
+      evolutions: evolutions, media: media, borderFrames: borderFrames);
 }
 
 ({Map<String, NativeArtifact> artifacts, Map<String, (int, int)> dimensions})
@@ -3636,19 +3623,6 @@ String _string(Map<String, Object?> values, String key) {
   return value;
 }
 
-ProjectCreationRequest _creationRequest(
-        NativeProjectDraft draft, String parent, {MapInstanceRetentionPolicy? retentionPolicy}) =>
-    ProjectCreationRequest(
-        name: draft.projectName,
-        folderName: draft.folderName,
-        parentPath: parent,
-        template: ProjectCreationTemplate.empty,
-        dimension: ProjectDimension.twoD,
-        mapInstanceRetentionPolicy: retentionPolicy,
-        tileSize: 32,
-        mapWidth: draft.defaultMapWidth,
-        mapHeight: draft.defaultMapHeight);
-
 void _requireAbsolute(String value) {
   if (!path.isAbsolute(value) ||
       value.contains('\u0000') ||
@@ -3734,17 +3708,15 @@ void _checkCancelled(ScanCancellation? cancellation) {
 
 final class _NativeSession {
   _NativeSession._(this.opener, this.snapshots, this.project, this.workspace,
-      this.mutations, this.handles);
+      this.handles);
   final ProjectOpenService opener;
   final ProjectSnapshotLoader snapshots;
   final ProjectHandle project;
   final WorkspaceHandle workspace;
-  final LocalMapAuthoringMutationApi? mutations;
   final WorkspaceHandleStore handles;
 
   static Future<_NativeSession> open(String root,
-      {required String allowedRoot, required bool mutable,
-      bool retainUndoHistory = true,
+      {required String allowedRoot,
       ProjectSnapshotLoadProfileSink? profileSink}) async {
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
@@ -3759,21 +3731,8 @@ final class _NativeSession {
         policy: policy, fileReader: reader, handles: handles);
     final opened = await opener.openProject(root);
     try {
-      LocalMapAuthoringMutationApi? mutations;
-      if (mutable) {
-        mutations = LocalMapAuthoringMutationApi(
-            policy: policy,
-            snapshotLoader: snapshots,
-            retainUndoHistory: retainUndoHistory,
-            authorizationLimits:
-                const AuthoringSecurityLimits(maxOperationsPerWindow: null));
-        await mutations.attachProject(
-            projectRootPath: root,
-            workspaceHandle: opened.workspaceHandle,
-            projectHandle: opened.projectHandle);
-      }
       return _NativeSession._(opener, snapshots, opened.projectHandle,
-          opened.workspaceHandle, mutations, handles);
+          opened.workspaceHandle, handles);
     } catch (_) {
       opener.closeWorkspace(opened.workspaceHandle);
       rethrow;
@@ -3800,7 +3759,6 @@ final class _NativeSession {
   }
 
   Future<void> close() async {
-    await mutations?.detachWorkspace(workspace);
     opener.closeWorkspace(workspace);
   }
 }

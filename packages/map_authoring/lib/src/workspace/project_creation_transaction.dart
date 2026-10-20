@@ -2,6 +2,8 @@ import 'dart:io';
 
 import '../contracts/authoring_diff.dart';
 import '../contracts/authoring_request.dart';
+import '../contracts/authoring_receipt.dart';
+import 'native_project_creation.dart';
 import '../contracts/resource_ref.dart';
 import '../domains/assets/asset_store.dart';
 import '../ports/idempotency_store.dart';
@@ -18,13 +20,18 @@ import '../transactions/recovery_service.dart';
 import 'project_creation_kit.dart';
 import 'workspace_handle_store.dart';
 
-Future<void> writeProjectCreationKit(
+Future<AuthoringReceipt> writeProjectCreationKit(
   String path,
   ProjectCreationKit kit, {
   AuthoringTransactionFaultInjector? faultInjector,
+  NativePreparedProjectCreation? nativeCreation,
+  String? operationId,
+  Future<void> Function()? verifyPublished,
 }) async {
   final now = DateTime.now().toUtc();
-  final operation = 'creation-${now.microsecondsSinceEpoch}';
+  final operation = operationId ?? 'creation-${now.microsecondsSinceEpoch}';
+  final actionId =
+      nativeCreation == null ? 'project.create' : nativeProjectCreationActionId;
   final base =
       computeAuthoringJsonFingerprint(const {}, logicalName: 'empty-project');
   final reader = LocalProjectFileReader();
@@ -34,30 +41,28 @@ Future<void> writeProjectCreationKit(
       initialFingerprint: base,
       readBytes: (relativePath) =>
           reader.readBytes(projectRoot: path, relativePath: relativePath));
+  final projectId = nativeCreation == null
+      ? registered.projectHandle.value
+      : 'project-$operation';
   try {
     final request = AuthoringRequest(
         requestId: operation,
-        actionId: 'project.create',
+        actionId: actionId,
         actionVersion: 1,
         workspaceHandle: registered.workspaceHandle.value,
         expectedRevision: base,
         idempotencyKey: operation,
         parameters: {
+          if (nativeCreation != null)
+            'inventoryFingerprint': nativeCreation.inventoryFingerprint,
           'name': kit.manifest.name,
           'tileWidth': kit.manifest.settings.tileWidth,
           'tileHeight': kit.manifest.settings.tileHeight
         });
     final refs = {
       for (final key in kit.files.keys)
-        key: AuthoringResourceRef(
-            kind: key == 'project.json'
-                ? 'project'
-                : key == assetCatalogStorageKey
-                    ? 'assetCatalog'
-                    : key.endsWith('.blob') || key.endsWith('.png')
-                        ? 'assetBlob'
-                        : 'map',
-            id: key == 'project.json' ? registered.projectHandle.value : key)
+        key: projectCreationResourceRef(key,
+            nativeCreation == null ? registered.projectHandle.value : projectId)
     };
     final changes = AuthoringChangeSet(
         changes: [
@@ -86,8 +91,19 @@ Future<void> writeProjectCreationKit(
         createdAt: now,
         expiresAt: now.add(const Duration(minutes: 10)),
         changeSet: changes);
+    if (nativeCreation != null) {
+      plan.bindNativeCreationCapability(
+          NativeProjectCreationCapability.forPreparedPlan(
+              prepared: nativeCreation,
+              plan: plan,
+              actorId: 'project-creator',
+              projectId: projectId,
+              operationId: operation));
+    }
     plans.save(plan);
-    final gateway = await LocalTransactionFileGateway.open(projectRoot: path);
+    final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: path,
+        expectedProjectRoot: nativeCreation == null ? null : path);
     final ledger = AuthoringIdempotencyLedger(
         store: FileIdempotencyStore(
             filePath:
@@ -99,15 +115,16 @@ Future<void> writeProjectCreationKit(
         clock: DateTime.now,
         faultInjector: faultInjector);
     try {
-      await transaction.apply(
+      return await transaction.apply(
           planId: plan.planId,
           request: request,
           currentProjectRevision: base,
           operationId: operation,
+          verifyPromoted: verifyPublished,
           scope: AuthoringIdempotencyScope(
               actorId: 'project-creator',
-              projectId: registered.projectHandle.value,
-              actionId: 'project.create',
+              projectId: projectId,
+              actionId: actionId,
               actionVersion: 1,
               key: operation));
     } on Object catch (error) {
@@ -135,3 +152,14 @@ Future<void> writeProjectCreationKit(
     handles.closeWorkspace(registered.workspaceHandle);
   }
 }
+
+AuthoringResourceRef projectCreationResourceRef(String key, String projectId) =>
+    AuthoringResourceRef(
+        kind: key == 'project.json'
+            ? 'project'
+            : key == assetCatalogStorageKey
+                ? 'assetCatalog'
+                : key.endsWith('.blob') || key.endsWith('.png')
+                    ? 'assetBlob'
+                    : 'map',
+        id: key == 'project.json' ? projectId : key);

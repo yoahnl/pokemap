@@ -72,18 +72,16 @@ Future<void> main(List<String> args) async {
   await File(profilePath).writeAsString(
       jsonEncode(interpretationProfile.toJson()), flush: true);
   final watch = Stopwatch()..start();
-  var appliedMutations = 0;
+  var publishedCreationTransactions = 0;
   final workflow = ConverterWorkflow(nativeWriteCheckpoint: (stage, staging, project) {
-    if (stage == NativeWriteStage.afterMutation) appliedMutations++;
-    if (stage != NativeWriteStage.afterMutation || appliedMutations % 25 == 0) {
-      print(jsonEncode({
-        'nativeStage': stage.name,
-        'appliedMutationEnvelopes': appliedMutations,
-        'stagingRoot': staging,
-        'projectPath': project,
-        'elapsedMs': watch.elapsedMilliseconds,
-      }));
-    }
+    if (stage == NativeWriteStage.afterCreation) publishedCreationTransactions++;
+    print(jsonEncode({
+      'nativeStage': stage.name,
+      'publishedCreationTransactions': publishedCreationTransactions,
+      'stagingRoot': staging,
+      'projectPath': project,
+      'elapsedMs': watch.elapsedMilliseconds,
+    }));
   });
   final result = <String, Object?>{
     'kind': contentScope == ConverterContentScope.world

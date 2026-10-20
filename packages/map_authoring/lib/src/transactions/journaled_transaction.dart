@@ -99,6 +99,7 @@ final class JournaledAuthoringTransaction {
     required AuthoringIdempotencyScope scope,
     required String operationId,
     AuthoringTransactionPrecondition? precondition,
+    AuthoringTransactionPrecondition? verifyPromoted,
     void Function()? beforeReservation,
     void Function()? preparationCheck,
   }) {
@@ -117,7 +118,10 @@ final class JournaledAuthoringTransaction {
         return replay;
       }
       for (final journal in await _gateway.listJournals()) {
-        if (journal.bulkCapability == null) continue;
+        if (journal.bulkCapability == null &&
+            journal.nativeCreationCapability == null) {
+          continue;
+        }
         final reservation = await _idempotency.recordForRecovery(journal.scope);
         if (reservation?.status == AuthoringIdempotencyStatus.pending) {
           throw const JournaledAuthoringTransactionException(
@@ -134,6 +138,10 @@ final class JournaledAuthoringTransaction {
       );
       _requireRequestMatchesPlan(request, plan);
       plan.bulkCapability?.requirePlan(plan,
+          actorId: scope.actorId,
+          projectId: scope.projectId,
+          operationId: operationId);
+      plan.nativeCreationCapability?.requirePlan(plan,
           actorId: scope.actorId,
           projectId: scope.projectId,
           operationId: operationId);
@@ -174,6 +182,9 @@ final class JournaledAuthoringTransaction {
         diff: plan.changeSet.diff,
         artifacts: plan.artifacts,
         extensions: {
+          if (plan.nativeCreationCapability != null)
+            'inventoryFingerprint':
+                plan.nativeCreationCapability!.inventoryFingerprint,
           'planId': plan.planId,
           'operationId': operationId,
           'multiFileGuarantee': 'recoverable',
@@ -198,6 +209,7 @@ final class JournaledAuthoringTransaction {
         ],
         intendedReceipt: intendedReceipt,
         bulkCapability: plan.bulkCapability,
+        nativeCreationCapability: plan.nativeCreationCapability,
       );
 
       // The journal exists before idempotency reservation. A process stop can
@@ -330,6 +342,7 @@ final class JournaledAuthoringTransaction {
               );
             }
 
+            await verifyPromoted?.call();
             journal = journal.copyWith(
               status: AuthoringTransactionStatus.committed,
               updatedAt: _clock().toUtc(),
