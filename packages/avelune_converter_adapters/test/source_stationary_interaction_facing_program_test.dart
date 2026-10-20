@@ -48,7 +48,8 @@ Future<SourceEventProjection> _project(
     {String defect = '',
     bool factFirst = false,
     bool choice = true,
-    bool forge = false}) async {
+    bool forge = false,
+    String? passiveContext}) async {
   final commands = <LiteralFixtureEventCommand>[
     const LiteralFixtureEventCommand(101, ['A question.']),
     if (choice) ...const [
@@ -133,6 +134,33 @@ Future<SourceEventProjection> _project(
                   LiteralFixtureEventCommand(0, [])
                 ]),
           ]),
+        if (passiveContext != null)
+          LiteralFixtureEvent(id: 3, x: 0, y: 0, name: 'Television', pages: [
+            LiteralFixtureEventPage(
+                selfSwitch: passiveContext == 'missingCondition' ? null : 'A',
+                trigger: passiveContext == 'parallel' ? 4 : 3,
+                commands: [
+                  LiteralFixtureEventCommand(101, [
+                    passiveContext == 'textControl'
+                        ? r'Unknown\ch[1,2,Yes,No]'
+                        : 'A television programme.'
+                  ]),
+                  if (passiveContext == 'variable')
+                    const LiteralFixtureEventCommand(122, [7, 7, 0, 0, 9]),
+                  if (passiveContext == 'door') ...[
+                    const LiteralFixtureEventCommand(
+                        111, [12, 'get_self.onEvent?']),
+                    ..._turn(indent: 1, target: -1, code: 1),
+                    const LiteralFixtureEventCommand(210, [], indent: 1),
+                    const LiteralFixtureEventCommand(412, []),
+                  ],
+                  LiteralFixtureEventCommand(123, [
+                    passiveContext == 'foreignSelf' ? 'B' : 'A',
+                    passiveContext == 'resetTrue' ? 0 : 1
+                  ]),
+                  const LiteralFixtureEventCommand(0, []),
+                ]),
+          ]),
       ])
     ],
   );
@@ -182,6 +210,89 @@ Future<SourceEventProjection> _project(
 }
 
 void main() {
+  for (final factFirst in [false, true]) {
+    test(
+        'attested television context keeps the facing and page refresh $factFirst',
+        () async {
+      final projection =
+          await _project(factFirst: factFirst, passiveContext: 'safe');
+      final row = (projection.semanticEvidence['events'] as List)
+          .cast<Map>()
+          .singleWhere((row) => row['locator']['eventId'] == 1);
+      expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
+      final proof = (row['pages'] as List)
+          .expand((page) => page['adaptedCommands'] as List)
+          .cast<Map>()
+          .singleWhere((command) =>
+              command['nativeContract'] ==
+              'sourceOrderedPlayerFacingEntityActorRoute');
+      final contexts = proof['concurrentTextSelfResetAutoruns'] as List;
+      expect(contexts, hasLength(1));
+      expect(contexts.single['eventId'], 3);
+      expect(contexts.single['rawDataRef'], isNotNull);
+      expect(contexts.single['onlyEffect'], 'clearOwnSelfA');
+      expect(contexts.single['nativeExecutionQualification'],
+          'independentOriginalEventQualification');
+      final map = projection.nativeMaps[1]!;
+      final entity = map.entities
+          .singleWhere((entity) => entity.npc?.characterId == 'guide');
+      final project = ProjectManifest(
+          name: 'Television context',
+          tilesets: const [],
+          maps: const [],
+          facts: projection.facts);
+      expect(
+          resolveMapEntityPresentation(
+                  project: project,
+                  gameState: const GameState(saveId: 'test'),
+                  map: map,
+                  entity: entity)!
+              .facing,
+          EntityFacing.south);
+      expect(
+          resolveMapEntityPresentation(
+                  project: project,
+                  gameState: GameState(
+                      saveId: 'test',
+                      narrativeFactRuntimeState: NarrativeFactRuntimeState(
+                          overridesByFactId: {
+                            projection.facts.first.id: true
+                          })),
+                  map: map,
+                  entity: entity)!
+              .facing,
+          EntityFacing.north);
+    });
+  }
+  for (final concurrent in ['autorun', 'parallel']) {
+    test('a safe television does not hide another concurrent $concurrent',
+        () async {
+      final projection =
+          await _project(passiveContext: 'safe', defect: concurrent);
+      final row = (projection.semanticEvidence['events'] as List)
+          .cast<Map>()
+          .singleWhere((row) => row['locator']['eventId'] == 1);
+      expect(row['status'], 'quarantinedWholeEvent');
+    });
+  }
+  for (final context in [
+    'variable',
+    'foreignSelf',
+    'resetTrue',
+    'missingCondition',
+    'textControl',
+    'parallel',
+    'door'
+  ]) {
+    test('refuses a modified television or another interpreter $context',
+        () async {
+      final projection = await _project(passiveContext: context);
+      final row = (projection.semanticEvidence['events'] as List)
+          .cast<Map>()
+          .singleWhere((row) => row['locator']['eventId'] == 1);
+      expect(row['status'], 'quarantinedWholeEvent');
+    });
+  }
   for (final factFirst in [false, true]) {
     for (final facing in EntityFacing.values) {
       test(

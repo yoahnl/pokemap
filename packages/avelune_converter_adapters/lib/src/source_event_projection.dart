@@ -1577,6 +1577,20 @@ final class _ProjectionBuilder {
                         'sourceAsynchronousTimingParity': false,
                         'nativeRouteJoinedBeforeSourceContinuation': true,
                         'sourceReadOrWriteOfFacingStateQualified': false,
+                        'concurrentTextSelfResetAutoruns': [
+                          for (final owner in _sourceContextEvents)
+                            if (owner.sourceMapId == event.sourceMapId)
+                              for (final contextPage in owner.pages)
+                                if (contextPage.triggerCode == 3 && !contextPage.isEmpty &&
+                                    _passiveRelativeFacingContextPage(owner, contextPage)) {
+                                  'eventId': owner.sourceEventId,
+                                  'sourcePageIndex': contextPage.originalPageIndex,
+                                  'rawDataRef': contextPage.rawDataRef!.toJson(),
+                                  'onlyEffect': 'clearOwnSelfA',
+                                  'nativeScheduling': 'afterActiveSceneRelease',
+                                  'nativeExecutionQualification': 'independentOriginalEventQualification',
+                                },
+                        ],
                       },
                       'persistentFacingCertified': false,
                     },
@@ -2122,7 +2136,8 @@ final class _ProjectionBuilder {
           graphic.moveType != 0 || graphic.directionFix || graphic.through ||
           !condition(page.condition) || !block(page.body);
     }) || _sourceContextEvents.any((other) => other.sourceMapId == event.sourceMapId &&
-        other.pages.any((page) => const [3, 4].contains(page.triggerCode) && !page.isEmpty))) {
+        other.pages.any((page) => const [3, 4].contains(page.triggerCode) && !page.isEmpty &&
+            !_passiveRelativeFacingContextPage(other, page)))) {
       return false;
     }
     final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
