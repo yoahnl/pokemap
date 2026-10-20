@@ -615,7 +615,7 @@ void main() {
   });
 
   test(
-      'declared holes work in two renamed projects with relocated map and event IDs',
+      'declared and automatic holes work in renamed projects with relocated identities',
       () async {
     for (final (mapId, eventId, name) in [
       (7, 9, 'Shaft alpha'),
@@ -656,6 +656,7 @@ void main() {
       expect(program.sourceEventId, eventId);
       expect(program.fallingSound.name, '$name down');
       expect(program.toJson()['declaredProgramBinding'], isNotNull);
+      expect(program.declaredProgramBinding.automaticallyDiscovered, isFalse);
       expect(
           sourceHoleNativePrograms(
               source: fixture.source,
@@ -670,9 +671,13 @@ void main() {
           isEmpty);
       final absent =
           await _reprofile(fixture, syntheticSourceInterpretationProfile);
-      expect(
-          sourceHoleNativePrograms(source: absent, analysis: _analyze(absent)),
-          isEmpty);
+      final automatic = sourceHoleNativePrograms(
+          source: absent, analysis: _analyze(absent));
+      expect(automatic, hasLength(1));
+      expect(automatic.values.single.declaredProgramBinding.automaticallyDiscovered,
+          isTrue);
+      expect(automatic.values.single.sourceMapId, mapId);
+      expect(automatic.values.single.sourceEventId, eventId);
       final declaration =
           (profile.toJson()['declaredPrograms'] as List).single as Map;
       final ambiguous = await _reprofile(
