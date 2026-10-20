@@ -283,6 +283,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
             result.scenes.where((scene) =>
                 scene.metadata['sourceEventIdentity'] == door.identity.value),
             isEmpty);
+        expect(result.allEnabledOriginalEventsHaveExecutionContext, isTrue);
       });
     }
 
