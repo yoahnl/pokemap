@@ -31,6 +31,8 @@ import 'source_warp_tile_native_program.dart';
 import 'source_dialogue_text.dart';
 import 'source_event_character_identity.dart';
 import 'source_portrait_binding.dart';
+import 'source_card_key_gate_program.dart';
+import 'source_card_key_gate_audio.dart';
 
 DialogueLineFeedback? _staticSourceTextFeedback(String source, {bool allowNativePlaceholders = false}) =>
     parseSourceDialogueText(source, allowPlayerName: false, allowTiming: false, allowLiteralEscapes: false,
@@ -269,6 +271,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
     Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
@@ -293,7 +296,7 @@ final class SourceEventProjector {
     }
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings);
+        portraitBindings, cardKeyGateMissingAudioProof);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -319,6 +322,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
       Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
@@ -355,7 +359,7 @@ final class SourceEventProjector {
     }
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings)
+            portraitBindings, cardKeyGateMissingAudioProof)
         .build();
   }
 }
@@ -629,7 +633,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts,
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
-      this.portraitBindings)
+      this.portraitBindings, this.cardKeyGateMissingAudioProof)
       : maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
         routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis),
@@ -790,6 +794,7 @@ final class _ProjectionBuilder {
   final scenes = <SceneAsset>[];
   final cinematics = <CinematicAsset>[];
   final Map<ConverterId, SourcePortraitBinding> portraitBindings;
+  final SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof;
   final dialogues = <ProjectDialogueEntry>[];
   final dialogueSources = <String, String>{};
   final worldRules = <WorldRuleDefinition>[];
@@ -1151,6 +1156,13 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (_cardKeyGatePrograms[event.identity] case final gate? when gaps.isEmpty)
+          'nativeCardKeyGate': {
+            ...gate.toJson(),
+            if (_cardKeyGateSoundIsSourceNoOp(event))
+              'missingSound': {'name': 'frlg_gateopen', 'diagnostic': 'sourceAudioMissing',
+                'proofHash': canonicalHashOf(cardKeyGateMissingAudioProof!.toJson()).value},
+          },
         if (gaps.isEmpty && elevatorPrograms.containsKey(event.identity)) 'nativeElevator': {'familyHash': elevatorPrograms[event.identity]!.familyHash.value, 'role': elevatorPrograms[event.identity]!.role.name, 'policy': elevatorPrograms[event.identity]!.policy.name},
         if (gaps.isEmpty && warpTilePrograms.programs.containsKey(event.identity))
           'nativeWarpTile': {
@@ -1801,6 +1813,9 @@ final class _ProjectionBuilder {
       'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedFieldObstacles': eventEvidence.any((row) => row.containsKey('nativeFieldObstacle')),
+      if (cardKeyGateMissingAudioProof?.isBoundTo(source, analysis.profile) == true &&
+          eventEvidence.any((row) => (row['nativeCardKeyGate'] as Map?)?.containsKey('missingSound') == true))
+        'cardKeyGateMissingAudioProof': cardKeyGateMissingAudioProof!.toJson(),
       'portraitPresentations': [
         for (final entry in portraitBindings.entries)
           if (gapsByEvent[entry.key]?.isEmpty == true) {
@@ -3464,8 +3479,57 @@ final class _ProjectionBuilder {
     return gaps;
   }
 
+  late final _cardKeyGatePrograms = sourceCardKeyGatePrograms(source: source, analysis: analysis);
+
+  bool _cardKeyGateSoundIsSourceNoOp(SourceEventDefinition event) =>
+      _cardKeyGatePrograms[event.identity]?.isBoundTo(source, analysis, event) == true &&
+      cardKeyGateMissingAudioProof?.isBoundTo(source, analysis.profile) == true;
+
+  Set<String> _cardKeyGateGaps(SourceEventDefinition event, {required bool checkCharacterBindings}) {
+    final program = _cardKeyGatePrograms[event.identity];
+    if (program == null || !program.isBoundTo(source, analysis, event)) {
+      return {'sourceCardKeyGateCompleteBindingMissing'};
+    }
+    final map = maps[event.sourceMapId]!;
+    if (map.spatialScene != null || map.version == ProjectVersion.v9 || event.x < 0 ||
+        event.y < 1 || event.x + 2 > map.size.width || event.y >= map.size.height) {
+      return {'sourceCardKeyGateGeometryUnsupported'};
+    }
+    final gaps = {..._sourceControlGaps(event)};
+    final branch = event.pages.first.body.nodes.single as SourceConditionalNode;
+    _conditionGaps(event, branch.condition, gaps);
+    for (final page in event.pages) {
+      _conditionGaps(event, page.condition, gaps);
+      for (final node in _sourceControlNodes(page.body).whereType<SourceTextNode>()) {
+        if (_textFeedback(event, node.text) == null) gaps.add('sourceTextControlUnsupported');
+      }
+    }
+    for (final name in ['ItemGet', 'frlg_gateopen']) {
+      if (_sound(name) == null && !(name == 'frlg_gateopen' && _cardKeyGateSoundIsSourceNoOp(event))) {
+        gaps.add('sourceSoundBindingMissing');
+      }
+    }
+    if (checkCharacterBindings) {
+      final graphic = event.pages.first.graphic!;
+      final binding = characterBindings[sourceEventCharacterBindingKey(characterName: graphic.characterName,
+          pattern: graphic.pattern, direction: graphic.direction, fixedDirection: true)];
+      final file = source.snapshot.entries.where((entry) => entry.fileId == binding?.sourceFileId).singleOrNull;
+      if (binding == null || file == null || binding.sourceSnapshotHash != source.snapshot.canonicalHash ||
+          binding.sourceFileHash != file.sha256 || file.relativePath != 'Graphics/Characters/${graphic.characterName}.png' ||
+          !binding.fixedDirection || binding.sourcePattern != graphic.pattern || binding.sourceDirection != graphic.direction ||
+          binding.characterId != sourceFixedDirectionCharacterId(snapshot: source.snapshot, imageFile: file,
+              pattern: graphic.pattern, direction: graphic.direction)) {
+        gaps.add('characterBindingMissing');
+      }
+    }
+    return gaps;
+  }
+
   Set<String> _localGaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (event.name == 'Silph Gate size(2,2)') {
+      return _cardKeyGateGaps(event, checkCharacterBindings: checkCharacterBindings);
+    }
     if (_portraitProgram(event) != null) {
       return _portraitGaps(event,
           checkCharacterBindings: checkCharacterBindings);
@@ -3600,7 +3664,7 @@ final class _ProjectionBuilder {
         gaps.add('pageGraphicContractUnsupported');
       }
       if (checkCharacterBindings && graphic.characterName.isNotEmpty) {
-        final fixedDirection = graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event);
+        final fixedDirection = graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity));
         final binding = characterBindings[sourceEventCharacterBindingKey(
             characterName: graphic.characterName,
             pattern: graphic.pattern,
@@ -4315,7 +4379,7 @@ final class _ProjectionBuilder {
         characterName: graphic.characterName,
         pattern: graphic.pattern,
         direction: graphic.direction,
-        fixedDirection: graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event))];
+        fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity)))];
     NarrativeEventConditionExpression pageExpression(int index) {
       final guard = _all([
         _pageGuard(event, projectedPages[index].condition),
@@ -4331,7 +4395,7 @@ final class _ProjectionBuilder {
       final boundCharacter = pageGraphic.characterName.isEmpty ? null :
         characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
           pattern: pageGraphic.pattern, direction: pageGraphic.direction,
-          fixedDirection: pageGraphic.directionFix && sourceEventUsesFixedDirectionPresentation(event))];
+          fixedDirection: pageGraphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity)))];
       final guard = _all([_pageGuard(event, page.condition),
         _not(_any(projectedPages.skip(index + 1).map((value) => _pageGuard(event, value.condition)).toList()))]);
       if (guard.constant == false) continue;
@@ -4377,8 +4441,8 @@ final class _ProjectionBuilder {
           'sourceEventAnchorX': '${event.x}',
           'sourceEventAnchorY': '${event.y}',
           if (character != null && !graphic.through) ...{
-            mapEntityCollisionWidthProperty: '1',
-            mapEntityCollisionHeightProperty: '1',
+            mapEntityCollisionWidthProperty: _cardKeyGatePrograms.containsKey(event.identity) ? '2' : '1',
+            mapEntityCollisionHeightProperty: _cardKeyGatePrograms.containsKey(event.identity) ? '2' : '1',
             mapEntityCollisionOffsetXProperty: '0',
             mapEntityCollisionOffsetYProperty: '0',
           },
@@ -5052,6 +5116,7 @@ final class _SceneBuilder {
             green: node.green, blue: node.blue, gray: node.gray,
             durationMs: node.durationMs), next);
         case SourceSoundEffectNode():
+          if (node.name == 'frlg_gateopen' && projection._cardKeyGateSoundIsSourceNoOp(event)) break;
           final sound = projection._sound(node.name,
               allowNativeAdaptation: projection._isItemGiver(event))!;
           next = _interactive(SceneInteractiveCommand.playSoundEffect(

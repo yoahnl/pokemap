@@ -8,6 +8,8 @@ import 'native_mutation_batches.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
 import 'source_portrait_binding.dart';
+import 'source_card_key_gate_program.dart';
+import 'source_card_key_gate_audio.dart';
 import 'source_event_character_identity.dart';
 import 'source_event_evidence.dart';
 import 'source_center_recovery_binding.dart';
@@ -155,6 +157,11 @@ final class SourceEventStudyComposer {
     final selectedEvents = analysis.events
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .toList();
+    final selectedEventIdentities = selectedEvents.map((event) => event.identity).toSet();
+    final cardKeyGatePrograms = Map<ConverterId, SourceCardKeyGateProgram>.unmodifiable({
+      for (final entry in sourceCardKeyGatePrograms(source: source, analysis: analysis).entries)
+        if (selectedEventIdentities.contains(entry.key)) entry.key: entry.value,
+    });
     final staticDoorPrograms = Map<ConverterId, SourceStaticDoorProgram>.unmodifiable({
       for (final entry in sourceStaticDoorPrograms(source: source,
           analysis: analysis).entries)
@@ -309,6 +316,7 @@ final class SourceEventStudyComposer {
       }
     }
     final transitionSounds = {
+      if (cardKeyGatePrograms.isNotEmpty) ...['ItemGet', 'frlg_gateopen'],
       for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
           transitionIds.contains(event.identity)))
         for (final page in event.pages) ..._soundNames(page.body),
@@ -329,6 +337,7 @@ final class SourceEventStudyComposer {
           for (final page in event.pages) ..._soundNames(page.body, dialogueOnly: true),
     };
     for (final name in {
+      if (cardKeyGatePrograms.isNotEmpty) ...['ItemGet', 'frlg_gateopen'],
       ...inlineSounds,
       ...trainerVictorySounds,
       for (final event in selectedEvents.where((event) => (!event.isQuarantined || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
@@ -346,6 +355,18 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'imported', ...binding.evidence});
       } on SourceEventSoundBindingUnavailable catch (error) {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
+    SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof;
+    if (cardKeyGatePrograms.isNotEmpty && !sounds.containsKey('frlg_gateopen')) {
+      try {
+        cardKeyGateMissingAudioProof = await const SourceCardKeyGateMissingAudioResolver().read(
+            source: source, files: recording, limits: limits, cancellation: cancellation);
+        soundEvidence.add({'sourceName': 'frlg_gateopen', 'status': 'sourceMissingNoOpAttested',
+          'diagnostic': 'sourceAudioMissing', 'proof': cardKeyGateMissingAudioProof.toJson()});
+      } on NativeWriteException catch (error) {
+        if (error.code.contains('changed') || error.code.contains('quota') || error.code.contains('hash')) rethrow;
+        soundEvidence.add({'sourceName': 'frlg_gateopen', 'status': 'preservedOnly', 'reason': error.code});
       }
     }
     final centerRecovery = <ConverterId, SourceCenterRecoveryBinding>{};
@@ -511,6 +532,7 @@ final class SourceEventStudyComposer {
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
             portraitBindings: portraitBindings,
+            cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
             healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -533,7 +555,7 @@ final class SourceEventStudyComposer {
             characterName: graphic.characterName,
             pattern: graphic.pattern,
             direction: graphic.direction,
-            fixedDirection: graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event));
+            fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity)));
         if (!visited.add(key)) continue;
         final presentation = resolveSourceCharacterPresentation(snapshot: source.snapshot,
             profile: source.interpretationProfile, charsetName: graphic.characterName);
@@ -548,7 +570,7 @@ final class SourceEventStudyComposer {
               charsetName: visualAdaptation?.actualCharsetName ?? graphic.characterName,
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
-              fixedDirection: graphic.directionFix && sourceEventUsesFixedDirectionPresentation(event),
+              fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity)),
               limits: limits,
               cancellation: cancellation);
           bindings[key] = imported.binding;
@@ -602,6 +624,7 @@ final class SourceEventStudyComposer {
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
         portraitBindings: portraitBindings,
+        cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
         healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -678,6 +701,9 @@ final class SourceEventStudyComposer {
     }
     if (usedExternalWarps != null) {
       preservedFileIds.addAll(usedExternalWarps.files.map((file) => file.fileId.value));
+    }
+    if (cardKeyGateMissingAudioProof != null && admittedIdentities.any(cardKeyGatePrograms.containsKey)) {
+      preservedFileIds.addAll(cardKeyGateMissingAudioProof.witnesses.map((file) => file.fileId.value));
     }
     preservedFileIds.addAll(trainerBindings.byEventIdentity.values
         .map((binding) => binding.sourceRosterFile.fileId.value));

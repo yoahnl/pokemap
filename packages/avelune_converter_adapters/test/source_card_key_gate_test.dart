@@ -1,0 +1,689 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_adapters/src/source_event_sound_binding.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:image/image.dart' as image;
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:test/test.dart';
+
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
+import 'support/literal_tile_fixture.dart';
+import 'support/native_writer_fixture.dart';
+import 'support/source_map_music_fixture.dart';
+
+const _charset = 'OBJ_FRLG_Silph Gate_H';
+
+List<LiteralFixtureEventCommand> _commands({String defect = ''}) => [
+      LiteralFixtureEventCommand(111, [
+        12,
+        defect == 'quantity'
+            ? r'$bag.quantity(:CARDKEY)>0'
+            : r'$bag.has?(:CARDKEY)'
+      ]),
+      const LiteralFixtureEventCommand(
+          250,
+          [
+            LiteralFixtureObject('RPG::AudioFile',
+                {'@name': 'ItemGet', '@volume': 100, '@pitch': 100})
+          ],
+          indent: 1),
+      const LiteralFixtureEventCommand(
+          101, [r'Bingo!\nThe Card Key opened the door!\wtnp[35]'],
+          indent: 1),
+      LiteralFixtureEventCommand(
+          250,
+          [
+            LiteralFixtureObject('RPG::AudioFile', {
+              '@name': defect == 'sound' ? 'Other' : 'frlg_gateopen',
+              '@volume': 100,
+              '@pitch': defect == 'pitch' ? 120 : 100
+            })
+          ],
+          indent: 1),
+      LiteralFixtureEventCommand(123, [defect == 'letter' ? 'B' : 'A', 0],
+          indent: 1),
+      const LiteralFixtureEventCommand(0, [], indent: 1),
+      const LiteralFixtureEventCommand(411, []),
+      const LiteralFixtureEventCommand(101, [r'No!\nIt needs a Card Key!'],
+          indent: 1),
+      const LiteralFixtureEventCommand(0, [], indent: 1),
+      const LiteralFixtureEventCommand(412, []),
+      if (defect == 'effect') const LiteralFixtureEventCommand(121, [1, 1, 0]),
+      const LiteralFixtureEventCommand(0, []),
+    ];
+
+Future<
+    ({
+      NormalizedSourceProject source,
+      LiteralFixtureFiles files,
+      SourceEventAnalysis analysis,
+      Map<String, SourceEventCharacterBinding> characters,
+      Map<String, SourceEventSoundBinding> sounds,
+      Map<String, SourceEventItemBinding> items,
+      SourceEventCharacterImport character
+    })> _input({String defect = '', bool includeOtherMap = false}) async {
+  final profile = SourceInterpretationProfile.fromJson({
+    ...syntheticSourceInterpretationProfile.toJson(),
+    'sections': {
+      ...syntheticSourceInterpretationProfile.toJson()['sections'] as Map,
+      for (final role in [
+        'Messages',
+        'MessageConfig',
+        'DrawText',
+        'Audio_Play'
+      ])
+        'events.$role': {
+          'index': 0,
+          'name': 'Synthetic',
+          'sha256': literalFixtureHash(syntheticInterpretationSection).value
+        }
+    },
+  });
+  final fixture = await LiteralTileFixture.create(
+      scriptsBytes: syntheticInterpretationArchive,
+      interpretationProfile: profile,
+      includeEventSystem: true,
+      extraFiles: {
+        'PBS/pokemon.txt': utf8
+            .encode('[RATTATA]\nName = Rattata\n[RATICATE]\nName = Raticate\n'),
+        'Data/species.dat': literalFixtureMarshal({
+          for (final row in [('RATTATA', 'Rattata'), ('RATICATE', 'Raticate')])
+            LiteralFixtureSymbol(row.$1):
+                LiteralFixtureObject('GameData::Species', {
+              '@id': LiteralFixtureSymbol(row.$1),
+              '@species': LiteralFixtureSymbol(row.$1),
+              '@form': 0,
+              '@real_name': row.$2
+            })
+        }),
+        'PBS/items.txt': utf8.encode(
+            '[CARDKEY]\nName = Card Key\nNamePlural = Card Keys\nPocket = 8\nPrice = 0\nFlags = KeyItem\nConsumable = false\nDescription = A card key.\n'),
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = Player\n'),
+        'PBS/map_metadata.txt': utf8.encode('[214]\nMapPosition = 1,0,0\n'),
+        'Graphics/Characters/Player.png': image
+            .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
+        'Graphics/Characters/$_charset.png': image
+            .encodePng(image.Image(width: 256, height: 256, numChannels: 4)),
+        'Audio/SE/ItemGet.wav': sourceMapMusicFixtureWav(),
+        if (defect != 'missingSound')
+          'Audio/SE/frlg_gateopen.wav': sourceMapMusicFixtureWav(),
+        'Data/items.dat': literalFixtureMarshal({
+          const LiteralFixtureSymbol('CARDKEY'):
+              const LiteralFixtureObject('GameData::Item', {
+            '@id': LiteralFixtureSymbol('CARDKEY'),
+            '@real_name': 'Card Key',
+            '@real_name_plural': 'Card Keys',
+            '@real_portion_name': null,
+            '@real_portion_name_plural': null,
+            '@pocket': 8,
+            '@price': 0,
+            '@sell_price': 0,
+            '@bp_price': 0,
+            '@field_use': 0,
+            '@battle_use': 0,
+            '@flags': ['KeyItem'],
+            '@consumable': false,
+            '@show_quantity': null,
+            '@move': null,
+            '@real_description': 'A card key.',
+            '@pbs_file_suffix': ''
+          })
+        }),
+      },
+      maps: [
+        if (includeOtherMap) LiteralFixtureMap(id: 7),
+        LiteralFixtureMap(id: 214, width: 5, height: 5, layers: [
+          List.filled(25, 384),
+          List.filled(25, 0),
+          List.filled(25, 0)
+        ], events: [
+          LiteralFixtureEvent(
+              id: 9,
+              name: defect == 'size'
+                  ? 'Silph Gate size(3,2)'
+                  : 'Silph Gate size(2,2)',
+              x: 2,
+              y: 2,
+              pages: [
+                LiteralFixtureEventPage(
+                    characterName: _charset,
+                    directionFix: defect != 'quantity',
+                    walkAnime: defect == 'quantity',
+                    moveType: defect == 'autonomous' ? 1 : 0,
+                    commands: _commands(defect: defect)),
+                LiteralFixtureEventPage(
+                    selfSwitch: 'A',
+                    through: defect != 'solidOpen',
+                    commands: [
+                      if (defect == 'openEffect')
+                        const LiteralFixtureEventCommand(123, ['B', 0]),
+                      const LiteralFixtureEventCommand(0, [])
+                    ])
+              ])
+        ])
+      ]);
+  final snapshot = SourceSnapshot(
+      logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
+      policyHash: fixture.snapshot.policyHash,
+      entries: [
+        ...fixture.snapshot.entries,
+        for (final row in [
+          (
+            'Game.exe',
+            14732288,
+            '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04'
+          ),
+          (
+            'Game.ini',
+            121,
+            '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6'
+          ),
+          (
+            'mkxp.json',
+            6212,
+            '90a3aee82895e48e6c767f973b637d27856cccfd575f48b78d04191cb3e7d35f'
+          )
+        ])
+          SourceFileEntry(
+              fileId: ConverterId('fixture-${row.$1}'),
+              relativePath: row.$1,
+              kind: SourceNodeKind.file,
+              byteLength: row.$2,
+              sha256: Sha256Hash(row.$3),
+              format: 'unknown',
+              family: 'project')
+      ],
+      diagnostics: [],
+      excludedPaths: [],
+      profileEvidence: fixture.snapshot.profileEvidence,
+      state: SourceScanState.complete);
+  final files = LiteralFixtureFiles(snapshot, fixture.sourceBytes);
+  final source = await const RmxpSourceNormalizer().normalize(
+      snapshot: snapshot,
+      files: files,
+      interpretationProfile: profile,
+      includeEventSystem: true);
+  final analysis = SourceEventAnalyzer.forProject(source,
+          profile: SourceEventProfile.forProject(source))
+      .analyze();
+  final character = await const SourceEventCharacterImporter().read(
+      snapshot: snapshot,
+      files: files,
+      charsetName: _charset,
+      sourcePattern: 0,
+      sourceDirection: 2,
+      fixedDirection: true);
+  final sounds = <String, SourceEventSoundBinding>{};
+  for (final name in [
+    'ItemGet',
+    if (defect != 'missingSound') 'frlg_gateopen'
+  ]) {
+    sounds[name] = await const SourceEventSoundResolver()
+        .read(source: source, files: files, name: name);
+  }
+  final items = await const SourceEventItemBindingResolver().read(
+      snapshot: snapshot,
+      files: files,
+      symbols: ['CARDKEY'],
+      eventProfile: analysis.profile);
+  return (
+    source: source,
+    files: files,
+    analysis: analysis,
+    characters: {character.bindingKey: character.binding},
+    sounds: sounds,
+    items: items.bindings,
+    character: character
+  );
+}
+
+Future<SourceEventProjection> _project({String defect = ''}) async {
+  final input = await _input(defect: defect);
+  return const SourceEventProjector().project(
+      source: input.source,
+      analysis: input.analysis,
+      nativeMaps: {
+        214: MapData(
+            id: 'silph2',
+            name: 'Silph',
+            size: const GridSize(width: 5, height: 5))
+      },
+      characterBindings: input.characters,
+      soundBindings: input.sounds,
+      itemBindings: input.items);
+}
+
+Future<({GameState state, List<String> effects})> _runGate(
+    SourceEventProjection projection,
+    SceneAsset scene,
+    GameState initial) async {
+  var state = initial;
+  final effects = <String>[];
+  final writer = NarrativeFactRuntimeWriter(
+      NarrativeFactRuntimeResolver.fromFacts(projection.facts));
+  final reloaded = SceneAsset.fromJson(jsonDecode(jsonEncode(scene.toJson())));
+  final plan = buildSceneRuntimePlan(reloaded);
+  expect(plan.plan, isNotNull);
+  final result = await SceneRuntimeExecutor(
+      callbacks: SceneRuntimeExecutionCallbacks(
+          evaluateCondition: (intent) => evaluateSceneInventoryCondition(
+                  source: intent.conditionSource!, gameState: state)
+              ? 'true'
+              : 'false',
+          showDialogue: (_) {
+            effects.add('dialogue');
+            return 'completed';
+          },
+          startBattle: (_) => throw StateError('No battle'),
+          playCinematic: (_) => throw StateError('No cinematic'),
+          executeInteractiveCommand: (intent) {
+            final command = intent.interactiveCommand!;
+            if (command is! ScenePlaySoundEffectInteractiveCommand) {
+              throw StateError('Unexpected command');
+            }
+            effects.add('sound');
+            return 'completed';
+          },
+          applyConsequence: (consequence) {
+            if (consequence is! SceneSetFactConsequence) {
+              throw StateError('Unexpected effect');
+            }
+            final written = writer.setFactValue(
+                gameState: state,
+                factId: consequence.factId,
+                value: consequence.narrativeValue);
+            expect(written.success, isTrue);
+            state = written.gameState;
+            effects.add('ownA');
+            return 'completed';
+          })).execute(plan.plan!);
+  expect(result.status, SceneRuntimeExecutionStatus.completed);
+  return (
+    state: GameState.fromJson(jsonDecode(jsonEncode(state.toJson()))),
+    effects: effects
+  );
+}
+
+void main() {
+  test(
+      'closed Card Key gate preserves both pages and its full four-cell footprint',
+      () async {
+    final projected = await _project();
+    expect(
+        (projected.semanticEvidence['events'] as List).single['gaps'], isEmpty);
+    final entity = projected.nativeMaps[214]!.entities.single;
+    expect(entity.pos, const GridPos(x: 2, y: 1));
+    expect(entity.size, const GridSize(width: 2, height: 2));
+    expect(resolveEntityCollisionCells(entity).toSet(), {
+      const GridPos(x: 2, y: 1),
+      const GridPos(x: 3, y: 1),
+      const GridPos(x: 2, y: 2),
+      const GridPos(x: 3, y: 2)
+    });
+    expect(entity.presentation!.variants, hasLength(2));
+    expect(entity.presentation!.variants.first.characterId, isNull);
+    expect(entity.presentation!.variants.first.blocksMovement, isFalse);
+    expect(entity.presentation!.variants.last.blocksMovement, isTrue);
+  });
+  for (final defect in [
+    'quantity',
+    'size',
+    'autonomous',
+    'pitch',
+    'letter',
+    'sound',
+    'effect',
+    'openEffect',
+    'solidOpen',
+    'missingSound'
+  ]) {
+    test('closed gate refuses incomplete or changed program $defect', () async {
+      final result = await _project(defect: defect);
+      expect((result.semanticEvidence['events'] as List).single['gaps'],
+          isNotEmpty);
+      expect(result.nativeMaps[214]!.entities, isEmpty);
+    });
+  }
+  test(
+      'missing audio does not become silence under an unrelated synthetic oracle',
+      () async {
+    final input = await _input(defect: 'missingSound');
+    input.files.reads.clear();
+    await expectLater(
+        const SourceCardKeyGateMissingAudioResolver()
+            .read(source: input.source, files: input.files),
+        throwsA(isA<NativeWriteException>().having((e) => e.code, 'code',
+            'events.card_key_gate.audio_oracle_unqualified')));
+    expect(input.files.reads, isEmpty);
+  });
+  test(
+      'gate conditions, effect order and saved ownA select the inert open page',
+      () async {
+    final input = await _input();
+    final projection = const SourceEventProjector().project(
+        source: input.source,
+        analysis: input.analysis,
+        nativeMaps: {
+          214: MapData(
+              id: 'silph2',
+              name: 'Silph',
+              size: const GridSize(width: 5, height: 5))
+        },
+        characterBindings: input.characters,
+        soundBindings: input.sounds,
+        itemBindings: input.items);
+    final closed = projection.scenes
+        .singleWhere((s) => s.metadata['sourcePageIndex'] == '0');
+    final open = projection.scenes
+        .singleWhere((s) => s.metadata['sourcePageIndex'] == '1');
+    final empty =
+        await _runGate(projection, closed, const GameState(saveId: 'gate'));
+    expect(empty.effects, ['dialogue']);
+    final item = input.items['CARDKEY']!.definition.id;
+    final initial = GameState(
+        saveId: 'gate',
+        bag: Bag(entries: [BagEntry(itemId: item, quantity: 1)]));
+    final opened = await _runGate(projection, closed, initial);
+    expect(opened.effects, ['sound', 'dialogue', 'sound', 'ownA']);
+    expect(opened.state.bag.toJson(), initial.bag.toJson());
+    final map = MapData.fromJson(
+        jsonDecode(jsonEncode(projection.nativeMaps[214]!.toJson())));
+    final project = ProjectManifest(
+        name: 'Gate',
+        maps: [
+          ProjectMapEntry(
+              id: map.id, name: map.name, relativePath: 'maps/silph2.json')
+        ],
+        tilesets: [],
+        characters: [input.character.character],
+        facts: projection.facts,
+        eventRegistry: projection.registry,
+        scenes: projection.scenes,
+        dialogues: projection.dialogues,
+        cinematicMediaAssets: [
+          for (final binding in input.sounds.values)
+            CinematicMediaAsset(
+                id: binding.mediaId,
+                label: binding.name,
+                kind: CinematicMediaAssetKind.sound,
+                relativePath:
+                    binding.mutation.parameters['logicalPath'] as String)
+        ]);
+    final gate = map.entities.single;
+    final before = resolveMapEntityPresentation(
+        project: project, gameState: initial, map: map, entity: gate)!;
+    final after = resolveMapEntityPresentation(
+        project: project, gameState: opened.state, map: map, entity: gate)!;
+    expect(before.blocksMovement, isTrue);
+    expect(after.blocksMovement, isFalse);
+    expect(after.characterId, isNull);
+    for (final contact in [
+      (const GridPos(x: 1, y: 1), Direction.east),
+      (const GridPos(x: 1, y: 2), Direction.east),
+      (const GridPos(x: 4, y: 1), Direction.west),
+      (const GridPos(x: 4, y: 2), Direction.west),
+      (const GridPos(x: 2, y: 0), Direction.south),
+      (const GridPos(x: 3, y: 0), Direction.south),
+      (const GridPos(x: 2, y: 3), Direction.north),
+      (const GridPos(x: 3, y: 3), Direction.north),
+    ]) {
+      final world = GameplayWorldState.initial(
+          map: map,
+          playerPos: contact.$1,
+          playerFacing: contact.$2,
+          project: project,
+          gameState: initial,
+          tileWidth: 32,
+          tileHeight: 32);
+      expect(stepGameplayWorld(world, const InteractIntent()),
+          isA<NpcInteracted>(),
+          reason: '${contact.$1} ${contact.$2}');
+      for (final cell in resolveEntityCollisionCells(gate)) {
+        expect(
+            world.isCellCenterBlockedLegacyForGridIndexedSystems(
+                cell.x, cell.y),
+            isTrue);
+      }
+      final afterWorld = GameplayWorldState.initial(
+          map: map,
+          playerPos: contact.$1,
+          playerFacing: contact.$2,
+          project: project,
+          gameState: opened.state,
+          tileWidth: 32,
+          tileHeight: 32);
+      for (final cell in resolveEntityCollisionCells(gate)) {
+        expect(
+            afterWorld.isCellCenterBlockedLegacyForGridIndexedSystems(
+                cell.x, cell.y),
+            isFalse);
+      }
+    }
+    final authority = NarrativeEventDispatchAuthority.prepare(
+        registryResult: EventRegistryDecodeResult.decoded(projection.registry),
+        occurrence: NarrativeEventOccurrence(
+            source: NarrativeEventSourceRef.entityInteract(map.id, gate.id)),
+        factResolver: NarrativeFactRuntimeResolver.fromFacts(projection.facts),
+        projectCatalog:
+            buildNarrativeEventProjectCatalog(project: project, maps: [map]),
+        project: project,
+        maps: [map]);
+    expect(authority, isA<NarrativeEventDispatchAuthorityReady>(),
+        reason: authority is NarrativeEventDispatchAuthorityBlocked
+            ? '${authority.reason}: ${authority.diagnostics}'
+            : null);
+    final decision = (authority as NarrativeEventDispatchAuthorityReady)
+        .plan(gameState: opened.state);
+    expect((decision as NarrativeEventDispatchHandled).sceneId, open.id);
+    final replay = await _runGate(projection, open, opened.state);
+    expect(replay.effects, isEmpty);
+    expect(replay.state.toJson(), opened.state.toJson());
+  });
+  for (final forgery in [
+    'position',
+    'rawPage',
+    'graphic',
+    'condition',
+    'body'
+  ]) {
+    test('gate rejects source versus analysis divergence $forgery', () async {
+      final input = await _input();
+      final owner = input.analysis.events.single;
+      final supplied = SourceEventDefinition(
+          identity: owner.identity,
+          sourceFileId: owner.sourceFileId,
+          sourceMapId: owner.sourceMapId,
+          sourceEventId: owner.sourceEventId,
+          name: owner.name,
+          x: forgery == 'position' ? 1 : owner.x,
+          y: owner.y,
+          locator: owner.locator,
+          pages: [
+            for (final page in owner.pages)
+              SourceEventPageAnalysis(
+                  sourcePage:
+                      forgery == 'rawPage' && page.originalPageIndex == 0
+                          ? owner.pages.last.sourcePage
+                          : page.sourcePage,
+                  locator: page.locator,
+                  graphic: forgery == 'graphic' && page.originalPageIndex == 0
+                      ? owner.pages.last.graphic
+                      : page.graphic,
+                  condition:
+                      forgery == 'condition' && page.originalPageIndex == 0
+                          ? owner.pages.last.condition
+                          : page.condition,
+                  rawDataRef: page.rawDataRef,
+                  diagnostics: page.diagnostics,
+                  body: forgery == 'body' && page.originalPageIndex == 0
+                      ? owner.pages.last.body
+                      : page.body)
+          ]);
+      final analysis = SourceEventAnalysis(
+          profile: input.analysis.profile,
+          diagnostics: input.analysis.diagnostics,
+          events: [supplied]);
+      expect(
+          sourceCardKeyGatePrograms(source: input.source, analysis: analysis),
+          isEmpty);
+      final result = const SourceEventProjector().project(
+          source: input.source,
+          analysis: analysis,
+          nativeMaps: {
+            214: MapData(
+                id: 'silph2',
+                name: 'Silph',
+                size: const GridSize(width: 5, height: 5))
+          },
+          characterBindings: input.characters,
+          soundBindings: input.sounds,
+          itemBindings: input.items);
+      expect(result.nativeMaps[214]!.entities, isEmpty);
+    });
+  }
+
+  test(
+      'gate composer publishes its native scene and reopens all four collision cells strictly',
+      () async {
+    final input = await _input();
+    final temporary = await Directory.systemTemp.createTemp('card-key-gate-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final literal = await const LiteralTileComposer().compose(
+        source: input.source,
+        files: input.files,
+        selectedSourceMapIds: [214],
+        projectName: 'Gate',
+        parentPath: temporary.path,
+        folderName: 'native');
+    final semantic = (await const SourceSemanticStudyComposer()
+        .compose(source: input.source, base: literal, files: input.files))!;
+    final bundle = NativePsdkTrainerBundle.builtin();
+    const ids = {'rattata', 'raticate', 'rattata_form1', 'raticate_form1'};
+    final media = bundle.mediaBySpeciesId.values
+        .where((v) => ids.contains(v.speciesId))
+        .toList();
+    final pixels =
+        image.encodePng(image.Image(width: 32, height: 32, numChannels: 4));
+    final native = NativePsdkTrainerBundle.fromJson({
+      ...bundle.toJson(),
+      'species': bundle.speciesById.values
+          .where((v) => ids.contains(v.id))
+          .map((v) => v.toJson())
+          .toList(),
+      'sourceLearnsets': bundle.learnsetsBySpeciesId.values
+          .where((v) => ids.contains(v.speciesId))
+          .map((v) => v.toJson())
+          .toList(),
+      'evolutions': bundle.evolutionsBySpeciesId.values
+          .where((v) => ids.contains(v.speciesId))
+          .map((v) => v.toJson())
+          .toList(),
+      'media': media.map((v) => v.toJson()).toList(),
+      'fallbackMedia': [
+        for (final path in {
+          for (final m in media)
+            for (final v in m.variants.values) ...[
+              v.frontStatic!,
+              v.backStatic!
+            ]
+        })
+          {
+            'targetPath': path,
+            'sourcePath': 'fixture/gate/$path',
+            'bytesBase64': base64Encode(pixels),
+            'sha256': literalFixtureHash(pixels).value
+          }
+      ],
+    });
+    final pbs = await const SourcePbsParser()
+        .read(snapshot: input.source.snapshot, files: input.files);
+    final release = await NativeEncounterCatalogQualification.prepare(
+        snapshot: input.source.snapshot,
+        source: pbs,
+        files: input.files,
+        nativeCatalog: native,
+        selectedSourceMapIds: [214]);
+    final composed = (await SourceEventStudyComposer(
+            nativeEncounterQualification: release)
+        .compose(source: input.source, base: semantic, files: input.files))!;
+    expect(
+        (composed.projection.semanticEvidence['events'] as List).single['gaps'],
+        isEmpty);
+    final catalog =
+        (await SourceCatalogStudyComposer(nativeEncounterQualification: release)
+            .compose(
+                source: input.source,
+                base: composed.draft,
+                files: input.files))!;
+    final approval = approveNativeFixtureDraft(catalog.draft);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, catalog.draft);
+    expect(receipt.verified, isTrue);
+    const reader = LocalProjectFileReader();
+    final handles = WorkspaceHandleStore();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(receipt.projectPath);
+    try {
+      final snapshot = await ProjectSnapshotLoader(handles: handles)
+          .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(snapshot.loadDiagnostics, isEmpty);
+      final entity = snapshot.maps.single.entities.singleWhere((e) =>
+          e.properties['sourceEventIdentity'] ==
+          input.analysis.events.single.identity.value);
+      expect(resolveEntityCollisionCells(entity).length, 4);
+      expect(entity.pos, const GridPos(x: 2, y: 1));
+      expect(entity.presentation!.variants, hasLength(2));
+      expect(
+          snapshot.manifest.characters
+              .singleWhere((c) => c.id == input.character.character.id)
+              .frameHeight,
+          2);
+      expect(snapshot.manifest.cinematicMediaAssets.map((m) => m.label).toSet(),
+          {'ItemGet', 'frlg_gateopen'});
+    } finally {
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  });
+  test(
+      'a map selection without gates does not read or import excluded gate audio',
+      () async {
+    final input = await _input(includeOtherMap: true);
+    final temporary =
+        await Directory.systemTemp.createTemp('card-key-selection-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final literal = await const LiteralTileComposer().compose(
+        source: input.source,
+        files: input.files,
+        selectedSourceMapIds: [7],
+        projectName: 'Selection',
+        parentPath: temporary.path,
+        folderName: 'unused');
+    final semantic = (await const SourceSemanticStudyComposer()
+        .compose(source: input.source, base: literal, files: input.files))!;
+    input.files.reads.clear();
+    final composed = (await const SourceEventStudyComposer()
+        .compose(source: input.source, base: semantic, files: input.files))!;
+    final paths = {
+      for (final id in input.files.reads)
+        input.source.snapshot.entries
+            .singleWhere((entry) => entry.fileId == id)
+            .relativePath
+    };
+    expect(paths.where((path) => path.startsWith('Audio/SE/')), isEmpty);
+    expect(paths, isNot(contains('Graphics/Characters/$_charset.png')));
+    expect(
+        composed.draft.mutations
+            .where((m) => m.actionId == 'scene.dialogue.audioMedia.import'),
+        isEmpty);
+    expect(
+        (composed.draft.compositionEvidence['sourceEvents'] as Map)['sounds'],
+        isEmpty);
+  });
+}
