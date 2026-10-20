@@ -1308,7 +1308,7 @@ bool _staticAutonomySafe(MarshalDocument document, SourceEventGraphic graphic) {
         return false;
       }
       final value = code.integerValue?.toInt();
-      if (!const {0, 1, 2, 3, 4, 16, 17, 18, 19, 24}.contains(value)) {
+      if (!const {0, 1, 2, 3, 4, 9, 16, 17, 18, 19, 24, 32}.contains(value)) {
         return false;
       }
       codes.add(value!);

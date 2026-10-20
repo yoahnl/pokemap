@@ -321,6 +321,7 @@ void _auditSourceFactWriteBlock(
             SourceMoveRouteStepKind.moveLeft ||
             SourceMoveRouteStepKind.moveRight ||
             SourceMoveRouteStepKind.moveUp ||
+            SourceMoveRouteStepKind.moveForward ||
             SourceMoveRouteStepKind.moveUpperLeft ||
             SourceMoveRouteStepKind.moveUpperRight ||
             SourceMoveRouteStepKind.wait ||

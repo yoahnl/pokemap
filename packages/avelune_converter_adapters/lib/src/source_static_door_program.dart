@@ -15,6 +15,9 @@ final class SourceStaticDoorProgram {
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
         sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
+        _postTransferRoute = event.pages.single.body.nodes
+            .whereType<SourceForcedMoveRouteNode>()
+            .singleOrNull,
         _fingerprint = _staticDoorFingerprint(event);
 
   final int sourceMapId, sourceEventId, targetSourceMapId;
@@ -24,6 +27,14 @@ final class SourceStaticDoorProgram {
       profileHash,
       sourceFileHash;
   final String _fingerprint;
+  final SourceForcedMoveRouteNode? _postTransferRoute;
+
+  bool get hasPostTransferStep => _postTransferRoute != null;
+
+  bool permitsPostTransferRoute(SourceForcedMoveRouteNode route) =>
+      _postTransferRoute != null &&
+      canonicalJsonOf(route.toJson()) ==
+          canonicalJsonOf(_postTransferRoute.toJson());
 
   bool isBoundTo(
           {required NormalizedSourceProject source,
@@ -52,6 +63,15 @@ final class SourceStaticDoorProgram {
         'programHash': canonicalHashOf(_fingerprint).value,
         'capability': 'staticPresentationTransfer',
         'requiresGlobalRouteBarrier': false,
+        if (hasPostTransferStep)
+          'postTransferStep': {
+            'sourceCode': 12,
+            'direction': _postTransferRoute!.steps.single.kind.name,
+            'mapId': targetSourceMapId,
+            'sourceRouteWait': false,
+          'nativeBlockedRoutePolicy': 'continueFadeInAndRestoreControl',
+            'sourceOracle': '044:464,746-752;034:722-738',
+          },
         'sourceScriptsExecuted': 0,
         'sourceProgramPlaybackQualified': false,
       };
@@ -73,11 +93,11 @@ Map<ConverterId, SourceStaticDoorProgram> sourceStaticDoorPrograms(
   }
   final possible = analysis.events.where(_isStaticDoor).toList();
   if (possible.isEmpty) return const {};
-  final authoritative = (authority ?? SourceTransferProgramAuthority.forSource(source))
-      .analysisFor(source: source, analysis: analysis);
+  final authoritative =
+      (authority ?? SourceTransferProgramAuthority.forSource(source))
+          .analysisFor(source: source, analysis: analysis);
   final expected = {
-    for (final event in authoritative.events
-        .where(_isStaticDoor))
+    for (final event in authoritative.events.where(_isStaticDoor))
       event.identity: event,
   };
   return Map.unmodifiable({
@@ -98,8 +118,31 @@ bool _isStaticDoor(SourceEventDefinition event) {
         _ => false,
       };
   final commands = page.sourcePage.commands;
-  const codes = [250, 223, 106, 201, 223, 0];
   final body = page.body.nodes;
+  final postTransfer = body.length == 6 && body[4] is SourceForcedMoveRouteNode;
+  final codes = postTransfer
+      ? const [250, 223, 106, 201, 209, 509, 223, 0]
+      : const [250, 223, 106, 201, 223, 0];
+  if (postTransfer) {
+    final route = body[4] as SourceForcedMoveRouteNode;
+    if (body[3] is! SourceWarpNode ||
+        route.targetSourceCharacterId != -1 ||
+        route.repeat ||
+        route.skippable ||
+        route.steps.length != 1 ||
+        route.steps.single.sourceCode != 12 ||
+        route.steps.single.kind !=
+            switch ((body[3] as SourceWarpNode).direction) {
+              0 => SourceMoveRouteStepKind.moveForward,
+              2 => SourceMoveRouteStepKind.moveDown,
+              4 => SourceMoveRouteStepKind.moveLeft,
+              6 => SourceMoveRouteStepKind.moveRight,
+              8 => SourceMoveRouteStepKind.moveUp,
+              _ => null,
+            }) {
+      return false;
+    }
+  }
   return page.originalPageIndex == 0 &&
       page.triggerCode == 1 &&
       always(page.condition) &&
@@ -108,13 +151,13 @@ bool _isStaticDoor(SourceEventDefinition event) {
           commands[index].code == codes[index] &&
           commands[index].indent == 0 &&
           commands[index].originalIndex == index) &&
-      body.length == 5 &&
+      body.length == (postTransfer ? 6 : 5) &&
       body[0] is SourceSoundEffectNode &&
       body[1] is SourceToneNode &&
       body[2] is SourceWaitNode &&
       body[3] is SourceWarpNode &&
       (body[3] as SourceWarpNode).originalProgram == null &&
-      body[4] is SourceToneNode;
+      body.last is SourceToneNode;
 }
 
 String _staticDoorFingerprint(SourceEventDefinition event) {
@@ -159,6 +202,7 @@ String _staticDoorFingerprint(SourceEventDefinition event) {
           SourceSoundEffectNode() => node.toJson(),
           SourceToneNode() => node.toJson(),
           SourceWaitNode() => node.toJson(),
+          SourceForcedMoveRouteNode() => node.toJson(),
           SourceWarpNode() => {
               'kind': 'warp',
               'span': node.span.toJson(),

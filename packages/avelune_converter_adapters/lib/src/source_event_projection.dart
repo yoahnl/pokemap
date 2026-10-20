@@ -1036,7 +1036,8 @@ final class _ProjectionBuilder {
 
   bool _isSourceArrivalCandidate(SourceEventDefinition event) =>
       !event.isQuarantined &&
-      (event.pages.any((page) => page.triggerCode == 3 &&
+      (staticDoorPrograms.containsKey(event.identity) ||
+        event.pages.any((page) => page.triggerCode == 3 &&
           page.body.nodes.any((node) => node is SourceTempSwitchNode)) ||
         (event.pages.length == 1 && event.pages.single.body.nodes.length == 5 &&
           event.pages.single.body.nodes[0] is SourceSoundEffectNode &&
@@ -3539,14 +3540,16 @@ final class _ProjectionBuilder {
     }
     if (checkCharacterBindings) {
       final graphic = event.pages.first.graphic!;
+      final fixedDirection = graphic.directionFix;
       final binding = characterBindings[sourceEventCharacterBindingKey(characterName: graphic.characterName,
-          pattern: graphic.pattern, direction: graphic.direction, fixedDirection: true)];
+          pattern: graphic.pattern, direction: graphic.direction, fixedDirection: fixedDirection)];
       final file = source.snapshot.entries.where((entry) => entry.fileId == binding?.sourceFileId).singleOrNull;
       if (binding == null || file == null || binding.sourceSnapshotHash != source.snapshot.canonicalHash ||
           binding.sourceFileHash != file.sha256 || file.relativePath != 'Graphics/Characters/${graphic.characterName}.png' ||
-          !binding.fixedDirection || binding.sourcePattern != graphic.pattern || binding.sourceDirection != graphic.direction ||
-          binding.characterId != sourceFixedDirectionCharacterId(snapshot: source.snapshot, imageFile: file,
-              pattern: graphic.pattern, direction: graphic.direction)) {
+          binding.characterId.trim().isEmpty || binding.fixedDirection != fixedDirection ||
+          binding.sourcePattern != graphic.pattern || binding.sourceDirection != graphic.direction ||
+          (fixedDirection && binding.characterId != sourceFixedDirectionCharacterId(snapshot: source.snapshot, imageFile: file,
+              pattern: graphic.pattern, direction: graphic.direction))) {
         gaps.add('characterBindingMissing');
       }
     }
@@ -3665,6 +3668,9 @@ final class _ProjectionBuilder {
               (entry.value.length != 1 ||
                 (stairPrograms.containsKey(event.identity) && entry.key is SourceForcedMoveRouteNode && (entry.key as SourceForcedMoveRouteNode).targetSourceCharacterId == -1
                   ? !{event.sourceMapId, stairPrograms[event.identity]!.targetSourceMapId}.contains(entry.value.single)
+                  : entry.key is SourceForcedMoveRouteNode &&
+                      (staticDoorPrograms[event.identity]?.permitsPostTransferRoute(entry.key as SourceForcedMoveRouteNode) ?? false)
+                    ? entry.value.single != staticDoorPrograms[event.identity]!.targetSourceMapId
                   : entry.value.single != event.sourceMapId))) {
             gaps.add('sourceRouteMapScopeUnsupported');
           }
@@ -4178,12 +4184,13 @@ final class _ProjectionBuilder {
             gaps.add('sourceDoorProgramUnsupported');
           } else if (node is SourceForcedMoveRouteNode) {
             final index = block.nodes.indexOf(node);
-            if (node.repeat || (!(stairPrograms[event.identity]?.permitsRestoreWithoutBarrier(node) ?? false) &&
+            final postTransfer = staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false;
+            if (node.repeat || (!postTransfer && !(stairPrograms[event.identity]?.permitsRestoreWithoutBarrier(node) ?? false) &&
                 (index + 1 >= block.nodes.length || block.nodes[index + 1] is! SourceMoveRouteBarrierNode)) ||
                 !const [-1, 0].contains(node.targetSourceCharacterId)) {
               gaps.add('sourceRouteBarrierScopeUnsupported');
             }
-            if (!qualifiedStairContexts.contains(event.identity) && !sequencePrograms.containsKey(event.identity) && node.steps.any((step) => const {
+            if (!postTransfer && !qualifiedStairContexts.contains(event.identity) && !sequencePrograms.containsKey(event.identity) && node.steps.any((step) => const {
               SourceMoveRouteStepKind.moveLeft,
               SourceMoveRouteStepKind.moveRight,
               SourceMoveRouteStepKind.moveUpperLeft,
@@ -5185,10 +5192,30 @@ final class _SceneBuilder {
           final player = node.targetSourceCharacterId == -1;
           final target = player ? SceneActorTarget.player(mapId: mapId) :
             SceneActorTarget.entity(mapId: mapId, entityId: projection._key(event, 'anchor'));
+          if (node.steps.length == 1 && node.steps.single.kind == SourceMoveRouteStepKind.moveForward &&
+              (projection.staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false)) {
+            var dispatch = next;
+            for (final direction in EntityFacing.values.reversed) {
+              final route = _interactive(SceneInteractiveCommand.actorRoute(
+                  target: target,
+                  steps: [SceneActorRouteStep.move(direction: direction, durationMs: 250)],
+                  skippable: node.skippable), next, continueWhenBlocked: true);
+              final guard = _node(SceneConditionPayload(conditionSource:
+                  SceneConditionSource.playerFacing(direction: direction)));
+              _edge(guard, 'true', route, SceneEdgeKind.conditionTrue);
+              _edge(guard, 'false', dispatch, SceneEdgeKind.conditionFalse);
+              dispatch = guard;
+            }
+            next = dispatch;
+            break;
+          }
           final steps = <SceneActorRouteStep>[];
           var through = false;
           for (final step in node.steps) {
             switch (step.kind) {
+              case SourceMoveRouteStepKind.moveForward:
+                throw const NativeWriteException('events.route.forward_unqualified',
+                    'A relative step requires its bound post-transfer program');
               case SourceMoveRouteStepKind.moveDown:
               case SourceMoveRouteStepKind.moveUp:
               case SourceMoveRouteStepKind.moveLeft:
@@ -5235,7 +5262,8 @@ final class _SceneBuilder {
           }
           next = _interactive(SceneInteractiveCommand.actorRoute(target: target,
             steps: steps, skippable: node.skippable,
-            transientScope: projection.qualifiedStairContexts.contains(event.identity) ? ActorRouteTransientScope.scene : ActorRouteTransientScope.route), next);
+            transientScope: projection.qualifiedStairContexts.contains(event.identity) ? ActorRouteTransientScope.scene : ActorRouteTransientScope.route), next,
+            continueWhenBlocked: projection.staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false);
         case SourceSwitchNode(:final factIds, :final value):
           for (final factId in factIds.reversed) {
             next = _fact(factId, value, next);
@@ -5348,10 +5376,12 @@ final class _SceneBuilder {
     return action;
   }
 
-  String _interactive(SceneInteractiveCommand command, String next) {
+  String _interactive(SceneInteractiveCommand command, String next,
+      {bool continueWhenBlocked = false}) {
     final action = _node(SceneActionPayload.interactive(command));
     for (final port in command.outputPortIds) {
-      _edge(action, port, port == 'completed' ? next : _node(SceneEndPayload()),
+      _edge(action, port, port == 'completed' || (port == 'blocked' && continueWhenBlocked)
+          ? next : _node(SceneEndPayload()),
         SceneEdgeKind.actionCompleted);
     }
     return action;

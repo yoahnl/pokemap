@@ -639,6 +639,7 @@ enum SourceMoveRouteStepKind {
   moveLeft,
   moveRight,
   moveUp,
+  moveForward,
   moveUpperLeft,
   moveUpperRight,
   wait,
@@ -2287,6 +2288,15 @@ final class _SourceEventParser {
     }
     final steps = <SourceMoveRouteStep>[];
     final refs = <SourcePreservedData>[route];
+    int? forwardDirection;
+    if (target == -1 && !repeat && !skippable && list.length == 2 &&
+        first > 0 && commands[first - 1].code == 201 &&
+        commands[first - 1].indent == indent) {
+      final warp = _literalIntegerParameters(commands[first - 1], 6);
+      if (warp[0] == 0 && const {0, 2, 4, 6, 8}.contains(warp[4])) {
+        forwardDirection = warp[4];
+      }
+    }
     for (var stepIndex = 0; stepIndex < list.length - 1; stepIndex++) {
       final copyIndex = first + stepIndex + 1;
       if (copyIndex >= commands.length) throw const FormatException();
@@ -2299,8 +2309,8 @@ final class _SourceEventParser {
       _arity(copyCommand.parameters, 1);
       final copyRaw = _rawFacingParameters(copyCommand, 1);
       final copy = _facingReference(copyCommand, 0, copyRaw.single);
-      final sourceValue = _routeStepValue(doc, list[stepIndex]);
-      final copyValue = _routeStepValue(doc, copy.nodeId);
+      final sourceValue = _routeStepValue(doc, list[stepIndex], forwardDirection: forwardDirection);
+      final copyValue = _routeStepValue(doc, copy.nodeId, forwardDirection: forwardDirection);
       if (canonicalJsonOf(sourceValue) != canonicalJsonOf(copyValue)) {
         throw const FormatException();
       }
@@ -2327,7 +2337,8 @@ final class _SourceEventParser {
         profileHash: analyzer.profile.canonicalHash);
   }
 
-  Map<String, Object?> _routeStepValue(MarshalDocument doc, int id) {
+  Map<String, Object?> _routeStepValue(MarshalDocument doc, int id,
+      {int? forwardDirection}) {
     final fields = _facingFields(
         doc, id, 'RPG::MoveCommand', const {'@code', '@parameters'});
     final code = _eventInt(doc,
@@ -2339,6 +2350,14 @@ final class _SourceEventParser {
       4 => SourceMoveRouteStepKind.moveUp,
       7 => SourceMoveRouteStepKind.moveUpperLeft,
       8 => SourceMoveRouteStepKind.moveUpperRight,
+      12 when forwardDirection != null => switch (forwardDirection) {
+          0 => SourceMoveRouteStepKind.moveForward,
+          2 => SourceMoveRouteStepKind.moveDown,
+          4 => SourceMoveRouteStepKind.moveLeft,
+          6 => SourceMoveRouteStepKind.moveRight,
+          8 => SourceMoveRouteStepKind.moveUp,
+          _ => throw const FormatException(),
+        },
       15 => SourceMoveRouteStepKind.wait,
       16 => SourceMoveRouteStepKind.turnDown,
       17 => SourceMoveRouteStepKind.turnLeft,

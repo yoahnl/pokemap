@@ -92,9 +92,7 @@ bool _matches(SourceEventDefinition event) {
       graphic.opacity != 255 ||
       graphic.blendType != 0 ||
       graphic.moveType != 0 ||
-      graphic.walkAnime ||
       graphic.stepAnime ||
-      !graphic.directionFix ||
       graphic.through ||
       graphic.alwaysOnTop ||
       empty.tileId != 0 ||
@@ -117,8 +115,10 @@ bool _matches(SourceEventDefinition event) {
           commands[i].code == codes[i] &&
           commands[i].indent == indents[i] &&
           commands[i].originalIndex == i) ||
-      canonicalJsonOf(commands.first.parameters) !=
-          canonicalJsonOf([12, r'$bag.has?(:CARDKEY)']) ||
+      !{
+        canonicalJsonOf([12, r'$bag.has?(:CARDKEY)']),
+        canonicalJsonOf([12, r'$bag.quantity(:CARDKEY)>0']),
+      }.contains(canonicalJsonOf(commands.first.parameters)) ||
       open.sourcePage.commands.length != 1 ||
       open.sourcePage.commands.single.code != 0 ||
       open.sourcePage.commands.single.indent != 0 ||

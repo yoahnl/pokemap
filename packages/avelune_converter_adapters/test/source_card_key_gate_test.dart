@@ -28,12 +28,18 @@ const _explorationSymbols = [
   'SUPERROD'
 ];
 
-List<LiteralFixtureEventCommand> _commands({String defect = ''}) => [
+List<LiteralFixtureEventCommand> _commands(
+        {String defect = '', bool quantityVariant = false}) =>
+    [
       LiteralFixtureEventCommand(111, [
         12,
-        defect == 'quantity'
-            ? r'$bag.quantity(:CARDKEY)>0'
-            : r'$bag.has?(:CARDKEY)'
+        defect == 'wrongQuantity'
+            ? r'$bag.quantity(:CARDKEY)>1'
+            : defect == 'quantitySideEffect'
+                ? r'$bag.quantity(:CARDKEY)>0 && undeclaredEffect()'
+                : quantityVariant
+                    ? r'$bag.quantity(:CARDKEY)>0'
+                    : r'$bag.has?(:CARDKEY)'
       ]),
       const LiteralFixtureEventCommand(
           250,
@@ -79,8 +85,10 @@ Future<
         })>
     _input(
         {String defect = '',
+        bool quantityVariant = false,
         bool includeOtherMap = false,
         bool explorationItems = false}) async {
+  final charset = quantityVariant ? 'OBJ_FRLG_Silph Gate_V' : _charset;
   final profile = SourceInterpretationProfile.fromJson({
     ...syntheticSourceInterpretationProfile.toJson(),
     'sections': {
@@ -124,7 +132,7 @@ Future<
         'PBS/map_metadata.txt': utf8.encode('[214]\nMapPosition = 1,0,0\n'),
         'Graphics/Characters/Player.png': image
             .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
-        'Graphics/Characters/$_charset.png': image
+        'Graphics/Characters/$charset.png': image
             .encodePng(image.Image(width: 256, height: 256, numChannels: 4)),
         'Audio/SE/ItemGet.wav': sourceMapMusicFixtureWav(),
         if (defect != 'missingSound')
@@ -194,11 +202,12 @@ Future<
               y: 2,
               pages: [
                 LiteralFixtureEventPage(
-                    characterName: _charset,
-                    directionFix: defect != 'quantity',
-                    walkAnime: defect == 'quantity',
+                    characterName: charset,
+                    directionFix: !quantityVariant,
+                    walkAnime: quantityVariant,
                     moveType: defect == 'autonomous' ? 1 : 0,
-                    commands: _commands(defect: defect)),
+                    commands: _commands(
+                        defect: defect, quantityVariant: quantityVariant)),
                 LiteralFixtureEventPage(
                     selfSwitch: 'A',
                     through: defect != 'solidOpen',
@@ -257,10 +266,10 @@ Future<
   final character = await const SourceEventCharacterImporter().read(
       snapshot: snapshot,
       files: files,
-      charsetName: _charset,
+      charsetName: charset,
       sourcePattern: 0,
       sourceDirection: 2,
-      fixedDirection: true);
+      fixedDirection: !quantityVariant);
   final sounds = <String, SourceEventSoundBinding>{};
   for (final name in [
     'ItemGet',
@@ -285,8 +294,9 @@ Future<
   );
 }
 
-Future<SourceEventProjection> _project({String defect = ''}) async {
-  final input = await _input(defect: defect);
+Future<SourceEventProjection> _project(
+    {String defect = '', bool quantityVariant = false}) async {
+  final input = await _input(defect: defect, quantityVariant: quantityVariant);
   return const SourceEventProjector().project(
       source: input.source,
       analysis: input.analysis,
@@ -352,6 +362,12 @@ Future<({GameState state, List<String> effects})> _runGate(
   );
 }
 
+void _testGateVariants(String name, Future<void> Function(bool) body) {
+  for (final quantityVariant in [false, true]) {
+    test('$name quantity=$quantityVariant', () => body(quantityVariant));
+  }
+}
+
 void main() {
   test(
       'closed Card Key gate preserves both pages and its full four-cell footprint',
@@ -373,8 +389,48 @@ void main() {
     expect(entity.presentation!.variants.first.blocksMovement, isFalse);
     expect(entity.presentation!.variants.last.blocksMovement, isTrue);
   });
+  test('quantity predicate preserves the orientable vertical gate footprint',
+      () async {
+    final projected = await _project(quantityVariant: true);
+    final row = (projected.semanticEvidence['events'] as List).single;
+    expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
+    final entity = projected.nativeMaps[214]!.entities.single;
+    expect(entity.pos, const GridPos(x: 2, y: 1));
+    expect(entity.size, const GridSize(width: 2, height: 2));
+    expect(entity.presentation!.variants, hasLength(2));
+    expect(entity.presentation!.variants.first.blocksMovement, isFalse);
+    expect(entity.presentation!.variants.last.blocksMovement, isTrue);
+  });
+  test('orientable quantity gate refuses a fixed-only character binding',
+      () async {
+    final input = await _input(quantityVariant: true);
+    expect(input.character.fixedDirection, isFalse);
+    final fixed = await const SourceEventCharacterImporter().read(
+        snapshot: input.source.snapshot,
+        files: input.files,
+        charsetName: 'OBJ_FRLG_Silph Gate_V',
+        sourcePattern: 0,
+        sourceDirection: 2,
+        fixedDirection: true);
+    final projected = const SourceEventProjector().project(
+        source: input.source,
+        analysis: input.analysis,
+        nativeMaps: {
+          214: MapData(
+              id: 'silph2',
+              name: 'Silph',
+              size: const GridSize(width: 5, height: 5))
+        },
+        characterBindings: {fixed.bindingKey: fixed.binding},
+        soundBindings: input.sounds,
+        itemBindings: input.items);
+    expect((projected.semanticEvidence['events'] as List).single['gaps'],
+        contains('characterBindingMissing'));
+    expect(projected.nativeMaps[214]!.entities, isEmpty);
+  });
   for (final defect in [
-    'quantity',
+    'wrongQuantity',
+    'quantitySideEffect',
     'size',
     'autonomous',
     'pitch',
@@ -404,10 +460,10 @@ void main() {
             'events.card_key_gate.audio_oracle_unqualified')));
     expect(input.files.reads, isEmpty);
   });
-  test(
+  _testGateVariants(
       'gate conditions, effect order and saved ownA select the inert open page',
-      () async {
-    final input = await _input();
+      (quantityVariant) async {
+    final input = await _input(quantityVariant: quantityVariant);
     final projection = const SourceEventProjector().project(
         source: input.source,
         analysis: input.analysis,
@@ -590,10 +646,10 @@ void main() {
     });
   }
 
-  test(
+  _testGateVariants(
       'gate composer publishes its native scene and reopens all four collision cells strictly',
-      () async {
-    final input = await _input();
+      (quantityVariant) async {
+    final input = await _input(quantityVariant: quantityVariant);
     final temporary = await Directory.systemTemp.createTemp('card-key-gate-');
     addTearDown(() => temporary.delete(recursive: true));
     final literal = await const LiteralTileComposer().compose(
