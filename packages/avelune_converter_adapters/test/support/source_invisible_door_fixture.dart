@@ -6,7 +6,16 @@ import 'literal_tile_fixture.dart';
 Future<LiteralTileFixture> sourceInvisibleDoorFixture({
   String variant = 'original',
   bool includeSound = true,
+  int arrivalStep = 1,
+  bool annotated = false,
+  bool shortArrival = false,
+  bool lockedPage = false,
+  int? gateVariableId,
+  int gateThreshold = 7,
+  bool mismatchedArrivalThreshold = false,
+  bool trailingSwitch = false,
 }) {
+  final animated = variant == 'animated' || variant == 'emptyAnimated';
   LiteralFixtureObject step(int code) =>
       LiteralFixtureObject('RPG::MoveCommand', {
         '@code': code,
@@ -47,12 +56,18 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
   }
 
   return LiteralTileFixture.create(
-    namespace: 'invisible-routed-door-$variant-$includeSound',
+    namespace:
+        'invisible-routed-door-$variant-$includeSound-$arrivalStep-$annotated-$shortArrival-$lockedPage-$gateVariableId-$gateThreshold-$mismatchedArrivalThreshold-$trailingSwitch',
     scriptsBytes: syntheticInterpretationArchive,
     interpretationProfile: syntheticSourceInterpretationProfile,
     includeEventSystem: true,
-    extraFiles: {'Data/map_connections.dat': literalFixtureMarshal([])},
-    switchNames: [null, 's:tsOff?("A")'],
+    extraFiles: {
+      'Data/map_connections.dat': literalFixtureMarshal([]),
+      if (variant == 'animated')
+        'Graphics/Characters/VisibleDoor.png': literalFixtureAtlas(),
+    },
+    switchNames: [null, 's:tsOff?("A")', 'Visited gate'],
+    variableNames: [null, 'Badge count'],
     maps: [
       LiteralFixtureMap(
         id: 7,
@@ -61,19 +76,33 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
         layers: [List.filled(9, 384), List.filled(9, 0), List.filled(9, 0)],
         events: [
           LiteralFixtureEvent(id: 3, x: 1, y: 1, pages: [
+            if (lockedPage)
+              LiteralFixtureEventPage(commands: [
+                if (annotated)
+                  const LiteralFixtureEventCommand(
+                      108, ['Closed until the gate opens']),
+                const LiteralFixtureEventCommand(101, ['The door is locked.']),
+                const LiteralFixtureEventCommand(0, []),
+              ]),
             LiteralFixtureEventPage(
               trigger: 1,
               pattern: 1,
               selfSwitch: variant == 'guards' ? 'A' : null,
-              characterName: variant == 'charset' ? 'VisibleDoor' : '',
+              variableId: gateVariableId,
+              variableThreshold: gateThreshold,
+              characterName: variant == 'charset' || variant == 'animated'
+                  ? 'VisibleDoor'
+                  : '',
               commands: [
-                if (variant == 'emptyAnimated') ...[
+                if (annotated)
+                  const LiteralFixtureEventCommand(108, ['Departure']),
+                if (animated) ...[
                   ...route(0, [44, 15, 17, 15, 18, 15, 19, 15], indent: 0),
                   ...route(-1, [37, 4, 38], indent: 0),
                   const LiteralFixtureEventCommand(208, [0]),
                   ...route(0, [15, 18, 15, 17, 15, 16, 15], indent: 0),
                 ],
-                if (includeSound && variant != 'emptyAnimated')
+                if (includeSound && !animated)
                   const LiteralFixtureEventCommand(250, [
                     LiteralFixtureObject('RPG::AudioFile', {
                       '@name': 'Exit Door',
@@ -83,38 +112,53 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
                   ]),
                 LiteralFixtureEventCommand(223, [tone(-255), 6]),
                 const LiteralFixtureEventCommand(106, [8]),
-                if (variant == 'emptyAnimated')
-                  const LiteralFixtureEventCommand(208, [1]),
+                if (animated) const LiteralFixtureEventCommand(208, [1]),
                 const LiteralFixtureEventCommand(201, [0, 9, 1, 1, 8, 1]),
                 LiteralFixtureEventCommand(223, [tone(0), 6]),
+                if (trailingSwitch)
+                  const LiteralFixtureEventCommand(121, [2, 2, 0]),
                 const LiteralFixtureEventCommand(0, []),
               ],
             ),
             LiteralFixtureEventPage(
               trigger: 3,
               globalSwitch: 1,
+              variableId: gateVariableId,
+              variableThreshold: mismatchedArrivalThreshold
+                  ? gateThreshold + 1
+                  : gateThreshold,
               pattern: 1,
-              characterName: variant == 'charset' ? 'VisibleDoor' : '',
+              characterName: variant == 'charset' || variant == 'animated'
+                  ? 'VisibleDoor'
+                  : '',
               commands: [
+                if (annotated)
+                  const LiteralFixtureEventCommand(108, ['Arrival']),
                 const LiteralFixtureEventCommand(
                     111, [12, 'get_self.onEvent?']),
-                const LiteralFixtureEventCommand(208, [0], indent: 1),
-                ...route(
-                    0,
-                    [
-                      if (variant == 'emptyAnimated') 44,
-                      15,
-                      17,
-                      15,
-                      18,
-                      15,
-                      variant == 'route' ? 16 : 19,
-                      15
-                    ],
-                    first: true),
-                const LiteralFixtureEventCommand(208, [1], indent: 1),
-                ...route(-1, [1]),
-                ...route(0, [18, 15, 17, 15, 16, 15]),
+                if (annotated)
+                  const LiteralFixtureEventCommand(
+                      108, ['Let the player leave the doorway'],
+                      indent: 1),
+                if (!shortArrival) ...[
+                  const LiteralFixtureEventCommand(208, [0], indent: 1),
+                  ...route(
+                      0,
+                      [
+                        if (animated) 44,
+                        15,
+                        17,
+                        15,
+                        18,
+                        15,
+                        variant == 'route' ? 16 : 19,
+                        15
+                      ],
+                      first: true),
+                  const LiteralFixtureEventCommand(208, [1], indent: 1),
+                ],
+                ...route(-1, [arrivalStep]),
+                if (!shortArrival) ...route(0, [18, 15, 17, 15, 16, 15]),
                 const LiteralFixtureEventCommand(412, []),
                 const LiteralFixtureEventCommand(355, ['setTempSwitchOn("A")']),
                 const LiteralFixtureEventCommand(0, []),

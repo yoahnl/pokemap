@@ -13,9 +13,78 @@ import 'source_elevator_program.dart';
 import 'native_mutation_batches.dart';
 import 'source_encounter_terrain_binding.dart';
 import 'source_transfer_program_authority.dart';
+import 'source_grass_rustle_compiler.dart';
 
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
+
+final class _SourceGrassBaseAdmission {
+  const _SourceGrassBaseAdmission._(this.isQualified, this.mutations);
+
+  final bool isQualified;
+  final Map<ConverterId, String> mutations;
+
+  static Future<_SourceGrassBaseAdmission> verify({
+    required NormalizedSourceProject source,
+    required NativeProjectDraft base,
+    required Map<int, MapData> nativeMaps,
+    required List<NativeMutation> mutations,
+    required SourceFilePort files,
+    required NativeWriteLimits limits,
+    ScanCancellation? cancellation,
+  }) async {
+    const refused = _SourceGrassBaseAdmission._(false, {});
+    final semantic = base.compositionEvidence['sourceSemantics'];
+    final projection = semantic is Map ? semantic['projection'] : null;
+    final evidence = projection is Map ? projection['grassRustle'] : null;
+    final hasActions = mutations.any((mutation) => mutation.actionId.startsWith('smart_tile.'));
+    final layers = {
+      for (final entry in nativeMaps.entries)
+        entry.key: entry.value.layers.whereType<SmartTileLayer>().toList(),
+    };
+    if (evidence == null && !hasActions && layers.values.every((layers) => layers.isEmpty)) {
+      return const _SourceGrassBaseAdmission._(true, {});
+    }
+    if (semantic is! Map || semantic['kind'] != 'sourceSemanticStudy' ||
+        semantic['version'] != 1 ||
+        semantic['sourceSnapshotHash'] != source.snapshot.canonicalHash.value ||
+        semantic['normalizedSourceHash'] != source.canonicalHash.value || evidence is! Map) {
+      return refused;
+    }
+    final compiled = await const SourceGrassRustleCompiler().compile(
+        source: source, files: files,
+        nativeMapIds: {for (final entry in nativeMaps.entries) entry.key: entry.value.id},
+        limits: limits, cancellation: cancellation);
+    if (compiled == null || canonicalJsonOf(evidence, limits: limits.draftEvidenceJsonLimits) !=
+        canonicalJsonOf(compiled.evidence, limits: limits.draftEvidenceJsonLimits)) {
+      return refused;
+    }
+    final expected = {
+      for (final mutation in compiled.mutations)
+        mutation.operationId: canonicalJsonOf(mutation.toJson(0), limits: limits.jsonLimits),
+    };
+    final actual = mutations.where((mutation) => expected.containsKey(mutation.operationId)).toList();
+    if (actual.length != expected.length ||
+        actual.map((mutation) => mutation.operationId).toSet().length != expected.length ||
+        actual.any((mutation) => canonicalJsonOf(mutation.toJson(0), limits: limits.jsonLimits) !=
+            expected[mutation.operationId]) ||
+        compiled.artifacts.any((artifact) => !base.artifacts.any((candidate) => candidate.handle == artifact.handle))) {
+      return refused;
+    }
+    for (final entry in layers.entries) {
+      cancellation?.check();
+      final expectedLayer = compiled.layersBySourceMapId[entry.key];
+      if (canonicalJsonOf(entry.value.map((layer) => layer.toJson()).toList(), limits: limits.jsonLimits) !=
+          canonicalJsonOf([if (expectedLayer != null) expectedLayer.toJson()], limits: limits.jsonLimits)) {
+        return refused;
+      }
+    }
+    return _SourceGrassBaseAdmission._(true, Map.unmodifiable(expected));
+  }
+
+  bool permits(NativeMutation mutation, NativeWriteLimits limits) =>
+      mutations[mutation.operationId] == canonicalJsonOf(mutation.toJson(0), limits: limits.jsonLimits);
+}
 
 final class _SourceSurfBaseAdmission {
   const _SourceSurfBaseAdmission._(
@@ -447,6 +516,10 @@ final class SourceEventExecutionContextResolver {
       limits: limits,
       cancellation: cancellation,
     );
+    final grassBaseAdmission = await _SourceGrassBaseAdmission.verify(
+        source: source, base: base, nativeMaps: nativeMaps,
+        mutations: baseMutations, files: files, limits: limits,
+        cancellation: cancellation);
     final owned = authority?.executionContextFor(source);
     final authoritativeSourceAnalysis = owned?.analysis ??
         SourceEventAnalyzer.forProject(source,
@@ -501,6 +574,7 @@ final class SourceEventExecutionContextResolver {
           authoritativeSourceAnalysis: authoritativeSourceAnalysis,
           parallelDormancyAuditor: parallelDormancyAuditor,
           surfBaseAdmission: surfBaseAdmission,
+          grassBaseAdmission: grassBaseAdmission,
           nativeMapHashes: hashes,
           baseCompositionHash: compositionHash,
           baseMutations: baseMutations,
@@ -528,6 +602,7 @@ final class SourceEventExecutionContextResolver {
     SourceEventAnalysis? authoritativeSourceAnalysis,
     SourceParallelDormancyAuditor? parallelDormancyAuditor,
     _SourceSurfBaseAdmission? surfBaseAdmission,
+    _SourceGrassBaseAdmission? grassBaseAdmission,
     Map<int, Sha256Hash>? nativeMapHashes,
     Sha256Hash? baseCompositionHash,
     List<NativeMutation>? baseMutations,
@@ -717,6 +792,13 @@ final class SourceEventExecutionContextResolver {
       } else if (surfAdmission.proof.isNotEmpty) {
         surfProof = surfAdmission.proof;
       }
+      final grassAdmission = grassBaseAdmission ?? await _SourceGrassBaseAdmission.verify(
+          source: source, base: base, nativeMaps: nativeMaps,
+          mutations: semanticMutations, files: files, limits: limits,
+          cancellation: cancellation);
+      if (!grassAdmission.isQualified) {
+        refusals.add('sourceExecutionBaseUnsupported');
+      }
       if (base.source.canonicalHash != normalizationHash ||
           canonicalJsonOf({
                 for (final entry in nativeMaps.entries)
@@ -772,7 +854,8 @@ final class SourceEventExecutionContextResolver {
                 'characterStudio.character.update',
                 'characterStudio.animationClip.upsert',
                 'characterStudio.character.setDefault',
-              }.contains(entry.actionId) && !surfAdmission.permits(entry))) {
+              }.contains(entry.actionId) && !surfAdmission.permits(entry) &&
+                  !grassAdmission.permits(entry, limits))) {
         refusals.add('sourceExecutionBaseUnsupported');
       }
     }

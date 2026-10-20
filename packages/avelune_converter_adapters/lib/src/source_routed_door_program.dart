@@ -23,7 +23,7 @@ final class SourceRoutedDoorProgram {
         nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event, source),
         invisibleOwnerRouteTimingAdaptation =
             event.pages.last.graphic!.characterName.isEmpty &&
-            (event.pages.last.body.nodes.first as SourceConditionalNode)
+            (_runtimeNodes(event.pages.last.body).first as SourceConditionalNode)
                 .whenTrue.nodes.whereType<SourceForcedMoveRouteNode>()
                 .any((node) => node.targetSourceCharacterId == 0),
         _fingerprint = _fingerprintOf(event);
@@ -131,6 +131,12 @@ bool _route(SourceEventNode node, int target, List<int> codes) =>
     canonicalJsonOf(node.steps.map((step) => step.sourceCode).toList()) ==
         canonicalJsonOf(codes);
 
+List<SourceEventNode> _runtimeNodes(SourceEventBlock block) =>
+    block.nodes.where((node) => node is! SourceAnnotationNode).toList();
+
+bool _verticalPlayerStep(SourceEventNode node) =>
+    _route(node, -1, [1]) || _route(node, -1, [4]);
+
 bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) {
   if (event.isQuarantined || !const {2, 3}.contains(event.pages.length)) {
     return false;
@@ -140,8 +146,11 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
   if (departure.triggerCode != 1 || arrival.triggerCode != 3) return false;
   final guards = _conditions(departure.condition);
   if (guards.any((condition) =>
-      condition.kind != SourceEventConditionKind.selfSwitch ||
-      !condition.expectedValue)) {
+      !const {
+        SourceEventConditionKind.selfSwitch,
+        SourceEventConditionKind.globalSwitch,
+        SourceEventConditionKind.variableAtLeast,
+      }.contains(condition.kind) || !condition.expectedValue)) {
     return false;
   }
   final arrivalGuards = _conditions(arrival.condition);
@@ -165,10 +174,10 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
     final first = event.pages.first;
     if (first.triggerCode != 0 ||
         _conditions(first.condition).isNotEmpty ||
-        first.body.nodes.length != 1 ||
-        first.body.nodes.single is! SourceTextNode ||
-        (first.body.nodes.single as SourceTextNode).followingChoice != null ||
-        guards.length != 1) {
+        _runtimeNodes(first.body).length != 1 ||
+        _runtimeNodes(first.body).single is! SourceTextNode ||
+        (_runtimeNodes(first.body).single as SourceTextNode).followingChoice != null ||
+        guards.isEmpty) {
       return false;
     }
   }
@@ -212,7 +221,10 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
       return false;
     }
   }
-  final body = departure.body.nodes;
+  final departureNodes = _runtimeNodes(departure.body);
+  final body = departureNodes.lastOrNull is SourceSwitchNode
+      ? departureNodes.take(departureNodes.length - 1).toList()
+      : departureNodes;
   final animated = departure.graphic!.characterName.isNotEmpty &&
       body.length == 12 &&
       _route(body[0], 0, [44, 15, 17, 15, 18, 15, 19, 15]) &&
@@ -248,10 +260,13 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           body[1] is SourceWaitNode &&
           body[2] is SourceWarpNode &&
           body[3] is SourceToneNode));
-  if (!animated && !invisible) return false;
+  if (!animated && !invisible ||
+      animated && body.length != departureNodes.length) {
+    return false;
+  }
   final warp = body.whereType<SourceWarpNode>().single;
   if (warp.originalProgram != null) return false;
-  final nodes = arrival.body.nodes;
+  final nodes = _runtimeNodes(arrival.body);
   if (nodes.length != 2 ||
       nodes[0] is! SourceConditionalNode ||
       nodes[1] is! SourceTempSwitchNode ||
@@ -264,7 +279,7 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
       branch.whenFalse.nodes.isNotEmpty) {
     return false;
   }
-  final route = branch.whenTrue.nodes;
+  final route = _runtimeNodes(branch.whenTrue);
   return animated
       ? route.length == 8 &&
           route[0] is SourcePlayerVisibilityNode &&
@@ -273,12 +288,12 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           route[2] is SourceMoveRouteBarrierNode &&
           route[3] is SourcePlayerVisibilityNode &&
           (route[3] as SourcePlayerVisibilityNode).visible &&
-          _route(route[4], -1, [1]) &&
+          _verticalPlayerStep(route[4]) &&
           route[5] is SourceMoveRouteBarrierNode &&
           _route(route[6], 0, [18, 15, 17, 15, 16, 15]) &&
           route[7] is SourceMoveRouteBarrierNode
       : (route.length == 2 &&
-          _route(route[0], -1, [1]) &&
+          _verticalPlayerStep(route[0]) &&
           route[1] is SourceMoveRouteBarrierNode) ||
         (route.length == 5 &&
           route[0] is SourcePlayerVisibilityNode &&
@@ -286,7 +301,7 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           route[1] is SourceMoveRouteBarrierNode &&
           route[2] is SourcePlayerVisibilityNode &&
           (route[2] as SourcePlayerVisibilityNode).visible &&
-          _route(route[3], -1, [1]) &&
+          _verticalPlayerStep(route[3]) &&
           route[4] is SourceMoveRouteBarrierNode) ||
         (route.length == 8 &&
           route[0] is SourcePlayerVisibilityNode &&
@@ -295,7 +310,7 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           route[2] is SourceMoveRouteBarrierNode &&
           route[3] is SourcePlayerVisibilityNode &&
           (route[3] as SourcePlayerVisibilityNode).visible &&
-          _route(route[4], -1, [1]) &&
+          _verticalPlayerStep(route[4]) &&
           route[5] is SourceMoveRouteBarrierNode &&
           _route(route[6], 0, [18, 15, 17, 15, 16, 15]) &&
           route[7] is SourceMoveRouteBarrierNode);
@@ -326,6 +341,15 @@ bool _usesStableDepartureDoorSkin(SourceEventDefinition event, NormalizedSourceP
 }
 
 Object? _node(SourceEventNode node) => switch (node) {
+      SourceAnnotationNode() => node.toJson(),
+      SourceSwitchNode() => {
+          'kind': 'switch',
+          'span': node.span.toJson(),
+          'firstId': node.firstId,
+          'lastId': node.lastId,
+          'factIds': node.factIds,
+          'value': node.value,
+        },
       SourceForcedMoveRouteNode() => node.toJson(),
       SourceMoveRouteBarrierNode() => node.toJson(),
       SourcePlayerVisibilityNode() => node.toJson(),
