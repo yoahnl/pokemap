@@ -1104,6 +1104,7 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
           SourceDeclaredProgramFamily.centerPc,
           SourceDeclaredProgramFamily.healingDisplay,
           SourceDeclaredProgramFamily.warpTile,
+          SourceDeclaredProgramFamily.hole,
         }.contains(family));
     if (!supportsAutomatic &&
         !declared.any((binding) => families.contains(binding.family))) {
@@ -1120,7 +1121,10 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
                 families.contains(binding.family) &&
                 binding.pages.length == pages.length &&
                 encodedPages.every(binding._canonicalPages.values.contains))
-        ? (families.contains(SourceDeclaredProgramFamily.warpTile)
+        ? (families.contains(SourceDeclaredProgramFamily.hole)
+                ? _automaticHoleBinding(pages.cast<Object?>())
+                : null) ??
+            (families.contains(SourceDeclaredProgramFamily.warpTile)
                 ? _automaticWarpTileBinding(pages.cast<Object?>())
                 : null) ??
             _automaticCenterServiceBinding(pages.cast<Object?>())
@@ -1167,6 +1171,60 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
   } on TypeError {
     return null;
   }
+}
+
+SourceDeclaredProgramBinding? _automaticHoleBinding(List<Object?> pages) {
+  if (pages.length != 1 || pages.single is! Map) return null;
+  final page = Map<String, Object?>.from(pages.single as Map);
+  final graphic = page['graphic'], condition = page['condition'];
+  final commands = page['list'];
+  if (page['trigger'] != 1 || page['move_type'] != 0 ||
+      page['through'] != true || graphic is! Map || condition is! Map ||
+      graphic['tile_id'] != 0 || graphic['character_name'] != '' ||
+      graphic['character_hue'] != 0 || graphic['direction'] != 2 ||
+      graphic['pattern'] != 0 || graphic['opacity'] != 255 ||
+      graphic['blend_type'] != 0 || const [
+        'switch1_valid', 'switch2_valid', 'variable_valid', 'self_switch_valid',
+      ].any((flag) => condition[flag] != false) ||
+      commands is! List || commands.length != 14) {
+    return null;
+  }
+  const codes = [209, 509, 210, 250, 106, 223, 106, 201, 209, 509, 210, 223, 250, 0];
+  for (var index = 0; index < codes.length; index++) {
+    final command = commands[index];
+    if (command is! Map || command['code'] != codes[index] ||
+        command['indent'] != 0) {
+      return null;
+    }
+  }
+  for (final (index, opacity) in [(0, 0), (8, 255)]) {
+    final parameters = (commands[index] as Map)['parameters'];
+    final continued = (commands[index + 1] as Map)['parameters'];
+    if (parameters is! List || parameters.length != 2 ||
+        parameters.first != -1 || continued is! List || continued.length != 1) {
+      return null;
+    }
+    final route = parameters.last;
+    if (route is! Map || route['__class__'] != 'RPG::MoveRoute' ||
+        route['repeat'] != false || route['skippable'] is! bool ||
+        route['list'] is! List) {
+      return null;
+    }
+    final steps = route['list'] as List;
+    final expected = {'__class__': 'RPG::MoveCommand', 'code': 42, 'parameters': [opacity]};
+    final end = {'__class__': 'RPG::MoveCommand', 'code': 0, 'parameters': <Object?>[]};
+    if (steps.length != 2 || canonicalJsonOf(steps.first) != canonicalJsonOf(expected) ||
+        canonicalJsonOf(steps.last) != canonicalJsonOf(end) ||
+        canonicalJsonOf(continued.single) != canonicalJsonOf(expected)) {
+      return null;
+    }
+  }
+  return SourceDeclaredProgramBinding.fromJson({
+    'id': 'automatic-hole-${canonicalHashOf(pages).value}',
+    'family': 'hole',
+    'pages': {'program': page},
+    'parameters': <String, Object?>{},
+  });
 }
 
 SourceDeclaredProgramBinding? _automaticWarpTileBinding(List<Object?> pages) {
