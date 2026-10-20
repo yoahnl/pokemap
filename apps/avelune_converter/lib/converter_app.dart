@@ -175,6 +175,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
   PreparedStudy? _reviewPreview;
   ConverterStudySettings? _importedSettings;
   SourceInterpretationProfile? _interpretationProfile;
+  bool _interpretationProfileExplicit = false;
+  bool _interpretationProfileDetected = false;
   StreamSubscription<ConverterWorkflowEvent>? _subscription;
   int _step = 0;
   int? _previewMap;
@@ -596,6 +598,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _loadingSession = true;
       _storedReview = stored;
       _interpretationProfile = settings.interpretationProfile;
+      _interpretationProfileExplicit = true;
+      _interpretationProfileDetected = false;
       _contentScope = settings.contentScope;
       _importedSettings = null;
       _reviewSet = stored.reviewSet;
@@ -756,6 +760,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
       _missingItemBindings.clear();
       _importedSettings = null;
       _interpretationProfile = null;
+      _interpretationProfileExplicit = false;
+      _interpretationProfileDetected = false;
       _assetOutputMode = AssetOutputMode.sharedAtlas;
       _dirty = true;
       _studyAcknowledged = false;
@@ -787,6 +793,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
   Future<void> _scan() => _run(() async {
     if (!await _prepareForSessionChange() || !mounted) return;
     setState(() {
+      if (_state.source?.rootPath != _sourceRoot) {
+        _interpretationProfile = null;
+        _interpretationProfileExplicit = false;
+        _interpretationProfileDetected = false;
+      }
       _step = 1;
       _selectedMaps.clear();
       _importedSettings = null;
@@ -815,6 +826,14 @@ class _ConverterWindowState extends State<ConverterWindow> {
       ),
     );
     _syncSourceSelection();
+    if (!_interpretationProfileExplicit && mounted) {
+      final snapshot = _state.snapshot;
+      final detected = snapshot == null ? null : detectBuiltinSourceInterpretationProfile(snapshot);
+      setState(() {
+        _interpretationProfile = detected;
+        _interpretationProfileDetected = detected != null;
+      });
+    }
   });
 
   void _syncSourceSelection() {
@@ -880,6 +899,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
     _workflow.invalidatePrepared();
     setState(() {
       _interpretationProfile = profile;
+      _interpretationProfileExplicit = true;
+      _interpretationProfileDetected = false;
       _dirty = true;
       _reviewPreview = null;
     });
@@ -889,6 +910,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
     _workflow.invalidatePrepared();
     setState(() {
       _interpretationProfile = null;
+      _interpretationProfileExplicit = true;
+      _interpretationProfileDetected = false;
       _dirty = true;
       _reviewPreview = null;
     });
@@ -1001,6 +1024,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
         _importedSettings = recipe.settings;
         _contentScope = recipe.settings.contentScope;
         _interpretationProfile = recipe.settings.interpretationProfile;
+        _interpretationProfileExplicit = true;
+        _interpretationProfileDetected = false;
         _imageBindings
           ..clear()
           ..addAll(recipe.settings.imageBindings);
@@ -1896,7 +1921,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
             Text(
               _interpretationProfile == null
                   ? 'Sans profil de scripts : étude littérale, sans adaptation des événements ni des règles de déplacement.'
-                  : 'Profil de scripts sélectionné : ${_interpretationProfile!.profileId.value}',
+                  : _interpretationProfileDetected
+                      ? 'Règles Pokémon Essentials reconnues automatiquement.'
+                      : 'Profil de scripts sélectionné : ${_interpretationProfile!.profileId.value}',
             ),
             const SizedBox(height: 8),
             StudioButton(

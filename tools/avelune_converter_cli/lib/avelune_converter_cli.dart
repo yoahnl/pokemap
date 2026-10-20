@@ -36,7 +36,9 @@ Future<int> runConverterCli(List<String> arguments,
     ..addOption('missing-item-bindings', help: 'Liste JSON fermée des associations explicites d’entrées absentes.')
     ..addOption('source-adaptations', help: 'Liste JSON fermée des décisions explicites issues de l’inventaire.')
     ..addOption('name', help: 'Nom du projet natif.')
-    ..addOption('interpretation-profile', help: 'Profil JSON explicite des scripts source ; absent : étude littérale.')
+    ..addOption('interpretation-profile', help: 'Profil JSON explicite prioritaire ; absent : détection des archives connues.')
+    ..addFlag('literal', negatable: false,
+        help: 'Conserver une étude littérale sans profil, même pour une archive connue.')
     ..addOption('mode', defaultsTo: 'study', allowed: ['study'])
     ..addOption('content', defaultsTo: 'full', allowed: ['world', 'full'],
         help: 'Monde explorable seul, ou monde et interactions.')
@@ -235,8 +237,9 @@ Future<int> runConverterCli(List<String> arguments,
       }
       workflow.updateSettings(ConverterStudySettings(
           contentScope: ConverterContentScope.values.byName(command['content'] as String),
-          interpretationProfile: command['interpretation-profile'] == null ? null :
-            await const LocalSourceInterpretationProfileStore().read(command['interpretation-profile'] as String),
+          interpretationProfile: command['interpretation-profile'] != null
+              ? await const LocalSourceInterpretationProfileStore().read(command['interpretation-profile'] as String)
+              : command['literal'] == true ? null : detectBuiltinSourceInterpretationProfile(snapshot),
           missingItemBindings: command['missing-item-bindings'] == null ? const [] :
               await _readMissingItemBindings(command['missing-item-bindings'] as String),
           sourceAdaptations: command['source-adaptations'] == null ? const [] :

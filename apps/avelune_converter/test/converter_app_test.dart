@@ -158,6 +158,77 @@ void main() {
     }
   }, skip: !Platform.isMacOS);
 
+  final knownArchivePath = Platform.environment['AVELUNE_KNOWN_SCRIPTS_ARCHIVE'];
+  testWidgets('known source detects a profile and preserves manual and literal choices on rescan', (tester) async {
+    final bytes = (await tester.runAsync(() => File(knownArchivePath!).readAsBytes()))!;
+    final source = (await tester.runAsync(() => _OriginalSource.create(
+      scriptsBytes: bytes, withoutInterpretationProfile: true)))!;
+    final other = (await tester.runAsync(() => LiteralTileFixture.create(
+      sourceRootPath: '${source.root.path}/other-source', scriptsBytes: bytes)))!;
+    var pickedSource = other.sourceRootPath!;
+    final manual = File('${source.root.path}/manual-profile.json');
+    await tester.runAsync(() => manual.writeAsString(jsonEncode(syntheticSourceInterpretationProfile.toJson())));
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      await tester.pumpWidget(ConverterApp(workflow: source.workflow,
+        initialSourcePath: source.sourcePath, initialParentPath: source.output.path,
+        pathPicker: (kind) async => kind == ConverterPathKind.interpretationProfileFile
+          ? manual.path : kind == ConverterPathKind.sourceFolder ? pickedSource : null));
+      Future<void> scan() async {
+        await tester.tap(find.byKey(const ValueKey('analyse-project')));
+        await _waitFor(tester, () => source.workflow.state.snapshot != null && !source.workflow.state.isBusy);
+      }
+      await scan();
+      expect(find.text('Règles Pokémon Essentials reconnues automatiquement.'), findsOneWidget);
+      final choose = find.byKey(const ValueKey('choose-interpretation-profile'));
+      await tester.ensureVisible(choose);
+      await tester.tap(choose);
+      await _waitFor(tester, () => find.text('Profil de scripts sélectionné : synthetic-static-profile').evaluate().isNotEmpty);
+      await tester.tap(find.text('Source').first);
+      await tester.pump();
+      await scan();
+      expect(find.text('Profil de scripts sélectionné : synthetic-static-profile'), findsOneWidget);
+      await tester.tap(find.text('Source').first);
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('choose-source')));
+      await tester.tap(find.byKey(const ValueKey('choose-source')));
+      await _waitFor(tester, () => source.workflow.state.prepared == null);
+      await tester.pump();
+      await scan();
+      expect(find.text('Règles Pokémon Essentials reconnues automatiquement.'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('clear-interpretation-profile')));
+      await tester.tap(find.byKey(const ValueKey('clear-interpretation-profile')));
+      await tester.pump();
+      await tester.tap(find.text('Source').first);
+      await tester.pump();
+      await scan();
+      expect(find.textContaining('Sans profil de scripts : étude littérale'), findsOneWidget);
+      expect(find.byKey(const ValueKey('clear-interpretation-profile')), findsNothing);
+      pickedSource = source.sourcePath;
+      await tester.tap(find.text('Source').first);
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('choose-source')));
+      await tester.tap(find.byKey(const ValueKey('choose-source')));
+      await tester.pumpAndSettle();
+      await scan();
+      expect(find.text('Règles Pokémon Essentials reconnues automatiquement.'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const ValueKey('clear-interpretation-profile')));
+      await tester.tap(find.byKey(const ValueKey('clear-interpretation-profile')));
+      await tester.pump();
+      await tester.tap(find.text('Source').first);
+      await tester.pump();
+      await tester.enterText(find.descendant(of: find.byKey(const ValueKey('source-path')),
+        matching: find.byType(TextField)), other.sourceRootPath!);
+      await tester.pump();
+      await scan();
+      expect(find.text('Règles Pokémon Essentials reconnues automatiquement.'), findsOneWidget);
+      await tester.runAsync(source.expectSourceUnchanged);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS || knownArchivePath == null);
+
   testWidgets('source interpretation selection is explicit and clearable', (tester) async {
     final source = (await tester.runAsync(_OriginalSource.create))!;
     final profile = File('${source.root.path}/selected-profile.json');
@@ -2706,6 +2777,7 @@ final class _OriginalSource {
     Map<String, List<int>> extraFiles = const {},
     List<LiteralFixtureTileset>? tilesets,
     bool includeEventSystem = false,
+    bool withoutInterpretationProfile = false,
   }) async {
     final root = await Directory('/private/tmp')
         .createTemp('ac09-original-widget-');
@@ -2713,7 +2785,7 @@ final class _OriginalSource {
       final output = await Directory('${root.path}/output').create();
       final fixture = await LiteralTileFixture.create(
         sourceRootPath: '${root.path}/$sourceSuffix',
-        interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
+        interpretationProfile: scriptsBytes == null || withoutInterpretationProfile ? null : fixtureSourceInterpretationProfile,
       scriptsBytes: scriptsBytes,
         includeEventSystem: includeEventSystem,
         extraFiles: extraFiles,

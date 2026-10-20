@@ -9,6 +9,7 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:test/test.dart';
 
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
+import '../../../packages/avelune_converter_adapters/test/support/builtin_profile_source_fixture.dart';
 
 void main() {
   late Directory root;
@@ -51,6 +52,46 @@ void main() {
         '--offline',
         '--json'
       ];
+
+  final knownArchivePath = Platform.environment['AVELUNE_KNOWN_SCRIPTS_ARCHIVE'];
+  test('CLI detects the known source without a profile JSON and preserves literal opt out', () async {
+    fixture = await builtinProfileSourceFixture(
+        scriptsBytes: await File(knownArchivePath!).readAsBytes(),
+        sourceRootPath: '${root.path}/known-source');
+    final result = await invoke(planArgs());
+    expect(result.code, 0, reason: result.err);
+    final recipe = await const LocalStudyPlanStore().read(planPath);
+    expect(recipe.settings.interpretationProfile?.profileId.value,
+        'essentials-static-walking-events-items');
+    final workflow = ConverterWorkflow();
+    try {
+      final prepared = await workflow.restoreStudyPlanRecipe(recipe);
+      final events = prepared.nativeDraft!.compositionEvidence['sourceEvents'] as Map;
+      final row = ((events['projection'] as Map)['events'] as List).single as Map;
+      expect(row['status'], 'adaptedStaticSemantics');
+      expect(row['gaps'], isEmpty);
+      expect(prepared.previewPlan!.operations.any((op) => op.targetActionId == 'scene.upsert'), isTrue);
+      expect(prepared.previewPlan!.approvedByHuman, isFalse);
+      expect(await output.list().toList(), isEmpty);
+    } finally {
+      await workflow.dispose();
+    }
+    await File(planPath).delete();
+    final literal = await invoke([...planArgs(), '--literal']);
+    expect(literal.code, 0, reason: literal.err);
+    expect((await const LocalStudyPlanStore().read(planPath)).settings.interpretationProfile, isNull);
+    await File(planPath).delete();
+    final explicit = File('${root.path}/explicit-profile.json');
+    await explicit.writeAsString(jsonEncode({
+      ...recipe.settings.interpretationProfile!.toJson(),
+      'profileId': 'explicit-same-archive',
+    }));
+    final manual = await invoke([...planArgs(), '--literal',
+        '--interpretation-profile', await explicit.resolveSymbolicLinks()]);
+    expect(manual.code, 0, reason: manual.err);
+    expect((await const LocalStudyPlanStore().read(planPath)).settings.interpretationProfile!.profileId.value,
+        'explicit-same-archive');
+  }, skip: !Platform.isMacOS || knownArchivePath == null);
 
   test('CLI content scope defaults to full and persists explicit world plans', () async {
     final planned = await invoke([...planArgs(), '--content', 'world']);
