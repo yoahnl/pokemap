@@ -280,9 +280,9 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
         (encounter.commands[encounter.index] as Map)['code'] == 108;
     final endSpeech = hasEndSpeech ? encounter.literal(108) : null;
     if (endSpeech != null && !endSpeech.startsWith('EndSpeech: ')) return null;
-    final stationaryWithoutComment = endSpeech == null && values.length == 2 &&
-        values.every((value) => value['move_type'] == 0);
-    if (endSpeech == null && !stationaryWithoutComment) return null;
+    final textOnlyAfterWithoutComment = endSpeech == null && values.length == 2 &&
+        values.every(_sourceTrainerTextOnlyAfterMovement);
+    if (endSpeech == null && !textOnlyAfterWithoutComment) return null;
     final battle = encounter.take(111, 0);
     if (battle.length != 2 || battle[0] != 12 || battle[1] is! String) {
       return null;
@@ -302,7 +302,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
         analyzer.selfFactId(mapId, event.sourceEventId, 'A'))) {
       return null;
     }
-    if (stationaryWithoutComment &&
+    if (textOnlyAfterWithoutComment &&
         (victory.nodes.length != 1 ||
             victory.nodes.single is! SourceSelfSwitchNode)) {
       return null;
@@ -320,14 +320,14 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     ({List<String> lines, bool facing}) afterLines(int index) {
       final after = _SourceTrainerProgramCursor(values[index]['list'] as List);
       final lines = after.texts();
-      if ((index == 2 || stationaryWithoutComment) &&
+      if ((index == 2 || textOnlyAfterWithoutComment) &&
           !after.isDone &&
           (after.commands[after.index] as Map)['code'] == 0) {
         after.expect(0, 0, const []);
         if (!after.isDone) throw const FormatException();
         return (lines: lines, facing: false);
       }
-      if (stationaryWithoutComment) throw const FormatException();
+      if (textOnlyAfterWithoutComment) throw const FormatException();
       const turn = {
         '__class__': 'RPG::MoveCommand',
         'code': 25,
@@ -714,6 +714,16 @@ bool _sourceTrainerPageMetadata(Map<String, Object?> page, int index) {
     }
   }
   return true;
+}
+
+bool _sourceTrainerTextOnlyAfterMovement(Map<String, Object?> page) {
+  if (page['move_type'] == 0) return true;
+  if (page['move_type'] != 3) return false;
+  final route = page['move_route'] as Map;
+  final steps = route['list'] as List;
+  return steps.length > 1 &&
+      steps.take(steps.length - 1).every((step) =>
+          const {16, 17, 18, 19, 24}.contains((step as Map)['code']));
 }
 
 bool _sourceTrainerEmptyOverride(Map<String, Object?> page) =>
