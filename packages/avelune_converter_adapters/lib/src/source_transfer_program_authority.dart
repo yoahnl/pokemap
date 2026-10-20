@@ -15,6 +15,24 @@ final class SourceTransferProgramAuthority {
 
   late final SourceEventAnalysis _analysis =
       SourceEventAnalyzer.forProject(_source, profile: _profile).analyze();
+  late final SourceParallelDormancyAuditor _parallelDormancyAuditor =
+      SourceParallelDormancyAuditor.forProject(_source, profile: _profile);
+  int _executionContextAcquisitionCount = 0;
+
+  int get executionContextAcquisitionCount => _executionContextAcquisitionCount;
+
+  ({
+    SourceEventAnalysis analysis,
+    SourceParallelDormancyAuditor parallelDormancyAuditor
+  }) executionContextFor(NormalizedSourceProject source) {
+    _validateSource(source);
+    final context = (
+      analysis: _analysis,
+      parallelDormancyAuditor: _parallelDormancyAuditor
+    );
+    _executionContextAcquisitionCount++;
+    return context;
+  }
 
   SourceEventAnalysis get analysis {
     _validateSource(_source);

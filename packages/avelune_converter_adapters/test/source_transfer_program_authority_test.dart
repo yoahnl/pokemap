@@ -87,6 +87,48 @@ Future<LiteralTileFixture> _staticAndStairFixture() {
 }
 
 void main() {
+  test('execution qualification reuses only its owned analysis and auditor',
+      () async {
+    final fixture = await sourceInvisibleDoorFixture();
+    final foreign = await sourceInvisibleDoorFixture();
+    final authority = SourceTransferProgramAuthority.forSource(fixture.source);
+    final first = authority.executionContextFor(fixture.source);
+    final second = authority.executionContextFor(fixture.source);
+    expect(first.analysis, same(authority.analysis));
+    expect(second.analysis, same(first.analysis));
+    expect(second.parallelDormancyAuditor, same(first.parallelDormancyAuditor));
+    expect(first.parallelDormancyAuditor.source, same(fixture.source));
+    expect(authority.executionContextAcquisitionCount, 2);
+    expect(foreign.source.canonicalHash, fixture.source.canonicalHash);
+    expect(
+        () => authority.executionContextFor(foreign.source),
+        throwsA(isA<NativeWriteException>().having((error) => error.code,
+            'code', 'events.transfer.authority_binding')));
+    expect(authority.executionContextAcquisitionCount, 2);
+    final selected = await const RmxpSourceNormalizer().normalize(
+        snapshot: fixture.snapshot,
+        files: fixture.files,
+        selectedMapIds: {7},
+        includeEventSystem: true,
+        interpretationProfile: syntheticSourceInterpretationProfile);
+    final reprofiled = await const RmxpSourceNormalizer().normalize(
+        snapshot: fixture.snapshot,
+        files: fixture.files,
+        includeEventSystem: true,
+        interpretationProfile: SourceInterpretationProfile.fromJson({
+          ...syntheticSourceInterpretationProfile.toJson(),
+          'customPluginPolicy': 'excludeCustomBehavior',
+        }));
+    for (final changed in [selected, reprofiled]) {
+      expect(changed.canonicalHash, isNot(fixture.source.canonicalHash));
+      expect(
+          () => authority.executionContextFor(changed),
+          throwsA(isA<NativeWriteException>().having((error) => error.code,
+              'code', 'events.transfer.authority_binding')));
+    }
+    expect(authority.executionContextAcquisitionCount, 2);
+  });
+
   test('transfer authority reuses one owned authoritative analysis', () async {
     final fixture = await sourceInvisibleDoorFixture();
     final authority = SourceTransferProgramAuthority.forSource(fixture.source);

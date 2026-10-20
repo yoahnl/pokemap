@@ -485,11 +485,11 @@ final class SourceEventStudyComposer {
     final executionContext = externalTransitionIds.isEmpty && sequencePrograms.isEmpty ? null :
         await const SourceEventExecutionContextResolver().read(source: source,
           base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
-          cancellation: cancellation);
+          cancellation: cancellation, authority: transferAuthority);
     final localDoorContexts = await const SourceEventExecutionContextResolver()
         .readTransfers(source: source, base: base, nativeMaps: nativeMaps,
           files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, stairPrograms: stairPrograms, holePrograms: holePrograms, elevatorPrograms: elevatorPrograms, analysis: analysis,
-          limits: limits, cancellation: cancellation);
+          limits: limits, cancellation: cancellation, authority: transferAuthority);
     final staticDoorContexts = {for (final key in staticDoorPrograms.keys) key: localDoorContexts[key]!};
     final routedDoorContexts = {for (final key in routedDoorPrograms.keys) key: localDoorContexts[key]!};
     final stairContexts = {for (final key in stairPrograms.keys) key: localDoorContexts[key]!};

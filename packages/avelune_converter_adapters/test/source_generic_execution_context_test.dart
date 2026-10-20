@@ -5,12 +5,14 @@ import 'dart:typed_data';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
 import 'package:avelune_converter_adapters/src/source_encounter_terrain_binding.dart';
+import 'package:avelune_converter_adapters/src/source_transfer_program_authority.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 import 'support/literal_tile_fixture.dart';
+import 'support/source_invisible_door_fixture.dart';
 
 Future<LiteralTileFixture> _fixture(int map,
         {bool writer = false,
@@ -109,7 +111,8 @@ Future<NormalizedSourceProject> _source(LiteralTileFixture fixture) =>
         interpretationProfile: syntheticSourceInterpretationProfile);
 
 Future<SourceEventExecutionContext> _context(
-    NormalizedSourceProject source, SourceFilePort files) {
+    NormalizedSourceProject source, SourceFilePort files,
+    {SourceTransferProgramAuthority? authority}) {
   final maps = {
     for (final ir in source.maps)
       ir.map.sourceMapId: MapData(
@@ -142,7 +145,8 @@ Future<SourceEventExecutionContext> _context(
               })
       ]);
   return const SourceEventExecutionContextResolver()
-      .read(source: source, base: base, nativeMaps: maps, files: files);
+      .read(source: source, base: base, nativeMaps: maps, files: files,
+        authority: authority);
 }
 
 final class _ChangedFiles implements SourceFilePort {
@@ -155,6 +159,68 @@ final class _ChangedFiles implements SourceFilePort {
 }
 
 void main() {
+  test('owned routed contexts match independent single and batch proofs',
+      () async {
+    final fixture = await sourceInvisibleDoorFixture(includeSound: false);
+    final source = await _source(fixture);
+    final authority = SourceTransferProgramAuthority.forSource(source);
+    final analysis = authority.analysis;
+    final programs = sourceRoutedDoorPrograms(source: source, analysis: analysis,
+        authority: authority);
+    expect(programs, hasLength(1));
+    final maps = {for (final map in source.maps)
+      map.map.sourceMapId: MapData(id: 'native_${map.map.sourceMapId}', name: map.map.name,
+          size: GridSize(width: map.map.width, height: map.map.height), layers: const [])};
+    final base = NativeProjectDraft(source: source, projectName: 'Owned routed door',
+        parentPath: Directory.systemTemp.path, folderName: 'owned-routed-door',
+        mapIds: {for (final entry in maps.entries) entry.key: entry.value.id},
+        artifacts: const [], mutations: [for (final entry in maps.entries)
+          NativeMutation(operationId: ConverterId('map_${entry.key}'), actionId: 'map.save',
+              sourceEntityIds: [source.mapIdentity(entry.key)],
+              targetEntityIds: [ConverterId(entry.value.id)],
+              parameters: {'mapId': entry.value.id, 'map': entry.value.toJson()})]);
+    final legacy = await const SourceEventExecutionContextResolver().readTransfers(
+        source: source, base: base, nativeMaps: maps, files: fixture.files,
+        programs: const {}, routedPrograms: programs, analysis: analysis);
+    final shared = await const SourceEventExecutionContextResolver().readTransfers(
+        source: source, base: base, nativeMaps: maps, files: fixture.files,
+        programs: const {}, routedPrograms: programs, authority: authority,
+        analysis: SourceEventAnalysis(profile: analysis.profile,
+            events: const [], diagnostics: const []));
+    final single = await const SourceEventExecutionContextResolver().read(
+        source: source, base: base, nativeMaps: maps, files: fixture.files,
+        routedDoorProgram: programs.values.single, authority: authority);
+    expect(single.isQualified, isTrue, reason: single.refusals.toString());
+    expect(canonicalJsonOf(shared.values.single.toJson()),
+        canonicalJsonOf(legacy.values.single.toJson()));
+    expect(canonicalJsonOf(single.toJson()),
+        canonicalJsonOf(legacy.values.single.toJson()));
+    expect(authority.executionContextAcquisitionCount, 2);
+  });
+
+  test('owned execution contexts preserve exact proofs and source refusals',
+      () async {
+    final fixture = await _fixture(83);
+    final source = await _source(fixture);
+    final authority = SourceTransferProgramAuthority.forSource(source);
+    final legacy = await _context(source, fixture.files);
+    final shared = await _context(source, fixture.files, authority: authority);
+    expect(shared.isQualified, isTrue, reason: shared.refusals.toString());
+    expect(canonicalJsonOf(shared.toJson()), canonicalJsonOf(legacy.toJson()));
+    expect(authority.executionContextAcquisitionCount, 1);
+    final foreign = await _source(fixture);
+    expect(foreign.canonicalHash, source.canonicalHash);
+    await expectLater(_context(foreign, fixture.files, authority: authority),
+        throwsA(isA<NativeWriteException>().having(
+            (error) => error.code, 'code', 'events.transfer.authority_binding')));
+    await expectLater(_context(source,
+        _ChangedFiles(fixture.files, source.maps.single.map.sourceFileId),
+        authority: authority),
+        throwsA(isA<NativeWriteException>().having(
+            (error) => error.code, 'code', 'events.execution.witness.changed')));
+    expect(authority.executionContextAcquisitionCount, 2);
+  });
+
   group('execution witness inventory lookup', () {
     Future<NormalizedSourceProject> variant(LiteralTileFixture fixture,
         List<SourceFileEntry> entries, {SourceInterpretationProfile? profile}) =>
@@ -232,11 +298,17 @@ void main() {
     test('cancelled context resolution still stops before reading witness bytes', () async {
       final fixture = await _fixture(67);
       final source = await _source(fixture);
+      final authority = SourceTransferProgramAuthority.forSource(source);
       fixture.files.reads.clear();
       await expectLater(const SourceEventExecutionContextResolver().read(source: source,
         base: null, nativeMaps: const {}, files: fixture.files,
         cancellation: ScanCancellation()..cancel()),
         throwsA(isA<ContractError>().having((e) => e.code, 'code', 'source.cancelled')));
+      await expectLater(const SourceEventExecutionContextResolver().read(source: source,
+        base: null, nativeMaps: const {}, files: fixture.files, authority: authority,
+        cancellation: ScanCancellation()..cancel()),
+        throwsA(isA<ContractError>().having((e) => e.code, 'code', 'source.cancelled')));
+      expect(authority.executionContextAcquisitionCount, 0);
       expect(fixture.files.reads, isEmpty);
     });
   });
@@ -297,6 +369,7 @@ void main() {
       NativeProjectDraft base, {
       MapData? map,
       SourceFilePort? files,
+      SourceTransferProgramAuthority? authority,
     }) => const SourceEventExecutionContextResolver().read(
       source: source,
       base: base,
@@ -304,6 +377,7 @@ void main() {
       files: files ?? fixture.files,
       staticDoorProgram: programs.values.first,
       staticDoorAnalysis: analysis,
+      authority: authority,
     );
 
     setUp(() async {
@@ -340,6 +414,25 @@ void main() {
         for (final zone in native.gameplayZones) createZone(zone),
       ];
     });
+
+    test(
+      'owned contexts retain exact native base and map refusals',
+      () async {
+        final authority = SourceTransferProgramAuthority.forSource(source);
+        for (final (base, map) in [
+          (draft(flag: false), native),
+          (draft(changes: [mutations.first]), native),
+          (draft(semanticOverrides: {'normalizedSourceHash': '0' * 64}), native),
+          (draft(), saved),
+        ]) {
+          final legacy = await read(base, map: map);
+          final shared = await read(base, map: map, authority: authority);
+          expect(shared.isQualified, isFalse);
+          expect(canonicalJsonOf(shared.toJson()), canonicalJsonOf(legacy.toJson()));
+        }
+        expect(authority.executionContextAcquisitionCount, 4);
+      },
+    );
 
     test(
       'qualifies independently regenerated Surf in single and batched doors',
@@ -544,6 +637,30 @@ void main() {
       final batch = await const SourceEventExecutionContextResolver().readStaticTransfers(
           source: source, base: base, nativeMaps: maps, files: fixture.files,
           programs: programs, analysis: omittedActors);
+      final authority = SourceTransferProgramAuthority.forSource(source);
+      final sharedGlobal = await const SourceEventExecutionContextResolver().read(
+          source: source, base: base, nativeMaps: maps, files: fixture.files,
+          authority: authority);
+      final legacyGlobal = await const SourceEventExecutionContextResolver().read(
+          source: source, base: base, nativeMaps: maps, files: fixture.files);
+      expect(sharedGlobal.isQualified, isFalse);
+      expect(canonicalJsonOf(sharedGlobal.toJson()), canonicalJsonOf(legacyGlobal.toJson()));
+      final shared = await const SourceEventExecutionContextResolver().readTransfers(
+          source: source, base: base, nativeMaps: maps, files: fixture.files,
+          programs: programs, analysis: omittedActors, authority: authority);
+      expect(authority.executionContextAcquisitionCount, 2);
+      expect(shared.keys, batch.keys);
+      for (final key in batch.keys) {
+        expect(canonicalJsonOf(shared[key]!.toJson()), canonicalJsonOf(batch[key]!.toJson()));
+      }
+      final foreign = await _source(fixture);
+      expect(foreign.canonicalHash, source.canonicalHash);
+      await expectLater(const SourceEventExecutionContextResolver().readTransfers(
+          source: foreign, base: base, nativeMaps: maps, files: fixture.files,
+          programs: programs, analysis: omittedActors, authority: authority),
+          throwsA(isA<NativeWriteException>().having((error) => error.code,
+              'code', 'events.transfer.authority_binding')));
+      expect(authority.executionContextAcquisitionCount, 2);
       for (final entry in programs.entries) {
         final single = await const SourceEventExecutionContextResolver().read(
             source: source, base: base, nativeMaps: maps, files: fixture.files,

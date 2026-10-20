@@ -12,6 +12,7 @@ import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'native_mutation_batches.dart';
 import 'source_encounter_terrain_binding.dart';
+import 'source_transfer_program_authority.dart';
 
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
@@ -343,19 +344,25 @@ final class SourceEventExecutionContextResolver {
     SourceStairProgram? stairProgram,
     SourceElevatorProgram? elevatorProgram,
     SourceEventAnalysis? staticDoorAnalysis,
-  }) =>
-      _read(
-          source: source,
-          base: base,
-          nativeMaps: nativeMaps,
-          files: files,
-          limits: limits,
-          cancellation: cancellation,
-          staticDoorProgram: staticDoorProgram,
-          routedDoorProgram: routedDoorProgram,
-          stairProgram: stairProgram,
-          elevatorProgram: elevatorProgram,
-          staticDoorAnalysis: staticDoorAnalysis);
+    SourceTransferProgramAuthority? authority,
+  }) async {
+    cancellation?.check();
+    final owned = authority?.executionContextFor(source);
+    return _read(
+        source: source,
+        base: base,
+        nativeMaps: nativeMaps,
+        files: files,
+        limits: limits,
+        cancellation: cancellation,
+        staticDoorProgram: staticDoorProgram,
+        routedDoorProgram: routedDoorProgram,
+        stairProgram: stairProgram,
+        elevatorProgram: elevatorProgram,
+        staticDoorAnalysis: staticDoorAnalysis,
+        authoritativeSourceAnalysis: owned?.analysis,
+        parallelDormancyAuditor: owned?.parallelDormancyAuditor);
+  }
 
   Future<Map<ConverterId, SourceEventExecutionContext>> readStaticTransfers({
     required NormalizedSourceProject source,
@@ -411,6 +418,7 @@ final class SourceEventExecutionContextResolver {
     required SourceEventAnalysis analysis,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
+    SourceTransferProgramAuthority? authority,
   }) async {
     cancellation?.check();
     if (programs.isEmpty &&
@@ -439,11 +447,14 @@ final class SourceEventExecutionContextResolver {
       limits: limits,
       cancellation: cancellation,
     );
-    final authoritativeSourceAnalysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.forProject(source))
-        .analyze();
-    final parallelDormancyAuditor = SourceParallelDormancyAuditor.forProject(
-        source, profile: authoritativeSourceAnalysis.profile);
+    final owned = authority?.executionContextFor(source);
+    final authoritativeSourceAnalysis = owned?.analysis ??
+        SourceEventAnalyzer.forProject(source,
+                profile: SourceEventProfile.forProject(source))
+            .analyze();
+    final parallelDormancyAuditor = owned?.parallelDormancyAuditor ??
+        SourceParallelDormancyAuditor.forProject(source,
+            profile: authoritativeSourceAnalysis.profile);
     final result = <ConverterId, SourceEventExecutionContext>{};
     final witnesses = <String, Map<String, Object?>>{};
     final retained = <String, Future<NormalizedSourceProject>>{};
