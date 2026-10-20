@@ -4175,6 +4175,28 @@ final class _ProjectionBuilder {
           [source.mapIdentity(event.sourceMapId), event.identity, event.sourceFileId], [map.id, object.id],
           {'mapId': map.id, 'entityId': object.id,
             'fieldObstacle': object.fieldObstacle!.toJson()}));
+      final obstacleProgram = fieldObstacleBindings[event.identity]!.program;
+      final predicates = <(String, bool)>[
+        if (obstacleProgram.persistentRemoval case final removal?) (removal.factId, true),
+        if (obstacleProgram.activationFactId case final activation?) (activation, false),
+      ];
+      for (final (factId, expected) in predicates) {
+        final fact = factsById.putIfAbsent(factId, () => _nativeFact(factId));
+        final rule = addWorldRule(ProjectManifest(name: 'Source obstacle rules', tilesets: const [],
+            maps: [for (final entry in maps.values)
+              ProjectMapEntry(id: entry.id, name: entry.name, relativePath: 'maps/${entry.id}.json')],
+            facts: factsById.values.toList(), worldRules: worldRules),
+            maps: maps.values.toList(),
+            label: 'Source Strength ${expected ? 'removed' : 'waiting'} ${event.sourceMapId} ${event.sourceEventId}',
+            source: WorldRuleSource.factValue(factId: fact.id,
+                operator: NarrativeFactOperator.equals, expectedValue: NarrativeValue.boolean(expected)),
+            target: WorldRuleTarget(kind: WorldRuleTargetKind.mapEntity, mapId: map.id, entityId: object.id),
+            effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden)).createdRule;
+        worldRules.add(rule);
+        mutations.add(_mutation('world_rule.create', rule.id,
+            [event.identity, event.sourceFileId], [map.id, object.id, fact.id, rule.id],
+            {'rule': rule.toJson()}));
+      }
       return;
     }
 

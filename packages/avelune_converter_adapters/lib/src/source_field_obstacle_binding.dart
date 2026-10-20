@@ -75,9 +75,10 @@ final class SourceFieldObstacleBinding {
       event.identity == eventIdentity && event.sourceMapId == sourceMapId &&
       event.sourceEventId == sourceEventId && event.x == x && event.y == y &&
       analysis.attestsFieldObstacleEvent(source: source, event: event) &&
-      event.pages.length == 1 && event.pages.single.body.nodes.length == 1 &&
-      event.pages.single.body.nodes.single is SourceFieldObstacleProgramNode &&
-      canonicalJsonOf((event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).toJson()) ==
+      event.pages.length == (program.persistentRemoval == null ? 1 : 2) &&
+      event.pages.first.body.nodes.length == 1 &&
+      event.pages.first.body.nodes.single is SourceFieldObstacleProgramNode &&
+      canonicalJsonOf((event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode).toJson()) ==
           canonicalJsonOf(program.toJson()) &&
       (nativeKind != FieldObstacleKind.rockSmashRock ||
           rockSmashEncounterStatus == SourceRockSmashEncounterStatus.absent ||
@@ -164,9 +165,9 @@ final class SourceFieldObstacleBindingResolver {
     limits.validate();
     final events = analysis.events.where((event) =>
       (sourceMapIds == null || sourceMapIds.contains(event.sourceMapId)) &&
-      !event.isQuarantined && event.pages.length == 1 &&
-      event.pages.single.body.nodes.length == 1 &&
-      event.pages.single.body.nodes.single is SourceFieldObstacleProgramNode).toList();
+      !event.isQuarantined && event.pages.isNotEmpty &&
+      event.pages.first.body.nodes.length == 1 &&
+      event.pages.first.body.nodes.single is SourceFieldObstacleProgramNode).toList();
     if (events.isEmpty) return null;
     if (!analysis.profile.isQualified ||
         analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
@@ -212,7 +213,7 @@ final class SourceFieldObstacleBindingResolver {
     final policies = <ConverterId, (int, int, int)>{};
     final locksByKind = <SourceFieldObstacleKind, Set<String>>{};
     for (final event in events) {
-      final program = event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode;
+      final program = event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode;
       final region = metadata[event.sourceMapId];
       final policyRegion = region == null ? null : (region > 99 ? region ~/ 100 : region);
       final row = policyRegion != null && policyRegion >= 0 && policyRegion < settings.$1.length
@@ -228,7 +229,7 @@ final class SourceFieldObstacleBindingResolver {
       locksByKind.putIfAbsent(program.obstacleKind, () => {}).add('$policyRegion:$badge');
     }
     for (final event in events) {
-      final program = event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode;
+      final program = event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode;
       if ((locksByKind[program.obstacleKind]?.length ?? 0) > 1) {
         refusals[event.identity] = 'sourceFieldObstacleConflictingBadgeLocks:${program.sourceMove}';
       }
@@ -236,7 +237,7 @@ final class SourceFieldObstacleBindingResolver {
     final smashStatuses = <int, SourceRockSmashEncounterStatus>{};
     final nativeSmashBindings = <int, _NativeRockSmashEncounterBinding>{};
     if (events.any((event) =>
-        (event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
+        (event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
             SourceFieldObstacleKind.rockSmashRock && !refusals.containsKey(event.identity))) {
       try {
         final compiled = const MarshalDecoder().decode(await exact('Data/encounters.dat'),
@@ -300,7 +301,7 @@ final class SourceFieldObstacleBindingResolver {
           }
         }
         for (final event in events) {
-          final program = event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode;
+          final program = event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode;
           if (program.obstacleKind != SourceFieldObstacleKind.rockSmashRock) continue;
           final status = presentMaps.contains(event.sourceMapId)
               ? nativeSmashBindings.containsKey(event.sourceMapId)
@@ -314,7 +315,7 @@ final class SourceFieldObstacleBindingResolver {
         }
       } on SourceFieldObstacleBindingUnavailable catch (error) {
         for (final event in events) {
-          if ((event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
+          if ((event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
               SourceFieldObstacleKind.rockSmashRock) {
             refusals[event.identity] = 'sourceRockSmashEncounterUnattested:${error.reason}';
           }
@@ -323,14 +324,14 @@ final class SourceFieldObstacleBindingResolver {
         rethrow;
       } on FormatException {
         for (final event in events) {
-          if ((event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
+          if ((event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
               SourceFieldObstacleKind.rockSmashRock) {
             refusals[event.identity] = 'sourceRockSmashEncounterSourceInvalid';
           }
         }
       } on BinaryDecodeError {
         for (final event in events) {
-          if ((event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
+          if ((event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind ==
               SourceFieldObstacleKind.rockSmashRock) {
             refusals[event.identity] = 'sourceRockSmashEncounterSourceInvalid';
           }
@@ -353,7 +354,7 @@ final class SourceFieldObstacleBindingResolver {
         targetEntityIds: targets.map(ConverterId.new).toList(),
         parameters: parameters, limits: limits);
     final kinds = accepted.map((event) =>
-        (event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind).toSet()
+        (event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode).obstacleKind).toSet()
         .toList()..sort((a,b) => a.index.compareTo(b.index));
     for (final kind in kinds) {
       final visual = _fieldVisuals[kind]!;
@@ -384,7 +385,7 @@ final class SourceFieldObstacleBindingResolver {
     }
     final bindings = <ConverterId, SourceFieldObstacleBinding>{};
     for (final event in accepted) {
-      final program = event.pages.single.body.nodes.single as SourceFieldObstacleProgramNode;
+      final program = event.pages.first.body.nodes.single as SourceFieldObstacleProgramNode;
       final policy = policies[event.identity]!;
       final ability = switch (program.obstacleKind) {
         SourceFieldObstacleKind.cutTree => FieldAbility.cut,

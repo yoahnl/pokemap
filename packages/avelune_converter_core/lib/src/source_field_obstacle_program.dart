@@ -2,6 +2,18 @@ part of '../avelune_converter_core.dart';
 
 enum SourceFieldObstacleKind { cutTree, strengthBoulder, rockSmashRock }
 
+final class SourceFieldObstacleRemovalPage {
+  const SourceFieldObstacleRemovalPage._(this.factId, this.rawDataRef);
+  final String factId;
+  final SourcePreservedData rawDataRef;
+  Map<String, Object?> toJson() => {
+    'sourcePageIndex': 1, 'ownSelfSwitch': 'A', 'factId': factId,
+    'rawDataRef': rawDataRef.toJson(),
+    'nativeContract': 'persistentFactWorldRuleHidesTypedObstacle',
+    'pushWritesRemovalFact': false,
+  };
+}
+
 final class SourceFieldObstacleProgramNode extends SourceEventNode {
   SourceFieldObstacleProgramNode._(
     super.span, {
@@ -10,11 +22,15 @@ final class SourceFieldObstacleProgramNode extends SourceEventNode {
     required this.profileHash,
     required this.templateHash,
     required this.obstacleKind,
+    this.persistentRemoval,
+    this.activationFactId,
   });
 
   final SourcePreservedData rawDataRef;
   final Sha256Hash sourceSnapshotHash, profileHash, templateHash;
   final SourceFieldObstacleKind obstacleKind;
+  final SourceFieldObstacleRemovalPage? persistentRemoval;
+  final String? activationFactId;
   String get sourceMove => switch (obstacleKind) {
     SourceFieldObstacleKind.cutTree => 'CUT',
     SourceFieldObstacleKind.strengthBoulder => 'STRENGTH',
@@ -35,10 +51,10 @@ final class SourceFieldObstacleProgramNode extends SourceEventNode {
   }) {
     if (source.snapshot.canonicalHash != sourceSnapshotHash ||
         profile.canonicalHash != profileHash ||
-        event.pages.length != 1) {
+        event.pages.length != (persistentRemoval == null ? 1 : 2)) {
       return false;
     }
-    final page = event.pages.single;
+    final page = event.pages.first;
     final block = _sourceFieldObstacleProgramBlock(
         SourceEventAnalyzer.forProject(source, profile: profile),
         sourceMapId,
@@ -58,6 +74,11 @@ final class SourceFieldObstacleProgramNode extends SourceEventNode {
         'span': span.toJson(),
         'sourceMove': sourceMove,
         'obstacleKind': obstacleKind.name,
+        if (persistentRemoval != null) 'persistentRemoval': persistentRemoval!.toJson(),
+        if (activationFactId != null) 'activationSelfSwitch': {
+          'letter': 'B', 'factId': activationFactId,
+          'nativeContract': 'persistentFactWorldRuleHidesObstacleWhenFalse',
+        },
         'sourceCalls': sourceCalls,
         'rawDataRef': rawDataRef.toJson(),
         'sourceSnapshotHash': sourceSnapshotHash.value,
@@ -92,7 +113,7 @@ String _sourceFieldObstaclePath(int mapId) =>
 SourceEventBlock? _sourceFieldObstacleProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
   if (!analyzer._isQualified ||
-      event.pages.length != 1 ||
+      !const {1, 2}.contains(event.pages.length) ||
       page.originalPageIndex != 0 ||
       !const {0, 1}.contains(page.triggerCode) ||
       !const {2, 7, 8}.contains(page.commands.length)) {
@@ -134,22 +155,59 @@ SourceEventBlock? _sourceFieldObstacleProgramBlock(SourceEventAnalyzer analyzer,
     }
     final rawPages = document.node(_eventField(rawEvent, '@pages'));
     if (rawPages.kind != MarshalKind.array ||
-        rawPages.elements.length != 1 ||
-        rawPages.elements.single != reference.nodeId ||
+        rawPages.elements.length != event.pages.length ||
+        rawPages.elements.first != reference.nodeId ||
         rawPages.extensions.isNotEmpty ||
         rawPages.userClass != null ||
         rawPages.instanceVariables.isNotEmpty) {
       return null;
     }
     final value = _SourceCenterPageValue(document).read(reference.nodeId);
+    final waitsForOwnB = event.pages.length == 2 && _sourceStrengthOwnBPageSupported(value);
     final kinds = SourceFieldObstacleKind.values
-        .where((kind) => _sourceFieldObstaclePageSupported(value, kind)).toList();
+        .where((kind) => _sourceFieldObstaclePageSupported(value, kind) ||
+            kind == SourceFieldObstacleKind.strengthBoulder && waitsForOwnB).toList();
     if (kinds.length != 1) return null;
     final kind = kinds.single;
+    SourceFieldObstacleRemovalPage? removal;
+    Object? removalValue;
+    if (event.pages.length == 2) {
+      final second = event.pages[1];
+      final secondReference = analyzer._reference(second.rawDataRef);
+      if (kind != SourceFieldObstacleKind.strengthBoulder ||
+          second.originalPageIndex != 1 || second.triggerCode != 0 ||
+          secondReference == null || secondReference.fileId != reference.fileId ||
+          secondReference.nodeId != rawPages.elements[1] ||
+          canonicalJsonOf(secondReference.locator?.toJson()) != canonicalJsonOf(
+              _eventLocator(_sourceFieldObstaclePath(mapId), mapId, event.sourceEventId, 1).toJson())) {
+        return null;
+      }
+      removalValue = _SourceCenterPageValue(document).read(secondReference.nodeId);
+      if (!_sourceStrengthRemovalPageSupported(removalValue) ||
+          second.commands.length != 1 || second.commands.single.code != 0 ||
+          second.commands.single.indent != 0 || second.commands.single.originalIndex != 0 ||
+          second.commands.single.parameters.isNotEmpty) {
+        return null;
+      }
+      final secondParser = _SourceEventParser(analyzer, second.commands,
+          _eventLocator(_sourceFieldObstaclePath(mapId), mapId, event.sourceEventId, 1),
+          mapId, event.sourceEventId, analyzer._switchNames(), secondReference);
+      secondParser._rawFacingParameters(second.commands.single, 0);
+      final condition = analyzer._reference(second.conditionsDataRef);
+      if (condition == null || condition.fileId != reference.fileId ||
+          condition.nodeId != _eventField(_eventFields(document, secondReference.nodeId,
+              'RPG::Event::Page'), '@condition') ||
+          canonicalJsonOf(condition.locator?.toJson()) !=
+              canonicalJsonOf(secondReference.locator?.toJson())) {
+        return null;
+      }
+      removal = SourceFieldObstacleRemovalPage._(
+          analyzer.selfFactId(mapId, event.sourceEventId, 'A'), secondReference);
+    }
     if (page.triggerCode != (kind == SourceFieldObstacleKind.strengthBoulder ? 1 : 0)) {
       return null;
     }
-    final hash = canonicalHashOf(value);
+    final hash = canonicalHashOf(removal == null ? value : [value, removalValue]);
     final condition = analyzer._reference(page.conditionsDataRef);
     if (condition == null ||
         condition.fileId != reference.fileId ||
@@ -188,11 +246,50 @@ SourceEventBlock? _sourceFieldObstacleProgramBlock(SourceEventAnalyzer analyzer,
           rawDataRef: reference,
           sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
           profileHash: analyzer.profile.canonicalHash,
-          templateHash: hash, obstacleKind: kind)
+          templateHash: hash, obstacleKind: kind, persistentRemoval: removal,
+          activationFactId: waitsForOwnB ? analyzer.selfFactId(mapId, event.sourceEventId, 'B') : null)
     ]);
   } on FormatException {
     return null;
   }
+}
+
+bool _sourceStrengthRemovalPageSupported(Object? value) {
+  if (value is! Map || value['condition'] is! Map || value['graphic'] is! Map ||
+      value['trigger'] != 0 || value['list'] is! List) {
+    return false;
+  }
+  final condition = value['condition'] as Map, graphic = value['graphic'] as Map;
+  final commands = value['list'] as List;
+  if (condition['self_switch_valid'] != true || condition['self_switch_ch'] != 'A' ||
+      graphic['character_name'] != '' ||
+      value['through'] != false && value['through'] != true || commands.length != 1 ||
+      canonicalJsonOf(commands.single) != canonicalJsonOf(const {
+        '__class__': 'RPG::EventCommand', 'code': 0, 'indent': 0, 'parameters': [],
+      })) {
+    return false;
+  }
+  return _sourceFieldObstaclePageSupported({
+    ...value, 'condition': {...condition, 'self_switch_valid': false},
+    'graphic': {...graphic, 'character_name': 'OBJ_FRLG_Strength Boulder'},
+    'trigger': 1, 'through': false, 'list': [const {
+      '__class__': 'RPG::EventCommand', 'code': 355, 'indent': 0,
+      'parameters': ['pbPushThisBoulder'],
+    }, commands.single],
+  }, SourceFieldObstacleKind.strengthBoulder);
+}
+
+bool _sourceStrengthOwnBPageSupported(Object? value) {
+  if (value is! Map || value['condition'] is! Map) {
+    return false;
+  }
+  final condition = value['condition'] as Map;
+  if (condition['self_switch_valid'] != true || condition['self_switch_ch'] != 'B') {
+    return false;
+  }
+  return _sourceFieldObstaclePageSupported({...value, 'condition': {
+    ...condition, 'self_switch_valid': false, 'self_switch_ch': 'A',
+  }}, SourceFieldObstacleKind.strengthBoulder);
 }
 
 bool _sourceFieldObstaclePageSupported(Object? value, SourceFieldObstacleKind kind) {
@@ -367,9 +464,9 @@ final class _SourceFieldObstacleAttestation {
         profileHash = profile.canonicalHash,
         eventFingerprints = Map.unmodifiable({
           for (final event in events)
-            if (!event.isQuarantined && event.pages.length == 1 &&
-                event.pages.single.body.nodes.length == 1 &&
-                event.pages.single.body.nodes.single is SourceFieldObstacleProgramNode)
+            if (!event.isQuarantined && event.pages.isNotEmpty &&
+                event.pages.first.body.nodes.length == 1 &&
+                event.pages.first.body.nodes.single is SourceFieldObstacleProgramNode)
               event.identity: _sourceFieldObstacleEventFingerprint(event),
         });
 
