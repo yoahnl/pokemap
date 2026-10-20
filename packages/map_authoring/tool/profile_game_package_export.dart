@@ -10,12 +10,14 @@ import 'package:path/path.dart' as p;
 
 const _maximumSourceBytes = 600 * 1024 * 1024;
 const _maximumSourceFiles = 10000;
+const _maximumConfiguredSourceFiles = 50000;
 const _maximumWorkspaceEntries = 100000;
 
 const _usage = 'dart run tool/profile_game_package_export.dart '
     '--project-root <immutable-snapshot> --profile <profile.json> '
     '--output <new.avelunegame> --receipt <new.json> '
     '[--mode publication|localTest] [--max-source-bytes <bytes>] '
+    '[--max-source-files <count>] '
     '[--audit-source-root <read-only-original>]';
 
 Future<void> main(List<String> arguments) async {
@@ -47,7 +49,8 @@ Future<int> runProfileGamePackageExport(List<String> arguments) async {
     'limits': {
       'maximumSourceBytes': int.parse(
           options['max-source-bytes'] ?? _maximumSourceBytes.toString()),
-      'maximumSourceFiles': _maximumSourceFiles,
+      'maximumSourceFiles': int.parse(
+          options['max-source-files'] ?? _maximumSourceFiles.toString()),
       'maximumWorkspaceEntries': _maximumWorkspaceEntries,
       'packagePolicy': 'unchangedProductionDefaults',
     },
@@ -112,7 +115,8 @@ Future<int> runProfileGamePackageExport(List<String> arguments) async {
     final before = await stage(
         'sourceInventory',
         () => _inventory(source,
-            maximumBytes: report['limits']['maximumSourceBytes'] as int));
+            maximumBytes: report['limits']['maximumSourceBytes'] as int,
+            maximumFiles: report['limits']['maximumSourceFiles'] as int));
     report['source'] = before;
     const service = CanonicalGamePackageExportService();
     final artifact = await stage('build',
@@ -176,7 +180,8 @@ Future<int> runProfileGamePackageExport(List<String> arguments) async {
         final after = await stage(
             'verifySource',
             () => _inventory(source,
-                maximumBytes: report['limits']['maximumSourceBytes'] as int));
+                maximumBytes: report['limits']['maximumSourceBytes'] as int,
+                maximumFiles: report['limits']['maximumSourceFiles'] as int));
         final unchanged =
             report['source']['inventorySha256'] == after['inventorySha256'];
         report['source']['unchangedAfterExport'] = unchanged;
@@ -236,6 +241,7 @@ Map<String, String> _readOptions(List<String> arguments) {
     'receipt',
     'mode',
     'max-source-bytes',
+    'max-source-files',
     'audit-source-root',
   };
   final options = <String, String>{};
@@ -259,6 +265,13 @@ Map<String, String> _readOptions(List<String> arguments) {
       options['max-source-bytes'] ?? _maximumSourceBytes.toString());
   if (budget == null || budget < 1 || budget > _maximumSourceBytes) {
     throw const FormatException('Source budget must be within 1..629145600.');
+  }
+  final fileBudget = int.tryParse(
+      options['max-source-files'] ?? _maximumSourceFiles.toString());
+  if (fileBudget == null ||
+      fileBudget < 1 ||
+      fileBudget > _maximumConfiguredSourceFiles) {
+    throw const FormatException('Source file budget must be within 1..50000.');
   }
   return options;
 }
@@ -291,7 +304,7 @@ void _outsideSources(File file, Directory source, Directory? audit) {
 }
 
 Future<Map<String, dynamic>> _inventory(Directory root,
-    {required int maximumBytes}) async {
+    {required int maximumBytes, required int maximumFiles}) async {
   final files = <(String, int, String)>[];
   var totalBytes = 0;
   var visited = 0;
@@ -307,7 +320,7 @@ Future<Map<String, dynamic>> _inventory(Directory root,
     final file = File(entity.path);
     final size = await file.length();
     totalBytes += size;
-    if (totalBytes > maximumBytes || files.length >= _maximumSourceFiles) {
+    if (totalBytes > maximumBytes || files.length >= maximumFiles) {
       throw _ProbeFailure('sourceBudgetExceeded', entity.path);
     }
     final digest = (await sha256.bind(file.openRead(0, size)).first).toString();

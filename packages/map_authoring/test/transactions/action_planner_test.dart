@@ -137,6 +137,51 @@ void main() {
       expect(store.length, 0);
     });
 
+    test('starts plan validity after a preparation longer than its ttl',
+        () async {
+      final snapshot = _snapshot();
+      var now = DateTime.utc(2026, 7, 31, 12);
+      final store = AuthoringPlanStore(clock: () => now);
+      final planner = AuthoringActionPlanner(
+        store: store,
+        tokenFactory: (prefix) => '${prefix}slow',
+        seedFactory: () => 7,
+      );
+      final plan = await planner.plan(
+        request: _request(snapshot.revision),
+        snapshot: snapshot,
+        build: (context) async {
+          now = now.add(const Duration(minutes: 11));
+          return _draft(context);
+        },
+        validateProjectedState: (_, __) {
+          now = now.add(const Duration(minutes: 1));
+        },
+      );
+
+      expect(plan.createdAt, now);
+      expect(plan.expiresAt, now.add(store.ttl));
+      expect(
+        await store.resolve(plan.planId,
+            currentProjectRevision: snapshot.revision),
+        same(plan),
+      );
+      await expectLater(
+        () => store.resolve(plan.planId,
+            currentProjectRevision: 'changed-after-preparation'),
+        throwsA(isA<AuthoringPlanException>()
+            .having((error) => error.code, 'code', 'plan.stale')),
+      );
+      now = plan.expiresAt;
+      await expectLater(
+        () => store.resolve(plan.planId,
+            currentProjectRevision: snapshot.revision),
+        throwsA(isA<AuthoringPlanException>()
+            .having((error) => error.code, 'code', 'plan.expired')),
+      );
+      expect(store.length, 0);
+    });
+
     test('releases applied payload without changing replay identity', () async {
       final snapshot = _snapshot();
       final store = AuthoringPlanStore(

@@ -62,6 +62,18 @@ final class SpatialGameplayImportTests: XCTestCase {
     func testImportAndSaveSpatialDurabilityCheckpoint() throws {
         let configuration = try durabilityConfiguration()
         let app = launchDurabilityApplication(configuration)
+        try importAndOpenDurabilityGame(configuration, in: app)
+        try startAndSaveDurabilityNewGame(configuration, in: app)
+    }
+
+    func testImportAndSaveCatalogQualificationCheckpoint() throws {
+        let configuration = try durabilityConfiguration(requireIntroduction: false)
+        let app = launchDurabilityApplication(configuration)
+        try importAndOpenDurabilityGame(configuration, in: app)
+        try startAndSaveDurabilityNewGame(configuration, requireIntroduction: false, in: app)
+    }
+
+    private func importAndOpenDurabilityGame(_ configuration: SpatialDurabilityConfiguration, in app: XCUIApplication) throws {
         let importButton = app.buttons["Importer un jeu"].firstMatch
         try require(importButton.waitForExistence(timeout: 45), "La bibliothèque native doit proposer son import.", app)
         let gameCount = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@ OR label == %@", "^[0-9]+ aventures?$", "Vos aventures commencent ici.")).firstMatch
@@ -74,7 +86,6 @@ final class SpatialGameplayImportTests: XCTestCase {
         try choosePackage(configuration.packageName, documentsFolderName: configuration.documentsFolderName, in: app)
         attachScreenshot(app, name: "durability-ios-library-imported")
         try openGameTitle(configuration.gameTitle, in: app)
-        try startAndSaveDurabilityNewGame(configuration, in: app)
     }
 
     func testStartAndSaveImportedSpatialDurabilityCheckpoint() throws {
@@ -84,7 +95,7 @@ final class SpatialGameplayImportTests: XCTestCase {
         try startAndSaveDurabilityNewGame(configuration, in: app)
     }
 
-    private func startAndSaveDurabilityNewGame(_ configuration: SpatialDurabilityConfiguration, in app: XCUIApplication) throws {
+    private func startAndSaveDurabilityNewGame(_ configuration: SpatialDurabilityConfiguration, requireIntroduction: Bool = true, in app: XCUIApplication) throws {
         let newGame = button(["Nouveau jeu", "New game"], in: app)
         try require(newGame.waitForExistence(timeout: 30) && newGame.isHittable, "Le jeu importé doit proposer une nouvelle partie.", app)
         newGame.tap()
@@ -94,7 +105,12 @@ final class SpatialGameplayImportTests: XCTestCase {
             try require((environment["ENV_AVELUNE_UI_REPLACE_QA_SAVE"] ?? environment["AVELUNE_UI_REPLACE_QA_SAVE"]) == "1", "Remplacer une sauvegarde QA exige une configuration explicite du parcours.", app)
             button(["Oui", "Yes"], in: app).tap()
         }
-        try finishDurabilityIntroduction(configuration.expectedDialogue, in: app)
+        if requireIntroduction {
+            try finishDurabilityIntroduction(configuration.expectedDialogue, in: app)
+        } else {
+            let menu = app.buttons["Menu"].firstMatch
+            try require(menu.waitForExistence(timeout: 45) && menu.isHittable, "La nouvelle partie sans introduction doit atteindre l’exploration avant la sauvegarde.", app)
+        }
         attachScreenshot(app, name: "durability-ios-new-game-world")
         try captureDurabilityOrientations("new-game", in: app)
         try saveDurabilityCheckpoint("before-process-termination", in: app)
@@ -143,7 +159,7 @@ final class SpatialGameplayImportTests: XCTestCase {
     }
 
     func testResumeSpatialDurabilityCheckpointAfterProcessTermination() throws {
-        let configuration = try durabilityConfiguration()
+        let configuration = try durabilityConfiguration(requireIntroduction: false)
         let app = launchDurabilityApplication(configuration)
         try resumeDurabilityGame(configuration.gameTitle, in: app)
         attachScreenshot(app, name: "durability-ios-restored-world")
@@ -283,7 +299,7 @@ final class SpatialGameplayImportTests: XCTestCase {
         try require(XCTWaiter.wait(for: [absent], timeout: 30) == .completed, "Les anciens contrôles doivent être absents : \(labels).", app)
     }
 
-    private func durabilityConfiguration() throws -> SpatialDurabilityConfiguration {
+    private func durabilityConfiguration(requireIntroduction: Bool = true) throws -> SpatialDurabilityConfiguration {
         let environment = ProcessInfo.processInfo.environment
         func value(_ name: String) -> String? {
             environment["ENV_\(name)"] ?? environment[name]
@@ -293,10 +309,11 @@ final class SpatialGameplayImportTests: XCTestCase {
               bundleId.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) || $0 == "." || $0 == "-" }) else {
             throw XCTSkip("Le parcours de durabilité exige un bundle natif durable3dqa isolé de l’application utilisateur.")
         }
+        let expectedDialogue = value("AVELUNE_UI_DURABILITY_EXPECTED_DIALOGUE") ?? ""
         guard let packageName = value("AVELUNE_UI_GAME_PACKAGE_NAME"),
               !packageName.isEmpty, !packageName.contains("/"), !packageName.contains("\\"),
               let gameTitle = value("AVELUNE_UI_GAME_TITLE"), !gameTitle.isEmpty,
-              let expectedDialogue = value("AVELUNE_UI_DURABILITY_EXPECTED_DIALOGUE"), !expectedDialogue.isEmpty else {
+              !requireIntroduction || !expectedDialogue.isEmpty else {
             throw XCTSkip("Le parcours de durabilité exige le nom Files, le titre et le dialogue attestant les actions narratives de la cartouche QA.")
         }
         let documentsFolderName = value("AVELUNE_UI_DOCUMENTS_FOLDER") ?? "Avelune"

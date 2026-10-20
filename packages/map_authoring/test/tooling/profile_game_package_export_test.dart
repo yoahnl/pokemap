@@ -82,6 +82,7 @@ void main() {
     expect(report['measurement']['elapsedMicroseconds'], greaterThan(0));
     expect(report['measurement']['maxRssBytes'], greaterThan(0));
     expect(report['measurement']['rssScope'], 'currentProcessLifetime');
+    expect(report['limits']['maximumSourceFiles'], 10000);
     expect(report['source']['fileCount'], 2);
     expect(report['source']['unchangedAfterExport'], isTrue);
     expect(report['source']['projectSha256'], before['project.json']);
@@ -130,6 +131,52 @@ void main() {
     expect(report['stage'], 'sourceInventory');
     expect(report['error']['code'], 'sourceBudgetExceeded');
     expect(await output.exists(), isFalse);
+  });
+
+  test('enforces an explicit source file budget before exporting', () async {
+    final before = await _projectFiles(project);
+    expect(
+        await probe.runProfileGamePackageExport(arguments(extra: [
+          '--max-source-files',
+          '1',
+        ])),
+        1);
+    final report = await _report(receipt);
+    expect(report['limits']['maximumSourceFiles'], 1);
+    expect(report['stage'], 'sourceInventory');
+    expect(report['error']['code'], 'sourceBudgetExceeded');
+    expect(await output.exists(), isFalse);
+    expect(await _projectFiles(project), before);
+  });
+
+  test('records the bounded file budget for partitioned source snapshots',
+      () async {
+    expect(
+        await probe.runProfileGamePackageExport(arguments(extra: [
+          '--max-source-files',
+          '50000',
+        ])),
+        0);
+    final report = await _report(receipt);
+    expect(report['limits']['maximumSourceFiles'], 50000);
+    expect(report['limits']['maximumSourceBytes'], 600 * 1024 * 1024);
+    expect(report['limits']['maximumWorkspaceEntries'], 100000);
+    expect(report['limits']['packagePolicy'], 'unchangedProductionDefaults');
+    expect(report['source']['fileCount'], 2);
+    expect(report['source']['unchangedAfterExport'], isTrue);
+  });
+
+  test('rejects invalid or excessive explicit source file budgets', () async {
+    for (final value in ['0', '-1', '50001', '1.5', 'unknown']) {
+      expect(
+          await probe.runProfileGamePackageExport(arguments(extra: [
+            '--max-source-files',
+            value,
+          ])),
+          64);
+      expect(await receipt.exists(), isFalse);
+      expect(await output.exists(), isFalse);
+    }
   });
 
   test('refuses output within the source without changing it', () async {

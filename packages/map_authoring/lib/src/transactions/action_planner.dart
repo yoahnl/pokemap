@@ -109,7 +109,6 @@ final class AuthoringActionPlanner {
     if (seed < 0) {
       throw ArgumentError.value(seed, 'seedFactory', 'must not be negative');
     }
-    final createdAt = _store.now;
     final owner = AuthoringPayloadOwner();
     final context = AuthoringPlanningContext(
         snapshot: snapshot.withPayloadOwner(owner),
@@ -125,6 +124,7 @@ final class AuthoringActionPlanner {
       }
       validateProjectedState?.call(snapshot, draft);
       final frozen = await _freezePayloads(draft.changeSet, owner);
+      final createdAt = _store.now;
       final plan = AuthoringPlan(
           planId: planId,
           receiptId: receiptId,
