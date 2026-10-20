@@ -22,6 +22,7 @@ Future<JumpFixture> jumpFixture(
     int runLength = 3,
     List<LiteralFixtureEvent> events = const [],
     bool includeEventSystem = false,
+    bool useExternalScripts = true,
     bool lowerTransparentPixel = false,
     bool upperOpaquePixel = false,
     bool ledgeAtWestEdge = false,
@@ -51,7 +52,7 @@ Future<JumpFixture> jumpFixture(
   final fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
 
     includeEventSystem: includeEventSystem,
-    scriptsBytes: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null
+    scriptsBytes: !useExternalScripts || Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null
         ? syntheticInterpretationArchive
         : await File(Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS']!)
             .readAsBytes(),

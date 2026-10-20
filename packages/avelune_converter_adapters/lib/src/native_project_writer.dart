@@ -1126,7 +1126,10 @@ final class _PreparedNativeDraft {
 
 NativeProjectCreationInput _nativeCreationInput(
     _PreparedNativeDraft prepared, NativeProjectDraft draft) {
-  final artifacts = {for (final artifact in draft.artifacts) artifact.handle: artifact};
+  final artifacts = {
+    for (final artifact in [...draft.artifacts, ...prepared.borderSnapshots.values])
+      artifact.handle: artifact,
+  };
   final catalogs = <PokemonCatalogFile>[];
   final species = <PokemonSpeciesFile>[];
   final learnsets = <PokemonLearnsetFile>[];
@@ -1190,8 +1193,8 @@ NativeProjectCreationInput _nativeCreationInput(
       artifacts: [for (final reference in references.values)
         NativeProjectCreationArtifact(reference: reference,
             bytes: (artifacts[reference.handle] ??
-                (throw const NativeWriteException('native.creation.artifact',
-                    'Every native logical resource requires an approved retained artifact'))).bytes)],
+                (throw NativeWriteException('native.creation.artifact',
+                    'No retained bytes for native artifact ${reference.handle}'))).bytes)],
       dialogueSources: prepared.dialogueSources, itemCatalog: prepared.itemCatalog,
       pokemonCatalogs: catalogs, species: species, learnsets: learnsets,
       evolutions: evolutions, media: media, borderFrames: borderFrames);

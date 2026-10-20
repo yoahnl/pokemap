@@ -95,7 +95,7 @@ void main() {
   test(
       'automatic source Borders survive canonical writer and strict disk reload',
       () async {
-    final f = await jumpFixture();
+    final f = await jumpFixture(useExternalScripts: false);
     final draft = (await const SourceSemanticStudyComposer().compose(
         source: f.base.draft!.source, base: f.base, files: f.fixture.files))!;
     final semantic = draft.compositionEvidence['sourceSemantics'] as Map;
@@ -178,6 +178,8 @@ void main() {
               await File('${receipt.projectPath}/$path').readAsBytes();
           expect(ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png'),
               record.artifact);
+          expect(rebound.artifacts.any((artifact) => artifact.handle == record.artifact.handle),
+              isFalse);
           expect(
               await File(
                       '${receipt.projectPath}/${assetBlobStorageKey(record.artifact)}')
@@ -203,7 +205,7 @@ void main() {
       }
       await output.delete(recursive: true);
     }
-  }, skip: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null);
+  });
   test(
       'Border publication seals distinct snapshot files and recovers published bytes',
       () async {
