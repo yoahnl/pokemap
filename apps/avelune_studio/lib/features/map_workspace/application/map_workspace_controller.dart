@@ -61,7 +61,17 @@ class MapWorkspaceController {
       if (_disposed) return;
       project = manifest;
       notify();
-      if (manifest.maps.isNotEmpty) await activate(manifest.maps.first);
+      if (manifest.maps.isNotEmpty) {
+        final initial = manifest.newGame.enabled
+            ? manifest.maps.singleWhere(
+                (entry) => entry.id == manifest.newGame.startMapId,
+                orElse: () => throw StateError(
+                  'La carte de départ configurée est absente du projet.',
+                ),
+              )
+            : manifest.maps.first;
+        await activate(initial);
+      }
     } catch (failure) {
       if (!_disposed) {
         error = _message(failure);

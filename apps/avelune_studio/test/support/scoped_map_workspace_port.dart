@@ -33,6 +33,9 @@ const scopedMapTilesets = [
 ];
 
 class ScopedTestMapPort implements MapWorkspacePort, MapWorkspaceScopedPort {
+  ScopedTestMapPort({this.metadata = scopedMapMetadata});
+
+  final ProjectManifest metadata;
   int fullReads = 0;
   final selections = <String>[];
 
@@ -45,7 +48,7 @@ class ScopedTestMapPort implements MapWorkspacePort, MapWorkspaceScopedPort {
 
   @override
   Future<MapWorkspaceCatalog> loadCatalog(ProjectSession session) async =>
-      MapWorkspaceCatalog(metadata: scopedMapMetadata, revision: 'catalog-1');
+      MapWorkspaceCatalog(metadata: metadata, revision: 'catalog-1');
 
   @override
   Future<MapWorkspaceSelection> loadMapSelection(
@@ -55,7 +58,7 @@ class ScopedTestMapPort implements MapWorkspacePort, MapWorkspaceScopedPort {
     selections.add(entry.id);
     return MapWorkspaceSelection(
       document: await loadMap(session, entry),
-      definitions: scopedMapMetadata.copyWith(
+      definitions: metadata.copyWith(
         tilesets: scopedMapTilesets.where((e) => e.id == entry.id).toList(),
       ),
       catalogRevision: 'catalog-1',
@@ -66,7 +69,7 @@ class ScopedTestMapPort implements MapWorkspacePort, MapWorkspaceScopedPort {
   @override
   Future<ProjectManifest> materializeProject(ProjectSession session) async {
     fullReads++;
-    return scopedMapMetadata.copyWith(tilesets: scopedMapTilesets);
+    return metadata.copyWith(tilesets: scopedMapTilesets);
   }
 
   @override
