@@ -149,6 +149,105 @@ void main() {
     }
   });
 
+  test('groups referenced definitions into one atlas per pressure map',
+      () async {
+    final report = await generator.generateSyntheticCatalogProject(
+        projectRoot: source,
+        profileFile: profile,
+        receiptFile: receipt,
+        mapCount: 3,
+        definitionCount: 12,
+        atlasCount: 3,
+        atlasSize: 512,
+        definitionsPerMap: 4,
+        framesPerDefinition: 8,
+        groupDefinitionsByMap: true,
+        gameId: 'games.avelune.cache-pressure-qualification');
+    final project = await _project(source);
+    expect((report['parameters'] as Map)['atlasWidth'], 512);
+    expect((report['parameters'] as Map)['definitionsPerMap'], 4);
+    final definitions = {for (final entry in project.elements) entry.id: entry};
+    for (final entry in project.maps) {
+      final map = MapData.fromJson(jsonDecode(
+          await File(p.join(source.path, entry.relativePath)).readAsString()));
+      expect(map.placedElements, hasLength(4));
+      for (final placed in map.placedElements) {
+        expect(placed.pos.x, inInclusiveRange(0, 15));
+        expect(placed.pos.y, inInclusiveRange(0, 15));
+      }
+      for (final placed in map.placedElements) {
+        final definition = definitions[placed.elementId]!;
+        expect(definition.tilesetId, map.tilesetId);
+        expect(definition.frames, hasLength(8));
+        for (final frame in definition.frames) {
+          expect(frame.source.x, inInclusiveRange(0, 15));
+          expect(frame.source.y, inInclusiveRange(0, 15));
+        }
+      }
+    }
+    final decoded = image.decodePng(
+        await File(p.join(source.path, 'assets/synthetic-atlas-000.png'))
+            .readAsBytes())!;
+    expect(decoded.width, 512);
+    expect(
+        GamePackageExportProfile.decodeUtf8(await profile.readAsBytes()).gameId,
+        'games.avelune.cache-pressure-qualification');
+    expect(await _files(source), report['files']);
+  });
+
+  test('rejects pressure dimensions and work exceeding bounded generation',
+      () async {
+    for (final settings in [
+      (31, 2, 1, 32),
+      (4096, 2, 1, 32),
+      (256, 0, 1, 32),
+      (256, 129, 1, 200),
+      (256, 2, 257, 32),
+      (256, 2, 256, 32768),
+      (2048, 2, 1, 32),
+    ]) {
+      await expectLater(
+          generator.generateSyntheticCatalogProject(
+              projectRoot: source,
+              profileFile: profile,
+              receiptFile: receipt,
+              atlasCount: 64,
+              atlasSize: settings.$1,
+              definitionsPerMap: settings.$2,
+              framesPerDefinition: settings.$3,
+              definitionCount: settings.$4),
+          throwsArgumentError);
+      expect(await source.exists(), isFalse);
+    }
+  });
+
+  test(
+      'rejects grouped definition wrap and invalid game identity before output',
+      () async {
+    await expectLater(
+        generator.generateSyntheticCatalogProject(
+            projectRoot: source,
+            profileFile: profile,
+            receiptFile: receipt,
+            mapCount: 3,
+            definitionCount: 10,
+            atlasCount: 3,
+            definitionsPerMap: 4,
+            groupDefinitionsByMap: true),
+        throwsArgumentError);
+    await expectLater(
+        generator.generateSyntheticCatalogProject(
+            projectRoot: source,
+            profileFile: profile,
+            receiptFile: receipt,
+            gameId: 'invalid game id'),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'invalidGameId')));
+    expect(await source.exists(), isFalse);
+    expect(await profile.exists(), isFalse);
+    expect(await receipt.exists(), isFalse);
+  });
+
   test('refuses an existing source without replacing its contents', () async {
     await source.create();
     final marker = File(p.join(source.path, 'keep.txt'));

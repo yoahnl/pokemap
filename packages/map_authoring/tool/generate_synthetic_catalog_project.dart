@@ -9,7 +9,10 @@ import 'package:path/path.dart' as p;
 
 const _usage = 'dart run tool/generate_synthetic_catalog_project.dart '
     '--project-root <new-directory> --profile <new.json> --receipt <new.json> '
-    '[--map-count 3] [--definition-count 32] [--atlas-count 4]';
+    '[--map-count 3] [--definition-count 32] [--atlas-count 4] '
+    '[--atlas-size 256] [--definitions-per-map 2] [--frames-per-definition 1] '
+    '[--group-definitions-by-map false] '
+    '[--game-id games.avelune.synthetic-catalog-qualification]';
 
 Future<void> main(List<String> arguments) async {
   if (arguments.length == 1 && arguments.single == '--help') {
@@ -25,6 +28,11 @@ Future<void> main(List<String> arguments) async {
       'map-count',
       'definition-count',
       'atlas-count',
+      'atlas-size',
+      'definitions-per-map',
+      'frames-per-definition',
+      'game-id',
+      'group-definitions-by-map',
     };
     for (var index = 0; index < arguments.length; index += 2) {
       final name = arguments[index];
@@ -42,13 +50,25 @@ Future<void> main(List<String> arguments) async {
         throw FormatException('Missing --$key.');
       }
     }
+    if (values['group-definitions-by-map'] case final String grouping) {
+      if (grouping != 'true' && grouping != 'false') {
+        throw const FormatException(
+            'Expected true or false for atlas grouping.');
+      }
+    }
     final report = await generateSyntheticCatalogProject(
         projectRoot: Directory(values['project-root']!),
         profileFile: File(values['profile']!),
         receiptFile: File(values['receipt']!),
         mapCount: int.parse(values['map-count'] ?? '3'),
         definitionCount: int.parse(values['definition-count'] ?? '32'),
-        atlasCount: int.parse(values['atlas-count'] ?? '4'));
+        atlasCount: int.parse(values['atlas-count'] ?? '4'),
+        atlasSize: int.parse(values['atlas-size'] ?? '256'),
+        definitionsPerMap: int.parse(values['definitions-per-map'] ?? '2'),
+        framesPerDefinition: int.parse(values['frames-per-definition'] ?? '1'),
+        groupDefinitionsByMap: values['group-definitions-by-map'] == 'true',
+        gameId: values['game-id'] ??
+            'games.avelune.synthetic-catalog-qualification');
     stdout.writeln(jsonEncode({
       'status': 'generated',
       'kind': report['kind'],
@@ -70,16 +90,40 @@ Future<Map<String, Object?>> generateSyntheticCatalogProject({
   int mapCount = 3,
   int definitionCount = 32,
   int atlasCount = 4,
+  int atlasSize = 256,
+  int definitionsPerMap = 2,
+  int framesPerDefinition = 1,
+  bool groupDefinitionsByMap = false,
+  String gameId = 'games.avelune.synthetic-catalog-qualification',
 }) async {
   if (mapCount < 2 ||
       mapCount > 512 ||
       definitionCount < 1 ||
       definitionCount > 32768 ||
       atlasCount < 1 ||
-      atlasCount > 64) {
+      atlasCount > 64 ||
+      atlasSize < 32 ||
+      atlasSize > 2048 ||
+      atlasSize % 32 != 0 ||
+      atlasCount * atlasSize * atlasSize * 4 > 256 * 1024 * 1024 ||
+      definitionsPerMap < 1 ||
+      definitionsPerMap > 128 ||
+      definitionsPerMap > definitionCount ||
+      (groupDefinitionsByMap &&
+          definitionCount < mapCount * definitionsPerMap) ||
+      framesPerDefinition < 1 ||
+      framesPerDefinition > 256 ||
+      definitionCount * framesPerDefinition > 262144) {
     throw ArgumentError(
-        'Require 2..512 maps, 1..32768 definitions, 1..64 atlases.');
+        'Require bounded maps, definitions, frames and decoded atlas dimensions.');
   }
+  final exportProfile = GamePackageExportProfile(
+      gameId: gameId,
+      gameVersion: '0.1.0',
+      title: 'Synthetic catalog qualification',
+      authorName: 'Avelune qualification',
+      defaultLocale: 'en',
+      supportedLocales: const ['en']);
   final root = Directory(await _destinationPath(projectRoot.path));
   final profile = File(await _destinationPath(profileFile.path));
   final receipt = File(await _destinationPath(receiptFile.path));
@@ -132,7 +176,7 @@ Future<Map<String, Object?>> generateSyntheticCatalogProject({
   }
 
   for (var index = 0; index < atlasCount; index++) {
-    await asset(_atlasId(index), 256, index + 1);
+    await asset(_atlasId(index), atlasSize, index + 1);
   }
   await asset('synthetic-player', 128, 257);
   final parameters = {
@@ -141,8 +185,11 @@ Future<Map<String, Object?>> generateSyntheticCatalogProject({
     'atlasCount': atlasCount,
     'mapWidth': 16,
     'mapHeight': 16,
-    'atlasWidth': 256,
-    'atlasHeight': 256,
+    'atlasWidth': atlasSize,
+    'atlasHeight': atlasSize,
+    'definitionsPerMap': definitionsPerMap,
+    'framesPerDefinition': framesPerDefinition,
+    'groupDefinitionsByMap': groupDefinitionsByMap,
   };
   final project = ProjectManifest(
       name: 'Synthetic catalog qualification',
@@ -164,15 +211,20 @@ Future<Map<String, Object?>> generateSyntheticCatalogProject({
           ProjectElementEntry(
               id: _elementId(index),
               name: 'Synthetic definition $index',
-              tilesetId: _atlasId(index % atlasCount),
+              tilesetId: _atlasId(
+                  (groupDefinitionsByMap ? index ~/ definitionsPerMap : index) %
+                      atlasCount),
               categoryId: 'synthetic-decor',
               frames: [
-                TilesetVisualFrame(
-                    source: TilesetSourceRect(
-                        x: index ~/ atlasCount % 8,
-                        y: index ~/ atlasCount ~/ 8 % 8,
-                        width: 1,
-                        height: 1))
+                for (var frame = 0; frame < framesPerDefinition; frame++)
+                  TilesetVisualFrame(
+                      source: TilesetSourceRect(
+                          x: (index ~/ atlasCount + frame) % (atlasSize ~/ 32),
+                          y: (index ~/ atlasCount + frame) ~/
+                              (atlasSize ~/ 32) %
+                              (atlasSize ~/ 32),
+                          width: 1,
+                          height: 1))
               ])
       ],
       characters: [
@@ -264,12 +316,15 @@ Future<Map<String, Object?>> generateSyntheticCatalogProject({
           const MapLayer.object(id: 'events', name: 'Events')
         ],
         placedElements: [
-          for (var item = 0; item < 2; item++)
+          for (var item = 0; item < definitionsPerMap; item++)
             MapPlacedElement(
                 id: 'decor-$item',
                 layerId: 'decor',
-                elementId: _elementId((index * 2 + item) % definitionCount),
-                pos: GridPos(x: 5 + item, y: 5),
+                elementId: _elementId(
+                    (index * definitionsPerMap + item) % definitionCount),
+                pos: definitionsPerMap == 2
+                    ? GridPos(x: 5 + item, y: 5)
+                    : GridPos(x: 4 + item % 8, y: item ~/ 8),
                 applyCollision: false)
         ],
         mapMetadata: const MapMetadata(defaultSpawnId: 'player-start'),
@@ -316,13 +371,6 @@ Future<Map<String, Object?>> generateSyntheticCatalogProject({
     await _write(root, project.maps[index].relativePath,
         utf8.encode(jsonEncode(map.toJson())));
   }
-  final exportProfile = GamePackageExportProfile(
-      gameId: 'games.avelune.synthetic-catalog-qualification',
-      gameVersion: '0.1.0',
-      title: 'Synthetic catalog qualification',
-      authorName: 'Avelune qualification',
-      defaultLocale: 'en',
-      supportedLocales: const ['en']);
   await profile.parent.create(recursive: true);
   await profile.writeAsString('${jsonEncode(exportProfile.toJson())}\n',
       flush: true);
