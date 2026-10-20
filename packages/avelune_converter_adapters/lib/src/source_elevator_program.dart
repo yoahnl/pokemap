@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_transfer_program_authority.dart';
 
 enum SourceElevatorRole { door, exit, controller, actor }
 
@@ -192,7 +193,8 @@ final class _ElevatorClosure {
 
 Map<ConverterId, SourceElevatorProgram> sourceElevatorPrograms(
     {required NormalizedSourceProject source,
-    required SourceEventAnalysis analysis}) {
+    required SourceEventAnalysis analysis,
+    SourceTransferProgramAuthority? authority}) {
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
     throw const NativeWriteException('events.source.binding',
@@ -203,8 +205,8 @@ Map<ConverterId, SourceElevatorProgram> sourceElevatorPrograms(
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};
   }
-  final authoritative =
-      SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+  final authoritative = (authority ?? SourceTransferProgramAuthority.forSource(source))
+      .analysisFor(source: source, analysis: analysis);
   final initial = <_ElevatorMember>[];
   for (final event in authoritative.events) {
     final binding = _elevatorBinding(source, profile, event);

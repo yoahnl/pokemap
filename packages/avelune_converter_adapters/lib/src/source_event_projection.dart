@@ -10,6 +10,7 @@ import 'source_shop_binding.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
+import 'source_decorative_pokemon_binding.dart';
 import 'source_sequence_program.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
@@ -25,6 +26,7 @@ import 'source_external_warp_binding.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
+import 'source_transfer_program_authority.dart';
 import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
@@ -119,9 +121,10 @@ List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
     throw const NativeWriteException('events.source.binding',
       'Original door candidacy requires the exact profile and normalized archive');
   }
-  final routed = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis);
-  final stairs = stairPrograms ?? sourceStairPrograms(source: source, analysis: analysis);
-  final elevators = elevatorPrograms ?? sourceElevatorPrograms(source: source, analysis: analysis);
+  final authority = SourceTransferProgramAuthority.forSource(source);
+  final routed = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis, authority: authority);
+  final stairs = stairPrograms ?? sourceStairPrograms(source: source, analysis: analysis, authority: authority);
+  final elevators = elevatorPrograms ?? sourceElevatorPrograms(source: source, analysis: analysis, authority: authority);
   return List.unmodifiable(analysis.events.where((event) =>
     analysis.profile.isQualified && (!isSourceElevatorFamilyEvent(event, source: source, profile: analysis.profile) || elevators.containsKey(event.identity)) && (routed.containsKey(event.identity) || stairs.containsKey(event.identity) || elevators.containsKey(event.identity))));
 }
@@ -258,6 +261,7 @@ final class SourceEventProjector {
   List<SourceEventDefinition> characterImportCandidates({
     required NormalizedSourceProject source,
     required SourceEventAnalysis analysis,
+    SourceTransferProgramAuthority? transferAuthority,
     required Map<int, MapData> nativeMaps,
     Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventItemBinding> itemBindings = const {},
@@ -271,6 +275,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
     Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
@@ -294,9 +299,10 @@ final class SourceEventProjector {
       throw const NativeWriteException('events.source.binding',
           'Character eligibility requires the exact normalized event source');
     }
+    final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, cardKeyGateMissingAudioProof);
+        portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -308,6 +314,7 @@ final class SourceEventProjector {
   SourceEventProjection project(
       {required NormalizedSourceProject source,
       required SourceEventAnalysis analysis,
+      SourceTransferProgramAuthority? transferAuthority,
       required Map<int, MapData> nativeMaps,
       Map<String, SourceEventCharacterBinding> characterBindings = const {},
       Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
@@ -322,6 +329,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
       Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
@@ -357,9 +365,10 @@ final class SourceEventProjector {
       throw const NativeWriteException('events.target.binding',
           'Unique native maps must match source dimensions without legacy events');
     }
+    final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, cardKeyGateMissingAudioProof)
+            portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority)
         .build();
   }
 }
@@ -633,13 +642,15 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts,
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
-      this.portraitBindings, this.cardKeyGateMissingAudioProof)
-      : maps = Map.of(nativeMaps),
-        staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis),
-        routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis),
-        stairPrograms = stairs ?? sourceStairPrograms(source: source, analysis: analysis),
-        holePrograms = holes ?? sourceHoleNativePrograms(source: source, analysis: analysis),
-        elevatorPrograms = elevators ?? sourceElevatorPrograms(source: source, analysis: analysis),
+      this.portraitBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
+      {required SourceTransferProgramAuthority transferAuthority})
+      : _transferAuthority = transferAuthority,
+        maps = Map.of(nativeMaps),
+        staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
+        routedDoorPrograms = routedPrograms ?? sourceRoutedDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
+        stairPrograms = stairs ?? sourceStairPrograms(source: source, analysis: analysis, authority: transferAuthority),
+        holePrograms = holes ?? sourceHoleNativePrograms(source: source, analysis: analysis, authority: transferAuthority),
+        elevatorPrograms = elevators ?? sourceElevatorPrograms(source: source, analysis: analysis, authority: transferAuthority),
         executionContextQualified = executionContext != null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
@@ -723,13 +734,20 @@ final class _ProjectionBuilder {
     }
   }
   final NormalizedSourceProject source;
+  final SourceTransferProgramAuthority _transferAuthority;
   final SourceSemanticResolver semanticResolver;
   final Sha256Hash sourceSnapshotHash;
   final SourceEventAnalysis analysis;
-  late final Map<ConverterId, SourceSequenceProgram> sequencePrograms =
-      sourceSequencePrograms(source: source, analysis: analysis);
+  late final Map<ConverterId, SourceSequenceProgram> sequencePrograms = () {
+    final programs = Map<ConverterId, SourceSequenceProgram>.of(
+        sourceSequencePrograms(source: source, analysis: analysis));
+    for (final event in analysis.events) {
+      if (_decorativePokemonBinding(event) != null) programs.remove(event.identity);
+    }
+    return Map<ConverterId, SourceSequenceProgram>.unmodifiable(programs);
+  }();
   late final SourceWarpTileNativePrograms warpTilePrograms =
-      sourceWarpTileNativePrograms(source: source, analysis: analysis);
+      sourceWarpTileNativePrograms(source: source, analysis: analysis, authority: _transferAuthority);
   late final SourceEventAnalysis _authoritativeSourceAnalysis =
       SourceEventAnalyzer.forProject(source,
           profile: SourceEventProfile.forProject(source)).analyze();
@@ -794,6 +812,13 @@ final class _ProjectionBuilder {
   final scenes = <SceneAsset>[];
   final cinematics = <CinematicAsset>[];
   final Map<ConverterId, SourcePortraitBinding> portraitBindings;
+  final Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings;
+
+  SourceDecorativePokemonBinding? _decorativePokemonBinding(SourceEventDefinition event) {
+    final binding = decorativePokemonBindings[event.identity];
+    return binding != null && binding.isBoundTo(source, analysis, event) &&
+        canonicalJsonOf(soundBindings[binding.sound.name]?.evidence) == canonicalJsonOf(binding.sound.evidence) ? binding : null;
+  }
   final SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof;
   final dialogues = <ProjectDialogueEntry>[];
   final dialogueSources = <String, String>{};
@@ -1156,6 +1181,8 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && _decorativePokemonBinding(event) != null)
+          'nativeDecorativePokemon': _decorativePokemonBinding(event)!.toJson(),
         if (_cardKeyGatePrograms[event.identity] case final gate? when gaps.isEmpty)
           'nativeCardKeyGate': {
             ...gate.toJson(),
@@ -2119,10 +2146,10 @@ final class _ProjectionBuilder {
         _eventFootprint(event) != const GridSize(width: 1, height: 1) ||
         !event.pages.expand((page) => _sourceControlNodes(page.body))
             .any((node) => node is SourceInteractionFacingNode) ||
-        !event.pages.expand((page) => _sourceControlNodes(page.body)).any((node) =>
+        (_decorativePokemonBinding(event) == null && !event.pages.expand((page) => _sourceControlNodes(page.body)).any((node) =>
             node is SourceSelfSwitchNode || node is SourceSwitchNode ||
             node is SourceVariableSetNode || node is SourceVariableAdjustNode ||
-            node is SourcePickupNode)) {
+            node is SourcePickupNode))) {
       return false;
     }
     bool condition(SourceEventCondition value) => switch (value.kind) {
@@ -2143,6 +2170,7 @@ final class _ProjectionBuilder {
       SourceVariableSetNode() || SourceVariableAdjustNode() || SourceInteractionFacingNode() ||
       SourceExitEventNode() => true,
       SourcePickupNode() => node.helper == SourceItemGrantHelper.receiveItem,
+      SourceSoundEffectNode() => _decorativePokemonBinding(event) != null,
       _ => false,
     });
     if (event.pages.isEmpty || event.pages.any((page) {
@@ -4112,11 +4140,14 @@ final class _ProjectionBuilder {
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
         case SourceSoundEffectNode():
+          if (node.name.startsWith('Cries/') && _decorativePokemonBinding(event) == null) {
+            gaps.add('sourceDecorativePokemonBindingMissing');
+          }
           if (node.pitch != 100) gaps.add('sourceSoundPitchUnsupported');
           if (_sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
             gaps.add('sourceSoundBindingMissing');
           }
-          if (!_isSourceTransition(event) && !_isItemGiver(event) && !_qualifiedGymStageContains(event, node) &&
+          if (_decorativePokemonBinding(event) == null && !_isSourceTransition(event) && !_isItemGiver(event) && !_qualifiedGymStageContains(event, node) &&
               !event.pages.expand((page) => page.body.nodes)
                   .whereType<SourceTrainerProgramNode>().any((program) =>
                       program.kind == SourceTrainerProgramKind.encounter &&

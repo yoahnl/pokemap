@@ -1,5 +1,7 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
+import 'source_transfer_program_authority.dart';
+
 final class SourceHoleNativeProgram {
   SourceHoleNativeProgram._(
     NormalizedSourceProject source,
@@ -102,6 +104,7 @@ bool isSourceHoleNativeIdentity(SourceEventDefinition event) => _shape(event);
 Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
   required NormalizedSourceProject source,
   required SourceEventAnalysis analysis,
+  SourceTransferProgramAuthority? authority,
 }) {
   final selected = analysis.events.where(isSourceHoleNativeIdentity).toList();
   if (selected.isEmpty) return const {};
@@ -110,12 +113,10 @@ Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};
   }
-  final authority = SourceEventAnalyzer.forProject(
-    source,
-    profile: profile,
-  ).analyze();
+  final authoritativeAnalysis = (authority ?? SourceTransferProgramAuthority.forSource(source))
+      .analysisFor(source: source, analysis: analysis);
   final authoritative = {
-    for (final event in authority.events)
+    for (final event in authoritativeAnalysis.events)
       (event.sourceMapId, event.sourceEventId): event,
   };
   final seen = <(int, int)>{};

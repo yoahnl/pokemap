@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:avelune_converter_adapters/src/source_hole_native_program.dart';
+import 'package:avelune_converter_adapters/src/source_transfer_program_authority.dart';
 import 'package:avelune_converter_adapters/src/source_elevator_program.dart';
 import 'package:avelune_converter_adapters/src/source_warp_tile_native_program.dart';
 import 'package:test/test.dart';
@@ -337,11 +338,11 @@ void main() {
                     pages: [departure(origin), arrival])
               ]),
             ]);
-        final analysis = SourceEventAnalyzer.forProject(fixture.source,
-                profile: SourceEventProfile.forProject(fixture.source))
-            .analyze();
+        final authority =
+            SourceTransferProgramAuthority.forSource(fixture.source);
+        final analysis = authority.analysis;
         final result = sourceWarpTileNativePrograms(
-            source: fixture.source, analysis: analysis);
+            source: fixture.source, analysis: analysis, authority: authority);
         final absent =
             await _reprofile(fixture, syntheticSourceInterpretationProfile);
         final automatic = sourceWarpTileNativePrograms(
@@ -356,6 +357,13 @@ void main() {
           continue;
         }
         expect(result.programs, hasLength(3));
+        expect(
+            result.programs.map((key, value) => MapEntry(key, value.toJson())),
+            sourceWarpTileNativePrograms(
+                    source: fixture.source, analysis: analysis)
+                .programs
+                .map((key, value) => MapEntry(key, value.toJson())));
+        expect(authority.analysis, same(analysis));
         expect(
             result.programs.values.every((program) =>
                 !program.declaredProgramBinding.automaticallyDiscovered),
@@ -386,6 +394,7 @@ void main() {
         expect(
             sourceWarpTileNativePrograms(
                     source: fixture.source,
+                    authority: authority,
                     analysis: _withEvents(
                         analysis, [...analysis.events, analysis.events.first]))
                 .programs,
@@ -393,6 +402,7 @@ void main() {
         expect(
             sourceWarpTileNativePrograms(
                 source: fixture.source,
+                authority: authority,
                 analysis: _withEvents(analysis, [
                   for (final event in analysis.events)
                     event.identity == native.event.identity
@@ -403,6 +413,7 @@ void main() {
         expect(
             sourceWarpTileNativePrograms(
                     source: fixture.source,
+                    authority: authority,
                     analysis: _withEvents(
                         analysis,
                         analysis.events
@@ -563,11 +574,11 @@ void main() {
                 LiteralFixtureEvent(id: actor, x: 2, y: 0, pages: [actorPage])
               ]),
             ]);
-        final analysis = SourceEventAnalyzer.forProject(fixture.source,
-                profile: SourceEventProfile.forProject(fixture.source))
-            .analyze();
-        final programs =
-            sourceElevatorPrograms(source: fixture.source, analysis: analysis);
+        final authority =
+            SourceTransferProgramAuthority.forSource(fixture.source);
+        final analysis = authority.analysis;
+        final programs = sourceElevatorPrograms(
+            source: fixture.source, analysis: analysis, authority: authority);
         if (malformed) {
           expect(programs, isEmpty,
               reason:
@@ -575,6 +586,11 @@ void main() {
           continue;
         }
         expect(programs, hasLength(5));
+        expect(
+            programs.map((key, value) => MapEntry(key, value.toJson())),
+            sourceElevatorPrograms(source: fixture.source, analysis: analysis)
+                .map((key, value) => MapEntry(key, value.toJson())));
+        expect(authority.analysis, same(analysis));
         final nativeController = programs.values.singleWhere(
             (program) => program.role == SourceElevatorRole.controller);
         expect(nativeController.toJson()['currentFloorVariableId'], current);
@@ -583,12 +599,14 @@ void main() {
         expect(
             sourceElevatorPrograms(
                 source: fixture.source,
+                authority: authority,
                 analysis: _withEvents(
                     analysis, [...analysis.events, analysis.events.first])),
             isEmpty);
         expect(
             sourceElevatorPrograms(
                 source: fixture.source,
+                authority: authority,
                 analysis: _withEvents(
                     analysis,
                     analysis.events
@@ -598,6 +616,7 @@ void main() {
         expect(
             sourceElevatorPrograms(
                 source: fixture.source,
+                authority: authority,
                 analysis: _withEvents(analysis, [
                   for (final event in analysis.events)
                     event.identity == nativeController.event.identity
@@ -645,12 +664,17 @@ void main() {
             ]),
             LiteralFixtureMap(id: mapId + 1)
           ]);
-      final analysis = SourceEventAnalyzer.forProject(fixture.source,
-              profile: SourceEventProfile.forProject(fixture.source))
-          .analyze();
-      final programs =
-          sourceHoleNativePrograms(source: fixture.source, analysis: analysis);
+      final authority =
+          SourceTransferProgramAuthority.forSource(fixture.source);
+      final analysis = authority.analysis;
+      final programs = sourceHoleNativePrograms(
+          source: fixture.source, analysis: analysis, authority: authority);
       expect(programs, hasLength(1));
+      expect(
+          programs.map((key, value) => MapEntry(key, value.toJson())),
+          sourceHoleNativePrograms(source: fixture.source, analysis: analysis)
+              .map((key, value) => MapEntry(key, value.toJson())));
+      expect(authority.analysis, same(analysis));
       final program = programs.values.single;
       expect(program.sourceMapId, mapId);
       expect(program.sourceEventId, eventId);
@@ -660,21 +684,25 @@ void main() {
       expect(
           sourceHoleNativePrograms(
               source: fixture.source,
+              authority: authority,
               analysis: _withEvents(
                   analysis, [...analysis.events, analysis.events.first])),
           isEmpty);
       expect(
           sourceHoleNativePrograms(
               source: fixture.source,
+              authority: authority,
               analysis:
                   _withEvents(analysis, [_renamed(analysis.events.single)])),
           isEmpty);
       final absent =
           await _reprofile(fixture, syntheticSourceInterpretationProfile);
-      final automatic = sourceHoleNativePrograms(
-          source: absent, analysis: _analyze(absent));
+      final automatic =
+          sourceHoleNativePrograms(source: absent, analysis: _analyze(absent));
       expect(automatic, hasLength(1));
-      expect(automatic.values.single.declaredProgramBinding.automaticallyDiscovered,
+      expect(
+          automatic
+              .values.single.declaredProgramBinding.automaticallyDiscovered,
           isTrue);
       expect(automatic.values.single.sourceMapId, mapId);
       expect(automatic.values.single.sourceEventId, eventId);

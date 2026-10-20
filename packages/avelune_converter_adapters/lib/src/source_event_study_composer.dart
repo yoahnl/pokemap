@@ -17,10 +17,12 @@ import 'source_event_execution_context.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
 import 'source_stair_program.dart';
+import 'source_transfer_program_authority.dart';
 import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
 import 'source_event_sound_binding.dart';
+import 'source_decorative_pokemon_binding.dart';
 import 'source_dialogue_text.dart';
 import 'source_sequence_program.dart';
 import 'source_event_character_import.dart';
@@ -152,8 +154,8 @@ final class SourceEventStudyComposer {
     ProjectValidator.validate(borderProject, maps: nativeMaps.values);
     for (final map in nativeMaps.values) { MapValidator.validate(map, projectDialogueContext: borderProject); }
 
-    final analysis =
-        SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+    final transferAuthority = SourceTransferProgramAuthority.forSource(source);
+    final analysis = transferAuthority.analysis;
     final selectedEvents = analysis.events
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .toList();
@@ -164,24 +166,24 @@ final class SourceEventStudyComposer {
     });
     final staticDoorPrograms = Map<ConverterId, SourceStaticDoorProgram>.unmodifiable({
       for (final entry in sourceStaticDoorPrograms(source: source,
-          analysis: analysis).entries)
+          analysis: analysis, authority: transferAuthority).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
     final routedDoorPrograms = Map<ConverterId, SourceRoutedDoorProgram>.unmodifiable({
-      for (final entry in sourceRoutedDoorPrograms(source: source, analysis: analysis).entries)
+      for (final entry in sourceRoutedDoorPrograms(source: source, analysis: analysis, authority: transferAuthority).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
     final stairPrograms = Map<ConverterId, SourceStairProgram>.unmodifiable({
-      for (final entry in sourceStairPrograms(source: source, analysis: analysis).entries)
+      for (final entry in sourceStairPrograms(source: source, analysis: analysis, authority: transferAuthority).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
     final holePrograms = Map<ConverterId, SourceHoleNativeProgram>.unmodifiable({
-      for (final entry in sourceHoleNativePrograms(source: source, analysis: analysis).entries)
+      for (final entry in sourceHoleNativePrograms(source: source, analysis: analysis, authority: transferAuthority).entries)
         if (nativeMaps.containsKey(entry.value.sourceMapId)) entry.key: entry.value,
     });
-    final elevatorPrograms = sourceElevatorPrograms(source: source, analysis: analysis);
+    final elevatorPrograms = sourceElevatorPrograms(source: source, analysis: analysis, authority: transferAuthority);
     final sequencePrograms = sourceSequencePrograms(source: source, analysis: analysis);
-    final warpTilePrograms = sourceWarpTileNativePrograms(source: source, analysis: analysis);
+    final warpTilePrograms = sourceWarpTileNativePrograms(source: source, analysis: analysis, authority: transferAuthority);
     SourceExternalWarpBinding? externalWarps;
     final externalWarpEvidence = <Map<String, Object?>>[];
     try {
@@ -357,6 +359,29 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    final decorativePokemonBindings = <ConverterId, SourceDecorativePokemonBinding>{};
+    final decorativePokemonEvidence = <Map<String, Object?>>[];
+    SourcePbsProject? decorativePbs;
+    for (final event in selectedEvents.where((event) => sourceDecorativePokemonSymbol(event) != null)) {
+      try {
+        decorativePbs ??= await const SourcePbsParser().read(snapshot: source.snapshot,
+            files: recording, cancellation: cancellation);
+        final binding = await const SourceDecorativePokemonBindingResolver().read(
+            source: source, analysis: analysis, event: event, files: recording,
+            pbs: decorativePbs, limits: limits, cancellation: cancellation);
+        decorativePokemonBindings[event.identity] = binding;
+        sounds[binding.sound.name] = binding.sound;
+        soundEvidence.add({'sourceName': binding.sound.name, 'status': 'imported', ...binding.sound.evidence});
+        decorativePokemonEvidence.add({'sourceIdentity': event.identity.value, 'status': 'attested', ...binding.toJson()});
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        decorativePokemonEvidence.add({'sourceIdentity': event.identity.value, 'status': 'preservedOnly', 'reason': error.reason});
+      } on ContractError catch (error) {
+        decorativePokemonEvidence.add({'sourceIdentity': event.identity.value, 'status': 'preservedOnly', 'reason': error.toString()});
+      } on NativeWriteException catch (error) {
+        if (error.code != 'events.decorative_pokemon.binding') rethrow;
+        decorativePokemonEvidence.add({'sourceIdentity': event.identity.value, 'status': 'preservedOnly', 'reason': error.code});
+      }
+    }
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof;
     if (cardKeyGatePrograms.isNotEmpty && !sounds.containsKey('frlg_gateopen')) {
       try {
@@ -522,6 +547,7 @@ final class SourceEventStudyComposer {
             source: source,
             analysis: analysis,
             nativeMaps: nativeMaps,
+            transferAuthority: transferAuthority,
             pickupBindings: pickupBindings,
             itemBindings: items?.bindings ?? const {},
             soundBindings: sounds,
@@ -532,6 +558,7 @@ final class SourceEventStudyComposer {
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
             portraitBindings: portraitBindings,
+            decorativePokemonBindings: decorativePokemonBindings,
             cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
             healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
@@ -613,6 +640,7 @@ final class SourceEventStudyComposer {
         source: source,
         analysis: analysis,
         nativeMaps: nativeMaps,
+        transferAuthority: transferAuthority,
         characterBindings: bindings,
         pickupBindings: pickupBindings,
         itemBindings: items?.bindings ?? const {},
@@ -624,6 +652,7 @@ final class SourceEventStudyComposer {
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
         portraitBindings: portraitBindings,
+            decorativePokemonBindings: decorativePokemonBindings,
         cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
         healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
@@ -688,6 +717,9 @@ final class SourceEventStudyComposer {
     }
     final preservedFileIds =
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
+    for (final entry in decorativePokemonBindings.entries.where((entry) => admittedIdentities.contains(entry.key))) {
+      preservedFileIds.addAll(entry.value.witnesses.map((file) => file.fileId.value));
+    }
     for (final portrait in usedPortraits) {
       preservedFileIds.addAll([
         portrait.scriptsFile.fileId.value,
@@ -999,6 +1031,7 @@ final class SourceEventStudyComposer {
       'profile': profile.toJson(),
       'projection': projection.semanticEvidence,
       'characters': characterEvidence,
+      'decorativePokemonBindings': decorativePokemonEvidence,
       'portraitBindings': [
         ...portraitEvidence,
         ...usedPortraits.map((portrait) => portrait.toJson())

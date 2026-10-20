@@ -1,5 +1,7 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
+import 'source_transfer_program_authority.dart';
+
 enum SourceWarpTileNativePolicy { sourceBoundNativePresentation }
 
 final class SourceWarpTileNativeProgram {
@@ -167,6 +169,7 @@ SourceDeclaredProgramMatch? _declaredTile(NormalizedSourceProject source,
 SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
   required NormalizedSourceProject source,
   required SourceEventAnalysis analysis,
+  SourceTransferProgramAuthority? authority,
 }) {
   final profile = SourceEventProfile.forProject(source);
   final selected = <ConverterId, SourceDeclaredProgramMatch>{};
@@ -185,11 +188,11 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
       profile.normalizationHash != source.canonicalHash) {
     return refuse('sourceWarpTileCompleteContextMissing');
   }
-  final authority =
-      SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+  final authoritativeAnalysis = (authority ?? SourceTransferProgramAuthority.forSource(source))
+      .analysisFor(source: source, analysis: analysis);
   final context = <ConverterId, SourceEventDefinition>{};
   final bindings = <ConverterId, SourceDeclaredProgramMatch>{};
-  for (final event in authority.events) {
+  for (final event in authoritativeAnalysis.events) {
     final binding = _declaredTile(source, profile, event);
     if (binding != null && binding.binding.parameters['role'] == 'tile') {
       if (context.containsKey(event.identity)) {
@@ -245,7 +248,7 @@ SourceWarpTileNativePrograms sourceWarpTileNativePrograms({
       return refuse('sourceWarpTileArrivalContextMissing');
     }
   }
-  for (final event in authority.events) {
+  for (final event in authoritativeAnalysis.events) {
     if (_activationTarget(event) == null) continue;
     final eligible = <ConverterId>{};
     for (final binding in profile.interpretationProfile?.declaredPrograms ??

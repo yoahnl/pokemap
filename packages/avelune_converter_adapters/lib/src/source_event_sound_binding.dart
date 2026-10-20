@@ -57,7 +57,8 @@ final class SourceEventSoundResolver {
         name.trim() != name ||
         name == '.' ||
         name == '..' ||
-        RegExp(r'[\\/:<>\x00-\x1f]').hasMatch(name)) {
+        (RegExp(r'[\\/:<>\x00-\x1f]').hasMatch(name) &&
+            !RegExp(r'^Cries/[A-Z][A-Za-z0-9_]{0,63}$').hasMatch(name))) {
       _unavailable('name_unqualified');
     }
     SourceFileEntry exact(String path) {

@@ -1,6 +1,7 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_transfer_program_authority.dart';
 
 final class SourceStaticDoorProgram {
   SourceStaticDoorProgram._(NormalizedSourceProject source,
@@ -58,7 +59,8 @@ final class SourceStaticDoorProgram {
 
 Map<ConverterId, SourceStaticDoorProgram> sourceStaticDoorPrograms(
     {required NormalizedSourceProject source,
-    required SourceEventAnalysis analysis}) {
+    required SourceEventAnalysis analysis,
+    SourceTransferProgramAuthority? authority}) {
   final profile = SourceEventProfile.forProject(source);
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
@@ -71,10 +73,10 @@ Map<ConverterId, SourceStaticDoorProgram> sourceStaticDoorPrograms(
   }
   final possible = analysis.events.where(_isStaticDoor).toList();
   if (possible.isEmpty) return const {};
+  final authoritative = (authority ?? SourceTransferProgramAuthority.forSource(source))
+      .analysisFor(source: source, analysis: analysis);
   final expected = {
-    for (final event in SourceEventAnalyzer.forProject(source, profile: profile)
-        .analyze()
-        .events
+    for (final event in authoritative.events
         .where(_isStaticDoor))
       event.identity: event,
   };

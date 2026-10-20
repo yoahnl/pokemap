@@ -1998,6 +1998,20 @@ final class _SourceEventParser {
         }
         if (analyzer._isQualified && index == first + 1) {
           final literal = _string(command.parameters.single);
+          final cry = RegExp(r'^Pokemon\.play_cry\(:([A-Z][A-Za-z0-9_]{0,63})\)$')
+              .firstMatch(literal);
+          if (cry != null && rawCommon == null && rawPage != null &&
+              analyzer.profile.scriptsArchiveHash?.value ==
+                  '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d') {
+            final raw = _rawFacingParameters(command, 1);
+            if (_eventLiteralText(_document, raw.single) != literal) {
+              throw const FormatException();
+            }
+            return SourceSoundEffectNode(_span(first, first),
+                name: 'Cries/${cry[1]}', volume: 90, pitch: 100,
+                rawDataRef: rawPage!,
+                profileHash: analyzer.profile.canonicalHash);
+          }
           final gift = _SourcePokemonGiftLiteral(literal).parse();
           if (gift != null && rawCommon != null) {
             _diagnostic('events.common_event_page_bound_program_unsupported', first, first);

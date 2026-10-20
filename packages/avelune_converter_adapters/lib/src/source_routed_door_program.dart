@@ -1,6 +1,7 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_transfer_program_authority.dart';
 
 final class SourceRoutedDoorProgram {
   SourceRoutedDoorProgram._(NormalizedSourceProject source,
@@ -87,7 +88,8 @@ final class SourceRoutedDoorProgram {
 
 Map<ConverterId, SourceRoutedDoorProgram> sourceRoutedDoorPrograms(
     {required NormalizedSourceProject source,
-    required SourceEventAnalysis analysis}) {
+    required SourceEventAnalysis analysis,
+    SourceTransferProgramAuthority? authority}) {
   final profile = SourceEventProfile.forProject(source);
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
@@ -100,10 +102,10 @@ Map<ConverterId, SourceRoutedDoorProgram> sourceRoutedDoorPrograms(
   }
   final possible = analysis.events.where((event) => _isRoutedDoor(event, source)).toList();
   if (possible.isEmpty) return const {};
+  final authoritative = (authority ?? SourceTransferProgramAuthority.forSource(source))
+      .analysisFor(source: source, analysis: analysis);
   final expected = {
-    for (final event in SourceEventAnalyzer.forProject(source, profile: profile)
-        .analyze()
-        .events
+    for (final event in authoritative.events
         .where((event) => _isRoutedDoor(event, source)))
       event.identity: _fingerprintOf(event),
   };

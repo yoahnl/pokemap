@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_transfer_program_authority.dart';
 
 enum SourceStairFamily {
   facingEastRightUpperRightPreserveArrival,
@@ -119,7 +120,8 @@ final class SourceStairProgram {
 
 Map<ConverterId, SourceStairProgram> sourceStairPrograms(
     {required NormalizedSourceProject source,
-    required SourceEventAnalysis analysis}) {
+    required SourceEventAnalysis analysis,
+    SourceTransferProgramAuthority? authority}) {
   if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
       analysis.profile.normalizationHash != source.canonicalHash) {
     throw const NativeWriteException('events.source.binding',
@@ -133,8 +135,8 @@ Map<ConverterId, SourceStairProgram> sourceStairPrograms(
   final possible =
       analysis.events.where((event) => _family(event) != null).toList();
   if (possible.isEmpty) return const {};
-  final authoritative =
-      SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+  final authoritative = (authority ?? SourceTransferProgramAuthority.forSource(source))
+      .analysisFor(source: source, analysis: analysis);
   final expected = {
     for (final event in authoritative.events)
       if (_family(event) != null) event.identity: _fingerprintOf(event)
