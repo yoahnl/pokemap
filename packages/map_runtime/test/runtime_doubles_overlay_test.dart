@@ -22,13 +22,14 @@ void main() {
   test(
     'four sprites and HUDs keep slots while choosing the second foe',
     () async {
-      final adapter = _adapter();
+      final adapter = _adapter(distinctPartnerMoves: true);
       BattleDecision? submitted;
       BattleEngineDecisionRequest? submittedRequest;
       final overlay = BattleOverlayComponent(
         session: adapter.createLegacyDisplaySession(isTrainerBattle: true),
         presentation: adapter.presentation,
         viewportSize: Vector2(436, 800),
+        resolveMoveDisplayName: (_, name) => name,
         onPlayerChoice: (_) => fail('A doubles choice must carry its request.'),
         onPlayerDecision: (decision, request) {
           submitted = decision;
@@ -57,6 +58,12 @@ void main() {
         'opponent_1',
       });
       expect(overlay.selectRootEntry(0), isTrue);
+      expect(
+        overlay.currentCommandOverlaySnapshot!.entries.map(
+          (entry) => entry.primaryLabel,
+        ),
+        ['Tackle'],
+      );
       expect(overlay.selectChoiceEntry(0), isTrue);
       final targets = overlay.currentCommandOverlaySnapshot!;
       expect(targets.mode, BattleCommandOverlayMode.moveTarget);
@@ -81,6 +88,32 @@ void main() {
         const BattleSlotRef(side: BattleSideId.player, slotIndex: 1),
       );
       expect(overlay.selectMoveTargetEntry(1), isFalse);
+      expect(overlay.selectRootEntry(0), isTrue);
+      expect(
+        overlay.currentCommandOverlaySnapshot!.prompt,
+        contains('player_1'),
+      );
+      final partnerMoves = overlay.currentCommandOverlaySnapshot!.entries;
+      expect(partnerMoves.map((entry) => entry.primaryLabel), [
+        'Partner Scratch',
+        'Partner Water Gun',
+      ]);
+      expect(partnerMoves.map((entry) => entry.secondaryLabel), [
+        'normal',
+        'water',
+      ]);
+      expect(partnerMoves.map((entry) => entry.trailingLabel), [
+        'PP 7/35',
+        'PP 3/25',
+      ]);
+      expect(overlay.selectChoiceEntry(1), isTrue);
+      expect(overlay.selectMoveTargetEntry(0), isTrue);
+      expect(identical(submittedRequest, adapter.decisionRequest), isTrue);
+      expect((submitted as BattleFightDecision).moveSlot, 1);
+      expect(
+        (submitted as BattleFightDecision).target,
+        const PsdkBattleSlotRef(bank: 1, position: 0),
+      );
     },
   );
 
@@ -229,7 +262,10 @@ void main() {
   }
 }
 
-RuntimePsdkBattleSessionAdapter _adapter({bool reserve = false}) {
+RuntimePsdkBattleSessionAdapter _adapter({
+  bool reserve = false,
+  bool distinctPartnerMoves = false,
+}) {
   PsdkBattleCombatantSetup combatant(String id) => PsdkBattleCombatantSetup(
     id: id,
     speciesId: id,
@@ -245,22 +281,53 @@ RuntimePsdkBattleSessionAdapter _adapter({bool reserve = false}) {
       specialDefense: 50,
       speed: 50,
     ),
-    moves: [
-      PsdkBattleMoveData(
-        id: 'tackle',
-        dbSymbol: 'tackle',
-        name: 'Tackle',
-        type: 'normal',
-        category: PsdkBattleMoveCategory.physical,
-        power: 40,
-        accuracy: 100,
-        pp: 10,
-        currentPp: 10,
-        priority: 0,
-        battleEngineMethod: 's_basic',
-        target: PsdkBattleMoveTarget.adjacentFoe,
-      ),
-    ],
+    moves: distinctPartnerMoves && id == 'player_1'
+        ? [
+            PsdkBattleMoveData(
+              id: 'scratch',
+              dbSymbol: 'scratch',
+              name: 'Partner Scratch',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.physical,
+              power: 40,
+              accuracy: 100,
+              pp: 35,
+              currentPp: 7,
+              priority: 0,
+              battleEngineMethod: 's_basic',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+            PsdkBattleMoveData(
+              id: 'water_gun',
+              dbSymbol: 'water_gun',
+              name: 'Partner Water Gun',
+              type: 'water',
+              category: PsdkBattleMoveCategory.special,
+              power: 40,
+              accuracy: 100,
+              pp: 25,
+              currentPp: 3,
+              priority: 0,
+              battleEngineMethod: 's_basic',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ]
+        : [
+            PsdkBattleMoveData(
+              id: 'tackle',
+              dbSymbol: 'tackle',
+              name: 'Tackle',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.physical,
+              power: 40,
+              accuracy: 100,
+              pp: 10,
+              currentPp: 10,
+              priority: 0,
+              battleEngineMethod: 's_basic',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ],
   );
   return RuntimePsdkBattleSessionAdapter.fromSetup(
     PsdkBattleSetup.doubles(
