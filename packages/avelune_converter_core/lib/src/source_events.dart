@@ -1,10 +1,21 @@
 part of '../avelune_converter_core.dart';
 
+final _sourcePartyHappinessVariableRead = RegExp(
+    r'^[ \t]*\$player\.party[ \t]*\[[ \t]*\$game_variables[ \t]*\[[ \t]*pbGet[ \t]*\([ \t]*([1-9][0-9]{0,3})[ \t]*\)[ \t]*\][ \t]*\][ \t]*\.happiness[ \t]*>=[ \t]*(0|[1-9][0-9]{0,2})[ \t]*$');
+
+bool recognizesSourcePartyHappinessVariableReadSyntax(String text) {
+  if (text.length > 256) return false;
+  final match = _sourcePartyHappinessVariableRead.firstMatch(text);
+  return match != null && match.end == text.length &&
+      int.parse(match.group(1)!) <= 5000 && int.parse(match.group(2)!) <= 255;
+}
+
 final class _SourceOpaqueCommandReader {
   _SourceOpaqueCommandReader(this.document, {this.commandLimit = 2000000,
-      this.parameterLimit = 4000000});
+      this.parameterLimit = 4000000, this.omitAttestedVariableReads = false});
   final MarshalDocument document;
   final int commandLimit, parameterLimit;
+  final bool omitAttestedVariableReads;
   final texts = <String>[];
   final variableWrites = <int>{};
   final commonEventCalls = <int>{};
@@ -73,7 +84,11 @@ final class _SourceOpaqueCommandReader {
           if (parameters.isEmpty) throw const FormatException();
           if (integer(parameters.first) == 12) {
             if (parameters.length != 2) throw const FormatException();
-            texts.add(_eventLiteralText(document, parameters[1]));
+            final text = _eventLiteralText(document, parameters[1]);
+            if (!omitAttestedVariableReads ||
+                !recognizesSourcePartyHappinessVariableReadSyntax(text)) {
+              texts.add(text);
+            }
           }
         case 103:
         case 105:
@@ -1066,10 +1081,12 @@ final class SourceEventAnalyzer {
           entry.relativePath == file.entry.relativePath &&
           entry.kind == SourceNodeKind.file);
 
-  ({List<String> texts, bool complete}) observeOpaquePageRuby(SourceEventPage page) {
+  ({List<String> texts, bool complete}) observeOpaquePageRuby(SourceEventPage page,
+      {bool forVariableWriterAudit = false}) {
     final reference = _reference(page.rawDataRef);
     if (reference == null) return (texts: const [], complete: false);
-    final reader = _SourceOpaqueCommandReader(project.sourceFiles[reference.fileId]!.document);
+    final reader = _SourceOpaqueCommandReader(project.sourceFiles[reference.fileId]!.document,
+        omitAttestedVariableReads: forVariableWriterAudit && _supportsClosedVariableReads);
     try {
       final fields = _eventFields(reader.document, reference.nodeId, 'RPG::Event::Page');
       if (reader.integer(_eventField(fields, '@move_type')) == 3) {
@@ -1174,6 +1191,14 @@ final class SourceEventAnalyzer {
 
   bool get supportsIntegerVariableHelpers => _isQualified &&
       profile.interpretationProfile!.sections.containsKey('events.Utilities');
+
+  late final bool _supportsClosedVariableReads = _isQualified &&
+      project.canPlan && project.archive.isSealed &&
+      profile.scriptsArchiveHash == _eventScriptsHash(project) &&
+      _eventScriptsHash(project)?.value == '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d' &&
+      profile.interpretationProfile!.sections['events.Utilities']?['index'] == 362 &&
+      profile.interpretationProfile!.sections['events.Utilities']?['sha256'] ==
+          '377ba5397ff74128812af4ef5089de7ae480f6ad7ff040adea91bb25b24671a4';
 
   List<({int id, int value})>? integerHelperAssignments(String text) {
     if (!supportsIntegerVariableHelpers) return null;

@@ -3083,7 +3083,7 @@ final class _ProjectionBuilder {
     for (final map in source.maps) {
       for (final event in map.map.events) {
         for (final page in event.pages) {
-          final observed = sourceReader.observeOpaquePageRuby(page);
+          final observed = sourceReader.observeOpaquePageRuby(page, forVariableWriterAudit: true);
           pageRuby[(map.map.sourceMapId, event.sourceEventId, page.originalPageIndex)] = observed;
           opaqueCommonCalls(observed.texts.join('\n'));
           if (!observed.complete) _incompleteVariableRubyCensus = true;
