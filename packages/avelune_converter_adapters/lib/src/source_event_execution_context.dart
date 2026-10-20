@@ -14,6 +14,7 @@ import 'native_mutation_batches.dart';
 import 'source_encounter_terrain_binding.dart';
 import 'source_transfer_program_authority.dart';
 import 'source_grass_rustle_compiler.dart';
+import 'source_inventory_controller_program.dart';
 
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
@@ -1010,16 +1011,19 @@ final class SourceEventExecutionContextResolver {
     } else if (unrepresentedRetainedMapIds.isNotEmpty) {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
-    final dormancyScope = attestedMapIds.intersection(representedMapIds);
-    final dormancy = (parallelDormancyAuditor ??
+    freshAnalysis ??= SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+    final inventoryControllers = sourceInventoryControllerPrograms(source: source, analysis: freshAnalysis);
+    final inventoryControllerMaps = inventoryControllers.values.map((program) => program.sourceMapId).toSet();
+    final dormancyScope = attestedMapIds.intersection(representedMapIds).difference(inventoryControllerMaps);
+    final dormancy = dormancyScope.isEmpty ? null : (parallelDormancyAuditor ??
         SourceParallelDormancyAuditor.forProject(source, profile: profile))
         .audit(activeSourceMapIds: dormancyScope);
-    if (dormancy.sourceSnapshotHash != snapshotHash ||
+    if (dormancy != null && (dormancy.sourceSnapshotHash != snapshotHash ||
         dormancy.normalizationHash != normalizationHash ||
         dormancy.profileHash != profile.canonicalHash ||
         dormancy.activeSourceMapIds.length != dormancyScope.length ||
         !dormancy.activeSourceMapIds.containsAll(dormancyScope) ||
-        !dormancy.isQualified) {
+        !dormancy.isQualified)) {
       refusals.add('sourceParallelDormancyUnqualified');
     }
     final pages = [
@@ -1031,8 +1035,9 @@ final class SourceEventExecutionContextResolver {
     ];
     if (pages.any((entry) =>
         entry.$3.triggerCode == 4 &&
-        dormancy.permitsDormantParallelPage(entry.$1, entry.$2, entry.$3) !=
-            true)) {
+        !inventoryControllers.values.any((program) => program.sourceMapId == entry.$1 &&
+            program.sourceEventId == entry.$2 && entry.$3.originalPageIndex == 0) &&
+        dormancy?.permitsDormantParallelPage(entry.$1, entry.$2, entry.$3) != true)) {
       refusals.add('sourceParallelEventUnsupported');
     }
     if (pages
@@ -1178,8 +1183,9 @@ final class SourceEventExecutionContextResolver {
         },
         'pluginInventoryHash': pluginInventoryHash.value,
         'commonEvents': 'manualOnly',
-        'parallelEvents': 'wholeEventQuarantinedWithClosedNativeWriterSet',
-        'parallelDormancy': dormancy.toJson(),
+        'parallelEvents': inventoryControllers.isEmpty ? 'wholeEventQuarantinedWithClosedNativeWriterSet' : 'closedMapEntryInventoryControllersAndDormantParallelPages',
+        'parallelDormancy': dormancy?.toJson(),
+        'inventoryControllers': [for (final program in inventoryControllers.values) program.toJson()],
         'sourceMapExecutionScope': {
           'activeSourceMapIds': activeMapIds.toList()..sort(),
           'retainedOnlySourceMapIds': retainedMapIds.toList()..sort(),
@@ -1190,8 +1196,8 @@ final class SourceEventExecutionContextResolver {
           'profile': 'declared-fresh-local-autonomy-v1',
           'pages': autonomy,
           'automaticCommonEvents': 'refused',
-          'parallelEvents': 'refusedUnlessClosedDormancyProof',
-          'customRouteCodes': [0, 1, 2, 3, 4, 16, 17, 18, 19, 24],
+          'parallelEvents': 'refusedUnlessClosedDormancyOrBoundMapEntryInventoryController',
+          'customRouteCodes': [0, 1, 2, 3, 4, 9, 16, 17, 18, 19, 24, 32],
           'customRouteScripts': 'refused',
           'autoruns': 'serialMainInterpreterCannotOverlapExecutingProgram',
           'globalRouteBarrier': routedDoorProgram == null &&

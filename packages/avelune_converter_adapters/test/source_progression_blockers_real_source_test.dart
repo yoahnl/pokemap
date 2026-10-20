@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:avelune_converter_adapters/src/source_inventory_controller_program.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -24,7 +25,7 @@ void main() {
           .split('|')
           .where((path) => path.isNotEmpty)
           .toList();
-  test('bounded Kanto source composition admits Card Key and gate transfers',
+  test('bounded Kanto source composition admits progression blockers',
       () async {
     final elapsed = Stopwatch()..start();
     void progress(String stage) => stdout.writeln(jsonEncode({
@@ -42,8 +43,13 @@ void main() {
         '${File(sourceSnapshotPath).parent.path}/source-event-qualification.json';
     expect(File(baselinePath).isAbsolute, isTrue);
     final baseline = jsonDecode(await File(baselinePath).readAsString()) as Map;
-    const selectedMapIds = {21, 24, 46, 49, 220};
-    const locations = [(21, 6), (46, 26), (220, 38)];
+    final inventoryGates =
+        Platform.environment['AVELUNE_PROGRESSION_INVENTORY_GATES'] == '1';
+    final selectedMapIds =
+        inventoryGates ? const {36, 42, 58, 62} : const {21, 24, 46, 49, 220};
+    final locations = inventoryGates
+        ? const [(42, 5), (58, 11), (58, 16)]
+        : const [(21, 6), (46, 26), (220, 38)];
     progress('readSelectedSourceMaps');
     final fixture = await readExternalOriginalSource(
         sourceRoot, sourceSnapshotPath,
@@ -54,12 +60,21 @@ void main() {
     final analysis = SourceEventAnalyzer.forProject(source,
             profile: SourceEventProfile.forProject(source))
         .analyze();
-    final cardKey = analysis.eventAt(220, 38)!;
-    expect(cardKey.pages.first.graphic!.characterName, 'OBJ_FRLG_Silph Gate_V');
-    expect(cardKey.pages.first.graphic!.directionFix, isFalse);
-    expect(cardKey.pages.first.graphic!.walkAnime, isTrue);
-    expect(cardKey.pages.first.sourcePage.commands.first.parameters,
-        [12, r'$bag.quantity(:CARDKEY)>0']);
+    if (inventoryGates) {
+      expect(
+          sourceInventoryControllerPrograms(source: source, analysis: analysis),
+          contains(analysis.eventAt(58, 16)!.identity));
+      expect(sourceRoutedDoorPrograms(source: source, analysis: analysis),
+          contains(analysis.eventAt(58, 11)!.identity));
+    } else {
+      final cardKey = analysis.eventAt(220, 38)!;
+      expect(
+          cardKey.pages.first.graphic!.characterName, 'OBJ_FRLG_Silph Gate_V');
+      expect(cardKey.pages.first.graphic!.directionFix, isFalse);
+      expect(cardKey.pages.first.graphic!.walkAnime, isTrue);
+      expect(cardKey.pages.first.sourcePage.commands.first.parameters,
+          [12, r'$bag.quantity(:CARDKEY)>0']);
+    }
     final temporary =
         await Directory.systemTemp.createTemp('progression-real-five-maps-');
     addTearDown(() => temporary.delete(recursive: true));
@@ -144,13 +159,18 @@ void main() {
                 cancellation: cancellation);
     expect(events, isNotNull);
     final projection = events!.projection;
-    final sceneExportPath = Platform.environment['AVELUNE_PROGRESSION_BLOCKERS_SCENE_EXPORT'];
+    final sceneExportPath =
+        Platform.environment['AVELUNE_PROGRESSION_BLOCKERS_SCENE_EXPORT'];
     if (sceneExportPath != null) {
       expect(File(sceneExportPath).isAbsolute, isTrue);
-      final identities = {for (final location in [(21, 6), (46, 26)])
-        analysis.eventAt(location.$1, location.$2)!.identity.value};
-      final scenes = projection.scenes.where((scene) =>
-          identities.contains(scene.metadata['sourceEventIdentity'])).toList();
+      final identities = {
+        for (final location in [(21, 6), (46, 26)])
+          analysis.eventAt(location.$1, location.$2)!.identity.value
+      };
+      final scenes = projection.scenes
+          .where((scene) =>
+              identities.contains(scene.metadata['sourceEventIdentity']))
+          .toList();
       expect(scenes, hasLength(2));
       await File(sceneExportPath).writeAsString(jsonEncode({
         'kind': 'targetedPostTransferSceneQualification',
@@ -221,14 +241,18 @@ void main() {
           reason: '$label: ${after['gaps']}');
       expect(after['gaps'], isEmpty, reason: label);
     }
-    final gate = projection.nativeMaps[220]!.entities.singleWhere((entity) =>
-        entity.properties['sourceEventIdentity'] == cardKey.identity.value);
-    expect(gate.pos, GridPos(x: cardKey.x, y: cardKey.y - 1));
-    expect(gate.size, const GridSize(width: 2, height: 2));
-    expect(resolveEntityCollisionCells(gate), hasLength(4));
-    expect(gate.presentation!.variants, hasLength(2));
-    expect(gate.presentation!.variants.first.blocksMovement, isFalse);
-    expect(gate.presentation!.variants.last.blocksMovement, isTrue);
+    MapEntity? gate;
+    if (!inventoryGates) {
+      final cardKey = analysis.eventAt(220, 38)!;
+      gate = projection.nativeMaps[220]!.entities.singleWhere((entity) =>
+          entity.properties['sourceEventIdentity'] == cardKey.identity.value);
+      expect(gate.pos, GridPos(x: cardKey.x, y: cardKey.y - 1));
+      expect(gate.size, const GridSize(width: 2, height: 2));
+      expect(resolveEntityCollisionCells(gate), hasLength(4));
+      expect(gate.presentation!.variants, hasLength(2));
+      expect(gate.presentation!.variants.first.blocksMovement, isFalse);
+      expect(gate.presentation!.variants.last.blocksMovement, isTrue);
+    }
     if (projectParent != null) {
       expect(receiptPath, isNotNull,
           reason: 'A retained qualification project requires its receipt.');
@@ -269,13 +293,15 @@ void main() {
             policy: ProjectSnapshotLoadPolicy.strict);
         expect(loaded.loadDiagnostics, isEmpty);
         expect(loaded.manifest.maps, hasLength(selectedMapIds.length));
-        final reloadedGate = loaded.maps
-            .singleWhere((map) => map.id == projection.nativeMaps[220]!.id)
-            .entities
-            .singleWhere((entity) => entity.id == gate.id);
-        expect(reloadedGate.pos, gate.pos);
-        expect(resolveEntityCollisionCells(reloadedGate), hasLength(4));
-        expect(reloadedGate.presentation!.variants, hasLength(2));
+        if (gate != null) {
+          final reloadedGate = loaded.maps
+              .singleWhere((map) => map.id == projection.nativeMaps[220]!.id)
+              .entities
+              .singleWhere((entity) => entity.id == gate!.id);
+          expect(reloadedGate.pos, gate.pos);
+          expect(resolveEntityCollisionCells(reloadedGate), hasLength(4));
+          expect(reloadedGate.presentation!.variants, hasLength(2));
+        }
         for (final before in unchangedSourceMaps.entries) {
           final entry = source.snapshot.entries
               .singleWhere((entry) => entry.relativePath == before.key);

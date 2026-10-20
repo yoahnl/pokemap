@@ -582,7 +582,7 @@ final class SourceEventStudyComposer {
             characterName: graphic.characterName,
             pattern: graphic.pattern,
             direction: graphic.direction,
-            fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity)));
+            fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)));
         if (!visited.add(key)) continue;
         final presentation = resolveSourceCharacterPresentation(snapshot: source.snapshot,
             profile: source.interpretationProfile, charsetName: graphic.characterName);
@@ -597,7 +597,7 @@ final class SourceEventStudyComposer {
               charsetName: visualAdaptation?.actualCharsetName ?? graphic.characterName,
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
-              fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity)),
+              fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)),
               limits: limits,
               cancellation: cancellation);
           bindings[key] = imported.binding;

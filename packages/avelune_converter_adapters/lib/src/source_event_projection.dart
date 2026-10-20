@@ -35,6 +35,7 @@ import 'source_event_character_identity.dart';
 import 'source_portrait_binding.dart';
 import 'source_card_key_gate_program.dart';
 import 'source_card_key_gate_audio.dart';
+import 'source_inventory_controller_program.dart';
 
 DialogueLineFeedback? _staticSourceTextFeedback(String source, {bool allowNativePlaceholders = false}) =>
     parseSourceDialogueText(source, allowPlayerName: false, allowTiming: false, allowLiteralEscapes: false,
@@ -754,6 +755,8 @@ final class _ProjectionBuilder {
   List<SourceEventDefinition> get _sourceContextEvents => _authoritativeSourceAnalysis.events;
   late final Set<ConverterId> _selectedEventIdentities =
       analysis.events.map((event) => event.identity).toSet();
+  late final inventoryControllerPrograms = sourceInventoryControllerPrograms(
+      source: source, analysis: analysis, authority: _transferAuthority);
   final _arrivalOwnerChecks = <ConverterId>{};
   final _arrivalOwnerDependencies = <ConverterId, Set<ConverterId>>{};
   final _stationaryRotationSourceMatches = <SourceEventDefinition, bool>{};
@@ -1631,6 +1634,21 @@ final class _ProjectionBuilder {
                                   'nativeExecutionQualification': 'independentOriginalEventQualification',
                                 },
                         ],
+                        'independentDoorArrivals': [
+                          for (final owner in _sourceContextEvents)
+                            if (owner.sourceMapId == event.sourceMapId)
+                              for (final contextPage in owner.pages)
+                                if (_stationaryFacingIndependentArrival(owner, contextPage)) {
+                                  'eventId': owner.sourceEventId,
+                                  'sourcePageIndex': contextPage.originalPageIndex,
+                                  'rawDataRef': contextPage.rawDataRef!.toJson(),
+                                  'programHash': routedDoorPrograms[owner.identity]!.toJson()['programHash'],
+                                  'qualificationScope': 'sourceBoundDoorArrivalDoesNotTargetStationaryNpc',
+                                  'permittedSourceRouteTargets': ['ownDoor', 'player'],
+                                  'temporaryState': 'ownDoorTempA',
+                                  'nativeExecutionQualification': 'independentOriginalEventQualification',
+                                },
+                        ],
                       },
                       'persistentFacingCertified': false,
                     },
@@ -1747,6 +1765,7 @@ final class _ProjectionBuilder {
       'arrivalAnchorContract':
           'sceneOnly self-target at the exact Scene.warp destination; no physical activation',
       'sourceAdmission': false,
+      'inventoryControllerPrograms': [for (final program in inventoryControllerPrograms.values) program.toJson()],
       'sequencePrograms': [for (final program in sequencePrograms.values) {
         ...program.toJson(),
         'executionContextQualified': _eventExecutionContextQualified(
@@ -2181,7 +2200,8 @@ final class _ProjectionBuilder {
           !condition(page.condition) || !block(page.body);
     }) || _sourceContextEvents.any((other) => other.sourceMapId == event.sourceMapId &&
         other.pages.any((page) => const [3, 4].contains(page.triggerCode) && !page.isEmpty &&
-            !_passiveRelativeFacingContextPage(other, page)))) {
+            !_passiveRelativeFacingContextPage(other, page) &&
+            !_stationaryFacingIndependentArrival(other, page)))) {
       return false;
     }
     final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
@@ -2312,6 +2332,16 @@ final class _ProjectionBuilder {
         _sourceCommonProgramHash(expected.pages[index].body) ==
             _sourceCommonProgramHash(event.pages[index].body));
   });
+
+  bool _stationaryFacingIndependentArrival(
+      SourceEventDefinition owner, SourceEventPageAnalysis page) {
+    final program = routedDoorPrograms[owner.identity];
+    return program != null &&
+        page.triggerCode == 3 &&
+        identical(page, owner.pages.last) &&
+        page.graphic?.characterName.isEmpty == true &&
+        program.isBoundTo(source: source, analysis: analysis, event: owner);
+  }
 
   bool _passiveRelativeFacingContextPage(
           SourceEventDefinition owner, SourceEventPageAnalysis page) =>
@@ -3626,6 +3656,10 @@ final class _ProjectionBuilder {
       gaps.add('sourceFixedRouteCounterReachUnqualified');
     }
     final staticSign = _supportsStaticSign(event);
+    final inventoryController = inventoryControllerPrograms[event.identity];
+    if (inventoryController != null && _itemBinding(inventoryController.sourceItemSymbol)?.isKeyItem != true) {
+      gaps.add('sourceInventoryControllerKeyItemBindingMissing');
+    }
     if (sequencePrograms.containsKey(event.identity) &&
         (maps[event.sourceMapId]!.version == ProjectVersion.v9 ||
           maps[event.sourceMapId]!.spatialScene != null)) {
@@ -3693,12 +3727,12 @@ final class _ProjectionBuilder {
           (graphic.characterName.isNotEmpty &&
               (graphic.pattern < 0 ||
                   graphic.pattern > 3 ||
-                  (graphic.directionFix && !_supportsFixedDirectionPresentation(event) && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
+                  (graphic.directionFix && !_supportsFixedDirectionPresentation(event) && !(routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0) && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
                     page.originalPageIndex == 1 && page.isEmpty))))) {
         gaps.add('pageGraphicContractUnsupported');
       }
       if (checkCharacterBindings && graphic.characterName.isNotEmpty) {
-        final fixedDirection = graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity));
+        final fixedDirection = graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0));
         final binding = characterBindings[sourceEventCharacterBindingKey(
             characterName: graphic.characterName,
             pattern: graphic.pattern,
@@ -3724,7 +3758,7 @@ final class _ProjectionBuilder {
       }
       if (page.triggerCode != 0 &&
           !const [1, 2].contains(page.triggerCode) &&
-          !_isSourceTransition(event) && !staticSign) {
+          !_isSourceTransition(event) && !staticSign && !inventoryControllerPrograms.containsKey(event.identity)) {
         gaps.add('triggerContractUnsupported');
       }
       if (page.triggerCode == 0 && !page.isEmpty) {
@@ -4417,7 +4451,7 @@ final class _ProjectionBuilder {
         characterName: graphic.characterName,
         pattern: graphic.pattern,
         direction: graphic.direction,
-        fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity)))];
+        fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && projectedPages.first.originalPageIndex == 0)))];
     NarrativeEventConditionExpression pageExpression(int index) {
       final guard = _all([
         _pageGuard(event, projectedPages[index].condition),
@@ -4433,7 +4467,7 @@ final class _ProjectionBuilder {
       final boundCharacter = pageGraphic.characterName.isEmpty ? null :
         characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
           pattern: pageGraphic.pattern, direction: pageGraphic.direction,
-          fixedDirection: pageGraphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity)))];
+          fixedDirection: pageGraphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)))];
       final guard = _all([_pageGuard(event, page.condition),
         _not(_any(projectedPages.skip(index + 1).map((value) => _pageGuard(event, value.condition)).toList()))]);
       if (guard.constant == false) continue;
@@ -4490,6 +4524,9 @@ final class _ProjectionBuilder {
         trainer == null && const [1, 2].contains(page.triggerCode) &&
         !(page.graphic!.characterName.isNotEmpty && !page.graphic!.through);
     NarrativeEventSourceRef pageSource(SourceEventPageAnalysis page) {
+      if (page.triggerCode == 4 && inventoryControllerPrograms.containsKey(event.identity)) {
+        return NarrativeEventSourceRef.mapEnter(map.id);
+      }
       if (page.triggerCode == 3) {
         return NarrativeEventSourceRef.entityAutorun(map.id, entityId);
       }

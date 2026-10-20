@@ -18,6 +18,7 @@ final class SourceRoutedDoorProgram {
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
         sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
+        fixedLockedPagePresentation = _hasFixedLockedPage(event),
         _departureGraphic = event.pages[event.pages.length - 2].graphic!,
         _arrivalGraphic = event.pages.last.graphic!,
         nativeStableDepartureDoorSkin = _usesStableDepartureDoorSkin(event, source),
@@ -36,6 +37,7 @@ final class SourceRoutedDoorProgram {
       sourceFileHash;
   final SourceEventGraphic _departureGraphic, _arrivalGraphic;
   final bool nativeStableDepartureDoorSkin;
+  final bool fixedLockedPagePresentation;
   final bool invisibleOwnerRouteTimingAdaptation;
   final String _fingerprint;
 
@@ -66,6 +68,7 @@ final class SourceRoutedDoorProgram {
         'programHash': canonicalHashOf(_fingerprint).value,
         'capability': 'completePairedDoorWithLocalForcedRouteBarrier',
         'temporaryState': 'nativeMapEventInstanceBoolean',
+        'fixedLockedPagePresentation': fixedLockedPagePresentation,
         'sourceScriptsExecuted': 0,
         'sourceProgramPlaybackQualified': false,
         if (invisibleOwnerRouteTimingAdaptation)
@@ -136,6 +139,10 @@ List<SourceEventNode> _runtimeNodes(SourceEventBlock block) =>
 
 bool _verticalPlayerStep(SourceEventNode node) =>
     _route(node, -1, [1]) || _route(node, -1, [4]);
+
+bool _hasFixedLockedPage(SourceEventDefinition event) =>
+    event.pages.length == 3 && event.pages.first.graphic?.directionFix == true &&
+    event.pages.skip(1).every((page) => page.graphic?.directionFix == false);
 
 bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) {
   if (event.isQuarantined || !const {2, 3}.contains(event.pages.length)) {
@@ -210,7 +217,7 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
       'through': graphic.through,
       'walk': graphic.walkAnime,
       'step': graphic.stepAnime,
-      'fix': graphic.directionFix,
+      'fix': index == 0 && _hasFixedLockedPage(event) ? departure.graphic!.directionFix : graphic.directionFix,
       'top': empty ? null : graphic.alwaysOnTop,
     });
     if (visual != null && visual != current) return false;
