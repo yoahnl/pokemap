@@ -115,10 +115,11 @@ final class SourcePickupFeedbackResolver {
     }
     final profile = SourceEventProfile.forProject(source);
     if (!profile.isQualified) _unavailable('profile_unqualified');
+    if (item.sourceSymbol == 'DNASPLICERS') {
+      _unavailable('item_article_exception_unsupported');
+    }
     if (!item.pickupQualified ||
-        (item.isKeyItem &&
-            (helper != SourceItemGrantHelper.receiveItem ||
-                item.sourcePocketIndex != 8)) ||
+        (item.isKeyItem && item.sourcePocketIndex != 8) ||
         (item.isMachine && item.sourcePocketIndex != 4)) {
       _unavailable('item_unsupported');
     }
@@ -159,9 +160,6 @@ final class SourcePickupFeedbackResolver {
     if (autoplay.kind != MarshalKind.boolean) _unavailable('bgm_unqualified');
     String? omittedSourceBgmPath;
     if (autoplay.booleanValue == true && music == null) {
-      if (helper != SourceItemGrantHelper.receiveItem) {
-        _unavailable('bgm_active');
-      }
       omittedSourceBgmPath =
           _absentSourceBgmPath(source, mapFile.document, mapFields['@bgm']);
       if (omittedSourceBgmPath == null) _unavailable('bgm_active');
@@ -462,9 +460,11 @@ final class SourcePickupFeedbackResolver {
             },
             'diagnostics': [
               {
-                'code': 'source.item_giver.missing_bgm_omitted',
+                'code': helper == SourceItemGrantHelper.receiveItem
+                    ? 'source.item_giver.missing_bgm_omitted'
+                    : 'source.item_ball.missing_bgm_omitted',
                 'message':
-                    'Map $sourceMapId omits missing source background music $omittedSourceBgmPath; item gifts use native Avelune feedback.',
+                    'Map $sourceMapId omits missing source background music $omittedSourceBgmPath; item ${helper == SourceItemGrantHelper.receiveItem ? 'gifts' : 'pickups'} use native Avelune feedback.',
                 'locator': {
                   'file': mapFile.entry.relativePath,
                   'mapId': sourceMapId

@@ -179,6 +179,11 @@ Future<_Fixture> _fixture(
     int skinHeight = 48,
     Map<String, Object?> patch = const {},
     bool machine = false,
+    String? keySymbol,
+    bool missingBgm = false,
+    int bgmPitch = 100,
+    List<String> excludedPaths = const [],
+    Map<String, List<int>> backgroundFiles = const {},
     String? movePbs,
     bool missingMetadata = false,
     bool missingIcon = false,
@@ -189,9 +194,13 @@ Future<_Fixture> _fixture(
     List<int>? audioBytes}) async {
   final original =
       await LiteralTileFixture.create(interpretationProfile: scripts == null ? null : fixtureSourceInterpretationProfile,
-scriptsBytes: scripts, extraFiles: {
+scriptsBytes: scripts,
+        maps: missingBgm ? [LiteralFixtureMap(id: 1, autoplayBgm: true,
+            bgmName: 'Missing Field Theme', bgmPitch: bgmPitch)] : null,
+        extraFiles: {
+    ...backgroundFiles,
     'Data/items.dat': _dump({
-      for (final symbol in machine ? ['TM101'] : ['BURNHEAL', 'ETHER'])
+      for (final symbol in keySymbol != null ? [keySymbol] : machine ? ['TM101'] : ['BURNHEAL', 'ETHER'])
         _Symbol(symbol): _Object('GameData::Item', _item(symbol, patch: patch))
     }),
     if (movePbs != null) 'PBS/moves.txt': utf8.encode(movePbs),
@@ -207,6 +216,10 @@ scriptsBytes: scripts, extraFiles: {
     if (!missingIcon) _iconPath: iconBytes ?? _png(18, 32),
     if (machine && !missingIcon)
       'Graphics/Icons/bagPocket4.png': iconBytes ?? _png(18, 32),
+    if (keySymbol != null && !missingIcon)
+      'Graphics/Icons/bagPocket8.png': iconBytes ?? _png(18, 32),
+    if (keySymbol != null && !missingAudio)
+      'Audio/ME/neutral-key.wav': audioBytes ?? _wav(),
     _skinPath:
         _png(skinWidth, skinHeight, dark: dark, transparent: transparent),
     if (!missingAudio)
@@ -241,7 +254,7 @@ scriptsBytes: scripts, extraFiles: {
               family: entry.family)
       ],
       diagnostics: [],
-      excludedPaths: [],
+      excludedPaths: excludedPaths,
       profileEvidence: original.snapshot.profileEvidence,
       state: SourceScanState.complete);
   final files = LiteralFixtureFiles(snapshot, bytes);
@@ -257,10 +270,12 @@ scriptsBytes: scripts, extraFiles: {
         'iconsByPocket': {
           '2': pin(_iconPath, _png(18, 32)),
           '4': pin('Graphics/Icons/bagPocket4.png', _png(18, 32)),
+          if (keySymbol != null) '8': pin('Graphics/Icons/bagPocket8.png', _png(18, 32)),
         },
         'audioByItemKind': {
           'item': pin(_audioPath, _wav()),
           'machine': pin(_machineAudioPath, _wav()),
+          if (keySymbol != null) 'keyItem': pin('Audio/ME/neutral-key.wav', _wav()),
         },
       }],
     },
@@ -269,7 +284,7 @@ scriptsBytes: scripts, extraFiles: {
       snapshot: snapshot, files: files, interpretationProfile: scripts == null ? null : presentationProfile);
   final items = await const SourceEventItemBindingResolver().read(
       snapshot: snapshot, files: files,
-      symbols: machine ? ['TM101'] : ['BURNHEAL', 'ETHER'],
+      symbols: keySymbol != null ? [keySymbol] : machine ? ['TM101'] : ['BURNHEAL', 'ETHER'],
       eventProfile: SourceEventProfile.forProject(source));
   files.reads.clear();
   return _Fixture(source, files, items);
@@ -787,6 +802,138 @@ void main() {
     final fixture = await _fixture(scripts: syntheticInterpretationArchive);
     fixture.files.overrides[_iconPath] = [1, 2, 3];
     await expectLater(_read(fixture), _contract('source.pickup_feedback.source_changed'));
+  });
+  group('attested item-ball key and absent-music feedback', () {
+    Future<_Fixture> key(String symbol, String name) => _fixture(
+        scripts: syntheticInterpretationArchive,
+        keySymbol: symbol,
+        patch: {
+          '@real_name': name,
+          '@pocket': 8,
+          '@field_use': 0,
+          '@battle_use': 0,
+          '@flags': ['KeyItem'],
+          '@consumable': false,
+        });
+    for (final row in {
+      'SILPHSCOPE': 'Silph Scope',
+      'LIFTKEY': 'Lift Key',
+      'SECRETKEY': 'Secret Key',
+      'CARDKEY': 'Card Key',
+    }.entries) {
+      test('${row.key} keeps ordinary article and key-item fanfare', () async {
+        final fixture = await key(row.key, row.value);
+        final binding = await _read(fixture, symbol: row.key);
+        final found = binding.foundFeedback(cueId: 'key-found');
+        expect(found.plainText, 'You found a ${row.value}!');
+        expect(binding.audioFile.relativePath, 'Audio/ME/neutral-key.wav');
+        expect(binding.iconFile.relativePath, 'Graphics/Icons/bagPocket8.png');
+        expect(binding.bagFullFoundFeedback.plainText, found.plainText);
+        expect(binding.bagFullFoundFeedback.audioCue, isNull);
+        expect(binding.bagFullFeedback.plainText, 'But your Bag is full...');
+        for (final feedback in [found, binding.bagFeedback,
+          binding.bagFullFoundFeedback, binding.bagFullFeedback]) {
+          final restored = DialogueLineFeedback.fromJson(
+            Map<String, dynamic>.from(jsonDecode(jsonEncode(feedback.toJson())) as Map));
+          expect(restored.toJson(), feedback.toJson());
+        }
+        expect(binding.bagFeedback.plainText, contains(row.value));
+      });
+    }
+    test('key catalog survives native bag grant reload and full-stack rejection', () async {
+      final fixture = await key('CARDKEY', 'Card Key');
+      final binding = await _read(fixture, symbol: 'CARDKEY');
+      final definition = binding.item.definition;
+      final command = SceneGiveItemInteractiveCommand(
+          itemId: definition.id, quantity: 1);
+      final catalog = ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog(
+          schemaVersion: 1, entries: [definition]));
+      final initial = GameState(saveId: 'key-pickup', currentMapId: 'source-map');
+      final granted = executeSceneItemGift(command: command,
+          gameState: initial, itemCatalog: catalog);
+      expect(granted.outcome, SceneItemGiftOutcome.received);
+      final restored = GameState.fromJson(Map<String, dynamic>.from(
+          jsonDecode(jsonEncode(granted.gameState.toJson())) as Map));
+      expect(restored.bag.entries.single,
+          BagEntry(itemId: definition.id, quantity: 1));
+      final rejected = executeSceneItemGift(command: command,
+          gameState: restored, itemCatalog: catalog,
+          bagCapacity: ProjectBagCapacity(pockets: {
+            definition.pocketId: const BagPocketCapacity(maxQuantityPerItem: 1)
+          }));
+      expect(rejected.outcome, SceneItemGiftOutcome.bagFull);
+      expect(rejected.gameState.toJson(), restored.toJson());
+      expect(binding.bagFullFoundFeedback.audioCue, isNull);
+      expect(binding.bagFullFeedback.audioCue, isNull);
+      expect(binding.item.fullPickupParityQualified, isFalse);
+    });
+    test('key feedback still rejects wrong pocket and injected name controls', () async {
+      for (final patch in [
+        {'@pocket': 2},
+        {'@real_name': r'Card\me[other] Key'},
+      ]) {
+        final fixture = await _fixture(scripts: syntheticInterpretationArchive,
+            keySymbol: 'CARDKEY', patch: {
+              '@pocket': 8, '@flags': ['KeyItem'], '@field_use': 0,
+              '@battle_use': 0, '@consumable': false, ...patch,
+            });
+        await expectLater(_read(fixture, symbol: 'CARDKEY'),
+            _unavailable(patch.containsKey('@pocket')
+              ? 'pickup.feedback.item_unsupported'
+              : 'pickup.feedback.item_name_controls'));
+      }
+    });
+    test('DNA Splicers exceptional article remains unqualified for both helpers', () async {
+      final fixture = await key('DNASPLICERS', 'DNA Splicers');
+      for (final helper in SourceItemGrantHelper.values) {
+        await expectLater(const SourcePickupFeedbackResolver().read(
+          source: fixture.source, files: fixture.files,
+          item: fixture.items.bindings['DNASPLICERS']!, sourceMapId: 1,
+          helper: helper), _unavailable('pickup.feedback.item_article_exception_unsupported'));
+      }
+    });
+    test('physically absent map music permits existing pickup feedback only', () async {
+      final fixture = await _fixture(scripts: syntheticInterpretationArchive,
+          missingBgm: true);
+      final binding = await _read(fixture);
+      expect(binding.omittedSourceBgmPath, 'Audio/BGM/Missing Field Theme');
+      expect(binding.music, isNull);
+      expect(binding.foundFeedback(cueId: 'found').audioCue!.role,
+          DialogueAudioCueRole.effect);
+      expect(binding.nativeAudioGain, 1);
+      expect(binding.evidence['sourceBgmOmission'], {
+        'sourcePathBase': 'Audio/BGM/Missing Field Theme',
+        'reason': 'physicallyAbsentFromCompleteSourceSnapshot',
+        'nativePolicy': 'omitMapBgmAndPlayExistingItemFeedbackOnly',
+        'resumeAbsentTrack': false,
+        'fullSourceParity': false,
+      });
+      expect(binding.evidence['sourceScriptsExecuted'], 0);
+      expect(binding.evidence['aiCalls'], 0);
+      expect(binding.artifacts.any((artifact) => artifact.handle.contains('Missing Field Theme')), isFalse);
+    });
+    for (final path in ['Audio/BGM/Missing Field Theme.ogg',
+      'Audio/BGM/missing field theme.wav', 'Audio/BGM/Missing Field Theme_n.ogg',
+      'Audio/BGM/Missing Field Theme.unsupported']) {
+      test('existing $path is never silently omitted', () async {
+        final fixture = await _fixture(scripts: syntheticInterpretationArchive,
+          missingBgm: true, backgroundFiles: {path: [1, 2, 3]});
+        await expectLater(_read(fixture), _unavailable('pickup.feedback.bgm_active'));
+      });
+    }
+    for (final path in ['Audio/BGM', 'Audio/BGM/Missing Field Theme.ogg',
+      'Audio/BGM/Missing Field Theme_n.ogg']) {
+      test('excluded $path cannot prove physical absence', () async {
+        final fixture = await _fixture(scripts: syntheticInterpretationArchive,
+          missingBgm: true, excludedPaths: [path]);
+        await expectLater(_read(fixture), _unavailable('pickup.feedback.bgm_active'));
+      });
+    }
+    test('unsupported pitch cannot be turned into absent map music', () async {
+      final fixture = await _fixture(scripts: syntheticInterpretationArchive,
+          missingBgm: true, bgmPitch: 90);
+      await expectLater(_read(fixture), _unavailable('pickup.feedback.bgm_active'));
+    });
   });
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
   List<int>? scripts;
