@@ -1479,11 +1479,19 @@ final class _ProjectionBuilder {
           [map.id, warp.id],
           {'mapId': map.id, 'warp': warp.toJson()}));
     }
+    final recordOwners = <String, List<SourceEventDefinition>>{};
+    for (final event in events) {
+      final ids = {
+        _eventId(event, 'quarantine'),
+        for (final page in event.pages)
+          _eventId(event, 'page_${page.originalPageIndex}'),
+      };
+      for (final id in ids) {
+        (recordOwners[id] ??= []).add(event);
+      }
+    }
     for (final record in records) {
-      final event = events.singleWhere((e) =>
-          record.id == _eventId(e, 'quarantine') ||
-          e.pages.any(
-              (p) => record.id == _eventId(e, 'page_${p.originalPageIndex}')));
+      final event = (recordOwners[record.id] ?? const <SourceEventDefinition>[]).single;
       mutations.add(_mutation(
           'event_v2.record_upsert',
           record.id,

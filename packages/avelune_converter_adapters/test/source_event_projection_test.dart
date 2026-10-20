@@ -755,6 +755,35 @@ void main() {
   }
   SourceEventAnalysis dialogueAnalysis(NormalizedSourceProject source) => _analyzer(source, interpretationProfile: dialogueProfile()).analyze();
 
+  test('event record mutations retain exact owners across pages and quarantine', () async {
+    final source = await _events([_page([])],
+        interpretationProfile: dialogueProfile(),
+        extraMaps: {1: _map(width: 4, height: 2, events: {
+          1: _event(1, [
+            _page([_command(101, ['First page']), _command(123, ['A', 0])]),
+            _withCondition(_page([_command(101, ['Second page'])]),
+                {'@self_switch_valid': true, '@self_switch_ch': 'A'}),
+          ], x: 0, y: 0),
+          2: _event(2, [_page([_command(101, ['Another owner'])])], x: 2, y: 0),
+          3: _event(3, [_page([_command(355, ['unknown_custom_behavior()'])])], x: 3, y: 1),
+        })});
+    final analysis = dialogueAnalysis(source);
+    final result = _projectEvents(source, analysis: analysis);
+    expect(result.registry.records, hasLength(4), reason: jsonEncode(result.semanticEvidence));
+    final rows = (result.semanticEvidence['events'] as List).cast<Map>();
+    for (final mutation in result.mutations.where((entry) => entry.actionId == 'event_v2.record_upsert')) {
+      final owner = rows.singleWhere((row) =>
+          (row['pages'] as List).cast<Map>().any((page) =>
+              page['nativeEventId'] == mutation.targetEntityIds.single.value) ||
+          row['status'] == 'quarantinedWholeEvent' &&
+              result.registry.records.singleWhere((record) =>
+                  record.id == mutation.targetEntityIds.single.value).definitionOrNull == null);
+      final event = analysis.events.singleWhere((event) => event.identity.value == owner['sourceIdentity']);
+      expect(mutation.sourceEntityIds, [event.identity, event.sourceFileId]);
+    }
+    expect(result.registry.records.where((record) => record.definitionOrNull == null), hasLength(1));
+  });
+
   test('EV04 projects identity, typed variable reads and choice labels with explicit text witnesses', () async {
     final source = await _events([_page([
       _command(122, [1, 1, 0, 0, 7]),
