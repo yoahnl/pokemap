@@ -25,6 +25,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  map_battle:
+    path: ../map_battle
   map_gameplay:
     path: ../map_gameplay
 

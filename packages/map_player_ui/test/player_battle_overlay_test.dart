@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' show Tristate;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -9,46 +10,170 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
-  for (final viewport in const [Size(390, 844), Size(844, 390)]) {
-    testWidgets('doubles Player renders four HUDs and forwards target authority at $viewport', (tester) async {
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.binding.setSurfaceSize(viewport);
-      final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
-      final width = (viewport.width * .44).clamp(0.0, 198.0);
-      BattleCommandOverlayHudSnapshot hud(String name, bool player, int row) => BattleCommandOverlayHudSnapshot(
-        rect: Rect.fromLTWH(player ? viewport.width - width - 8 : 8,
-          player ? layout.commandPanelRect.top - 8 - (2 - row) * 68 : 8 + row * 68, width, 64),
-        ownerLabel: player ? 'Joueur' : 'Dresseur', speciesLabel: name, combatantId: name,
-        level: 20, currentHp: 30, maxHp: 40, isPlayerSide: player,
-        experienceProgress: player ? .25 : null,
+  for (final viewport in const [
+    Size(390, 844),
+    Size(640, 360),
+    Size(698, 372),
+    Size(844, 390),
+    Size(1280, 720),
+  ]) {
+    for (final textScale in const [1.0, 1.6]) {
+      testWidgets(
+        'doubles Player renders four HUDs and forwards target authority at $viewport with text scale $textScale',
+        (tester) async {
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          await tester.binding.setSurfaceSize(viewport);
+          final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
+          BattleCommandOverlayHudSnapshot hud(
+            String name,
+            bool player,
+            int row,
+          ) {
+            final slot = BattleSlotRef(
+              side: player ? BattleSideId.player : BattleSideId.enemy,
+              slotIndex: row,
+            );
+            return BattleCommandOverlayHudSnapshot(
+              rect: layout.combatantGeometry(slot, doubles: true).hudRect,
+              slot: slot,
+              ownerLabel: player ? 'Joueur' : 'Dresseur',
+              speciesLabel: name,
+              combatantId: name,
+              level: 20,
+              currentHp: 30,
+              maxHp: 40,
+              isPlayerSide: player,
+              experienceProgress: player ? .25 : null,
+            );
+          }
+
+          final player = hud('Pico', true, 0);
+          final enemy = hud('Roca', false, 0);
+          final partner = hud('Mousse', true, 1);
+          final enemyPartner = hud('Flamme', false, 1);
+          final huds = [player, enemy, partner, enemyPartner];
+          for (final pair in [
+            [player, partner],
+            [enemy, enemyPartner],
+          ]) {
+            expect(
+              layout
+                  .combatantGeometry(pair.first.effectiveSlot, doubles: true)
+                  .footAnchor
+                  .dy,
+              lessThanOrEqualTo(
+                layout
+                    .combatantGeometry(pair.last.effectiveSlot, doubles: true)
+                    .footAnchor
+                    .dy,
+              ),
+            );
+          }
+          for (var index = 0; index < huds.length; index++) {
+            final sprite = layout
+                .combatantGeometry(huds[index].effectiveSlot, doubles: true)
+                .spriteRect;
+            expect(sprite.intersect(Offset.zero & viewport), sprite);
+            expect(
+              huds[index].rect.intersect(Offset.zero & viewport),
+              huds[index].rect,
+            );
+            expect(
+              huds[index].rect.bottom,
+              lessThanOrEqualTo(layout.commandPanelRect.top),
+            );
+            for (var other = index + 1; other < huds.length; other++) {
+              expect(huds[index].rect.overlaps(huds[other].rect), isFalse);
+            }
+            for (final combatant in huds) {
+              expect(
+                huds[index].rect.overlaps(
+                  layout
+                      .combatantGeometry(combatant.effectiveSlot, doubles: true)
+                      .spriteRect,
+                ),
+                isFalse,
+                reason:
+                    '${huds[index].combatantId} HUD hides ${combatant.combatantId}',
+              );
+            }
+          }
+          final commands = <BattlePresentationCommand>[];
+          await _pumpOverlay(
+            tester,
+            onCommand: commands.add,
+            textScaler: TextScaler.linear(textScale),
+            snapshot: BattleCommandOverlaySnapshot(
+              revision: 32,
+              mode: BattleCommandOverlayMode.moveTarget,
+              viewportSize: viewport,
+              panelRect: layout.commandPanelRect,
+              playerHud: player,
+              enemyHud: enemy,
+              additionalHuds: [partner, enemyPartner],
+              battleLabel: 'Combat double',
+              title: 'Cible',
+              prompt: 'Choisis une cible pour Mousse.',
+              narrationLines: const [],
+              interactionsEnabled: true,
+              canGoBack: true,
+              entries: const [
+                BattleCommandOverlayEntry(
+                  index: 1,
+                  kind: BattleCommandOverlayEntryKind.target,
+                  primaryLabel: 'Flamme',
+                  secondaryLabel: 'Nv. 20',
+                  enabled: true,
+                  selected: true,
+                  tone: BattleCommandOverlayEntryTone.attack,
+                ),
+              ],
+            ),
+          );
+          expect(find.text('Pico'), findsOneWidget);
+          expect(find.text('Mousse'), findsOneWidget);
+          expect(find.text('Roca'), findsOneWidget);
+          expect(find.text('Flamme'), findsNWidgets(2));
+          expect(
+            tester
+                .getSemantics(
+                  find.byKey(
+                    const ValueKey<String>('battle-hud-semantics-player'),
+                  ),
+                )
+                .label,
+            contains('25 %'),
+          );
+          expect(
+            tester
+                .getSemantics(
+                  find.byKey(
+                    const ValueKey<String>(
+                      'battle-hud-semantics-battle-hud-player-1-Mousse',
+                    ),
+                  ),
+                )
+                .label,
+            contains('25 %'),
+          );
+          await tester.tap(
+            find.byKey(const ValueKey<String>('battle-entry-1')),
+          );
+          expect(
+            commands.single,
+            isA<BattleSelectEntryCommand>()
+                .having((command) => command.entryIndex, 'target index', 1)
+                .having((command) => command.snapshotRevision, 'revision', 32)
+                .having(
+                  (command) => command.expectedMode,
+                  'mode',
+                  BattleCommandOverlayMode.moveTarget,
+                ),
+          );
+          expect(tester.takeException(), isNull);
+        },
       );
-      final commands = <BattlePresentationCommand>[];
-      await _pumpOverlay(tester, onCommand: commands.add,
-        snapshot: BattleCommandOverlaySnapshot(
-          revision: 32, mode: BattleCommandOverlayMode.moveTarget,
-          viewportSize: viewport, panelRect: layout.commandPanelRect,
-          playerHud: hud('Pico', true, 0), enemyHud: hud('Roca', false, 0),
-          additionalHuds: [hud('Mousse', true, 1), hud('Flamme', false, 1)],
-          battleLabel: 'Combat double', title: 'Cible', prompt: 'Choisis une cible pour Mousse.',
-          narrationLines: const [], interactionsEnabled: true, canGoBack: true,
-          entries: const [BattleCommandOverlayEntry(
-            index: 1, kind: BattleCommandOverlayEntryKind.target, primaryLabel: 'Flamme',
-            secondaryLabel: 'Nv. 20', enabled: true, selected: true,
-            tone: BattleCommandOverlayEntryTone.attack,
-          )],
-        ),
-      );
-      expect(find.text('Pico'), findsOneWidget);
-      expect(find.text('Mousse'), findsOneWidget);
-      expect(find.text('Roca'), findsOneWidget);
-      expect(find.text('Flamme'), findsNWidgets(2));
-      await tester.tap(find.byKey(const ValueKey<String>('battle-entry-1')));
-      expect(commands.single, isA<BattleSelectEntryCommand>()
-        .having((command) => command.entryIndex, 'target index', 1)
-        .having((command) => command.snapshotRevision, 'revision', 32)
-        .having((command) => command.expectedMode, 'mode', BattleCommandOverlayMode.moveTarget));
-      expect(tester.takeException(), isNull);
-    });
+    }
   }
 
   for (final viewport in const [Size(390, 844), Size(960, 540)]) {

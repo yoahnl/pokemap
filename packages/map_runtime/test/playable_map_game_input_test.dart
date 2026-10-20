@@ -2302,6 +2302,109 @@ void main() {
       expect(game.debugBattleVisualOpaqueRectComputeCount, 6);
     });
 
+    test('doubles battle primes localized names for every active slot', () async {
+      final root = await Directory.systemTemp.createTemp('runtime_doubles_names_');
+      addTearDown(() => root.delete(recursive: true));
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: [_battleWarmMap().copyWith(gameplayZones: const [])],
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.standardV1,
+        ),
+        trainers: const [
+          ProjectTrainerEntry(
+            id: 'trainer_1',
+            name: 'Doubles trainer',
+            trainerClass: 'Trainer',
+            battleFormat: BattleFormat.doubles,
+            team: [
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi', level: 7, moves: ['tackle']),
+              ProjectTrainerPokemonEntry(
+                speciesId: 'battle_partner', level: 7, moves: ['tackle']),
+            ],
+          ),
+        ],
+      );
+      await _writeBattleRuntimePokemonData(root);
+      const labels = {
+        'sproutle': 'Player Lead',
+        'sparkitten': 'Player Partner',
+        'aquafi': 'Enemy Lead',
+        'battle_partner': 'Enemy Partner',
+      };
+      for (final entry in labels.entries) {
+        final species = File(p.join(
+            root.path, 'data/pokemon/species/${entry.key}.json'));
+        final data = await species.exists()
+            ? jsonDecode(await species.readAsString()) as Map<String, dynamic>
+            : _runtimeSpeciesJson(
+                id: entry.key, type: 'normal', abilityId: 'overgrow');
+        data['names'] = {'en': entry.value, 'fr': entry.value};
+        await _writeProjectRelativeJson(
+            root, 'data/pokemon/species/${entry.key}.json', data);
+      }
+      await _writeProjectRelativeJson(root,
+          'data/pokemon/learnsets/battle_partner.json', _runtimeLearnsetJson());
+      await _writeBattleMediaSet(root, speciesId: 'battle_partner');
+      final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath, mapId: 'battle_warm_map');
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: _battleReadySaveData(mapId: 'battle_warm_map').copyWith(
+          party: const PlayerParty(members: [
+            PlayerPokemon(speciesId: 'sproutle', natureId: 'hardy',
+                abilityId: 'overgrow', level: 7,
+                knownMoveIds: ['tackle'], currentHp: 18),
+            PlayerPokemon(speciesId: 'sparkitten', natureId: 'hardy',
+                abilityId: 'blaze', level: 7,
+                knownMoveIds: ['tackle'], currentHp: 18),
+          ]),
+        ),
+      );
+      addTearDown(() async {
+        await game.debugWaitForBattlePrewarm();
+        game.onRemove();
+      });
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await game.debugOpenBattleForTest(const TrainerBattleStartRequest(
+        requestId: 'doubles-names', createdAtEpochMs: 1,
+        returnContext: OverworldReturnContext(mapId: 'battle_warm_map',
+            playerPos: GridPos(x: 1, y: 1), playerFacing: Direction.east),
+        trainerId: 'trainer_1', npcEntityId: 'trainer_1',
+        mapId: 'battle_warm_map', playerPos: GridPos(x: 1, y: 1),
+      ));
+      await _pumpUntil(game, () =>
+          game.battleCommandOverlayListenable.value?.interactionsEnabled == true);
+      await game.debugWaitForBattleOverlaySync();
+      final initial = game.battleCommandOverlayListenable.value!;
+      expect({for (final hud in initial.combatantHuds)
+        '${hud.effectiveSlot.side.name}:${hud.effectiveSlot.slotIndex}': hud.speciesLabel}, {
+        'player:0': 'Player Lead', 'player:1': 'Player Partner',
+        'enemy:0': 'Enemy Lead', 'enemy:1': 'Enemy Partner',
+      });
+      bool choose(int index) {
+        final snapshot = game.battleCommandOverlayListenable.value!;
+        return game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+            snapshotRevision: snapshot.revision,
+            expectedMode: snapshot.mode, entryIndex: index));
+      }
+      expect(choose(0), isTrue);
+      expect(choose(0), isTrue);
+      expect(game.battleCommandOverlayListenable.value!.mode,
+          BattleCommandOverlayMode.moveTarget);
+      expect(game.battleCommandOverlayListenable.value!.entries
+          .map((entry) => entry.primaryLabel), ['Enemy Lead', 'Enemy Partner']);
+      expect(choose(0), isTrue);
+      await _pumpUntil(game, () =>
+          game.battleCommandOverlayListenable.value?.actorSlot?.slotIndex == 1 &&
+          game.battleCommandOverlayListenable.value?.interactionsEnabled == true);
+      expect(game.battleCommandOverlayListenable.value!.prompt,
+          contains('Player Partner'));
+    });
+
     test(
         'battle handoff second run reuses cached battle data and visual assets',
         () async {

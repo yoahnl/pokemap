@@ -9898,6 +9898,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   ) async {
     final state = session.state;
     final speciesIds = <String>{
+      ...?_psdkBattleSession?.presentation.activeCombatants
+          .map((active) => active.combatant.speciesId),
       state.player.speciesId,
       state.enemy.speciesId,
       for (final combatant in state.playerReserve) combatant.speciesId,

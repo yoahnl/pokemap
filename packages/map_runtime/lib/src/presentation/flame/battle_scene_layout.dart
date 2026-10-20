@@ -116,21 +116,38 @@ final class BattleSceneLayout {
       sceneRect.right - 8,
       commandPanelRect.top - 8,
     );
-    final hudHeight = (field.height * 0.13).clamp(56.0, 64.0).toDouble();
+    const hudHeight = 64.0;
     final hudWidth = math.min(field.width * 0.46, 198.0);
     final hudTop = player
         ? field.bottom - (2 - slot.slotIndex) * (hudHeight + 4)
         : field.top + slot.slotIndex * (hudHeight + 4);
-    final foot = Offset(
-      field.left + field.width * (player
-          ? (slot.slotIndex == 0 ? 0.14 : 0.34)
-          : (slot.slotIndex == 0 ? 0.68 : 0.84)),
-      field.top + field.height * (player
-          ? (slot.slotIndex == 0 ? 0.68 : 0.94)
-          : (slot.slotIndex == 0 ? 0.34 : 0.52)),
-    );
     final spriteWidth = math.min(field.width * 0.22, player ? 144.0 : 112.0);
     final spriteHeight = math.min(field.height * 0.28, player ? 148.0 : 116.0);
+    final footX = field.left +
+        field.width *
+            (player
+                ? (slot.slotIndex == 0 ? 0.14 : 0.34)
+                : (slot.slotIndex == 0 ? 0.68 : 0.84));
+    final requestedFootY = field.top +
+        field.height *
+            (player
+                ? (slot.slotIndex == 0 ? 0.68 : 0.94)
+                : (slot.slotIndex == 0 ? 0.34 : 0.52));
+    final crossesOppositeHuds = player
+        ? footX - spriteWidth / 2 < field.left + hudWidth
+        : footX + spriteWidth / 2 > field.right - hudWidth;
+    final footY = !crossesOppositeHuds
+        ? requestedFootY
+        : player
+            ? math.max(
+                requestedFootY,
+                field.top + 2 * hudHeight + 8 + spriteHeight,
+              )
+            : math.min(
+                requestedFootY,
+                field.bottom - 2 * (hudHeight + 4) - 4,
+              );
+    final foot = Offset(footX, footY);
     return BattleCombatantSceneGeometry(
       spriteRect: Rect.fromLTWH(
         foot.dx - spriteWidth / 2,
