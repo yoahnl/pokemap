@@ -32,7 +32,8 @@ final class SourceTrainerProgramNode extends SourceEventNode {
 
   final SourceTrainerProgramKind kind;
   final bool _afterDialogueFacesPlayer;
-  final String trainerType, trainerName, defeatedFactId, endSpeechComment;
+  final String trainerType, trainerName, defeatedFactId;
+  final String? endSpeechComment;
   final int trainerVersion,
       detectionDistance,
       sourceTriggerCode,
@@ -275,8 +276,13 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     if (introMatch == null) return null;
     encounter.expect(355, 0, const ['pbNoticePlayer(get_self)']);
     final challenge = encounter.texts();
-    final endSpeech = encounter.literal(108);
-    if (!endSpeech.startsWith('EndSpeech: ')) return null;
+    final hasEndSpeech = !encounter.isDone &&
+        (encounter.commands[encounter.index] as Map)['code'] == 108;
+    final endSpeech = hasEndSpeech ? encounter.literal(108) : null;
+    if (endSpeech != null && !endSpeech.startsWith('EndSpeech: ')) return null;
+    final stationaryWithoutComment = endSpeech == null && values.length == 2 &&
+        values.every((value) => value['move_type'] == 0);
+    if (endSpeech == null && !stationaryWithoutComment) return null;
     final battle = encounter.take(111, 0);
     if (battle.length != 2 || battle[0] != 12 || battle[1] is! String) {
       return null;
@@ -296,6 +302,11 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
         analyzer.selfFactId(mapId, event.sourceEventId, 'A'))) {
       return null;
     }
+    if (stationaryWithoutComment &&
+        (victory.nodes.length != 1 ||
+            victory.nodes.single is! SourceSelfSwitchNode)) {
+      return null;
+    }
     final terminal = (values.first['list'] as List)[victoryParser.index - 1] as Map;
     if (terminal['code'] != 0 || terminal['indent'] != 1 ||
         canonicalJsonOf(terminal['parameters']) != '[]') {
@@ -309,13 +320,14 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
     ({List<String> lines, bool facing}) afterLines(int index) {
       final after = _SourceTrainerProgramCursor(values[index]['list'] as List);
       final lines = after.texts();
-      if (index == 2 &&
+      if ((index == 2 || stationaryWithoutComment) &&
           !after.isDone &&
           (after.commands[after.index] as Map)['code'] == 0) {
         after.expect(0, 0, const []);
         if (!after.isDone) throw const FormatException();
         return (lines: lines, facing: false);
       }
+      if (stationaryWithoutComment) throw const FormatException();
       const turn = {
         '__class__': 'RPG::MoveCommand',
         'code': 25,
