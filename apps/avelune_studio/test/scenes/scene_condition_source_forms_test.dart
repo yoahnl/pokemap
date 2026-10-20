@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
+import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
+import 'package:avelune_studio/features/scenes/application/scene_workspace_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
+import 'package:avelune_studio/features/scenes/domain/scene_port.dart';
+import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_condition_form.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_inspector.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
@@ -14,6 +18,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/cinematic_adapter_fixture.dart';
+import '../support/m2_ui_fixture.dart' show WidgetResourcePort, pumpIo;
+import '../support/widget_resource_journey_map_port.dart';
 
 void main() {
   testWidgets('all existing engine condition sources have guided choices', (
@@ -675,97 +681,356 @@ void main() {
     },
   );
 
-  testWidgets(
-    'real inspector publishes a badge condition after explicit apply and undo',
-    (tester) async {
-      final original = _scene(
-        SceneConditionSource(
-          sourceKind: SceneConditionSourceKind.badge,
-          sourceId: 'badge-a',
-          operator: SceneConditionOperator.isTrue,
-        ),
-      );
-      final fixture = (await tester.runAsync(() async {
-        final fixture = await CinematicAdapterFixture.create();
-        await fixture.writeManifest(
-          ProjectManifest(
-            name: 'Condition host',
-            maps: [],
-            tilesets: [],
-            badges: [
-              const BadgeDefinition(id: 'badge-a', label: 'Premier badge'),
+  for (final initial in [
+    SceneConditionSource(
+      sourceKind: SceneConditionSourceKind.badge,
+      sourceId: 'badge-a',
+      operator: SceneConditionOperator.isTrue,
+    ),
+    _inventory('1'),
+    SceneConditionSource(
+      sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+      sourceId: 'gate-open',
+      operator: SceneConditionOperator.isTrue,
+    ),
+    SceneConditionSource.playerAtEntityAnchor(
+      mapId: 'workshop',
+      entityId: 'door',
+    ),
+    SceneConditionSource.mapEventInstanceBoolean(
+      mapId: 'workshop',
+      eventId: 'door',
+      key: 'A',
+    ),
+  ]) {
+    testWidgets(
+      'real scene page publishes ${initial.sourceKind.name} with undo redo and cold reopen',
+      (tester) async {
+        tester.view.physicalSize = const Size(1600, 1100);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final original = SceneAsset(
+          id: 'conditions',
+          name: 'Conditions',
+          description: 'Condition guidée persistée',
+          tags: ['condition-qa'],
+          graph: _scene(initial).graph,
+          layout: SceneGraphLayout(
+            nodeLayouts: [
+              SceneNodeLayout(nodeId: 'start', x: 40, y: 80),
+              SceneNodeLayout(nodeId: 'check', x: 320, y: 80),
+              SceneNodeLayout(nodeId: 'end', x: 600, y: 80),
             ],
-            scenes: [original],
+            edgeLayouts: [
+              SceneEdgeLayout(
+                edgeId: 'yes',
+                controlPoints: [SceneLayoutPoint(x: 560, y: 40)],
+              ),
+            ],
           ),
+          metadata: {'fixture': 'condition-source-forms'},
         );
-        await fixture.maps.loadProject(fixture.session);
-        return fixture;
-      }))!;
-      addTearDown(fixture.dispose);
-      final project = (await tester.runAsync(fixture.readManifest))!;
-      final edit = SceneEditSession(original, base: original);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 500,
-              child: StatefulBuilder(
-                builder: (context, refresh) => SceneInspector(
-                  session: edit,
-                  project: project,
-                  nodeId: 'check',
-                  edgeId: null,
-                  changed: () => refresh(() {}),
-                  onDocument: (_) {},
-                  onDelete: () {},
-                  onDuplicate: () {},
+        final fixture = (await tester.runAsync(() async {
+          final fixture = await CinematicAdapterFixture.create();
+          final project = _project(name: 'Condition host');
+          await fixture.writeManifest(
+            project.copyWith(
+              scenes: [original],
+              pokemon: project.pokemon.copyWith(
+                catalogFiles: {
+                  ...project.pokemon.catalogFiles,
+                  'items': 'data/items.json',
+                },
+              ),
+            ),
+          );
+          for (final entry in project.maps) {
+            final map = _map(
+              entry.id,
+              entities: [
+                MapEntity(
+                  id: 'door',
+                  kind: MapEntityKind.sign,
+                  pos: GridPos(x: entry.id == 'workshop' ? 1 : 2, y: 1),
+                ),
+              ],
+            );
+            final file = fixture.file(entry.relativePath);
+            await file.parent.create(recursive: true);
+            await file.writeAsString(jsonEncode(map.toJson()));
+          }
+          final items = fixture.file('data/items.json');
+          await items.parent.create(recursive: true);
+          await items.writeAsString(
+            jsonEncode(
+              encodeProjectItemCatalog(
+                const ProjectItemCatalog(
+                  schemaVersion: 1,
+                  entries: [
+                    ProjectItemDefinition(
+                      id: 'tonic',
+                      displayName: 'Potion',
+                      pocketId: 'custom',
+                    ),
+                    ProjectItemDefinition(
+                      id: 'ether',
+                      displayName: 'Éther',
+                      pocketId: 'custom',
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ),
-      );
-      await _choose(tester, _booleanSelect(tester).label, 'false');
-      expect(edit.dirty, isFalse);
-      expect(
-        (await tester.runAsync(fixture.readManifest))!.scenes.single,
-        original,
-      );
-      await _apply(tester);
-      expect(edit.undoCount, 1);
-      expect(
-        (await tester.runAsync(fixture.readManifest))!.scenes.single,
-        original,
-      );
-      final edited = edit.current;
-      edit.restore(redo: false);
-      expect(edit.current, original);
-      edit.restore(redo: true);
-      expect(edit.current, edited);
-      final reopened = (await tester.runAsync(() async {
-        await LocalSceneAdapter(
+          );
+          return fixture;
+        }))!;
+        addTearDown(fixture.dispose);
+        final baseline = (await tester.runAsync(fixture.readManifest))!;
+        final projectBytes = (await tester.runAsync(
+          () => fixture.file('project.json').readAsBytes(),
+        ))!;
+        final protectedBytes = (await tester.runAsync(
+          () async => {
+            for (final path in [
+              ...baseline.maps.map((entry) => entry.relativePath),
+              'data/items.json',
+            ])
+              path: await fixture.file(path).readAsBytes(),
+          },
+        ))!;
+        final mapPort = WidgetResourceJourneyMapPort(fixture.maps, tester);
+        final maps = MapWorkspaceController(fixture.session, mapPort);
+        await tester.runAsync(maps.initialize);
+        expect(maps.error, isNull);
+        mapPort.active = true;
+        addTearDown(maps.dispose);
+        final port = _WidgetScenePort(
+          LocalSceneAdapter(session: fixture.session, mapAdapter: fixture.maps),
+          tester,
+        );
+        final scenes = SceneWorkspaceController(maps, port, changed: () {});
+        addTearDown(scenes.dispose);
+        expect(scenes.open(original.id), isTrue);
+        final edit = scenes.active!;
+        final pokemon = LocalPokemonWorkspaceAdapter(
           session: fixture.session,
           mapAdapter: fixture.maps,
-        ).publishScene(base: original, current: edited);
-        return LocalMapWorkspaceAdapter().loadProject(fixture.session);
-      }))!;
-      expect(reopened.scenes.single, edited);
-      expect(reopened.scenes.single.graph.edges, original.graph.edges);
-      expect(reopened.scenes.single.layout, original.layout);
-      final source =
-          (reopened.scenes.single.graph.nodes
-                      .singleWhere((node) => node.id == 'check')
-                      .payload
-                  as SceneConditionPayload)
-              .conditionSource!;
-      expect(source.sourceKind, SceneConditionSourceKind.badge);
-      expect(source.sourceId, 'badge-a');
-      expect(source.operator, SceneConditionOperator.isFalse);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+        );
+        addTearDown(pokemon.dispose);
+        var itemLoads = 0;
+        final views = SceneBuilderViewStore();
+        views.forScene(original.id).nodeId = 'check';
+        addTearDown(views.dispose);
+        Widget app(
+          SceneWorkspaceController controller,
+          SceneBuilderViewStore views,
+          LocalPokemonWorkspaceAdapter pokemon,
+        ) => MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(
+            body: SceneBuilderPage(
+              controller: controller,
+              views: views,
+              onBack: () {},
+              loadItems: () async {
+                itemLoads++;
+                final index = (await WidgetResourcePort.serial(
+                  tester,
+                  pokemon.loadIndex,
+                ))!;
+                expect(index.enabled, isTrue);
+                expect(index.itemCatalog, isNotNull);
+                return {
+                  for (final item in index.itemCatalog!.entries)
+                    item.id: item.displayName,
+                };
+              },
+            ),
+          ),
+        );
+        await tester.pumpWidget(app(scenes, views, pokemon));
+        await pumpIo(tester);
+        switch (initial.sourceKind) {
+          case SceneConditionSourceKind.badge:
+            await _choose(tester, 'Référence', 'badge-a');
+          case SceneConditionSourceKind.inventoryItem:
+            expect(_select(tester, 'Référence').options['ether'], 'Éther');
+            expect(itemLoads, greaterThan(0));
+            await _choose(tester, 'Référence', 'ether');
+            for (final invalid in ['0', '01']) {
+              await _enter(tester, 'Quantité minimale', invalid);
+              expect(_applyButton(tester).onPressed, isNull);
+              expect(edit.dirty, isFalse);
+            }
+            await _enter(tester, 'Quantité minimale', '3');
+          case SceneConditionSourceKind.factLikeStoryFlag:
+            expect(
+              _select(tester, 'Référence').options['DOOR_OPEN'],
+              'Porte ouverte',
+            );
+            expect(
+              _select(tester, 'Référence').options,
+              isNot(contains('door-fact')),
+            );
+            await _choose(tester, 'Référence', 'DOOR_OPEN');
+          case SceneConditionSourceKind.playerAtEntityAnchor:
+          case SceneConditionSourceKind.mapEventInstanceBoolean:
+            await _choose(tester, 'Carte', 'garden');
+            await pumpIo(tester);
+            await _choose(tester, 'Référence', 'door');
+            if (initial.sourceKind ==
+                SceneConditionSourceKind.mapEventInstanceBoolean) {
+              for (final invalid in ['', ' A ']) {
+                await _enter(tester, 'Nom de l’état local', invalid);
+                expect(_applyButton(tester).onPressed, isNull);
+                expect(edit.dirty, isFalse);
+              }
+              await _enter(tester, 'Nom de l’état local', 'gate-open');
+            }
+          default:
+            fail('Unsupported fixture condition family');
+        }
+        await _choose(tester, _booleanSelect(tester).label, 'false');
+        expect(edit.current, original);
+        expect(edit.dirty, isFalse);
+        expect(port.writes, 0);
+        expect(
+          (await tester.runAsync(
+            () => fixture.file('project.json').readAsBytes(),
+          ))!,
+          projectBytes,
+        );
+        await _apply(tester);
+        await pumpIo(tester);
+        expect(edit.undoCount, 1);
+        expect(edit.dirty, isTrue);
+        expect(port.writes, 0);
+        expect(
+          (await tester.runAsync(
+            () => fixture.file('project.json').readAsBytes(),
+          ))!,
+          projectBytes,
+        );
+        final edited = edit.current;
+        final expectedId = switch (initial.sourceKind) {
+          SceneConditionSourceKind.badge => 'badge-a',
+          SceneConditionSourceKind.inventoryItem => 'ether',
+          SceneConditionSourceKind.factLikeStoryFlag => 'DOOR_OPEN',
+          _ => 'door',
+        };
+        final source = _conditionSource(edited);
+        expect(source.sourceKind, initial.sourceKind);
+        expect(source.sourceId, expectedId);
+        expect(source.operator, SceneConditionOperator.isFalse);
+        expect(source.mapId, initial.mapId == null ? null : 'garden');
+        expect(
+          source.field,
+          initial.sourceKind == SceneConditionSourceKind.inventoryItem
+              ? 'minimumQuantity'
+              : null,
+        );
+        expect(
+          source.value,
+          initial.sourceKind == SceneConditionSourceKind.inventoryItem
+              ? '3'
+              : null,
+        );
+        expect(
+          source.key,
+          initial.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean
+              ? 'gate-open'
+              : null,
+        );
+        expect(source.label, isNotEmpty);
+        await tester.tap(find.byKey(const ValueKey('Annuler la scène')));
+        await pumpIo(tester);
+        expect(edit.current, original);
+        expect(edit.dirty, isFalse);
+        await tester.tap(find.byKey(const ValueKey('Rétablir la scène')));
+        await pumpIo(tester);
+        expect(edit.current, edited);
+        expect(edit.dirty, isTrue);
+        expect(port.writes, 0);
+        expect(
+          (await tester.runAsync(
+            () => fixture.file('project.json').readAsBytes(),
+          ))!,
+          projectBytes,
+        );
+        await tester.tap(find.text('Enregistrer'));
+        await pumpIo(tester);
+        expect(port.writes, 1);
+        expect(scenes.error, isNull);
+        expect(edit.error, isNull);
+        expect(edit.dirty, isFalse);
+        await tester.pumpWidget(const SizedBox.shrink());
+        scenes.dispose();
+        maps.dispose();
+        final coldAdapter = LocalMapWorkspaceAdapter();
+        final coldMapPort = WidgetResourceJourneyMapPort(coldAdapter, tester);
+        final coldMaps = MapWorkspaceController(fixture.session, coldMapPort);
+        addTearDown(coldMaps.dispose);
+        await tester.runAsync(coldMaps.initialize);
+        expect(coldMaps.error, isNull);
+        coldMapPort.active = true;
+        final coldScenes = SceneWorkspaceController(
+          coldMaps,
+          LocalSceneAdapter(session: fixture.session, mapAdapter: coldAdapter),
+          changed: () {},
+        );
+        addTearDown(coldScenes.dispose);
+        expect(coldScenes.open(original.id), isTrue);
+        final reopened = coldScenes.active!.current;
+        final coldPokemon = LocalPokemonWorkspaceAdapter(
+          session: fixture.session,
+          mapAdapter: coldAdapter,
+        );
+        addTearDown(coldPokemon.dispose);
+        final coldViews = SceneBuilderViewStore();
+        coldViews.forScene(original.id).nodeId = 'check';
+        addTearDown(coldViews.dispose);
+        await tester.pumpWidget(app(coldScenes, coldViews, coldPokemon));
+        await pumpIo(tester);
+        expect(_select(tester, 'Référence').value, expectedId);
+        expect(_booleanSelect(tester).value, 'false');
+        if (initial.mapId != null) {
+          expect(_select(tester, 'Carte').value, 'garden');
+        }
+        if (initial.sourceKind == SceneConditionSourceKind.inventoryItem) {
+          expect(_draft(tester, 'Quantité minimale').value, '3');
+        }
+        if (initial.sourceKind ==
+            SceneConditionSourceKind.mapEventInstanceBoolean) {
+          expect(_draft(tester, 'Nom de l’état local').value, 'gate-open');
+        }
+        expect(coldScenes.dirty, isFalse);
+        expect(reopened, edited);
+        expect(_conditionSource(reopened).toJson(), source.toJson());
+        expect(reopened.metadata, original.metadata);
+        expect(reopened.description, original.description);
+        expect(reopened.tags, original.tags);
+        expect(reopened.layout, original.layout);
+        expect(reopened.graph.edges, original.graph.edges);
+        expect(
+          reopened.graph.nodes.where((node) => node.id != 'check'),
+          original.graph.nodes.where((node) => node.id != 'check'),
+        );
+        expect(coldMaps.project, baseline.copyWith(scenes: [edited]));
+        for (final entry in protectedBytes.entries) {
+          expect(
+            (await tester.runAsync(
+              () => fixture.file(entry.key).readAsBytes(),
+            ))!,
+            entry.value,
+            reason: entry.key,
+          );
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
 }
 
 Future<void> _pump(
@@ -956,3 +1221,28 @@ SceneAsset _scene(SceneConditionSource source) => SceneAsset(
     ],
   ),
 );
+
+SceneConditionSource _conditionSource(SceneAsset scene) =>
+    (scene.graph.nodes.singleWhere((node) => node.id == 'check').payload
+            as SceneConditionPayload)
+        .conditionSource!;
+
+class _WidgetScenePort implements ScenePort {
+  _WidgetScenePort(this.adapter, this.tester);
+
+  final LocalSceneAdapter adapter;
+  final WidgetTester tester;
+  int writes = 0;
+
+  @override
+  Future<ScenePublicationReceipt> publishScene({
+    required SceneAsset? base,
+    required SceneAsset current,
+  }) async {
+    writes++;
+    return (await WidgetResourcePort.serial(
+      tester,
+      () => adapter.publishScene(base: base, current: current),
+    ))!;
+  }
+}
