@@ -67,12 +67,16 @@ void main() {
               'test/domains/maps/moving_platform_actions_test.dart',
           AuthoringTransport.cli:
               'test/domains/maps/moving_platform_actions_test.dart',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/moving_platform_delete_editor_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
         },
         'map.library.reorganize': {
           AuthoringTransport.directApi:
               'test/domains/maps/map_metadata_escape_rope_test.dart',
+          AuthoringTransport.cli:
+              'test/tooling/jsonl_map_library_reorganize_test.dart',
           AuthoringTransport.editor:
               '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
           AuthoringTransport.mcp:
@@ -395,7 +399,10 @@ void main() {
       );
       expect(
         catalog.requireMutationAction('map.library.reorganize').toJson(),
-        containsPair('endToEndVerifiedTransports', ['directApi', 'editor', 'mcp']),
+        containsPair(
+          'endToEndVerifiedTransports',
+          ['cli', 'directApi', 'editor', 'mcp'],
+        ),
       );
       expect(
         catalog.requireMutationAction('presentation.update').toJson(),

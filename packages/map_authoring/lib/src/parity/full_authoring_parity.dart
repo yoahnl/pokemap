@@ -552,9 +552,9 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/moving_platform_actions_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/moving_platform_actions_test.dart',
-      if (actionId == 'map.platform.upsert')
-        AuthoringTransport.editor:
-            '../map_editor/test/authoring_api/moving_platform_smart_tile_editor_test.dart',
+      AuthoringTransport.editor: actionId == 'map.platform.upsert'
+          ? '../map_editor/test/authoring_api/moving_platform_smart_tile_editor_test.dart'
+          : '../map_editor/test/authoring_api/moving_platform_delete_editor_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
     };
@@ -1258,6 +1258,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi:
           'test/domains/maps/map_metadata_escape_rope_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_map_library_reorganize_test.dart',
       AuthoringTransport.editor:
           '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
       AuthoringTransport.mcp:
