@@ -2182,10 +2182,12 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       case 'border_layer.feature_set_replacement':
       case 'border_layer.materialize_apply':
         semantics.requireOperation(mutation);
-        if (mutation.actionId.startsWith('border_layer.')) {
-          final id = _string(parameters, 'mapId');
-          _requireMapBinding(draft, mutation, id);
-          if (!maps.containsKey(id)) {
+        final borderMapId = mutation.actionId.startsWith('border_layer.')
+            ? _string(parameters, 'mapId')
+            : null;
+        if (borderMapId != null) {
+          _requireMapBinding(draft, mutation, borderMapId);
+          if (!maps.containsKey(borderMapId)) {
             throw const NativeWriteException('native.border.order', 'Border features require their preceding exact saved map');
           }
         }
@@ -2193,14 +2195,25 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           resources: borderResources.withCatalog(AssetCatalog(records: assetRecords)),
           project: bootstrap.copyWith(maps: mapEntries, tilesets: tilesetEntries,
             elements: elements, elementCategories: categories, borderCatalog: borderCatalog,
-            characters: characters, settings: bootstrap.settings.copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId)),
-          maps: maps, mutation: mutation, artifacts: artifacts.values,
+            smartTileCatalog: ProjectSmartTileCatalog(
+                atlases: smartTileAtlases,
+                materials: smartTileMaterials,
+                animations: smartTileAnimations,
+                presets: smartTilePresets),
+            characters: characters,
+            characterStudioCatalog: ProjectCharacterStudioCatalog(
+                customAnimationDefinitions: customAnimationDefinitions),
+            settings: bootstrap.settings.copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId)),
+          maps: borderMapId != null
+              ? {borderMapId: maps[borderMapId]!}
+              : const {},
+          mutation: mutation, artifacts: artifacts.values,
           limits: limits, cancellation: cancellation,
         );
         borderCatalog = replay.project.borderCatalog;
         borderResources = replay.resources;
         assetRecords..clear()..addAll(borderResources.catalog.records);
-        maps..clear()..addAll(replay.maps);
+        maps.addAll(replay.maps);
         for (final file in replay.files.entries) {
           final previous = borderSnapshots[file.key];
           if (previous != null && identical(validatedBorderSnapshotBytes[file.key], file.value)) {
@@ -2492,6 +2505,25 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   if (retained.fold<int>(0, (sum, a) => sum + a.bytes.length) + derivedBytes > limits.maxTotalArtifactBytes ||
       retainedPixels + derivedPixels > limits.maxTotalImagePixels) {
     throw const NativeWriteException('native.border.quota', 'Derived canonical Border snapshots require their explicit cumulative artifact budget');
+  }
+  if (draft.mutations.any((mutation) =>
+      mutation.actionId.startsWith('border.') ||
+      mutation.actionId.startsWith('border_layer.'))) {
+    var borderJsonBytes = 0;
+    void chargeBorderJson(Object? value) {
+      _checkCancelled(cancellation);
+      borderJsonBytes += utf8.encode(jsonEncode(value)).length;
+      if (borderJsonBytes > limits.maxTotalDraftJsonBytes) {
+        throw const NativeWriteException('jumps.quota.action',
+            'Canonical Border JSON exceeds the aggregate byte budget');
+      }
+    }
+
+    chargeBorderJson(manifest.toJson());
+    chargeBorderJson(AssetCatalog(records: assetRecords).toJson());
+    for (final map in maps.values) {
+      chargeBorderJson(map.toJson());
+    }
   }
   ProjectValidator.validate(manifest, maps: maps.values);
   await preparation.advance();

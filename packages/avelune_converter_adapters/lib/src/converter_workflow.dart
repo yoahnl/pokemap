@@ -2353,6 +2353,7 @@ const _nativeStudyActions = [
   'asset.import_batch',
   'smart_tile.atlas.upsert',
   'smart_tile.material.upsert',
+  'smart_tile.animation.upsert',
   'smart_tile.preset.publish',
   'characterStudio.character.create',
   'characterStudio.character.update',
@@ -2456,6 +2457,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'Canonical shop action exposure and strict admission of the complete prepared action inventory, with unknown actions still refused; native stock application and runtime journeys are separate.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:native study declares supported canonical shop capability before approval',
+                },
+              if (action == 'smart_tile.animation.upsert')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Exact-source grass animation retains canonical frame timing through automatic workflow approval, native publication and strict writer readback; altered source animations remain refused.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_grass_rustle_compiler_test.dart:canonical workflow approves and publishes automatic source grass animation',
                 },
               if (action == 'characterStudio.animationDefinition.create' ||
                   action == 'cinematic.upsert')

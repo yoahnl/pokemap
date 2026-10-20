@@ -93,9 +93,20 @@ void main() {
             .having((e) => e.code, 'code', 'native.semantics.regeneration')));
   }, skip: Platform.environment['AVELUNE_AC12_SOURCE_SCRIPTS'] == null);
   test(
-      'automatic source Borders survive canonical writer and strict disk reload',
+      'automatic source Borders preserve unrelated maps through strict disk reload',
       () async {
-    final f = await jumpFixture(useExternalScripts: false);
+    final f = await jumpFixture(useExternalScripts: false, connectedMaps: [
+      LiteralFixtureMap(id: 99, width: 4, height: 2, layers: [
+        List.filled(8, 384),
+        List.filled(8, 0),
+        List.filled(8, 0),
+      ]),
+      LiteralFixtureMap(id: 100, width: 2, height: 3, layers: [
+        List.filled(6, 384),
+        List.filled(6, 0),
+        List.filled(6, 0),
+      ]),
+    ]);
     final draft = (await const SourceSemanticStudyComposer().compose(
         source: f.base.draft!.source, base: f.base, files: f.fixture.files))!;
     final semantic = draft.compositionEvidence['sourceSemantics'] as Map;
@@ -105,6 +116,14 @@ void main() {
             .indexWhere((m) => m.actionId == 'border_layer.feature_create'),
         greaterThan(
             draft.mutations.lastIndexWhere((m) => m.actionId == 'map.save')));
+    final unrelatedMaps = {
+      for (final mutation in draft.mutations
+          .where((entry) => entry.actionId == 'map.save'))
+        if ((mutation.parameters['map'] as Map)['id'] != draft.mapIds[98])
+          (mutation.parameters['map'] as Map)['id'] as String:
+              mutation.parameters['map'],
+    };
+    expect(unrelatedMaps, hasLength(2));
     final output =
         await Directory.systemTemp.createTemp('source-border-writer-');
     final rebound = NativeProjectDraft(
@@ -136,7 +155,16 @@ void main() {
         final native = await ProjectSnapshotLoader(handles: handles).load(
             opened.projectHandle,
             policy: ProjectSnapshotLoadPolicy.strict);
-        final map = native.maps.single;
+        expect(native.manifest.maps, hasLength(3));
+        expect(native.maps, hasLength(3));
+        expect(receipt.mapHashes.keys, unorderedEquals(draft.mapIds.values));
+        for (final entry in unrelatedMaps.entries) {
+          final untouched = native.maps.singleWhere((map) => map.id == entry.key);
+          expect(canonicalJsonOf(untouched.toJson()),
+              canonicalJsonOf(entry.value));
+          expect(untouched.layers.whereType<BorderLayer>(), isEmpty);
+        }
+        final map = native.maps.singleWhere((map) => map.id == draft.mapIds[98]);
         expect(
             map.layers
                 .whereType<BorderLayer>()

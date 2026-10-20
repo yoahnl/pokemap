@@ -69,12 +69,13 @@ Map<ConverterId, SourceSequenceProgram> sourceSequencePrograms(
   }
   final possible = analysis.events.where(_isSequence).toList();
   if (possible.isEmpty) return const {};
+  final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
   final expected = {
-    for (final event in SourceEventAnalyzer.forProject(source, profile: profile)
-        .analyze()
-        .events
-        .where(_isSequence))
-      event.identity: _fingerprintOf(event)
+    for (final candidate in possible)
+      if (analyzer.analyzeEventAt(
+              candidate.sourceMapId, candidate.sourceEventId)
+          case final event? when _isSequence(event))
+        event.identity: _fingerprintOf(event)
   };
   return Map.unmodifiable({
     for (final event in possible)

@@ -4,8 +4,12 @@ import '../../avelune_converter_core/test/support/interpretation_profile_fixture
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:image/image.dart' as image;
 import 'package:test/test.dart';
 import 'package:avelune_converter_adapters/src/source_trainer_event_bindings.dart';
+
+import 'support/literal_tile_fixture.dart';
+import 'support/native_trainer_fixture.dart';
 
 final class _Files implements SourceFilePort {
   _Files(this.bytes, this.paths, this.sourceRoot);
@@ -95,6 +99,73 @@ Future<(NormalizedSourceProject, SourceFilePort)> _source(
 }
 
 void main() {
+  test('targeted trainer reanalysis accepts source and refuses forged evidence',
+      () async {
+    const roster = (type: 'FRLG_BUGCATCHER', name: 'Brent', version: 0);
+    final fixture = await LiteralTileFixture.create(
+        interpretationProfile: syntheticSourceInterpretationProfile,
+        scriptsBytes: syntheticInterpretationArchive,
+        includeEventSystem: true,
+        extraFiles: {
+          ...nativeTrainerFixtureFiles([roster]),
+          'PBS/pokemon.txt': utf8.encode('[RATTATA]\nName = Rattata\n'),
+          'Data/species.dat': literalFixtureMarshal({
+            const LiteralFixtureSymbol('RATTATA'):
+                const LiteralFixtureObject('GameData::Species', {
+              '@id': LiteralFixtureSymbol('RATTATA'),
+              '@species': LiteralFixtureSymbol('RATTATA'),
+              '@form': 0,
+              '@real_name': 'Rattata',
+            }),
+          }),
+          'Graphics/Characters/OriginalTrainer.png':
+              image.encodePng(image.Image(width: 128, height: 192)),
+        },
+        maps: [
+          LiteralFixtureMap(id: 1, width: 4, height: 3, layers: [
+            List.filled(12, 384), List.filled(12, 0), List.filled(12, 0),
+          ], events: [nativeTrainerFixtureEvent(roster, 1)]),
+        ]);
+    final source = fixture.source;
+    final analysis = SourceEventAnalyzer.forProject(source,
+        profile: SourceEventProfile.forProject(source)).analyze();
+    const resolver = SourceTrainerEventBindingResolver();
+    final accepted = await resolver.read(
+        source: source, analysis: analysis, files: fixture.files);
+    final original = analysis.eventAt(1, 1)!;
+    expect(accepted.byEventIdentity.keys, [original.identity]);
+    expect(accepted.refusals, isEmpty);
+    for (final variant in ['raw', 'graphic', 'body']) {
+      final page = original.pages.first;
+      final changedPage = SourceEventPageAnalysis(
+          sourcePage: page.sourcePage,
+          locator: page.locator,
+          condition: page.condition,
+          graphic: variant == 'graphic' ? null : page.graphic,
+          body: variant == 'body'
+              ? SourceEventBlock(span: page.body.span, nodes: [])
+              : page.body,
+          rawDataRef: variant == 'raw' ? null : page.rawDataRef,
+          diagnostics: []);
+      final changed = SourceEventDefinition(
+          sourceMapId: original.sourceMapId,
+          sourceEventId: original.sourceEventId,
+          sourceFileId: original.sourceFileId,
+          identity: original.identity,
+          name: original.name,
+          x: original.x,
+          y: original.y,
+          locator: original.locator,
+          pages: [changedPage, original.pages.last]);
+      final refused = await resolver.read(source: source,
+          analysis: SourceEventAnalysis(profile: analysis.profile,
+              events: [changed], diagnostics: analysis.diagnostics),
+          files: fixture.files);
+      expect(refused.byEventIdentity, isEmpty, reason: variant);
+      expect(refused.refusals[original.identity],
+          'events.trainer.program_binding', reason: variant);
+    }
+  });
   final archive = Platform.environment['AVELUNE_AC13_DOOR_ARCHIVE'];
   final sourceRoot = Platform.environment['AVELUNE_AC13_SOURCE_ROOT'];
   group('source trainer event bindings', () {

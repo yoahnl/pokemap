@@ -924,6 +924,11 @@ final class SourceEventAnalyzer {
   SourceEventAnalyzer.forProject(this.project, {required this.profile});
   final NormalizedSourceProject project;
   final SourceEventProfile profile;
+  late final Map<ConverterId, SourceFileEntry> _snapshotEntries = {
+    for (final entry in project.snapshot.entries) entry.fileId: entry,
+  };
+  final _declaredRawEvents = <(int, Map<String, Object?>),
+      ({Object? value, SourcePreservedData reference})?>{};
   String globalFactId(int switchId) =>
       'source:${project.snapshot.logicalProjectNamespace.value}:switch:$switchId';
   String variableFactId(int variableId) =>
@@ -1074,12 +1079,13 @@ final class SourceEventAnalyzer {
     return reference;
   }
 
-  bool _admitted(SourceSemanticFile file) => project.snapshot.entries.any(
-      (entry) =>
-          entry.fileId == file.fileId &&
-          entry.sha256 == file.contentHash &&
-          entry.relativePath == file.entry.relativePath &&
-          entry.kind == SourceNodeKind.file);
+  bool _admitted(SourceSemanticFile file) {
+    final entry = _snapshotEntries[file.fileId];
+    return entry != null &&
+        entry.sha256 == file.contentHash &&
+        entry.relativePath == file.entry.relativePath &&
+        entry.kind == SourceNodeKind.file;
+  }
 
   ({List<String> texts, bool complete}) observeOpaquePageRuby(SourceEventPage page,
       {bool forVariableWriterAudit = false}) {
@@ -1169,7 +1175,9 @@ final class SourceEventAnalyzer {
     }
   }
 
-  List<String?>? _switchNames() => _systemNames('@switches');
+  late final List<String?>? _sealedSwitchNames = _systemNames('@switches');
+
+  List<String?>? _switchNames() => _sealedSwitchNames;
 
   ({List<String> texts, bool complete}) observeOpaqueSwitchRuby() {
     final names = _switchNames();

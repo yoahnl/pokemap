@@ -707,6 +707,35 @@ void main() {
         expect(shape(target), shape(analyzer.analyze().requireEvent(1, 1)));
       }
     });
+    test('standard pages reuse sealed source evidence within an analysis', () async {
+      final source = await _events(
+        [_page([_command(101, ['Event 1']), _command(0, [])])],
+        switches: ['', for (var index = 1; index <= 5000; index++) 'Switch $index'],
+        extraEvents: {
+          for (var id = 2; id <= 1024; id++)
+            id: _event(id, [_page([
+              _command(101, ['Event $id']), _command(0, []),
+            ])]),
+        },
+      );
+      final watch = Stopwatch()..start();
+      final analyzer = _analyzer(source);
+      final result = analyzer.analyze();
+      final repeated = analyzer.analyze();
+      watch.stop();
+      expect(result.events, hasLength(1024));
+      expect(repeated.events.map(shape).toList(), result.events.map(shape).toList());
+      for (final event in result.events) {
+        expect(event.pages.single.body.nodes.whereType<SourceTextNode>().single.text,
+            'Event ${event.sourceEventId}');
+        expect(event.isQuarantined, isFalse);
+      }
+      if (Platform.environment['AVELUNE_CONVERTER_EVENT_BENCHMARK'] == '1') {
+        stdout.writeln('sealed_event_analysis_ms=${watch.elapsedMilliseconds}');
+        expect(watch.elapsed, lessThan(const Duration(seconds: 3)),
+            reason: 'Sealed names and evidence must not be decoded for every page.');
+      }
+    });
     test('fresh source bytes cannot reuse an earlier event result', () async {
       final original = await _events([_page([_command(101, ['Before']), _command(0, [])])]);
       final changed = await _events([_page([_command(101, ['After']), _command(0, [])])]);

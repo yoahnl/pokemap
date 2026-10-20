@@ -167,8 +167,7 @@ final class SourceTrainerEventBindingResolver {
     final pbs = await const SourcePbsParser().read(
         snapshot: source.snapshot, files: files, cancellation: cancellation);
     final expected =
-        SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-            .analyze();
+        SourceEventAnalyzer.forProject(source, profile: analysis.profile);
     final native = nativeCatalog ?? NativePsdkCatalogManifest.builtin();
     final requested =
         sourceCatalogSelection(source, source.selectedSourceMapIds.toSet())
@@ -207,7 +206,7 @@ final class SourceTrainerEventBindingResolver {
       cancellation?.check();
       try {
         final original =
-            expected.eventAt(event.sourceMapId, event.sourceEventId);
+            expected.analyzeEventAt(event.sourceMapId, event.sourceEventId);
         if (original == null ||
             event.isQuarantined ||
             !const [2, 3, 4].contains(event.pages.length) ||

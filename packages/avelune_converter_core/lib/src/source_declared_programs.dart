@@ -1093,8 +1093,25 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
     required SourceEvent event,
     required Set<SourceDeclaredProgramFamily> families,
     String? familyId,
-    Set<ConverterId>? bindingIds}) {
-  final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+    Set<ConverterId>? bindingIds}) =>
+    _matchSourceDeclaredProgram(
+      analyzer: SourceEventAnalyzer.forProject(source, profile: profile),
+      sourceMapId: sourceMapId,
+      event: event,
+      families: families,
+      familyId: familyId,
+      bindingIds: bindingIds,
+    );
+
+SourceDeclaredProgramMatch? _matchSourceDeclaredProgram({
+  required SourceEventAnalyzer analyzer,
+  required int sourceMapId,
+  required SourceEvent event,
+  required Set<SourceDeclaredProgramFamily> families,
+  String? familyId,
+  Set<ConverterId>? bindingIds,
+}) {
+  final profile = analyzer.profile;
   if (!analyzer._isQualified) return null;
   try {
     final declared = profile.interpretationProfile?.declaredPrograms ??
@@ -1110,7 +1127,13 @@ SourceDeclaredProgramMatch? matchSourceDeclaredProgram(
         !declared.any((binding) => families.contains(binding.family))) {
       return null;
     }
-    final raw = _externalWarpRawEvent(analyzer, sourceMapId, event);
+    final raw = analyzer._declaredRawEvents.putIfAbsent(
+        (sourceMapId, event._json), () {
+      final raw = _externalWarpRawEvent(analyzer, sourceMapId, event);
+      return raw == null
+          ? null
+          : (value: _freezeDeclared(raw.value), reference: raw.reference);
+    });
     if (raw?.value is! Map) return null;
     final pages = (raw!.value as Map)['pages'];
     if (pages is! List || pages.length != event.pages.length) return null;

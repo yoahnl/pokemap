@@ -24,6 +24,16 @@ void main() {
           .toList();
   test('automatic conversion projects real progression doors and their returns',
       () async {
+    final elapsed = Stopwatch()..start();
+    void progress(String stage) {
+      if (verifyWrite) {
+        stdout.writeln(jsonEncode({
+          'stage': stage,
+          'elapsedMs': elapsed.elapsedMilliseconds,
+        }));
+      }
+    }
+    progress('source');
     final fixture = await readExternalOriginalSource(root!, snapshot!,
         selectedMapIds: {10, 14, 142, 241, 256, 257},
         supplementalRoots: supplementalRoots);
@@ -66,12 +76,14 @@ void main() {
     ]);
     expect(composed.draft, isNotNull,
         reason: composed.diagnostics.map((value) => value.toJson()).toString());
+    progress('encounters');
     final encounters = verifyWrite
         ? await NativeEncounterCatalogQualification.prepareAutomatic(
             source: source,
             files: fixture.files,
             selectedSourceMapIds: source.selectedSourceMapIds)
         : null;
+    progress('semantics');
     final semantic = await SourceSemanticStudyComposer(
             includeNativeSurfTraversal: encounters != null)
         .compose(
@@ -80,6 +92,7 @@ void main() {
             files: fixture.files,
             limits: limits);
     expect(semantic, isNotNull);
+    progress('events');
     final events =
         await SourceEventStudyComposer(nativeEncounterQualification: encounters)
             .compose(
@@ -228,6 +241,7 @@ void main() {
       deadline.cancel();
       cancellation.cancel();
     });
+    progress('catalogs');
     final catalogs = await SourceCatalogStudyComposer(
             nativeEncounterQualification: encounters,
             nativeTrainerQualification: events.trainerQualification,
@@ -241,8 +255,14 @@ void main() {
             cancellation: cancellation);
     expect(catalogs, isNotNull);
     final draft = catalogs!.draft;
+    progress('approval');
     final approval = approveNativeFixtureDraft(draft);
-    final receipt = await NativeProjectWriter().write(
+    progress('writer');
+    final receipt = await NativeProjectWriter(
+      preparationCheckpoint: (stage, status) =>
+          progress('prepare.${stage.name}.${status.done}'),
+      checkpoint: (stage, _, __) => progress('write.${stage.name}'),
+    ).write(
         approval.plan, approval.context, draft,
         limits: limits, cancellation: cancellation);
     expect(receipt.verified, isTrue);
@@ -252,6 +272,7 @@ void main() {
         allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
     final opener = ProjectOpenService(
         policy: policy, fileReader: reader, handles: handles);
+    progress('reopen');
     final opened = await opener.openProject(receipt.projectPath);
     try {
       final loaded = await ProjectSnapshotLoader(handles: handles)

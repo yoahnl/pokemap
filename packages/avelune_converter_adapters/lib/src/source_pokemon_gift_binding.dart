@@ -110,8 +110,7 @@ final class SourcePokemonGiftBindingResolver {
       return SourcePokemonGiftBindings(bindings, refusals);
     }
     final original =
-        SourceEventAnalyzer.forProject(source, profile: analysis.profile)
-            .analyze();
+        SourceEventAnalyzer.forProject(source, profile: analysis.profile);
     final pbs = await const SourcePbsParser().read(
         snapshot: source.snapshot, files: files, cancellation: cancellation);
     final catalogHash = canonicalHashOf(nativeCatalog.toJson(),
@@ -120,7 +119,7 @@ final class SourcePokemonGiftBindingResolver {
       cancellation?.check();
       final id = event.identity.value;
       final program = _stationaryGift(event);
-      final expected = original.eventAt(event.sourceMapId, event.sourceEventId);
+      final expected = original.analyzeEventAt(event.sourceMapId, event.sourceEventId);
       if (program == null ||
           expected == null ||
           _stationaryGift(expected) == null ||

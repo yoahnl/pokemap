@@ -104,9 +104,8 @@ final class SourcePartyTradeProgramNode extends SourceEventNode {
 
 SourceEventBlock? _sourcePartyTradeProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
-  final match = matchSourceDeclaredProgram(
-      source: analyzer.project,
-      profile: analyzer.profile,
+  final match = _matchSourceDeclaredProgram(
+      analyzer: analyzer,
       sourceMapId: mapId,
       event: event,
       families: const {SourceDeclaredProgramFamily.partyTrade});
