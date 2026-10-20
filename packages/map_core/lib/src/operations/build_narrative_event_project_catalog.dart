@@ -38,17 +38,16 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     diagnostics: diagnostics,
   );
   final mapsById = {for (final map in maps) map.id: map};
+  final sceneDiagnostics = SceneProjectDiagnosticsContext(
+    project,
+    mapsById: mapsById,
+  );
   final scenes = [
     for (final scene in project.scenes)
       NarrativeEventProjectSceneEntry(
         scene: scene,
         buildable: buildSceneRuntimePlan(scene).canBuild &&
-            diagnoseSceneAgainstProject(
-                  scene,
-                  project,
-                  mapsById: mapsById,
-                ).errorCount ==
-                0,
+            sceneDiagnostics.diagnose(scene).errorCount == 0,
       ),
   ]..sort(_compareScenes);
   final facts = [

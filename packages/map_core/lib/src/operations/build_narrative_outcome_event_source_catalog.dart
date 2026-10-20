@@ -73,6 +73,10 @@ void _appendSceneOutcomes(
     byId.putIfAbsent(scene.id, () => []).add(scene);
   }
   final ids = byId.keys.toList()..sort(compareNarrativeEventUtf16);
+  final sceneDiagnostics = SceneProjectDiagnosticsContext(
+    project,
+    mapsById: mapsById,
+  );
   for (final id in ids) {
     final group = byId[id]!;
     final duplicate = group.length > 1;
@@ -87,7 +91,7 @@ void _appendSceneOutcomes(
     for (final scene in group) {
       _appendSingleSceneOutcomes(
         scene,
-        project: project,
+        sceneDiagnostics: sceneDiagnostics,
         mapsById: mapsById,
         duplicate: duplicate,
         options: options,
@@ -99,7 +103,7 @@ void _appendSceneOutcomes(
 
 void _appendSingleSceneOutcomes(
   SceneAsset scene, {
-  required ProjectManifest project,
+  required SceneProjectDiagnosticsContext sceneDiagnostics,
   required Map<String, MapData> mapsById,
   required bool duplicate,
   required List<NarrativeOutcomeEventSourceOption> options,
@@ -132,12 +136,8 @@ void _appendSingleSceneOutcomes(
   }.toList()
     ..sort(compareNarrativeEventUtf16);
   final sceneRuntimeBuildable = buildSceneRuntimePlan(scene).canBuild;
-  final sceneProjectReferencesValid = diagnoseSceneAgainstProject(
-        scene,
-        project,
-        mapsById: mapsById,
-      ).errorCount ==
-      0;
+  final sceneProjectReferencesValid =
+      sceneDiagnostics.diagnose(scene).errorCount == 0;
   final sceneMapReferencesVerifiable =
       _sceneMapReferencesVerifiable(scene, mapsById);
   final sceneBuildable = sceneRuntimeBuildable &&
