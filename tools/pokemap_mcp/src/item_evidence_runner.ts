@@ -177,6 +177,16 @@ async function main(): Promise<void> {
       assert.equal(revision, applied.snapshotRevision);
       const definitions = (queried.items as JsonRecord[]).map(record);
       verifySemanticState(definitions, action.actionId);
+      const queriedCatalog = await toolData(client, "pokemap_query", {
+        projectHandle,
+        resourceKind: "itemCatalog",
+        operation: "list",
+        view: "detail",
+      });
+      assert.equal(queriedCatalog.snapshotRevision, revision);
+      const catalogs = (queriedCatalog.items as JsonRecord[]).map(record);
+      assert.equal(catalogs.length, 1);
+      const catalog = record(catalogs[0]!.catalog);
       const validation = await toolData(client, "pokemap_validate", {
         projectHandle,
       });
@@ -185,7 +195,7 @@ async function main(): Promise<void> {
         actionId: action.actionId,
         transport: "mcp",
         receiptSha256: canonicalSha256(normalizedReceipt(receipt)),
-        semanticStateSha256: canonicalSha256(definitions),
+        semanticStateSha256: canonicalSha256(catalog),
         afterRevision: revision,
       });
     }

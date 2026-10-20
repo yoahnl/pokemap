@@ -28,6 +28,180 @@ void main() {
       });
     });
 
+    test('registers focused F36 execution proofs without promoting missing pairs',
+        () {
+      final catalog = AuthoringFullParityCatalog.canonical();
+      const expected = <String, Map<AuthoringTransport, String>>{
+        'entity.set_item_payload': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/hidden_item_transport_parity_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/hidden_item_transport_parity_test.dart',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/hidden_item_authoring_transport_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/item_authoring.test.ts',
+        },
+        'scene.graph.patch': {
+          AuthoringTransport.directApi:
+              'test/domains/narrative/scene_graph_patch_transport_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/narrative/scene_graph_patch_transport_test.dart',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/scene_graph_patch_editor_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/scene_graph_patch_stdio.test.ts',
+        },
+        'map.platform.upsert': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/moving_platform_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/moving_platform_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/moving_platform_smart_tile_editor_test.dart',
+        },
+        'map.platform.delete': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/moving_platform_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/moving_platform_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
+        },
+        'map.library.reorganize': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/map_metadata_escape_rope_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+        },
+        'model3d.import': {
+          AuthoringTransport.directApi:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/resource_io/model_resource_adapter_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'model3d.configure': {
+          AuthoringTransport.directApi:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/resource_io/model_resource_adapter_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'model3d.delete': {
+          AuthoringTransport.directApi:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/resource_io/model_resource_adapter_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'map3d.camera.configure': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'map3d.instance.upsert': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
+        },
+        'map3d.instance.delete': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'map3d.navigation.configure': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
+        },
+        'map3d.terrain.configure_appearance': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'map3d.terrain.set_levels': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+        },
+        'smart_tile.cell.paint_batch': {
+          AuthoringTransport.directApi:
+              'test/tooling/jsonl_smart_tile_native_flow_test.dart',
+          AuthoringTransport.cli:
+              'test/tooling/jsonl_smart_tile_native_flow_test.dart',
+          AuthoringTransport.editor:
+              '../map_editor/test/authoring_api/raster_spatial_height_editor_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/smart_tile_batch_stdio.test.ts',
+        },
+        'resource_pack.import': {
+          AuthoringTransport.directApi:
+              'test/application/resource_pack_transfer_api_test.dart',
+          AuthoringTransport.cli:
+              'test/tooling/jsonl_resource_pack_flow_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/resource_io/resource_pack_import_host_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/resource_pack_stdio.test.ts',
+        },
+        'model3d.source.replace': {
+          AuthoringTransport.directApi:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/assets/model3d_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/resource_io/model_resource_adapter_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/model3d_source_replace_stdio.test.ts',
+        },
+      };
+      for (final entry in expected.entries) {
+        expect(catalog.requireMutationAction(entry.key).endToEndEvidence,
+            entry.value, reason: entry.key);
+      }
+      expect(catalog.requireMutationAction('model3d.source.replace_batch')
+          .endToEndEvidence.containsKey(AuthoringTransport.editor), isFalse);
+      expect(catalog.requireMutationAction('model3d.configure_batch')
+          .endToEndEvidence[AuthoringTransport.mcp],
+          '../../tools/pokemap_mcp/test/model3d_configure_batch_stdio.test.ts');
+    });
+
     test('publishes no map-shadow actions or resources', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       expect(
@@ -193,10 +367,18 @@ void main() {
             AuthoringGuarantee.dryRun,
             AuthoringGuarantee.idempotent,
             AuthoringGuarantee.revisionChecked,
-            AuthoringGuarantee.undoable,
           }),
           reason: descriptor.id,
         );
+        if (descriptor.id == 'project.catalog.partition') {
+          expect(descriptor.guarantees,
+              isNot(contains(AuthoringGuarantee.undoable)));
+          expect(descriptor.extensions, containsPair('undoable', false));
+          expect(descriptor.extensions, containsPair('requiresReopen', true));
+        } else {
+          expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable),
+              reason: descriptor.id);
+        }
       }
 
       expect(
@@ -213,7 +395,7 @@ void main() {
       );
       expect(
         catalog.requireMutationAction('map.library.reorganize').toJson(),
-        containsPair('endToEndVerifiedTransports', ['editor']),
+        containsPair('endToEndVerifiedTransports', ['directApi', 'editor', 'mcp']),
       );
       expect(
         catalog.requireMutationAction('presentation.update').toJson(),

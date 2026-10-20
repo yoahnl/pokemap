@@ -54,6 +54,16 @@ void main() {
         hasLength(36),
       );
       expect(pairs.where((pair) => pair['transport'] == 'mcp'), hasLength(9));
+      for (final actionId
+          in ItemSystemV1CertificationProfile.requiredItemActionIds) {
+        final actionPairs = pairs.where((pair) => pair['actionId'] == actionId);
+        expect(actionPairs, hasLength(4), reason: actionId);
+        expect(
+          actionPairs.map((pair) => pair['semanticStateSha256']).toSet(),
+          hasLength(1),
+          reason: actionId,
+        );
+      }
       expect(
         pairs,
         everyElement(
