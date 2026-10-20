@@ -155,6 +155,92 @@ final class _ChangedFiles implements SourceFilePort {
 }
 
 void main() {
+  group('execution witness inventory lookup', () {
+    Future<NormalizedSourceProject> variant(LiteralTileFixture fixture,
+        List<SourceFileEntry> entries, {SourceInterpretationProfile? profile}) =>
+      const RmxpSourceNormalizer().normalize(snapshot: SourceSnapshot(
+        logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
+        policyHash: fixture.snapshot.policyHash, entries: entries,
+        diagnostics: fixture.snapshot.diagnostics, excludedPaths: fixture.snapshot.excludedPaths,
+        profileEvidence: fixture.snapshot.profileEvidence, state: fixture.snapshot.state),
+        files: fixture.files, includeEventSystem: true, includeConnections: true,
+        interpretationProfile: profile ?? syntheticSourceInterpretationProfile);
+
+    test('optional witness case aliases stay unavailable instead of being silently matched', () async {
+      for (final path in ['Data/CommonEvents.rxdata', 'Data/PluginScripts.rxdata']) {
+        final fixture = await _fixture(67, extra: {
+          'Data/CommonEvents.rxdata': literalFixtureMarshal([null]),
+          'Data/PluginScripts.rxdata': literalFixtureMarshal([])});
+        final source = await variant(fixture, [for (final e in fixture.snapshot.entries)
+          if (e.relativePath != path) e else SourceFileEntry(fileId: e.fileId,
+            relativePath: 'Data/${path.substring(5).toLowerCase()}', kind: e.kind,
+            byteLength: e.byteLength, sha256: e.sha256, family: e.family, format: e.format)]);
+        final context = await _context(source, fixture.files);
+        expect(context.isQualified, isFalse);
+        expect(context.refusals, contains('sourceExecutionWitnessUnavailable'));
+      }
+    });
+
+    test('a missing connection witness remains unavailable', () async {
+      final fixture = await _fixture(67);
+      final source = await variant(fixture, fixture.snapshot.entries
+          .where((entry) => entry.relativePath != 'Data/map_connections.dat').toList());
+      final context = await const SourceEventExecutionContextResolver().read(
+          source: source, base: null, nativeMaps: const {}, files: fixture.files);
+      expect(context.isQualified, isFalse);
+      expect(context.refusals, contains('sourceExecutionWitnessUnavailable'));
+      expect(context.refusals, contains('sourceExecutionConnectionsUnavailable'));
+    });
+
+    test('complete inventories still reject conflicting witness keys before context resolution', () async {
+      final fixture = await _fixture(67, extra: {'Data/CommonEvents.rxdata': literalFixtureMarshal([null])});
+      final original = fixture.snapshot.entries.singleWhere((e) => e.relativePath == 'Data/CommonEvents.rxdata');
+      expect(() => SourceSnapshot(logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
+        policyHash: fixture.snapshot.policyHash,
+        entries: [...fixture.snapshot.entries, SourceFileEntry(fileId: ConverterId('alias-common-events'),
+          relativePath: 'Data/commonevents.rxdata', kind: original.kind,
+          byteLength: original.byteLength, sha256: original.sha256,
+          family: original.family, format: original.format)],
+        diagnostics: fixture.snapshot.diagnostics, excludedPaths: const [],
+        profileEvidence: fixture.snapshot.profileEvidence, state: fixture.snapshot.state),
+        throwsA(isA<ContractError>().having((e) => e.code, 'code', 'source.snapshot_collision')));
+    });
+
+    test('plugin inventory order and exact witness metadata survive repeated contexts', () async {
+      final fixture = await _fixture(67, extra: {
+        'Plugins/Zeta.rb': utf8.encode('reference only'),
+        'Plugins/Alpha.rb': utf8.encode('also reference only'),
+        'Data/PluginScripts.rxdata': literalFixtureMarshal([]),
+      });
+      final profile = SourceInterpretationProfile.fromJson({
+        ...syntheticSourceInterpretationProfile.toJson(), 'customPluginPolicy': 'excludeCustomBehavior'});
+      final source = await variant(fixture, fixture.snapshot.entries, profile: profile);
+      final first = await _context(source, fixture.files);
+      final second = await _context(source, fixture.files);
+      expect(first.isQualified, isTrue, reason: first.refusals.toString());
+      expect(canonicalJsonOf(second.toJson()), canonicalJsonOf(first.toJson()));
+      final proof = first.toJson()['proof'] as Map;
+      final inventory = (proof['excludedCustomBehavior'] as Map)['pluginInventory'] as Map;
+      expect((inventory['entries'] as List).map((e) => e['relativePath']), ['Plugins/Alpha.rb', 'Plugins/Zeta.rb']);
+      for (final witness in (proof['witnesses'] as List).cast<Map>()) {
+        final entry = source.snapshot.entries.singleWhere((entry) => entry.relativePath == witness['relativePath']);
+        expect(witness['sha256'], entry.sha256!.value);
+        expect(witness['byteLength'], entry.byteLength);
+      }
+    });
+
+    test('cancelled context resolution still stops before reading witness bytes', () async {
+      final fixture = await _fixture(67);
+      final source = await _source(fixture);
+      fixture.files.reads.clear();
+      await expectLater(const SourceEventExecutionContextResolver().read(source: source,
+        base: null, nativeMaps: const {}, files: fixture.files,
+        cancellation: ScanCancellation()..cancel()),
+        throwsA(isA<ContractError>().having((e) => e.code, 'code', 'source.cancelled')));
+      expect(fixture.files.reads, isEmpty);
+    });
+  });
+
   group('attested source Surf execution bases', () {
     late LiteralTileFixture fixture;
     late NormalizedSourceProject source;

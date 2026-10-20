@@ -283,6 +283,51 @@ final class SourceEventExecutionContext {
       };
 }
 
+final class _SourceExecutionSnapshotIndex {
+  factory _SourceExecutionSnapshotIndex(SourceSnapshot snapshot,
+      ScanCancellation? cancellation) {
+    final exact = <String, List<SourceFileEntry>>{};
+    final collision = <String, List<SourceFileEntry>>{};
+    final plugins = <SourceFileEntry>[];
+    for (final entry in snapshot.entries) {
+      cancellation?.check();
+      final key = sourcePathCollisionKey(entry.relativePath);
+      exact.putIfAbsent(entry.relativePath, () => []).add(entry);
+      collision.putIfAbsent(key, () => []).add(entry);
+      if (key == 'plugins' || key.startsWith('plugins/')) plugins.add(entry);
+    }
+    cancellation?.check();
+    return _SourceExecutionSnapshotIndex._(snapshot,
+      Map.unmodifiable({for (final e in exact.entries) e.key: List<SourceFileEntry>.unmodifiable(e.value)}),
+      Map.unmodifiable({for (final e in collision.entries) e.key: List<SourceFileEntry>.unmodifiable(e.value)}),
+      List.unmodifiable(plugins),
+      List.unmodifiable(snapshot.excludedPaths.where(_isPluginPath)));
+  }
+
+  _SourceExecutionSnapshotIndex._(this.snapshot, this._exact, this._collision,
+      this.pluginEntries, this.excludedPluginPaths);
+
+  final SourceSnapshot snapshot;
+  final Map<String, List<SourceFileEntry>> _exact, _collision;
+  final List<SourceFileEntry> pluginEntries;
+  final List<String> excludedPluginPaths;
+
+  List<SourceFileEntry> exact(String path) => _exact[path] ?? const [];
+  List<SourceFileEntry> colliding(String path) =>
+      _collision[sourcePathCollisionKey(path)] ?? const [];
+
+  late final Map<String, Object?> pluginInventory = {
+    'entries': [for (final entry in pluginEntries) {
+      'relativePath': entry.relativePath,
+      'kind': entry.kind.name,
+      'byteLength': entry.byteLength,
+      'sha256': entry.sha256?.value,
+    }],
+    'excludedPaths': excludedPluginPaths,
+  };
+  late final Sha256Hash pluginInventoryHash = canonicalHashOf(pluginInventory);
+}
+
 final class SourceEventExecutionContextResolver {
   const SourceEventExecutionContextResolver();
 
@@ -403,6 +448,7 @@ final class SourceEventExecutionContextResolver {
     final witnesses = <String, Map<String, Object?>>{};
     final retained = <String, Future<NormalizedSourceProject>>{};
     final retainedAnalyses = <String, SourceEventAnalysis>{};
+    final snapshotIndex = _SourceExecutionSnapshotIndex(source.snapshot, cancellation);
     for (final identity in {
       ...programs.keys,
       ...routedPrograms.keys,
@@ -448,6 +494,7 @@ final class SourceEventExecutionContextResolver {
           baseCompositionHash: compositionHash,
           baseMutations: baseMutations,
           witnessCache: witnesses,
+          snapshotIndex: snapshotIndex,
           retainedCache: retained,
           retainedAnalysisCache: retainedAnalyses);
     }
@@ -476,8 +523,14 @@ final class SourceEventExecutionContextResolver {
     Map<String, Map<String, Object?>>? witnessCache,
     Map<String, Future<NormalizedSourceProject>>? retainedCache,
     Map<String, SourceEventAnalysis>? retainedAnalysisCache,
+    _SourceExecutionSnapshotIndex? snapshotIndex,
   }) async {
     cancellation?.check();
+    final inventory = snapshotIndex ?? _SourceExecutionSnapshotIndex(source.snapshot, cancellation);
+    if (!identical(inventory.snapshot, source.snapshot)) {
+      throw const NativeWriteException('events.execution.inventory.binding',
+          'Execution witness lookup requires its exact immutable source snapshot');
+    }
     final profile = SourceEventProfile.forProject(source);
     final refusals = <String>{};
     final proof = <String, Object?>{};
@@ -610,21 +663,8 @@ final class SourceEventExecutionContextResolver {
             staticDoorProgram.profileHash != profile.canonicalHash)) {
       refusals.add('sourceStaticDoorProgramBindingInvalid');
     }
-    final pluginInventory = {
-      'entries': [
-        for (final entry in source.snapshot.entries
-            .where((entry) => _isPluginPath(entry.relativePath)))
-          {
-            'relativePath': entry.relativePath,
-            'kind': entry.kind.name,
-            'byteLength': entry.byteLength,
-            'sha256': entry.sha256?.value,
-          }
-      ],
-      'excludedPaths':
-          source.snapshot.excludedPaths.where(_isPluginPath).toList(),
-    };
-    final pluginInventoryHash = canonicalHashOf(pluginInventory);
+    final pluginInventory = inventory.pluginInventory;
+    final pluginInventoryHash = inventory.pluginInventoryHash;
     final customPluginPolicy = source.interpretationProfile?.customPluginPolicy ??
         SourceCustomPluginPolicy.requireAbsent;
     final excludesCustomBehavior =
@@ -639,12 +679,11 @@ final class SourceEventExecutionContextResolver {
     })) {
       refusals.add('sourceExecutionWitnessUnavailable');
     }
-    if (source.snapshot.entries.any((entry) =>
-            _isPluginPath(entry.relativePath) &&
+    if (inventory.pluginEntries.any((entry) =>
             entry.kind != SourceNodeKind.directory &&
             !(excludesCustomBehavior && entry.kind == SourceNodeKind.file &&
                 entry.sha256 != null)) ||
-        source.snapshot.excludedPaths.any(_isPluginPath)) {
+        inventory.excludedPluginPaths.isNotEmpty) {
       refusals.add('sourcePluginInventoryUnsupported');
     }
     if (base == null) {
@@ -767,9 +806,7 @@ final class SourceEventExecutionContextResolver {
     if (!source.connectionsExtracted) {
       refusals.add('sourceExecutionConnectionsUnavailable');
     }
-    final connectionsEntry = source.snapshot.entries
-        .where((entry) => entry.relativePath == 'Data/map_connections.dat')
-        .firstOrNull;
+    final connectionsEntry = inventory.exact('Data/map_connections.dat').firstOrNull;
     final witnesses = <Map<String, Object?>>[];
     for (final expected in {
       'Data/Scripts.rxdata':
@@ -778,30 +815,20 @@ final class SourceEventExecutionContextResolver {
         'Data/PluginScripts.rxdata',
         'Data/CommonEvents.rxdata'
       ])
-        if (source.snapshot.entries.any((entry) =>
-            sourcePathCollisionKey(entry.relativePath) ==
-            sourcePathCollisionKey(path)))
-          path: source.snapshot.entries
-                  .where((entry) => entry.relativePath == path)
-                  .firstOrNull
+        if (inventory.colliding(path).isNotEmpty)
+          path: inventory.exact(path).firstOrNull
                   ?.sha256
                   ?.value ??
               '',
       'Data/map_connections.dat': connectionsEntry?.sha256?.value ?? '',
       for (final id in attestedMapIds.toList()..sort())
-        _mapSourcePath(id): source.snapshot.entries
-                .where((entry) => entry.relativePath == _mapSourcePath(id))
-                .firstOrNull
+        _mapSourcePath(id): inventory.exact(_mapSourcePath(id)).firstOrNull
                 ?.sha256
                 ?.value ??
             '',
     }.entries) {
       cancellation?.check();
-      final matches = source.snapshot.entries
-          .where((entry) =>
-              sourcePathCollisionKey(entry.relativePath) ==
-              sourcePathCollisionKey(expected.key))
-          .toList();
+      final matches = inventory.colliding(expected.key);
       if (matches.length != 1 ||
           matches.single.relativePath != expected.key ||
           matches.single.kind != SourceNodeKind.file ||
