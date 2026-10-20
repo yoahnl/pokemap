@@ -130,8 +130,8 @@ NarrativeEventAuthoringDiagnostic? validateNarrativeEventAuthoringConditions({
   required List<NarrativeEventCondition> conditions,
 }) {
   for (var index = 0; index < conditions.length; index++) {
-    final issue = conditions[index].when<NarrativeEventAuthoringDiagnostic?>(
-      fact: (factId, _) {
+    final issue = conditions[index].whenTyped<NarrativeEventAuthoringDiagnostic?>(
+      fact: (factId, _, _) {
         final resolution = context.catalog.resolveFact(factId);
         return switch (resolution.status) {
           NarrativeEventProjectResolutionStatus.found => null,

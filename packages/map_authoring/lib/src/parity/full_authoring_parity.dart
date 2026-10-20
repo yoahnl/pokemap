@@ -465,6 +465,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
   AuthoringTransport.mcp: '../../tools/pokemap_mcp/src/authoring_client.ts',
 };
 
+const Set<String> _eventV2TransportCertifiedActionIds = <String>{
+  'event_v2.create_draft',
+  'event_v2.record_upsert',
+  'event_v2.record_upsert_batch',
+  'event_v2.registry_mode.set',
+  'event_v2.publish',
+  'event_v2.unpublish',
+  'event_v2.activate',
+  'event_v2.deactivate',
+  'event_v2.delete',
+};
+
 const Set<String> _cin006CertifiedActionIds = <String>{
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
@@ -567,11 +579,12 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/runtime_smoke_profile_stdio.test.ts',
     };
   }
-  if (actionId == 'event_v2.record_upsert_batch') {
+  if (_eventV2TransportCertifiedActionIds.contains(actionId)) {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/event_record_batch_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/narrative/event_record_batch_transport_test.dart',
-      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/event_record_batch_stdio.test.ts',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/event_v2_transport_parity_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/event_v2_transport_parity_stdio.test.ts',
     };
   }
   if (actionId == 'dialogue.source_update' || actionId == 'dialogue.update') {
@@ -1592,7 +1605,7 @@ String _contractTestFor(String actionId) {
   }
   if(actionId=='project.catalog.partition') return 'test/workspace/catalog_partition_action_test.dart';
   if(actionId=='catalog.definition.update') return 'test/catalog_storage/catalog_project_transport_test.dart';
-  if (actionId == 'event_v2.record_upsert_batch') {
+  if (_eventV2TransportCertifiedActionIds.contains(actionId)) {
     return 'test/domains/narrative/event_record_batch_transport_test.dart';
   }
   if (actionId == 'resource_pack.import') {

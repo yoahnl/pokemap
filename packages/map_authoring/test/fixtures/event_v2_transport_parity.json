@@ -1,0 +1,3342 @@
+{
+  "formatVersion": 1,
+  "project": {
+    "name": "Event V2 transport parity",
+    "version": "v8",
+    "maps": [
+      {
+        "id": "port",
+        "name": "Port",
+        "relativePath": "maps/port.json"
+      }
+    ],
+    "tilesets": [],
+    "facts": [
+      {
+        "id": "phase",
+        "label": "Phase du port",
+        "valueType": "int",
+        "defaultValue": 0
+      },
+      {
+        "id": "status",
+        "label": "État du port",
+        "valueType": "string",
+        "defaultValue": "fermé"
+      }
+    ],
+    "scenes": [
+      {
+        "id": "hello",
+        "name": "Rencontre",
+        "graph": {
+          "startNodeId": "start",
+          "nodes": [
+            {
+              "id": "start",
+              "kind": "start"
+            },
+            {
+              "id": "end",
+              "kind": "end"
+            }
+          ],
+          "edges": [
+            {
+              "id": "finish",
+              "fromNodeId": "start",
+              "fromPortId": "completed",
+              "toNodeId": "end",
+              "kind": "default"
+            }
+          ]
+        }
+      }
+    ],
+    "eventRegistry": {
+      "schemaVersion": 1,
+      "mode": "legacyOnly",
+      "records": [],
+      "legacyClaims": []
+    },
+    "pokemon": {
+      "ruleset": {
+        "schemaVersion": 1,
+        "profileId": "pokemap-beta-v1",
+        "typeChartId": "mainline-modern-v1",
+        "maxLevel": 100,
+        "experiencePolicyId": "pokemap-simple-exp-v1",
+        "capturePolicyId": "pokemap-capture-mvp-v1",
+        "moveMachinePolicyId": "authored-consumability-v1",
+        "criticalHitPolicyId": "mainline-gen9-critical",
+        "speedTiePolicyId": "mainline-gen9-seeded-random",
+        "friendshipPolicyId": "mainline-0-255-v1",
+        "evolutionPolicyId": "pokemap-beta-evolution-v1",
+        "disabledFeatures": [
+          "breeding",
+          "double-battles",
+          "modern-gimmicks",
+          "online"
+        ]
+      }
+    }
+  },
+  "maps": [
+    {
+      "relativePath": "maps/port.json",
+      "content": {
+        "id": "port",
+        "name": "Port",
+        "version": "v8",
+        "size": {
+          "width": 6,
+          "height": 6
+        },
+        "layers": [],
+        "entities": [
+          {
+            "id": "guide",
+            "name": "Guide",
+            "kind": "npc",
+            "pos": {
+              "x": 1,
+              "y": 1
+            }
+          }
+        ],
+        "triggers": [
+          {
+            "id": "contact",
+            "name": "Contact",
+            "type": "event",
+            "area": {
+              "pos": {
+                "x": 2,
+                "y": 2
+              },
+              "size": {
+                "width": 1,
+                "height": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "operations": [
+    {
+      "id": "mode",
+      "actionId": "event_v2.registry_mode.set",
+      "parameters": {
+        "mode": "dualRead"
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "create",
+      "actionId": "event_v2.create_draft",
+      "parameters": {
+        "name": "Brouillon du port",
+        "rawUuid": "019abcde-0029-7000-8000-000000000001",
+        "initialSource": {
+          "kind": "entityInteract",
+          "mapId": "port",
+          "entityId": "guide"
+        }
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "draft",
+            "draft": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Brouillon du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [],
+              "priority": 0,
+              "order": 0
+            }
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "upsert",
+      "actionId": "event_v2.record_upsert",
+      "parameters": {
+        "record": {
+          "state": "draft",
+          "draft": {
+            "id": "evt_019abcde-0029-7000-8000-000000000001",
+            "name": "Accueil du port",
+            "source": {
+              "kind": "entityInteract",
+              "mapId": "port",
+              "entityId": "guide"
+            },
+            "conditions": [
+              {
+                "kind": "fact",
+                "factId": "phase",
+                "operator": "greaterThanOrEqual",
+                "valueType": "int",
+                "expectedValue": 2
+              }
+            ],
+            "sceneId": "hello",
+            "reusePolicy": "reusable",
+            "priority": 0,
+            "order": 0
+          }
+        }
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "draft",
+            "draft": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            }
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "publish",
+      "actionId": "event_v2.publish",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "activate",
+      "actionId": "event_v2.activate",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": true
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "deactivate",
+      "actionId": "event_v2.deactivate",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "unpublish",
+      "actionId": "event_v2.unpublish",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "draft",
+            "draft": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            }
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil remplacé",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          },
+          {
+            "state": "draft",
+            "draft": {
+              "id": "evt_019abcde-0029-7000-8000-000000000003",
+              "name": "Annonce à préparer",
+              "conditions": [],
+              "priority": 0,
+              "order": 2
+            }
+          }
+        ]
+      },
+      "confirmation": false,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil remplacé",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "draft",
+            "draft": {
+              "id": "evt_019abcde-0029-7000-8000-000000000003",
+              "name": "Annonce à préparer",
+              "conditions": [],
+              "priority": 0,
+              "order": 2
+            }
+          }
+        ],
+        "legacyClaims": []
+      }
+    },
+    {
+      "id": "delete",
+      "actionId": "event_v2.delete",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000003"
+      },
+      "confirmation": true,
+      "expectedRegistry": {
+        "schemaVersion": 1,
+        "mode": "dualRead",
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil remplacé",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          }
+        ],
+        "legacyClaims": []
+      }
+    }
+  ],
+  "refusals": [
+    {
+      "id": "mode-invalid",
+      "afterOperation": "initial",
+      "actionId": "event_v2.registry_mode.set",
+      "parameters": {
+        "mode": "legacyOnly"
+      },
+      "domainCode": "event_v2.registry_mode_invalid"
+    },
+    {
+      "id": "create-source-missing",
+      "afterOperation": "mode",
+      "actionId": "event_v2.create_draft",
+      "parameters": {
+        "name": "Absent",
+        "rawUuid": "019abcde-0029-7000-8000-000000000009",
+        "initialSource": {
+          "kind": "mapEnter",
+          "mapId": "missing"
+        }
+      },
+      "domainCode": "sourceMissing"
+    },
+    {
+      "id": "publish-incomplete",
+      "afterOperation": "create",
+      "actionId": "event_v2.publish",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "domainCode": "sceneRequired"
+    },
+    {
+      "id": "activate-draft",
+      "afterOperation": "create",
+      "actionId": "event_v2.activate",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "domainCode": "eventNotConfigured"
+    },
+    {
+      "id": "deactivate-draft",
+      "afterOperation": "create",
+      "actionId": "event_v2.deactivate",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000001"
+      },
+      "domainCode": "eventNotConfigured"
+    },
+    {
+      "id": "unpublish-missing",
+      "afterOperation": "create",
+      "actionId": "event_v2.unpublish",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000099"
+      },
+      "domainCode": "eventMissing"
+    },
+    {
+      "id": "upsert-closed-record",
+      "afterOperation": "create",
+      "actionId": "event_v2.record_upsert",
+      "parameters": {
+        "record": {
+          "state": "draft",
+          "draft": {
+            "id": "evt_019abcde-0029-7000-8000-000000000001",
+            "name": "Accueil du port",
+            "source": {
+              "kind": "entityInteract",
+              "mapId": "port",
+              "entityId": "guide"
+            },
+            "conditions": [
+              {
+                "kind": "fact",
+                "factId": "phase",
+                "operator": "greaterThanOrEqual",
+                "valueType": "int",
+                "expectedValue": 2
+              }
+            ],
+            "sceneId": "hello",
+            "reusePolicy": "reusable",
+            "priority": 0,
+            "order": 0
+          },
+          "unexpected": true
+        }
+      },
+      "domainCode": "event_v2.record_invalid"
+    },
+    {
+      "id": "batch-empty",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": []
+      },
+      "domainCode": "event_v2.batch_invalid"
+    },
+    {
+      "id": "batch-oversized",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {}
+        ]
+      },
+      "domainCode": "event_v2.batch_invalid"
+    },
+    {
+      "id": "batch-duplicate",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          }
+        ]
+      },
+      "domainCode": "event_v2.batch_duplicate"
+    },
+    {
+      "id": "batch-invalid-late",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {}
+          }
+        ]
+      },
+      "domainCode": "event_v2.record_invalid"
+    },
+    {
+      "id": "batch-scene-missing",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "missing",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          }
+        ]
+      },
+      "domainCode": "event_v2.validation_failed"
+    },
+    {
+      "id": "batch-contact-missing",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "triggerBump",
+                "mapId": "port",
+                "triggerId": "missing"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "operator": "greaterThanOrEqual",
+                  "valueType": "int",
+                  "expectedValue": 2
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          }
+        ]
+      },
+      "domainCode": "event_v2.source_unavailable"
+    },
+    {
+      "id": "batch-fact-type",
+      "afterOperation": "batch",
+      "actionId": "event_v2.record_upsert_batch",
+      "parameters": {
+        "records": [
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000002",
+              "name": "Ouverture du port",
+              "source": {
+                "kind": "mapEnter",
+                "mapId": "port"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "status",
+                  "operator": "equals",
+                  "valueType": "string",
+                  "expectedValue": "ouvert"
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 1
+            },
+            "enabled": false
+          },
+          {
+            "state": "configured",
+            "definition": {
+              "id": "evt_019abcde-0029-7000-8000-000000000001",
+              "name": "Accueil du port",
+              "source": {
+                "kind": "entityInteract",
+                "mapId": "port",
+                "entityId": "guide"
+              },
+              "conditions": [
+                {
+                  "kind": "fact",
+                  "factId": "phase",
+                  "expectedValue": true
+                }
+              ],
+              "sceneId": "hello",
+              "reusePolicy": "reusable",
+              "priority": 0,
+              "order": 0
+            },
+            "enabled": false
+          }
+        ]
+      },
+      "domainCode": "event_v2.validation_failed"
+    },
+    {
+      "id": "mode-unsafe",
+      "afterOperation": "batch",
+      "actionId": "event_v2.registry_mode.set",
+      "parameters": {
+        "mode": "v2Only"
+      },
+      "domainCode": "event_v2.registry_mode_unsafe"
+    },
+    {
+      "id": "delete-missing",
+      "afterOperation": "delete",
+      "actionId": "event_v2.delete",
+      "parameters": {
+        "eventId": "evt_019abcde-0029-7000-8000-000000000003"
+      },
+      "domainCode": "eventMissing"
+    }
+  ],
+  "expectedActionIds": [
+    "event_v2.registry_mode.set",
+    "event_v2.create_draft",
+    "event_v2.record_upsert",
+    "event_v2.publish",
+    "event_v2.activate",
+    "event_v2.deactivate",
+    "event_v2.unpublish",
+    "event_v2.record_upsert_batch",
+    "event_v2.delete"
+  ],
+  "confirmationDomainCode": "confirmation.required",
+  "staleDomainCode": "plan.stale",
+  "acceptedBatch": [
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000100",
+        "name": "Batch borné 1",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 0
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000101",
+        "name": "Batch borné 2",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 1
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000102",
+        "name": "Batch borné 3",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 2
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000103",
+        "name": "Batch borné 4",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 3
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000104",
+        "name": "Batch borné 5",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 4
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000105",
+        "name": "Batch borné 6",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 5
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000106",
+        "name": "Batch borné 7",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 6
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000107",
+        "name": "Batch borné 8",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 7
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000108",
+        "name": "Batch borné 9",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 8
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000109",
+        "name": "Batch borné 10",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 9
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000110",
+        "name": "Batch borné 11",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 10
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000111",
+        "name": "Batch borné 12",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 11
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000112",
+        "name": "Batch borné 13",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 12
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000113",
+        "name": "Batch borné 14",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 13
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000114",
+        "name": "Batch borné 15",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 14
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000115",
+        "name": "Batch borné 16",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 15
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000116",
+        "name": "Batch borné 17",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 16
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000117",
+        "name": "Batch borné 18",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 17
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000118",
+        "name": "Batch borné 19",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 18
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000119",
+        "name": "Batch borné 20",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 19
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000120",
+        "name": "Batch borné 21",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 20
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000121",
+        "name": "Batch borné 22",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 21
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000122",
+        "name": "Batch borné 23",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 22
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000123",
+        "name": "Batch borné 24",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 23
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000124",
+        "name": "Batch borné 25",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 24
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000125",
+        "name": "Batch borné 26",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 25
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000126",
+        "name": "Batch borné 27",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 26
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000127",
+        "name": "Batch borné 28",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 27
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000128",
+        "name": "Batch borné 29",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 28
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000129",
+        "name": "Batch borné 30",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 29
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000130",
+        "name": "Batch borné 31",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 30
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000131",
+        "name": "Batch borné 32",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 31
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000132",
+        "name": "Batch borné 33",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 32
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000133",
+        "name": "Batch borné 34",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 33
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000134",
+        "name": "Batch borné 35",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 34
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000135",
+        "name": "Batch borné 36",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 35
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000136",
+        "name": "Batch borné 37",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 36
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000137",
+        "name": "Batch borné 38",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 37
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000138",
+        "name": "Batch borné 39",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 38
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000139",
+        "name": "Batch borné 40",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 39
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000140",
+        "name": "Batch borné 41",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 40
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000141",
+        "name": "Batch borné 42",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 41
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000142",
+        "name": "Batch borné 43",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 42
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000143",
+        "name": "Batch borné 44",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 43
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000144",
+        "name": "Batch borné 45",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 44
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000145",
+        "name": "Batch borné 46",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 45
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000146",
+        "name": "Batch borné 47",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 46
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000147",
+        "name": "Batch borné 48",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 47
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000148",
+        "name": "Batch borné 49",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 48
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000149",
+        "name": "Batch borné 50",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 49
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000150",
+        "name": "Batch borné 51",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 50
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000151",
+        "name": "Batch borné 52",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 51
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000152",
+        "name": "Batch borné 53",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 52
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000153",
+        "name": "Batch borné 54",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 53
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000154",
+        "name": "Batch borné 55",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 54
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000155",
+        "name": "Batch borné 56",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 55
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000156",
+        "name": "Batch borné 57",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 56
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000157",
+        "name": "Batch borné 58",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 57
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000158",
+        "name": "Batch borné 59",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 58
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000159",
+        "name": "Batch borné 60",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 59
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000160",
+        "name": "Batch borné 61",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 60
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000161",
+        "name": "Batch borné 62",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 61
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000162",
+        "name": "Batch borné 63",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 62
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000163",
+        "name": "Batch borné 64",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 63
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000164",
+        "name": "Batch borné 65",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 64
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000165",
+        "name": "Batch borné 66",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 65
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000166",
+        "name": "Batch borné 67",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 66
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000167",
+        "name": "Batch borné 68",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 67
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000168",
+        "name": "Batch borné 69",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 68
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000169",
+        "name": "Batch borné 70",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 69
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000170",
+        "name": "Batch borné 71",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 70
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000171",
+        "name": "Batch borné 72",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 71
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000172",
+        "name": "Batch borné 73",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 72
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000173",
+        "name": "Batch borné 74",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 73
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000174",
+        "name": "Batch borné 75",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 74
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000175",
+        "name": "Batch borné 76",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 75
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000176",
+        "name": "Batch borné 77",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 76
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000177",
+        "name": "Batch borné 78",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 77
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000178",
+        "name": "Batch borné 79",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 78
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000179",
+        "name": "Batch borné 80",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 79
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000180",
+        "name": "Batch borné 81",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 80
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000181",
+        "name": "Batch borné 82",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 81
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000182",
+        "name": "Batch borné 83",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 82
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000183",
+        "name": "Batch borné 84",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 83
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000184",
+        "name": "Batch borné 85",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 84
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000185",
+        "name": "Batch borné 86",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 85
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000186",
+        "name": "Batch borné 87",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 86
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000187",
+        "name": "Batch borné 88",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 87
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000188",
+        "name": "Batch borné 89",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 88
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000189",
+        "name": "Batch borné 90",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 89
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000190",
+        "name": "Batch borné 91",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 90
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000191",
+        "name": "Batch borné 92",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 91
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000192",
+        "name": "Batch borné 93",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 92
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000193",
+        "name": "Batch borné 94",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 93
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000194",
+        "name": "Batch borné 95",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 94
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000195",
+        "name": "Batch borné 96",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 95
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000196",
+        "name": "Batch borné 97",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 96
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000197",
+        "name": "Batch borné 98",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 97
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000198",
+        "name": "Batch borné 99",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 98
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000199",
+        "name": "Batch borné 100",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 99
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000200",
+        "name": "Batch borné 101",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 100
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000201",
+        "name": "Batch borné 102",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 101
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000202",
+        "name": "Batch borné 103",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 102
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000203",
+        "name": "Batch borné 104",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 103
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000204",
+        "name": "Batch borné 105",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 104
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000205",
+        "name": "Batch borné 106",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 105
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000206",
+        "name": "Batch borné 107",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 106
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000207",
+        "name": "Batch borné 108",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 107
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000208",
+        "name": "Batch borné 109",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 108
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000209",
+        "name": "Batch borné 110",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 109
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000210",
+        "name": "Batch borné 111",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 110
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000211",
+        "name": "Batch borné 112",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 111
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000212",
+        "name": "Batch borné 113",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 112
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000213",
+        "name": "Batch borné 114",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 113
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000214",
+        "name": "Batch borné 115",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 114
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000215",
+        "name": "Batch borné 116",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 115
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000216",
+        "name": "Batch borné 117",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 116
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000217",
+        "name": "Batch borné 118",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 117
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000218",
+        "name": "Batch borné 119",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 118
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000219",
+        "name": "Batch borné 120",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 119
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000220",
+        "name": "Batch borné 121",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 120
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000221",
+        "name": "Batch borné 122",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 121
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000222",
+        "name": "Batch borné 123",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 122
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000223",
+        "name": "Batch borné 124",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 123
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000224",
+        "name": "Batch borné 125",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 124
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000225",
+        "name": "Batch borné 126",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 125
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000226",
+        "name": "Batch borné 127",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 126
+      },
+      "enabled": false
+    },
+    {
+      "state": "configured",
+      "definition": {
+        "id": "evt_019abcde-0029-7000-8000-000000000227",
+        "name": "Batch borné 128",
+        "source": {
+          "kind": "mapEnter",
+          "mapId": "port"
+        },
+        "conditions": [],
+        "sceneId": "hello",
+        "reusePolicy": "reusable",
+        "priority": 0,
+        "order": 127
+      },
+      "enabled": false
+    }
+  ]
+}

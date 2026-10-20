@@ -5,6 +5,86 @@ import 'support/narrative_event_authoring_fixtures.dart';
 
 void main() {
   group('E3 publication', () {
+    for (final (name, value, operator) in [
+      ('bool', NarrativeValue.boolean(true), NarrativeFactOperator.equals),
+      (
+        'int',
+        NarrativeValue.integer(2),
+        NarrativeFactOperator.greaterThanOrEqual,
+      ),
+      ('string', NarrativeValue.string('ouvert'), NarrativeFactOperator.equals),
+    ]) {
+      test(
+        'publishes and activates $name fact conditions without a boolean cast',
+        () {
+          final condition = name == 'bool'
+              ? NarrativeEventCondition.fact('fact_a', true)
+              : NarrativeEventCondition.factValue(
+                  'fact_a',
+                  expectedValue: value,
+                  operator: operator,
+                );
+          final draft = draftRecord(
+            source: entitySource,
+            conditions: [condition],
+            sceneId: 'scene_a',
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+          );
+          final registry = registryWithRecords([draft]);
+          final facts = [
+            NarrativeEventProjectFactEntry(
+              NarrativeFactDefinition(
+                id: 'fact_a',
+                label: 'Fact typé',
+                initialValue: value,
+              ),
+            ),
+          ];
+          final published = publishNarrativeEvent(
+            context: configuredAuthoringContext(
+              registry: registry,
+              facts: facts,
+            ),
+            expectedRevision: authoringRevision,
+            eventId: eventIdA,
+          );
+          expect(published.status, NarrativeEventAuthoringStatus.applied);
+          expect(published.nextRecord!.enabledOrNull, isFalse);
+          expect(published.nextRecord!.definitionOrNull!.conditions, [
+            condition,
+          ]);
+          final active = activateNarrativeEvent(
+            context: configuredAuthoringContext(
+              registry: published.nextRegistry!,
+              facts: facts,
+            ),
+            expectedRevision: authoringRevision,
+            eventId: eventIdA,
+          );
+          expect(active.status, NarrativeEventAuthoringStatus.applied);
+          expect(active.nextRecord!.enabledOrNull, isTrue);
+          expect(
+            active
+                .nextRecord!
+                .definitionOrNull!
+                .conditions
+                .single
+                .expectedNarrativeValue,
+            value,
+          );
+          final missing = publishNarrativeEvent(
+            context: configuredAuthoringContext(
+              registry: registry,
+              facts: const [],
+            ),
+            expectedRevision: authoringRevision,
+            eventId: eventIdA,
+          );
+          expect(missing.rejectionCode, 'factMissing');
+          expect(registry.records.single, draft);
+        },
+      );
+    }
     test('publishes a complete draft as configured disabled', () {
       final claim = authoringClaim();
       final draft = draftRecord(
@@ -31,8 +111,10 @@ void main() {
       expect(result.nextRecord!.definitionOrNull, isNotNull);
       expect(result.nextRecord!.enabledOrNull, isFalse);
       expect(result.nextRecord!.definitionOrNull!.id, eventIdA);
-      expect(result.nextRecord!.definitionOrNull!.conditions,
-          draft.draftOrNull!.conditions);
+      expect(
+        result.nextRecord!.definitionOrNull!.conditions,
+        draft.draftOrNull!.conditions,
+      );
       expect(result.nextRegistry!.mode, EventSystemMode.dualRead);
       expect(result.nextRegistry!.legacyClaims, [claim]);
       expect(registry.records.single, draft);
@@ -49,24 +131,27 @@ void main() {
       }
 
       expect(
-        apply(draftRecord(
-          sceneId: 'scene_a',
-          reusePolicy: NarrativeEventReusePolicy.oneShot,
-        )).rejectionCode,
+        apply(
+          draftRecord(
+            sceneId: 'scene_a',
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+          ),
+        ).rejectionCode,
         'sourceRequired',
       );
       expect(
-        apply(draftRecord(
-          source: entitySource,
-          reusePolicy: NarrativeEventReusePolicy.oneShot,
-        )).rejectionCode,
+        apply(
+          draftRecord(
+            source: entitySource,
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+          ),
+        ).rejectionCode,
         'sceneRequired',
       );
       expect(
-        apply(draftRecord(
-          source: entitySource,
-          sceneId: 'scene_a',
-        )).rejectionCode,
+        apply(
+          draftRecord(source: entitySource, sceneId: 'scene_a'),
+        ).rejectionCode,
         'reusePolicyRequired',
       );
     });
@@ -107,8 +192,10 @@ void main() {
         ).rejectionCode,
         'sourceMissing',
       );
-      expect(apply(record: complete, scenes: const []).rejectionCode,
-          'sceneMissing');
+      expect(
+        apply(record: complete, scenes: const []).rejectionCode,
+        'sceneMissing',
+      );
       expect(
         apply(
           record: draftRecord(
@@ -137,74 +224,80 @@ void main() {
       );
     });
 
-    test('rejects a projected dependency cycle and blocking catalog errors',
-        () {
-      final draft = draftRecord(
-        source: entitySource,
-        conditions: [
-          NarrativeEventCondition.narrativeEventConsumed(eventIdB, true),
-        ],
-        sceneId: 'scene_a',
-        reusePolicy: NarrativeEventReusePolicy.oneShot,
-      );
-      final eventB = configuredRecord(
-        id: eventIdB,
-        conditions: [
-          NarrativeEventCondition.narrativeEventConsumed(eventIdA, true),
-        ],
-      );
-      final registry = registryWithRecords([draft, eventB]);
-      final cycle = publishNarrativeEvent(
-        context: configuredAuthoringContext(registry: registry),
-        expectedRevision: authoringRevision,
-        eventId: eventIdA,
-      );
-      expect(cycle.rejectionCode, 'eventDependencyCycle');
-
-      final diagnostic = NarrativeEventProjectDiagnostic(
-        code: 'duplicateSceneId',
-        severity: NarrativeEventProjectDiagnosticSeverity.error,
-        message: 'Projet ambigu.',
-        path: 'scenes.other',
-      );
-      final blocked = publishNarrativeEvent(
-        context: configuredAuthoringContext(
-          registry: registryWithRecords([
-            draftRecord(
-              source: entitySource,
-              sceneId: 'scene_a',
-              reusePolicy: NarrativeEventReusePolicy.oneShot,
-            )
-          ]),
-          diagnostics: [diagnostic],
-        ),
-        expectedRevision: authoringRevision,
-        eventId: eventIdA,
-      );
-      expect(blocked.rejectionCode, 'catalogBlocked');
-    });
-
-    test('never combines publication with activation or filesystem effects',
-        () {
-      final registry = registryWithRecords([
-        draftRecord(
+    test(
+      'rejects a projected dependency cycle and blocking catalog errors',
+      () {
+        final draft = draftRecord(
           source: entitySource,
+          conditions: [
+            NarrativeEventCondition.narrativeEventConsumed(eventIdB, true),
+          ],
           sceneId: 'scene_a',
-          reusePolicy: NarrativeEventReusePolicy.reusable,
-        ),
-      ]);
-      final result = publishNarrativeEvent(
-        context: configuredAuthoringContext(registry: registry),
-        expectedRevision: authoringRevision,
-        eventId: eventIdA,
-      );
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+        );
+        final eventB = configuredRecord(
+          id: eventIdB,
+          conditions: [
+            NarrativeEventCondition.narrativeEventConsumed(eventIdA, true),
+          ],
+        );
+        final registry = registryWithRecords([draft, eventB]);
+        final cycle = publishNarrativeEvent(
+          context: configuredAuthoringContext(registry: registry),
+          expectedRevision: authoringRevision,
+          eventId: eventIdA,
+        );
+        expect(cycle.rejectionCode, 'eventDependencyCycle');
 
-      expect(result.nextRecord!.enabledOrNull, isFalse);
-      expect(result.mutation, NarrativeEventAuthoringMutation.publish);
-      expect(result.undoable, isTrue);
-      expect(result.nextRecord!.toJson().keys,
-          unorderedEquals(['state', 'definition', 'enabled']));
-    });
+        final diagnostic = NarrativeEventProjectDiagnostic(
+          code: 'duplicateSceneId',
+          severity: NarrativeEventProjectDiagnosticSeverity.error,
+          message: 'Projet ambigu.',
+          path: 'scenes.other',
+        );
+        final blocked = publishNarrativeEvent(
+          context: configuredAuthoringContext(
+            registry: registryWithRecords([
+              draftRecord(
+                source: entitySource,
+                sceneId: 'scene_a',
+                reusePolicy: NarrativeEventReusePolicy.oneShot,
+              ),
+            ]),
+            diagnostics: [diagnostic],
+          ),
+          expectedRevision: authoringRevision,
+          eventId: eventIdA,
+        );
+        expect(blocked.rejectionCode, 'catalogBlocked');
+      },
+    );
+
+    test(
+      'never combines publication with activation or filesystem effects',
+      () {
+        final registry = registryWithRecords([
+          draftRecord(
+            source: entitySource,
+            sceneId: 'scene_a',
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+          ),
+        ]);
+        final result = publishNarrativeEvent(
+          context: configuredAuthoringContext(registry: registry),
+          expectedRevision: authoringRevision,
+          eventId: eventIdA,
+        );
+
+        expect(result.nextRecord!.enabledOrNull, isFalse);
+        expect(result.mutation, NarrativeEventAuthoringMutation.publish);
+        expect(result.undoable, isTrue);
+        expect(
+          result.nextRecord!.toJson().keys,
+          unorderedEquals(['state', 'definition', 'enabled']),
+        );
+      },
+    );
 
     test('unpublish then publish preserves the complete definition', () {
       final original = configuredRecord(
@@ -233,7 +326,9 @@ void main() {
       );
 
       expect(
-          republished.nextRecord!.definitionOrNull, original.definitionOrNull);
+        republished.nextRecord!.definitionOrNull,
+        original.definitionOrNull,
+      );
       expect(republished.nextRecord!.enabledOrNull, isFalse);
     });
   });
