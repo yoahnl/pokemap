@@ -11,11 +11,11 @@ import 'lot6_source_decision_refresh.dart';
 import 'lot6_routed_door_patterns.dart';
 
 Future<void> main(List<String> args) async {
-  if (args.length < 2 || args.length > 3 || !const {'world', 'full'}.contains(args[1])) {
-    throw ArgumentError('Provide an unused absolute evidence directory, world or full, and an optional destination folder name.');
+  if (args.length < 2 || args.length > 4 || !const {'world', 'full'}.contains(args[1])) {
+    throw ArgumentError('Provide an unused absolute evidence directory, world or full, an optional destination folder name and an optional canonical QA parent.');
   }
   final contentScope = ConverterContentScope.values.byName(args[1]);
-  final folderName = args.length == 3 ? args[2] : contentScope == ConverterContentScope.world
+  final folderName = args.length >= 3 ? args[2] : contentScope == ConverterContentScope.world
       ? 'Kanto — Monde explorable'
       : 'Kanto complet — EV10';
   if (folderName.isEmpty || folderName.trim() != folderName ||
@@ -23,6 +23,19 @@ Future<void> main(List<String> args) async {
       folderName.contains('/') || folderName.contains(r'\') ||
       folderName.contains('\u0000') || path.isAbsolute(folderName)) {
     throw ArgumentError('The destination must be one nonempty folder name.');
+  }
+  const projectRoot = '/Users/karim/Project/avelune project';
+  const qaRoot = '$projectRoot/Inventaires/Kanto EV-10/lot6/execution/QA';
+  final parentPath = args.length == 4 ? args[3] : projectRoot;
+  if (!path.isAbsolute(parentPath) || path.normalize(parentPath) != parentPath ||
+      args.length == 4 && parentPath != qaRoot && !path.isWithin(qaRoot, parentPath)) {
+    throw ArgumentError('An explicit alternate destination must stay under the canonical QA root.');
+  }
+  final parent = Directory(parentPath);
+  if (await parent.resolveSymbolicLinks() != parent.path ||
+      await FileSystemEntity.type(path.join(parent.path, folderName),
+          followLinks: false) != FileSystemEntityType.notFound) {
+    throw StateError('The final destination must be fresh and canonical');
   }
   final evidence = Directory(args.first);
   const evidenceParent = '/Users/karim/Project/avelune project/Inventaires/Kanto EV-10/lot6';
@@ -95,7 +108,7 @@ Future<void> main(List<String> args) async {
     'aiSourceInferenceCalls': 0,
     'contentScope': contentScope.name,
     'finalPlayableCertified': false,
-    'projectPath': '/Users/karim/Project/avelune project/$folderName',
+    'projectPath': path.join(parent.path, folderName),
   };
   Future<void> save() => File('${evidence.path}/delivery.json')
       .writeAsString(jsonEncode(result), flush: true);
@@ -150,7 +163,6 @@ Future<void> main(List<String> args) async {
       await File('${evidence.path}/refreshed-source-decisions.json').writeAsString(jsonEncode(decisions), flush: true);
       await save();
     }
-    final parent = Directory('/Users/karim/Project/avelune project');
     if (await parent.resolveSymbolicLinks() != parent.path ||
         await FileSystemEntity.type('${parent.path}/$folderName',
                 followLinks: false) !=
