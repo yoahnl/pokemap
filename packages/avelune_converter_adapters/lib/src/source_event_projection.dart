@@ -191,6 +191,23 @@ NarrativeFactDefinition _nativeIntegerFact(String sourceId) =>
 String sourceEventIntegerVariableBindingId(String sourceVariableId) =>
     _nativeIntegerFact(sourceVariableId).id;
 
+NarrativeFactDefinition _nativeTextFact(String sourceId) =>
+    addNarrativeFact(const ProjectManifest(name: 'Source event projection', maps: [], tilesets: []),
+        label: 'Source variable ${canonicalHashOf({'sourceVariableId': sourceId}).value.substring(0, 24)}',
+        description: 'Persistent source text: $sourceId',
+        category: 'Source variables', initialValue: NarrativeValue.string(''),
+        tags: ['sourceImported']).createdFact;
+
+void _requireSourceTextVariablePrograms(NormalizedSourceProject source,
+    Map<int, SourceIntroProgram> programs) {
+  if (programs.entries.any((entry) => entry.key != entry.value.nameVariableId ||
+      entry.value.sourceSnapshotHash != source.snapshot.canonicalHash ||
+      entry.value.interpretationProfileHash != source.interpretationProfile?.canonicalHash)) {
+    throw const NativeWriteException('events.text_variable.binding',
+        'Text variables require an exact attested source and interpretation profile.');
+  }
+}
+
 final class SourceEventCharacterBinding {
   const SourceEventCharacterBinding(
       {required this.characterId,
@@ -276,6 +293,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    Map<int, SourceIntroProgram> textVariablePrograms = const {},
     Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
     Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
@@ -295,6 +313,7 @@ final class SourceEventProjector {
     NativeWriteLimits limits = const NativeWriteLimits(),
   }) {
     limits.validate();
+    _requireSourceTextVariablePrograms(source, textVariablePrograms);
     if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
         analysis.profile.normalizationHash != source.canonicalHash) {
       throw const NativeWriteException('events.source.binding',
@@ -303,7 +322,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority);
+        portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -330,6 +349,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    Map<int, SourceIntroProgram> textVariablePrograms = const {},
     Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
       Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
@@ -348,6 +368,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEventExecutionContext> elevatorContexts = const {},
       NativeWriteLimits limits = const NativeWriteLimits()}) {
     limits.validate();
+    _requireSourceTextVariablePrograms(source, textVariablePrograms);
     if (analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
         analysis.profile.normalizationHash != source.canonicalHash) {
       throw const NativeWriteException('events.source.binding',
@@ -369,7 +390,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority)
+            portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms)
         .build();
   }
 }
@@ -647,7 +668,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
       this.portraitBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
-      {required SourceTransferProgramAuthority transferAuthority})
+      {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
@@ -819,6 +840,11 @@ final class _ProjectionBuilder {
   final scenes = <SceneAsset>[];
   final cinematics = <CinematicAsset>[];
   final Map<ConverterId, SourcePortraitBinding> portraitBindings;
+  final Map<int, SourceIntroProgram> textVariablePrograms;
+  bool _isTextVariable(String id) => textVariablePrograms.keys.any((variable) =>
+      id == 'source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable');
+  NarrativeFactDefinition _sourceVariableFact(String id) =>
+      _isTextVariable(id) ? _nativeTextFact(id) : _nativeIntegerFact(id);
   final Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings;
 
   SourceDecorativePokemonBinding? _decorativePokemonBinding(SourceEventDefinition event) {
@@ -4109,6 +4135,9 @@ final class _ProjectionBuilder {
         }
       case SourceEventConditionKind.variableComparison:
       case SourceEventConditionKind.variableAtLeast:
+        if (textVariablePrograms.containsKey(condition.variableId)) {
+          gaps.add('sourceTextVariableUsedAsInteger');
+        }
         break;
       case SourceEventConditionKind.tempSwitch:
         break;
@@ -4162,9 +4191,10 @@ final class _ProjectionBuilder {
           _conditionGaps(event, condition, gaps);
           _blockGaps(event, whenTrue, gaps, checkCharacterBindings: checkCharacterBindings);
           _blockGaps(event, whenFalse, gaps, checkCharacterBindings: checkCharacterBindings);
+        case SourceVariableSetNode(:final factIds):
+        case SourceVariableAdjustNode(:final factIds):
+          if (factIds.any(_isTextVariable)) gaps.add('sourceTextVariableUsedAsInteger');
         case SourceAnnotationNode():
-        case SourceVariableSetNode():
-        case SourceVariableAdjustNode():
         case SourceExitEventNode():
           break;
         case SourceSwitchNode():
@@ -4504,7 +4534,7 @@ final class _ProjectionBuilder {
     final warpTile = warpTilePrograms.programs[event.identity];
     if (warpTile != null) {
       for (final id in _warpTileFactIds(event)) {
-        factsById.putIfAbsent(id, () => id.contains(':variable:') ? _nativeIntegerFact(id) : _nativeFact(id));
+        factsById.putIfAbsent(id, () => id.contains(':variable:') ? _sourceVariableFact(id) : _nativeFact(id));
       }
     }
     if (_isHealingDisplayFamily(event)) {
@@ -4572,7 +4602,7 @@ final class _ProjectionBuilder {
     }
     for (final id in factIds) {
       factsById.putIfAbsent(id, () => id.startsWith('source:${source.snapshot.logicalProjectNamespace.value}:variable:')
-          ? _nativeIntegerFact(id) : _nativeFact(id));
+          ? _sourceVariableFact(id) : _nativeFact(id));
     }
     final map = maps[event.sourceMapId]!;
     final entityId = _key(event, 'anchor');

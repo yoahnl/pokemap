@@ -25,6 +25,7 @@ import 'source_event_sound_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_dialogue_text.dart';
 import 'source_sequence_program.dart';
+import 'source_intro_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_character_presentation_binding.dart';
 import 'source_event_item_bindings.dart';
@@ -156,6 +157,23 @@ final class SourceEventStudyComposer {
 
     final transferAuthority = SourceTransferProgramAuthority.forSource(source);
     final analysis = transferAuthority.analysis;
+    Iterable<String> dialogueParameters(Object? value) sync* {
+      if (value is String) yield value;
+      if (value is List) {
+        for (final child in value) { yield* dialogueParameters(child); }
+      }
+    }
+    final referencedVariables = <int>{
+      for (final map in source.maps)
+        for (final event in map.map.events)
+          for (final page in event.pages)
+            for (final command in page.commands.where((command) => const {101,401,102,402}.contains(command.code)))
+              for (final text in dialogueParameters(command.parameters))
+                ...sourceDialogueVariableIds(text)
+    };
+    final textVariablePrograms = await const SourceIntroBindingResolver().readTextVariables(
+        source: source, files: recording, referencedVariableIds: referencedVariables,
+        cancellation: cancellation);
     final selectedEvents = analysis.events
         .where((event) => nativeMaps.containsKey(event.sourceMapId))
         .toList();
@@ -558,6 +576,7 @@ final class SourceEventStudyComposer {
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
             portraitBindings: portraitBindings,
+            textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
             cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
             healingDisplayBinding: healingDisplay,
@@ -654,6 +673,7 @@ final class SourceEventStudyComposer {
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
         portraitBindings: portraitBindings,
+            textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
         cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
         healingDisplayBinding: healingDisplay,
@@ -1033,6 +1053,7 @@ final class SourceEventStudyComposer {
       'profile': profile.toJson(),
       'projection': projection.semanticEvidence,
       'characters': characterEvidence,
+      'textVariablePrograms': [for (final entry in textVariablePrograms.entries) entry.value.toJson()],
       'decorativePokemonBindings': decorativePokemonEvidence,
       'portraitBindings': [
         ...portraitEvidence,
