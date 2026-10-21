@@ -471,7 +471,7 @@ Future<NormalizedSourceProject> _events(List<_RubyObject> pages,
         .dump(_RubyObject('RPG::System', {'@switches': switches,
           '@variables': variables ?? List.filled(128, '')}));
   }
-  return _normalize(_source(data), includeEventSystem: includeSystem, interpretationProfile: interpretationProfile);
+  return _normalize(_source(data), includeEventSystem: includeSystem, interpretationProfile: interpretationProfile ?? (attestedScripts ? fixtureSourceInterpretationProfile : null));
 }
 
 SourceEventAnalyzer _analyzer(NormalizedSourceProject project,

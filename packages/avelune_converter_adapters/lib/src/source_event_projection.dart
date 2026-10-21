@@ -1262,6 +1262,7 @@ final class _ProjectionBuilder {
 
   SourceEventProjection build() {
     _prepareVariableWriterAudit(checkCharacterBindings: true);
+    _selfSwitchQualificationProofs.clear();
     final events =
         analysis.events.where((e) => maps.containsKey(e.sourceMapId)).toList()
           ..sort((a, b) {
