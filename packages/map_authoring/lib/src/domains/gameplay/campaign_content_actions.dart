@@ -142,6 +142,8 @@ final class CampaignContentInspector {
 final class CampaignContentActions {
   const CampaignContentActions();
 
+  static const maxTrainerBatchSize = 512;
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     for (final kind in CampaignContentKind.values) ...[
       _descriptor(
@@ -157,6 +159,10 @@ final class CampaignContentActions {
       ),
     ],
     _descriptor(
+      'campaign.trainer.upsert_batch',
+      'Create or update a bounded atomic batch of trainer definitions',
+    ),
+    _descriptor(
       'campaign.new_game.update',
       'Replace the validated project New Game configuration',
     ),
@@ -169,7 +175,16 @@ final class CampaignContentActions {
     late final String path;
     Object? before;
     Object? after;
-    if (actionId == 'campaign.new_game.update') {
+    if (actionId == 'campaign.trainer.upsert_batch') {
+      final values = _decodeTrainerBatch(parameters);
+      before = context.snapshot.manifest.trainers
+          .map((value) => value.toJson())
+          .toList();
+      projected = upsertTrainerBatch(context.snapshot.manifest,
+          values: values, itemCatalog: context.snapshot.itemCatalog);
+      after = projected.trainers.map((value) => value.toJson()).toList();
+      path = '/trainers';
+    } else if (actionId == 'campaign.new_game.update') {
       _rejectUnknown(parameters, const {'newGame'});
       final value =
           ProjectNewGameConfig.fromJson(_object(parameters, 'newGame'));
@@ -263,6 +278,39 @@ final class CampaignContentActions {
     return _validated(projected);
   }
 
+  ProjectManifest upsertTrainerBatch(
+    ProjectManifest project, {
+    required List<ProjectTrainerEntry> values,
+    ProjectItemCatalog? itemCatalog,
+  }) {
+    if (values.isEmpty || values.length > maxTrainerBatchSize) {
+      throw const ValidationException(
+          'A trainer batch requires 1 to 512 values.',
+          code: 'trainer.batch_invalid');
+    }
+    final replacements = <String, ProjectTrainerEntry>{};
+    for (var index = 0; index < values.length; index++) {
+      final trainer = values[index];
+      if (replacements.containsKey(trainer.id)) {
+        throw ValidationException('Trainer batch identities must be unique.',
+            code: 'trainer.batch_duplicate_id',
+            details: {'index': index, 'trainerId': trainer.id});
+      }
+      replacements[trainer.id] = trainer;
+    }
+    ProjectValidator.validateTrainerBallItemReferences(values,
+        itemCatalog: itemCatalog);
+    ProjectValidator.validateTrainerBattleItemReferences(values,
+        itemCatalog: itemCatalog);
+    final existingIds = project.trainers.map((trainer) => trainer.id).toSet();
+    return _validated(project.copyWith(trainers: [
+      for (final trainer in project.trainers)
+        replacements[trainer.id] ?? trainer,
+      for (final trainer in values)
+        if (!existingIds.contains(trainer.id)) trainer,
+    ]));
+  }
+
   ProjectManifest delete(
     ProjectManifest project,
     CampaignContentKind kind,
@@ -333,10 +381,29 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'campaignContent'],
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      extensions: id == 'campaign.trainer.upsert'
+      extensions: const {
+        'campaign.trainer.upsert',
+        'campaign.trainer.upsert_batch'
+      }.contains(id)
           ? {
+              if (id == 'campaign.trainer.upsert_batch') ...{
+                'batch': {
+                  'minValues': 1,
+                  'maxValues': CampaignContentActions.maxTrainerBatchSize,
+                  'uniqueBy': 'id',
+                  'semantics': 'createOrUpdate',
+                  'atomic': true,
+                },
+                'values': {
+                  'type': 'array',
+                  'minItems': 1,
+                  'maxItems': CampaignContentActions.maxTrainerBatchSize,
+                  'uniqueBy': 'id'
+                },
+              },
               'trainerBattleFormat': {
-                'field': 'value.battleFormat',
+                'field':
+                    '${id.endsWith('_batch') ? 'values[]' : 'value'}.battleFormat',
                 'values': ['singles', 'doubles'],
                 'default': 'singles',
                 'doublesTeamSize': {'min': 2, 'max': 6},
@@ -348,9 +415,9 @@ AuthoringActionDescriptor _descriptor(
               },
               'trainerPokemonStats': {
                 'fields': [
-                  'value.team[].natureId',
-                  'value.team[].ivs',
-                  'value.team[].evs'
+                  '${id.endsWith('_batch') ? 'values[]' : 'value'}.team[].natureId',
+                  '${id.endsWith('_batch') ? 'values[]' : 'value'}.team[].ivs',
+                  '${id.endsWith('_batch') ? 'values[]' : 'value'}.team[].evs'
                 ],
                 'standard': {
                   'natureId': standardTrainerPokemonNatureId,
@@ -363,14 +430,16 @@ AuthoringActionDescriptor _descriptor(
                 'previewResourceKind': 'trainerPokemonStats',
               },
               'trainerBattleItems': {
-                'field': 'value.battleItems',
+                'field':
+                    '${id.endsWith('_batch') ? 'values[]' : 'value'}.battleItems',
                 'maxDistinctItems': 16,
                 'quantity': {'min': 1, 'max': 99, 'integer': true},
                 'supportedEffects': ['heal_hp', 'cure_status'],
                 'stockScope': 'perBattle',
               },
               'trainerPokemonBall': {
-                'field': 'value.team[].ballItemId',
+                'field':
+                    '${id.endsWith('_batch') ? 'values[]' : 'value'}.team[].ballItemId',
                 'defaultPolicy': 'none',
                 'referenceKind': 'itemDefinition',
                 'requiredCapability': 'capture',
@@ -416,6 +485,38 @@ Object _decode(CampaignContentKind kind, Map<String, dynamic> json) =>
       CampaignContentKind.trainer => _trainerFromJson(json),
       CampaignContentKind.character => ProjectCharacterEntry.fromJson(json),
     };
+
+List<ProjectTrainerEntry> _decodeTrainerBatch(Map<String, Object?> parameters) {
+  final values = parameters['values'];
+  if (parameters.length != 1 ||
+      values is! List ||
+      values.isEmpty ||
+      values.length > CampaignContentActions.maxTrainerBatchSize) {
+    throw const ValidationException(
+        'A trainer batch requires only 1 to 512 values.',
+        code: 'trainer.batch_invalid');
+  }
+  final decoded = <ProjectTrainerEntry>[];
+  for (var index = 0; index < values.length; index++) {
+    final value = values[index];
+    try {
+      if (value is! Map) {
+        throw const FormatException('A trainer must be an object.');
+      }
+      decoded.add(_trainerFromJson(Map<String, dynamic>.from(value)));
+    } on FormatException {
+      throw ValidationException('The batch contains an invalid trainer.',
+          code: 'trainer.batch_entry_invalid', details: {'index': index});
+    } on TypeError {
+      throw ValidationException('The batch contains an invalid trainer.',
+          code: 'trainer.batch_entry_invalid', details: {'index': index});
+    } on ArgumentError {
+      throw ValidationException('The batch contains an invalid trainer.',
+          code: 'trainer.batch_entry_invalid', details: {'index': index});
+    }
+  }
+  return decoded;
+}
 
 ProjectTrainerEntry _trainerFromJson(Map<String, dynamic> json) {
   if (json.containsKey('battleFormat')) {

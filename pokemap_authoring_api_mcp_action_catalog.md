@@ -2346,6 +2346,13 @@ item.simulate
 
 ### 17.4 Trainers et personnages
 
+`campaign.trainer.upsert_batch` applique atomiquement de 1 à 512 définitions
+dans `values`, avec des IDs uniques. Les remplacements gardent leur position et
+les nouveaux trainers suivent l’ordre du lot. Les références aux Balls et au
+stock de combat sont validées avant toute écriture ; révision, rejeu et undo
+portent sur une seule transaction. Le CRUD unitaire reste l’outil d’édition
+guidée ; ce lot ne crée pas de nouvelle interface de maintenance dans Studio.
+
 Le stock de soins adverse de L21a utilise l’action canonique
 `campaign.trainer.upsert`, via `value.battleItems` : un dictionnaire d’IDs exacts
 du catalogue d’objets vers des quantités entières de 1 à 99, avec 16 objets
