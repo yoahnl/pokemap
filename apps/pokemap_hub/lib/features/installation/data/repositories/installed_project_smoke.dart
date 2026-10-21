@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -14,18 +15,29 @@ Future<void> loadInstalledProjectSmoke(
   final projectFile = File(
     p.join(stagedVersionRoot.path, 'project', 'project.json'),
   );
-  final project = await loadProjectManifestFromFile(projectFile.path);
-  final mapId = project.newGame.enabled
-      ? project.newGame.startMapId
-      : project.maps.firstOrNull?.id;
-  if (mapId == null || mapId.trim().isEmpty) {
-    throw const FormatException('Installed game has no launchable map.');
+  final RuntimeProjectCatalog catalog;
+  try {
+    catalog = await RuntimeProjectCatalog.open(projectFile.path);
+  } on Object catch (error) {
+    throw ProjectLoadException('Failed to load project: $error');
   }
-  final bundle = await loadRuntimeMapBundle(
-    projectFilePath: projectFile.path,
-    mapId: mapId,
-  );
-  if (bundle.manifest.version.name != manifest.compatibility.projectFormat) {
-    throw const FormatException('Installed project format changed on load.');
+  try {
+    final project = catalog.projectMetadata;
+    final mapId = project.newGame.enabled
+        ? project.newGame.startMapId
+        : project.maps.firstOrNull?.id;
+    if (mapId == null || mapId.trim().isEmpty) {
+      throw const FormatException('Installed game has no launchable map.');
+    }
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFile.path,
+      mapId: mapId,
+      projectCatalog: catalog,
+    );
+    if (bundle.manifest.version.name != manifest.compatibility.projectFormat) {
+      throw const FormatException('Installed project format changed on load.');
+    }
+  } finally {
+    catalog.dispose();
   }
 }

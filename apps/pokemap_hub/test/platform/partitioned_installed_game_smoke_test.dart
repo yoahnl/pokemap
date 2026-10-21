@@ -109,6 +109,37 @@ void main() {
     await loadInstalledProjectSmoke(staged, built.manifest);
   });
 
+  test('installed smoke loads only the initial map definition closure', () async {
+    final built = _build();
+    final staged = await _stage(built);
+    final publication = PortableCatalogPublication.encodeProject(
+      _project.copyWith(
+        tilesets: [
+          for (var i = 0; i < 64; i++)
+            ProjectTilesetEntry(
+              id: 'unused-$i',
+              name: 'Unused $i',
+              relativePath: 'assets/unused-$i.png',
+            ),
+        ],
+      ),
+    );
+    await _projectFile(staged).writeAsString(jsonEncode(publication.descriptor));
+    for (final object in publication.storage.objects.entries) {
+      final decoded = jsonDecode(utf8.decode(object.value)) as Map;
+      if (decoded['key'] case {'id': 'unused-63'}) continue;
+      final file = File(
+        p.join(staged.path, 'project/catalog/objects/${object.key}.json'),
+      );
+      await file.writeAsBytes(object.value);
+    }
+    await expectLater(
+      loadProjectManifestFromFile(_projectFile(staged).path),
+      throwsA(isA<ProjectLoadException>()),
+    );
+    await loadInstalledProjectSmoke(staged, built.manifest);
+  });
+
   test(
     'real Hub bootstrap prepares and preloads the partitioned installed game',
     () async {

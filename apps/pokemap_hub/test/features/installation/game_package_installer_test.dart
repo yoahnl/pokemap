@@ -443,10 +443,11 @@ void main() {
         source: GamePackageInstallSource.localFile,
       );
 
+      final smokeError = StateError('smoke failed');
       final failing = installer(
         smoke: (_, manifest) async {
           if (manifest.gameVersion.toString() == '2.0.0') {
-            throw StateError('smoke failed');
+            throw smokeError;
           }
         },
       );
@@ -457,11 +458,14 @@ void main() {
           mode: GamePackageActivationMode.update,
         ),
         throwsA(
-          isA<GameInstallationException>().having(
-            (error) => error.diagnostic.code,
-            'code',
-            GameInstallationErrorCode.smokeFailed,
-          ),
+          isA<GameInstallationException>()
+              .having(
+                (error) => error.diagnostic.code,
+                'code',
+                GameInstallationErrorCode.smokeFailed,
+              )
+              .having((error) => error.cause, 'cause', same(smokeError))
+              .having((error) => error.stackTrace, 'stackTrace', isNotNull),
         ),
       );
 
@@ -488,11 +492,18 @@ void main() {
             smokeTimeout: const Duration(milliseconds: 10),
           ).install(package, source: GamePackageInstallSource.localFile),
           throwsA(
-            isA<GameInstallationException>().having(
-              (error) => error.diagnostic.code,
-              'code',
-              GameInstallationErrorCode.smokeFailed,
-            ),
+            isA<GameInstallationException>()
+                .having(
+                  (error) => error.diagnostic.code,
+                  'code',
+                  GameInstallationErrorCode.smokeFailed,
+                )
+                .having(
+                  (error) => error.cause,
+                  'cause',
+                  isA<TimeoutException>(),
+                )
+                .having((error) => error.stackTrace, 'stackTrace', isNotNull),
           ),
         );
 
