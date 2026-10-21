@@ -42,6 +42,19 @@ void main() {
           projectFile,
           'preset',
         );
+        final expectedRecovery = PlayerRecoveryPoint(
+          mapId: home.id,
+          position: const GridPos(x: 9, y: 7),
+          facing: EntityFacing.north,
+        );
+        final recoveredFact = manifest.facts.singleWhere(
+          (fact) => fact.id == manifest.defeatRecovery!.recoveredFactId,
+        );
+        NarrativeValue recoveryMarker(GameState state) =>
+            state.narrativeFactRuntimeState.valueFor(recoveredFact.id) ??
+            recoveredFact.initialValue;
+        expect(PlayerRecoveryPoint.tryRead(initial), expectedRecovery);
+        expect(recoveryMarker(initial), const NarrativeValue.boolean(false));
         expect(initial.currentMapId, intro.id);
         expect(initial.party.members, isEmpty);
         expect(manifest.newGame.initialParty, isEmpty);
@@ -399,6 +412,8 @@ void main() {
           checkpoint('bulbasaur_received');
           expect(await game.saveGame(), isTrue);
           final saved = (await repository.load())!;
+          expect(PlayerRecoveryPoint.tryRead(saved), expectedRecovery);
+          expect(recoveryMarker(saved), const NarrativeValue.boolean(false));
           String? retainedSavePath, retainedSaveSha256;
           if (output != null) {
             final bytes = await File(repository.filePath).readAsBytes();
@@ -406,10 +421,17 @@ void main() {
             retainedSaveSha256 = crypto.sha256.convert(bytes).toString();
             await File(retainedSavePath).writeAsBytes(bytes, flush: true);
             expect(await File(retainedSavePath).readAsBytes(), bytes);
-            final retained = await ConvertedSourceIntroDiskSave(retainedSavePath).load();
+            final retained = await ConvertedSourceIntroDiskSave(
+              retainedSavePath,
+            ).load();
             expect(retained!.toJson(), saved.toJson());
-            stdout.writeln(jsonEncode({'kind': 'campaignPrefixStarterSave',
-              'path': retainedSavePath, 'sha256': retainedSaveSha256}));
+            stdout.writeln(
+              jsonEncode({
+                'kind': 'campaignPrefixStarterSave',
+                'path': retainedSavePath,
+                'sha256': retainedSaveSha256,
+              }),
+            );
           }
           await mounted.close(tester);
           mounted = null;
@@ -427,6 +449,8 @@ void main() {
             await Future<void>.delayed(const Duration(milliseconds: 1));
           }
           final restored = mounted.game.gameStateSnapshot;
+          expect(PlayerRecoveryPoint.tryRead(restored), expectedRecovery);
+          expect(recoveryMarker(restored), const NarrativeValue.boolean(false));
           expect(restored.party, saved.party);
           expect(restored.currentMapId, lab.id);
           expect(restored.playerPosition, saved.playerPosition);
@@ -451,6 +475,13 @@ void main() {
                 'qaPositionSeeded': false,
                 'movements': 'nativeKeyboardOnly',
                 'savedAndColdContinued': true,
+                'savedRecoveryPoint': {
+                  'mapId': PlayerRecoveryPoint.tryRead(saved)!.mapId,
+                  'position': PlayerRecoveryPoint.tryRead(saved)!.position
+                      .toJson(),
+                  'facing': PlayerRecoveryPoint.tryRead(saved)!.facing.name,
+                },
+                'recoveryMarkerOutsideDefeat': recoveryMarker(saved).boolValue,
                 'starterSavePath': retainedSavePath,
                 'starterSaveSha256': retainedSaveSha256,
                 'coldReloadReason': 'saveRestore',
