@@ -722,6 +722,77 @@ final class CatalogSnapshot {
   final int definitionCount;
   final _Node? _index;
   int? _admittedStoredBytes;
+  final _indexPages = <CatalogObjectReference, Future<_CatalogIndexPage>>{};
+  var _indexPageBytes = 0;
+
+  Future<_CatalogIndexPage> _indexPage(
+    CatalogObjectReference reference, {
+    required bool reuse,
+  }) {
+    if (reference.byteLength > limits.maxIndexBytes) {
+      throw const FormatException('catalog.object: byte limit');
+    }
+    if (!reuse) return _loadIndexPage(reference);
+    final existing = _indexPages.remove(reference);
+    if (existing != null) {
+      _indexPages[reference] = existing;
+      return existing;
+    }
+    final future = _loadIndexPage(reference);
+    final maximum = limits.maxStoredBytes < 4 * 1024 * 1024
+        ? limits.maxStoredBytes
+        : 4 * 1024 * 1024;
+    if (reference.byteLength > maximum) return future;
+    _indexPages[reference] = future;
+    _indexPageBytes += reference.byteLength;
+    while (_indexPageBytes > maximum || _indexPages.length > 256) {
+      final first = _indexPages.keys.first;
+      _indexPages.remove(first);
+      _indexPageBytes -= first.byteLength;
+    }
+    future.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {
+        if (identical(_indexPages[reference], future)) {
+          _indexPages.remove(reference);
+          _indexPageBytes -= reference.byteLength;
+        }
+      },
+    );
+    return future;
+  }
+
+  Future<_CatalogIndexPage> _loadIndexPage(
+    CatalogObjectReference reference,
+  ) async {
+    final json = await _read(
+      reference,
+      _readObject,
+      limits,
+      limits.maxIndexBytes,
+    );
+    if (json['type'] == 'leaf') {
+      _envelope(json, 'leaf', {'entries'});
+      final entries = _list(json['entries'], limits.indexPageSize).map((value) {
+        final map = _map(value);
+        _keys(map, {'key', 'reference', 'summary'});
+        return CatalogIndexEntry(
+          key: CatalogDefinitionKey.fromJson(_map(map['key'])),
+          reference: CatalogObjectReference.fromJson(_map(map['reference'])),
+          summary: CatalogDefinitionSummary.fromJson(_map(map['summary'])),
+        );
+      }).toList();
+      _ordered(entries.map((entry) => entry.key).toList());
+      return _CatalogIndexPage.leaf(entries);
+    }
+    _envelope(json, 'branch', {'children'});
+    return _CatalogIndexPage.branch(
+      _list(
+        json['children'],
+        limits.indexPageSize,
+      ).map((value) => _Node.fromJson(_map(value), limits)),
+    );
+  }
 
   Future<CatalogStoragePatch> patch({
     Iterable<CatalogDefinitionUnit> upserts = const [],
@@ -1098,38 +1169,26 @@ final class CatalogSnapshot {
   }) async {
     final found = <CatalogIndexEntry>[];
     final seen = <String>{};
+    bool shouldVisit(_Node node) =>
+        found.length < take &&
+        (after == null || node.last.compareTo(after) > 0) &&
+        (kind == null ||
+            (node.first.kind.name.compareTo(kind.name) <= 0 &&
+                node.last.kind.name.compareTo(kind.name) >= 0)) &&
+        (exact == null || _contains(node, exact));
+
     Future<void> visit(_Node node) async {
-      if (found.length >= take ||
-          (after != null && node.last.compareTo(after) <= 0) ||
-          (kind != null &&
-              (node.first.kind.name.compareTo(kind.name) > 0 ||
-                  node.last.kind.name.compareTo(kind.name) < 0)) ||
-          (exact != null && !_contains(node, exact))) {
-        return;
-      }
+      if (!shouldVisit(node)) return;
       if (!seen.add(node.reference.sha256)) {
         throw const FormatException('catalog.index: cycle or repeated node');
       }
       onNode?.call(node.reference);
-      final json = await _read(
-        node.reference,
-        _readObject,
-        limits,
-        limits.maxIndexBytes,
-      );
+      final page = await _indexPage(node.reference, reuse: onNode == null);
       if (node.height == 0) {
-        _envelope(json, 'leaf', {'entries'});
-        final values = _list(json['entries'], limits.indexPageSize);
-        final entries = values.map((v) {
-          final map = _map(v);
-          _keys(map, {'key', 'reference', 'summary'});
-          return CatalogIndexEntry(
-            key: CatalogDefinitionKey.fromJson(_map(map['key'])),
-            reference: CatalogObjectReference.fromJson(_map(map['reference'])),
-            summary: CatalogDefinitionSummary.fromJson(_map(map['summary'])),
-          );
-        }).toList();
-        _ordered(entries.map((e) => e.key).toList());
+        final entries = page.entries;
+        if (entries == null) {
+          throw const FormatException('catalog.leaf: expected leaf page');
+        }
         if (entries.isEmpty ||
             entries.length != node.count ||
             entries.first.key != node.first ||
@@ -1147,11 +1206,10 @@ final class CatalogSnapshot {
           }
         }
       } else {
-        _envelope(json, 'branch', {'children'});
-        final children = _list(
-          json['children'],
-          limits.indexPageSize,
-        ).map((v) => _Node.fromJson(_map(v), limits)).toList();
+        final children = page.children;
+        if (children == null) {
+          throw const FormatException('catalog.branch: expected branch page');
+        }
         if (children.isEmpty ||
             children.first.first != node.first ||
             children.last.last != node.last ||
@@ -1167,7 +1225,7 @@ final class CatalogSnapshot {
           }
         }
         for (final child in children) {
-          await visit(child);
+          if (shouldVisit(child)) await visit(child);
         }
       }
     }
@@ -1446,6 +1504,19 @@ final class _CatalogPatchBuilder {
       storedBytes,
     );
   }
+}
+
+final class _CatalogIndexPage {
+  _CatalogIndexPage.leaf(Iterable<CatalogIndexEntry> values)
+    : entries = List.unmodifiable(values),
+      children = null;
+
+  _CatalogIndexPage.branch(Iterable<_Node> values)
+    : entries = null,
+      children = List.unmodifiable(values);
+
+  final List<CatalogIndexEntry>? entries;
+  final List<_Node>? children;
 }
 
 final class _Node {
