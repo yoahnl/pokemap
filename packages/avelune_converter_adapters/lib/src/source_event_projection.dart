@@ -1103,7 +1103,7 @@ final class _ProjectionBuilder {
   SceneWarpPresentation _externalWarpPresentation(SourceExternalWarpProgram program) =>
       SceneWarpPresentation(mode: switch(program.presentation) {
         SourceExternalWarpPresentation.fade => SceneWarpPresentationMode.fade,
-        SourceExternalWarpPresentation.illustrated => SceneWarpPresentationMode.illustrated,
+        SourceExternalWarpPresentation.illustrated || SourceExternalWarpPresentation.illustratedFadeIn => SceneWarpPresentationMode.illustrated,
         SourceExternalWarpPresentation.caveEntrance => SceneWarpPresentationMode.caveEntrance,
         SourceExternalWarpPresentation.caveExit => SceneWarpPresentationMode.caveExit,
       }, illustrationElementId: externalWarpBinding!.illustrations[program.illustrationName]?.id,

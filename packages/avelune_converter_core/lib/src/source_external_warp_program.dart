@@ -3,6 +3,7 @@ part of '../avelune_converter_core.dart';
 enum SourceExternalWarpPresentation {
   fade,
   illustrated,
+  illustratedFadeIn,
   caveEntrance,
   caveExit
 }
@@ -29,6 +30,7 @@ final class SourceExternalWarpProgram {
     required this.revealMs,
     required this.illustrationHoldMs,
     required this.illustrationFadeMs,
+    this.illustrationFadeInMs,
   });
 
   final int sourceMapId, sourceEventId, targetSourceMapId, x, y, direction;
@@ -41,6 +43,7 @@ final class SourceExternalWarpProgram {
   final SourceDeclaredProgramMatch declaredProgram;
   final int fadeOutMs, transferDelayMs, revealMs;
   final int? illustrationHoldMs, illustrationFadeMs;
+  final int? illustrationFadeInMs;
 
   bool matches(SourceWarpNode node) =>
       node.targetSourceMapId == targetSourceMapId &&
@@ -95,6 +98,12 @@ final class SourceExternalWarpProgram {
           'illustrationHoldMs': illustrationHoldMs,
         if (illustrationFadeMs != null)
           'illustrationFadeMs': illustrationFadeMs,
+        if (illustrationFadeInMs != null) ...{
+          'illustrationFadeInMs': illustrationFadeInMs,
+          'nativeIllustrationFadeInMs': 0,
+          'illustrationFadeInAdaptation':
+              'nativeFullOpacityDuringSourceHoldBeforeWorldReveal',
+        },
         'sound': sound.toJson(),
         'span': span.toJson(),
         'rawDataRef': rawDataRef.toJson(),
@@ -148,6 +157,9 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
           106,
           235,
           0
+        ],
+      SourceExternalWarpPresentation.illustratedFadeIn => const [
+          250, 223, 106, 201, 231, 232, 106, 223, 232, 106, 235, 0
         ],
       SourceExternalWarpPresentation.caveEntrance => const [
           250,
@@ -258,14 +270,24 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
       return null;
     }
     String? illustration;
-    int? hold, fade;
+    int? hold, fade, fadeIn;
     if (presentation == SourceExternalWarpPresentation.illustrated ||
+        presentation == SourceExternalWarpPresentation.illustratedFadeIn ||
         presentation == SourceExternalWarpPresentation.caveEntrance) {
-      final picture = params(231), move = params(232), erase = params(235);
+      final picture = params(231), erase = params(235);
+      final moves = values
+          .where((v) => (v as Map)['code'] == 232)
+          .map((v) => (v as Map)['parameters'] as List)
+          .toList();
+      final fadingIn =
+          presentation == SourceExternalWarpPresentation.illustratedFadeIn;
+      if (moves.length != (fadingIn ? 2 : 1)) return null;
+      final move = moves.last;
       if (picture.length != 10 ||
           picture[0] != 1 ||
           picture[1] is! String ||
-          canonicalJsonOf(picture.sublist(2)) != '[0,0,0,0,100,100,255,0]' ||
+          canonicalJsonOf(picture.sublist(2)) !=
+              (fadingIn ? '[0,0,0,0,100,100,0,0]' : '[0,0,0,0,100,100,255,0]') ||
           move.length != 10 ||
           move[0] != 1 ||
           move[1] is! int ||
@@ -275,6 +297,30 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
           canonicalJsonOf(erase) != '[1]' ||
           waits.length != 3) {
         return null;
+      }
+      if (fadingIn) {
+        final firstMove = moves.first;
+        if (firstMove.length != 10 ||
+            firstMove[0] != 1 ||
+            firstMove[1] is! int ||
+            (firstMove[1] as int) < 0 ||
+            (firstMove[1] as int) > 1200 ||
+            canonicalJsonOf(firstMove.sublist(2)) !=
+                '[0,0,0,0,100,100,255,0]' ||
+            (firstMove[1] as int) > (waits[1].single as int)) {
+          return null;
+        }
+        if (tones.any((tone) => (tone[1] as int) <= 0 ||
+                (tone[1] as int) > 200) ||
+            waits.any((wait) => (wait.single as int) > 200) ||
+            (waits.first.single as int) < (tones.first[1] as int) ||
+            (move[1] as int) <= 0 || (move[1] as int) > 200 ||
+            (waits.last.single as int) !=
+                ((move[1] as int) > (tones.last[1] as int)
+                    ? move[1] as int : tones.last[1] as int)) {
+          return null;
+        }
+        fadeIn = (firstMove[1] as int) * 50;
       }
       illustration = picture[1] as String;
       hold = (waits[1].single as int) * 50;
@@ -304,7 +350,8 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
         transferDelayMs: (waits.first.single as int) * 50,
         revealMs: (tones[1][1] as int) * 50,
         illustrationHoldMs: hold,
-        illustrationFadeMs: fade);
+        illustrationFadeMs: fade,
+        illustrationFadeInMs: fadeIn);
     return SourceEventBlock(span: span, nodes: [
       SourceWarpNode(span,
           targetSourceMapId: target,
@@ -558,6 +605,7 @@ SourceDeclaredProgramBinding? _automaticExternalWarpBinding(
   final presentation = switch (codes) {
     '[250,223,106,201,223,0]' => 'fade',
     '[250,223,106,201,231,106,223,232,106,235,0]' => 'illustrated',
+    '[250,223,106,201,231,232,106,223,232,106,235,0]' => 'illustratedFadeIn',
     '[250,223,106,231,355,201,106,223,232,106,235,0]' => 'caveEntrance',
     '[250,223,106,355,201,223,0]' => 'caveExit',
     _ => null,
@@ -568,7 +616,8 @@ SourceDeclaredProgramBinding? _automaticExternalWarpBinding(
     final parameters = (picture as Map)['parameters'];
     if (parameters is! List ||
         parameters.length != 10 ||
-        !const {'dpic_powerplant', 'dpic_rocktunnel', 'dpic_pokemonmansion'}
+        !const {'dpic_powerplant', 'dpic_rocktunnel', 'dpic_pokemonmansion',
+          'dpic_viridianforest'}
             .contains(parameters[1])) {
       return null;
     }

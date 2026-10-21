@@ -311,7 +311,7 @@ final class SourceDeclaredProgramBinding {
         command('offer', parameters['rewardCommandIndex'], const {111, 355});
       case SourceDeclaredProgramFamily.externalWarp:
         _require(
-            const {'fade', 'illustrated', 'caveEntrance', 'caveExit'}
+            const {'fade', 'illustrated', 'illustratedFadeIn', 'caveEntrance', 'caveExit'}
                 .contains(parameters['presentation']),
             'declared_program.parameters',
             r'$',

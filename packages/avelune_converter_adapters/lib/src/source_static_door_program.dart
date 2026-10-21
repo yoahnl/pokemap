@@ -9,13 +9,13 @@ final class SourceStaticDoorProgram {
       : sourceMapId = event.sourceMapId,
         sourceEventId = event.sourceEventId,
         eventIdentity = event.identity,
-        targetSourceMapId = (event.pages.single.body.nodes[3] as SourceWarpNode)
-            .targetSourceMapId,
+        targetSourceMapId =
+            (_staticDoorBody(event)[3] as SourceWarpNode).targetSourceMapId,
         sourceSnapshotHash = source.snapshot.canonicalHash,
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
         sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
-        _postTransferRoute = event.pages.single.body.nodes
+        _postTransferRoute = _staticDoorBody(event)
             .whereType<SourceForcedMoveRouteNode>()
             .singleOrNull,
         _fingerprint = _staticDoorFingerprint(event);
@@ -69,12 +69,28 @@ final class SourceStaticDoorProgram {
             'direction': _postTransferRoute!.steps.single.kind.name,
             'mapId': targetSourceMapId,
             'sourceRouteWait': false,
-          'nativeBlockedRoutePolicy': 'continueFadeInAndRestoreControl',
+            'nativeBlockedRoutePolicy': 'continueFadeInAndRestoreControl',
             'sourceOracle': '044:464,746-752;034:722-738',
           },
         'sourceScriptsExecuted': 0,
         'sourceProgramPlaybackQualified': false,
       };
+}
+
+List<SourceEventNode> _staticDoorBody(SourceEventDefinition event) {
+  final body = event.pages.single.body.nodes;
+  if (body.singleOrNull
+      case SourceConditionalNode(
+        :final condition,
+        :final whenTrue,
+        :final whenFalse
+      )
+      when condition.kind == SourceEventConditionKind.playerFacing &&
+          condition.expectedValue &&
+          whenFalse.nodes.isEmpty) {
+    return whenTrue.nodes;
+  }
+  return body;
 }
 
 Map<ConverterId, SourceStaticDoorProgram> sourceStaticDoorPrograms(
@@ -118,11 +134,23 @@ bool _isStaticDoor(SourceEventDefinition event) {
         _ => false,
       };
   final commands = page.sourcePage.commands;
-  final body = page.body.nodes;
+  final body = _staticDoorBody(event);
+  final directional = !identical(body, page.body.nodes);
   final postTransfer = body.length == 6 && body[4] is SourceForcedMoveRouteNode;
-  final codes = postTransfer
-      ? const [250, 223, 106, 201, 209, 509, 223, 0]
-      : const [250, 223, 106, 201, 223, 0];
+  final codes = directional
+      ? const [111, 250, 223, 106, 201, 223, 0, 412, 0]
+      : postTransfer
+          ? const [250, 223, 106, 201, 209, 509, 223, 0]
+          : const [250, 223, 106, 201, 223, 0];
+  if (directional) {
+    final branch = page.body.nodes.single as SourceConditionalNode;
+    if (postTransfer ||
+        canonicalJsonOf(commands.first.parameters) !=
+            canonicalJsonOf([6, -1, branch.condition.sourceDirection]) ||
+        !const {2, 4, 6, 8}.contains(branch.condition.sourceDirection)) {
+      return false;
+    }
+  }
   if (postTransfer) {
     final route = body[4] as SourceForcedMoveRouteNode;
     if (body[3] is! SourceWarpNode ||
@@ -149,7 +177,8 @@ bool _isStaticDoor(SourceEventDefinition event) {
       commands.length == codes.length &&
       List.generate(codes.length, (index) => index).every((index) =>
           commands[index].code == codes[index] &&
-          commands[index].indent == 0 &&
+          commands[index].indent ==
+              (directional && index >= 1 && index <= 6 ? 1 : 0) &&
           commands[index].originalIndex == index) &&
       body.length == (postTransfer ? 6 : 5) &&
       body[0] is SourceSoundEffectNode &&
@@ -196,24 +225,30 @@ String _staticDoorFingerprint(SourceEventDefinition event) {
             'alwaysOnTop': graphic.alwaysOnTop,
             'moveRouteNodeId': graphic.moveRouteNodeId,
           },
-    'nodes': [
-      for (final node in page.body.nodes)
-        switch (node) {
-          SourceSoundEffectNode() => node.toJson(),
-          SourceToneNode() => node.toJson(),
-          SourceWaitNode() => node.toJson(),
-          SourceForcedMoveRouteNode() => node.toJson(),
-          SourceWarpNode() => {
-              'kind': 'warp',
-              'span': node.span.toJson(),
-              'targetSourceMapId': node.targetSourceMapId,
-              'x': node.x,
-              'y': node.y,
-              'direction': node.direction,
-              'fade': node.fade,
-            },
-          _ => null,
-        }
-    ],
+    'nodes': page.body.nodes.map(_staticDoorNodeShape).toList(),
   });
 }
+
+Object? _staticDoorNodeShape(SourceEventNode node) => switch (node) {
+      SourceConditionalNode() => {
+          'kind': 'conditional',
+          'span': node.span.toJson(),
+          'condition': node.condition.toJson(),
+          'whenTrue': node.whenTrue.nodes.map(_staticDoorNodeShape).toList(),
+          'whenFalse': node.whenFalse.nodes.map(_staticDoorNodeShape).toList(),
+        },
+      SourceSoundEffectNode() => node.toJson(),
+      SourceToneNode() => node.toJson(),
+      SourceWaitNode() => node.toJson(),
+      SourceForcedMoveRouteNode() => node.toJson(),
+      SourceWarpNode() => {
+          'kind': 'warp',
+          'span': node.span.toJson(),
+          'targetSourceMapId': node.targetSourceMapId,
+          'x': node.x,
+          'y': node.y,
+          'direction': node.direction,
+          'fade': node.fade,
+        },
+      _ => null,
+    };
