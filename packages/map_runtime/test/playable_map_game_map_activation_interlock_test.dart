@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
@@ -93,138 +94,206 @@ void main() {
         containsAll([_eventId, 'evt_019abcde-2000-7000-8000-000000000002']));
   });
 
-  test(
-    'connection mapEnter dispatch interlocks movement, transitions and checkpoints',
-    () async {
-      final root = await Directory.systemTemp.createTemp(
-        'runtime_map_activation_interlock_',
-      );
-      addTearDown(() async {
-        if (await root.exists()) {
-          await root.delete(recursive: true);
+  for (final inputMode in ['repress', 'held', 'keyboard']) {
+    test(
+      inputMode == 'repress'
+          ? 'connection mapEnter dispatch interlocks movement, transitions and checkpoints'
+          : 'connection mapEnter blocks $inputMode input, transitions and checkpoints',
+      () async {
+        final root = await Directory.systemTemp.createTemp(
+          'runtime_map_activation_interlock_',
+        );
+        addTearDown(() async {
+          if (await root.exists()) {
+            await root.delete(recursive: true);
+          }
+        });
+        final projectFilePath = await _writeProject(root);
+        final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: _sourceMapId,
+        );
+        final preparationStarted = Completer<void>();
+        final releasePreparation = Completer<void>();
+        var targetPreparationCount = 0;
+        final repository = _CountingGameSaveRepository(
+          const GameState(
+            saveId: 'load-must-not-run',
+            currentMapId: _sourceMapId,
+            playerPosition: GridPos(x: 1, y: 0),
+          ),
+        );
+        final game = _TestPlayableMapGame(
+          bundle: bundle,
+          projectFilePath: projectFilePath,
+          saveRepository: repository,
+          beforeNarrativeAuthorityPreparation: (occurrence) async {
+            if (occurrence.source !=
+                NarrativeEventSourceRef.mapEnter(_targetMapId)) {
+              return;
+            }
+            targetPreparationCount++;
+            if (!preparationStarted.isCompleted) {
+              preparationStarted.complete();
+            }
+            await releasePreparation.future;
+          },
+        );
+
+        addTearDown(() {
+          if (!releasePreparation.isCompleted) releasePreparation.complete();
+          game.onRemove();
+        });
+        game.onGameResize(Vector2(640, 480));
+        await game.onLoad();
+        await _pumpUntil(
+          game,
+          () => !game.debugIsMapActivationDispatchInFlight,
+        );
+        expect(game.debugCompletedMapActivationDispatchCount, 1);
+        final initialActivationId =
+            game.debugLastCompletedMapActivation?.activationId;
+
+        if (inputMode == 'held') {
+          expect(
+            game.handleRuntimeInputEvent(
+              const RuntimeInputEvent.press(RuntimeInputControl.right),
+            ),
+            isTrue,
+          );
+          game.update(.016);
+          await _pumpUntil(
+            game,
+            () => game.gameStateSnapshot.currentMapId == _targetMapId,
+          );
+          expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+          await _pumpUntil(game, () => preparationStarted.isCompleted);
+        } else {
+          await _runSingleMove(game, RuntimeInputControl.right);
         }
-      });
-      final projectFilePath = await _writeProject(root);
-      final bundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: _sourceMapId,
-      );
-      final preparationStarted = Completer<void>();
-      final releasePreparation = Completer<void>();
-      var targetPreparationCount = 0;
-      final repository = _CountingGameSaveRepository(
-        const GameState(
-          saveId: 'load-must-not-run',
-          currentMapId: _sourceMapId,
-          playerPosition: GridPos(x: 1, y: 0),
-        ),
-      );
-      final game = _TestPlayableMapGame(
-        bundle: bundle,
-        projectFilePath: projectFilePath,
-        saveRepository: repository,
-        beforeNarrativeAuthorityPreparation: (occurrence) async {
-          if (occurrence.source !=
-              NarrativeEventSourceRef.mapEnter(_targetMapId)) {
-            return;
-          }
-          targetPreparationCount++;
-          if (!preparationStarted.isCompleted) {
-            preparationStarted.complete();
-          }
-          await releasePreparation.future;
-        },
-      );
+        await preparationStarted.future.timeout(const Duration(seconds: 2));
 
-      game.onGameResize(Vector2(640, 480));
-      await game.onLoad();
-      await _pumpUntil(
-        game,
-        () => !game.debugIsMapActivationDispatchInFlight,
-      );
-      expect(game.debugCompletedMapActivationDispatchCount, 1);
-      final initialActivationId =
-          game.debugLastCompletedMapActivation?.activationId;
+        expect(game.gameStateSnapshot.currentMapId, _targetMapId);
+        expect(game.debugFlowPhaseName, 'overworld');
+        expect(game.debugIsMapActivationDispatchInFlight, isTrue);
+        expect(
+          game.inputAuthoritySnapshot.context,
+          RuntimeInputContext.blocked,
+        );
+        expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+        expect(game.debugCompletedMapActivationDispatchCount, 1);
+        expect(
+          game.debugLastCompletedMapActivation?.reason,
+          MapActivationReason.initialBoot,
+        );
+        expect(
+          game
+              .gameStateSnapshot
+              .narrativeFactRuntimeState
+              .overridesByFactId[_factId],
+          isNot(isTrue),
+        );
 
-      await _runSingleMove(game, RuntimeInputControl.right);
-      await preparationStarted.future.timeout(const Duration(seconds: 2));
+        expect(await game.loadGame(), isFalse);
+        expect(repository.loadCount, 0);
+        expect(await game.saveGame(), isFalse);
+        expect(repository.saveCount, 0);
 
-      expect(game.gameStateSnapshot.currentMapId, _targetMapId);
-      expect(game.debugFlowPhaseName, 'overworld');
-      expect(game.debugIsMapActivationDispatchInFlight, isTrue);
-      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
-      expect(game.debugCompletedMapActivationDispatchCount, 1);
-      expect(
-        game.debugLastCompletedMapActivation?.reason,
-        MapActivationReason.initialBoot,
-      );
-      expect(
-        game.gameStateSnapshot.narrativeFactRuntimeState
-            .overridesByFactId[_factId],
-        isNot(isTrue),
-      );
+        if (inputMode == 'keyboard') {
+          scheduleMicrotask(() {
+            game.onKeyEvent(
+              const KeyDownEvent(
+                physicalKey: PhysicalKeyboardKey.arrowRight,
+                logicalKey: LogicalKeyboardKey.arrowRight,
+                timeStamp: Duration.zero,
+              ),
+              {LogicalKeyboardKey.arrowRight},
+            );
+            game.onKeyEvent(
+              const KeyRepeatEvent(
+                physicalKey: PhysicalKeyboardKey.arrowRight,
+                logicalKey: LogicalKeyboardKey.arrowRight,
+                timeStamp: Duration(milliseconds: 16),
+              ),
+              {LogicalKeyboardKey.arrowRight},
+            );
+          });
+          await Future<void>.delayed(Duration.zero);
+        } else if (inputMode != 'held') {
+          expect(
+            game.handleRuntimeInputEvent(
+              const RuntimeInputEvent.press(RuntimeInputControl.right),
+            ),
+            isTrue,
+          );
+        }
+        for (var i = 0; i < 30; i++) {
+          game.update(0.016);
+          await Future<void>.delayed(Duration.zero);
+        }
+        if (inputMode == 'keyboard') {
+          game.onKeyEvent(
+            const KeyUpEvent(
+              physicalKey: PhysicalKeyboardKey.arrowRight,
+              logicalKey: LogicalKeyboardKey.arrowRight,
+              timeStamp: Duration(milliseconds: 500),
+            ),
+            {},
+          );
+        } else {
+          expect(
+            game.handleRuntimeInputEvent(
+              const RuntimeInputEvent.release(RuntimeInputControl.right),
+            ),
+            isTrue,
+          );
+        }
 
-      expect(await game.loadGame(), isFalse);
-      expect(repository.loadCount, 0);
-      expect(await game.saveGame(), isFalse);
-      expect(repository.saveCount, 0);
+        expect(game.gameStateSnapshot.currentMapId, _targetMapId);
+        expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+        expect(game.debugCompletedMapActivationDispatchCount, 1);
+        expect(
+          game.debugLastCompletedMapActivation?.activationId,
+          initialActivationId,
+        );
 
-      expect(
-        game.handleRuntimeInputEvent(
-          const RuntimeInputEvent.press(RuntimeInputControl.right),
-        ),
-        isTrue,
-      );
-      for (var i = 0; i < 30; i++) {
-        game.update(0.016);
-        await Future<void>.delayed(Duration.zero);
-      }
-      expect(
-        game.handleRuntimeInputEvent(
-          const RuntimeInputEvent.release(RuntimeInputControl.right),
-        ),
-        isTrue,
-      );
+        releasePreparation.complete();
+        await _pumpUntil(
+          game,
+          () =>
+              !game.debugIsMapActivationDispatchInFlight &&
+              game
+                      .gameStateSnapshot
+                      .narrativeFactRuntimeState
+                      .overridesByFactId[_factId] ==
+                  true,
+        );
 
-      expect(game.gameStateSnapshot.currentMapId, _targetMapId);
-      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
-      expect(game.debugCompletedMapActivationDispatchCount, 1);
-      expect(
-        game.debugLastCompletedMapActivation?.activationId,
-        initialActivationId,
-      );
-
-      releasePreparation.complete();
-      await _pumpUntil(
-        game,
-        () =>
-            !game.debugIsMapActivationDispatchInFlight &&
-            game.gameStateSnapshot.narrativeFactRuntimeState
-                    .overridesByFactId[_factId] ==
-                true,
-      );
-
-      final state = game.gameStateSnapshot;
-      expect(targetPreparationCount, 1);
-      expect(
-        state.narrativeEventProgress.consumedNarrativeEventIds
-            .where((id) => id == _eventId),
-        hasLength(1),
-      );
-      expect(state.storyFlags.activeFlags, isNot(contains(_legacyFlag)));
-      expect(game.debugCompletedMapActivationDispatchCount, 2);
-      expect(
-        game.debugLastCompletedMapActivation?.reason,
-        MapActivationReason.connection,
-      );
-      expect(
-        game.debugLastCompletedMapActivation?.activationId,
-        isNot(initialActivationId),
-      );
-      expect(await game.saveGame(), isTrue);
-      expect(repository.saveCount, 1);
-    },
-  );
+        final state = game.gameStateSnapshot;
+        expect(targetPreparationCount, 1);
+        expect(
+          state.narrativeEventProgress.consumedNarrativeEventIds.where(
+            (id) => id == _eventId,
+          ),
+          hasLength(1),
+        );
+        expect(state.storyFlags.activeFlags, isNot(contains(_legacyFlag)));
+        expect(game.debugCompletedMapActivationDispatchCount, 2);
+        expect(
+          game.debugLastCompletedMapActivation?.reason,
+          MapActivationReason.connection,
+        );
+        expect(
+          game.debugLastCompletedMapActivation?.activationId,
+          isNot(initialActivationId),
+        );
+        expect(await game.saveGame(), isTrue);
+        expect(repository.saveCount, 1);
+        expect(repository._state?.currentMapId, _targetMapId);
+        expect(repository._state?.playerPosition, const GridPos(x: 0, y: 0));
+      },
+    );
+  }
 
   test(
     'load interlocks movement and connection until saveRestore dispatch',

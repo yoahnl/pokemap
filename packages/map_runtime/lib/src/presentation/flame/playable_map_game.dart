@@ -3389,7 +3389,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _setDerivedInputLock(
       RuntimeInputLockOwner.mapActivation,
       RuntimeInputSurface.blocked,
-      _blocksOverworldForMapActivationWork && !_preservingConnectionInput,
+      _blocksOverworldForMapActivationWork,
     );
     _setDerivedInputLock(
       RuntimeInputLockOwner.narrativeDispatch,
