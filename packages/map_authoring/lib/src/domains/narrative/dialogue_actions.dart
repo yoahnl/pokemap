@@ -29,10 +29,50 @@ final class DialogueActions {
   final DialogueLegacyMigrationService migration;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
-    _descriptor('dialogue.create', 'Create a compiled Yarn dialogue; {{ fact.<id> }} resolves a declared typed Fact in lines and choices'),
+    _descriptor('dialogue.create',
+        'Create a compiled Yarn dialogue; {{ fact.<id> }} resolves a declared typed Fact in lines and choices'),
+    _descriptor('dialogue.create_batch',
+        'Create a bounded atomic batch of compiled Yarn dialogues',
+        extensions: const {
+          'parameterNames': ['dialogues'],
+          'editorWorkflow': {
+            'applicability': 'notApplicable',
+            'reason': 'Machine batch; the existing Yarn import selects one file.',
+          },
+          'batch': {
+            'minDialogues': 1,
+            'maxDialogues': 128,
+            'maximumSourceUtf8Bytes': 524288,
+            'uniqueBy': ['id', 'relativePath'],
+            'semantics': 'createOnly',
+            'atomic': true,
+          },
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['dialogues'],
+            'properties': {
+              'dialogues': {
+                'type': 'array',
+                'minItems': 1,
+                'maxItems': 128,
+                'items': {
+                  'type': 'object',
+                  'additionalProperties': false,
+                  'required': ['entry', 'source'],
+                  'properties': {
+                    'entry': {'type': 'object'},
+                    'source': {'type': 'string', 'minLength': 1},
+                  },
+                },
+              },
+            },
+          },
+        }),
     _descriptor('dialogue.update',
         'Update dialogue metadata, outcomes and optional Yarn source atomically'),
-    _descriptor('dialogue.source_update', 'Update and compile Yarn source; {{ fact.<id> }} references a declared bool, integer or string Fact, resolved from current scene state'),
+    _descriptor('dialogue.source_update',
+        'Update and compile Yarn source; {{ fact.<id> }} references a declared bool, integer or string Fact, resolved from current scene state'),
     _descriptor(
       'dialogue.delete',
       'Delete an unreferenced dialogue and source',
@@ -48,6 +88,9 @@ final class DialogueActions {
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = _NarrativeParameters(context.request.parameters);
     switch (context.request.actionId) {
+      case 'dialogue.create_batch':
+        parameters.allow(const {'dialogues'});
+        return _createBatchDraft(context);
       case 'dialogue.create':
         parameters.allow(const {'entry', 'source'});
         final entry = parameters.dialogueEntry('entry');
@@ -254,6 +297,14 @@ final class DialogueActions {
     ProjectManifest manifest, {
     required ProjectDialogueEntry entry,
     required String source,
+  }) =>
+      _validated(
+          _appendCompiledDialogue(manifest, entry: entry, source: source));
+
+  ProjectManifest _appendCompiledDialogue(
+    ProjectManifest manifest, {
+    required ProjectDialogueEntry entry,
+    required String source,
   }) {
     if (manifest.dialogues.any((candidate) => candidate.id == entry.id)) {
       throw NarrativeAuthoringException(
@@ -271,9 +322,95 @@ final class DialogueActions {
     }
     final compiled = compiler.compile(entry: entry, source: source);
     _requirePublishable(compiled);
-    validateDialogueSceneStarts(project: manifest, dialogueId: entry.id, compiled: compiled);
-    return _validated(
-      manifest.copyWith(dialogues: [...manifest.dialogues, entry]),
+    validateDialogueSceneStarts(
+        project: manifest, dialogueId: entry.id, compiled: compiled);
+    return manifest.copyWith(dialogues: [...manifest.dialogues, entry]);
+  }
+
+  AuthoringMutationDraft _createBatchDraft(AuthoringPlanningContext context) {
+    final raw = context.request.parameters['dialogues'];
+    if (raw is! List || raw.isEmpty || raw.length > 128) {
+      throw NarrativeAuthoringException('dialogue.batch_invalid',
+          'A dialogue batch must contain between 1 and 128 new dialogues.');
+    }
+    final values = <(ProjectDialogueEntry, String, List<int>)>[];
+    final ids =
+        context.snapshot.manifest.dialogues.map((entry) => entry.id).toSet();
+    final paths = {
+      for (final entry in context.snapshot.manifest.dialogues)
+        entry.relativePath.replaceAll(r'\', '/').toLowerCase(),
+      for (final entry in context.snapshot.manifest.maps)
+        entry.relativePath.replaceAll(r'\', '/').toLowerCase(),
+    };
+    var sourceBytes = 0;
+    for (final value in raw) {
+      if (value is! Map || value.keys.any((key) => key is! String)) {
+        throw NarrativeAuthoringException('dialogue.batch_invalid',
+            'Each dialogue requires an exact entry and source object.');
+      }
+      final parameters = _NarrativeParameters(Map<String, Object?>.from(value));
+      parameters.allow(const {'entry', 'source'});
+      final entry = parameters.dialogueEntry('entry');
+      final source = parameters.text('source');
+      final bytes = utf8.encode(source);
+      sourceBytes += bytes.length;
+      if (sourceBytes > 524288) {
+        throw NarrativeAuthoringException('dialogue.batch_source_limit',
+            'Dialogue sources exceed the batch UTF-8 byte limit.');
+      }
+      if (!ids.add(entry.id)) {
+        throw NarrativeAuthoringException(
+            'dialogue.id_conflict', 'A dialogue already owns this identity.',
+            details: {'dialogueId': entry.id});
+      }
+      if (!paths.add(entry.relativePath.replaceAll(r'\', '/').toLowerCase())) {
+        throw NarrativeAuthoringException('dialogue.path_conflict',
+            'The requested dialogue source path is already owned.',
+            details: {'relativePath': entry.relativePath});
+      }
+      values.add((entry, source, bytes));
+    }
+    var projected = context.snapshot.manifest;
+    for (final (entry, source, _) in values) {
+      projected =
+          _appendCompiledDialogue(projected, entry: entry, source: source);
+    }
+    projected = _validated(projected);
+    final project = _projectRef(context.snapshot);
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet(
+        changes: [
+          _projectChange(context.snapshot, projected, project),
+          for (final (entry, _, bytes) in values)
+            AuthoringResourceChange(
+              resource: AuthoringResourceRef(kind: 'dialogue', id: entry.id),
+              storageKey: entry.relativePath,
+              beforeBytes: null,
+              afterBytes: bytes,
+            ),
+        ],
+        diff: AuthoringDiff([
+          for (final (entry, _, bytes) in values) ...[
+            AuthoringDiffEntry(
+                operation: AuthoringDiffOperation.add,
+                resource: project,
+                path: '/dialogues/${entry.id}',
+                after: entry.toJson()),
+            AuthoringDiffEntry(
+                operation: AuthoringDiffOperation.add,
+                resource: AuthoringResourceRef(kind: 'dialogue', id: entry.id),
+                path: '/',
+                after: _sourceSummary(bytes)),
+          ],
+        ]),
+      ),
+      preview: {
+        'operation': context.request.actionId,
+        'dialogueIds': [for (final (entry, _, _) in values) entry.id],
+        'dialogueCount': values.length,
+        'sourceUtf8Bytes': sourceBytes,
+        'createOnly': true,
+      },
     );
   }
 
@@ -374,6 +511,7 @@ AuthoringActionDescriptor _descriptor(
   String id,
   String summary, {
   AuthoringRiskLevel risk = AuthoringRiskLevel.medium,
+  Map<String, Object?>? extensions,
 }) =>
     AuthoringActionDescriptor(
       id: id,
@@ -383,7 +521,7 @@ AuthoringActionDescriptor _descriptor(
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: risk,
       resourceKinds: const ['project', 'dialogue'],
-      extensions: _textEditActionExtensions(id),
+      extensions: extensions ?? _textEditActionExtensions(id),
       capabilityIds: const ['authoring.narrative.dialogue'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
       guarantees: const [
