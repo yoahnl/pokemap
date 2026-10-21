@@ -39,6 +39,9 @@ final class SourceHoleNativeProgram {
   final List<SourceWaitNode> waits;
   final SourceDeclaredProgramMatch declaredProgramBinding;
 
+  bool get terrainBump =>
+      declaredProgramBinding.pageValues.values.single['through'] == false;
+
   bool isBoundTo({
     required NormalizedSourceProject source,
     required SourceEventAnalysis analysis,
@@ -66,6 +69,8 @@ final class SourceHoleNativeProgram {
         'targetSourceMapId': warp.targetSourceMapId,
         'targetPosition': [warp.x, warp.y],
         'sourceDirection': warp.direction,
+        'terrainBump': terrainBump,
+        'fallingSoundBeforeVisibility': terrainBump,
         'sourceWaitMilliseconds': waits.map((node) => node.durationMs).toList(),
         'policy': sourceHoleNativePolicyEvidence,
         'sourceRouteRecognition':
@@ -113,8 +118,9 @@ Map<ConverterId, SourceHoleNativeProgram> sourceHoleNativePrograms({
       profile.canonicalHash != analysis.profile.canonicalHash) {
     return const {};
   }
-  final authoritativeAnalysis = (authority ?? SourceTransferProgramAuthority.forSource(source))
-      .analysisFor(source: source, analysis: analysis);
+  final authoritativeAnalysis =
+      (authority ?? SourceTransferProgramAuthority.forSource(source))
+          .analysisFor(source: source, analysis: analysis);
   final authoritative = {
     for (final event in authoritativeAnalysis.events)
       (event.sourceMapId, event.sourceEventId): event,
@@ -162,6 +168,8 @@ bool _shape(SourceEventDefinition event) {
   if (event.pages.length != 1) return false;
   final page = event.pages.single;
   final image = page.graphic;
+  final commands = page.sourcePage.commands;
+  final terrainBump = commands.length == 13;
   if (page.triggerCode != 1 ||
       page.condition.kind != SourceEventConditionKind.always ||
       image == null ||
@@ -173,37 +181,67 @@ bool _shape(SourceEventDefinition event) {
       image.opacity != 255 ||
       image.blendType != 0 ||
       image.moveType != 0 ||
-      !image.through) {
+      image.through == terrainBump) {
     return false;
   }
-  final commands = page.sourcePage.commands;
-  if (commands.map((command) => command.code).join(',') !=
-          '209,509,210,250,106,223,106,201,209,509,210,223,250,0' ||
+  final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+      .allMatches(event.name)
+      .toList();
+  if (terrainBump &&
+      (sizes.length != 1 ||
+          !const {'2', '3'}.contains(sizes.single.group(1)) ||
+          sizes.single.group(2) != '1')) {
+    return false;
+  }
+  final codes = terrainBump
+      ? '250,209,509,106,223,106,201,210,209,509,223,250,0'
+      : '209,509,210,250,106,223,106,201,209,509,210,223,250,0';
+  if (commands.map((command) => command.code).join(',') != codes ||
       commands.any((command) => command.indent != 0)) {
     return false;
   }
   final nodes = page.body.nodes;
-  if (nodes.length != 13 ||
-      nodes[0] is! SourceUnknownNode ||
-      nodes[1] is! SourceUnknownNode ||
-      nodes[2] is! SourceMoveRouteBarrierNode ||
-      nodes[3] is! SourceSoundEffectNode ||
-      nodes[4] is! SourceWaitNode ||
-      nodes[5] is! SourceToneNode ||
-      nodes[6] is! SourceWaitNode ||
-      nodes[7] is! SourceWarpNode ||
-      nodes[8] is! SourceUnknownNode ||
-      nodes[9] is! SourceUnknownNode ||
-      nodes[10] is! SourceMoveRouteBarrierNode ||
-      nodes[11] is! SourceToneNode ||
-      nodes[12] is! SourceSoundEffectNode) {
+  final types = terrainBump
+      ? <Type>[
+          SourceSoundEffectNode,
+          SourceUnknownNode,
+          SourceUnknownNode,
+          SourceWaitNode,
+          SourceToneNode,
+          SourceWaitNode,
+          SourceWarpNode,
+          SourceMoveRouteBarrierNode,
+          SourceUnknownNode,
+          SourceUnknownNode,
+          SourceToneNode,
+          SourceSoundEffectNode
+        ]
+      : <Type>[
+          SourceUnknownNode,
+          SourceUnknownNode,
+          SourceMoveRouteBarrierNode,
+          SourceSoundEffectNode,
+          SourceWaitNode,
+          SourceToneNode,
+          SourceWaitNode,
+          SourceWarpNode,
+          SourceUnknownNode,
+          SourceUnknownNode,
+          SourceMoveRouteBarrierNode,
+          SourceToneNode,
+          SourceSoundEffectNode
+        ];
+  if (nodes.length != types.length ||
+      List.generate(nodes.length, (index) => index)
+          .any((index) => nodes[index].runtimeType != types[index])) {
     return false;
   }
-  final falling = nodes[3] as SourceSoundEffectNode;
-  final landing = nodes[12] as SourceSoundEffectNode;
-  final dark = nodes[5] as SourceToneNode;
-  final clear = nodes[11] as SourceToneNode;
-  final warp = nodes[7] as SourceWarpNode;
+  final falling = nodes[terrainBump ? 0 : 3] as SourceSoundEffectNode;
+  final landing = nodes.last as SourceSoundEffectNode;
+  final dark = nodes[terrainBump ? 4 : 5] as SourceToneNode;
+  final clear = nodes[terrainBump ? 10 : 11] as SourceToneNode;
+  final warp = nodes[terrainBump ? 6 : 7] as SourceWarpNode;
+  final waits = nodes.whereType<SourceWaitNode>().toList();
   return falling.volume >= 0 &&
       falling.volume <= 100 &&
       falling.pitch >= 50 &&
@@ -212,8 +250,8 @@ bool _shape(SourceEventDefinition event) {
       landing.volume <= 100 &&
       landing.pitch >= 50 &&
       landing.pitch <= 150 &&
-      (nodes[4] as SourceWaitNode).durationTicks == 4 &&
-      (nodes[6] as SourceWaitNode).durationTicks == 8 &&
+      waits[0].durationTicks == 4 &&
+      waits[1].durationTicks == 8 &&
       dark.red == -255 &&
       dark.green == -255 &&
       dark.blue == -255 &&
@@ -230,8 +268,13 @@ bool _shape(SourceEventDefinition event) {
 
 bool _opacityRoutesAreSafe(Map<String, Object?> page) {
   final commands = page['list'];
-  if (commands is! List || commands.length != 14) return false;
-  for (final (index, opacity) in [(0, 0), (8, 255)]) {
+  if (commands is! List || (commands.length != 14 && commands.length != 13)) {
+    return false;
+  }
+  for (final (index, opacity) in [
+    (commands.length == 13 ? 1 : 0, 0),
+    (8, 255)
+  ]) {
     final command = commands[index];
     final continuation = commands[index + 1];
     if (command is! Map || continuation is! Map) return false;

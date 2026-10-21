@@ -1906,46 +1906,59 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     })));
     final before = project.canonicalHash;
     final archiveBefore = project.archive.canonicalHash;
+    final sourceBefore = canonicalJsonOf(project.maps.map((map) => map.toJson()).toList());
     final analysis = _analyzer(project).analyze();
     final page = analysis.requireEvent(102, 1).pages.single;
-    expect(page.body.nodes.map((node) => node.runtimeType.toString()), [
-      'SourceSoundEffectNode', 'SourceToneNode', 'SourceWaitNode',
-      'SourceWarpNode', 'SourceToneNode',
-    ]);
+    expect(page.body.nodes, hasLength(1));
+    final warp = page.body.nodes.single as SourceWarpNode;
+    final program = warp.originalProgram!;
+    expect((warp.targetSourceMapId, warp.x, warp.y, warp.direction, warp.fade),
+        (100, 13, 25, 0, false));
+    expect(program.matches(warp), isTrue);
+    expect(program.presentation, SourceExternalWarpPresentation.fade);
+    expect(program.illustrationName, isNull);
+    expect(program.declaredProgram.toJson()['mode'], 'automaticSourceStructure');
+    expect(program.sourceSnapshotHash, project.snapshot.canonicalHash);
+    expect(program.profileHash, analysis.profile.canonicalHash);
+    expect(program.rawDataRef, page.rawDataRef);
+    expect((warp.span.firstCommandIndex, warp.span.lastCommandIndex), (0, 5));
+    expect(warp.span.locator.toJson(), page.locator.toJson());
+    expect(program.isBoundToSourceEvent(source: project, profile: analysis.profile,
+        event: project.maps.singleWhere((map) => map.map.sourceMapId == 102).map.events.single),
+        isTrue);
     expect(page.isQuarantined, isFalse);
     expect(page.sourcePage.commands.map((command) => command.code),
         [250, 223, 106, 201, 223, 0]);
-    final dynamic sound = page.body.nodes[0];
-    final dynamic dark = page.body.nodes[1];
-    final dynamic wait = page.body.nodes[2];
-    final dynamic neutral = page.body.nodes[4];
+    final sound = program.sound;
     expect([sound.name, sound.volume, sound.pitch], ['Exit Door', 80, 100]);
-    expect([dark.red, dark.green, dark.blue, dark.gray], [-255, -255, -255, 0]);
-    expect([dark.durationTicks, dark.durationMs], [6, 300]);
-    expect([wait.durationTicks, wait.durationMs], [8, 400]);
-    expect([neutral.red, neutral.green, neutral.blue, neutral.gray], [0, 0, 0, 0]);
-    for (final index in [0, 1, 2, 4]) {
-      final dynamic node = page.body.nodes[index];
-      expect([node.span.firstCommandIndex, node.span.lastCommandIndex], [index, index]);
-      expect(node.span.locator.toJson(),
-          page.sourcePage.commands[index].sourceLocator.toJson());
-      final json = node.toJson() as Map<String, Object?>;
-      expect(json['profileHash'], analysis.profile.canonicalHash.value);
-      expect(jsonDecode(jsonEncode(json)), json);
-      if (index != 2) {
-        final reference = node.rawDataRef as SourcePreservedData;
-        expect(reference.locator!.toJson(), node.span.locator.toJson());
-        expect(reference.fileId, page.rawDataRef!.fileId);
-        expect(reference.id.value,
-            (page.sourcePage.commands[index].parameters.first as Map)['preservedDataRef']);
-      }
+    expect((sound.span.firstCommandIndex, sound.span.lastCommandIndex), (0, 0));
+    expect(sound.rawDataRef.fileId, page.rawDataRef!.fileId);
+    expect(sound.rawDataRef.id.value,
+        (page.sourcePage.commands.first.parameters.first as Map)['preservedDataRef']);
+    expect([program.fadeOutMs, program.transferDelayMs, program.revealMs],
+        [300, 400, 300]);
+    final rawPage = program.declaredProgram.pageValues[0]!;
+    final rawCommands = rawPage['list'] as List;
+    for (final (index, channels) in [(1, [-255.0, -255.0, -255.0, 0.0]), (4, [0.0, 0.0, 0.0, 0.0])]) {
+      final parameters = (rawCommands[index] as Map)['parameters'] as List;
+      final tone = parameters.first as Map;
+      expect(tone['__class__'], 'Tone');
+      final payload = ByteData.sublistView(base64Decode(tone['marshalPayload'] as String));
+      expect([for (var channel = 0; channel < 4; channel++) payload.getFloat64(channel * 8, Endian.little)], channels);
+      expect(parameters.last, 6);
     }
-    final darkJson = dark.toJson() as Map<String, Object?>;
-    darkJson['red'] = 99;
-    expect(dark.red, -255);
-    expect(dark.toJson()['red'], -255);
+    expect((rawCommands[2] as Map)['parameters'], [8]);
+    expect((rawCommands[3] as Map)['parameters'], [0, 100, 13, 25, 0, 1]);
+    expect((rawCommands.last as Map)['parameters'], isEmpty);
+    expect(() => rawCommands.clear(), throwsUnsupportedError);
+    final json = program.toJson();
+    expect(jsonDecode(jsonEncode(json)), json);
+    expect(json['sourceScriptsExecuted'], 0);
+    json['fadeOutMs'] = 99;
+    expect(program.toJson()['fadeOutMs'], 300);
     expect(project.canonicalHash, before);
     expect(project.archive.canonicalHash, archiveBefore);
+    expect(canonicalJsonOf(project.maps.map((map) => map.toJson()).toList()), sourceBefore);
     expect(() => page.body.nodes.clear(), throwsUnsupportedError);
   });
 

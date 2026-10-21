@@ -172,6 +172,8 @@ final class SourceExternalWarpBindingResolver {
           '59363afc47d23f051b18ae471e9d6670790316f0ad0140a3fa16c1e1d8646c13',
       'dpic_rocktunnel':
           '0348feae8e4da3cd8f9e7948c029c84198df1e59931a6f27cad9657f4148cdc8',
+      'dpic_pokemonmansion':
+          'feadec774ce9560976d6d6ec552ed5e45bc9e51fb8bbb009ae7e6b0a12f06fa9',
     };
     final admitted = <SourceFileEntry>[];
     var bytesBudget = 0;
@@ -226,7 +228,11 @@ final class SourceExternalWarpBindingResolver {
       for (final name in names)
         name: ProjectElementEntry(
             id: 'source_warp_image_${name}_$namespace',
-            name: name == 'dpic_powerplant' ? 'Centrale' : 'Grotte',
+            name: switch (name) {
+              'dpic_powerplant' => 'Centrale',
+              'dpic_pokemonmansion' => 'Manoir Pokémon',
+              _ => 'Grotte',
+            },
             tilesetId: 'source_warp_${name}_$namespace',
             categoryId: category.id,
             frames: const [

@@ -250,10 +250,10 @@ void main() {
                 visible = command.visible;
               } else if (command is ScenePlaySoundEffectInteractiveCommand) {
                 soundCount++;
-                  if (failure == 'fall' && soundCount == 1 ||
-                      failure == 'land' && soundCount == 2) {
-                    return 'blocked';
-                  }
+                if (failure == 'fall' && soundCount == 1 ||
+                    failure == 'land' && soundCount == 2) {
+                  return 'blocked';
+                }
                 if (soundCount == 2) expect(visible, true);
               } else if (command is SceneWarpInteractiveCommand) {
                 if (failure == 'warp') return 'blocked';
@@ -342,4 +342,125 @@ void main() {
       skip: root == null || snapshot == null
           ? 'Original complete source required.'
           : false);
+  group('original Mansion terrain bump falls', () {
+    late NormalizedSourceProject source;
+    late SourceEventAnalysis analysis;
+    late Map<int, MapData> maps;
+    late Map<ConverterId, SourceHoleNativeProgram> programs;
+    late Map<ConverterId, SourceEventExecutionContext> contexts;
+    late MapInstanceRetentionPolicy retention;
+    late Map<String, SourceEventSoundBinding> sounds;
+    setUpAll(() async {
+      final fixture = await readExternalOriginalSource(root!, snapshot!,
+          selectedMapIds: {197, 198, 199}, supplementalRoots: supplemental);
+      source = fixture.source;
+      final complete = SourceEventAnalyzer.forProject(source,
+              profile: SourceEventProfile.forProject(source))
+          .analyze();
+      analysis = SourceEventAnalysis(
+          profile: complete.profile,
+          events: [complete.eventAt(199, 14)!, complete.eventAt(199, 15)!],
+          diagnostics: []);
+      maps = _maps(source);
+      final collision = List<bool>.filled(50 * 40, false);
+      for (final x in [20, 21, 22, 25, 26]) {
+        collision[20 * 50 + x] = true;
+      }
+      maps[199] = maps[199]!.copyWith(layers: [
+        MapLayer.collision(
+            id: 'collision_199', name: 'Collision', collisions: collision)
+      ]);
+      programs = sourceHoleNativePrograms(source: source, analysis: analysis);
+      expect(programs, hasLength(2));
+      contexts = await const SourceEventExecutionContextResolver()
+          .readTransfers(
+              source: source,
+              base: _base(source, maps),
+              nativeMaps: maps,
+              files: fixture.files,
+              programs: const {},
+              holePrograms: programs,
+              analysis: analysis);
+      retention = await sourceEventMapRetentionPolicy(
+          source: source,
+          files: fixture.files,
+          nativeMapIds: {
+            for (final entry in maps.entries) entry.key: entry.value.id
+          });
+      sounds = {
+        for (final name in ['Falling Object', 'Landing Object'])
+          name: await const SourceEventSoundResolver()
+              .read(source: source, files: fixture.files, name: name)
+      };
+    });
+    SourceEventProjection project({bool keepSounds = true}) =>
+        const SourceEventProjector().project(
+            source: source,
+            analysis: analysis,
+            nativeMaps: maps,
+            staticDoorPrograms: const {},
+            routedDoorPrograms: const {},
+            stairPrograms: const {},
+            holePrograms: programs,
+            holeContexts: contexts,
+            retentionPolicy: retention,
+            soundBindings: keepSounds ? sounds : const {});
+    test(
+        'blocked terrain activates the full source footprint without changing collision',
+        () {
+      final result = project();
+      for (final program in programs.values) {
+        expect(contexts[program.eventIdentity]!.isQualified, isTrue,
+            reason: contexts[program.eventIdentity]!.refusals.toString());
+        final scene = result.scenes.singleWhere((scene) =>
+            scene.metadata['sourceEventIdentity'] ==
+            program.eventIdentity.value);
+        final record = result.registry.records.singleWhere(
+            (record) => record.definitionOrNull?.sceneId == scene.id);
+        expect(record.definitionOrNull!.source.kind,
+            NarrativeEventSourceKind.triggerBump);
+        final trigger = result.nativeMaps[199]!.triggers.singleWhere(
+            (trigger) =>
+                trigger.id == record.definitionOrNull!.source.toJson()['triggerId']);
+        expect(trigger.area.pos,
+            GridPos(x: program.sourceEventId == 14 ? 25 : 20, y: 20));
+        expect(trigger.area.size,
+            GridSize(width: program.sourceEventId == 14 ? 2 : 3, height: 1));
+      }
+      expect(result.nativeMaps[199]!.layers, maps[199]!.layers);
+    });
+    test(
+        'fall sound precedes hiding, while landing follows showing the destination player',
+        () {
+      final result = project();
+      for (final scene in result.scenes) {
+        expect(_walk(scene).map((command) => command.kind.name), [
+          'playSoundEffect',
+          'actorVisibility',
+          'wait',
+          'wait',
+          'warp',
+          'actorVisibility',
+          'playSoundEffect'
+        ]);
+        final blocked = _walk(scene, blocked: true);
+        final shown = blocked.last as SceneActorVisibilityInteractiveCommand;
+        expect(shown.visible, isTrue);
+        expect(shown.target.mapId, maps[199]!.id);
+        expect(blocked.whereType<ScenePlaySoundEffectInteractiveCommand>(),
+            hasLength(1));
+      }
+    });
+    test('missing sound authority keeps both source falls disabled', () {
+      final result = project(keepSounds: false);
+      expect(result.scenes, isEmpty);
+      for (final row
+          in (result.semanticEvidence['events'] as List).cast<Map>()) {
+        expect(row['gaps'], contains('sourceSoundBindingMissing'));
+      }
+    });
+  },
+      skip: root == null ||
+          snapshot == null ||
+          Platform.environment['AVELUNE_CONVERTER_ORACLE_PROFILE'] == null);
 }

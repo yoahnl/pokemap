@@ -13,10 +13,10 @@ import '../../avelune_converter_core/test/support/interpretation_profile_fixture
 import 'support/literal_tile_fixture.dart';
 import 'support/native_writer_fixture.dart';
 
-List<int> _characterAtlas() {
-  final raster = image.Image(width: 128, height: 128, numChannels: 4);
-  for (var y = 0; y < 128; y++) {
-    for (var x = 0; x < 128; x++) {
+List<int> _characterAtlas({int width = 128, int height = 128}) {
+  final raster = image.Image(width: width, height: height, numChannels: 4);
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
       raster.setPixelRgba(x, y, x, y, (x + y) % 256, 255);
     }
   }
@@ -30,15 +30,18 @@ Future<({SourceEventProjection projection, List<SourceEventCharacterImport> impo
   bool forge = false,
   bool forgeDirection = false,
   bool forgeFixed = false,
+  bool passiveBarrier = false,
 }) async {
+  final sizeMatch = RegExp(r'size\((\d+),(\d+)\)').firstMatch(name);
+  final footprint = passiveBarrier ? GridSize(width: int.parse(sizeMatch!.group(1)!), height: int.parse(sizeMatch.group(2)!)) : null;
   final fixture = await LiteralTileFixture.create(
       scriptsBytes: syntheticInterpretationArchive,
       interpretationProfile: syntheticSourceInterpretationProfile,
       includeEventSystem: true,
-      extraFiles: {'Graphics/Characters/Fixed.png': _characterAtlas()},
-      maps: [LiteralFixtureMap(id: 1, width: 4, height: 4,
-        layers: [List.filled(16, 384), List.filled(16, 0), List.filled(16, 0)],
-        events: [LiteralFixtureEvent(id: 1, x: 1, y: 2, name: name, pages: pages ?? const [
+      extraFiles: {'Graphics/Characters/Fixed.png': _characterAtlas(width: (footprint?.width ?? 1) * 128, height: (footprint?.height ?? 1) * 128)},
+      maps: [LiteralFixtureMap(id: 1, width: 8, height: 8,
+        layers: [List.filled(64, 384), List.filled(64, 0), List.filled(64, 0)],
+        events: [LiteralFixtureEvent(id: 1, x: 1, y: passiveBarrier ? 6 : 2, name: name, pages: pages ?? const [
           LiteralFixtureEventPage(characterName: 'Fixed', directionFix: true,
             direction: 6, pattern: 2, commands: [LiteralFixtureEventCommand(101, ['Fixed pose.'])]),
         ])])]);
@@ -72,7 +75,7 @@ Future<({SourceEventProjection projection, List<SourceEventCharacterImport> impo
     final character = await const SourceEventCharacterImporter().read(
       snapshot: fixture.snapshot, files: fixture.files, charsetName: graphic.characterName,
       sourcePattern: graphic.pattern, sourceDirection: graphic.direction,
-      fixedDirection: graphic.directionFix);
+      fixedDirection: graphic.directionFix, stationaryFootprint: footprint);
     imported.add(character);
     final binding = character.binding;
     bindings[character.bindingKey] = SourceEventCharacterBinding(
@@ -85,7 +88,7 @@ Future<({SourceEventProjection projection, List<SourceEventCharacterImport> impo
       fixedDirection: corrupt == 'fixed' ? false : binding.fixedDirection);
   }
   return (projection: const SourceEventProjector().project(source: fixture.source,
-    analysis: analysis, nativeMaps: {1: MapData(id: 'map', name: 'Map', size: const GridSize(width: 4, height: 4))},
+    analysis: analysis, nativeMaps: {1: MapData(id: 'map', name: 'Map', size: const GridSize(width: 8, height: 8))},
     characterBindings: bindings), imported: imported);
 }
 
@@ -128,7 +131,96 @@ Future<SourceEventStudyComposition> _compose({String parentPath = '/private/tmp'
       base: semantic, files: fixture.files))!;
 }
 
+Future<SourceEventStudyComposition> _composeSharedBarrier({required bool invalidFirst, String parentPath = '/private/tmp', bool barrierOnly = false}) async {
+  final fixture = await LiteralTileFixture.create(
+    scriptsBytes: syntheticInterpretationArchive,
+    interpretationProfile: syntheticSourceInterpretationProfile,
+    includeEventSystem: true,
+    extraFiles: {
+      'Graphics/Characters/Fixed.png': _characterAtlas(width: 384, height: 256),
+      'Graphics/Characters/Player.png': literalFixtureAtlas(),
+      'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = Player\n'),
+    },
+    maps: [LiteralFixtureMap(id: 1, width: 8, height: 8,
+      layers: [List.filled(64, 384), List.filled(64, 0), List.filled(64, 0)],
+      events: [
+        for (var id = 1; id <= 2; id++)
+          if (!barrierOnly || id != (invalidFirst ? 1 : 2))
+          LiteralFixtureEvent(id: id, x: id == (invalidFirst ? 1 : 2) ? 6 : 1,
+            y: 6, name: id == (invalidFirst ? 1 : 2) ? 'Small footprint' : 'Barrier size(3,2)',
+            pages: const [LiteralFixtureEventPage(characterName: 'Fixed',
+              directionFix: true, direction: 6, pattern: 2, walkAnime: false, commands: [])]),
+      ])],
+  );
+  final literal = await const LiteralTileComposer().compose(source: fixture.source,
+      files: fixture.files, selectedSourceMapIds: [1], projectName: 'Shared barrier',
+      parentPath: parentPath, folderName: 'shared-barrier');
+  final semantic = (await const SourceSemanticStudyComposer().compose(
+      source: fixture.source, base: literal, files: fixture.files))!;
+  return (await const SourceEventStudyComposer().compose(source: fixture.source,
+      base: semantic, files: fixture.files))!;
+}
+
 void main() {
+  test('a rejected small use cannot suppress the valid shared barrier in either source order', () async {
+    final results = [
+      await _composeSharedBarrier(invalidFirst: true),
+      await _composeSharedBarrier(invalidFirst: false),
+    ];
+    final characters = <String>[];
+    for (var index = 0; index < results.length; index++) {
+      final projection = results[index].projection;
+      final eventId = index == 0 ? 2 : 1;
+      final row = (projection.semanticEvidence['events'] as List).cast<Map>()
+          .singleWhere((row) => row['locator']['eventId'] == eventId);
+      expect(row['status'], 'adaptedStaticSemantics');
+      expect(row['gaps'], isEmpty);
+      final entity = projection.nativeMaps[1]!.entities.singleWhere((entity) =>
+          entity.properties['sourceEventIdentity'] == row['sourceIdentity']);
+      expect(entity.size, const GridSize(width: 3, height: 2));
+      expect(entity.pos, const GridPos(x: 1, y: 5));
+      expect(entity.blocksMovement, isTrue);
+      expect(entity.properties[mapEntityCollisionWidthProperty], '3');
+      expect(entity.properties[mapEntityCollisionHeightProperty], '2');
+      characters.add(entity.npc!.characterId!);
+    }
+    expect(characters.toSet(), hasLength(1));
+  });
+
+  test('a passive barrier is written and strictly reopened without an empty narrative program', () async {
+    final temporary = await Directory.systemTemp.createTemp('source-passive-barrier-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final result = await _composeSharedBarrier(invalidFirst: true, parentPath: temporary.path, barrierOnly: true);
+    expect(result.projection.scenes, isEmpty);
+    expect(result.projection.registry.records, isEmpty);
+    final approval = approveNativeFixtureDraft(result.draft);
+    final receipt = await NativeProjectWriter().write(approval.plan, approval.context, result.draft);
+    expect(receipt.verified, isTrue);
+    const reader = LocalProjectFileReader();
+    final handles = WorkspaceHandleStore();
+    final policy = await WorkspacePolicy.create(allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+    final opener = ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(receipt.projectPath);
+    ProjectSnapshot? native;
+    try {
+      native = await ProjectSnapshotLoader(handles: handles).load(opened.projectHandle,
+          policy: ProjectSnapshotLoadPolicy.strict);
+      expect(native.loadDiagnostics, isEmpty);
+      final expected = result.projection.nativeMaps[1]!.entities.singleWhere((entity) => entity.name.contains('Barrier'));
+      final entity = native.mapById(result.draft.mapIds[1]!)!.entities.singleWhere((entity) => entity.id == expected.id);
+      expect(resolveEntityCollisionCells(entity), hasLength(6));
+      expect(entity.presentation!.variants.single.blocksMovement, isTrue);
+      final character = native.manifest.characters.singleWhere((entry) => entry.id == entity.npc!.characterId);
+      expect(character.frameWidth, 3);
+      expect(character.frameHeight, 2);
+      expect(native.manifest.scenes, isEmpty);
+      expect(native.manifest.eventRegistry!.records, isEmpty);
+    } finally {
+      await native?.payloadOwner?.release();
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  });
+
   test('all four native facings render the exact original fixed frame and keep distinct identities', () async {
     final result = await _project();
     final imported = result.imported.single;
@@ -181,6 +273,26 @@ void main() {
           directionFix: true, trigger: config.$1, moveType: config.$2,
           commands: const [LiteralFixtureEventCommand(101, ['Not stationary action.'])])]);
       expect(_gaps(result.projection), isNotEmpty);
+    });
+  }
+
+  for (final size in [const GridSize(width: 3, height: 2), const GridSize(width: 1, height: 5)]) {
+    test('passive fixed barrier preserves its complete ${size.width} by ${size.height} collision', () async {
+      final result = await _project(name: 'Gate size(${size.width},${size.height})', passiveBarrier: true,
+        pages: const [
+          LiteralFixtureEventPage(characterName: 'Fixed', directionFix: true, walkAnime: false, commands: []),
+          LiteralFixtureEventPage(globalSwitch: 1, commands: []),
+        ]);
+      expect(_gaps(result.projection), isEmpty);
+      final entity = result.projection.nativeMaps[1]!.entities.single;
+      expect(entity.size, size);
+      expect(entity.pos, GridPos(x: 1, y: 7 - size.height));
+      expect(entity.properties[mapEntityCollisionWidthProperty], '${size.width}');
+      expect(entity.properties[mapEntityCollisionHeightProperty], '${size.height}');
+      expect(entity.presentation!.variants.map((page) => page.blocksMovement), [false, true]);
+      expect(result.projection.scenes, isEmpty);
+      expect(result.projection.registry.records, isEmpty);
+      expect(result.projection.mutations.where((mutation) => mutation.actionId == 'scene.upsert' || mutation.actionId == 'event_v2.record_upsert_batch'), isEmpty);
     });
   }
 

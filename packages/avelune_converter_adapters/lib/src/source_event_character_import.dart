@@ -42,9 +42,9 @@ final class SourceEventCharacterImport {
   String get tilesetId => character.tilesetId;
   String get assetId => 'image_$tilesetId';
   List<int> get outputBytes => artifact.bytes;
-  int get nativeFrameWidthPx => 64;
+  int get nativeFrameWidthPx => character.frameWidth * 32;
   int get nativeFrameHeightPx => character.frameHeight * 32;
-  int get sourceOffsetXPx => 32 - frameWidthPx ~/ 2;
+  int get sourceOffsetXPx => nativeFrameWidthPx ~/ 2 - frameWidthPx ~/ 2;
   int get sourceOffsetYPx => nativeFrameHeightPx - frameHeightPx;
   int get depthOffsetPx => frameHeightPx > 32 ? 31 : 0;
   List<NativeArtifact> get artifacts => List.unmodifiable([artifact]);
@@ -97,13 +97,13 @@ final class SourceEventCharacterImport {
         'nativeOutput': {
           'rawSha256': artifact.rawSha256.value,
           'byteLength': outputBytes.length,
-          'sheetWidth': 256,
+          'sheetWidth': nativeFrameWidthPx * 4,
           'sheetHeight': nativeFrameHeightPx * 4,
           'frameWidthPx': nativeFrameWidthPx,
           'frameHeightPx': nativeFrameHeightPx,
           'sourceOffsetXPx': sourceOffsetXPx,
           'sourceOffsetYPx': sourceOffsetYPx,
-          'policy': nativeFrameHeightPx == 64 ? 'transparent64PixelFramesRmxpOriginBottomAligned' : 'transparent64x96PixelFramesRmxpOriginBottomAligned',
+          'policy': nativeFrameWidthPx != 64 || nativeFrameHeightPx > 96 ? 'stationaryIntegerTileFramesRmxpOriginBottomAligned' : nativeFrameHeightPx == 64 ? 'transparent64PixelFramesRmxpOriginBottomAligned' : 'transparent64x96PixelFramesRmxpOriginBottomAligned',
           'requiredBy': 'overworldActorMinimumTwoTileFrame',
         },
         'initialFrame': {
@@ -155,6 +155,7 @@ final class SourceEventCharacterImporter {
     required int sourcePattern,
     required int sourceDirection,
     bool fixedDirection = false,
+    GridSize? stationaryFootprint,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -177,6 +178,10 @@ final class SourceEventCharacterImporter {
     if (!const [2, 4, 6, 8].contains(sourceDirection)) {
       throw ContractError('source.event_character.direction_invalid', r'$',
           'The source direction must be an attested RMXP cardinal direction.');
+    }
+    if (stationaryFootprint != null && !fixedDirection) {
+      throw ContractError('source.event_character.stationary_requires_fixed', r'$',
+          'A stationary object footprint requires a fixed source pose.');
     }
     if (limits.maxMutations < 7) {
       throw ContractError('source.event_character.mutation_limit', r'$',
@@ -217,12 +222,14 @@ final class SourceEventCharacterImporter {
           'The source character bytes differ from the attested snapshot.');
     }
     final bytes = Uint8List.fromList(rawBytes).asUnmodifiableView();
-    final (width, height) = _geometry(bytes, path, limits);
-    final nativeHeight = height ~/ 4 > 64 ? 96 : 64;
-    if (limits.maxImagePixels < 256 * nativeHeight * 4) {
+    final (width, height) = _geometry(bytes, path, limits,
+        stationaryFootprint: fixedDirection ? stationaryFootprint : null);
+    final nativeWidth = stationaryFootprint == null ? 64 : ((width ~/ 4 + 31) ~/ 32).clamp(2, 5) * 32;
+    final nativeHeight = stationaryFootprint == null ? (height ~/ 4 > 64 ? 96 : 64) : ((height ~/ 4 + 31) ~/ 32).clamp(2, 5) * 32;
+    if (limits.maxImagePixels < nativeWidth * nativeHeight * 16) {
       throw ContractError('source.event_character.image_limit', path, 'The native character atlas exceeds its image quota.');
     }
-    final outputBytes = _nativePixels(bytes, width, height, path);
+    final outputBytes = _nativePixels(bytes, width, height, path, nativeWidth, nativeHeight);
     cancel.check();
     if (outputBytes.length > limits.maxArtifactBytes ||
         bytes.length + outputBytes.length > limits.maxTotalArtifactBytes) {
@@ -255,7 +262,7 @@ final class SourceEventCharacterImporter {
       id: characterId,
       name: '$charsetName · pattern $sourcePattern',
       tilesetId: tilesetId,
-      frameWidth: 2,
+      frameWidth: nativeWidth ~/ 32,
       frameHeight: nativeHeight ~/ 32,
       tags: const ['sourceImported', 'sourceStaticEventCharacter'],
       animations: [
@@ -268,9 +275,9 @@ final class SourceEventCharacterImporter {
             frames: [
               CharacterAnimationFrame(
                 source: TilesetSourceRect(
-                  x: sourcePattern * 64,
+                  x: sourcePattern * nativeWidth,
                   y: _row(fixedDirection ? sourceDirection : direction) * nativeHeight,
-                  width: 64,
+                  width: nativeWidth,
                   height: nativeHeight,
                 ),
                 durationMs: 150,
@@ -364,7 +371,7 @@ int _row(int direction) => switch (direction) {
       _ => throw StateError('An admitted RMXP direction is required.'),
     };
 
-(int, int) _geometry(Uint8List bytes, String path, NativeWriteLimits limits) {
+(int, int) _geometry(Uint8List bytes, String path, NativeWriteLimits limits, {GridSize? stationaryFootprint}) {
   late final (int, int) dimensions;
   try {
     dimensions =
@@ -378,9 +385,16 @@ int _row(int direction) => switch (direction) {
         'The source character must be a bounded static PNG.');
   }
   final (width, height) = dimensions;
-  if (width < 4 || height < 4 || width > 256 || height > 384) {
+  final largeStationary = stationaryFootprint != null &&
+      stationaryFootprint.width >= 1 && stationaryFootprint.width <= 5 &&
+      stationaryFootprint.height >= 1 && stationaryFootprint.height <= 5 &&
+      width % 4 == 0 && height % 4 == 0 &&
+      width ~/ 4 == stationaryFootprint.width * 32 &&
+      height ~/ 4 <= stationaryFootprint.height * 32;
+  if (width < 4 || height < 4 ||
+      (stationaryFootprint != null ? !largeStationary : width > 256 || height > 384)) {
     throw ContractError('source.event_character.sheet_geometry', path,
-        'The source requires sixteen integer frames between 1 by 1 and 64 by 96 pixels.');
+        'The source requires a supported actor atlas or a fixed object matching its bounded footprint.');
   }
   try {
     const NativePngValidator().validate(bytes, limits: limits);
@@ -391,7 +405,7 @@ int _row(int direction) => switch (direction) {
   return dimensions;
 }
 
-List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
+List<int> _nativePixels(Uint8List bytes, int width, int height, String path, int nativeWidth, int nativeHeight) {
   final source = image.decodePng(bytes);
   if (source == null || source.width != width || source.height != height) {
     throw ContractError('source.event_character.image_invalid', path,
@@ -402,11 +416,10 @@ List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
   }
   final frameWidth = width ~/ 4;
   final frameHeight = height ~/ 4;
-  final offsetX = 32 - frameWidth ~/ 2;
-  final nativeHeight = frameHeight > 64 ? 96 : 64;
+  final offsetX = nativeWidth ~/ 2 - frameWidth ~/ 2;
   final offsetY = nativeHeight - frameHeight;
   final raster = image.Image(
-    width: 256,
+    width: nativeWidth * 4,
     height: nativeHeight * 4,
     numChannels: 4,
     format: source.format == image.Format.uint16
@@ -419,7 +432,7 @@ List<int> _nativePixels(Uint8List bytes, int width, int height, String path) {
         for (var x = 0; x < frameWidth; x++) {
           final pixel =
               source.getPixel(column * frameWidth + x, row * frameHeight + y);
-          raster.setPixelRgba(column * 64 + offsetX + x, row * nativeHeight + offsetY + y,
+          raster.setPixelRgba(column * nativeWidth + offsetX + x, row * nativeHeight + offsetY + y,
               pixel.r, pixel.g, pixel.b, pixel.a);
         }
       }

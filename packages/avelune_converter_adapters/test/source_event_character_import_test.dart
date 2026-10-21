@@ -101,6 +101,51 @@ Matcher _code(String value) =>
     isA<ContractError>().having((error) => error.code, 'code', value);
 
 void main() {
+  for (final size in [(384, 256, const GridSize(width: 3, height: 2)), (128, 640, const GridSize(width: 1, height: 5))]) {
+    test('passive fixed object preserves every source pixel at ${size.$1} by ${size.$2}', () async {
+      final fixture = _fixture(width: size.$1, height: size.$2);
+      final imported = await const SourceEventCharacterImporter().read(
+          snapshot: fixture.snapshot, files: fixture.files, charsetName: 'NPC 01',
+          sourcePattern: 2, sourceDirection: 6, fixedDirection: true, stationaryFootprint: size.$3);
+      final before = image.decodePng(Uint8List.fromList(imported.imageBytes))!;
+      final after = image.decodePng(Uint8List.fromList(imported.outputBytes))!;
+      expect(imported.character.frameWidth * 32, imported.nativeFrameWidthPx);
+      expect(imported.character.frameHeight * 32, imported.nativeFrameHeightPx);
+      for (var row = 0; row < 4; row++) {
+        for (var column = 0; column < 4; column++) {
+          for (var y = 0; y < imported.frameHeightPx; y++) {
+            for (var x = 0; x < imported.frameWidthPx; x++) {
+              final a = before.getPixel(column * imported.frameWidthPx + x, row * imported.frameHeightPx + y);
+              final b = after.getPixel(column * imported.nativeFrameWidthPx + imported.sourceOffsetXPx + x,
+                  row * imported.nativeFrameHeightPx + imported.sourceOffsetYPx + y);
+              expect([b.r, b.g, b.b, b.a], [a.r, a.g, a.b, a.a]);
+            }
+          }
+        }
+      }
+      await expectLater(const SourceEventCharacterImporter().read(
+          snapshot: fixture.snapshot, files: fixture.files, charsetName: 'NPC 01',
+          sourcePattern: 2, sourceDirection: 6, stationaryFootprint: size.$3),
+          throwsA(_code('source.event_character.stationary_requires_fixed')));
+    });
+  }
+
+  test('passive object rejects unsupported footprints and narrower source frames', () async {
+    for (final size in [const GridSize(width: 0, height: 2), const GridSize(width: 6, height: 2), const GridSize(width: 3, height: 6), const GridSize(width: 2, height: 2)]) {
+      final fixture = _fixture(width: 384, height: 256);
+      await expectLater(const SourceEventCharacterImporter().read(
+          snapshot: fixture.snapshot, files: fixture.files, charsetName: 'NPC 01',
+          sourcePattern: 2, sourceDirection: 6, fixedDirection: true, stationaryFootprint: size),
+          throwsA(_code('source.event_character.sheet_geometry')));
+    }
+    final fixture = _fixture(width: 256, height: 256);
+    await expectLater(const SourceEventCharacterImporter().read(
+        snapshot: fixture.snapshot, files: fixture.files, charsetName: 'NPC 01',
+        sourcePattern: 2, sourceDirection: 6, fixedDirection: true,
+        stationaryFootprint: const GridSize(width: 3, height: 2)),
+        throwsA(_code('source.event_character.sheet_geometry')));
+  });
+
   test('imports tall four-direction atlases from two arbitrary projects', () async {
     for (final entry in [('aurora-panel', 128, 320), ('clockwork-sign', 192, 352)]) {
       final fixture = _fixture(charsetName: entry.$1, namespace: entry.$1,

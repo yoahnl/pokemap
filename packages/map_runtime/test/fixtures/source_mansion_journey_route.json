@@ -1,0 +1,344 @@
+{
+  "kind": "sourceFaithfulMansionJourney",
+  "sourceEventSequence": [
+    "58/9",
+    "197/9",
+    "198/6",
+    "199/9",
+    "199/15",
+    "197/10",
+    "200/9",
+    "200/9",
+    "200/9",
+    "200/10",
+    "200/1",
+    "200/10",
+    "200/9",
+    "200/8",
+    "197/8",
+    "58/11"
+  ],
+  "start": {
+    "map": "Cinnabar Island",
+    "x": 14,
+    "y": 4,
+    "facing": "north"
+  },
+  "actions": [
+    {
+      "kind": "transfer",
+      "map": "Cinnabar Island",
+      "direction": "up",
+      "destination": "Pokémon Mansion 1F",
+      "x": 10,
+      "y": 35
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion 1F",
+      "x": 12,
+      "y": 15
+    },
+    {
+      "kind": "transfer",
+      "map": "Pokémon Mansion 1F",
+      "direction": "right",
+      "destination": "Pokémon Mansion 2F",
+      "x": 8,
+      "y": 16
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion 2F",
+      "x": 11,
+      "y": 5
+    },
+    {
+      "kind": "transfer",
+      "map": "Pokémon Mansion 2F",
+      "direction": "right",
+      "destination": "Pokémon Mansion 3F",
+      "x": 10,
+      "y": 5
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion 3F",
+      "x": 14,
+      "y": 8
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion 3F",
+      "direction": "up",
+      "choiceIndex": 1
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion 3F",
+      "fact": ":switch:73",
+      "value": false
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion 3F",
+      "direction": "up",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion 3F",
+      "fact": ":switch:73",
+      "value": true
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion 3F",
+      "x": 20,
+      "y": 19
+    },
+    {
+      "kind": "transfer",
+      "map": "Pokémon Mansion 3F",
+      "direction": "down",
+      "destination": "Pokémon Mansion 1F",
+      "x": 21,
+      "y": 24
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion 1F",
+      "x": 27,
+      "y": 29
+    },
+    {
+      "kind": "transfer",
+      "map": "Pokémon Mansion 1F",
+      "direction": "left",
+      "destination": "Pokémon Mansion B1F",
+      "x": 36,
+      "y": 31
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 25,
+      "y": 31
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "right",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": false
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 23,
+      "y": 26
+    },
+    {
+      "kind": "blockedStep",
+      "map": "Pokémon Mansion B1F",
+      "direction": "up"
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 25,
+      "y": 31
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "right",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": true
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 23,
+      "y": 26
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 23,
+      "y": 24
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 23,
+      "y": 26
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 25,
+      "y": 31
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "right",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": false
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 30,
+      "y": 7
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "left",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": true
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 7,
+      "y": 8
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "down",
+      "choiceIndex": 0,
+      "picksUpKey": true,
+      "contains": "Secret Key"
+    },
+    {
+      "kind": "saveReload",
+      "map": "Pokémon Mansion B1F"
+    },
+    {
+      "kind": "interactSilent",
+      "map": "Pokémon Mansion B1F"
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "keyQuantity": 1
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": true
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 30,
+      "y": 7
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "left",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": false
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 25,
+      "y": 31
+    },
+    {
+      "kind": "interact",
+      "map": "Pokémon Mansion B1F",
+      "direction": "right",
+      "choiceIndex": 0
+    },
+    {
+      "kind": "assert",
+      "map": "Pokémon Mansion B1F",
+      "fact": ":switch:73",
+      "value": true
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion B1F",
+      "x": 36,
+      "y": 31
+    },
+    {
+      "kind": "transfer",
+      "map": "Pokémon Mansion B1F",
+      "direction": "right",
+      "destination": "Pokémon Mansion 1F",
+      "x": 27,
+      "y": 29
+    },
+    {
+      "kind": "walk",
+      "map": "Pokémon Mansion 1F",
+      "x": 36,
+      "y": 35
+    },
+    {
+      "kind": "transfer",
+      "map": "Pokémon Mansion 1F",
+      "direction": "down",
+      "destination": "Cinnabar Island",
+      "x": 14,
+      "y": 4
+    },
+    {
+      "kind": "walk",
+      "map": "Cinnabar Island",
+      "x": 26,
+      "y": 5
+    },
+    {
+      "kind": "transfer",
+      "map": "Cinnabar Island",
+      "direction": "up",
+      "destination": "Cinnabar Gym",
+      "x": 27,
+      "y": 25
+    },
+    {
+      "kind": "saveReload",
+      "map": "Cinnabar Gym"
+    },
+    {
+      "kind": "assert",
+      "map": "Cinnabar Gym",
+      "keyQuantity": 1
+    }
+  ]
+}

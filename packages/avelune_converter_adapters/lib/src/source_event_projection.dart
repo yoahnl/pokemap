@@ -2385,7 +2385,7 @@ final class _ProjectionBuilder {
       _fixedDirectionSourceMatches.putIfAbsent(event, () {
     if (event.isQuarantined || event.pages.isEmpty ||
         !sourceEventUsesFixedDirectionPresentation(event) ||
-        _eventFootprint(event).width != 1 || _eventFootprint(event).height != 1 ||
+        ((_eventFootprint(event).width != 1 || _eventFootprint(event).height != 1) && sourcePassiveFixedFootprint(event) == null) ||
         maps[event.sourceMapId]!.spatialScene != null ||
         maps[event.sourceMapId]!.version == ProjectVersion.v9) {
       return false;
@@ -3121,7 +3121,7 @@ final class _ProjectionBuilder {
       gaps.add('sourceSoundBindingMissing');
     }
     final touch = _touch(event, event.pages.single);
-    if (touch.kind != SourceEventTouchKind.enter) gaps.add('sourceHoleTouchUnqualified');
+    if (touch.kind != (program.terrainBump ? SourceEventTouchKind.front : SourceEventTouchKind.enter)) gaps.add('sourceHoleTouchUnqualified');
     _blockGaps(event, SourceEventBlock(nodes: [program.warp], span: event.pages.single.body.span), gaps);
     return gaps;
   }
@@ -3846,6 +3846,30 @@ final class _ProjectionBuilder {
         !identical(page, event.pages.single)) {
       return refused('sourceHoleCompleteProgramBindingMissing');
     }
+    if (program.terrainBump) {
+      final size = _eventFootprint(event);
+      final map = maps[event.sourceMapId]!;
+      if (size.height != 1 || !const {2, 3}.contains(size.width) ||
+          event.x < 0 || event.y < 0 || event.x + size.width > map.size.width ||
+          event.y >= map.size.height ||
+          !_nativeTouchFootprintMatches(event, SourceEventTouchKind.front)) {
+        return refused('sourceHoleNativeFootprintMismatch');
+      }
+      for (final candidate in _sourceContextEvents.where((candidate) =>
+          candidate.sourceMapId == event.sourceMapId && candidate.identity != event.identity)) {
+        final sizes = RegExp(r'size\((\d+),(\d+)\)', caseSensitive: false)
+            .allMatches(candidate.name).toList();
+        final otherSize = _eventFootprint(candidate);
+        if (sizes.length > 1 || otherSize.width < 1 || otherSize.width > 64 ||
+            otherSize.height < 1 || otherSize.height > 64) {
+          return refused('sourceHoleTouchNeighborFootprintUnqualified');
+        }
+        if (candidate.x < event.x + size.width && candidate.x + otherSize.width > event.x &&
+            candidate.y >= event.y && candidate.y - otherSize.height + 1 <= event.y) {
+          return refused('sourceHoleTouchFootprintOverlappingEvent');
+        }
+      }
+    }
     final candidates = _sourceContextEvents.where((candidate) => candidate.sourceMapId == event.sourceMapId).toList();
     if (candidates.where((candidate) => candidate.identity == event.identity).length != 1) {
       return refused('eventSetBinding');
@@ -3858,6 +3882,16 @@ final class _ProjectionBuilder {
           return refused('tileEventStateUnqualified');
         }
       }
+    }
+    if (program.terrainBump) {
+      final passages = [for (var x = event.x; x < event.x + _eventFootprint(event).width; x++)
+        semanticResolver.resolveConnectionEntryTile(semanticResolver.cellAt(event.sourceMapId, x, event.y))];
+      if (passages.any((passage) => passage.status != SourcePassageStatus.blocked)) {
+        return refused('sourceHoleTouchFootprintMixedOrUnknownPassage');
+      }
+      return SourceEventTouchResolution(kind: SourceEventTouchKind.front,
+        reason: 'boundWholeSourceHoleStationaryFootprintBlocked',
+        trace: [for (final passage in passages) ...passage.trace]);
     }
     final cell = semanticResolver.cellAt(event.sourceMapId, event.x, event.y);
     final passage = semanticResolver.resolveConnectionEntryTile(cell);
@@ -4513,8 +4547,8 @@ final class _ProjectionBuilder {
           'sourceEventAnchorX': '${event.x}',
           'sourceEventAnchorY': '${event.y}',
           if (character != null && !graphic.through) ...{
-            mapEntityCollisionWidthProperty: _cardKeyGatePrograms.containsKey(event.identity) ? '2' : '1',
-            mapEntityCollisionHeightProperty: _cardKeyGatePrograms.containsKey(event.identity) ? '2' : '1',
+            mapEntityCollisionWidthProperty: '${sourcePassiveFixedFootprint(event)?.width ?? (_cardKeyGatePrograms.containsKey(event.identity) ? 2 : 1)}',
+            mapEntityCollisionHeightProperty: '${sourcePassiveFixedFootprint(event)?.height ?? (_cardKeyGatePrograms.containsKey(event.identity) ? 2 : 1)}',
             mapEntityCollisionOffsetXProperty: '0',
             mapEntityCollisionOffsetYProperty: '0',
           },
@@ -4569,6 +4603,7 @@ final class _ProjectionBuilder {
         [event.identity, event.sourceFileId], [map.id, entity.id],
         {'mapId': map.id, 'entityId': entity.id, 'presentation': entity.presentation!.toJson()}));
     }
+    if (sourcePassiveFixedFootprint(event) != null) return;
     if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.actor) return;
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
@@ -4871,10 +4906,14 @@ final class _SceneBuilder {
       next = prelude(SceneInteractiveCommand.wait(durationMs: wait.durationMs), next);
     }
     final falling = projection._sound(program.fallingSound.name)!;
-    next = prelude(SceneInteractiveCommand.playSoundEffect(
-      mediaAssetId: falling.mediaId, volume: falling.gainForVolume(program.fallingSound.volume)), next);
-    return prelude(SceneInteractiveCommand.actorVisibility(
-      target: SceneActorTarget.player(mapId: sourceMapId), visible: false), next);
+    final fallingCommand = SceneInteractiveCommand.playSoundEffect(
+      mediaAssetId: falling.mediaId, volume: falling.gainForVolume(program.fallingSound.volume));
+    final visibility = SceneInteractiveCommand.actorVisibility(
+      target: SceneActorTarget.player(mapId: sourceMapId), visible: false);
+    if (program.terrainBump) {
+      return prelude(fallingCommand, prelude(visibility, next));
+    }
+    return prelude(visibility, prelude(fallingCommand, next));
   }
 
   String _elevator(SourceElevatorProgram program, String next) {

@@ -499,3 +499,133 @@ final class _ExternalWarpRawValue {
     }
   }
 }
+
+SourceDeclaredProgramBinding? _automaticExternalWarpBinding(
+    List<Object?> pages) {
+  if (pages.isEmpty || pages.length > 2 || pages.any((page) => page is! Map)) {
+    return null;
+  }
+  final values = [
+    for (final page in pages) Map<String, Object?>.from(page as Map)
+  ];
+  bool stationary(Map page) {
+    final graphic = page['graphic'], route = page['move_route'];
+    return page['move_type'] == 0 &&
+        page['through'] == false &&
+        page['direction_fix'] == false &&
+        page['step_anime'] == false &&
+        page['always_on_top'] == false &&
+        graphic is Map &&
+        graphic['tile_id'] == 0 &&
+        graphic['character_name'] == '' &&
+        graphic['character_hue'] == 0 &&
+        graphic['direction'] == 2 &&
+        const {0, 1, 2, 3}.contains(graphic['pattern']) &&
+        graphic['opacity'] == 255 &&
+        graphic['blend_type'] == 0 &&
+        route is Map &&
+        route['repeat'] == true &&
+        route['skippable'] == false &&
+        canonicalJsonOf(route['list']) ==
+            '[{"__class__":"RPG::MoveCommand","code":0,"parameters":[]}]';
+  }
+
+  if (values.any((page) => !stationary(page))) return null;
+  final program = values.first;
+  final condition = program['condition'], commands = program['list'];
+  if (program['trigger'] != 1 ||
+      condition is! Map ||
+      commands is! List ||
+      const [
+        'switch1_valid',
+        'switch2_valid',
+        'variable_valid',
+        'self_switch_valid'
+      ].any((flag) => condition[flag] != false) ||
+      commands.any((command) => command is! Map || command['indent'] != 0)) {
+    return null;
+  }
+  final codes = canonicalJsonOf(
+      [for (final command in commands) (command as Map)['code']]);
+  final presentation = switch (codes) {
+    '[250,223,106,201,223,0]' => 'fade',
+    '[250,223,106,201,231,106,223,232,106,235,0]' => 'illustrated',
+    '[250,223,106,231,355,201,106,223,232,106,235,0]' => 'caveEntrance',
+    '[250,223,106,355,201,223,0]' => 'caveExit',
+    _ => null,
+  };
+  if (presentation == null) return null;
+  final pictures = commands.where((command) => (command as Map)['code'] == 231);
+  for (final picture in pictures) {
+    final parameters = (picture as Map)['parameters'];
+    if (parameters is! List ||
+        parameters.length != 10 ||
+        !const {'dpic_powerplant', 'dpic_rocktunnel', 'dpic_pokemonmansion'}
+            .contains(parameters[1])) {
+      return null;
+    }
+  }
+  if (values.length == 2) {
+    final arrival = values.last;
+    final guard = arrival['condition'], body = arrival['list'];
+    if (arrival['trigger'] != 3 ||
+        guard is! Map ||
+        body is! List ||
+        guard['switch1_valid'] != true ||
+        guard['switch1_id'] is! int ||
+        (guard['switch1_id'] as int) <= 0 ||
+        const ['switch2_valid', 'variable_valid', 'self_switch_valid']
+            .any((flag) => guard[flag] != false) ||
+        canonicalJsonOf([
+              for (final command in body)
+                if (command is Map) command['code']
+            ]) !=
+            '[111,209,509,210,0,412,355,0]') {
+      return null;
+    }
+    final expected = <String, Object?>{
+      '__class__': 'RPG::MoveCommand',
+      'code': 1,
+      'parameters': <Object?>[],
+    };
+    final routeParameters = (body[1] as Map)['parameters'];
+    if (canonicalJsonOf((body.first as Map)['parameters']) !=
+            '[12,"get_self.onEvent?"]' ||
+        canonicalJsonOf((body[6] as Map)['parameters']) !=
+            canonicalJsonOf(['setTempSwitchOn("A")']) ||
+        routeParameters is! List ||
+        routeParameters.length != 2 ||
+        routeParameters.first != -1 ||
+        routeParameters.last is! Map) {
+      return null;
+    }
+    final route = routeParameters.last as Map;
+    if (route['repeat'] != false ||
+        route['skippable'] != true ||
+        canonicalJsonOf(route['list']) !=
+            canonicalJsonOf([
+              expected,
+              {
+                '__class__': 'RPG::MoveCommand',
+                'code': 0,
+                'parameters': <Object?>[]
+              },
+            ]) ||
+        canonicalJsonOf((body[2] as Map)['parameters']) !=
+            canonicalJsonOf([expected]) ||
+        body.indexed.any((entry) =>
+            (entry.$2 as Map)['indent'] !=
+            (entry.$1 >= 1 && entry.$1 <= 4 ? 1 : 0))) {
+      return null;
+    }
+  }
+  return SourceDeclaredProgramBinding.fromJson({
+    'id': 'automatic-external-warp-${canonicalHashOf(pages).value}',
+    'family': 'externalWarp',
+    'pages': {
+      'program': program,
+      if (values.length == 2) 'arrival': values.last
+    },
+    'parameters': {'presentation': presentation},
+  });
+}

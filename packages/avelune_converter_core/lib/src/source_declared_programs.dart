@@ -1122,6 +1122,7 @@ SourceDeclaredProgramMatch? _matchSourceDeclaredProgram({
           SourceDeclaredProgramFamily.healingDisplay,
           SourceDeclaredProgramFamily.warpTile,
           SourceDeclaredProgramFamily.hole,
+          SourceDeclaredProgramFamily.externalWarp,
         }.contains(family));
     if (!supportsAutomatic &&
         !declared.any((binding) => families.contains(binding.family))) {
@@ -1149,6 +1150,9 @@ SourceDeclaredProgramMatch? _matchSourceDeclaredProgram({
                 : null) ??
             (families.contains(SourceDeclaredProgramFamily.warpTile)
                 ? _automaticWarpTileBinding(pages.cast<Object?>())
+                : null) ??
+            (families.contains(SourceDeclaredProgramFamily.externalWarp)
+                ? _automaticExternalWarpBinding(pages.cast<Object?>())
                 : null) ??
             _automaticCenterServiceBinding(pages.cast<Object?>())
         : null;
@@ -1202,17 +1206,21 @@ SourceDeclaredProgramBinding? _automaticHoleBinding(List<Object?> pages) {
   final graphic = page['graphic'], condition = page['condition'];
   final commands = page['list'];
   if (page['trigger'] != 1 || page['move_type'] != 0 ||
-      page['through'] != true || graphic is! Map || condition is! Map ||
+      page['through'] is! bool || graphic is! Map || condition is! Map ||
       graphic['tile_id'] != 0 || graphic['character_name'] != '' ||
       graphic['character_hue'] != 0 || graphic['direction'] != 2 ||
       graphic['pattern'] != 0 || graphic['opacity'] != 255 ||
       graphic['blend_type'] != 0 || const [
         'switch1_valid', 'switch2_valid', 'variable_valid', 'self_switch_valid',
       ].any((flag) => condition[flag] != false) ||
-      commands is! List || commands.length != 14) {
+      commands is! List || (commands.length != 14 && commands.length != 13)) {
     return null;
   }
-  const codes = [209, 509, 210, 250, 106, 223, 106, 201, 209, 509, 210, 223, 250, 0];
+  final terrainBump = commands.length == 13;
+  if (page['through'] != !terrainBump) return null;
+  final codes = terrainBump
+      ? const [250, 209, 509, 106, 223, 106, 201, 210, 209, 509, 223, 250, 0]
+      : const [209, 509, 210, 250, 106, 223, 106, 201, 209, 509, 210, 223, 250, 0];
   for (var index = 0; index < codes.length; index++) {
     final command = commands[index];
     if (command is! Map || command['code'] != codes[index] ||
@@ -1220,7 +1228,7 @@ SourceDeclaredProgramBinding? _automaticHoleBinding(List<Object?> pages) {
       return null;
     }
   }
-  for (final (index, opacity) in [(0, 0), (8, 255)]) {
+  for (final (index, opacity) in [(terrainBump ? 1 : 0, 0), (8, 255)]) {
     final parameters = (commands[index] as Map)['parameters'];
     final continued = (commands[index + 1] as Map)['parameters'];
     if (parameters is! List || parameters.length != 2 ||
