@@ -1050,6 +1050,8 @@ final class SourceEventStudyComposer {
       'version': 1,
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
       'normalizedSourceHash': source.canonicalHash.value,
+      'nativeCatalogHash': nativeCatalog == null ? null : canonicalHashOf(
+          nativeCatalog.toJson(), limits: nativePsdkCatalogShardJsonLimits).value,
       'profile': profile.toJson(),
       'projection': projection.semanticEvidence,
       'characters': characterEvidence,

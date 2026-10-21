@@ -3063,9 +3063,15 @@ Future<_VerifiedSourceSemantics> _verifySourceSemantics(
     await preparation.start(NativePreparationStage.events,
         total: eventRaw == null ? 0 : null);
     if (eventRaw != null) {
+      final eventCatalogHash = (eventRaw as Map)['nativeCatalogHash'];
+      if (!eventRaw.containsKey('nativeCatalogHash') ||
+          (eventCatalogHash != null && eventCatalogHash != canonicalHashOf(
+              trainerCatalog.toJson(), limits: nativePsdkCatalogShardJsonLimits).value)) {
+        throw const FormatException('Event catalogue policy must match its exact regenerated catalogue');
+      }
       eventComposition = await SourceEventStudyComposer(
           nativeEncounterQualification: nativeEncounters,
-          nativeTrainerCatalog: trainerCatalog,
+          nativeTrainerCatalog: eventCatalogHash == null ? null : trainerCatalog,
           nativeTrainerQualification: nativeTrainers).compose(
           source: draft.source,
           base: regenerated,
