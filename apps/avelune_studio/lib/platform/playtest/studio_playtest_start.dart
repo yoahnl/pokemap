@@ -63,6 +63,7 @@ Future<GameState?> prepareStudioPlaytestStart(
       final state = createNewGameStateFromSeed(
         project: preparation.project,
         startMap: preparation.startMap,
+        initialRecoveryMap: preparation.initialRecoveryMap,
         seed: seed,
         currentProjectRevision: revision,
         locale: 'fr-FR',
@@ -80,21 +81,34 @@ Future<GameState?> prepareStudioPlaytestStart(
       flow.clear();
     }
   }
-  if (map.id == newGame.startMapId) return null;
+  if (map.id == newGame.startMapId && newGame.initialRecoveryPoint == null) {
+    return null;
+  }
 
-  final spawn = _playtestSpawn(map, project);
+  final spawn = map.id == newGame.startMapId
+      ? null
+      : _playtestSpawn(map, project);
 
   final authoredStart = await loadRuntimeMapBundle(
     projectFilePath: projectFilePath,
     mapId: newGame.startMapId,
   );
+  final recovery = newGame.initialRecoveryPoint;
+  final recoveryMap = recovery == null || recovery.mapId == authoredStart.map.id
+      ? null
+      : (await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: recovery.mapId,
+        )).map;
   final initial = createNewGameStateFromProject(
     project: project,
     startMap: authoredStart.map,
+    initialRecoveryMap: recoveryMap,
     locale: 'fr-FR',
     tileWidthPx: project.settings.tileWidth,
     tileHeightPx: project.settings.tileHeight,
   );
+  if (spawn == null) return initial;
   return initial.copyWith(
     currentMapId: map.id,
     playerPosition: spawn.pos,

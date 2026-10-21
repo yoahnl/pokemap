@@ -2412,6 +2412,7 @@ ProjectManifest _replaceSceneConsumers(
     enabled: newGame.enabled,
     startMapId: newGame.startMapId,
     startSpawnId: newGame.startSpawnId,
+    initialRecoveryPoint: newGame.initialRecoveryPoint,
     playerName: newGame.playerName,
     playerAvatarCharacterIds: newGame.playerAvatarCharacterIds,
     playerPronounSet: newGame.playerPronounSet,

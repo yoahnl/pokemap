@@ -1243,6 +1243,7 @@ final class RuntimePlayerCoordinator {
       final initialGameState = createNewGameStateFromSeed(
         project: preparation.project,
         startMap: preparation.startMap,
+        initialRecoveryMap: preparation.initialRecoveryMap,
         seed: commit.seed!,
         currentProjectRevision: currentProjectRevision,
         locale: _preferences?.locale ?? 'en',

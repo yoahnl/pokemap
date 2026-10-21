@@ -39,12 +39,14 @@ final class RuntimeNewGamePreparation {
     required this.projectRevision,
     required this.project,
     required this.startMap,
+    this.initialRecoveryMap,
     this.preSessionRunner,
   });
 
   final String projectRevision;
   final ProjectManifest project;
   final MapData startMap;
+  final MapData? initialRecoveryMap;
   final RuntimeNewGamePreSessionRunner? preSessionRunner;
 }
 
@@ -110,6 +112,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
       projectRevision: snapshot.revision,
       project: bundle.manifest,
       startMap: bundle.map,
+      initialRecoveryMap: snapshot.initialRecoveryMap,
       preSessionRunner: sceneId == null || sceneId.isEmpty
           ? null
           : (_preSessionRunnerFactory?.call(
@@ -520,10 +523,12 @@ final class _RuntimeNewGameProjectSnapshot {
   const _RuntimeNewGameProjectSnapshot({
     required this.map,
     required this.revision,
+    this.initialRecoveryMap,
   });
 
   final MapData map;
   final String revision;
+  final MapData? initialRecoveryMap;
 }
 
 Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
@@ -563,6 +568,59 @@ Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
         bytes: mapBytes,
       ),
     ];
+    final startMap = MapData.fromJson(mapJson);
+    MapData? initialRecoveryMap;
+    final recovery = project.newGame.initialRecoveryPoint;
+    if (recovery != null) {
+      if (recovery.mapId == startMap.id) {
+        initialRecoveryMap = startMap;
+      } else {
+        final recoveryEntries = project.maps.where(
+          (entry) => entry.id == recovery.mapId,
+        );
+        if (recoveryEntries.length != 1) {
+          throw StateError(
+            'The initial recovery map must belong to the project.',
+          );
+        }
+        final relativePath = recoveryEntries.single.relativePath
+            .trim()
+            .replaceAll(r'\', '/');
+        final recoveryPath = p.normalize(p.join(projectRoot, relativePath));
+        if (!p.isWithin(projectRoot, recoveryPath)) {
+          throw StateError(
+            'The initial recovery map path is outside the project.',
+          );
+        }
+        final canonicalRoot = await Directory(projectRoot)
+            .resolveSymbolicLinks();
+        final canonicalMapPath = await File(recoveryPath)
+            .resolveSymbolicLinks();
+        if (!p.isWithin(canonicalRoot, canonicalMapPath)) {
+          throw StateError(
+            'The initial recovery map resolves outside the project.',
+          );
+        }
+        final bytes = await File(recoveryPath).readAsBytes();
+        final json = jsonDecode(utf8.decode(bytes));
+        if (json is! Map<String, dynamic>) {
+          throw const FormatException(
+            'The initial recovery map must be an object.',
+          );
+        }
+        initialRecoveryMap = MapData.fromJson(json);
+        fingerprintEntries.add(
+          NarrativeProjectFingerprintEntry(
+            relativePath: relativePath,
+            bytes: bytes,
+          ),
+        );
+      }
+      ProjectValidator.validateNewGameInitialRecoveryMap(
+        project,
+        initialRecoveryMap,
+      );
+    }
     if (project.presentationCinematics.isNotEmpty) {
       for (final relativePath in const <String>[
         'assets/.pokemap-media.json',
@@ -610,7 +668,8 @@ Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
       );
     }
     return _RuntimeNewGameProjectSnapshot(
-      map: MapData.fromJson(mapJson),
+      map: startMap,
+      initialRecoveryMap: initialRecoveryMap,
       revision: computeNarrativeProjectFingerprint(fingerprintEntries),
     );
   } finally {

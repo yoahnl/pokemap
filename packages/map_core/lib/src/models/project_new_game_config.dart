@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import 'save_data.dart';
+import 'project_new_game_recovery_point.dart';
 import 'narrative_value.dart';
 
 @immutable
@@ -49,6 +50,7 @@ final class ProjectNewGameConfig {
     this.enabled = false,
     this.startMapId = '',
     this.startSpawnId,
+    this.initialRecoveryPoint,
     this.playerName = 'Player',
     this.playerAvatarCharacterIds = const <String>[],
     this.playerPronounSet = PlayerPronounSet.neutral,
@@ -74,6 +76,10 @@ final class ProjectNewGameConfig {
       enabled: _readBool(json, 'enabled', fallback: false),
       startMapId: _readString(json, 'startMapId') ?? '',
       startSpawnId: _readString(json, 'startSpawnId'),
+      initialRecoveryPoint: json['initialRecoveryPoint'] == null
+          ? null
+          : ProjectNewGameRecoveryPoint.fromJson(
+              _readObject(json, 'initialRecoveryPoint')),
       playerName: _readString(json, 'playerName') ?? 'Player',
       playerAvatarCharacterIds:
           _readStringList(json, 'playerAvatarCharacterIds'),
@@ -102,6 +108,7 @@ final class ProjectNewGameConfig {
   final bool enabled;
   final String startMapId;
   final String? startSpawnId;
+  final ProjectNewGameRecoveryPoint? initialRecoveryPoint;
   final String playerName;
   final List<String> playerAvatarCharacterIds;
   final PlayerPronounSet playerPronounSet;
@@ -125,6 +132,8 @@ final class ProjectNewGameConfig {
         'enabled': enabled,
         'startMapId': startMapId,
         if (startSpawnId != null) 'startSpawnId': startSpawnId,
+        if (initialRecoveryPoint != null)
+          'initialRecoveryPoint': initialRecoveryPoint!.toJson(),
         'playerName': playerName,
         'playerAvatarCharacterIds': playerAvatarCharacterIds,
         'playerPronounSet': playerPronounSet.name,
@@ -154,6 +163,7 @@ final class ProjectNewGameConfig {
           other.enabled == enabled &&
           other.startMapId == startMapId &&
           other.startSpawnId == startSpawnId &&
+          other.initialRecoveryPoint == initialRecoveryPoint &&
           other.playerName == playerName &&
           _listEquals(
             other.playerAvatarCharacterIds,
@@ -174,6 +184,7 @@ final class ProjectNewGameConfig {
         enabled,
         startMapId,
         startSpawnId,
+        initialRecoveryPoint,
         playerName,
         Object.hashAll(playerAvatarCharacterIds),
         playerPronounSet,

@@ -7,10 +7,14 @@ final class NewGameSpawnAuthoringOption {
   const NewGameSpawnAuthoringOption({
     required this.id,
     required this.label,
+    this.position,
+    this.facing,
   });
 
   final String id;
   final String label;
+  final GridPos? position;
+  final EntityFacing? facing;
 }
 
 final class NewGameMapAuthoringOption {
@@ -90,6 +94,8 @@ final newGameMapAuthoringCatalogProvider = FutureProvider.autoDispose
           if (entity.kind == MapEntityKind.spawn)
             NewGameSpawnAuthoringOption(
               id: entity.id,
+              position: map.spatialScene == null && map.version == ProjectVersion.v8 ? entity.pos : null,
+              facing: entity.spawn?.facing,
               label: _spawnLabel(
                 entity,
                 isDefault: map.mapMetadata.defaultSpawnId == entity.id,

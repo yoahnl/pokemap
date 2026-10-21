@@ -189,7 +189,8 @@ final class CampaignContentActions {
       final value =
           ProjectNewGameConfig.fromJson(_object(parameters, 'newGame'));
       before = context.snapshot.manifest.newGame.toJson();
-      projected = updateNewGame(context.snapshot.manifest, value);
+      projected = updateNewGame(context.snapshot.manifest, value,
+          maps: context.snapshot.maps);
       after = projected.newGame.toJson();
       path = '/newGame';
     } else {
@@ -361,9 +362,22 @@ final class CampaignContentActions {
 
   ProjectManifest updateNewGame(
     ProjectManifest project,
-    ProjectNewGameConfig newGame,
-  ) =>
-      _validated(project.copyWith(newGame: newGame));
+    ProjectNewGameConfig newGame, {
+    Iterable<MapData> maps = const [],
+  }) {
+    final projected = _validated(project.copyWith(newGame: newGame));
+    final recovery = newGame.initialRecoveryPoint;
+    if (newGame.enabled && recovery != null) {
+      final targets = maps.where((map) => map.id == recovery.mapId);
+      if (targets.length != 1) {
+        throw const ValidationException(
+            'The initial recovery point requires its declared map snapshot.');
+      }
+      ProjectValidator.validateNewGameInitialRecoveryMap(
+          projected, targets.single);
+    }
+    return projected;
+  }
 }
 
 AuthoringActionDescriptor _descriptor(
@@ -381,7 +395,27 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'campaignContent'],
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      extensions: const {
+      extensions: id == 'campaign.new_game.update'
+          ? const {
+              'initialRecoveryPoint': {
+                'field': 'newGame.initialRecoveryPoint',
+                'optional': true,
+                'type': 'object',
+                'required': ['mapId', 'position', 'facing'],
+                'additionalProperties': false,
+                'mapId': {'referenceKind': 'projectMap', 'sameProject': true},
+                'position': {
+                  'type': 'integerGridPosition',
+                  'min': 0,
+                  'bounds': 'declaredMap'
+                },
+                'facing': ['north', 'south', 'east', 'west'],
+                'dimension': 'twoD',
+                'runtimeSemantics': 'nativePlayerRecoveryPoint',
+                'preservesEntrySpawn': true,
+              },
+            }
+          : const {
         'campaign.trainer.upsert',
         'campaign.trainer.upsert_batch'
       }.contains(id)

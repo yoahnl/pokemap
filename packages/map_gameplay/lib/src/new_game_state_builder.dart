@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'direction.dart';
+import 'player_defeat_recovery.dart';
 import 'player_spawn_resolver.dart';
 import 'spatial_movement_controller.dart';
 
@@ -59,6 +60,7 @@ final class NewGameSeedProjectionException implements Exception {
 GameState createNewGameStateFromSeed({
   required ProjectManifest project,
   required MapData startMap,
+  MapData? initialRecoveryMap,
   required NewGameSeed seed,
   required String currentProjectRevision,
   String locale = 'en',
@@ -87,6 +89,7 @@ GameState createNewGameStateFromSeed({
   final state = createNewGameStateFromProject(
     project: project,
     startMap: startMap,
+    initialRecoveryMap: initialRecoveryMap,
     saveId: seed.saveId,
     playerName: seed.playerName,
     playerAvatarCharacterId: seed.avatarCharacterId,
@@ -302,6 +305,7 @@ GameState createNewGameStateFromMap({
 GameState createNewGameStateFromProject({
   required ProjectManifest project,
   required MapData startMap,
+  MapData? initialRecoveryMap,
   String saveId = 'new_game',
   String? playerName,
   String? playerAvatarCharacterId,
@@ -385,7 +389,7 @@ GameState createNewGameStateFromProject({
               : config.playerAvatarCharacterIds.firstOrNull;
   final resolvedPronounSet = playerPronounSet ?? config.playerPronounSet;
 
-  return normalizeLoadedGameState(
+  final state = normalizeLoadedGameState(
     GameState(
       saveId: saveId.trim().isEmpty ? 'new_game' : saveId.trim(),
       currentMapId: configuredMapId,
@@ -421,6 +425,20 @@ GameState createNewGameStateFromProject({
       metadata: const <String, String>{},
     ),
   );
+  final recovery = config.initialRecoveryPoint;
+  if (recovery == null) return state;
+  final recoveryMap =
+      recovery.mapId == startMap.id ? startMap : initialRecoveryMap;
+  if (recoveryMap == null) {
+    throw ArgumentError('The declared initial recovery map must be provided.');
+  }
+  ProjectValidator.validateNewGameInitialRecoveryMap(project, recoveryMap);
+  final recorded = recordPlayerRecoveryPoint(state.copyWith(
+    currentMapId: recovery.mapId,
+    playerPosition: recovery.position,
+    playerFacing: recovery.facing,
+  ));
+  return state.copyWith(metadata: recorded.metadata);
 }
 
 ScriptVariables _playerIdentityScriptVariables({

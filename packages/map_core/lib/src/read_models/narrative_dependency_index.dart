@@ -713,6 +713,15 @@ final class _NarrativeDependencyIndexBuilder {
         criticality: criticality,
       );
     }
+    final recoveryMapId = config.initialRecoveryPoint?.mapId;
+    if (recoveryMapId != null && recoveryMapId.isNotEmpty) {
+      _usage(
+        target: _mapKey(recoveryMapId),
+        owner: _newGameOwner,
+        path: 'newGame.initialRecoveryPoint.mapId',
+        criticality: criticality,
+      );
+    }
     final startSpawnId = config.startSpawnId?.trim();
     if (startMapId.isNotEmpty &&
         startSpawnId != null &&

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/editor/state/editor_notifier.dart';
+import '../../../app/providers/core/repository_providers.dart';
 import '../../../features/gameplay/items/item_capability_picker.dart';
 import '../../../features/narrative/state/new_game_authoring_catalog_provider.dart';
 import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
@@ -71,11 +72,32 @@ class ProjectNewGameConfigurationSheet extends ConsumerWidget {
             final notifier = ref.read(editorNotifierProvider.notifier);
             final latestProject = ref.read(editorNotifierProvider).project;
             if (latestProject == null) return false;
-            notifier.applyInMemoryProjectManifest(
-              latestProject.copyWith(newGame: config),
-              statusMessage: 'Configuration Nouveau Jeu prête à sauvegarder.',
+            final queries = ref.read(authoringQueryAdapterProvider);
+            await queries.invalidate(projectRootPath);
+            final before = await queries.open(projectRootPath);
+            if (before.manifest != latestProject) {
+              throw StateError(
+                'Le projet a changé. Sauvegardez puis rechargez sa configuration avant de continuer.',
+              );
+            }
+            final operation =
+                'editor_new_game_${DateTime.now().microsecondsSinceEpoch}';
+            final mutations = ref.read(authoringMutationAdapterProvider);
+            final plan = await mutations.plan(
+              projectRootPath,
+              actionId: 'campaign.new_game.update',
+              parameters: {'newGame': config.toJson()},
+              idempotencyKey: operation,
+              requestId: operation,
+              expectedRevision: before.snapshotRevision,
             );
-            return notifier.saveProjectManifest();
+            await mutations.apply(plan, operationId: operation);
+            await queries.invalidate(projectRootPath);
+            notifier.acceptCanonicalProjectManifest(
+              (await queries.open(projectRootPath)).manifest,
+              statusMessage: 'Configuration Nouveau Jeu sauvegardée.',
+            );
+            return true;
           },
         ),
       ),
@@ -111,6 +133,8 @@ class _ProjectNewGameConfigurationFormState
   late bool _enabled;
   late String _startMapId;
   late String _startSpawnId;
+  ProjectNewGameRecoveryPoint? _initialRecoveryPoint;
+  String _recoveryMapId = '';
   late String _existingPartyFactId;
   late String _preSessionSceneId;
   late Set<String> _playerAvatarCharacterIds;
@@ -134,6 +158,8 @@ class _ProjectNewGameConfigurationFormState
     _enabled = config.enabled;
     _startMapId = config.startMapId;
     _startSpawnId = config.startSpawnId ?? '';
+    _initialRecoveryPoint = config.initialRecoveryPoint;
+    _recoveryMapId = config.initialRecoveryPoint?.mapId ?? '';
     _existingPartyFactId = config.existingPartyFactId ?? '';
     _preSessionSceneId = config.preSessionSceneId ?? '';
     _playerAvatarCharacterIds = config.playerAvatarCharacterIds.toSet();
@@ -268,6 +294,85 @@ class _ProjectNewGameConfigurationFormState
                   severity: PokeMapDiagnosticSeverity.error,
                   message:
                       'Cette map ne peut pas être lue. Vérifiez son fichier avant de choisir un spawn.',
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        _NewGameSection(
+          title: 'Retour après une défaite',
+          description:
+              'Facultatif. Choisissez un point posé sur une carte 2D. Le lieu de départ reste indépendant.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PokeMapDropdownField<String>(
+                key: const ValueKey('new-game-recovery-map-picker'),
+                label: 'Carte de récupération initiale',
+                value: _recoveryMapId,
+                enabled: _enabled,
+                items: [
+                  const PokeMapDropdownItem(
+                    value: '',
+                    label: 'Aucun point initial',
+                  ),
+                  for (final map in widget.mapCatalog.maps)
+                    PokeMapDropdownItem(value: map.id, label: map.label),
+                ],
+                onChanged: (value) => setState(() {
+                  final spawn = _mapOption(value)?.spawns
+                      .where(
+                        (spawn) =>
+                            spawn.position != null && spawn.facing != null,
+                      )
+                      .firstOrNull;
+                  _recoveryMapId = value;
+                  _initialRecoveryPoint = value.isEmpty || spawn == null
+                      ? null
+                      : ProjectNewGameRecoveryPoint(
+                          mapId: value,
+                          position: spawn.position!,
+                          facing: spawn.facing!,
+                        );
+                  _clearSaveStatus();
+                }),
+              ),
+              if (_initialRecoveryPoint != null) ...[
+                const SizedBox(height: 10),
+                PokeMapDropdownField<String>(
+                  key: const ValueKey('new-game-recovery-spawn-picker'),
+                  label: 'Point de récupération',
+                  value: _recoveryPickerValue(),
+                  enabled: _enabled,
+                  items: [
+                    PokeMapDropdownItem(
+                      value: '',
+                      label:
+                          'Point actuel (${_initialRecoveryPoint!.position.x}, ${_initialRecoveryPoint!.position.y}) — ${_initialRecoveryPoint!.facing.name}',
+                    ),
+                    for (final spawn
+                        in _mapOption(_initialRecoveryPoint!.mapId)?.spawns ??
+                            const <NewGameSpawnAuthoringOption>[])
+                      if (spawn.position != null && spawn.facing != null)
+                        PokeMapDropdownItem(
+                          value: spawn.id,
+                          label: spawn.label,
+                        ),
+                  ],
+                  onChanged: (value) => setState(() {
+                    final spawn = _mapOption(
+                      _initialRecoveryPoint!.mapId,
+                    )?.spawns.where((spawn) => spawn.id == value).firstOrNull;
+                    if (spawn?.position != null && spawn?.facing != null) {
+                      _initialRecoveryPoint = ProjectNewGameRecoveryPoint(
+                        mapId: _initialRecoveryPoint!.mapId,
+                        position: spawn!.position!,
+                        facing: spawn.facing!,
+                      );
+                    }
+                    _clearSaveStatus();
+                  }),
                 ),
               ],
             ],
@@ -670,6 +775,20 @@ class _ProjectNewGameConfigurationFormState
     );
   }
 
+  String _recoveryPickerValue() {
+    final point = _initialRecoveryPoint;
+    if (point == null) return '';
+    return _mapOption(point.mapId)?.spawns
+            .where(
+              (spawn) =>
+                  spawn.position == point.position &&
+                  spawn.facing == point.facing,
+            )
+            .firstOrNull
+            ?.id ??
+        '';
+  }
+
   List<String> _validationErrors() {
     if (!_enabled) return const <String>[];
     final errors = <String>[];
@@ -686,6 +805,21 @@ class _ProjectNewGameConfigurationFormState
       errors.add('Choisissez un spawn de départ.');
     } else if (!spawns.any((spawn) => spawn.id == _startSpawnId)) {
       errors.add('Le spawn de départ sélectionné n’existe plus sur cette map.');
+    }
+    if (_recoveryMapId.isNotEmpty && _initialRecoveryPoint == null) {
+      errors.add(
+        'Cette carte ne possède aucun point de récupération sélectionnable. Posez un point de départ avant de continuer.',
+      );
+    }
+    if (_initialRecoveryPoint != null) {
+      final recoveryMap = _mapOption(_initialRecoveryPoint!.mapId);
+      if (recoveryMap == null ||
+          recoveryMap.loadFailed ||
+          widget.project.settings.dimension != ProjectDimension.twoD) {
+        errors.add(
+          'Le point de récupération doit appartenir à une carte 2D disponible du projet.',
+        );
+      }
     }
     if (_playerNameController.text.trim().isEmpty) {
       errors.add('Le nom du joueur ne peut pas être vide.');
@@ -746,6 +880,7 @@ class _ProjectNewGameConfigurationFormState
     return ProjectNewGameConfig(
       enabled: _enabled,
       startMapId: _startMapId.trim(),
+      initialRecoveryPoint: _initialRecoveryPoint,
       startSpawnId: _startSpawnId.trim().isEmpty ? null : _startSpawnId.trim(),
       playerName: _playerNameController.text.trim(),
       playerAvatarCharacterIds: List<String>.unmodifiable(

@@ -10,31 +10,29 @@ import 'package:map_editor/src/ui/canvas/new_game/project_new_game_configuration
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  testWidgets(
-    'exposes New Game authoring from the Narrative Studio overview',
-    (tester) async {
-      tester.view.physicalSize = const Size(1200, 900);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+  testWidgets('exposes New Game authoring from the Narrative Studio overview', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: PokeMapTheme.dark(),
-          home: NarrativeOverviewWorkspace(
-            readModel: buildNarrativeOverviewReadModel(project: _project()),
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: NarrativeOverviewWorkspace(
+          readModel: buildNarrativeOverviewReadModel(project: _project()),
         ),
-      );
+      ),
+    );
 
-      expect(
-          find.byKey(projectNewGameConfigurationLauncherKey), findsOneWidget);
-      expect(find.text('Nouveau Jeu'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.byKey(projectNewGameConfigurationLauncherKey), findsOneWidget);
+    expect(find.text('Nouveau Jeu'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'authors a project-owned new game with guided project catalog pickers',
@@ -117,11 +115,7 @@ void main() {
         'new-game-initial-fact-picker',
         'fact_intro_active',
       );
-      _selectDropdown(
-        tester,
-        'new-game-starter-species-picker',
-        'bulbasaur',
-      );
+      _selectDropdown(tester, 'new-game-starter-species-picker', 'bulbasaur');
       await tester.pump();
 
       await tester.enterText(
@@ -146,9 +140,7 @@ void main() {
       );
       tester
           .widget<PokeMapDropdownField<PlayerPronounSet>>(
-            find.byKey(
-              const ValueKey('new-game-player-pronouns-picker'),
-            ),
+            find.byKey(const ValueKey('new-game-player-pronouns-picker')),
           )
           .onChanged(PlayerPronounSet.feminine);
       await tester.pump();
@@ -159,9 +151,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.byKey(
-          const ValueKey('new-game-bag-entry-custom-passive-thread'),
-        ),
+        find.byKey(const ValueKey('new-game-bag-entry-custom-passive-thread')),
         findsOneWidget,
       );
       expect(
@@ -195,6 +185,97 @@ void main() {
   );
 
   testWidgets(
+    'selects a separate recovery point and preserves imported coordinates',
+    (tester) async {
+      ProjectNewGameConfig? saved;
+      const imported = ProjectNewGameRecoveryPoint(
+        mapId: 'home',
+        position: GridPos(x: 0, y: 1),
+        facing: EntityFacing.south,
+      );
+      final project = _project().copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          startSpawnId: 'start',
+          initialRecoveryPoint: imported,
+        ),
+      );
+      await _pumpForm(
+        tester,
+        project: project,
+        mapCatalog: const NewGameMapAuthoringCatalog(
+          maps: [
+            NewGameMapAuthoringOption(
+              id: 'map_start',
+              label: 'Intro',
+              spawns: [
+                NewGameSpawnAuthoringOption(
+                  id: 'start',
+                  label: 'Départ',
+                  position: GridPos(x: 1, y: 1),
+                  facing: EntityFacing.east,
+                ),
+              ],
+            ),
+            NewGameMapAuthoringOption(
+              id: 'home',
+              label: 'Maison',
+              spawns: [
+                NewGameSpawnAuthoringOption(
+                  id: 'door',
+                  label: 'Porte maison',
+                  position: GridPos(x: 2, y: 3),
+                  facing: EntityFacing.west,
+                ),
+              ],
+            ),
+            NewGameMapAuthoringOption(id: 'empty', label: 'Carte sans point'),
+          ],
+        ),
+        consequenceCatalogs: const SceneConsequenceCatalogs.unavailable(),
+        onSave: (config) async {
+          saved = config;
+          return true;
+        },
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('new-game-save')));
+      await tester.tap(find.byKey(const ValueKey('new-game-save')));
+      await tester.pumpAndSettle();
+      expect(saved?.initialRecoveryPoint, imported);
+      _selectDropdown(tester, 'new-game-recovery-spawn-picker', 'door');
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('new-game-save')));
+      await tester.tap(find.byKey(const ValueKey('new-game-save')));
+      await tester.pumpAndSettle();
+      expect(
+        saved?.initialRecoveryPoint,
+        const ProjectNewGameRecoveryPoint(
+          mapId: 'home',
+          position: GridPos(x: 2, y: 3),
+          facing: EntityFacing.west,
+        ),
+      );
+      expect(saved?.startMapId, 'map_start');
+      _selectDropdown(tester, 'new-game-recovery-map-picker', 'empty');
+      await tester.pump();
+      expect(
+        find.text(
+          'Cette carte ne possède aucun point de récupération sélectionnable. Posez un point de départ avant de continuer.',
+        ),
+        findsOneWidget,
+      );
+      _selectDropdown(tester, 'new-game-recovery-map-picker', '');
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('new-game-save')));
+      await tester.tap(find.byKey(const ValueKey('new-game-save')));
+      await tester.pumpAndSettle();
+      expect(saved?.initialRecoveryPoint, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'keeps invalid enabled configuration unsaved and explains missing references',
     (tester) async {
       var saveCalls = 0;
@@ -220,9 +301,7 @@ void main() {
       );
       expect(
         tester
-            .widget<PokeMapButton>(
-              find.byKey(const ValueKey('new-game-save')),
-            )
+            .widget<PokeMapButton>(find.byKey(const ValueKey('new-game-save')))
             .onPressed,
         isNull,
       );
@@ -232,11 +311,7 @@ void main() {
   );
 }
 
-void _selectDropdown(
-  WidgetTester tester,
-  String key,
-  String value,
-) {
+void _selectDropdown(WidgetTester tester, String key, String value) {
   tester
       .widget<PokeMapDropdownField<String>>(find.byKey(ValueKey(key)))
       .onChanged(value);
@@ -249,7 +324,7 @@ Future<void> _pumpForm(
   required SceneConsequenceCatalogs consequenceCatalogs,
   required Future<bool> Function(ProjectNewGameConfig config) onSave,
 }) async {
-  tester.view.physicalSize = const Size(760, 1800);
+  tester.view.physicalSize = const Size(760, 3200);
   tester.view.devicePixelRatio = 1;
   addTearDown(() {
     tester.view.resetPhysicalSize();

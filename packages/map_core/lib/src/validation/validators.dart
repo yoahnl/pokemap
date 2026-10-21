@@ -132,6 +132,10 @@ class ProjectValidator {
     }
     if (maps != null) {
       final mapsById = {for (final map in maps) map.id: map};
+      final recoveryMap = mapsById[manifest.newGame.initialRecoveryPoint?.mapId];
+      if (recoveryMap != null) {
+        validateNewGameInitialRecoveryMap(manifest, recoveryMap);
+      }
       for (final map in maps) {
         if ((map.spatialScene != null) != spatial) {
           throw const ValidationException(
@@ -346,6 +350,17 @@ class ProjectValidator {
     }
   }
 
+  static void validateNewGameInitialRecoveryMap(ProjectManifest manifest, MapData map) {
+    final recovery = manifest.newGame.initialRecoveryPoint;
+    if (recovery == null || !manifest.newGame.enabled) return;
+    _validateNewGameConfig(manifest);
+    if (map.id != recovery.mapId || map.version != ProjectVersion.v8 ||
+        map.spatialScene != null || recovery.position.x >= map.size.width ||
+        recovery.position.y >= map.size.height) {
+      throw const ValidationException('newGame initialRecoveryPoint must target an in-bounds position on its declared 2D map');
+    }
+  }
+
   static void _validateNewGameConfig(ProjectManifest manifest) {
     final config = manifest.newGame;
     if (!config.enabled) {
@@ -367,6 +382,14 @@ class ProjectValidator {
       throw const ValidationException(
         'newGame startSpawnId must not be blank when provided',
       );
+    }
+    final recovery = config.initialRecoveryPoint;
+    if (recovery != null &&
+        (recovery.mapId.trim().isEmpty || recovery.mapId != recovery.mapId.trim() ||
+         !manifest.maps.any((map) => map.id == recovery.mapId) ||
+         recovery.position.x < 0 || recovery.position.y < 0 ||
+         manifest.settings.dimension != ProjectDimension.twoD)) {
+      throw const ValidationException('newGame initialRecoveryPoint requires a valid 2D project map and grid position');
     }
     if (config.playerName.trim().isEmpty) {
       throw const ValidationException('newGame playerName must not be blank');
@@ -2890,6 +2913,10 @@ class MapValidator {
     }
     final tileSize = declaredTileSize ?? projectTileSize;
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
+    if (projectDialogueContext != null &&
+        projectDialogueContext.newGame.initialRecoveryPoint?.mapId == map.id) {
+      ProjectValidator.validateNewGameInitialRecoveryMap(projectDialogueContext, map);
+    }
     final dungeonId = map.mapMetadata.escapeRopeDungeonId;
     if (dungeonId != null &&
         (dungeonId.trim().isEmpty ||

@@ -543,6 +543,7 @@ ProjectNewGameConfig _withoutImplicitPreSessionEntry(
       enabled: source.enabled,
       startMapId: source.startMapId,
       startSpawnId: source.startSpawnId,
+      initialRecoveryPoint: source.initialRecoveryPoint,
       playerName: source.playerName,
       playerAvatarCharacterIds: source.playerAvatarCharacterIds,
       playerPronounSet: source.playerPronounSet,
