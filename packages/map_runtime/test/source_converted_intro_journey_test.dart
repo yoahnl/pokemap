@@ -518,6 +518,7 @@ Future<ConvertedSourceIntroMounted> mountConvertedSourceIntroGame(
     saveRepository: repository,
   );
   final controller = PlayerServiceRuntimeController.contextual(
+    healingDisplayMapReader: game.playerServiceHealingDisplayMap,
     currentGameState: () => game.playerServiceGameStateSnapshot,
     commitAndSave: game.commitAndSavePlayerServiceState,
     setInputLocked: (locked) => game.setExternalInputLock(
