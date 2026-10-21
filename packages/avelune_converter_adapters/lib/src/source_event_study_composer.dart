@@ -1423,6 +1423,8 @@ Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
       case SourceTrainerProgramNode():
         if (node.kind == SourceTrainerProgramKind.encounter) yield* _pickups(node.victoryContinuation);
         if (node.gymStageBody != null) yield* _pickups(node.gymStageBody!);
+      case SourcePokedexRewardProgramNode():
+        if (node.pickup != null) yield node.pickup!;
       case SourcePickupNode():
         yield node;
       case SourceConditionalNode():
@@ -1456,6 +1458,8 @@ Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
       case SourceTrainerProgramNode():
         if (node.kind == SourceTrainerProgramKind.encounter) yield* _itemSymbols(node.victoryContinuation);
         if (node.gymStageBody != null) yield* _itemSymbols(node.gymStageBody!);
+      case SourcePokedexRewardProgramNode():
+        if (node.pickup != null) yield node.pickup!.sourceSymbol;
       case SourcePickupNode():
         yield node.sourceSymbol;
       case SourceShopProgramNode():

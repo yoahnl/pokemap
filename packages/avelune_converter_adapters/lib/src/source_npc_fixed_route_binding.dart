@@ -350,6 +350,7 @@ List<Object?> _fixedRouteBlockData(SourceEventBlock block, [int depth = 0]) {
       SourceInteractionFacingNode() => {'kind': 'interactionFacing',
         'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
       SourceTrainerProgramNode() => node.toJson(),
+      SourcePokedexRewardProgramNode() => node.toJson(),
       SourcePickupNode() when node.helper == SourceItemGrantHelper.receiveItem =>
         {'kind': 'receiveItem', ...node.toJson()},
       SourceSelfSwitchNode() => {'kind': 'selfSwitch', 'letter': node.letter,

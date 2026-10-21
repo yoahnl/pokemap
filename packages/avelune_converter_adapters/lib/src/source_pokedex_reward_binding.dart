@@ -51,8 +51,8 @@ final class SourcePokedexRewardBinding {
     if (maps.length != 1) {
       return false;
     }
-    final originals =
-        maps.single.map.events.where((event) => event.sourceEventId == sourceEventId);
+    final originals = maps.single.map.events
+        .where((event) => event.sourceEventId == sourceEventId);
     return originals.length == 1 &&
         programs.length == 2 &&
         programs.every((program) => program.isBoundToSourceEvent(
@@ -75,7 +75,7 @@ final class SourcePokedexRewardBinding {
         'speciesIdentityEvidence': speciesEvidence,
         'sourcePrograms': programs.map((program) => program.toJson()).toList(),
         'sourceItemCatalog': item.toJson(),
-        'nativeGrantScope': 'nativeAtomicUnitBagGrant',
+        'nativeGrantScope': 'nativeAtomicUnitBagGrantWithExplicitFailure',
         'sourceGiftPresentationParityQualified': false,
         'nativeHeldItemEvolutionEffectQualified': false,
         'nativeExecutionQualified': false,
@@ -117,7 +117,10 @@ final class SourcePokedexRewardBindingResolver {
     final programs = event.pages
         .map((page) => page.body.nodes.single as SourcePokedexRewardProgramNode)
         .toList();
-    if (programs.where((p) => p.pickup != null).length != 1 || programs.firstWhere((p) => p.pickup != null).pickup!.quantity != 1) return null;
+    if (programs.where((p) => p.pickup != null).length != 1 ||
+        programs.firstWhere((p) => p.pickup != null).pickup!.quantity != 1) {
+      return null;
+    }
     final expected =
         SourceEventAnalyzer.forProject(source, profile: analysis.profile)
             .analyzeEventAt(sourceMapId, sourceEventId);
@@ -176,39 +179,67 @@ final class SourcePokedexRewardBindingResolver {
       return null;
     }
     final region = document.node(root.elements[programs.first.sourceDexIndex]);
-    if (region.kind != MarshalKind.array || region.elements.isEmpty || region.elements.length > 2048) return null;
+    if (region.kind != MarshalKind.array ||
+        region.elements.isEmpty ||
+        region.elements.length > 2048) {
+      return null;
+    }
     final symbols = <String>[];
     for (final nodeId in region.elements) {
       final species = document.node(nodeId);
-      if (species.kind != MarshalKind.symbol || species.name == null || symbols.contains(species.name)) return null;
+      if (species.kind != MarshalKind.symbol ||
+          species.name == null ||
+          symbols.contains(species.name)) {
+        return null;
+      }
       symbols.add(species.name!);
     }
     final catalog = nativeCatalog ?? NativePsdkCatalogManifest.builtin();
-    final pbs = await const SourcePbsParser().read(snapshot: source.snapshot, files: files, families: const {SourcePbsFamily.species}, cancellation: cancellation);
+    final pbs = await const SourcePbsParser().read(
+        snapshot: source.snapshot,
+        files: files,
+        families: const {SourcePbsFamily.species},
+        cancellation: cancellation);
     final NativeSourceSpeciesBindingResult identities;
     try {
-      identities = await const NativeSourceSpeciesBindings().bind(snapshot: source.snapshot,
-          source: pbs, files: files, nativeCatalog: catalog,
-          requestedSourceSymbols: symbols, cancellation: cancellation);
+      identities = await const NativeSourceSpeciesBindings().bind(
+          snapshot: source.snapshot,
+          source: pbs,
+          files: files,
+          nativeCatalog: catalog,
+          requestedSourceSymbols: symbols,
+          cancellation: cancellation);
     } on ContractError catch (error) {
-      if (['quota', 'limit', 'changed', 'hash'].any(error.code.contains)) rethrow;
+      if (['quota', 'limit', 'changed', 'hash'].any(error.code.contains)) {
+        rethrow;
+      }
       return null;
     }
     final dexNumbers = <int>{};
     for (final row in identities.rows) {
       final species = catalog.speciesById[row['nativeSpeciesId']];
-      if (species == null || row['nativeForm'] != 0 || species.nationalDex < 1 || !dexNumbers.add(species.nationalDex)) return null;
+      if (species == null ||
+          row['nativeForm'] != 0 ||
+          species.nationalDex < 1 ||
+          !dexNumbers.add(species.nationalDex)) {
+        return null;
+      }
     }
     final orderedDex = dexNumbers.toList()..sort();
-    if (orderedDex.isEmpty || orderedDex.last - orderedDex.first + 1 != orderedDex.length) return null;
+    if (orderedDex.isEmpty ||
+        orderedDex.last - orderedDex.first + 1 != orderedDex.length) {
+      return null;
+    }
     archive.seal();
     final SourceEventItemBindings items;
     try {
       items = await const SourceEventItemBindingResolver().read(
           snapshot: source.snapshot,
-            missingItemBindings: source.missingItemBindings,
+          missingItemBindings: source.missingItemBindings,
           files: files,
-          symbols: [programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol],
+          symbols: [
+            programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol
+          ],
           eventProfile: analysis.profile,
           cancellation: cancellation);
     } on ContractError catch (error) {
@@ -217,16 +248,22 @@ final class SourcePokedexRewardBindingResolver {
       }
       return null;
     }
-    final item = items.bindings[programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol];
+    final item = items.bindings[
+        programs.firstWhere((p) => p.pickup != null).pickup!.sourceSymbol];
     if (item == null ||
         !item.pickupQualified ||
         item.isKeyItem ||
-        item.isMachine ||
+        (item.isMachine &&
+            (item.sourceMachineMove == null ||
+                item.definition.machine == null)) ||
+        (programs.first.skipGrantWhenOwned && !item.isMachine) ||
         item.sourceSnapshotHash != source.snapshot.canonicalHash) {
       return null;
     }
     final binding = SourcePokedexRewardBinding._(
-        range: PokedexSpeciesRange(firstNationalDex: orderedDex.first, lastNationalDex: orderedDex.last),
+        range: PokedexSpeciesRange(
+            firstNationalDex: orderedDex.first,
+            lastNationalDex: orderedDex.last),
         sourceMapId: sourceMapId,
         sourceEventId: sourceEventId,
         speciesEvidence: identities.evidence,

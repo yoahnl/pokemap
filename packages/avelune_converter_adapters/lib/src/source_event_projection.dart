@@ -1352,15 +1352,16 @@ final class _ProjectionBuilder {
             ...pokedexRewardBinding[event.identity]!.toJson(),
             'nativeExecutionQualified': true,
             'nativeActivation': 'reusableNpcInteractAtSourceAnchor',
-            'sourceCountAuthority': 'declaredRegionalDexExactCanonicalNationalRange',
+            'sourceCountAuthority': 'attestedRegionalDexExactCanonicalNationalRange',
             'nativeCountAuthority': 'historicalCaughtCanonicalSpecies',
             'sourceVariableWritesExecuted': false,
             'sourcePlayerNameControl': r'\PN',
             'nativePlayerNameVariable': '{{ player_name }}',
             'sourceOwnedCountControl': r'\v[' '${pokedexRewardBinding[event.identity]!.programs.first.sourceOwnedVariableId}]',
             'nativeOwnedCountVariable': pokedexRewardBinding[event.identity]!.range.dialoguePlaceholder,
-            'sourceRewardFactTiming': 'afterSuccessfulNativeGrantAndExplanation',
-            'sourceAfterInteractionFacing': 'nativeNpcInteractionVisualFacing',
+            'sourceRewardFactTiming': 'afterSuccessfulNativeGrantOrAttestedExistingMachineAndExplanation',
+            'sourceAfterInteractionFacing': 'nativeExplicitActorFacingTowardPlayer',
+            'nativeExplicitFacingCommands': true,
             'persistentFacingCertified': false,
           },
         if (gaps.isEmpty && _isPartyTradeFamily(event))
@@ -2928,6 +2929,11 @@ final class _ProjectionBuilder {
     }
     final map = maps[event.sourceMapId]!;
     final gaps = <String>{};
+    final offer = binding.programs.singleWhere((program) => program.pickup != null);
+    if (_pickupBinding(event,offer.pickup!) == null) gaps.add('sourcePokedexRewardPickupFeedbackMissing');
+    if (event.pages.any((page) => page.graphic?.moveType != 0) && _fixedRouteBindings(event)==null) gaps.add('sourcePokedexRewardAutonomyUnqualified');
+    if (_eventCounterSides(event)==null) gaps.add('sourcePokedexRewardCounterReachUnqualified');
+    _blockGaps(event,SourceEventBlock(span:offer.span,nodes:[for(final fact in offer.foreignRewardFactIds) SourceSelfSwitchNode(offer.span,letter:fact.split(':').last,value:true,factId:fact)]),gaps,checkCharacterBindings:checkCharacterBindings);
     if (map.spatialScene != null || map.version == ProjectVersion.v9) { gaps.add('sourcePokedexRewardSpatialUnsupported'); }
     if (event.x < 0 || event.y < 0 || event.x >= map.size.width || event.y >= map.size.height) {
       return {'eventPositionInvalid'};
@@ -2939,7 +2945,7 @@ final class _ProjectionBuilder {
         _sourceCounterCellOccupied(event,event.x,event.y)) { gaps.add('sourcePokedexRewardAnchorOccupied'); }
     for (final page in event.pages) {
       final graphic = page.graphic;
-      if (page.sourcePage.triggerCode != 0 || graphic == null || graphic.moveType != 0 ||
+      if (page.sourcePage.triggerCode != 0 || graphic == null || (graphic.moveType != 0 && _fixedRouteBindings(event)==null) ||
           graphic.tileId != 0 || graphic.characterName.isEmpty || graphic.characterName != event.pages.first.graphic?.characterName || graphic.hue != 0 ||
           graphic.direction != event.pages.first.graphic?.direction || graphic.pattern != event.pages.first.graphic?.pattern || graphic.opacity != 255 || graphic.blendType != 0 ||
           !graphic.walkAnime || graphic.stepAnime || graphic.directionFix || graphic.through || graphic.alwaysOnTop) {
@@ -4392,6 +4398,7 @@ final class _ProjectionBuilder {
           if (node.gymStageBody != null) _blockFacts(node.gymStageBody!, ids);
         case SourcePokedexRewardProgramNode(:final rewardFactId):
           ids.add(rewardFactId);
+          ids.addAll(node.foreignRewardFactIds);
         case SourceConditionalNode(
             :final condition,
             :final whenTrue,
@@ -5504,22 +5511,46 @@ final class _SceneBuilder {
         feedbackLines:[for(final text in texts) _pokedexRewardTextFeedback(text.text,binding.range,binding.programs.first.sourceOwnedVariableId)!],
         choiceTargets:targets);
     }
+    String face(String continuation) {
+      final mapId = projection.maps[event.sourceMapId]!.id;
+      final joined = _interactive(SceneInteractiveCommand.waitForActorRoutes(mapId:mapId),continuation);
+      var dispatch = eventEnd;
+      for(final direction in EntityFacing.values) {
+        final toward = switch(direction) {
+          EntityFacing.north=>EntityFacing.south,EntityFacing.south=>EntityFacing.north,
+          EntityFacing.west=>EntityFacing.east,EntityFacing.east=>EntityFacing.west,
+        };
+        final route = _interactive(SceneInteractiveCommand.actorRoute(target:SceneActorTarget.entity(mapId:mapId,entityId:projection._key(event,'anchor')),steps:[SceneActorRouteStep.face(direction:toward,yieldAfter:true)]),joined);
+        final guard = _node(SceneConditionPayload(conditionSource:SceneConditionSource.playerFacing(direction:direction)));
+        _edge(guard,'true',route,SceneEdgeKind.conditionTrue);
+        _edge(guard,'false',dispatch,SceneEdgeKind.conditionFalse);
+        dispatch = guard;
+      }
+      return dispatch;
+    }
+    final finish = face(next);
     if (program.kind == SourcePokedexRewardProgramKind.afterReward) {
-      return dialogue(SourcePokedexRewardTextGroup.explanation,next);
+      return dialogue(SourcePokedexRewardTextGroup.explanation,finish);
     }
     projection.usedItems[binding.item.definition.id] = binding.item.definition;
-    final marked = _fact(program.rewardFactId,true,next);
-    final explanation = dialogue(SourcePokedexRewardTextGroup.explanation,marked);
-    final grant = _node(SceneActionPayload.consequence(SceneConsequence.giveItem(
-      itemId:binding.item.definition.id,quantity:program.pickup!.quantity)));
-    _edge(grant,'completed',explanation,SceneEdgeKind.actionCompleted);
+    final marked = _fact(program.rewardFactId,true,finish);
+    var rewardDone = face(marked);
+    for(final fact in program.foreignRewardFactIds.reversed) { rewardDone = _fact(fact,true,rewardDone); }
+    final explanation = dialogue(SourcePokedexRewardTextGroup.explanation,rewardDone);
+    var grant = _receiveItem(program.pickup!,explanation,failed:finish);
+    if(program.skipGrantWhenOwned) {
+      final owned = _node(SceneConditionPayload(conditionSource:SceneConditionSource(sourceKind:SceneConditionSourceKind.inventoryItem,sourceId:binding.item.definition.id,operator:SceneConditionOperator.isTrue,field:'minimumQuantity',value:'1')));
+      _edge(owned,'true',explanation,SceneEdgeKind.conditionTrue);
+      _edge(owned,'false',grant,SceneEdgeKind.conditionFalse);
+      grant = owned;
+    }
     final eligible = dialogue(SourcePokedexRewardTextGroup.eligible,grant);
-    final insufficient = dialogue(SourcePokedexRewardTextGroup.insufficient,next);
+    final insufficient = dialogue(SourcePokedexRewardTextGroup.insufficient,finish);
     final condition = _node(SceneConditionPayload(conditionSource:SceneConditionSource.pokedexCaughtAtLeast(
       range:binding.range,minimum:program.minimumCount)));
     _edge(condition,'true',eligible,SceneEdgeKind.conditionTrue);
     _edge(condition,'false',insufficient,SceneEdgeKind.conditionFalse);
-    final refused = dialogue(SourcePokedexRewardTextGroup.refused,next);
+    final refused = dialogue(SourcePokedexRewardTextGroup.refused,finish);
     final empty = SourceEventBlock(nodes:const[],span:program.span);
     final choice = SourceChoiceNode(program.span,cancelType:program.cancelType!,branches:[
       for(final label in program.choiceLabels.indexed) SourceChoiceBranch(label.$1,label.$2,empty)]);
@@ -5639,7 +5670,7 @@ final class _SceneBuilder {
     return action;
   }
 
-  String _receiveItem(SourcePickupNode pickup, String next) {
+  String _receiveItem(SourcePickupNode pickup, String next, {String? failed}) {
     final binding = projection._pickupBinding(event, pickup)!;
     projection.usedItems[binding.item.definition.id] = binding.item.definition;
     projection.usedPickupBindingKeys.add(sourcePickupFeedbackBindingKey(
@@ -5652,7 +5683,7 @@ final class _SceneBuilder {
     final grant = _node(SceneActionPayload.interactive(
         SceneInteractiveCommand.giveItem(itemId: binding.item.definition.id, quantity: 1)));
     _edge(grant, 'received', feedback, SceneEdgeKind.actionCompleted);
-    _edge(grant, 'bagFull', next, SceneEdgeKind.actionCompleted);
+    _edge(grant, 'bagFull', failed ?? next, SceneEdgeKind.actionCompleted);
     final obtained = binding.foundFeedback(cueId: projection._key(event, key));
     return _dialogue(pickup.span, obtained.plainText, null, grant,
         feedbackLines: [obtained], dialogueKey: '${key}_obtained');

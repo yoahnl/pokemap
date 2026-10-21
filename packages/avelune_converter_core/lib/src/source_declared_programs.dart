@@ -308,7 +308,7 @@ final class SourceDeclaredProgramBinding {
         command('offer', parameters['seenCommandIndex'], const {355});
         command('offer', parameters['ownedCommandIndex'], const {655});
         command('offer', parameters['thresholdCommandIndex'], const {111});
-        command('offer', parameters['rewardCommandIndex'], const {111});
+        command('offer', parameters['rewardCommandIndex'], const {111, 355});
       case SourceDeclaredProgramFamily.externalWarp:
         _require(
             const {'fade', 'illustrated', 'caveEntrance', 'caveExit'}
@@ -810,7 +810,30 @@ void _validateDeclaredPage(Map<String, Object?> page,
           raw['code']
     ];
     _require(
-        canonicalJsonOf(opcodes) == canonicalJsonOf(grammar),
+        (canonicalJsonOf(opcodes) == canonicalJsonOf(grammar) ||
+            family == SourceDeclaredProgramFamily.pokedexReward &&
+                role == 'offer' &&
+                canonicalJsonOf(opcodes) ==
+                    canonicalJsonOf([
+                      355,
+                      655,
+                      102,
+                      402,
+                      111,
+                      111,
+                      355,
+                      412,
+                      355,
+                      209,
+                      509,
+                      123,
+                      411,
+                      412,
+                      402,
+                      404,
+                      209,
+                      509
+                    ])),
         'declared_program.grammar',
         r'$',
         'Declared bindings require the complete supported typed control-flow grammar.');
@@ -980,7 +1003,7 @@ void _validateDeclaredPage(Map<String, Object?> page,
                   SourceDeclaredProgramFamily.centerNurse =>
                     p[1] == 'pbPokerus?',
                   SourceDeclaredProgramFamily.pokedexReward => RegExp(
-                          r'^pbReceiveItem\(:[A-Z][A-Z0-9_]*(?:,[ ]*[1-9][0-9]*)?\)$')
+                          r'^(?:pbReceiveItem\(:[A-Z][A-Z0-9_]*(?:,[ ]*[1-9][0-9]*)?\)|!\$bag\.has\?\(:[A-Z][A-Z0-9_]*\))$')
                       .hasMatch(p[1] as String),
                   SourceDeclaredProgramFamily.externalWarp =>
                     p[1] == 'get_self.onEvent?',
@@ -1053,8 +1076,11 @@ bool _declaredScriptAllowed(
           locals.contains(trade[2]);
     case SourceDeclaredProgramFamily.pokedexReward:
       return RegExp(
-              r'^pbSet\([1-9][0-9]*,\$player\.pokedex\.(seen|owned)_count\([0-9]+\)\)$')
-          .hasMatch(script);
+                  r'^pbSet\([1-9][0-9]*,\$player\.pokedex\.(seen|owned)_count\([0-9]+\)\)$')
+              .hasMatch(script) ||
+          RegExp(r'^pbReceiveItem\(:[A-Z][A-Z0-9_]*\)$').hasMatch(script) ||
+          RegExp(r'^\$game_self_switches\[\[[1-9][0-9]*,[1-9][0-9]*,"[A-D]"\]\]=true$')
+              .hasMatch(script);
     case SourceDeclaredProgramFamily.externalWarp:
       return const {'pbCaveEntrance', 'pbCaveExit'}.contains(script) ||
           RegExp(r'^setTempSwitchOn\("[A-D]"\)$').hasMatch(script);
@@ -1118,6 +1144,7 @@ SourceDeclaredProgramMatch? _matchSourceDeclaredProgram({
         const <SourceDeclaredProgramBinding>[];
     final supportsAutomatic = families.any((family) => const {
           SourceDeclaredProgramFamily.centerNurse,
+          SourceDeclaredProgramFamily.pokedexReward,
           SourceDeclaredProgramFamily.centerPc,
           SourceDeclaredProgramFamily.healingDisplay,
           SourceDeclaredProgramFamily.warpTile,
@@ -1145,7 +1172,10 @@ SourceDeclaredProgramMatch? _matchSourceDeclaredProgram({
                 families.contains(binding.family) &&
                 binding.pages.length == pages.length &&
                 encodedPages.every(binding._canonicalPages.values.contains))
-        ? (families.contains(SourceDeclaredProgramFamily.hole)
+        ? (families.contains(SourceDeclaredProgramFamily.pokedexReward)
+                ? _automaticPokedexRewardBinding(pages.cast<Object?>())
+                : null) ??
+            (families.contains(SourceDeclaredProgramFamily.hole)
                 ? _automaticHoleBinding(pages.cast<Object?>())
                 : null) ??
             (families.contains(SourceDeclaredProgramFamily.warpTile)
