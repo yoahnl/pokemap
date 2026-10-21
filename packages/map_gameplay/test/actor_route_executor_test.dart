@@ -678,6 +678,36 @@ void main() {
             port: port),
         throwsStateError);
   });
+  test('route visibility follows completed movement and explicit restoration', () async {
+    final port = _Port()..gates['move'] = Completer<void>();
+    final pending = executor.execute(_route([
+      SceneActorRouteStep.move(direction: EntityFacing.north, durationMs: 250),
+      SceneActorRouteStep.visibility(visible: false),
+      SceneActorRouteStep.wait(durationMs: 100),
+      SceneActorRouteStep.visibility(visible: true),
+    ]), port: port);
+    await port.waitUntilEntered('move');
+    expect(port.calls, ['move:north:250:false']);
+    port.gates['move']!.complete();
+    expect(await pending, ActorRouteExecutionOutcome.completed);
+    expect(port.calls, ['move:north:250:false', 'visibility:false', 'wait:100', 'visibility:true']);
+  });
+  for (final cancelled in [false, true]) {
+    test('uncommitted movement cannot hide the actor: cancellation=$cancelled', () async {
+      final port = _Port()..gates['move'] = Completer<void>();
+      if (!cancelled) port.moveOutcomes.add(ActorRouteMoveOutcome.obstructed);
+      final pending = executor.execute(_route([
+        SceneActorRouteStep.move(direction: EntityFacing.north, durationMs: 250),
+        SceneActorRouteStep.visibility(visible: false),
+      ]), port: port);
+      await port.waitUntilEntered('move');
+      if (cancelled) port.current = false;
+      port.gates['move']!.complete();
+      expect(await pending, cancelled ? ActorRouteExecutionOutcome.interrupted : ActorRouteExecutionOutcome.blocked);
+      expect(port.calls, ['move:north:250:false']);
+    });
+  }
+
 }
 
 SceneActorFaceStep _yieldingFace({int durationMs = 0}) =>

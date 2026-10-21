@@ -13,6 +13,7 @@ enum SceneActorRouteStepKind {
   wait,
   through,
   renderAboveMap,
+  visibility,
   sound,
 }
 
@@ -89,6 +90,8 @@ sealed class SceneActorRouteStep {
       SceneActorThroughStep;
   factory SceneActorRouteStep.renderAboveMap({required bool enabled}) =
       SceneActorRenderAboveMapStep;
+  factory SceneActorRouteStep.visibility({required bool visible}) =
+      SceneActorVisibilityStep;
   factory SceneActorRouteStep.sound({
     required String mediaAssetId,
     required double gain,
@@ -167,6 +170,12 @@ sealed class SceneActorRouteStep {
         return kind == SceneActorRouteStepKind.through
             ? SceneActorThroughStep(enabled: json['enabled'] as bool)
             : SceneActorRenderAboveMapStep(enabled: json['enabled'] as bool);
+      case SceneActorRouteStepKind.visibility:
+        _actorFields(json, const {'kind', 'visible'});
+        if (json['visible'] is! bool) {
+          throw const FormatException('visible must be a boolean.');
+        }
+        return SceneActorVisibilityStep(visible: json['visible'] as bool);
       case SceneActorRouteStepKind.sound:
         _actorFields(json, const {'kind', 'mediaAssetId', 'gain'});
         final gain = json['gain'];
@@ -323,6 +332,20 @@ final class SceneActorThroughStep extends SceneActorRouteStep {
       other is SceneActorThroughStep && enabled == other.enabled;
   @override
   int get hashCode => Object.hash(kind, enabled);
+}
+
+final class SceneActorVisibilityStep extends SceneActorRouteStep {
+  const SceneActorVisibilityStep({required this.visible});
+  final bool visible;
+  @override
+  SceneActorRouteStepKind get kind => SceneActorRouteStepKind.visibility;
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'visible': visible};
+  @override
+  bool operator ==(Object other) =>
+      other is SceneActorVisibilityStep && visible == other.visible;
+  @override
+  int get hashCode => Object.hash(kind, visible);
 }
 
 final class SceneActorSoundStep extends SceneActorRouteStep {

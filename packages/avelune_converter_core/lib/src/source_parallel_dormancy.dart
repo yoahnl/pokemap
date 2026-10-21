@@ -254,6 +254,7 @@ void _auditSourceFactWriteBlock(
   for (final node in block.nodes) {
     switch (node) {
         case SourceGymBadgePresentationNode():
+        case SourceExclamationNode():
           break;
       case SourceCommonEventCallNode():
         _auditSourceFactWriteBlock(node.body, event, analyzer, writes);
@@ -333,6 +334,8 @@ void _auditSourceFactWriteBlock(
             SourceMoveRouteStepKind.throughOff ||
             SourceMoveRouteStepKind.alwaysOnTopOn ||
             SourceMoveRouteStepKind.alwaysOnTopOff ||
+            SourceMoveRouteStepKind.hide ||
+            SourceMoveRouteStepKind.show ||
             SourceMoveRouteStepKind.soundEffect =>
               true,
           };
@@ -350,6 +353,7 @@ void _auditSourceFactWriteBlock(
       case SourceWarpNode():
       case SourceToneNode():
       case SourceWaitNode():
+      case SourceMusicNode():
       case SourceSoundEffectNode():
       case SourceInteractionFacingNode():
       case SourceRelativeFacingRouteNode():

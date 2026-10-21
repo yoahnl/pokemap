@@ -310,6 +310,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
     SceneActorRouteStepKind.moveDiagonal => SceneActorRouteStep.moveDiagonal(
       horizontal: step.horizontal, vertical: step.vertical, durationMs: step.duration!),
     SceneActorRouteStepKind.renderAboveMap => SceneActorRouteStep.renderAboveMap(enabled: step.enabled),
+    SceneActorRouteStepKind.visibility => SceneActorRouteStep.visibility(visible: step.enabled),
     SceneActorRouteStepKind.wait => SceneActorRouteStep.wait(
       durationMs: step.duration!,
     ),
@@ -569,6 +570,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
               'move': 'Avancer d’une case',
               'moveDiagonal': 'Avancer en diagonale',
               'renderAboveMap': 'Passer devant la carte',
+              'visibility': 'Afficher ou masquer',
               'wait': 'Attendre',
               'through': 'Traverser les obstacles',
               'sound': 'Jouer un son',
@@ -646,6 +648,9 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
             PokeMapToggleTile(label: 'Devant la carte',
               description: 'Afficher l’acteur au-dessus du décor pendant la durée choisie.',
               value: step.enabled, onChanged: (value) => setState(() => step.enabled = value)),
+          if (step.kind == SceneActorRouteStepKind.visibility)
+            PokeMapToggleTile(label: 'Acteur visible', value: step.enabled,
+              onChanged: (value) => setState(() => step.enabled = value)),
           if (step.kind == SceneActorRouteStepKind.sound) ...[
             const SizedBox(height: 8),
             _select(
@@ -715,6 +720,8 @@ class _ActorStepDraft {
         draft.horizontal = step.horizontal;
         draft.vertical = step.vertical;
         draft.durationText = '${step.durationMs}';
+      case SceneActorVisibilityStep():
+        draft.enabled = step.visible;
       case SceneActorRenderAboveMapStep():
         draft.enabled = step.enabled;
       case SceneActorWaitStep():

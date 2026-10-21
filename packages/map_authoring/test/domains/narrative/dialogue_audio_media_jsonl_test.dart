@@ -19,55 +19,64 @@ void main() {
     });
   });
 
-  test(
-      'JSONL imports a probed sound atomically and reports the identity conflict precisely',
-      () async {
-    final fixture = await _Fixture.create();
-    addTearDown(fixture.dispose);
-    final described = await fixture.command('describe', {});
-    expect(jsonEncode(described.toJson()), contains(_action));
-    final artifact =
-        await fixture.api.artifacts.put(_wav(), declaredMediaType: 'audio/wav');
-    final request = await fixture.request(artifact.reference.handle);
-    final before = await fixture.projectFile.readAsBytes();
-    final planned = await fixture.command('plan', {
-      'projectHandle': fixture.opened.projectHandle.value,
-      'request': request.toJson()
+  for (final mediaKind in [null, 'music']) {
+    test(
+        'JSONL imports a probed audio kind=$mediaKind atomically and reports the identity conflict precisely',
+        () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final described = await fixture.command('describe', {});
+      expect(jsonEncode(described.toJson()), contains(_action));
+      final artifact = await fixture.api.artifacts
+          .put(_wav(), declaredMediaType: 'audio/wav');
+      final request = await fixture.request(artifact.reference.handle,
+          mediaKind: mediaKind);
+      final before = await fixture.projectFile.readAsBytes();
+      final planned = await fixture.command('plan', {
+        'projectHandle': fixture.opened.projectHandle.value,
+        'request': request.toJson()
+      });
+      expect(planned.status, AuthoringResultStatus.success);
+      expect(await fixture.projectFile.readAsBytes(), before);
+      final applied = await fixture.command('apply', {
+        'projectHandle': fixture.opened.projectHandle.value,
+        'planId': planned.data['planId'],
+        'operationId': 'sound-jsonl'
+      });
+      expect(applied.status, AuthoringResultStatus.success);
+      final reloaded = await fixture.loader.load(fixture.opened.projectHandle,
+          policy: ProjectSnapshotLoadPolicy.strict);
+      expect(reloaded.loadDiagnostics, isEmpty);
+      final media = reloaded.manifest.cinematicMediaAssets.single;
+      expect(
+          media.kind,
+          mediaKind == 'music'
+              ? CinematicMediaAssetKind.music
+              : CinematicMediaAssetKind.sound);
+      expect(media.loopByDefault, mediaKind == 'music');
+      expect(media.durationMs, 1000);
+      expect(
+          await File('${fixture.directory.path}/${media.relativePath}')
+              .readAsBytes(),
+          _wav());
+      expect(
+          await fixture.loader.readRetainedAssetBlob(
+              fixture.opened.projectHandle, artifact.reference),
+          _wav());
+      final conflictBefore = await fixture.projectFile.readAsBytes();
+      final conflict = await fixture.command('plan', {
+        'projectHandle': fixture.opened.projectHandle.value,
+        'request': (await fixture.request(artifact.reference.handle,
+                mediaKind: mediaKind))
+            .toJson()
+      });
+      expect(conflict.status, AuthoringResultStatus.failure);
+      expect(conflict.error!.code, AuthoringErrorCode.validationFailed);
+      expect(conflict.error!.details['domainCode'],
+          'scene.dialogue.audio_media.conflict');
+      expect(await fixture.projectFile.readAsBytes(), conflictBefore);
     });
-    expect(planned.status, AuthoringResultStatus.success);
-    expect(await fixture.projectFile.readAsBytes(), before);
-    final applied = await fixture.command('apply', {
-      'projectHandle': fixture.opened.projectHandle.value,
-      'planId': planned.data['planId'],
-      'operationId': 'sound-jsonl'
-    });
-    expect(applied.status, AuthoringResultStatus.success);
-    final reloaded = await fixture.loader.load(fixture.opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.strict);
-    expect(reloaded.loadDiagnostics, isEmpty);
-    final media = reloaded.manifest.cinematicMediaAssets.single;
-    expect(media.kind, CinematicMediaAssetKind.sound);
-    expect(media.loopByDefault, isFalse);
-    expect(media.durationMs, 1000);
-    expect(
-        await File('${fixture.directory.path}/${media.relativePath}')
-            .readAsBytes(),
-        _wav());
-    expect(
-        await fixture.loader.readRetainedAssetBlob(
-            fixture.opened.projectHandle, artifact.reference),
-        _wav());
-    final conflictBefore = await fixture.projectFile.readAsBytes();
-    final conflict = await fixture.command('plan', {
-      'projectHandle': fixture.opened.projectHandle.value,
-      'request': (await fixture.request(artifact.reference.handle)).toJson()
-    });
-    expect(conflict.status, AuthoringResultStatus.failure);
-    expect(conflict.error!.code, AuthoringErrorCode.validationFailed);
-    expect(conflict.error!.details['domainCode'],
-        'scene.dialogue.audio_media.conflict');
-    expect(await fixture.projectFile.readAsBytes(), conflictBefore);
-  });
+  }
 }
 
 List<int> _wav() {
@@ -139,7 +148,8 @@ final class _Fixture {
               {'id': command, 'command': command, 'args': arguments})))
           as Map<String, dynamic>);
 
-  Future<AuthoringRequest> request(String handle) async => AuthoringRequest(
+  Future<AuthoringRequest> request(String handle, {String? mediaKind}) async =>
+      AuthoringRequest(
           requestId: 'sound-jsonl',
           actionId: _action,
           actionVersion: 1,
@@ -151,7 +161,8 @@ final class _Fixture {
             'assetId': 'sound',
             'mediaId': 'pickup',
             'label': 'Found',
-            'logicalPath': 'assets/dialogue/found.wav'
+            'logicalPath': 'assets/dialogue/found.wav',
+            if (mediaKind != null) 'mediaKind': mediaKind
           });
 
   Future<void> dispose() async {

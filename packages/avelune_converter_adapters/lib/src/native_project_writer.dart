@@ -1816,8 +1816,17 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'assetId',
           'mediaId',
           'label',
-          'logicalPath'
+          'logicalPath',
+          'mediaKind'
         });
+        final kind = parameters.containsKey('mediaKind')
+            ? switch (parameters['mediaKind']) {
+                'sound' => CinematicMediaAssetKind.sound,
+                'music' => CinematicMediaAssetKind.music,
+                _ => throw const NativeWriteException('native.events.audio_kind',
+                    'Regenerated audio requires a finite sound or music kind'),
+              }
+            : CinematicMediaAssetKind.sound;
         final handle = _string(parameters, 'artifactHandle');
         final id = _string(parameters, 'assetId');
         final mediaId = _string(parameters, 'mediaId');
@@ -1839,11 +1848,12 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
             id: id,
             logicalPath: logicalPath,
             artifact: artifact.reference,
-            usages: const ['dialogueAudio']));
+            usages: [kind == CinematicMediaAssetKind.music ? 'cinematicMusic' : 'dialogueAudio']));
         mediaAssets.add(CinematicMediaAsset(
             id: mediaId,
             label: _string(parameters, 'label'),
-            kind: CinematicMediaAssetKind.sound,
+            kind: kind,
+            loopByDefault: kind == CinematicMediaAssetKind.music,
             relativePath: logicalPath,
             durationMs: inspected.durationMilliseconds,
             metadata: {

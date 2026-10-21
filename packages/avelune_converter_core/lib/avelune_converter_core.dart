@@ -50,3 +50,5 @@ part 'src/source_external_warp_program.dart';
 part 'src/source_parallel_dormancy.dart';
 
 part 'src/source_interaction_inventory.dart';
+
+part 'src/source_exclamation_program.dart';

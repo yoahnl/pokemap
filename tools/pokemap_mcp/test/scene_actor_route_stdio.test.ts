@@ -47,7 +47,9 @@ function route(actor = target("map", "actor"), mediaAssetId = "door", initialCol
   return { kind: "actorRoute", target: actor, steps: [
     { kind: "face", direction: "south", durationMs: 50, yieldAfter: true },
     { kind: "move", direction: "south", durationMs: 200, ...(initialCollisionOwnerEntityId === undefined ? {} : { initialCollisionOwnerEntityId }) },
+    { kind: "visibility", visible: false },
     { kind: "wait", durationMs: 50 },
+    { kind: "visibility", visible: true },
     { kind: "through", enabled: true },
     { kind: "sound", mediaAssetId, gain: 0.8 },
   ], skippable: false };
@@ -135,7 +137,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
       assert.equal(contract.entityKind, "npc");
       assert.equal(contract.entityCharacterReference, "knownUniqueDirectOrTrainerCharacter");
     }
-    assert.deepEqual(record(extension.actorRoute).stepKinds, ["face", "move", "moveDiagonal", "wait", "through", "renderAboveMap", "sound"]);
+    assert.deepEqual(record(extension.actorRoute).stepKinds, ["face", "move", "moveDiagonal", "wait", "through", "renderAboveMap", "visibility", "sound"]);
     assert.equal(record(extension.actorRoute).dynamicCollisionValidation, "runtime");
     for (const id of ["scene.interactive_command.set", "scene.upsert", "scene.graph.patch"]) {
       const descriptor = (description.mutationActions as JsonRecord[]).find((value) => value.id === id);
@@ -146,7 +148,8 @@ test("live MCP authors typed actor routes and visibility with strict references 
       assert.deepEqual(record(contract.stepFields).face, ["kind", "direction", "durationMs", "yieldAfter"]);
       assert.deepEqual(record(contract.stepOptionalFields).face, ["durationMs", "yieldAfter"]);
       assert.equal(contract.defaultFaceYieldAfter, false);
-      assert.equal(contract.contractVersion, 2);
+      assert.equal(contract.contractVersion, 3);
+      assert.deepEqual(record(contract.stepFields).visibility, ["kind", "visible"]);
       assert.deepEqual(contract.transientScopes, ["route", "scene"]);
       assert.equal(contract.defaultTransientScope, "route");
       assert.deepEqual(record(contract.stepFields).moveDiagonal, ["kind", "horizontal", "vertical", "durationMs"]);

@@ -21,7 +21,23 @@ final class DialogueAudioMediaActions {
 
   static final descriptors = [
     narrativeActionDescriptor('scene.dialogue.audioMedia.import',
-        'Atomically import a probed non-looping dialogue sound',
+        'Atomically import a probed dialogue sound or looping cinematic music',
+        extensions: const {
+          'parameterNames': [
+            'artifactHandle',
+            'assetId',
+            'mediaId',
+            'label',
+            'logicalPath',
+            'mediaKind'
+          ],
+          'mediaKind': {
+            'values': ['sound', 'music'],
+            'default': 'sound',
+            'musicLoops': true,
+            'explicitNull': 'rejected'
+          },
+        },
         resourceKinds: const [
           'project',
           'cinematicMediaAsset',
@@ -33,8 +49,22 @@ final class DialogueAudioMediaActions {
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
     final parameters = context.request.parameters;
-    rejectUnknownNarrativeParameters(parameters,
-        const {'artifactHandle', 'assetId', 'mediaId', 'label', 'logicalPath'});
+    rejectUnknownNarrativeParameters(parameters, const {
+      'artifactHandle',
+      'assetId',
+      'mediaId',
+      'label',
+      'logicalPath',
+      'mediaKind'
+    });
+    final kind = parameters.containsKey('mediaKind')
+        ? switch (parameters['mediaKind']) {
+            'sound' => CinematicMediaAssetKind.sound,
+            'music' => CinematicMediaAssetKind.music,
+            final value => throw ArgumentError.value(
+                value, 'mediaKind', 'must be sound or music'),
+          }
+        : CinematicMediaAssetKind.sound;
     final mediaId = narrativeStringParameter(parameters, 'mediaId');
     final assetId = narrativeStringParameter(parameters, 'assetId');
     final label = narrativeStringParameter(parameters, 'label');
@@ -74,12 +104,17 @@ final class DialogueAudioMediaActions {
                   'artifactHandle': handle,
                   'assetId': assetId,
                   'logicalPath': logicalPath,
-                  'usages': ['dialogueAudio'],
+                  'usages': [
+                    kind == CinematicMediaAssetKind.music
+                        ? 'cinematicMusic'
+                        : 'dialogueAudio'
+                  ],
                 })));
     final media = CinematicMediaAsset(
         id: mediaId,
         label: label,
-        kind: CinematicMediaAssetKind.sound,
+        kind: kind,
+        loopByDefault: kind == CinematicMediaAssetKind.music,
         relativePath: logicalPath,
         durationMs: inspected.durationMilliseconds,
         metadata: {

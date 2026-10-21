@@ -10,6 +10,47 @@ const _action = 'scene.dialogue.audioMedia.import';
 
 void main() {
   test(
+      'canonical typed music imports a looping track with exact retained bytes',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    final stored =
+        await f.api.artifacts.put(_wav(), declaredMediaType: 'audio/wav');
+    final req = await f.request(stored.reference.handle, mediaKind: 'music');
+    final plan = await f.api.planMutation(f.opened.projectHandle, req);
+    await f.api.apply(f.opened.projectHandle,
+        planId: plan.planId, operationId: 'music');
+    final snapshot = await f.loader
+        .load(f.opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+    final media = snapshot.manifest.cinematicMediaAssets.single;
+    expect(media.kind, CinematicMediaAssetKind.music);
+    expect(media.loopByDefault, isTrue);
+    expect(media.durationMs, 1000);
+    expect(
+        await File('${f.directory.path}/${media.relativePath}').readAsBytes(),
+        _wav());
+    expect(
+        await f.loader
+            .readRetainedAssetBlob(f.opened.projectHandle, stored.reference),
+        _wav());
+  });
+  for (final kind in <Object?>[null, 'soundEffect', 'Music', 0, false]) {
+    test(
+        'canonical audio rejects unknown or malformed explicit media kind $kind',
+        () async {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      final stored =
+          await f.api.artifacts.put(_wav(), declaredMediaType: 'audio/wav');
+      final req = await f.request(stored.reference.handle,
+          mediaKind: kind, explicitKind: true);
+      final before = await f.projectFile.readAsBytes();
+      await expectLater(
+          f.api.planMutation(f.opened.projectHandle, req), throwsA(anything));
+      expect(await f.projectFile.readAsBytes(), before);
+    });
+  }
+  test(
       'canonical dialogue audio import atomically survives a strict native reopen',
       () async {
     final fixture = await _Fixture.create();
@@ -150,7 +191,9 @@ final class _Fixture {
     return _Fixture(directory, handles, opened, loader, api);
   }
 
-  Future<AuthoringRequest> request(String handle) async => AuthoringRequest(
+  Future<AuthoringRequest> request(String handle,
+          {Object? mediaKind, bool explicitKind = false}) async =>
+      AuthoringRequest(
           requestId: 'sound',
           actionId: _action,
           actionVersion: 1,
@@ -162,7 +205,8 @@ final class _Fixture {
             'assetId': 'pickup_audio',
             'mediaId': 'pickup',
             'label': 'Original pickup sound',
-            'logicalPath': 'assets/dialogue/pickup.wav'
+            'logicalPath': 'assets/dialogue/pickup.wav',
+            if (explicitKind || mediaKind != null) 'mediaKind': mediaKind
           });
 
   Future<void> dispose() async {

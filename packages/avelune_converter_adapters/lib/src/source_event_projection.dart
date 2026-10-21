@@ -481,8 +481,10 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
       'originalProgram': node.originalProgram?.toJson()},
     SourceToneNode() => node.toJson(),
     SourceWaitNode() => node.toJson(),
+    SourceMusicNode() => node.toJson(),
     SourceSoundEffectNode() => node.toJson(),
     SourceScriptNode() => {'script': node.script},
+    SourceExclamationNode() => node.toJson(),
     SourceInteractionFacingNode() => {'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
     SourceRelativeFacingRouteNode() => node.toJson(),
         SourcePortraitProgramNode() => node.toJson(),
@@ -509,6 +511,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
   'kind': node.runtimeType.toString(), 'span': node.span.toJson(),
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
+    SourceExclamationNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
     SourceRelativeFacingRouteNode() => node.toJson(),
@@ -759,6 +762,7 @@ final class _ProjectionBuilder {
       source: source, analysis: analysis, authority: _transferAuthority);
   final _arrivalOwnerChecks = <ConverterId>{};
   final _arrivalOwnerDependencies = <ConverterId, Set<ConverterId>>{};
+  final _exclamationActorDependencies = <ConverterId, Set<ConverterId>>{};
   final _stationaryRotationSourceMatches = <SourceEventDefinition, bool>{};
   final _fixedDirectionSourceMatches = <SourceEventDefinition, bool>{};
   final _centerProgramMatches = <(SourceEventDefinition, bool), bool>{};
@@ -935,6 +939,45 @@ final class _ProjectionBuilder {
   }
   bool _isExternalWarpFamily(SourceEventDefinition event) => event.pages.expand((p) => p.body.nodes).whereType<SourceWarpNode>().any((n) => n.originalProgram != null);
 
+  bool _exclamationEventMatchesSource(SourceEventDefinition event) {
+    final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
+    if (expected == null || expected.name != event.name || expected.x != event.x ||
+        expected.y != event.y || _sourceControlFingerprint(expected) != _sourceControlFingerprint(event) ||
+        expected.pages.length != event.pages.length) { return false; }
+    Object? graphic(SourceEventGraphic? value) => value == null ? null : [
+      value.tileId, value.characterName, value.hue, value.direction, value.pattern,
+      value.opacity, value.blendType, value.moveType, value.moveSpeed, value.moveFrequency,
+      value.walkAnime, value.stepAnime, value.directionFix, value.through,
+      value.alwaysOnTop, value.moveRouteNodeId,
+    ];
+    return List.generate(event.pages.length, (i) => i).every((i) =>
+        canonicalJsonOf(graphic(expected.pages[i].graphic)) == canonicalJsonOf(graphic(event.pages[i].graphic)) &&
+        _sourceCommonProgramHash(expected.pages[i].body) == _sourceCommonProgramHash(event.pages[i].body));
+  }
+
+  bool _supportsSourceExclamation(SourceEventDefinition event,
+      SourceExclamationNode node, {required bool checkCharacterBindings}) {
+    final raw = source.maps.where((m) => m.map.sourceMapId == event.sourceMapId)
+        .firstOrNull?.map.events.where((e) => e.sourceEventId == event.sourceEventId).firstOrNull;
+    if (raw == null || !_exclamationEventMatchesSource(event) || !node.isBoundToSourceEvent(source: source,
+        profile: analysis.profile, sourceMapId: event.sourceMapId, event: raw)) { return false; }
+    if (node.targetSourceCharacterId == -1) return true;
+    final actor = analysis.eventAt(event.sourceMapId, node.targetSourceCharacterId);
+    final map = maps[event.sourceMapId]!;
+    if (actor == null || !_exclamationEventMatchesSource(actor) || actor.isQuarantined || actor.pages.isEmpty ||
+        actor.x < 0 || actor.y < 0 || actor.x >= map.size.width || actor.y >= map.size.height ||
+        actor.pages.any((p) => p.graphic == null || p.graphic!.characterName.isEmpty ||
+          p.graphic!.opacity != 255 || p.graphic!.moveType != 0)) { return false; }
+    if (checkCharacterBindings && actor.pages.any((p) => !characterBindings.containsKey(
+        sourceEventCharacterBindingKey(characterName: p.graphic!.characterName,
+          pattern: p.graphic!.pattern, direction: p.graphic!.direction,
+          fixedDirection: p.graphic!.directionFix)))) { return false; }
+    if (actor.identity != event.identity) {
+      _exclamationActorDependencies.putIfAbsent(event.identity, () => {}).add(actor.identity);
+    }
+    return true;
+  }
+
   bool _isSourceTransition(SourceEventDefinition event) =>
       sequencePrograms.containsKey(event.identity) ||
       warpTilePrograms.programs.containsKey(event.identity) ||
@@ -942,7 +985,7 @@ final class _ProjectionBuilder {
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      (sequencePrograms.containsKey(event.identity) && executionContextQualified &&
+      ((sequencePrograms.containsKey(event.identity)) && executionContextQualified &&
         executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null &&
         executionContext?.stairIdentity == null && executionContext?.holeIdentity == null &&
         executionContext?.elevatorIdentity == null) ||
@@ -1161,6 +1204,12 @@ final class _ProjectionBuilder {
             (_arrivalOwnerDependencies[event.identity] ?? const <ConverterId>{})
                 .any((owner) => gapsByEvent[owner]?.isEmpty != true)) {
           gaps.add('warpArrivalOwnerUnavailable');
+          changed = true;
+        }
+        if (gaps.isEmpty &&
+            (_exclamationActorDependencies[event.identity] ?? const <ConverterId>{})
+                .any((owner) => gapsByEvent[owner]?.isEmpty != true)) {
+          gaps.add('sourceExclamationActorUnavailable');
           changed = true;
         }
       }
@@ -1428,6 +1477,14 @@ final class _ProjectionBuilder {
                             .sections['events.DrawText']!['sha256'],
                         'sourceScriptsExecuted': 0,
                       },
+                if (gaps.isEmpty)
+                  for (final node in _sourceControlNodes(page.body).whereType<SourceExclamationNode>()) {
+                    ...node.toJson(),
+                    'nativeContract': 'sourceBoundActorNativeExclamation',
+                    'sourceOracle': 'Utilities:194-213',
+                    'sourceUtilitiesSha256': analysis.profile.interpretationProfile!.sections['events.Utilities']!['sha256'],
+                    'nativeActorEventId': node.targetSourceCharacterId,
+                  },
                 if (gaps.isEmpty)
                   for (final node in _sourceControlNodes(page.body).whereType<SourceRelativeFacingRouteNode>()) {
                     ...node.toJson(),
@@ -4143,6 +4200,11 @@ final class _ProjectionBuilder {
         case SourcePortraitProgramNode():
           _blockGaps(event, node.body, gaps,
               checkCharacterBindings: checkCharacterBindings);
+        case SourceExclamationNode():
+          if (!_supportsSourceExclamation(event, node,
+              checkCharacterBindings: checkCharacterBindings)) {
+            gaps.add('sourceExclamationActorUnavailable');
+          }
         case SourcePortraitPresentationNode():
           final program = _portraitProgram(event);
           if (program == null ||
@@ -4237,6 +4299,8 @@ final class _ProjectionBuilder {
           gaps.add('sourceFieldObstacleBindingsMissing');
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
+        case SourceMusicNode():
+          gaps.add('sourceMusicProgramUnsupported');
         case SourceSoundEffectNode():
           if (node.name.startsWith('Cries/') && _decorativePokemonBinding(event) == null) {
             gaps.add('sourceDecorativePokemonBindingMissing');
@@ -4277,9 +4341,16 @@ final class _ProjectionBuilder {
           } else if (node is SourceForcedMoveRouteNode) {
             final index = block.nodes.indexOf(node);
             final postTransfer = staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false;
-            if (node.repeat || (!postTransfer && !(stairPrograms[event.identity]?.permitsRestoreWithoutBarrier(node) ?? false) &&
+            final finiteGiver = sequencePrograms[event.identity]?.finiteItemGiver == true;
+            final giverFacing = finiteGiver && node.steps.length == 1 && const {
+              SourceMoveRouteStepKind.turnDown, SourceMoveRouteStepKind.turnLeft,
+              SourceMoveRouteStepKind.turnRight,
+            }.contains(node.steps.single.kind);
+            final allowedTarget = const [-1, 0].contains(node.targetSourceCharacterId) ||
+                finiteGiver && node.targetSourceCharacterId == sequencePrograms[event.identity]!.auxiliaryActorEventId;
+            if (node.repeat || (!postTransfer && !giverFacing && !(stairPrograms[event.identity]?.permitsRestoreWithoutBarrier(node) ?? false) &&
                 (index + 1 >= block.nodes.length || block.nodes[index + 1] is! SourceMoveRouteBarrierNode)) ||
-                !const [-1, 0].contains(node.targetSourceCharacterId)) {
+                !allowedTarget) {
               gaps.add('sourceRouteBarrierScopeUnsupported');
             }
             if (!postTransfer && !qualifiedStairContexts.contains(event.identity) && !sequencePrograms.containsKey(event.identity) && node.steps.any((step) => const {
@@ -4772,6 +4843,41 @@ final class _SceneBuilder {
         kind: kind));
   }
 
+  String _exclamation(SourceExclamationNode node, String next) {
+    const actorId = 'source_exclamation_actor';
+    final player = node.targetSourceCharacterId == -1;
+    final actor = player ? null : projection.analysis.eventAt(event.sourceMapId, node.targetSourceCharacterId)!;
+    final entityId = actor == null ? null : projection._key(actor, 'anchor');
+    final id = projection._key(event,
+        'exclamation_${page.originalPageIndex}_${node.span.firstCommandIndex}');
+    final cinematic = CinematicAsset(id: id, title: 'Source exclamation',
+        mapId: projection.maps[event.sourceMapId]!.id,
+        requiredActors: [CinematicActorRef(actorId: actorId, entityId: entityId)],
+        stageContext: CinematicStageContext(
+          backdropMode: CinematicStageBackdropMode.projectMap,
+          actorBindings: [CinematicActorBinding(actorId: actorId,
+            kind: player ? CinematicActorBindingKind.player : CinematicActorBindingKind.mapEntity,
+            mapEntityId: entityId)]),
+        timeline: CinematicTimeline(steps: [CinematicTimelineStep(id: 'exclamation',
+          kind: CinematicTimelineStepKind.actorEmote, actorId: actorId, durationMs: 500,
+          metadata: {
+            cinematicTimelineDraftMetadataKindKey: cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey: cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: cinematicTimelineActorEmoteBlockMetadataValue,
+            cinematicTimelineActorEmoteEmoteIdMetadataKey: 'exclamation',
+          })]),
+        actorCompletionPolicy: CinematicActorCompletionPolicy.restoreInitial,
+        metadata: {'converter.sourceProgram': canonicalHashOf(node.toJson()).value,
+          'converter.visualAndAudioParity': 'false', 'converter.temporalParity': 'false'});
+    projection.cinematics.add(cinematic);
+    projection.mutations.add(projection._mutation('cinematic.upsert', id,
+        [event.identity, event.sourceFileId, if (actor != null) actor.identity],
+        [id], {'cinematic': cinematic.toJson()}));
+    final start = _node(SceneCinematicPayload(cinematicId: id));
+    _edge(start, 'completed', next, SceneEdgeKind.cinematicCompleted);
+    return start;
+  }
+
   String _portrait(SourcePortraitPresentationNode node, String next) {
     final binding = projection.portraitBindings[event.identity]!;
     final actor =
@@ -5193,6 +5299,8 @@ final class _SceneBuilder {
           next = dispatch;
         case SourcePortraitProgramNode():
           next = _block(node.body, next);
+        case SourceExclamationNode():
+          next = _exclamation(node, next);
         case SourcePortraitPresentationNode():
           next = _portrait(node, next);
         case SourceInteractionFacingNode():
@@ -5254,6 +5362,8 @@ final class _SceneBuilder {
           next = _interactive(SceneInteractiveCommand.worldTone(red: node.red,
             green: node.green, blue: node.blue, gray: node.gray,
             durationMs: node.durationMs), next);
+        case SourceMusicNode():
+          throw const NativeWriteException('events.music.binding', 'Music requires a qualified complete cinematic.');
         case SourceSoundEffectNode():
           if (node.name == 'frlg_gateopen' && projection._cardKeyGateSoundIsSourceNoOp(event)) break;
           final sound = projection._sound(node.name,
@@ -5291,8 +5401,11 @@ final class _SceneBuilder {
           }
           final mapId = projection.maps[mapScopes[node]!.single]!.id;
           final player = node.targetSourceCharacterId == -1;
+          final routeActor = node.targetSourceCharacterId > 0
+              ? projection.analysis.eventAt(event.sourceMapId, node.targetSourceCharacterId)!
+              : event;
           final target = player ? SceneActorTarget.player(mapId: mapId) :
-            SceneActorTarget.entity(mapId: mapId, entityId: projection._key(event, 'anchor'));
+            SceneActorTarget.entity(mapId: mapId, entityId: projection._key(routeActor, 'anchor'));
           if (node.steps.length == 1 && node.steps.single.kind == SourceMoveRouteStepKind.moveForward &&
               (projection.staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false)) {
             var dispatch = next;
@@ -5347,6 +5460,10 @@ final class _SceneBuilder {
               case SourceMoveRouteStepKind.throughOff:
                 through = step.kind == SourceMoveRouteStepKind.throughOn;
                 steps.add(SceneActorRouteStep.through(enabled: through));
+              case SourceMoveRouteStepKind.hide:
+              case SourceMoveRouteStepKind.show:
+                steps.add(SceneActorRouteStep.visibility(
+                    visible: step.kind == SourceMoveRouteStepKind.show));
               case SourceMoveRouteStepKind.soundEffect:
                 final sound = projection._sound(step.soundName!)!;
                 steps.add(SceneActorRouteStep.sound(mediaAssetId: sound.mediaId,

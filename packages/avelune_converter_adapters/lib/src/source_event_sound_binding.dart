@@ -3,6 +3,8 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import 'native_project_writer.dart';
 
+enum SourceEventAudioKind { sound, music }
+
 enum SourceEventSoundPolicy { sourceEngineGain, nativeAuthoredVolume }
 
 final class SourceEventSoundBindingUnavailable implements Exception {
@@ -13,6 +15,7 @@ final class SourceEventSoundBindingUnavailable implements Exception {
 final class SourceEventSoundBinding {
   const SourceEventSoundBinding._(
       {required this.name,
+      required this.kind,
       required this.policy,
       required this.sourceSnapshotHash,
       required this.audioFile,
@@ -21,6 +24,7 @@ final class SourceEventSoundBinding {
       required this.mutation,
       required this.evidence});
   final String name, mediaId;
+  final SourceEventAudioKind kind;
   final SourceEventSoundPolicy policy;
   final Sha256Hash sourceSnapshotHash;
   final SourceFileEntry audioFile;
@@ -32,7 +36,8 @@ final class SourceEventSoundBinding {
     if (volume < 0 || volume > 100) throw ArgumentError.value(volume, 'volume');
     return policy == SourceEventSoundPolicy.nativeAuthoredVolume
         ? volume / 100
-        : (volume * 60 ~/ 100) * 0.008;
+        : (volume * (kind == SourceEventAudioKind.music ? 80 : 60) ~/ 100) *
+            0.008;
   }
 }
 
@@ -43,6 +48,7 @@ final class SourceEventSoundResolver {
     required NormalizedSourceProject source,
     required SourceFilePort files,
     required String name,
+    SourceEventAudioKind kind = SourceEventAudioKind.sound,
     SourceEventSoundPolicy policy = SourceEventSoundPolicy.sourceEngineGain,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
@@ -93,8 +99,19 @@ final class SourceEventSoundResolver {
         _unavailable('engine_unqualified');
       }
     }
-    final base = 'Audio/SE/$name';
+    final base =
+        'Audio/${kind == SourceEventAudioKind.music ? 'BGM' : 'SE'}/$name';
     final key = sourcePathCollisionKey(base);
+    if (kind == SourceEventAudioKind.music &&
+        source.snapshot.entries.any((entry) {
+          final path = sourcePathCollisionKey(entry.relativePath);
+          final night = '${key}_n';
+          return path == night ||
+              path.startsWith('$night.') &&
+                  !path.substring(night.length + 1).contains('/');
+        })) {
+      _unavailable('night_variant_unsupported');
+    }
     final matches = source.snapshot.entries.where((entry) {
       final path = sourcePathCollisionKey(entry.relativePath);
       return path == key ||
@@ -143,10 +160,12 @@ final class SourceEventSoundResolver {
       'namespace': source.snapshot.logicalProjectNamespace.value,
       'fileId': audio.fileId.value,
       'sha256': audio.sha256!.value,
-      'kind': 'sceneSound'
+      'kind': kind == SourceEventAudioKind.music ? 'sceneMusic' : 'sceneSound'
     }).value;
-    final id = 'source_se_$identity';
-    final mediaId = 'source_se_media_$identity';
+    final prefix =
+        kind == SourceEventAudioKind.music ? 'source_bgm' : 'source_se';
+    final id = '${prefix}_$identity';
+    final mediaId = '${prefix}_media_$identity';
     final mutation = NativeMutation(
         operationId: ConverterId('source_se_import_$identity'),
         actionId: 'scene.dialogue.audioMedia.import',
@@ -157,11 +176,13 @@ final class SourceEventSoundResolver {
           'assetId': id,
           'mediaId': mediaId,
           'label': name,
-          'logicalPath': 'assets/audio/$id.$extension'
+          'logicalPath': 'assets/audio/$id.$extension',
+          if (kind == SourceEventAudioKind.music) 'mediaKind': 'music'
         },
         limits: limits);
     return SourceEventSoundBinding._(
         name: name,
+        kind: kind,
         policy: policy,
         sourceSnapshotHash: source.snapshot.canonicalHash,
         audioFile: audio,
@@ -171,7 +192,8 @@ final class SourceEventSoundResolver {
         evidence: _freeze({
           'sourceAudioFile': audio.toJson(),
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
-          'sourceScriptsHash': source.interpretationProfile?.scriptsArchiveHash.value,
+          'sourceScriptsHash':
+              source.interpretationProfile?.scriptsArchiveHash.value,
           'policy': policy.name,
           'sourceEngineGainQualified':
               policy == SourceEventSoundPolicy.sourceEngineGain,
@@ -186,21 +208,29 @@ final class SourceEventSoundResolver {
                   ? 'aveluneNativeAudio'
                   : 'freshGameDefaultOptions',
           if (policy == SourceEventSoundPolicy.sourceEngineGain) ...{
-            'sourceOptionSeVolume': 60,
+            if (kind == SourceEventAudioKind.sound) 'sourceOptionSeVolume': 60,
+            if (kind == SourceEventAudioKind.music)
+              'sourceOptionMusicVolume': 80,
             'sourceEngineGlobalGain': 0.8,
-            'sourceRubyVolumeQuantization': 'floor(authoredVolume*60/100)',
+            'sourceRubyVolumeQuantization': kind == SourceEventAudioKind.music
+                ? 'floor(authoredVolume*80/100)'
+                : 'floor(authoredVolume*60/100)',
           },
           if (policy == SourceEventSoundPolicy.nativeAuthoredVolume)
             'nativeGain': 'authoredVolume/100',
-          'sourceRubyOracle': {
-            'play': '093:202-217',
-            'volume': '040:239-245',
-            'default': '307:31'
-          },
+          'sourceRubyOracle': kind == SourceEventAudioKind.music
+              ? {'volume': '040:46-74', 'default': '307:20-30'}
+              : {
+                  'play': '093:202-217',
+                  'volume': '040:239-245',
+                  'default': '307:31'
+                },
           'sourceEngineOracle': {
             'commit': 'c9378cfaba06e0b299a1bfd4197f62da018693da',
             'gain': 'src/audio/al-util.h:239-241',
-            'application': 'src/audio/soundemitter.cpp:116-169'
+            'application': kind == SourceEventAudioKind.music
+                ? 'src/audio/audiostream.cpp:249-256'
+                : 'src/audio/soundemitter.cpp:116-169'
           },
           'sourceScriptsExecuted': 0,
           'usesDialogueFeedback': false,

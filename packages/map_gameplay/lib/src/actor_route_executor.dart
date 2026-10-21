@@ -107,6 +107,8 @@ final class ActorRouteExecutor {
             await port.wait(step.durationMs);
           case SceneActorThroughStep():
             state.through = step.enabled;
+          case SceneActorVisibilityStep():
+            await port.setVisibility(command.target, visible: step.visible);
           case SceneActorSoundStep():
             await port.sound(step.mediaAssetId, gain: step.gain);
         }

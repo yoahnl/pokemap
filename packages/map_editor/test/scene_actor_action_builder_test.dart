@@ -216,6 +216,21 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  testWidgets('route visibility stays guided and round trips in the builder', (tester) async {
+    final applied = <SceneNodePayload>[];
+    final wire = <String, dynamic>{
+      'kind': 'actorRoute', 'target': {'kind': 'player', 'mapId': 'alpha'},
+      'transientScope': 'route', 'skippable': false,
+      'steps': [{'kind': 'visibility', 'visible': false}, {'kind': 'visibility', 'visible': true}],
+    };
+    await _pump(tester, current: SceneActionPayload.interactive(SceneInteractiveCommand.fromJson(wire)), onApply: applied.add);
+    expect(find.text('Acteur visible'), findsNWidgets(2));
+    await tester.ensureVisible(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+    expect((applied.single as SceneActionPayload).interactiveCommand!.toJson(),
+      SceneInteractiveCommand.fromJson(wire).toJson());
+  });
   testWidgets('native diagonal scene scope remains guided and survives builder submission', (tester) async {
     final applied = <SceneNodePayload>[];
     final wire = <String, dynamic>{

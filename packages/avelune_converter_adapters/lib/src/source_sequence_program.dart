@@ -9,6 +9,7 @@ final class SourceSequenceProgram {
         sourceMapId = event.sourceMapId,
         sourceEventId = event.sourceEventId,
         finiteAutorun = event.pages.first.triggerCode == 3,
+        auxiliaryActorEventId = sourceFiniteAutorunItemGiverActor(event),
         sourceSnapshotHash = source.snapshot.canonicalHash,
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
@@ -18,6 +19,8 @@ final class SourceSequenceProgram {
   final ConverterId eventIdentity;
   final int sourceMapId, sourceEventId;
   final bool finiteAutorun;
+  final int? auxiliaryActorEventId;
+  bool get finiteItemGiver => auxiliaryActorEventId != null;
   final Sha256Hash sourceSnapshotHash,
       normalizationHash,
       profileHash,
@@ -49,7 +52,10 @@ final class SourceSequenceProgram {
         'profileHash': profileHash.value,
         'sourceFileHash': sourceFileHash.value,
         'programHash': canonicalHashOf(_fingerprint).value,
-        'capability': 'finiteLinearSequenceWithImmediateRouteBarriers',
+        'capability': finiteItemGiver
+            ? 'finiteAutorunItemGiverWithStationaryAuxiliaryActor'
+            : 'finiteLinearSequenceWithImmediateRouteBarriers',
+        if (finiteItemGiver) 'auxiliaryActorEventId': auxiliaryActorEventId,
         'sourceScriptsExecuted': 0,
       };
 }
@@ -108,11 +114,11 @@ bool _isSequence(SourceEventDefinition event) {
   }
   final first = event.pages.first;
   if (_conditions(first.condition).any((condition) => !const {
-    SourceEventConditionKind.globalSwitch,
-    SourceEventConditionKind.selfSwitch,
-    SourceEventConditionKind.variableAtLeast,
-    SourceEventConditionKind.variableComparison,
-  }.contains(condition.kind))) {
+        SourceEventConditionKind.globalSwitch,
+        SourceEventConditionKind.selfSwitch,
+        SourceEventConditionKind.variableAtLeast,
+        SourceEventConditionKind.variableComparison,
+      }.contains(condition.kind))) {
     return false;
   }
   final autorun = first.triggerCode == 3;
@@ -138,6 +144,7 @@ bool _isSequence(SourceEventDefinition event) {
       !const {0, 1, 2}.contains(first.triggerCode)) {
     return false;
   }
+  if (sourceFiniteAutorunItemGiverActor(event) != null) return true;
   var visible = true;
   var primitive = false;
   for (var i = 0; i < first.body.nodes.length; i++) {
@@ -232,6 +239,8 @@ Object? _node(SourceEventNode node) => switch (node) {
       SourceWaitNode() => node.toJson(),
       SourceToneNode() => node.toJson(),
       SourceSoundEffectNode() => node.toJson(),
+      SourceExclamationNode() => node.toJson(),
+      SourcePickupNode() => node.toJson(),
       SourcePlayerVisibilityNode() => node.toJson(),
       SourceForcedMoveRouteNode() => node.toJson(),
       SourceMoveRouteBarrierNode() => node.toJson(),
@@ -285,3 +294,79 @@ String _fingerprintOf(SourceEventDefinition event) => canonicalJsonOf({
           }
       ],
     });
+
+int? sourceFiniteAutorunItemGiverActor(SourceEventDefinition event) {
+  if (event.isQuarantined ||
+      event.pages.length != 2 ||
+      event.pages.first.triggerCode != 3 ||
+      event.pages.any((p) => p.graphic?.characterName.isNotEmpty != false)) {
+    return null;
+  }
+  final conditions = _conditions(event.pages.first.condition);
+  if (conditions.length != 1 ||
+      conditions.single.kind != SourceEventConditionKind.variableAtLeast ||
+      (conditions.single.minimum ?? 0) < 1) {
+    return null;
+  }
+  final nodes = event.pages.first.body.nodes
+      .where((n) => n is! SourceAnnotationNode)
+      .toList();
+  if (nodes.length != 12 ||
+      nodes[0] is! SourceWaitNode ||
+      (nodes[0] as SourceWaitNode).durationTicks != 8 ||
+      nodes[1] is! SourceForcedMoveRouteNode ||
+      nodes[2] is! SourceExclamationNode ||
+      nodes[3] is! SourceTextNode ||
+      nodes[4] is! SourceForcedMoveRouteNode ||
+      nodes[5] is! SourceMoveRouteBarrierNode ||
+      nodes[6] is! SourceForcedMoveRouteNode ||
+      nodes[7] is! SourceForcedMoveRouteNode ||
+      nodes[8] is! SourceTextNode ||
+      nodes[9] is! SourceTextNode ||
+      nodes[10] is! SourcePickupNode ||
+      nodes[11] is! SourceSelfSwitchNode) {
+    return null;
+  }
+  final actor = (nodes[1] as SourceForcedMoveRouteNode).targetSourceCharacterId;
+  if (actor < 1 ||
+      actor == event.sourceEventId ||
+      (nodes[2] as SourceExclamationNode).targetSourceCharacterId != actor ||
+      [nodes[3], nodes[8], nodes[9]]
+          .cast<SourceTextNode>()
+          .any((text) => text.followingChoice != null) ||
+      (nodes[10] as SourcePickupNode).helper !=
+          SourceItemGrantHelper.receiveItem ||
+      (nodes[10] as SourcePickupNode).quantity != 1) {
+    return null;
+  }
+  bool route(int index, int target, List<int> codes) {
+    final route = nodes[index] as SourceForcedMoveRouteNode;
+    return route.targetSourceCharacterId == target &&
+        !route.repeat &&
+        !route.skippable &&
+        canonicalJsonOf(route.steps.map((s) => s.sourceCode).toList()) ==
+            canonicalJsonOf(codes);
+  }
+
+  if (!route(1, actor, [16]) ||
+      !route(4, -1, [4, 4, 4, 4]) ||
+      !route(6, -1, [17]) ||
+      !route(7, actor, [18])) {
+    return null;
+  }
+  final last = nodes[11] as SourceSelfSwitchNode;
+  final terminal = event.pages.last;
+  final guards = _conditions(terminal.condition);
+  if (!last.value ||
+      terminal.triggerCode != 0 ||
+      !terminal.isEmpty ||
+      guards.length != 1 ||
+      guards.single.kind != SourceEventConditionKind.selfSwitch ||
+      !guards.single.expectedValue ||
+      guards.single.factId != last.factId ||
+      !last.factId.endsWith(
+          ':map:${event.sourceMapId}:event:${event.sourceEventId}:self:${last.letter}')) {
+    return null;
+  }
+  return actor;
+}

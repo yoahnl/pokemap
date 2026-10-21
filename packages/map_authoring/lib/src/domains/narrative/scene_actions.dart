@@ -239,7 +239,7 @@ final class SceneActions {
   };
 
   static const _actorRouteContract = {
-    'contractVersion': 2,
+    'contractVersion': 3,
     'parameters': ['target', 'steps', 'skippable', 'transientScope'],
     'transientScopes': ['route', 'scene'],
     'defaultTransientScope': 'route',
@@ -256,12 +256,13 @@ final class SceneActions {
       'player': ['kind', 'mapId'],
       'entity': ['kind', 'mapId', 'entityId'],
     },
-    'stepKinds': ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'sound'],
+    'stepKinds': ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'visibility', 'sound'],
     'stepFields': {
       'face': ['kind', 'direction', 'durationMs', 'yieldAfter'],
       'move': ['kind', 'direction', 'durationMs', 'initialCollisionOwnerEntityId'],
       'moveDiagonal': ['kind', 'horizontal', 'vertical', 'durationMs'],
       'renderAboveMap': ['kind', 'enabled'],
+      'visibility': ['kind', 'visible'],
       'wait': ['kind', 'durationMs'],
       'through': ['kind', 'enabled'],
       'sound': ['kind', 'mediaAssetId', 'gain'],

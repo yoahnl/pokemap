@@ -92,6 +92,10 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
       assert.ok((descriptor.guarantees as string[]).includes("atomic"));
     }
     assert.ok((record(actions.get(mapAudioAction)!.extensions).parameterNames as string[]).includes("musicVolume"));
+    const audioContract = record(record(actions.get(audioAction)!.extensions).mediaKind);
+    assert.deepEqual(audioContract.values, ["sound", "music"]);
+    assert.equal(audioContract.default, "sound");
+    assert.equal(audioContract.explicitNull, "rejected");
     for (const actionId of ["dialogue.source_update", "dialogue.update"]) {
       const descriptor = actions.get(actionId);
       assert.ok(descriptor);
@@ -154,6 +158,15 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     await mutate(audioAction, { artifactHandle: artifact.artifactHandle, assetId: "pickup_audio",
       mediaId: "pickup", label: "Found", logicalPath: "assets/dialogue/found.wav" });
     assert.deepEqual(await readFile(join(root, "assets/dialogue/found.wav")), sound());
+    await mutate(audioAction, { artifactHandle: artifact.artifactHandle, assetId: "oak_audio",
+      mediaId: "oak", label: "Oak theme", mediaKind: "music", logicalPath: "assets/music/oak.wav" });
+    const musicManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    const music = musicManifest.cinematicMediaAssets.find((m: JsonRecord) => m.id === "oak");
+    assert.equal(music.kind, "music");
+    assert.equal(music.loopByDefault, true);
+    assert.deepEqual(await readFile(join(root, "assets/music/oak.wav")), sound());
+    await plan(audioAction, { artifactHandle: artifact.artifactHandle, assetId: "invalid_audio",
+      mediaId: "invalid", label: "Invalid", mediaKind: null, logicalPath: "assets/music/invalid.wav" }, true);
     await mutate("map.create", { mapId: "route", name: "Original route", width: 4, height: 4 });
     await mutate(mapAudioAction, { mapId: "route", musicPath: "assets/dialogue/found.wav", musicVolume: 0.64 });
     async function map(): Promise<JsonRecord> {

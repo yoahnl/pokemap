@@ -70,7 +70,9 @@ Map<String, dynamic> _route({
           if (initialCollisionOwnerEntityId != null)
             'initialCollisionOwnerEntityId': initialCollisionOwnerEntityId,
         },
+        {'kind': 'visibility', 'visible': false},
         {'kind': 'wait', 'durationMs': 50},
+        {'kind': 'visibility', 'visible': true},
         {'kind': 'through', 'enabled': true},
         {'kind': 'sound', 'mediaAssetId': mediaId, 'gain': 0.8},
       ],
@@ -183,8 +185,9 @@ void main() {
       expect(route, isA<Map>());
       expect(visibility, isA<Map>());
       expect((route as Map)['parameters'], ['target', 'steps', 'skippable', 'transientScope']);
-      expect(route['stepKinds'], ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'sound']);
-      expect(route['contractVersion'], 2);
+      expect(route['stepKinds'], ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'visibility', 'sound']);
+      expect((route['stepFields'] as Map)['visibility'], ['kind', 'visible']);
+      expect(route['contractVersion'], 3);
       expect(route['transientScopes'], ['route', 'scene']);
       expect(route['completion'], 'routeFinished');
       expect(route['targetReference'], 'uniqueActorOnExactMap');
@@ -735,6 +738,8 @@ void main() {
             ],
           },
           {..._visibility(), 'visible': 'false'},
+          {..._route(), 'steps': [{'kind': 'visibility', 'visible': 128}]},
+          {..._route(), 'steps': [{'kind': 'visibility', 'visible': false, 'opacity': 0}]},
         ]) {
           final before = await f.projectFile.readAsBytes();
           final request = await f.request(wire);

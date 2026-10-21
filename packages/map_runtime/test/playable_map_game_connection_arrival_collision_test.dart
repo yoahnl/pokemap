@@ -19,6 +19,96 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 import 'package:path/path.dart' as p;
 
 void main() {
+  for (final npc in [false, true]) {
+    test('visibility route waits for movement and explicitly restores pixels npc=$npc', () async {
+      final fixture = await _fixture(sourceSize: const GridSize(width: 5, height: 5),
+        saveRepository: _MemorySaveRepository(), solidCharacter: true,
+        sourceEntities: npc ? [_routeDoor.copyWith(pos: const GridPos(x: 3, y: 2))] : [],
+        characters: npc ? [_timingPlayerCharacter().copyWith(id: _routeDoorCharacter.id)] : []);
+      final game = fixture.game;
+      bool visible() => npc ? game.debugIsNpcActorVisible('route-door') == true : game.debugIsPlayerVisible;
+      final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+        {'kind': 'move', 'direction': 'north', 'durationMs': 250},
+        {'kind': 'visibility', 'visible': false},
+        {'kind': 'wait', 'durationMs': 250},
+        {'kind': 'visibility', 'visible': true},
+      ], entityId: npc ? 'route-door' : null));
+      await Future<void>.delayed(Duration.zero);
+      game.update(.125);
+      await Future<void>.delayed(Duration.zero);
+      expect(visible(), isTrue);
+      for (var tick = 0; tick < 40 && visible(); tick++) {
+        game.update(.025); await Future<void>.delayed(Duration.zero);
+      }
+      expect(visible(), isFalse);
+      expect(npc ? game.debugMapEntityPosition('route-door') : game.debugPlayerGridPosition,
+        npc ? const GridPos(x: 3, y: 1) : const GridPos(x: 1, y: 0));
+      final actor = npc ? game.world.children.whereType<OverworldActorComponent>().single
+        : game.world.children.whereType<PlayerComponent>().single;
+      final sample = actor.position + actor.size / 2;
+      expect((await _nativeWorldPixel(game, sample))[3], 0);
+      expect(await game.saveGame(), isFalse);
+      expect(await _finishActorRoute(game, execution), 'completed');
+      await Future<void>.delayed(Duration.zero);
+      game.update(.025);
+      await Future<void>.delayed(Duration.zero);
+      game.update(0);
+      await game.ready();
+      final restoredActor = npc ? game.world.children.whereType<OverworldActorComponent>().single
+        : game.world.children.whereType<PlayerComponent>().single;
+      final restoredSample = restoredActor.position + restoredActor.size / 2;
+      expect((await _nativeWorldPixel(game, restoredSample))[3], greaterThan(0),
+        reason: '$restoredSample pos=${restoredActor.position} size=${restoredActor.size} scale=${restoredActor.scale} visible=${visible()} present=${restoredActor is OverworldActorComponent ? restoredActor.isGameplayPresent : true} tileImages=${restoredActor is OverworldActorComponent ? restoredActor.tileImages.keys : []} children=${game.world.children.length}');
+      expect(visible(), isTrue);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(await game.saveGame(), isTrue);
+    });
+  }
+  test('visibility route never hides a player when the previous move is blocked', () async {
+    final fixture = await _fixture(sourceCollisionCells: [const GridPos(x: 0, y: 1)]);
+    final game = fixture.game;
+    final execution = game.debugExecuteSceneInteractiveCommand(_actorRoute([
+      {'kind': 'move', 'direction': 'west', 'durationMs': 250},
+      {'kind': 'visibility', 'visible': false},
+    ]));
+    expect(await _finishActorRoute(game, execution), 'blocked');
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(game.debugIsPlayerVisible, isTrue);
+  });
+  test('visibility route is compensated after a later scene failure', () async {
+    final original = _actorRewardScene(failingDialogue: true);
+    final routeScene = SceneAsset(id: original.id, name: original.name,
+      graph: SceneGraph(startNodeId: original.graph.startNodeId, edges: original.graph.edges
+        .where((e) => !const ['hide-blocked', 'show-blocked'].contains(e.id)).toList(),
+        nodes: [for (final n in original.graph.nodes)
+          if (n.id == 'hide' || n.id == 'show') SceneNode(id: n.id, kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(SceneInteractiveCommand.wait(durationMs: 1)))
+          else if (n.id == 'route') SceneNode(id: n.id, kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(_actorRoute([
+              {'kind': 'move', 'direction': 'west', 'durationMs': 250},
+              {'kind': 'visibility', 'visible': false},
+            ])))
+          else n]));
+    PlayableMapGame? active;
+    var sawHiddenAfterMove = false;
+    final fixture = await _fixture(scenes: [routeScene], dialogues: [_actorDialogueEntry], narrativeV2: true,
+      dialogueSessionLoader: (_) async {
+        sawHiddenAfterMove = active!.debugPlayerGridPosition == const GridPos(x: 0, y: 1) &&
+          !active.debugIsPlayerVisible;
+        throw StateError('Intentional failure after route visibility');
+      });
+    final game = active = fixture.game;
+    final before = game.gameStateSnapshot.toJson();
+    final result = await _finishActorScene(game, game.debugExecuteNarrativeSceneForTest(
+      NarrativeSceneExecutionRequest(eventId: 'actor-event', sceneId: routeScene.id,
+        executionId: 'route-visibility-rollback', gameState: game.gameStateSnapshot)));
+    expect(result, isA<NarrativeSceneExecutionFailed>());
+    expect(sawHiddenAfterMove, isTrue);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+    expect(game.debugIsPlayerVisible, isTrue);
+    expect(game.gameStateSnapshot.toJson(), before);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
   for (final cancelled in [false, true]) {
     test('native scene finalizer restores effects without a reset route cancelled=$cancelled', () async {
       final saves = _MemorySaveRepository();
@@ -4263,6 +4353,7 @@ Future<void> _move(PlayableMapGame game, RuntimeInputControl control) async {
 
 Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   (int, int)? maskPixel,
+  bool solidCharacter = false,
   bool? blockingEntity,
   int offset = 0,
   List<MapConnection> extraConnections = const [],
@@ -4309,13 +4400,17 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     name: 'Source',
     size: sourceSize,
     layers: [
-      const MapLayer.object(id: 'objects', name: 'Objects'),
+      if (solidCharacter) TileLayer(id: 'objects', name: 'Objects',
+        cells: List.filled(sourceSize.width * sourceSize.height, 0))
+      else const MapLayer.object(id: 'objects', name: 'Objects'),
       if (sourceCollisionCells.isNotEmpty) MapLayer.collision(
         id: 'terrain-solid', name: 'Terrain',
         collisions: List.generate(sourceSize.width * sourceSize.height,
           (index) => sourceCollisionCells.contains(GridPos(x: index % sourceSize.width, y: index ~/ sourceSize.width))),
       ),
     ],
+    placedElements: [if (solidCharacter) const MapPlacedElement(id: 'visibility-render-witness',
+      elementId: 'original_mask', layerId: 'objects', pos: GridPos(x: 0, y: 4), applyCollision: false)],
     entities: [
       ...sourceEntities,
       MapEntity(
@@ -4511,7 +4606,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     final diagnostics = diagnoseSceneAgainstProject(scene, manifest,
       mapsById: {'source': source, 'target': target},
     );
-    expect(diagnostics.hasErrors, isFalse, reason: diagnostics.diagnostics.toString(),
+    expect(diagnostics.hasErrors, isFalse, reason: diagnostics.diagnostics.map((d) => '${d.code}: ${d.nodeId}: ${d.message}').join('\n'),
     );
   }
   for (final map in [source, target, ...extraMaps]) {
@@ -4524,9 +4619,13 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
         .writeAsString(jsonEncode(map.toJson()));
   }
   final recorder = ui.PictureRecorder();
-  ui.Canvas(recorder);
+  final imageCanvas = ui.Canvas(recorder);
+  if (solidCharacter) {
+    imageCanvas.drawRect(const ui.Rect.fromLTWH(0, 0, 64, 64),
+      ui.Paint()..color = const ui.Color(0xFFFFFFFF));
+  }
   final picture = recorder.endRecording();
-  final imageSize = playerCharacter == null ? 32 : 64;
+  final imageSize = playerCharacter == null && !solidCharacter ? 32 : 64;
   final image = await picture.toImage(imageSize, imageSize);
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   await File(p.join(root.path, 'assets', 'original.png'))

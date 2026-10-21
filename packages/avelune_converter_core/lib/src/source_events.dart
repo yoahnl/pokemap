@@ -585,6 +585,30 @@ final class SourceWaitNode extends SourceEventNode {
       };
 }
 
+final class SourceMusicNode extends SourceEventNode {
+  const SourceMusicNode(super.span,
+      {required this.name,
+      required this.volume,
+      required this.pitch,
+      required this.rawDataRef,
+      required this.profileHash});
+  final String name;
+  final int volume, pitch;
+  final SourcePreservedData rawDataRef;
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {
+        'kind': 'music',
+        'name': name,
+        'volume': volume,
+        'pitch': pitch,
+        'waitForCompletion': false,
+        'span': span.toJson(),
+        'rawDataRef': rawDataRef.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
 final class SourceSoundEffectNode extends SourceEventNode {
   const SourceSoundEffectNode(super.span,
       {required this.name,
@@ -651,6 +675,8 @@ enum SourceMoveRouteStepKind {
   throughOff,
   alwaysOnTopOn,
   alwaysOnTopOff,
+  hide,
+  show,
   soundEffect,
 }
 
@@ -1966,9 +1992,16 @@ final class _SourceEventParser {
             profileHash: analyzer.profile.canonicalHash);
       case 223:
         return _tone();
+      case 241:
+        return _soundEffect(music: true);
       case 250:
         return _soundEffect();
       case 355:
+        final exclamation = _sourceExclamationNode(this, index);
+        if (exclamation != null) {
+          index++;
+          return exclamation;
+        }
         final first = index;
         var script = '';
         do {
@@ -2112,7 +2145,7 @@ final class _SourceEventParser {
         profileHash: analyzer.profile.canonicalHash);
   }
 
-  SourceEventNode _soundEffect() {
+  SourceEventNode _soundEffect({bool music = false}) {
     if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
     final command = commands[index];
     _arity(command.parameters, 1);
@@ -2144,6 +2177,11 @@ final class _SourceEventParser {
       throw const FormatException();
     }
     final current = index++;
+    if (music) {
+      return SourceMusicNode(_span(current, current),
+          name: name, volume: volume, pitch: pitch, rawDataRef: reference,
+          profileHash: analyzer.profile.canonicalHash);
+    }
     return SourceSoundEffectNode(_span(current, current),
         name: name,
         volume: volume,
@@ -2368,17 +2406,25 @@ final class _SourceEventParser {
       39 => SourceMoveRouteStepKind.alwaysOnTopOn,
       40 => SourceMoveRouteStepKind.alwaysOnTopOff,
       41 => throw const FormatException('events.move_route_appearance_unsupported'),
+      42 => SourceMoveRouteStepKind.hide,
       44 => SourceMoveRouteStepKind.soundEffect,
       _ => throw const FormatException(),
     };
     final params = _facingArray(doc, _eventField(fields, '@parameters'),
-        [15, 44].contains(code) ? 1 : 0);
+        [15, 42, 44].contains(code) ? 1 : 0);
     final result = <String, Object?>{'code': code, 'kind': kind.name};
     if (code == 15) {
       final ticks =
           _eventInt(doc, _facingPlain(doc, params.single, MarshalKind.integer));
       if (ticks < 0) throw const FormatException();
       result['ticks'] = ticks;
+    } else if (code == 42) {
+      final opacity = _eventInt(doc,
+          _facingPlain(doc, params.single, MarshalKind.integer));
+      if (opacity != 0 && opacity != 255) {
+        throw const FormatException('events.move_route_opacity_unsupported');
+      }
+      result['kind'] = (opacity == 0 ? SourceMoveRouteStepKind.hide : SourceMoveRouteStepKind.show).name;
     } else if (code == 44) {
       final sound = _facingFields(doc, params.single, 'RPG::AudioFile',
           const {'@name', '@volume', '@pitch'});
