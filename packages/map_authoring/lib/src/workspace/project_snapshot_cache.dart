@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:typed_data';
 
 import '../ports/project_file_reader.dart';
 import '../transactions/change_set.dart';
@@ -41,6 +42,8 @@ final class ProjectSnapshotCacheBudget {
 
 /// Bounded cache of complete, immutable project snapshots.
 final class ProjectSnapshotCache {
+  static const maxProjectedDialogueSourceBytes = 1 << 20;
+
   ProjectSnapshotCache({
     this.maximumProjects = 2,
     this.maximumBytes = 256 << 20,
@@ -234,7 +237,52 @@ final class ProjectSnapshotCache {
       return _rejectAdoption();
     }
     final scope = entry.identities['project.json']!.scope;
-    final frozenChanges = changes.toList(growable: false);
+    final frozenChanges = <AuthoringResourceChange>[];
+    var addedSourceBytes = 0;
+    for (final change in changes) {
+      final payload = change.afterPayload;
+      if (change.resource.kind == 'dialogue' &&
+          change.beforePayload == null &&
+          payload != null) {
+        addedSourceBytes += payload.byteLength;
+        if (payload.byteLength > maxProjectedDialogueSourceBytes ||
+            addedSourceBytes > maximumBytes - entry.authoringBytes) {
+          return _rejectAdoption();
+        }
+        if (!payload.isInline) {
+          if (!access.canStreamResources) return _rejectAdoption();
+          try {
+            final buffer = BytesBuilder(copy: false);
+            await for (final chunk in access.openRead(change.storageKey)) {
+              if (buffer.length + chunk.length > payload.byteLength) {
+                throw const AuthoringPayloadException('payload.length_mismatch',
+                    'The committed dialogue exceeds its planned source length.');
+              }
+              buffer.add(chunk);
+            }
+            final inline = AuthoringPayload.inline(buffer.takeBytes(),
+                storageKey: change.storageKey);
+            if (inline.byteLength != payload.byteLength ||
+                inline.rawSha256 != payload.rawSha256 ||
+                inline.resourceRevision != payload.resourceRevision) {
+              throw const AuthoringPayloadException('payload.source_mismatch',
+                  'The committed dialogue differs from its planned source.');
+            }
+            frozenChanges.add(AuthoringResourceChange.withPayloads(
+                resource: change.resource,
+                storageKey: change.storageKey,
+                beforePayload: null,
+                afterPayload: inline,
+                afterRevision: change.afterRevision));
+          } on Object {
+            invalidateScope(scope);
+            return _rejectAdoption();
+          }
+          continue;
+        }
+      }
+      frozenChanges.add(change);
+    }
     final projected = const ProjectSnapshotMapProjector().project(
       entry.snapshot.rebind(projectHandle),
       frozenChanges,

@@ -20,13 +20,36 @@ final class ProjectSnapshotMapProjector {
     Iterable<AuthoringResourceChange> changes,
   ) {
     if (snapshot.loadDiagnostics.isNotEmpty) return null;
+    final frozenChanges = changes.toList(growable: false);
+    final addedDialogueStorageKeys = <String, String>{};
+    for (final change in frozenChanges) {
+      if (change.resource.kind != 'dialogue') continue;
+      final identity = dialogueSourceResourceIdentity(change.resource.id);
+      if (change.beforePayload != null ||
+          change.afterPayload?.isInline != true ||
+          change.resource.revision != null ||
+          snapshot.resourceStorageKeys.containsKey(identity) ||
+          snapshot.resourceStorageKeys.containsValue(change.storageKey) ||
+          addedDialogueStorageKeys.containsKey(identity) ||
+          addedDialogueStorageKeys.containsValue(change.storageKey)) {
+        return null;
+      }
+      addedDialogueStorageKeys[identity] = change.storageKey;
+    }
     final replacements = <String, List<int>>{};
     final replacementMaps = <String, MapData>{};
     ProjectManifest? manifest;
     final fingerprints = Map<String, String>.of(
       snapshot.resourceFingerprints,
     );
-    for (final change in changes) {
+    for (final change in frozenChanges) {
+      if (change.resource.kind == 'dialogue') {
+        final identity = dialogueSourceResourceIdentity(change.resource.id);
+        replacements[identity] = change.afterBytes!;
+        fingerprints[identity] =
+            _resourceFingerprint(change.storageKey, change.afterBytes!);
+        continue;
+      }
       if ((change.resource.kind != 'map' &&
               change.resource.kind != 'project') ||
           change.beforePayload?.isInline != true ||
@@ -44,7 +67,8 @@ final class ProjectSnapshotMapProjector {
       if (replacements.containsKey(identity)) return null;
       if (change.resource.kind == 'project') {
         if (change.resource.id != 'project') return null;
-        manifest = _decodeManifestProjection(snapshot, change.afterBytes!);
+        manifest = _decodeManifestProjection(
+            snapshot, change.afterBytes!, addedDialogueStorageKeys);
         if (manifest == null) return null;
       } else {
         final decoded = _decodeMap(change.afterBytes!);
@@ -58,6 +82,7 @@ final class ProjectSnapshotMapProjector {
       );
     }
     if (replacements.isEmpty) return null;
+    if (addedDialogueStorageKeys.isNotEmpty && manifest == null) return null;
 
     final maps = [
       for (final map in snapshot.maps) replacementMaps[map.id] ?? map,
@@ -80,7 +105,10 @@ final class ProjectSnapshotMapProjector {
     } on Object {
       return null;
     }
-    final resources = snapshot.resourceStorageKeys.entries.toList()
+    final resources = {
+      ...snapshot.resourceStorageKeys,
+      ...addedDialogueStorageKeys
+    }.entries.toList()
       ..sort((left, right) => left.value.compareTo(right.value));
     // Same rule as ProjectSnapshotLoader: the revision folds the per-resource
     // fingerprints, not the resources themselves. Both paths must agree, so
@@ -98,6 +126,7 @@ final class ProjectSnapshotMapProjector {
       maps: maps,
       resourceFingerprints: fingerprints,
       replacementBytes: replacements,
+      additionalDialogueStorageKeys: addedDialogueStorageKeys,
     );
   }
 }
@@ -133,6 +162,7 @@ bool _bytesEqual(List<int>? left, List<int>? right) {
 ProjectManifest? _decodeManifestProjection(
   ProjectSnapshot snapshot,
   List<int> bytes,
+  Map<String, String> addedDialogueStorageKeys,
 ) {
   try {
     final rawBefore = Map<String, dynamic>.from(
@@ -161,7 +191,9 @@ ProjectManifest? _decodeManifestProjection(
         return null;
       }
     }
-    if (!_sameDialogueSources(snapshot, manifest)) return null;
+    if (!_sameDialogueSources(snapshot, manifest, addedDialogueStorageKeys)) {
+      return null;
+    }
     final previousCinematics = {
       for (final entry in snapshot.manifest.cinematics) entry.id: entry
     };
@@ -218,13 +250,24 @@ Object? _withDefaults(Object? raw, Object? defaults) {
   };
 }
 
-bool _sameDialogueSources(ProjectSnapshot snapshot, ProjectManifest manifest) {
+bool _sameDialogueSources(ProjectSnapshot snapshot, ProjectManifest manifest,
+    Map<String, String> addedDialogueStorageKeys) {
   final previous = snapshot.manifest.dialogues;
-  if (manifest.dialogues.length != previous.length) return false;
+  if (manifest.dialogues.length !=
+      previous.length + addedDialogueStorageKeys.length) {
+    return false;
+  }
   final paths = {for (final entry in previous) entry.id: entry.relativePath};
   final seen = <String>{};
   for (final entry in manifest.dialogues) {
     final identity = dialogueSourceResourceIdentity(entry.id);
+    if (!paths.containsKey(entry.id)) {
+      if (!seen.add(entry.id) ||
+          addedDialogueStorageKeys[identity] != entry.relativePath) {
+        return false;
+      }
+      continue;
+    }
     if (!seen.add(entry.id) ||
         paths[entry.id] != entry.relativePath ||
         snapshot.resourceStorageKeys[identity] != entry.relativePath ||

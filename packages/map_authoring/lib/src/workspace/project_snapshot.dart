@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'workspace_handle_store.dart';
 import '../transactions/authoring_payload.dart';
 import '../contracts/artifact_ref.dart';
+import '../domains/narrative/dialogue_source_store.dart';
 
 const String itemCatalogResourceIdentity = 'itemCatalog';
 
@@ -224,6 +225,7 @@ final class ProjectSnapshot {
     required List<MapData> maps,
     required Map<String, String> resourceFingerprints,
     required Map<String, List<int>> resourceBytes,
+    required Map<String, String> resourceStorageKeys,
   })  : payloadOwner = source.payloadOwner,
         projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
@@ -233,13 +235,19 @@ final class ProjectSnapshot {
         maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
-        resourceFingerprints = Map.unmodifiable(resourceFingerprints),
-        resourceStorageKeys = source.resourceStorageKeys,
+        resourceFingerprints = Map.unmodifiable(Map.fromEntries(
+            resourceFingerprints.entries.toList()
+              ..sort((left, right) => left.key.compareTo(right.key)))),
+        resourceStorageKeys = Map.unmodifiable(Map.fromEntries(
+            resourceStorageKeys.entries.toList()
+              ..sort((left, right) => left.key.compareTo(right.key)))),
         loadDiagnostics = source.loadDiagnostics,
         storedResources = source.storedResources,
         payloadResources = source.payloadResources,
         resourcePayloadReader = source.resourcePayloadReader,
-        _resourceBytes = Map.unmodifiable(resourceBytes) {
+        _resourceBytes = Map.unmodifiable(Map.fromEntries(
+            resourceBytes.entries.toList()
+              ..sort((left, right) => left.key.compareTo(right.key)))) {
     _mapsById = Map.unmodifiable({for (final map in this.maps) map.id: map});
   }
 
@@ -383,15 +391,50 @@ final class ProjectSnapshot {
   /// Internal authoring projection that retains unchanged immutable payloads.
   ///
   /// Callers must derive [revision] and [resourceFingerprints] from the exact
-  /// projected payloads. The public method is intentionally narrow: resource
-  /// identities and storage keys cannot be added or removed here.
+  /// projected payloads.
   ProjectSnapshot projectMapResources({
     required String revision,
     ProjectManifest? manifest,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     required Map<String, List<int>> replacementBytes,
+    Map<String, String> additionalDialogueStorageKeys = const {},
   }) {
+    final projectedManifest = manifest ?? this.manifest;
+    final projectedStorageKeys = {...resourceStorageKeys};
+    final previousDialogues = {
+      for (final entry in this.manifest.dialogues) entry.id: entry
+    };
+    final addedSources = <String, String>{};
+    final seenDialogues = <String>{};
+    for (final entry in projectedManifest.dialogues) {
+      if (!seenDialogues.add(entry.id)) {
+        throw ArgumentError('Duplicate projected dialogue identity.');
+      }
+      final previous = previousDialogues[entry.id];
+      if (previous != null) {
+        if (entry.relativePath != previous.relativePath) {
+          throw ArgumentError('Changed projected dialogue source binding.');
+        }
+        continue;
+      }
+      assertValidProjectDialogueRelativePath(entry.relativePath,
+          dialogueId: entry.id);
+      final identity = dialogueSourceResourceIdentity(entry.id);
+      if (projectedStorageKeys.containsKey(identity) ||
+          projectedStorageKeys.containsValue(entry.relativePath) ||
+          additionalDialogueStorageKeys[identity] != entry.relativePath ||
+          !replacementBytes.containsKey(identity)) {
+        throw ArgumentError('Invalid added dialogue source binding.');
+      }
+      projectedStorageKeys[identity] = entry.relativePath;
+      addedSources[identity] = entry.relativePath;
+    }
+    if (!seenDialogues.containsAll(previousDialogues.keys) ||
+        addedSources.length != additionalDialogueStorageKeys.length ||
+        !addedSources.keys.toSet().containsAll(additionalDialogueStorageKeys.keys)) {
+      throw ArgumentError('Invalid projected dialogue source inventory.');
+    }
     if (manifest != null) {
       final bindings = {for (final map in this.manifest.maps) map.id: map};
       final seen = <String>{};
@@ -413,14 +456,14 @@ final class ProjectSnapshot {
         projectedMapIds.length != currentMapIds.length ||
         !projectedMapIds.containsAll(currentMapIds) ||
         resourceFingerprints.keys.toSet().length !=
-            this.resourceFingerprints.length ||
+            projectedStorageKeys.length ||
         !resourceFingerprints.keys
             .toSet()
             .containsAll(this.resourceFingerprints.keys) ||
-        !this.resourceFingerprints.keys.toSet().containsAll(
+        !projectedStorageKeys.keys.toSet().containsAll(
               resourceFingerprints.keys,
             ) ||
-        !this.resourceFingerprints.keys.toSet().containsAll(
+        !projectedStorageKeys.keys.toSet().containsAll(
               replacementBytes.keys,
             )) {
       throw ArgumentError('Invalid projected snapshot resources.');
@@ -439,6 +482,7 @@ final class ProjectSnapshot {
       maps: projectedMaps,
       resourceFingerprints: Map.of(resourceFingerprints),
       resourceBytes: projectedBytes,
+      resourceStorageKeys: projectedStorageKeys,
     );
   }
 

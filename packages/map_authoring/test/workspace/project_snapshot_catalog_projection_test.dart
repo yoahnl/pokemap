@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -179,6 +180,177 @@ void main() {
         ]),
         isNull);
   });
+
+  test('new dialogue sources require their exact paired manifest post-image',
+      () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final before = await f.snapshots.load(f.opened.projectHandle);
+    const entry = ProjectDialogueEntry(
+        id: 'added', name: 'Added', relativePath: 'dialogues/added.yarn');
+    final manifest = before.manifest.copyWith(dialogues: [entry]);
+    final edit = change(
+        before, 'project', encodeProjectAuthoringDocument(before, manifest));
+    final source = AuthoringResourceChange(
+        resource: AuthoringResourceRef(kind: 'dialogue', id: entry.id),
+        storageKey: entry.relativePath,
+        beforeBytes: null,
+        afterBytes: utf8.encode('title: Start\n---\nHello\n===\n'));
+    const projector = ProjectSnapshotMapProjector();
+    final projected = projector.project(before, [source, edit])!;
+    expect(projected.resourceStorageKeys['dialogueSource:added'],
+        entry.relativePath);
+    expect(projected.resourceBytes('dialogueSource:added'), source.afterBytes);
+    expect(before.resourceStorageKeys.containsKey('dialogueSource:added'),
+        isFalse);
+    expect(projected.maps.single, same(before.maps.single));
+    for (final invalid in <List<AuthoringResourceChange>>[
+      [source],
+      [edit],
+      [source, source, edit],
+      [source, edit, edit],
+      [
+        edit,
+        AuthoringResourceChange(
+            resource: AuthoringResourceRef(kind: 'dialogue', id: 'other'),
+            storageKey: entry.relativePath,
+            beforeBytes: null,
+            afterBytes: source.afterBytes)
+      ],
+      [
+        edit,
+        AuthoringResourceChange(
+            resource: source.resource,
+            storageKey: 'dialogues/other.yarn',
+            beforeBytes: null,
+            afterBytes: source.afterBytes)
+      ],
+      [
+        edit,
+        AuthoringResourceChange(
+            resource: source.resource,
+            storageKey: source.storageKey,
+            beforeBytes: [0],
+            afterBytes: source.afterBytes)
+      ],
+      [
+        source,
+        edit,
+        AuthoringResourceChange(
+            resource: AuthoringResourceRef(kind: 'asset', id: 'extra'),
+            storageKey: 'assets/extra.png',
+            beforeBytes: null,
+            afterBytes: [1])
+      ],
+    ]) {
+      expect(projector.project(before, invalid), isNull);
+    }
+  });
+
+  test('oversized dialogue source additions fall back before reading disk',
+      () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final handles = WorkspaceHandleStore();
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [f.root.path], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(f.root.path);
+    addTearDown(() => opener.closeWorkspace(opened.workspaceHandle));
+    final cache = ProjectSnapshotCache();
+    final snapshots =
+        ProjectSnapshotLoader(handles: handles, snapshotCache: cache);
+    final before = await snapshots.load(opened.projectHandle);
+    const entry = ProjectDialogueEntry(
+        id: 'added', name: 'Added', relativePath: 'dialogues/added.yarn');
+    final manifest = before.manifest.copyWith(dialogues: [entry]);
+    final source = AuthoringResourceChange(
+        resource: AuthoringResourceRef(kind: 'dialogue', id: entry.id),
+        storageKey: entry.relativePath,
+        beforeBytes: null,
+        afterBytes: List.filled(
+            ProjectSnapshotCache.maxProjectedDialogueSourceBytes + 1, 65));
+    expect(
+        await snapshots.adoptAppliedChanges(opened.projectHandle,
+            baseRevision: before.revision,
+            changes: [
+              source,
+              change(before, 'project',
+                  encodeProjectAuthoringDocument(before, manifest))
+            ]),
+        isNull);
+    expect(cache.adoptionRejections, 1);
+    expect(
+        await File('${f.root.path}/${entry.relativePath}').exists(), isFalse);
+    expect(
+        (await snapshots.load(opened.projectHandle)).revision, before.revision);
+  });
+
+  for (final mutation in ['sameLength', 'shorter', 'longer']) {
+    test('committed new dialogue $mutation mismatch cannot enter the cache',
+        () async {
+      final f = await MapMetadataFixture.create();
+      addTearDown(f.dispose);
+      final handles = WorkspaceHandleStore();
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [f.root.path], fileReader: reader);
+      final opener = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final opened = await opener.openProject(f.root.path);
+      addTearDown(() => opener.closeWorkspace(opened.workspaceHandle));
+      final cache = ProjectSnapshotCache();
+      final snapshots =
+          ProjectSnapshotLoader(handles: handles, snapshotCache: cache);
+      final before = await snapshots.load(opened.projectHandle);
+      const entry = ProjectDialogueEntry(
+          id: 'added', name: 'Added', relativePath: 'dialogues/added.yarn');
+      final manifest = before.manifest.copyWith(dialogues: [entry]);
+      final bytes = utf8.encode('title: Start\n---\nHello\n===\n');
+      final inline =
+          AuthoringPayload.inline(bytes, storageKey: entry.relativePath);
+      final planned = await AuthoringPayload.verifiedSource(
+          storageKey: entry.relativePath,
+          byteLength: bytes.length,
+          rawSha256: inline.rawSha256,
+          resourceRevision: inline.resourceRevision,
+          openRead: () => Stream.value(bytes));
+      await planned.release();
+      final changed = List<int>.of(bytes);
+      switch (mutation) {
+        case 'sameLength':
+          changed[0] ^= 1;
+        case 'shorter':
+          changed.removeLast();
+        case 'longer':
+          changed.add(65);
+      }
+      final projectEdit = change(
+          before, 'project', encodeProjectAuthoringDocument(before, manifest));
+      await File('${f.root.path}/project.json')
+          .writeAsBytes(projectEdit.afterBytes!);
+      await Directory('${f.root.path}/dialogues').create();
+      await File('${f.root.path}/${entry.relativePath}').writeAsBytes(changed);
+      expect(
+          await snapshots.adoptAppliedChanges(opened.projectHandle,
+              baseRevision: before.revision,
+              changes: [
+                projectEdit,
+                AuthoringResourceChange.withPayloads(
+                    resource:
+                        AuthoringResourceRef(kind: 'dialogue', id: entry.id),
+                    storageKey: entry.relativePath,
+                    beforePayload: null,
+                    afterPayload: planned)
+              ]),
+          isNull);
+      expect(cache.adoptionRejections, 1);
+      expect(cache.projectCount, 0);
+      expect(before.manifest.dialogues, isEmpty);
+    });
+  }
 
   test('dialogue metadata adoption refuses changed or missing source bindings',
       () async {
@@ -382,6 +554,17 @@ void main() {
         'dialogue.update',
         {'entry': seeded.dialogues.single.copyWith(name: 'After').toJson()}
       ),
+      (
+        'dialogue.create',
+        {
+          'entry': const ProjectDialogueEntry(
+                  id: 'added',
+                  name: 'Added',
+                  relativePath: 'dialogues/added.yarn')
+              .toJson(),
+          'source': 'title: Start\n---\nNew dialogue\n===\n'
+        }
+      ),
     ]) {
       final before = await snapshots.load(opened.projectHandle,
           deferPokemonDocuments: false);
@@ -417,6 +600,12 @@ void main() {
       expect(warm.revision, cold.revision);
       expect(warm.resourceFingerprints, cold.resourceFingerprints);
       expect(warm.resourceStorageKeys, cold.resourceStorageKeys);
+      expect(warm.resourceFingerprints.keys.toList(),
+          cold.resourceFingerprints.keys.toList());
+      expect(warm.resourceStorageKeys.keys.toList(),
+          cold.resourceStorageKeys.keys.toList());
+      expect(warm.inlineResourceBytes.keys.toList(),
+          cold.inlineResourceBytes.keys.toList());
       measurements.add({
         'action': action.$1,
         'planMicros': planMicros,
@@ -425,7 +614,7 @@ void main() {
       });
     }
     expect(profiles.where((profile) => !profile.cacheHit).length, 1);
-    expect(cache.adoptions, 3);
+    expect(cache.adoptions, 4);
     expect(cache.adoptionRejections, 0);
     print(jsonEncode({'manifestActionCacheMeasurements': measurements}));
     final deferred =
