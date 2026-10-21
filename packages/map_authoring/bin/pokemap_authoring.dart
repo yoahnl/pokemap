@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring.dart';
 
 import 'src/tiled_image_collection_cli_png_codec.dart';
+import 'src/project_template_catalog_loader.dart';
 
 Future<void> main(List<String> arguments) async {
   late final _CliOptions options;
@@ -86,19 +86,13 @@ Future<void> main(List<String> arguments) async {
     mutations: mutations,
     snapshotLoader: snapshots,
   );
-  final packageLibrary = await Isolate.resolvePackageUri(
-      Uri.parse('package:map_authoring/map_authoring.dart'));
-  if (packageLibrary == null) {
-    stderr
-        .writeln('Unable to locate the configured project template catalogue.');
-    exitCode = AuthoringCliExitCodes.config;
-    return;
-  }
   late final ProjectTemplateCatalog templates;
   try {
-    templates = ProjectTemplateCatalog.fromJson(jsonDecode(await File.fromUri(
-            packageLibrary.resolve('../assets/project_templates.v1.json'))
-        .readAsString()));
+    templates = await loadCliProjectTemplateCatalog();
+  } on StateError catch (error) {
+    stderr.writeln(error.message);
+    exitCode = AuthoringCliExitCodes.config;
+    return;
   } on Object {
     stderr.writeln('Unable to load the configured project template catalogue.');
     exitCode = AuthoringCliExitCodes.config;
