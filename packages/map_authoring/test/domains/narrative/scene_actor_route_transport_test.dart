@@ -111,7 +111,67 @@ const _trainer = ProjectTrainerEntry(
     trainerClass: 'QA',
     characterId: 'actor-character');
 
+MapEntity _conditionalActor({bool missing = false}) => MapEntity(
+    id: 'actor', kind: MapEntityKind.custom, pos: const GridPos(x: 0, y: 0),
+    presentation: MapEntityPresentation(variants: [
+      for (final (index, id) in <String?>[
+        'actor-character', missing ? 'missing-character' : 'second-character', null
+      ].indexed)
+        MapEntityPresentationVariant(id: 'variant_$index',
+          condition: NarrativeEventConditionExpression.all(const []),
+          characterId: id, blocksMovement: id != null),
+    ]));
+
 void main() {
+  for (final jsonl in [false, true]) {
+    for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      test('conditional actor variants survive $action transport jsonl=$jsonl and reopen', () async {
+        final f = await _Fixture.create(entities: [
+          _conditionalActor(),
+        ], characters: [_character(), _character().copyWith(id: 'second-character')]);
+        addTearDown(f.dispose);
+        final mapBefore = await f.mapFile.readAsBytes();
+        for (final wire in [_route(), _visibility()]) {
+          final request = await f.actionRequest(action, wire);
+          final planned = jsonl
+              ? await f.success('plan', {'projectHandle': f.project.value, 'request': request.toJson()})
+              : await f.mutations.plan(f.project, request);
+          if (jsonl) {
+            await f.success('apply', {'projectHandle': f.project.value,
+              'planId': planned['planId'], 'operationId': '${request.requestId}-apply'});
+          } else {
+            await f.mutations.apply(f.project, planId: planned['planId']! as String,
+              operationId: '${request.requestId}-apply');
+          }
+          final scene = (await f.snapshot()).manifest.scenes.singleWhere((scene) => scene.id == 'edit');
+          expect((scene.graph.nodes.singleWhere((node) => node.id == 'action').payload as SceneActionPayload)
+              .interactiveCommand!.toJson(), wire);
+        }
+        final manifestBefore = await f.projectFile.readAsBytes();
+        await f.success('close', {'workspaceHandle': f.workspace.value});
+        await f.open();
+        expect(await f.projectFile.readAsBytes(), manifestBefore);
+        expect(await f.mapFile.readAsBytes(), mapBefore);
+        expect((await f.snapshot()).maps.singleWhere((map) => map.id == 'map').entities.single.npc, isNull);
+      });
+    }
+    test('conditional actor unknown characters refuse transport jsonl=$jsonl before writes', () async {
+      final f = await _Fixture.create(entities: [_conditionalActor(missing: true)]);
+      addTearDown(f.dispose);
+      final bytes = await f.projectFile.readAsBytes();
+      final request = await f.actionRequest('scene.upsert', _route());
+      if (jsonl) {
+        final result = await f.command('plan', {'projectHandle': f.project.value,
+          'request': request.toJson()});
+        expect(result.status, AuthoringResultStatus.failure);
+        expect(result.error!.details['domainCode'], 'scene.publication_blocked');
+      } else {
+        await expectLater(f.mutations.plan(f.project, request), throwsA(isA<NarrativeAuthoringException>()));
+      }
+      expect(await f.projectFile.readAsBytes(), bytes);
+    });
+  }
+
   test('canonical actions describe optional face update yield', () {
     for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
       final route = SceneActions.descriptors.singleWhere((d) => d.id == id)

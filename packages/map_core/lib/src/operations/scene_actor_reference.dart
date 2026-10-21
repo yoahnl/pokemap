@@ -11,13 +11,39 @@ bool isSceneActorInitialCollisionOwnerReferenceAvailable(
   final footprint = resolveEntityCollisionFootprint(entity);
   return footprint.size.width == 1 &&
       footprint.size.height == 1 &&
-      footprint.pos == entity.pos;
+      footprint.pos == entity.pos &&
+      (entity.presentation?.variants
+              .where((variant) => variant.characterId != null)
+              .every(
+                (variant) =>
+                    variant.size.width == 1 && variant.size.height == 1,
+              ) ??
+          true);
 }
 
 bool isSceneActorEntityReferenceAvailable(
   ProjectManifest project,
   MapEntity entity,
 ) {
+  final variants = entity.presentation?.variants;
+  if (variants != null) {
+    if (entity.kind != MapEntityKind.npc &&
+        entity.kind != MapEntityKind.custom) {
+      return false;
+    }
+    final characterIds = variants
+        .map((variant) => variant.characterId)
+        .whereType<String>()
+        .toSet();
+    return characterIds.isNotEmpty &&
+        characterIds.every(
+          (id) =>
+              project.characters
+                  .where((character) => character.id == id)
+                  .length ==
+              1,
+        );
+  }
   if (entity.kind != MapEntityKind.npc || entity.npc == null) return false;
   final npc = entity.npc!;
   final directCharacterId = npc.characterId?.trim() ?? '';

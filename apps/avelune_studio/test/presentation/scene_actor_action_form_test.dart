@@ -223,6 +223,43 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  for (final known in [true, false]) {
+    testWidgets('guided actor conditional characters known=$known', (tester) async {
+      final applied = <SceneNodePayload>[];
+      final entity = MapEntity(
+          id: 'actor', name: 'Conditional actor', kind: MapEntityKind.custom,
+          pos: const GridPos(x: 1, y: 1),
+          presentation: MapEntityPresentation(variants: [
+            for (final (index, character) in <String?>[
+              'actor-character', known ? 'second-character' : 'missing', null
+            ].indexed)
+              MapEntityPresentationVariant(id: 'variant_$index',
+                condition: NarrativeEventConditionExpression.all(const []),
+                characterId: character, blocksMovement: character != null)
+          ]));
+      await _pump(tester,
+        project: _project(characters: const [
+          ProjectCharacterEntry(id: 'actor-character', name: 'First', tilesetId: 'sheet'),
+          ProjectCharacterEntry(id: 'second-character', name: 'Second', tilesetId: 'sheet'),
+        ]),
+        current: _route(),
+        loadMap: (id) async => _map(id, entities: [entity]),
+        onApply: applied.add);
+      await tester.pumpAndSettle();
+      final picker = tester.widget<StudioSelect>(_select('PNJ'));
+      expect(picker.options.containsKey('actor'), known);
+      expect(_apply(tester).onPressed != null, known);
+      if (known) {
+        await _submit(tester);
+        expect(applied, hasLength(1));
+        expect(((applied.single as SceneActionPayload).interactiveCommand!
+            as SceneActorRouteInteractiveCommand).target.entityId, 'actor');
+      } else {
+        expect(applied, isEmpty);
+      }
+    });
+  }
+
   for (final visible in [false, true]) {
     testWidgets(
       'route visibility $visible round trips and can be changed without altering other steps',

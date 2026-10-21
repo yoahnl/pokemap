@@ -58,6 +58,16 @@ function visibility(actor = target("map", "actor")): JsonRecord {
   return { kind: "actorVisibility", target: actor, visible: false };
 }
 
+function conditionalActor(id: string, secondCharacter: string): JsonRecord {
+  return { id, kind: "custom", presentation: { schemaVersion: 1,
+    variants: ["actor-character", secondCharacter, null].map((characterId, index) => ({
+      id: `variant_${index}`, condition: { kind: "all", children: [] },
+      characterId, facing: "south", interactionMode: "front", blocksMovement: characterId !== null,
+      size: { width: 1, height: 1 }, counterInteractionSides: [],
+    })),
+  } };
+}
+
 test("live MCP authors typed actor routes and visibility with strict references before writes", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "scene-actor-route-mcp-"));
   const file = join(root, "project.json");
@@ -78,7 +88,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
   await writeFile(file, JSON.stringify({ name: "QA native presentation transport", version: "v8", pokemon: canonicalPokemonConfig(),
     maps: [{ id: "map", name: "Map", relativePath: "maps/map.json" }],
     tilesets: [{ id: "actor-sheet", name: "Original QA sheet", relativePath: "assets/actor.png" }],
-    characters: ["actor-character", "duplicate-character", "duplicate-character"].map((id) => ({ id, name: id, tilesetId: "actor-sheet", frameHeight: 1,
+    characters: ["actor-character", "second-character", "duplicate-character", "duplicate-character"].map((id) => ({ id, name: id, tilesetId: "actor-sheet", frameHeight: 1,
       animations: ["north", "south", "east", "west"].map((direction) => ({ state: "idle", direction, frames: [{ source: { x: 0, y: 0, width: 1, height: 1 } }] })) })),
     trainers: [
       { id: "actor-trainer", characterId: "actor-character" },
@@ -92,6 +102,8 @@ test("live MCP authors typed actor routes and visibility with strict references 
   await writeFile(mapFile, JSON.stringify({ version: "v8", id: "map", name: "Map", size: { width: 4, height: 4 }, layers: [],
     entities: [
       { id: "actor", kind: "npc", npc: { characterId: "actor-character" } },
+      conditionalActor("conditional-known", "second-character"),
+      conditionalActor("conditional-unknown", "missing-character"),
       { id: "trainer-actor", kind: "npc", npc: { trainerId: " actor-trainer " } },
       { id: "sign", kind: "sign" }, { id: "custom", kind: "custom" },
       { id: "missing-payload", kind: "npc" }, { id: "empty-payload", kind: "npc", npc: {} },
@@ -195,7 +207,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
     ] };
     const commands = [route(), route(target()), route(target("map", "trainer-actor")), visibility(),
       route(target(), "door", "actor"), route(target(), "door", "anchored-tall"), route(target(), "door", "trainer-actor")];
-    commands.push(diagonal);
+    commands.push(diagonal, route(target("map", "conditional-known")), visibility(target("map", "conditional-known")));
     const mutations = [...["scene.upsert", "scene.graph.patch"].map((actionId) => ({ command: actionId === "scene.graph.patch"
       ? { ...diagonal, steps: [{ kind: "moveDiagonal", horizontal: "west", vertical: "north", durationMs: 300 }] } : diagonal, actionId })), ...commands.map((command) => ({ command, actionId: "scene.interactive_command.set" })),
       ...["scene.upsert", "scene.graph.patch"].map((actionId) => ({ command: route(target(), "door", actionId === "scene.upsert" ? "actor" : "trainer-actor"), actionId }))];
@@ -230,7 +242,7 @@ test("live MCP authors typed actor routes and visibility with strict references 
     await plan(route(target("missing")), true);
     await plan(route(target("map", "missing")), true);
     await plan(visibility(target("map", "missing")), true);
-    for (const id of ["sign", "custom", "missing-payload", "empty-payload", "unknown-character", "ambiguous-character", "unknown-trainer", "ambiguous-trainer", "trainer-character-missing", "invalid-direct"]) {
+    for (const id of ["sign", "custom", "conditional-unknown", "missing-payload", "empty-payload", "unknown-character", "ambiguous-character", "unknown-trainer", "ambiguous-trainer", "trainer-character-missing", "invalid-direct"]) {
       await plan(route(target("map", id)), true);
       await plan(visibility(target("map", id)), true);
     }
