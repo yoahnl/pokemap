@@ -31,6 +31,7 @@ extension _PlayableMapWarpPresentation on PlayableMapGame {
     final images = await _loadTilesetImagesCached(
       source.runtimeImageAbsolutePathsById,
       manifest: source.manifest,
+      resourceBundle: destination,
     );
     if (!identical(source, _bundle) ||
         !_scenePresentationScopeIsCurrent(session) ||

@@ -16,6 +16,61 @@ const _digest =
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final mode in ['keep', 'lru', 'pressure']) {
+    test(
+      'optional border byte budget excludes retained images, mode=$mode',
+      () async {
+        final live = await _runtimeImage(size: 4);
+        final first = await _runtimeImage(size: 4);
+        final second = await _runtimeImage(size: 4);
+        for (final image in [live, first, second]) {
+          addTearDown(image.dispose);
+        }
+        final cache = BorderRuntimeAssetCache(
+          imageLoader: (path, {transparentColor}) async {
+            if (path.endsWith('/live.png')) return live;
+            if (path.endsWith('/first.png')) return first;
+            return second;
+          },
+        );
+        addTearDown(cache.dispose);
+        for (final name in ['live', 'first']) {
+          await cache.loadFrame(
+            projectRoot: p.current,
+            frame: _frame(fileName: '$name.png'),
+          );
+        }
+        if (mode == 'lru') {
+          await cache.loadFrame(
+            projectRoot: p.current,
+            frame: _frame(fileName: 'second.png'),
+          );
+          await cache.loadFrame(
+            projectRoot: p.current,
+            frame: _frame(fileName: 'first.png'),
+          );
+        }
+        cache.trimToBudget(
+          maxBytes: mode == 'pressure' ? 0 : 64,
+          retainedImages: [live],
+          countRetainedBytes: false,
+        );
+        expect(live.debugDisposed, isFalse);
+        expect(first.debugDisposed, mode == 'pressure');
+        if (mode == 'lru') expect(second.debugDisposed, isTrue);
+        if (mode != 'pressure') {
+          expect(
+            await cache.loadFrame(
+              projectRoot: p.current,
+              frame: _frame(fileName: 'first.png'),
+            ),
+            same(first),
+          );
+        }
+      },
+    );
+  }
+
   test(
     'trimming evicts the least recently used unretained border image',
     () async {
@@ -369,21 +424,21 @@ BorderRuntimeFrameRequest _frame({
   );
 }
 
-Future<RuntimeTilesetImage> _runtimeImage() async {
+Future<RuntimeTilesetImage> _runtimeImage({int size = 1}) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   canvas.drawRect(
-    const ui.Rect.fromLTWH(0, 0, 1, 1),
+    ui.Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
     ui.Paint()..color = const ui.Color(0xffff0000),
   );
-  final image = await recorder.endRecording().toImage(1, 1);
+  final image = await recorder.endRecording().toImage(size, size);
   return RuntimeTilesetImage(
     images: <ui.Image>[image],
-    chunks: const <RuntimeTilesetChunk>[
-      RuntimeTilesetChunk(top: 0, height: 1, width: 1),
+    chunks: <RuntimeTilesetChunk>[
+      RuntimeTilesetChunk(top: 0, height: size, width: size),
     ],
-    width: 1,
-    height: 1,
+    width: size,
+    height: size,
   );
 }
 
