@@ -524,7 +524,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourceSoundEffectNode() => node.toJson(),
     SourceScriptNode() => {'script': node.script},
     SourceExclamationNode() => node.toJson(),
-      SourceActorPoseSequenceNode() => node.toJson(),
+    SourceActorPoseSequenceNode() => node.toJson(),
     SourceInteractionFacingNode() => {'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
     SourceRelativeFacingRouteNode() => node.toJson(),
         SourcePortraitProgramNode() => node.toJson(),
@@ -552,7 +552,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
     SourceExclamationNode() => node.toJson(),
-      SourceActorPoseSequenceNode() => node.toJson(),
+    SourceActorPoseSequenceNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
     SourceRelativeFacingRouteNode() => node.toJson(),
@@ -1388,9 +1388,7 @@ final class _ProjectionBuilder {
             'sourceInternalFacingParityQualified': false,
             'sourceOracle': 'Game_Character:165-169,815-825,868-875',
             'rawDataRefs': [for (final page in event.pages) page.rawDataRef!.toJson()],
-            if (gaps.isEmpty && actorPreparationPrograms.containsKey(event.identity))
-          'nativeActorPreparation': actorPreparationPrograms[event.identity]!.toJson(),
-        'pages': [for (final page in event.pages)
+            'pages': [for (final page in event.pages)
               if (page.graphic!.directionFix) {
                 'sourcePageIndex': page.originalPageIndex,
                 'sourcePattern': page.graphic!.pattern,
@@ -1532,6 +1530,8 @@ final class _ProjectionBuilder {
             'sourceScriptsExecuted':0,
             'fullSourceTownMapParityQualified':false,
           },
+        if (gaps.isEmpty && actorPreparationPrograms.containsKey(event.identity))
+          'nativeActorPreparation': actorPreparationPrograms[event.identity]!.toJson(),
         'pages': [
           for (final page in event.pages)
             {

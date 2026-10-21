@@ -250,9 +250,32 @@ void main() {
                   s.metadata[cinematicTimelineActorDirectionMetadataKey]),
           ['down', 'up']);
     }
-    final approval = approveNativeFixtureDraft(events.draft);
-    final receipt = await NativeProjectWriter()
-        .write(approval.plan, approval.context, events.draft, limits: limits);
+    final catalogs = events.pokemonGiftCatalog == null
+        ? null
+        : await SourceCatalogStudyComposer(
+                nativeTrainerCatalog: events.pokemonGiftCatalog)
+            .compose(
+                source: f.source,
+                base: events.draft,
+                files: f.files,
+                limits: limits);
+    if (events.pokemonGiftCatalog != null) {
+      expect(catalogs, isNotNull);
+    }
+    final publicationDraft = catalogs?.draft ?? events.draft;
+    final approval = approveNativeFixtureDraft(publicationDraft);
+    final watch = Stopwatch()..start();
+    NativePreparationStage? previousStage;
+    final receipt = await NativeProjectWriter(preparationCheckpoint: (stage, progress) {
+      if (stage == previousStage) return;
+      previousStage = stage;
+      stdout.writeln(jsonEncode({
+        'kind': 'escortPreparationProgress',
+        'stage': stage.name,
+        'elapsedMs': watch.elapsedMilliseconds,
+      }));
+    })
+        .write(approval.plan, approval.context, publicationDraft, limits: limits);
     expect(receipt.verified, isTrue);
     expect(await File('${receipt.projectPath}/project.json').exists(), isTrue);
     final output = Platform.environment['AVELUNE_ESCORT_QA_OUTPUT'];
@@ -299,7 +322,7 @@ void main() {
       }));
     }
   },
-      timeout: const Timeout(Duration(minutes: 6)),
+      timeout: const Timeout(Duration(minutes: 10)),
       skip: root == null ||
           snapshot == null ||
           profile == null ||
