@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 import 'native_mutation_batches.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_event_projection.dart';
+import 'source_starter_choice_binding.dart';
 import 'source_portrait_binding.dart';
 import 'source_card_key_gate_program.dart';
 import 'source_card_key_gate_audio.dart';
@@ -497,8 +498,11 @@ final class SourceEventStudyComposer {
           cancellation: cancellation);
       if (binding != null) pokedexReward[event.identity] = binding;
     }
+    final starterChoiceBindings = await const SourceStarterChoiceBindingResolver().read(
+      source: source, analysis: analysis, files: recording,
+      nativeCatalog: nativeCatalog ?? NativePsdkCatalogManifest.builtin(), cancellation: cancellation);
     final pokemonGiftCatalog = nativeCatalog ??
-        (selectedEvents.any((event) => event.pages.any((page) =>
+        (starterChoiceBindings.isNotEmpty || selectedEvents.any((event) => event.pages.any((page) =>
             page.body.nodes.whereType<SourcePokemonGiftNode>().isNotEmpty))
           ? NativePsdkCatalogManifest.builtin() : null);
     final pokemonGifts = await const SourcePokemonGiftBindingResolver().read(
@@ -627,6 +631,7 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
+            starterChoiceBindings: starterChoiceBindings,
             portraitBindings: portraitBindings, escortBindings: escortBindings,
             textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
@@ -724,6 +729,7 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
+            starterChoiceBindings: starterChoiceBindings,
         portraitBindings: portraitBindings, escortBindings: escortBindings,
             textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
@@ -816,6 +822,9 @@ final class SourceEventStudyComposer {
     }
     preservedFileIds.addAll(trainerBindings.byEventIdentity.values
         .map((binding) => binding.sourceRosterFile.fileId.value));
+    for (final binding in starterChoiceBindings.values) {
+      preservedFileIds.addAll((binding.evidence['sourceFiles'] as List).cast<Map>().map((file) => file['fileId'] as String));
+    }
     for (final binding in pokedexReward.values) {
       preservedFileIds.addAll(binding.archive.files.keys.map((id) => id.value));
       preservedFileIds.addAll(binding.itemArchive.files.keys.map((id) => id.value));
@@ -1139,11 +1148,13 @@ final class SourceEventStudyComposer {
       'centerRecovery': centerRecoveryEvidence,
       'healingDisplayBindings': healingDisplayEvidence,
       'healingDisplay': usedHealingDisplay.map((b) => b.evidence).toList(),
+      'starterChoiceBindings': {for (final entry in starterChoiceBindings.entries) entry.key.value: entry.value.toJson()},
       'pokedexRewardBindings': {for (final entry in pokedexReward.entries) entry.key.value: entry.value.toJson()},
       'townMap': usedTownMap.map((b) => b.evidence).toList(),
       'partyTrade': {for (final entry in partyTrade.entries.where((e) => admittedIdentities.contains(e.key))) entry.key.value: entry.value.evidence},
       'pokemonGiftBindings': {
-        'bindings': [for (final binding in pokemonGifts.byEventIdentity.values) binding.evidence],
+        'bindings': [for (final binding in pokemonGifts.byEventIdentity.values) binding.evidence,
+          for (final entry in starterChoiceBindings.entries.where((entry) => admittedIdentities.contains(entry.key))) entry.value.toJson()],
         'refusals': pokemonGifts.refusals,
         'activationQualified': projection.semanticEvidence['usedPokemonGifts'] == true,
       },

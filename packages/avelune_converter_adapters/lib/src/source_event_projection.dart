@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'native_project_writer.dart';
 import 'source_event_evidence.dart';
 import 'source_pokemon_gift_binding.dart';
+import 'source_starter_choice_binding.dart';
 import 'source_shop_binding.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
@@ -40,6 +41,15 @@ import 'source_card_key_gate_audio.dart';
 import 'source_inventory_controller_program.dart';
 
 part 'source_intro_projection.dart';
+
+part 'source_starter_choice_projection.dart';
+
+bool _dormantBlankSourceActionPage(SourceEventPageAnalysis page) =>
+    page.triggerCode == 0 &&
+    !page.isQuarantined &&
+    page.graphic?.tileId == 0 &&
+    page.graphic?.characterName.isEmpty == true &&
+    page.body.nodes.every((node) => node is SourceAnnotationNode);
 
 DialogueLineFeedback? _staticSourceTextFeedback(String source, {bool allowNativePlaceholders = false}) =>
     parseSourceDialogueText(source, allowPlayerName: false, allowTiming: false, allowLiteralEscapes: false,
@@ -296,6 +306,7 @@ final class SourceEventProjector {
     Map<ConverterId, String> fieldObstacleRefusals = const {},
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
+    Map<ConverterId, SourceStarterChoiceBinding> starterChoiceBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
     Map<ConverterId, SourceEscortBinding> escortBindings = const {},
     Map<int, SourceIntroProgram> textVariablePrograms = const {},
@@ -327,13 +338,13 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms);
+        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
         !builder._isHealingDisplayFamily(event) &&
-        builder._gaps(event, checkCharacterBindings: false).isEmpty));
+        (builder._gaps(event, checkCharacterBindings: false).isEmpty || builder._starterPassiveActorCandidate(event))));
   }
 
   SourceEventProjection project(
@@ -353,6 +364,7 @@ final class SourceEventProjector {
     Map<ConverterId, String> fieldObstacleRefusals = const {},
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
+    Map<ConverterId, SourceStarterChoiceBinding> starterChoiceBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
     Map<ConverterId, SourceEscortBinding> escortBindings = const {},
     Map<int, SourceIntroProgram> textVariablePrograms = const {},
@@ -396,7 +408,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms)
+            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings)
         .build();
   }
 }
@@ -676,7 +688,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
       this.portraitBindings, this.escortBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
-      {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}})
+      {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
@@ -833,6 +845,7 @@ final class _ProjectionBuilder {
   final Map<ConverterId, SourceTownMapBinding> townMapBinding;
   final Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding;
   final Map<String, SourcePokemonGiftBinding> pokemonGiftBindings;
+  final Map<ConverterId, SourceStarterChoiceBinding> starterChoiceBindings;
   final Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding;
   final SourceExternalWarpBinding? externalWarpBinding;
   final Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings;
@@ -1283,6 +1296,7 @@ final class _ProjectionBuilder {
         }
       }
     }
+    _projectStarterPassiveActors();
     for (final event in events) {
       final gaps = gapsByEvent[event.identity]!;
       if (gaps.isNotEmpty) {
@@ -1303,6 +1317,8 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (gaps.isEmpty && starterChoiceBindings.containsKey(event.identity))
+          'nativeStarterChoice': starterChoiceBindings[event.identity]!.toJson(),
         if (_introProgram(event) case final intro? when gaps.isEmpty)
           'nativeIntroduction': {
             ...intro.toJson(),
@@ -1813,6 +1829,9 @@ final class _ProjectionBuilder {
         ownersByFact.putIfAbsent(id, () => {}).add(event.identity);
       }
     }
+    for (final entry in _starterFactOwners().entries) {
+      ownersByFact.putIfAbsent(entry.key, () => {}).addAll(entry.value);
+    }
     final factIds = factsById.keys.toList()..sort();
     final factMutations = [
       for (final id in factIds)
@@ -2000,7 +2019,7 @@ final class _ProjectionBuilder {
         },
       'usedTownMap': eventEvidence.any((row)=>row.containsKey('nativeTownMap')),
       'usedPartyTrade': eventEvidence.any((row) => row.containsKey('nativePartyTrade')),
-      'usedPokemonGifts': eventEvidence.any((row) => row.containsKey('nativePokemonGift')),
+      'usedPokemonGifts': eventEvidence.any((row) => row.containsKey('nativePokemonGift') || row.containsKey('nativeStarterChoice')),
       'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedFieldObstacles': eventEvidence.any((row) => row.containsKey('nativeFieldObstacle')),
@@ -2305,7 +2324,7 @@ final class _ProjectionBuilder {
           _ => false,
         });
     return event.pages.every((page) {
-      if (page.isEmpty) return true;
+      if (page.isEmpty || page.body.nodes.every((node) => node is SourceAnnotationNode)) return true;
       final graphic = page.graphic;
       if (graphic == null ||
           graphic.characterName.isEmpty ||
@@ -3827,6 +3846,7 @@ final class _ProjectionBuilder {
     if (_isPartyTradeFamily(event)) return _partyTradeGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isFieldObstacleFamily(event)) return _fieldObstacleGaps(event);
     if (_isTownMapFamily(event)) return _townMapGaps(event);
+    if (starterChoiceBindings.containsKey(event.identity)) return _starterChoiceGaps(event, checkCharacterBindings: checkCharacterBindings);
     if (_isPokedexRewardFamily(event)) {
       return _pokedexRewardGaps(event,checkCharacterBindings:checkCharacterBindings);
     }
@@ -4648,6 +4668,7 @@ final class _ProjectionBuilder {
 
   void _projectEvent(SourceEventDefinition event) {
     if (_introProgram(event) case final program?) _prepareIntroFacts(program);
+    _collectStarterChoiceFacts(event);
     if (elevatorPrograms.containsKey(event.identity)) {
       for (final variable in [elevatorPrograms[event.identity]!.currentFloorVariableId, elevatorPrograms[event.identity]!.selectionVariableId]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
     }
@@ -4746,6 +4767,7 @@ final class _ProjectionBuilder {
     final variants = <MapEntityPresentationVariant>[];
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
+      if (_dormantBlankSourceActionPage(page)) continue;
       final pageGraphic = page.graphic!;
       final boundCharacter = pageGraphic.characterName.isEmpty ? null :
         characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
@@ -4765,6 +4787,7 @@ final class _ProjectionBuilder {
         size: _eventFootprint(event),
         counterInteractionSides: _eventCounterSides(event) ?? const []));
     }
+    if (projectedPages.every(_dormantBlankSourceActionPage)) return;
     final entity = MapEntity(
         id: entityId,
         name: _name(event),
@@ -4877,6 +4900,7 @@ final class _ProjectionBuilder {
           [event.identity, event.sourceFileId],
           [scene.id],
           {'scene': scene.toJson()}));
+      if (_dormantBlankSourceActionPage(page)) continue;
       final expression =
           guard.expression ?? NarrativeEventConditionExpression.all(const []);
       records.add(NarrativeEventRecord.configuredStructurallyUnchecked(
@@ -5247,6 +5271,8 @@ final class _SceneBuilder {
     final warpTile = projection.warpTilePrograms.programs[event.identity];
     final intro = projection._introProgram(event);
     final first = intro != null ? _intro(intro, end)
+      : projection.starterChoiceBindings.containsKey(event.identity)
+      ? _starterChoice(projection.starterChoiceBindings[event.identity]!, end)
       : hole != null ? _hole(hole, end)
       : elevator != null && elevator.role != SourceElevatorRole.actor ? _elevator(elevator, end)
       : warpTile != null ? _warpTile(warpTile, end) : _block(page.body, end);

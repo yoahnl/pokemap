@@ -2155,6 +2155,145 @@ void main() {
         hasLength(1));
   });
 
+  for (final opaque in [false, true]) {
+    test(
+      'stationary facing annotation-only inactive pages opaque=$opaque',
+      () async {
+        final before = _page([_command(0, [])], character: '')
+          ..fields['@through'] = true;
+        final active = _withCondition(
+          _page([
+            _command(101, ['Companion dialogue']),
+            ..._interactionFacingCommands(),
+            _command(0, []),
+          ]),
+          {'@switch1_valid': true, '@switch1_id': 1},
+        );
+        final after = _withCondition(
+          _page([
+            _command(108, ['Inactive page annotation']),
+            if (opaque) _command(355, ['unknownCustomHelper()']),
+            _command(0, []),
+          ], character: '')..fields['@through'] = true,
+          {'@self_switch_valid': true, '@self_switch_ch': 'A'},
+        );
+        final source = await _events(
+          [before, active, after],
+          eventName: 'Guide',
+          interpretationProfile: syntheticSourceInterpretationProfile,
+        );
+        final result = _projectEvents(
+          source,
+          analysis: SourceEventAnalyzer.forProject(
+            source,
+            profile: SourceEventProfile.forProject(source),
+          ).analyze(),
+        );
+        final row = (result.semanticEvidence['events'] as List).single as Map;
+        expect(
+          row['status'],
+          opaque ? 'quarantinedWholeEvent' : 'adaptedStaticSemantics',
+          reason: '${row['gaps']}',
+        );
+        if (opaque) {
+          expect(result.scenes, isEmpty);
+        } else {
+          expect(row['gaps'], isEmpty);
+          expect(result.scenes, hasLength(3));
+          final map = result.nativeMaps[1]!;
+          expect(map.entities.single.presentation!.variants, hasLength(1));
+          expect(result.registry.records, hasLength(1));
+          final project = ProjectManifest(
+            name: 'Dormant actor',
+            tilesets: const [],
+            maps: [
+              ProjectMapEntry(
+                id: map.id,
+                name: map.name,
+                relativePath: 'maps/${map.id}.json',
+              ),
+            ],
+            facts: result.facts,
+            characters: [
+              ProjectCharacterEntry(
+                id: 'native_qualified_npc',
+                name: 'Qualified actor',
+                tilesetId: 'actors',
+              ),
+            ],
+          );
+          MapData present(Map<String, NarrativeValue> values) =>
+              projectMapEntityPresentations(
+                project: project,
+                map: map,
+                gameState: GameState(
+                  saveId: 'dormant',
+                  narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+                    valuesByFactId: values,
+                  ),
+                ),
+              );
+          final switchId = sourceEventFactBindingId(
+            _analyzer(source).globalFactId(1),
+          );
+          final selfId = sourceEventFactBindingId(
+            _analyzer(source).selfFactId(1, 1, 'A'),
+          );
+          expect(present({}).entities, isEmpty);
+          expect(
+            present({switchId: NarrativeValue.boolean(true)})
+                .entities
+                .single
+                .kind,
+            MapEntityKind.npc,
+          );
+          expect(
+            present({
+              switchId: NarrativeValue.boolean(true),
+              selfId: NarrativeValue.boolean(true),
+            }).entities,
+            isEmpty,
+          );
+        }
+      },
+    );
+  }
+
+  for (final hasEffect in [false, true]) {
+    test(
+      'blank action page preserves real effects only hasEffect=$hasEffect',
+      () async {
+        final source = await _events(
+          [
+            _page([
+              _command(108, ['Original annotation']),
+              if (hasEffect) _command(123, ['A', 0]),
+              _command(0, []),
+            ], character: ''),
+          ],
+          eventName: 'Guide',
+          interpretationProfile: syntheticSourceInterpretationProfile,
+        );
+        final result = _projectEvents(
+          source,
+          analysis: SourceEventAnalyzer.forProject(
+            source,
+            profile: SourceEventProfile.forProject(source),
+          ).analyze(),
+        );
+        final row = (result.semanticEvidence['events'] as List).single as Map;
+        expect(
+          row['status'],
+          'adaptedStaticSemantics',
+          reason: '${row['gaps']}',
+        );
+        expect(result.nativeMaps[1]!.entities, hasLength(hasEffect ? 1 : 0));
+        expect(result.registry.records, hasLength(hasEffect ? 1 : 0));
+        expect(result.scenes, hasLength(hasEffect ? 1 : 0));
+      },
+    );
+  }
+
   test('stationary NPC facing preserves conditional dialogue pages and annotations',
       () async {
     final result = _projectEvents(await _events([
