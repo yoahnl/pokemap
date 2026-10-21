@@ -38,6 +38,43 @@ Future<RuntimeTilesetImage> _fakeRuntimeTilesetImage(ui.Color color) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final mode in ['keep', 'lru', 'pressure']) {
+    test('optional byte budget excludes retained images, mode=$mode', () async {
+      final live = await _fakeRuntimeTilesetImage(const ui.Color(0xFFFF0000));
+      final first = await _fakeRuntimeTilesetImage(const ui.Color(0xFF00FF00));
+      final second = await _fakeRuntimeTilesetImage(const ui.Color(0xFF0000FF));
+      final cache = RuntimeTilesetImageSingleFlightCache(
+        loader: (paths, {transparentColorByTilesetId = const {}}) async => {
+          for (final id in paths.keys)
+            id: {'live': live, 'first': first, 'second': second}[id]!,
+        },
+      );
+      addTearDown(cache.dispose);
+      await cache.loadById({
+        'live': '/tmp/optional-live.png',
+        'first': '/tmp/optional-first.png',
+      });
+      if (mode == 'lru') {
+        await cache.loadById({'second': '/tmp/optional-second.png'});
+        await cache.loadById({'first': '/tmp/optional-first.png'});
+      }
+      cache.trimToBudget(
+        maxBytes: mode == 'pressure' ? 0 : 64,
+        retainedImages: [live],
+        countRetainedBytes: false,
+      );
+      expect(live.debugDisposed, isFalse);
+      expect(first.debugDisposed, mode == 'pressure');
+      if (mode == 'lru') expect(second.debugDisposed, isTrue);
+      if (mode != 'pressure') {
+        expect(
+          cache.imagesForRequest({'first': '/tmp/optional-first.png'}).single,
+          same(first),
+        );
+      }
+    });
+  }
+
   test('byte budget evicts least recently used unreferenced images', () async {
     final a = await _fakeRuntimeTilesetImage(const ui.Color(0xFFFF0000));
     final b = await _fakeRuntimeTilesetImage(const ui.Color(0xFF00FF00));

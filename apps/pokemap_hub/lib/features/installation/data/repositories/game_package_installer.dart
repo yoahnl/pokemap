@@ -1,3 +1,5 @@
+import 'package:pokemap_hub/features/session/data/repositories/hub_prepared_narrative_index.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -49,8 +51,11 @@ final class GamePackageInstaller
   GameLibraryStore get _library =>
       libraryStore ?? GameLibraryStore(supportRoot: supportRoot);
 
-  InstallStaging get _staging =>
-      InstallStaging(supportRoot: supportRoot, inspector: inspector, random: _random);
+  InstallStaging get _staging => InstallStaging(
+    supportRoot: supportRoot,
+    inspector: inspector,
+    random: _random,
+  );
 
   GameCurrentPointerStore get _currentPointers =>
       GameCurrentPointerStore(supportRoot: supportRoot);
@@ -62,17 +67,15 @@ final class GamePackageInstaller
     GamePackageActivationMode mode = GamePackageActivationMode.install,
     GameInstallCancellationToken? cancellationToken,
     GameInstallProgressListener? onProgress,
-  }) =>
-      _withMutationLock(
-        () => _installLocked(
-          packageFile,
-          source: source,
-          mode: mode,
-          cancellationToken:
-              cancellationToken ?? GameInstallCancellationToken(),
-          onProgress: onProgress,
-        ),
-      );
+  }) => _withMutationLock(
+    () => _installLocked(
+      packageFile,
+      source: source,
+      mode: mode,
+      cancellationToken: cancellationToken ?? GameInstallCancellationToken(),
+      onProgress: onProgress,
+    ),
+  );
 
   @override
   Future<InstalledGamePointer> readCurrent(String gameId) =>
@@ -80,8 +83,7 @@ final class GamePackageInstaller
 
   Future<List<GameInstallationRecovery>> recover({
     GameInstallProgressListener? onProgress,
-  }) =>
-      _withMutationLock(() => _recoverLocked(onProgress: onProgress));
+  }) => _withMutationLock(() => _recoverLocked(onProgress: onProgress));
 
   @override
   Future<GameLibrary> rebuildLibrary() =>
@@ -202,12 +204,7 @@ final class GamePackageInstaller
           mode: mode,
         );
         if (release.decision == GamePackageReleaseDecision.reject) {
-          throw releaseFailure(
-            release.code,
-            stage,
-            gameId,
-            gameVersion,
-          );
+          throw releaseFailure(release.code, stage, gameId, gameVersion);
         }
         if (mode == GamePackageActivationMode.install) {
           activate = false;
@@ -286,8 +283,9 @@ final class GamePackageInstaller
       await _fault(GameInstallFaultStage.afterSnapshotInspected);
 
       stage = GameInstallStage.extracting;
-      final stagedVersion =
-          Directory(p.join(transactionRoot.path, 'staged-version'));
+      final stagedVersion = Directory(
+        p.join(transactionRoot.path, 'staged-version'),
+      );
       await _staging.extractSnapshot(
         snapshot,
         stagedVersion,
@@ -330,10 +328,8 @@ final class GamePackageInstaller
         gameVersion: gameVersion,
       );
       try {
-        await loadSmoke(
-          stagedVersion,
-          manifest,
-        ).timeout(loadSmokeTimeout);
+        await loadSmoke(stagedVersion, manifest).timeout(loadSmokeTimeout);
+        await _prepareNarrativeIndex(stagedVersion, manifest);
       } on Object catch (error, stackTrace) {
         throw installFailure(
           GameInstallationErrorCode.smokeFailed,
@@ -345,6 +341,8 @@ final class GamePackageInstaller
           stackTrace: stackTrace,
         );
       }
+
+      throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
 
       if (installedGame != null && mode == GamePackageActivationMode.update) {
         stage = GameInstallStage.preparingSaves;
@@ -382,12 +380,12 @@ final class GamePackageInstaller
         validation: GamePackageInstallValidation(
           compatibility:
               compatibility.decision == GamePackageCompatibilityDecision.migrate
-                  ? GamePackageInstallCompatibility.migrate
-                  : GamePackageInstallCompatibility.accept,
+              ? GamePackageInstallCompatibility.migrate
+              : GamePackageInstallCompatibility.accept,
         ),
       );
-      final receiptBytes =
-          const GamePackageInstallReceiptCodec().encodeCanonicalUtf8(receipt);
+      final receiptBytes = const GamePackageInstallReceiptCodec()
+          .encodeCanonicalUtf8(receipt);
       await _writeFlushed(
         File(p.join(transactionRoot.path, 'receipt.json')),
         receiptBytes,
@@ -409,13 +407,7 @@ final class GamePackageInstaller
       await _fault(GameInstallFaultStage.beforeVersionPromotion);
       promotionStarted = true;
       final target = Directory(
-        p.join(
-          supportRoot.path,
-          'games',
-          gameId,
-          'versions',
-          gameVersion,
-        ),
+        p.join(supportRoot.path, 'games', gameId, 'versions', gameVersion),
       );
       await target.parent.create(recursive: true);
       if (await target.exists()) {
@@ -431,9 +423,7 @@ final class GamePackageInstaller
           GameInstallationTransactionState.repairBackupMoved,
         );
         await _writeJournal(transactionRoot, transaction);
-        await target.rename(
-          p.join(transactionRoot.path, 'replaced-version'),
-        );
+        await target.rename(p.join(transactionRoot.path, 'replaced-version'));
       }
       await stagedVersion.rename(target.path);
       transaction = transaction.withState(
@@ -536,13 +526,7 @@ final class GamePackageInstaller
           await transactionRoot.exists()) {
         await transactionRoot.delete(recursive: true);
       }
-      throw formatFailure(
-        error,
-        stage,
-        gameId,
-        gameVersion,
-        stackTrace,
-      );
+      throw formatFailure(error, stage, gameId, gameVersion, stackTrace);
     } on Object catch (error, stackTrace) {
       if (!promotionStarted &&
           transactionRoot != null &&
@@ -622,9 +606,8 @@ final class GamePackageInstaller
         } else if (await backup.exists() && await versionRoot.exists()) {
           try {
             final manifest = const GamePackageManifestCodec().decodeUtf8(
-              await File(
-                p.join(versionRoot.path, 'game-manifest.json'),
-              ).readAsBytes(),
+              await File(p.join(versionRoot.path, 'game-manifest.json'))
+                  .readAsBytes(),
             );
             if (manifest.gameId == transaction.gameId &&
                 manifest.gameVersion.toString() == transaction.gameVersion &&
@@ -678,9 +661,8 @@ final class GamePackageInstaller
           ),
         );
         final manifest = const GamePackageManifestCodec().decodeUtf8(
-          await File(
-            p.join(versionRoot.path, 'game-manifest.json'),
-          ).readAsBytes(),
+          await File(p.join(versionRoot.path, 'game-manifest.json'))
+              .readAsBytes(),
         );
         final receiptDirectory = Directory(
           p.join(
@@ -778,15 +760,17 @@ final class GamePackageInstaller
     final gamesRoot = Directory(p.join(supportRoot.path, 'games'));
     final games = <InstalledGame>[];
     if (await gamesRoot.exists()) {
-      final gameDirectories = await gamesRoot
-          .list(followLinks: false)
-          .where(
-            (entity) =>
-                entity is Directory && !p.basename(entity.path).startsWith('.'),
-          )
-          .cast<Directory>()
-          .toList()
-        ..sort((left, right) => left.path.compareTo(right.path));
+      final gameDirectories =
+          await gamesRoot
+                .list(followLinks: false)
+                .where(
+                  (entity) =>
+                      entity is Directory &&
+                      !p.basename(entity.path).startsWith('.'),
+                )
+                .cast<Directory>()
+                .toList()
+            ..sort((left, right) => left.path.compareTo(right.path));
       for (final gameDirectory in gameDirectories) {
         final gameId = p.basename(gameDirectory.path);
         InstalledGamePointer current;
@@ -801,12 +785,13 @@ final class GamePackageInstaller
         if (!await receiptDirectory.exists()) continue;
         final versions = <InstalledGameVersion>[];
         final manifests = <InstalledGamePointer, GamePackageManifest>{};
-        final receiptFiles = await receiptDirectory
-            .list(followLinks: false)
-            .where((entity) => entity is File)
-            .cast<File>()
-            .toList()
-          ..sort((left, right) => left.path.compareTo(right.path));
+        final receiptFiles =
+            await receiptDirectory
+                  .list(followLinks: false)
+                  .where((entity) => entity is File)
+                  .cast<File>()
+                  .toList()
+              ..sort((left, right) => left.path.compareTo(right.path));
         for (final receiptFile in receiptFiles) {
           try {
             final receipt = const GamePackageInstallReceiptCodec().decodeUtf8(
@@ -870,7 +855,6 @@ final class GamePackageInstaller
     await _library.save(rebuilt);
     return rebuilt;
   }
-
 
   Future<void> _verifyStaged(
     Directory root,
@@ -945,10 +929,12 @@ final class GamePackageInstaller
     final game = InstalledGame(
       gameId: manifest.gameId,
       title: useCandidateMetadata ? manifest.title : existing.title,
-      description:
-          useCandidateMetadata ? manifest.description : existing.description,
-      authorName:
-          useCandidateMetadata ? manifest.author.name : existing.authorName,
+      description: useCandidateMetadata
+          ? manifest.description
+          : existing.description,
+      authorName: useCandidateMetadata
+          ? manifest.author.name
+          : existing.authorName,
       publisherName: useCandidateMetadata
           ? manifest.publisher?.name
           : existing.publisherName,
@@ -990,6 +976,18 @@ final class GamePackageInstaller
       await output.flush();
     } finally {
       await output.close();
+    }
+  }
+
+  Future<void> _prepareNarrativeIndex(
+    Directory versionRoot,
+    GamePackageManifest manifest,
+  ) async {
+    try {
+      await HubPreparedNarrativeIndex(supportRoot: supportRoot)
+          .prepare(versionRoot: versionRoot, manifest: manifest);
+    } on PreparedNarrativeCacheUnavailable {
+      return;
     }
   }
 

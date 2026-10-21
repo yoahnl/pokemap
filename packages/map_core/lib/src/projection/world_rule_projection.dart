@@ -1,6 +1,6 @@
 import '../diagnostics/world_rule_diagnostics.dart';
 import '../models/game_state.dart';
-import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/project_manifest.dart';
 import '../models/world_rule.dart';
 import '../operations/narrative_fact_runtime.dart';
@@ -22,7 +22,7 @@ final class WorldRuleResolvedEffect {
 List<WorldRuleResolvedEffect> projectWorldRuleEffects(
   ProjectManifest project,
   GameState gameState, {
-  List<MapData> maps = const <MapData>[],
+  List<NarrativeMapView> maps = const <NarrativeMapView>[],
   String? mapId,
 }) {
   final diagnostics = diagnoseWorldRules(project, maps: maps);

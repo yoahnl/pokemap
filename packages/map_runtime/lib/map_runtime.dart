@@ -688,3 +688,5 @@ export 'src/player/overworld_sfx_player.dart';
 export 'src/application/warp_presentation_controller.dart';
 export 'src/presentation/flame/warp_presentation_renderer.dart';
 export 'src/presentation/flame/warp_presentation_overlay_component.dart';
+
+export 'src/application/narrative_event_runtime_snapshot.dart';

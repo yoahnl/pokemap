@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -120,6 +122,8 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     required RuntimeInitialMapProjectFilePathLoader projectFilePath,
     required RuntimeInitialMapSaveLoader loadSave,
     this.expectedIdentity,
+    this.preparedNarrativeMapsLoader,
+    RuntimeProjectCatalog? preparedProjectCatalog,
     this.resourceProfile = const RuntimeResourceProfile(),
     RuntimeInitialMapManifestLoader? manifestLoader,
     RuntimeInitialMapBundleLoader? bundleLoader,
@@ -127,18 +131,22 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
         loadTilesetImagesById,
   }) : _projectFilePath = projectFilePath,
        _loadSave = loadSave,
+       _preparedProjectCatalog = preparedProjectCatalog,
        _manifestLoader = manifestLoader,
        _bundleLoader = bundleLoader,
        _tilesetImageLoader = tilesetImageLoader;
 
   final RuntimeInitialMapProjectFilePathLoader _projectFilePath;
   final GameIdentity? expectedIdentity;
+  final Future<List<NarrativeMapProjection>?> Function(RuntimeProjectCatalog)?
+  preparedNarrativeMapsLoader;
   final RuntimeResourceProfile resourceProfile;
   final RuntimeInitialMapSaveLoader _loadSave;
   final RuntimeInitialMapManifestLoader? _manifestLoader;
   final RuntimeInitialMapBundleLoader? _bundleLoader;
   final RuntimeInitialMapTilesetImageLoader _tilesetImageLoader;
 
+  RuntimeProjectCatalog? _preparedProjectCatalog;
   _RuntimeInitialMapCacheEntry? _cached;
   final Map<int, RuntimeTilesetImageSingleFlightCache>
   _activeTilesetCacheByGeneration =
@@ -167,13 +175,30 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     publish(RuntimeInitialMapPreloadStage.projectResolution, 0.08);
     final RuntimeProjectCatalog? catalog;
     if (_manifestLoader == null && _bundleLoader == null) {
-      catalog = await RuntimeProjectCatalog.open(projectFilePath);
+      final prepared = _preparedProjectCatalog;
+      _preparedProjectCatalog = null;
+      try {
+        if (prepared != null &&
+            prepared.projectFilePath ==
+                await File(projectFilePath).resolveSymbolicLinks() &&
+            await prepared.isCurrentPublication()) {
+          catalog = prepared;
+        } else {
+          prepared?.dispose();
+          catalog = await RuntimeProjectCatalog.open(projectFilePath);
+        }
+      } on Object {
+        prepared?.dispose();
+        rethrow;
+      }
       if (generation != _generation) {
         catalog.dispose();
         return;
       }
       _activeCatalogByGeneration[generation] = catalog;
     } else {
+      _preparedProjectCatalog?.dispose();
+      _preparedProjectCatalog = null;
       catalog = null;
     }
     try {
@@ -269,7 +294,16 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
             (registry.mode != EventSystemMode.legacyOnly ||
                 registry.hasLocalRuntimeAuthority)) {
           publish(RuntimeInitialMapPreloadStage.narrativeCatalog, 0.75);
+          final preparedMaps = catalog == null
+              ? null
+              : await preparedNarrativeMapsLoader?.call(catalog);
+          if (generation != _generation) return;
+          final batchMaps = preparedMaps == null && catalog != null
+              ? {for (final map in await catalog.loadNarrativeMapData()) map.id: map}
+              : null;
+          if (generation != _generation) return;
           narrativeSnapshot = await NarrativeEventRuntimeSnapshot.build(
+            preparedMaps: preparedMaps,
             project: manifest,
             loadMap: (id) async {
               final entry = projectMapEntryForId(manifest, id);
@@ -286,7 +320,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
               }
               final map = id == bundle.map.id
                   ? bundle.map
-                  : await loadMapDataFromFile(
+                  : batchMaps?[id] ?? await loadMapDataFromFile(
                       mapPath,
                       projectDialogueContext: catalog == null ? manifest : null,
                       projectTileSize: PixelSize(
@@ -402,6 +436,8 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
 
   @override
   void clear() {
+    _preparedProjectCatalog?.dispose();
+    _preparedProjectCatalog = null;
     _generation++;
     _disposePreloadedResources();
   }

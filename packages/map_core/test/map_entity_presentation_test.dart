@@ -121,20 +121,26 @@ void main() {
         (NarrativeValue.string('wrong type'), false, true),
       ]) {
         var unavailable = false;
-        final selected = resolveMapEntityPresentation(
-          project: project,
-          map: map,
-          entity: entity,
-          gameState: GameState(
-            saveId: 'test',
-            narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
-              valuesByFactId: {'visible': value},
+        for (final view in <NarrativeMapView>[
+          map,
+          NarrativeMapProjection.fromMapData(map),
+        ]) {
+          unavailable = false;
+          final selected = resolveMapEntityPresentation(
+            project: project,
+            map: view,
+            entity: entity,
+            gameState: GameState(
+              saveId: 'test',
+              narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+                valuesByFactId: {'visible': value},
+              ),
             ),
-          ),
-          onUnavailable: () => unavailable = true,
-        );
-        expect(selected != null, expectedVariant);
-        expect(unavailable, expectedUnavailable);
+            onUnavailable: () => unavailable = true,
+          );
+          expect(selected != null, expectedVariant);
+          expect(unavailable, expectedUnavailable);
+        }
       }
     },
   );

@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_fact.dart';
@@ -137,7 +138,7 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectEventEntry> events,
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
-    List<MapData> nativeMaps = const [],
+    List<NarrativeMapView> nativeMaps = const [],
   }) : this._(
          fingerprints: _NarrativeCatalogFingerprints.eager(
            manifestHash,
@@ -163,7 +164,7 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectEventEntry> events,
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
-    List<MapData> nativeMaps = const [],
+    List<NarrativeMapView> nativeMaps = const [],
   }) : this._(
          fingerprints: _NarrativeCatalogFingerprints(manifestHash, mapHashes),
          spatialSources: spatialSources,
@@ -185,7 +186,7 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectEventEntry> events,
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
-    List<MapData> nativeMaps = const [],
+    List<NarrativeMapView> nativeMaps = const [],
   }) : _fingerprints = fingerprints,
        scenes = List.unmodifiable(scenes),
        facts = List.unmodifiable(facts),
@@ -207,7 +208,7 @@ final class NarrativeEventProjectCatalog {
   final List<NarrativeEventProjectEventEntry> events;
   final List<NarrativeEventProjectDiagnostic> diagnostics;
   final List<String> nativeMapIds;
-  final List<MapData> nativeMaps;
+  final List<NarrativeMapView> nativeMaps;
   final Map<String, List<NarrativeEventProjectSceneEntry>> _scenesById;
   final Map<String, List<NarrativeEventProjectFactEntry>> _factsById;
   final Map<String, List<NarrativeEventProjectEventEntry>> _eventsById;

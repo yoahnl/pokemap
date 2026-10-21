@@ -12,6 +12,205 @@ const _wrongHash =
 
 void main() {
   group('assessBorderMaterializationFreshness', () {
+    test(
+      'a reused immutable output keeps validating changed inputs and integrity',
+      () {
+        final request = _request();
+        final materialization = _materialization(request);
+        final warm = inspectBorderMaterializationFreshness(
+          request,
+          materialization: materialization,
+          snapshotIntegrity: _integrity(),
+        );
+        expect(warm.outputFingerprintValid, isTrue);
+        expect(warm.freshness.state, BorderMaterializationState.fresh);
+        for (final (changed, reason) in [
+          (_request(revision: 2), BorderStalenessReason.blueprintNewer),
+          (
+            _request(seed: BorderSignedInt64.fromInt(99)),
+            BorderStalenessReason.geometryOrSeedChanged,
+          ),
+          (
+            _request(tileSize: const GridSize(width: 17, height: 16)),
+            BorderStalenessReason.mapContextChanged,
+          ),
+        ]) {
+          final result = inspectBorderMaterializationFreshness(
+            changed,
+            materialization: materialization,
+            snapshotIntegrity: _integrity(),
+          );
+          expect(result.outputFingerprintValid, isTrue);
+          expect(result.freshness.state, BorderMaterializationState.stale);
+          expect(result.freshness.reasons, contains(reason));
+        }
+        for (final status in [
+          _status(metadataValid: false),
+          _status(filesPresent: false),
+          _status(contentFingerprintMatches: false),
+        ]) {
+          final result = inspectBorderMaterializationFreshness(
+            request,
+            materialization: materialization,
+            snapshotIntegrity: {_snapshotA: status},
+          );
+          expect(result.outputFingerprintValid, isTrue);
+          expect(result.freshness.state, BorderMaterializationState.invalid);
+          expect(result.freshness.isRenderable, isFalse);
+        }
+        final forged = inspectBorderMaterializationFreshness(
+          request,
+          materialization: _replaceReceipt(
+            materialization,
+            inputFingerprint: _wrongHash,
+          ),
+          snapshotIntegrity: _integrity(),
+        );
+        expect(forged.receiptInputFingerprintValid, isFalse);
+        expect(forged.freshness.isRenderable, isFalse);
+      },
+    );
+
+    test('a warmed output still checks bounds against the current map', () {
+      final request = _request();
+      final materialization = _materialization(
+        request,
+        placements: [_placement()],
+      );
+      expect(
+        inspectBorderMaterializationFreshness(
+          request,
+          materialization: materialization,
+          snapshotIntegrity: _integrity(),
+        ).outputFingerprintValid,
+        isTrue,
+      );
+      final smaller = BorderResolutionRequest(
+        mapSize: const GridSize(width: 1, height: 1),
+        tileSizePx: request.tileSizePx,
+        blueprintId: request.blueprintId,
+        blueprintRevision: request.blueprintRevision,
+        feature: request.feature,
+        visualSnapshots: request.visualSnapshots,
+        resolverVersion: request.resolverVersion,
+      );
+      final result = inspectBorderMaterializationFreshness(
+        smaller,
+        materialization: materialization,
+        snapshotIntegrity: _integrity(),
+      );
+      expect(result.outputFingerprintValid, isTrue);
+      expect(result.freshness.state, BorderMaterializationState.invalid);
+      expect(result.freshness.isRenderable, isFalse);
+    });
+
+    test('a different materialization cannot borrow a warmed output proof', () {
+      final request = _request();
+      final valid = _materialization(request);
+      expect(
+        inspectBorderMaterializationFreshness(
+          request,
+          materialization: valid,
+          snapshotIntegrity: _integrity(),
+        ).outputFingerprintValid,
+        isTrue,
+      );
+      final changed = BorderMaterialization(
+        receipt: valid.receipt,
+        ground: [_ground(x: 1)],
+        placements: valid.placements,
+      );
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final result = inspectBorderMaterializationFreshness(
+          request,
+          materialization: changed,
+          snapshotIntegrity: _integrity(),
+        );
+        expect(result.outputFingerprintValid, isFalse);
+        expect(result.freshness.state, BorderMaterializationState.invalid);
+        expect(
+          result.freshness.reasons,
+          contains(BorderStalenessReason.outputAltered),
+        );
+      }
+    });
+
+    test('materialization owns its output lists after caller mutations', () {
+      final request = _request();
+      final ground = [_ground()];
+      final placements = [_placement()];
+      final materialization = _materialization(
+        request,
+        ground: ground,
+        placements: placements,
+      );
+      final first = inspectBorderMaterializationFreshness(
+        request,
+        materialization: materialization,
+        snapshotIntegrity: _integrity(),
+      );
+      expect(first.outputFingerprintValid, isTrue);
+      ground
+        ..clear()
+        ..add(_ground(x: 99));
+      placements.clear();
+      expect(materialization.ground.single.x, 0);
+      expect(materialization.placements, hasLength(1));
+      expect(() => materialization.ground.clear(), throwsUnsupportedError);
+      expect(() => materialization.placements.clear(), throwsUnsupportedError);
+      final repeated = inspectBorderMaterializationFreshness(
+        request,
+        materialization: materialization,
+        snapshotIntegrity: _integrity(),
+      );
+      expect(repeated.outputFingerprintValid, isTrue);
+      expect(repeated.freshness.state, first.freshness.state);
+      expect(repeated.freshness.reasons, first.freshness.reasons);
+    });
+
+    test(
+      'unfingerprintable immutable output remains invalid on repeated inspection',
+      () {
+        final request = _request();
+        final valid = _materialization(request);
+        final invalid = BorderMaterialization(
+          receipt: valid.receipt,
+          ground: [_ground(x: 9007199254740992)],
+          placements: const [],
+        );
+        for (var attempt = 0; attempt < 2; attempt++) {
+          final result = inspectBorderMaterializationFreshness(
+            request,
+            materialization: invalid,
+            snapshotIntegrity: _integrity(),
+          );
+          expect(result.outputFingerprintValid, isFalse);
+          expect(result.freshness.state, BorderMaterializationState.invalid);
+          expect(
+            result.freshness.reasons,
+            contains(BorderStalenessReason.outputAltered),
+          );
+        }
+      },
+    );
+
+    test(
+      'public fingerprinting still observes mutations of caller owned lists',
+      () {
+        final ground = [_ground()];
+        final original = computeBorderOutputFingerprint(
+          ground: ground,
+          placements: const [],
+        );
+        ground[0] = _ground(x: 1);
+        final changed = computeBorderOutputFingerprint(
+          ground: ground,
+          placements: const [],
+        );
+        expect(changed, isNot(original));
+      },
+    );
+
     test('inclusive grid-edge boundary remains fresh and regenerable', () {
       final request = _request(
         template: BorderBlueprintTemplate.stoneChainLine,

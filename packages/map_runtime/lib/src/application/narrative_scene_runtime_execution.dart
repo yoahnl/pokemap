@@ -17,7 +17,7 @@ import 'scene_runtime/scene_runtime_host_callbacks.dart';
 Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   required NarrativeSceneExecutionRequest request,
   required ProjectManifest project,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required GameState Function() currentGameState,
   required SceneRuntimeHostCallbacks callbacks,
   SceneConsequenceRuntimeWriter? consequenceWriter,

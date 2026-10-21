@@ -92,7 +92,10 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
     if (bundle == null) {
       throw StateError('The new game preload did not produce a usable map.');
     }
-    final snapshot = await _readProjectSnapshot(projectFilePath);
+    final snapshot = await _readProjectSnapshot(
+      projectFilePath,
+      projectCatalog: bundle.projectCatalog,
+    );
     final catalog = bundle.projectCatalog;
     final publicationIsCurrent = catalog == null
         ? _snapshotContent(await loadProjectManifestFromFile(projectFilePath)) ==
@@ -132,7 +135,12 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
   @override
   Future<String> readCurrentProjectRevision() async {
     final projectFilePath = p.normalize(p.absolute(await _projectFilePath()));
-    return (await _readProjectSnapshot(projectFilePath)).revision;
+    return (await _readProjectSnapshot(
+      projectFilePath,
+      projectCatalog: _initialMapPreloader
+          .preparedNewGameBundle(projectFilePath: projectFilePath)
+          ?.projectCatalog,
+    )).revision;
   }
 
   @override
@@ -532,10 +540,15 @@ final class _RuntimeNewGameProjectSnapshot {
 }
 
 Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
-  String projectFilePath,
-) async {
+  String projectFilePath, {
+  RuntimeProjectCatalog? projectCatalog,
+}) async {
   final projectFile = File(projectFilePath);
-  final catalog = await RuntimeProjectCatalog.open(projectFilePath);
+  final reuseCatalog =
+      projectCatalog != null && await projectCatalog.isCurrentPublication();
+  final catalog = reuseCatalog
+      ? projectCatalog
+      : await RuntimeProjectCatalog.open(projectFilePath);
   try {
     final projectBytes = await projectFile.readAsBytes();
     final project = catalog.projectMetadata;
@@ -673,6 +686,6 @@ Future<_RuntimeNewGameProjectSnapshot> _readProjectSnapshot(
       revision: computeNarrativeProjectFingerprint(fingerprintEntries),
     );
   } finally {
-    catalog.dispose();
+    if (!reuseCatalog) catalog.dispose();
   }
 }

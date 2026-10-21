@@ -3,6 +3,7 @@ import '../compatibility/legacy_map_event_projection.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_event_registry.dart';
@@ -21,12 +22,12 @@ import 'narrative_trigger_bump_source_reference.dart';
 /// projections remain separate compatibility entries.
 NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
   required ProjectManifest project,
-  required List<MapData> maps,
+  required List<NarrativeMapView> maps,
   List<LegacyMapEventProjection> legacyProjections = const [],
 }) {
   final options = <NarrativeSpatialEventSourceOption>[];
   final diagnostics = <NarrativeSpatialEventSourceDiagnostic>[];
-  final mapsById = <String, List<MapData>>{};
+  final mapsById = <String, List<NarrativeMapView>>{};
   for (final map in maps) {
     mapsById.putIfAbsent(map.id, () => []).add(map);
   }
@@ -56,7 +57,7 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
         ),
       );
     }
-    final matchingMaps = mapsById[entry.id] ?? const <MapData>[];
+    final matchingMaps = mapsById[entry.id] ?? const <NarrativeMapView>[];
     _appendMapOptions(
       project: project,
       entry: entry,
@@ -98,7 +99,7 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
 void _appendMapOptions({
   required ProjectManifest project,
   required ProjectMapEntry entry,
-  required List<MapData> matchingMaps,
+  required List<NarrativeMapView> matchingMaps,
   required bool manifestIdentityUnique,
   required List<NarrativeSpatialEventSourceOption> options,
   required List<NarrativeSpatialEventSourceDiagnostic> diagnostics,
@@ -275,7 +276,7 @@ NarrativeSpatialEventSourceOption _mapOption({
 void _appendEntityOptions({
   required ProjectManifest project,
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required bool mapUsable,
   required bool mapIdentityUnique,
   required List<NarrativeSpatialEventSourceOption> options,
@@ -327,7 +328,7 @@ void _appendEntityOptions({
 NarrativeSpatialEventSourceOption _entityAutorunOption({
   required ProjectManifest project,
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEntity entity,
   required bool mapUsable,
   required bool mapIdentityUnique,
@@ -370,7 +371,7 @@ NarrativeSpatialEventSourceOption _entityAutorunOption({
 NarrativeSpatialEventSourceOption _entityBumpOption({
   required ProjectManifest project,
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEntity entity,
   required bool mapUsable,
   required bool mapIdentityUnique,
@@ -409,7 +410,7 @@ NarrativeSpatialEventSourceOption _entityBumpOption({
 
 NarrativeSpatialEventSourceOption _entityOption({
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEntity entity,
   required bool mapUsable,
   required bool mapIdentityUnique,
@@ -467,7 +468,7 @@ NarrativeSpatialEventSourceOption _entityOption({
 void _appendTriggerOptions({
   required ProjectManifest project,
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required bool mapUsable,
   required bool mapIdentityUnique,
   required List<NarrativeSpatialEventSourceOption> options,
@@ -512,7 +513,7 @@ void _appendTriggerOptions({
 NarrativeSpatialEventSourceOption _triggerBumpOption({
   required ProjectManifest project,
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required MapTrigger trigger,
   required bool mapUsable,
   required bool mapIdentityUnique,
@@ -546,7 +547,7 @@ NarrativeSpatialEventSourceOption _triggerBumpOption({
 
 NarrativeSpatialEventSourceOption _triggerOption({
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required MapTrigger trigger,
   required bool mapUsable,
   required bool mapIdentityUnique,
@@ -601,7 +602,7 @@ NarrativeSpatialEventSourceOption _triggerOption({
 
 void _appendPlacedElementOptions({
   required ProjectMapEntry entry,
-  required MapData map,
+  required NarrativeMapView map,
   required bool mapUsable,
   required List<NarrativeSpatialEventSourceOption> options,
 }) {
@@ -641,7 +642,7 @@ void _appendPlacedElementOptions({
 
 void _applyLegacyCompatibility({
   required List<ProjectMapEntry> entries,
-  required Map<String, List<MapData>> mapsById,
+  required Map<String, List<NarrativeMapView>> mapsById,
   required List<LegacyMapEventProjection> projections,
   required List<NarrativeSpatialEventSourceOption> options,
   required List<NarrativeSpatialEventSourceDiagnostic> diagnostics,
@@ -754,7 +755,7 @@ void _applyLegacyCompatibility({
 
 NarrativeSpatialSourceGeometrySummary _legacyGeometry(
   MapEventDefinition event,
-  List<MapData>? maps,
+  List<NarrativeMapView>? maps,
 ) {
   final bounds = MapRect(
     pos: GridPos(x: event.position.x, y: event.position.y),
@@ -782,7 +783,7 @@ ProjectMapEntry? _entryFor(List<ProjectMapEntry> entries, String mapId) {
   return null;
 }
 
-MapEventDefinition? _legacyEventFor(List<MapData>? maps, String eventId) {
+MapEventDefinition? _legacyEventFor(List<NarrativeMapView>? maps, String eventId) {
   if (maps == null || maps.length != 1) return null;
   final matches = maps.single.events
       .where((event) => event.id == eventId)
@@ -808,7 +809,7 @@ NarrativeEventSourceRef? _triggerSource(String mapId, String triggerId) {
 MapRect _entityBounds(MapEntity entity) =>
     MapRect(pos: entity.pos, size: entity.size);
 
-bool _rectWithinMap(MapRect bounds, MapData map) {
+bool _rectWithinMap(MapRect bounds, NarrativeMapView map) {
   return _validSize(bounds.size) &&
       _validSize(map.size) &&
       bounds.pos.x >= 0 &&

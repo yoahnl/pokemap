@@ -1,6 +1,6 @@
 import '../catalogs/narrative_outcome_event_source_catalog.dart';
 import '../diagnostics/scene_diagnostics.dart';
-import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
 import '../models/scenario_asset.dart';
@@ -20,7 +20,7 @@ import 'narrative_event_canonical_json.dart';
 /// this operation has no dependency on map_battle.
 NarrativeOutcomeEventSourceCatalog buildNarrativeOutcomeEventSourceCatalog({
   required ProjectManifest project,
-  List<MapData> maps = const [],
+  List<NarrativeMapView> maps = const [],
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
 }) {
   final options = <NarrativeOutcomeEventSourceOption>[];
@@ -64,7 +64,7 @@ NarrativeOutcomeEventSourceCatalog buildNarrativeOutcomeEventSourceCatalog({
 void _appendSceneOutcomes(
   List<SceneAsset> scenes, {
   required ProjectManifest project,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required List<NarrativeOutcomeEventSourceOption> options,
   required List<NarrativeOutcomeEventSourceDiagnostic> diagnostics,
 }) {
@@ -104,7 +104,7 @@ void _appendSceneOutcomes(
 void _appendSingleSceneOutcomes(
   SceneAsset scene, {
   required SceneProjectDiagnosticsContext sceneDiagnostics,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required bool duplicate,
   required List<NarrativeOutcomeEventSourceOption> options,
   required List<NarrativeOutcomeEventSourceDiagnostic> diagnostics,
@@ -328,8 +328,8 @@ List<NarrativeOutcomeEventSourceDiagnostic> _sceneOptionDiagnostics({
   return List.unmodifiable(result);
 }
 
-Map<String, MapData> _uniqueMapsById(List<MapData> maps) {
-  final grouped = <String, List<MapData>>{};
+Map<String, NarrativeMapView> _uniqueMapsById(List<NarrativeMapView> maps) {
+  final grouped = <String, List<NarrativeMapView>>{};
   for (final map in maps) {
     grouped.putIfAbsent(map.id, () => []).add(map);
   }
@@ -341,7 +341,7 @@ Map<String, MapData> _uniqueMapsById(List<MapData> maps) {
 
 bool _sceneMapReferencesVerifiable(
   SceneAsset scene,
-  Map<String, MapData> mapsById,
+  Map<String, NarrativeMapView> mapsById,
 ) {
   for (final node in scene.graph.nodes) {
     final payload = node.payload;

@@ -32,7 +32,7 @@ bool evaluateScenePlayerAtEntityAnchor({
 bool evaluateSceneMapEventInstanceBoolean({
   required SceneConditionSource source,
   required GameState gameState,
-  required MapData map,
+  required NarrativeMapView map,
   required MapInstanceRef scope,
 }) {
   if (source.sourceKind != SceneConditionSourceKind.mapEventInstanceBoolean) {
@@ -50,7 +50,7 @@ bool evaluateSceneMapEventInstanceBoolean({
 GameState applySceneMapEventInstanceBoolean({
   required GameState gameState,
   required SceneSetMapEventInstanceBooleanConsequence consequence,
-  required MapData map,
+  required NarrativeMapView map,
   required MapInstanceRef expectedInstance,
 }) {
   _validateOwner(map, consequence.mapId, consequence.eventId, expectedInstance);
@@ -66,7 +66,7 @@ GameState applySceneMapEventInstanceBoolean({
 }
 
 void _validateOwner(
-  MapData map,
+  NarrativeMapView map,
   String mapId,
   String eventId,
   MapInstanceRef scope,

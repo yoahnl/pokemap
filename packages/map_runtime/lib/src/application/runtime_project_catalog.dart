@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_character_refs.dart';
+import 'runtime_catalog_map_cache.dart';
 import 'runtime_manifest_tilesets.dart';
 
 final class RuntimeCatalogDefinitionMissingException extends FormatException {
@@ -21,10 +22,17 @@ final class RuntimeProjectCatalog {
     required this.projectFilePath,
     required this.identity,
     required this.projectMetadata,
+    required this._sourceFingerprint,
     this._portable,
     this._native = const {},
     this._reader,
-  }) {
+    required int maximumCachedMaps,
+    required int maximumCachedMapBytes,
+  }) : _mapCache = RuntimeCatalogMapCache(
+         projectFilePath: projectFilePath,
+         maximumMaps: maximumCachedMaps,
+         maximumSourceBytes: maximumCachedMapBytes,
+       ) {
     _owners[projectMetadata] = this;
   }
 
@@ -37,18 +45,41 @@ final class RuntimeProjectCatalog {
 
   final String projectFilePath;
   final String identity;
+  final String _sourceFingerprint;
   final ProjectManifest projectMetadata;
   final PortableProjectCatalog? _portable;
   final Map<CatalogDefinitionKey, Object> _native;
   final _RuntimeCatalogObjectReader? _reader;
+  final RuntimeCatalogMapCache _mapCache;
   Future<AssetCatalog?>? _assetCatalog;
+  static const _maximumManifestProjections = 8;
+  static const _maximumManifestSourceBytes = 8 * 1024 * 1024;
+  final _manifestProjections =
+      <String, Future<({ProjectManifest project, int sourceBytes})>>{};
+  final _manifestProjectionBytes = <String, int>{};
+  var _manifestSourceBytes = 0;
   bool _disposed = false;
 
   static Future<RuntimeProjectCatalog> open(
     String projectFilePath, {
     CatalogStorageLimits? limits,
+    String? expectedSourceSha256,
     int maximumCatalogJsonValues = 8000000,
+    int maximumCachedMaps = 8,
+    int maximumCachedMapBytes = 32 * 1024 * 1024,
   }) async {
+    if (expectedSourceSha256 != null &&
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(expectedSourceSha256)) {
+      throw const FormatException(
+        'Invalid expected project source fingerprint.',
+      );
+    }
+    if (maximumCachedMaps < 0 ||
+        maximumCachedMaps > 8 ||
+        maximumCachedMapBytes < 0 ||
+        maximumCachedMapBytes > 32 * 1024 * 1024) {
+      throw ArgumentError('Runtime map cache ceilings can only be lowered.');
+    }
     final effective =
         limits ?? CatalogStorageLimits(maxStoredBytes: 128 * 1024 * 1024);
     if (effective.maxStoredBytes > 128 * 1024 * 1024 ||
@@ -61,7 +92,15 @@ final class RuntimeProjectCatalog {
     if (await file.length() > 128 * 1024 * 1024) {
       throw const FormatException('Project document exceeds its byte limit.');
     }
-    final source = utf8.decode(await _readBoundedFile(file, 128 * 1024 * 1024));
+    final bytes = await _readBoundedFile(file, 128 * 1024 * 1024);
+    final sourceFingerprint = _runtimePublicationFingerprint(bytes);
+    if (expectedSourceSha256 != null &&
+        sourceFingerprint != 'sha256:$expectedSourceSha256') {
+      throw const FormatException(
+        'Project source fingerprint does not match the admitted bytes.',
+      );
+    }
+    final source = utf8.decode(bytes);
     final raw = decodeNarrativeEventJsonStrict(source);
     if (raw is! Map<String, Object?>) {
       throw const FormatException('Expected a project JSON object.');
@@ -80,6 +119,9 @@ final class RuntimeProjectCatalog {
         readObject: reader.read,
       );
       return RuntimeProjectCatalog._(
+        sourceFingerprint: sourceFingerprint,
+        maximumCachedMaps: maximumCachedMaps,
+        maximumCachedMapBytes: maximumCachedMapBytes,
         projectFilePath: canonicalPath,
         identity: '$canonicalPath:${portable.snapshot.root.sha256}',
         projectMetadata: portable.projectMetadata,
@@ -107,6 +149,9 @@ final class RuntimeProjectCatalog {
     );
     ProjectValidator.validate(project);
     return RuntimeProjectCatalog._(
+      sourceFingerprint: sourceFingerprint,
+      maximumCachedMaps: maximumCachedMaps,
+      maximumCachedMapBytes: maximumCachedMapBytes,
       projectFilePath: canonicalPath,
       identity: '$canonicalPath:${narrativeEventCanonicalSha256(raw)}',
       projectMetadata: project.copyWith(
@@ -125,6 +170,44 @@ final class RuntimeProjectCatalog {
         resourceLibraryCatalog: const ResourceLibraryCatalog.empty(),
       ),
       native: _nativeDefinitions(project),
+    );
+  }
+
+  Future<MapData> loadMapData(String mapId) {
+    _ensureOpen();
+    final matches = projectMetadata.maps.where((entry) => entry.id == mapId);
+    if (matches.length != 1) {
+      throw MapLoadException('Map id not in project: $mapId');
+    }
+    return _mapCache.load(matches.single);
+  }
+
+  Future<List<MapData>> loadNarrativeMapData({
+    Map<String, String>? expectedSha256ByMapId,
+  }) {
+    _ensureOpen();
+    final expected = expectedSha256ByMapId == null
+        ? null
+        : Map<String, String>.unmodifiable(expectedSha256ByMapId);
+    if (expected != null &&
+        (expected.length != projectMetadata.maps.length ||
+            !projectMetadata.maps.every(
+              (entry) => expected.containsKey(entry.id),
+            ) ||
+            expected.values.any(
+              (hash) => !RegExp(r'^[0-9a-f]{64}$').hasMatch(hash),
+            ))) {
+      throw const FormatException(
+        'Expected map source fingerprints do not match the project maps.',
+      );
+    }
+    return _mapCache.loadNarrativeMaps(
+      projectMetadata.maps,
+      PixelSize(
+        width: projectMetadata.settings.tileWidth,
+        height: projectMetadata.settings.tileHeight,
+      ),
+      expectedSha256ByMapId: expected,
     );
   }
 
@@ -155,7 +238,12 @@ final class RuntimeProjectCatalog {
       final file = File(projectFilePath);
       if (await file.resolveSymbolicLinks() != projectFilePath) return false;
       final maximum = _portable == null ? 128 * 1024 * 1024 : 64 * 1024;
-      final source = utf8.decode(await _readBoundedFile(file, maximum));
+      final bytes = await _readBoundedFile(file, maximum);
+      if (_disposed) return false;
+      if (_runtimePublicationFingerprint(bytes) == _sourceFingerprint) {
+        return true;
+      }
+      final source = utf8.decode(bytes);
       if (_portable != null) {
         PortableCatalogPublication.validateProjectMetadataJson(source);
       }
@@ -203,15 +291,16 @@ final class RuntimeProjectCatalog {
     includeMapVisuals: true,
   );
 
-  Future<ProjectManifest> manifestForNarrativeMaps(Iterable<MapData> maps) =>
-      _manifestForMaps(
-        maps,
-        extraSceneIds: projectMetadata.scenes.map((scene) => scene.id),
-        includeMapVisuals: false,
-      );
+  Future<ProjectManifest> manifestForNarrativeMaps(
+    Iterable<NarrativeMapView> maps,
+  ) => _manifestForMaps(
+    maps,
+    extraSceneIds: projectMetadata.scenes.map((scene) => scene.id),
+    includeMapVisuals: false,
+  );
 
   Future<ProjectManifest> _manifestForMaps(
-    Iterable<MapData> maps, {
+    Iterable<NarrativeMapView> maps, {
     Iterable<String> extraCharacterIds = const [],
     Iterable<String> extraSceneIds = const [],
     required bool includeMapVisuals,
@@ -322,6 +411,64 @@ final class RuntimeProjectCatalog {
     Iterable<CatalogDefinitionKey> roots,
   ) async {
     _ensureOpen();
+    if (_portable == null) {
+      final result = await _buildManifestForRoots(roots);
+      _ensureOpen();
+      return result.project;
+    }
+    final ordered = roots.toSet().toList()..sort();
+    final key = jsonEncode([
+      for (final root in ordered) [root.kind.name, root.id],
+    ]);
+    var future = _manifestProjections.remove(key);
+    if (future != null) {
+      _manifestProjections[key] = future;
+    } else {
+      future = _buildManifestForRoots(ordered);
+      if (ordered.length <= 256) {
+        final pending = future;
+        _manifestProjections[key] = pending;
+        _trimManifestProjections();
+        pending.then<void>(
+          (result) {
+            if (!identical(_manifestProjections[key], pending)) return;
+            if (result.sourceBytes > _maximumManifestSourceBytes) {
+              _removeManifestProjection(key);
+              return;
+            }
+            _manifestProjectionBytes[key] = result.sourceBytes;
+            _manifestSourceBytes += result.sourceBytes;
+            _trimManifestProjections();
+          },
+          onError: (Object error, StackTrace stack) {
+            if (identical(_manifestProjections[key], pending)) {
+              _removeManifestProjection(key);
+            }
+          },
+        );
+      }
+    }
+    final result = await future;
+    _ensureOpen();
+    return result.project;
+  }
+
+  void _removeManifestProjection(String key) {
+    _manifestProjections.remove(key);
+    _manifestSourceBytes -= _manifestProjectionBytes.remove(key) ?? 0;
+  }
+
+  void _trimManifestProjections() {
+    while (_manifestProjections.length > _maximumManifestProjections ||
+        _manifestSourceBytes > _maximumManifestSourceBytes) {
+      _removeManifestProjection(_manifestProjections.keys.first);
+    }
+  }
+
+  Future<({ProjectManifest project, int sourceBytes})> _buildManifestForRoots(
+    Iterable<CatalogDefinitionKey> roots,
+  ) async {
+    _ensureOpen();
     final units = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
     final selected = <CatalogDefinitionKey, Object>{};
     final active = <CatalogDefinitionKey>{};
@@ -426,13 +573,34 @@ final class RuntimeProjectCatalog {
                 ),
       ],
     );
+    var sourceBytes = 0;
+    final portable = _portable;
+    if (portable != null) {
+      if (units.length > 256) {
+        sourceBytes = _maximumManifestSourceBytes + 1;
+      } else {
+        for (final key in units.keys) {
+          final entry = await portable.snapshot.indexEntry(key);
+          _ensureOpen();
+          if (entry == null) {
+            throw RuntimeCatalogDefinitionMissingException(key);
+          }
+          sourceBytes += entry.reference.byteLength;
+          if (sourceBytes > _maximumManifestSourceBytes) break;
+        }
+      }
+    }
     _owners[project] = this;
-    return project;
+    return (project: project, sourceBytes: sourceBytes);
   }
 
   void dispose() {
     _disposed = true;
     _assetCatalog = null;
+    _manifestProjections.clear();
+    _manifestProjectionBytes.clear();
+    _manifestSourceBytes = 0;
+    _mapCache.dispose();
     if (_native.isNotEmpty) _native.clear();
     _reader?.dispose();
   }
@@ -590,7 +758,7 @@ Future<Uint8List> _readBoundedFile(File file, int maximumBytes) async {
 }
 
 Iterable<CatalogDefinitionKey> _mapRoots(
-  MapData map,
+  NarrativeMapView map,
   ProjectManifest metadata,
   Iterable<String> extraCharacterIds,
   Iterable<String> extraSceneIds, {
@@ -599,10 +767,11 @@ Iterable<CatalogDefinitionKey> _mapRoots(
   CatalogDefinitionKey key(CatalogDefinitionKind kind, String id) =>
       CatalogDefinitionKey(kind, id);
   if (includeMapVisuals) {
-    if (map.tilesetId.isNotEmpty) {
-      yield key(CatalogDefinitionKind.tileset, map.tilesetId);
+    final renderMap = map as MapData;
+    if (renderMap.tilesetId.isNotEmpty) {
+      yield key(CatalogDefinitionKind.tileset, renderMap.tilesetId);
     }
-    for (final layer in map.layers) {
+    for (final layer in renderMap.layers) {
       switch (layer) {
         case TileLayer(:final palette):
           for (final tile in palette) {
@@ -652,10 +821,10 @@ Iterable<CatalogDefinitionKey> _mapRoots(
           break;
       }
     }
-    for (final element in map.placedElements) {
+    for (final element in renderMap.placedElements) {
       yield key(CatalogDefinitionKind.element, element.elementId);
     }
-    for (final platform in map.movingPlatforms) {
+    for (final platform in renderMap.movingPlatforms) {
       for (final variant in platform.variants) {
         yield key(CatalogDefinitionKind.element, variant.elementId);
       }
@@ -1029,3 +1198,6 @@ ProjectManifest _nativeProjection(
     ),
   );
 }
+
+String _runtimePublicationFingerprint(List<int> bytes) =>
+    narrativeEventBytesFingerprint(bytes);

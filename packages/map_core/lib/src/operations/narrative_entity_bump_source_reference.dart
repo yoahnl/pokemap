@@ -1,5 +1,5 @@
 import '../models/enums.dart';
-import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/project_manifest.dart';
 import 'map_entity_collision_footprint.dart';
@@ -7,7 +7,7 @@ import 'scene_actor_reference.dart';
 
 bool isNarrativeEntityBumpSourceAvailable({
   required ProjectManifest project,
-  required MapData map,
+  required NarrativeMapView map,
   required String entityId,
 }) {
   if (project.settings.dimension != ProjectDimension.twoD ||

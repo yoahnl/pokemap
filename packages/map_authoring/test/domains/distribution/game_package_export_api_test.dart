@@ -336,10 +336,10 @@ void main() {
         file.name
             .startsWith('project/data/pokemon/assets/items/capture-source-') &&
         file.name.endsWith('.json'));
-    expect(
-        jsonDecode(utf8.decode(provenance.content))['sprites'][0]
-            ['projectItemId'],
-        'poke_ball');
+    final provenanceJson = jsonDecode(utf8.decode(provenance.content));
+    expect(provenanceJson['sprites'][0]['projectItemId'], 'poke_ball');
+    expect(provenanceJson['sprites'][0]['sourceItem']['sourcePath'],
+        'Data/Studio/items/poke_ball.json');
     expect(archive.files.where((file) => file.name.endsWith('sprites.zip')),
         isEmpty);
   });

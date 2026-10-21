@@ -26,7 +26,7 @@ abstract final class PackagePathPolicy {
           _windowsCharacters.hasMatch(segment) ||
           _isWindowsReserved(segment),
     );
-    if (value != unorm.nfc(value) ||
+    if (value != normalizeNfc(value) ||
         hasInvalidUnicode ||
         bytes.length > maxUtf8Bytes ||
         segments.length > maxDepth ||
@@ -44,11 +44,13 @@ abstract final class PackagePathPolicy {
   }
 
   /// Conservative cross-platform collision key.
-  static String collisionKey(String value) =>
-      unorm.nfc(UnicodeCaseFolding.fold(unorm.nfc(value)));
+  static String collisionKey(String value) => _isAscii(value)
+      ? value.toLowerCase()
+      : unorm.nfc(UnicodeCaseFolding.fold(unorm.nfc(value)));
 
   /// Returns the NFC representation required for package-relative paths.
-  static String normalizeNfc(String value) => unorm.nfc(value);
+  static String normalizeNfc(String value) =>
+      _isAscii(value) ? value : unorm.nfc(value);
 
   static int compareUtf8(String left, String right) {
     final leftBytes = utf8.encode(left);
@@ -61,6 +63,13 @@ abstract final class PackagePathPolicy {
       if (comparison != 0) return comparison;
     }
     return leftBytes.length.compareTo(rightBytes.length);
+  }
+
+  static bool _isAscii(String value) {
+    for (var index = 0; index < value.length; index++) {
+      if (value.codeUnitAt(index) > 0x7f) return false;
+    }
+    return true;
   }
 
   static bool _isWindowsReserved(String segment) {

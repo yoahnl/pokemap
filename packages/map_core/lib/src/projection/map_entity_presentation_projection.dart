@@ -1,5 +1,6 @@
 import '../models/game_state.dart';
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/map_entity_payloads.dart';
 import '../models/map_entity_presentation.dart';
 import '../models/enums.dart';
@@ -13,9 +14,9 @@ import '../operations/map_entity_collision_footprint.dart';
 MapEntityPresentationVariant? resolveMapEntityPresentation({
   required ProjectManifest project,
   required GameState gameState,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEntity entity,
-  List<MapData> maps = const [],
+  List<NarrativeMapView> maps = const [],
   void Function()? onUnavailable,
 }) {
   final presentation = entity.presentation;
@@ -172,9 +173,9 @@ MapData projectMapEntityPresentations({
 
 List<String> validateMapEntityPresentation({
   required ProjectManifest project,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEntity entity,
-  List<MapData> maps = const [],
+  List<NarrativeMapView> maps = const [],
 }) {
   final errors = <String>[];
   if (entity.presentation != null &&

@@ -1,11 +1,11 @@
 import '../models/enums.dart';
-import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/project_manifest.dart';
 
 bool isNarrativeTriggerBumpSourceAvailable({
   required ProjectManifest project,
-  required MapData map,
+  required NarrativeMapView map,
   required String triggerId,
 }) {
   if (project.settings.dimension != ProjectDimension.twoD ||

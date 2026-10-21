@@ -709,7 +709,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Set<_LoadedPlayableMap> _retiringLoadedMaps = Set.identity();
   Iterable<RuntimeTilesetImage> _playerRetainedImages = const [];
-  final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
+  final Map<String, ({
+    Future<_LoadedPlayableMap?> future,
+    bool prefetch,
+    int generation,
+  })> _loadMapFutureById = {};
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
   final bool _hasInjectedRuntimeMapBundleLoader;
@@ -728,6 +732,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       <String, Future<void>>{};
   late final BorderRuntimeAssetCache _borderRuntimeAssetCache;
   final _prefetchQueue = RuntimePrefetchQueue();
+  final Set<Future<void>> _mapResourcePrefetchVisualWork = {};
+  var _mapResourcePrefetchGeneration = 0;
   final _pendingTileImageHandoffs = Set<Map<String, RuntimeTilesetImage>>.identity();
   final _pendingBorderImageHandoffs = Set<BorderRuntimeAssetBundle>.identity();
   var _mapMountsInProgress = 0;
@@ -3403,7 +3409,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _setDerivedInputLock(
       RuntimeInputLockOwner.mapActivation,
       RuntimeInputSurface.blocked,
-      _blocksOverworldForMapActivationWork && !_preservingConnectionInput,
+      _blocksOverworldForMapActivationWork,
     );
     _setDerivedInputLock(
       RuntimeInputLockOwner.narrativeDispatch,
@@ -4561,6 +4567,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     ProjectManifest? manifest,
     bool prefetch = false,
     bool retainUntilMount = false,
+    bool forceEviction = false,
     RuntimeMapBundle? resourceBundle,
     bool Function()? isCurrent,
   }) async {
@@ -4577,10 +4584,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (!prefetch) {
       _trimImageCachesForDemand(requestedPaths: absolutePathByTilesetId,
         requestedTransparentColors: transparentColors,
-        requestedBorders: resourceBundle);
+        requestedBorders: resourceBundle, forceEviction: forceEviction);
     }
     _tilesetLoadsInProgress++;
     late final Map<String, RuntimeTilesetImage> result;
+    var retryAfterTrim = false;
     try {
       result = await _tilesetImageCache.loadById(
         absolutePathByTilesetId,
@@ -4589,8 +4597,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         isCurrent: isCurrent ?? () => !_isRemoved,
       );
       if (retainUntilMount) _pendingTileImageHandoffs.add(result);
+    } on RuntimeResourceAdmissionException catch (error) {
+      if (prefetch || forceEviction || error.reason != 'resident_bytes') rethrow;
+      retryAfterTrim = true;
     } finally {
       _tilesetLoadsInProgress--;
+    }
+    if (retryAfterTrim) {
+      return _loadTilesetImagesCached(
+        absolutePathByTilesetId,
+        manifest: manifest,
+        prefetch: prefetch,
+        retainUntilMount: retainUntilMount,
+        resourceBundle: resourceBundle,
+        isCurrent: isCurrent,
+        forceEviction: true,
+      );
     }
     for (final entry in absolutePathByTilesetId.entries) {
       if (!result.containsKey(entry.key)) {
@@ -4609,6 +4631,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     RuntimeMapBundle bundle, {
     bool prefetch = false,
     bool retainUntilMount = true,
+    bool forceEviction = false,
     bool Function()? isCurrent,
   }) async {
     final preparation = bundle.borderRuntimePreparation;
@@ -4619,21 +4642,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
     }
     if (!prefetch) {
-      _trimImageCachesForDemand(requestedBorders: bundle);
+      _trimImageCachesForDemand(requestedBorders: bundle,
+          forceEviction: forceEviction);
     }
     _borderLoadsInProgress++;
+    late final BorderRuntimeAssetBundle result;
+    var retryAfterTrim = false;
     try {
-      final result = await _borderRuntimeAssetCache.loadCollection(
+      result = await _borderRuntimeAssetCache.loadCollection(
         projectRoot: bundle.projectRootDirectory,
         collection: preparation.assetCollection,
         prefetch: prefetch,
         isCurrent: isCurrent ?? () => !_isRemoved,
       );
       if (!prefetch && retainUntilMount) _pendingBorderImageHandoffs.add(result);
-      return result;
+    } on RuntimeResourceAdmissionException catch (error) {
+      if (prefetch || forceEviction || error.reason != 'resident_bytes') rethrow;
+      retryAfterTrim = true;
     } finally {
       _borderLoadsInProgress--;
     }
+    if (retryAfterTrim) {
+      return _loadBorderRuntimeAssets(
+        bundle,
+        prefetch: prefetch,
+        retainUntilMount: retainUntilMount,
+        isCurrent: isCurrent,
+        forceEviction: true,
+      );
+    }
+    return result;
   }
 
   Map<String, TilesetTransparentColor> _transparentColorByTilesetId(
@@ -12481,7 +12519,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<SceneConsequenceRuntimeWriter> _buildSceneConsequenceRuntimeWriter({
     required ProjectManifest project,
-    required Map<String, MapData> mapsById,
+    required Map<String, NarrativeMapView> mapsById,
     required String sceneId,
     required GameState gameState,
   }) async {
@@ -16464,6 +16502,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     var transitionCompleted = false;
     MapInstanceWorldState? guardedInstances;
     try {
+      _suspendMapResourcePrefetch();
       _clearTransientUiState(preservedWarpOwner: presentationOwner);
       if (!skipVisualTransition) {
         overlay = WarpTransitionOverlayComponent(
@@ -16952,6 +16991,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     var transitionCompleted = false;
     final connectionStopwatch = Stopwatch()..start();
     try {
+      _suspendMapResourcePrefetch();
       final sourcePlayerScreenTopLeft = debugPlayerScreenTopLeft;
       final sourceCameraWorldTopLeft = debugCameraWorldTopLeft;
       debugPrint(
@@ -17501,7 +17541,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ),
     );
     final resolvedBorderAssets =
-        borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle, retainUntilMount: false);
+        borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle,
+          retainUntilMount: false);
     if (_isRemoved) throw StateError('The runtime session is closed.');
     final npcPred = _npcPresencePredicateFor(preparedBundle.manifest);
     final smartTileAnimationController = SmartTileAnimationActivationController(
@@ -17726,6 +17767,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   Future<_LoadedPlayableMap?> _ensureConnectionTargetLoaded({
     required _LoadedPlayableMap source,
     required TriggeredConnection connection,
+    bool prefetch = false,
   }) async {
     final targetMapId = connection.targetMapId;
     final existing = _loadedMapsById[targetMapId];
@@ -17750,33 +17792,54 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     final inFlight = _loadMapFutureById[targetMapId];
     if (inFlight != null) {
-      return await inFlight;
+      final loaded = await inFlight.future;
+      if (loaded != null || prefetch || !inFlight.prefetch ||
+          inFlight.generation == _mapResourcePrefetchGeneration || _isRemoved) {
+        return loaded;
+      }
+      if (identical(_loadMapFutureById[targetMapId]?.future, inFlight.future)) {
+        _loadMapFutureById.remove(targetMapId);
+      }
+      final replacement = _loadMapFutureById[targetMapId];
+      if (replacement != null) return await replacement.future;
     }
+    final generation = _mapResourcePrefetchGeneration;
+
+    bool isCurrentPrefetch() =>
+        !_isRemoved && !_mapResourceDemandInProgress &&
+        generation == _mapResourcePrefetchGeneration &&
+        identical(_loadedMapsById[source.bundle.map.id], source);
 
     Future<_LoadedPlayableMap?> load() async {
       try {
         final bundle = await _loadRuntimeMapBundleCached(targetMapId);
-        final origin = _computeConnectedOriginCells(
-          source: source,
-          connection: connection,
-          targetSize: bundle.map.size,
-        );
-        final images = await _loadTilesetImagesCached(
-          bundle.runtimeImageAbsolutePathsById,
-          manifest: bundle.manifest,
-          retainUntilMount: true,
-          resourceBundle: bundle,
-        );
-        final loaded = await _mountLoadedMap(
-          bundle: bundle,
-          tileImagesById: images,
-          originCellX: origin.x,
-          originCellY: origin.y,
-        );
-        debugPrint(
-          '[connection] loaded map=${bundle.map.id} origin=(${origin.x}, ${origin.y})',
-        );
-        return loaded;
+        if (_isRemoved || (prefetch && !isCurrentPrefetch())) return null;
+        Future<_LoadedPlayableMap> mount() async {
+          final origin = _computeConnectedOriginCells(
+            source: source,
+            connection: connection,
+            targetSize: bundle.map.size,
+          );
+          final images = await _loadTilesetImagesCached(
+            bundle.runtimeImageAbsolutePathsById,
+            manifest: bundle.manifest,
+            retainUntilMount: true,
+            resourceBundle: bundle,
+          );
+          final loaded = await _mountLoadedMap(
+            bundle: bundle,
+            tileImagesById: images,
+            originCellX: origin.x,
+            originCellY: origin.y,
+          );
+          debugPrint(
+            '[connection] loaded map=${bundle.map.id} origin=(${origin.x}, ${origin.y})',
+          );
+          return loaded;
+        }
+        return prefetch
+            ? await _runMapResourcePrefetchVisualWork(mount)
+            : await mount();
       } catch (e, st) {
         debugPrint(
             '[connection] load failed target=$targetMapId error=$e\n$st',
@@ -17786,12 +17849,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
 
     final future = load();
-    _loadMapFutureById[targetMapId] = future;
+    _loadMapFutureById[targetMapId] = (
+      future: future,
+      prefetch: prefetch,
+      generation: generation,
+    );
     try {
       return await future;
     } finally {
       final current = _loadMapFutureById[targetMapId];
-      if (identical(current, future)) {
+      if (identical(current?.future, future)) {
         _loadMapFutureById.remove(targetMapId);
       }
       _pruneLoadedMapsToActiveNeighborhood();
@@ -17884,6 +17951,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     for (final connection in active.bundle.map.connections) {
       _ensureConnectionTargetLoaded(
         source: active,
+        prefetch: true,
         connection: TriggeredConnection(
           direction: connection.direction,
           targetMapId: connection.targetMapId,
@@ -17920,15 +17988,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       try {
         final bundle = await _loadRuntimeMapBundleCached(normalizedTargetMapId);
         if (!isCurrent() || _isRemoved) return;
-        await _loadTilesetImagesCached(
-          bundle.runtimeImageAbsolutePathsById,
-          manifest: bundle.manifest,
-          prefetch: true,
-          isCurrent: isCurrent,
-        );
-        if (!isCurrent() || _isRemoved) return;
-        await _loadBorderRuntimeAssets(bundle,
-            prefetch: true, isCurrent: isCurrent);
+        await _runMapResourcePrefetchVisualWork(() async {
+          await _loadTilesetImagesCached(
+            bundle.runtimeImageAbsolutePathsById,
+            manifest: bundle.manifest,
+            prefetch: true,
+            isCurrent: isCurrent,
+          );
+          if (!isCurrent() || _isRemoved) return;
+          await _loadBorderRuntimeAssets(bundle,
+              prefetch: true, isCurrent: isCurrent);
+        });
       } catch (error, stackTrace) {
         debugPrint(
           '[perf][warp][real] prewarmTargetFailed map=$normalizedTargetMapId error=$error\n$stackTrace',
@@ -18342,6 +18412,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     _tilesetImageCache.trimToBudget(
       maxBytes: _memoryPressureSeen ? 0 : 64 * 1024 * 1024,
+      countRetainedBytes: false,
       retainedImages: [
         ..._playerRetainedImages,
         for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps,
@@ -18351,6 +18422,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     );
     _borderRuntimeAssetCache.trimToBudget(
       maxBytes: _memoryPressureSeen ? 0 : 64 * 1024 * 1024,
+      countRetainedBytes: false,
       retainedImages: [
         for (final loaded in [..._loadedMapsById.values, ..._retiringLoadedMaps,
         ])
@@ -18359,14 +18431,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     );
   }
 
-  Future<void> _prepareMapResourcesForDemand(RuntimeMapBundle target) async {
+  void _suspendMapResourcePrefetch() {
     _mapResourceDemandInProgress = true;
+    _mapResourcePrefetchGeneration++;
     _prefetchQueue.invalidate();
-    await Future.wait<void>([
-      for (final future in _loadMapFutureById.values.toList())
-        future.then((_) {}),
-      ..._prewarmedWarpTargetFutureByMapId.values,
-    ]);
+  }
+
+  Future<T> _runMapResourcePrefetchVisualWork<T>(
+    Future<T> Function() work,
+  ) async {
+    final completion = Completer<void>();
+    _mapResourcePrefetchVisualWork.add(completion.future);
+    try {
+      return await work();
+    } finally {
+      _mapResourcePrefetchVisualWork.remove(completion.future);
+      completion.complete();
+    }
+  }
+
+  Future<void> _prepareMapResourcesForDemand(RuntimeMapBundle target) async {
+    await Future.wait<void>(_mapResourcePrefetchVisualWork.toList());
     if (_isRemoved) throw StateError('The runtime session is closed.');
     final visible = camera.visibleWorldRect;
     final removable = _loadedMapsById.values.where((loaded) {
@@ -18400,6 +18485,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     Map<String, String> requestedPaths = const {},
     Map<String, TilesetTransparentColor> requestedTransparentColors = const {},
     RuntimeMapBundle? requestedBorders,
+    bool forceEviction = false,
   }) {
     if (!_onLoadInProgress && !_isLoadActivationWorkInFlight &&
         _flowPhase != _RuntimeFlowPhase.mapTransition &&
@@ -18408,7 +18494,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _pendingBorderImageHandoffs.clear();
     }
     _tilesetImageCache.trimToBudget(
-      maxBytes: 0,
+      maxBytes: forceEviction || _memoryPressureSeen ? 0 : 64 * 1024 * 1024,
+      countRetainedBytes: false,
       retainedImages: [
         ..._playerRetainedImages,
         if (_tilesetLoadsInProgress > 0) ..._tilesetImageCache.loadedImages,
@@ -18423,7 +18510,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ],
     );
     _borderRuntimeAssetCache.trimToBudget(
-      maxBytes: 0,
+      maxBytes: forceEviction || _memoryPressureSeen ? 0 : 64 * 1024 * 1024,
+      countRetainedBytes: false,
       retainedImages: [
         if (requestedBorders?.borderRuntimePreparation case final preparation?)
           ..._borderRuntimeAssetCache.imagesForCollection(
@@ -18519,10 +18607,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (!imageIds.every(paths.containsKey)) {
       throw StateError('The player avatar media is unavailable.');
     }
+    final avatarPaths = {for (final id in imageIds) id: paths[id]!};
+    _trimImageCachesForDemand(
+      requestedPaths: avatarPaths,
+      requestedTransparentColors: _transparentColorByTilesetId(
+        avatarBundle.manifest,
+      ),
+      requestedBorders: avatarBundle,
+      forceEviction: true,
+    );
     _tilesetLoadsInProgress++;
     try {
       final images = await _loadTilesetImagesCached(
-        {for (final id in imageIds) id: paths[id]!},
+        avatarPaths,
         isCurrent: isCurrent,
         manifest: avatarBundle.manifest,
       );

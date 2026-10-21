@@ -6,6 +6,8 @@ import '../catalogs/narrative_spatial_event_source_catalog.dart';
 import '../compatibility/legacy_map_event_projection.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
+import '../models/narrative_map_projection.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
@@ -16,7 +18,7 @@ import 'narrative_event_canonical_json.dart';
 
 NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   required ProjectManifest project,
-  required List<MapData> maps,
+  required List<NarrativeMapView> maps,
   List<LegacyMapEventProjection> legacyProjections = const [],
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
   List<NarrativeEventRecord> proposedRecords = const [],
@@ -300,7 +302,11 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     nativeMaps: maps,
     manifestHash: () => _jsonFingerprint(project.toJson()),
     mapHashes: () => {
-      for (final map in maps) map.id: _jsonFingerprint(map.toJson()),
+      for (final map in maps) map.id: switch (map) {
+        MapData() => _jsonFingerprint(map.toJson()),
+        NarrativeMapProjection() => map.sourceMapFingerprint,
+        _ => throw ArgumentError('Narrative map fingerprint is unavailable.'),
+      },
     },
     spatialSources: spatialSources,
     outcomeSources: outcomeSources,

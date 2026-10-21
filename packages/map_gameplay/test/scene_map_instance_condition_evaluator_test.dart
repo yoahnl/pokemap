@@ -1,8 +1,50 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('prepared owners preserve scoped booleans through a save round trip',
+      () {
+    final map = NarrativeMapProjection.fromMapData(_world().map);
+    final before = _state();
+    final scope = before.mapInstanceWorldState.instanceRef('source')!;
+    final changed = applySceneMapEventInstanceBoolean(
+      gameState: before,
+      consequence: _setter(true),
+      map: map,
+      expectedInstance: scope,
+    );
+    final restored =
+        GameState.fromJson(jsonDecode(jsonEncode(changed.toJson())));
+    expect(
+        evaluateSceneMapEventInstanceBoolean(
+          source: _boolean(),
+          gameState: restored,
+          map: map,
+          scope: scope,
+        ),
+        isTrue);
+    expect(
+        evaluateSceneMapEventInstanceBoolean(
+          source: _boolean(),
+          gameState: before,
+          map: map,
+          scope: scope,
+        ),
+        isFalse);
+    expect(
+        () => evaluateSceneMapEventInstanceBoolean(
+              source: _boolean(),
+              gameState: restored,
+              map: map,
+              scope:
+                  MapInstanceRef(mapId: 'other', instanceId: 'other-instance'),
+            ),
+        throwsStateError);
+  });
+
   test('matches only the exact logical entity anchor on the current map', () {
     expect(_atAnchor(_world(playerPos: const GridPos(x: 2, y: 2))), isTrue);
     for (final pos in [

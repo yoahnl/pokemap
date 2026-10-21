@@ -20,6 +20,7 @@ import 'map_visual_stack_config.dart';
 import 'map_spatial_scene.dart';
 import 'smart_tile_gameplay_zone_provenance.dart';
 import 'smart_tile.dart';
+import 'narrative_map_view.dart';
 
 import '../compatibility/environment_single_area_migration.dart';
 
@@ -27,7 +28,7 @@ part 'map_data.freezed.dart';
 part 'map_data.g.dart';
 
 @Freezed(fromJson: true, toJson: true)
-abstract class MapData with _$MapData {
+abstract class MapData with _$MapData implements NarrativeMapView {
   @JsonSerializable(explicitToJson: true)
   const factory MapData({
     required String id,

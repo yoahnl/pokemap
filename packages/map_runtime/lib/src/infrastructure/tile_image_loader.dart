@@ -60,6 +60,7 @@ final class RuntimeTilesetImageSingleFlightCache {
   void trimToBudget({
     required int maxBytes,
     required Iterable<RuntimeTilesetImage> retainedImages,
+    bool countRetainedBytes = true,
   }) {
     if (_isDisposed) return;
     final retained = Set<RuntimeTilesetImage>.identity()
@@ -68,7 +69,9 @@ final class RuntimeTilesetImageSingleFlightCache {
       ..addAll(_completed.values);
     var bytes = oldestFirst.fold<int>(
       0,
-      (total, image) => total + image.width * image.height * 4,
+      (total, image) => !countRetainedBytes && retained.contains(image)
+          ? total
+          : total + image.width * image.height * 4,
     );
     for (final image in oldestFirst) {
       if (bytes <= maxBytes) break;
