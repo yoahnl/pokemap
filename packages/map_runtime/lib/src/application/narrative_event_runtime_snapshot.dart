@@ -68,6 +68,7 @@ final class NarrativeEventRuntimeSnapshot {
         projectCatalog: buildNarrativeEventProjectCatalog(
           project: project,
           maps: const <MapData>[],
+          deferFingerprints: true,
         ),
         legacyClaimIndex: structuralClaimIndex,
         validatedProjects: validatedProjects,
@@ -109,7 +110,7 @@ final class NarrativeEventRuntimeSnapshot {
     }
 
     if (owner != null) {
-      final hydrated = await owner.manifestForMaps(mapsById.values);
+      final hydrated = await owner.manifestForNarrativeMaps(mapsById.values);
       if (!identical(owner, RuntimeProjectCatalog.ownerOf(hydrated))) {
         throw StateError(
           'Event V2 runtime snapshot changed while hydrating maps.',
@@ -209,6 +210,7 @@ _buildNarrativeCatalog({
   final projectCatalog = buildNarrativeEventProjectCatalog(
     project: project,
     maps: mapsById.values.toList(growable: false),
+    deferFingerprints: true,
     legacyProjections: legacyMapProjections,
     referencedOutcomes: referencedOutcomes,
   );

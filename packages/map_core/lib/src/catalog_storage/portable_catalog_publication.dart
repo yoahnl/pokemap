@@ -3,6 +3,10 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
 
 import '../models/project_manifest.dart';
+import '../models/project_model3d.dart';
+import '../models/smart_tile.dart';
+import '../operations/environment_preset_json_codec.dart';
+import '../operations/project_border_catalog_json_codec.dart';
 import '../models/resource_library_catalog.dart';
 import '../models/resource_pack.dart';
 import '../models/resource_pack_catalog.dart';
@@ -229,17 +233,68 @@ final class PortableProjectCatalog {
     return project;
   }
 
+  Object definitionValue(CatalogDefinitionUnit unit) {
+    final section = _definitionSection(unit);
+    final position = unit.payload['position'];
+    if (position is! int ||
+        position < 0 ||
+        position >= snapshot.limits.maxDefinitions) {
+      throw const FormatException(
+        'catalog.project: invalid definition position',
+      );
+    }
+    final value = _map(unit.payload['value']);
+    if (section.startsWith('smartTileCatalog.')) {
+      final catalog = ProjectSmartTileCatalog.fromJson({
+        ..._map(_map(_shell.payload['value'])['smartTileCatalog']),
+        section.split('.').last: [value],
+      });
+      return switch (section) {
+        'smartTileCatalog.categories' => catalog.categories.single,
+        'smartTileCatalog.atlases' => catalog.atlases.single,
+        'smartTileCatalog.materials' => catalog.materials.single,
+        'smartTileCatalog.patterns' => catalog.patterns.single,
+        'smartTileCatalog.animations' => catalog.animations.single,
+        'smartTileCatalog.presets' => catalog.presets.single,
+        'smartTileCatalog.drafts' => catalog.drafts.single,
+        _ => throw const FormatException(
+          'catalog.project: unsupported definition',
+        ),
+      };
+    }
+    if (section.startsWith('borderCatalog.')) {
+      final catalog = decodeProjectBorderCatalogJson({
+        ..._map(_map(_shell.payload['value'])['borderCatalog']),
+        section.split('.').last: [value],
+      });
+      return section == 'borderCatalog.records'
+          ? catalog.records.single
+          : catalog.visualSnapshots.single;
+    }
+    return switch (section) {
+      'tilesets' => ProjectTilesetEntry.fromJson(value),
+      'elements' => ProjectElementEntry.fromJson(value),
+      'models3d' => ProjectModel3dEntry.fromJson(value),
+      'characters' => ProjectCharacterEntry.fromJson(value),
+      'environmentPresets' => decodeEnvironmentPreset(value),
+      'elementCategories' => ProjectElementCategory.fromJson(value),
+      'tilesetFolders' => ProjectTilesetFolder.fromJson(value),
+      'resourceLibraryCatalog.families' => ResourceFamily.fromJson(value),
+      'resourceLibraryCatalog.entries' => ResourceLibraryEntry.fromJson(value),
+      'characterStudioCatalog.portraitStates' =>
+        CharacterPortraitStateDefinition.fromJson(value),
+      'characterStudioCatalog.customAnimationDefinitions' =>
+        CharacterCustomAnimationDefinition.fromJson(value),
+      _ => throw const FormatException(
+        'catalog.project: unsupported definition',
+      ),
+    };
+  }
+
   ProjectManifest definitions(Iterable<CatalogDefinitionUnit> definitions) {
     final grouped = <String, List<CatalogDefinitionUnit>>{};
     for (final unit in definitions) {
-      final section = unit.payload['section'];
-      if (section is! String ||
-          !_sections.containsKey(section) ||
-          _sections[section] != unit.key.kind ||
-          unit.payload['id'] != unit.key.id ||
-          _id(section, unit.payload['value']) != unit.key.id) {
-        throw const FormatException('catalog.project: invalid definition');
-      }
+      final section = _definitionSection(unit);
       (grouped[section] ??= []).add(unit);
     }
     return ProjectManifest.fromJson(
@@ -281,6 +336,18 @@ final class PortableProjectCatalog {
       resourceLibraryCatalog: selected.resourceLibraryCatalog,
     );
   }
+}
+
+String _definitionSection(CatalogDefinitionUnit unit) {
+  final section = unit.payload['section'];
+  if (section is! String ||
+      !_sections.containsKey(section) ||
+      _sections[section] != unit.key.kind ||
+      unit.payload['id'] != unit.key.id ||
+      _id(section, unit.payload['value']) != unit.key.id) {
+    throw const FormatException('catalog.project: invalid definition');
+  }
+  return section;
 }
 
 Object? _immutableProjectProperty(Object? value, int depth) {
