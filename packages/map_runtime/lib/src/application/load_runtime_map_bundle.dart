@@ -350,23 +350,7 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
   String mapId, {
   Set<String> additionalCharacterIds = const {},
 }) async {
-  final entry = projectMapEntryForId(catalog.projectMetadata, mapId);
-  if (entry == null) throw MapLoadException('Map id not in project: $mapId');
-  final root = p.dirname(catalog.projectFilePath);
-  final mapPath = p.normalize(p.join(root, entry.relativePath));
-  if (!p.isWithin(root, mapPath) ||
-      !p.isWithin(root, await File(mapPath).resolveSymbolicLinks())) {
-    throw const MapLoadException('Map entry escapes the project directory');
-  }
-  final map = await Isolate.run(() async {
-    final file = File(mapPath);
-    if (await file.length() > 128 * 1024 * 1024) {
-      throw const MapLoadException('Map document exceeds its byte limit');
-    }
-    final raw = decodeNarrativeEventJsonStrict(await file.readAsString());
-    return MapData.fromJson(raw as Map<String, dynamic>);
-  });
-  if (map.id != mapId) throw const MapLoadException('Map identity mismatch');
+  final map = await catalog.loadMapData(mapId);
   final project = await catalog.manifestForMap(
     map,
     extraCharacterIds: additionalCharacterIds,

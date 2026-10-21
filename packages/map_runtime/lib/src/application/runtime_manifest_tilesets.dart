@@ -169,7 +169,7 @@ bool _usesCharacterTileset(ProjectCharacterEntry character) =>
     );
 
 Set<String> collectRuntimeMapCharacterIds(
-  MapData map,
+  NarrativeMapView map,
   ProjectManifest manifest, {
   Set<String> additionalCharacterIds = const {},
   Set<String> additionalSceneIds = const {},
@@ -197,11 +197,11 @@ Set<String> collectRuntimeMapCharacterIds(
           if (node.payload case SceneActionPayload(:final consequence))
             if (consequence case SceneSetPlayerAvatarConsequence(:final characterId))
               characterId,
+    for (final entity in map.entities) ?resolveNpcCharacterId(entity, manifest),
     for (final entity in map.entities)
-      ?resolveNpcCharacterId(entity, manifest),
-    for (final entity in map.entities)
-      for (final variant in entity.presentation?.variants ??
-          const <MapEntityPresentationVariant>[])
+      for (final variant
+          in entity.presentation?.variants ??
+              const <MapEntityPresentationVariant>[])
         ?variant.characterId,
     for (final event in map.events)
       for (final page in event.pages)
@@ -218,7 +218,7 @@ Set<String> collectRuntimeMapCharacterIds(
 }
 
 Set<String> collectRuntimeMapSceneIds(
-  MapData map,
+  NarrativeMapView map,
   ProjectManifest manifest, {
   Set<String> additionalSceneIds = const {},
 }) {

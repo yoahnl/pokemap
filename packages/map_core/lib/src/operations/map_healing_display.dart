@@ -2,11 +2,12 @@ import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/project_manifest.dart';
 import '../models/project_tileset_source.dart';
 import 'project_tileset_visual_resolver.dart';
 
-MapEntity? resolveHealingDisplayEntity(MapData map, String entityId) {
+MapEntity? resolveHealingDisplayEntity(NarrativeMapView map, String entityId) {
   if (entityId.isEmpty ||
       entityId.trim() != entityId ||
       map.spatialScene != null ||

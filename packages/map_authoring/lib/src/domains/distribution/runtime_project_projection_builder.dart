@@ -508,16 +508,23 @@ final class RuntimeProjectProjectionBuilder {
           presentationPackage?.excludedSourceAssetIds ?? const <String>{},
     );
 
+    final jsonRoots = <String>{
+      'project.json',
+      ...projectedProject.maps.map((entry) => entry.relativePath),
+      ...compiledEntries.map((entry) => entry.relativePath),
+      for (final path in payload.keys)
+        if (path.startsWith('project/') && path.endsWith('.json'))
+          path.substring('project/'.length),
+    };
+    final pokemonCatalogPaths = projectedProject.pokemon.catalogFiles.values
+        .map(_normalizeRelative)
+        .toSet();
     await for (final entity
         in projectRoot.list(recursive: true, followLinks: false)) {
       budget.visitWorkspaceEntry();
-      final type = await FileSystemEntity.type(
-        entity.path,
-        followLinks: false,
-      );
-      final relative = _normalizeRelative(
-        p.relative(entity.path, from: projectRoot.path),
-      );
+      final type = await FileSystemEntity.type(entity.path, followLinks: false);
+      final relative =
+          _normalizeRelative(p.relative(entity.path, from: projectRoot.path));
       if (type == FileSystemEntityType.link) {
         throw GamePackageExportException(
           code: 'symlinkRejected',
@@ -525,49 +532,77 @@ final class RuntimeProjectProjectionBuilder {
           message: 'Author workspaces containing symlinks cannot be exported.',
         );
       }
-      if (type == FileSystemEntityType.directory &&
-          !_isExcludedAuthoringPath(relative)) {
-        payloadDirectories.add(
-          _normalizePackagePath('project/$relative'),
-        );
+      if (_isExcludedAuthoringPath(relative)) {
+        continue;
+      }
+      if (type == FileSystemEntityType.directory) {
+        payloadDirectories.add(_normalizePackagePath('project/$relative'));
         continue;
       }
       if (type != FileSystemEntityType.file ||
           relative == 'project.json' ||
           dialogueSources.contains(relative) ||
           (presentationPackage?.excludedLogicalPaths.contains(relative) ??
-              false) ||
-          _isExcludedAuthoringPath(relative)) {
+              false)) {
         continue;
       }
       final extension = p.extension(relative).toLowerCase();
-      if (!_isRuntimeProjectFile(
-        relative,
-        extension,
-        hasCanonicalAssetCatalog: authorFiles.catalog.records.isNotEmpty,
-      )) {
+      if (extension == '.json') {
+        if (relative.startsWith('data/') ||
+            pokemonCatalogPaths.contains(relative)) {
+          jsonRoots.add(relative);
+        }
         continue;
       }
-      if (payload.containsKey('project/$relative')) continue;
-      final bytes = await authorFiles.read(relative, budget,
-          jsonLike: extension == '.json');
+      if (!_isRuntimeProjectFile(relative, extension,
+          hasCanonicalAssetCatalog: authorFiles.catalog.records.isNotEmpty)) {
+        continue;
+      }
+      if (payload.containsKey('project/$relative')) {
+        continue;
+      }
+      budget.addPayload(payload, _normalizePackagePath('project/$relative'),
+          await authorFiles.read(relative, budget));
+    }
+    final visitedJson = <String>{};
+    final pendingJson = jsonRoots.toList(growable: true);
+    while (pendingJson.isNotEmpty) {
+      final relative = _normalizeRelative(pendingJson.removeLast());
+      if (!visitedJson.add(relative)) {
+        continue;
+      }
       final packagePath = _normalizePackagePath('project/$relative');
-      if (extension == '.json') {
-        final decoded = _decodeJson(bytes, relative);
+      Object? runtimeJson;
+      if (relative == 'project.json') {
+        final projectJson = projectedProject.toJson();
+        if (projectJson['pokemon'] case final Map<String, dynamic> pokemon) {
+          pokemon.remove('catalogFiles');
+        }
+        runtimeJson = projectJson;
+      } else if (payload[packagePath] case final bytes?) {
+        runtimeJson = _decodeJson(bytes, relative);
+      } else {
+        if (_isExcludedAuthoringPath(relative)) {
+          throw GamePackageExportException(
+            code: 'excludedRuntimeReference',
+            path: relative,
+            message: 'Runtime data references an authoring-only document.',
+          );
+        }
+        final decoded = _decodeJson(
+          await authorFiles.read(relative, budget, jsonLike: true),
+          relative,
+        );
         final runtimeData = relative.startsWith('data/pokemon/catalogs/')
             ? _projectPokemonCatalog(decoded)
             : decoded;
         final scrubbed = _scrubJson(runtimeData);
         scrubbedSecretFieldCount += scrubbed.removedSecretFields;
-        final rewritten = _rewriteLegacyDialogueReferences(scrubbed.value);
+        runtimeJson = _rewriteLegacyDialogueReferences(scrubbed.value);
         budget.addPayload(
-          payload,
-          packagePath,
-          _encodeRuntimeJson(rewritten),
-        );
-      } else {
-        budget.addPayload(payload, packagePath, bytes);
+            payload, packagePath, _encodeRuntimeJson(runtimeJson));
       }
+      pendingJson.addAll(_runtimeJsonReferences(runtimeJson));
     }
 
     budget.addPayload(
@@ -1227,6 +1262,58 @@ final class RuntimeProjectProjectionBuilder {
       return result;
     }
     return value;
+  }
+
+  Iterable<String> _runtimeJsonReferences(Object? value) sync* {
+    final camelSuffix = RegExp(
+        r'(?:Path|Paths|File|Files|Filename|Filenames|PathRelative|Uri|Uris|Url|Urls|Asset|Assets|Source|Sources|Dir|Directory|Root)$');
+    final separatedSuffix = RegExp(
+        r'(?:^|[_-])(?:path|paths|file|files|filename|filenames|path_relative|uri|uris|url|urls|asset|assets|source|sources|dir|directory|root)$',
+        caseSensitive: false);
+    final pending = <({Object? value, bool reference, bool dictionary})>[
+      (value: value, reference: false, dictionary: false)
+    ];
+    while (pending.isNotEmpty) {
+      final current = pending.removeLast();
+      if (current.value case final String text) {
+        if (!current.reference || !text.toLowerCase().endsWith('.json')) {
+          continue;
+        }
+        final uri = Uri.tryParse(text);
+        if (uri != null && uri.hasScheme) {
+          continue;
+        }
+        yield _normalizeRelative(text);
+      } else if (current.value case final List values) {
+        for (final child in values) {
+          pending.add((
+            value: child,
+            reference: current.reference,
+            dictionary: child is Map ? false : current.dictionary,
+          ));
+        }
+      } else if (current.value case final Map values) {
+        for (final entry in values.entries) {
+          if (entry.key is! String) {
+            continue;
+          }
+          final key = entry.key as String;
+          final namedReference =
+              camelSuffix.hasMatch(key) || separatedSuffix.hasMatch(key);
+          final normalized = _normalizeKey(key);
+          final dictionary = namedReference &&
+              (normalized.endsWith('paths') ||
+                  normalized.endsWith('files') ||
+                  normalized.endsWith('filenames'));
+          pending.add((
+            value: entry.value,
+            reference:
+                namedReference || (current.dictionary && entry.value is String),
+            dictionary: dictionary,
+          ));
+        }
+      }
+    }
   }
 
   static String _safeDialogueFileName(String dialogueId) {

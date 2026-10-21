@@ -1,4 +1,6 @@
 export 'src/models/map_entity_interactive_encounter.dart';
+export 'src/models/narrative_map_view.dart';
+export 'src/models/narrative_map_projection.dart';
 export 'src/models/map_entity_field_obstacle.dart';
 export 'map_core_domain.dart';
 export 'src/runtime/runtime_resource_budget.dart';

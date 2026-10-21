@@ -1,3 +1,4 @@
+import 'package:pokemap_hub/features/session/data/repositories/hub_prepared_narrative_index.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -148,6 +149,8 @@ final class HubRuntimeStartupBootstrap
     RuntimeStartupBootstrapStageSink onStageCompleted,
   ) async {
     HubInstalledPresentationRuntime? presentationRuntime;
+    RuntimeProjectCatalog? preparedCatalog;
+    RuntimeInitialMapPreloader? ownedPreloader;
     try {
       final workGate = startupWorkGate;
       if (workGate != null) {
@@ -191,14 +194,13 @@ final class HubRuntimeStartupBootstrap
         supportedLocales: launch.manifest.locales.supported,
         fallbackLocale: launch.manifest.locales.defaultLocale,
       );
-      final saveSelection = await HubSaveProfileManager(
-        store: store,
-      ).ensureDefaultSelection(
-        defaultProfileDisplayName: defaultProfileDisplayNameForLocale(
-          playerLocale,
-        ),
-        defaultSlotDisplayName: 'Slot 1',
-      );
+      final saveSelection = await HubSaveProfileManager(store: store)
+          .ensureDefaultSelection(
+            defaultProfileDisplayName: defaultProfileDisplayNameForLocale(
+              playerLocale,
+            ),
+            defaultSlotDisplayName: 'Slot 1',
+          );
       lifetime?.ensureActive();
       onStageCompleted(RuntimeStartupBootstrapStage.hostStorage);
 
@@ -210,9 +212,11 @@ final class HubRuntimeStartupBootstrap
 
       final projectFile = await launch.assets.resolveReference(launch.project);
       lifetime?.ensureActive();
-      final metadataCatalog = await RuntimeProjectCatalog.open(projectFile.path);
+      final metadataCatalog = await RuntimeProjectCatalog.open(
+        projectFile.path,
+      );
+      preparedCatalog = metadataCatalog;
       final installedProject = metadataCatalog.projectMetadata;
-      metadataCatalog.dispose();
       lifetime?.ensureActive();
       final spatial =
           installedProject.settings.dimension == ProjectDimension.threeD;
@@ -222,15 +226,14 @@ final class HubRuntimeStartupBootstrap
         );
       }
       if (installedProject.presentationCinematics.isNotEmpty) {
-        final media =
-            _referencesPresentationMedia(installedProject)
-                ? await const HubInstalledPresentationMediaLoader().load(
-                  launch.assets,
-                )
-                : HubInstalledPresentationMedia(
-                  catalog: ProjectMediaCatalog(),
-                  mediaUris: const <String, Uri>{},
-                );
+        final media = _referencesPresentationMedia(installedProject)
+            ? await const HubInstalledPresentationMediaLoader().load(
+                launch.assets,
+              )
+            : HubInstalledPresentationMedia(
+                catalog: ProjectMediaCatalog(),
+                mediaUris: const <String, Uri>{},
+              );
         lifetime?.ensureActive();
         presentationRuntime = HubInstalledPresentationRuntime(
           runtimeSourceId: launch.identity.gameId,
@@ -249,6 +252,19 @@ final class HubRuntimeStartupBootstrap
         preferencesGateway: preferencesGateway,
       );
       final initialMapPreloader = RuntimeInitialMapPreloader(
+        preparedProjectCatalog: metadataCatalog,
+        preparedNarrativeMapsLoader: (_) async {
+          final index = HubPreparedNarrativeIndex(supportRoot: supportRoot);
+          final cached = await index.load(launch.manifest);
+          if (cached != null) return cached;
+          try {
+            await index.prepare(versionRoot: projectFile.parent.parent, manifest: launch.manifest);
+          } on PreparedNarrativeCacheUnavailable {
+            return null;
+          }
+          lifetime?.ensureActive();
+          return index.load(launch.manifest);
+        },
         expectedIdentity: launch.identity,
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
@@ -260,6 +276,9 @@ final class HubRuntimeStartupBootstrap
                 maximumConcurrentDecodes: 1,
               ),
       );
+      ownedPreloader = initialMapPreloader;
+      preparedCatalog = null;
+      lifetime?.own(() async => initialMapPreloader.clear());
       final RuntimeNewGameFlowPort newGameFlow = RuntimeProjectNewGameFlowPort(
         projectFilePath: () async => projectFile.path,
         initialMapPreloader: initialMapPreloader,
@@ -335,6 +354,8 @@ final class HubRuntimeStartupBootstrap
         ),
       );
     } on Object catch (error, stackTrace) {
+      preparedCatalog?.dispose();
+      ownedPreloader?.clear();
       await presentationRuntime?.close();
       if (error is _HubRuntimeStartupCancelled) rethrow;
       final recorded = await recordPlayerLaunchFailure(

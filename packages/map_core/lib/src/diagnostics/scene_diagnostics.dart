@@ -7,6 +7,7 @@ import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
@@ -470,7 +471,7 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
 SceneDiagnosticsReport diagnoseSceneAgainstProject(
   SceneAsset scene,
   ProjectManifest project, {
-  Map<String, MapData> mapsById = const {},
+  Map<String, NarrativeMapView> mapsById = const {},
   Set<String>? availableMoveIds,
   Set<String>? availableItemIds,
 }) => SceneProjectDiagnosticsContext(project,
@@ -480,7 +481,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
 
 final class SceneProjectDiagnosticsContext {
   factory SceneProjectDiagnosticsContext(ProjectManifest project, {
-    Map<String, MapData> mapsById = const {},
+    Map<String, NarrativeMapView> mapsById = const {},
     Set<String>? availableMoveIds,
     Set<String>? availableItemIds,
   }) {
@@ -569,7 +570,7 @@ final class SceneProjectDiagnosticsContext {
 
 SceneDiagnosticsReport _diagnoseSceneAgainstContext(
   SceneAsset scene, ProjectManifest project, {
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required Set<String>? availableMoveIds,
   required Set<String>? availableItemIds,
   required Map<String, ProjectModel3dEntry> modelsById,
@@ -1271,7 +1272,7 @@ void _diagnoseActionConsequenceAgainstProject(
   required Set<String> starterOptionIds,
   required Set<String> badgeIds,
   required Set<String> railJourneyIds,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required Map<String, ProjectModel3dEntry> modelsById,
   required Set<String>? availableMoveIds,
   required Set<String>? availableItemIds,
@@ -2569,7 +2570,7 @@ bool _isStoryStepCompletionValue(String? value) {
 
 bool _nativeEntityReferenceValid(String mapId, String entityId, {
   required Map<String, int> projectMapCounts,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   bool requireAnchor = false,
 }) {
   final map = mapsById[mapId];

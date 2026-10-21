@@ -54,7 +54,7 @@ String? sceneRailProgressionOperationId({
 final class SceneConsequenceRuntimeWriter {
   const SceneConsequenceRuntimeWriter({
     required this.project,
-    this.mapsById = const <String, MapData>{},
+    this.mapsById = const <String, NarrativeMapView>{},
     this.maxHpByPartyIndex = const <int, int>{},
     this.maxPpByPartyIndex = const <int, Map<String, int>>{},
     this.mutations = const GameStateMutations(),
@@ -65,7 +65,7 @@ final class SceneConsequenceRuntimeWriter {
   });
 
   final ProjectManifest project;
-  final Map<String, MapData> mapsById;
+  final Map<String, NarrativeMapView> mapsById;
   final Map<int, int> maxHpByPartyIndex;
   final Map<int, Map<String, int>> maxPpByPartyIndex;
   final GameStateMutations mutations;

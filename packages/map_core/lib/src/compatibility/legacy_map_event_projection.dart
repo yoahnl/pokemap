@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
@@ -188,7 +189,7 @@ final class LegacyMapEventProjection {
 
 LegacyMapEventProjection projectLegacyMapEventReadOnly({
   required String mapId,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEventDefinition event,
   required ValidatedLegacyClaimIndex claimIndex,
   List<LegacyEventReference> linkedReferences = const [],
@@ -241,7 +242,7 @@ LegacyMapEventProjection projectLegacyMapEventReadOnly({
       'event.id',
     );
   }
-  if (!map.layers.any((layer) => layer.id == event.position.layerId)) {
+  if (!narrativeMapLayerIds(map).contains(event.position.layerId)) {
     escalate(LegacyMigrationClassification.blocked);
     diagnose(
       LegacyMapEventDiagnosticCodes.layerMissing,
@@ -513,7 +514,7 @@ LegacyMapEventProjection projectLegacyMapEventReadOnly({
 
 void _collectSourceCandidates({
   required String mapId,
-  required MapData map,
+  required NarrativeMapView map,
   required MapEventDefinition event,
   required List<LegacyMapEventSourceCandidate> candidates,
   required void Function(LegacyMigrationClassification) escalate,

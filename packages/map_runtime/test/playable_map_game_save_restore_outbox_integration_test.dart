@@ -60,6 +60,7 @@ void main() {
       initialMapActivationReason: MapActivationReason.saveRestore,
     );
 
+    addTearDown(game.onRemove);
     game.onGameResize(Vector2(320, 240));
     await game.onLoad();
     await _waitForActivationDispatch(game);
@@ -97,12 +98,13 @@ void main() {
 }
 
 Future<void> _waitForActivationDispatch(PlayableMapGame game) async {
-  for (var i = 0; i < 240; i++) {
+  final wait = Stopwatch()..start();
+  while (wait.elapsed < const Duration(seconds: 5)) {
     if (!game.debugIsMapActivationDispatchInFlight) {
       return;
     }
     game.update(0.016);
-    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
   }
   fail('Timed out waiting for the saveRestore outbox dispatch.');
 }

@@ -12389,7 +12389,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<SceneConsequenceRuntimeWriter> _buildSceneConsequenceRuntimeWriter({
     required ProjectManifest project,
-    required Map<String, MapData> mapsById,
+    required Map<String, NarrativeMapView> mapsById,
     required String sceneId,
     required GameState gameState,
   }) async {

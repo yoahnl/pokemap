@@ -22,7 +22,7 @@ final class NarrativeEventRuntimeSnapshot {
        _owner = RuntimeProjectCatalog.ownerOf(project);
 
   final ProjectManifest project;
-  final Map<String, MapData> mapsById;
+  final Map<String, NarrativeMapView> mapsById;
   final EventRegistryDecodeResult registryResult;
   final NarrativeFactRuntimeResolver factResolver;
   final NarrativeEventProjectCatalog projectCatalog;
@@ -43,6 +43,7 @@ final class NarrativeEventRuntimeSnapshot {
     )
     loadMap,
     void Function(int completed, int total)? onMapLoaded,
+    List<NarrativeMapProjection>? preparedMaps,
   }) async {
     final registry =
         project.eventRegistry ??
@@ -76,7 +77,20 @@ final class NarrativeEventRuntimeSnapshot {
     }
     String? projectFingerprint;
     final owner = RuntimeProjectCatalog.ownerOf(project);
-    final mapsById = <String, MapData>{};
+    final mapsById = <String, NarrativeMapView>{};
+    final preparedById = preparedMaps == null
+        ? null
+        : {for (final map in preparedMaps) map.id: map};
+    if (preparedMaps != null &&
+        (preparedById!.length != preparedMaps.length ||
+            preparedMaps.length != project.maps.length ||
+            !project.maps.every(
+              (entry) => preparedById.containsKey(entry.id),
+            ))) {
+      throw StateError(
+        'Prepared narrative corpus does not match the project maps.',
+      );
+    }
 
     for (final mapEntry in project.maps) {
       if (mapsById.containsKey(mapEntry.id)) {
@@ -85,7 +99,10 @@ final class NarrativeEventRuntimeSnapshot {
           '"${mapEntry.id}".',
         );
       }
-      final loaded = await loadMap(mapEntry.id);
+      final ({ProjectManifest project, NarrativeMapView map}) loaded =
+          preparedById == null
+          ? await loadMap(mapEntry.id)
+          : (project: project, map: preparedById[mapEntry.id]!);
       if (!identical(owner, RuntimeProjectCatalog.ownerOf(loaded.project)) ||
           (owner == null &&
               !identical(loaded.project, project) &&
@@ -133,7 +150,7 @@ final class NarrativeEventRuntimeSnapshot {
 
     return NarrativeEventRuntimeSnapshot._(
       project: validationProject,
-      mapsById: Map<String, MapData>.unmodifiable(mapsById),
+      mapsById: Map<String, NarrativeMapView>.unmodifiable(mapsById),
       registryResult: registryResult,
       factResolver: factResolver,
       projectCatalog: catalog.projectCatalog,
@@ -149,7 +166,7 @@ final class NarrativeEventRuntimeSnapshot {
 })
 _buildNarrativeCatalog({
   required ProjectManifest project,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required NarrativeEventRegistry registry,
   required ValidatedLegacyClaimIndex structuralClaimIndex,
 }) {

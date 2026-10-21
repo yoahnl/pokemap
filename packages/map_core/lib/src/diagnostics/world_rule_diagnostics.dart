@@ -1,6 +1,7 @@
 import '../models/enums.dart';
 import '../models/game_state.dart';
 import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_fact_runtime_state.dart';
 import '../models/narrative_value.dart';
@@ -127,7 +128,7 @@ final class WorldRuleDiagnosticsReport {
 
 WorldRuleDiagnosticsReport diagnoseWorldRules(
   ProjectManifest project, {
-  List<MapData> maps = const <MapData>[],
+  List<NarrativeMapView> maps = const <NarrativeMapView>[],
 }) {
   final diagnostics = <WorldRuleDiagnostic>[];
   final mapsById = {for (final map in maps) map.id: map};
@@ -307,7 +308,7 @@ void _diagnoseTarget(
   WorldRuleDefinition rule,
   List<WorldRuleDiagnostic> diagnostics, {
   required Set<String> projectMapIds,
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required Set<String> narrativeEventIds,
 }) {
   if (rule.target.kind == WorldRuleTargetKind.narrativeEvent) {
@@ -708,7 +709,7 @@ Map<String, Set<NarrativeValue>> _producibleFactValues(
 
 void _diagnoseBlockingEntityRelease(
   List<WorldRuleDefinition> rules, {
-  required Map<String, MapData> mapsById,
+  required Map<String, NarrativeMapView> mapsById,
   required List<WorldRuleDiagnostic> diagnostics,
 }) {
   final neverProducedRuleIds = <String>{
@@ -827,7 +828,7 @@ WorldRuleDiagnostic _unknownTarget(
   );
 }
 
-MapEntity? _findEntity(MapData map, String entityId) {
+MapEntity? _findEntity(NarrativeMapView map, String entityId) {
   for (final entity in map.entities) {
     if (entity.id == entityId) {
       return entity;
@@ -844,7 +845,7 @@ Set<String> _storyStepIds(ProjectManifest project) {
   };
 }
 
-Set<String> _eventIds(ProjectManifest project, List<MapData> maps) {
+Set<String> _eventIds(ProjectManifest project, List<NarrativeMapView> maps) {
   return {
     for (final map in maps)
       for (final event in map.events) event.id,

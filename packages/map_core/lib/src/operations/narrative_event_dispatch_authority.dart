@@ -4,7 +4,7 @@ import '../catalogs/narrative_event_project_catalog.dart';
 import '../catalogs/narrative_outcome_event_source_catalog.dart';
 import '../catalogs/narrative_spatial_event_source_catalog.dart';
 import '../models/game_state.dart';
-import '../models/map_data.dart';
+import '../models/narrative_map_view.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_occurrence.dart';
 import '../models/narrative_event_registry.dart';
@@ -79,7 +79,7 @@ final class NarrativeEventDispatchAuthorityReady
     required NarrativeEventProjectCatalog projectCatalog,
     required _LegacyClaimAuthorityResolution claimResolution,
     required ProjectManifest? worldRuleProject,
-    required List<MapData> worldRuleMaps,
+    required List<NarrativeMapView> worldRuleMaps,
   })  : _registry = registry,
         _factResolver = factResolver,
         _projectCatalog = projectCatalog,
@@ -94,7 +94,7 @@ final class NarrativeEventDispatchAuthorityReady
   final NarrativeEventProjectCatalog _projectCatalog;
   final _LegacyClaimAuthorityResolution _claimResolution;
   final ProjectManifest? _worldRuleProject;
-  final List<MapData> _worldRuleMaps;
+  final List<NarrativeMapView> _worldRuleMaps;
 
   @override
   bool get isReady => true;
@@ -695,7 +695,7 @@ abstract final class NarrativeEventDispatchAuthority {
     ValidatedLegacyClaimIndex? legacyClaimIndex,
     NarrativeEventProjectCatalog? projectCatalog,
     ProjectManifest? project,
-    List<MapData> maps = const <MapData>[],
+    List<NarrativeMapView> maps = const <NarrativeMapView>[],
   }) {
     final failed = registryResult.when<NarrativeEventDispatchAuthorityBlocked?>(
       absent: () => null,
