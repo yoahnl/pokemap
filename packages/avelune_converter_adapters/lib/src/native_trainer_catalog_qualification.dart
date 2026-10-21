@@ -11,6 +11,7 @@ import 'native_psdk_catalog.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_source_species_bindings.dart';
 import 'native_trainer_authored_bindings.dart';
+import 'native_trainer_money_binding.dart';
 
 final class NativeTrainerQualificationLimits {
   const NativeTrainerQualificationLimits(
@@ -121,6 +122,8 @@ final class NativeTrainerCatalogQualification {
       _invalid('pbs_context',
           'Trainer qualification requires the exact complete canonical PBS context from the sealed source files.');
     }
+    final moneyWitness = await NativeTrainerMoneyWitness.read(
+        snapshot: snapshot, files: cached, cancellation: cancellation);
     final List<int> bytes;
     try {
       bytes = await cached.read(witness.fileId);
@@ -409,10 +412,16 @@ final class NativeTrainerCatalogQualification {
           _invalid('items_quota',
               'Authored trainer medicines exceed the native inventory bounds.');
         }
+        final money = NativeTrainerMoneyBinding.fromPbs(
+            source: source,
+            roster: entry,
+            team: team,
+            compiledWitness: moneyWitness);
         final trainer = ProjectTrainerEntry(
             id: identity.sourceId.value,
             name: identity.trainerName!,
             trainerClass: identity.trainerType!,
+            moneyReward: money.amount,
             battleItems: battleItems,
             team: List.unmodifiable(team),
             tags: const [
@@ -428,6 +437,7 @@ final class NativeTrainerCatalogQualification {
           'compiledByteOffset': record.offset,
           'compiledGraphPath': record.graphPath,
           'sourceLoseText': record.loseText,
+          'prizeMoney': money.evidence,
           'members': members,
           'nativeTrainer': trainer.toJson()
         };

@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_adapters/src/native_trainer_money_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
@@ -164,6 +165,19 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
   final fixture = await LiteralTileFixture.create(
       contradictoryProfile: contradictoryProfile,
       extraFiles: {
+        'PBS/trainer_types.txt': utf8.encode(rosters
+            .map((row) => row.type)
+            .toSet()
+            .map((type) => '[$type]\nName = Original Trainer\nBaseMoney = 30\n')
+            .join()),
+        'Data/trainer_types.dat': literalFixtureMarshal({
+          for (final type in rosters.map((row) => row.type).toSet())
+            LiteralFixtureSymbol(type):
+                LiteralFixtureObject('GameData::TrainerType', {
+              '@id': LiteralFixtureSymbol(type),
+              '@base_money': 30,
+            }),
+        }),
         'PBS/trainers.txt': utf8.encode(pbs ??
             rosters
                 .map((row) =>
@@ -437,6 +451,101 @@ Future<void> _realOracle(String studyPath) async {
 }
 
 void main() {
+  test('compiled prize witness cannot be borrowed from another source snapshot',
+      () async {
+    final first = await _source([_roster()]);
+    final second = await _source([
+      _roster()
+    ], extraFiles: {
+      'Graphics/Pictures/unrelated.bin': [1, 2, 3],
+    });
+    expect(first.fixture.snapshot.canonicalHash,
+        isNot(second.fixture.snapshot.canonicalHash));
+    final witness = await NativeTrainerMoneyWitness.read(
+        snapshot: first.fixture.snapshot, files: first.fixture.files);
+    final team = (await _prepare(second)).trainers.single.team;
+    final roster = second.pbs.entries
+        .singleWhere((entry) => entry.family == SourcePbsFamily.trainers);
+    expect(
+        () => NativeTrainerMoneyBinding.fromPbs(
+            source: second.pbs,
+            roster: roster,
+            team: team,
+            compiledWitness: witness),
+        _error('native_trainer.money_witness_context'));
+  });
+  test('qualified prize money agrees with PBS and compiled trainer type',
+      () async {
+    final input = await _source([
+      _roster(party: [_member(level: 25), _member(level: 5)]),
+    ]);
+    final result = await _prepare(input);
+    expect(result.refusals, isEmpty);
+    expect(result.trainers.single.moneyReward, 750);
+    final proof = result.rows.single['prizeMoney'] as Map;
+    expect(proof['compiledTrainerTypeAttested'], isTrue);
+    expect(proof['highestTeamLevel'], 25);
+  });
+
+  for (final defect in ['amount', 'identity', 'duplicate']) {
+    test('contradictory compiled prize $defect refuses its trainer', () async {
+      final symbol = LiteralFixtureSymbol('ARBITRARY');
+      final object = LiteralFixtureObject('GameData::TrainerType', {
+        '@id':
+            LiteralFixtureSymbol(defect == 'identity' ? 'OTHER' : 'ARBITRARY'),
+        '@base_money': defect == 'amount' ? 99 : 30,
+      });
+      final bytes = defect == 'duplicate'
+          ? [
+              4,
+              8,
+              ..._hashWithFields([
+                MapEntry(
+                    const _Symbol('ARBITRARY'),
+                    LiteralFixtureObject('GameData::TrainerType', {
+                      '@id': const _Symbol('ARBITRARY'),
+                      '@base_money': 30,
+                    })),
+                MapEntry(
+                    const _Symbol('ARBITRARY'),
+                    LiteralFixtureObject('GameData::TrainerType', {
+                      '@id': const _Symbol('ARBITRARY'),
+                      '@base_money': 30,
+                    })),
+              ]).bytes
+            ]
+          : literalFixtureMarshal({symbol: object});
+      final input = await _source([
+        _roster()
+      ], extraFiles: {
+        'Data/trainer_types.dat': bytes,
+      });
+      final result = await _prepare(input);
+      expect(result.trainers, isEmpty);
+      expect(result.refusals.single.code,
+          'native_trainer.money_compiled_mismatch');
+    });
+  }
+
+  test('a forged portable prize cannot survive source requalification',
+      () async {
+    final input = await _source([_roster()]);
+    final result = await _prepare(input);
+    final forged = _forge(result, (proof) {
+      final row = (proof['trainers'] as List).single as Map;
+      (row['nativeTrainer'] as Map)['moneyReward'] = 999999;
+    });
+    await expectLater(
+      NativeTrainerCatalogQualification.fromArtifacts(
+        artifacts: forged.artifacts,
+        evidence: forged.evidence,
+        normalizedSource: input.fixture.source,
+        files: input.fixture.files,
+        nativeCatalog: NativePsdkTrainerBundle.builtin(),
+      ),
+      _error('native_trainer.portable_requalification'),
+    );
+  });
   final authoredFiles = <String, List<int>>{
     'PBS/moves.txt': utf8.encode(
         '[TACKLE]\nName = Tackle\nType = NORMAL\nCategory = Physical\nPower = 40\nAccuracy = 100\nTotalPP = 35\nTarget = NearOther\nFunctionCode = None\n'

@@ -10,6 +10,19 @@ Map<String, List<int>> nativeTrainerFixtureFiles(
           (species: 'RATTATA', level: 16)
         ]}) =>
     {
+      'PBS/trainer_types.txt': utf8.encode(rosters
+          .map((row) => row.type)
+          .toSet()
+          .map((type) => '[$type]\nName = Original Trainer\nBaseMoney = 30\n')
+          .join()),
+      'Data/trainer_types.dat': literalFixtureMarshal({
+        for (final type in rosters.map((row) => row.type).toSet())
+          LiteralFixtureSymbol(type):
+              LiteralFixtureObject('GameData::TrainerType', {
+            '@id': LiteralFixtureSymbol(type),
+            '@base_money': 30,
+          }),
+      }),
       'PBS/trainers.txt': utf8.encode(rosters
           .map((row) =>
               '[${row.type},${row.name},${row.version}]\nLoseText = Good game!\n${team.map((member) => 'Pokemon = ${member.species},${member.level}\n').join()}')

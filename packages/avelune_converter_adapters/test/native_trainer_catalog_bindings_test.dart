@@ -50,13 +50,20 @@ Pokemon = LICKITUNG,29
 
 final class _Files implements SourceFilePort {
   const _Files(this.bytes);
-  final List<int> bytes;
+  final Map<ConverterId, List<int>> bytes;
   @override
-  Future<List<int>> read(ConverterId id) async => bytes;
+  Future<List<int>> read(ConverterId id) async => bytes[id]!;
 }
 
 Future<SourcePbsProject> _source([String text = _teams]) async {
   final bytes = utf8.encode(text);
+  final typeBytes = utf8.encode([
+    for (final type in RegExp(r'^\[([^,\]]+),', multiLine: true)
+        .allMatches(text)
+        .map((match) => match[1]!)
+        .toSet())
+      '[$type]\nName = Original Trainer\nBaseMoney = 30\n',
+  ].join());
   final snapshot = SourceSnapshot(
       logicalProjectNamespace: ConverterId('native-trainer-test'),
       policyHash: SourceScanPolicy().canonicalHash,
@@ -68,7 +75,15 @@ Future<SourcePbsProject> _source([String text = _teams]) async {
             byteLength: bytes.length,
             sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
             format: 'pbs',
-            family: 'pbs')
+            family: 'pbs'),
+        SourceFileEntry(
+            fileId: ConverterId('source-types'),
+            relativePath: 'PBS/trainer_types.txt',
+            kind: SourceNodeKind.file,
+            byteLength: typeBytes.length,
+            sha256: Sha256Hash(crypto.sha256.convert(typeBytes).toString()),
+            format: 'pbs',
+            family: 'pbs'),
       ],
       diagnostics: [],
       excludedPaths: [],
@@ -76,8 +91,11 @@ Future<SourcePbsProject> _source([String text = _teams]) async {
       state: SourceScanState.complete);
   return const SourcePbsParser().read(
       snapshot: snapshot,
-      files: _Files(bytes),
-      families: const {SourcePbsFamily.trainers});
+      files: _Files({
+        ConverterId('source-trainers'): bytes,
+        ConverterId('source-types'): typeBytes
+      }),
+      families: const {SourcePbsFamily.trainers, SourcePbsFamily.trainerTypes});
 }
 
 Matcher _code(String code) =>
@@ -88,7 +106,9 @@ void main() {
       () async {
     final source = await _source(_teams.replaceFirst('[FRLG_BUGCATCHER,Brent]',
         '[FRLG_BUGCATCHER,Brent]\nItems = FULLHEAL'));
-    final identity = source.entries.first.identity!;
+    final identity = source.entries
+        .firstWhere((entry) => entry.family == SourcePbsFamily.trainers)
+        .identity!;
     expect(
         () => const NativeTrainerCatalogBindings().bind(
             source: source,
@@ -137,7 +157,9 @@ void main() {
     final native = NativePsdkTrainerBundle.builtin();
     final result = const NativeTrainerCatalogBindings().bind(
         source: source,
-        requestedTrainers: source.entries.map((entry) => entry.identity!),
+        requestedTrainers: source.entries
+            .where((entry) => entry.family == SourcePbsFamily.trainers)
+            .map((entry) => entry.identity!),
         native: native,
         movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults);
     expect(result.trainers, hasLength(11));
@@ -167,7 +189,9 @@ void main() {
       () async {
     final native = NativePsdkTrainerBundle.builtin();
     final comment = await _source('$_teams\n# Unrelated source comment\n');
-    final keys = comment.entries.map((entry) => entry.identity!);
+    final keys = comment.entries
+        .where((entry) => entry.family == SourcePbsFamily.trainers)
+        .map((entry) => entry.identity!);
     final result = const NativeTrainerCatalogBindings().bind(
         source: comment,
         requestedTrainers: keys,
@@ -180,7 +204,9 @@ void main() {
     expect(
         () => const NativeTrainerCatalogBindings().bind(
             source: changed,
-            requestedTrainers: changed.entries.map((entry) => entry.identity!),
+            requestedTrainers: changed.entries
+                .where((entry) => entry.family == SourcePbsFamily.trainers)
+                .map((entry) => entry.identity!),
             native: native,
             movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults),
         _code('native_trainer.roster_changed'));
@@ -192,7 +218,9 @@ void main() {
     expect(
         () => const NativeTrainerCatalogBindings().bind(
             source: source,
-            requestedTrainers: source.entries.map((entry) => entry.identity!),
+            requestedTrainers: source.entries
+                .where((entry) => entry.family == SourcePbsFamily.trainers)
+                .map((entry) => entry.identity!),
             native: NativePsdkTrainerBundle.builtin(),
             movePolicy: NativeTrainerMovePolicy.unresolved),
         _code('native_trainer.move_policy_required'));
@@ -209,7 +237,9 @@ void main() {
       expect(
           () => const NativeTrainerCatalogBindings().bind(
               source: source,
-              requestedTrainers: source.entries.map((entry) => entry.identity!),
+              requestedTrainers: source.entries
+                  .where((entry) => entry.family == SourcePbsFamily.trainers)
+                  .map((entry) => entry.identity!),
               native: NativePsdkTrainerBundle.builtin(),
               movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults),
           _code(code));
@@ -232,7 +262,9 @@ void main() {
       expect(
           () => const NativeTrainerCatalogBindings().bind(
               source: source,
-              requestedTrainers: source.entries.map((entry) => entry.identity!),
+              requestedTrainers: source.entries
+                  .where((entry) => entry.family == SourcePbsFamily.trainers)
+                  .map((entry) => entry.identity!),
               native: NativePsdkTrainerBundle.builtin(),
               movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults),
           _code(testCase.$2));
@@ -254,7 +286,9 @@ void main() {
     expect(
         () => const NativeTrainerCatalogBindings().bind(
             source: source,
-            requestedTrainers: source.entries.map((entry) => entry.identity!),
+            requestedTrainers: source.entries
+                .where((entry) => entry.family == SourcePbsFamily.trainers)
+                .map((entry) => entry.identity!),
             native: forged,
             movePolicy: NativeTrainerMovePolicy.nativeAveluneDefaults),
         _code('native_trainer.move_closure'));

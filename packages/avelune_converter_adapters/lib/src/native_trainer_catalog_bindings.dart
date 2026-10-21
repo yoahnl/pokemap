@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_qualification.dart';
+import 'native_trainer_money_binding.dart';
 
 enum NativeTrainerMovePolicy { unresolved, nativeAveluneDefaults }
 
@@ -127,10 +128,13 @@ final class NativeTrainerCatalogBindings {
         throw ContractError('native_trainer.roster_changed', key.key,
             'The requested source trainer has no qualified native reference roster.');
       }
+      final money = NativeTrainerMoneyBinding.fromPbs(
+          source: source, roster: entry, team: team);
       trainers.add(ProjectTrainerEntry(
           id: key.sourceId.value,
           name: key.trainerName!,
           trainerClass: key.trainerType!,
+          moneyReward: money.amount,
           team: team,
           tags: const [
             'source-imported',
@@ -141,6 +145,7 @@ final class NativeTrainerCatalogBindings {
         'sourceIdentity': key.toJson(),
         'sourceLocator': entry.headerLocator.toJson(),
         'nativeTrainerId': key.sourceId.value,
+        'prizeMoney': money.evidence,
         'members': members
       });
     }
