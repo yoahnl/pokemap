@@ -355,6 +355,7 @@ void _auditSourceFactWriteBlock(
       case SourceToneNode():
       case SourceWaitNode():
       case SourceMusicNode():
+      case SourceMusicEffectNode():
       case SourceSoundEffectNode():
       case SourceInteractionFacingNode():
       case SourceRelativeFacingRouteNode():

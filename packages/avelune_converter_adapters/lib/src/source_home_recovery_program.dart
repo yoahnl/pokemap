@@ -98,7 +98,7 @@ final class SourceHomeRecoveryProgram {
         nodes[1][index + 7] is! SourceInteractionFacingNode) {
       return null;
     }
-    final restAudio = nodes[1][index + 2] as SourceUnknownNode;
+    final restAudio = nodes[1][index + 2] as SourceMusicEffectNode;
     final restWait = nodes[1][index + 3] as SourceWaitNode;
     index = 0;
     while (index < nodes[2].length && nodes[2][index] is SourceTextNode) {
@@ -121,11 +121,12 @@ final class SourceHomeRecoveryProgram {
         canonicalJsonOf(clear.factIds) != canonicalJsonOf([switchId])) {
       return null;
     }
-    final recoveryAudio = nodes[2][index] as SourceUnknownNode;
+    final recoveryAudio = nodes[2][index] as SourceMusicEffectNode;
     final recoveryWait = nodes[2][index + 1] as SourceWaitNode;
-    final first = _audio(source, event.pages[1], restAudio);
-    final second = _audio(source, event.pages[2], recoveryAudio);
-    if (first == null ||
+    final first = (restAudio.name, restAudio.volume);
+    final second = (recoveryAudio.name, recoveryAudio.volume);
+    if (restAudio.profileHash != analysis.profile.canonicalHash ||
+        recoveryAudio.profileHash != analysis.profile.canonicalHash ||
         second != first ||
         restWait.durationTicks < 1 ||
         recoveryWait.durationTicks < 1) {
@@ -164,7 +165,9 @@ final class SourceHomeRecoveryProgram {
           for (final row in waitTicksByPage.entries) '${row.key}': row.value
         },
         'nativePresentation':
-            'aveluneSoundCueWithSourceMusicBytesAndOrderedWait',
+            'aveluneMusicEffectWithExactSourceBytesAndOrderedWait',
+        'nativeAudioRole': 'musicEffect',
+        'nativeBgmInterruption': {'fadeOutMs': 0, 'fadeInMs': 0},
         'sourceMusicEffectBgmInterruptionParity': false,
         'fullSourceParityQualified': false,
         'sourceScriptsExecuted': 0,
@@ -177,43 +180,8 @@ bool _heal(SourceEventNode node) =>
     node.command.code == 314 &&
     canonicalJsonOf(node.command.parameters) == '[0]';
 bool _music(SourceEventNode node) =>
-    node is SourceUnknownNode && node.command.code == 249;
-
-(String, int)? _audio(NormalizedSourceProject source,
-    SourceEventPageAnalysis page, SourceUnknownNode node) {
-  try {
-    final reference = source.archive.references[page.sourcePage.rawDataRef];
-    if (reference == null) return null;
-    final document = source.sourceFiles[reference.fileId]!.document;
-    int field(int id, String name) => document
-        .node(id)
-        .instanceVariables
-        .singleWhere((pair) => document.node(pair.key).name == name)
-        .value;
-    final commands = document.node(field(reference.nodeId, '@list')).elements;
-    final command = commands[node.command.originalIndex];
-    final parameters = document.node(field(command, '@parameters')).elements;
-    if (parameters.length != 1 ||
-        document.node(parameters.single).className != 'RPG::AudioFile') {
-      return null;
-    }
-    final audio = parameters.single;
-    final name = document.node(field(audio, '@name')).text().text;
-    final volume = document.node(field(audio, '@volume')).integerValue?.toInt();
-    final pitch = document.node(field(audio, '@pitch')).integerValue?.toInt();
-    if (name == null ||
-        name.isEmpty ||
-        volume == null ||
-        volume < 0 ||
-        volume > 100 ||
-        pitch != 100) {
-      return null;
-    }
-    return (name, volume);
-  } on Object {
-    return null;
-  }
-}
+    node is SourceMusicEffectNode && node.name.trim().isNotEmpty &&
+    node.volume >= 0 && node.volume <= 100 && node.pitch == 100;
 
 Object? _node(SourceEventNode node) => switch (node) {
       SourceAnnotationNode() => node.toJson(),
@@ -226,6 +194,7 @@ Object? _node(SourceEventNode node) => switch (node) {
           'command': node.command.toJson(),
           'reason': node.reason
         },
+      SourceMusicEffectNode() => node.toJson(),
       SourceToneNode() => node.toJson(),
       SourceWaitNode() => node.toJson(),
       SourceMoveRouteBarrierNode() => node.toJson(),

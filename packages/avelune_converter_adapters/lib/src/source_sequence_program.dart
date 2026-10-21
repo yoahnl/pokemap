@@ -157,6 +157,7 @@ bool _isSequence(SourceEventDefinition event) {
       case SourceWaitNode():
       case SourceToneNode():
       case SourceSoundEffectNode():
+      case SourceMusicEffectNode():
         primitive = true;
       case SourcePlayerVisibilityNode():
         if (visible == node.visible) return false;
@@ -239,6 +240,7 @@ Object? _node(SourceEventNode node) => switch (node) {
       SourceWaitNode() => node.toJson(),
       SourceToneNode() => node.toJson(),
       SourceSoundEffectNode() => node.toJson(),
+      SourceMusicEffectNode() => node.toJson(),
       SourceExclamationNode() => node.toJson(),
       SourcePickupNode() => node.toJson(),
       SourcePlayerVisibilityNode() => node.toJson(),

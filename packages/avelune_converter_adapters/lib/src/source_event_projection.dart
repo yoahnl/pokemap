@@ -524,6 +524,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourceToneNode() => node.toJson(),
     SourceWaitNode() => node.toJson(),
     SourceMusicNode() => node.toJson(),
+    SourceMusicEffectNode() => node.toJson(),
     SourceSoundEffectNode() => node.toJson(),
     SourceScriptNode() => {'script': node.script},
     SourceExclamationNode() => node.toJson(),
@@ -1233,6 +1234,15 @@ final class _ProjectionBuilder {
     return binding?.name == name && binding?.sourceSnapshotHash == sourceSnapshotHash &&
         (binding!.policy == SourceEventSoundPolicy.sourceEngineGain || allowNativeAdaptation)
       ? binding : null;
+  }
+
+  SourceEventSoundBinding? _musicEffect(String name) {
+    final binding = soundBindings['me:$name'];
+    return binding?.name == name &&
+        binding?.sourceSnapshotHash == sourceSnapshotHash &&
+        binding?.kind == SourceEventAudioKind.musicEffect &&
+        binding?.policy == SourceEventSoundPolicy.nativeAuthoredVolume
+        ? binding : null;
   }
 
   String _key(SourceEventDefinition event, String suffix) =>
@@ -2268,7 +2278,7 @@ final class _ProjectionBuilder {
             SourcePickupNode() ||
             SourceSelfSwitchNode() ||
             SourceInteractionFacingNode() ||
-            SourceSoundEffectNode() =>
+            SourceSoundEffectNode() || SourceMusicEffectNode() =>
               true,
             _ => false,
           });
@@ -4464,7 +4474,7 @@ final class _ProjectionBuilder {
         case SourceShopProgramNode():
           if (_shopBinding(event, node) == null) gaps.add('sourceShopBindingsMissing');
         case SourceUnknownNode():
-          if (_homeRecoveryProgram(event) != null && const {314,249}.contains(node.command.code)) break;
+          if (_homeRecoveryProgram(event) != null && node.command.code == 314) break;
           if (node.reason == 'events.actor_appearance_unsupported') {
             gaps.add('sourceActorAppearanceUnsupported');
           } else if (node.reason == 'events.move_route_appearance_unsupported') {
@@ -4490,6 +4500,16 @@ final class _ProjectionBuilder {
               escortBindings[event.identity]?.isBoundTo(source, analysis, event) != true) {
             gaps.add('sourceMusicProgramUnsupported');
           }
+        case SourceMusicEffectNode():
+          if (node.profileHash != analysis.profile.canonicalHash || node.pitch != 100 ||
+              node.name.trim().isEmpty) {
+            gaps.add('sourceMusicEffectUnqualified');
+          }
+          if (maps[event.sourceMapId]!.spatialScene != null ||
+              maps[event.sourceMapId]!.version == ProjectVersion.v9) {
+            gaps.add('sourceMusicEffectSpatialUnsupported');
+          }
+          if (_musicEffect(node.name) == null) gaps.add('sourceMusicEffectBindingMissing');
         case SourceSoundEffectNode():
           if (node.name.startsWith('Cries/') && _decorativePokemonBinding(event) == null) {
             gaps.add('sourceDecorativePokemonBindingMissing');
@@ -5567,11 +5587,6 @@ final class _SceneBuilder {
           next = action;
           continue;
         }
-        if(node.command.code == 249) {
-          final audio = projection.centerRecoveryBinding[event.identity]!;
-          next = _interactive(SceneInteractiveCommand.playSoundEffect(mediaAssetId: audio.mediaId, volume: audio.volume / 100), next);
-          continue;
-        }
       }
       switch (node) {
         case SourceCommonEventCallNode():
@@ -5697,6 +5712,11 @@ final class _SceneBuilder {
             durationMs: node.durationMs), next);
         case SourceMusicNode():
           throw const NativeWriteException('events.music.binding', 'Music requires a qualified complete cinematic.');
+        case SourceMusicEffectNode():
+          final audio = projection._musicEffect(node.name)!;
+          next = _interactive(SceneInteractiveCommand.playMusicEffect(
+              mediaAssetId: audio.mediaId, volume: audio.gainForVolume(node.volume),
+              bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 0)), next);
         case SourceSoundEffectNode():
           if (node.name == 'frlg_gateopen' && projection._cardKeyGateSoundIsSourceNoOp(event)) break;
           final sound = projection._sound(node.name,

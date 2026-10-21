@@ -633,6 +633,30 @@ final class SourceSoundEffectNode extends SourceEventNode {
       };
 }
 
+final class SourceMusicEffectNode extends SourceEventNode {
+  const SourceMusicEffectNode(super.span,
+      {required this.name,
+      required this.volume,
+      required this.pitch,
+      required this.rawDataRef,
+      required this.profileHash});
+  final String name;
+  final int volume, pitch;
+  final SourcePreservedData rawDataRef;
+  final Sha256Hash profileHash;
+  Map<String, Object?> toJson() => {
+        'kind': 'musicEffect',
+        'name': name,
+        'volume': volume,
+        'pitch': pitch,
+        'waitForCompletion': false,
+        'span': span.toJson(),
+        'rawDataRef': rawDataRef.toJson(),
+        'profileHash': profileHash.value,
+        'targetQualification': 'required',
+      };
+}
+
 final class SourceScriptNode extends SourceEventNode {
   const SourceScriptNode(super.span, this.script);
   final String script;
@@ -1994,6 +2018,8 @@ final class _SourceEventParser {
         return _tone();
       case 241:
         return _soundEffect(music: true);
+      case 249:
+        return _soundEffect(musicEffect: true);
       case 250:
         return _soundEffect();
       case 355:
@@ -2145,7 +2171,7 @@ final class _SourceEventParser {
         profileHash: analyzer.profile.canonicalHash);
   }
 
-  SourceEventNode _soundEffect({bool music = false}) {
+  SourceEventNode _soundEffect({bool music = false, bool musicEffect = false}) {
     if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
     final command = commands[index];
     _arity(command.parameters, 1);
@@ -2176,7 +2202,15 @@ final class _SourceEventParser {
     if (volume < 0 || volume > 100 || pitch < 50 || pitch > 150) {
       throw const FormatException();
     }
+    if (musicEffect && (name.trim().isEmpty || pitch != 100)) {
+      throw const FormatException();
+    }
     final current = index++;
+    if (musicEffect) {
+      return SourceMusicEffectNode(_span(current, current),
+          name: name, volume: volume, pitch: pitch, rawDataRef: reference,
+          profileHash: analyzer.profile.canonicalHash);
+    }
     if (music) {
       return SourceMusicNode(_span(current, current),
           name: name, volume: volume, pitch: pitch, rawDataRef: reference,

@@ -385,6 +385,26 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    final musicEffects = {
+      for (final event in selectedEvents.where((event) => !event.isQuarantined ||
+          SourceHomeRecoveryProgram.read(source: source, analysis: analysis, event: event) != null))
+        for (final page in event.pages) ..._soundNames(page.body, musicEffectsOnly: true),
+    }.toList()..sort();
+    for (final name in musicEffects) {
+      try {
+        final binding = await const SourceEventSoundResolver().read(
+            source: source, files: recording, name: name,
+            kind: SourceEventAudioKind.musicEffect,
+            policy: SourceEventSoundPolicy.nativeAuthoredVolume,
+            limits: limits, cancellation: cancellation);
+        sounds['me:$name'] = binding;
+        soundEvidence.add({'sourceName': name, 'status': 'imported',
+          'nativeBgmInterruption': {'fadeOutMs': 0, 'fadeInMs': 0}, ...binding.evidence});
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        soundEvidence.add({'sourceName': name, 'kind': 'musicEffect',
+          'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
     final freshProgram = sourceFreshEntryProgram(source);
     if (freshProgram != null) {
       final program = freshProgram.intro;
@@ -1238,43 +1258,45 @@ final class SourceEventStudyComposer {
   }
 }
 
-Iterable<String> _soundNames(SourceEventBlock block, {bool dialogueOnly = false}) sync* {
+Iterable<String> _soundNames(SourceEventBlock block, {bool dialogueOnly = false, bool musicEffectsOnly = false}) sync* {
   for (final node in block.nodes) {
     switch (node) {
       case SourceTrainerProgramNode():
         if (node.kind == SourceTrainerProgramKind.encounter) {
-          yield* _soundNames(node.victoryContinuation, dialogueOnly: dialogueOnly);
+          yield* _soundNames(node.victoryContinuation, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
         }
-        if (node.gymStageBody != null) yield* _soundNames(node.gymStageBody!, dialogueOnly: dialogueOnly);
+        if (node.gymStageBody != null) yield* _soundNames(node.gymStageBody!, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
+      case SourceMusicEffectNode():
+        if (!dialogueOnly && musicEffectsOnly) yield node.name;
       case SourceSoundEffectNode():
-        if (!dialogueOnly) yield node.name;
+        if (!dialogueOnly && !musicEffectsOnly) yield node.name;
       case SourceWarpNode():
-        if (!dialogueOnly && node.originalProgram != null) yield node.originalProgram!.sound.name;
+        if (!dialogueOnly && !musicEffectsOnly && node.originalProgram != null) yield node.originalProgram!.sound.name;
       case SourceForcedMoveRouteNode():
         for (final step in node.steps) {
-          if (!dialogueOnly && step.soundName != null) yield step.soundName!;
+          if (!dialogueOnly && !musicEffectsOnly && step.soundName != null) yield step.soundName!;
         }
       case SourceCommonEventCallNode():
-        yield* _soundNames(node.body, dialogueOnly: dialogueOnly);
+        yield* _soundNames(node.body, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
       case SourceConditionalNode():
-        yield* _soundNames(node.whenTrue, dialogueOnly: dialogueOnly);
-        yield* _soundNames(node.whenFalse, dialogueOnly: dialogueOnly);
+        yield* _soundNames(node.whenTrue, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
+        yield* _soundNames(node.whenFalse, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
       case SourceTextNode():
         if (dialogueOnly) yield* sourceDialogueSoundNames(node.text);
         final choice = node.followingChoice;
         if (choice != null) {
           for (final branch in choice.branches) {
-            yield* _soundNames(branch.body, dialogueOnly: dialogueOnly);
+            yield* _soundNames(branch.body, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
           }
           if (choice.cancelBranch != null) {
-            yield* _soundNames(choice.cancelBranch!, dialogueOnly: dialogueOnly);
+            yield* _soundNames(choice.cancelBranch!, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
           }
         }
       case SourceChoiceNode():
         for (final branch in node.branches) {
-          yield* _soundNames(branch.body, dialogueOnly: dialogueOnly);
+          yield* _soundNames(branch.body, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
         }
-        if (node.cancelBranch != null) yield* _soundNames(node.cancelBranch!, dialogueOnly: dialogueOnly);
+        if (node.cancelBranch != null) yield* _soundNames(node.cancelBranch!, dialogueOnly: dialogueOnly, musicEffectsOnly: musicEffectsOnly);
       default:
         break;
     }

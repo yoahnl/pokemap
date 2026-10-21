@@ -3,7 +3,7 @@ import 'package:crypto/crypto.dart' as crypto;
 
 import 'native_project_writer.dart';
 
-enum SourceEventAudioKind { sound, music }
+enum SourceEventAudioKind { sound, music, musicEffect }
 
 enum SourceEventSoundPolicy { sourceEngineGain, nativeAuthoredVolume }
 
@@ -59,6 +59,10 @@ final class SourceEventSoundResolver {
         source.snapshot.state != SourceScanState.complete) {
       _unavailable('profile_unqualified');
     }
+    if (kind == SourceEventAudioKind.musicEffect &&
+        policy != SourceEventSoundPolicy.nativeAuthoredVolume) {
+      _unavailable('music_effect_engine_parity_unqualified');
+    }
     if (name.isEmpty ||
         name.trim() != name ||
         name == '.' ||
@@ -99,8 +103,12 @@ final class SourceEventSoundResolver {
         _unavailable('engine_unqualified');
       }
     }
-    final base =
-        'Audio/${kind == SourceEventAudioKind.music ? 'BGM' : 'SE'}/$name';
+    final directory = switch (kind) {
+      SourceEventAudioKind.sound => 'SE',
+      SourceEventAudioKind.music => 'BGM',
+      SourceEventAudioKind.musicEffect => 'ME',
+    };
+    final base = 'Audio/$directory/$name';
     final key = sourcePathCollisionKey(base);
     if (kind == SourceEventAudioKind.music &&
         source.snapshot.entries.any((entry) {
@@ -160,14 +168,22 @@ final class SourceEventSoundResolver {
       'namespace': source.snapshot.logicalProjectNamespace.value,
       'fileId': audio.fileId.value,
       'sha256': audio.sha256!.value,
-      'kind': kind == SourceEventAudioKind.music ? 'sceneMusic' : 'sceneSound'
+      'kind': switch (kind) {
+        SourceEventAudioKind.sound => 'sceneSound',
+        SourceEventAudioKind.music => 'sceneMusic',
+        SourceEventAudioKind.musicEffect => 'sceneMusicEffect',
+      }
     }).value;
-    final prefix =
-        kind == SourceEventAudioKind.music ? 'source_bgm' : 'source_se';
+    final prefix = switch (kind) {
+      SourceEventAudioKind.sound => 'source_se',
+      SourceEventAudioKind.music => 'source_bgm',
+      SourceEventAudioKind.musicEffect => 'source_me',
+    };
     final id = '${prefix}_$identity';
     final mediaId = '${prefix}_media_$identity';
     final mutation = NativeMutation(
-        operationId: ConverterId('source_se_import_$identity'),
+        operationId: ConverterId(kind == SourceEventAudioKind.musicEffect
+            ? 'source_me_import_$identity' : 'source_se_import_$identity'),
         actionId: 'scene.dialogue.audioMedia.import',
         sourceEntityIds: [audio.fileId],
         targetEntityIds: [ConverterId(id), ConverterId(mediaId)],
@@ -177,7 +193,8 @@ final class SourceEventSoundResolver {
           'mediaId': mediaId,
           'label': name,
           'logicalPath': 'assets/audio/$id.$extension',
-          if (kind == SourceEventAudioKind.music) 'mediaKind': 'music'
+          if (kind == SourceEventAudioKind.music) 'mediaKind': 'music',
+          if (kind == SourceEventAudioKind.musicEffect) 'mediaKind': 'sound'
         },
         limits: limits);
     return SourceEventSoundBinding._(
@@ -198,6 +215,14 @@ final class SourceEventSoundResolver {
           'sourceEngineGainQualified':
               policy == SourceEventSoundPolicy.sourceEngineGain,
           'fullSourceParity': false,
+          if (kind == SourceEventAudioKind.musicEffect) ...{
+            'playbackRole': 'musicEffect',
+            'requiredRuntimeCommand': 'playMusicEffect',
+            'sourceBgmVolumeRouting': true,
+            'sourceMeBackendQualified': false,
+            'nativePresentationAdaptation': 'aveluneMusicEffectPauseAndResume',
+            'sourceInvocationCompletion': 'started',
+          },
           'nativeAuthoredVolumeAdaptation':
               policy == SourceEventSoundPolicy.nativeAuthoredVolume,
           if (engine != null) 'sourceEngineFile': engine.toJson(),
@@ -218,14 +243,17 @@ final class SourceEventSoundResolver {
           },
           if (policy == SourceEventSoundPolicy.nativeAuthoredVolume)
             'nativeGain': 'authoredVolume/100',
-          'sourceRubyOracle': kind == SourceEventAudioKind.music
+          'sourceRubyOracle': kind == SourceEventAudioKind.musicEffect
+              ? {'dispatch': '034:1043-1045', 'play': '093:102-118',
+                 'volume': '040:155-167'}
+              : kind == SourceEventAudioKind.music
               ? {'volume': '040:46-74', 'default': '307:20-30'}
               : {
                   'play': '093:202-217',
                   'volume': '040:239-245',
                   'default': '307:31'
                 },
-          'sourceEngineOracle': {
+          if (kind != SourceEventAudioKind.musicEffect) 'sourceEngineOracle': {
             'commit': 'c9378cfaba06e0b299a1bfd4197f62da018693da',
             'gain': 'src/audio/al-util.h:239-241',
             'application': kind == SourceEventAudioKind.music
