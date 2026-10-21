@@ -62,13 +62,13 @@ test(`live MCP discovers, authors and reopens closed native fixed routes in ${sp
     const contract = record(record(action.extensions).npcMovement);
     assert.ok((contract.modes as unknown[]).includes("fixedRoute"));
     const fixed = record(contract.fixedRoute);
-    assert.deepEqual(fixed.stepKinds, ["move", "face", "randomFacing"]);
+    assert.deepEqual(fixed.stepKinds, ["move", "face", "randomFacing", "randomMove"]);
     assert.equal(fixed.skippable, false);
     assert.equal(fixed.pathfinding, false);
     assert.equal(fixed.mapMode, "2d");
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const initial = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
-    const steps = [{ kind: "move", direction: "east" }, { kind: "face", direction: "north" }, { kind: "randomFacing" }];
+    const steps = [{ kind: "move", direction: "east" }, { kind: "face", direction: "north" }, { kind: "randomFacing" }, { kind: "randomMove" }];
     const flag = { key: "npc.autonomousRouteStopped", value: true };
     const parameters = { mapId: "center", entityId: "npc", mode: "fixedRoute", routeSteps: steps,
       suspendWhenInstanceBoolean: flag, pauseDurationMs: 1600, stepDurationMs: 250, loop: true };

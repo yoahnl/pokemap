@@ -68,7 +68,7 @@ final class NpcFixedRouteController {
     final direction = switch (step) {
       MapEntityNpcMoveStep(:final direction) => direction,
       MapEntityNpcFaceStep(:final direction) => direction,
-      MapEntityNpcRandomFacingStep() => const [
+      MapEntityNpcRandomFacingStep() || MapEntityNpcRandomMoveStep() => const [
           EntityFacing.north,
           EntityFacing.east,
           EntityFacing.west,
@@ -190,7 +190,8 @@ NpcFixedRouteStepPlan planNpcFixedRouteStep({
   }
   final faced =
       world.withEntityFacing(attempt.target.entityId!, attempt.direction);
-  if (attempt.step is! MapEntityNpcMoveStep) {
+  if (attempt.step is! MapEntityNpcMoveStep &&
+      attempt.step is! MapEntityNpcRandomMoveStep) {
     return NpcFixedRouteStepPlan._(
         world: faced, motion: null, isBlocked: false);
   }

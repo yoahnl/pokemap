@@ -1940,7 +1940,7 @@ final class _ProjectionBuilder {
     try {
       for (final page in event.pages) {
         if (_fixedRouteInvisiblePage(event, page)) continue;
-        if (page.graphic?.moveType != 3) {
+        if (!const {1, 3}.contains(page.graphic?.moveType)) {
           _fixedRouteBindingsByEvent[event] = null;
           return null;
         }
@@ -2014,7 +2014,25 @@ final class _ProjectionBuilder {
     final map = maps[event.sourceMapId]!;
     if (map.spatialScene != null || map.version == ProjectVersion.v9) return null;
     final positions = <GridPos>{GridPos(x: event.x, y: event.y)};
-    var position = positions.single;
+    if (bindings.first.nativeMovement.routeSteps.any((step) => step is MapEntityNpcRandomMoveStep)) {
+      if (_eventFootprint(event) != const GridSize(width: 1, height: 1)) return null;
+      final pending = positions.toList();
+      for (var index = 0; index < pending.length; index++) {
+        final current = pending[index];
+        for (final delta in const [(0, -1), (0, 1), (-1, 0), (1, 0)]) {
+          final next = GridPos(x: current.x + delta.$1, y: current.y + delta.$2);
+          if (next.x < 0 || next.y < 0 || next.x >= map.size.width || next.y >= map.size.height) continue;
+          final sourcePassage = semanticResolver.resolveConnectionEntryTile(
+            semanticResolver.cellAt(event.sourceMapId, next.x, next.y));
+          final blocked = map.layers.whereType<CollisionLayer>().any((layer) =>
+            layer.collisions[next.y * map.size.width + next.x]);
+          if (sourcePassage.status == SourcePassageStatus.unqualified ||
+              blocked != (sourcePassage.status == SourcePassageStatus.blocked)) { return null; }
+          if (!blocked && positions.add(next)) pending.add(next);
+        }
+      }
+    }
+    var position = GridPos(x: event.x, y: event.y);
     for (final step in bindings.first.nativeMovement.routeSteps) {
       if (step is! MapEntityNpcMoveStep) continue;
       final delta = switch (step.direction) {
@@ -2196,7 +2214,7 @@ final class _ProjectionBuilder {
     if (event.pages.isEmpty || event.pages.any((page) {
       final graphic = page.graphic;
       return page.triggerCode != 0 || graphic == null || graphic.characterName.isEmpty ||
-          graphic.moveType != 0 || graphic.directionFix || graphic.through ||
+          (graphic.moveType != 0 && _fixedRouteBindings(event) == null) || graphic.directionFix || graphic.through ||
           !condition(page.condition) || !block(page.body);
     }) || _sourceContextEvents.any((other) => other.sourceMapId == event.sourceMapId &&
         other.pages.any((page) => const [3, 4].contains(page.triggerCode) && !page.isEmpty &&

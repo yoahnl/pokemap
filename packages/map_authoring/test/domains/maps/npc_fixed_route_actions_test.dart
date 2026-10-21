@@ -14,7 +14,7 @@ void main() {
     expect(movement['modes'], contains('fixedRoute'));
     expect(movement['fixedRoute'], {
       'mapMode': '2d',
-      'stepKinds': ['move', 'face', 'randomFacing'],
+      'stepKinds': ['move', 'face', 'randomFacing', 'randomMove'],
       'directions': ['north', 'south', 'east', 'west'],
       'maximumSteps': 256,
       'skippable': false,

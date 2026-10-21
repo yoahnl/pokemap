@@ -152,7 +152,7 @@ enum MapEntityNpcMovementMode {
   fixedRoute,
 }
 
-enum MapEntityNpcRouteStepKind { move, face, randomFacing }
+enum MapEntityNpcRouteStepKind { move, face, randomFacing, randomMove }
 
 @immutable
 sealed class MapEntityNpcRouteStep {
@@ -164,10 +164,11 @@ sealed class MapEntityNpcRouteStep {
       MapEntityNpcFaceStep;
   const factory MapEntityNpcRouteStep.randomFacing() =
       MapEntityNpcRandomFacingStep;
+  const factory MapEntityNpcRouteStep.randomMove() = MapEntityNpcRandomMoveStep;
 
   factory MapEntityNpcRouteStep.fromJson(Map<String, dynamic> json) {
     final kind = json['kind'];
-    final fields = kind == 'randomFacing'
+    final fields = kind == 'randomFacing' || kind == 'randomMove'
         ? const {'kind'}
         : const {'kind', 'direction'};
     if (json.length != fields.length || !json.keys.every(fields.contains)) {
@@ -177,6 +178,9 @@ sealed class MapEntityNpcRouteStep {
     }
     if (kind == 'randomFacing') {
       return const MapEntityNpcRouteStep.randomFacing();
+    }
+    if (kind == 'randomMove') {
+      return const MapEntityNpcRouteStep.randomMove();
     }
     final rawDirection = json['direction'];
     if (rawDirection is! String ||
@@ -244,6 +248,19 @@ final class MapEntityNpcRandomFacingStep extends MapEntityNpcRouteStep {
   Map<String, dynamic> toJson() => {'kind': kind.name};
   @override
   bool operator ==(Object other) => other is MapEntityNpcRandomFacingStep;
+  @override
+  int get hashCode => kind.hashCode;
+}
+
+@immutable
+final class MapEntityNpcRandomMoveStep extends MapEntityNpcRouteStep {
+  const MapEntityNpcRandomMoveStep();
+  @override
+  MapEntityNpcRouteStepKind get kind => MapEntityNpcRouteStepKind.randomMove;
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name};
+  @override
+  bool operator ==(Object other) => other is MapEntityNpcRandomMoveStep;
   @override
   int get hashCode => kind.hashCode;
 }

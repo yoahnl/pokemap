@@ -90,6 +90,7 @@ void main() {
               {'kind': 'move', 'direction': 'east'},
               {'kind': 'face', 'direction': 'west'},
               {'kind': 'randomFacing'},
+              {'kind': 'randomMove'},
             ],
             'suspendWhenInstanceBoolean': {
               'key': 'npc.autonomousRouteStopped',
@@ -124,7 +125,8 @@ void main() {
       expect(movement.routeSteps, const [
         MapEntityNpcRouteStep.move(direction: EntityFacing.east),
         MapEntityNpcRouteStep.face(direction: EntityFacing.west),
-        MapEntityNpcRouteStep.randomFacing()
+        MapEntityNpcRouteStep.randomFacing(),
+        MapEntityNpcRouteStep.randomMove(),
       ]);
       expect(movement.pauseDurationMs, 1600);
       expect(movement.stepDurationMs, 250);

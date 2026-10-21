@@ -2,6 +2,36 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('native random movement round trips without a forced direction', () {
+    final steps = [
+      {'kind': 'randomMove'},
+    ];
+    final movement = MapEntityNpcMovementConfig.fromJson({
+      ..._route(),
+      'routeSteps': steps,
+    });
+    expect(movement.toJson()['routeSteps'], steps);
+    final reopened = MapData.fromJson(
+      addEntityToMap(_map(), entity: _entity(movement)).toJson(),
+    );
+    expect(reopened.entities.single.npc!.movement, movement);
+    for (final extra in [
+      {'direction': 'north'},
+      {'through': true},
+      {'script': 'move_random'},
+    ]) {
+      expect(
+        () => MapEntityNpcMovementConfig.fromJson({
+          ..._route(),
+          'routeSteps': [
+            {'kind': 'randomMove', ...extra},
+          ],
+        }),
+        throwsFormatException,
+      );
+    }
+  });
+
   test(
     'fixed cardinal route preserves every authored step and source cadence',
     () {

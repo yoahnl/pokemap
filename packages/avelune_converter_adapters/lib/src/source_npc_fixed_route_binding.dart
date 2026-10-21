@@ -82,6 +82,12 @@ final class SourceNpcFixedRouteBinding {
         'nativeRouteProgressSaved': false,
         'sourceRouteProgressSaveParity': false,
         'sourceScriptsExecuted': 0,
+        if (nativeMovement.routeSteps.any((step) => step is MapEntityNpcRandomMoveStep))
+          'sourceRandomWalkAdaptation': {
+            'nativeSelection': 'uniformCardinalDirectionPerAttempt',
+            'blockedAttempt': 'waitThenSelectAgain',
+            'sourceRandomSequenceParity': false,
+          },
         'oracle': {
           'scriptsArchiveSha256':
               sourceScriptsHash?.value,
@@ -126,7 +132,7 @@ final class SourceNpcFixedRouteBindingResolver {
     if (page.isQuarantined ||
         graphic == null ||
         raw == null ||
-        graphic.moveType != 3 ||
+        !const {1, 3}.contains(graphic.moveType) ||
         (graphic.characterName.isEmpty && !page.isEmpty) ||
         graphic.tileId != 0 ||
         graphic.hue != 0 ||
@@ -192,7 +198,8 @@ final class SourceNpcFixedRouteBindingResolver {
       _unavailable('skippable_unsupported');
     }
     final nodes = _array(doc, route['@list']!);
-    if (nodes.length < 2 || nodes.length > 257) {
+    if (nodes.isEmpty || nodes.length > 257 ||
+        (graphic.moveType == 3 && nodes.length < 2)) {
       _unavailable('route_step_quota');
     }
     final steps = <MapEntityNpcRouteStep>[];
@@ -222,9 +229,16 @@ final class SourceNpcFixedRouteBindingResolver {
         _ => _unavailable('route_command_unsupported'),
       });
     }
+    if (graphic.moveType == 1 &&
+        (!_boolean(doc, route['@repeat']!) ||
+          steps.any((step) => step is! MapEntityNpcRandomFacingStep))) {
+      _unavailable('unused_random_route_unsupported');
+    }
     final movement = MapEntityNpcMovementConfig(
       mode: MapEntityNpcMovementMode.fixedRoute,
-      routeSteps: List.unmodifiable(steps),
+      routeSteps: graphic.moveType == 1
+          ? const [MapEntityNpcRouteStep.randomMove()]
+          : List.unmodifiable(steps),
       loop: _boolean(doc, route['@repeat']!),
       pauseDurationMs: const [
         4750,
@@ -336,6 +350,10 @@ List<Object?> _fixedRouteBlockData(SourceEventBlock block, [int depth = 0]) {
       SourceInteractionFacingNode() => {'kind': 'interactionFacing',
         'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
       SourceTrainerProgramNode() => node.toJson(),
+      SourcePickupNode() when node.helper == SourceItemGrantHelper.receiveItem =>
+        {'kind': 'receiveItem', ...node.toJson()},
+      SourceSelfSwitchNode() => {'kind': 'selfSwitch', 'letter': node.letter,
+        'value': node.value, 'factId': node.factId},
       _ => _unavailable('program_shape_unsupported'),
     },
   };

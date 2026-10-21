@@ -50,7 +50,8 @@ class _CharacterFixedRouteInspectorState
   EntityFacing _direction(MapEntityNpcRouteStep step) => switch (step) {
     MapEntityNpcMoveStep(:final direction) => direction,
     MapEntityNpcFaceStep(:final direction) => direction,
-    MapEntityNpcRandomFacingStep() => widget.entity.npc!.facing,
+    MapEntityNpcRandomFacingStep() ||
+    MapEntityNpcRandomMoveStep() => widget.entity.npc!.facing,
   };
 
   MapEntityNpcRouteStep _step(
@@ -65,6 +66,8 @@ class _CharacterFixedRouteInspectorState
     ),
     MapEntityNpcRouteStepKind.randomFacing =>
       const MapEntityNpcRouteStep.randomFacing(),
+    MapEntityNpcRouteStepKind.randomMove =>
+      const MapEntityNpcRouteStep.randomMove(),
   };
 
   bool _time(String raw, {required bool pause}) {
@@ -98,7 +101,8 @@ class _CharacterFixedRouteInspectorState
       for (final node in scene.graph.nodes) {
         final payload = node.payload;
         if (payload is! SceneActionPayload ||
-            payload.consequence is! SceneSetMapEventInstanceBooleanConsequence) {
+            payload.consequence
+                is! SceneSetMapEventInstanceBooleanConsequence) {
           continue;
         }
         final consequence =
@@ -208,6 +212,7 @@ class _CharacterFixedRouteInspectorState
                 'move': 'Avancer',
                 'face': 'Se tourner',
                 'randomFacing': 'Direction aléatoire',
+                'randomMove': 'Pas aléatoire',
               },
               onChanged: (name) {
                 final steps = movement.routeSteps.toList();
@@ -218,8 +223,10 @@ class _CharacterFixedRouteInspectorState
                 _steps(steps);
               },
             ),
-            if (movement.routeSteps[index].kind !=
-                MapEntityNpcRouteStepKind.randomFacing)
+            if (!const {
+              MapEntityNpcRouteStepKind.randomFacing,
+              MapEntityNpcRouteStepKind.randomMove,
+            }.contains(movement.routeSteps[index].kind))
               StudioSelect(
                 key: ValueKey('npc-fixed-route-direction-$index'),
                 label: 'Direction ${index + 1}',

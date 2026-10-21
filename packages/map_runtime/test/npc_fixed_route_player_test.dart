@@ -17,6 +17,40 @@ const _east = GridPos(x: 3, y: 2);
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final blocked in [false, true]) {
+    test(
+      'native random move ${blocked ? 'waits at collision' : 'animates and commits'} in Player',
+      () async {
+        final movementRandom = _CountingRandom([1]);
+        final encounters = _CountingRandom([37]);
+        final game = await _load(
+          _bundle(randomMove: true, blockEast: blocked),
+          npcRouteRandom: movementRandom,
+          encounterRandom: encounters,
+        );
+        if (blocked) {
+          await _pump(game, milliseconds: 5000);
+          expect(game.debugMapEntityPosition(_id), _origin);
+          expect(game.debugNpcActorFacing(_id), EntityFacing.east);
+          expect(movementRandom.draws, greaterThan(1));
+        } else {
+          await _until(game, () => game.debugMapEntityPosition(_id) == _east);
+          expect(game.debugNpcVisualFacing(_id), EntityFacing.east);
+          game.setExternalInputLock(
+            RuntimeExternalInputLock.playerService,
+            locked: true,
+          );
+          final stopped = game.debugMapEntityPosition(_id);
+          final draws = movementRandom.draws;
+          await _pump(game, milliseconds: 6000);
+          expect(game.debugMapEntityPosition(_id), stopped);
+          expect(movementRandom.draws, draws);
+        }
+        expect(encounters.draws, 0);
+      },
+    );
+  }
+
   test(
     'Player uses initial wait, direct step and post-completion cadence',
     () async {
@@ -369,6 +403,7 @@ RuntimeMapBundle _bundle({
   bool trainer = false,
   bool turnOnly = false,
   bool randomFacing = false,
+  bool randomMove = false,
   bool suspend = false,
   bool v2 = false,
 }) => RuntimeMapBundle(
@@ -513,6 +548,8 @@ RuntimeMapBundle _bundle({
             mode: MapEntityNpcMovementMode.fixedRoute,
             routeSteps: randomFacing
                 ? const [MapEntityNpcRouteStep.randomFacing()]
+                : randomMove
+                ? const [MapEntityNpcRouteStep.randomMove()]
                 : turnOnly
                 ? const [
                     MapEntityNpcRouteStep.face(direction: EntityFacing.west),

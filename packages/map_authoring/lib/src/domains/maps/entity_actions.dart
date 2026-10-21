@@ -61,14 +61,14 @@ final class EntityActions {
           'parameters':['mapId','entityId','mode','routeSteps','suspendWhenInstanceBoolean',
             'loop','pauseDurationMs','stepDurationMs'],
           'fixedRoute': {
-            'mapMode':'2d','stepKinds':['move','face','randomFacing'],
+            'mapMode':'2d','stepKinds':['move','face','randomFacing','randomMove'],
             'directions':['north','south','east','west'],'maximumSteps':256,
             'skippable':false,'pathfinding':false,'initialPause':true,
             'pauseAfterCompletionOrObstruction':true,
             'suspensionScope':'ownNpcCurrentMapInstanceBoolean',
           },
           'routeStepFields': {
-            'move':['kind','direction'],'face':['kind','direction'],'randomFacing':['kind'],
+            'move':['kind','direction'],'face':['kind','direction'],'randomFacing':['kind'],'randomMove':['kind'],
           },
           'suspendWhenInstanceBoolean': {'optional':true,'fields':['key','value'],
             'maximumKeyLength':128,'owner':'currentNpc','scope':'currentMapInstance'},

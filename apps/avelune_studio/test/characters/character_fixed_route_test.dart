@@ -11,6 +11,35 @@ import '../support/map_workspace_fixture.dart';
 import 'character_editing_test.dart' show guide;
 
 void main() {
+  testWidgets('Studio authors a random step without an invented direction', (
+    tester,
+  ) async {
+    final fixture = _fixture();
+    await _surface(tester, fixture);
+    await _select(tester, 'npc-fixed-route-kind-0', 'Pas aléatoire');
+    final movement = fixture.$1.current.entities.single.npc!.movement;
+    expect(movement.routeSteps.first, const MapEntityNpcRouteStep.randomMove());
+    expect(
+      find.byKey(const ValueKey('npc-fixed-route-direction-0')),
+      findsNothing,
+    );
+    expect(
+      MapData.fromJson(fixture.$1.current.toJson())
+          .entities
+          .single
+          .npc!
+          .movement,
+      movement,
+    );
+    expect(fixture.$1.undoCount, 1);
+    fixture.$1.restore(redo: false);
+    expect(
+      fixture.$1.current.entities.single.npc!.movement.routeSteps.first,
+      const MapEntityNpcRouteStep.face(direction: EntityFacing.west),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   test('Studio typed command preserves NPC bindings and native history', () {
     final fixture = _fixture();
     final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
