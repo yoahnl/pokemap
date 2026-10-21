@@ -735,8 +735,15 @@ final class SceneConsequenceRuntimeWriter {
         owner.presentation!.variants.any((v) => consequence.x + v.size.width > map.size.width || consequence.y + v.size.height > map.size.height)) {
       return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'NPC placement requires a declared two-dimensional presentation owner and bounded cell.');
     }
-    final variant = resolveMapEntityPresentation(project: project, gameState: gameState, map: map, entity: owner);
-    if (variant == null || variant.characterId != null) {
+    var presentationUnavailable = false;
+    final variant = resolveMapEntityPresentation(
+      project: project,
+      gameState: gameState,
+      map: map,
+      entity: owner,
+      onUnavailable: () => presentationUnavailable = true,
+    );
+    if (presentationUnavailable || variant?.characterId != null) {
       return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'Logical NPC placement requires its current presentation to be hidden.');
     }
     if (scope == null || gameState.mapInstanceWorldState.instanceRef(map.id) != scope) {

@@ -13356,6 +13356,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } else if (actor is OverworldActorComponent) {
       _world = _world.withEntityFacing(target.entityId!, facing);
       actor.setMotion(facing, CharacterAnimationState.idle);
+      if (_usesInstanceNpcPositions(_activeMapId)) {
+        _syncSceneActorPlayerState(session);
+      }
     } else {
       throw StateError('The actor route target is unavailable.');
     }

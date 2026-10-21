@@ -83,6 +83,62 @@ void main() {
     },
   );
 
+  test(
+    'presentation absence distinguishes false guards from unavailable typed state',
+    () {
+      final entity = MapEntity(
+        id: 'owner',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 1, y: 1),
+        presentation: MapEntityPresentation(
+          variants: [
+            MapEntityPresentationVariant(
+              id: 'visible',
+              blocksMovement: true,
+              condition: NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.fact('visible', true),
+              ),
+              characterId: 'hero',
+            ),
+          ],
+        ),
+      );
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 5, height: 5),
+        entities: [entity],
+      );
+      final project = ProjectManifest(
+        name: 'Test',
+        maps: const [],
+        tilesets: const [],
+        facts: [NarrativeFactDefinition(id: 'visible', label: 'Visible')],
+      );
+      for (final (value, expectedVariant, expectedUnavailable) in [
+        (NarrativeValue.boolean(false), false, false),
+        (NarrativeValue.boolean(true), true, false),
+        (NarrativeValue.string('wrong type'), false, true),
+      ]) {
+        var unavailable = false;
+        final selected = resolveMapEntityPresentation(
+          project: project,
+          map: map,
+          entity: entity,
+          gameState: GameState(
+            saveId: 'test',
+            narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+              valuesByFactId: {'visible': value},
+            ),
+          ),
+          onUnavailable: () => unavailable = true,
+        );
+        expect(selected != null, expectedVariant);
+        expect(unavailable, expectedUnavailable);
+      }
+    },
+  );
+
   test('unavailable conditions stay closed under negation', () {
     final entity = MapEntity(
       id: 'owner',

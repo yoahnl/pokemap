@@ -16,6 +16,7 @@ MapEntityPresentationVariant? resolveMapEntityPresentation({
   required MapData map,
   required MapEntity entity,
   List<MapData> maps = const [],
+  void Function()? onUnavailable,
 }) {
   final presentation = entity.presentation;
   if (presentation == null) return null;
@@ -80,12 +81,12 @@ MapEntityPresentationVariant? resolveMapEntityPresentation({
         },
       );
   for (final variant in presentation.variants) {
-    if (evaluateNarrativeConditionExpression(
+    final evaluation = evaluateNarrativeConditionExpression(
       variant.condition,
       evaluateLeaf: leaf,
-    ).passed) {
-      return variant;
-    }
+    );
+    if (evaluation.unavailable) onUnavailable?.call();
+    if (evaluation.passed) return variant;
   }
   return null;
 }

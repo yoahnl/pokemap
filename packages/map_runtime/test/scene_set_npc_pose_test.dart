@@ -101,6 +101,75 @@ void main() {
       reopened.toJson(),
     );
   });
+  final absentMap = map.copyWith(
+    entities: [
+      map.entities.single.copyWith(
+        presentation: MapEntityPresentation(
+          variants: [map.entities.single.presentation!.variants.last],
+        ),
+      ),
+    ],
+  );
+  test('a validated owner with no active presentation keeps its logical pose across cold state restoration', () {
+    final result = writer(target: absentMap).applyOne(initial, pose);
+    expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+    final reopened = GameState.fromJson(result.gameState.toJson());
+    expect(
+      reopened
+          .mapInstanceWorldState
+          .instancesByMapId['lab']!
+          .npcPoses['rival']!
+          .position,
+      const GridPos(x: 14, y: 4),
+    );
+    final hiddenWorld = GameplayWorldState.initial(
+      map: absentMap,
+      project: project,
+      gameState: reopened,
+      playerPos: const GridPos(x: 0, y: 0),
+    );
+    expect(hiddenWorld.map.entities, isEmpty);
+    final visible = hiddenWorld.withEntityPresentations(
+      sourceMap: absentMap,
+      project: project,
+      gameState: reopened.copyWith(storyFlags: const StoryFlags()),
+    );
+    expect(visible.map.entities.single.pos, const GridPos(x: 14, y: 4));
+    expect(visible.map.entities.single.npc!.facing, EntityFacing.south);
+  });
+  test('inactive placement refuses unavailable typed conditions and still checks bounds and scope atomically', () {
+    final invalid = initial.copyWith(
+      narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+        valuesByFactId: {'hidden': NarrativeValue.string('wrong type')},
+      ),
+    );
+    final cases = [
+      (writer(target: absentMap), invalid, pose),
+      (
+        writer(target: absentMap),
+        initial,
+        SceneConsequence.setNpcPose(
+          mapId: 'lab',
+          entityId: 'rival',
+          x: 20,
+          y: 4,
+        ),
+      ),
+      (
+        writer(
+          target: absentMap,
+          scope: MapInstanceRef(mapId: 'lab', instanceId: 'stale'),
+        ),
+        initial,
+        pose,
+      ),
+    ];
+    for (final (writer, before, command) in cases) {
+      final result = writer.applyOne(before, command);
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(identical(result.gameState, before), isTrue);
+    }
+  });
   test('pose preserves previously committed facing and unrelated poses', () {
     final withOther = initial.copyWith(
       mapInstanceWorldState: initial.mapInstanceWorldState.setNpcPoses(
