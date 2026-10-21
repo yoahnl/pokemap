@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,8 +19,12 @@ import 'source_converted_gym_reward_journey_test.dart'
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(installConvertedQaHeadlessAudio);
+  setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
   final root = Platform.environment['AVELUNE_HOME_RECOVERY_PROJECT'];
+  final starterSavePath =
+      Platform.environment['AVELUNE_HOME_RECOVERY_STARTER_SAVE'];
+  final sourceReceiptPath =
+      Platform.environment['AVELUNE_HOME_RECOVERY_SOURCE_RECEIPT'];
   testWidgets(
     'real converted trainer defeat returns to converted Mom and cold saves without repeating recovery',
     (tester) async {
@@ -44,9 +49,15 @@ void main() {
         expect(point.position, const GridPos(x: 9, y: 7));
         expect(point.facing, EntityFacing.north);
         expect(mom.metadata['sourceEventIdentity'], isNotNull);
+        final momSource = original.eventRegistry!.records
+            .map((record) => record.definitionOrNull)
+            .whereType<NarrativeEventDefinition>()
+            .singleWhere((definition) => definition.sceneId == mom.id)
+            .source;
         final before = await hashConvertedQaProjectFiles(root);
-        final sourceReceipt =
-            jsonDecode(await File('$root.receipt.json').readAsString()) as Map;
+        final sourceReceipt = jsonDecode(
+          await File(sourceReceiptPath ?? '$root.receipt.json').readAsString(),
+        ) as Map;
         final battleScene = original.scenes.singleWhere(
           (scene) => scene.id == sourceReceipt['sourceTrainerSceneId'],
         );
@@ -95,10 +106,13 @@ void main() {
         final directory = await Directory.systemTemp.createTemp(
           'converted-home-defeat-save-',
         );
+        addTearDown(() async {
+          if (await directory.exists()) await directory.delete(recursive: true);
+        });
         final repository = ConvertedQaDiskSave(
           path.join(directory.path, 'game.json'),
         );
-        final initial = GameState(
+        var initial = GameState(
           saveId: 'explicit-isolated-home-defeat',
           currentMapId: routeEntry.id,
           playerPosition: GridPos(x: npc.pos.x, y: npc.pos.y + npc.size.height),
@@ -128,6 +142,71 @@ void main() {
             ],
           ),
         );
+        String? inputSaveSha256;
+        GameState? actualStarter;
+        if (starterSavePath != null) {
+          final bytes = await File(starterSavePath).readAsBytes();
+          inputSaveSha256 = crypto.sha256.convert(bytes).toString();
+          actualStarter = gameStateFromStrictSaveJson(
+            Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
+          );
+          expect(
+            PlayerRecoveryPoint.tryRead(actualStarter),
+            PlayerRecoveryPoint(
+              mapId: point.mapId,
+              position: point.position,
+              facing: point.facing,
+            ),
+          );
+          expect(_marker(actualStarter, manifest, marker), isFalse);
+          expect(actualStarter.party.members, hasLength(1));
+          expect(actualStarter.party.members.single.speciesId, 'bulbasaur');
+          expect(actualStarter.party.members.single.level, 5);
+          expect(actualStarter.party.members.single.currentHp, 19);
+          expect(actualStarter.trainerProfile.money, 3000);
+          expect(actualStarter.trainerProfile.badgeIds, isEmpty);
+          expect(actualStarter.metadata[playerDefeatCountMetadataKey], isNull);
+          initial = actualStarter.copyWith(
+            currentMapId: routeEntry.id,
+            playerPosition: GridPos(
+              x: npc.pos.x,
+              y: npc.pos.y + npc.size.height,
+            ),
+            playerPixelPosition: null,
+            playerSpatialPosition: null,
+            playerFacing: EntityFacing.north,
+            mapInstanceWorldState: retainMapInstance(
+              state: actualStarter.mapInstanceWorldState,
+              mapId: routeEntry.id,
+              allocateId: (mapId) => 'explicit-qa-relocation-$mapId',
+            ),
+          );
+          for (final entry
+              in actualStarter.mapInstanceWorldState.instancesByMapId.entries) {
+            expect(
+              initial.mapInstanceWorldState.instancesByMapId[entry.key],
+              entry.value,
+            );
+          }
+          expect(
+            initial
+                .mapInstanceWorldState
+                .instancesByMapId[routeEntry.id]!
+                .npcPoses,
+            isEmpty,
+          );
+          expect(initial.party, actualStarter.party);
+          expect(initial.pokemonStorage, actualStarter.pokemonStorage);
+          expect(initial.bag, actualStarter.bag);
+          expect(initial.trainerProfile, actualStarter.trainerProfile);
+          expect(
+            initial.narrativeFactRuntimeState,
+            actualStarter.narrativeFactRuntimeState,
+          );
+          expect(initial.storyFlags, actualStarter.storyFlags);
+          expect(initial.metadata, actualStarter.metadata);
+        }
+        final expectedMoney = starterSavePath == null ? 900 : 2700;
         PlayableMapGame? game;
         final lines = <String>[];
         var commands = 0;
@@ -136,15 +215,21 @@ void main() {
         var checkpoints = 0;
         var markerAtCheckpoint = false;
         final checkpointStates = <Map<String, dynamic>>[];
+        final recoveryLandingStates = <Map<String, dynamic>>[];
         Future<PlayableMapGame> mount({SaveData? saved}) async {
           final base = await loadRuntimeMapBundle(
             projectFilePath: projectFile,
             mapId: saved == null
                 ? initial.currentMapId
                 : gameStateFromSaveData(saved).currentMapId,
+            additionalCharacterIds: {
+              if (initial.trainerProfile.avatarCharacterId case final String id
+                  when id.isNotEmpty)
+                id,
+            },
           );
           final mounted = PlayableMapGame(
-            bundle: base.copyWith(manifest: manifest),
+            bundle: base,
             projectFilePath: projectFile,
             initialGameState: saved == null ? initial : null,
             saveData: saved,
@@ -152,20 +237,31 @@ void main() {
                 ? MapActivationReason.initialBoot
                 : MapActivationReason.saveRestore,
             saveRepository: repository,
-            runtimeMapBundleLoader:
-                ({
-                  required String projectFilePath,
-                  required String mapId,
-                }) async => (await loadRuntimeMapBundle(
-                  projectFilePath: projectFilePath,
-                  mapId: mapId,
-                )).copyWith(manifest: manifest),
-            sceneSoundEffectPlaybackPort: _SoundFiles(base),
+            sceneSoundEffectPlaybackPort: _SoundFiles(
+              base.copyWith(manifest: manifest),
+            ),
+            beforeNarrativeAuthorityPreparation: (occurrence) async {
+              if (occurrence.source != momSource) return;
+              final state = game!.playerServiceGameStateSnapshot;
+              if (_marker(state, manifest, marker)) {
+                expect(state.currentMapId, sourceHome.id);
+                expect(state.metadata[playerDefeatCountMetadataKey], '1');
+                expect(state.trainerProfile.money, expectedMoney);
+                recoveryLandingStates.add(state.toJson());
+              }
+            },
             defeatRecoveryCheckpointEmitter: () async {
               checkpoints++;
               final state = game!.gameStateSnapshot;
               markerAtCheckpoint = _marker(state, manifest, marker);
               checkpointStates.add(state.toJson());
+              expect(state.currentMapId, sourceHome.id);
+              expect(state.metadata[playerDefeatCountMetadataKey], '1');
+              expect(state.trainerProfile.money, expectedMoney);
+              if (!markerAtCheckpoint) {
+                expect(state.party.members.single.currentHp, greaterThan(1));
+                expect(lines.join('\n').toLowerCase(), contains('mom'));
+              }
             },
           );
           game = mounted;
@@ -237,14 +333,14 @@ void main() {
           expect(sawDefeat, isTrue);
           expect(commands, greaterThan(0));
           expect(checkpoints, 1);
-          expect(markerAtCheckpoint, isTrue);
+          expect(recoveryLandingStates, isNotEmpty);
           expect(lines, isNotEmpty);
           expect(lines.join('\n').toLowerCase(), contains('mom'));
           expect(_marker(state, manifest, marker), isFalse);
           expect(state.currentMapId, sourceHome.id);
           expect(state.playerPosition, point.position);
           expect(state.metadata[playerDefeatCountMetadataKey], '1');
-          expect(state.trainerProfile.money, 900);
+          expect(state.trainerProfile.money, expectedMoney);
           expect(state.party.members.single.currentHp, greaterThan(1));
           expect(
             state.party.members.single.individualId,
@@ -279,7 +375,7 @@ void main() {
             cold.gameStateSnapshot.metadata[playerDefeatCountMetadataKey],
             '1',
           );
-          expect(cold.gameStateSnapshot.trainerProfile.money, 900);
+          expect(cold.gameStateSnapshot.trainerProfile.money, expectedMoney);
           expect(cold.gameStateSnapshot.party, saved.party);
           expect(_marker(cold.gameStateSnapshot, manifest, marker), isFalse);
           for (final id in victoryFacts) {
@@ -297,13 +393,26 @@ void main() {
             'actualNativeDefeat': sawDefeat,
             'battleCommands': commands,
             'markerPublishedAtCheckpoint': markerAtCheckpoint,
+            'recoveryMarkerSeenBeforeMom': true,
+            'recoveryLandingStates': recoveryLandingStates,
             'markerClearedByConvertedMom': true,
             'dialogues': lines,
             'checkpointStates': checkpointStates,
             'coldReload': true,
             'duplicateRecovery': false,
             'projectFilesUnchanged': true,
-            'qaPartySeeded': initial.party.toJson(),
+            'qaPartySeeded': starterSavePath == null
+                ? initial.party.toJson()
+                : false,
+            'qaPositionSeeded': true,
+            'qaRelocationMapInstanceCreated': starterSavePath != null,
+            'actualStarterSavePath': starterSavePath,
+            'actualStarterSaveSha256': inputSaveSha256,
+            'actualStarterParty': actualStarter?.party.toJson(),
+            'initialMoney': initial.trainerProfile.money,
+            'nativeMoneyAfterLoss': state.trainerProfile.money,
+            'combinedFullProjectMaps': manifest.maps.length,
+            'nativeRuntimeMapLoader': true,
             'sourceBattleScene': battleScene.toJson(),
             'sourceTrainer': trainer.toJson(),
             'sourceTrainerIdentity': sourceReceipt['sourceTrainerIdentity'],
@@ -322,6 +431,14 @@ void main() {
               case final file?) {
             await File(file).writeAsString(jsonEncode(receipt), flush: true);
           }
+          if (starterSavePath != null) {
+            expect(
+              crypto.sha256
+                  .convert(await File(starterSavePath).readAsBytes())
+                  .toString(),
+              inputSaveSha256,
+            );
+          }
           stdout.writeln(jsonEncode(receipt));
         } finally {
           game?.onRemove();
@@ -332,7 +449,7 @@ void main() {
       });
     },
     skip: root == null,
-    timeout: const Timeout(Duration(minutes: 3)),
+    timeout: const Timeout(Duration(minutes: 5)),
   );
 }
 

@@ -70,6 +70,7 @@ import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_player_avatar.dart';
 import '../../application/character_animation_source_resolver.dart';
 import '../../application/runtime_committed_movement.dart';
+import '../../application/runtime_retained_world_catalog.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_overworld_interaction.dart';
 import '../../application/field_obstacle_interaction.dart';
@@ -12812,6 +12813,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     GameState state,
   ) async {
     final maps = <String, MapData>{activeBundle.map.id: activeBundle.map};
+    final retainedProjects = <ProjectManifest>[];
     for (final mapId in {
       ...state.movingPlatformWorldState.platformsByMap.keys,
       ...state.movingPropWorldState.propsByMap.keys,
@@ -12821,9 +12823,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         throw StateError('Saved world state references an unknown map.');
       }
       if (!maps.containsKey(mapId)) {
-        maps[mapId] = (await _loadRuntimeMapBundleCached(mapId)).map;
+        final retainedBundle = await _loadRuntimeMapBundleCached(mapId);
+        maps[mapId] = retainedBundle.map;
+        retainedProjects.add(retainedBundle.manifest);
       }
     }
+    final validationProject = runtimeRetainedWorldValidationProject(
+      activeProject: activeBundle.manifest,
+      retainedProjects: retainedProjects,
+    );
     for (final entry in state.mapInstanceWorldState.instancesByMapId.entries) {
       validateFlashInstanceState(
         map: maps[entry.key]!,
@@ -12833,34 +12841,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         map: maps[entry.key]!, instances: state.mapInstanceWorldState,
         movingPlatformWorldState: state.movingPlatformWorldState,
         movingPropWorldState: state.movingPropWorldState,
-        instance: state.mapInstanceWorldState.instanceRef(entry.key)!, project: activeBundle.manifest,
-        npcMapPresencePredicate: _npcPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
-        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
+        instance: state.mapInstanceWorldState.instanceRef(entry.key)!, project: validationProject,
+        npcMapPresencePredicate: _npcPresencePredicateFor(validationProject, gameStateOverride: state),
+        mapEntityPresencePredicate: _mapEntityPresencePredicateFor(validationProject, gameStateOverride: state),
       );
     }
     validateGameplayMovingPlatformWorldState(
-      project: activeBundle.manifest,
+      project: validationProject,
       maps: maps.values,
       worldState: state.movingPlatformWorldState,
       movingPropWorldState: state.movingPropWorldState,
       gameState: state,
       npcMapPresencePredicate: _npcPresencePredicateFor(
-        activeBundle.manifest,
+        validationProject,
         gameStateOverride: state,
       ),
       mapEntityPresencePredicate: _mapEntityPresencePredicateFor(
-        activeBundle.manifest,
+        validationProject,
         gameStateOverride: state,
       ),
     );
     validateGameplayMovingPropWorldState(
-      project: activeBundle.manifest,
+      project: validationProject,
       maps: maps.values,
       worldState: state.movingPropWorldState,
       movingPlatformWorldState: state.movingPlatformWorldState,
       gameState: state,
-      npcMapPresencePredicate: _npcPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
-      mapEntityPresencePredicate: _mapEntityPresencePredicateFor(activeBundle.manifest, gameStateOverride: state),
+      npcMapPresencePredicate: _npcPresencePredicateFor(validationProject, gameStateOverride: state),
+      mapEntityPresencePredicate: _mapEntityPresencePredicateFor(validationProject, gameStateOverride: state),
     );
   }
 
