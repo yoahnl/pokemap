@@ -61,7 +61,7 @@ void main() {
             (map) => map.name.endsWith("PN's House"),
           );
           final initial = genuineNewGame
-              ? await _nativeFreshGame(projectFile, variant)
+              ? await createConvertedSourceFreshGame(projectFile, variant)
               : GameState(
                   saveId: 'isolated-converted-intro-$variant',
                   currentMapId: intro.id,
@@ -79,15 +79,17 @@ void main() {
           final directory = await Directory.systemTemp.createTemp(
             'converted-intro-save-',
           );
-          final repository = _DiskSave(path.join(directory.path, 'game.json'));
-          _Mounted? mounted;
+          final repository = ConvertedSourceIntroDiskSave(
+            path.join(directory.path, 'game.json'),
+          );
+          ConvertedSourceIntroMounted? mounted;
           final opening = <String>[];
           final closing = <String>[];
           final requests = <Map<String, dynamic>>[];
           var rejectedCandidate = false;
           var nameConfirmed = false;
           try {
-            mounted = await _mount(
+            mounted = await mountConvertedSourceIntroGame(
               tester,
               projectFile,
               manifest,
@@ -263,15 +265,17 @@ void main() {
               expect(closing.join(' '), contains(expectedName));
               expect(closing.length, 4);
               expect(await game.saveGame(), isTrue);
-              final saved = (await _DiskSave(repository.filePath).load())!;
+              final saved = (await ConvertedSourceIntroDiskSave(
+                repository.filePath,
+              ).load())!;
               final state = game.gameStateSnapshot;
               await mounted.close(tester);
               mounted = null;
-              mounted = await _mount(
+              mounted = await mountConvertedSourceIntroGame(
                 tester,
                 projectFile,
                 manifest,
-                _DiskSave(repository.filePath),
+                ConvertedSourceIntroDiskSave(repository.filePath),
                 state,
                 restored: saveDataFromGameState(saved),
               );
@@ -360,7 +364,10 @@ void main() {
   }
 }
 
-Future<GameState> _nativeFreshGame(String projectFile, String variant) async {
+Future<GameState> createConvertedSourceFreshGame(
+  String projectFile,
+  String variant,
+) async {
   final flow = RuntimeProjectNewGameFlowPort(
     projectFilePath: () async => projectFile,
     initialMapPreloader: RuntimeInitialMapPreloader(
@@ -487,11 +494,11 @@ bool _idle(PlayableMapGame game) =>
     !game.debugHasPendingMapTransition &&
     !game.debugIsPlayerStepping;
 
-Future<_Mounted> _mount(
+Future<ConvertedSourceIntroMounted> mountConvertedSourceIntroGame(
   WidgetTester tester,
   String projectFile,
   ProjectManifest manifest,
-  _DiskSave repository,
+  ConvertedSourceIntroDiskSave repository,
   GameState initial, {
   SaveData? restored,
 }) async {
@@ -534,7 +541,7 @@ Future<_Mounted> _mount(
     await game.toBeLoaded();
     await game.ready();
     game.pauseEngine();
-    return _Mounted(game, controller);
+    return ConvertedSourceIntroMounted(game, controller);
   } catch (_) {
     await controller.dispose();
     game.onRemove();
@@ -542,8 +549,8 @@ Future<_Mounted> _mount(
   }
 }
 
-final class _Mounted {
-  _Mounted(this.game, this.controller);
+final class ConvertedSourceIntroMounted {
+  ConvertedSourceIntroMounted(this.game, this.controller);
   final PlayableMapGame game;
   final PlayerServiceRuntimeController controller;
   Future<void> close(WidgetTester tester) async {
@@ -555,8 +562,8 @@ final class _Mounted {
   }
 }
 
-final class _DiskSave extends FileGameSaveRepository {
-  _DiskSave(this.filePath);
+final class ConvertedSourceIntroDiskSave extends FileGameSaveRepository {
+  ConvertedSourceIntroDiskSave(this.filePath);
   final String filePath;
   @override
   Future<String> getSaveFilePath() async => filePath;
