@@ -52,6 +52,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    if (find.text(value).evaluate().isEmpty) {
+      await tester.scrollUntilVisible(find.text(value), 200,
+        scrollable: find.byType(Scrollable).last);
+    }
     await tester.tap(find.text(value).last);
     await tester.pumpAndSettle();
   }
@@ -101,6 +105,7 @@ void main() {
     for (final id in [
       NarrativeCommandIds.worldTone,
       NarrativeCommandIds.playSoundEffect,
+      NarrativeCommandIds.playMusicEffect,
     ]) {
       final capabilities = NarrativeCommandCatalog.canonical()
           .byId(id)!
@@ -121,6 +126,7 @@ void main() {
     for (final id in [
       NarrativeCommandIds.worldTone,
       NarrativeCommandIds.playSoundEffect,
+      NarrativeCommandIds.playMusicEffect,
     ]) {
       expect(
         commands.containsKey(id),
@@ -293,6 +299,41 @@ void main() {
     expect(find.textContaining('paramètres avancés'), findsNothing);
     expect(apply(tester).onPressed, isNotNull);
     expect(applied, isEmpty);
+    await tester.tap(find.text('Appliquer l’action'));
+    expect(applied.single, current);
+  });
+
+  testWidgets('ME picker preserves its distinct role and bounded BGM interruption', (tester) async {
+    final applied = <SceneNodePayload>[];
+    await pump(tester, onApply: applied.add);
+    await pick(tester, 'Commande', 'Jouer une fanfare');
+    await pick(tester, 'Fanfare', 'Porte');
+    for (final id in ['fadeOutMs', 'fadeInMs']) {
+      expect(tester.widget<TextField>(field('playMusicEffect', id)).controller!.text, '0');
+      for (final invalid in ['', '-1', '0.5', '60001', 'NaN']) {
+        await enter(tester, 'playMusicEffect', id, invalid);
+        expect(apply(tester).onPressed, isNull, reason: '$id=$invalid');
+      }
+      await enter(tester, 'playMusicEffect', id, '200');
+    }
+    await enter(tester, 'playMusicEffect', 'volume', '0.8');
+    expect(apply(tester).onPressed, isNotNull);
+    await tester.tap(find.text('Ajouter l’action'));
+    expect((applied.single as SceneActionPayload).interactiveCommand,
+      SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
+        bgmInterruption: DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 200)));
+  });
+
+  testWidgets('editing ME preserves nested interruption and opaque action metadata', (tester) async {
+    final current = SceneActionPayload.interactive(
+      SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'bell', volume: .35,
+        bgmInterruption: DialogueBgmInterruption(fadeOutMs: 240, fadeInMs: 420)),
+      actionKind: 'authored-ME', parameters: const {'label': 'Récompense'});
+    final applied = <SceneNodePayload>[];
+    await pump(tester, useTestCatalog: false, current: current, onApply: applied.add);
+    expect(tester.widget<TextField>(field('playMusicEffect', 'fadeOutMs')).controller!.text, '240');
+    expect(tester.widget<TextField>(field('playMusicEffect', 'fadeInMs')).controller!.text, '420');
+    expect(apply(tester).onPressed, isNotNull);
     await tester.tap(find.text('Appliquer l’action'));
     expect(applied.single, current);
   });
@@ -500,6 +541,7 @@ List<NarrativeCommandDescriptor> _supportedCommands() => [
   for (final command in NarrativeCommandCatalog.canonical().commands)
     if (command.id == NarrativeCommandIds.worldTone ||
         command.id == NarrativeCommandIds.playSoundEffect ||
+        command.id == NarrativeCommandIds.playMusicEffect ||
         command.id == NarrativeCommandIds.wait)
       NarrativeCommandDescriptor(
         id: command.id,

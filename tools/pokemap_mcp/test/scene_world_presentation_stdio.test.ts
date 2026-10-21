@@ -83,12 +83,16 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     assert.equal(record(extension.playSoundEffect).mediaReference, "knownNonLoopingSound");
     assert.deepEqual(record(extension.playSoundEffect).volumeRange, [0, 1]);
     assert.deepEqual(record(extension.playSoundEffect).unsupportedParameters, ["pitch"]);
+    assert.equal(record(extension.playMusicEffect).role, "musicEffect");
+    assert.equal(record(extension.playMusicEffect).mediaReference, "knownNonLoopingSound");
+    assert.deepEqual(record(extension.playMusicEffect).bgmInterruption,
+      { parameters: ["fadeOutMs", "fadeInMs"], integerRange: [0, 60000] });
     assert.deepEqual(record(extension.worldTone).durationMsRange, [0, 2147483647]);
     assert.deepEqual(record(extension.wait).parameters, ["durationMs"]);
     assert.deepEqual(record(extension.wait).durationMsRange, [0, 2147483647]);
     assert.deepEqual(record(extension.wait).outputPorts, ["completed"]);
     assert.equal(record(extension.wait).completion, "elapsed");
-    for (const id of ["wait", "worldTone", "playSoundEffect"]) {
+    for (const id of ["wait", "worldTone", "playSoundEffect", "playMusicEffect"]) {
       assert.equal(record(extension[id]).projectDimension, "twoD");
     }
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
@@ -113,6 +117,7 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     const commands = [
       { kind: "worldTone", red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300 },
       { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8 },
+      { kind: "playMusicEffect", mediaAssetId: "door", volume: 0.8, bgmInterruption: { fadeOutMs: 200, fadeInMs: 400 } },
       { kind: "wait", durationMs: 400 },
     ];
     for (const command of commands) {
@@ -131,6 +136,13 @@ test("live MCP persists native presentation data and refuses invalid sound refer
       assert.deepEqual(await readFile(mapFile), mapBefore);
     }
     for (const id of ["missing", "music", "fx", "loop"]) await plan({ kind: "playSoundEffect", mediaAssetId: id, volume: 0.8 }, true);
+    for (const id of ["missing", "music", "fx", "loop"]) await plan({ kind: "playMusicEffect", mediaAssetId: id, volume: .8,
+      bgmInterruption: { fadeOutMs: 0, fadeInMs: 0 } }, true);
+    for (const bgmInterruption of [null, { fadeOutMs: -1, fadeInMs: 0 }, { fadeOutMs: 0, fadeInMs: 60001 }]) {
+      await plan({ kind: "playMusicEffect", mediaAssetId: "door", volume: .8, bgmInterruption }, true);
+    }
+    await plan({ kind: "playMusicEffect", mediaAssetId: "door", volume: .8, pitch: 100,
+      bgmInterruption: { fadeOutMs: 0, fadeInMs: 0 } }, true);
     await plan({ kind: "playSoundEffect", mediaAssetId: "door", volume: 1.01 }, true);
     await plan({ kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8, pitch: 100 }, true);
     await plan({ kind: "worldTone", red: "NaN", green: 0, blue: 0, gray: 0, durationMs: 300 }, true);
@@ -155,11 +167,13 @@ test("live MCP persists native presentation data and refuses invalid sound refer
       { kind: "wait", durationMs: 400 },
       { kind: "worldTone", red: -255, green: 0, blue: 0, gray: 0, durationMs: 300 },
       { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8 },
+      { kind: "playMusicEffect", mediaAssetId: "door", volume: 0.8, bgmInterruption: { fadeOutMs: 200, fadeInMs: 400 } },
     ];
     const initialCommands = [
       { kind: "wait", durationMs: 1 },
       { kind: "worldTone", red: 0, green: 0, blue: 0, gray: 0, durationMs: 1 },
       { kind: "playSoundEffect", mediaAssetId: "door", volume: 1 },
+      { kind: "playMusicEffect", mediaAssetId: "door", volume: 1, bgmInterruption: { fadeOutMs: 0, fadeInMs: 0 } },
     ];
     await mkdir(join(spatialRoot, "audio"));
     await writeFile(join(spatialRoot, "audio/door.wav"), wav);

@@ -132,7 +132,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
-      id == NarrativeCommandIds.playSoundEffect;
+      id == NarrativeCommandIds.playSoundEffect ||
+      id == NarrativeCommandIds.playMusicEffect;
 
   bool _isActorCommand(String? id) =>
       id == NarrativeCommandIds.actorRoute ||
@@ -194,9 +195,12 @@ class _SceneActionFormState extends State<SceneActionForm> {
     }
     for (final parameter in _command!.parameters) {
       final presentation = data['presentation'];
+      final interruption = data['bgmInterruption'];
       final value = _commandId == NarrativeCommandIds.warp && presentation is Map
           ? parameter.id == 'presentationMode' ? presentation['mode']
               : data[parameter.id] ?? presentation[parameter.id]
+          : _commandId == NarrativeCommandIds.playMusicEffect && interruption is Map
+          ? data[parameter.id] ?? interruption[parameter.id]
           : data[parameter.id];
       if (value is String || value is num || value is bool) {
         _values[parameter.id] = '$value';
@@ -277,8 +281,13 @@ class _SceneActionFormState extends State<SceneActionForm> {
       for (final id in ['red', 'green', 'blue', 'gray', 'durationMs']) {
         _values[id] = '0';
       }
-    } else if (commandId == NarrativeCommandIds.playSoundEffect) {
+    } else if (commandId == NarrativeCommandIds.playSoundEffect ||
+        commandId == NarrativeCommandIds.playMusicEffect) {
       _values['volume'] = '1';
+      if (commandId == NarrativeCommandIds.playMusicEffect) {
+        _values['fadeOutMs'] = '0';
+        _values['fadeInMs'] = '0';
+      }
     }
     _loadReferenceMap();
     _loadGiftSpecies();
@@ -332,7 +341,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
         command.id == NarrativeCommandIds.warp ||
         command.id == NarrativeCommandIds.wait ||
         command.id == NarrativeCommandIds.worldTone ||
-        command.id == NarrativeCommandIds.playSoundEffect) {
+        command.id == NarrativeCommandIds.playSoundEffect ||
+        command.id == NarrativeCommandIds.playMusicEffect) {
       try {
         final payload = _buildPayload();
         if (payload is SceneActionPayload) {
@@ -715,7 +725,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
       final presentation =
           _commandId == NarrativeCommandIds.wait ||
           _commandId == NarrativeCommandIds.worldTone ||
-          _commandId == NarrativeCommandIds.playSoundEffect;
+          _commandId == NarrativeCommandIds.playSoundEffect ||
+          _commandId == NarrativeCommandIds.playMusicEffect;
       return StudioDraftField(
         key: ValueKey('action-$_commandId-${parameter.id}'),
         label: parameter.label,
@@ -752,6 +763,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
   String _presentationFieldHelp(String id) => switch (id) {
     'durationMs' => 'Millisecondes entières, de 0 à 2147483647.',
     'volume' => 'Entre 0 et 1.',
+    'fadeOutMs' || 'fadeInMs' => 'Millisecondes entières, de 0 à 60000.',
     'gray' => 'Entre 0 et 255.',
     _ => 'Entre -255 et 255.',
   };
@@ -759,6 +771,12 @@ class _SceneActionFormState extends State<SceneActionForm> {
   String? _presentationFieldError(String id) {
     final raw = _values[id] ?? '';
     if (raw.trim().isEmpty) return 'Valeur requise.';
+    if (id == 'fadeOutMs' || id == 'fadeInMs') {
+      final duration = int.tryParse(raw);
+      return duration == null || duration < 0 || duration > 60000
+          ? 'Saisir un entier entre 0 et 60000.'
+          : null;
+    }
     if (id == 'durationMs') {
       final duration = int.tryParse(raw);
       return duration == null || duration < 0 || duration > 0x7fffffff

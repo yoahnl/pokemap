@@ -172,6 +172,7 @@ void main() {
       waitForActorRoutes: handler,
       worldTone: handler,
       playSoundEffect: handler,
+      playMusicEffect: handler,
       actorRoute: handler,
       actorVisibility: handler,
       giveItem: (command) async {
@@ -422,6 +423,9 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
       NarrativeCommandIds.worldTone: () => SceneInteractiveCommand.worldTone(
             red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
           ),
+      NarrativeCommandIds.playMusicEffect: () =>
+          SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door-sound', volume: .8,
+            bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
       NarrativeCommandIds.playSoundEffect: () =>
           SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door-sound', volume: .8),
       NarrativeCommandIds.actorRoute: () => SceneInteractiveCommand.actorRoute(

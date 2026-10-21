@@ -12389,6 +12389,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           command,
           session: presentationSession,
         ),
+        playMusicEffect: (command) => _executeSceneMusicEffectCommand(
+          command,
+          session: presentationSession,
+          playbackId: '$runtimeExecutionSourceId:me:${soundIndex++}',
+        ),
         playSoundEffect: (command) => _executeSceneSoundEffectCommand(
           command,
           session: presentationSession,
@@ -13926,6 +13931,50 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ),
       durationSeconds: command.durationMs / 1000,
     );
+    return 'completed';
+  }
+
+  Future<String> _executeSceneMusicEffectCommand(
+    SceneInteractiveCommand command, {
+    required _NarrativeSceneWorkingSession? session,
+    required String playbackId,
+  }) async {
+    if (command is! ScenePlayMusicEffectInteractiveCommand ||
+        !_scenePresentationScopeIsCurrent(session)) {
+      return 'blocked';
+    }
+    final media = _bundle.manifest.cinematicMediaAssets.where(
+      (asset) => asset.id == command.mediaAssetId,
+    );
+    if (media.length != 1 ||
+        media.single.kind != CinematicMediaAssetKind.sound ||
+        media.single.loopByDefault) {
+      return 'blocked';
+    }
+    try {
+      await _dialogueFeedbackAudio.playCue(
+        DialogueAudioCue(
+          mediaAssetId: command.mediaAssetId,
+          cueId: playbackId,
+          volume: command.volume,
+          role: DialogueAudioCueRole.musicEffect,
+          bgmInterruption: command.bgmInterruption,
+        ),
+        playbackId: playbackId,
+      );
+    } on Object catch (error) {
+      debugPrint('[scene_runtime] music effect start failed: $error');
+      if (session != null && !_scenePresentationScopeIsCurrent(session)) {
+        rethrow;
+      }
+      return 'blocked';
+    }
+    if (!_scenePresentationScopeIsCurrent(session)) {
+      if (session != null) {
+        throw StateError('The Scene music effect execution is no longer current.');
+      }
+      return 'blocked';
+    }
     return 'completed';
   }
 

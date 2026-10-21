@@ -3204,6 +3204,53 @@ void main() {
   },
   );
 
+  test('native Scene ME starts nonblocking with distinct role and exact BGM policy', () async {
+    final audio = _SceneMusicEffectPort();
+    final fixture = await _fixture(dialogueFeedbackPlaybackPort: audio,
+      cinematicMediaAssets: [_doorSound()]);
+    final command = SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
+      bgmInterruption: DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 400));
+    expect(await fixture.game.debugExecuteSceneInteractiveCommand(command), 'completed');
+    expect(audio.cues.single.role, DialogueAudioCueRole.musicEffect);
+    expect(audio.cues.single.volume, .8);
+    expect(audio.cues.single.bgmInterruption, DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 400));
+    expect(audio.playbackIds.single, contains(':me:0'));
+  });
+
+  test('native Scene ME blocks unknown looping wrong-kind and duplicate assets', () async {
+    for (final media in <List<CinematicMediaAsset>>[
+      [], [_doorSound(loop: true)], [_doorSound(kind: CinematicMediaAssetKind.music)],
+      [_doorSound(), _doorSound()],
+    ]) {
+      final audio = _SceneMusicEffectPort();
+      final fixture = await _fixture(dialogueFeedbackPlaybackPort: audio,
+        cinematicMediaAssets: media);
+      expect(await fixture.game.debugExecuteSceneInteractiveCommand(
+        SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
+          bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 0))), 'blocked');
+      expect(audio.cues, isEmpty);
+    }
+  });
+
+  test('native Scene ME rejects failed or stale startup without completing', () async {
+    for (final removed in [false, true]) {
+      final audio = _SceneMusicEffectPort()..gate = Completer<void>();
+      final fixture = await _fixture(dialogueFeedbackPlaybackPort: audio,
+        cinematicMediaAssets: [_doorSound()]);
+      final started = fixture.game.debugExecuteSceneInteractiveCommand(
+        SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
+          bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 0)));
+      await audio.entered.future;
+      if (removed) {
+        fixture.game.onRemove();
+        audio.gate!.complete();
+      } else {
+        audio.gate!.completeError(StateError('Audio start failed'));
+      }
+      expect(await started, 'blocked');
+    }
+  });
+
   test('native Scene sound completes after startup with its exact gain', () async {
     final audio = _SceneSoundPort();
     final fixture = await _fixture(
@@ -4368,6 +4415,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   EntityFacing sourceFacing = EntityFacing.east,
   GameSaveRepository? saveRepository,
   SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort,
+  DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort,
   NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
   RuntimeDialogueSessionLoader? dialogueSessionLoader,
   Future<void> Function()? beforeLoadCommitCompletion,
@@ -4649,6 +4697,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
     saveRepository: saveRepository,
     saveData: gameState == null ? null : saveDataFromGameState(gameState),
     sceneSoundEffectPlaybackPort: sceneSoundEffectPlaybackPort,
+    dialogueFeedbackPlaybackPort: dialogueFeedbackPlaybackPort,
     narrativeRuntimeActivityGate: narrativeRuntimeActivityGate,
     dialogueSessionLoader: dialogueSessionLoader,
     beforeLoadCommitCompletion: beforeLoadCommitCompletion,
@@ -5175,6 +5224,7 @@ final class _ConnectionGame extends PlayableMapGame {
     super.saveRepository,
     super.saveData,
     super.sceneSoundEffectPlaybackPort,
+    super.dialogueFeedbackPlaybackPort,
     super.narrativeRuntimeActivityGate,
     super.dialogueSessionLoader,
     super.beforeLoadCommitCompletion,
@@ -5767,3 +5817,18 @@ NarrativeEventRegistry _overlappingTriggerBumpRegistry() =>
       ],
       legacyClaims: const [],
     );
+
+final class _SceneMusicEffectPort implements DialogueFeedbackPlaybackPort {
+  final cues = <DialogueAudioCue>[];
+  final playbackIds = <String>[];
+  final entered = Completer<void>();
+  Completer<void>? gate;
+
+  @override
+  Future<void> playCue(DialogueAudioCue cue, {required String playbackId}) async {
+    cues.add(cue);
+    playbackIds.add(playbackId);
+    if (!entered.isCompleted) entered.complete();
+    await gate?.future;
+  }
+}

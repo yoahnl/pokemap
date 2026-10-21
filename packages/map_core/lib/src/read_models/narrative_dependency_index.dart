@@ -2499,6 +2499,8 @@ final class _NarrativeDependencyIndexBuilder {
         }
       case SceneActorVisibilityInteractiveCommand(:final target):
         _collectActorTarget(owner, target, '$path.target');
+      case ScenePlayMusicEffectInteractiveCommand(:final mediaAssetId):
+        _collectSceneSoundReference(owner, mediaAssetId, '$path.mediaAssetId');
       case ScenePlaySoundEffectInteractiveCommand(:final mediaAssetId):
         _collectSceneSoundReference(owner, mediaAssetId, '$path.mediaAssetId');
       case ScenePlayModelAnimationInteractiveCommand(

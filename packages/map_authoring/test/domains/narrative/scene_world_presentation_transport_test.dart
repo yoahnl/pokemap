@@ -149,6 +149,17 @@ void main() {
     }
   });
 
+  test('canonical actions describe ME with its distinct role and interruption contract', () {
+    for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
+      final contract = SceneActions.descriptors.singleWhere((d) => d.id == id).extensions['playMusicEffect'] as Map;
+      expect(contract['parameters'], ['mediaAssetId', 'volume', 'bgmInterruption']);
+      expect(contract['role'], 'musicEffect');
+      expect(contract['mediaReference'], 'knownNonLoopingSound');
+      expect(contract['bgmInterruption'], {'parameters': ['fadeOutMs', 'fadeInMs'], 'integerRange': [0, 60000]});
+      expect(contract['completion'], 'started');
+    }
+  });
+
   test('canonical scene upsert and graph patch cannot bypass sound validation',
       () async {
     final fixture = await _Fixture.create();
@@ -189,6 +200,8 @@ void main() {
         SceneInteractiveCommand.wait(durationMs: 400),
         SceneInteractiveCommand.worldTone(red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
         SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+        SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
+          bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
       ]) {
       final initial = switch (command) {
         SceneWaitInteractiveCommand() => SceneInteractiveCommand.wait(durationMs: 1),
@@ -294,6 +307,8 @@ void main() {
             red: -255, green: -254.5, blue: 20, gray: 10, durationMs: 300),
         SceneInteractiveCommand.playSoundEffect(
             mediaAssetId: 'door', volume: 0.8),
+        SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
+          bgmInterruption: DialogueBgmInterruption(fadeOutMs: 200, fadeInMs: 400)),
       ]) {
         final before = await fixture.projectFile.readAsBytes();
         final request = await fixture.request(command.toJson());
@@ -358,7 +373,7 @@ void main() {
             view: AuthoringQueryView.detail,
             ids: ['edit']).toJson()
       });
-      expect(jsonEncode(query), contains('playSoundEffect'));
+      expect(jsonEncode(query), contains('playMusicEffect'));
       expect(jsonEncode(query), contains('door'));
     });
 
@@ -369,10 +384,12 @@ void main() {
         final fixture = await _Fixture.create();
         addTearDown(fixture.dispose);
         final before = await fixture.projectFile.readAsBytes();
-        final request = await fixture.request(
-            SceneInteractiveCommand.playSoundEffect(
-                    mediaAssetId: mediaId, volume: 0.8)
-                .toJson());
+        for (final command in [
+          SceneInteractiveCommand.playSoundEffect(mediaAssetId: mediaId, volume: .8),
+          SceneInteractiveCommand.playMusicEffect(mediaAssetId: mediaId, volume: .8,
+            bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
+        ]) {
+        final request = await fixture.request(command.toJson());
         if (jsonl) {
           final result = await fixture.command('plan', {
             'projectHandle': fixture.project.value,
@@ -389,6 +406,7 @@ void main() {
               reason: mediaId);
         }
         expect(await fixture.projectFile.readAsBytes(), before);
+        }
       }
     });
 
@@ -397,6 +415,10 @@ void main() {
       final fixture = await _Fixture.create();
       addTearDown(fixture.dispose);
       for (final value in [
+        {'kind': 'playMusicEffect', 'mediaAssetId': 'door', 'volume': .8,
+          'bgmInterruption': {'fadeOutMs': -1, 'fadeInMs': 0}},
+        {'kind': 'playMusicEffect', 'mediaAssetId': 'door', 'volume': .8, 'pitch': 100,
+          'bgmInterruption': {'fadeOutMs': 0, 'fadeInMs': 0}},
         {
           ...SceneInteractiveCommand.playSoundEffect(
                   mediaAssetId: 'door', volume: 0.8)

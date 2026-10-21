@@ -270,6 +270,23 @@ final class SceneActions {
     'outputPorts': ['completed', 'blocked'],
   };
 
+  static const _musicEffectContract = {
+    'projectDimension': 'twoD',
+    'parameters': ['mediaAssetId', 'volume', 'bgmInterruption'],
+    'role': 'musicEffect',
+    'mediaReference': 'knownNonLoopingSound',
+    'finiteNumbers': true,
+    'volumeRange': [0, 1],
+    'bgmInterruption': {
+      'parameters': ['fadeOutMs', 'fadeInMs'],
+      'integerRange': [0, 60000],
+    },
+    'unsupportedParameters': ['pitch'],
+    'completion': 'started',
+    'persistent': false,
+    'outputPorts': ['completed', 'blocked'],
+  };
+
   static const _actorRouteContract = {
     'contractVersion': 3,
     'parameters': ['target', 'steps', 'skippable', 'transientScope'],
@@ -424,6 +441,7 @@ final class SceneActions {
         'openPartyTrade': _openPartyTradeContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'playMusicEffect': _musicEffectContract,
         'actorRoute': _actorRouteContract,
       },
     ),
@@ -475,6 +493,7 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'playMusicEffect': _musicEffectContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -545,6 +564,7 @@ final class SceneActions {
         'warp': _warpContract,
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
+        'playMusicEffect': _musicEffectContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,

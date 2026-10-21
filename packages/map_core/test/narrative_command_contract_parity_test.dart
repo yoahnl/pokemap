@@ -247,6 +247,10 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
       red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
     ),
   ),
+  NarrativeCommandIds.playMusicEffect: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door-sound', volume: .8,
+      bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
+  ),
   NarrativeCommandIds.playSoundEffect: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door-sound', volume: .8),
   ),

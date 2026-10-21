@@ -26,6 +26,7 @@ abstract final class NarrativeCommandIds {
   static const waitForActorRoutes = 'waitForActorRoutes';
   static const worldTone = 'worldTone';
   static const playSoundEffect = 'playSoundEffect';
+  static const playMusicEffect = 'playMusicEffect';
   static const actorRoute = 'actorRoute';
   static const actorVisibility = 'actorVisibility';
   static const openShop = 'openShop';
@@ -604,6 +605,32 @@ final class NarrativeCommandCatalog {
             NarrativeCommandParameterKind.soundMediaReference,
           ),
           _parameter('volume', 'Volume', NarrativeCommandParameterKind.number),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.playMusicEffect,
+        label: 'Jouer une fanfare',
+        description:
+            'Démarre une fanfare, suspend la musique puis la reprend à la fin. La scène continue après le démarrage.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Disponible dans le Player 2D ; aucun support 3D.',
+        ),
+        fgLotId: 'FG-093',
+        wireId: 'SceneInteractiveCommand.playMusicEffect',
+        parameters: [
+          _parameter(
+            'mediaAssetId',
+            'Fanfare',
+            NarrativeCommandParameterKind.soundMediaReference,
+          ),
+          _parameter('volume', 'Volume', NarrativeCommandParameterKind.number),
+          _parameter('fadeOutMs', 'Fondu de pause musique (ms)', NarrativeCommandParameterKind.integer),
+          _parameter('fadeInMs', 'Fondu de reprise musique (ms)', NarrativeCommandParameterKind.integer),
         ],
         isAwaitable: true,
       ),

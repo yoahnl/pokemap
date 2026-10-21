@@ -7,6 +7,7 @@ import 'moving_platform.dart';
 import 'moving_prop.dart';
 import 'enums.dart';
 import 'scene_actor_route.dart';
+import 'dialogue_line_feedback.dart';
 import 'scene_warp_presentation.dart';
 import 'scene_pokemon_gift_moves.dart';
 import 'scene_structured_interaction.dart';
@@ -20,6 +21,7 @@ enum SceneInteractiveCommandKind {
   waitForActorRoutes,
   worldTone,
   playSoundEffect,
+  playMusicEffect,
   actorRoute,
   actorVisibility,
   moveNpc,
@@ -106,6 +108,12 @@ abstract base class SceneInteractiveCommand {
     required String mediaAssetId,
     required double volume,
   }) = ScenePlaySoundEffectInteractiveCommand;
+
+  factory SceneInteractiveCommand.playMusicEffect({
+    required String mediaAssetId,
+    required double volume,
+    required DialogueBgmInterruption bgmInterruption,
+  }) = ScenePlayMusicEffectInteractiveCommand;
 
   factory SceneInteractiveCommand.actorRoute({
     required SceneActorTarget target,
@@ -222,6 +230,8 @@ abstract base class SceneInteractiveCommand {
         SceneWaitForActorRoutesInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.worldTone =>
         SceneWorldToneInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.playMusicEffect =>
+        ScenePlayMusicEffectInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playSoundEffect =>
         ScenePlaySoundEffectInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.actorRoute =>
@@ -619,6 +629,61 @@ final class ScenePlaySoundEffectInteractiveCommand
       other.volume == volume;
   @override
   int get hashCode => Object.hash(mediaAssetId, volume);
+}
+
+final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveCommand {
+  ScenePlayMusicEffectInteractiveCommand({
+    required String mediaAssetId,
+    required double volume,
+    required this.bgmInterruption,
+  }) : mediaAssetId = _normalize(mediaAssetId, 'mediaAssetId'),
+       volume = _boundedPresentationNumber(volume, 'volume', 0, 1);
+
+  factory ScenePlayMusicEffectInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    _presentationCommandFields(json, const {
+      'kind', 'mediaAssetId', 'volume', 'bgmInterruption',
+    });
+    if (json['kind'] != 'playMusicEffect' || json['bgmInterruption'] is! Map) {
+      throw const FormatException('Invalid music effect command.');
+    }
+    return ScenePlayMusicEffectInteractiveCommand(
+      mediaAssetId: _required(json, 'mediaAssetId'),
+      volume: _presentationNumber(json, 'volume'),
+      bgmInterruption: DialogueBgmInterruption.fromJson(
+        Map<String, dynamic>.from(json['bgmInterruption'] as Map),
+      ),
+    );
+  }
+
+  final String mediaAssetId;
+  final double volume;
+  final DialogueBgmInterruption bgmInterruption;
+
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.playMusicEffect;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'mediaAssetId': mediaAssetId,
+    'volume': volume,
+    'bgmInterruption': bgmInterruption.toJson(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ScenePlayMusicEffectInteractiveCommand &&
+      other.mediaAssetId == mediaAssetId &&
+      other.volume == volume &&
+      other.bgmInterruption == bgmInterruption;
+
+  @override
+  int get hashCode => Object.hash(mediaAssetId, volume, bgmInterruption);
 }
 
 void _presentationCommandFields(Map<String, dynamic> json, Set<String> fields) {

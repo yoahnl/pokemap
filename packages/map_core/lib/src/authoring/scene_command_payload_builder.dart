@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../models/scene_warp_presentation.dart';
+import '../models/dialogue_line_feedback.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
@@ -170,6 +171,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.waitForActorRoutes => _buildWaitForActorRoutesPayload(parameters),
     NarrativeCommandIds.wait => _buildWaitPayload(parameters),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
+    NarrativeCommandIds.playMusicEffect => _buildMusicEffectPayload(parameters),
     NarrativeCommandIds.playSoundEffect => _buildSoundEffectPayload(parameters),
     NarrativeCommandIds.actorVisibility => _buildActorVisibilityPayload(
       parameters,
@@ -472,4 +474,20 @@ SceneConsequence _mapEventInstanceBooleanConsequence(Map<String, String> paramet
   return SceneConsequence.setMapEventInstanceBoolean(mapId: parameters['mapId']!,
       eventId: parameters['eventId']!, key: parameters['key']!,
       value: parameters['value'] == 'true');
+}
+
+SceneActionPayload _buildMusicEffectPayload(Map<String, String> parameters) {
+  _requirePresentationParameters(parameters, const {
+    'mediaAssetId', 'volume', 'fadeOutMs', 'fadeInMs',
+  });
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.playMusicEffect(
+      mediaAssetId: parameters['mediaAssetId']!,
+      volume: double.parse(parameters['volume']!),
+      bgmInterruption: DialogueBgmInterruption(
+        fadeOutMs: int.parse(parameters['fadeOutMs']!),
+        fadeInMs: int.parse(parameters['fadeInMs']!),
+      ),
+    ),
+  );
 }

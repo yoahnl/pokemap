@@ -1387,7 +1387,8 @@ void _diagnoseActionConsequenceAgainstProject(
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
-          interactiveCommand is ScenePlaySoundEffectInteractiveCommand) &&
+          interactiveCommand is ScenePlaySoundEffectInteractiveCommand ||
+          interactiveCommand is ScenePlayMusicEffectInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
     diagnostics.add(
       SceneDiagnostic(
@@ -1490,6 +1491,8 @@ void _diagnoseActionConsequenceAgainstProject(
     }
   }
   final soundMediaIds = [
+    if (interactiveCommand is ScenePlayMusicEffectInteractiveCommand)
+      interactiveCommand.mediaAssetId,
     if (interactiveCommand is ScenePlaySoundEffectInteractiveCommand)
       interactiveCommand.mediaAssetId,
     if (interactiveCommand is SceneActorRouteInteractiveCommand)
