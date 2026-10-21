@@ -2677,13 +2677,20 @@ ConversionPlan? _previewPlan(
     final projection = eventEvidence['projection'] as Map;
     final qualified = projection['qualifiedEventCount'] as int;
     final quarantined = projection['quarantinedEventCount'] as int;
+    final partial = projection['partiallyAdaptedEventCount'] as int;
     add(
         'workflow.events.summary',
-        '$qualified of ${qualified + quarantined} selected source events have qualified static native semantics; $quarantined whole events remain inactive with preserved source bytes. Runtime qualification is separate.',
+        '$qualified of ${qualified + quarantined + partial} selected source events have qualified static native semantics; $partial events have only declared source pages adapted; $quarantined whole events remain inactive with preserved source bytes. Runtime qualification is separate.',
         false,
         family: 'events',
         disposition: 'adapted');
     for (final event in (projection['events'] as List).cast<Map>()) {
+      if (event['status'] == 'partiallyAdapted') {
+        add('workflow.events.partially_adapted',
+            'Only the declared source pages are executable; unsupported higher pages still mask the lower pages. The complete source event remains preserved.',
+            false, family: 'events', disposition: 'adapted',
+            locator: _planLocator(normalized, Map<String, Object?>.from(event['locator'] as Map)));
+      }
       if (event['status'] != 'quarantinedWholeEvent') continue;
       add(
           'workflow.events.quarantined',

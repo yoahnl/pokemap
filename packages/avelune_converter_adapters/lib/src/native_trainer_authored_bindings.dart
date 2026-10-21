@@ -459,6 +459,9 @@ Never _fail(String code, String message) =>
     throw ContractError('native_trainer.authored_$code', r'$', message);
 
 const _moveIdentities = <String, (String, String, String)>{
+  'GROWL': ('growl', 'LowerTargetAttack1', 's_stat'),
+  'SCRATCH': ('scratch', 'None', 's_basic'),
+  'TAILWHIP': ('tail_whip', 'LowerTargetDefense1', 's_stat'),
   'BITE': ('bite', 'FlinchTarget', 's_basic'),
   'BODYSLAM': ('body_slam', 'ParalyzeTarget', 's_stomp'),
   'BOUNCE': (

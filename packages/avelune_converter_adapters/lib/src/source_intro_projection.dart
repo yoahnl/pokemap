@@ -160,6 +160,9 @@ extension _SourceIntroScene on _SceneBuilder {
         {'cinematic': cinematic.toJson()}));
     final opening = _node(SceneCinematicPayload(cinematicId: cinematicId));
     _edge(opening, 'completed', input, SceneEdgeKind.cinematicCompleted);
-    return opening;
+    final hideDex = _node(SceneActionPayload.consequence(
+        SceneConsequence.setPauseMenuEntryVisibility(actionId: ProjectPauseActionId.pokedex, visible: false)));
+    _edge(hideDex, 'completed', opening, SceneEdgeKind.actionCompleted);
+    return hideDex;
   }
 }

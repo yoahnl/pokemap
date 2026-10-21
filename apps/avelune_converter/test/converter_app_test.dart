@@ -2018,7 +2018,7 @@ void main() {
     ))!;
     _setWindow(tester, const Size(1600, 1000));
     try {
-      await _scanAndPrepare(tester, source);
+      await _scanAndPrepare(tester, source, interpretationProfile: fixtureSourceInterpretationProfile);
       await tester.tap(find.text('Export'));
       await tester.pump();
       expect(
@@ -2026,6 +2026,7 @@ void main() {
           'Événements : 1 adapté(s) automatiquement sans IA ; 1 en quarantaine.',
         ),
         findsOneWidget,
+        reason: tester.widgetList<Text>(find.byType(Text)).map((text) => text.data).whereType<String>().join(' | '),
       );
       expect(find.text('Événement conservé en quarantaine'), findsOneWidget);
       expect(
@@ -2644,10 +2645,16 @@ Future<void> _scanAndPrepare(
   ConverterContentScope contentScope = ConverterContentScope.full,
   ConverterPlayableStartInspector? playableStartInspector,
   ConverterPlayableStartApplier? playableStartApplier,
+  SourceInterpretationProfile? interpretationProfile,
 }) async {
+  final profilePath = '${source.root.path}/selected-profile.json';
+  if (interpretationProfile != null) {
+    await tester.runAsync(() => File(profilePath).writeAsString(jsonEncode(interpretationProfile.toJson())));
+  }
   await tester.pumpWidget(
     ConverterApp(
       workflow: source.workflow,
+      pathPicker: interpretationProfile == null ? pickConverterPath : (kind) async => kind == ConverterPathKind.interpretationProfileFile ? profilePath : null,
       initialSourcePath: source.sourcePath,
       initialParentPath: source.output.path,
       folderOpener: folderOpener ?? (_) async {},
@@ -2664,6 +2671,12 @@ Future<void> _scanAndPrepare(
     () =>
         source.workflow.state.snapshot != null && !source.workflow.state.isBusy,
   );
+  if (interpretationProfile != null) {
+    final choose = find.byKey(const ValueKey('choose-interpretation-profile'));
+    await tester.ensureVisible(choose);
+    await tester.tap(choose);
+    await _waitFor(tester, () => find.text('Profil de scripts sélectionné : ${interpretationProfile.profileId.value}').evaluate().isNotEmpty);
+  }
   await tester.ensureVisible(find.text('Tout sélectionner'));
   await tester.tap(find.text('Tout sélectionner'));
   await tester.pump();

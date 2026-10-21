@@ -2804,7 +2804,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
   String? get _eventSummary {
     final projection = _eventProjection;
     if (projection == null) return null;
-    return 'Événements : ${projection['qualifiedEventCount']} adapté(s) automatiquement sans IA ; ${projection['quarantinedEventCount']} en quarantaine.';
+    final partial = projection['partiallyAdaptedEventCount'] as int;
+    final partialText = partial == 0 ? '' : '$partial partiellement adapté(s) ; ';
+    return 'Événements : ${projection['qualifiedEventCount']} adapté(s) automatiquement sans IA ; $partialText${projection['quarantinedEventCount']} en quarantaine.';
   }
 
   Map<String, Object?>? get _semanticProjection {
@@ -2859,6 +2861,16 @@ class _ConverterWindowState extends State<ConverterWindow> {
       for (final event
           in ((_eventProjection?['events'] as List?) ?? const [])
               .whereType<Map<String, Object?>>())
+        if (event['status'] == 'partiallyAdapted')
+          (
+            code: 'workflow.events.partially_adapted',
+            message: 'Certaines pages de cet événement sont jouables. Les pages non prises en charge restent conservées et empêchent les pages précédentes de se rejouer lorsqu’elles sont actives.',
+            locator: jsonEncode({'source': event['locator'],
+              'pagesPrisesEnCharge': (event['nativeOakParcel'] as Map?)?['adaptedPageIndices'],
+              'pagesNonPrisesEnCharge': (event['nativeOakParcel'] as Map?)?['unsupportedPageIndices']}),
+            blocking: false,
+          )
+        else
         if (event['status'] == 'quarantinedWholeEvent')
           (
             code: 'workflow.events.quarantined',
@@ -3231,6 +3243,9 @@ String _issueTitle(String code, bool blocking) {
   if (code.startsWith('jumps.')) return 'Rebord à vérifier';
   if (code == 'workflow.events.quarantined') {
     return 'Événement conservé en quarantaine';
+  }
+  if (code == 'workflow.events.partially_adapted') {
+    return 'Événement partiellement adapté';
   }
   if (code.startsWith('semantics.')) return 'Comportement source à vérifier';
   if (code.startsWith('library.')) return 'Objet proposé à vérifier';

@@ -20,6 +20,7 @@ final class SourcePickupFeedbackBinding {
   SourcePickupFeedbackBinding._({
     required this.item,
     required this.helper,
+    required this.quantity,
     required this.sourceMapId,
     required this.sourceSnapshotHash,
     required this.iconTilesetId,
@@ -46,6 +47,7 @@ final class SourcePickupFeedbackBinding {
 
   final SourceEventItemBinding item;
   final SourceItemGrantHelper helper;
+  final int quantity;
   final int sourceMapId;
   final Sha256Hash sourceSnapshotHash;
   final String iconTilesetId;
@@ -100,6 +102,7 @@ final class SourcePickupFeedbackResolver {
     required SourceEventItemBinding item,
     required int sourceMapId,
     SourceItemGrantHelper helper = SourceItemGrantHelper.itemBall,
+    int quantity = 1,
     SourceMapMusicBinding? music,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
@@ -115,6 +118,14 @@ final class SourcePickupFeedbackResolver {
     }
     final profile = SourceEventProfile.forProject(source);
     if (!profile.isQualified) _unavailable('profile_unqualified');
+    if (quantity < 1 ||
+        quantity > 999 ||
+        quantity != 1 &&
+            (helper != SourceItemGrantHelper.receiveItem ||
+                item.isKeyItem ||
+                item.isMachine)) {
+      _unavailable('quantity_unsupported');
+    }
     if (item.sourceSymbol == 'DNASPLICERS') {
       _unavailable('item_article_exception_unsupported');
     }
@@ -123,7 +134,10 @@ final class SourcePickupFeedbackResolver {
         (item.isMachine && item.sourcePocketIndex != 4)) {
       _unavailable('item_unsupported');
     }
-    if (RegExp(r'[\\<>\x00-\x1f]').hasMatch(item.portionName)) {
+    if (RegExp(r'[\\<>\x00-\x1f]').hasMatch(item.portionName) ||
+        quantity > 1 &&
+            (item.portionNamePlural.trim().isEmpty ||
+                RegExp(r'[\\<>\x00-\x1f]').hasMatch(item.portionNamePlural))) {
       _unavailable('item_name_controls');
     }
     final machineMove = item.sourceMachineMove;
@@ -259,7 +273,9 @@ final class SourcePickupFeedbackResolver {
     final region = _integer(document, position.elements.first)!;
     final presentation = source.interpretationProfile?.presentationBindings;
     final regionBindings = presentation?.pickupFeedbackByRegion
-        .where((binding) => binding.regionId == region).toList() ?? [];
+            .where((binding) => binding.regionId == region)
+            .toList() ??
+        [];
     if (regionBindings.length != 1) _unavailable('region_unconfigured');
     final feedback = regionBindings.single;
     final metadataReference = metadataArchive.reference(
@@ -274,14 +290,22 @@ final class SourcePickupFeedbackResolver {
 
     final iconPin = feedback.iconsByPocket[item.sourcePocketIndex];
     if (iconPin == null) _unavailable('icon_unconfigured');
-    final audioKind = item.isKeyItem ? 'keyItem' : item.isMachine ? 'machine' : 'item';
+    final audioKind = item.isKeyItem
+        ? 'keyItem'
+        : item.isMachine
+            ? 'machine'
+            : 'item';
     final audioPin = feedback.audioByItemKind[audioKind];
     if (audioPin == null) _unavailable('audio_unconfigured');
     final iconFile = pinnedEntry(iconPin, 'icon');
     final skinFile = pinnedEntry(feedback.windowskinPinnedAsset, 'skin');
     final audioFile = pinnedEntry(audioPin, 'audio');
-    const mediaTypes = {'ogg': 'audio/ogg', 'wav': 'audio/wav',
-        'mp3': 'audio/mpeg', 'flac': 'audio/flac'};
+    const mediaTypes = {
+      'ogg': 'audio/ogg',
+      'wav': 'audio/wav',
+      'mp3': 'audio/mpeg',
+      'flac': 'audio/flac'
+    };
     final audioExtension = audioFile.relativePath.split('.').last.toLowerCase();
     final audioMediaType = mediaTypes[audioExtension];
     if (audioMediaType == null) _unavailable('audio_unsupported');
@@ -366,7 +390,7 @@ final class SourcePickupFeedbackResolver {
           },
           limits: limits),
     ];
-    final name = item.portionName;
+    final name = quantity > 1 ? item.portionNamePlural : item.portionName;
     final article = const {'a', 'e', 'i', 'o', 'u'}
             .contains(name.substring(0, 1).toLowerCase())
         ? 'an'
@@ -374,7 +398,12 @@ final class SourcePickupFeedbackResolver {
     final verb =
         helper == SourceItemGrantHelper.receiveItem ? 'obtained' : 'found';
     final foundSegments = [
-      DialogueTextSegment(item.isMachine ? 'You $verb ' : 'You $verb $article ',
+      DialogueTextSegment(
+          quantity > 1
+              ? 'You $verb $quantity '
+              : item.isMachine
+                  ? 'You $verb '
+                  : 'You $verb $article ',
           style: standard),
       DialogueTextSegment(item.isMachine ? '$name ${machineMove!.name}' : name,
           style: highlighted),
@@ -396,6 +425,7 @@ final class SourcePickupFeedbackResolver {
     return SourcePickupFeedbackBinding._(
         item: item,
         helper: helper,
+        quantity: quantity,
         sourceMapId: sourceMapId,
         sourceSnapshotHash: snapshot.canonicalHash,
         iconTilesetId: iconTilesetId,
@@ -442,7 +472,7 @@ final class SourcePickupFeedbackResolver {
           'windowskinFile': skinFile.toJson(),
           'audioFile': audioFile.toJson(),
           'sourceRegion': region,
-          'sourceQuantity': 1,
+          'sourceQuantity': quantity,
           'requiredRuntimeContext': omittedSourceBgmPath != null
               ? 'aveluneNativeWithoutMissingSourceMapBgm'
               : music == null

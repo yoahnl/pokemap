@@ -19,6 +19,9 @@ import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_home_recovery_program.dart';
 import 'source_trainer_event_bindings.dart';
+import 'source_first_rival_binding.dart';
+import 'source_oak_parcel_binding.dart';
+import 'source_oak_parcel_tile_binding.dart';
 import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
 import 'source_field_obstacle_binding.dart';
@@ -42,6 +45,8 @@ import 'source_card_key_gate_audio.dart';
 import 'source_inventory_controller_program.dart';
 
 part 'source_intro_projection.dart';
+part 'source_first_rival_projection.dart';
+part 'source_oak_parcel_projection.dart';
 
 part 'source_starter_choice_projection.dart';
 
@@ -126,9 +131,10 @@ String sourceEventCharacterBindingKey(
 
 String sourcePickupFeedbackBindingKey(
         {required int sourceMapId, required String sourceSymbol,
-        SourceItemGrantHelper helper = SourceItemGrantHelper.itemBall}) =>
+        SourceItemGrantHelper helper = SourceItemGrantHelper.itemBall, int quantity = 1}) =>
     canonicalJsonOf({'sourceMapId': sourceMapId, 'sourceSymbol': sourceSymbol,
-      if (helper != SourceItemGrantHelper.itemBall) 'helper': helper.name});
+      if (helper != SourceItemGrantHelper.itemBall) 'helper': helper.name,
+      if (quantity != 1) 'quantity': quantity});
 
 List<SourceEventDefinition> sourceDoorEventProjectionCandidates({
     required NormalizedSourceProject source, required SourceEventAnalysis analysis,
@@ -155,6 +161,8 @@ Map<SourceEventNode, Set<int>> _sourceMapScopes(SourceEventBlock block, int owne
     for (final node in body.nodes) {
       scopes[node] = Set.unmodifiable(current);
       final branches = switch (node) {
+        SourceFirstRivalProgramNode() => [node.body],
+        SourceOakParcelProgramNode() => [node.body],
         SourceCommonEventCallNode() => [node.body],
         SourceConditionalNode() => [node.whenTrue, node.whenFalse],
         SourceChoiceNode() => [for (final branch in node.branches) branch.body,
@@ -304,6 +312,8 @@ final class SourceEventProjector {
     Map<String, SourceEventSoundBinding> soundBindings = const {},
     Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding = const {},
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
+    Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings = const {},
+    Map<ConverterId, SourceOakParcelBinding> oakParcelBindings = const {},
     Map<ConverterId, SourcePokedexRewardBinding> pokedexRewardBinding = const {},
     Map<ConverterId, SourceTownMapBinding> townMapBinding = const {},
     Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
@@ -342,7 +352,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings);
+        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -362,6 +372,8 @@ final class SourceEventProjector {
       Map<String, SourceEventSoundBinding> soundBindings = const {},
       Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding = const {},
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
+    Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings = const {},
+    Map<ConverterId, SourceOakParcelBinding> oakParcelBindings = const {},
     Map<ConverterId, SourcePokedexRewardBinding> pokedexRewardBinding = const {},
     Map<ConverterId, SourceTownMapBinding> townMapBinding = const {},
     Map<ConverterId, SourceFieldObstacleBinding> fieldObstacleBindings = const {},
@@ -412,7 +424,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings)
+            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
         .build();
   }
 }
@@ -524,6 +536,8 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
       'originalProgram': node.originalProgram?.toJson()},
     SourceToneNode() => node.toJson(),
     SourceWaitNode() => node.toJson(),
+    SourceFirstRivalProgramNode() => node.toJson(),
+    SourceOakParcelProgramNode() => node.toJson(),
     SourceMusicNode() => node.toJson(),
     SourceMusicEffectNode() => node.toJson(),
     SourceSoundEffectNode() => node.toJson(),
@@ -565,6 +579,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
         SourcePortraitPresentationNode() => node.toJson(),
     SourceSelfSwitchNode() => [node.factId, node.letter, node.value],
     SourceTrainerProgramNode() => node.toJson(),
+    SourceFirstRivalProgramNode() => node.toJson(),
     SourceExitEventNode() => node.toJson(),
     SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
       'ownerMapId': node.sourceMapId, 'ownerEventId': node.sourceEventId,
@@ -587,6 +602,10 @@ Iterable<SourceEventNode> _sourceControlNodes(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     yield node;
     switch (node) {
+      case SourceFirstRivalProgramNode():
+        yield* _sourceControlNodes(node.body);
+      case SourceOakParcelProgramNode():
+        yield* _sourceControlNodes(node.body);
       case SourceTrainerProgramNode():
         if (node.kind == SourceTrainerProgramKind.encounter) {
           yield* _sourceControlNodes(node.victoryContinuation);
@@ -694,7 +713,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
       this.portraitBindings, this.escortBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
-      {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}})
+      {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
@@ -847,6 +866,10 @@ final class _ProjectionBuilder {
   final Map<String, SourceEventSoundBinding> soundBindings;
   final Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding;
   final Map<ConverterId, SourceTrainerEventBinding> trainerBindings;
+  final Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings;
+  final Map<ConverterId, SourceOakParcelBinding> oakParcelBindings;
+  final _oakParcelBindingCache = <SourceEventDefinition, SourceOakParcelBinding?>{};
+  final _oakTileBindingCache = <SourceEventDefinition, SourceOakParcelTileBinding?>{};
   final Map<ConverterId, SourcePokedexRewardBinding> pokedexRewardBinding;
   final Map<ConverterId, SourceTownMapBinding> townMapBinding;
   final Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding;
@@ -894,6 +917,7 @@ final class _ProjectionBuilder {
   final arrivalCollisionOwners = <String, String>{};
   final gapsByEvent = <ConverterId, Set<String>>{};
   var quarantinedCount = 0;
+  var partiallyAdaptedCount = 0;
   late final bool _warpTileNativeAudioQualified = warpTilePrograms.programs.values
       .where((program) => !program.isActivation)
       .every((program) => program.event.pages.every((page) {
@@ -1071,13 +1095,14 @@ final class _ProjectionBuilder {
   }
 
   bool _isSourceTransition(SourceEventDefinition event) =>
+      _hasFirstRivalProgram(event) ||
       sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity) ||
       warpTilePrograms.programs.containsKey(event.identity) ||
       _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      ((sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
+      ((_hasFirstRivalProgram(event) || sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
         executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null &&
         executionContext?.stairIdentity == null && executionContext?.holeIdentity == null &&
         executionContext?.elevatorIdentity == null) ||
@@ -1329,6 +1354,7 @@ final class _ProjectionBuilder {
             priority: 0,
             order: event.sourceEventId)));
       } else {
+        if (_oakParcelBinding(event) != null) partiallyAdaptedCount++;
         _projectEvent(event);
       }
       eventEvidence.add({
@@ -1336,8 +1362,13 @@ final class _ProjectionBuilder {
         'locator': event.locator.toJson(),
         'sourceFileId': event.sourceFileId.value,
         'status':
-            gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
+            gaps.isNotEmpty ? 'quarantinedWholeEvent' : _oakParcelBinding(event) != null
+                ? 'partiallyAdapted' : 'adaptedStaticSemantics',
+        if (gaps.isEmpty && _oakParcelBinding(event) != null)
+          'nativeOakParcel': _oakParcelBinding(event)!.toJson(),
         'gaps': gaps.toList()..sort(),
+        if (_firstRivalBinding(event) case final binding? when gaps.isEmpty)
+          'nativeFirstRival': binding.toJson(),
         if (gaps.isEmpty && starterChoiceBindings.containsKey(event.identity))
           'nativeStarterChoice': starterChoiceBindings[event.identity]!.toJson(),
         if (_introProgram(event) case final intro? when gaps.isEmpty)
@@ -1851,11 +1882,16 @@ final class _ProjectionBuilder {
     for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty)) {
       final ids = <String>{};
       if (_introProgram(event) case final intro?) ids.addAll(_introFactIds(intro));
+      if (_oakParcelBinding(event) case final oak?) {
+        ids.addAll([oak.hasPokedexSourceFactId, oak.unlockedDexSourceFactId]);
+      }
       if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(elevatorPrograms[event.identity]!.currentFloorVariableId), _elevatorVariableKey(elevatorPrograms[event.identity]!.selectionVariableId)]);
       ids.addAll(_warpTileFactIds(event));
       for (final page in event.pages) {
         _collectFacts(page.condition, ids);
-        _blockFacts(page.body, ids);
+        if (_oakParcelBinding(event) == null || page.originalPageIndex < 4) {
+          _blockFacts(page.body, ids);
+        }
       }
       for (final id in ids) {
         ownersByFact.putIfAbsent(id, () => {}).add(event.identity);
@@ -2014,7 +2050,8 @@ final class _ProjectionBuilder {
           'C_i AND NOT(any C_j where j > i); last true page includes empty',
       'globalPlayabilityCertified': false,
       'events': eventEvidence,
-      'qualifiedEventCount': events.length - quarantinedCount,
+      'qualifiedEventCount': events.length - quarantinedCount - partiallyAdaptedCount,
+      'partiallyAdaptedEventCount': partiallyAdaptedCount,
       'factBindings': {
         for (final id in factsById.keys.toList()..sort()) id: factsById[id]!.id
       },
@@ -2112,7 +2149,7 @@ final class _ProjectionBuilder {
         mutations: mutations,
         semanticEvidence: evidence,
         staticSemanticsQualified:
-            analysis.profile.isQualified && quarantinedCount == 0,
+            analysis.profile.isQualified && quarantinedCount == 0 && partiallyAdaptedCount == 0,
         allEnabledOriginalEventsHaveExecutionContext:
             !events.where((event) => _isSourceTransition(event) &&
               !_eventExecutionContextQualified(event)).any((event) =>
@@ -3392,7 +3429,7 @@ final class _ProjectionBuilder {
     final exempt = <ConverterId>{};
     final representedArithmetic = <(int, int, int, int)>{};
     for (final event in analysis.events) {
-      if (maps.containsKey(event.sourceMapId) &&
+      if (maps.containsKey(event.sourceMapId) && _oakParcelBinding(event) == null &&
           _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
         for (final page in event.pages) {
           for (final node in _sourceControlNodes(page.body).whereType<SourceVariableAdjustNode>()) {
@@ -3519,7 +3556,7 @@ final class _ProjectionBuilder {
       final rawCalls = event.pages.expand((page) => page.sourcePage.commands)
           .where((command) => command.code == 117 && command.parameters.length == 1 && command.parameters.single is int)
           .map((command) => command.parameters.single as int).toSet();
-      if (maps.containsKey(event.sourceMapId) && _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+      if (maps.containsKey(event.sourceMapId) && _oakParcelBinding(event) == null && _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
         representedCommon.addAll(calls);
         unrepresentedCommon.addAll(rawCalls.difference(calls));
       } else {
@@ -3578,7 +3615,7 @@ final class _ProjectionBuilder {
           }
           final expected = _sourceControlAnalysis.eventAt(map.map.sourceMapId, event.sourceEventId)!;
           final texts = observed.texts.toList();
-          if (sourceReader.supportsIntegerVariableHelpers && maps.containsKey(expected.sourceMapId) &&
+          if (sourceReader.supportsIntegerVariableHelpers && maps.containsKey(expected.sourceMapId) && _oakParcelBinding(expected) == null &&
               _gaps(expected, checkCharacterBindings: checkCharacterBindings).isEmpty) {
             final nativePage = expected.pages.singleWhere((candidate) => candidate.originalPageIndex == page.originalPageIndex);
             final covered = <int>{};
@@ -3606,7 +3643,7 @@ final class _ProjectionBuilder {
       arithmeticRefusalChanged = false;
       for (final event in arithmeticEvents) {
         final supplied = analysis.eventAt(event.sourceMapId, event.sourceEventId);
-        if (maps.containsKey(event.sourceMapId) && supplied != null &&
+        if (maps.containsKey(event.sourceMapId) && supplied != null && _oakParcelBinding(supplied) == null &&
             _gaps(supplied, checkCharacterBindings: checkCharacterBindings).isEmpty) {
           continue;
         }
@@ -3847,6 +3884,8 @@ final class _ProjectionBuilder {
   Set<String> _localGaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     if (_introProgram(event) != null) return _introGaps(event);
+    if (_hasOakParcelProgram(event)) return _oakParcelGaps(event, checkCharacterBindings: checkCharacterBindings);
+    if (_oakTileBinding(event) != null) return _oakTileGaps(event);
     if (event.name == 'Silph Gate size(2,2)') {
       return _cardKeyGateGaps(event, checkCharacterBindings: checkCharacterBindings);
     }
@@ -4510,6 +4549,10 @@ final class _ProjectionBuilder {
           gaps.add('sourceFieldObstacleBindingsMissing');
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
+        case SourceFirstRivalProgramNode():
+          gaps.addAll(_firstRivalGaps(event, checkCharacterBindings: checkCharacterBindings));
+        case SourceOakParcelProgramNode():
+          gaps.add('sourceOakParcelBindingsMissing');
         case SourceMusicNode():
           if (escortPrograms[event.identity] == null ||
               escortBindings[event.identity]?.isBoundTo(source, analysis, event) != true) {
@@ -4678,6 +4721,10 @@ final class _ProjectionBuilder {
   void _blockFacts(SourceEventBlock block, Set<String> ids) {
     for (final node in block.nodes) {
       switch (node) {
+        case SourceFirstRivalProgramNode():
+          _blockFacts(node.body, ids);
+        case SourceOakParcelProgramNode():
+          _blockFacts(node.body, ids);
         case SourceCommonEventCallNode():
           _blockFacts(node.body, ids);
         case SourcePortraitProgramNode():
@@ -4729,6 +4776,11 @@ final class _ProjectionBuilder {
   void _projectEvent(SourceEventDefinition event) {
     if (_introProgram(event) case final program?) _prepareIntroFacts(program);
     _collectStarterChoiceFacts(event);
+    if (_oakParcelBinding(event) case final oak?) {
+      for (final id in [oak.hasPokedexSourceFactId, oak.unlockedDexSourceFactId]) {
+        factsById.putIfAbsent(id, () => _nativeFact(id));
+      }
+    }
     if (elevatorPrograms.containsKey(event.identity)) {
       for (final variable in [elevatorPrograms[event.identity]!.currentFloorVariableId, elevatorPrograms[event.identity]!.selectionVariableId]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
     }
@@ -4799,7 +4851,9 @@ final class _ProjectionBuilder {
     final factIds = <String>{};
     for (final page in projectedPages) {
       _collectFacts(page.condition, factIds);
-      _blockFacts(page.body, factIds);
+      if (_oakParcelBinding(event) == null || page.originalPageIndex < 4) {
+        _blockFacts(page.body, factIds);
+      }
     }
     for (final id in factIds) {
       factsById.putIfAbsent(id, () => id.startsWith('source:${source.snapshot.logicalProjectNamespace.value}:variable:')
@@ -4808,7 +4862,7 @@ final class _ProjectionBuilder {
     final map = maps[event.sourceMapId]!;
     final entityId = _key(event, 'anchor');
     final graphic = projectedPages.first.graphic!;
-    final character = characterBindings[sourceEventCharacterBindingKey(
+    final character = _oakTileCharacter(event, graphic) ?? characterBindings[sourceEventCharacterBindingKey(
         characterName: graphic.characterName,
         pattern: graphic.pattern,
         direction: graphic.direction,
@@ -4827,12 +4881,12 @@ final class _ProjectionBuilder {
     final variants = <MapEntityPresentationVariant>[];
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
-      if (_dormantBlankSourceActionPage(page)) continue;
+      if (_dormantBlankSourceActionPage(page) && _oakTileBinding(event) == null) continue;
       final pageGraphic = page.graphic!;
-      final boundCharacter = pageGraphic.characterName.isEmpty ? null :
+      final boundCharacter = _oakTileCharacter(event, pageGraphic) ?? (pageGraphic.characterName.isEmpty ? null :
         characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
           pattern: pageGraphic.pattern, direction: pageGraphic.direction,
-          fixedDirection: pageGraphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)))];
+          fixedDirection: pageGraphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)))]);
       final guard = _all([_pageGuard(event, page.condition),
         _not(_any(projectedPages.skip(index + 1).map((value) => _pageGuard(event, value.condition)).toList()))]);
       if (guard.constant == false) continue;
@@ -4940,6 +4994,7 @@ final class _ProjectionBuilder {
     if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.actor) return;
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
+      if (_oakParcelBinding(event) != null && page.originalPageIndex >= 4) continue;
       final guard = _all([
         if (_introProgram(event) case final intro?)
           _Guard.expression(NarrativeEventConditionExpression.leaf(
@@ -5588,7 +5643,8 @@ final class _SceneBuilder {
     return sound(transfer);
   }
 
-  String _block(SourceEventBlock block, String continuation) {
+  String _block(SourceEventBlock block, String continuation,
+      {bool initialActorRouteThrough = false}) {
     var next = continuation;
     final escort = projection.escortPrograms[event.identity];
     for (final node in block.nodes.reversed) {
@@ -5738,6 +5794,10 @@ final class _SceneBuilder {
           next = _interactive(SceneInteractiveCommand.worldTone(red: node.red,
             green: node.green, blue: node.blue, gray: node.gray,
             durationMs: node.durationMs), next);
+        case SourceFirstRivalProgramNode():
+          next = _firstRival(node, next);
+        case SourceOakParcelProgramNode():
+          next = _oakParcel(node, next);
         case SourceMusicNode():
           throw const NativeWriteException('events.music.binding', 'Music requires a qualified complete cinematic.');
         case SourceMusicEffectNode():
@@ -5804,8 +5864,10 @@ final class _SceneBuilder {
             next = dispatch;
             break;
           }
-          final steps = <SceneActorRouteStep>[];
-          var through = false;
+          final steps = <SceneActorRouteStep>[
+            if (initialActorRouteThrough) SceneActorRouteStep.through(enabled: true),
+          ];
+          var through = initialActorRouteThrough;
           for (final step in node.steps) {
             switch (step.kind) {
               case SourceMoveRouteStepKind.moveForward:

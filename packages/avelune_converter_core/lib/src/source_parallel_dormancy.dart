@@ -211,6 +211,10 @@ SourceParallelDormancyAudit _auditSourceParallelDormancy(
   final projected = <String>[], quarantined = <String>[], refusals = <String>[];
   for (final event in analysis.events) {
     try {
+      if (_auditSourceOakParcelPartialWrites(event, analyzer, writes)) {
+        projected.add(event.identity.value);
+        continue;
+      }
       if (event.isQuarantined) {
         quarantined.add(event.identity.value);
         continue;
@@ -348,6 +352,9 @@ void _auditSourceFactWriteBlock(
       case SourceAnnotationNode():
       case SourceExitEventNode():
         break;
+      case SourceFirstRivalProgramNode():
+        _auditSourceFirstRivalWrites(node, event, analyzer, writes);
+      case SourceOakParcelProgramNode():
       case SourceScriptNode():
       case SourceUnknownNode():
         throw const FormatException();

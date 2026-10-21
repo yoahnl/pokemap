@@ -1066,7 +1066,11 @@ final class SourceEventAnalyzer {
             pageDiagnostics
                 .add(SourceEventDiagnostic('events.invalid_page_graphic', loc));
           }
-          final body = _sourcePortraitProgramBlock(
+          final body = _sourceFirstRivalProgramBlock(
+                  this, map.map.sourceMapId, event, sourcePage, loc) ??
+              _sourceOakParcelProgramBlock(
+                  this, map.map.sourceMapId, event, sourcePage, loc) ??
+              _sourcePortraitProgramBlock(
                   this, map.map.sourceMapId, event, sourcePage, loc) ??
               _sourceExternalWarpProgramBlock(this, map.map.sourceMapId,
                   event, sourcePage, loc) ??

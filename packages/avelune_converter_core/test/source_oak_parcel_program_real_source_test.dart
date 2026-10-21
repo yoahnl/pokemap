@@ -61,7 +61,7 @@ void main() {
       expect(value.pageConditions[4]['switch1_id'], 51);
       expect(value.pageConditions[5]['switch1_id'], 29);
       expect(
-          SourceOakParcelProgram.approaches.map((a) => a.sourcePlayerDirection),
+          SourceOakParcelProgram.approaches.map((a) => a.sourceActorDirection),
           [2, 8, 4, 6]);
       expect(SourceOakParcelProgram.approaches.map((a) => a.firstCommandIndex),
           [9, 136, 275, 420]);
@@ -94,6 +94,71 @@ void main() {
       expect(() => value.raw['x'] = 99, throwsUnsupportedError);
       expect(
           () => (value.raw['pages'] as List).clear(), throwsUnsupportedError);
+    });
+    test('records actor facing guards with a source-qualified adjacent contact',
+        () {
+      final semantics = SourceSemanticResolver.forProject(source);
+      expect(SourceOakParcelProgram.approaches.map((a) => a.sourceActorEventId),
+          [1, 1, 1, 1]);
+      final commands = (program(source)!.pages[2]['list'] as List).cast<Map>();
+      for (final approach in SourceOakParcelProgram.approaches) {
+        expect(commands[approach.firstCommandIndex]['parameters'],
+            [6, approach.sourceActorEventId, approach.sourceActorDirection]);
+      }
+      final nearby = [
+        for (final cell in [(8, 4), (8, 6), (7, 5), (9, 5)])
+          {
+            'x': cell.$1,
+            'y': cell.$2,
+            'counter': semantics
+                .resolveCell(semantics.cellAt(9, cell.$1, cell.$2))
+                .counter,
+          }
+      ];
+      expect(nearby.every((row) => row['counter'] == false), isTrue,
+          reason: '$nearby');
+    });
+    test('wraps only the four source-attested pages for native lowering', () {
+      final event = SourceEventAnalyzer.forProject(source,
+              profile: SourceEventProfile.forProject(source))
+          .analyze()
+          .eventAt(9, 1)!;
+      for (final page in event.pages.take(4)) {
+        expect(page.body.nodes.single.runtimeType.toString(),
+            'SourceOakParcelProgramNode');
+        expect(page.isQuarantined, isFalse);
+      }
+      expect(event.pages.skip(4).every((page) => page.isQuarantined), isTrue);
+      expect(event.isQuarantined, isTrue);
+    });
+    test('includes every partial native boolean write in conservative dormancy',
+        () {
+      final profile = SourceEventProfile.forProject(source);
+      final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+      final event = analyzer.analyze().eventAt(9, 1)!;
+      final audit =
+          SourceParallelDormancyAuditor.forProject(source, profile: profile)
+              .audit()
+              .toJson();
+      expect(audit['refusals'],
+          isNot(contains('sourceDormancyWriterUnqualified:9:1')));
+      expect(audit['quarantinedWholeEvents'],
+          isNot(contains(event.identity.value)));
+      final writes = (audit['nativeWriteSet'] as List)
+          .cast<Map>()
+          .where((row) => row['sourceMapId'] == 9 && row['sourceEventId'] == 1)
+          .map((row) => (row['factId'], row['value']))
+          .toSet();
+      final namespace = source.snapshot.logicalProjectNamespace.value;
+      expect(writes, {
+        (analyzer.globalFactId(60), true),
+        (analyzer.selfFactId(9, 12, 'A'), true),
+        (analyzer.selfFactId(9, 15, 'A'), true),
+        (analyzer.selfFactId(9, 25, 'A'), true),
+        (analyzer.selfFactId(9, 25, 'A'), false),
+        ('source:$namespace:player:has_pokedex', true),
+        ('source:$namespace:player:pokedex:unlocked:1', true),
+      });
     });
     for (final row in [
       (r'$bag.remove(:OAKPARCEL)', r'$bag.remove(:OAKPARCEL,2)'),

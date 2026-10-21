@@ -36,6 +36,8 @@ import 'source_character_presentation_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_trainer_event_bindings.dart';
+import 'source_first_rival_binding.dart';
+import 'source_oak_parcel_binding.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_qualification.dart';
@@ -277,18 +279,18 @@ final class SourceEventStudyComposer {
     final pickupBindings = <String, SourcePickupFeedbackBinding>{};
     final pickupEvidence = <Map<String, Object?>>[];
     SourceEventItemBindings? items;
-    final pickups = <(int, String, SourceItemGrantHelper)>{
-      for (final event in selectedEvents.where((entry) => !entry.isQuarantined))
+    final pickups = <(int, String, SourceItemGrantHelper, int)>{
+      for (final event in selectedEvents.where((entry) => !entry.isQuarantined || _hasOakParcelWrapper(entry)))
         for (final page in event.pages)
           for (final pickup in _pickups(page.body))
-            (event.sourceMapId, pickup.sourceSymbol, pickup.helper)
+            (event.sourceMapId, pickup.sourceSymbol, pickup.helper, pickup.quantity)
     }.toList()
       ..sort(
           (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1)
               : a.$2 != b.$2 ? a.$2.compareTo(b.$2)
-              : a.$3.name.compareTo(b.$3.name));
+              : a.$3 != b.$3 ? a.$3.name.compareTo(b.$3.name) : a.$4.compareTo(b.$4));
     final itemSymbols = {
-      for (final event in selectedEvents.where((entry) => !entry.isQuarantined))
+      for (final event in selectedEvents.where((entry) => !entry.isQuarantined || _hasOakParcelWrapper(entry)))
         for (final page in event.pages) ..._itemSymbols(page.body),
     };
     if (itemSymbols.isNotEmpty) {
@@ -310,14 +312,14 @@ final class SourceEventStudyComposer {
             continue;
           }
           final key = sourcePickupFeedbackBindingKey(
-              sourceMapId: pickup.$1, sourceSymbol: pickup.$2, helper: pickup.$3);
+              sourceMapId: pickup.$1, sourceSymbol: pickup.$2, helper: pickup.$3, quantity: pickup.$4);
           try {
             final binding = await const SourcePickupFeedbackResolver().read(
                 source: source,
                 files: recording,
                 item: item,
                 sourceMapId: pickup.$1,
-                helper: pickup.$3,
+                helper: pickup.$3, quantity: pickup.$4,
                 music: musicBindings[pickup.$1],
                 limits: limits,
                 cancellation: cancellation);
@@ -520,6 +522,29 @@ final class SourceEventStudyComposer {
         qualification: nativeTrainerQualification,
         source: source, analysis: analysis, files: recording,
         limits: limits, cancellation: cancellation);
+    final firstRivals = await const SourceFirstRivalBindingResolver().read(
+        source: source, analysis: analysis, files: recording,
+        nativeCatalog: nativeCatalog, qualification: trainerBindings.qualification,
+        limits: limits, cancellation: cancellation);
+    for(final binding in firstRivals.byEventIdentity.values) {
+      sounds['bgm:${binding.music.name}']=binding.music;
+      soundEvidence.add({'sourceName':binding.music.name,'status':'imported',
+        'sourceTemporalAudioParity':false,...binding.music.evidence});
+    }
+    final oakParcelBindings = <ConverterId, SourceOakParcelBinding>{};
+    for (final event in selectedEvents.where(_hasOakParcelWrapper)) {
+      final binding = await const SourceOakParcelBindingResolver().read(
+          source: source, analysis: analysis, event: event, files: recording,
+          items: items?.bindings ?? const {}, limits: limits, cancellation: cancellation);
+      if (binding != null) {
+        oakParcelBindings[event.identity] = binding;
+        for (final audio in binding.audio.entries) {
+          sounds[audio.key] = audio.value;
+          soundEvidence.add({'sourceName': audio.value.name, 'status': 'imported',
+            ...audio.value.evidence});
+        }
+      }
+    }
     final pokedexReward = <ConverterId, SourcePokedexRewardBinding>{};
     for (final event in selectedEvents.where((e) => e.pages.expand((p) => p.body.nodes).any((n) => n is SourcePokedexRewardProgramNode))) {
       final binding = await const SourcePokedexRewardBindingResolver().read(source: source,
@@ -657,6 +682,16 @@ final class SourceEventStudyComposer {
         characterEvidence.add({'bindingKey': imported.bindingKey, 'status': 'imported', ...imported.evidence});
       }
     }
+    final tileCharacters = <String>{};
+    for (final binding in oakParcelBindings.values) {
+      for (final actor in binding.tileActors.values) {
+        if (tileCharacters.add(actor.character.id)) {
+          characterArtifacts.add(actor.artifact);
+          characterMutations.addAll(actor.mutations);
+          characterEvidence.add({'status': 'imported', ...actor.toJson()});
+        }
+      }
+    }
     final characterCandidates = const SourceEventProjector()
         .characterImportCandidates(
             source: source,
@@ -668,6 +703,8 @@ final class SourceEventStudyComposer {
             soundBindings: sounds,
             centerRecoveryBinding: centerRecovery,
             trainerBindings: trainerBindings.byEventIdentity,
+            firstRivalBindings: firstRivals.byEventIdentity,
+            oakParcelBindings: oakParcelBindings,
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
@@ -766,6 +803,8 @@ final class SourceEventStudyComposer {
         soundBindings: sounds,
         centerRecoveryBinding: centerRecovery,
         trainerBindings: trainerBindings.byEventIdentity,
+            firstRivalBindings: firstRivals.byEventIdentity,
+            oakParcelBindings: oakParcelBindings,
             pokedexRewardBinding: pokedexReward,
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
@@ -800,7 +839,7 @@ final class SourceEventStudyComposer {
     final usedExternalWarps = projection.semanticEvidence['usedExternalWarps'] == true
         ? externalWarps : null;
     final admittedIdentities = (projection.semanticEvidence['events'] as List).cast<Map>()
-        .where((row) => row['status'] == 'adaptedStaticSemantics')
+        .where((row) => const ['adaptedStaticSemantics', 'partiallyAdapted'].contains(row['status']))
         .map((row) => ConverterId(row['sourceIdentity'] as String)).toSet();
     final freshEntry = await const SourceFreshEntryBindingResolver().read(
         source: source, projection: projection, files: recording,
@@ -865,6 +904,12 @@ final class SourceEventStudyComposer {
         .map((binding) => binding.sourceRosterFile.fileId.value));
     for (final binding in starterChoiceBindings.values) {
       preservedFileIds.addAll((binding.evidence['sourceFiles'] as List).cast<Map>().map((file) => file['fileId'] as String));
+    }
+    for (final binding in oakParcelBindings.values) {
+      preservedFileIds.add(binding.dexFile.fileId.value);
+      preservedFileIds.add(binding.throughCommonEventsFile.fileId.value);
+      preservedFileIds.addAll(binding.tileActors.values.map((actor) => actor.sourceImage.fileId.value));
+      preservedFileIds.addAll(binding.audio.values.map((audio) => audio.audioFile.fileId.value));
     }
     for (final binding in pokedexReward.values) {
       preservedFileIds.addAll(binding.archive.files.keys.map((id) => id.value));
@@ -1201,6 +1246,11 @@ final class SourceEventStudyComposer {
       },
       if (usedFieldObstacles != null) 'fieldObstacles': usedFieldObstacles.evidence,
       'fieldObstacleBindings': fieldBindingEvidence,
+      'oakParcelBindings': [for (final binding in oakParcelBindings.values) binding.toJson()],
+      'firstRivalBindings':{
+        'bindings':[for(final b in firstRivals.byEventIdentity.values)b.toJson()],
+        'refusals':[for(final e in firstRivals.refusals.entries){'identity':e.key.value,'reason':e.value}],
+      },
       'trainerBindings': {
         'bindings': trainerBindings.byEventIdentity.values
             .map((binding) => binding.toJson()).toList(),
@@ -1233,7 +1283,7 @@ final class SourceEventStudyComposer {
         freshEntry: freshEntry,
         projection: projection,
         musicBindings: Map.unmodifiable(musicBindings),
-        trainerQualification: trainerBindings.qualification,
+        trainerQualification: firstRivals.qualification ?? trainerBindings.qualification,
         pokemonGiftCatalog: projection.semanticEvidence['usedPokemonGifts'] == true ? pokemonGiftCatalog : null,
         draft: NativeProjectDraft(
             source: source,
@@ -1558,6 +1608,8 @@ Future<({MapInstanceRetentionPolicy policy, Map<String, Object?> evidence})>
 Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     switch (node) {
+      case SourceOakParcelProgramNode():
+        yield* _pickups(node.body);
       case SourceTrainerProgramNode():
         if (node.kind == SourceTrainerProgramKind.encounter) yield* _pickups(node.victoryContinuation);
         if (node.gymStageBody != null) yield* _pickups(node.gymStageBody!);
@@ -1593,6 +1645,8 @@ Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
 Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
   for (final node in block.nodes) {
     switch (node) {
+      case SourceOakParcelProgramNode():
+        yield* _itemSymbols(node.body);
       case SourceTrainerProgramNode():
         if (node.kind == SourceTrainerProgramKind.encounter) yield* _itemSymbols(node.victoryContinuation);
         if (node.gymStageBody != null) yield* _itemSymbols(node.gymStageBody!);
@@ -1621,3 +1675,6 @@ Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
     }
   }
 }
+
+bool _hasOakParcelWrapper(SourceEventDefinition event) => event.pages
+    .expand((page) => page.body.nodes).any((node) => node is SourceOakParcelProgramNode);
