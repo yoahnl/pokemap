@@ -32,6 +32,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.waitForActorRoutes,
     this.playSoundEffect,
     this.playMusicEffect,
+    this.sceneMusic,
     this.actorRoute,
     this.actorVisibility,
     this.openWorldService,
@@ -54,6 +55,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? waitForActorRoutes;
   final SceneInteractiveCommandHandler? playSoundEffect;
   final SceneInteractiveCommandHandler? playMusicEffect;
+  final SceneInteractiveCommandHandler? sceneMusic;
   final SceneInteractiveCommandHandler? actorRoute;
   final SceneInteractiveCommandHandler? actorVisibility;
   final SceneWorldServiceRequestHandler? openWorldService;
@@ -133,6 +135,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
           command,
           handler: worldTone,
         ),
+      SceneInteractiveCommandKind.sceneMusic => await _executeRequired(command, handler: sceneMusic),
       SceneInteractiveCommandKind.playMusicEffect => await _executeRequired(command, handler: playMusicEffect),
       SceneInteractiveCommandKind.playSoundEffect => await _executeRequired(
           command,

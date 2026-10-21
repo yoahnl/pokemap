@@ -270,6 +270,37 @@ final class SceneActions {
     'outputPorts': ['completed', 'blocked'],
   };
 
+  static const _sceneMusicContract = {
+    'projectDimension': 'twoD',
+    'executionProfile': 'world',
+    'parameters': ['operation', 'mediaAssetId', 'volume', 'durationMs'],
+    'operations': {
+      'play': ['operation', 'mediaAssetId', 'volume'],
+      'restore': ['operation'],
+      'fadeOut': ['operation', 'durationMs'],
+    },
+    'mediaReference': 'knownUniqueMusic',
+    'forcedLoop': true,
+    'volumeRange': [0, 1],
+    'finiteNumbers': true,
+    'durationMsRange': [0, 60000],
+    'scope': 'sceneTransaction',
+    'restoreBaseline': 'capturedBeforeFirstModification',
+    'recaptureAfterRestore': true,
+    'battlePriority': 'higher',
+    'completion': 'scheduled',
+    'persistent': false,
+    'terminalRestoration': [
+      'completed',
+      'failure',
+      'abort',
+      'exitEvent',
+      'dispose',
+    ],
+    'staleOwnerPolicy': 'rejectAndCancelLateCallbacks',
+    'outputPorts': ['completed', 'blocked'],
+  };
+
   static const _musicEffectContract = {
     'projectDimension': 'twoD',
     'parameters': ['mediaAssetId', 'volume', 'bgmInterruption'],
@@ -442,6 +473,7 @@ final class SceneActions {
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
+        'sceneMusic': _sceneMusicContract,
         'actorRoute': _actorRouteContract,
       },
     ),
@@ -494,6 +526,7 @@ final class SceneActions {
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
+        'sceneMusic': _sceneMusicContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -565,6 +598,7 @@ final class SceneActions {
         'worldTone': _worldToneContract,
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
+        'sceneMusic': _sceneMusicContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,

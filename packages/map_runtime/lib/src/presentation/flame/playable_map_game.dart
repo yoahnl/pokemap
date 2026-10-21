@@ -55,6 +55,7 @@ import '../../player/runtime_audio_mixer.dart';
 import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
+import '../../player/runtime_scene_music_controller.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../player/runtime_regional_map_builder.dart';
 import '../../application/resolve_dialogue.dart';
@@ -179,6 +180,7 @@ import 'warp_presentation_overlay_component.dart';
 import 'warp_presentation_renderer.dart';
 
 part 'playable_map_game_support.dart';
+part 'playable_map_game_scene_music.dart';
 part 'playable_map_game_cinematic_poses.dart';
 part 'playable_map_game_interactions.dart';
 part 'playable_map_game_field_obstacle_slide.dart';
@@ -852,10 +854,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// 2. rencontre dresseur en cours (l'`eye_bgm` de la référence, du « ! »
   ///    jusqu'au passage de témoin au combat) ;
   /// 3. musique de la carte active (parité RMXP `Game_Map#autoplay`).
-  void _syncRuntimeMusic() {
+  void _syncRuntimeMusic() => unawaited(_applyRuntimeMusicSelection());
+
+  Future<void> _applyRuntimeMusicSelection() async {
     if (_isRemoved) return;
     if (_presentationCinematicDepth > 0) {
-      unawaited(_music.update(route: RuntimeAudioRoute.overworld, path: null));
+      await _music.update(route: RuntimeAudioRoute.overworld, path: null);
       return;
     }
     String? path;
@@ -883,13 +887,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           route = RuntimeAudioRoute.battle;
           path = encounterPath;
         } else {
-          volume = _bundle.map.mapMetadata.musicVolume ?? 0.8;
-          path = _battleMusicResolver.resolveMapMusicAbsolutePath(
-            bundle: _bundle,
-          );
+          final scopedMusic = _activeNarrativeSceneWorkingSession?.sceneMusic?.selection;
+          if (scopedMusic != null) {
+            route = scopedMusic.route;
+            path = scopedMusic.path;
+            volume = scopedMusic.volume;
+          } else {
+            volume = _bundle.map.mapMetadata.musicVolume ?? 0.8;
+            path = _battleMusicResolver.resolveMapMusicAbsolutePath(
+              bundle: _bundle,
+            );
+          }
         }
     }
-    unawaited(_music.update(route: route, path: path, volume: volume));
+    await _music.update(route: route, path: path, volume: volume);
   }
 
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
@@ -1543,6 +1554,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         throw StateError('The runtime was removed during Scene execution.');
       }
       if (result is NarrativeSceneExecutionCompleted) {
+        await _closeSceneMusicBeforeCommit(session);
         var hydratedGameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState,
         );
@@ -1594,8 +1606,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
       return NarrativeSceneExecutionResult.failed(error);
     } finally {
+      await session.sceneMusic?.close();
       session.restoreActorRoutes();
-      _activeNarrativeSceneWorkingSession = null;
+      if (identical(_activeNarrativeSceneWorkingSession, session)) {
+        _activeNarrativeSceneWorkingSession = null;
+      }
       if (!_isRemoved) _refreshWorldNpcPresence();
     }
   }
@@ -4900,6 +4915,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _isRemoved = true;
+    unawaited(_activeNarrativeSceneWorkingSession?.sceneMusic?.close());
     _playerSlide.reset();
     _slideSuppressedMovementControls.clear();
     if (_observingMemoryPressure) {
@@ -12136,6 +12152,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           _showNotification('La scène ne peut pas continuer.');
         }
       } else {
+        await _closeSceneMusicBeforeCommit(session);
         session.gameState = await _hydrateOwnedPlayerPokemonProgression(
           result.updatedGameState ?? session.gameState,
         );
@@ -12204,6 +12221,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       _showNotification('Scene V1 impossible.');
     } finally {
+      await workingSession?.sceneMusic?.close();
       workingSession?.restoreActorRoutes();
       if (identical(_activeNarrativeSceneWorkingSession, workingSession)) {
         _activeNarrativeSceneWorkingSession = null;
@@ -12386,6 +12404,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           session: presentationSession,
         ),
         worldTone: (command) => _executeSceneWorldToneCommand(
+          command,
+          session: presentationSession,
+        ),
+        sceneMusic: (command) => _executeSceneMusicCommand(
           command,
           session: presentationSession,
         ),

@@ -3268,3 +3268,33 @@ Le raccord Studio P4 réutilise la route et le contrôleur de transfert avec dir
 Le sink Studio macOS acquiert une portée dossier ponctuelle via le sélecteur natif, distincte de la création de projet. Un token opaque lie le nom validé et l’identité de destination observée par le natif ; un remplacement exige sa confirmation native. Les chunks binaires séquentiels sont bornés à 128 Kio et chaque append est attendu. seal relit le FD, vérifie SHA brut et longueur, synchronise et ferme le temporaire frère ; la dernière barrière d’annulation Dart précède finish, qui revérifie les identités et renomme dans le même dossier. Une nouvelle destination utilise uniquement le renommage exclusif si le volume le supporte. Le remplacement confirmé ne prétend pas fournir de compare-and-swap face à tous les écrivains externes, ni de durabilité certifiée après crash. published est enregistré immédiatement après rename et reste publié avec avertissement si le nettoyage échoue. Si la réponse finish se perd, une relecture du statut réconcilie le résultat ; un statut indisponible ou non terminal conserve le token et bloque fermeture/changement de projet. La relecture ne reconstruit pas le pack et ne relance pas de rename. Après une interruption non publiée, un échec de release conserve également un propriétaire de nettoyage avec le token et l’issue terminale déjà connue. Sa reprise appelle uniquement le release idempotent ; une réponse de release perdue ne réinterroge pas le statut d’un token déjà supprimé. Le propriétaire est retiré après confirmation du nettoyage. Ce cas reste distinct de finish inconnu, qui exige toujours sa relecture de statut. Les sessions native et leurs permissions sont ponctuelles, sans bookmark ou entitlement élargi. Ce sink et ses tokens restent une frontière native Studio ; les transports canoniques API/JSONL/MCP utilisent toujours leurs propres handles de préparation, artifact et read_payload. La qualification native P11 vérifie séparément le bundle signé, les entitlements embarqués, la création dans un dossier choisi hors conteneur, le remplacement confirmé, les deux annulations et la réimportation après redémarrage. Les courses de fermeture et pertes de réponse restent couvertes par les tests de propriétaires et barrières, sans faute native forcée.
 
 La réédition conserve les identités locales des règles, candidats et fallback Terrain tout en remappant les références de projet. Le guide cardinal16/path20 est restauré uniquement par reconnaissance structurelle exacte sur la grille source ; les brouillons avancés restent refusés par l’atelier guidé. Une publication Border inscrit ses PNG certifiés, le catalogue d’assets et les blobs CAS dans le même changement journalisé que le projet, avec réutilisation des contenus identiques et refus des contradictions. La réédition Border2D sans remplacement de source conserve variantes, ordre, identités, poids, ancres et transformations ; les métriques des sources recompilées aux ancres d’origine doivent encore correspondre. Aucun nouveau verbe de transport n’est ajouté.
+
+### Musique temporaire de scène
+
+La commande typée `sceneMusic` est publiée par les contrats de
+`scene.interactive_command.set`, `scene.graph.patch` et `scene.upsert` ;
+`scene.upsert_batch` conserve le même contrat de scène.
+
+- `play` accepte exactement `operation`, `mediaAssetId` et `volume` : le média
+  doit être une musique connue unique, le volume un nombre fini de 0 à 1. La
+  lecture boucle explicitement, indépendamment de `loopByDefault`.
+- `restore` accepte uniquement `operation` et reprend l’ambiance capturée avant
+  la première modification (`play` ou `fadeOut`) de cette transaction. Une nouvelle
+  modification après restauration capture une nouvelle ambiance ; aucune pile de
+  clips n’est conservée.
+- `fadeOut` accepte exactement `operation` et `durationMs`, entier de 0 à 60000.
+  Le fondu est programmé sans bloquer le dialogue ou les déplacements suivants.
+
+Le JSON inclut aussi `kind: sceneMusic` pour les trois opérations. Les ports
+restent `completed` et `blocked` ; la musique est transitoire, limitée à la
+transaction d’une scène du monde 2D. Elle n’est ni une Fact ni un champ de
+sauvegarde. Pré-session et 3D sont refusées. La musique de combat garde la
+priorité. Le lecteur de présentation autonome conserve sa priorité audio.
+La fin, l’échec, l’abandon et la destruction de la transaction restaurent
+l’ambiance et invalident les callbacks des propriétaires précédents.
+
+Studio et les formulaires d’événements/scènes proposent des sélecteurs d’opération
+et de musique, sans saisie d’identifiant. Les champs incompatibles avec
+l’opération choisie sont retirés avant validation. Les refus de référence, de
+paramètres ou de dimension sont vérifiés avant écriture par les actions natives,
+y compris via JSONL et le MCP.

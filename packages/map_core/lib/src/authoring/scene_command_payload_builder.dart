@@ -171,6 +171,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.waitForActorRoutes => _buildWaitForActorRoutesPayload(parameters),
     NarrativeCommandIds.wait => _buildWaitPayload(parameters),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
+    NarrativeCommandIds.sceneMusic => _buildSceneMusicPayload(parameters),
     NarrativeCommandIds.playMusicEffect => _buildMusicEffectPayload(parameters),
     NarrativeCommandIds.playSoundEffect => _buildSoundEffectPayload(parameters),
     NarrativeCommandIds.actorVisibility => _buildActorVisibilityPayload(
@@ -474,6 +475,31 @@ SceneConsequence _mapEventInstanceBooleanConsequence(Map<String, String> paramet
   return SceneConsequence.setMapEventInstanceBoolean(mapId: parameters['mapId']!,
       eventId: parameters['eventId']!, key: parameters['key']!,
       value: parameters['value'] == 'true');
+}
+
+SceneActionPayload _buildSceneMusicPayload(Map<String, String> parameters) {
+  final operation = SceneMusicOperation.values.byName(
+    parameters['operation'] ?? '',
+  );
+  _requirePresentationParameters(parameters, switch (operation) {
+    SceneMusicOperation.play => const {'operation', 'mediaAssetId', 'volume'},
+    SceneMusicOperation.restore => const {'operation'},
+    SceneMusicOperation.fadeOut => const {'operation', 'durationMs'},
+  });
+  return SceneActionPayload.interactive(
+    SceneInteractiveCommand.sceneMusic(
+      operation: operation,
+      mediaAssetId: operation == SceneMusicOperation.play
+          ? parameters['mediaAssetId']
+          : null,
+      volume: operation == SceneMusicOperation.play
+          ? double.parse(parameters['volume']!)
+          : null,
+      durationMs: operation == SceneMusicOperation.fadeOut
+          ? int.parse(parameters['durationMs']!)
+          : null,
+    ),
+  );
 }
 
 SceneActionPayload _buildMusicEffectPayload(Map<String, String> parameters) {

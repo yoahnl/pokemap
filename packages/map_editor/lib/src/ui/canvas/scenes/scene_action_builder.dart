@@ -55,6 +55,20 @@ List<SceneActionPickerOption> buildSceneSoundMediaPickerOptions(
   ];
 }
 
+List<SceneActionPickerOption> buildSceneMusicMediaPickerOptions(
+  ProjectManifest project,
+) {
+  final counts = <String, int>{};
+  for (final media in project.cinematicMediaAssets) {
+    counts[media.id] = (counts[media.id] ?? 0) + 1;
+  }
+  return [
+    for (final media in project.cinematicMediaAssets)
+      if (counts[media.id] == 1 && media.kind == CinematicMediaAssetKind.music)
+        SceneActionPickerOption(id: media.id, label: media.label),
+  ];
+}
+
 final class SceneActionBuildResult {
   const SceneActionBuildResult({
     required this.command,
@@ -147,7 +161,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
-      id == NarrativeCommandIds.playSoundEffect;
+      id == NarrativeCommandIds.playSoundEffect ||
+      id == NarrativeCommandIds.sceneMusic;
 
   bool _isActorCommand(String id) =>
       id == NarrativeCommandIds.actorRoute ||
@@ -290,6 +305,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     if (_isGift && (_values['moveIds']?.isEmpty ?? false)) {
       _values.remove('moveIds');
     }
+    if (command.id == NarrativeCommandIds.sceneMusic) {
+      if (widget.initialPayload == null && widget.initialParameters.isEmpty) {
+        _values['volume'] = '1';
+      }
+      _syncMusicOperation();
+    }
     _giftMovesValid = !_isGift || _giftMoves == null;
     _loadWarpReferences(selectFirst: true);
   }
@@ -407,6 +428,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ];
 
   bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.sceneMusic) return _isParameterVisible(parameter);
     if (_command.id == NarrativeCommandIds.warp && parameter.id == 'illustrationElementId') {
       return _values['presentationMode'] == 'illustrated' || _values['presentationMode'] == 'caveEntrance';
     }
@@ -441,6 +463,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.sceneMusic) {
+      return switch (parameter.id) {
+        'mediaAssetId' || 'volume' => _values['operation'] == 'play',
+        'durationMs' => _values['operation'] == 'fadeOut',
+        _ => true,
+      };
+    }
     if (_command.id == NarrativeCommandIds.warp) {
       final mode = _values['presentationMode'];
       final active = mode != null && mode.isNotEmpty;
@@ -522,6 +551,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         return _hasValidPresentationParameter(parameter.id, value);
       }
       final parsed = int.tryParse(value);
+      if (_command.id == NarrativeCommandIds.sceneMusic) return parsed != null && parsed >= 0 && parsed <= 60000;
       if (_command.id == NarrativeCommandIds.receivePokemonFromCatalog && (parameter.id == 'level' || parameter.id == 'nicknameMaxGraphemes')) {
         return parsed != null && parsed >= 1 && parsed <= 100;
       }
@@ -555,6 +585,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         'blue': '0',
         'gray': '0',
         'durationMs': '0',
+      },
+      NarrativeCommandIds.sceneMusic => const {
+        'operation': 'play',
+        'mediaAssetId': 'validation.music',
+        'volume': '1',
       },
       NarrativeCommandIds.playSoundEffect => const {
         'mediaAssetId': 'validation.sound',
@@ -598,7 +633,43 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _validWarpPresentation &&
       _validTextFactInput &&
       _validIntegerAdjustment &&
+      _validSceneMusic &&
       (!_isGift || _giftMovesValid);
+
+  bool get _validSceneMusic {
+    if (_command.id != NarrativeCommandIds.sceneMusic) return true;
+    try {
+      buildScenePayloadForNarrativeCommand(
+        commandId: _command.id,
+        parameters: _values,
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+  }
+
+  void _syncMusicOperation() {
+    final operation = _values['operation'];
+    for (final key in ['mediaAssetId', 'volume', 'durationMs']) {
+      if (operation == 'play' && key != 'durationMs' ||
+          operation == 'fadeOut' && key == 'durationMs') {
+        continue;
+      }
+      _values.remove(key);
+      _textControllers[key]?.text = '';
+    }
+    if (operation == 'play') {
+      _values.putIfAbsent('volume', () => '1');
+      _textControllers['volume']?.text = _values['volume']!;
+    }
+    if (operation == 'fadeOut') {
+      _values.putIfAbsent('durationMs', () => '1000');
+      _textControllers['durationMs']?.text = _values['durationMs']!;
+    }
+  }
 
   bool get _validTextFactInput {
     if (_command.id != NarrativeCommandIds.inputTextToFact) return true;
@@ -1144,6 +1215,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   ) {
     setState(() {
       _values[parameter.id] = value;
+      if (_command.id == NarrativeCommandIds.sceneMusic && parameter.id == 'operation') _syncMusicOperation();
       if (_command.id == NarrativeCommandIds.warp && parameter.id == 'presentationMode') {
         if (value != 'illustrated' && value != 'caveEntrance') {
           for (final key in ['illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs']) {

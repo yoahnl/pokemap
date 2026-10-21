@@ -284,6 +284,13 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
       red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300,
     ),
   ),
+  NarrativeCommandIds.sceneMusic: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.sceneMusic(
+      operation: SceneMusicOperation.play,
+      mediaAssetId: 'music',
+      volume: .8,
+    ),
+  ),
   NarrativeCommandIds.playMusicEffect: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door-sound', volume: .8,
       bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
@@ -439,6 +446,7 @@ ProjectManifest _project() => ProjectManifest(
   tilesets: const [ProjectTilesetEntry(id: 'sprites', name: 'Sprites', relativePath: 'assets/sprites.png')],
   characters: [_avatarCharacter()],
   cinematicMediaAssets: [
+    CinematicMediaAsset(id: 'music', label: 'Music', kind: CinematicMediaAssetKind.music, relativePath: 'audio/music.ogg'),
     CinematicMediaAsset(id: 'door-sound', label: 'Door',
       kind: CinematicMediaAssetKind.sound, relativePath: 'assets/door.wav'),
   ],

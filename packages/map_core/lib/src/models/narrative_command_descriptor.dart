@@ -13,6 +13,8 @@ enum NarrativeCommandParameterKind {
   integer,
   number,
   soundMediaReference,
+  musicMediaReference,
+  sceneMusicOperation,
   actorTarget,
   actorRouteSteps,
   actorTargetKind,

@@ -2195,6 +2195,13 @@ buildEventBuilderV2TemplateActionPickerOptions({
     ],
     NarrativeCommandParameterKind.soundMediaReference:
         buildSceneSoundMediaPickerOptions(project),
+    NarrativeCommandParameterKind.musicMediaReference:
+        buildSceneMusicMediaPickerOptions(project),
+    NarrativeCommandParameterKind.sceneMusicOperation: const [
+      SceneActionPickerOption(id: 'play', label: 'Jouer une musique en boucle'),
+      SceneActionPickerOption(id: 'restore', label: 'Restaurer l’ambiance'),
+      SceneActionPickerOption(id: 'fadeOut', label: 'Fondre la musique'),
+    ],
     NarrativeCommandParameterKind.railJourney: [
       for (final journey
           in project.railJourneyCatalog?.journeys ??

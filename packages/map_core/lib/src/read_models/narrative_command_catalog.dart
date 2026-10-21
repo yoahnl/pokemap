@@ -27,6 +27,7 @@ abstract final class NarrativeCommandIds {
   static const worldTone = 'worldTone';
   static const playSoundEffect = 'playSoundEffect';
   static const playMusicEffect = 'playMusicEffect';
+  static const sceneMusic = 'sceneMusic';
   static const actorRoute = 'actorRoute';
   static const actorVisibility = 'actorVisibility';
   static const openShop = 'openShop';
@@ -605,6 +606,46 @@ final class NarrativeCommandCatalog {
             NarrativeCommandParameterKind.soundMediaReference,
           ),
           _parameter('volume', 'Volume', NarrativeCommandParameterKind.number),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.sceneMusic,
+        label: 'Musique de scène',
+        description: 'Joue une musique en boucle pendant la scène, lance un fondu ou restaure l’ambiance capturée avant la première modification (lecture ou fondu). La musique de combat garde la priorité.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Player 2D uniquement ; indisponible avant la session et en 3D. Musique temporaire restaurée à la fin de la transaction. Le lecteur de présentation autonome conserve sa priorité audio.',
+        ),
+        fgLotId: 'FG-093',
+        wireId: 'SceneInteractiveCommand.sceneMusic',
+        parameters: [
+          _parameter(
+            'operation',
+            'Action musicale',
+            NarrativeCommandParameterKind.sceneMusicOperation,
+          ),
+          _parameter(
+            'mediaAssetId',
+            'Musique en boucle',
+            NarrativeCommandParameterKind.musicMediaReference,
+            required: false,
+          ),
+          _parameter(
+            'volume',
+            'Volume',
+            NarrativeCommandParameterKind.number,
+            required: false,
+          ),
+          _parameter(
+            'durationMs',
+            'Durée du fondu (ms)',
+            NarrativeCommandParameterKind.integer,
+            required: false,
+          ),
         ],
         isAwaitable: true,
       ),

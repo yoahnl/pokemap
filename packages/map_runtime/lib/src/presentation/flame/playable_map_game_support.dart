@@ -802,6 +802,7 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
+  RuntimeSceneMusicController? sceneMusic;
   GameState Function()? stateProjection;
   GameState get presentationGameState => stateProjection?.call() ?? gameState;
   bool defersMapActivation = false;

@@ -2408,6 +2408,30 @@ final class _NarrativeDependencyIndexBuilder {
     }
   }
 
+  void _collectSceneMusicReference(
+    NarrativeDependencyKey owner,
+    String mediaAssetId,
+    String path,
+  ) {
+    final candidates =
+        _soundMediaById[mediaAssetId] ?? const <CinematicMediaAsset>[];
+    _usage(
+      target: NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.media,
+        mediaAssetId,
+      ),
+      owner: owner,
+      path: path,
+      criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      resolution:
+          candidates.isNotEmpty &&
+              (candidates.length != 1 ||
+                  candidates.single.kind != CinematicMediaAssetKind.music)
+          ? NarrativeDependencyResolution.unavailable
+          : null,
+    );
+  }
+
   void _collectSceneSoundReference(
     NarrativeDependencyKey owner,
     String mediaAssetId,
@@ -2499,6 +2523,9 @@ final class _NarrativeDependencyIndexBuilder {
         }
       case SceneActorVisibilityInteractiveCommand(:final target):
         _collectActorTarget(owner, target, '$path.target');
+      case SceneMusicInteractiveCommand(:final mediaAssetId)
+          when mediaAssetId != null:
+        _collectSceneMusicReference(owner, mediaAssetId, '$path.mediaAssetId');
       case ScenePlayMusicEffectInteractiveCommand(:final mediaAssetId):
         _collectSceneSoundReference(owner, mediaAssetId, '$path.mediaAssetId');
       case ScenePlaySoundEffectInteractiveCommand(:final mediaAssetId):

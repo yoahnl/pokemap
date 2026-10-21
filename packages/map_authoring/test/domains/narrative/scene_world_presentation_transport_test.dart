@@ -38,6 +38,211 @@ SceneAsset _scene(String id, SceneInteractiveCommand command) => SceneAsset(
     ]));
 
 void main() {
+  test(
+    'scene music canonical contracts publish scoped loop and strict operations',
+    () {
+      for (final id in [
+        'scene.interactive_command.set',
+        'scene.upsert',
+        'scene.graph.patch',
+      ]) {
+        final contract =
+            SceneActions.descriptors
+                    .singleWhere((d) => d.id == id)
+                    .extensions['sceneMusic']
+                as Map;
+        expect(contract['projectDimension'], 'twoD');
+        expect(contract['executionProfile'], 'world');
+        expect(contract['forcedLoop'], isTrue);
+        expect(contract['battlePriority'], 'higher');
+        expect(contract['scope'], 'sceneTransaction');
+        expect(contract['restoreBaseline'], 'capturedBeforeFirstModification');
+        expect(contract['durationMsRange'], [0, 60000]);
+        expect(contract['persistent'], isFalse);
+      }
+    },
+  );
+  for (final jsonl in [false, true]) {
+    test(
+      '${jsonl ? 'JSONL' : 'direct API'} scene music writes every semantic entry and cold reopens without unrelated changes',
+      () async {
+        for (final action in [
+          'scene.interactive_command.set',
+          'scene.upsert',
+          'scene.graph.patch',
+          'scene.upsert_batch',
+        ]) {
+          final f = await _Fixture.create();
+          addTearDown(f.dispose);
+          final mapBefore = await f.mapFile.readAsBytes();
+          final draftBefore = (await f.snapshot()).manifest.scenes.singleWhere(
+            (v) => v.id == 'unrelated-draft',
+          );
+          for (final command in [
+            SceneInteractiveCommand.sceneMusic(
+              operation: SceneMusicOperation.play,
+              mediaAssetId: 'music',
+              volume: .8,
+            ),
+            SceneInteractiveCommand.sceneMusic(
+              operation: SceneMusicOperation.restore,
+            ),
+            SceneInteractiveCommand.sceneMusic(
+              operation: SceneMusicOperation.fadeOut,
+              durationMs: 0,
+            ),
+          ]) {
+            final id = 'music-${++f.sequence}';
+            final scene = _scene('edit', command);
+            final request = AuthoringRequest(
+              requestId: id,
+              actionId: action,
+              actionVersion: 1,
+              workspaceHandle: f.workspace.value,
+              expectedRevision: (await f.snapshot()).revision,
+              idempotencyKey: id,
+              parameters: switch (action) {
+                'scene.upsert' => {'scene': scene.toJson()},
+                'scene.upsert_batch' => {
+                  'scenes': [scene.toJson()],
+                },
+                'scene.graph.patch' => {
+                  'sceneId': 'edit',
+                  'upsertNodes': [scene.graph.nodes[1].toJson()],
+                },
+                _ => {
+                  'sceneId': 'edit',
+                  'nodeId': 'action',
+                  'command': command.toJson(),
+                },
+              },
+            );
+            final before = await f.projectFile.readAsBytes();
+            final plan = jsonl
+                ? await f.success('plan', {
+                    'projectHandle': f.project.value,
+                    'request': request.toJson(),
+                  })
+                : await f.mutations.plan(f.project, request);
+            expect(await f.projectFile.readAsBytes(), before);
+            if (jsonl) {
+              await f.success('apply', {
+                'projectHandle': f.project.value,
+                'planId': plan['planId'],
+                'operationId': '$id-apply',
+              });
+            } else {
+              await f.mutations.apply(
+                f.project,
+                planId: plan['planId'] as String,
+                operationId: '$id-apply',
+              );
+            }
+            final current = (await f.snapshot()).manifest;
+            expect(
+              (current.scenes
+                          .singleWhere((v) => v.id == 'edit')
+                          .graph
+                          .nodes[1]
+                          .payload
+                      as SceneActionPayload)
+                  .interactiveCommand,
+              command,
+            );
+            expect(
+              current.scenes.singleWhere((v) => v.id == 'unrelated-draft'),
+              draftBefore,
+            );
+            expect(await f.mapFile.readAsBytes(), mapBefore);
+          }
+          final stable = await f.projectFile.readAsBytes();
+          await f.success('close', {'workspaceHandle': f.workspace.value});
+          await f.open();
+          expect(await f.projectFile.readAsBytes(), stable);
+          expect(
+            jsonEncode(
+              (await f.snapshot()).manifest.scenes
+                  .singleWhere((v) => v.id == 'edit')
+                  .toJson(),
+            ),
+            contains('fadeOut'),
+          );
+        }
+      },
+    );
+    test(
+      '${jsonl ? 'JSONL' : 'direct API'} scene music rejects wrong media and spatial commands before writes',
+      () async {
+        for (final spatial in [false, true]) {
+          final f = await _Fixture.create(
+            spatial: spatial,
+            initialCommand: SceneInteractiveCommand.wait(durationMs: 1),
+          );
+          addTearDown(f.dispose);
+          for (final media in [
+            'missing',
+            'door',
+            'fx',
+            'loop',
+            if (spatial) 'music',
+          ]) {
+            for (final action in [
+              'scene.interactive_command.set',
+              'scene.upsert',
+              'scene.graph.patch',
+              'scene.upsert_batch',
+            ]) {
+              final before = await f.projectFile.readAsBytes();
+              final command = SceneInteractiveCommand.sceneMusic(
+                operation: SceneMusicOperation.play,
+                mediaAssetId: media,
+                volume: .8,
+              );
+              final scene = _scene('edit', command);
+              final id = 'music-reject-${++f.sequence}';
+              final request = AuthoringRequest(
+                requestId: id,
+                actionId: action,
+                actionVersion: 1,
+                workspaceHandle: f.workspace.value,
+                expectedRevision: (await f.snapshot()).revision,
+                idempotencyKey: id,
+                parameters: switch (action) {
+                  'scene.upsert' => {'scene': scene.toJson()},
+                  'scene.upsert_batch' => {
+                    'scenes': [scene.toJson()],
+                  },
+                  'scene.graph.patch' => {
+                    'sceneId': 'edit',
+                    'upsertNodes': [scene.graph.nodes[1].toJson()],
+                  },
+                  _ => {
+                    'sceneId': 'edit',
+                    'nodeId': 'action',
+                    'command': command.toJson(),
+                  },
+                },
+              );
+              if (jsonl) {
+                final result = await f.command('plan', {
+                  'projectHandle': f.project.value,
+                  'request': request.toJson(),
+                });
+                expect(result.status, AuthoringResultStatus.failure);
+              } else {
+                await expectLater(
+                  f.mutations.plan(f.project, request),
+                  throwsA(isA<NarrativeAuthoringException>()),
+                );
+              }
+              expect(await f.projectFile.readAsBytes(), before);
+            }
+          }
+        }
+      },
+    );
+  }
+
   test('canonical global route wait metadata exposes typed map scope without timeout', () {
     for (final id in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
       final descriptor = SceneActions.descriptors.singleWhere((d) => d.id == id);

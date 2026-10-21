@@ -9,6 +9,111 @@ import 'package:map_editor/src/features/narrative/state/scene_consequence_catalo
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets(
+    'scene music legacy builder keeps operations guided and excludes unused fields',
+    (tester) async {
+      final project = ProjectManifest(
+        name: 'Musique',
+        maps: const [],
+        tilesets: const [],
+        cinematicMediaAssets: [
+          CinematicMediaAsset(
+            id: 'theme',
+            label: 'Thème',
+            kind: CinematicMediaAssetKind.music,
+            relativePath: 'audio/theme.ogg',
+          ),
+        ],
+      );
+      SceneNodePayload? applied;
+      await _pumpBuilder(
+        tester,
+        initialCommandId: NarrativeCommandIds.sceneMusic,
+        project: project,
+        initialPayload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.sceneMusic(
+            operation: SceneMusicOperation.play,
+            mediaAssetId: 'theme',
+            volume: .8,
+          ),
+        ),
+        options: {
+          NarrativeCommandParameterKind.sceneMusicOperation: const [
+            SceneActionPickerOption(
+              id: 'play',
+              label: 'Jouer une musique en boucle',
+            ),
+            SceneActionPickerOption(
+              id: 'restore',
+              label: 'Restaurer l’ambiance',
+            ),
+            SceneActionPickerOption(id: 'fadeOut', label: 'Fondre la musique'),
+          ],
+          NarrativeCommandParameterKind.musicMediaReference:
+              buildSceneMusicMediaPickerOptions(project),
+        },
+        onSubmit: (value) => applied = value,
+      );
+      expect(_picker(tester, 'Musique en boucle').value, 'theme');
+      expect(_submitButton(tester).onPressed, isNotNull);
+      _picker(tester, 'Action musicale').onChanged('restore');
+      await tester.pump();
+      expect(find.text('Musique en boucle'), findsNothing);
+      expect(_submitButton(tester).onPressed, isNotNull);
+      _submitButton(tester).onPressed!();
+      expect((applied as SceneActionPayload).interactiveCommand!.toJson(), {
+        'kind': 'sceneMusic',
+        'operation': 'restore',
+      });
+      _picker(tester, 'Action musicale').onChanged('fadeOut');
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('scene-action-parameter-durationMs')),
+        '60001',
+      );
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNull);
+      await tester.enterText(
+        find.byKey(const ValueKey('scene-action-parameter-durationMs')),
+        '0',
+      );
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNotNull);
+      _submitButton(tester).onPressed!();
+      expect((applied as SceneActionPayload).interactiveCommand!.toJson(), {
+        'kind': 'sceneMusic',
+        'operation': 'fadeOut',
+        'durationMs': 0,
+      });
+    },
+  );
+
+  test('scene music picker excludes duplicate IDs and other audio roles', () {
+    final project = ProjectManifest(
+      name: 'Musique',
+      maps: const [],
+      tilesets: const [],
+      cinematicMediaAssets: [
+        for (final id in ['duplicate', 'duplicate', 'theme'])
+          CinematicMediaAsset(
+            id: id,
+            label: id,
+            kind: CinematicMediaAssetKind.music,
+            relativePath: 'audio/$id.ogg',
+          ),
+        CinematicMediaAsset(
+          id: 'sound',
+          label: 'sound',
+          kind: CinematicMediaAssetKind.sound,
+          relativePath: 'audio/sound.ogg',
+        ),
+      ],
+    );
+    expect(buildSceneMusicMediaPickerOptions(project).map((v) => v.id), [
+      'theme',
+    ]);
+  });
+
   testWidgets('interactive native gift keeps guided policies when reopened and rejects invalid bounds', (tester) async {
     final gift = SceneInteractiveCommand.receivePokemonFromCatalog(speciesId: 'bird', formId: 'bronze', level: 17,
       moveIds: ['exceptional', 'tackle'],

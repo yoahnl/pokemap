@@ -43,6 +43,7 @@ void main() {
       worldTone: handler,
       playSoundEffect: handler,
       playMusicEffect: handler,
+      sceneMusic: handler,
       actorRoute: handler,
       actorVisibility: handler,
     );
@@ -58,6 +59,7 @@ void main() {
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
       SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
         bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
+      SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore),
       SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map.port'), steps: [SceneActorRouteStep.wait(durationMs: 0)]),
       SceneInteractiveCommand.actorVisibility(target: SceneActorTarget.player(mapId: 'map.port'), visible: false),
       SceneInteractiveCommand.moveNpc(
@@ -117,11 +119,31 @@ void main() {
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
       SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
         bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
+      SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore),
       SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'map.port'), steps: [SceneActorRouteStep.wait(durationMs: 0)]),
       SceneInteractiveCommand.actorVisibility(target: SceneActorTarget.player(mapId: 'map.port'), visible: false),
     ]) {
       await expectLater(executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command: command)), throwsStateError);
     }
+  });
+
+  test('scoped music dispatches every operation and rejects an undeclared port', () async {
+    final received = <SceneMusicOperation>[];
+    final executor = SceneInteractiveCommandRuntimeExecutor(warp: (_) async => 'completed', sceneMusic: (command) async {
+      received.add((command as SceneMusicInteractiveCommand).operation);
+      return 'completed';
+    });
+    for (final command in [
+      SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.play, mediaAssetId: 'rival', volume: .8),
+      SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.fadeOut, durationMs: 250),
+      SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore),
+    ]) {
+      expect(await executor.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command: command)), 'completed');
+    }
+    expect(received, [SceneMusicOperation.play, SceneMusicOperation.fadeOut, SceneMusicOperation.restore]);
+    final invalid = SceneInteractiveCommandRuntimeExecutor(warp: (_) async => 'completed', sceneMusic: (_) async => 'victory');
+    await expectLater(invalid.execute(SceneRuntimePlanIntent.executeInteractiveCommand(command:
+      SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore))), throwsStateError);
   });
 
   test('regional map awaits its world service before advancing the scene', () async {

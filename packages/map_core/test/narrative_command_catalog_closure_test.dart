@@ -35,6 +35,7 @@ void main() {
       NarrativeCommandIds.worldTone,
       NarrativeCommandIds.playSoundEffect,
       NarrativeCommandIds.playMusicEffect,
+      NarrativeCommandIds.sceneMusic,
       NarrativeCommandIds.actorRoute,
       NarrativeCommandIds.actorVisibility,
       NarrativeCommandIds.openShop,
@@ -117,6 +118,7 @@ void main() {
           'SceneInteractiveCommand.playSoundEffect',
       NarrativeCommandIds.playMusicEffect:
           'SceneInteractiveCommand.playMusicEffect',
+      NarrativeCommandIds.sceneMusic: 'SceneInteractiveCommand.sceneMusic',
       NarrativeCommandIds.actorRoute: 'SceneInteractiveCommand.actorRoute',
       NarrativeCommandIds.actorVisibility:
           'SceneInteractiveCommand.actorVisibility',

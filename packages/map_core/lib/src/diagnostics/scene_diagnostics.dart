@@ -73,6 +73,8 @@ enum SceneDiagnosticCode {
   commandUnknownModelInstance,
   commandUnknownModel,
   commandUnknownModelAnimation,
+  commandUnknownMusicMedia,
+  commandInvalidMusicMedia,
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
   commandInvalidActorTarget,
@@ -1388,7 +1390,8 @@ void _diagnoseActionConsequenceAgainstProject(
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
           interactiveCommand is ScenePlaySoundEffectInteractiveCommand ||
-          interactiveCommand is ScenePlayMusicEffectInteractiveCommand) &&
+          interactiveCommand is ScenePlayMusicEffectInteractiveCommand ||
+          interactiveCommand is SceneMusicInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
     diagnostics.add(
       SceneDiagnostic(
@@ -1488,6 +1491,28 @@ void _diagnoseActionConsequenceAgainstProject(
           suggestedFixLabel: 'Choisir le personnage qui occupe la case de départ.',
         ));
       }
+    }
+  }
+  if (interactiveCommand is SceneMusicInteractiveCommand &&
+      interactiveCommand.operation == SceneMusicOperation.play) {
+    final candidates =
+        soundMediaById[interactiveCommand.mediaAssetId] ??
+        const <CinematicMediaAsset>[];
+    if (candidates.length != 1 ||
+        candidates.single.kind != CinematicMediaAssetKind.music) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: candidates.isEmpty
+              ? SceneDiagnosticCode.commandUnknownMusicMedia
+              : SceneDiagnosticCode.commandInvalidMusicMedia,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'La musique de scène doit référencer une musique connue unique ; elle sera jouée en boucle.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir une musique disponible.',
+        ),
+      );
     }
   }
   final soundMediaIds = [

@@ -22,6 +22,7 @@ enum SceneInteractiveCommandKind {
   worldTone,
   playSoundEffect,
   playMusicEffect,
+  sceneMusic,
   actorRoute,
   actorVisibility,
   moveNpc,
@@ -43,6 +44,8 @@ enum ScenePokemonGiftNicknamePolicy { disabled, offer }
 enum ScenePokemonGiftPokedexPresentationPolicy { never, whenNewAndPokedexVisible }
 
 enum SceneRailJourneyOperation { begin, advance, acknowledge }
+
+enum SceneMusicOperation { play, restore, fadeOut }
 
 enum SceneWarpTransition { mapDefault, none }
 
@@ -114,6 +117,13 @@ abstract base class SceneInteractiveCommand {
     required double volume,
     required DialogueBgmInterruption bgmInterruption,
   }) = ScenePlayMusicEffectInteractiveCommand;
+
+  factory SceneInteractiveCommand.sceneMusic({
+    required SceneMusicOperation operation,
+    String? mediaAssetId,
+    double? volume,
+    int? durationMs,
+  }) = SceneMusicInteractiveCommand;
 
   factory SceneInteractiveCommand.actorRoute({
     required SceneActorTarget target,
@@ -232,6 +242,8 @@ abstract base class SceneInteractiveCommand {
         SceneWorldToneInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playMusicEffect =>
         ScenePlayMusicEffectInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.sceneMusic =>
+        SceneMusicInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playSoundEffect =>
         ScenePlaySoundEffectInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.actorRoute =>
@@ -684,6 +696,102 @@ final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveComma
 
   @override
   int get hashCode => Object.hash(mediaAssetId, volume, bgmInterruption);
+}
+
+final class SceneMusicInteractiveCommand extends SceneInteractiveCommand {
+  SceneMusicInteractiveCommand({
+    required this.operation,
+    String? mediaAssetId,
+    double? volume,
+    this.durationMs,
+  }) : mediaAssetId = mediaAssetId == null
+           ? null
+           : _normalize(mediaAssetId, 'mediaAssetId'),
+       volume = volume == null
+           ? null
+           : _boundedPresentationNumber(volume, 'volume', 0, 1) {
+    final valid = switch (operation) {
+      SceneMusicOperation.play =>
+        this.mediaAssetId != null && this.volume != null && durationMs == null,
+      SceneMusicOperation.restore =>
+        this.mediaAssetId == null && this.volume == null && durationMs == null,
+      SceneMusicOperation.fadeOut =>
+        this.mediaAssetId == null &&
+            this.volume == null &&
+            durationMs != null &&
+            durationMs! >= 0 &&
+            durationMs! <= 60000,
+    };
+    if (!valid) {
+      throw ArgumentError('Scene music parameters do not match the operation.');
+    }
+  }
+
+  factory SceneMusicInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json['kind'] != 'sceneMusic') {
+      throw const FormatException('Invalid scene music command.');
+    }
+    final operation = SceneMusicOperation.values
+        .where((v) => v.name == json['operation'])
+        .firstOrNull;
+    if (operation == null) {
+      throw const FormatException('Invalid scene music operation.');
+    }
+    _presentationCommandFields(json, switch (operation) {
+      SceneMusicOperation.play => const {
+        'kind',
+        'operation',
+        'mediaAssetId',
+        'volume',
+      },
+      SceneMusicOperation.restore => const {'kind', 'operation'},
+      SceneMusicOperation.fadeOut => const {'kind', 'operation', 'durationMs'},
+    });
+    if (operation == SceneMusicOperation.fadeOut &&
+        json['durationMs'] is! int) {
+      throw const FormatException('durationMs must be an integer.');
+    }
+    return SceneMusicInteractiveCommand(
+      operation: operation,
+      mediaAssetId: operation == SceneMusicOperation.play
+          ? _required(json, 'mediaAssetId')
+          : null,
+      volume: operation == SceneMusicOperation.play
+          ? _presentationNumber(json, 'volume')
+          : null,
+      durationMs: operation == SceneMusicOperation.fadeOut
+          ? json['durationMs'] as int
+          : null,
+    );
+  }
+
+  final SceneMusicOperation operation;
+  final String? mediaAssetId;
+  final double? volume;
+  final int? durationMs;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.sceneMusic;
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'operation': operation.name,
+    if (operation == SceneMusicOperation.play) 'mediaAssetId': mediaAssetId!,
+    if (operation == SceneMusicOperation.play) 'volume': volume!,
+    if (operation == SceneMusicOperation.fadeOut) 'durationMs': durationMs!,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SceneMusicInteractiveCommand &&
+      operation == other.operation &&
+      mediaAssetId == other.mediaAssetId &&
+      volume == other.volume &&
+      durationMs == other.durationMs;
+  @override
+  int get hashCode => Object.hash(operation, mediaAssetId, volume, durationMs);
 }
 
 void _presentationCommandFields(Map<String, dynamic> json, Set<String> fields) {
