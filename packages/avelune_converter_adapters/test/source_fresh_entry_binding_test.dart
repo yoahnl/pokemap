@@ -1,10 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_converter_adapters/src/source_event_projection.dart';
-import 'package:avelune_converter_adapters/src/source_fresh_entry_binding.dart';
-import 'package:avelune_converter_adapters/src/source_intro_binding.dart';
-import 'package:avelune_converter_adapters/src/native_project_writer.dart';
+import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -33,16 +30,19 @@ SourceEventProjection _copy(
   SourceEventProjection p, {
   Map<int, MapData>? maps,
   List<NarrativeFactDefinition>? facts,
+  NarrativeEventRegistry? registry,
+  List<SceneAsset>? scenes,
+  Map<String, String>? dialogueSources,
   Map<String, Object?>? evidence,
 }) =>
     SourceEventProjection(
         nativeMaps: maps ?? p.nativeMaps,
-        registry: p.registry,
+        registry: registry ?? p.registry,
         facts: facts ?? p.facts,
-        scenes: p.scenes,
+        scenes: scenes ?? p.scenes,
         cinematics: p.cinematics,
         dialogues: p.dialogues,
-        dialogueSources: p.dialogueSources,
+        dialogueSources: dialogueSources ?? p.dialogueSources,
         worldRules: p.worldRules,
         itemCatalog: p.itemCatalog,
         artifacts: p.artifacts,
@@ -75,30 +75,7 @@ void main() {
                   .split('|')
                   .where((s) => s.isNotEmpty)
                   .toList());
-      final source = fixture.source;
-      final texts = await const SourceIntroBindingResolver().readTextVariables(
-          source: source, files: fixture.files, referencedVariableIds: {28});
-      final maps = {
-        for (final map in source.maps)
-          map.map.sourceMapId: MapData(
-              id: 'native_${map.map.sourceMapId}',
-              name: map.map.name,
-              size: GridSize(width: map.map.width, height: map.map.height),
-              layers: [
-                CollisionLayer(
-                    id: 'collision',
-                    name: 'Collision',
-                    collisions:
-                        List.filled(map.map.width * map.map.height, false))
-              ])
-      };
-      projection = const SourceEventProjector().project(
-          source: source,
-          analysis: SourceEventAnalyzer.forProject(source,
-                  profile: SourceEventProfile.forProject(source))
-              .analyze(),
-          nativeMaps: maps,
-          textVariablePrograms: texts);
+      projection = await _composeProjection(fixture.source, fixture.files);
     });
     test(
         'fresh scene and spawn identities do not depend on the selected map batch',
@@ -112,30 +89,7 @@ void main() {
       expect(larger.canonicalHash, isNot(fixture.source.canonicalHash));
       expect(sourceFreshEntryProgram(larger)!.programHash,
           sourceFreshEntryProgram(fixture.source)!.programHash);
-      final texts = await const SourceIntroBindingResolver().readTextVariables(
-          source: larger, files: fixture.files, referencedVariableIds: {28});
-      final maps = {
-        ...projection.nativeMaps,
-        6: MapData(
-            id: 'native_6',
-            name: 'Pallet Town',
-            size: GridSize(
-                width: larger.maps
-                    .singleWhere((m) => m.map.sourceMapId == 6)
-                    .map
-                    .width,
-                height: larger.maps
-                    .singleWhere((m) => m.map.sourceMapId == 6)
-                    .map
-                    .height))
-      };
-      final otherProjection = const SourceEventProjector().project(
-          source: larger,
-          nativeMaps: maps,
-          textVariablePrograms: texts,
-          analysis: SourceEventAnalyzer.forProject(larger,
-                  profile: SourceEventProfile.forProject(larger))
-              .analyze());
+      final otherProjection = await _composeProjection(larger, fixture.files);
       final first = (await resolver.read(
           source: fixture.source,
           projection: projection,
@@ -172,28 +126,149 @@ void main() {
         expect(oracle.resolveCell(cell).blockedMask, 15);
       }
     });
+    test('refuses a fresh home alias when its recovery event is not admitted',
+        () async {
+      final events = (projection.semanticEvidence['events'] as List)
+          .cast<Map<String, Object?>>();
+      final incomplete = _copy(projection, evidence: {
+        ...projection.semanticEvidence,
+        'events': [
+          for (final event in events)
+            if (event['nativeHomeRecovery'] == null) event
+        ]
+      });
+      expect(
+          await resolver.read(
+              source: fixture.source,
+              projection: incomplete,
+              files: fixture.files),
+          isNull);
+    });
+    test('refuses missing or disabled home recovery dependencies', () async {
+      final sourceIdentity = fixture.source.eventIdentity(7, 9).value;
+      final recovery = projection.scenes.singleWhere((scene) =>
+          scene.metadata['sourceEventIdentity'] == sourceIdentity &&
+          scene.metadata['sourcePageIndex'] == '2');
+      final record = projection.registry.records.singleWhere(
+          (record) => record.definitionOrNull?.sceneId == recovery.id);
+      NarrativeEventRegistry registryWith(NarrativeEventRecord replacement) =>
+          NarrativeEventRegistry(
+              schemaVersion: projection.registry.schemaVersion,
+              mode: projection.registry.mode,
+              records: [
+                for (final current in projection.registry.records)
+                  current.id == record.id ? replacement : current
+              ],
+              legacyClaims: projection.registry.legacyClaims);
+      final missingDialogue = recovery.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneYarnDialoguePayload>()
+          .first
+          .dialogueId;
+      final wrongGuard = Map<String, dynamic>.from(record.toJson());
+      final wrongCondition = NarrativeEventCondition.fact(
+          sourceEventFactBindingId(
+              'source:${fixture.source.snapshot.logicalProjectNamespace.value}:switch:1'),
+          false);
+      wrongGuard['definition'] = {
+        ...record.definitionOrNull!.toJson(),
+        'conditions': [wrongCondition.toJson()],
+        'conditionExpression':
+            NarrativeEventConditionExpression.leaf(wrongCondition).toJson()
+      };
+      final malformed = <String, SourceEventProjection>{
+        'inactive event system': _copy(projection,
+            registry: NarrativeEventRegistry(
+                schemaVersion: projection.registry.schemaVersion,
+                mode: EventSystemMode.legacyOnly,
+                records: projection.registry.records,
+                legacyClaims: projection.registry.legacyClaims)),
+        'missing recovery scene': _copy(projection, scenes: [
+          for (final scene in projection.scenes)
+            if (scene.id != recovery.id) scene
+        ]),
+        'disabled recovery record': _copy(projection,
+            registry: registryWith(NarrativeEventRecord.fromJson(
+                {...record.toJson(), 'enabled': false}))),
+        'wrong recovery marker guard': _copy(projection,
+            registry: registryWith(NarrativeEventRecord.fromJson(wrongGuard))),
+        'one-shot recovery record': _copy(projection,
+            registry: registryWith(NarrativeEventRecord.fromJson({
+              ...record.toJson(),
+              'definition': {
+                ...record.definitionOrNull!.toJson(),
+                'reusePolicy': 'oneShot'
+              }
+            }))),
+        'missing recovery dialogue': _copy(projection, dialogueSources: {
+          for (final entry in projection.dialogueSources.entries)
+            if (entry.key != missingDialogue) entry.key: entry.value
+        }),
+        'missing mother actor': _copy(projection, maps: {
+          ...projection.nativeMaps,
+          7: projection.nativeMaps[7]!.copyWith(entities: [
+            for (final entity in projection.nativeMaps[7]!.entities)
+              if (entity.properties['sourceEventIdentity'] != sourceIdentity)
+                entity
+          ])
+        }),
+        'orphaned recovery effects': _copy(projection, scenes: [
+          for (final scene in projection.scenes)
+            if (scene.id == recovery.id)
+              SceneAsset.fromJson({
+                ...scene.toJson(),
+                'graph': {
+                  ...scene.graph.toJson(),
+                  'edges': [
+                    for (final edge in scene.graph.edges)
+                      if (edge.fromNodeId != scene.graph.startNodeId)
+                        edge.toJson()
+                  ]
+                }
+              })
+            else
+              scene
+        ]),
+      };
+      for (final entry in malformed.entries) {
+        expect(
+            await resolver.read(
+                source: fixture.source,
+                projection: entry.value,
+                files: fixture.files),
+            isNull,
+            reason: entry.key);
+      }
+      final valid = await resolver.read(
+          source: fixture.source, projection: projection, files: fixture.files);
+      expect(valid, isNotNull);
+      expect(
+          ((valid!.evidence['defeatRecovery'] as Map)['homeRecoveryAdmission']
+              as Map)['allSourcePagesAdmitted'],
+          isTrue);
+    });
     test(
         'builds canonical identity scene, empty game and attested home recovery alias before intro',
         () async {
-      final before = canonicalHashOf({
+      final before = canonicalHashOf(jsonDecode(jsonEncode({
         for (final m in projection.nativeMaps.entries)
           '${m.key}': m.value.toJson()
-      });
+      })));
       final binding = (await resolver.read(
           source: fixture.source,
           projection: projection,
           files: fixture.files))!;
       expect(binding.config.enabled, isTrue);
-      expect(binding.config.startMapId, 'native_1');
+      expect(binding.config.startMapId, projection.nativeMaps[1]!.id);
       expect(binding.config.startingMoney, 3000);
       expect(binding.config.initialParty, isEmpty);
       expect(binding.config.initialBag, isEmpty);
       expect(binding.config.starterOptions, isEmpty);
       expect(
           binding.config.initialRecoveryPoint,
-          const ProjectNewGameRecoveryPoint(
-              mapId: 'native_7',
-              position: GridPos(x: 9, y: 7),
+          ProjectNewGameRecoveryPoint(
+              mapId: projection.nativeMaps[7]!.id,
+              position: const GridPos(x: 9, y: 7),
               facing: EntityFacing.north));
       expect(binding.config.playerAvatarCharacterIds,
           binding.imports.map((i) => i.character.id));
@@ -212,8 +287,7 @@ void main() {
       ]);
       expect(binding.mutations.last.actionId, 'campaign.new_game.update');
       expect(binding.mutations.map((m) => m.actionId), [
-        'fact.create',
-        'fact.create',
+        for (final _ in binding.facts) 'fact.create',
         'entity.create',
         'scene.upsert',
         'campaign.defeat_recovery.update',
@@ -293,16 +367,17 @@ void main() {
       expect(game.playerPosition, const GridPos(x: 0, y: 0));
       expect(
           PlayerRecoveryPoint.tryRead(game),
-          const PlayerRecoveryPoint(
-              mapId: 'native_7',
-              position: GridPos(x: 9, y: 7),
+          PlayerRecoveryPoint(
+              mapId: projection.nativeMaps[7]!.id,
+              position: const GridPos(x: 9, y: 7),
               facing: EntityFacing.north));
       expect(
           game.narrativeFactRuntimeState
               .valueFor(binding.defeatRecovery.recoveredFactId),
           NarrativeValue.boolean(false));
       expect(
-          (binding.evidence['defeatRecovery'] as Map)['sourceTechnicalMapExecuted'],
+          (binding.evidence['defeatRecovery']
+              as Map)['sourceTechnicalMapExecuted'],
           isFalse);
       final freshId = binding.evidence['nativeEntryFactId'] as String;
       final regionId = binding.evidence['regionFactId'] as String;
@@ -323,10 +398,10 @@ void main() {
       expect((binding.evidence['initialPcItemStorage'] as Map)['addedToBag'],
           isFalse);
       expect(
-          canonicalHashOf({
+          canonicalHashOf(jsonDecode(jsonEncode({
             for (final m in projection.nativeMaps.entries)
               '${m.key}': m.value.toJson()
-          }),
+          }))),
           before);
       final output = Platform.environment['AVELUNE_FRESH_BINDING_RECEIPT'];
       if (output != null) {
@@ -539,4 +614,42 @@ void main() {
       skip: enabled
           ? false
           : 'Requires immutable original Kanto source and profile.');
+}
+
+Future<SourceEventProjection> _composeProjection(
+    NormalizedSourceProject source, ExternalOriginalFiles files) async {
+  final temporary = await Directory.systemTemp.createTemp('fresh-binding-');
+  try {
+    final selected = source.maps.map((entry) => entry.map.sourceMapId).toSet();
+    final limits = sourceCatalogStudyWriteLimitsFor(selected.length);
+    Future<LiteralTileComposition> literal(
+            List<LiteralDependencyDecision> decisions) =>
+        const LiteralTileComposer().compose(
+            source: source,
+            files: files,
+            selectedSourceMapIds: selected.toList(),
+            projectName: 'Fresh binding',
+            parentPath: temporary.path,
+            folderName: 'native',
+            dependencyDecisions: decisions,
+            limits: limits);
+    final probe = await literal([]);
+    final base = await literal([
+      for (final dependency in probe.dependencies)
+        if (!selected.contains(dependency.targetSourceMapId))
+          LiteralDependencyDecision(
+              sourceSnapshotHash: source.snapshot.canonicalHash,
+              selectionHash: probe.selectionHash,
+              locator: dependency.locator,
+              targetSourceMapId: dependency.targetSourceMapId,
+              decision: LiteralDependencyDisposition.excludeStudy)
+    ]);
+    final semantic = (await const SourceSemanticStudyComposer()
+        .compose(source: source, base: base, files: files, limits: limits))!;
+    return (await const SourceEventStudyComposer().compose(
+            source: source, base: semantic, files: files, limits: limits))!
+        .projection;
+  } finally {
+    await temporary.delete(recursive: true);
+  }
 }

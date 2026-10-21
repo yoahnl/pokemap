@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
 import 'source_event_projection.dart';
+import 'source_home_recovery_program.dart';
 import 'source_player_character_import.dart';
 
 final class SourceFreshEntryBinding {
@@ -189,6 +190,9 @@ final class SourceFreshEntryBindingResolver {
     if (recovered.id != recoveredId) {
       throw StateError('The source recovery Fact identity drifted.');
     }
+    final homeAdmission = _homeRecoveryAdmission(
+        source, projection, program, profile, recoveredId);
+    if (homeAdmission == null) return null;
     final defeatRecovery =
         ProjectDefeatRecoveryConfig(recoveredFactId: recoveredId);
     final facts = <NarrativeFactDefinition>[
@@ -441,6 +445,7 @@ final class SourceFreshEntryBindingResolver {
             'nativePartyAndStorageRetained': true,
             'sourceVariableBanksInjected': false,
             'collisionModified': false,
+            'homeRecoveryAdmission': homeAdmission,
             'playerDefeatJourneyQualified': false,
           },
           'nativeStartSpawnId': spawn.id,
@@ -456,6 +461,141 @@ final class SourceFreshEntryBindingResolver {
           'sourceIdentityPresentationParity': false
         });
   }
+}
+
+Map<String, Object?>? _homeRecoveryAdmission(
+    NormalizedSourceProject source,
+    SourceEventProjection projection,
+    SourceFreshEntryProgram entry,
+    SourceEventProfile profile,
+    String recoveredId) {
+  if (projection.registry.mode != EventSystemMode.v2Only) return null;
+  final rows = (projection.semanticEvidence['events'] as List).whereType<Map>();
+  final candidates = rows.where((row) {
+    final proof = row['nativeHomeRecovery'];
+    return proof is Map &&
+        proof['sourceMapId'] == entry.startingOverTargetSourceMapId;
+  }).toList();
+  if (candidates.length != 1) return null;
+  final row = candidates.single;
+  final proof = row['nativeHomeRecovery'] as Map;
+  final eventId = proof['sourceEventId'];
+  if (eventId is! int ||
+      row['status'] != 'adaptedStaticSemantics' ||
+      row['gaps'] is! List ||
+      (row['gaps'] as List).isNotEmpty) {
+    return null;
+  }
+  final event = SourceEventAnalyzer.forProject(source, profile: profile)
+      .analyzeEventAt(entry.startingOverTargetSourceMapId, eventId);
+  if (event == null || row['sourceIdentity'] != event.identity.value) {
+    return null;
+  }
+  final program = SourceHomeRecoveryProgram.read(
+      source: source,
+      analysis: SourceEventAnalysis(
+          profile: profile, events: [event], diagnostics: []),
+      event: event);
+  if (program == null ||
+      canonicalJsonOf(program.toJson()) != canonicalJsonOf(proof)) {
+    return null;
+  }
+  final home = projection.nativeMaps[entry.startingOverTargetSourceMapId]!;
+  final actors = home.entities
+      .where((entity) =>
+          entity.properties['sourceEventIdentity'] == event.identity.value)
+      .toList();
+  if (actors.length != 1 ||
+      actors.single.kind != MapEntityKind.npc ||
+      actors.single.npc?.characterId?.trim().isNotEmpty != true) {
+    return null;
+  }
+  final scenes = projection.scenes
+      .where((scene) =>
+          scene.metadata['sourceEventIdentity'] == event.identity.value)
+      .toList();
+  if (scenes.length != event.pages.length) return null;
+  final recordIds = <String>[];
+  for (final page in event.pages) {
+    final matches = scenes
+        .where((scene) =>
+            scene.metadata['sourcePageIndex'] == '${page.originalPageIndex}')
+        .toList();
+    if (matches.length != 1) return null;
+    final scene = matches.single;
+    final records = projection.registry.records
+        .where((record) => record.definitionOrNull?.sceneId == scene.id)
+        .toList();
+    if (records.length != 1 || records.single.enabledOrNull != true) {
+      return null;
+    }
+    final definition = records.single.definitionOrNull!;
+    if (definition.reusePolicy != NarrativeEventReusePolicy.reusable) {
+      return null;
+    }
+    final expectedSource = page.triggerCode == 3
+        ? NarrativeEventSourceRef.entityAutorun(home.id, actors.single.id)
+        : NarrativeEventSourceRef.entityInteract(home.id, actors.single.id);
+    if (definition.source != expectedSource) return null;
+    if (page.triggerCode == 3 &&
+        canonicalJsonOf(definition.conditionExpression.toJson()) !=
+            canonicalJsonOf(NarrativeEventConditionExpression.leaf(
+                    NarrativeEventCondition.fact(recoveredId, true))
+                .toJson())) {
+      return null;
+    }
+    recordIds.add(definition.id);
+    for (final dialogue in scene.graph.nodes
+        .map((node) => node.payload)
+        .whereType<SceneYarnDialoguePayload>()) {
+      final entries = projection.dialogues
+          .where((entry) => entry.id == dialogue.dialogueId)
+          .toList();
+      if (entries.length != 1 ||
+          projection.dialogueSources[entries.single.id]?.trim().isNotEmpty !=
+              true) {
+        return null;
+      }
+    }
+  }
+  final recovery = scenes.singleWhere((scene) =>
+      scene.metadata['sourcePageIndex'] ==
+      '${event.pages.last.originalPageIndex}');
+  if (!buildSceneRuntimePlan(recovery).canBuild) return null;
+  final unreachable = diagnoseScene(recovery)
+      .diagnostics
+      .where((diagnostic) =>
+          diagnostic.code == SceneDiagnosticCode.unreachableNode)
+      .map((diagnostic) => diagnostic.nodeId)
+      .toSet();
+  final consequences = recovery.graph.nodes
+      .where((node) => !unreachable.contains(node.id))
+      .map((node) => node.payload)
+      .whereType<SceneActionPayload>()
+      .map((payload) => payload.consequence);
+  if (consequences.whereType<SceneHealPartyConsequence>().length != 1 ||
+      consequences
+              .whereType<SceneSetFactConsequence>()
+              .where((effect) =>
+                  effect.factId == recoveredId && effect.value == false)
+              .length !=
+          1 ||
+      projection.facts
+              .where((fact) =>
+                  fact.id == recoveredId &&
+                  fact.initialValue == NarrativeValue.boolean(false))
+              .length !=
+          1) {
+    return null;
+  }
+  return {
+    'sourceEventIdentity': event.identity.value,
+    'nativeEntityId': actors.single.id,
+    'sceneIds': scenes.map((scene) => scene.id).toList(),
+    'recordIds': recordIds,
+    'allSourcePagesAdmitted': true,
+    'recoveryMarkerCleared': true,
+  };
 }
 
 Map<String, Object?>? _stationaryCell(NormalizedSourceProject source,
