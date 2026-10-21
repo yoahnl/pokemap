@@ -10,17 +10,22 @@ final class SourcePlayerCharacterSheet {
   SourcePlayerCharacterSheet({
     required this.declaration,
     required this.charsetName,
+    String? declaredCharsetName,
+    this.selectedOutfit = 0,
     required this.imageFile,
     required List<int> imageBytes,
     required List<int> outputBytes,
     required this.sheetWidth,
     required this.sheetHeight,
     required this.tilesetId,
-  })  : imageBytes = List.unmodifiable(imageBytes),
+  })  : declaredCharsetName = declaredCharsetName ?? charsetName,
+        imageBytes = List.unmodifiable(imageBytes),
         outputBytes = List.unmodifiable(outputBytes);
 
   final String declaration;
   final String charsetName;
+  final String declaredCharsetName;
+  final int selectedOutfit;
   final SourceFileEntry imageFile;
   final List<int> imageBytes;
   final List<int> outputBytes;
@@ -46,7 +51,14 @@ final class SourcePlayerCharacterSheet {
 
   Map<String, Object?> get evidence => {
         'declaration': declaration,
+        'declaredCharsetName': declaredCharsetName,
         'charsetName': charsetName,
+        'selectedOutfit': selectedOutfit,
+        'outfitSelection': selectedOutfit == 0
+            ? 'baseOutfitZero'
+            : charsetName == declaredCharsetName
+                ? 'attestedBaseSuffixAbsent'
+                : 'attestedOutfitSuffix',
         'imageFile': imageFile.toJson(),
         'sourceOriginal': {
           'rawSha256': imageFile.sha256!.value,
@@ -92,6 +104,7 @@ final class SourcePlayerCharacterImport {
     required List<int> imageBytes,
     required List<int> outputBytes,
     required this.selectedHeaderId,
+    this.selectedOutfit = 0,
     required this.charsetName,
     required this.sheetWidth,
     required this.sheetHeight,
@@ -111,6 +124,7 @@ final class SourcePlayerCharacterImport {
   final List<int> imageBytes;
   final List<int> outputBytes;
   final int selectedHeaderId;
+  final int selectedOutfit;
   final String charsetName;
   final int sheetWidth;
   final int sheetHeight;
@@ -135,6 +149,7 @@ final class SourcePlayerCharacterImport {
         'metadataFile': metadataFile.toJson(),
         'imageFile': imageFile.toJson(),
         'selectedHeaderId': selectedHeaderId,
+        'selectedOutfit': selectedOutfit,
         'charsetName': charsetName,
         'sheetWidth': sheetWidth,
         'sheetHeight': sheetHeight,
@@ -175,7 +190,9 @@ final class SourcePlayerCharacterImport {
         'tilesetId': tilesetId,
         'characterId': character.id,
         'characterHash': canonicalHashOf(character.toJson()).value,
-        'selectionPolicy': 'converterPreviewHeader',
+        'selectionPolicy': selectedOutfit == 0
+            ? 'converterPreviewHeader'
+            : 'converterPreviewHeaderAndOutfit',
         'sourceIdentitySelectionExecuted': false,
         'sourceScriptsExecuted': 0,
         'collisionFootprintChanged': false,
@@ -222,6 +239,7 @@ final class SourcePlayerCharacterImporter {
     required SourceSnapshot snapshot,
     required SourceFilePort files,
     int selectedHeaderId = 1,
+    int selectedOutfit = 0,
     ScanCancellation? cancellation,
   }) async {
     final cancel = cancellation ?? ScanCancellation();
@@ -234,6 +252,10 @@ final class SourcePlayerCharacterImporter {
       throw ContractError('source.player.header_invalid', r'$',
           'An explicit bounded player metadata header is required.');
     }
+    if (selectedOutfit < 0 || selectedOutfit > 65535) {
+      throw ContractError('source.player.outfit_invalid', r'$',
+          'An explicit outfit from zero through 65535 is required.');
+    }
     final metadataFile = _findFile(
         snapshot, 'PBS/metadata.txt', 'source.player.metadata_missing');
     if (metadataFile.byteLength > 65536) {
@@ -242,12 +264,33 @@ final class SourcePlayerCharacterImporter {
     }
     final metadataBytes = await _readAttested(metadataFile, files, cancel);
     final charsets = _playerCharsets(metadataBytes, selectedHeaderId);
+    final resolved = {
+      for (final declaration in const [
+        'WalkCharset',
+        'RunCharset',
+        'CycleCharset'
+      ])
+        if (charsets[declaration] case final baseCharset?)
+          declaration: _outfitImage(snapshot, baseCharset, selectedOutfit),
+    };
     final identity = canonicalHashOf({
       'kind': 'sourcePlayerCharacterIdentity',
       'version': 1,
       'logicalProjectNamespace': snapshot.logicalProjectNamespace.value,
       'metadataPath': metadataFile.relativePath,
       'selectedHeaderId': selectedHeaderId,
+      if (selectedOutfit != 0) ...{
+        'selectedOutfit': selectedOutfit,
+        'resolvedCharsetImages': [
+          for (final entry in resolved.entries)
+            {
+              'declaration': entry.key,
+              'charsetName': entry.value.charsetName,
+              'sourcePath': entry.value.imageFile.relativePath,
+              'sourceSha256': entry.value.imageFile.sha256!.value,
+            },
+        ],
+      },
     }).value;
     final shortIdentity = identity.substring(0, 16);
     final tilesetId = 'source_player_${identity.substring(0, 32)}';
@@ -257,11 +300,11 @@ final class SourcePlayerCharacterImporter {
       'RunCharset',
       'CycleCharset',
     ]) {
-      final charsetName = charsets[declaration];
-      if (charsetName == null) continue;
-      final imagePath = 'Graphics/Characters/$charsetName.png';
-      final imageFile =
-          _findFile(snapshot, imagePath, 'source.player.image_missing');
+      final selection = resolved[declaration];
+      if (selection == null) continue;
+      final charsetName = selection.charsetName;
+      final imageFile = selection.imageFile;
+      final imagePath = imageFile.relativePath;
       if (imageFile.byteLength > 4194304) {
         throw ContractError('source.player.image_limit', imagePath,
             'Player sprite sheet exceeds its byte quota.');
@@ -273,6 +316,8 @@ final class SourcePlayerCharacterImporter {
       sheets.add(SourcePlayerCharacterSheet(
         declaration: declaration,
         charsetName: charsetName,
+        declaredCharsetName: charsets[declaration]!,
+        selectedOutfit: selectedOutfit,
         imageFile: imageFile,
         imageBytes: imageBytes,
         outputBytes: outputBytes,
@@ -332,6 +377,7 @@ final class SourcePlayerCharacterImporter {
       imageBytes: walk.imageBytes,
       outputBytes: walk.outputBytes,
       selectedHeaderId: selectedHeaderId,
+      selectedOutfit: selectedOutfit,
       charsetName: walk.charsetName,
       sheetWidth: walk.sheetWidth,
       sheetHeight: walk.sheetHeight,
@@ -377,6 +423,58 @@ List<int> _nativeSheetBytes(Uint8List bytes, int width, int height, String path,
     }
   }
   return image.encodePng(raster, level: 6);
+}
+
+({String charsetName, SourceFileEntry imageFile}) _outfitImage(
+    SourceSnapshot snapshot, String baseCharset, int outfit) {
+  final basePath = 'Graphics/Characters/$baseCharset.png';
+  if (outfit == 0) {
+    return (
+      charsetName: baseCharset,
+      imageFile: _findFile(snapshot, basePath, 'source.player.image_missing')
+    );
+  }
+  final charsetName = '${baseCharset}_$outfit';
+  final stem = sourcePathCollisionKey('Graphics/Characters/$charsetName');
+  final candidates = {
+    stem,
+    for (final extension in ['png', 'gif', 'jpg', 'jpeg', 'bmp'])
+      '$stem.$extension',
+  };
+  for (final excluded in snapshot.excludedPaths) {
+    final key = sourcePathCollisionKey(excluded);
+    if (candidates.any(
+        (candidate) => candidate == key || candidate.startsWith('$key/'))) {
+      throw ContractError('source.player.outfit_absence_unattested', excluded,
+          'Excluded bitmap paths cannot establish unique outfit selection or absence.');
+    }
+  }
+  final matches = snapshot.entries
+      .where((entry) =>
+          candidates.contains(sourcePathCollisionKey(entry.relativePath)))
+      .toList();
+  if (matches.length > 1) {
+    throw ContractError('source.player.outfit_ambiguous', basePath,
+        'The outfit bitmap must resolve to one unique attested file.');
+  }
+  if (matches.isEmpty) {
+    return (
+      charsetName: baseCharset,
+      imageFile: _findFile(snapshot, basePath, 'source.player.image_missing')
+    );
+  }
+  final entry = matches.single;
+  if (entry.kind != SourceNodeKind.file || entry.sha256 == null) {
+    throw ContractError('source.player.outfit_unattested', entry.relativePath,
+        'The selected outfit bitmap must be one attested regular file.');
+  }
+  if (sourcePathCollisionKey(entry.relativePath) != '$stem.png') {
+    throw ContractError(
+        'source.player.outfit_bitmap_unsupported',
+        entry.relativePath,
+        'The attested outfit bitmap must use the supported static PNG format.');
+  }
+  return (charsetName: charsetName, imageFile: entry);
 }
 
 SourceFileEntry _findFile(
