@@ -92,6 +92,11 @@ void main() {
       final repeated = narrativeProjectDraft(snapshot, after,
           operation: 'scene.upsert', path: '/scenes/new', preview: inspection);
       expect(repeated.preview['diagnosticDelta'], delta);
+      final sharedInspection = narrativeProjectDraft(snapshot, after,
+          operation: 'scene.upsert', path: '/scenes/new',
+          includeInspectionPreview: true);
+      expect(sharedInspection.preview, draft.preview);
+      expect(sharedInspection.changeSet.toJson(), draft.changeSet.toJson());
     });
 
     test('publication gate uses canonical Scene and runtime diagnostics', () {

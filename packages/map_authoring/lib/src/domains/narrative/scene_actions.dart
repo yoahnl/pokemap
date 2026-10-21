@@ -10,7 +10,6 @@ import '../../workspace/project_snapshot.dart';
 import 'dialogue_authoring_service.dart';
 import 'dialogue_source_store.dart';
 import 'dialogue_source_guards.dart';
-import 'modern_narrative_inspection.dart';
 import 'scene_party_move_catalog.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
@@ -787,13 +786,7 @@ final class SceneActions {
           path: '/scenes/${scene.id}',
           before: before?.toJson(),
           after: scene.toJson(),
-          preview: const ModernNarrativeInspector()
-              .inspect(
-                project: projected,
-                maps: context.snapshot.maps,
-                itemCatalog: context.snapshot.itemCatalog,
-              )
-              .toJson(),
+          includeInspectionPreview: true,
         );
       case 'scene.delete':
         rejectUnknownNarrativeParameters(
@@ -823,13 +816,7 @@ final class SceneActions {
           operation: context.request.actionId,
           path: '/scenes/$sceneId',
           before: before?.toJson(),
-          preview: const ModernNarrativeInspector()
-              .inspect(
-                project: projected,
-                maps: context.snapshot.maps,
-                itemCatalog: context.snapshot.itemCatalog,
-              )
-              .toJson(),
+          includeInspectionPreview: true,
         );
       case 'scene.character_animation.set':
         rejectUnknownNarrativeParameters(
@@ -860,13 +847,7 @@ final class SceneActions {
           path: '/scenes/$sceneId/graph/nodes/$nodeId/interactiveCommand',
           before: before?.toJson(),
           after: after?.toJson(),
-          preview: const ModernNarrativeInspector()
-              .inspect(
-                project: projected,
-                maps: context.snapshot.maps,
-                itemCatalog: context.snapshot.itemCatalog,
-              )
-              .toJson(),
+          includeInspectionPreview: true,
         );
       case 'scene.preSession.create':
         rejectUnknownNarrativeParameters(
@@ -1184,13 +1165,7 @@ final class SceneActions {
           path: '/scenes/$sceneId/graph/nodes/$nodeId/consequence',
           before: beforePayload,
           after: afterPayload,
-          preview: const ModernNarrativeInspector()
-              .inspect(
-                project: projected,
-                maps: context.snapshot.maps,
-                itemCatalog: context.snapshot.itemCatalog,
-              )
-              .toJson(),
+          includeInspectionPreview: true,
         );
       default:
         throw NarrativeAuthoringException(
@@ -2380,13 +2355,7 @@ AuthoringMutationDraft _preSessionProjectDraft(
     path: '/scenes/$sceneId',
     before: before?.toJson(),
     after: after?.toJson(),
-    preview: const ModernNarrativeInspector()
-        .inspect(
-          project: projected,
-          maps: context.snapshot.maps,
-          itemCatalog: context.snapshot.itemCatalog,
-        )
-        .toJson(),
+    includeInspectionPreview: true,
   );
 }
 

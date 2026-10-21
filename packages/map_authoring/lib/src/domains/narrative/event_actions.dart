@@ -3,7 +3,6 @@ import 'package:map_core/map_core.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
-import 'modern_narrative_inspection.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 
@@ -108,13 +107,7 @@ final class EventV2Actions {
         path: '/eventRegistry/mode',
         before: before?.name,
         after: projected.eventRegistry!.mode.name,
-        preview: const ModernNarrativeInspector()
-            .inspect(
-              project: projected,
-              maps: context.snapshot.maps,
-              itemCatalog: context.snapshot.itemCatalog,
-            )
-            .toJson(),
+        includeInspectionPreview: true,
       );
     }
     late final ProjectManifest projected;
@@ -223,13 +216,7 @@ final class EventV2Actions {
       path: '/eventRegistry/records/$eventId',
       before: before?.toJson(),
       after: after?.toJson(),
-      preview: const ModernNarrativeInspector()
-          .inspect(
-            project: projected,
-            maps: context.snapshot.maps,
-            itemCatalog: context.snapshot.itemCatalog,
-          )
-          .toJson(),
+      includeInspectionPreview: true,
     );
   }
 

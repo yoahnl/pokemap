@@ -3,7 +3,6 @@ import 'package:map_core/map_core.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
-import 'modern_narrative_inspection.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 import 'dialogue_fact_snapshot.dart';
@@ -383,13 +382,7 @@ final class FactRuleActions {
         path: path,
         before: before,
         after: after,
-        preview: const ModernNarrativeInspector()
-            .inspect(
-              project: projected,
-              maps: context.snapshot.maps,
-              itemCatalog: context.snapshot.itemCatalog,
-            )
-            .toJson(),
+        includeInspectionPreview: true,
       );
 }
 
