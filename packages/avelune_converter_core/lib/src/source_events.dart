@@ -2269,6 +2269,13 @@ final class _SourceEventParser {
         .elements;
     if (list.isEmpty) throw const FormatException();
     _facingMoveCommand(doc, list.last, 0);
+    final pose = _sourceActorPoseSequenceNode(this, first: first, indent: indent,
+        target: target, repeat: repeat, skippable: skippable,
+        route: route, document: doc, steps: list);
+    if (pose != null) {
+      index = pose.span.lastCommandIndex + 1;
+      return pose;
+    }
     if (target == 0 && !repeat && !skippable && list.length == 4) {
       final initial = _facingFields(doc, list.first, 'RPG::MoveCommand',
           const {'@code', '@parameters'});

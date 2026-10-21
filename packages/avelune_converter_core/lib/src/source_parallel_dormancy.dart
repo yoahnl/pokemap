@@ -255,6 +255,7 @@ void _auditSourceFactWriteBlock(
     switch (node) {
         case SourceGymBadgePresentationNode():
         case SourceExclamationNode():
+        case SourceActorPoseSequenceNode():
           break;
       case SourceCommonEventCallNode():
         _auditSourceFactWriteBlock(node.body, event, analyzer, writes);

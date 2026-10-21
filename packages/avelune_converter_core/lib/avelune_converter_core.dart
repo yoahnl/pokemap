@@ -54,3 +54,5 @@ part 'src/source_parallel_dormancy.dart';
 part 'src/source_interaction_inventory.dart';
 
 part 'src/source_exclamation_program.dart';
+
+part 'src/source_actor_pose_sequence.dart';

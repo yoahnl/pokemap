@@ -12,6 +12,8 @@ import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_sequence_program.dart';
+import 'source_escort_program.dart';
+import 'source_actor_preparation_program.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
 import 'source_trainer_event_bindings.dart';
@@ -295,6 +297,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    Map<ConverterId, SourceEscortBinding> escortBindings = const {},
     Map<int, SourceIntroProgram> textVariablePrograms = const {},
     Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
@@ -324,7 +327,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms);
+        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -351,6 +354,7 @@ final class SourceEventProjector {
     Map<ConverterId, SourcePartyTradeBinding> partyTradeBinding = const {},
     Map<String, SourcePokemonGiftBinding> pokemonGiftBindings = const {},
     Map<ConverterId, SourcePortraitBinding> portraitBindings = const {},
+    Map<ConverterId, SourceEscortBinding> escortBindings = const {},
     Map<int, SourceIntroProgram> textVariablePrograms = const {},
     Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
     SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
@@ -392,7 +396,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms)
+            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms)
         .build();
   }
 }
@@ -508,6 +512,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourceSoundEffectNode() => node.toJson(),
     SourceScriptNode() => {'script': node.script},
     SourceExclamationNode() => node.toJson(),
+      SourceActorPoseSequenceNode() => node.toJson(),
     SourceInteractionFacingNode() => {'rawDataRefs': node.rawDataRefs.map((ref) => ref.toJson()).toList()},
     SourceRelativeFacingRouteNode() => node.toJson(),
         SourcePortraitProgramNode() => node.toJson(),
@@ -535,6 +540,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
     SourceExclamationNode() => node.toJson(),
+      SourceActorPoseSequenceNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
     SourceRelativeFacingRouteNode() => node.toJson(),
@@ -669,7 +675,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceStairProgram>? stairs, this.stairContexts,
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
-      this.portraitBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
+      this.portraitBindings, this.escortBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
       {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
@@ -773,6 +779,9 @@ final class _ProjectionBuilder {
     }
     return Map<ConverterId, SourceSequenceProgram>.unmodifiable(programs);
   }();
+  late final actorPreparationPrograms = sourceActorPreparationPrograms(source: source, analysis: analysis);
+  late final Map<ConverterId, SourceEscortProgram> escortPrograms =
+      sourceEscortPrograms(source: source, analysis: analysis);
   late final SourceWarpTileNativePrograms warpTilePrograms =
       sourceWarpTileNativePrograms(source: source, analysis: analysis, authority: _transferAuthority);
   late final SourceEventAnalysis _authoritativeSourceAnalysis =
@@ -842,6 +851,7 @@ final class _ProjectionBuilder {
   final scenes = <SceneAsset>[];
   final cinematics = <CinematicAsset>[];
   final Map<ConverterId, SourcePortraitBinding> portraitBindings;
+  final Map<ConverterId, SourceEscortBinding> escortBindings;
   final Map<int, SourceIntroProgram> textVariablePrograms;
   bool _isTextVariable(String id) => textVariablePrograms.keys.any((variable) =>
       id == 'source:${source.snapshot.logicalProjectNamespace.value}:variable:$variable');
@@ -1006,14 +1016,45 @@ final class _ProjectionBuilder {
     return true;
   }
 
+  bool _qualifiedActorPreparation(SourceEventDefinition event, {bool checkCharacterBindings = true}) {
+    final program = actorPreparationPrograms[event.identity];
+    if (program == null || !program.isBoundTo(source, analysis, event) ||
+        !program.pose.isBoundToSourceEvent(source: source, profile: analysis.profile, event: event)) { return false; }
+    for (final id in [program.guideEventId, program.rivalEventId]) {
+      final actor = analysis.eventAt(event.sourceMapId, id);
+      if (actor == null || !_exclamationEventMatchesSource(actor) ||
+          !_selectedEventIdentities.contains(actor.identity) ||
+          actor.pages.any((p) => p.graphic == null || p.graphic!.moveType != 0 ||
+              p.graphic!.opacity != 255 || p.graphic!.blendType != 0) ||
+          _gaps(actor, checkCharacterBindings: checkCharacterBindings).isNotEmpty) { return false; }
+      _exclamationActorDependencies.putIfAbsent(event.identity, () => {}).add(actor.identity);
+    }
+    final guide = analysis.eventAt(event.sourceMapId, program.guideEventId)!;
+    final rival = analysis.eventAt(event.sourceMapId, program.rivalEventId)!;
+    final visible = rival.pages.where((p) => p.graphic!.characterName.isNotEmpty).toList();
+    if (guide.pages.length != 2 || guide.pages.any((p) => p.body.nodes.any((n) => n is! SourceAnnotationNode) ||
+        p.graphic!.characterName.isEmpty || p.graphic!.pattern != 0 ||
+        p.graphic!.direction != 8 || !p.graphic!.through) ||
+        canonicalJsonOf(guide.pages.first.condition.toJson()) != canonicalJsonOf(event.pages.first.condition.toJson())) { return false; }
+
+    if (guide.x != event.x || guide.y < 8 || rival.y != guide.y - 7 ||
+        rival.x != guide.x - 1 || visible.length != 2 ||
+        visible.any((p) => p.graphic!.characterName != program.pose.characterName ||
+            p.graphic!.hue != program.pose.hue || p.graphic!.pattern != 0 ||
+            p.graphic!.through || p.graphic!.alwaysOnTop || p.graphic!.stepAnime) ||
+        visible[0].graphic!.direction != 2 || visible[1].graphic!.direction != 6 ||
+        canonicalJsonOf(visible[1].condition.toJson()) != canonicalJsonOf(event.pages[1].condition.toJson())) { return false; }
+    return true;
+  }
+
   bool _isSourceTransition(SourceEventDefinition event) =>
-      sequencePrograms.containsKey(event.identity) ||
+      sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity) ||
       warpTilePrograms.programs.containsKey(event.identity) ||
       _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      ((sequencePrograms.containsKey(event.identity)) && executionContextQualified &&
+      ((sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
         executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null &&
         executionContext?.stairIdentity == null && executionContext?.holeIdentity == null &&
         executionContext?.elevatorIdentity == null) ||
@@ -1331,7 +1372,9 @@ final class _ProjectionBuilder {
             'sourceInternalFacingParityQualified': false,
             'sourceOracle': 'Game_Character:165-169,815-825,868-875',
             'rawDataRefs': [for (final page in event.pages) page.rawDataRef!.toJson()],
-            'pages': [for (final page in event.pages)
+            if (gaps.isEmpty && actorPreparationPrograms.containsKey(event.identity))
+          'nativeActorPreparation': actorPreparationPrograms[event.identity]!.toJson(),
+        'pages': [for (final page in event.pages)
               if (page.graphic!.directionFix) {
                 'sourcePageIndex': page.originalPageIndex,
                 'sourcePattern': page.graphic!.pattern,
@@ -1866,6 +1909,7 @@ final class _ProjectionBuilder {
           'sceneOnly self-target at the exact Scene.warp destination; no physical activation',
       'sourceAdmission': false,
       'inventoryControllerPrograms': [for (final program in inventoryControllerPrograms.values) program.toJson()],
+      'escortPrograms': [for (final program in escortPrograms.values) program.toJson()],
       'sequencePrograms': [for (final program in sequencePrograms.values) {
         ...program.toJson(),
         'executionContextQualified': _eventExecutionContextQualified(
@@ -2279,6 +2323,7 @@ final class _ProjectionBuilder {
 
   bool _supportsExplicitStationaryFacing(SourceEventDefinition event) =>
       _explicitStationaryFacing.putIfAbsent(event, () {
+    if (_preparationRivalStationaryFacing(event)) { return true; }
     final map = maps[event.sourceMapId]!;
     if (event.isQuarantined || map.spatialScene != null || map.version == ProjectVersion.v9 ||
         _eventFootprint(event) != const GridSize(width: 1, height: 1) ||
@@ -2395,6 +2440,33 @@ final class _ProjectionBuilder {
   }
 
   final _relativeFacingSourceMatches = <SourceEventDefinition, bool>{};
+
+  bool _preparationRivalStationaryFacing(SourceEventDefinition event) {
+    final programs = actorPreparationPrograms.values.where((p) =>
+        p.event.sourceMapId == event.sourceMapId && p.rivalEventId == event.sourceEventId).toList();
+    if (programs.length != 1 || !_exclamationEventMatchesSource(event) ||
+        event.isQuarantined || event.pages.length != 3) { return false; }
+    final program = programs.single;
+    if (!program.isBoundTo(source, analysis, program.event) ||
+        event.pages[0].condition.kind != SourceEventConditionKind.always ||
+        canonicalJsonOf(event.pages[1].condition.toJson()) != canonicalJsonOf(program.event.pages[1].condition.toJson())) { return false; }
+    final terminal = event.pages[2], c = terminal.condition;
+    final guard = c.kind == SourceEventConditionKind.all && c.children.length == 1 ? c.children.single : c;
+    if (guard.kind != SourceEventConditionKind.selfSwitch || !guard.expectedValue ||
+        terminal.body.nodes.any((n) => n is! SourceAnnotationNode) || terminal.triggerCode != 0 || terminal.graphic == null ||
+        terminal.graphic!.characterName.isNotEmpty || !terminal.graphic!.through) { return false; }
+    for (final (index, page) in event.pages.take(2).indexed) {
+      final g = page.graphic;
+      final body = page.body.nodes.where((n) => n is! SourceAnnotationNode).toList();
+      if (page.triggerCode != 0 || g == null || g.characterName != program.pose.characterName ||
+          g.hue != program.pose.hue || g.pattern != 0 || g.direction != (index == 0 ? 2 : 6) ||
+          g.moveType != 0 || g.opacity != 255 || g.blendType != 0 || g.directionFix ||
+          g.through || g.alwaysOnTop || g.stepAnime || body.length < 2 ||
+          body.last is! SourceInteractionFacingNode ||
+          body.take(body.length - 1).any((n) => n is! SourceTextNode || n.followingChoice != null)) { return false; }
+    }
+    return true;
+  }
 
   bool _supportsRelativeFacingRoute(SourceEventDefinition event) =>
       _relativeFacingSourceMatches.putIfAbsent(event, () {
@@ -3814,6 +3886,23 @@ final class _ProjectionBuilder {
       gaps.add('eventPositionInvalid');
       return gaps;
     }
+    final escort = escortPrograms[event.identity];
+    if (escort != null) {
+      final binding = escortBindings[event.identity];
+      if (binding == null || !binding.isBoundTo(source, analysis, event)) {
+        gaps.add('sourceEscortBindingMissing');
+      }
+      for (final sourceId in [escort.actorEventId, escort.doorEventId]) {
+        final actor = analysis.eventAt(event.sourceMapId, sourceId);
+        if (actor == null || !_exclamationEventMatchesSource(actor) ||
+            !_selectedEventIdentities.contains(actor.identity) ||
+            _gaps(actor, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+          gaps.add('sourceEscortActorUnqualified');
+        } else {
+          _exclamationActorDependencies.putIfAbsent(event.identity, () => {}).add(actor.identity);
+        }
+      }
+    }
     for (final page in event.pages) {
       _conditionGaps(event, page.condition, gaps);
       _blockGaps(event, page.body, gaps, checkCharacterBindings: checkCharacterBindings);
@@ -4249,6 +4338,10 @@ final class _ProjectionBuilder {
         case SourcePortraitProgramNode():
           _blockGaps(event, node.body, gaps,
               checkCharacterBindings: checkCharacterBindings);
+        case SourceActorPoseSequenceNode():
+          if (!_qualifiedActorPreparation(event, checkCharacterBindings: checkCharacterBindings)) {
+            gaps.add('sourceActorPoseRequiresClosedPresentationProgram');
+          }
         case SourceExclamationNode():
           if (!_supportsSourceExclamation(event, node,
               checkCharacterBindings: checkCharacterBindings)) {
@@ -4349,7 +4442,10 @@ final class _ProjectionBuilder {
         case SourcePartyTradeProgramNode():
           gaps.add('sourcePartyTradeBindingsMissing');
         case SourceMusicNode():
-          gaps.add('sourceMusicProgramUnsupported');
+          if (escortPrograms[event.identity] == null ||
+              escortBindings[event.identity]?.isBoundTo(source, analysis, event) != true) {
+            gaps.add('sourceMusicProgramUnsupported');
+          }
         case SourceSoundEffectNode():
           if (node.name.startsWith('Cries/') && _decorativePokemonBinding(event) == null) {
             gaps.add('sourceDecorativePokemonBindingMissing');
@@ -4390,19 +4486,23 @@ final class _ProjectionBuilder {
           } else if (node is SourceForcedMoveRouteNode) {
             final index = block.nodes.indexOf(node);
             final postTransfer = staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false;
+            final escort = escortPrograms[event.identity];
+            final preparation = actorPreparationPrograms[event.identity];
             final finiteGiver = sequencePrograms[event.identity]?.finiteItemGiver == true;
             final giverFacing = finiteGiver && node.steps.length == 1 && const {
               SourceMoveRouteStepKind.turnDown, SourceMoveRouteStepKind.turnLeft,
               SourceMoveRouteStepKind.turnRight,
             }.contains(node.steps.single.kind);
             final allowedTarget = const [-1, 0].contains(node.targetSourceCharacterId) ||
-                finiteGiver && node.targetSourceCharacterId == sequencePrograms[event.identity]!.auxiliaryActorEventId;
-            if (node.repeat || (!postTransfer && !giverFacing && !(stairPrograms[event.identity]?.permitsRestoreWithoutBarrier(node) ?? false) &&
+                finiteGiver && node.targetSourceCharacterId == sequencePrograms[event.identity]!.auxiliaryActorEventId ||
+                escort != null && [escort.actorEventId, escort.doorEventId].contains(node.targetSourceCharacterId) ||
+                preparation != null && [preparation.guideEventId, preparation.rivalEventId].contains(node.targetSourceCharacterId);
+            if (node.repeat || (!postTransfer && escort == null && preparation == null && !giverFacing && !(stairPrograms[event.identity]?.permitsRestoreWithoutBarrier(node) ?? false) &&
                 (index + 1 >= block.nodes.length || block.nodes[index + 1] is! SourceMoveRouteBarrierNode)) ||
                 !allowedTarget) {
               gaps.add('sourceRouteBarrierScopeUnsupported');
             }
-            if (!postTransfer && !qualifiedStairContexts.contains(event.identity) && !sequencePrograms.containsKey(event.identity) && node.steps.any((step) => const {
+            if (!postTransfer && !qualifiedStairContexts.contains(event.identity) && !sequencePrograms.containsKey(event.identity) && !escortPrograms.containsKey(event.identity) && node.steps.any((step) => const {
               SourceMoveRouteStepKind.moveLeft,
               SourceMoveRouteStepKind.moveRight,
               SourceMoveRouteStepKind.moveUpperLeft,
@@ -4899,6 +4999,108 @@ final class _SceneBuilder {
         kind: kind));
   }
 
+  String _escort(SourceEscortProgram program, String next) {
+    final binding = projection.escortBindings[event.identity]!;
+    if (!binding.isBoundTo(projection.source, projection.analysis, event)) {
+      throw const NativeWriteException('events.escort.binding', 'Escort requires its exact actor, player and source music bindings.');
+    }
+    final map = projection.maps[event.sourceMapId]!;
+    final actorId = projection._key(binding.actor, 'anchor');
+    final id = projection._key(event, 'escort_${page.originalPageIndex}');
+    final steps = <CinematicTimelineStep>[];
+    final points = <CinematicStagePoint>[];
+    final paths = <CinematicManualPath>[];
+    final targets = <CinematicMovementTargetRef>[];
+    final targetBindings = <CinematicMovementTargetBinding>[];
+    var actorPosition = GridPos(x: binding.actor.x, y: binding.actor.y);
+    var playerPosition = GridPos(x: event.x, y: event.y);
+    points.add(CinematicStagePoint(id: 'source_player_start', label: 'Source player start',
+      x: event.x + .5, y: event.y + 1 - binding.player.character.frameHeight / 2));
+    void move(String stepId, String actor, SourceForcedMoveRouteNode route, {String? group}) {
+      var position = actor == 'player' ? playerPosition : actorPosition;
+      final waypointIds = <String>[];
+      for (final step in route.steps) {
+        final delta = switch (step.kind) {
+          SourceMoveRouteStepKind.moveUp => (0, -1),
+          SourceMoveRouteStepKind.moveDown => (0, 1),
+          SourceMoveRouteStepKind.moveLeft => (-1, 0),
+          SourceMoveRouteStepKind.moveRight => (1, 0),
+          _ => null,
+        };
+        if (delta == null) continue;
+        position = GridPos(x: position.x + delta.$1, y: position.y + delta.$2);
+        if (position.x < 0 || position.y < 0 || position.x >= map.size.width || position.y >= map.size.height) {
+          throw const NativeWriteException('events.escort.route_bounds', 'Every source escort waypoint must remain on its original map.');
+        }
+        final pointId = '${stepId}_${waypointIds.length}';
+        waypointIds.add(pointId);
+        final height = actor == 'player' ? binding.player.character.frameHeight : binding.actorImport.character.frameHeight;
+        points.add(CinematicStagePoint(id: pointId, label: 'Source waypoint',
+          x: position.x + .5, y: position.y + 1 - height / 2));
+      }
+      final targetId = '${stepId}_target';
+      targets.add(CinematicMovementTargetRef(targetId: targetId, label: 'Source destination'));
+      targetBindings.add(CinematicMovementTargetBinding(targetId: targetId,
+        kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: waypointIds.last));
+      paths.add(CinematicManualPath(id: '${stepId}_path', label: 'Source route',
+        ownerActorMoveStepId: stepId, waypointStagePointIds: waypointIds));
+      steps.add(CinematicTimelineStep(id: stepId, kind: CinematicTimelineStepKind.actorMove,
+        actorId: actor, targetId: targetId, durationMs: waypointIds.length * 250,
+        parallelGroupId: group, metadata: {
+          cinematicTimelineActorMovementModeMetadataKey: 'walk',
+          cinematicTimelineActorPathModeMetadataKey: 'manual',
+        }));
+      if (actor == 'player') { playerPosition = position; } else { actorPosition = position; }
+    }
+    void speech(SourceTextNode text) {
+      steps.add(CinematicTimelineStep(id: 'text_${text.span.firstCommandIndex}',
+        kind: CinematicTimelineStepKind.dialogueLine, durationMs: 100,
+        dialogueText: projection._textFeedback(event, text.text)!.plainText));
+    }
+    steps.add(CinematicTimelineStep(id: 'source_music', kind: CinematicTimelineStepKind.music,
+      assetRef: binding.music.mediaId, durationMs: 100, metadata: {
+        cinematicTimelineCommandVolumeMetadataKey: '${binding.music.gainForVolume(program.music.volume)}',
+        cinematicTimelineCommandLoopMetadataKey: 'true',
+      }));
+    speech(program.nodes[2] as SourceTextNode);
+    steps.add(CinematicTimelineStep(id: 'player_face', kind: CinematicTimelineStepKind.actorFace,
+      actorId: 'player', durationMs: 100,
+      metadata: {cinematicTimelineActorDirectionMetadataKey: 'down'}));
+    steps.add(CinematicTimelineStep(id: 'player_exclamation', kind: CinematicTimelineStepKind.actorEmote,
+      actorId: 'player', durationMs: 500,
+      metadata: {cinematicTimelineActorEmoteEmoteIdMetadataKey: 'exclamation'}));
+    move('source_approach', 'guide', program.approach);
+    for (final index in [8, 9, 10]) { speech(program.nodes[index] as SourceTextNode); }
+    move('guide_walk', 'guide', program.actorWalk, group: 'source_escort_pair');
+    move('player_walk', 'player', program.playerWalk, group: 'source_escort_pair');
+    steps.add(CinematicTimelineStep(id: 'guide_face', kind: CinematicTimelineStepKind.actorFace,
+      actorId: 'guide', durationMs: 100,
+      metadata: {cinematicTimelineActorDirectionMetadataKey: 'up'}));
+    final cinematic = CinematicAsset(id: id, title: 'Source escort', mapId: map.id,
+      requiredActors: [CinematicActorRef(actorId: 'player'), CinematicActorRef(actorId: 'guide', entityId: actorId)],
+      movementTargets: targets,
+      stageContext: CinematicStageContext(backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [CinematicActorBinding(actorId: 'player', kind: CinematicActorBindingKind.player),
+          CinematicActorBinding(actorId: 'guide', kind: CinematicActorBindingKind.mapEntity, mapEntityId: actorId)],
+        initialPlacements: [
+          CinematicActorInitialPlacement(actorId: 'player', kind: CinematicActorInitialPlacementKind.stagePoint,
+            stagePointId: 'source_player_start'),
+          CinematicActorInitialPlacement(actorId: 'guide', kind: CinematicActorInitialPlacementKind.fromMapEntity),
+        ],
+        movementTargetBindings: targetBindings, stagePoints: points, manualPaths: paths),
+      timeline: CinematicTimeline(steps: steps), actorCompletionPolicy: CinematicActorCompletionPolicy.keepFinal,
+      metadata: {'converter.sourceProgram': program.fingerprint.value,
+        'converter.sourceTemporalParity': 'false', 'converter.sourcePresentationParity': 'false',
+        'converter.musicRestoration': 'beforeDoorEntry', 'converter.doorEntryScheduling': 'nativeSequentialRoutes'});
+    projection.cinematics.add(cinematic);
+    projection.mutations.add(projection._mutation('cinematic.upsert', id,
+      [event.identity, event.sourceFileId, binding.actor.identity, binding.music.audioFile.fileId],
+      [id], {'cinematic': cinematic.toJson()}));
+    final start = _node(SceneCinematicPayload(cinematicId: id));
+    _edge(start, 'completed', next, SceneEdgeKind.cinematicCompleted);
+    return start;
+  }
+
   String _exclamation(SourceExclamationNode node, String next) {
     const actorId = 'source_exclamation_actor';
     final player = node.targetSourceCharacterId == -1;
@@ -5301,7 +5503,12 @@ final class _SceneBuilder {
 
   String _block(SourceEventBlock block, String continuation) {
     var next = continuation;
+    final escort = projection.escortPrograms[event.identity];
     for (final node in block.nodes.reversed) {
+      if (escort != null && page.originalPageIndex == 0 && escort.cinematicNodes.contains(node)) {
+        if (identical(node, escort.cinematicNodes.last)) next = _escort(escort, next);
+        continue;
+      }
       switch (node) {
         case SourceCommonEventCallNode():
           final previousReturn = _commonReturn;
@@ -5357,6 +5564,10 @@ final class _SceneBuilder {
           next = dispatch;
         case SourcePortraitProgramNode():
           next = _block(node.body, next);
+        case SourceActorPoseSequenceNode():
+          if (!projection._qualifiedActorPreparation(event)) {
+            throw const NativeWriteException('events.actor_pose.program', 'Actor poses require a qualified complete source presentation program.');
+          }
         case SourceExclamationNode():
           next = _exclamation(node, next);
         case SourcePortraitPresentationNode():

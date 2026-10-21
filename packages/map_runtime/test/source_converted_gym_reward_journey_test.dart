@@ -498,8 +498,9 @@ Future<PlayableMapGame> mountConvertedQaGame(
   WidgetTester tester,
   String projectFile,
   ConvertedQaDiskSave repository,
-  GameState initial,
-) async {
+  GameState initial, {
+  SaveData? restoredSave,
+}) async {
   final bundle = await loadRuntimeMapBundle(
     projectFilePath: projectFile,
     mapId: initial.currentMapId,
@@ -507,7 +508,9 @@ Future<PlayableMapGame> mountConvertedQaGame(
   final game = PlayableMapGame(
     bundle: bundle,
     projectFilePath: projectFile,
-    initialGameState: initial,
+    initialGameState: restoredSave == null ? initial : null,
+    saveData: restoredSave,
+    initialMapActivationReason: restoredSave == null ? MapActivationReason.initialBoot : MapActivationReason.saveRestore,
     saveRepository: repository,
     sceneSoundEffectPlaybackPort: _SoundFiles(bundle),
     dialogueFeedbackPlaybackPort: _SoundFiles(bundle),

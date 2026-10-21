@@ -25,6 +25,8 @@ import 'source_event_sound_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_dialogue_text.dart';
 import 'source_sequence_program.dart';
+import 'source_escort_program.dart';
+import 'source_actor_preparation_program.dart';
 import 'source_intro_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_character_presentation_binding.dart';
@@ -201,6 +203,8 @@ final class SourceEventStudyComposer {
     });
     final elevatorPrograms = sourceElevatorPrograms(source: source, analysis: analysis, authority: transferAuthority);
     final sequencePrograms = sourceSequencePrograms(source: source, analysis: analysis);
+    final escortPrograms = sourceEscortPrograms(source: source, analysis: analysis);
+    final actorPreparationPrograms = sourceActorPreparationPrograms(source: source, analysis: analysis);
     final warpTilePrograms = sourceWarpTileNativePrograms(source: source, analysis: analysis, authority: transferAuthority);
     SourceExternalWarpBinding? externalWarps;
     final externalWarpEvidence = <Map<String, Object?>>[];
@@ -214,7 +218,7 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final externalTransitionIds = {...?externalWarps?.programs.keys};
-    final transitionIds = {...externalTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys, ...sequencePrograms.keys};
+    final transitionIds = {...externalTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys, ...sequencePrograms.keys, ...escortPrograms.keys, ...actorPreparationPrograms.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -393,6 +397,27 @@ final class SourceEventStudyComposer {
           'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    final escortBindings = <ConverterId, SourceEscortBinding>{};
+    final escortEvidence = <Map<String, Object?>>[];
+    for (final program in escortPrograms.values.where((p) => nativeMaps.containsKey(p.event.sourceMapId))) {
+      try {
+        final binding = await const SourceEscortBindingResolver().read(source: source,
+          analysis: analysis, program: program, files: recording, limits: limits,
+          cancellation: cancellation);
+        escortBindings[program.event.identity] = binding;
+        sounds['bgm:${binding.music.name}'] = binding.music;
+        escortEvidence.add({'sourceIdentity': program.event.identity.value,
+          'status': 'bound', 'program': program.toJson(), 'music': binding.music.evidence,
+          'actor': binding.actorImport.evidence,
+          'playerFrameWidth': binding.player.character.frameWidth,
+          'playerFrameHeight': binding.player.character.frameHeight});
+      } on NativeWriteException catch (error) {
+        if (error.code.contains('changed') || error.code.contains('quota') || error.code.contains('hash')) rethrow;
+        escortEvidence.add({'sourceIdentity': program.event.identity.value, 'status': 'preservedOnly', 'reason': error.code});
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        escortEvidence.add({'sourceIdentity': program.event.identity.value, 'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
     final decorativePokemonBindings = <ConverterId, SourceDecorativePokemonBinding>{};
     final decorativePokemonEvidence = <Map<String, Object?>>[];
     SourcePbsProject? decorativePbs;
@@ -516,7 +541,7 @@ final class SourceEventStudyComposer {
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
           nativeMapIds: base.mapIds, cancellation: cancellation) : null;
     final retentionPolicy = retentionBinding?.policy;
-    final executionContext = externalTransitionIds.isEmpty && sequencePrograms.isEmpty ? null :
+    final executionContext = externalTransitionIds.isEmpty && sequencePrograms.isEmpty && escortPrograms.isEmpty && actorPreparationPrograms.isEmpty ? null :
         await const SourceEventExecutionContextResolver().read(source: source,
           base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
           cancellation: cancellation, authority: transferAuthority);
@@ -576,6 +601,15 @@ final class SourceEventStudyComposer {
     final characterMutations = <NativeMutation>[];
     final characterEvidence = <Map<String, Object?>>[];
     final visited = <String>{};
+    for (final binding in escortBindings.values) {
+      final imported = binding.actorImport;
+      if (visited.add(imported.bindingKey)) {
+        bindings[imported.bindingKey] = imported.binding;
+        characterArtifacts.addAll(imported.artifacts);
+        characterMutations.addAll(imported.mutations);
+        characterEvidence.add({'bindingKey': imported.bindingKey, 'status': 'imported', ...imported.evidence});
+      }
+    }
     final characterCandidates = const SourceEventProjector()
         .characterImportCandidates(
             source: source,
@@ -591,7 +625,7 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
-            portraitBindings: portraitBindings,
+            portraitBindings: portraitBindings, escortBindings: escortBindings,
             textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
             cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
@@ -688,7 +722,7 @@ final class SourceEventStudyComposer {
             townMapBinding: townMap,
             partyTradeBinding: partyTrade,
             pokemonGiftBindings: pokemonGifts.byEventIdentity,
-        portraitBindings: portraitBindings,
+        portraitBindings: portraitBindings, escortBindings: escortBindings,
             textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
         cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
@@ -1071,6 +1105,7 @@ final class SourceEventStudyComposer {
       'profile': profile.toJson(),
       'projection': projection.semanticEvidence,
       'characters': characterEvidence,
+      'escortBindings': escortEvidence,
       'textVariablePrograms': [for (final entry in textVariablePrograms.entries) entry.value.toJson()],
       'decorativePokemonBindings': decorativePokemonEvidence,
       'portraitBindings': [

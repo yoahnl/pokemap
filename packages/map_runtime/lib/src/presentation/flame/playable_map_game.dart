@@ -3237,7 +3237,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final context = switch (internalSurface) {
       RuntimeInputSurface.world => RuntimeInputContext.overworld,
       RuntimeInputSurface.dialogue => RuntimeInputContext.dialogue,
-      RuntimeInputSurface.cinematic => RuntimeInputContext.cinematic,
+      RuntimeInputSurface.cinematic => _dialogueOverlay == null
+          ? RuntimeInputContext.cinematic
+          : RuntimeInputContext.dialogue,
       RuntimeInputSurface.battle ||
       RuntimeInputSurface.progression =>
         RuntimeInputContext.battle,
@@ -4396,9 +4398,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _runtimeNpcPositions[source.id] = actor.gridPos ?? next?.pos ?? source.pos;
         _remountedNpcFacings[key] = facingChanged ? declaredFacing : actor.facing;
         actor.setGameplayVisible(false);
+        final removal = actor.isMounted
+            ? actor.removed : Future<void>.value();
         _pendingPresentationRemounts.add(key);
         _purgeMountedNpcActorForEntity(entityId: source.id, loaded: loaded);
-        unawaited(actor.removed.then((_) {
+        unawaited(removal.then((_) {
           _pendingPresentationRemounts.remove(key);
           if (_isRemoved || !_loadedMapsById.values.contains(loaded)) return;
           _mountNewlyPresentNpcActorsOnLoadedMaps();
@@ -5788,8 +5792,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           : const <String>{};
       if (_sceneForcedRouteBarrierCount > 0) {
         _scriptedEntityMovementController?.updateForcedMoves(dt);
-        _processPendingSceneNpcMoves();
       }
+      for (final entityId in _pendingSceneNpcMovesByEntity.keys.toList(growable: false)) {
+        if (!forcedMoveIds.contains(entityId)) {
+          _scriptedEntityMovementController?.updateOwnedMove(dt, entityId);
+        }
+      }
+      _processPendingSceneNpcMoves();
       _PendingScenarioMoveContinuation? restoreOwnedMove;
       for (final pending in _pendingScenarioMoveContinuationsByEntity.values) {
         if (_restoreFenceOwnsSource(pending.runtimeSourceId)) {
@@ -13076,6 +13085,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         'Le PNJ doit être déplacé depuis la map active.');
       return Future<String>.value('blocked');
     }
+    _refreshWorldNpcPresence();
     final map = _world.map;
     final entity = map.entities
         .where(
@@ -13088,7 +13098,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final present = entity != null &&
         _npcPresencePredicateFor(
           _bundle.manifest,
-          gameStateOverride: currentGameState(),
+          gameStateOverride: _activeNarrativeSceneWorkingSession?.presentationGameState ?? currentGameState(),
         )(map.id, entity);
     if (!present || !warpExists) {
       _notifySceneCommand('Déplacement du PNJ impossible.');
@@ -13258,11 +13268,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         entities.single.kind != MapEntityKind.npc ||
         !_npcPresencePredicateFor(
           _bundle.manifest,
-          gameStateOverride: session?.gameState ?? _gameState,
+          gameStateOverride: session?.presentationGameState ?? _gameState,
         )(_activeMapId, entities.single) ||
         !_mapEntityPresencePredicateFor(
           _bundle.manifest,
-          gameStateOverride: session?.gameState ?? _gameState,
+          gameStateOverride: session?.presentationGameState ?? _gameState,
           mapOverride: _world.map,
         )(_activeMapId, entities.single) ||
         !(_world.npcMapPresencePredicate?.call(_activeMapId, entities.single) ?? true) ||
@@ -13356,6 +13366,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required _NarrativeSceneWorkingSession? session,
   }) async {
     if (command is! SceneActorVisibilityInteractiveCommand) return 'blocked';
+    _refreshWorldNpcPresence();
     final actor = _resolveSceneActor(command.target, session);
     if (actor == null) return 'blocked';
     final visible = switch (actor) {
@@ -13411,6 +13422,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         (command.transientScope == ActorRouteTransientScope.scene && session == null)) {
       return 'blocked';
     }
+    _refreshWorldNpcPresence();
     final target = command.target;
     final actor = _resolveSceneActor(target, session);
     final forcedEntityId = target.kind == SceneActorTargetKind.player
