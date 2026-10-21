@@ -2041,6 +2041,13 @@ scene.reachability
 scene.preview
 ```
 
+La commande `scene.upsert_batch` publie atomiquement de 1 à 128 scènes complètes
+(`scenes`, identités `id` uniques). Elle conserve les validations de `scene.upsert`
+(dialogues, politiques, catalogue d’attaques, références et plan Runtime), le contrôle
+de révision, la prévisualisation, le mode dry-run, l’idempotence et une annulation
+pour le lot entier. Les remplacements gardent leur ordre ; les nouvelles scènes
+sont ajoutées dans l’ordre du lot. Une dernière scène invalide refuse tout le lot.
+
 La commande `scene.interactive_command.set` accepte une présentation optionnelle
 sur le Warp existant. `presentation` est un objet fermé dont `mode` vaut `fade`,
 `illustrated`, `caveEntrance` ou `caveExit`. Les modes illustrés exigent un

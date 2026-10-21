@@ -583,6 +583,21 @@ final class SceneActions {
       },
     ),
     narrativeActionDescriptor(
+      'scene.upsert_batch',
+      'Create or replace a bounded atomic batch of complete Scene graphs',
+      resourceKinds: const ['project', 'scene'],
+      extensions: const {
+        'sceneContract': 'scene.upsert',
+        'batch': {
+          'minScenes': 1,
+          'maxScenes': 128,
+          'uniqueBy': 'id',
+          'semantics': 'createOrUpdate',
+          'atomic': true,
+        },
+      },
+    ),
+    narrativeActionDescriptor(
       'scene.delete',
       'Delete an unreferenced Scene or replace its references',
       resourceKinds: const ['project', 'scene'],
@@ -656,14 +671,20 @@ final class SceneActions {
     if (context.request.actionId == 'scene.condition.set') {
       rawSources.add(parameters['conditionSource']);
     } else {
-      final rawScene = parameters['scene'];
-      final rawGraph = rawScene is Map ? rawScene['graph'] : null;
-      final rawNodes = context.request.actionId == 'scene.graph.patch'
-          ? parameters['upsertNodes'] : rawGraph is Map ? rawGraph['nodes'] : null;
-      if (rawNodes is List) {
-        for (final node in rawNodes) {
-          final payload = node is Map ? node['payload'] : null;
-          if (payload is Map) rawSources.add(payload['conditionSource']);
+      final rawScenes = context.request.actionId == 'scene.upsert_batch'
+          ? parameters['scenes']
+          : [parameters['scene']];
+      if (rawScenes is List) {
+        for (final rawScene in rawScenes) {
+          final rawGraph = rawScene is Map ? rawScene['graph'] : null;
+          final rawNodes = context.request.actionId == 'scene.graph.patch'
+              ? parameters['upsertNodes'] : rawGraph is Map ? rawGraph['nodes'] : null;
+          if (rawNodes is List) {
+            for (final node in rawNodes) {
+              final payload = node is Map ? node['payload'] : null;
+              if (payload is Map) rawSources.add(payload['conditionSource']);
+            }
+          }
         }
       }
     }
@@ -691,15 +712,24 @@ final class SceneActions {
     final draft = build(context);
     final rawScene = context.request.parameters['scene'];
     final targetId = context.request.parameters['sceneId'] ?? (rawScene is Map ? rawScene['id'] : null);
+    final batchIds = context.request.actionId == 'scene.upsert_batch'
+        ? (parameters['scenes'] as List).map((value) => (value as Map)['id']).toSet()
+        : const <Object?>{};
     final scenes = draft.projectedProject?.scenes.where((scene) =>
-        scene.id == targetId ||
+        scene.id == targetId || batchIds.contains(scene.id) ||
         !context.snapshot.manifest.scenes.contains(scene)).toList() ?? const <SceneAsset>[];
+    final diagnosticsContext = context.request.actionId == 'scene.upsert_batch'
+        ? SceneProjectDiagnosticsContext(draft.projectedProject!,
+            availableItemIds: context.snapshot.itemCatalog?.entries.map((item) => item.id).toSet(),
+            mapsById: {for (final map in context.snapshot.maps) map.id: map})
+        : null;
     for (final scene in scenes) {
       _validateScenePublication(
         draft.projectedProject!,
         maps: context.snapshot.maps,
         scene: scene,
         itemCatalog: context.snapshot.itemCatalog,
+        context: diagnosticsContext,
       );
     }
     final moveScenes = scenes.where(sceneNeedsPartyMoveCatalog).toList();
@@ -765,6 +795,41 @@ final class SceneActions {
           operation: context.request.actionId, path: '/scenes/$sceneId/graph/nodes/$nodeId/payload/choicePolicies',
           before: payload.choicePolicies.map((item) => item.toJson()).toList(growable: false),
           after: updated.choicePolicies.map((item) => item.toJson()).toList(growable: false));
+      case 'scene.upsert_batch':
+        final rawScenes = parameters['scenes'];
+        if (parameters.keys.any((key) => key != 'scenes') ||
+            rawScenes is! List || rawScenes.isEmpty || rawScenes.length > 128) {
+          throw NarrativeAuthoringException('scene.batch_invalid',
+              'A Scene batch must contain between 1 and 128 scenes.');
+        }
+        final scenes = <SceneAsset>[];
+        final ids = <String>{};
+        for (var index = 0; index < rawScenes.length; index++) {
+          final raw = rawScenes[index];
+          if (raw is! Map<String, dynamic>) {
+            throw NarrativeAuthoringException('scene.invalid',
+                'The Scene payload is invalid.', details: {'index': index});
+          }
+          final scene = _decodeScene(raw);
+          if (!ids.add(scene.id)) {
+            throw NarrativeAuthoringException('scene.batch_duplicate_id',
+                'Scene identities must be unique within a batch.',
+                details: {'index': index, 'sceneId': scene.id});
+          }
+          _validateSceneDialoguePolicies(context.snapshot, scene);
+          scenes.add(scene);
+        }
+        final projected = upsertBatch(context.snapshot.manifest,
+            maps: context.snapshot.maps, scenes: scenes,
+            itemCatalog: context.snapshot.itemCatalog);
+        return narrativeProjectDraft(context.snapshot, projected,
+            operation: context.request.actionId, path: '/scenes',
+            before: context.snapshot.manifest.scenes
+                .where((scene) => ids.contains(scene.id))
+                .map((scene) => scene.toJson()).toList(growable: false),
+            after: scenes.map((scene) => scene.toJson()).toList(growable: false),
+            preview: {'sceneIds': scenes.map((scene) => scene.id).toList(growable: false)},
+            includeInspectionPreview: true);
       case 'scene.upsert':
         rejectUnknownNarrativeParameters(parameters, const {'scene'});
         final scene =
@@ -1565,6 +1630,41 @@ final class SceneActions {
       scene: scene,
       itemCatalog: itemCatalog,
     );
+    return projected;
+  }
+
+  ProjectManifest upsertBatch(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required List<SceneAsset> scenes,
+    ProjectItemCatalog? itemCatalog,
+  }) {
+    if (scenes.isEmpty || scenes.length > 128) {
+      throw NarrativeAuthoringException('scene.batch_invalid',
+          'A Scene batch must contain between 1 and 128 scenes.');
+    }
+    final replacements = <String, SceneAsset>{};
+    for (var index = 0; index < scenes.length; index++) {
+      final scene = scenes[index];
+      if (replacements.containsKey(scene.id)) {
+        throw NarrativeAuthoringException('scene.batch_duplicate_id',
+            'Scene identities must be unique within a batch.',
+            details: {'index': index, 'sceneId': scene.id});
+      }
+      replacements[scene.id] = scene;
+    }
+    final existingIds = project.scenes.map((scene) => scene.id).toSet();
+    final projected = project.copyWith(scenes: [
+      for (final scene in project.scenes) replacements[scene.id] ?? scene,
+      for (final scene in scenes) if (!existingIds.contains(scene.id)) scene,
+    ]);
+    final context = SceneProjectDiagnosticsContext(projected,
+        availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
+        mapsById: {for (final map in maps) map.id: map});
+    for (final scene in scenes) {
+      _validateScenePublication(projected, maps: maps, scene: scene,
+          itemCatalog: itemCatalog, context: context);
+    }
     return projected;
   }
 

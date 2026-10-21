@@ -567,6 +567,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/moving_prop_stdio.test.ts',
     };
   }
+  if (actionId == 'scene.upsert_batch') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/narrative/scene_batch_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/narrative/scene_batch_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/scene_batch_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/scene_batch_stdio.test.ts',
+    };
+  }
   if (actionId == 'world_rule.upsert_batch') {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/world_rule_batch_transport_test.dart',
@@ -1703,6 +1711,9 @@ String _contractTestFor(String actionId) {
   }
   if (actionId == 'bag.capacity.set') {
     return 'test/domains/gameplay/bag_capacity_authoring_test.dart';
+  }
+  if (actionId == 'scene.upsert_batch') {
+    return 'test/domains/narrative/scene_batch_transport_test.dart';
   }
   if (actionId == 'world_rule.upsert_batch') {
     return 'test/domains/narrative/world_rule_batch_transport_test.dart';
