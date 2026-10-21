@@ -52,6 +52,12 @@ final class RuntimeProjectCatalog {
   final _RuntimeCatalogObjectReader? _reader;
   final RuntimeCatalogMapCache _mapCache;
   Future<AssetCatalog?>? _assetCatalog;
+  static const _maximumManifestProjections = 8;
+  static const _maximumManifestSourceBytes = 8 * 1024 * 1024;
+  final _manifestProjections =
+      <String, Future<({ProjectManifest project, int sourceBytes})>>{};
+  final _manifestProjectionBytes = <String, int>{};
+  var _manifestSourceBytes = 0;
   bool _disposed = false;
 
   static Future<RuntimeProjectCatalog> open(
@@ -405,6 +411,64 @@ final class RuntimeProjectCatalog {
     Iterable<CatalogDefinitionKey> roots,
   ) async {
     _ensureOpen();
+    if (_portable == null) {
+      final result = await _buildManifestForRoots(roots);
+      _ensureOpen();
+      return result.project;
+    }
+    final ordered = roots.toSet().toList()..sort();
+    final key = jsonEncode([
+      for (final root in ordered) [root.kind.name, root.id],
+    ]);
+    var future = _manifestProjections.remove(key);
+    if (future != null) {
+      _manifestProjections[key] = future;
+    } else {
+      future = _buildManifestForRoots(ordered);
+      if (ordered.length <= 256) {
+        final pending = future;
+        _manifestProjections[key] = pending;
+        _trimManifestProjections();
+        pending.then<void>(
+          (result) {
+            if (!identical(_manifestProjections[key], pending)) return;
+            if (result.sourceBytes > _maximumManifestSourceBytes) {
+              _removeManifestProjection(key);
+              return;
+            }
+            _manifestProjectionBytes[key] = result.sourceBytes;
+            _manifestSourceBytes += result.sourceBytes;
+            _trimManifestProjections();
+          },
+          onError: (Object error, StackTrace stack) {
+            if (identical(_manifestProjections[key], pending)) {
+              _removeManifestProjection(key);
+            }
+          },
+        );
+      }
+    }
+    final result = await future;
+    _ensureOpen();
+    return result.project;
+  }
+
+  void _removeManifestProjection(String key) {
+    _manifestProjections.remove(key);
+    _manifestSourceBytes -= _manifestProjectionBytes.remove(key) ?? 0;
+  }
+
+  void _trimManifestProjections() {
+    while (_manifestProjections.length > _maximumManifestProjections ||
+        _manifestSourceBytes > _maximumManifestSourceBytes) {
+      _removeManifestProjection(_manifestProjections.keys.first);
+    }
+  }
+
+  Future<({ProjectManifest project, int sourceBytes})> _buildManifestForRoots(
+    Iterable<CatalogDefinitionKey> roots,
+  ) async {
+    _ensureOpen();
     final units = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
     final selected = <CatalogDefinitionKey, Object>{};
     final active = <CatalogDefinitionKey>{};
@@ -509,13 +573,33 @@ final class RuntimeProjectCatalog {
                 ),
       ],
     );
+    var sourceBytes = 0;
+    final portable = _portable;
+    if (portable != null) {
+      if (units.length > 256) {
+        sourceBytes = _maximumManifestSourceBytes + 1;
+      } else {
+        for (final key in units.keys) {
+          final entry = await portable.snapshot.indexEntry(key);
+          _ensureOpen();
+          if (entry == null) {
+            throw RuntimeCatalogDefinitionMissingException(key);
+          }
+          sourceBytes += entry.reference.byteLength;
+          if (sourceBytes > _maximumManifestSourceBytes) break;
+        }
+      }
+    }
     _owners[project] = this;
-    return project;
+    return (project: project, sourceBytes: sourceBytes);
   }
 
   void dispose() {
     _disposed = true;
     _assetCatalog = null;
+    _manifestProjections.clear();
+    _manifestProjectionBytes.clear();
+    _manifestSourceBytes = 0;
     _mapCache.dispose();
     if (_native.isNotEmpty) _native.clear();
     _reader?.dispose();

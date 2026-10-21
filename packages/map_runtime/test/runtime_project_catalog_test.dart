@@ -8,6 +8,381 @@ import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  for (final partitioned in [false, true]) {
+    test(
+      'identical typed roots reuse one owned projection, partitioned=$partitioned',
+      () async {
+        final root = await Directory.systemTemp.createTemp(
+          'runtime-projection-reuse-',
+        );
+        addTearDown(() => root.delete(recursive: true));
+        final project =
+            PortableCatalogPublication.withProjectDynamicDependencies(
+              ProjectManifest(
+                name: 'Projection reuse',
+                maps: const [],
+                tilesets: [
+                  for (final id in ['tile-0', 'tile-1', 'tile-2'])
+                    ProjectTilesetEntry(
+                      id: id,
+                      name: id,
+                      relativePath: '$id.png',
+                    ),
+                ],
+              ),
+              [
+                CatalogDynamicDependency(
+                  owner: CatalogDefinitionKey(
+                    CatalogDefinitionKind.tileset,
+                    'tile-0',
+                  ),
+                  targets: [
+                    CatalogDefinitionKey(
+                      CatalogDefinitionKind.tileset,
+                      'tile-1',
+                    ),
+                  ],
+                ),
+              ],
+            );
+        final path = await _writeProject(
+          root,
+          project,
+          partitioned: partitioned,
+        );
+        final catalog = await RuntimeProjectCatalog.open(path);
+        addTearDown(catalog.dispose);
+        const map = MapData(
+          id: 'map',
+          name: 'Map',
+          size: GridSize(width: 1, height: 1),
+          tilesetId: 'tile-0',
+        );
+        final first = await catalog.manifestForMap(map);
+        final second = await catalog.manifestForMap(
+          map.copyWith(id: 'other', name: 'Other'),
+        );
+        final third = await catalog.manifestForMap(map);
+        if (partitioned) {
+          expect(second, same(first));
+          expect(third, same(first));
+        } else {
+          expect(second.toJson(), first.toJson());
+          expect(third.toJson(), first.toJson());
+        }
+        expect(first.tilesets.map((entry) => entry.id), ['tile-0', 'tile-1']);
+        expect(RuntimeProjectCatalog.ownerOf(first), same(catalog));
+        final changed = await catalog.manifestForMap(
+          map.copyWith(tilesetId: 'tile-2'),
+        );
+        expect(changed, isNot(same(first)));
+        expect(changed.tilesets.map((entry) => entry.id), ['tile-2']);
+        final returned = await catalog.manifestForMap(map);
+        if (partitioned) {
+          expect(returned, same(first));
+        } else {
+          expect(returned.toJson(), first.toJson());
+        }
+      },
+    );
+  }
+
+  test('portable projection singleflight shares one result for concurrent equal roots', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-projection-flight-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = await RuntimeProjectCatalog.open(
+      await _writeProject(root, _projectionCacheProject()),
+    );
+    addTearDown(catalog.dispose);
+    const map = MapData(
+      id: 'a',
+      name: 'A',
+      size: GridSize(width: 1, height: 1),
+      tilesetId: 'tile',
+    );
+    final results = await Future.wait([
+      catalog.manifestForMap(map),
+      catalog.manifestForMap(map.copyWith(id: 'b')),
+      catalog.manifestForMap(map),
+    ]);
+    expect(results[1], same(results[0]));
+    expect(results[2], same(results[0]));
+    expect(RuntimeProjectCatalog.ownerOf(results[0]), same(catalog));
+  });
+
+  test('portable projection keys include typed extras and ignore root order and duplicates', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-projection-roots-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = await RuntimeProjectCatalog.open(
+      await _writeProject(root, _projectionCacheProject()),
+    );
+    addTearDown(catalog.dispose);
+    const tileMap = MapData(
+      id: 'a',
+      name: 'A',
+      size: GridSize(width: 1, height: 1),
+      tilesetId: 'tile',
+    );
+    final otherMap = tileMap.copyWith(id: 'b', tilesetId: 'other');
+    final plain = await catalog.manifestForMap(tileMap);
+    final withCharacter = await catalog.manifestForMap(
+      tileMap,
+      extraCharacterIds: ['tile'],
+    );
+    expect(withCharacter, isNot(same(plain)));
+    expect(plain.characters, isEmpty);
+    expect(withCharacter.characters.single.id, 'tile');
+    expect(withCharacter.tilesets.map((entry) => entry.id).toSet(), {
+      'tile',
+      'other',
+    });
+    final batch = await catalog.manifestForMaps([tileMap, otherMap, tileMap]);
+    expect(await catalog.manifestForMaps([otherMap, tileMap]), same(batch));
+    expect(
+      await catalog.manifestForMap(
+        tileMap,
+        extraCharacterIds: ['tile', 'tile'],
+      ),
+      same(withCharacter),
+    );
+    expect(batch.characters, isEmpty);
+  });
+
+  test(
+    'portable projections retain at most eight root sets in least recent order',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime-projection-lru-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final project = ProjectManifest(
+        name: 'Projection LRU',
+        maps: const [],
+        tilesets: [
+          for (var i = 0; i < 9; i++)
+            ProjectTilesetEntry(
+              id: 'tile-$i',
+              name: '$i',
+              relativePath: '$i.png',
+            ),
+        ],
+      );
+      final catalog = await RuntimeProjectCatalog.open(
+        await _writeProject(root, project),
+      );
+      addTearDown(catalog.dispose);
+      final maps = [
+        for (var i = 0; i < 9; i++)
+          MapData(
+            id: '$i',
+            name: '$i',
+            size: const GridSize(width: 1, height: 1),
+            tilesetId: 'tile-$i',
+          ),
+      ];
+      final retained = [
+        for (final map in maps.take(8)) await catalog.manifestForMap(map),
+      ];
+      expect(await catalog.manifestForMap(maps[0]), same(retained[0]));
+      await catalog.manifestForMap(maps[8]);
+      expect(await catalog.manifestForMap(maps[0]), same(retained[0]));
+      expect(await catalog.manifestForMap(maps[1]), isNot(same(retained[1])));
+    },
+  );
+
+  test('projection ownership is isolated across changed publications at the same path', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-projection-owner-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final project = _projectionCacheProject();
+    final path = await _writeProject(root, project);
+    final a = await RuntimeProjectCatalog.open(path);
+    addTearDown(a.dispose);
+    const map = MapData(
+      id: 'a',
+      name: 'A',
+      size: GridSize(width: 1, height: 1),
+      tilesetId: 'tile',
+    );
+    final first = await a.manifestForMap(map);
+    await _writeProject(
+      root,
+      project.copyWith(
+        tilesets: [
+          for (final tile in project.tilesets)
+            tile.copyWith(name: '${tile.name} changed'),
+        ],
+      ),
+    );
+    final b = await RuntimeProjectCatalog.open(path);
+    addTearDown(b.dispose);
+    final second = await b.manifestForMap(map);
+    expect(second, isNot(same(first)));
+    expect(second.tilesets.single.name, 'tile changed');
+    expect(first.tilesets.single.name, 'tile');
+    expect(RuntimeProjectCatalog.ownerOf(first), same(a));
+    expect(RuntimeProjectCatalog.ownerOf(second), same(b));
+    expect(await a.manifestForMap(map), same(first));
+    a.dispose();
+    expect(RuntimeProjectCatalog.ownerOf(first), isNull);
+    await expectLater(a.manifestForMap(map), throwsStateError);
+    expect(await b.manifestForMap(map), same(second));
+  });
+
+  test('portable projection retention is bounded by source bytes and skips oversized results', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-projection-bytes-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final padding = 'x' * 900000;
+    final project = ProjectManifest(
+      name: 'Projection byte budget',
+      maps: const [],
+      tilesets: [
+        for (var i = 0; i < 10; i++)
+          ProjectTilesetEntry(
+            id: 'large-$i',
+            name: 'Large $i',
+            relativePath: '$i.png',
+            paletteEntries: [
+              TilesetPaletteEntry(
+                id: 'palette-$i',
+                name: padding,
+                frames: const [
+                  TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+                ],
+              ),
+            ],
+          ),
+      ],
+    );
+    final publication = PortableCatalogPublication.encodeProject(project);
+    final sourceBytes = publication.storage.objects.values.fold<int>(
+      0,
+      (total, bytes) => total + bytes.length,
+    );
+    expect(sourceBytes, greaterThan(8 * 1024 * 1024));
+    final path = p.join(root.path, 'project.json');
+    await File(path).writeAsString(jsonEncode(publication.descriptor));
+    for (final entry in publication.storage.objects.entries) {
+      final target = File(
+        p.join(root.path, 'catalog/objects/${entry.key}.json'),
+      );
+      await target.parent.create(recursive: true);
+      await target.writeAsBytes(entry.value);
+    }
+    final catalog = await RuntimeProjectCatalog.open(path);
+    addTearDown(catalog.dispose);
+    final maps = [
+      for (var i = 0; i < 10; i++)
+        MapData(
+          id: '$i',
+          name: '$i',
+          size: const GridSize(width: 1, height: 1),
+          tilesetId: 'large-$i',
+        ),
+    ];
+    final firstHalf = await catalog.manifestForMaps(maps.take(5));
+    expect(
+      identical(await catalog.manifestForMaps(maps.take(5)), firstHalf),
+      isTrue,
+    );
+    await catalog.manifestForMaps(maps.skip(5));
+    expect(
+      identical(await catalog.manifestForMaps(maps.take(5)), firstHalf),
+      isFalse,
+    );
+    final oversized = await catalog.manifestForMaps(maps);
+    expect(oversized.tilesets, hasLength(10));
+    expect(identical(await catalog.manifestForMaps(maps), oversized), isFalse);
+  });
+
+  test('portable projection results beyond the retained unit ceiling remain valid but uncached', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-projection-units-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final project = PortableCatalogPublication.withProjectDynamicDependencies(
+      ProjectManifest(
+        name: 'Projection unit budget',
+        maps: const [],
+        tilesets: [
+          for (var i = 0; i < 257; i++)
+            ProjectTilesetEntry(
+              id: 'unit-$i',
+              name: '$i',
+              relativePath: '$i.png',
+            ),
+        ],
+      ),
+      [
+        CatalogDynamicDependency(
+          owner: CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'unit-0'),
+          targets: [
+            for (var i = 1; i < 257; i++)
+              CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'unit-$i'),
+          ],
+        ),
+      ],
+    );
+    final catalog = await RuntimeProjectCatalog.open(
+      await _writeProject(root, project),
+    );
+    addTearDown(catalog.dispose);
+    final maps = [
+      for (var i = 0; i < 257; i++)
+        MapData(
+          id: '$i',
+          name: '$i',
+          size: const GridSize(width: 1, height: 1),
+          tilesetId: 'unit-$i',
+        ),
+    ];
+    final first = await catalog.manifestForMaps(maps);
+    final second = await catalog.manifestForMaps(maps);
+    expect(first.tilesets, hasLength(257));
+    expect(
+      second.tilesets.map((entry) => entry.id),
+      first.tilesets.map((entry) => entry.id),
+    );
+    expect(identical(first, second), isFalse);
+    final closureFirst = await catalog.manifestForMap(maps.first);
+    final closureSecond = await catalog.manifestForMap(maps.first);
+    expect(closureFirst.tilesets, hasLength(257));
+    expect(
+      closureSecond.tilesets.map((entry) => entry.id),
+      closureFirst.tilesets.map((entry) => entry.id),
+    );
+    expect(identical(closureFirst, closureSecond), isFalse);
+  });
+
+  test('disposing a session rejects a warmed projection hit before its result is observed', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-projection-dispose-hit-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = await RuntimeProjectCatalog.open(
+      await _writeProject(root, _projectionCacheProject()),
+    );
+    addTearDown(catalog.dispose);
+    const map = MapData(
+      id: 'a',
+      name: 'A',
+      size: GridSize(width: 1, height: 1),
+      tilesetId: 'tile',
+    );
+    final warm = await catalog.manifestForMap(map);
+    final pendingHit = catalog.manifestForMap(map);
+    catalog.dispose();
+    await expectLater(pendingHit, throwsStateError);
+    expect(RuntimeProjectCatalog.ownerOf(warm), isNull);
+  });
+
   test(
     'partitioned session resolves each map and declared dependencies only',
     () async {
@@ -1010,3 +1385,16 @@ Future<String> _writeProject(
   }
   return file.path;
 }
+
+ProjectManifest _projectionCacheProject() => const ProjectManifest(
+  name: 'Projection cache',
+  maps: [],
+  tilesets: [
+    ProjectTilesetEntry(id: 'tile', name: 'tile', relativePath: 'tile.png'),
+    ProjectTilesetEntry(id: 'other', name: 'other', relativePath: 'other.png'),
+    ProjectTilesetEntry(id: 'third', name: 'third', relativePath: 'third.png'),
+  ],
+  characters: [
+    ProjectCharacterEntry(id: 'tile', name: 'Tile actor', tilesetId: 'other'),
+  ],
+);

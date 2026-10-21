@@ -12,6 +12,8 @@ import 'border_fingerprints.dart';
 import 'border_rle_codec.dart';
 import 'border_template_capabilities.dart';
 
+final _outputFingerprintByMaterialization = Expando<String>();
+
 /// Explicit stable order for Border V1 staleness reasons.
 const List<BorderStalenessReason> borderStalenessReasonV1Order =
     <BorderStalenessReason>[
@@ -98,10 +100,11 @@ BorderMaterializationFreshnessInspection inspectBorderMaterializationFreshness(
 
   String? expectedOutput;
   try {
-    expectedOutput = computeBorderOutputFingerprint(
-      ground: materialization.ground,
-      placements: materialization.placements,
-    );
+    expectedOutput = _outputFingerprintByMaterialization[materialization] ??=
+        computeBorderOutputFingerprint(
+          ground: materialization.ground,
+          placements: materialization.placements,
+        );
   } on FormatException {
     expectedOutput = null;
   } on ValidationException {
