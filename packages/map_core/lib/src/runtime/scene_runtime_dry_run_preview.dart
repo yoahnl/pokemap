@@ -409,6 +409,9 @@ _PreviewConsequenceResult _previewConsequence({
         state,
         money: state.money + consequence.amount,
       );
+    case SceneMarkPokemonSeenConsequence():
+      before = 'seen=non simulé';
+      after = '${consequence.speciesId} sera marqué comme vu, sans capture ni don';
     case SceneGivePokemonConsequence():
       before = 'party=${state.partyMemberCount}';
       after = 'party=${state.partyMemberCount + 1} '
@@ -454,6 +457,9 @@ _PreviewConsequenceResult _previewConsequence({
           consequence.ability,
         },
       );
+    case SceneSetNpcPoseConsequence():
+      before = '${consequence.mapId}::${consequence.entityId}=stored pose';
+      after = '${consequence.x},${consequence.y}';
     case SceneSetNpcPresenceConsequence():
       final ref = '${consequence.mapId}::${consequence.entityId}';
       before = '$ref=${state.npcPresenceByRef[ref] ?? 'project default'}';

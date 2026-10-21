@@ -100,7 +100,11 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
           moveIds: gift.moveIds,
         ),
   ];
-  if (gifts.isEmpty) return null;
+  final seenSpeciesIds = <String>{
+    for (final node in scene?.graph.nodes ?? const <SceneNode>[])
+      if (node.payload case SceneActionPayload(consequence: SceneMarkPokemonSeenConsequence(:final speciesId))) speciesId,
+  };
+  if (gifts.isEmpty && seenSpeciesIds.isEmpty) return null;
   final resolvedSpeciesLoader = speciesLoader ?? RuntimePokemonSpeciesLoader();
   final resolvedMoveLoader = moveCatalogLoader ?? RuntimeMoveCatalogLoader();
   final resolvedLearnsetLoader =
@@ -108,7 +112,7 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
       RuntimePokemonLearnsetLoader(moveCatalogLoader: resolvedMoveLoader);
   final entries = <String, RuntimeScenePokemonCatalogEntry>{};
   final failures = <String, String>{};
-  for (final speciesId in gifts.map((gift) => gift.speciesId).toSet()) {
+  for (final speciesId in {...gifts.map((gift) => gift.speciesId), ...seenSpeciesIds}) {
     final RuntimePokemonSpecies species;
     final RuntimePokemonLearnset learnset;
     final RuntimeMoveCatalog moves;
@@ -144,7 +148,7 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
     final level = gifts
         .where((gift) => gift.speciesId == speciesId)
         .map((gift) => gift.level)
-        .reduce((a, b) => a > b ? a : b);
+        .fold(1, (a, b) => a > b ? a : b);
     final moveIds = {
       ...learnset.startingMoves,
       ...learnset.relearnMoves,

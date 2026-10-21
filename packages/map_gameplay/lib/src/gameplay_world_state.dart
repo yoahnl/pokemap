@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 import 'movement_terrain_policy.dart';
+import 'npc_instance_pose_projection.dart';
 import 'field_traversal_geometry.dart';
 
 import 'direction.dart';
@@ -968,12 +969,32 @@ class GameplayWorldState {
           entity.copyWith(pos: current.pos)
         else entity,
     ]);
-    return GameplayWorldState.initial(map: source, project: project,
+    final instance = gameState.mapInstanceWorldState.instanceRef(sourceMap.id);
+    final poses = instance == null ? const <String, MapInstanceNpcPose>{} : gameState.mapInstanceWorldState.instancesByMapId[sourceMap.id]!.npcPoses;
+    final logicalPoses = {for (final entry in poses.entries)
+      if (currentById[entry.key]?.kind != MapEntityKind.npc || currentById[entry.key]?.npc == null) entry.key: entry.value};
+    final presented = projectMapEntityPresentations(project: project, gameState: gameState, map: source);
+    final positioned = instance == null || logicalPoses.isEmpty ? presented : applyNpcInstancePosesToMap(
+      map: presented, authoringMap: source, project: project,
+      instances: gameState.mapInstanceWorldState.setNpcPoses(instance, logicalPoses), instance: instance,
+      movingPlatformWorldState: movingPlatformWorldState,
+      movingPropWorldState: movingPropWorldState,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
+    );
+    var result = GameplayWorldState.initial(map: positioned, project: project,
       gameState: gameState, movingPlatformWorldState: movingPlatformWorldState,
       movingPropWorldState: movingPropWorldState, movingPropPositions: movingPropPositions,
       playerPos: player.pos, tileWidth: _tileWidth, tileHeight: _tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
       mapEntityPresencePredicate: mapEntityPresencePredicate).withPlayer(player);
+    for (final entity in result.map.entities) {
+      final facing = logicalPoses[entity.id]?.facing ?? currentById[entity.id]?.npc?.facing;
+      if (entity.kind == MapEntityKind.npc && entity.npc != null && facing != null) {
+        result = result.withEntityFacing(entity.id, facing);
+      }
+    }
+    return result;
   }
 
   GameplayWorldState withEntityFacing(String entityId, EntityFacing facing) {

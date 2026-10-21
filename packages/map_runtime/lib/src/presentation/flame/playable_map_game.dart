@@ -4063,6 +4063,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final authored = (_runtimeBundleByMapId[mapId] ?? _bundle).map;
     final initial = {for (final entity in authored.entities) entity.id: entity};
     return state.setNpcPoses(instance, {
+      for (final entry in state.instancesByMapId[mapId]!.npcPoses.entries)
+        if (!_world.map.entities.any((entity) => entity.id == entry.key &&
+            entity.kind == MapEntityKind.npc && entity.npc != null))
+          entry.key: entry.value,
       for (final entity in _world.map.entities)
         if (entity.kind == MapEntityKind.npc && entity.npc != null &&
             (initial[entity.id]?.pos != entity.pos ||

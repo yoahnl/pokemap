@@ -151,6 +151,26 @@ final class SceneActions {
     'outputPorts': ['completed', 'cancelled'],
   };
 
+  static const _setNpcPoseContract = {
+    'consequenceKind': 'setNpcPose',
+    'parameters': ['mapId', 'entityId', 'x', 'y', 'facing?'],
+    'target': 'validatedHiddenNpcPresentationOwner',
+    'coordinates': 'absoluteInBoundsGridPosition',
+    'facing': 'optionalCardinalOtherwisePreserved',
+    'persistence': 'canonicalCurrentMapInstanceNpcPose',
+    'visibleNpc': 'refused',
+    'staleInstance': 'refused',
+  };
+  static const _markPokemonSeenContract = {
+    'consequenceKind': 'markPokemonSeen',
+    'parameters': ['speciesId'],
+    'validation': 'nonemptySpeciesIdAndActiveNativePokemonCatalog',
+    'pokedex': 'seenOnly',
+    'partyAndStorage': 'unchanged',
+    'caught': 'unchanged',
+    'persistence': 'canonicalGameStateCheckpoint',
+    'idempotent': true,
+  };
   static const _givePokemonFromCatalogContract = {
     'consequenceKind': 'givePokemonFromCatalog',
     'parameters': ['speciesId', 'formId', 'level', 'moveIds'],
@@ -394,6 +414,8 @@ final class SceneActions {
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'setPlayerAvatar': _setPlayerAvatarContract,
+        'markPokemonSeen': _markPokemonSeenContract,
+        'setNpcPose': _setNpcPoseContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
@@ -516,6 +538,8 @@ final class SceneActions {
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'setPlayerAvatar': _setPlayerAvatarContract,
+        'markPokemonSeen': _markPokemonSeenContract,
+        'setNpcPose': _setNpcPoseContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
         'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,

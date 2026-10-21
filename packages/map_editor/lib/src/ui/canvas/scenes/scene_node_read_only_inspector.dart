@@ -1515,6 +1515,12 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           )
         else if (consequence is SceneGiveMoneyConsequence)
           ..._moneyRows(context, consequence)
+        else if (consequence is SceneMarkPokemonSeenConsequence) ...[
+          const _InspectorRow(label: 'Type', value: 'Marquer un Pokémon comme vu'),
+          _InspectorRow(label: 'Pokémon', value: _catalogOptionFor(catalogs.species, consequence.speciesId)?.label ?? 'Espèce locale indisponible'),
+          const _InspectorNote(label: 'Conservé dans le Pokédex, sans capture ni ajout à l’équipe.'),
+          _gameplayEditButton(context, consequence, enabled: catalogs.species.options.isNotEmpty),
+        ]
         else if (consequence is SceneGivePokemonConsequence)
           ..._pokemonRows(context, consequence)
         else if (consequence is SceneGivePokemonFromCatalogConsequence)
@@ -2122,6 +2128,7 @@ class _GameplayConsequenceEditSheetState
       _ => null,
     };
     final initialSpeciesId = switch (consequence) {
+      SceneMarkPokemonSeenConsequence(:final speciesId) => speciesId,
       SceneGivePokemonConsequence(:final speciesId) => speciesId,
       SceneGivePokemonFromCatalogConsequence(:final speciesId) => speciesId,
       _ => null,
@@ -2288,6 +2295,15 @@ class _GameplayConsequenceEditSheetState
         ),
       ];
     }
+    if (consequence is SceneMarkPokemonSeenConsequence) {
+      return [PokeMapDropdownField<String>(
+        key: const ValueKey('scene-seen-pokemon-species-picker'),
+        label: 'Pokémon vu', value: _selectedSpeciesId ?? '',
+        items: [for (final option in widget.catalogs.species.options) PokeMapDropdownItem(value: option.id, label: option.label)],
+        enabled: widget.catalogs.species.options.isNotEmpty,
+        onChanged: (value) => setState(() { _selectedSpeciesId = value; }),
+      )];
+    }
     if (consequence is SceneGivePokemonConsequence || consequence is SceneGivePokemonFromCatalogConsequence) {
       final catalogGift = consequence is SceneGivePokemonFromCatalogConsequence;
       final level = int.tryParse(_levelController.text.trim());
@@ -2442,6 +2458,8 @@ class _GameplayConsequenceEditSheetState
                 label: label,
                 notes: notes,
               ),
+      SceneMarkPokemonSeenConsequence(:final label, :final notes) =>
+        _selectedSpeciesId == null ? null : SceneConsequence.markPokemonSeen(speciesId: _selectedSpeciesId!, label: label, notes: notes),
       SceneGivePokemonConsequence(
         :final natureId,
         :final abilityId,
@@ -3721,6 +3739,9 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
       const _InspectorRow(label: 'consequence', value: 'Donner de l’argent'),
       _InspectorRow(label: 'montant', value: '${consequence.amount}'),
     ];
+  }
+  if (consequence is SceneMarkPokemonSeenConsequence) {
+    return [const _InspectorRow(label: 'consequence', value: 'Marquer un Pokémon comme vu'), _InspectorRow(label: 'espèce', value: consequence.speciesId)];
   }
   if (consequence is SceneGivePokemonConsequence) {
     return [

@@ -98,6 +98,8 @@ MapData applyNpcInstancePosesToMap({
                   authored[entity.id]!.npc?.facing ??
                   entity.npc!.facing),
         )
+      else if (entity.kind == MapEntityKind.custom && variantOwners.containsKey(entity.id))
+        entity.copyWith(pos: saved[entity.id]!.position)
       else
         entity,
   ]);

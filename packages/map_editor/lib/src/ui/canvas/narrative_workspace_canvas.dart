@@ -5079,6 +5079,12 @@ _buildSceneActionPickerOptions(
         SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}',
             label: '${activeMap.name} · Plateforme ${activeMap.movingPlatforms.indexOf(platform) + 1}'),
     ],
+    NarrativeCommandParameterKind.mapEntityReference: [
+      for (final map in activeMap == null ? const <MapData>[] : [activeMap])
+        for (final entity in map.entities)
+          if (entity.presentation?.variants.any((variant) => variant.characterId != null) ?? false)
+            SceneActionPickerOption(id: '${map.id}::${entity.id}', label: '${map.name} · ${entity.inspectorHeadline}'),
+    ],
     NarrativeCommandParameterKind.npc: [
       for (final entity in activeMap?.entities ?? const <MapEntity>[])
         if (entity.kind == MapEntityKind.npc)

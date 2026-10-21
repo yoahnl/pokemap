@@ -92,8 +92,42 @@ void main() {
         instances: fixture.instances);
     expect(result.entities.single.kind, MapEntityKind.custom);
     expect(result.entities.single.npc, isNull);
-    expect(result.entities.single.pos, const GridPos(x: 1, y: 1));
+    expect(result.entities.single.pos, const GridPos(x: 3, y: 3));
     expect(fixture.instances.instancesByMapId['room']!.npcPoses, hasLength(1));
+  });
+
+  test('logical hidden pose survives live presentation activation and deactivation', () {
+    final fixture = variantFixture();
+    final hiddenState = GameState(saveId: 'pose', mapInstanceWorldState: fixture.instances);
+    final hidden = GameplayWorldState.initial(map: fixture.map, project: fixture.project,
+      gameState: hiddenState, playerPos: const GridPos(x: 0, y: 0));
+    final movedHidden = hidden.withEntityPresentations(project: fixture.project,
+      gameState: hiddenState, sourceMap: fixture.map);
+    expect(movedHidden.map.entities.single.kind, MapEntityKind.custom);
+    expect(movedHidden.map.entities.single.pos, const GridPos(x: 3, y: 3));
+    final activeState = hiddenState.copyWith(storyFlags: const StoryFlags(activeFlags: {'closed'}));
+    final active = movedHidden.withEntityPresentations(project: fixture.project,
+      gameState: activeState, sourceMap: fixture.map);
+    expect(active.map.entities.single.kind, MapEntityKind.npc);
+    expect(active.map.entities.single.pos, const GridPos(x: 3, y: 3));
+    expect(active.map.entities.single.npc!.facing, EntityFacing.east);
+    final hiddenAgain = active.withEntityPresentations(project: fixture.project,
+      gameState: GameState.fromJson(hiddenState.toJson()), sourceMap: fixture.map);
+    expect(hiddenAgain.map.entities.single.kind, MapEntityKind.custom);
+    expect(hiddenAgain.map.entities.single.pos, const GridPos(x: 3, y: 3));
+  });
+
+  test('presentation refresh preserves an active route over its older saved pose', () {
+    final fixture = variantFixture();
+    final state = GameState(saveId: 'route', mapInstanceWorldState: fixture.instances,
+      storyFlags: const StoryFlags(activeFlags: {'closed'}));
+    final world = GameplayWorldState.initial(map: fixture.map, project: fixture.project,
+      gameState: state, playerPos: const GridPos(x: 0, y: 0))
+      .withEntityPosition('wall', const GridPos(x: 4, y: 3))
+      .withEntityFacing('wall', EntityFacing.west);
+    final refreshed = world.withEntityPresentations(project: fixture.project, gameState: state, sourceMap: fixture.map);
+    expect(refreshed.map.entities.single.pos, const GridPos(x: 4, y: 3));
+    expect(refreshed.map.entities.single.npc!.facing, EntityFacing.west);
   });
 
   for (final invalid in [

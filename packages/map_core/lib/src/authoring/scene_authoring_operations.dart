@@ -2042,6 +2042,8 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
           'giveMoney consequence requires a positive amount.',
         );
       }
+    case SceneMarkPokemonSeenConsequence():
+      _trimRequired(consequence.speciesId, 'consequence.speciesId', 'markPokemonSeen requires a species id.');
     case SceneGivePokemonConsequence():
       _trimRequired(
         consequence.speciesId,
@@ -2088,6 +2090,12 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'consequence.starterOptionId',
         'giveConfiguredStarter consequence requires a New Game starter option.',
       );
+    case SceneSetNpcPoseConsequence():
+      _trimRequired(consequence.mapId, 'consequence.mapId', 'setNpcPose requires a map id.');
+      _trimRequired(consequence.entityId, 'consequence.entityId', 'setNpcPose requires an actor id.');
+      if (consequence.x < 0 || consequence.y < 0 || consequence.x > 65535 || consequence.y > 65535) {
+        throw ArgumentError.value(consequence, 'consequence', 'Invalid NPC pose coordinates.');
+      }
     case SceneSetNpcPresenceConsequence():
       _trimRequired(
         consequence.mapId,
@@ -2785,9 +2793,11 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneGiveItemConsequence() => 'Donner un objet',
     SceneTakeItemConsequence() => 'Retirer un objet',
     SceneGiveMoneyConsequence() => 'Donner de l’argent',
+    SceneMarkPokemonSeenConsequence() => 'Marquer un Pokémon comme vu',
     SceneGivePokemonConsequence() => 'Donner un Pokémon',
     SceneGivePokemonFromCatalogConsequence() => 'Donner un Pokémon du catalogue',
     SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
+    SceneSetNpcPoseConsequence() => 'Placer un PNJ masqué',
     SceneSetNpcPresenceConsequence() => 'Modifier la présence d’un PNJ',
     SceneSetPlayerAvatarConsequence() => 'Changer l’avatar du joueur',
     SceneSetPauseMenuEntryVisibilityConsequence() =>

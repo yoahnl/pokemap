@@ -218,13 +218,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
               (_is2DPresentationCommand(command.id) ||
                   command.id == NarrativeCommandIds.warp ||
                   command.id == NarrativeCommandIds.setPlayerAvatar ||
+                  command.id == NarrativeCommandIds.markPokemonSeen ||
+                  command.id == NarrativeCommandIds.setNpcPose ||
                   command.id == NarrativeCommandIds.adjustIntegerFact ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? textFact ? textFactValue : command.id == NarrativeCommandIds.warp && presentation is Map
               ? parameter.id == 'presentationMode' ? presentation['mode']
                   : data[parameter.id] ?? presentation[parameter.id]
-              : data[parameter.id]
+              : command.id == NarrativeCommandIds.setNpcPose && parameter.id == 'npcRef'
+                ? '${data['mapId']}::${data['entityId']}'
+                : command.id == NarrativeCommandIds.setNpcPose && parameter.id == 'facing' ? data['facing'] ?? '' : data[parameter.id]
           : null;
       final initial =
           widget.initialParameters[parameter.id] ??
@@ -267,7 +271,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         default:
           final options = _optionsFor(parameter.kind);
           final strictWarpOption = command.id == NarrativeCommandIds.warp &&
-              (parameter.id == 'arrivalFacing' || parameter.id == 'transition');
+              (parameter.id == 'arrivalFacing' || parameter.id == 'transition') ||
+              command.id == NarrativeCommandIds.setNpcPose && parameter.id == 'facing';
           if (initial != null &&
               (initial.trim().isNotEmpty || strictWarpOption && initial.isNotEmpty)) {
             _values[parameter.id] = strictWarpOption ? initial : initial.trim();
@@ -298,7 +303,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _giftMovesValid = false;
     }
     if ((_isGift || _commandId == NarrativeCommandIds.setPlayerAvatar ||
-        _commandId == NarrativeCommandIds.adjustIntegerFact) &&
+        _commandId == NarrativeCommandIds.adjustIntegerFact ||
+        _commandId == NarrativeCommandIds.markPokemonSeen || _commandId == NarrativeCommandIds.setNpcPose) &&
         oldWidget.initialPayload != widget.initialPayload) {
       _seedParameterValues(_command);
     }
@@ -1059,7 +1065,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ),
       ],
       NarrativeCommandParameterKind.characterDirection => [
-        if (_command.id == NarrativeCommandIds.warp)
+        if (_command.id == NarrativeCommandIds.warp || _command.id == NarrativeCommandIds.setNpcPose)
           const SceneActionPickerOption(
             id: '',
             label: 'Conserver la direction',

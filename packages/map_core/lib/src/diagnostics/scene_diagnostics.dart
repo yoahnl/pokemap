@@ -7,6 +7,8 @@ import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/cinematic_media_asset.dart';
 import '../models/map_data.dart';
+import '../models/map_entity_presentation.dart';
+import '../projection/map_entity_presentation_projection.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
@@ -1157,6 +1159,8 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneSetNpcPoseConsequence():
+      break;
     case SceneSetNpcPresenceConsequence():
       if (consequence.mapId.trim().isEmpty ||
           consequence.entityId.trim().isEmpty) {
@@ -1290,6 +1294,11 @@ void _diagnoseActionConsequenceAgainstProject(
         suggestedFixLabel: 'Choisir un Fact texte existant.',
       ));
     }
+  }
+  if (catalogConsequence is SceneMarkPokemonSeenConsequence && !project.pokemon.enabled) {
+    diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandPokemonCatalogUnavailable, severity: SceneDiagnosticSeverity.error,
+      message: 'Marquer une espèce comme vue nécessite le catalogue Pokémon natif activé.', sceneId: scene.id, nodeId: node.id,
+      target: SceneDiagnosticTarget.node, suggestedFixLabel: 'Activer le catalogue Pokémon du projet.'));
   }
   if (interactiveCommand case SceneGiveItemInteractiveCommand(:final itemId)) {
     _diagnoseItemReference(
@@ -1843,6 +1852,23 @@ void _diagnoseActionConsequenceAgainstProject(
             suggestedFixLabel: 'Choisir un badge existant dans le projet.',
           ),
         );
+      }
+    case SceneSetNpcPoseConsequence():
+      final targetMap = mapsById[consequence.mapId];
+      final owners = targetMap?.entities.where((entity) => entity.id == consequence.entityId).toList() ?? const <MapEntity>[];
+      final owner = owners.length == 1 ? owners.single : null;
+      final variants = owner?.presentation?.variants.where((variant) => variant.characterId != null).toList() ?? const <MapEntityPresentationVariant>[];
+      if (targetMap == null || owner == null || targetMap.version == ProjectVersion.v9 ||
+          targetMap.spatialScene != null || variants.isEmpty ||
+          validateMapEntityPresentation(project: project, map: targetMap, entity: owner).isNotEmpty ||
+          consequence.x + owner.size.width > targetMap.size.width ||
+          consequence.y + owner.size.height > targetMap.size.height ||
+          variants.any((variant) => consequence.x + variant.size.width > targetMap.size.width || consequence.y + variant.size.height > targetMap.size.height)) {
+        diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.consequenceUnknownNpc,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'La position doit cibler un PNJ à variantes valide et rester dans la carte.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un PNJ à variantes et une position dans la carte.'));
       }
     case SceneSetNpcPresenceConsequence():
       if (consequence.mapId.trim().isEmpty ||

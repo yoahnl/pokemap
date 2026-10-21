@@ -240,6 +240,8 @@ final class SceneConsequenceRuntimeWriter {
           consequence as SceneGivePokemonConsequence,
           pokemonGrantOperationId,
         ),
+      SceneConsequenceKind.setNpcPose => _applySetNpcPose(gameState, consequence as SceneSetNpcPoseConsequence),
+      SceneConsequenceKind.markPokemonSeen => _applyMarkPokemonSeen(gameState, consequence as SceneMarkPokemonSeenConsequence),
       SceneConsequenceKind.givePokemonFromCatalog => _applyCatalogPokemon(
           gameState,
           consequence as SceneGivePokemonFromCatalogConsequence,
@@ -719,6 +721,40 @@ final class SceneConsequenceRuntimeWriter {
         pokemon: unresolvedPokemon,
       ),
     );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applySetNpcPose(GameState gameState, SceneSetNpcPoseConsequence consequence) {
+    final map = mapsById[consequence.mapId];
+    final owner = map?.entities.where((e) => e.id == consequence.entityId).singleOrNull;
+    final scope = mapInstanceScopes[consequence.mapId];
+    if (map == null || map.version == ProjectVersion.v9 || map.spatialScene != null || owner == null ||
+        project.maps.where((m) => m.id == map.id).length != 1 || owner.presentation == null ||
+        !owner.presentation!.variants.any((v) => v.characterId != null) ||
+        validateMapEntityPresentation(project: project, map: map, entity: owner).isNotEmpty ||
+        consequence.x + owner.size.width > map.size.width || consequence.y + owner.size.height > map.size.height ||
+        owner.presentation!.variants.any((v) => consequence.x + v.size.width > map.size.width || consequence.y + v.size.height > map.size.height)) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'NPC placement requires a declared two-dimensional presentation owner and bounded cell.');
+    }
+    final variant = resolveMapEntityPresentation(project: project, gameState: gameState, map: map, entity: owner);
+    if (variant == null || variant.characterId != null) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'Logical NPC placement requires its current presentation to be hidden.');
+    }
+    if (scope == null || gameState.mapInstanceWorldState.instanceRef(map.id) != scope) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.staleMapInstanceScope, 'NPC placement requires the captured current map instance.');
+    }
+    final poses = gameState.mapInstanceWorldState.instancesByMapId[map.id]!.npcPoses;
+    final facing = consequence.facing ?? poses[owner.id]?.facing ?? owner.npc?.facing ??
+        owner.presentation!.variants.firstWhere((v) => v.characterId != null).facing;
+    final next = gameState.mapInstanceWorldState.setNpcPoses(scope, {...poses,
+      owner.id: MapInstanceNpcPose(position: GridPos(x: consequence.x, y: consequence.y), facing: facing)});
+    return _SceneConsequenceRuntimeWriteStep.applied(gameState.copyWith(mapInstanceWorldState: next));
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyMarkPokemonSeen(GameState gameState, SceneMarkPokemonSeenConsequence consequence) {
+    if (!project.pokemon.enabled || pokemonCatalog?.entries.containsKey(consequence.speciesId) != true) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition, 'Seen species requires an available active native Pokemon catalog entry.');
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(markSpeciesSeenInGameState(gameState, consequence.speciesId));
   }
 
   _SceneConsequenceRuntimeWriteStep _applyCatalogPokemon(

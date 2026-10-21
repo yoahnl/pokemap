@@ -93,6 +93,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         _catalogGiftParameters(commandId, parameters),
       ),
     ),
+    NarrativeCommandIds.markPokemonSeen => SceneActionPayload.consequence(SceneConsequence.markPokemonSeen(speciesId: parameters['speciesId']!)),
     NarrativeCommandIds.givePokemonFromCatalog => SceneActionPayload.consequence(
       SceneGivePokemonFromCatalogConsequence.fromJson(
         _catalogGiftParameters(commandId, parameters),
@@ -116,6 +117,15 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     ),
     NarrativeCommandIds.finishGame => SceneActionPayload.consequence(
       _buildFinishGameConsequence(parameters),
+    ),
+    NarrativeCommandIds.setNpcPose => SceneActionPayload.consequence(
+      switch (_parseNpcRef(parameters['npcRef'])) {
+        (final mapId, final entityId) => SceneConsequence.setNpcPose(
+          mapId: mapId, entityId: entityId,
+          x: int.parse(parameters['x']!), y: int.parse(parameters['y']!),
+          facing: parameters['facing']?.isNotEmpty == true ? EntityFacing.values.byName(parameters['facing']!) : null,
+        ),
+      },
     ),
     NarrativeCommandIds.setNpcPresence => SceneActionPayload.consequence(
       switch (_parseNpcRef(parameters['npcRef'])) {

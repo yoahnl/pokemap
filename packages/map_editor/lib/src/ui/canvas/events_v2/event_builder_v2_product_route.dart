@@ -2128,6 +2128,12 @@ buildEventBuilderV2TemplateActionPickerOptions({
           SceneActionPickerOption(id: '${map.id}::${platform.id}',
               label: '${map.name} · Plateforme ${map.movingPlatforms.indexOf(platform) + 1}'),
     ],
+    NarrativeCommandParameterKind.mapEntityReference: [
+      for (final map in maps)
+        for (final entity in map.entities)
+          if (entity.presentation?.variants.any((variant) => variant.characterId != null) ?? false)
+            SceneActionPickerOption(id: '${map.id}::${entity.id}', label: '${map.name} · ${entity.inspectorHeadline}'),
+    ],
     NarrativeCommandParameterKind.npc: [
       for (final map in maps)
         for (final entity in map.entities)

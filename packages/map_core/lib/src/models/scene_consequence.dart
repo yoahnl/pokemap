@@ -19,6 +19,8 @@ enum SceneConsequenceKind {
   grantRailStamp,
   givePokemon,
   givePokemonFromCatalog,
+  markPokemonSeen,
+  setNpcPose,
   giveConfiguredStarter,
   healParty,
   awardBadge,
@@ -110,6 +112,14 @@ abstract base class SceneConsequence {
     String? label,
     String? notes,
   }) = SceneGrantRailStampConsequence;
+
+  factory SceneConsequence.setNpcPose({required String mapId, required String entityId, required int x, required int y, EntityFacing? facing}) = SceneSetNpcPoseConsequence;
+
+  factory SceneConsequence.markPokemonSeen({
+    required String speciesId,
+    String? label,
+    String? notes,
+  }) = SceneMarkPokemonSeenConsequence;
 
   factory SceneConsequence.givePokemon({
     required String speciesId,
@@ -209,6 +219,9 @@ abstract base class SceneConsequence {
         SceneGrantRailStampConsequence.fromJson(json),
       SceneConsequenceKind.givePokemon =>
         SceneGivePokemonConsequence.fromJson(json),
+      SceneConsequenceKind.setNpcPose => SceneSetNpcPoseConsequence.fromJson(json),
+      SceneConsequenceKind.markPokemonSeen =>
+        SceneMarkPokemonSeenConsequence.fromJson(json),
       SceneConsequenceKind.givePokemonFromCatalog =>
         SceneGivePokemonFromCatalogConsequence.fromJson(json),
       SceneConsequenceKind.giveConfiguredStarter =>
@@ -1051,6 +1064,77 @@ final class SceneHealPartyConsequence extends SceneConsequence {
 }
 
 @immutable
+final class SceneSetNpcPoseConsequence extends SceneConsequence {
+  SceneSetNpcPoseConsequence({required String mapId, required String entityId, required int x, required int y, this.facing})
+      : mapId = _sceneNonemptyIdentity(mapId), entityId = _sceneNonemptyIdentity(entityId), x = _npcPoseCoordinate(x), y = _npcPoseCoordinate(y);
+  factory SceneSetNpcPoseConsequence.fromJson(Map<String, dynamic> json) => SceneSetNpcPoseConsequence(
+      mapId: _readRequiredString(json, 'mapId'), entityId: _readRequiredString(json, 'entityId'),
+      x: _readRequiredInt(json, 'x'), y: _readRequiredInt(json, 'y'),
+      facing: json['facing'] == null ? null : EntityFacing.values.where((v) => v.name == json['facing']).singleOrNull ?? (throw const FormatException('NPC pose facing must be cardinal.')));
+  final String mapId, entityId;
+  final int x, y;
+  final EntityFacing? facing;
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.setNpcPose;
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({'kind': _kindToJson(kind), 'mapId': mapId, 'entityId': entityId, 'x': x, 'y': y, 'facing': facing?.name});
+  @override
+  bool operator ==(Object other) => identical(this, other) || other is SceneSetNpcPoseConsequence && other.mapId == mapId && other.entityId == entityId && other.x == x && other.y == y && other.facing == facing;
+  @override
+  int get hashCode => Object.hash(mapId, entityId, x, y, facing);
+}
+
+int _npcPoseCoordinate(int value) {
+  if (value < 0 || value > 65535) throw const FormatException('NPC pose coordinates must be bounded nonnegative cells.');
+  return value;
+}
+
+@immutable
+final class SceneMarkPokemonSeenConsequence extends SceneConsequence {
+  SceneMarkPokemonSeenConsequence({
+    required String speciesId,
+    String? label,
+    String? notes,
+  }) : speciesId = _sceneNonemptyIdentity(speciesId),
+       label = _trimOptional(label),
+       notes = _trimOptional(notes);
+  factory SceneMarkPokemonSeenConsequence.fromJson(Map<String, dynamic> json) =>
+      SceneMarkPokemonSeenConsequence(
+        speciesId: _readRequiredString(json, 'speciesId'),
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+  final String speciesId;
+  final String? label, notes;
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.markPokemonSeen;
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+    'kind': _kindToJson(kind),
+    'speciesId': speciesId,
+    'label': label,
+    'notes': notes,
+  });
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneMarkPokemonSeenConsequence &&
+          other.speciesId == speciesId &&
+          other.label == label &&
+          other.notes == notes;
+  @override
+  int get hashCode => Object.hash(speciesId, label, notes);
+}
+
+String _sceneNonemptyIdentity(String value) {
+  final id = value.trim();
+  if (id.isEmpty) {
+    throw const FormatException('Scene identities must not be empty.');
+  }
+  return id;
+}
+
+@immutable
 final class SceneAwardBadgeConsequence extends SceneConsequence {
   SceneAwardBadgeConsequence({
     required String badgeId,
@@ -1504,6 +1588,8 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.grantRailCurrency => 'grantRailCurrency',
     SceneConsequenceKind.grantRailStamp => 'grantRailStamp',
     SceneConsequenceKind.givePokemon => 'givePokemon',
+    SceneConsequenceKind.setNpcPose => 'setNpcPose',
+    SceneConsequenceKind.markPokemonSeen => 'markPokemonSeen',
     SceneConsequenceKind.givePokemonFromCatalog => 'givePokemonFromCatalog',
     SceneConsequenceKind.giveConfiguredStarter => 'giveConfiguredStarter',
     SceneConsequenceKind.healParty => 'healParty',

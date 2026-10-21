@@ -24,6 +24,8 @@ void main() {
       NarrativeCommandIds.grantRailCurrency,
       NarrativeCommandIds.grantRailStamp,
       NarrativeCommandIds.givePokemon,
+      NarrativeCommandIds.markPokemonSeen,
+    NarrativeCommandIds.setNpcPose,
       NarrativeCommandIds.givePokemonFromCatalog,
       NarrativeCommandIds.receivePokemonFromCatalog,
       NarrativeCommandIds.giveConfiguredStarter,

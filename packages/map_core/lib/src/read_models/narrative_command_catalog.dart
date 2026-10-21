@@ -16,6 +16,8 @@ abstract final class NarrativeCommandIds {
   static const grantRailCurrency = 'grantRailCurrency';
   static const grantRailStamp = 'grantRailStamp';
   static const givePokemon = 'givePokemon';
+  static const markPokemonSeen = 'markPokemonSeen';
+  static const setNpcPose = 'setNpcPose';
   static const givePokemonFromCatalog = 'givePokemonFromCatalog';
   static const receivePokemonFromCatalog = 'receivePokemonFromCatalog';
   static const giveConfiguredStarter = 'giveConfiguredStarter';
@@ -317,6 +319,9 @@ final class NarrativeCommandCatalog {
         ],
         isPersistent: true,
       ),
+      consequence(NarrativeCommandIds.markPokemonSeen, 'Marquer un Pokémon comme vu', 'FG-161', [
+        _parameter('speciesId', 'Espèce', NarrativeCommandParameterKind.species),
+      ]),
       consequence(
         NarrativeCommandIds.givePokemonFromCatalog,
         'Donner un Pokémon du catalogue',
@@ -440,6 +445,12 @@ final class NarrativeCommandCatalog {
         ],
         isPersistent: true,
       ),
+      consequence(NarrativeCommandIds.setNpcPose, 'Placer un PNJ masqué', 'FG-092', [
+        _parameter('npcRef', 'PNJ à variantes', NarrativeCommandParameterKind.mapEntityReference),
+        _parameter('x', 'Colonne', NarrativeCommandParameterKind.integer),
+        _parameter('y', 'Ligne', NarrativeCommandParameterKind.integer),
+        _parameter('facing', 'Direction', NarrativeCommandParameterKind.characterDirection, required: false),
+      ]),
       consequence(
         NarrativeCommandIds.setNpcPresence,
         'Modifier la présence d’un PNJ',
