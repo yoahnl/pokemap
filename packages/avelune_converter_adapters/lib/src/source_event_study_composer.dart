@@ -28,6 +28,7 @@ import 'source_sequence_program.dart';
 import 'source_escort_program.dart';
 import 'source_actor_preparation_program.dart';
 import 'source_intro_binding.dart';
+import 'source_fresh_entry_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_character_presentation_binding.dart';
 import 'source_event_item_bindings.dart';
@@ -54,13 +55,14 @@ final class SourceEventStudyComposition {
       required this.projection,
       this.musicBindings = const {},
       this.sourceItems,
-      this.trainerQualification, this.pokemonGiftCatalog});
+      this.trainerQualification, this.pokemonGiftCatalog, this.freshEntry});
   final NativeProjectDraft draft;
   final SourceEventItemBindings? sourceItems;
   final SourceEventProjection projection;
   final Map<int, SourceMapMusicBinding> musicBindings;
   final NativeTrainerCatalogQualification? trainerQualification;
   final NativePsdkCatalog? pokemonGiftCatalog;
+  final SourceFreshEntryBinding? freshEntry;
 }
 
 final class SourceEventStudyComposer {
@@ -381,9 +383,9 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
       }
     }
-    final freshEntry = sourceFreshEntryProgram(source);
-    if (freshEntry != null) {
-      final program = freshEntry.intro;
+    final freshProgram = sourceFreshEntryProgram(source);
+    if (freshProgram != null) {
+      final program = freshProgram.intro;
       try {
         final binding = await const SourceEventSoundResolver().read(
             source: source, files: recording, name: program.music.name,
@@ -753,6 +755,9 @@ final class SourceEventStudyComposer {
     final admittedIdentities = (projection.semanticEvidence['events'] as List).cast<Map>()
         .where((row) => row['status'] == 'adaptedStaticSemantics')
         .map((row) => ConverterId(row['sourceIdentity'] as String)).toSet();
+    final freshEntry = await const SourceFreshEntryBindingResolver().read(
+        source: source, projection: projection, files: recording,
+        limits: limits, cancellation: cancellation);
     final usedPortraits = portraitBindings.entries
         .where((entry) => admittedIdentities.contains(entry.key))
         .map((entry) => entry.value)
@@ -1016,6 +1021,7 @@ final class SourceEventStudyComposer {
         ...usedTownMap.map((b) => b.artifact),
         if (usedFieldObstacles != null) ...usedFieldObstacles.artifacts,
         ...characterArtifacts,
+        ...?freshEntry?.artifacts,
         ...usedPortraits.expand((portrait) => portrait.artifacts),
         ...usedHealingDisplay.expand((b) => b.artifacts),
         if (usedExternalWarps != null) ...usedExternalWarps.artifacts,
@@ -1044,6 +1050,7 @@ final class SourceEventStudyComposer {
     for (final entry in [
       if (usedExternalWarps != null) ...usedExternalWarps.mutations,
       ...characterMutations,
+      ...?freshEntry?.importMutations,
       ...usedPortraits.expand((portrait) => portrait.mutations),
       ...usedHealingDisplay.expand((b) => b.mutations),
       if (usedFieldObstacles != null) ...usedFieldObstacles.mutations,
@@ -1107,6 +1114,7 @@ final class SourceEventStudyComposer {
       'characters': characterEvidence,
       'escortBindings': escortEvidence,
       'textVariablePrograms': [for (final entry in textVariablePrograms.entries) entry.value.toJson()],
+      if (freshEntry != null) 'freshEntry': freshEntry.evidence,
       'decorativePokemonBindings': decorativePokemonEvidence,
       'portraitBindings': [
         ...portraitEvidence,
@@ -1164,12 +1172,13 @@ final class SourceEventStudyComposer {
       'automatic': true,
       'aiCalls': 0,
       'playableCertified': false,
-      'operationIds': [...importedMutations, ...grouped.mutations]
+      'operationIds': [...importedMutations, ...grouped.mutations, ...?freshEntry?.mutations]
           .map((entry) => entry.operationId.value)
           .toList(),
     };
     return SourceEventStudyComposition(
         sourceItems: items,
+        freshEntry: freshEntry,
         projection: projection,
         musicBindings: Map.unmodifiable(musicBindings),
         trainerQualification: trainerBindings.qualification,
@@ -1196,6 +1205,7 @@ final class SourceEventStudyComposer {
               ...base.mutations.where((entry) => entry.actionId == 'gameplay_zone.create'),
               ...base.mutations.where((entry) => entry.actionId.startsWith('border_layer.')),
               ...grouped.mutations,
+              ...?freshEntry?.mutations,
             ],
             compositionEvidence: {
               ...base.compositionEvidence,

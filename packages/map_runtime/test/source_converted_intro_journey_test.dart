@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as path;
 
@@ -15,6 +16,8 @@ void main() {
   setUp(_installHeadlessAudio);
   final root = Platform.environment['AVELUNE_INTRO_PROJECT'];
   final output = Platform.environment['AVELUNE_INTRO_RECEIPT'];
+  final genuineNewGame =
+      Platform.environment['AVELUNE_INTRO_GENUINE_NEW_GAME'] == '1';
   for (final variant in ['preset', 'custom', 'cancel']) {
     testWidgets(
       'converted Intro $variant uses empty party and transactional native name input',
@@ -55,15 +58,19 @@ void main() {
           final home = manifest.maps.singleWhere(
             (map) => map.name.endsWith("PN's House"),
           );
-          final initial = GameState(
-            saveId: 'isolated-converted-intro-$variant',
-            currentMapId: intro.id,
-            playerPosition: const GridPos(x: 0, y: 0),
-            trainerProfile: const TrainerProfile(name: 'Isolated Intro QA'),
-            narrativeFactRuntimeState: NarrativeFactRuntimeState(
-              overridesByFactId: {fresh.id: true},
-            ),
-          );
+          final initial = genuineNewGame
+              ? await _nativeFreshGame(projectFile, variant)
+              : GameState(
+                  saveId: 'isolated-converted-intro-$variant',
+                  currentMapId: intro.id,
+                  playerPosition: const GridPos(x: 0, y: 0),
+                  trainerProfile: const TrainerProfile(
+                    name: 'Isolated Intro QA',
+                  ),
+                  narrativeFactRuntimeState: NarrativeFactRuntimeState(
+                    overridesByFactId: {fresh.id: true},
+                  ),
+                );
           expect(initial.party.members, isEmpty);
           expect(initial.pokemonStorage, const PokemonStorage());
           final hashes = await _hashProject(root);
@@ -322,7 +329,8 @@ void main() {
               'candidateRejectedBeforeConfirmation': rejectedCandidate,
               'actualNativeModalController': true,
               'partyInjected': false,
-              'freshAuthorizationFactSeededForIsolatedQa': true,
+              'freshAuthorizationFactSeededForIsolatedQa': !genuineNewGame,
+              'nativeNewGameFlowWithIdentityScene': genuineNewGame,
               'campaignNewGameFactoryQualified': false,
               'sourceScriptsExecuted': false,
               'aiCalls': 0,
@@ -347,6 +355,102 @@ void main() {
       skip: root == null,
       timeout: const Timeout(Duration(minutes: 3)),
     );
+  }
+}
+
+Future<GameState> _nativeFreshGame(String projectFile, String variant) async {
+  final flow = RuntimeProjectNewGameFlowPort(
+    projectFilePath: () async => projectFile,
+    initialMapPreloader: RuntimeInitialMapPreloader(
+      projectFilePath: () async => projectFile,
+      loadSave: (_) async => null,
+      tilesetImageLoader: (
+        paths, {
+        transparentColorByTilesetId = const {},
+        onProgress,
+      }) async => {},
+    ),
+  );
+  final port = HeadlessSceneInteractionPort();
+  final identities = <SceneInteractionRequest>[];
+  final subscription = port.requests.listen((request) {
+    identities.add(request);
+    final SceneInteractionResult result;
+    if (request is SceneTextInteractionRequest) {
+      result = SceneInteractionResult.textSubmitted(
+        requestId: request.requestId,
+        revision: request.revision,
+        value: 'Yoahn',
+      );
+    } else if (request is SceneSelectionInteractionRequest) {
+      result = SceneInteractionResult.selectionSubmitted(
+        requestId: request.requestId,
+        revision: request.revision,
+        selectedOptionIds: [
+          variant == 'custom'
+              ? request.options.last.id
+              : request.options.first.id,
+        ],
+      );
+    } else {
+      throw StateError(
+        'The source identity Scene requested an unexpected interaction.',
+      );
+    }
+    expect(port.resolve(result).isAccepted, isTrue);
+  });
+  try {
+    final preparation = await flow.prepare();
+    expect(preparation.project.newGame.enabled, isTrue);
+    expect(preparation.project.newGame.initialParty, isEmpty);
+    expect(preparation.project.newGame.starterOptions, isEmpty);
+    final runner = preparation.preSessionRunner;
+    expect(runner, isNotNull);
+    final draft = await runner!.run(
+      runId: 'source-fresh-$variant',
+      draft: NewGameDraft.start(
+        draftId: 'source-fresh-$variant',
+        projectRevision: preparation.projectRevision,
+        slotId: 'slot1',
+        config: preparation.project.newGame,
+      ),
+      interactions: port,
+    );
+    expect(identities.whereType<SceneTextInteractionRequest>(), hasLength(1));
+    expect(
+      identities.whereType<SceneSelectionInteractionRequest>(),
+      hasLength(1),
+    );
+    expect(identities, hasLength(2));
+    final revision = await flow.readCurrentProjectRevision();
+    final committed = commitNewGameDraft(
+      journal: NewGameSeedCommitJournal.empty(),
+      operationId: 'source-fresh-$variant',
+      currentProjectRevision: revision,
+      expectedDraftRevision: draft.revision,
+      draft: draft,
+    );
+    expect(committed.status, NewGameSeedCommitStatus.committed);
+    final state = createNewGameStateFromSeed(
+      project: preparation.project,
+      startMap: preparation.startMap,
+      initialRecoveryMap: preparation.initialRecoveryMap,
+      seed: committed.seed!,
+      currentProjectRevision: revision,
+      tileWidthPx: preparation.project.settings.tileWidth,
+      tileHeightPx: preparation.project.settings.tileHeight,
+    );
+    expect(state.trainerProfile.name, 'Yoahn');
+    expect(state.party.members, isEmpty);
+    expect(
+      PlayerRecoveryPoint.tryRead(state)?.mapId,
+      preparation.initialRecoveryMap!.id,
+    );
+    return state;
+  } finally {
+    await subscription.cancel();
+    port.close();
+    flow.clear();
   }
 }
 

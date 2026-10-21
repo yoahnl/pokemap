@@ -101,9 +101,9 @@ final class SourceFreshEntryProgram {
             'x': startX,
             'y': startY,
             'facing': 'retainFreshPlayerDirection',
-            'nativeFallbackRequirement':
-                'newGameStartMapAndSpawnMustRemainSourceSystemStart',
-            'requiresUniqueNativeStartSpawn': true
+            'nativeBindingRequirement':
+                'typedInitialRecoveryPointRetainsSourceSystemStart',
+            'nativeEntryMayStartAtAttestedIntro': true
           },
           {
             'kind': 'setIntegerVariable',

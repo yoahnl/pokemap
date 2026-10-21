@@ -1391,6 +1391,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'fact.create',
           'fact.update',
           'entity.upsert',
+          'entity.create',
+          'campaign.new_game.update',
           'trigger.create',
           'warp.create',
           'dialogue.create',
@@ -1518,6 +1520,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final badges = <BadgeDefinition>[];
   final shops = <ShopDefinition>[];
   String? defaultPlayerCharacterId;
+  ProjectNewGameConfig? sourceNewGame;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
   final expandedMutations =
@@ -2367,6 +2370,25 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
                             customAnimationDefinitions)),
                 cinematic: cinematic)
             .cinematics;
+      case 'campaign.new_game.update':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'newGame'});
+        final fresh = semantics.events?.freshEntry;
+        if (fresh == null || sourceNewGame != null ||
+            canonicalJsonOf(parameters['newGame'], limits: limits.jsonLimits) !=
+                canonicalJsonOf(fresh.config.toJson(), limits: limits.jsonLimits)) {
+          throw const NativeWriteException('native.events.new_game',
+              'New game configuration requires its exact regenerated fresh source entry.');
+        }
+        sourceNewGame = fresh.config;
+      case 'entity.create':
+        semantics.requireOperation(mutation);
+        final fresh = semantics.events?.freshEntry;
+        if (fresh == null || !fresh.mutations.any((entry) =>
+            entry.operationId == mutation.operationId && entry.actionId == 'entity.create')) {
+          throw const NativeWriteException('native.events.new_game_spawn',
+              'A new game spawn requires its exact regenerated source entry.');
+        }
       case 'item.create':
       case 'fact.create':
       case 'fact.update':
@@ -2453,7 +2475,26 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
             else entity]);
     }
   }
-  final manifest = bootstrap.copyWith(
+  final freshEntry = semantics.events?.freshEntry;
+  if ((freshEntry == null) != (sourceNewGame == null)) {
+    throw const NativeWriteException('native.events.new_game_incomplete',
+        'The regenerated source entry and its final new game action must agree.');
+  }
+  if (freshEntry != null) {
+    for (final entry in freshEntry.nativeMaps.entries) {
+      if (draft.mapIds[entry.key] != entry.value.id || !maps.containsKey(entry.value.id)) {
+        throw const NativeWriteException('native.events.new_game_map',
+            'The fresh source entry must retain its exact selected native map.');
+      }
+      if (entry.value.id == freshEntry.config.startMapId) {
+        maps[entry.value.id] = entry.value;
+      } else if (entry.value != projectedEvents!.nativeMaps[entry.key]) {
+        throw const NativeWriteException('native.events.new_game_map',
+            'The fresh source entry may only add its declared start spawn.');
+      }
+    }
+  }
+  var manifest = bootstrap.copyWith(
       maps: mapEntries,
       tilesets: tilesetEntries,
       elements: elements,
@@ -2477,14 +2518,18 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       encounterTables: projectedCatalogs?.encounterTables ?? const [],
       trainers: trainersById.values.toList(),
       cinematicMediaAssets: mediaAssets,
-      facts: projectedEvents?.facts ?? const [],
+      facts: [...?projectedEvents?.facts, ...?freshEntry?.facts],
       worldRules: projectedEvents?.worldRules ?? const [],
       eventRegistry: projectedEvents?.registry,
       dialogues: projectedEvents?.dialogues ?? const [],
-      scenes: projectedEvents?.scenes ?? const [],
+      scenes: [...?projectedEvents?.scenes, if (freshEntry != null) freshEntry.scene],
       regionalMap: regionalMap,
       settings: bootstrap.settings
           .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));
+  if (sourceNewGame != null) {
+    manifest = const CampaignContentActions()
+        .updateNewGame(manifest, sourceNewGame, maps: maps.values);
+  }
   if (projectedCatalogs != null) {
     _validateCatalogReferences(projectedCatalogs, manifest);
   }
