@@ -244,6 +244,7 @@ void main() {
             instances: state,
             instance: scope,
             project: project,
+            gameState: const GameState(saveId: 'pose'),
             npcPoses: {
               id: MapInstanceNpcPose(position: pos, facing: EntityFacing.east),
             });
@@ -266,6 +267,43 @@ void main() {
     expect(
         result.instances.instancesByMapId['room']!.npcPoses['guide']!.position,
         const GridPos(x: 3, y: 3));
+  });
+
+  test(
+      'cinematic keepFinal retains the active transaction presentation and its pose',
+      () {
+    final f = variantFixture(position: const GridPos(x: 3, y: 3));
+    final session = GameState(
+        saveId: 'scene',
+        narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+          valuesByFactId: {'closed': NarrativeValue.boolean(true)}),
+        mapInstanceWorldState: f.instances);
+    final world = GameplayWorldState.initial(
+        map: f.map,
+        project: f.project,
+        gameState: session,
+        playerPos: const GridPos(x: 6, y: 6));
+    expect(world.map.entities.single.npc, isNotNull);
+    final result = prepareCinematicActorPoseCommit(
+        world: world,
+        authoringMap: f.map,
+        instances: f.instances,
+        instance: f.instance,
+        project: f.project,
+        gameState: session,
+        npcPoses: {
+          'wall': MapInstanceNpcPose(
+              position: const GridPos(x: 3, y: 3), facing: EntityFacing.north)
+        });
+    expect(result.world.map.entities, hasLength(1));
+    final actor = result.world.map.entities.single;
+    expect(actor.id, 'wall');
+    expect(actor.pos, const GridPos(x: 3, y: 3));
+    expect(actor.npc!.facing, EntityFacing.north);
+    expect(
+        result.instances.instancesByMapId['room']!.npcPoses['wall']!.position,
+        const GridPos(x: 3, y: 3));
+    expect(world.map.entities.single.pos, const GridPos(x: 1, y: 1));
   });
 
   test('ordinary NPC pose restores position and facing without field obstacles',

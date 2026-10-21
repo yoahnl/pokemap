@@ -77,6 +77,7 @@ extension _PlayableMapCinematicPoses on PlayableMapGame {
       instances: instances,
       instance: instances.instanceRef(_activeMapId)!,
       project: manifest,
+      gameState: _scenePresentationGameState,
       player: player,
       npcPoses: npcPoses,
     );

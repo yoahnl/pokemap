@@ -6,7 +6,8 @@ import 'movement_terrain_policy.dart';
 import 'npc_instance_pose_projection.dart';
 
 final class CinematicActorPoseCommit {
-  const CinematicActorPoseCommit({required this.world, required this.instances});
+  const CinematicActorPoseCommit(
+      {required this.world, required this.instances});
 
   final GameplayWorldState world;
   final MapInstanceWorldState instances;
@@ -18,6 +19,7 @@ CinematicActorPoseCommit prepareCinematicActorPoseCommit({
   required MapInstanceWorldState instances,
   required MapInstanceRef instance,
   required ProjectManifest project,
+  required GameState gameState,
   GameplayPlayerState? player,
   Map<String, MapInstanceNpcPose> npcPoses = const {},
 }) {
@@ -39,16 +41,26 @@ CinematicActorPoseCommit prepareCinematicActorPoseCommit({
     mapEntityPresencePredicate: world.mapEntityPresencePredicate,
   );
   final nextPlayer = player ?? world.player;
-  final nextWorld = GameplayWorldState.initial(
+  var nextWorld = GameplayWorldState.initial(
     map: map,
     playerPos: nextPlayer.pos,
     project: project,
+    gameState: gameState,
     tileWidth: world.tileWidthPx,
     tileHeight: world.tileHeightPx,
     movingPlatformWorldState: world.movingPlatformWorldState,
     npcMapPresencePredicate: world.npcMapPresencePredicate,
     mapEntityPresencePredicate: world.mapEntityPresencePredicate,
   ).withPlayer(nextPlayer);
+  for (final entry
+      in nextInstances.instancesByMapId[map.id]!.npcPoses.entries) {
+    final entity = nextWorld.map.entities
+        .where((entity) => entity.id == entry.key)
+        .singleOrNull;
+    if (entity?.npc != null) {
+      nextWorld = nextWorld.withEntityFacing(entry.key, entry.value.facing);
+    }
+  }
   final rect = nextPlayer.playerCollisionRectPx;
   final cell = PlayerCollisionConventionsV1.projectFeetAnchorToCell(
     playerCollisionRectPx: rect,
@@ -57,14 +69,20 @@ CinematicActorPoseCommit prepareCinematicActorPoseCommit({
     mapWidthCells: map.size.width,
     mapHeightCells: map.size.height,
   );
-  if (cell != nextPlayer.pos || rect.leftPx < 0 || rect.topPx < 0 ||
+  if (cell != nextPlayer.pos ||
+      rect.leftPx < 0 ||
+      rect.topPx < 0 ||
       rect.leftPx + rect.widthPx > map.size.width * world.tileWidthPx ||
       rect.topPx + rect.heightPx > map.size.height * world.tileHeightPx ||
       nextWorld.worldStaticObstaclesCollidePlayerCollisionRect() ||
-      ![rect, nextWorld.playerCharacterContactRect(rect)].every((area) => movementTerrainAllowsRect(
-        map: map, rect: area, tileWidth: world.tileWidthPx,
-        tileHeight: world.tileHeightPx, mode: nextPlayer.movementMode,
-      ))) {
+      ![rect, nextWorld.playerCharacterContactRect(rect)]
+          .every((area) => movementTerrainAllowsRect(
+                map: map,
+                rect: area,
+                tileWidth: world.tileWidthPx,
+                tileHeight: world.tileHeightPx,
+                mode: nextPlayer.movementMode,
+              ))) {
     throw StateError('The cinematic final player pose is not traversable.');
   }
   return CinematicActorPoseCommit(world: nextWorld, instances: nextInstances);

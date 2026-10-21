@@ -12820,6 +12820,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ...authored.entities.where((entity) => entity.fieldObstacle != null),
       ]);
     }
+    if (map.entities.any((entity) => entity.presentation != null)) {
+      map = map.copyWith(entities: [
+        for (final entity in map.entities)
+          projectMapEntityPresentation(project: bundle.manifest, gameState: state,
+            map: map, entity: entity) ?? entity,
+      ]);
+    }
     final instance = state.mapInstanceWorldState.instanceRef(map.id);
     if (instance != null) {
       map = applyFieldObstacleWorldStateToMap(
@@ -12857,6 +12864,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     GameplayWorldState world,
     GameState state,
   ) {
+    for (final entry in state.mapInstanceWorldState.instancesByMapId[world.map.id]?.npcPoses.entries ??
+        const <MapEntry<String, MapInstanceNpcPose>>[]) {
+      final entity = world.map.entities.where((entity) => entity.id == entry.key).singleOrNull;
+      if (entity?.npc != null) world = world.withEntityFacing(entry.key, entry.value.facing);
+    }
     for (final zone in world.map.gameplayZones.where(isFieldTraversalZone)) {
       validateFieldActionZone(world.map, zone);
       final path = fieldTraversalRouteCells(zone);
@@ -17506,7 +17518,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         tileHeight: preparedBundle.manifest.settings.tileHeight,
         cellWidth: cw,
         cellHeight: ch,
-        facing: entity.npc?.facing ?? EntityFacing.south,
+        facing: sourceEntity.npc?.facing ?? entity.npc?.facing ?? EntityFacing.south,
       );
       actor.configureGridPlacement(
         pos: entity.pos,
@@ -17519,7 +17531,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _lastNpcPresentations['${preparedBundle.map.id}/${entity.id}'] = entity;
         _lastNpcDeclaredFacings['${preparedBundle.map.id}/${entity.id}'] =
           resolveMapEntityPresentation(project: preparedBundle.manifest,
-            gameState: _gameState, map: preparedBundle.map, entity: sourceEntity)!.facing;
+            gameState: _scenePresentationGameState, map: preparedBundle.map, entity: sourceEntity)!.facing;
       }
       npcActorByEntityId[entity.id] = actor;
       _npcActors.add(actor);
