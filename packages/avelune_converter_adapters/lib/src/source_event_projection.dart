@@ -46,6 +46,7 @@ part 'source_intro_projection.dart';
 part 'source_starter_choice_projection.dart';
 
 part 'source_door_companion_projection.dart';
+part 'source_direction_unlock_giver_projection.dart';
 
 bool _dormantBlankSourceActionPage(SourceEventPageAnalysis page) =>
     page.triggerCode == 0 &&
@@ -996,6 +997,7 @@ final class _ProjectionBuilder {
   bool _isExternalWarpFamily(SourceEventDefinition event) => event.pages.expand((p) => p.body.nodes).whereType<SourceWarpNode>().any((n) => n.originalProgram != null);
 
   final _homeRecoveryPrograms = <ConverterId, SourceHomeRecoveryProgram?>{};
+  final _directionUnlockGivers = <SourceEventDefinition, SourceDirectionUnlockGiverProgram?>{};
   SourceHomeRecoveryProgram? _homeRecoveryProgram(SourceEventDefinition event) => _homeRecoveryPrograms.putIfAbsent(event.identity, () => SourceHomeRecoveryProgram.read(source: source, analysis: analysis, event: event));
 
   bool _exclamationEventMatchesSource(SourceEventDefinition event) {
@@ -1381,6 +1383,15 @@ final class _ProjectionBuilder {
             'sourceEngineGainQualified': false,
             'fullSourceParity': false,
             'sourceScriptsExecuted': 0,
+          },
+        if (gaps.isEmpty && _directionUnlockGiver(event) != null)
+          'nativeDirectionUnlockGiver': {
+            ..._directionUnlockGiver(event)!.toJson(),
+            'nativeState': 'mapEventInstanceBoolean',
+            'nativeStateKey': _directionReleaseKey(_directionUnlockGiver(event)!),
+            'nativeUnlock': 'sourceOrderedFixedPoseToDirectionalCharacter',
+            'sourceInternalFacingParityQualified': false,
+            'nativeBusinessEffectsPreserved': true,
           },
         if (gaps.isEmpty && holePrograms.containsKey(event.identity))
           'nativeHole': holePrograms[event.identity]!.toJson(),
@@ -2367,6 +2378,7 @@ final class _ProjectionBuilder {
 
   bool _supportsExplicitStationaryFacing(SourceEventDefinition event) =>
       _explicitStationaryFacing.putIfAbsent(event, () {
+    if (_directionUnlockGiver(event) != null) return true;
     if (_preparationRivalStationaryFacing(event)) { return true; }
     final map = maps[event.sourceMapId]!;
     if (event.isQuarantined || map.spatialScene != null || map.version == ProjectVersion.v9 ||
@@ -3918,7 +3930,7 @@ final class _ProjectionBuilder {
       gaps.addAll(context?.refusals.isNotEmpty == true
           ? context!.refusals : ['sourceExecutionContextUnknown']);
     }
-    if ((_isSourceTransition(event) || _eventUsesTempSwitch(event)) && retentionPolicy == null) {
+    if ((_isSourceTransition(event) || _eventUsesTempSwitch(event) || _directionUnlockGiver(event) != null) && retentionPolicy == null) {
       gaps.add('sourceMapInstanceRetentionMissing');
     }
     if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
@@ -3993,11 +4005,14 @@ final class _ProjectionBuilder {
           (graphic.characterName.isNotEmpty &&
               (graphic.pattern < 0 ||
                   graphic.pattern > 3 ||
-                  (graphic.directionFix && !_supportsFixedDirectionPresentation(event) && !(routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0) && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
+                  (graphic.directionFix && _directionUnlockGiver(event) == null && !_supportsFixedDirectionPresentation(event) && !(routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0) && !(sequencePrograms[event.identity]?.finiteAutorun == true &&
                     page.originalPageIndex == 1 && page.isEmpty))))) {
         gaps.add('pageGraphicContractUnsupported');
       }
       if (checkCharacterBindings && graphic.characterName.isNotEmpty) {
+        if (_directionUnlockGiver(event) != null && !_directionUnlockCharacterIsBound(event)) {
+          gaps.add('directionUnlockFixedCharacterBindingMissing');
+        }
         final fixedDirection = graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0));
         final binding = characterBindings[sourceEventCharacterBindingKey(
             characterName: graphic.characterName,
@@ -4832,6 +4847,7 @@ final class _ProjectionBuilder {
         size: _eventFootprint(event),
         counterInteractionSides: _eventCounterSides(event) ?? const []));
     }
+    _addDirectionUnlockVariants(event, variants);
     if (projectedPages.every(_dormantBlankSourceActionPage)) return;
     final entity = MapEntity(
         id: entityId,
@@ -5654,7 +5670,9 @@ final class _SceneBuilder {
         case SourceInteractionFacingNode():
           if (projection._supportsExplicitStationaryFacing(event) || projection._homeRecoveryProgram(event) != null) {
             final mapId = projection.maps[event.sourceMapId]!.id;
-            final joined = _interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: mapId), next);
+            final unlock = projection._directionUnlockGiver(event);
+            final joined = unlock == null
+                ? _interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: mapId), next) : next;
             var dispatch = eventEnd;
             for (final facing in EntityFacing.values) {
               final toward = switch (facing) {
@@ -5663,7 +5681,7 @@ final class _SceneBuilder {
                 EntityFacing.east => EntityFacing.west,
                 EntityFacing.west => EntityFacing.east,
               };
-              final route = _interactive(SceneInteractiveCommand.actorRoute(
+              final route = unlock != null ? _directionUnlockFace(toward, joined) : _interactive(SceneInteractiveCommand.actorRoute(
                 target: SceneActorTarget.entity(mapId: mapId, entityId: projection._key(event, 'anchor')),
                 steps: [SceneActorRouteStep.face(direction: toward, yieldAfter: true)]), joined);
               final guard = _node(SceneConditionPayload(conditionSource:
@@ -5672,7 +5690,17 @@ final class _SceneBuilder {
               _edge(guard, 'false', dispatch, SceneEdgeKind.conditionFalse);
               dispatch = guard;
             }
-            next = dispatch;
+            if (unlock != null && node.span.locator.pageIndex == 0 &&
+                node.span.firstCommandIndex == unlock.unlockCommandIndex) {
+              final release = _node(SceneActionPayload.consequence(
+                SceneConsequence.setMapEventInstanceBoolean(mapId: mapId,
+                  eventId: projection._key(event, 'anchor'),
+                  key: projection._directionReleaseKey(unlock), value: true)));
+              _edge(release, 'completed', dispatch, SceneEdgeKind.actionCompleted);
+              next = release;
+            } else {
+              next = dispatch;
+            }
           }
           break;
         case SourceAnnotationNode():

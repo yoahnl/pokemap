@@ -2310,6 +2310,10 @@ final class _SourceEventParser {
       index = pose.span.lastCommandIndex + 1;
       return pose;
     }
+    final unlock = _sourceDirectionUnlockGiverRoute(this, first: first,
+        indent: indent, target: target, repeat: repeat, skippable: skippable,
+        route: route, document: doc, steps: list);
+    if (unlock != null) return unlock;
     if (target == 0 && !repeat && !skippable && list.length == 4) {
       final initial = _facingFields(doc, list.first, 'RPG::MoveCommand',
           const {'@code', '@parameters'});

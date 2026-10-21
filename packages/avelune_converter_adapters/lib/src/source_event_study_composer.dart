@@ -573,7 +573,18 @@ final class SourceEventStudyComposer {
       fieldBindingEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final bindings = <String, SourceEventCharacterBinding>{};
-    final retentionBinding = transitionIds.isNotEmpty
+    final directionUnlockGiverIds = <ConverterId>{};
+    for (final event in analysis.events.where((event) => !event.isQuarantined &&
+        event.pages.length == 2 && event.pages.first.graphic?.directionFix == true &&
+        event.pages.last.graphic?.directionFix == false)) {
+      final raw = source.maps.where((m) => m.map.sourceMapId == event.sourceMapId)
+          .singleOrNull?.map.events.where((e) => e.sourceEventId == event.sourceEventId).singleOrNull;
+      if (raw != null && SourceDirectionUnlockGiverProgram.read(source: source,
+          profile: analysis.profile, sourceMapId: event.sourceMapId, event: raw) != null) {
+        directionUnlockGiverIds.add(event.identity);
+      }
+    }
+    final retentionBinding = transitionIds.isNotEmpty || directionUnlockGiverIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
           nativeMapIds: base.mapIds, cancellation: cancellation) : null;
     final retentionPolicy = retentionBinding?.policy;
@@ -688,7 +699,7 @@ final class SourceEventStudyComposer {
             characterName: graphic.characterName,
             pattern: graphic.pattern,
             direction: graphic.direction,
-            fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || routedDoorPrograms.values.any((program) => program.sourceMapId == event.sourceMapId && program.foreignCompanionEventIds.contains(event.sourceEventId)) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)));
+            fixedDirection: graphic.directionFix && (directionUnlockGiverIds.contains(event.identity) || sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || routedDoorPrograms.values.any((program) => program.sourceMapId == event.sourceMapId && program.foreignCompanionEventIds.contains(event.sourceEventId)) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)));
         if (visited.contains(key)) continue;
         final presentation = resolveSourceCharacterPresentation(snapshot: source.snapshot,
             profile: source.interpretationProfile, charsetName: graphic.characterName);
@@ -704,7 +715,7 @@ final class SourceEventStudyComposer {
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
               stationaryFootprint: sourcePassiveFixedFootprint(event),
-              fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || routedDoorPrograms.values.any((program) => program.sourceMapId == event.sourceMapId && program.foreignCompanionEventIds.contains(event.sourceEventId)) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)),
+              fixedDirection: graphic.directionFix && (directionUnlockGiverIds.contains(event.identity) || sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || routedDoorPrograms.values.any((program) => program.sourceMapId == event.sourceMapId && program.foreignCompanionEventIds.contains(event.sourceEventId)) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)),
               limits: limits,
               cancellation: cancellation);
           visited.add(key);

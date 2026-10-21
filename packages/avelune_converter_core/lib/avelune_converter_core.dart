@@ -59,3 +59,4 @@ part 'src/source_interaction_inventory.dart';
 part 'src/source_exclamation_program.dart';
 
 part 'src/source_actor_pose_sequence.dart';
+part 'src/source_direction_unlock_giver_program.dart';
