@@ -15005,7 +15005,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final sceneSession = _activeNarrativeSceneWorkingSession;
     final serial = _activeBlockingInteractionSerial;
     final revision = _gameStateRevision;
-    final state = sceneSession?.gameState ?? _gameState;
+    final sceneBaseState = sceneSession?.gameState;
+    final sceneProjection = sceneSession?.stateProjection;
+    final state = sceneProjection?.call() ?? sceneBaseState ?? _gameState;
     PokemonSpeciesIndex? speciesIndex;
     if (dialogueUsesPokedexCaughtCount(session)) {
       speciesIndex = await _battleSpeciesLoader.loadIndex(
@@ -15016,7 +15018,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           serial != _activeBlockingInteractionSerial ||
           revision != _gameStateRevision ||
           !identical(sceneSession, _activeNarrativeSceneWorkingSession) ||
-          (sceneSession != null && !identical(state, sceneSession.gameState))) {
+          (sceneSession != null &&
+              (!identical(sceneBaseState, sceneSession.gameState) ||
+                  !identical(sceneProjection, sceneSession.stateProjection)))) {
         throw StateError('The dialogue session changed while loading caught species.');
       }
     }
