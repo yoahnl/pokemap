@@ -97,6 +97,30 @@ void main() {
         converterVersion: 'original-quota-fixture');
   }
 
+  test('a recipe with stale study rules is rejected before scanning', () async {
+    await prepare();
+    final recipe = original.exportStudyPlanRecipe();
+    final body = Map<String, Object?>.from(recipe.toJson())..remove('canonicalHash');
+    body['rulesHash'] = '0' * 64;
+    final stale = ConverterStudyPlanRecipe.fromJson({...body,
+      'canonicalHash': canonicalHashOf(body, limits: ConverterStudyPlanRecipe.jsonLimits).value});
+    final phases = <ConverterWorkflowPhase>[];
+    final subscription = restored.events.listen((event) {
+      final phase = event.state.phase;
+      if (phase != null) phases.add(phase);
+    });
+    try {
+      await expectLater(restored.restoreStudyPlanRecipe(stale),
+        throwsA(isA<ConverterWorkflowFailure>().having((error) => error.code,
+          'code', 'workflow.recipe.stale')));
+      expect(phases, isEmpty);
+      expect(restored.state.prepared, isNull);
+      expect(restored.state.approval, isNull);
+    } finally {
+      await subscription.cancel();
+    }
+  }, skip: !Platform.isMacOS);
+
   test('content scope is required closed and hashed in recipe thirteen', () {
     final full = connectionRecipe(2);
     final world = connectionRecipe(2, contentScope: ConverterContentScope.world);

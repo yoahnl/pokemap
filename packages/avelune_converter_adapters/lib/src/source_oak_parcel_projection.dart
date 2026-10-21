@@ -54,7 +54,7 @@ extension _OakParcelProjection on _ProjectionBuilder {
     final map = maps[event.sourceMapId]!;
     if (map.version == ProjectVersion.v9 ||
         map.spatialScene != null ||
-        !executionContextQualified ||
+        !_eventExecutionContextQualified(event) ||
         retentionPolicy == null ||
         _eventFootprint(event) != const GridSize(width: 1, height: 1)) {
       gaps.add('sourceOakParcelExecutionContextMissing');

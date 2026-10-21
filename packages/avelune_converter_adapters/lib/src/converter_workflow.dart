@@ -12,6 +12,7 @@ import 'literal_tile_composer.dart';
 import 'source_semantic_study_composer.dart';
 import 'source_event_study_composer.dart';
 import 'source_event_item_bindings.dart';
+import 'source_routed_door_pattern_derivation.dart';
 import 'source_catalog_study_composer.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'native_psdk_catalog.dart';
@@ -1505,6 +1506,16 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
               'The selected or included map is missing or exceeds the budget.');
         }
         await relay.start(ConverterWorkflowPhase.normalize, JobUnit.maps);
+        final suppliedProfile = settings.interpretationProfile;
+        final effectiveProfile = settings.contentScope == ConverterContentScope.full &&
+                suppliedProfile?.supports('events') == true
+            ? (await deriveSourceRoutedDoorPatterns(
+                snapshot: snapshot,
+                files: files,
+                profile: suppliedProfile!,
+                selectedSourceMapIds: wanted.toSet(),
+                cancellation: relay.cancellation)).profile
+            : suppliedProfile;
         final normalized = await const RmxpSourceNormalizer().normalize(
             snapshot: snapshot,
             files: files,
@@ -1514,7 +1525,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
             imageBindings: settings.imageBindings,
             sourceAdaptations: settings.sourceAdaptations,
             missingItemBindings: settings.missingItemBindings,
-            interpretationProfile: settings.interpretationProfile,
+            interpretationProfile: effectiveProfile,
             includeEventSystem: true,
             includeConnections: snapshot.entries.any((entry) =>
                 entry.kind == SourceNodeKind.file &&
@@ -2206,7 +2217,9 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 7,
+      'version': 8,
+      'sourceRoutedDoorPatterns': 'attested-source-paired-pages-and-exact-atlas-v1',
+      'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
       'sourceAdaptations': 'closed-event-defects-and-missing-catalog-entries-original-byte-provenance-v1',
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {

@@ -625,3 +625,74 @@ Avant staging final : `main` et `origin/main` vérifiés sur `15081bcbbc59bb3b16
 Vérifications finales : quatre Dart formatés sans changement ; `git diff --check` exit 0 ; `POKEMAP_MARKDOWN_MAX_NEW=1 bash tools/scripts/check_markdown_hygiene.sh` : `Markdown hygiene: 1 new Markdown file(s), all in canonical locations.` Le budget d’un Markdown correspond au plan explicitement demandé, consolidé avec cet audit. SSD : 23 Gio libres lors de la préparation et avant publication. Aucune application de test ouverte pour RC-01 ; les tests, builds, préparation, finaliseur, watchdog et rapprochement possédés ont terminé, sans survivant dans leurs reçus respectifs.
 
 Le SHA du commit de rapprochement et la vérification de sa publication sont enregistrés après commit dans `Inventaires/RC-01/git-delivery-final.json` et dans le contexte Notion existant. Le ticket produit global reste DOING/PARTIAL ; le recensement et rapprochement RC-01 sont proposés TO REVIEW avec la réserve P2 documentée. Aucune PR, livraison TestFlight ou qualification physique iPhone n’est déduite de cette publication Git.
+
+## 13. Exécution RC-02 — préparation des séquences de départ et portes
+
+### 13.1 Périmètre, audit initial et décision
+
+Demande : corriger dans la conversion automatique les blocages du professeur, du contrôleur starter et de la livraison du colis, intégrer les règles de portes manquantes, conserver les combats Avelune, tester puis commit/push sur main. Aucun recours à une IA ni exécution des scripts Ruby source.
+
+Base Git : `961cfc202c9b79ff297048ee3d0129b0c1bf987e`, main aligné avec origin/main. Les 41 fichiers concurrents déjà sales (35 suivis et 6 non suivis, Studio/runtime/audio/vitesse/MCP) sont exclus du périmètre et du build isolé. SSD : 20 Gio au début du lot, puis 27 Gio lors de la validation ; aucune régénération des 383 cartes ni modification du MASTER.
+
+Le RED sur les cartes originales complètes `{6,9,10,12,202}` conserve tous leurs événements et pages, dont le parallèle non admis Map202/e9. Il reproduit trois refus après 162282 ms : Professor Map009/e1 avec `sourceOakParcelExecutionContextMissing`, starter Map009/e8 et colis Map012/e22 avec `sourceParallelDormancyUnqualified` et `sourceParallelEventUnsupported`. Les maps 9 et 12 ne contiennent pas de parallèle ; le contexte générique étendait leurs contrôles à toutes les maps représentées. L'audit confirme aussi que la dérivation des deux présentations de portes existe seulement dans le harness historique.
+
+Décision : conserver le binding de toutes les maps natives, mais calculer l'admission des programmes fermés par propriétaire, carte active, destinations littérales `201` et voisins retenus. Les écritures susceptibles de réveiller un parallèle local restent recensées globalement. Les contrôles d'archives, sections, plugins, common events, autonomie et refus des variantes inconnues ne sont pas relâchés. La présentation des portes est dérivée des octets attestés dans le worker public, uniquement en périmètre `full` et sur les cartes sélectionnées ou dépendances explicitement incluses.
+
+### 13.2 Fichiers et zones modifiés
+
+Les chemins du tableau sont relatifs à `packages/avelune_converter_adapters/`, sauf ce plan.
+
+| Fichier | Zone et raison |
+| --- | --- |
+| `lib/src/source_event_execution_context.dart` | Contexte par propriétaire, batch `readProgramContexts`, scope dérivé des programmes autoritaires ; partage des hashes, mutations, witnesses et audits par scope ; binding natif intégral conservé |
+| `lib/src/source_event_projection.dart` | Qualification par propriétaire, interdiction de transformer un contexte local en admission globale, sélection du contexte et evidence `programExecutionContexts` |
+| `lib/src/source_event_study_composer.dart` | Raccordement du batch au parcours automatique, rétention explicite Oak/First Rival, conservation des témoins |
+| `lib/src/source_oak_parcel_projection.dart` | Qualification du contexte du professeur plutôt que du contexte global |
+| `lib/src/source_first_rival_projection.dart` | Même raccordement par propriétaire ; construction du combat natif inchangée |
+| `lib/src/source_routed_door_pattern_derivation.dart` (nouveau) | Dérivation canonique bornée des patterns depuis deux pages brutes et un atlas exact ; vérification du profil, des sections et SHA, refus des conflits |
+| `lib/src/converter_workflow.dart` | Appel public de la dérivation avant normalisation, garde `full`, filtre `wanted`, règles version 8 avec empreintes portes et contextes |
+| `lib/avelune_converter_adapters.dart` | Export de la dérivation canonique |
+| `tool/lot6_routed_door_patterns.dart` | Délégation du harness vers la fonction de production, suppression de l'implémentation dupliquée |
+| `test/source_program_execution_context_test.dart` (nouveau) | Composition, propriétaire/scope, mutation native, refus local/voisin/writer distant, packing partagé des bindings |
+| `test/source_progression_context_real_source_test.dart` (nouveau) | RED/GREEN réel des trois séquences ; parallèle distant toujours en quarantaine sans scène ni record activé |
+| `test/source_external_warp_preserve_facing_test.dart` | Destination réelle `201` comprise dans le scope ; cible opaque refusée |
+| `test/source_external_warp_composition_test.dart` | Oracle de composition mis à jour pour les preuves par propriétaire |
+| `test/source_routed_door_workflow_test.dart` (nouveau) | Préparation publique sans patterns privés, mode world, restauration de recette et map malformée sélectionnée/hors sélection |
+| `test/lot6_routed_door_patterns_test.dart` | Sections/SHA, PNG invalides ou hors limites, conflits et lectures limitées à la sélection |
+| `test/converter_study_plan_recipe_test.dart` | Ancienne empreinte de règles refusée avant scan ou approbation |
+| Ce plan, section 13 | Preuves consolidées et limites du lot ; aucune roadmap FG modifiée |
+
+### 13.3 Preuves techniques fraîches
+
+Racine externe des preuves : `/Users/karim/Project/avelune project/Inventaires/RC-02`. Les commandes exactes et identités des processus sont conservées dans les reçus associés aux logs ; aucun processus survivant n'est déduit de son seul nom.
+
+- `dart test test/source_progression_context_real_source_test.dart --reporter expanded --concurrency=1` : **4 réussis**, exit 0, composition 159162 ms. Même sélection complète et même profil attesté que le RED. Professor conserve six masques, quatre pages exécutables et `partiallyAdapted` ; starter et colis sont `adaptedStaticSemantics` avec leurs routes et interactions ; Map202/e9 reste désactivé. Log `progression-context-real-green.log` et reçu sans survivant.
+- Suite finale de 14 fichiers adapters, commande dans `adapters-final.log.processes.json` : **271 réussis, 17 ignorés opt-in**, exit 0, 26 s. Comprend workflow, recettes, profils builtin/store, portes, contextes, séquences, don fini, transfert externe et premier rival. Les 17 skips ne sont pas des validations du corpus externe.
+- Dérivation réelle depuis le profil **builtin** `essentials-static-walking-events-items`, zéro pattern en entrée : exactement deux patterns en sortie, `OBJ_FRLG_Doors4` 1→0 et `OBJ_FRLG_Doors1` 3→1, avec les SHA RC-01 inchangés. **4075 ms, 386 lectures, 7767110 octets**. Les octets Scripts viennent de Johto et sont acceptés seulement par longueur/SHA exacts ; maps et atlas viennent de Kanto. Preuve `doors-real-derivation.json`. Aucune composition ni écriture de jeu dans ce contrôle.
+- Tests world/full RED puis GREEN et test de map malformée hors sélection documentés dans `doors-world-red.log`, `doors-world-final.log`, `doors-selection-red.log` et `doors-selection-final.log`. Une carte hors sélection n'est plus lue par cette dérivation ; une carte sélectionnée invalide bloque toujours la préparation sans écriture.
+- `dart format --output=none --set-exit-if-changed` sur les quatre nouveaux fichiers Dart et le wrapper : **5 fichiers, 0 modifié**, exit 0. Les fichiers historiques ne sont pas reformatés globalement.
+
+Les anciennes preuves `Kanto EV-10/lot6/full-conversion-29` n'étant plus présentes pendant ce lot, le test réel utilise le profil extrait de `RC-01/20261021-v3/effective-settings.json`. Empreinte canonique revalidée : `7d20648e06b6c4e7a74cea3363f08b366f0c43ebc4219c049a68014f44a901cd`. Le produit n'a aucune dépendance opérationnelle vers ce fichier de preuve ; le builtin et la dérivation publique restent la voie de préparation.
+
+### 13.4 Revues et limites conservées
+
+Audit/architecture : cause commune établie avant modification, sans changement des allowlists. Implémentation : correctifs raccordés aux composeurs de production et au workflow public. Tests : RED réel puis GREEN réel, négatifs de propriétaire, scope, writers et sources conservés. Critique finale indépendante : **aucun finding P1/P2 confirmé** dans les 16 chemins adapters ; aucun mélange avec les fichiers concurrents. Build/validation et publication sont consignés ci-dessous après leur exécution.
+
+Parité authoring/MCP : aucun nouveau modèle natif, commande d'authoring, contrat JSONL ou action MCP. Le convertisseur continue à émettre les opérations natives existantes ; le patch corrige leur admission depuis la source. Les transports de préparation/reprise CLI et application sont contrôlés séparément. Les changements MCP concurrents sont exclus ; aucun serveur ni liste de racines n'est modifié pour ce lot. Pas de changement Flame ou des règles de combat.
+
+Limites : les deux pages supérieures du professeur restent explicitement non prises en charge et masquent correctement leurs pages inférieures lorsqu'elles sont sélectionnées. Le GREEN réel qualifie les composeurs sur cinq cartes originales ; la préparation publique des portes et la reprise sont couvertes par des fixtures ciblées. Cela ne certifie ni une conversion fraîche des 383 cartes depuis l'interface, ni le parcours Player jusqu'au badge, ni une installation mobile. Ces preuves restent RC-03/RC-04. Les règles de combat sont celles d'Avelune.
+
+### 13.5 Build isolé, analyse et livraison Git
+
+Le build utilise un export temporaire de la base `961cfc202` avec uniquement les 16 fichiers adapters RC-02 superposés : 3451 fichiers, environ 57,1 Mo avant dépendances/build. Les fichiers concurrents sont exclus ; les `package_config.json` ne référencent aucun paquet du checkout actif. Les manifests SHA et la preuve d'isolation sont `build-export-manifest.json` et `build-package-config-proof.json`.
+
+- Dans `tools/avelune_converter_cli` de l'export : `dart compile exe bin/avelune_converter.dart -o <preuves>/avelune-converter-rc02` : exit 0, Mach-O arm64, SHA `b485903d7e187e8faa28f432ed8a89c3c59f9795991ec2ff8fe3478739a65476`. Log `build-cli-aot.log`.
+- Dans `apps/avelune_converter` de l'export : `flutter test --no-pub --reporter expanded test/converter_session_lifecycle_test.dart test/cli_desktop_plan_parity_test.dart`, avec `AVELUNE_AC16_CLI_EXECUTABLE` vers ce vrai binaire : **7 réussis**, exit 0. Le reçu `build-cli-desktop-parity-evidence.json` donne `equal=true` et `sourceUnchanged=true`, avec révision native identique entre CLI et application. Ce test est headless, pas une session de conversion Kanto manuelle.
+- Dans la même application : `flutter build macos --debug --no-pub` : **`✓ Built build/macos/Build/Products/Debug/Avelune Converter.app`**. Les avertissements de dépréciation Keychain et de phase Run Script sont conservés dans `build-macos-debug.log`, sans correctif hors périmètre.
+- Dans l'export isolé : `flutter analyze --no-pub` pour l'application et `dart analyze` pour le CLI : **`No issues found!`**, exit 0. Les reçus de tests, analyses et builds indiquent tous zéro survivant.
+- Dans adapters actif : `dart analyze` après retrait d'un import devenu redondant : exit 0, **aucune erreur ni warning**, trois infos de style préexistantes dans `source_event_item_bindings.dart` lignes 299, 504 et 543. Log `adapters-analyze-cleaned.log`. Après cet ajustement de test, `dart test test/lot6_routed_door_patterns_test.dart --reporter expanded` : **15 réussis**, exit 0.
+- `git diff --check` et `bash tools/scripts/check_markdown_hygiene.sh` : exit 0 ; **`Markdown hygiene: no new Markdown files.`**
+
+Verdict des correctifs RC-02 demandés : **TO REVIEW**, dans le contexte Notion existant CV01–04, dont le périmètre produit global reste DOING/PARTIAL. Aucun statut FG ou bêta n'est promu. L'auto-critique conserve la limite principale : le prochain contrôle utilisateur est une conversion fraîche par l'application, puis l'ouverture et le trajet dans Studio/Player ; les tests de ce lot ne la remplacent pas.
+
+Le staging et le commit sont limités aux 16 fichiers adapters du tableau et à ce plan. Les 41 fichiers concurrents restent hors index. Le SHA publié, le rapprochement de main distant et le statut Git final sont enregistrés après publication dans `Inventaires/RC-02/git-delivery-final.json` et dans le contexte Notion, pour éviter une référence de commit autoréférente dans ce document.

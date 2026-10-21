@@ -200,10 +200,15 @@ void main() {
       }
       expect(
           result.projection.allEnabledOriginalEventsHaveExecutionContext, true);
-      expect(
-          ((result.projection.semanticEvidence['doorExecutionQualification']
-              as Map)['sourceExecutionContext'] as Map)['qualified'],
-          true);
+      final qualification = result.projection.semanticEvidence['doorExecutionQualification'] as Map;
+      expect(qualification['sourceExecutionContext'], isNull);
+      final contexts = (qualification['programExecutionContexts'] as List).cast<Map>();
+      for (final pair in [(100, 6), (100, 7), (100, 13), (166, 1), (205, 2), (205, 4)]) {
+        final identity = result.draft.source.eventIdentity(pair.$1, pair.$2).value;
+        final entry = contexts.singleWhere((entry) => entry['eventIdentity'] == identity);
+        expect(entry['executionContextQualified'], isTrue);
+        expect((entry['executionContext'] as Map)['programIdentity'], identity);
+      }
     });
   },
       skip: root == null || snapshot == null

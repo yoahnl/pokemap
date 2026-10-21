@@ -19,7 +19,7 @@ extension _FirstRivalProjection on _ProjectionBuilder {
     if (map.spatialScene != null || map.version == ProjectVersion.v9) {
       gaps.add('sourceFirstRivalSpatialUnsupported');
     }
-    if (!executionContextQualified || retentionPolicy == null) {
+    if (!_eventExecutionContextQualified(event) || retentionPolicy == null) {
       gaps.add('sourceFirstRivalExecutionContextMissing');
     }
     final bodies = event.pages

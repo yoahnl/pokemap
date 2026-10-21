@@ -609,14 +609,21 @@ final class SourceEventStudyComposer {
         directionUnlockGiverIds.add(event.identity);
       }
     }
-    final retentionBinding = transitionIds.isNotEmpty || directionUnlockGiverIds.isNotEmpty
+    final retentionBinding = transitionIds.isNotEmpty || oakParcelBindings.isNotEmpty || firstRivals.byEventIdentity.isNotEmpty || directionUnlockGiverIds.isNotEmpty
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
           nativeMapIds: base.mapIds, cancellation: cancellation) : null;
     final retentionPolicy = retentionBinding?.policy;
-    final executionContext = externalTransitionIds.isEmpty && sequencePrograms.isEmpty && escortPrograms.isEmpty && actorPreparationPrograms.isEmpty ? null :
-        await const SourceEventExecutionContextResolver().read(source: source,
-          base: base, nativeMaps: nativeMaps, files: recording, limits: limits,
-          cancellation: cancellation, authority: transferAuthority);
+    final programContexts = await const SourceEventExecutionContextResolver().readProgramContexts(
+      source: source, base: base, nativeMaps: nativeMaps, files: recording,
+      analysis: analysis, eventIdentities: {
+        ...externalTransitionIds, ...sequencePrograms.keys, ...escortPrograms.keys,
+        ...actorPreparationPrograms.keys, ...firstRivals.byEventIdentity.keys,
+        ...oakParcelBindings.keys,
+      }, sequencePrograms: sequencePrograms, escortPrograms: escortPrograms,
+      actorPreparationPrograms: actorPreparationPrograms,
+      firstRivalBindings: firstRivals.byEventIdentity, oakParcelBindings: oakParcelBindings,
+      externalWarpBinding: externalWarps, authority: transferAuthority,
+      limits: limits, cancellation: cancellation);
     final localDoorContexts = await const SourceEventExecutionContextResolver()
         .readTransfers(source: source, base: base, nativeMaps: nativeMaps,
           files: recording, programs: staticDoorPrograms, routedPrograms: routedDoorPrograms, stairPrograms: stairPrograms, holePrograms: holePrograms, elevatorPrograms: elevatorPrograms, analysis: analysis,
@@ -719,7 +726,7 @@ final class SourceEventStudyComposer {
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
             fieldObstacleRefusals: fieldObstacles?.refusals ?? const {},
             retentionPolicy: retentionPolicy,
-            executionContext: executionContext,
+            programContexts: programContexts,
             staticDoorPrograms: staticDoorPrograms,
             staticDoorContexts: staticDoorContexts,
             routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
@@ -819,7 +826,7 @@ final class SourceEventStudyComposer {
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
             fieldObstacleRefusals: fieldObstacles?.refusals ?? const {},
         retentionPolicy: retentionPolicy,
-        executionContext: executionContext,
+        programContexts: programContexts,
         staticDoorPrograms: staticDoorPrograms,
         staticDoorContexts: staticDoorContexts,
             routedDoorPrograms: routedDoorPrograms, routedDoorContexts: routedDoorContexts,
@@ -944,7 +951,7 @@ final class SourceEventStudyComposer {
               'Data/CommonEvents.rxdata',
               'Graphics/Windowskins/speech hgss 1.png'
             }.contains(entry['relativePath']) ||
-            ((executionContext != null || localDoorContexts.isNotEmpty) &&
+            ((programContexts.isNotEmpty || localDoorContexts.isNotEmpty) &&
                 (entry['relativePath'] == 'Data/map_connections.dat' ||
                     RegExp(r'^Data/Map\d+\.rxdata$')
                         .hasMatch(entry['relativePath'] as String))))

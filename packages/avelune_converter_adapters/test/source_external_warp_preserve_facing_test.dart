@@ -40,7 +40,8 @@ Future<
       NormalizedSourceProject source,
       LiteralFixtureFiles files,
       SourceEventAnalysis analysis
-    })> _fixture({int direction = 0, int mode = 0, bool plain = false}) async {
+    })> _fixture({int direction = 0, int mode = 0, bool plain = false,
+      bool unsafeTarget = false}) async {
   List<int> tone(double channel) {
     final data = ByteData(32);
     for (var index = 0; index < 3; index++) {
@@ -82,6 +83,14 @@ Future<
       ]),
       LiteralFixtureMap(
           id: 2,
+          events: [if (unsafeTarget)
+            const LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+              LiteralFixtureEventPage(trigger: 4, commands: [
+                LiteralFixtureEventCommand(355, ['opaque_target_controller()']),
+                LiteralFixtureEventCommand(0, []),
+              ]),
+            ]),
+          ],
           layers: [List.filled(3, 384), List.filled(3, 0), List.filled(3, 0)]),
     ],
   );
@@ -117,6 +126,35 @@ Future<
 }
 
 void main() {
+  for (final unsafeTarget in [false, true]) {
+    test('bounded external program attests literal transfer target unsafe=$unsafeTarget', () async {
+      final fixture = await _fixture(unsafeTarget: unsafeTarget);
+      final binding = (await const SourceExternalWarpBindingResolver().read(
+        source: fixture.source, analysis: fixture.analysis, files: fixture.files,
+        policy: SourceExternalWarpPolicy.nativeTransitionsWithoutEscapeState))!;
+      final maps = {for (final map in fixture.source.maps)
+        map.map.sourceMapId: MapData(id: 'native_${map.map.sourceMapId}', name: map.map.name,
+          size: GridSize(width: map.map.width, height: map.map.height), layers: const [])};
+      final base = NativeProjectDraft(source: fixture.source, projectName: 'Bounded external',
+        parentPath: '/private/tmp', folderName: 'unused-bounded-external',
+        mapIds: {for (final entry in maps.entries) entry.key: entry.value.id},
+        artifacts: const [], mutations: [for (final entry in maps.entries)
+          NativeMutation(operationId: ConverterId('external_map_${entry.key}'),
+            actionId: 'map.save', sourceEntityIds: [fixture.source.mapIdentity(entry.key)],
+            targetEntityIds: [ConverterId(entry.value.id)],
+            parameters: {'map': entry.value.toJson()})]);
+      final contexts = await const SourceEventExecutionContextResolver().readProgramContexts(
+        source: fixture.source, base: base, nativeMaps: maps, files: fixture.files,
+        analysis: fixture.analysis, eventIdentities: binding.programs.keys.toSet(),
+        externalWarpBinding: binding);
+      final context = contexts.values.single;
+      expect(context.programSourceMapIds, {1, 2});
+      expect(context.isQualified, !unsafeTarget, reason: '${context.refusals}');
+      expect(context.supportsRouteBarrierOnSourceMap(2, eventIdentity: contexts.keys.single), !unsafeTarget);
+      if (unsafeTarget) expect(context.refusals, contains('sourceParallelEventUnsupported'));
+    });
+  }
+
   for (final direction in [0, 2, 4, 6, 8]) {
     test('closed source cave exit retains exact direction $direction',
         () async {

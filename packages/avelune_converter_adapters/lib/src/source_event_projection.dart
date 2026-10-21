@@ -330,6 +330,7 @@ final class SourceEventProjector {
     SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
     SourceEventExecutionContext? executionContext,
+    Map<ConverterId, SourceEventExecutionContext> programContexts = const {},
     Map<ConverterId, SourceStaticDoorProgram>? staticDoorPrograms,
     Map<ConverterId, SourceEventExecutionContext> staticDoorContexts = const {},
     Map<ConverterId, SourceRoutedDoorProgram>? routedDoorPrograms,
@@ -352,7 +353,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
+        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -390,6 +391,7 @@ final class SourceEventProjector {
     SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
       SourceEventExecutionContext? executionContext,
+    Map<ConverterId, SourceEventExecutionContext> programContexts = const {},
       Map<ConverterId, SourceStaticDoorProgram>? staticDoorPrograms,
       Map<ConverterId, SourceEventExecutionContext> staticDoorContexts = const {},
     Map<ConverterId, SourceRoutedDoorProgram>? routedDoorPrograms,
@@ -424,7 +426,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
+            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
         .build();
   }
 }
@@ -713,7 +715,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
       this.portraitBindings, this.escortBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
-      {required SourceTransferProgramAuthority transferAuthority, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
+      {required SourceTransferProgramAuthority transferAuthority, this.programContexts = const {}, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
@@ -721,7 +723,7 @@ final class _ProjectionBuilder {
         stairPrograms = stairs ?? sourceStairPrograms(source: source, analysis: analysis, authority: transferAuthority),
         holePrograms = holes ?? sourceHoleNativePrograms(source: source, analysis: analysis, authority: transferAuthority),
         elevatorPrograms = elevators ?? sourceElevatorPrograms(source: source, analysis: analysis, authority: transferAuthority),
-        executionContextQualified = executionContext != null && executionContext.isQualified &&
+        executionContextQualified = executionContext != null && executionContext.programIdentity == null && executionContext.isQualified &&
             executionContext.isBoundTo(source, analysis.profile, nativeMaps),
         semanticResolver = SourceSemanticResolver.forProject(source),
         sourceSnapshotHash = source.snapshot.canonicalHash {
@@ -730,6 +732,17 @@ final class _ProjectionBuilder {
       throw const NativeWriteException('events.source.binding', 'Source event identities must be unique.');
     }
     SourceEventExecutionContext? verifiedNativeBinding;
+    for (final event in analysis.events) {
+      final context = programContexts[event.identity];
+      if (context != null && context.programIdentity == event.identity &&
+          context.supportsRouteBarrierOnSourceMap(event.sourceMapId, eventIdentity: event.identity) &&
+          (verifiedNativeBinding == null
+            ? context.isBoundTo(source, analysis.profile, nativeMaps)
+            : context.sharesNativeBindingWith(verifiedNativeBinding))) {
+        qualifiedProgramContexts.add(event.identity);
+        verifiedNativeBinding ??= context;
+      }
+    }
     for (final event in analysis.events) {
       final program = staticDoorPrograms[event.identity];
       if (program == null) continue;
@@ -882,6 +895,8 @@ final class _ProjectionBuilder {
   final MapInstanceRetentionPolicy? retentionPolicy;
   final SourceEventExecutionContext? executionContext;
   final bool executionContextQualified;
+  final Map<ConverterId, SourceEventExecutionContext> programContexts;
+  final qualifiedProgramContexts = <ConverterId>{};
   final NativeWriteLimits limits;
   final usedItems = <String, ProjectItemDefinition>{};
   late final shopBindings = sourceShopBindings(source: source, analysis: analysis,
@@ -1095,14 +1110,18 @@ final class _ProjectionBuilder {
   }
 
   bool _isSourceTransition(SourceEventDefinition event) =>
-      _hasFirstRivalProgram(event) ||
+      _hasFirstRivalProgram(event) || _hasOakParcelProgram(event) ||
       sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity) ||
       warpTilePrograms.programs.containsKey(event.identity) ||
       _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
 
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
-      ((_hasFirstRivalProgram(event) || sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
+      (qualifiedProgramContexts.contains(event.identity) &&
+        (_hasFirstRivalProgram(event) || _hasOakParcelProgram(event) ||
+          sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) ||
+          actorPreparationPrograms.containsKey(event.identity) || _isExternalWarpFamily(event))) ||
+      ((_hasFirstRivalProgram(event) || _hasOakParcelProgram(event) || sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
         executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null &&
         executionContext?.stairIdentity == null && executionContext?.holeIdentity == null &&
         executionContext?.elevatorIdentity == null) ||
@@ -1112,7 +1131,7 @@ final class _ProjectionBuilder {
         executionContextQualified && executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null && executionContext?.stairIdentity == null && executionContext?.holeIdentity == null && executionContext?.elevatorIdentity == null);
 
   SourceEventExecutionContext? _eventExecutionContext(SourceEventDefinition event) =>
-      holeContexts[event.identity] ?? elevatorContexts[event.identity] ?? stairContexts[event.identity] ?? routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? executionContext;
+      holeContexts[event.identity] ?? elevatorContexts[event.identity] ?? stairContexts[event.identity] ?? routedDoorContexts[event.identity] ?? staticDoorContexts[event.identity] ?? programContexts[event.identity] ?? executionContext;
 
   final _externalPrograms = <ConverterId, SourceExternalWarpProgram?>{};
 
@@ -2015,6 +2034,11 @@ final class _ProjectionBuilder {
         'sourcePassToNativeUpdateEquivalence': 'requiresRuntimeQualification',
         'global210Scope': 'allRepresentedForcedRoutesOnTheActiveNativeMap',
         'sourceExecutionContext': contextEncoding.encodeContext(executionContext?.toJson()),
+        'programExecutionContexts': [for (final entry in programContexts.entries) {
+          'eventIdentity': entry.key.value,
+          'executionContext': contextEncoding.encodeContext(entry.value.toJson()),
+          'executionContextQualified': qualifiedProgramContexts.contains(entry.key),
+        }],
         if (holePrograms.isNotEmpty) 'holePrograms': [for (final entry in holePrograms.entries) {
           ...entry.value.toJson(), 'executionContext': contextEncoding.encodeContext(holeContexts[entry.key]?.toJson()),
           'executionContextQualified': qualifiedHoleContexts.contains(entry.key),

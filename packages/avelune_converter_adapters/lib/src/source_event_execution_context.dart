@@ -15,6 +15,12 @@ import 'source_encounter_terrain_binding.dart';
 import 'source_transfer_program_authority.dart';
 import 'source_grass_rustle_compiler.dart';
 import 'source_inventory_controller_program.dart';
+import 'source_sequence_program.dart';
+import 'source_actor_preparation_program.dart';
+import 'source_escort_program.dart';
+import 'source_first_rival_binding.dart';
+import 'source_oak_parcel_binding.dart';
+import 'source_external_warp_binding.dart';
 
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
@@ -256,7 +262,10 @@ final class SourceEventExecutionContext {
     this.holeIdentity,
     this.elevatorIdentity,
     this.elevatorSourceMapId,
+    this.programIdentity,
+    Set<int> programSourceMapIds = const {},
   })  : mapIds = Map.unmodifiable(mapIds),
+        programSourceMapIds = Set.unmodifiable(programSourceMapIds),
         _mapHashes = Map.unmodifiable(mapHashes),
         refusals = List.unmodifiable(refusals),
         _proof = canonicalJsonOf(proof);
@@ -276,6 +285,8 @@ final class SourceEventExecutionContext {
       elevatorSourceMapId;
   final Map<int, String> mapIds;
   final List<String> refusals;
+  final ConverterId? programIdentity;
+  final Set<int> programSourceMapIds;
   final Map<int, Sha256Hash> _mapHashes;
   final String _proof;
 
@@ -286,7 +297,9 @@ final class SourceEventExecutionContext {
       isQualified &&
       staticDoorIdentity == null &&
       holeIdentity == null &&
-      (elevatorIdentity != null
+      (programIdentity != null
+          ? eventIdentity == programIdentity && programSourceMapIds.contains(sourceMapId)
+          : elevatorIdentity != null
           ? eventIdentity == elevatorIdentity &&
               sourceMapId == elevatorSourceMapId
           : stairIdentity != null
@@ -297,6 +310,20 @@ final class SourceEventExecutionContext {
                       sourceMapId == routedSourceMapId
                   : mapIds.containsKey(sourceMapId)) &&
       mapIds.containsKey(sourceMapId);
+
+  SourceEventExecutionContext _forProgram(ConverterId identity, Set<int> scope) =>
+      SourceEventExecutionContext._(
+        sourceSnapshotHash: sourceSnapshotHash,
+        normalizationHash: normalizationHash,
+        sourceProfileHash: sourceProfileHash,
+        baseDraftHash: baseDraftHash,
+        mapIds: mapIds,
+        mapHashes: _mapHashes,
+        refusals: refusals,
+        proof: (jsonDecode(_proof) as Map).cast<String, Object?>(),
+        programIdentity: identity,
+        programSourceMapIds: scope,
+      );
 
   bool isBoundTo(NormalizedSourceProject source, SourceEventProfile profile,
           Map<int, MapData> maps) =>
@@ -326,6 +353,10 @@ final class SourceEventExecutionContext {
         'normalizationHash': normalizationHash.value,
         'sourceProfileHash': sourceProfileHash.value,
         'baseDraftHash': baseDraftHash?.value,
+        if (programIdentity != null) ...{
+          'programIdentity': programIdentity!.value,
+          'programSourceMapIds': programSourceMapIds.toList()..sort(),
+        },
         if (staticDoorIdentity != null)
           'staticDoorIdentity': staticDoorIdentity!.value,
         if (routedDoorIdentity != null)
@@ -401,6 +432,98 @@ final class _SourceExecutionSnapshotIndex {
 
 final class SourceEventExecutionContextResolver {
   const SourceEventExecutionContextResolver();
+
+  Future<Map<ConverterId, SourceEventExecutionContext>> readProgramContexts({
+    required NormalizedSourceProject source,
+    required NativeProjectDraft base,
+    required Map<int, MapData> nativeMaps,
+    required SourceFilePort files,
+    required SourceEventAnalysis analysis,
+    required Set<ConverterId> eventIdentities,
+    Map<ConverterId, SourceSequenceProgram> sequencePrograms = const {},
+    Map<ConverterId, SourceActorPreparationProgram> actorPreparationPrograms = const {},
+    Map<ConverterId, SourceEscortProgram> escortPrograms = const {},
+    Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings = const {},
+    Map<ConverterId, SourceOakParcelBinding> oakParcelBindings = const {},
+    SourceExternalWarpBinding? externalWarpBinding,
+    SourceTransferProgramAuthority? authority,
+    NativeWriteLimits limits = const NativeWriteLimits(),
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    if (eventIdentities.isEmpty) return const {};
+    final ownedAuthority = authority ?? SourceTransferProgramAuthority.forSource(source);
+    final actual = ownedAuthority.analysisFor(source: source, analysis: analysis);
+    final owned = ownedAuthority.executionContextFor(source);
+    final scopes = <ConverterId, Set<int>>{};
+    for (final identity in eventIdentities) {
+      cancellation?.check();
+      final event = actual.events.where((event) => event.identity == identity).singleOrNull;
+      final supplied = analysis.events.where((event) => event.identity == identity).singleOrNull;
+      bool bound(SourceEventDefinition candidate) =>
+          sequencePrograms[identity]?.isBoundTo(source: source, analysis: actual, event: candidate) == true ||
+          actorPreparationPrograms[identity]?.isBoundTo(source, actual, candidate) == true ||
+          escortPrograms[identity]?.isBoundTo(source, actual, candidate) == true ||
+          firstRivalBindings[identity]?.isBoundTo(source, actual, candidate) == true ||
+          oakParcelBindings[identity]?.isBoundTo(source, actual, candidate) == true ||
+          (externalWarpBinding?.programs.containsKey(identity) == true &&
+            externalWarpBinding?.isBoundToEvent(source: source, analysis: actual, event: candidate) == true);
+      if (event == null || supplied == null || !bound(event) || !bound(supplied)) {
+        throw const NativeWriteException('events.program.binding',
+          'Execution contexts require exact authoritative closed source programs');
+      }
+      final scope = <int>{event.sourceMapId};
+      for (final page in event.pages) {
+        for (final command in page.sourcePage.commands.where((command) => command.code == 201)) {
+          final parameters = command.parameters;
+          if (parameters.length != 6 || parameters[0] != 0 ||
+              parameters[1] is! int || !nativeMaps.containsKey(parameters[1])) {
+            throw const NativeWriteException('events.program.scope',
+              'Closed program destinations require exact represented source maps');
+          }
+          scope.add(parameters[1] as int);
+        }
+      }
+      if (!nativeMaps.keys.toSet().containsAll(scope)) {
+        throw const NativeWriteException('events.program.scope',
+          'Closed program execution maps must be represented');
+      }
+      scopes[identity] = Set.unmodifiable(scope);
+    }
+    base.validateResourceBudget(limits: limits);
+    final hashes = Map<int, Sha256Hash>.unmodifiable({for (final entry in nativeMaps.entries)
+      entry.key: canonicalHashOf(jsonDecode(jsonEncode(entry.value.toJson())))});
+    final composition = base.compositionEvidence['composition'];
+    final compositionHash = composition is Map ? canonicalHashOf(composition, limits: limits.jsonLimits) : null;
+    final mutations = expandNativeMutationBatches(base, limits).toList();
+    final surf = _SourceSurfBaseAdmission.verify(source: source, base: base,
+      nativeMaps: nativeMaps, mutations: mutations, limits: limits, cancellation: cancellation);
+    final grass = await _SourceGrassBaseAdmission.verify(source: source, base: base,
+      nativeMaps: nativeMaps, mutations: mutations, files: files, limits: limits, cancellation: cancellation);
+    final inventoryControllers = sourceInventoryControllerPrograms(source: source,
+      analysis: actual, authority: ownedAuthority);
+    final inventory = _SourceExecutionSnapshotIndex(source.snapshot, cancellation);
+    final witnesses = <String, Map<String, Object?>>{};
+    final retained = <String, Future<NormalizedSourceProject>>{};
+    final retainedAnalyses = <String, SourceEventAnalysis>{};
+    final scopeContexts = <String, SourceEventExecutionContext>{};
+    final result = <ConverterId, SourceEventExecutionContext>{};
+    for (final entry in scopes.entries) {
+      cancellation?.check();
+      final key = (entry.value.toList()..sort()).join(',');
+      final context = scopeContexts[key] ??= await _read(source: source, base: base,
+        nativeMaps: nativeMaps, files: files, limits: limits, authority: ownedAuthority,
+        cancellation: cancellation, authoritativeSourceAnalysis: actual,
+        parallelDormancyAuditor: owned.parallelDormancyAuditor,
+        surfBaseAdmission: surf, grassBaseAdmission: grass,
+        nativeMapHashes: hashes, baseCompositionHash: compositionHash,
+        baseMutations: mutations, witnessCache: witnesses, snapshotIndex: inventory,
+        retainedCache: retained, retainedAnalysisCache: retainedAnalyses,
+        programSourceMapIds: entry.value, inventoryControllerPrograms: inventoryControllers);
+      result[entry.key] = context._forProgram(entry.key, entry.value);
+    }
+    return Map.unmodifiable(result);
+  }
 
   Future<SourceEventExecutionContext> read({
     required NormalizedSourceProject source,
@@ -613,6 +736,8 @@ final class SourceEventExecutionContextResolver {
     Map<String, Future<NormalizedSourceProject>>? retainedCache,
     Map<String, SourceEventAnalysis>? retainedAnalysisCache,
     _SourceExecutionSnapshotIndex? snapshotIndex,
+    Set<int>? programSourceMapIds,
+    Map<ConverterId, SourceInventoryControllerProgram>? inventoryControllerPrograms,
   }) async {
     cancellation?.check();
     final inventory = snapshotIndex ?? _SourceExecutionSnapshotIndex(source.snapshot, cancellation);
@@ -886,7 +1011,7 @@ final class SourceEventExecutionContextResolver {
     final representedMapIds =
         source.maps.map((map) => map.map.sourceMapId).toSet();
     final activeMapIds = elevatorProgram?.requiredSourceMapIds ??
-        (localTransfer ? {sourceMapId!, targetMapId!} : representedMapIds);
+        programSourceMapIds ?? (localTransfer ? {sourceMapId!, targetMapId!} : representedMapIds);
     if (canonicalJsonOf(representedMapIds.toList()..sort()) !=
         canonicalJsonOf(nativeMaps.keys.toList()..sort())) {
       refusals.add('sourceExecutionMapsUnavailable');
@@ -1014,7 +1139,7 @@ final class SourceEventExecutionContextResolver {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
     freshAnalysis ??= SourceEventAnalyzer.forProject(source, profile: profile).analyze();
-    final inventoryControllers = sourceInventoryControllerPrograms(
+    final inventoryControllers = inventoryControllerPrograms ?? sourceInventoryControllerPrograms(
         source: source, analysis: freshAnalysis,
         authority: authority);
     final inventoryControllerMaps = inventoryControllers.values.map((program) => program.sourceMapId).toSet();
@@ -1105,7 +1230,9 @@ final class SourceEventExecutionContextResolver {
         'followers': 'newGameDeclaredEmpty',
         'scope': {
           'sourceMapIds': activeMapIds.toList()..sort(),
-          'pages': holeProgram != null
+          'pages': programSourceMapIds != null
+              ? ['boundProgramsOnActiveSourceMaps']
+              : holeProgram != null
               ? ['${holeProgram.sourceMapId}/${holeProgram.sourceEventId}/all']
               : elevatorProgram != null
                   ? elevatorProgram.requiredEventIdentities
@@ -1163,7 +1290,9 @@ final class SourceEventExecutionContextResolver {
             'sourceGlobalBarrierOracle': '033:106-114'
           }
         },
-        'sourceContextProfile': holeProgram != null
+        'sourceContextProfile': programSourceMapIds != null
+            ? 'declared-closed-program-local-fresh-v1'
+            : holeProgram != null
             ? 'declared-hole-native-local-fresh-v1'
             : elevatorProgram != null
                 ? 'declared-complete-elevator-family-native-v1'
