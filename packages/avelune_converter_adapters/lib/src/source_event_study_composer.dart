@@ -289,10 +289,7 @@ final class SourceEventStudyComposer {
           (a, b) => a.$1 != b.$1 ? a.$1.compareTo(b.$1)
               : a.$2 != b.$2 ? a.$2.compareTo(b.$2)
               : a.$3 != b.$3 ? a.$3.name.compareTo(b.$3.name) : a.$4.compareTo(b.$4));
-    final itemSymbols = {
-      for (final event in selectedEvents.where((entry) => !entry.isQuarantined || _hasOakParcelWrapper(entry)))
-        for (final page in event.pages) ..._itemSymbols(page.body),
-    };
+    final itemSymbols = sourceEventRequestedItemSymbols(selectedEvents);
     if (itemSymbols.isNotEmpty) {
       try {
         items = await const SourceEventItemBindingResolver().read(
@@ -1648,6 +1645,14 @@ Iterable<SourcePickupNode> _pickups(SourceEventBlock block) sync* {
     }
   }
 }
+
+Set<String> sourceEventRequestedItemSymbols(
+        Iterable<SourceEventDefinition> events) =>
+    {
+      for (final event in events.where(
+          (entry) => !entry.isQuarantined || _hasOakParcelWrapper(entry)))
+        for (final page in event.pages) ..._itemSymbols(page.body),
+    };
 
 Iterable<String> _itemSymbols(SourceEventBlock block) sync* {
   for (final node in block.nodes) {

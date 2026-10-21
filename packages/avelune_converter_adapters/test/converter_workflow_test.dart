@@ -402,6 +402,92 @@ void main() {
     }
   }, skip: preparedReviewPath == null);
 
+  for (final (selectedPickup, qualifiedProfile, catalogState) in [
+    (true, true, 'empty'),
+    (false, true, 'empty'),
+    (true, false, 'empty'),
+    (true, true, 'absent'),
+    (true, true, 'invalid'),
+  ]) {
+    test('blocked preparation suggests only qualified selected item bindings selected=$selectedPickup qualified=$qualifiedProfile catalog=$catalogState', () async {
+      const pickup = LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+        LiteralFixtureEventPage(commands: [
+          LiteralFixtureEventCommand(111, [12, 'pbItemBall(:ETHER)']),
+          LiteralFixtureEventCommand(123, ['A', 0], indent: 1),
+          LiteralFixtureEventCommand(0, [], indent: 1),
+          LiteralFixtureEventCommand(412, []),
+          LiteralFixtureEventCommand(0, []),
+        ]),
+      ]);
+      final harness = await _WorkflowHarness.create(
+          includeEventSystem: true,
+          extraFiles: {
+            'Data/Scripts.rxdata': syntheticInterpretationArchive,
+            if (catalogState != 'absent')
+              'Data/items.dat': catalogState == 'invalid'
+                  ? literalFixtureMarshal(null)
+                  : literalFixtureMarshal(<Object?, Object?>{}),
+          },
+          maps: [
+            LiteralFixtureMap(id: 1,
+                warpParameters: [[1, 8, 0, 0, 0, 0]],
+                events: selectedPickup ? [pickup] : []),
+            LiteralFixtureMap(id: 8, events: selectedPickup ? [] : [pickup]),
+          ]);
+      try {
+        final donor = await Directory('${harness.root.path}/donor/Data')
+            .create(recursive: true);
+        await File('${donor.path}/items.dat').writeAsBytes(literalFixtureMarshal({
+          const LiteralFixtureSymbol('ETHER'):
+              const LiteralFixtureObject('GameData::Item', {
+            '@id': LiteralFixtureSymbol('ETHER'), '@real_name': 'Ether',
+            '@real_name_plural': 'Ethers', '@real_portion_name': null,
+            '@real_portion_name_plural': null, '@pocket': 2, '@price': 600,
+            '@sell_price': 300, '@bp_price': 1, '@field_use': 1,
+            '@battle_use': 2, '@flags': ['Fling_30'], '@consumable': true,
+            '@show_quantity': null, '@move': null,
+            '@real_description': 'Original source Ether', '@pbs_file_suffix': '',
+          }),
+        }));
+        final before = await _diskHashes(harness.sourceRoot);
+        final snapshot = await harness.workflow.scanSource(ConverterSourceSelection(
+            rootPath: harness.sourceRoot,
+            supplementalRootPaths: [donor.parent.path],
+            logicalProjectNamespace: harness.selection.logicalProjectNamespace));
+        final profile = qualifiedProfile
+            ? syntheticSourceInterpretationProfile
+            : SourceInterpretationProfile.fromJson({
+                ...syntheticSourceInterpretationProfile.toJson(),
+                'capabilities': ['events'],
+              });
+        harness.workflow.updateSettings(harness.settings(snapshot,
+            selected: [1], interpretationProfile: profile));
+        final prepared = await harness.workflow.prepareStudy();
+        expect(prepared.composition.diagnostics.where((entry) =>
+            entry.code == 'literal.dependency.dynamic' && entry.blocksPlanning),
+            isNotEmpty);
+        expect(prepared.nativeDraft, isNull);
+        expect(prepared.canApprove, isFalse);
+        expect(prepared.settings.missingItemBindings, isEmpty);
+        expect(prepared.missingItemBindingOptions.keys,
+            selectedPickup && qualifiedProfile && catalogState == 'empty' ? ['ETHER'] : isEmpty);
+        if (selectedPickup && qualifiedProfile && catalogState == 'empty') {
+          final candidate = prepared.missingItemBindingOptions['ETHER']!.single;
+          expect(candidate.sourceRelativePath,
+              '_converter_sources/1/Data/items.dat');
+          expect(candidate.sourceSnapshotHash, snapshot.canonicalHash);
+        }
+        expect(() => harness.approve(prepared), _throwsWorkflow('workflow.blocked'));
+        expect(harness.workflow.state.approval, isNull);
+        expect(harness.nativeStages, isEmpty);
+        expect(await harness.output.list().toList(), isEmpty);
+        expect(await _diskHashes(harness.sourceRoot), before);
+      } finally {
+        await harness.close();
+      }
+    });
+  }
+
   for (final (blockedLiteral, qualifiedProfile) in [(true, true), (false, true), (false, false)]) {
     test('explicit unused item binding preserves literal blockers only when projection is absent blocked=$blockedLiteral qualified=$qualifiedProfile', () async {
       final harness = await _WorkflowHarness.create(includeEventSystem: true,

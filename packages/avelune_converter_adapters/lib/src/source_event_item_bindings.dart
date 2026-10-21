@@ -269,8 +269,10 @@ final class SourceEventItemBindingResolver {
     required SourceFilePort files,
     required Iterable<String> symbols,
     required SourceEventProfile eventProfile,
+    SourceEventItemBindingLimits limits = const SourceEventItemBindingLimits(),
     ScanCancellation? cancellation,
   }) async {
+    limits.validate();
     if (!eventProfile.isQualified) return const {};
     final token = cancellation ?? ScanCancellation();
     final base = await read(
@@ -278,6 +280,7 @@ final class SourceEventItemBindingResolver {
         files: files,
         symbols: symbols,
         eventProfile: eventProfile,
+        limits: limits,
         cancellation: token);
     final missing = base.quarantinedSymbols.entries
         .where((entry) =>
@@ -296,7 +299,9 @@ final class SourceEventItemBindingResolver {
       token.check();
       if (entry.kind != SourceNodeKind.file ||
           entry.sha256 == null ||
-          entry.byteLength > 4194304) continue;
+          entry.byteLength > limits.maxCatalogBytes.clamp(1, 4194304)) {
+        continue;
+      }
       final bytes = await files.read(entry.fileId);
       token.check();
       if (bytes.length != entry.byteLength ||
@@ -309,14 +314,18 @@ final class SourceEventItemBindingResolver {
       final MarshalDocument document;
       try {
         document = const MarshalDecoder().decode(bytes,
-            limits: const MarshalDecodeLimits(
-                maxInputBytes: 4194304, maxNodes: 200000),
+            limits: MarshalDecodeLimits(
+                maxInputBytes: limits.maxCatalogBytes.clamp(1, 4194304),
+                maxNodes: limits.maxNodes.clamp(1, 200000)),
             sourcePath: entry.relativePath);
       } on BinaryDecodeError {
         continue;
       }
       final root = document.node(document.rootId);
-      if (root.kind != MarshalKind.hash || root.pairs.length > 4096) continue;
+      if (root.kind != MarshalKind.hash ||
+          root.pairs.length > limits.maxCatalogEntries.clamp(1, 4096)) {
+        continue;
+      }
       final counts = <String, int>{};
       for (final pair in root.pairs) {
         final key = document.node(pair.key);
@@ -347,6 +356,7 @@ final class SourceEventItemBindingResolver {
           symbols: candidates.map((value) => value.sourceSymbol),
           eventProfile: eventProfile,
           missingItemBindings: candidates,
+          limits: limits,
           cancellation: token);
       for (final candidate in candidates) {
         if (qualified.bindings[candidate.sourceSymbol]?.pickupQualified ==

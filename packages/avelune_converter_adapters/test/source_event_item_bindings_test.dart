@@ -374,6 +374,71 @@ void main() {
     expect(fixture.files.reads, isEmpty);
   });
 
+  test('default missing item suggestion quota refuses 65 symbols before I/O',
+      () async {
+    capacityCatalog.files.reads.clear();
+    await expectLater(
+        const SourceEventItemBindingResolver().suggestMissingBindings(
+            snapshot: capacityCatalog.snapshot,
+            files: capacityCatalog.files,
+            symbols: capacitySymbols,
+            eventProfile: capacityCatalog.profile),
+        throwsA(_code('source.event_items.symbol_limit')));
+    expect(capacityCatalog.files.reads, isEmpty);
+  });
+
+  test('expanded missing item suggestions keep supplemental scans bounded',
+      () async {
+    final primary = _fixture(items: {});
+    final donorBytes = capacityCatalog.files.bytes.values.single;
+    final donorEntry = SourceFileEntry(
+        fileId: ConverterId('capacity-donor-items'),
+        relativePath: '_converter_sources/1/Data/items.dat',
+        kind: SourceNodeKind.file,
+        byteLength: donorBytes.length,
+        sha256: Sha256Hash(crypto.sha256.convert(donorBytes).toString()),
+        format: 'marshal',
+        family: 'data');
+    final snapshot = SourceSnapshot(
+        logicalProjectNamespace: primary.snapshot.logicalProjectNamespace,
+        policyHash: primary.snapshot.policyHash,
+        entries: [...primary.snapshot.entries, donorEntry],
+        diagnostics: [], excludedPaths: [], profileEvidence: [],
+        state: SourceScanState.complete);
+    final files = _Files({...primary.files.bytes, donorEntry.fileId: donorBytes});
+    final profile = SourceEventProfile(
+        scriptsArchiveHash: primary.profile.scriptsArchiveHash,
+        sourceSnapshotHash: snapshot.canonicalHash,
+        normalizationHash: primary.profile.normalizationHash,
+        interpretationProfile: primary.profile.interpretationProfile);
+    Future<Map<String, List<SourceMissingItemBinding>>> suggestions(
+            SourceEventItemBindingLimits limits) =>
+        const SourceEventItemBindingResolver().suggestMissingBindings(
+            snapshot: snapshot, files: files, symbols: capacitySymbols,
+            eventProfile: profile, limits: limits);
+    final accepted = await suggestions(
+        const SourceEventItemBindingLimits(maxRequestedSymbols: 65));
+    expect(accepted.keys, unorderedEquals(capacitySymbols));
+    for (final options in accepted.values) {
+      expect(options.single.sourceRelativePath, donorEntry.relativePath);
+    }
+    files.reads.clear();
+    expect(await suggestions(SourceEventItemBindingLimits(
+        maxRequestedSymbols: 65,
+        maxCatalogBytes: donorBytes.length - 1)), isEmpty);
+    expect(files.reads, isNot(contains(donorEntry.fileId)));
+    for (final limits in [
+      const SourceEventItemBindingLimits(
+          maxRequestedSymbols: 65, maxNodes: 10),
+      const SourceEventItemBindingLimits(
+          maxRequestedSymbols: 65, maxCatalogEntries: 1),
+    ]) {
+      files.reads.clear();
+      expect(await suggestions(limits), isEmpty);
+      expect(files.reads.where((id) => id == donorEntry.fileId), hasLength(1));
+    }
+  });
+
   test('invalid custom item quotas remain rejected before source I/O',
       () async {
     final fixture = _fixture();

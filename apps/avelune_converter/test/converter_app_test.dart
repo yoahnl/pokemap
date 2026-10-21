@@ -19,6 +19,97 @@ import 'package:image/image.dart' as image;
 import '../../../packages/avelune_converter_adapters/test/support/literal_tile_fixture.dart';
 
 void main() {
+  testWidgets('blocked preparation exposes explicit supplemental item choices',
+      (tester) async {
+    final source = (await tester.runAsync(() => _OriginalSource.create(
+        scriptsBytes: syntheticInterpretationArchive,
+        includeEventSystem: true,
+        extraFiles: {
+          'Data/items.dat': literalFixtureMarshal(<Object?, Object?>{}),
+        },
+        maps: [
+          LiteralFixtureMap(id: 1, warpParameters: [[1, 8, 0, 0, 0, 0]],
+              events: const [LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+                LiteralFixtureEventPage(commands: [
+                  LiteralFixtureEventCommand(111, [12, 'pbItemBall(:ETHER)']),
+                  LiteralFixtureEventCommand(123, ['A', 0], indent: 1),
+                  LiteralFixtureEventCommand(0, [], indent: 1),
+                  LiteralFixtureEventCommand(412, []),
+                  LiteralFixtureEventCommand(0, []),
+                ]),
+              ])]),
+          LiteralFixtureMap(id: 8),
+        ])))!;
+    _setWindow(tester, const Size(1600, 1000));
+    try {
+      final donorPath = '${source.root.path}/donor';
+      final profilePath = '${source.root.path}/profile.json';
+      await tester.runAsync(() async {
+        await Directory('$donorPath/Data').create(recursive: true);
+        await File('$donorPath/Data/items.dat').writeAsBytes(literalFixtureMarshal({
+          const LiteralFixtureSymbol('ETHER'):
+              const LiteralFixtureObject('GameData::Item', {
+            '@id': LiteralFixtureSymbol('ETHER'), '@real_name': 'Ether',
+            '@real_name_plural': 'Ethers', '@real_portion_name': null,
+            '@real_portion_name_plural': null, '@pocket': 2, '@price': 600,
+            '@sell_price': 300, '@bp_price': 1, '@field_use': 1,
+            '@battle_use': 2, '@flags': ['Fling_30'], '@consumable': true,
+            '@show_quantity': null, '@move': null,
+            '@real_description': 'Original source Ether', '@pbs_file_suffix': '',
+          }),
+        }));
+        await File(profilePath).writeAsString(
+            jsonEncode(syntheticSourceInterpretationProfile.toJson()));
+      });
+      await tester.pumpWidget(ConverterApp(
+          workflow: source.workflow,
+          initialSourcePath: source.sourcePath,
+          initialParentPath: source.output.path,
+          pathPicker: (kind) async => switch (kind) {
+            ConverterPathKind.supplementalFolder => donorPath,
+            ConverterPathKind.interpretationProfileFile => profilePath,
+            _ => null,
+          }));
+      await tester.ensureVisible(find.byKey(const ValueKey('add-supplemental-source')));
+      await tester.tap(find.byKey(const ValueKey('add-supplemental-source')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('analyse-project')));
+      await _waitFor(tester, () => source.workflow.state.snapshot != null && !source.workflow.state.isBusy);
+      await tester.ensureVisible(find.byKey(const ValueKey('choose-interpretation-profile')));
+      await tester.tap(find.byKey(const ValueKey('choose-interpretation-profile')));
+      await _waitFor(tester, () => find.textContaining('Profil de scripts sélectionné').evaluate().isNotEmpty);
+      await tester.ensureVisible(find.text('Tout sélectionner'));
+      await tester.tap(find.text('Tout sélectionner'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(tester, () => source.workflow.state.prepared != null && !source.workflow.state.isBusy);
+      expect(source.workflow.state.prepared!.canApprove, isFalse);
+      final picker = find.byKey(const ValueKey('missing-item-binding-ETHER'));
+      expect(picker, findsOneWidget);
+      final select = tester.widget<StudioSelect>(picker);
+      expect(select.value, '');
+      expect(select.options['_converter_sources/1/Data/items.dat'], donorPath);
+      select.onChanged!('_converter_sources/1/Data/items.dat');
+      await tester.pumpAndSettle();
+      expect(source.workflow.state.prepared, isNull);
+      expect(tester.widget<StudioSelect>(picker).value,
+          '_converter_sources/1/Data/items.dat');
+      await tester.tap(find.byKey(const ValueKey('prepare-study')));
+      await _waitFor(tester, () => source.workflow.state.prepared != null && !source.workflow.state.isBusy);
+      expect(source.workflow.state.prepared!.settings.missingItemBindings.single.sourceSymbol, 'ETHER');
+      expect(source.workflow.state.prepared!.canApprove, isFalse);
+      await tester.tap(find.text('Export'));
+      await tester.pump();
+      expect(_button(tester, 'create-study-project').onPressed, isNull);
+      expect(source.nativeStages, isEmpty);
+      await tester.runAsync(source.expectSourceUnchanged);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(source.close);
+    }
+  }, skip: !Platform.isMacOS);
+
   testWidgets('content picker prepares world without object review and invalidates on change', (tester) async {
     final source = (await tester.runAsync(_OriginalSource.create))!;
     _setWindow(tester, const Size(1600, 1000));

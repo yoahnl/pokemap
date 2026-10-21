@@ -1755,10 +1755,45 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
         final missingItems = events?.sourceItems?.quarantinedSymbols.entries
             .where((entry) => entry.value.length == 1 && entry.value.single == 'item.symbol_missing')
             .map((entry) => entry.key).toList() ?? const <String>[];
-        final itemOptions = missingItems.isEmpty ? const <String, List<SourceMissingItemBinding>>{} :
-            await const SourceEventItemBindingResolver().suggestMissingBindings(
-              snapshot: normalized.snapshot, files: files, symbols: missingItems,
-              eventProfile: SourceEventProfile.forProject(normalized), cancellation: relay.cancellation);
+        final itemProfile = SourceEventProfile.forProject(normalized);
+        final inspectBlockedItems = events == null &&
+            !composition.canWrite &&
+            settings.contentScope == ConverterContentScope.full &&
+            itemProfile.isQualified &&
+            SourceSemanticResolver.forProject(normalized).profile.isQualified;
+        final suggestionSymbols = inspectBlockedItems
+            ? sourceEventRequestedItemSymbols(
+                SourceEventAnalyzer.forProject(normalized, profile: itemProfile)
+                    .analyze()
+                    .events
+                    .where((event) => wanted.contains(event.sourceMapId)))
+            : missingItems;
+        var itemOptions = const <String, List<SourceMissingItemBinding>>{};
+        if (suggestionSymbols.isNotEmpty) {
+          try {
+            itemOptions = await const SourceEventItemBindingResolver()
+                .suggestMissingBindings(
+                    snapshot: normalized.snapshot,
+                    files: files,
+                    symbols: suggestionSymbols,
+                    eventProfile: itemProfile,
+                    limits: wanted.length <= 8
+                        ? const SourceEventItemBindingLimits()
+                        : SourceEventItemBindingLimits(
+                            maxRequestedSymbols:
+                                settings.writeLimits.maxEntityReferences),
+                    cancellation: relay.cancellation);
+          } on ContractError catch (error) {
+            relay.cancellation.check();
+            if (!inspectBlockedItems ||
+                !const {
+                  'source.event_items.catalog_missing',
+                  'source.event_items.catalog_shape',
+                }.contains(error.code)) {
+              rethrow;
+            }
+          }
+        }
         final plan = _previewPlan(request, normalized, composition,
             capabilities, draft, decisions, proposalDiagnostics, library);
         final hash = canonicalHashOf({
@@ -2220,6 +2255,7 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'version': 8,
       'sourceRoutedDoorPatterns': 'attested-source-paired-pages-and-exact-atlas-v1',
       'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
+      'sourceMissingItemSuggestions': 'qualified-selected-blocked-preparation-v1',
       'sourceAdaptations': 'closed-event-defects-and-missing-catalog-entries-original-byte-provenance-v1',
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {
