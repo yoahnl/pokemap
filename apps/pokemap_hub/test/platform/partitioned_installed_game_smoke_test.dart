@@ -238,7 +238,7 @@ void main() {
       expect(defaultProfile.maximumTransientBytes, 64 * 1024 * 1024);
       expect(defaultProfile.maximumConcurrentDecodes, 2);
       final budget = bundle.resourceBudget;
-      expect(budget.profile.maximumResidentBytes, 128 * 1024 * 1024);
+      expect(budget.profile.maximumResidentBytes, 256 * 1024 * 1024);
       expect(budget.profile.maximumTransientBytes, 256 * 1024 * 1024);
       expect(budget.profile.maximumConcurrentDecodes, 1);
       expect(
@@ -258,7 +258,7 @@ void main() {
       reservation.release();
       expect(budget.residentBytes, 0);
       await expectLater(
-        budget.acquire(residentBytes: 129 * 1024 * 1024),
+        budget.acquire(residentBytes: 257 * 1024 * 1024),
         throwsA(isA<RuntimeResourceAdmissionException>()),
       );
     },

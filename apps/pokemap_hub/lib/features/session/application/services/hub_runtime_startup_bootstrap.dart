@@ -255,7 +255,7 @@ final class HubRuntimeStartupBootstrap
         resourceProfile: spatial
             ? const RuntimeResourceProfile()
             : const RuntimeResourceProfile(
-                maximumResidentBytes: 128 * 1024 * 1024,
+                maximumResidentBytes: 256 * 1024 * 1024,
                 maximumTransientBytes: 256 * 1024 * 1024,
                 maximumConcurrentDecodes: 1,
               ),
