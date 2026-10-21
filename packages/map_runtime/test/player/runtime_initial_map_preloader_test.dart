@@ -181,6 +181,161 @@ void main() {
     },
   );
 
+  for (final partitioned in [false, true]) {
+    for (final validOffset in [false, true]) {
+      test(
+        'narrative map offsets use project tile dimensions, partitioned=$partitioned, valid=$validOffset',
+        () async {
+          final root = await Directory.systemTemp.createTemp(
+            'preloader-narrative-offset-',
+          );
+          addTearDown(() => root.delete(recursive: true));
+          final manifest = ProjectManifest(
+            name: 'Narrative offsets',
+            version: ProjectVersion.v8,
+            settings: const ProjectSettings(tileWidth: 16, tileHeight: 24),
+            maps: const [
+              ProjectMapEntry(
+                id: 'initial',
+                name: 'Initial',
+                relativePath: 'initial.json',
+              ),
+              ProjectMapEntry(
+                id: 'other',
+                name: 'Other',
+                relativePath: 'other.json',
+              ),
+            ],
+            tilesets: const [
+              ProjectTilesetEntry(
+                id: 'props',
+                name: 'Props',
+                relativePath: 'props.png',
+              ),
+            ],
+            elementCategories: const [
+              ProjectElementCategory(id: 'props', name: 'Props'),
+            ],
+            elements: const [
+              ProjectElementEntry(
+                id: 'prop',
+                name: 'Prop',
+                tilesetId: 'props',
+                categoryId: 'props',
+                frames: [
+                  TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+                  ),
+                ],
+              ),
+            ],
+            newGame: const ProjectNewGameConfig(
+              enabled: true,
+              startMapId: 'initial',
+            ),
+            eventRegistry: NarrativeEventRegistry(
+              schemaVersion: 1,
+              mode: EventSystemMode.dualRead,
+              records: const [],
+              legacyClaims: const [],
+            ),
+          );
+          const initialMap = MapData(
+            id: 'initial',
+            name: 'Initial',
+            size: GridSize(width: 4, height: 4),
+          );
+          final otherMap = initialMap.copyWith(
+            id: 'other',
+            name: 'Other',
+            layers: [
+              MapLayer.tile(
+                id: 'props',
+                name: 'Props',
+                cells: List.filled(16, 0),
+              ),
+            ],
+            placedElements: [
+              MapPlacedElement(
+                id: 'placed-prop',
+                layerId: 'props',
+                elementId: 'prop',
+                pos: const GridPos(x: 1, y: 1),
+                pixelOffset: validOffset
+                    ? const PixelOffset(x: 1, y: 23)
+                    : const PixelOffset(x: 16, y: 0),
+                properties: const {
+                  pokemapPlacementOriginProperty:
+                      pokemapPlacementOriginAuthored,
+                },
+              ),
+            ],
+          );
+          final file = File('${root.path}/project.json');
+          if (partitioned) {
+            final publication = PortableCatalogPublication.encodeProject(
+              manifest,
+            );
+            await file.writeAsString(jsonEncode(publication.descriptor));
+            for (final object in publication.storage.objects.entries) {
+              final target = File(
+                '${root.path}/catalog/objects/${object.key}.json',
+              );
+              await target.parent.create(recursive: true);
+              await target.writeAsBytes(object.value);
+            }
+          } else {
+            await file.writeAsString(jsonEncode(manifest.toJson()));
+          }
+          await File('${root.path}/initial.json')
+              .writeAsString(jsonEncode(initialMap.toJson()));
+          await File('${root.path}/other.json')
+              .writeAsString(jsonEncode(otherMap.toJson()));
+          final preloader = RuntimeInitialMapPreloader(
+            projectFilePath: () async => file.path,
+            loadSave: (_) async => null,
+          );
+          addTearDown(preloader.clear);
+          final preload = preloader.preloadInitialMap(
+            const RuntimeInitialMapPreloadRequest.newGame(),
+          );
+          if (!validOffset) {
+            await expectLater(
+              preload,
+              throwsA(
+                isA<MapLoadException>().having(
+                  (error) => error.message,
+                  'message',
+                  contains('Placed element pixel offsets must be normalized'),
+                ),
+              ),
+            );
+            return;
+          }
+          await preload;
+          final resolved = await preloader.resolveForSession(
+            projectFilePath: file.path,
+            descriptor: _descriptor(
+              identity,
+              launchMode: GameSessionLaunchMode.newGame,
+            ),
+            initialSave: null,
+          );
+          addTearDown(() => resolved?.dispose());
+          expect(
+            resolved
+                ?.narrativeSnapshot
+                ?.mapsById['other']
+                ?.placedElements
+                .single
+                .pixelOffset,
+            const PixelOffset(x: 1, y: 23),
+          );
+        },
+      );
+    }
+  }
+
   test(
     'rejects a missing or mismatched saved session before bundle loading',
     () async {

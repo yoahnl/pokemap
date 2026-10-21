@@ -1260,12 +1260,26 @@ final class RuntimePlayerCoordinator {
       if (generation != _launchGeneration) {
         return _finishCancelledLaunch();
       }
+      final resourceReason = error is RuntimeResourceAdmissionException &&
+              const {
+                'image_dimensions',
+                'resident_bytes',
+                'transient_bytes',
+                'encoded_bytes',
+              }.contains(error.reason)
+          ? error.reason
+          : null;
       final diagnosticCode = error is RuntimeNewGameException
           ? error.code
-          : 'new_game.$preparationStage.${error.runtimeType}';
+          : resourceReason != null
+              ? 'new_game.$preparationStage.resources.$resourceReason'
+              : 'new_game.$preparationStage.${error.runtimeType}';
       final message = error is RuntimeNewGameException
           ? error.safeMessage
-          : switch (preparationStage) {
+          : resourceReason != null
+              ? 'Les ressources graphiques de cette carte dépassent le budget '
+                  'du Player. Signalez ce code au créateur du jeu.'
+              : switch (preparationStage) {
               'save_lookup' => 'Impossible de lire les sauvegardes. '
                   'Vérifiez l’accès au stockage de l’application.',
               'project_preload' => 'Impossible de charger les données ou les '

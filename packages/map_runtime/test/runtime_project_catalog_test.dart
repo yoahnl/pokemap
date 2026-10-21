@@ -85,6 +85,80 @@ void main() {
     },
   );
 
+  test('a map batch preserves the union of individual catalog views', () async {
+    final root = await Directory.systemTemp.createTemp('runtime-map-batch-');
+    addTearDown(() => root.delete(recursive: true));
+    final project = PortableCatalogPublication.withProjectDynamicDependencies(
+      ProjectManifest(
+        name: 'Batch maps',
+        version: ProjectVersion.v8,
+        maps: const [],
+        tilesets: [
+          for (final i in [0, 1, 2, 999])
+            ProjectTilesetEntry(
+              id: 'tileset-$i',
+              name: '$i',
+              relativePath: '$i.png',
+            ),
+        ],
+        globalProperties: const {'batchFixture': 'unchanged'},
+      ),
+      [
+        for (final owner in ['tileset-0', 'tileset-2'])
+          CatalogDynamicDependency(
+            owner: CatalogDefinitionKey(CatalogDefinitionKind.tileset, owner),
+            targets: [
+              CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'tileset-1'),
+            ],
+          ),
+      ],
+    );
+    final path = await _writeProject(root, project);
+    final publication = PortableCatalogPublication.encodeProject(project);
+    for (final object in publication.storage.objects.entries) {
+      final decoded = jsonDecode(utf8.decode(object.value)) as Map;
+      if (decoded['key'] case {'id': 'tileset-999'}) {
+        await File(p.join(root.path, 'catalog/objects/${object.key}.json'))
+            .delete();
+      }
+    }
+    final catalog = await RuntimeProjectCatalog.open(path);
+    addTearDown(catalog.dispose);
+    const firstMap = MapData(
+      id: 'a',
+      name: 'A',
+      size: GridSize(width: 2, height: 2),
+      tilesetId: 'tileset-0',
+    );
+    final secondMap = firstMap.copyWith(id: 'b', tilesetId: 'tileset-2');
+    final firstView = await catalog.manifestForMap(firstMap);
+    final secondView = await catalog.manifestForMap(secondMap);
+    final expected = catalog.mergeNarrativeVisualDefinitions(
+      catalog.projectMetadata,
+      [firstView, secondView],
+    );
+    final batch = await catalog.manifestForMaps([firstMap, secondMap]);
+    expect(batch.toJson(), expected.toJson());
+    expect(batch.tilesets.map((entry) => entry.id), [
+      'tileset-0',
+      'tileset-1',
+      'tileset-2',
+    ]);
+    expect(RuntimeProjectCatalog.ownerOf(batch), same(catalog));
+    expect(catalog.projectMetadata.tilesets, isEmpty);
+    await expectLater(
+      catalog.manifestForMaps([
+        firstMap,
+        secondMap.copyWith(tilesetId: 'tileset-999'),
+      ]),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(
+      (await catalog.manifestForMap(firstMap)).toJson(),
+      firstView.toJson(),
+    );
+  });
+
   test(
     'a portrait-only character resolves definitions without map actor roots',
     () async {

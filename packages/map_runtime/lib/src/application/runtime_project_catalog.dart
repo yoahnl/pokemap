@@ -186,53 +186,68 @@ final class RuntimeProjectCatalog {
     MapData map, {
     Iterable<String> extraCharacterIds = const [],
     Iterable<String> extraSceneIds = const [],
+  }) => manifestForMaps(
+    [map],
+    extraCharacterIds: extraCharacterIds,
+    extraSceneIds: extraSceneIds,
+  );
+
+  Future<ProjectManifest> manifestForMaps(
+    Iterable<MapData> maps, {
+    Iterable<String> extraCharacterIds = const [],
+    Iterable<String> extraSceneIds = const [],
   }) async {
     _ensureOpen();
     final roots = <CatalogDefinitionKey>{};
-    final characterIds = collectRuntimeMapCharacterIds(
-      map,
-      projectMetadata,
-      additionalCharacterIds: extraCharacterIds.toSet(),
-      additionalSceneIds: extraSceneIds.toSet(),
-    );
-    for (final event in map.events) {
-      for (final page in event.pages) {
-        final id = page.spriteId;
-        if (id == null || id.isEmpty) continue;
-        final key = CatalogDefinitionKey(CatalogDefinitionKind.character, id);
-        if (_native.containsKey(key) || await _portable?.lookup(key) != null) {
-          characterIds.add(id);
+    final additionalCharacters = extraCharacterIds.toSet();
+    final additionalScenes = extraSceneIds.toSet();
+    for (final map in maps) {
+      final characterIds = collectRuntimeMapCharacterIds(
+        map,
+        projectMetadata,
+        additionalCharacterIds: additionalCharacters,
+        additionalSceneIds: additionalScenes,
+      );
+      for (final event in map.events) {
+        for (final page in event.pages) {
+          final id = page.spriteId;
+          if (id == null || id.isEmpty) continue;
+          final key = CatalogDefinitionKey(CatalogDefinitionKind.character, id);
+          if (_native.containsKey(key) ||
+              await _portable?.lookup(key) != null) {
+            characterIds.add(id);
+          }
         }
       }
-    }
-    for (final root in _mapRoots(
-      map,
-      projectMetadata,
-      characterIds,
-      extraSceneIds,
-    )) {
-      roots.add(root);
-    }
-    final sceneIds = collectRuntimeMapSceneIds(
-      map,
-      projectMetadata,
-      additionalSceneIds: extraSceneIds.toSet(),
-    );
-    for (final scene in projectMetadata.scenes) {
-      if (!sceneIds.contains(scene.id)) continue;
-      for (final node in scene.graph.nodes) {
-        final payload = node.payload;
-        if (payload is! SceneYarnDialoguePayload) continue;
-        for (final policy in payload.linePolicies) {
-          for (final icon
-              in policy.feedback.segments.whereType<DialogueIconSegment>()) {
-            final key = CatalogDefinitionKey(
-              CatalogDefinitionKind.tileset,
-              icon.assetId,
-            );
-            if (_native.containsKey(key) ||
-                await _portable?.lookup(key) != null) {
-              roots.add(key);
+      for (final root in _mapRoots(
+        map,
+        projectMetadata,
+        characterIds,
+        additionalScenes,
+      )) {
+        roots.add(root);
+      }
+      final sceneIds = collectRuntimeMapSceneIds(
+        map,
+        projectMetadata,
+        additionalSceneIds: additionalScenes,
+      );
+      for (final scene in projectMetadata.scenes) {
+        if (!sceneIds.contains(scene.id)) continue;
+        for (final node in scene.graph.nodes) {
+          final payload = node.payload;
+          if (payload is! SceneYarnDialoguePayload) continue;
+          for (final policy in payload.linePolicies) {
+            for (final icon
+                in policy.feedback.segments.whereType<DialogueIconSegment>()) {
+              final key = CatalogDefinitionKey(
+                CatalogDefinitionKind.tileset,
+                icon.assetId,
+              );
+              if (_native.containsKey(key) ||
+                  await _portable?.lookup(key) != null) {
+                roots.add(key);
+              }
             }
           }
         }

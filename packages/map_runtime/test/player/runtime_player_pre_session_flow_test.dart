@@ -469,6 +469,30 @@ void main() {
     expect(harness.saves.commits, isEmpty);
   });
 
+  for (final reason in ['image_dimensions', 'resident_bytes', 'transient_bytes']) {
+    test('resource admission failure explains $reason without reinstall advice', () async {
+      final gate = Completer<void>();
+      final harness = RuntimePlayerTestHarness(newGamePreparationGate: gate.future);
+      addTearDown(harness.dispose);
+      await harness.coordinator.initialize();
+      final launch = harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(profileId: 'player', slotId: 'slot_1'),
+      ));
+      await _waitForPhase(harness.coordinator, RuntimePlayerPhase.preSession);
+      gate.completeError(RuntimeResourceAdmissionException(reason));
+      expect((await launch).status, RuntimePlayerCommandStatus.failed);
+      final failure = harness.coordinator.snapshot.failure!;
+      expect(failure.diagnosticCode, 'new_game.project_preload.resources.$reason');
+      expect(failure.safeMessage, contains('graphiques'));
+      expect(failure.safeMessage, isNot(contains('Réinstallez')));
+      expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.error);
+      expect(harness.source.requests, isEmpty);
+      expect(harness.saves.commits, isEmpty);
+    });
+  }
+
   test('project drift fails closed and retry uses a fresh preparation',
       () async {
     final harness = RuntimePlayerTestHarness();
