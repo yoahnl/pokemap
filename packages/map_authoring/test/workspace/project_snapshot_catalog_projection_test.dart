@@ -8,7 +8,14 @@ import 'package:test/test.dart';
 import '../domains/maps/map_metadata_fixture.dart';
 
 void main() {
-  for (final field in ['scenes', 'worldRules', 'eventRegistry']) {
+  for (final field in [
+    'scenes',
+    'worldRules',
+    'eventRegistry',
+    'facts',
+    'dialogues',
+    'cinematics'
+  ]) {
     test('$field post-image adopts the complete snapshot with cold parity',
         () async {
       final f = await MapMetadataFixture.create();
@@ -16,7 +23,14 @@ void main() {
       final seeded = (await f.manifest()).copyWith(
         facts: [NarrativeFactDefinition(id: 'fact_known', label: 'Known')],
         scenes: [_projectionScene('Before')],
+        dialogues: const [
+          ProjectDialogueEntry(
+              id: 'known', name: 'Before', relativePath: 'dialogues/known.yarn')
+        ],
       );
+      await Directory('${f.root.path}/dialogues').create();
+      await File('${f.root.path}/dialogues/known.yarn')
+          .writeAsString('title: Start\n---\nHello\n===\n');
       final map = (await f.map()).copyWith(entities: [
         const MapEntity(
             id: 'owner',
@@ -57,6 +71,16 @@ void main() {
       final manifest = switch (field) {
         'scenes' =>
           before.manifest.copyWith(scenes: [_projectionScene('After')]),
+        'facts' => before.manifest.copyWith(facts: [
+            NarrativeFactDefinition(id: 'fact_known', label: 'After'),
+            NarrativeFactDefinition(id: 'fact_added', label: 'Added')
+          ]),
+        'dialogues' => before.manifest.copyWith(dialogues: [
+            before.manifest.dialogues.single.copyWith(
+                name: 'After', tags: ['intro'], defaultStartNode: 'Start')
+          ]),
+        'cinematics' =>
+          before.manifest.copyWith(cinematics: [_projectionCinematic()]),
         'worldRules' => before.manifest.copyWith(worldRules: [
             WorldRuleDefinition(
               id: 'rule',
@@ -125,6 +149,307 @@ void main() {
       }
     });
   }
+
+  test('manifest-only adoption refuses partial snapshots', () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final before = await f.snapshots.load(f.opened.projectHandle);
+    final partial = ProjectSnapshot(
+      projectHandle: before.projectHandle,
+      revision: before.revision,
+      manifest: before.manifest,
+      maps: before.maps,
+      resourceFingerprints: before.resourceFingerprints,
+      resourceStorageKeys: before.resourceStorageKeys,
+      resourceBytes: {
+        for (final id in before.resourceStorageKeys.keys)
+          id: before.resourceBytes(id)
+      },
+      loadDiagnostics: [
+        ProjectSnapshotLoadDiagnostic(
+            code: 'missing', resourceKind: 'dialogue', resourceId: 'missing')
+      ],
+    );
+    final manifest = before.manifest.copyWith(
+        facts: [NarrativeFactDefinition(id: 'added', label: 'Added')]);
+    expect(
+        const ProjectSnapshotMapProjector().project(partial, [
+          change(partial, 'project',
+              encodeProjectAuthoringDocument(partial, manifest))
+        ]),
+        isNull);
+  });
+
+  test('dialogue metadata adoption refuses changed or missing source bindings',
+      () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final seeded = (await f.manifest()).copyWith(dialogues: const [
+      ProjectDialogueEntry(
+          id: 'known', name: 'Before', relativePath: 'dialogues/known.yarn')
+    ]);
+    await Directory('${f.root.path}/dialogues').create();
+    await File('${f.root.path}/dialogues/known.yarn')
+        .writeAsString('title: Start\n---\nHello\n===\n');
+    await File('${f.root.path}/project.json')
+        .writeAsString(jsonEncode(seeded.toJson()));
+    final before = await f.snapshots.load(f.opened.projectHandle);
+    for (final dialogues in [
+      <ProjectDialogueEntry>[],
+      [seeded.dialogues.single.copyWith(id: 'other')],
+      [seeded.dialogues.single.copyWith(relativePath: 'dialogues/other.yarn')],
+    ]) {
+      final manifest = seeded.copyWith(dialogues: dialogues);
+      expect(
+          const ProjectSnapshotMapProjector().project(before, [
+            change(before, 'project',
+                encodeProjectAuthoringDocument(before, manifest))
+          ]),
+          isNull);
+    }
+    final missing = ProjectSnapshot(
+      projectHandle: before.projectHandle,
+      revision: before.revision,
+      manifest: before.manifest,
+      maps: before.maps,
+      resourceFingerprints: {
+        'project': before.resourceFingerprints['project']!,
+        'map:town': before.resourceFingerprints['map:town']!
+      },
+      resourceStorageKeys: {
+        'project': 'project.json',
+        'map:town': 'documents/unusual.json'
+      },
+      resourceBytes: {
+        'project': before.resourceBytes('project'),
+        'map:town': before.resourceBytes('map:town')
+      },
+    );
+    final metadata = seeded
+        .copyWith(dialogues: [seeded.dialogues.single.copyWith(name: 'After')]);
+    expect(
+        const ProjectSnapshotMapProjector().project(missing, [
+          change(missing, 'project',
+              encodeProjectAuthoringDocument(missing, metadata))
+        ]),
+        isNull);
+  });
+
+  test('invalid facts and cinematics remain rejected', () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final before = await f.snapshots.load(f.opened.projectHandle);
+    for (final manifest in [
+      before.manifest.copyWith(facts: [
+        NarrativeFactDefinition(id: 'duplicate', label: 'One'),
+        NarrativeFactDefinition(id: 'duplicate', label: 'Two')
+      ]),
+      before.manifest.copyWith(
+          cinematics: [_projectionCinematic().copyWith(mapId: 'unknown')]),
+    ]) {
+      expect(
+          const ProjectSnapshotMapProjector().project(before, [
+            change(before, 'project',
+                encodeProjectAuthoringDocument(before, manifest))
+          ]),
+          isNull);
+    }
+  });
+
+  test('new media and unmodeled dependencies require the strict loader',
+      () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final before = await f.snapshots.load(f.opened.projectHandle);
+    final manifest = before.manifest.copyWith(cinematics: [
+      _projectionCinematic()
+    ], cinematicMediaAssets: [
+      CinematicMediaAsset(
+          id: 'new',
+          label: 'New',
+          kind: CinematicMediaAssetKind.sound,
+          relativePath: 'audio/new.ogg')
+    ]);
+    expect(
+        const ProjectSnapshotMapProjector().project(before, [
+          change(before, 'project',
+              encodeProjectAuthoringDocument(before, manifest))
+        ]),
+        isNull);
+    for (final field in ['facts', 'cinematics']) {
+      final modeled = field == 'facts'
+          ? before.manifest.copyWith(
+              facts: [NarrativeFactDefinition(id: 'new', label: 'New')])
+          : before.manifest.copyWith(cinematics: [_projectionCinematic()]);
+      final raw = jsonDecode(
+              utf8.decode(encodeProjectAuthoringDocument(before, modeled)))
+          as Map<String, dynamic>;
+      ((raw[field] as List).single as Map)['unmodeledDependency'] =
+          'audio/new.ogg';
+      expect(
+          const ProjectSnapshotMapProjector().project(before,
+              [change(before, 'project', utf8.encode(jsonEncode(raw)))]),
+          isNull);
+    }
+  });
+
+  test('manifest adoption refuses an out-of-band map replacement', () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final handles = WorkspaceHandleStore();
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [f.root.path], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(f.root.path);
+    addTearDown(() => opener.closeWorkspace(opened.workspaceHandle));
+    final cache = ProjectSnapshotCache();
+    final snapshots =
+        ProjectSnapshotLoader(handles: handles, snapshotCache: cache);
+    final before = await snapshots.load(opened.projectHandle);
+    final manifest = before.manifest
+        .copyWith(facts: [NarrativeFactDefinition(id: 'new', label: 'New')]);
+    final edit = change(
+        before, 'project', encodeProjectAuthoringDocument(before, manifest));
+    await File('${f.root.path}/project.json').writeAsBytes(edit.afterBytes!);
+    await File('${f.root.path}/documents/unusual.json').writeAsBytes(
+        encodeMapAuthoringDocument(
+            before.maps.single.copyWith(name: 'External')));
+    expect(
+        await snapshots.adoptAppliedChanges(opened.projectHandle,
+            baseRevision: before.revision, changes: [edit]),
+        isNull);
+    expect(cache.adoptionRejections, 1);
+    final cold = await snapshots.load(opened.projectHandle,
+        policy: ProjectSnapshotLoadPolicy.strict);
+    expect(cold.maps.single.name, 'External');
+    expect(cold.manifest, manifest);
+  });
+
+  test('canonical manifest-only actions keep coherent cached snapshots',
+      () async {
+    final f = await MapMetadataFixture.create();
+    addTearDown(f.dispose);
+    final seeded = (await f.manifest()).copyWith(dialogues: const [
+      ProjectDialogueEntry(
+          id: 'known', name: 'Before', relativePath: 'dialogues/known.yarn')
+    ]);
+    await Directory('${f.root.path}/dialogues').create();
+    await File('${f.root.path}/dialogues/known.yarn')
+        .writeAsString('title: Start\n---\nHello\n===\n');
+    await File('${f.root.path}/project.json')
+        .writeAsString(jsonEncode(seeded.toJson()));
+    await Directory('${f.root.path}/${seeded.pokemon.speciesDir}')
+        .create(recursive: true);
+    await File('${f.root.path}/${seeded.pokemon.speciesDir}/bulbasaur.json')
+        .writeAsString(jsonEncode({'id': 'bulbasaur'}));
+    await Directory('${f.root.path}/data/pokemon/catalogs')
+        .create(recursive: true);
+    await File('${f.root.path}/${seeded.pokemon.catalogFiles['items']}')
+        .writeAsString(jsonEncode(encodeProjectItemCatalog(
+            const ProjectItemCatalog(schemaVersion: 1, entries: []))));
+    final handles = WorkspaceHandleStore();
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [f.root.path], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
+    final opened = await opener.openProject(f.root.path);
+    addTearDown(() => opener.closeWorkspace(opened.workspaceHandle));
+    final cache = ProjectSnapshotCache();
+    final profiles = <ProjectSnapshotLoadProfile>[];
+    final snapshots = ProjectSnapshotLoader(
+        handles: handles, snapshotCache: cache, profileSink: profiles.add);
+    final api =
+        LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: snapshots);
+    await api.attachProject(
+        projectRootPath: f.root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    addTearDown(() => api.detachWorkspace(opened.workspaceHandle));
+    final measurements = <Map<String, Object?>>[];
+    for (final action in <(String, Map<String, Object?>)>[
+      (
+        'fact.create',
+        {
+          'fact':
+              NarrativeFactDefinition(id: 'fact_added', label: 'Added').toJson()
+        }
+      ),
+      ('cinematic.upsert', {'cinematic': _projectionCinematic().toJson()}),
+      (
+        'dialogue.update',
+        {'entry': seeded.dialogues.single.copyWith(name: 'After').toJson()}
+      ),
+    ]) {
+      final before = await snapshots.load(opened.projectHandle,
+          deferPokemonDocuments: false);
+      expect(before.pokemonInventoryComplete, isTrue);
+      expect(before.itemCatalog, isNotNull);
+      final pokemonBytes =
+          before.resourceBytes(pokemonSpeciesResourceIdentity('bulbasaur'));
+      final clock = Stopwatch()..start();
+      final request = AuthoringRequest(
+          requestId: action.$1,
+          actionId: action.$1,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: action.$2,
+          expectedRevision: before.revision,
+          idempotencyKey: action.$1);
+      final plan = await api.plan(opened.projectHandle, request);
+      final planMicros = clock.elapsedMicroseconds;
+      final applyClock = Stopwatch()..start();
+      await api.apply(opened.projectHandle,
+          planId: plan['planId']! as String, operationId: 'apply-${action.$1}');
+      final applyMicros = applyClock.elapsedMicroseconds;
+      final warm = await snapshots.load(opened.projectHandle);
+      expect(profiles.last.cacheHit, isTrue);
+      final cold = await ProjectSnapshotLoader(handles: handles)
+          .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      expect(warm.itemCatalog, cold.itemCatalog);
+      expect(warm.pokemonInventoryComplete, isTrue);
+      expect(warm.resourceBytes(pokemonSpeciesResourceIdentity('bulbasaur')),
+          pokemonBytes);
+      expect(warm.manifest, cold.manifest);
+      expect(warm.maps, cold.maps);
+      expect(warm.revision, cold.revision);
+      expect(warm.resourceFingerprints, cold.resourceFingerprints);
+      expect(warm.resourceStorageKeys, cold.resourceStorageKeys);
+      measurements.add({
+        'action': action.$1,
+        'planMicros': planMicros,
+        'applyMicros': applyMicros,
+        'revision': warm.revision
+      });
+    }
+    expect(profiles.where((profile) => !profile.cacheHit).length, 1);
+    expect(cache.adoptions, 3);
+    expect(cache.adoptionRejections, 0);
+    print(jsonEncode({'manifestActionCacheMeasurements': measurements}));
+    final deferred =
+        await snapshots.load(opened.projectHandle, deferPokemonDocuments: true);
+    expect(deferred.itemCatalog, isNull);
+    expect(deferred.storedResources, isNotEmpty);
+    final deferredManifest = deferred.manifest.copyWith(
+        facts: [NarrativeFactDefinition(id: 'fact_other', label: 'Other')]);
+    expect(
+        await snapshots.adoptAppliedChanges(opened.projectHandle,
+            baseRevision: deferred.revision,
+            changes: [
+              change(deferred, 'project',
+                  encodeProjectAuthoringDocument(deferred, deferredManifest))
+            ]),
+        isNull);
+    final full = await snapshots.load(opened.projectHandle,
+        deferPokemonDocuments: false);
+    expect(profiles.last.cacheHit, isFalse);
+    expect(full.itemCatalog, isNotNull);
+    expect(full.pokemonInventoryComplete, isTrue);
+    expect(full.resourceBytes(pokemonSpeciesResourceIdentity('bulbasaur')),
+        utf8.encode(jsonEncode({'id': 'bulbasaur'})));
+  });
 
   test('new narrative item references retain strict missing-catalog rejection',
       () async {
@@ -426,4 +751,12 @@ SceneAsset _itemProjectionScene() => SceneAsset(
           fromPortId: 'completed',
           toNodeId: 'end',
           kind: SceneEdgeKind.actionCompleted),
+    ]));
+
+CinematicAsset _projectionCinematic() => CinematicAsset(
+    id: 'cine',
+    title: 'Wait',
+    timeline: CinematicTimeline(steps: [
+      CinematicTimelineStep(
+          id: 'wait', kind: CinematicTimelineStepKind.wait, durationMs: 100)
     ]));

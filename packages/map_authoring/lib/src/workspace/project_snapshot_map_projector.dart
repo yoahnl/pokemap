@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
+import '../domains/narrative/dialogue_source_store.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/change_set.dart';
 import 'project_snapshot.dart';
@@ -18,6 +19,7 @@ final class ProjectSnapshotMapProjector {
     ProjectSnapshot snapshot,
     Iterable<AuthoringResourceChange> changes,
   ) {
+    if (snapshot.loadDiagnostics.isNotEmpty) return null;
     final replacements = <String, List<int>>{};
     final replacementMaps = <String, MapData>{};
     ProjectManifest? manifest;
@@ -140,6 +142,8 @@ ProjectManifest? _decodeManifestProjection(
       jsonDecode(utf8.decode(bytes)) as Map,
     );
     final manifest = ProjectManifest.fromJson(rawAfter);
+    final modeledBefore = snapshot.manifest.toJson();
+    final modeledAfter = manifest.toJson();
     if (manifest.maps.length != snapshot.manifest.maps.length) return null;
     final previousMaps = {
       for (final map in snapshot.manifest.maps) map.id: map
@@ -157,15 +161,38 @@ ProjectManifest? _decodeManifestProjection(
         return null;
       }
     }
-    final normalizedBefore =
-        _withDefaults(rawBefore, snapshot.manifest.toJson()) as Map;
-    final normalizedAfter = _withDefaults(rawAfter, manifest.toJson()) as Map;
+    if (!_sameDialogueSources(snapshot, manifest)) return null;
+    final previousCinematics = {
+      for (final entry in snapshot.manifest.cinematics) entry.id: entry
+    };
+    for (final cinematic in manifest.cinematics) {
+      if (cinematic != previousCinematics[cinematic.id] &&
+          !preflightCinematicPlayback(
+            cinematic: cinematic,
+            dialogues: manifest.dialogues,
+            mediaAssets: manifest.cinematicMediaAssets,
+            availableMapIds: manifest.maps.map((entry) => entry.id),
+          ).isReady) {
+        return null;
+      }
+    }
+    for (final field in ['facts', 'dialogues', 'cinematics']) {
+      if (!_containsOnlyModeledFields(rawBefore[field], modeledBefore[field]) ||
+          !_containsOnlyModeledFields(rawAfter[field], modeledAfter[field])) {
+        return null;
+      }
+    }
+    final normalizedBefore = _withDefaults(rawBefore, modeledBefore) as Map;
+    final normalizedAfter = _withDefaults(rawAfter, modeledAfter) as Map;
     for (final field in [
       'maps',
       'groups',
       'scenes',
       'worldRules',
-      'eventRegistry'
+      'eventRegistry',
+      'facts',
+      'dialogues',
+      'cinematics'
     ]) {
       normalizedBefore.remove(field);
       normalizedAfter.remove(field);
@@ -189,4 +216,38 @@ Object? _withDefaults(Object? raw, Object? defaults) {
           ? _withDefaults(raw[key], defaults[key])
           : defaults[key],
   };
+}
+
+bool _sameDialogueSources(ProjectSnapshot snapshot, ProjectManifest manifest) {
+  final previous = snapshot.manifest.dialogues;
+  if (manifest.dialogues.length != previous.length) return false;
+  final paths = {for (final entry in previous) entry.id: entry.relativePath};
+  final seen = <String>{};
+  for (final entry in manifest.dialogues) {
+    final identity = dialogueSourceResourceIdentity(entry.id);
+    if (!seen.add(entry.id) ||
+        paths[entry.id] != entry.relativePath ||
+        snapshot.resourceStorageKeys[identity] != entry.relativePath ||
+        !snapshot.resourceFingerprints.containsKey(identity) ||
+        (snapshot.findResourceBytes(identity) == null &&
+            !snapshot.storedResources.containsKey(identity))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _containsOnlyModeledFields(Object? raw, Object? modeled) {
+  if (raw is Map && modeled is Map) {
+    return raw.keys.every((key) =>
+        modeled.containsKey(key) &&
+        _containsOnlyModeledFields(raw[key], modeled[key]));
+  }
+  if (raw is List && modeled is List) {
+    if (raw.length != modeled.length) return false;
+    for (var index = 0; index < raw.length; index++) {
+      if (!_containsOnlyModeledFields(raw[index], modeled[index])) return false;
+    }
+  }
+  return true;
 }
