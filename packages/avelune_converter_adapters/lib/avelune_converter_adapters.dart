@@ -30,6 +30,7 @@ export 'src/source_pickup_feedback_binding.dart';
 export 'src/source_catalog_projection.dart';
 export 'src/native_psdk_trainer_bundle.dart';
 export 'src/native_psdk_catalog.dart';
+export 'src/native_field_machine_learnsets.dart';
 export 'src/native_source_species_bindings.dart';
 export 'src/native_trainer_catalog_bindings.dart';
 export 'src/native_trainer_catalog_qualification.dart';

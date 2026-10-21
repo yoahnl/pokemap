@@ -162,13 +162,12 @@ final class _Files implements SourceFilePort {
       profileEvidence: [],
       state: SourceScanState.complete);
   final profile = SourceEventProfile(
-      scriptsArchiveHash:
-          Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
-      sourceSnapshotHash: snapshot.canonicalHash,
-      normalizationHash:
-          canonicalHashOf({'fixture': 'static-oracle-contract'}),
-interpretationProfile: fixtureSourceInterpretationProfile,
-);
+    scriptsArchiveHash:
+        Sha256Hash(fixtureSourceInterpretationProfile.scriptsArchiveHash.value),
+    sourceSnapshotHash: snapshot.canonicalHash,
+    normalizationHash: canonicalHashOf({'fixture': 'static-oracle-contract'}),
+    interpretationProfile: fixtureSourceInterpretationProfile,
+  );
   return (
     snapshot: snapshot,
     files: _Files({
@@ -213,62 +212,130 @@ Map<String, Object?> _explorationItem(String symbol) {
 }
 
 void main() {
-  test('explicit missing symbols use genuine supplemental entries without overriding the canonical catalog', () async {
+  test(
+      'explicit missing symbols use genuine supplemental entries without overriding the canonical catalog',
+      () async {
     final primary = _fixture(items: {'BURNHEAL': _item('BURNHEAL')});
-    final donor = _fixture(items: {'ETHER': _item('ETHER'), 'BURNHEAL': _item('BURNHEAL')});
+    final donor = _fixture(
+        items: {'ETHER': _item('ETHER'), 'BURNHEAL': _item('BURNHEAL')});
     final bytes = donor.files.bytes.values.single;
-    final donorEntry = SourceFileEntry(fileId: ConverterId('donor-items'),
-        relativePath: '_converter_sources/2/Data/items.dat', kind: SourceNodeKind.file,
-        byteLength: bytes.length, sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
-        format: 'unknown', family: 'project');
-    final snapshot = SourceSnapshot(logicalProjectNamespace: primary.snapshot.logicalProjectNamespace,
-        policyHash: primary.snapshot.policyHash, entries: [...primary.snapshot.entries, donorEntry],
-        diagnostics: [], excludedPaths: [], profileEvidence: [], state: SourceScanState.complete);
+    final donorEntry = SourceFileEntry(
+        fileId: ConverterId('donor-items'),
+        relativePath: '_converter_sources/2/Data/items.dat',
+        kind: SourceNodeKind.file,
+        byteLength: bytes.length,
+        sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+        format: 'unknown',
+        family: 'project');
+    final snapshot = SourceSnapshot(
+        logicalProjectNamespace: primary.snapshot.logicalProjectNamespace,
+        policyHash: primary.snapshot.policyHash,
+        entries: [...primary.snapshot.entries, donorEntry],
+        diagnostics: [],
+        excludedPaths: [],
+        profileEvidence: [],
+        state: SourceScanState.complete);
     final files = _Files({...primary.files.bytes, donorEntry.fileId: bytes});
-    final profile = SourceEventProfile(scriptsArchiveHash: primary.profile.scriptsArchiveHash,
-        sourceSnapshotHash: snapshot.canonicalHash, normalizationHash: primary.profile.normalizationHash,
+    final profile = SourceEventProfile(
+        scriptsArchiveHash: primary.profile.scriptsArchiveHash,
+        sourceSnapshotHash: snapshot.canonicalHash,
+        normalizationHash: primary.profile.normalizationHash,
         interpretationProfile: primary.profile.interpretationProfile);
-    SourceMissingItemBinding binding(String symbol) => SourceMissingItemBinding.fromJson({
-      'kind': 'sourceMissingItemBinding', 'version': 1, 'sourceSymbol': symbol,
-      'sourceSnapshotHash': snapshot.canonicalHash.value, 'sourceFileId': donorEntry.fileId.value,
-      'sourceRelativePath': donorEntry.relativePath, 'sourceSha256': donorEntry.sha256!.value,
-      'reason': 'Explicit test source selection', 'humanConfirmed': true,
-    });
-    final unresolved = await const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
-        symbols: ['ETHER'], eventProfile: profile);
+    SourceMissingItemBinding binding(String symbol) =>
+        SourceMissingItemBinding.fromJson({
+          'kind': 'sourceMissingItemBinding',
+          'version': 1,
+          'sourceSymbol': symbol,
+          'sourceSnapshotHash': snapshot.canonicalHash.value,
+          'sourceFileId': donorEntry.fileId.value,
+          'sourceRelativePath': donorEntry.relativePath,
+          'sourceSha256': donorEntry.sha256!.value,
+          'reason': 'Explicit test source selection',
+          'humanConfirmed': true,
+        });
+    final unresolved = await const SourceEventItemBindingResolver().read(
+        snapshot: snapshot,
+        files: files,
+        symbols: ['ETHER'],
+        eventProfile: profile);
     expect(unresolved.quarantinedSymbols['ETHER'], ['item.symbol_missing']);
-    final options = await const SourceEventItemBindingResolver().suggestMissingBindings(snapshot: snapshot,
-        files: files, symbols: ['ETHER', 'BURNHEAL'], eventProfile: profile);
+    final options = await const SourceEventItemBindingResolver()
+        .suggestMissingBindings(
+            snapshot: snapshot,
+            files: files,
+            symbols: ['ETHER', 'BURNHEAL'],
+            eventProfile: profile);
     expect(options.keys, ['ETHER']);
-    final resolved = await const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
-        symbols: ['ETHER', 'BURNHEAL'], eventProfile: profile, missingItemBindings: [binding('ETHER')]);
+    final resolved = await const SourceEventItemBindingResolver().read(
+        snapshot: snapshot,
+        files: files,
+        symbols: ['ETHER', 'BURNHEAL'],
+        eventProfile: profile,
+        missingItemBindings: [binding('ETHER')]);
     expect(resolved.bindings['ETHER']!.pickupQualified, true);
     expect(resolved.bindings['ETHER']!.itemReference.fileId, donorEntry.fileId);
-    expect(resolved.bindings['BURNHEAL']!.itemReference.fileId, primary.snapshot.entries.single.fileId);
+    expect(resolved.bindings['BURNHEAL']!.itemReference.fileId,
+        primary.snapshot.entries.single.fileId);
     expect(resolved.archive.files[donorEntry.fileId]!.rawBytes, bytes);
     expect(resolved.archive.files, hasLength(2));
-    await expectLater(const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
-        symbols: ['BURNHEAL'], eventProfile: profile, missingItemBindings: [binding('BURNHEAL')]),
-        throwsA(isA<ContractError>().having((value) => value.code, 'code', 'source.event_items.binding_override')));
-    await expectLater(const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
-        symbols: ['MISSING'], eventProfile: profile, missingItemBindings: [binding('MISSING')]),
-        throwsA(isA<ContractError>().having((value) => value.code, 'code', 'source.event_items.binding_target_invalid')));
+    await expectLater(
+        const SourceEventItemBindingResolver().read(
+            snapshot: snapshot,
+            files: files,
+            symbols: ['BURNHEAL'],
+            eventProfile: profile,
+            missingItemBindings: [binding('BURNHEAL')]),
+        throwsA(isA<ContractError>().having((value) => value.code, 'code',
+            'source.event_items.binding_override')));
+    await expectLater(
+        const SourceEventItemBindingResolver().read(
+            snapshot: snapshot,
+            files: files,
+            symbols: ['MISSING'],
+            eventProfile: profile,
+            missingItemBindings: [binding('MISSING')]),
+        throwsA(isA<ContractError>().having((value) => value.code, 'code',
+            'source.event_items.binding_target_invalid')));
     for (final patch in [
-      {'humanConfirmed': false}, {'sourceRelativePath': 'Data/items.dat'}, {'reason': ''}, {'extraPatch': {}},
+      {'humanConfirmed': false},
+      {'sourceRelativePath': 'Data/items.dat'},
+      {'reason': ''},
+      {'extraPatch': {}},
     ]) {
-      expect(() => SourceMissingItemBinding.fromJson({...binding('ETHER').toJson(), ...patch}), throwsA(isA<ContractError>()));
+      expect(
+          () => SourceMissingItemBinding.fromJson(
+              {...binding('ETHER').toJson(), ...patch}),
+          throwsA(isA<ContractError>()));
     }
-    final stale = SourceMissingItemBinding.fromJson({...binding('ETHER').toJson(), 'sourceSha256': 'f' * 64});
-    await expectLater(const SourceEventItemBindingResolver().read(snapshot: snapshot, files: files,
-        symbols: ['ETHER'], eventProfile: profile, missingItemBindings: [stale]), throwsA(isA<ContractError>()));
+    final stale = SourceMissingItemBinding.fromJson(
+        {...binding('ETHER').toJson(), 'sourceSha256': 'f' * 64});
+    await expectLater(
+        const SourceEventItemBindingResolver().read(
+            snapshot: snapshot,
+            files: files,
+            symbols: ['ETHER'],
+            eventProfile: profile,
+            missingItemBindings: [stale]),
+        throwsA(isA<ContractError>()));
   });
 
   for (final fieldUse in [3, 4, 5]) {
-    test('shop important policy distinguishes TM HM and consumable TR: $fieldUse', () async {
-      final fixture = _fixture(items: {'TM101': _item('TM101', patch: {
-        '@field_use': fieldUse, '@battle_use': 0, '@pocket': 4, '@move': _Symbol('AERIALACE')})});
-      final result = await const SourceEventItemBindingResolver().read(snapshot: fixture.snapshot,
-          files: fixture.files, symbols: ['TM101'], eventProfile: fixture.profile);
+    test(
+        'shop important policy distinguishes TM HM and consumable TR: $fieldUse',
+        () async {
+      final fixture = _fixture(items: {
+        'TM101': _item('TM101', patch: {
+          '@field_use': fieldUse,
+          '@battle_use': 0,
+          '@pocket': 4,
+          '@move': _Symbol('AERIALACE')
+        })
+      });
+      final result = await const SourceEventItemBindingResolver().read(
+          snapshot: fixture.snapshot,
+          files: fixture.files,
+          symbols: ['TM101'],
+          eventProfile: fixture.profile);
       final item = result.bindings['TM101']!;
       expect(item.isMachine, isTrue);
       expect(item.isImportant, fieldUse != 5);
@@ -323,8 +390,8 @@ void main() {
     late LiteralTileFixture fixture;
 
     setUpAll(() async {
-      fixture = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
-
+      fixture = await LiteralTileFixture.create(
+          interpretationProfile: fixtureSourceInterpretationProfile,
           scriptsBytes: await File(scriptsPath!).readAsBytes(),
           includeEventSystem: true,
           extraFiles: {
@@ -625,6 +692,118 @@ void main() {
     expect(r.evidence['sourceScriptsExecuted'], 0);
     expect(r.evidence['fullPickupParityQualified'], isFalse);
   });
+  for (final row in [
+    ('HM02', 'FLY', 'Fly', 'fly'),
+    ('HM05', 'FLASH', 'Flash', 'flash')
+  ]) {
+    test('attested ${row.$1} teaches the exact native ${row.$2} machine',
+        () async {
+      final f = _fixture(items: {
+        row.$1: _item(row.$1, patch: {
+          '@pocket': 4,
+          '@field_use': 4,
+          '@battle_use': 0,
+          '@move': _Symbol(row.$2),
+          '@consumable': false
+        })
+      }, movePbs: '[${row.$2}]\nName = ${row.$3}\n');
+      final item = (await _read(f, symbols: [row.$1])).bindings[row.$1]!;
+      expect(
+          item.definition.machine,
+          ProjectMoveMachineItemDefinition(
+              moveId: row.$4,
+              kind: ProjectMoveMachineKind.hm,
+              consumable: false));
+      expect(item.useParity, SourceEventItemUseParity.partial);
+      expect(item.toJson()['nativeProjectMoveMachine'], isNotNull);
+    });
+  }
+  for (final row in [
+    ('FLY', 'Surf', false),
+    ('UNKNOWNMOVE', 'Fly', false),
+    ('FLY', 'Fly', true)
+  ]) {
+    test('machine rejects native identity or HM consumption mismatch $row',
+        () async {
+      final f = _fixture(items: {
+        'HM02': _item('HM02', patch: {
+          '@pocket': 4,
+          '@field_use': 4,
+          '@battle_use': 0,
+          '@move': _Symbol(row.$1),
+          '@consumable': row.$3
+        })
+      }, movePbs: '[${row.$1}]\nName = ${row.$2}\n');
+      final item = (await _read(f, symbols: ['HM02'])).bindings['HM02']!;
+      expect(item.definition.machine, isNull);
+      expect(item.useGaps,
+          contains('item.use.machine_native_identity_unqualified'));
+    });
+  }
+  test('standard Double-Edge orthography is an explicit identity adaptation',
+      () async {
+    final f = _fixture(items: {
+      'TM010': _item('TM010', patch: {
+        '@pocket': 4,
+        '@field_use': 3,
+        '@battle_use': 0,
+        '@move': const _Symbol('DOUBLEEDGE'),
+        '@consumable': false
+      })
+    }, movePbs: '[DOUBLEEDGE]\nName = Double-Edge\n');
+    final item = (await _read(f, symbols: ['TM010'])).bindings['TM010']!;
+    expect(
+        item.definition.machine,
+        const ProjectMoveMachineItemDefinition(
+            moveId: 'double_edge',
+            kind: ProjectMoveMachineKind.tm,
+            consumable: false));
+    final proof = item.sourceMachineMove!.nativeCatalogEvidence!;
+    expect(proof['sourceMoveName'], 'Double-Edge');
+    expect(proof['nativeMoveName'], 'Double Edge');
+  });
+  for (final mode in [3, 4]) {
+    test(
+        'important machine mode $mode refuses a contradictory consumable field',
+        () async {
+      final f = _fixture(items: {
+        'TM010': _item('TM010', patch: {
+          '@pocket': 4,
+          '@field_use': mode,
+          '@battle_use': 0,
+          '@move': const _Symbol('DOUBLEEDGE'),
+          '@consumable': true
+        })
+      }, movePbs: '[DOUBLEEDGE]\nName = Double-Edge\n');
+      expect(
+          (await _read(f, symbols: ['TM010']))
+              .bindings['TM010']!
+              .definition
+              .machine,
+          isNull);
+    });
+  }
+  test('consumable TR retains its native consumable machine capability',
+      () async {
+    final f = _fixture(items: {
+      'TR010': _item('TR010', patch: {
+        '@pocket': 4,
+        '@field_use': 5,
+        '@battle_use': 0,
+        '@move': const _Symbol('DOUBLEEDGE'),
+        '@consumable': true
+      })
+    }, movePbs: '[DOUBLEEDGE]\nName = Double-Edge\n');
+    expect(
+        (await _read(f, symbols: ['TR010']))
+            .bindings['TR010']!
+            .definition
+            .machine,
+        const ProjectMoveMachineItemDefinition(
+            moveId: 'double_edge',
+            kind: ProjectMoveMachineKind.tm,
+            consumable: true));
+  });
   test('preserves unsupported item identity while separating use qualification',
       () async {
     final f = _fixture(items: {
@@ -669,12 +848,18 @@ void main() {
     expect((witness['file'] as Map)['sha256'],
         f.snapshot.entries.last.sha256!.value);
     expect((witness['nameLocator'] as Map)['line'], 2);
-    expect(tm.definition.machine, isNull);
+    expect(
+        tm.definition.machine,
+        const ProjectMoveMachineItemDefinition(
+            moveId: 'aerial_ace',
+            kind: ProjectMoveMachineKind.tm,
+            consumable: false));
     expect(tm.definition.uses, isEmpty);
-    expect(tm.useParity, SourceEventItemUseParity.unqualified);
-    expect(tm.useGaps, contains('item.use.machine_not_projected'));
+    expect(tm.useParity, SourceEventItemUseParity.partial);
+    expect(
+        tm.useGaps, contains('item.use.source_move_rules_adapted_to_avelune'));
     expect(tm.fullPickupParityQualified, isFalse);
-    expect(tm.toJson()['nativeProjectMoveMachine'], isNull);
+    expect(tm.toJson()['nativeProjectMoveMachine'], isNotNull);
   });
   test('does not bind a missing, ambiguous or controlled machine move name',
       () async {

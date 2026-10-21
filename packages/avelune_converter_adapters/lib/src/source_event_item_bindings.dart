@@ -2,6 +2,9 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
+import 'native_psdk_catalog.dart';
+import 'native_psdk_trainer_bundle.dart';
+
 enum SourceEventItemUseParity { qualified, partial, unqualified }
 
 final class SourceEventMachineMoveBinding {
@@ -12,6 +15,8 @@ final class SourceEventMachineMoveBinding {
     required this.headerLocator,
     required this.nameLocator,
     required this.sourceSnapshotHash,
+    required this.nativeMoveId,
+    required this.nativeCatalogEvidence,
   });
 
   final String sourceSymbol;
@@ -20,6 +25,8 @@ final class SourceEventMachineMoveBinding {
   final SourceLocator headerLocator;
   final SourceLocator nameLocator;
   final Sha256Hash sourceSnapshotHash;
+  final String? nativeMoveId;
+  final Map<String, Object?>? nativeCatalogEvidence;
 
   Map<String, Object?> toJson() => {
         'sourceSymbol': sourceSymbol,
@@ -28,8 +35,12 @@ final class SourceEventMachineMoveBinding {
         'headerLocator': headerLocator.toJson(),
         'nameLocator': nameLocator.toJson(),
         'sourceSnapshotHash': sourceSnapshotHash.value,
-        'scope': 'sourceMachinePickupDisplayNameOnly',
-        'nativeProjectMoveMachine': null,
+        'scope': nativeMoveId == null
+            ? 'sourceMachinePickupDisplayNameOnly'
+            : 'attestedSourceIdentityToAveluneNativeMove',
+        'nativeMoveId': nativeMoveId,
+        'nativeCatalogEvidence': nativeCatalogEvidence,
+        'sourceBattleRulesImported': false,
         'fullMachineUseParityQualified': false,
       };
 }
@@ -122,9 +133,15 @@ final class SourceEventItemBinding {
         'sourceSymbol': sourceSymbol,
         'definition': definition.toJson(),
         'itemReference': itemReference.toJson(),
-        'sourceCatalogOrigin': {'selectedRelativePath': sourceCatalogPath,
-          'originalRelativePath': sourceCatalogPath.startsWith('_converter_sources/') ? 'Data/items.dat' : sourceCatalogPath,
-          'fileId': itemReference.fileId.value, 'sha256': itemReference.contentHash.value},
+        'sourceCatalogOrigin': {
+          'selectedRelativePath': sourceCatalogPath,
+          'originalRelativePath':
+              sourceCatalogPath.startsWith('_converter_sources/')
+                  ? 'Data/items.dat'
+                  : sourceCatalogPath,
+          'fileId': itemReference.fileId.value,
+          'sha256': itemReference.contentHash.value
+        },
         'fieldReferences': {
           for (final field in fieldReferences.entries)
             field.key: field.value.toJson(),
@@ -138,7 +155,7 @@ final class SourceEventItemBinding {
         'isImportant': isImportant,
         'moveSymbol': moveSymbol,
         'sourceMachineMove': sourceMachineMove?.toJson(),
-        if (isMachine) 'nativeProjectMoveMachine': null,
+        if (isMachine) 'nativeProjectMoveMachine': definition.machine?.toJson(),
         if (isMachine) 'fullMachineUseParityQualified': false,
         'sourceConsumable': sourceConsumable,
         'sourceSnapshotHash': sourceSnapshotHash.value,
@@ -150,13 +167,18 @@ final class SourceEventItemBinding {
         'fullUseParityQualified': false,
         'useGaps': useGaps,
         'unprojectedSourceFlags': flags,
-        if (definition.heldEffectId == PokemonPassiveHeldEffect.preventEvolution.id)
+        if (definition.heldEffectId ==
+            PokemonPassiveHeldEffect.preventEvolution.id)
           'passiveHeldEffect': {
             'sourceSymbol': sourceSymbol,
             'nativeEffectId': definition.heldEffectId,
             'physicalItemId': definition.id,
-            'sourceOracle': {'archiveSha256': interpretationProfile?.scriptsArchiveHash.value,
-              '273_Pokemon': '2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec', 'lines': '1036-1037'},
+            'sourceOracle': {
+              'archiveSha256': interpretationProfile?.scriptsArchiveHash.value,
+              '273_Pokemon':
+                  '2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec',
+              'lines': '1036-1037'
+            },
             'evolutionScope': ['trade', 'levelUp', 'itemUse'],
             'nativeCombatPolicy': 'explicitPassiveNeutral',
             'consumedByEvolutionPrevention': false,
@@ -243,33 +265,53 @@ final class SourceEventItemBindingResolver {
   const SourceEventItemBindingResolver();
 
   Future<Map<String, List<SourceMissingItemBinding>>> suggestMissingBindings({
-    required SourceSnapshot snapshot, required SourceFilePort files,
-    required Iterable<String> symbols, required SourceEventProfile eventProfile,
+    required SourceSnapshot snapshot,
+    required SourceFilePort files,
+    required Iterable<String> symbols,
+    required SourceEventProfile eventProfile,
     ScanCancellation? cancellation,
   }) async {
     if (!eventProfile.isQualified) return const {};
     final token = cancellation ?? ScanCancellation();
-    final base = await read(snapshot: snapshot, files: files, symbols: symbols,
-        eventProfile: eventProfile, cancellation: token);
-    final missing = base.quarantinedSymbols.entries.where((entry) =>
-        entry.value.length == 1 && entry.value.single == 'item.symbol_missing').map((entry) => entry.key).toSet();
+    final base = await read(
+        snapshot: snapshot,
+        files: files,
+        symbols: symbols,
+        eventProfile: eventProfile,
+        cancellation: token);
+    final missing = base.quarantinedSymbols.entries
+        .where((entry) =>
+            entry.value.length == 1 &&
+            entry.value.single == 'item.symbol_missing')
+        .map((entry) => entry.key)
+        .toSet();
     if (missing.isEmpty) return const {};
     final options = <String, List<SourceMissingItemBinding>>{};
-    final catalogs = snapshot.entries.where((entry) =>
-        RegExp(r'^_converter_sources/[1-4]/Data/items\.dat$').hasMatch(entry.relativePath)).toList()
+    final catalogs = snapshot.entries
+        .where((entry) => RegExp(r'^_converter_sources/[1-4]/Data/items\.dat$')
+            .hasMatch(entry.relativePath))
+        .toList()
       ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
     for (final entry in catalogs) {
       token.check();
-      if (entry.kind != SourceNodeKind.file || entry.sha256 == null || entry.byteLength > 4194304) continue;
+      if (entry.kind != SourceNodeKind.file ||
+          entry.sha256 == null ||
+          entry.byteLength > 4194304) continue;
       final bytes = await files.read(entry.fileId);
       token.check();
-      if (bytes.length != entry.byteLength || crypto.sha256.convert(bytes).toString() != entry.sha256!.value) {
-        throw ContractError('source.event_items.source_changed', entry.relativePath, 'The supplemental catalog changed after admission.');
+      if (bytes.length != entry.byteLength ||
+          crypto.sha256.convert(bytes).toString() != entry.sha256!.value) {
+        throw ContractError(
+            'source.event_items.source_changed',
+            entry.relativePath,
+            'The supplemental catalog changed after admission.');
       }
       final MarshalDocument document;
       try {
         document = const MarshalDecoder().decode(bytes,
-            limits: const MarshalDecodeLimits(maxInputBytes: 4194304, maxNodes: 200000), sourcePath: entry.relativePath);
+            limits: const MarshalDecodeLimits(
+                maxInputBytes: 4194304, maxNodes: 200000),
+            sourcePath: entry.relativePath);
       } on BinaryDecodeError {
         continue;
       }
@@ -282,26 +324,42 @@ final class SourceEventItemBindingResolver {
           counts.update(key.name!, (value) => value + 1, ifAbsent: () => 1);
         }
       }
-      final candidates = [for (final symbol in missing)
-        if (counts[symbol] == 1) SourceMissingItemBinding.fromJson({
-          'kind': 'sourceMissingItemBinding', 'version': 1, 'sourceSymbol': symbol,
-          'sourceSnapshotHash': snapshot.canonicalHash.value, 'sourceFileId': entry.fileId.value,
-          'sourceRelativePath': entry.relativePath, 'sourceSha256': entry.sha256!.value,
-          'reason': 'Associer explicitement l’entrée absente au catalogue source sélectionné ; conserver sa provenance.',
-          'humanConfirmed': true,
-        })];
+      final candidates = [
+        for (final symbol in missing)
+          if (counts[symbol] == 1)
+            SourceMissingItemBinding.fromJson({
+              'kind': 'sourceMissingItemBinding',
+              'version': 1,
+              'sourceSymbol': symbol,
+              'sourceSnapshotHash': snapshot.canonicalHash.value,
+              'sourceFileId': entry.fileId.value,
+              'sourceRelativePath': entry.relativePath,
+              'sourceSha256': entry.sha256!.value,
+              'reason':
+                  'Associer explicitement l’entrée absente au catalogue source sélectionné ; conserver sa provenance.',
+              'humanConfirmed': true,
+            })
+      ];
       if (candidates.isEmpty) continue;
-      final qualified = await read(snapshot: snapshot, files: files,
-          symbols: candidates.map((value) => value.sourceSymbol), eventProfile: eventProfile,
-          missingItemBindings: candidates, cancellation: token);
+      final qualified = await read(
+          snapshot: snapshot,
+          files: files,
+          symbols: candidates.map((value) => value.sourceSymbol),
+          eventProfile: eventProfile,
+          missingItemBindings: candidates,
+          cancellation: token);
       for (final candidate in candidates) {
-        if (qualified.bindings[candidate.sourceSymbol]?.pickupQualified == true &&
+        if (qualified.bindings[candidate.sourceSymbol]?.pickupQualified ==
+                true &&
             !qualified.quarantinedSymbols.containsKey(candidate.sourceSymbol)) {
           options.putIfAbsent(candidate.sourceSymbol, () => []).add(candidate);
         }
       }
     }
-    return Map.unmodifiable({for (final entry in options.entries) entry.key: List<SourceMissingItemBinding>.unmodifiable(entry.value)});
+    return Map.unmodifiable({
+      for (final entry in options.entries)
+        entry.key: List<SourceMissingItemBinding>.unmodifiable(entry.value)
+    });
   }
 
   Future<SourceEventItemBindings> read({
@@ -352,8 +410,11 @@ final class SourceEventItemBindingResolver {
             'The requested item count exceeds its quota.');
       }
     }
-    final explicitBindings = SourceMissingItemBinding.canonicalize(missingItemBindings);
-    for (final binding in explicitBindings) { binding.verifySnapshot(snapshot); }
+    final explicitBindings =
+        SourceMissingItemBinding.canonicalize(missingItemBindings);
+    for (final binding in explicitBindings) {
+      binding.verifySnapshot(snapshot);
+    }
     final ordered = requested.toList()..sort();
     final archive = SourceArchive(
         limits: SourceArchiveLimits(
@@ -423,7 +484,8 @@ final class SourceEventItemBindingResolver {
         throw ContractError('source.event_items.catalog_shape', path,
             'Compiled item identities must be source symbols.');
       }
-      if (requested.contains(key.name) || explicitBindings.any((value) => value.sourceSymbol == key.name)) {
+      if (requested.contains(key.name) ||
+          explicitBindings.any((value) => value.sourceSymbol == key.name)) {
         selected.putIfAbsent(key.name!, () => []).add(pair.value);
       }
     }
@@ -433,37 +495,58 @@ final class SourceEventItemBindingResolver {
             'Explicit bindings can fill only symbols absent from the canonical catalog.');
       }
     }
-    final extraCatalogs = <ConverterId, (SourceArchivedFile, Map<String, List<int>>)>{};
+    final extraCatalogs =
+        <ConverterId, (SourceArchivedFile, Map<String, List<int>>)>{};
     var catalogBytes = entry.byteLength;
-    Future<(SourceArchivedFile, Map<String, List<int>>)> supplemental(SourceMissingItemBinding binding) async {
-      if (extraCatalogs.containsKey(binding.sourceFileId)) return extraCatalogs[binding.sourceFileId]!;
-      final candidate = snapshot.entries.singleWhere((value) => value.fileId == binding.sourceFileId);
+    Future<(SourceArchivedFile, Map<String, List<int>>)> supplemental(
+        SourceMissingItemBinding binding) async {
+      if (extraCatalogs.containsKey(binding.sourceFileId))
+        return extraCatalogs[binding.sourceFileId]!;
+      final candidate = snapshot.entries
+          .singleWhere((value) => value.fileId == binding.sourceFileId);
       if (candidate.byteLength > limits.maxCatalogBytes - catalogBytes) {
-        throw ContractError('source.event_items.catalog_limit', candidate.relativePath, 'Combined source catalog bytes exceed the quota.');
+        throw ContractError(
+            'source.event_items.catalog_limit',
+            candidate.relativePath,
+            'Combined source catalog bytes exceed the quota.');
       }
       catalogBytes += candidate.byteLength;
       final data = await files.read(candidate.fileId);
       cancel.check();
-      if (data.length != candidate.byteLength || crypto.sha256.convert(data).toString() != candidate.sha256!.value) {
-        throw ContractError('source.event_items.source_changed', candidate.relativePath, 'The selected catalog changed after admission.');
+      if (data.length != candidate.byteLength ||
+          crypto.sha256.convert(data).toString() != candidate.sha256!.value) {
+        throw ContractError(
+            'source.event_items.source_changed',
+            candidate.relativePath,
+            'The selected catalog changed after admission.');
       }
       final archivedCandidate = archive.add(candidate, data);
       final candidateDoc = archivedCandidate.document;
       final root = candidateDoc.node(candidateDoc.rootId);
-      if (root.kind != MarshalKind.hash || root.pairs.length > limits.maxCatalogEntries) {
-        throw ContractError('source.event_items.catalog_shape', candidate.relativePath, 'The selected catalog must be a bounded inert symbol hash.');
+      if (root.kind != MarshalKind.hash ||
+          root.pairs.length > limits.maxCatalogEntries) {
+        throw ContractError(
+            'source.event_items.catalog_shape',
+            candidate.relativePath,
+            'The selected catalog must be a bounded inert symbol hash.');
       }
       final selected = <String, List<int>>{};
       for (final pair in root.pairs) {
         final key = candidateDoc.node(pair.key);
         if (key.kind != MarshalKind.symbol || key.name == null) {
-          throw ContractError('source.event_items.catalog_shape', candidate.relativePath, 'Catalog keys must be exact source symbols.');
+          throw ContractError(
+              'source.event_items.catalog_shape',
+              candidate.relativePath,
+              'Catalog keys must be exact source symbols.');
         }
-        if (requested.contains(key.name)) selected.putIfAbsent(key.name!, () => []).add(pair.value);
+        if (requested.contains(key.name))
+          selected.putIfAbsent(key.name!, () => []).add(pair.value);
       }
       return extraCatalogs[candidate.fileId] = (archivedCandidate, selected);
     }
+
     SourcePbsProject? moveCatalog;
+    NativePsdkCatalog? nativeMoveCatalog;
     Future<SourceEventMachineMoveBinding?> machineMove(String symbol) async {
       final pbs = moveCatalog ??= await const SourcePbsParser().read(
           snapshot: snapshot,
@@ -496,7 +579,30 @@ final class SourceEventItemBindingResolver {
       final document = pbs.documents
           .where((document) => document.entries.contains(move))
           .single;
+      final native = nativeMoveCatalog ??= NativePsdkCatalogManifest.builtin();
+      String identity(String value) => value.replaceAll('_', '').toUpperCase();
+      final candidates = native.movesById.values
+          .where((value) =>
+              identity(value.id) == identity(symbol) &&
+              (value.name == name ||
+                  symbol == 'DOUBLEEDGE' &&
+                      name == 'Double-Edge' &&
+                      value.name == 'Double Edge'))
+          .toList();
+      final target = candidates.length == 1 ? candidates.single : null;
       return SourceEventMachineMoveBinding._(
+          nativeMoveId: target?.id,
+          nativeCatalogEvidence: target == null
+              ? null
+              : {
+                  'catalogManifestHash':
+                      NativePsdkCatalogManifest.builtinManifestHash,
+                  'nativeMoveHash': canonicalHashOf(target.toJson()).value,
+                  'identityPolicy': 'uniqueExactSymbolAndKnownOrthography',
+                  'sourceMoveName': name,
+                  'nativeMoveName': target.name,
+                  'battleRules': 'aveluneNative',
+                },
           sourceSymbol: symbol,
           name: name,
           file: document.file,
@@ -510,14 +616,18 @@ final class SourceEventItemBindingResolver {
       var matches = selected[symbol] ?? const <int>[];
       var itemEntry = entry;
       var itemDocument = document;
-      final explicit = explicitBindings.where((value) => value.sourceSymbol == symbol).singleOrNull;
+      final explicit = explicitBindings
+          .where((value) => value.sourceSymbol == symbol)
+          .singleOrNull;
       if (explicit != null) {
         final selectedCatalog = await supplemental(explicit);
         matches = selectedCatalog.$2[symbol] ?? const <int>[];
         itemEntry = selectedCatalog.$1.entry;
         itemDocument = selectedCatalog.$1.document;
         if (matches.length != 1) {
-          throw ContractError('source.event_items.binding_target_invalid', explicit.sourceRelativePath,
+          throw ContractError(
+              'source.event_items.binding_target_invalid',
+              explicit.sourceRelativePath,
               'The explicit supplemental symbol must exist exactly once.');
         }
       }
@@ -645,7 +755,14 @@ final class SourceEventItemBindingResolver {
           useGaps.add('item.use.battle_restore_pp');
           useParity = SourceEventItemUseParity.partial;
         } else if (isMachine) {
-          useGaps.add('item.use.machine_not_projected');
+          if (sourceMachineMove?.nativeMoveId != null &&
+              consumable != null &&
+              (fieldUse == 5 ? consumable : !consumable)) {
+            useParity = SourceEventItemUseParity.partial;
+            useGaps.add('item.use.source_move_rules_adapted_to_avelune');
+          } else {
+            useGaps.add('item.use.machine_native_identity_unqualified');
+          }
         } else {
           useGaps.add('item.use.source_handler_unqualified');
         }
@@ -665,20 +782,29 @@ final class SourceEventItemBindingResolver {
               ? PokemonPassiveHeldEffect.preventEvolution.id
               : null,
           uses: uses,
+          machine: sourceMachineMove?.nativeMoveId != null &&
+                  useParity == SourceEventItemUseParity.partial
+              ? ProjectMoveMachineItemDefinition(
+                  moveId: sourceMachineMove!.nativeMoveId!,
+                  kind: fieldUse == 4
+                      ? ProjectMoveMachineKind.hm
+                      : ProjectMoveMachineKind.tm,
+                  consumable: consumable!)
+              : null,
         ).normalized();
         final references = <String, SourcePreservedData>{};
         final fieldNames = fields.keys.toList()..sort();
         for (final field in fieldNames) {
-          references[field] =
-              archive.reference(fileId: itemEntry.fileId, nodeId: fields[field]!);
+          references[field] = archive.reference(
+              fileId: itemEntry.fileId, nodeId: fields[field]!);
         }
         bindings[symbol] = SourceEventItemBinding._(
-            interpretationProfile: eventProfile?.interpretationProfile,
+          interpretationProfile: eventProfile?.interpretationProfile,
           sourceSymbol: symbol,
           definition: definition,
           sourceCatalogPath: itemEntry.relativePath,
-          itemReference:
-              archive.reference(fileId: itemEntry.fileId, nodeId: matches.single),
+          itemReference: archive.reference(
+              fileId: itemEntry.fileId, nodeId: matches.single),
           fieldReferences: references,
           sourcePocketIndex: pocket,
           portionName: portion,

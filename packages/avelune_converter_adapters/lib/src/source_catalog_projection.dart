@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as image;
 import 'native_project_writer.dart';
+import 'native_field_machine_learnsets.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
 import 'native_trainer_catalog_bindings.dart';
@@ -818,8 +819,13 @@ final class _Run {
     for (final species in bundle.speciesById.values) {
       _doc(SourceCatalogDocumentKind.species, 'species', species.id,
           species.toJson());
-      _doc(SourceCatalogDocumentKind.learnset, 'learnsets', species.id,
-          bundle.learnsetsBySpeciesId[species.id]!.toJson());
+      _doc(
+          SourceCatalogDocumentKind.learnset,
+          'learnsets',
+          species.id,
+          projectNativeFieldMachineLearnset(
+                  bundle.learnsetsBySpeciesId[species.id]!)
+              .toJson());
       _doc(SourceCatalogDocumentKind.evolution, 'evolutions', species.id,
           bundle.evolutionsBySpeciesId[species.id]!.toJson());
       _doc(SourceCatalogDocumentKind.media, 'media', species.id,
