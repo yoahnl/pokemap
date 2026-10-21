@@ -214,6 +214,14 @@ Future<SceneActionPayload> _edit(
       await tester.ensureVisible(input);
       await tester.enterText(input, '125');
       await tester.pump();
+      final visibility = find.widgetWithText(
+        SwitchListTile,
+        'Personnage visible',
+      ).first;
+      expect(tester.widget<SwitchListTile>(visibility).value, isFalse);
+      await tester.ensureVisible(visibility);
+      await tester.tap(visibility);
+      await tester.pump();
     } else {
       final toggle = find.widgetWithText(SwitchListTile, 'Acteur visible');
       await tester.ensureVisible(toggle);
@@ -263,6 +271,8 @@ void main() {
                     ),
                     SceneActorRouteStep.wait(durationMs: 0),
                     SceneActorRouteStep.through(enabled: true),
+                    SceneActorRouteStep.visibility(visible: false),
+                    SceneActorRouteStep.visibility(visible: true),
                     SceneActorRouteStep.sound(
                       mediaAssetId: 'sound',
                       gain: 0.35,
@@ -287,6 +297,14 @@ void main() {
         expect(edited, isNot(payload));
         expect(edited.actionKind, payload.actionKind);
         expect(edited.parameters, payload.parameters);
+        if (route) {
+          expect(
+            (edited.interactiveCommand as SceneActorRouteInteractiveCommand)
+                .steps.whereType<SceneActorVisibilityStep>()
+                .map((step) => step.visible),
+            [true, true],
+          );
+        }
         if (egress) {
           final command =
               edited.interactiveCommand as SceneActorRouteInteractiveCommand;

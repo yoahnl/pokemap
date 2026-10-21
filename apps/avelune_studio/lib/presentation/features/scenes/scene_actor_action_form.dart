@@ -325,6 +325,9 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
     SceneActorRouteStepKind.renderAboveMap => SceneActorRouteStep.renderAboveMap(
       enabled: step.enabled,
     ),
+    SceneActorRouteStepKind.visibility => SceneActorRouteStep.visibility(
+      visible: step.enabled,
+    ),
     SceneActorRouteStepKind.sound => SceneActorRouteStep.sound(
       mediaAssetId: step.soundId!,
       gain: double.parse(step.gainText.trim()),
@@ -539,6 +542,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             'wait': 'Attendre',
             'through': 'Traverser les obstacles',
             'renderAboveMap': 'Afficher au premier plan',
+            'visibility': 'Afficher ou masquer',
             'sound': 'Jouer un son',
           },
           onChanged: (value) => setState(
@@ -625,6 +629,12 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             value: step.enabled,
             onChanged: (value) => setState(() => step.enabled = value),
           ),
+        if (step.kind == SceneActorRouteStepKind.visibility)
+          StudioToggleRow(
+            label: 'Personnage visible',
+            value: step.enabled,
+            onChanged: (value) => setState(() => step.enabled = value),
+          ),
         if (step.kind == SceneActorRouteStepKind.sound) ...[
           const SizedBox(height: 8),
           StudioSelect(
@@ -697,6 +707,8 @@ class _ActorStepDraft {
         draft.enabled = step.enabled;
       case SceneActorRenderAboveMapStep():
         draft.enabled = step.enabled;
+      case SceneActorVisibilityStep():
+        draft.enabled = step.visible;
       case SceneActorSoundStep():
         draft.soundId = step.mediaAssetId;
         draft.gainText = '${step.gain}';

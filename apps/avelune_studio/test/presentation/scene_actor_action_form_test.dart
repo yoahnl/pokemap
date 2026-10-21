@@ -163,6 +163,15 @@ Future<void> _pick(WidgetTester tester, String label, String option) async {
   await tester.ensureVisible(field);
   await tester.tap(field);
   await tester.pumpAndSettle();
+  if (find.text(option).evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      find.text(option),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+  }
+  await tester.ensureVisible(find.text(option).last);
+  await tester.pumpAndSettle();
   await tester.tap(find.text(option).last);
   await tester.pumpAndSettle();
 }
@@ -214,6 +223,45 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  for (final visible in [false, true]) {
+    testWidgets(
+      'route visibility $visible round trips and can be changed without altering other steps',
+      (tester) async {
+        final steps = [
+          _steps().first,
+          SceneActorRouteStep.visibility(visible: visible),
+          ..._steps().skip(1),
+        ];
+        final original = _route(steps: steps);
+        final applied = <SceneNodePayload>[];
+        await _pump(tester, current: original, onApply: applied.add);
+        await tester.pumpAndSettle();
+        expect(_apply(tester).onPressed, isNotNull);
+        await _submit(tester);
+        expect(applied.single, original);
+        final toggle = find.widgetWithText(
+          SwitchListTile,
+          'Personnage visible',
+        );
+        expect(tester.widget<SwitchListTile>(toggle).value, visible);
+        await tester.ensureVisible(toggle);
+        await tester.tap(toggle);
+        await tester.pump();
+        await _submit(tester);
+        expect(
+          applied.last,
+          _route(
+            steps: [
+              steps.first,
+              SceneActorRouteStep.visibility(visible: !visible),
+              ...steps.skip(2),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   for (final enabled in [false, true]) {
     testWidgets(
       'v2 imported scene route preserves all seven typed steps and render flag $enabled',
