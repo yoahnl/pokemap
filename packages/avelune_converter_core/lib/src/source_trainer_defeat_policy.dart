@@ -35,6 +35,10 @@ final class SourceTrainerDefeatPolicy {
 }
 
 SourceTrainerDefeatPolicy? _sourceTrainerDefeatPolicy(
+        SourceEventAnalyzer analyzer) =>
+    analyzer._trainerDefeatPolicy;
+
+SourceTrainerDefeatPolicy? _computeSourceTrainerDefeatPolicy(
     SourceEventAnalyzer analyzer) {
   const expected =
       '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';

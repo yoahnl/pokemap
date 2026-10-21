@@ -980,6 +980,8 @@ final class SourceEventAnalyzer {
   };
   final _declaredRawEvents = <(int, Map<String, Object?>),
       ({Object? value, SourcePreservedData reference})?>{};
+  late final SourceTrainerDefeatPolicy? _trainerDefeatPolicy =
+      _computeSourceTrainerDefeatPolicy(this);
   String globalFactId(int switchId) =>
       'source:${project.snapshot.logicalProjectNamespace.value}:switch:$switchId';
   String variableFactId(int variableId) =>

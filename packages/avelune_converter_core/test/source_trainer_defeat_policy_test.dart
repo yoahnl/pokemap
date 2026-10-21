@@ -54,9 +54,17 @@ void main() {
         selectedMapIds: {98},
         includeEventSystem: true,
         interpretationProfile: externalOracleInterpretationProfile());
-    final analysis = SourceEventAnalyzer.forProject(source,
-            profile: SourceEventProfile.forProject(source))
-        .analyze();
+    final profile = SourceEventProfile.forProject(source);
+    final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+    final analysis = analyzer.analyze();
+    Sha256Hash programHash(SourceEventAnalysis value) => canonicalHashOf([
+      value.profile.toJson(),
+      for (final event in value.events)
+        [event.identity.value,
+          for (final page in event.pages)
+            for (final node in page.body.nodes.whereType<SourceTrainerProgramNode>())
+              node.toJson()],
+    ]);
     final program = analysis.eventAt(98, 1)!.pages.first.body.nodes.single
         as SourceTrainerProgramNode;
     expect(program.defeatPolicy, isNotNull);
@@ -74,6 +82,66 @@ void main() {
             event: source.maps.single.map.events
                 .singleWhere((event) => event.sourceEventId == 1)),
         isTrue);
+    final policies = analysis.eventAt(98, 1)!.pages
+        .expand((page) => page.body.nodes)
+        .whereType<SourceTrainerProgramNode>()
+        .map((node) => node.defeatPolicy)
+        .toList();
+    expect(policies.length, greaterThanOrEqualTo(2));
+    expect(policies, everyElement(same(program.defeatPolicy)));
+    final repeated = analyzer.analyze();
+    expect(programHash(repeated), programHash(analysis));
+    expect(repeated.eventAt(98, 1)!.pages.first.body.nodes
+        .whereType<SourceTrainerProgramNode>().single.defeatPolicy,
+        same(program.defeatPolicy));
+    final otherAnalyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+    final separatelyOwned = otherAnalyzer.analyze();
+    expect(programHash(separatelyOwned), programHash(analysis));
+    expect(separatelyOwned.eventAt(98, 1)!.pages.first.body.nodes
+        .whereType<SourceTrainerProgramNode>().single.defeatPolicy,
+        isNot(same(program.defeatPolicy)));
+    for (final (index, rejected) in [
+      SourceEventProfile(
+          sourceSnapshotHash: Sha256Hash('0' * 64),
+          normalizationHash: profile.normalizationHash,
+          scriptsArchiveHash: profile.scriptsArchiveHash,
+          interpretationProfile: profile.interpretationProfile),
+      SourceEventProfile(
+          sourceSnapshotHash: profile.sourceSnapshotHash,
+          normalizationHash: Sha256Hash('0' * 64),
+          scriptsArchiveHash: profile.scriptsArchiveHash,
+          interpretationProfile: profile.interpretationProfile),
+      SourceEventProfile(
+          sourceSnapshotHash: profile.sourceSnapshotHash,
+          normalizationHash: profile.normalizationHash,
+          scriptsArchiveHash: Sha256Hash('0' * 64),
+          interpretationProfile: profile.interpretationProfile),
+      SourceEventProfile.forProject(source,
+          interpretationProfile: SourceInterpretationProfile.fromJson({
+            ...source.interpretationProfile!.toJson(),
+            'profileId': 'altered-trainer-policy-profile',
+          })),
+    ].indexed) {
+      final rejectedAnalyzer = SourceEventAnalyzer.forProject(source,
+          profile: rejected);
+      for (var repeat = 0; repeat < 2; repeat++) {
+        final rejectedAnalysis = rejectedAnalyzer.analyze();
+        final rejectedEvent = rejectedAnalysis.eventAt(98, 1)!;
+        final rejectedNodes = rejectedEvent.pages
+            .expand((page) => page.body.nodes)
+            .whereType<SourceTrainerProgramNode>()
+            .toList();
+        if (index < 3) {
+          expect(rejectedEvent.isQuarantined, isTrue);
+          expect(rejectedNodes, isEmpty);
+        } else {
+          expect(rejectedEvent.isQuarantined, isFalse);
+          expect(rejectedNodes, hasLength(policies.length));
+          expect(rejectedNodes.map((node) => node.defeatPolicy),
+              everyElement(isNull));
+        }
+      }
+    }
   }, skip: !enabled);
 }
 

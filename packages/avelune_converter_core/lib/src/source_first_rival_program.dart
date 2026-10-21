@@ -69,9 +69,8 @@ Object? _firstRivalBodyJson(SourceEventBlock body) => {
 SourceEventBlock? _sourceFirstRivalProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
   if (page.originalPageIndex == 2) return null;
-  final program = SourceFirstRivalProgram.read(
-      source: analyzer.project,
-      profile: analyzer.profile,
+  final program = SourceFirstRivalProgram._read(
+      analyzer: analyzer,
       sourceMapId: mapId,
       event: event);
   if (program == null) return null;
@@ -137,8 +136,18 @@ final class SourceFirstRivalProgram {
       {required NormalizedSourceProject source,
       required SourceEventProfile profile,
       required int sourceMapId,
+      required SourceEvent event}) =>
+      _read(
+          analyzer: SourceEventAnalyzer.forProject(source, profile: profile),
+          sourceMapId: sourceMapId,
+          event: event);
+
+  static SourceFirstRivalProgram? _read(
+      {required SourceEventAnalyzer analyzer,
+      required int sourceMapId,
       required SourceEvent event}) {
-    final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+    final source = analyzer.project;
+    final profile = analyzer.profile;
     if (_sourceTrainerDefeatPolicy(analyzer) == null) return null;
     try {
       final original = _externalWarpRawEvent(analyzer, sourceMapId, event);

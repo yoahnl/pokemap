@@ -124,6 +124,23 @@ void main() {
                 509
               }.contains(c.code)).map((c) => "${c.code}:${c.indent}").join(","))}');
       expect(program!.choiceVariableId, 29);
+      final ownedPrograms = analysis.eventAt(9, id)!.pages
+          .expand((page) => page.body.nodes)
+          .whereType<SourceFirstRivalProgramNode>()
+          .map((node) => node.program)
+          .toList();
+      expect(ownedPrograms, hasLength(2));
+      for (final owned in ownedPrograms) {
+        expect(owned.programHash, program.programHash);
+        expect(canonicalHashOf(owned.toJson()), canonicalHashOf(program.toJson()));
+      }
+      expect(SourceFirstRivalProgram.read(source: source,
+          profile: SourceEventProfile(
+              scriptsArchiveHash: profile.scriptsArchiveHash,
+              sourceSnapshotHash: Sha256Hash('0' * 64),
+              normalizationHash: profile.normalizationHash,
+              interpretationProfile: profile.interpretationProfile),
+          sourceMapId: 9, event: original), isNull);
       expect(program.offerSwitchId, 75);
       expect(
           program.battles.map((b) => b.starterValue), orderedEquals([1, 2, 3]));
