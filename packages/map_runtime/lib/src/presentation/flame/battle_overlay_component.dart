@@ -110,7 +110,9 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
   }
 
   final lines = <String>[];
-  for (final event in turnResult.timeline) {
+  for (var index = 0; index < turnResult.timeline.length; index++) {
+    final event = turnResult.timeline[index];
+    final previous = index == 0 ? null : turnResult.timeline[index - 1];
     switch (event) {
       case BattleTurnBagHpHealItemEvent(:final event):
         final actor = _overlayCombatantLabelForSide(event.side);
@@ -119,8 +121,10 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
         );
         lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
       case BattleTurnStatusCuredItemEvent():
-        final actor = _overlayCombatantLabelForSide(event.side);
-        lines.add('$actor utilise ${event.displayName} sur ${event.targetSpeciesId}');
+        if (!itemHealingAnnouncesStatusCure(previous, event)) {
+          final actor = _overlayCombatantLabelForSide(event.side);
+          lines.add('$actor utilise ${event.displayName} sur ${event.targetSpeciesId}');
+        }
         lines.add('${event.targetSpeciesId} est guéri de son problème de statut');
       case BattleTurnMovePpRestoredEvent():
         final actor = _overlayCombatantLabelForSide(event.side);
@@ -501,6 +505,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.onBagHpHealItemUseRequested,
     this.onBagMovePpItemUseRequested,
     this.medicineBattleState,
+    this.medicineTargetIsConfused,
     this.onCommandOverlaySnapshotChanged,
     GameState gameState = const GameState(saveId: 'battle-overlay'),
     ItemCapabilityResolver? itemCapabilityResolver,
@@ -606,6 +611,7 @@ class BattleOverlayComponent extends PositionComponent {
     BattleEngineDecisionRequest? request,
   })? onBagMovePpItemUseRequested;
   final BattleState Function()? medicineBattleState;
+  final bool Function(int lineupIndex)? medicineTargetIsConfused;
   final ValueChanged<BattleCommandOverlaySnapshot?>?
       onCommandOverlaySnapshotChanged;
   final BattleBackgroundSpec backgroundSpec;
@@ -3369,6 +3375,7 @@ class BattleOverlayComponent extends PositionComponent {
       displayName: selectedMedicineAction.displayName,
       use: capability.use!,
       battleState: medicineBattleState?.call(),
+      isConfusedByLineupIndex: medicineTargetIsConfused,
       isTargetAllowed: (combatant) =>
           _allowMedicineReserveTargets ||
           combatant.lineupIndex == _session.state.player.lineupIndex,

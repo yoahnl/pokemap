@@ -66,6 +66,7 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required ProjectItemUseDefinition use,
   BattleState? battleState,
   bool Function(BattleCombatant combatant)? isTargetAllowed,
+  bool Function(int lineupIndex)? isConfusedByLineupIndex,
 }) {
   final allowsTargeting = session.decisionRequest is BattleTurnChoiceRequest;
   final allowsCombatant = isTargetAllowed ?? (_) => true;
@@ -82,6 +83,7 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
     final effectDisabledReason = _effectDisabledReason(
       combatant: combatant,
       effect: use.effect,
+      confused: isConfusedByLineupIndex?.call(combatant.lineupIndex) ?? false,
     );
     final isSelectable =
         allowsTargeting && targetAllowed && effectDisabledReason == null;
@@ -139,8 +141,16 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
 BattleMedicineTargetDisabledReason? _effectDisabledReason({
   required BattleCombatant combatant,
   required ProjectItemEffectDefinition effect,
+  required bool confused,
 }) {
   return switch (effect) {
+    ProjectItemFullRestoreEffectDefinition() => combatant.isFainted
+        ? BattleMedicineTargetDisabledReason.fainted
+        : combatant.currentHp < combatant.maxHp ||
+              combatant.majorStatus != null ||
+              confused
+        ? null
+        : BattleMedicineTargetDisabledReason.fullHp,
     ProjectItemHealHpEffectDefinition() => combatant.isFainted
         ? BattleMedicineTargetDisabledReason.fainted
         : combatant.currentHp >= combatant.maxHp

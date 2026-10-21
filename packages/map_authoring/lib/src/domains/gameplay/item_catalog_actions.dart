@@ -477,7 +477,8 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
     capabilityIds: const <String>['authoring.gameplay.items'],
     extensions: id == 'item.set_overworld_effect'
         ? {
-            'effectKinds': ['heal_hp', 'cure_status', 'revive', 'restore_pp', 'repel', 'escape_rope', 'bicycle', 'fishing'],
+            'effectKinds': ['heal_hp', 'full_restore', 'cure_status', 'revive', 'restore_pp', 'repel', 'escape_rope', 'bicycle', 'fishing'],
+            'fullRestore': _fullRestoreContract,
             'bicycle': {'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item', 'runtime': '2d'},
             'fishing': {'rodKinds': ['old_rod', 'good_rod', 'super_rod'],
               'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item',
@@ -485,7 +486,8 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
           }
         : id == 'item.set_battle_effect'
         ? {
-            'effectKinds': ['heal_hp', 'cure_status', 'revive', 'restore_pp'],
+            'effectKinds': ['heal_hp', 'full_restore', 'cure_status', 'revive', 'restore_pp'],
+            'fullRestore': _fullRestoreContract,
             'restorePp': {
               'target': 'party_move',
               'amountModes': ['flat', 'full'],
@@ -521,3 +523,15 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
     ],
   );
 }
+
+const _fullRestoreContract = {
+  'target': 'party_member',
+  'hp': 'full',
+  'majorStatus': 'all',
+  'confusion': 'battle_only',
+  'restoresPp': false,
+  'faintedTarget': 'refused_without_consumption',
+  'noEffect': 'refused_without_consumption_or_turn',
+  'consumption': 'one_on_applied',
+  'battleTurns': 1,
+};

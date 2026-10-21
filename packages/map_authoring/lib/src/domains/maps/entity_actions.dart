@@ -95,7 +95,7 @@ final class EntityActions {
         'semanticIds': true,
         'rawTilesetRequired': false,
         'fieldObstacle': {
-          'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock'],
+          'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock', 'iceBlock'],
           'resetPolicies': ['mapInstance'],
           'entityKind': 'custom',
           'blocksMovement': true,
@@ -104,6 +104,19 @@ final class EntityActions {
           'visual': 'existingProjectElement',
           'clearValue': null,
           'parameters': ['mapId', 'entityId', 'fieldObstacle'],
+          'iceBlock': {
+            'trigger': 'movementContact',
+            'requiresFieldAbility': false,
+            'playerFollows': false,
+            'ordinaryPushCells': 1,
+            'slideZone': 'movementEffect.slide',
+            'slideDirection': 'push',
+            'stops': ['obstacle', 'zoneExit'],
+            'savedPosition': 'lastCommittedCell',
+            'saveDuringTraversal': false,
+            'checkpointDuringTraversal': false,
+            'reload': 'stationary',
+          },
           'strengthBoulder': {
             'ordinaryPushCells': 1,
             'slideZone': 'movementEffect.slide',

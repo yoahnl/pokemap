@@ -664,8 +664,34 @@ ProjectManifest _resolveManifestReferences(
       avatarIds.add(resolved);
     }
   }
+  final avatarFacts = <String, Map<String, NarrativeValue>>{
+    for (final avatar in manifest.newGame.initialFactValuesByAvatarCharacterId.entries)
+      avatar.key: Map.of(avatar.value),
+  };
+  final removedValues = avatarFacts.remove(deletedId);
+  if (removedValues != null && replacementId != null) {
+    final target = avatarFacts.putIfAbsent(replacementId, () => {});
+    for (final fact in removedValues.entries) {
+      if (target.containsKey(fact.key) && target[fact.key] != fact.value) {
+        throw CharacterStudioActionException(
+            'character_studio.avatar_initial_facts_conflict',
+            'Replacing this avatar would merge contradictory initial Fact values.',
+            details: {'characterId': deletedId, 'replacementId': replacementId,
+              'factId': fact.key});
+      }
+      target[fact.key] = fact.value;
+    }
+  }
   final newGameJson = manifest.newGame.toJson()
-    ..['playerAvatarCharacterIds'] = avatarIds;
+    ..['playerAvatarCharacterIds'] = avatarIds
+    ..remove('initialFactValuesByAvatarCharacterId');
+  if (avatarFacts.isNotEmpty) {
+    newGameJson['initialFactValuesByAvatarCharacterId'] = {
+      for (final avatar in avatarFacts.entries) avatar.key: {
+        for (final fact in avatar.value.entries) fact.key: fact.value.toJson(),
+      },
+    };
+  }
   return manifest.copyWith(
     settings: manifest.settings.copyWith(
       defaultPlayerCharacterId:

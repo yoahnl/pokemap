@@ -2,7 +2,7 @@ import 'package:meta/meta.dart';
 
 import 'enums.dart';
 
-enum FieldObstacleKind { cutTree, strengthBoulder, rockSmashRock }
+enum FieldObstacleKind { cutTree, strengthBoulder, rockSmashRock, iceBlock }
 
 enum FieldObstacleResetPolicy { mapInstance }
 
@@ -15,10 +15,15 @@ final class MapEntityFieldObstacleData {
 
   final FieldObstacleKind kind;
   final FieldObstacleResetPolicy resetPolicy;
-  FieldAbility get ability => switch (kind) {
+  bool get isPushable =>
+      kind == FieldObstacleKind.strengthBoulder ||
+      kind == FieldObstacleKind.iceBlock;
+
+  FieldAbility? get ability => switch (kind) {
     FieldObstacleKind.cutTree => FieldAbility.cut,
     FieldObstacleKind.strengthBoulder => FieldAbility.strength,
     FieldObstacleKind.rockSmashRock => FieldAbility.rockSmash,
+    FieldObstacleKind.iceBlock => null,
   };
 
   factory MapEntityFieldObstacleData.fromJson(Map<String, dynamic> json) {

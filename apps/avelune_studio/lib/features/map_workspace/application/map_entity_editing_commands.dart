@@ -87,6 +87,7 @@ class MapEntityEditingCommands {
         FieldObstacleKind.cutTree => 'Arbre à couper',
         FieldObstacleKind.strengthBoulder => 'Rocher à pousser',
         FieldObstacleKind.rockSmashRock => 'Rocher à briser',
+        FieldObstacleKind.iceBlock => 'Bloc de glace',
       },
       kind: MapEntityKind.custom,
       pos: position,

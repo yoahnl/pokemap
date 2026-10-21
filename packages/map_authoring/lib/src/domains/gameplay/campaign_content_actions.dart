@@ -434,6 +434,23 @@ AuthoringActionDescriptor _descriptor(
             }
           : id == 'campaign.new_game.update'
           ? const {
+              'initialFactValuesByAvatarCharacterId': {
+                'field': 'newGame.initialFactValuesByAvatarCharacterId',
+                'optional': true,
+                'type': 'object',
+                'keys': 'declaredPlayerAvatarCharacterIds',
+                'values': 'mapOfDeclaredTypedNarrativeFacts',
+                'valueTypes': ['bool', 'int', 'string'],
+                'avatarReference': {'kind': 'projectCharacter', 'declaredChoiceRequired': true},
+                'factReference': {'kind': 'narrativeFact', 'declaredTypeRequired': true},
+                'unknownReferences': 'rejectBeforeWrite',
+                'existingPartyFactId': 'forbidden',
+                'runtimeSemantics': 'initializeOnceFromResolvedNewGameAvatar',
+                'precedence': ['baseInitialFacts', 'selectedAvatarFacts', 'derivedExistingParty'],
+                'omitWhenEmpty': true,
+                'recomputeOnOutfitChange': false,
+                'recomputeOnSaveRestore': false,
+              },
               'initialRecoveryPoint': {
                 'field': 'newGame.initialRecoveryPoint',
                 'optional': true,
@@ -505,7 +522,7 @@ AuthoringActionDescriptor _descriptor(
                     '${id.endsWith('_batch') ? 'values[]' : 'value'}.battleItems',
                 'maxDistinctItems': 16,
                 'quantity': {'min': 1, 'max': 99, 'integer': true},
-                'supportedEffects': ['heal_hp', 'cure_status'],
+                'supportedEffects': ['heal_hp', 'full_restore', 'cure_status'],
                 'stockScope': 'perBattle',
               },
               'trainerPokemonBall': {

@@ -195,6 +195,7 @@ Map<String, Object?> _sliceLayer(
     BorderLayer() => {
         ...base,
         'type': 'border',
+        'renderInForeground': layer.renderInForeground,
         'encoding': 'metadata_only',
       },
   };

@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show MapAuthoringException, MovingPropEditing, smartTileCanonicalLayerActionRequiredCode;
+    show BorderActions, MapAuthoringException, MovingPropEditing, smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -12256,6 +12256,23 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         errorMessage: 'Impossible de mettre à jour l\'opacité du calque : $e',
       );
+    }
+  }
+
+  void setBorderForeground(String layerId, bool renderInForeground) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = const BorderActions().setForeground(map,
+          layerId: layerId, renderInForeground: renderInForeground);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        statusMessage: renderInForeground ? 'Bordures au premier plan' : 'Bordures à l’arrière-plan',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Impossible de modifier le premier plan : $e');
     }
   }
 

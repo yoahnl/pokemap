@@ -122,6 +122,33 @@ void main() {
     expect(execution.historyEntryCount, 2);
   });
 
+  test('editor offers authors and undoes Metal Coat from canonical truth', () async {
+    final harness = await _EditorItemHarness.create('metal-coat');
+    addTearDown(harness.dispose);
+    final gateway = CanonicalItemStudioGateway(
+      queries: harness.queries,
+      mutations: harness.mutations,
+    );
+    final initial = await gateway.load(harness.root.path);
+    expect(
+      initial.heldEffectOptions.map((option) => option.id),
+      contains('metal_coat'),
+    );
+    final execution = await harness.execute(
+      const _ItemMutationScenario('item.set_held_effect', {
+        'itemId': 'potion',
+        'heldEffectId': 'metal_coat',
+      }),
+    );
+    final catalog = ProjectItemCatalog.fromJson(execution.afterCatalog);
+    expect(
+      catalog.entries.singleWhere((item) => item.id == 'potion').heldEffectId,
+      'metal_coat',
+    );
+    expect(execution.restoredCatalog, execution.beforeCatalog);
+    expect(execution.historyEntryCount, 2);
+  });
+
   test('editor adapter executes and undoes every item mutation', () async {
     final executedActions = <String>{};
     final receiptIds = <String>{};

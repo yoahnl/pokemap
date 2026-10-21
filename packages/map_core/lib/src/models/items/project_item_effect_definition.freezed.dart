@@ -19,6 +19,10 @@ ProjectItemEffectDefinition _$ProjectItemEffectDefinitionFromJson(
           return ProjectItemHealHpEffectDefinition.fromJson(
             json
           );
+                case 'full_restore':
+          return ProjectItemFullRestoreEffectDefinition.fromJson(
+            json
+          );
                 case 'cure_status':
           return ProjectItemCureStatusEffectDefinition.fromJson(
             json
@@ -109,11 +113,12 @@ extension ProjectItemEffectDefinitionPatterns on ProjectItemEffectDefinition {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemFullRestoreEffectDefinition value)?  fullRestore,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
-return healHp(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return healHp(_that);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
+return fullRestore(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -139,11 +144,12 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemFishingEffectDefinition value)  fishing,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemFullRestoreEffectDefinition value)  fullRestore,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemFishingEffectDefinition value)  fishing,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
-return healHp(_that);case ProjectItemCureStatusEffectDefinition():
+return healHp(_that);case ProjectItemFullRestoreEffectDefinition():
+return fullRestore(_that);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that);case ProjectItemReviveEffectDefinition():
 return revive(_that);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that);case ProjectItemRepelEffectDefinition():
@@ -168,11 +174,12 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemFullRestoreEffectDefinition value)?  fullRestore,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
-return healHp(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return healHp(_that);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
+return fullRestore(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -197,10 +204,11 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function()?  fullRestore,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
-return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
+return fullRestore();case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -226,10 +234,11 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function()  fullRestore,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
-return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition():
+return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition():
+return fullRestore();case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition():
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition():
@@ -254,10 +263,11 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function()?  fullRestore,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
-return healHp(_that.mode,_that.amount);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
+return fullRestore();case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -347,6 +357,45 @@ as int?,
 
 
 }
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class ProjectItemFullRestoreEffectDefinition extends ProjectItemEffectDefinition {
+  const ProjectItemFullRestoreEffectDefinition({final  String? $type}): $type = $type ?? 'full_restore',super._();
+  factory ProjectItemFullRestoreEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemFullRestoreEffectDefinitionFromJson(json);
+
+
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemFullRestoreEffectDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemFullRestoreEffectDefinition);
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'ProjectItemEffectDefinition.fullRestore()';
+}
+
+
+}
+
+
+
 
 /// @nodoc
 

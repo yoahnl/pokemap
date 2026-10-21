@@ -31,6 +31,8 @@ final class RuntimeAuthoringMapRenderer {
           separatePlacedElementOcclusion: includeCharacters,
           tileImagesByTilesetId: images,
           renderPass: MapLayerRenderPass.foreground,
+          borderAssets: borderAssets,
+          renderBorders: borderAssets != null,
         ) {
     _refreshPatches(bundle.map.placedElements);
     _previousImages = Map.of(images);

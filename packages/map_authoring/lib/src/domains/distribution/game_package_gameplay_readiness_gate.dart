@@ -234,13 +234,21 @@ final class GamePackageGameplayReadinessGate {
       target: diagnostics,
     );
 
+    final draftEventIds = {
+      for (final record
+          in project.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+        if (record.draftOrNull != null) record.id,
+    };
     final unique = <String, NarrativeProjectDiagnostic>{};
     for (final diagnostic in diagnostics) {
       final effective = mode == GamePackageExportMode.localTest &&
-              const {
-                'exportStoryEndUnreachable',
-                'narrativeSolvabilityIndeterminate'
-              }.contains(diagnostic.code)
+              (const {
+                    'exportStoryEndUnreachable',
+                    'narrativeSolvabilityIndeterminate',
+                    'requiredFactNeverProduced',
+                  }.contains(diagnostic.code) ||
+                  (diagnostic.code == 'narrativeEventSourceMissing' &&
+                      draftEventIds.contains(diagnostic.eventId)))
           ? NarrativeProjectDiagnostic(
               code: diagnostic.code,
               severity: NarrativeProjectDiagnosticSeverity.warning,
@@ -552,6 +560,8 @@ ProjectNewGameConfig _withoutImplicitPreSessionEntry(
       initialParty: source.initialParty,
       initialFacts: source.initialFacts,
       initialFactValues: source.initialFactValues,
+      initialFactValuesByAvatarCharacterId:
+          source.initialFactValuesByAvatarCharacterId,
       existingPartyFactId: source.existingPartyFactId,
       preSessionSceneId: null,
       starterOptions: source.starterOptions,

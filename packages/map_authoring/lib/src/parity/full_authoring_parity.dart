@@ -559,6 +559,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
     };
   }
+  if (actionId == 'border_layer.set_foreground') {
+    return {
+      AuthoringTransport.directApi: 'test/domains/maps/border_actions_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_border_catalog_flow_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/border_catalog_server.test.ts',
+    };
+  }
   if (actionId == 'map.prop.upsert' || actionId == 'map.prop.delete') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/moving_prop_actions_test.dart',

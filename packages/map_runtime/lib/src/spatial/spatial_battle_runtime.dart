@@ -398,6 +398,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         onBagMovePpItemUseRequested: (action, entry, moveIndex, {request}) =>
             _useMedicine(action, entry, targetMoveIndex: moveIndex, request: request),
         medicineBattleState: _engine!.createLegacyWriteBackState,
+        medicineTargetIsConfused: _engine!.isPlayerLineupConfused,
       );
       if (request is TrainerBattleStartRequest) {
         final trainerImage = await loadRuntimeTrainerBattleImage(

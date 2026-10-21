@@ -1,9 +1,27 @@
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
+import 'dart:convert';
+
+import '../assets/resource_library_actions_test.dart' show librarySnapshot;
+import 'border_spatial_actions_test.dart' show context;
 
 void main() {
   group('BorderActions', () {
+    test('canonical foreground action changes only the target border plane', () async {
+      final map = MapData(id: 'map', name: 'Map',
+          size: const GridSize(width: 2, height: 2),
+          version: ProjectVersion.v8,
+          layers: const [BorderLayer(id: 'pillars', name: 'Pillars')]);
+      final draft = await MapMutationDispatcher.canonical().build(context(
+          librarySnapshot([map], project: const ProjectManifest(name: 'Foreground', maps: [ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json')], tilesets: [])), 'border_layer.set_foreground',
+          {'mapId': 'map', 'layerId': 'pillars', 'renderInForeground': true}));
+      final after = MapData.fromJson(jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!)));
+      expect((after.layers.single as BorderLayer).renderInForeground, isTrue);
+      expect(after.copyWith(layers: map.layers), map);
+      final descriptor = MapMutationDispatcher.canonical().descriptors.singleWhere((a) => a.id == 'border_layer.set_foreground');
+      expect(descriptor.extensions['inputSchema'], containsPair('additionalProperties', false));
+    });
     test('refuses a blueprint without a published revision', () {
       final manifest = ProjectManifest(
         name: 'Border test',

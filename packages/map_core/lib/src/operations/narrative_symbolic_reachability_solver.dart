@@ -496,7 +496,30 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     for (final fact in project.facts) fact.id: fact.initialValue,
     ...project.newGame.resolvedInitialFactValues,
   };
-  final initial = NarrativeSymbolicState(factValues: initialFacts);
+  final initialStates = <NarrativeSymbolicState>[];
+  final initialKeys = <String>{};
+  var initialBudgetExceeded = false;
+  final avatarValues = project.newGame.initialFactValuesByAvatarCharacterId;
+  for (final avatarId in avatarValues.isEmpty
+      ? const <String?>[null]
+      : project.newGame.playerAvatarCharacterIds) {
+    final values = <String, NarrativeValue>{
+      ...initialFacts,
+      ...?avatarValues[avatarId],
+    };
+    final existingPartyFactId = project.newGame.existingPartyFactId?.trim();
+    if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
+      values[existingPartyFactId] = NarrativeValue.boolean(
+          project.newGame.initialParty.isNotEmpty);
+    }
+    final state = NarrativeSymbolicState(factValues: values);
+    if (!initialKeys.add(state.semanticKey)) continue;
+    if (initialStates.length >= explorationBudget) {
+      initialBudgetExceeded = true;
+      break;
+    }
+    initialStates.add(state);
+  }
   final scenesById = {for (final scene in project.scenes) scene.id: scene};
   final mapsById = {for (final map in maps) map.id: map};
   final mapCounts = <String, int>{};
@@ -508,25 +531,49 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   final explored = <NarrativeSymbolicState>[];
   final terminals = <NarrativeSymbolicState>[];
   final reachableSceneIds = <String>{};
-  var exploredCount = 0;
-  var remainingBudget = explorationBudget;
+  var exploredCount = avatarValues.isEmpty ? 0 : initialStates.length;
+  var remainingBudget = explorationBudget - exploredCount;
+  if (initialBudgetExceeded) {
+    issues.add(NarrativeSymbolicIssue(
+        code: NarrativeSymbolicIssueCode.budgetExceeded,
+        verdict: NarrativeSymbolicVerdict.indeterminate,
+        message: 'Le budget symbolique global de $explorationBudget états est dépassé.',
+        sceneId: ''));
+  }
 
-  List<NarrativeSymbolicState> frontier = [initial];
+  List<NarrativeSymbolicState> frontier = [
+    for (final state in initialStates)
+      initialBudgetExceeded ? state.copyWith(indeterminate: true) : state,
+  ];
   final preSessionSceneId = project.newGame.preSessionSceneId;
   if (preSessionSceneId != null && scenesById.containsKey(preSessionSceneId)) {
-    final result = solveNarrativeSceneSymbolically(
-      scenesById[preSessionSceneId]!,
-      initialState: initial,
-      explorationBudget: remainingBudget,
-      commandCatalog: catalog,
-      eventId: 'newGame.preSessionSceneId',
-    );
-    exploredCount += result.exploredStateCount;
-    remainingBudget -= result.exploredStateCount;
-    explored.addAll(result.exploredStates);
-    issues.addAll(result.issues);
-    reachableSceneIds.add(preSessionSceneId);
-    frontier = result.terminalStates;
+    frontier = [];
+    for (final initial in initialStates) {
+      if (remainingBudget < 1) {
+        issues.add(NarrativeSymbolicIssue(
+            code: NarrativeSymbolicIssueCode.budgetExceeded,
+            verdict: NarrativeSymbolicVerdict.indeterminate,
+            message: 'Le budget symbolique global de $explorationBudget états est dépassé.',
+            sceneId: preSessionSceneId));
+        _addUniqueState(frontier, initial.copyWith(indeterminate: true));
+        continue;
+      }
+      final result = solveNarrativeSceneSymbolically(
+        scenesById[preSessionSceneId]!,
+        initialState: initial,
+        explorationBudget: remainingBudget,
+        commandCatalog: catalog,
+        eventId: 'newGame.preSessionSceneId',
+      );
+      exploredCount += result.exploredStateCount;
+      remainingBudget -= result.exploredStateCount;
+      explored.addAll(result.exploredStates);
+      issues.addAll(result.issues);
+      reachableSceneIds.add(preSessionSceneId);
+      for (final state in result.terminalStates) {
+        _addUniqueState(frontier, state);
+      }
+    }
   }
 
   final definitions = <NarrativeEventDefinition>[

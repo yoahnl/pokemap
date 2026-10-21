@@ -69,7 +69,7 @@ void main() {
         .descriptors
         .singleWhere((action) => action.id == 'entity.set_field_obstacle');
     expect(action.extensions['fieldObstacle'], {
-      'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock'],
+      'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock', 'iceBlock'],
       'resetPolicies': ['mapInstance'],
       'entityKind': 'custom',
       'blocksMovement': true,
@@ -78,6 +78,19 @@ void main() {
       'visual': 'existingProjectElement',
       'clearValue': null,
       'parameters': ['mapId', 'entityId', 'fieldObstacle'],
+      'iceBlock': {
+        'trigger': 'movementContact',
+        'requiresFieldAbility': false,
+        'playerFollows': false,
+        'ordinaryPushCells': 1,
+        'slideZone': 'movementEffect.slide',
+        'slideDirection': 'push',
+        'stops': ['obstacle', 'zoneExit'],
+        'savedPosition': 'lastCommittedCell',
+        'saveDuringTraversal': false,
+        'checkpointDuringTraversal': false,
+        'reload': 'stationary',
+      },
       'strengthBoulder': {
         'ordinaryPushCells': 1,
         'slideZone': 'movementEffect.slide',

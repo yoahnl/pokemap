@@ -195,6 +195,7 @@ final class BorderPreviewPainter {
     required double displayScale,
     required int elapsedMs,
     BorderPreviewTransaction? preview,
+    bool? foregroundPass,
   }) {
     if (sourceTileWidth <= 0 || sourceTileHeight <= 0 || displayScale <= 0) {
       return;
@@ -205,7 +206,10 @@ final class BorderPreviewPainter {
         map: map,
         layer: layer,
         preview: preview,
-      ),
+      ).where((entry) => foregroundPass == null ||
+          (entry.kind == EditorBorderPaintEntryKind.ground
+              ? !foregroundPass
+              : foregroundPass == layer.renderInForeground)).toList(),
       catalog: catalog,
       frameImagesByKey: frameImagesByKey,
       sourceTileWidth: sourceTileWidth,

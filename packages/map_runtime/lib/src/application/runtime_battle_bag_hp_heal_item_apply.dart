@@ -47,7 +47,13 @@ class RuntimePsdkBattleItemApplyResult {
   final ItemConsumptionReceipt? consumptionReceipt;
 }
 
-enum RuntimeBattleItemEffectKind { healHp, cureStatus, revive, restorePp }
+enum RuntimeBattleItemEffectKind {
+  healHp,
+  fullRestore,
+  cureStatus,
+  revive,
+  restorePp,
+}
 
 RuntimeBattleItemApplyResult? tryApplyRuntimeBattleItemUse({
   required BattleSession session,
@@ -209,6 +215,8 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
       context: ProjectItemUseContext.battle,
       partyIndex: runtimePartyIndex,
       maxHp: targetBefore.maxHp,
+      targetHasBattleConfusion:
+          targetBefore.effects.contains(PsdkBattleEffectIds.confusion),
       moveId: selectedMove?.id,
       maxPpByMoveId: selectedMove == null
           ? const {}
@@ -412,6 +420,13 @@ PsdkBattleItemActionEffect? _battleItemEffectFor({
   int? targetMoveIndex,
 }) {
   return switch (effect) {
+    ProjectItemFullRestoreEffectDefinition() =>
+      target.isFainted ||
+              (target.currentHp >= target.maxHp &&
+                  target.majorStatus == null &&
+                  !target.effects.contains(PsdkBattleEffectIds.confusion))
+          ? null
+          : const PsdkBattleFullRestoreItemEffect(),
     ProjectItemHealHpEffectDefinition() =>
       target.isFainted || target.currentHp >= target.maxHp
           ? null
@@ -471,6 +486,7 @@ PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
 
 bool _isSupportedBattleMedicineEffect(ProjectItemEffectDefinition effect) {
   return effect is ProjectItemHealHpEffectDefinition ||
+      effect is ProjectItemFullRestoreEffectDefinition ||
       effect is ProjectItemCureStatusEffectDefinition ||
       effect is ProjectItemReviveEffectDefinition ||
       effect is ProjectItemRestorePpEffectDefinition;
@@ -480,6 +496,8 @@ RuntimeBattleItemEffectKind _runtimeEffectKind(
   ProjectItemEffectDefinition effect,
 ) {
   return switch (effect) {
+    ProjectItemFullRestoreEffectDefinition() =>
+      RuntimeBattleItemEffectKind.fullRestore,
     ProjectItemHealHpEffectDefinition() => RuntimeBattleItemEffectKind.healHp,
     ProjectItemCureStatusEffectDefinition() =>
       RuntimeBattleItemEffectKind.cureStatus,

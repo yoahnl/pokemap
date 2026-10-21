@@ -15,6 +15,7 @@ final class PlayerItemUseRequest {
     this.maxHp = 0,
     this.moveId,
     this.maxPpByMoveId = const <String, int>{},
+    this.targetHasBattleConfusion = false,
   });
 
   final GameState state;
@@ -24,6 +25,7 @@ final class PlayerItemUseRequest {
   final int maxHp;
   final String? moveId;
   final Map<String, int> maxPpByMoveId;
+  final bool targetHasBattleConfusion;
 }
 
 final class PlayerItemUseService {
@@ -38,7 +40,9 @@ final class PlayerItemUseService {
 
   PlayerItemUseResult use(PlayerItemUseRequest request) {
     final itemId = request.itemId.trim();
-    if (itemId.isEmpty) {
+    if (itemId.isEmpty ||
+        (request.targetHasBattleConfusion &&
+            request.context != ProjectItemUseContext.battle)) {
       return PlayerItemUseResult.failed(
         request.state,
         PlayerItemUseFailure.invalidRequest,
@@ -139,6 +143,7 @@ final class PlayerItemUseService {
       maxHp: request.maxHp,
       moveId: request.moveId,
       maxPpByMoveId: request.maxPpByMoveId,
+      targetHasBattleConfusion: request.targetHasBattleConfusion,
     );
     if (!application.isApplied) {
       return PlayerItemUseResult.failed(

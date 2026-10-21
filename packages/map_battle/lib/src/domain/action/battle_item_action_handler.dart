@@ -1,5 +1,6 @@
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../handler/battle_handler_context.dart';
 import '../handler/battle_handler_result.dart';
 import 'battle_action.dart';
@@ -14,6 +15,10 @@ final class BattleItemActionHandler {
     _validateTarget(context: context, action: action);
 
     return switch (action.effect) {
+      PsdkBattleFullRestoreItemEffect() => _fullRestore(
+          context: context,
+          action: action,
+        ),
       final PsdkBattleHpHealItemEffect effect => _healHp(
           context: context,
           action: action,
@@ -35,6 +40,69 @@ final class BattleItemActionHandler {
           effect: effect,
         ),
     };
+  }
+
+  BattleHandlerResult _fullRestore({
+    required BattleHandlerContext context,
+    required PsdkBattleItemAction action,
+  }) {
+    final partyIndex = _targetPartyIndex(context: context, action: action);
+    final target = context.state.partyForBank(action.target.bank)[partyIndex];
+    final status = target.majorStatus;
+    final confused = target.effects.contains(PsdkBattleEffectIds.confusion);
+    final amount = (target.maxHp - target.currentHp).clamp(0, target.maxHp);
+    if (amount == 0 && status == null && !confused) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'no_effect',
+      );
+    }
+    var effects = target.effects;
+    if (status != null) effects = effects.remove(status.name);
+    if (confused) effects = effects.remove(PsdkBattleEffectIds.confusion);
+    final restored = target.copyWith(
+      currentHp: target.maxHp,
+      clearMajorStatus: true,
+      sleepTurns: 0,
+      toxicCounter: 0,
+      effects: effects,
+    );
+    return BattleHandlerResult(
+      state: context.state.replacePartyBattler(
+        bank: action.target.bank,
+        partyIndex: partyIndex,
+        battler: restored,
+      ),
+      rng: context.rng,
+      amount: amount,
+      events: <PsdkBattleEvent>[
+        _itemEvent(context, action, partyIndex),
+        if (amount > 0)
+          PsdkBattleHealEvent(
+            user: action.user,
+            target: action.target,
+            moveId: 'item:${action.itemId}',
+            amount: amount,
+            remainingHp: restored.currentHp,
+          ),
+        if (status != null)
+          PsdkBattleStatusCureEvent(
+            user: action.user,
+            target: action.target,
+            moveId: 'item:${action.itemId}',
+            status: status,
+          ),
+        if (confused)
+          PsdkBattleEffectEvent.removed(
+            turn: context.turn,
+            target: action.target,
+            effectId: PsdkBattleEffectIds.confusion,
+            reason: 'item:${action.itemId}',
+          ),
+      ],
+    );
   }
 
   BattleHandlerResult _restorePp({

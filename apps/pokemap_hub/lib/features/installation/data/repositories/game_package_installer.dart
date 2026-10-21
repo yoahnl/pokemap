@@ -334,13 +334,15 @@ final class GamePackageInstaller
           stagedVersion,
           manifest,
         ).timeout(loadSmokeTimeout);
-      } on Object {
+      } on Object catch (error, stackTrace) {
         throw installFailure(
           GameInstallationErrorCode.smokeFailed,
           stage,
           gameId: gameId,
           gameVersion: gameVersion,
           retryable: true,
+          cause: error,
+          stackTrace: stackTrace,
         );
       }
 

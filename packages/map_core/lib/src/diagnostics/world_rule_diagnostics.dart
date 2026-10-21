@@ -652,6 +652,11 @@ Map<String, Set<NarrativeValue>> _producibleFactValues(
   for (final entry in project.newGame.resolvedInitialFactValues.entries) {
     values.putIfAbsent(entry.key, () => <NarrativeValue>{}).add(entry.value);
   }
+  for (final avatar in project.newGame.initialFactValuesByAvatarCharacterId.values) {
+    for (final entry in avatar.entries) {
+      values.putIfAbsent(entry.key, () => <NarrativeValue>{}).add(entry.value);
+    }
+  }
   for (final scene in project.scenes) {
     for (final node in scene.graph.nodes) {
       final payload = node.payload;

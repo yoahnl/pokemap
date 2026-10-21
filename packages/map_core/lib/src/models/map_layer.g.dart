@@ -263,6 +263,7 @@ BorderLayer _$BorderLayerFromJson(Map<String, dynamic> json) => BorderLayer(
   name: json['name'] as String,
   isVisible: json['isVisible'] as bool? ?? true,
   opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+  renderInForeground: json['renderInForeground'] as bool? ?? false,
   content: _readBorderLayerContent(json, 'content') == null
       ? BorderLayerContent.emptyContent
       : _borderLayerContentFromJson(_readBorderLayerContent(json, 'content')),
@@ -274,13 +275,15 @@ BorderLayer _$BorderLayerFromJson(Map<String, dynamic> json) => BorderLayer(
   $type: json['runtimeType'] as String?,
 );
 
-Map<String, dynamic> _$BorderLayerToJson(BorderLayer instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'isVisible': instance.isVisible,
-      'opacity': instance.opacity,
-      'content': _borderLayerContentToJson(instance.content),
-      'properties': instance.properties,
-      'runtimeType': instance.$type,
-    };
+Map<String, dynamic> _$BorderLayerToJson(
+  BorderLayer instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'isVisible': instance.isVisible,
+  'opacity': instance.opacity,
+  'renderInForeground': ?_borderForegroundToJson(instance.renderInForeground),
+  'content': _borderLayerContentToJson(instance.content),
+  'properties': instance.properties,
+  'runtimeType': instance.$type,
+};

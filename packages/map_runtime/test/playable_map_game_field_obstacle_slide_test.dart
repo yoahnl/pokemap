@@ -18,6 +18,105 @@ import 'surface/surface_runtime_test_support.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('ice contact slides the block without Force or a player step', () async {
+    final movements = <RuntimeCommittedMovement>[];
+    final game = await _load(iceBlock: true, onMovement: movements.add);
+    expect(game.gameStateSnapshot.party.members, isEmpty);
+    expect(game.gameStateSnapshot.progression.unlockedFieldAbilities, isEmpty);
+    _press(game, RuntimeInputControl.right);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 3, y: 2));
+    expect(game.canCapturePlayerCheckpoint, isFalse);
+    await _frames(game, 16);
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 8, y: 2));
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
+    expect(movements, isEmpty);
+    expect(game.canCapturePlayerCheckpoint, isTrue);
+  });
+
+  test('ice blocks preserve a stationary cold save and reject saving during motion', () async {
+    final repository = _Repository();
+    final game = await _load(iceBlock: true, repository: repository);
+    _press(game, RuntimeInputControl.right);
+    expect(await game.saveGame(), isFalse);
+    expect(await game.loadGame(), isFalse);
+    await _frames(game, 16);
+    expect(await game.saveGame(), isTrue);
+    expect(await game.loadGame(), isTrue);
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 8, y: 2));
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
+    expect(game.canCapturePlayerCheckpoint, isTrue);
+  });
+
+  test('released player inertia bumps an ice block and stops at the contact cell', () async {
+    final seed = _bundle(iceBlock: true);
+    final bundle = RuntimeMapBundle(
+      projectRootDirectory: seed.projectRootDirectory,
+      manifest: seed.manifest,
+      tilesetAbsolutePathsById: seed.tilesetAbsolutePathsById,
+      map: seed.map.copyWith(
+        entities: [seed.map.entities.single.copyWith(pos: const GridPos(x: 5, y: 2))],
+        gameplayZones: const [MapGameplayZone(
+          id: 'ice', kind: GameplayZoneKind.movementEffect,
+          area: MapRect(pos: GridPos(x: 2, y: 2), size: GridSize(width: 7, height: 1)),
+          movementEffect: MovementEffectZonePayload(),
+        )],
+      ),
+    );
+    final game = await _load(iceBlock: true, bundle: bundle);
+    _press(game, RuntimeInputControl.right);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+    await _frames(game, 40);
+    expect(game.debugPlayerGridPosition, const GridPos(x: 4, y: 2));
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 9, y: 2));
+    expect(game.canCapturePlayerCheckpoint, isTrue);
+  });
+
+  test('a live cube stops automatic ice contact without moving the player', () async {
+    final game = await _load(iceBlock: true, entities: const [MapEntity(
+      id: 'other', kind: MapEntityKind.custom, pos: GridPos(x: 6, y: 2),
+      fieldObstacle: MapEntityFieldObstacleData(kind: FieldObstacleKind.iceBlock),
+    )]);
+    _press(game, RuntimeInputControl.right);
+    await _frames(game, 16);
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 5, y: 2));
+    expect(game.debugMapEntityPosition('other'), const GridPos(x: 6, y: 2));
+    expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
+    expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+  });
+
+  test('leaving and returning to an ice room resets cube positions', () async {
+    final base = _bundle(iceBlock: true);
+    final manifest = base.manifest.copyWith(maps: const [
+      ProjectMapEntry(id: 'ice', name: 'Ice', relativePath: 'maps/ice.json'),
+      ProjectMapEntry(id: 'next', name: 'Next', relativePath: 'maps/next.json'),
+    ]);
+    final bundle = base.copyWith(manifest: manifest, map: base.map.copyWith(warps: const [MapWarp(
+      id: 'exit', pos: GridPos(x: 1, y: 3), targetMapId: 'next', targetPos: GridPos(x: 1, y: 2),
+    )]));
+    final next = base.copyWith(manifest: manifest, map: base.map.copyWith(
+      id: 'next', name: 'Next', entities: [], gameplayZones: [],
+      warps: const [MapWarp(
+        id: 'back', pos: GridPos(x: 2, y: 2), targetMapId: 'ice', targetPos: GridPos(x: 1, y: 2),
+      )],
+    ));
+    final game = await _load(iceBlock: true, bundle: bundle, otherMaps: {'next': next});
+    final original = game.gameStateSnapshot.mapInstanceWorldState.instanceRef('ice');
+    _press(game, RuntimeInputControl.right);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+    await _frames(game, 16);
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 8, y: 2));
+    _press(game, RuntimeInputControl.down);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.down));
+    await _until(game, () => game.gameStateSnapshot.currentMapId == 'next' && game.inputAuthoritySnapshot.acceptsOverworldInput);
+    _press(game, RuntimeInputControl.right);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+    await _until(game, () => game.gameStateSnapshot.currentMapId == 'ice' && game.inputAuthoritySnapshot.acceptsOverworldInput);
+    expect(game.debugMapEntityPosition('boulder'), const GridPos(x: 2, y: 2));
+    expect(game.gameStateSnapshot.mapInstanceWorldState.instanceRef('ice'), isNot(original));
+  });
+
   test(
     'a pushed boulder crosses ice by ticks while the player advances once',
     () async {
@@ -763,12 +862,13 @@ void main() {
     );
   });
 
+  for (final iceBlock in [false, true]) {
   for (final foreground in [false, true]) {
     testWidgets(
-      'mounted slide paints intermediate boulder pixels foreground=$foreground',
+      'mounted slide paints intermediate block pixels iceBlock=$iceBlock foreground=$foreground',
       (tester) async {
         await tester.runAsync(() async {
-          final base = _bundle();
+          final base = _bundle(iceBlock: iceBlock);
           final bundle = base.copyWith(
             tilesetAbsolutePathsById: const {'entity': '/tmp/boulder-rock.png'},
             manifest: base.manifest.copyWith(
@@ -805,6 +905,7 @@ void main() {
           final game = await _load(
             bundle: bundle,
             tester: tester,
+            iceBlock: iceBlock,
             imageLoader:
                 (paths, {transparentColorByTilesetId = const {}}) async => {
                   'entity': await runtimeTilesetImage(const [
@@ -858,6 +959,8 @@ void main() {
         });
       },
     );
+  }
+
   }
 
   testWidgets(
@@ -1089,6 +1192,7 @@ const _ice = MapGameplayZone(
 
 RuntimeMapBundle _bundle({
   List<MapEntity> entities = const [],
+  bool iceBlock = false,
 }) => RuntimeMapBundle(
   projectRootDirectory: '/tmp/boulder-slide-runtime',
   tilesetAbsolutePathsById: const {},
@@ -1107,13 +1211,13 @@ RuntimeMapBundle _bundle({
     layers: const [MapLayer.object(id: 'objects', name: 'Objects')],
     gameplayZones: const [_ice],
     entities: [
-      const MapEntity(
+      MapEntity(
         id: 'boulder',
         kind: MapEntityKind.custom,
-        pos: GridPos(x: 2, y: 2),
+        pos: const GridPos(x: 2, y: 2),
         blocksMovement: true,
         fieldObstacle: MapEntityFieldObstacleData(
-          kind: FieldObstacleKind.strengthBoulder,
+          kind: iceBlock ? FieldObstacleKind.iceBlock : FieldObstacleKind.strengthBoulder,
         ),
       ),
       ...entities,
@@ -1153,6 +1257,7 @@ GameState _state() => GameState(
 
 Future<_Game> _load({
   RuntimeMapBundle? bundle,
+  bool iceBlock = false,
   List<MapEntity> entities = const [],
   GameState? initialState,
   _Repository? repository,
@@ -1161,12 +1266,17 @@ Future<_Game> _load({
   Map<String, RuntimeMapBundle> otherMaps = const {},
   void Function(RuntimeCommittedMovement)? onMovement,
 }) async {
-  final initialBundle = bundle ?? _bundle(entities: entities);
+  final initialBundle = bundle ?? _bundle(entities: entities, iceBlock: iceBlock);
   final game = _Game(
     bundle: initialBundle,
     projectFilePath: '/tmp/boulder-slide-runtime/project.json',
     initialMapActivationReason: MapActivationReason.saveRestore,
-    initialGameState: initialState ?? _state(),
+    initialGameState: initialState ?? (iceBlock ? _state().copyWith(
+      party: const PlayerParty(), progression: const PlayerProgression(),
+      mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+        'ice': MapInstanceRuntimeState(instanceId: 'ice-instance'),
+      }),
+    ) : _state()),
     saveRepository: repository ?? _Repository(),
     runtimeTilesetImageLoader: imageLoader,
     onCommittedMovement: onMovement,

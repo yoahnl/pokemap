@@ -175,7 +175,7 @@ FieldObstacleEvaluation evaluateFieldObstacleAttempt(
       !inside(entity.pos) ||
       !inside(gameState.playerPosition) ||
       (savedPosition != null &&
-          (obstacle.kind != FieldObstacleKind.strengthBoulder ||
+          (!obstacle.isPushable ||
               entity.pos != savedPosition)) ||
       map.entities
               .where((candidate) =>
@@ -190,8 +190,12 @@ FieldObstacleEvaluation evaluateFieldObstacleAttempt(
     return const FieldObstacleUnavailable(
         FieldObstacleBlockReason.alreadyCleared);
   }
+  final ability = obstacle.ability;
+  if (ability == null) {
+    return const FieldObstacleUnavailable(FieldObstacleBlockReason.invalidTarget);
+  }
   final gate = evaluateFieldAbilityGate(
-      ability: obstacle.ability,
+      ability: ability,
       supportedAbilities: const {
         FieldAbility.cut,
         FieldAbility.strength,
@@ -449,7 +453,7 @@ FieldObstacleSlideResult stepFieldObstacleSlide({
       source.y >= map.size.height ||
       matches.length != 1 ||
       matches.single.pos != source ||
-      matches.single.fieldObstacle?.kind != FieldObstacleKind.strengthBoulder ||
+      matches.single.fieldObstacle?.isPushable != true ||
       matches.single.kind != MapEntityKind.custom ||
       !matches.single.blocksMovement ||
       matches.single.size != const GridSize(width: 1, height: 1) ||
@@ -465,20 +469,21 @@ FieldObstacleSlideResult stepFieldObstacleSlide({
                   y: world.player.playerPositionPx.topPx))) {
     return const FieldObstacleSlideRefused(FieldActionRefusal.targetChanged);
   }
-  if (!gameState.mapInstanceWorldState.isStrengthActive(slide.instance) ||
-      gameState.mapInstanceWorldState
+  if (gameState.mapInstanceWorldState
           .isFieldObstacleCleared(slide.instance, slide.entityId) ||
       gameState.mapInstanceWorldState
               .fieldObstaclePosition(slide.instance, slide.entityId) !=
           source ||
-      evaluateFieldAbilityGate(
+      (matches.single.fieldObstacle!.kind == FieldObstacleKind.strengthBoulder &&
+          (!gameState.mapInstanceWorldState.isStrengthActive(slide.instance) ||
+          evaluateFieldAbilityGate(
                   ability: FieldAbility.strength,
                   supportedAbilities: const {FieldAbility.strength},
                   unlockedFieldAbilities:
                       gameState.progression.unlockedFieldAbilities.toSet(),
                   party: gameState.party)
               .status !=
-          FieldAbilityGateStatus.usable) {
+          FieldAbilityGateStatus.usable))) {
     return const FieldObstacleSlideRefused(
         FieldActionRefusal.noLongerAvailable);
   }

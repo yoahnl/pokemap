@@ -12,6 +12,26 @@ const _digestD =
     'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd';
 
 void main() {
+  test('foreground moves only props and preserves ground and opacity behind actors', () {
+    final layer = BorderLayer(
+      id: 'pillars', name: 'Pillars', renderInForeground: true, opacity: .6,
+      content: BorderLayerContent(features: [
+        _feature(id: 'pillar', groundSnapshotId: 'border-snapshot-sha256:$_digestA',
+            placement: _placement(id: 'pillar', snapshotId: 'border-snapshot-sha256:$_digestC',
+                ordinal: 1, drawBand: BorderDrawBand.structure)),
+      ]),
+    );
+    final back = buildBorderRuntimeDrawInstructions(layer: layer,
+        tileWidthPx: 16, tileHeightPx: 16, foregroundPass: false);
+    final front = buildBorderRuntimeDrawInstructions(layer: layer,
+        tileWidthPx: 16, tileHeightPx: 16, foregroundPass: true);
+    expect(back.instructions, everyElement(isA<BorderRuntimeGroundInstruction>()));
+    expect(front.instructions, everyElement(isA<BorderRuntimePlacementInstruction>()));
+    expect(back.instructions, hasLength(1));
+    expect(front.instructions, hasLength(1));
+    expect(front.opacity, .6);
+    expect(front.isVisible, isTrue);
+  });
   test(
     'flattens every feature ground before placements without re-sorting '
     'persisted placement order',

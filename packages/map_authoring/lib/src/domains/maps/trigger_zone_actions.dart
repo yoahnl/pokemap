@@ -134,7 +134,7 @@ final class TriggerZoneActions {
               'parameters': ['mapId', 'zoneId', 'payload'],
               'slide': {
                 'mapMode': '2d',
-                'affectedActors': ['player', 'strengthBoulder'],
+                'affectedActors': ['player', 'strengthBoulder', 'iceBlock'],
                 'direction': 'entry',
                 'stops': ['obstacle', 'zoneExit'],
                 'inputDuringTraversal': false,

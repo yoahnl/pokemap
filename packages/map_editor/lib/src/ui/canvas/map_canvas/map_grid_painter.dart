@@ -682,11 +682,12 @@ class MapGridPainter extends CustomPainter {
             ),
           );
         case MapVisualCompositionStepKind.borderLayer:
+        case MapVisualCompositionStepKind.foregroundBorderLayer:
           if (borderCatalog != null) {
             final borderLayer = step.layer! as BorderLayer;
             _paintCachedPicture(
               canvas,
-              cacheId: 'border:${borderLayer.id}',
+              cacheId: 'border:${borderLayer.id}:${step.kind.name}',
               visibleBounds: visibleBounds,
               revisions: revisions,
               revisionToken: (
@@ -709,6 +710,7 @@ class MapGridPainter extends CustomPainter {
                     : tileWidth / sourceTileWidth,
                 elapsedMs: effectiveAnimationMs,
                 preview: borderPreview,
+                foregroundPass: step.kind == MapVisualCompositionStepKind.foregroundBorderLayer,
               ),
             );
           }

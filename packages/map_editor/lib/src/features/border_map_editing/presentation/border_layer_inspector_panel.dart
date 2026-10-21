@@ -442,6 +442,16 @@ class _BorderLayerInspectorPanelState
                   notifier.setMapLayerOpacity(layer.id, percent / 100),
             ),
           ),
+          const SizedBox(height: 10),
+          PokeMapButton(
+            key: const ValueKey('border-layer-foreground-button'),
+            onPressed: ref.read(editorNotifierProvider).activeMap?.spatialScene != null
+                ? null
+                : () => notifier.setBorderForeground(layer.id, !layer.renderInForeground),
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.secondary,
+            child: Text(layer.renderInForeground ? 'Calque au premier plan' : 'Calque à l’arrière-plan'),
+          ),
         ],
       ),
     );

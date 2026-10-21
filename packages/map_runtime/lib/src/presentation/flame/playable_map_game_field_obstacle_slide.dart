@@ -10,7 +10,7 @@ final class _RuntimeFieldObstacleMovement {
     required this.playerFrom,
     required this.firstMovement,
     required this.repelActiveForStep,
-  }) : suppressMovement = slide != null,
+  }) : suppressMovement = slide != null || firstMovement == null,
        remainingSeconds = durationSeconds;
 
   final String mapId;
@@ -19,13 +19,37 @@ final class _RuntimeFieldObstacleMovement {
   FieldObstacleSlide? slide;
   final double durationSeconds;
   final GridPos playerFrom;
-  final GameplayStepResult firstMovement;
+  final GameplayStepResult? firstMovement;
   final bool repelActiveForStep;
   final bool suppressMovement;
   double remainingSeconds;
 }
 
 extension _PlayableMapFieldObstacleSlide on PlayableMapGame {
+  void _startIceBlockMovement({
+    required String entityId,
+    required FieldObstacleSlideMoved decision,
+  }) {
+    final movement = _RuntimeFieldObstacleMovement(
+      mapId: _activeMapId,
+      activationId: _currentMapActivationId,
+      entityId: entityId,
+      slide: decision.slide,
+      durationSeconds: PlayerComponent.kDefaultStepSeconds,
+      playerFrom: _world.player.pos,
+      firstMovement: null,
+      repelActiveForStep: _gameState.repelState.isActive,
+    );
+    _fieldObstacleMovement = movement;
+    _playerSlide.reset();
+    _slideSuppressedMovementControls.addAll(_pressedMovementControls);
+    _clearPressedMovementControls();
+    _sprintPressed = false;
+    _animateFieldObstacleMovementStep(movement, decision.from, decision.to);
+    _player.syncState(_world.player);
+    _publishInputAuthoritySnapshot();
+  }
+
   void _startFieldObstacleMovement({
     required StrengthPushApplied decision,
     required GridPos playerFrom,
@@ -144,9 +168,10 @@ extension _PlayableMapFieldObstacleSlide on PlayableMapGame {
       }
     }
     _cancelFieldObstacleMovement(clearInputs: movement.suppressMovement);
-    if (movement.suppressMovement) {
+    final firstMovement = movement.firstMovement;
+    if (movement.suppressMovement && firstMovement != null) {
       _handleGameplayMovementResult(
-        movement.firstMovement,
+        firstMovement,
         previousPlayerPos: movement.playerFrom,
         animatePlayer: false,
         publishMovement: false,

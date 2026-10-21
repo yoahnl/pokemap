@@ -186,53 +186,88 @@ final class RuntimeProjectCatalog {
     MapData map, {
     Iterable<String> extraCharacterIds = const [],
     Iterable<String> extraSceneIds = const [],
+  }) => manifestForMaps(
+    [map],
+    extraCharacterIds: extraCharacterIds,
+    extraSceneIds: extraSceneIds,
+  );
+
+  Future<ProjectManifest> manifestForMaps(
+    Iterable<MapData> maps, {
+    Iterable<String> extraCharacterIds = const [],
+    Iterable<String> extraSceneIds = const [],
+  }) => _manifestForMaps(
+    maps,
+    extraCharacterIds: extraCharacterIds,
+    extraSceneIds: extraSceneIds,
+    includeMapVisuals: true,
+  );
+
+  Future<ProjectManifest> manifestForNarrativeMaps(Iterable<MapData> maps) =>
+      _manifestForMaps(
+        maps,
+        extraSceneIds: projectMetadata.scenes.map((scene) => scene.id),
+        includeMapVisuals: false,
+      );
+
+  Future<ProjectManifest> _manifestForMaps(
+    Iterable<MapData> maps, {
+    Iterable<String> extraCharacterIds = const [],
+    Iterable<String> extraSceneIds = const [],
+    required bool includeMapVisuals,
   }) async {
     _ensureOpen();
     final roots = <CatalogDefinitionKey>{};
-    final characterIds = collectRuntimeMapCharacterIds(
-      map,
-      projectMetadata,
-      additionalCharacterIds: extraCharacterIds.toSet(),
-      additionalSceneIds: extraSceneIds.toSet(),
-    );
-    for (final event in map.events) {
-      for (final page in event.pages) {
-        final id = page.spriteId;
-        if (id == null || id.isEmpty) continue;
-        final key = CatalogDefinitionKey(CatalogDefinitionKind.character, id);
-        if (_native.containsKey(key) || await _portable?.lookup(key) != null) {
-          characterIds.add(id);
+    final additionalCharacters = extraCharacterIds.toSet();
+    final additionalScenes = extraSceneIds.toSet();
+    for (final map in maps) {
+      final characterIds = collectRuntimeMapCharacterIds(
+        map,
+        projectMetadata,
+        additionalCharacterIds: additionalCharacters,
+        additionalSceneIds: additionalScenes,
+      );
+      for (final event in map.events) {
+        for (final page in event.pages) {
+          final id = page.spriteId;
+          if (id == null || id.isEmpty) continue;
+          final key = CatalogDefinitionKey(CatalogDefinitionKind.character, id);
+          if (_native.containsKey(key) ||
+              await _portable?.snapshot.indexEntry(key) != null) {
+            characterIds.add(id);
+          }
         }
       }
-    }
-    for (final root in _mapRoots(
-      map,
-      projectMetadata,
-      characterIds,
-      extraSceneIds,
-    )) {
-      roots.add(root);
-    }
-    final sceneIds = collectRuntimeMapSceneIds(
-      map,
-      projectMetadata,
-      additionalSceneIds: extraSceneIds.toSet(),
-    );
-    for (final scene in projectMetadata.scenes) {
-      if (!sceneIds.contains(scene.id)) continue;
-      for (final node in scene.graph.nodes) {
-        final payload = node.payload;
-        if (payload is! SceneYarnDialoguePayload) continue;
-        for (final policy in payload.linePolicies) {
-          for (final icon
-              in policy.feedback.segments.whereType<DialogueIconSegment>()) {
-            final key = CatalogDefinitionKey(
-              CatalogDefinitionKind.tileset,
-              icon.assetId,
-            );
-            if (_native.containsKey(key) ||
-                await _portable?.lookup(key) != null) {
-              roots.add(key);
+      for (final root in _mapRoots(
+        map,
+        projectMetadata,
+        characterIds,
+        additionalScenes,
+        includeMapVisuals: includeMapVisuals,
+      )) {
+        roots.add(root);
+      }
+      final sceneIds = collectRuntimeMapSceneIds(
+        map,
+        projectMetadata,
+        additionalSceneIds: additionalScenes,
+      );
+      for (final scene in projectMetadata.scenes) {
+        if (!sceneIds.contains(scene.id)) continue;
+        for (final node in scene.graph.nodes) {
+          final payload = node.payload;
+          if (payload is! SceneYarnDialoguePayload) continue;
+          for (final policy in payload.linePolicies) {
+            for (final icon
+                in policy.feedback.segments.whereType<DialogueIconSegment>()) {
+              final key = CatalogDefinitionKey(
+                CatalogDefinitionKind.tileset,
+                icon.assetId,
+              );
+              if (_native.containsKey(key) ||
+                  await _portable?.snapshot.indexEntry(key) != null) {
+                roots.add(key);
+              }
             }
           }
         }
@@ -320,16 +355,11 @@ final class RuntimeProjectCatalog {
         }
         units[key] = unit;
         selected[key] = unit;
-        if (key.kind == CatalogDefinitionKind.resourceLibraryEntry) {
-          libraryValue = ResourceLibraryEntry.fromJson(
-            Map<String, Object?>.from(unit.payload['value']! as Map),
-          );
-        } else if (key.kind == CatalogDefinitionKind.resourceFamily) {
-          libraryValue = ResourceFamily.fromJson(
-            Map<String, Object?>.from(unit.payload['value']! as Map),
-          );
+        final value = portable.definitionValue(unit);
+        if (value is ResourceLibraryEntry || value is ResourceFamily) {
+          libraryValue = value;
         } else {
-          view = portable.definitions([unit]);
+          view = _nativeProjection(projectMetadata, {key: value});
         }
       } else {
         final value = _native[key];
@@ -369,7 +399,7 @@ final class RuntimeProjectCatalog {
           '$resourceKind:${key.id}',
         );
         if (_native.containsKey(classificationKey) ||
-            await _portable?.lookup(classificationKey) != null) {
+            await _portable?.snapshot.indexEntry(classificationKey) != null) {
           await visit(classificationKey, depth + 1);
         }
       }
@@ -563,69 +593,72 @@ Iterable<CatalogDefinitionKey> _mapRoots(
   MapData map,
   ProjectManifest metadata,
   Iterable<String> extraCharacterIds,
-  Iterable<String> extraSceneIds,
-) sync* {
+  Iterable<String> extraSceneIds, {
+  required bool includeMapVisuals,
+}) sync* {
   CatalogDefinitionKey key(CatalogDefinitionKind kind, String id) =>
       CatalogDefinitionKey(kind, id);
-  if (map.tilesetId.isNotEmpty) {
-    yield key(CatalogDefinitionKind.tileset, map.tilesetId);
-  }
-  for (final layer in map.layers) {
-    switch (layer) {
-      case TileLayer(:final palette):
-        for (final tile in palette) {
-          yield key(CatalogDefinitionKind.tileset, tile.tilesetId);
-        }
-      case ObjectLayer(:final tileObjects):
-        for (final tile in tileObjects) {
-          yield key(CatalogDefinitionKind.tileset, tile.tile.tilesetId);
-        }
-      case SmartTileLayer(
-        :final presetId,
-        :final patternStrokes,
-        :final materialPalette,
-      ):
-        yield key(CatalogDefinitionKind.smartTilePreset, presetId);
-        for (final material in materialPalette.where((id) => id.isNotEmpty)) {
-          yield key(CatalogDefinitionKind.smartTileMaterial, material);
-        }
-        for (final stroke in patternStrokes) {
-          yield key(CatalogDefinitionKind.smartTilePattern, stroke.patternId);
-        }
-      case EnvironmentLayer(:final content):
-        for (final area in content.areas) {
-          yield key(CatalogDefinitionKind.environmentPreset, area.presetId);
-        }
-      case BorderLayer(:final content):
-        for (final feature in content.features) {
-          yield key(CatalogDefinitionKind.borderRecord, feature.blueprintId);
-          for (final placement
-              in feature.materialization?.placements ??
-                  const <BorderResolvedPlacement>[]) {
-            yield key(
-              CatalogDefinitionKind.borderVisualSnapshot,
-              placement.visualSnapshotId,
-            );
-          }
-          for (final ground
-              in feature.materialization?.ground ??
-                  const <BorderResolvedGroundCell>[]) {
-            yield key(
-              CatalogDefinitionKind.borderVisualSnapshot,
-              ground.visualSnapshotId,
-            );
-          }
-        }
-      default:
-        break;
+  if (includeMapVisuals) {
+    if (map.tilesetId.isNotEmpty) {
+      yield key(CatalogDefinitionKind.tileset, map.tilesetId);
     }
-  }
-  for (final element in map.placedElements) {
-    yield key(CatalogDefinitionKind.element, element.elementId);
-  }
-  for (final platform in map.movingPlatforms) {
-    for (final variant in platform.variants) {
-      yield key(CatalogDefinitionKind.element, variant.elementId);
+    for (final layer in map.layers) {
+      switch (layer) {
+        case TileLayer(:final palette):
+          for (final tile in palette) {
+            yield key(CatalogDefinitionKind.tileset, tile.tilesetId);
+          }
+        case ObjectLayer(:final tileObjects):
+          for (final tile in tileObjects) {
+            yield key(CatalogDefinitionKind.tileset, tile.tile.tilesetId);
+          }
+        case SmartTileLayer(
+          :final presetId,
+          :final patternStrokes,
+          :final materialPalette,
+        ):
+          yield key(CatalogDefinitionKind.smartTilePreset, presetId);
+          for (final material in materialPalette.where((id) => id.isNotEmpty)) {
+            yield key(CatalogDefinitionKind.smartTileMaterial, material);
+          }
+          for (final stroke in patternStrokes) {
+            yield key(CatalogDefinitionKind.smartTilePattern, stroke.patternId);
+          }
+        case EnvironmentLayer(:final content):
+          for (final area in content.areas) {
+            yield key(CatalogDefinitionKind.environmentPreset, area.presetId);
+          }
+        case BorderLayer(:final content):
+          for (final feature in content.features) {
+            yield key(CatalogDefinitionKind.borderRecord, feature.blueprintId);
+            for (final placement
+                in feature.materialization?.placements ??
+                    const <BorderResolvedPlacement>[]) {
+              yield key(
+                CatalogDefinitionKind.borderVisualSnapshot,
+                placement.visualSnapshotId,
+              );
+            }
+            for (final ground
+                in feature.materialization?.ground ??
+                    const <BorderResolvedGroundCell>[]) {
+              yield key(
+                CatalogDefinitionKind.borderVisualSnapshot,
+                ground.visualSnapshotId,
+              );
+            }
+          }
+        default:
+          break;
+      }
+    }
+    for (final element in map.placedElements) {
+      yield key(CatalogDefinitionKind.element, element.elementId);
+    }
+    for (final platform in map.movingPlatforms) {
+      for (final variant in platform.variants) {
+        yield key(CatalogDefinitionKind.element, variant.elementId);
+      }
     }
   }
   for (final trainer in metadata.trainers) {
@@ -663,7 +696,8 @@ Iterable<CatalogDefinitionKey> _mapRoots(
       in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
     yield key(CatalogDefinitionKind.model3d, instance.modelId);
   }
-  if (map.spatialScene?.cliffFrame case final frame?) {
+  if (includeMapVisuals && map.spatialScene?.cliffFrame != null) {
+    final frame = map.spatialScene!.cliffFrame!;
     yield key(CatalogDefinitionKind.smartTileAtlas, frame.atlasId);
   }
   final sceneIds = collectRuntimeMapSceneIds(

@@ -120,6 +120,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     required RuntimeInitialMapProjectFilePathLoader projectFilePath,
     required RuntimeInitialMapSaveLoader loadSave,
     this.expectedIdentity,
+    this.resourceProfile = const RuntimeResourceProfile(),
     RuntimeInitialMapManifestLoader? manifestLoader,
     RuntimeInitialMapBundleLoader? bundleLoader,
     RuntimeInitialMapTilesetImageLoader tilesetImageLoader =
@@ -132,6 +133,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
 
   final RuntimeInitialMapProjectFilePathLoader _projectFilePath;
   final GameIdentity? expectedIdentity;
+  final RuntimeResourceProfile resourceProfile;
   final RuntimeInitialMapSaveLoader _loadSave;
   final RuntimeInitialMapManifestLoader? _manifestLoader;
   final RuntimeInitialMapBundleLoader? _bundleLoader;
@@ -198,6 +200,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
                 mapId: mapId,
                 preloadedManifest: manifest,
                 projectCatalog: catalog,
+                resourceBudget: RuntimeResourceBudget(profile: resourceProfile),
                 additionalCharacterIds: selection.characterIds,
                 progressSink: (stage) {
                   switch (stage) {
@@ -286,6 +289,10 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
                   : await loadMapDataFromFile(
                       mapPath,
                       projectDialogueContext: catalog == null ? manifest : null,
+                      projectTileSize: PixelSize(
+                        width: manifest.settings.tileWidth,
+                        height: manifest.settings.tileHeight,
+                      ),
                     );
               return (project: manifest, map: map);
             },

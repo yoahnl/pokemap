@@ -130,6 +130,54 @@ final class NarrativeEventProjectCatalog {
   NarrativeEventProjectCatalog({
     required String manifestHash,
     required Map<String, String> mapHashes,
+    required NarrativeSpatialEventSourceCatalog spatialSources,
+    required NarrativeOutcomeEventSourceCatalog outcomeSources,
+    required List<NarrativeEventProjectSceneEntry> scenes,
+    required List<NarrativeEventProjectFactEntry> facts,
+    required List<NarrativeEventProjectEventEntry> events,
+    required List<NarrativeEventProjectDiagnostic> diagnostics,
+    List<String> nativeMapIds = const [],
+    List<MapData> nativeMaps = const [],
+  }) : this._(
+         fingerprints: _NarrativeCatalogFingerprints.eager(
+           manifestHash,
+           mapHashes,
+         ),
+         spatialSources: spatialSources,
+         outcomeSources: outcomeSources,
+         scenes: scenes,
+         facts: facts,
+         events: events,
+         diagnostics: diagnostics,
+         nativeMapIds: nativeMapIds,
+         nativeMaps: nativeMaps,
+       );
+
+  NarrativeEventProjectCatalog.withDeferredFingerprints({
+    required String Function() manifestHash,
+    required Map<String, String> Function() mapHashes,
+    required NarrativeSpatialEventSourceCatalog spatialSources,
+    required NarrativeOutcomeEventSourceCatalog outcomeSources,
+    required List<NarrativeEventProjectSceneEntry> scenes,
+    required List<NarrativeEventProjectFactEntry> facts,
+    required List<NarrativeEventProjectEventEntry> events,
+    required List<NarrativeEventProjectDiagnostic> diagnostics,
+    List<String> nativeMapIds = const [],
+    List<MapData> nativeMaps = const [],
+  }) : this._(
+         fingerprints: _NarrativeCatalogFingerprints(manifestHash, mapHashes),
+         spatialSources: spatialSources,
+         outcomeSources: outcomeSources,
+         scenes: scenes,
+         facts: facts,
+         events: events,
+         diagnostics: diagnostics,
+         nativeMapIds: nativeMapIds,
+         nativeMaps: nativeMaps,
+       );
+
+  NarrativeEventProjectCatalog._({
+    required _NarrativeCatalogFingerprints fingerprints,
     required this.spatialSources,
     required this.outcomeSources,
     required List<NarrativeEventProjectSceneEntry> scenes,
@@ -138,34 +186,20 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
     List<MapData> nativeMaps = const [],
-  })  : manifestHash = _identity(manifestHash, 'manifestHash'),
-        mapHashes = Map.unmodifiable(mapHashes),
-        scenes = List.unmodifiable(scenes),
-        facts = List.unmodifiable(facts),
-        events = List.unmodifiable(events),
-        diagnostics = List.unmodifiable(diagnostics),
-        nativeMapIds = List.unmodifiable(nativeMapIds),
-        nativeMaps = List.unmodifiable(nativeMaps),
-        _scenesById = _index(scenes, (entry) => entry.scene.id),
-        _factsById = _index(facts, (entry) => entry.fact.id),
-        _eventsById = _index(events, (entry) => entry.record.id) {
-    if (this.mapHashes.entries.any(
-          (entry) =>
-              entry.key.isEmpty ||
-              entry.key.trim() != entry.key ||
-              entry.value.isEmpty ||
-              entry.value.trim() != entry.value,
-        )) {
-      throw ArgumentError.value(
-        mapHashes,
-        'mapHashes',
-        'keys and values must be non-empty and trimmed',
-      );
-    }
-  }
+  }) : _fingerprints = fingerprints,
+       scenes = List.unmodifiable(scenes),
+       facts = List.unmodifiable(facts),
+       events = List.unmodifiable(events),
+       diagnostics = List.unmodifiable(diagnostics),
+       nativeMapIds = List.unmodifiable(nativeMapIds),
+       nativeMaps = List.unmodifiable(nativeMaps),
+       _scenesById = _index(scenes, (entry) => entry.scene.id),
+       _factsById = _index(facts, (entry) => entry.fact.id),
+       _eventsById = _index(events, (entry) => entry.record.id);
 
-  final String manifestHash;
-  final Map<String, String> mapHashes;
+  final _NarrativeCatalogFingerprints _fingerprints;
+  String get manifestHash => _fingerprints.manifestHash;
+  Map<String, String> get mapHashes => _fingerprints.mapHashes;
   final NarrativeSpatialEventSourceCatalog spatialSources;
   final NarrativeOutcomeEventSourceCatalog outcomeSources;
   final List<NarrativeEventProjectSceneEntry> scenes;
@@ -355,4 +389,56 @@ String _identity(String value, String name) {
     throw ArgumentError.value(value, name, 'must be non-empty and trimmed');
   }
   return value;
+}
+
+final class _NarrativeCatalogFingerprints {
+  _NarrativeCatalogFingerprints(this._manifestHash, this._mapHashes);
+
+  factory _NarrativeCatalogFingerprints.eager(
+    String manifestHash,
+    Map<String, String> mapHashes,
+  ) {
+    final result = _NarrativeCatalogFingerprints(
+      () => manifestHash,
+      () => mapHashes,
+    );
+    result.manifestHash;
+    result.mapHashes;
+    return result;
+  }
+
+  String Function()? _manifestHash;
+  Map<String, String> Function()? _mapHashes;
+  late final String manifestHash = _computeManifestHash();
+  late final Map<String, String> mapHashes = _computeMapHashes();
+
+  String _computeManifestHash() {
+    final result = _identity(_manifestHash!(), 'manifestHash');
+    _manifestHash = null;
+    return result;
+  }
+
+  Map<String, String> _computeMapHashes() {
+    final result = _validatedMapHashes(_mapHashes!());
+    _mapHashes = null;
+    return result;
+  }
+}
+
+Map<String, String> _validatedMapHashes(Map<String, String> hashes) {
+  final result = Map<String, String>.unmodifiable(hashes);
+  if (result.entries.any(
+    (entry) =>
+        entry.key.isEmpty ||
+        entry.key.trim() != entry.key ||
+        entry.value.isEmpty ||
+        entry.value.trim() != entry.value,
+  )) {
+    throw ArgumentError.value(
+      hashes,
+      'mapHashes',
+      'keys and values must be non-empty and trimmed',
+    );
+  }
+  return result;
 }

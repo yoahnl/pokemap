@@ -544,6 +544,239 @@ void main() {
             .having((error) => error.code, 'code', 'gameplayReadinessFailed')));
   });
 
+  test('local test keeps unfinished draft and fact diagnostics as warnings',
+      () async {
+    final root = await _createPlayableProject();
+    addTearDown(() => root.delete(recursive: true));
+    final file = File(p.join(root.path, 'project.json'));
+    final original = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    final registry = original.eventRegistry!;
+    final project = original.copyWith(
+      facts: [
+        NarrativeFactDefinition(id: 'fact_later', label: 'Later chapter')
+      ],
+      eventRegistry: NarrativeEventRegistry(
+          schemaVersion: registry.schemaVersion,
+          mode: registry.mode,
+          legacyClaims: registry.legacyClaims,
+          records: [
+            ...registry.records,
+            NarrativeEventRecord.draft(NarrativeEventDraft(
+              id: 'evt_019abcde-6000-7000-8000-000000000002',
+              name: 'Unfinished event',
+              conditions: const [],
+              priority: 0,
+              order: 1,
+            )),
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+              NarrativeEventDefinition(
+                id: 'evt_019abcde-6000-7000-8000-000000000003',
+                name: 'Later chapter event',
+                source: NarrativeEventSourceRef.mapEnter('map.start'),
+                conditions: [NarrativeEventCondition.fact('fact_later', true)],
+                sceneId: 'scene.main',
+                reusePolicy: NarrativeEventReusePolicy.oneShot,
+                priority: 0,
+                order: 2,
+              ),
+              enabled: true,
+            ),
+          ]),
+    );
+    await file.writeAsString(jsonEncode(project.toJson()));
+    final before = await file.readAsBytes();
+    final service = CanonicalGamePackageExportService(
+        pokemonValidator: _acceptPokemonProjection);
+    final artifact = await service.build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    final report = artifact.certification.gameplayReadinessReport;
+    expect(report.isPlayable, isTrue);
+    for (final code in [
+      'narrativeEventSourceMissing',
+      'requiredFactNeverProduced'
+    ]) {
+      expect(report.byCode(code), isNotEmpty);
+      expect(
+          report.byCode(code).every(
+              (d) => d.severity == NarrativeProjectDiagnosticSeverity.warning),
+          isTrue);
+    }
+    expect(artifact.certification.isCertified, isFalse);
+    await expectLater(
+        service.build(projectRoot: root, profile: _profile()),
+        throwsA(isA<GamePackageExportException>().having(
+            (error) => error.gameplayReadinessReport?.errorCount,
+            'publication errors',
+            greaterThan(0))));
+    expect(await file.readAsBytes(), before);
+  });
+
+  test('local test still rejects a configured event with a missing source',
+      () async {
+    final root = await _createPlayableProject();
+    addTearDown(() => root.delete(recursive: true));
+    final file = File(p.join(root.path, 'project.json'));
+    final original = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    final registry = original.eventRegistry!;
+    await file.writeAsString(jsonEncode(original
+        .copyWith(
+          eventRegistry: NarrativeEventRegistry(
+              schemaVersion: registry.schemaVersion,
+              mode: registry.mode,
+              legacyClaims: registry.legacyClaims,
+              records: [
+                ...registry.records,
+                NarrativeEventRecord.configuredStructurallyUnchecked(
+                  NarrativeEventDefinition(
+                    id: 'evt_019abcde-6000-7000-8000-000000000004',
+                    name: 'Broken configured event',
+                    source: NarrativeEventSourceRef.entityInteract(
+                        'map.start', 'entity.missing'),
+                    conditions: const [],
+                    sceneId: 'scene.main',
+                    reusePolicy: NarrativeEventReusePolicy.oneShot,
+                    priority: 0,
+                    order: 1,
+                  ),
+                  enabled: true,
+                ),
+              ]),
+        )
+        .toJson()));
+    final service = CanonicalGamePackageExportService(
+        pokemonValidator: _acceptPokemonProjection);
+    await expectLater(
+        service.build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>().having(
+            (error) => error.gameplayReadinessReport
+                ?.byCode('narrativeEventSourceMissing')
+                .any((d) =>
+                    d.severity == NarrativeProjectDiagnosticSeverity.error),
+            'configured source remains blocking',
+            isTrue)));
+  });
+
+  test('export repacks tall atlases without changing tile identity or pixels',
+      () async {
+    final root = await _createPlayableProject();
+    addTearDown(() => root.delete(recursive: true));
+    final file = File(p.join(root.path, 'project.json'));
+    final project = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    final pixels = image.Image(width: 32, height: 8224, numChannels: 4);
+    for (var y = 0; y < pixels.height; y++) {
+      for (var x = 0; x < pixels.width; x++) {
+        pixels.setPixelRgba(x, y, x, y % 256, y ~/ 256, y % 3 == 0 ? 0 : 127);
+      }
+    }
+    final bytes = image.encodePng(pixels);
+    final ref = ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png');
+    final record = AssetRecord(
+        id: 'tall-image',
+        logicalPath: 'assets/tall.png',
+        artifact: ref,
+        usages: const ['tileset']);
+    final blob = File(p.join(root.path, assetBlobStorageKey(ref)));
+    await blob.parent.create(recursive: true);
+    await blob.writeAsBytes(bytes);
+    await File(p.join(root.path, assetCatalogStorageKey))
+        .writeAsString(jsonEncode(AssetCatalog(records: [record]).toJson()));
+    await file.writeAsString(jsonEncode(project.copyWith(
+      tilesets: [
+        const ProjectTilesetEntry(
+            id: 'tall',
+            name: 'Tall',
+            relativePath: 'assets/tall.png',
+            source: ProjectRegularAtlasTilesetSource(
+                assetId: 'tall-image',
+                pixelWidth: 32,
+                pixelHeight: 8224,
+                tileWidth: 32,
+                tileHeight: 32))
+      ],
+      elements: [
+        const ProjectElementEntry(
+            id: 'last',
+            name: 'Last',
+            tilesetId: 'tall',
+            categoryId: 'props',
+            frames: [
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 256))
+            ])
+      ],
+      elementCategories: [
+        const ProjectElementCategory(id: 'props', name: 'Props')
+      ],
+    ).toJson()));
+    final before = await file.readAsBytes();
+    final artifact = await CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection)
+        .build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest);
+    final archive =
+        ZipDecoder().decodeBytes(artifact.packageBytes, verify: true);
+    final descriptor = jsonDecode(
+            utf8.decode(archive.findFile('project/project.json')!.content))
+        as Map<String, dynamic>;
+    final exportedProject = PortableCatalogPublication.decodeProjectSync(
+        descriptor,
+        readObject: (ref) => archive
+            .findFile('project/${PortableCatalogPublication.objectPath(ref)}')!
+            .content);
+    final source = exportedProject.tilesets.single.source
+        as ProjectRegularAtlasTilesetSource;
+    expect([source.pixelWidth, source.pixelHeight], [64, 4128]);
+    expect(exportedProject.elements.single.frames.single.source,
+        const TilesetSourceRect(x: 0, y: 128));
+    final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+            archive.findFile('project/$assetCatalogStorageKey')!.content))
+        as Map<String, dynamic>);
+    final exportedRecord = catalog.findByLogicalPath('assets/tall.png')!;
+    final packed = image.decodePng(archive
+        .findFile('project/${assetBlobStorageKey(exportedRecord.artifact)}')!
+        .content)!;
+    expect([packed.width, packed.height], [64, 4128]);
+    for (var tile = 0; tile < 257; tile++) {
+      for (var y = 0; y < 32; y++) {
+        for (var x = 0; x < 32; x++) {
+          final original = pixels.getPixel(x, tile * 32 + y);
+          final actual =
+              packed.getPixel((tile % 2) * 32 + x, (tile ~/ 2) * 32 + y);
+          expect([actual.r, actual.g, actual.b, actual.a],
+              [original.r, original.g, original.b, original.a]);
+        }
+      }
+    }
+    expect(await file.readAsBytes(), before);
+    expect(await blob.readAsBytes(), bytes);
+    final authored = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(before)) as Map<String, dynamic>);
+    await file.writeAsString(jsonEncode(authored.copyWith(elements: [
+      authored.elements.single.copyWith(frames: [
+        const TilesetVisualFrame(
+            source: TilesetSourceRect(x: 0, y: 254, height: 2)),
+      ]),
+    ]).toJson()));
+    await expectLater(
+        CanonicalGamePackageExportService(
+                pokemonValidator: _acceptPokemonProjection)
+            .build(
+                projectRoot: root,
+                profile: _profile(),
+                mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>().having((error) => error.code,
+            'unsafe rectangle', 'runtimeAtlasRepackUnsupported')));
+  });
+
   test('canonical export includes and remaps the authored menu background',
       () async {
     final projectRoot = await _createPlayableProject(illustrated: true);

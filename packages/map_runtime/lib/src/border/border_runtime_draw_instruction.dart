@@ -87,6 +87,7 @@ BorderRuntimeDrawInstructionCollection buildBorderRuntimeDrawInstructions({
   required BorderLayer layer,
   required int tileWidthPx,
   required int tileHeightPx,
+  bool? foregroundPass,
 }) {
   if (tileWidthPx <= 0 || tileHeightPx <= 0) {
     throw ArgumentError('Border runtime tile dimensions must be positive');
@@ -98,7 +99,9 @@ BorderRuntimeDrawInstructionCollection buildBorderRuntimeDrawInstructions({
     if (materialization == null) {
       continue;
     }
-    for (final ground in materialization.ground) {
+    for (final ground in foregroundPass == true
+        ? const <BorderResolvedGroundCell>[]
+        : materialization.ground) {
       instructions.add(
         BorderRuntimeGroundInstruction(
           featureId: feature.id,
@@ -117,6 +120,9 @@ BorderRuntimeDrawInstructionCollection buildBorderRuntimeDrawInstructions({
   }
 
   for (final feature in layer.content.features) {
+    if (foregroundPass != null && foregroundPass != layer.renderInForeground) {
+      continue;
+    }
     final materialization = feature.materialization;
     if (materialization == null) {
       continue;

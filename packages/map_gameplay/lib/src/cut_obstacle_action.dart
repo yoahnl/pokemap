@@ -226,15 +226,13 @@ MapData applyFieldObstacleWorldStateToMap(
   }
 
   for (final id in saved.clearedFieldObstacleIds) {
-    if (entityFor(id).fieldObstacle!.kind ==
-            FieldObstacleKind.strengthBoulder ||
+    if (entityFor(id).fieldObstacle!.isPushable ||
         saved.fieldObstaclePositions.containsKey(id)) {
       throw StateError('A Strength boulder cannot be cleared.');
     }
   }
   for (final entry in saved.fieldObstaclePositions.entries) {
-    if (entityFor(entry.key).fieldObstacle!.kind !=
-            FieldObstacleKind.strengthBoulder ||
+    if (!entityFor(entry.key).fieldObstacle!.isPushable ||
         entry.value.x < 0 ||
         entry.value.y < 0 ||
         entry.value.x >= map.size.width ||

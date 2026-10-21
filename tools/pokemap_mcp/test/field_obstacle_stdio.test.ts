@@ -14,7 +14,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP discovers all three native field obstacles and persists set, clear, undo and reopen with stale guards", { timeout: 120_000 }, async () => {
+test("live MCP discovers all four native field obstacles and persists set, clear, undo and reopen with stale guards", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "cut-obstacle-mcp-"));
   const mapFile = join(root, "maps/route.json");
   const projectFile = join(root, "project.json");
@@ -77,9 +77,15 @@ test("live MCP discovers all three native field obstacles and persists set, clea
     const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === "entity.set_field_obstacle");
     assert.ok(action);
     assert.deepEqual(record(record(action.extensions).fieldObstacle), {
-      kinds: ["cutTree", "strengthBoulder", "rockSmashRock"], resetPolicies: ["mapInstance"], entityKind: "custom", blocksMovement: true,
+      kinds: ["cutTree", "strengthBoulder", "rockSmashRock", "iceBlock"], resetPolicies: ["mapInstance"], entityKind: "custom", blocksMovement: true,
       footprint: { width: 1, height: 1 }, mapMode: "2d", visual: "existingProjectElement", clearValue: null,
       parameters: ["mapId", "entityId", "fieldObstacle"],
+      iceBlock: {
+        trigger: "movementContact", requiresFieldAbility: false, playerFollows: false,
+        ordinaryPushCells: 1, slideZone: "movementEffect.slide", slideDirection: "push",
+        stops: ["obstacle", "zoneExit"], savedPosition: "lastCommittedCell",
+        saveDuringTraversal: false, checkpointDuringTraversal: false, reload: "stationary",
+      },
       strengthBoulder: {
         ordinaryPushCells: 1, slideZone: "movementEffect.slide", slideDirection: "push",
         stops: ["obstacle", "zoneExit"], savedPosition: "lastCommittedCell",
@@ -115,7 +121,7 @@ test("live MCP discovers all three native field obstacles and persists set, clea
       resourceKind: "map", operation: "get", ids: ["route"], view: "detail" });
     assert.ok(JSON.stringify(reopened).includes('"fieldObstacle":{"kind":"cutTree","resetPolicy":"mapInstance"}'));
     assert.deepEqual(await readFile(projectFile), projectBefore);
-    for (const kind of ["strengthBoulder", "rockSmashRock"]) {
+    for (const kind of ["strengthBoulder", "rockSmashRock", "iceBlock"]) {
       const obstacle = { kind, resetPolicy: "mapInstance" };
       const next = await plan({ mapId: "route", entityId: "tree", fieldObstacle: obstacle });
       await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: next.planId, operationId: `set-${kind}` });

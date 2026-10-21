@@ -5,6 +5,22 @@ import 'package:test/test.dart';
 
 void main() {
   group('MapLayer.border schema integration', () {
+    test('persists explicit foreground placement without changing ground data', () {
+      final original = _minimalBorderLayerJson()..['renderInForeground'] = true;
+      final layer = MapLayer.fromJson(original);
+      expect(layer.toJson()['renderInForeground'], isTrue);
+      final map = MapData(
+        id: 'foreground-border',
+        name: 'Foreground border',
+        size: const GridSize(width: 2, height: 2),
+        version: ProjectVersion.v8,
+        layers: [layer],
+      );
+      final steps = buildMapVisualCompositionPlan(map).plan!.steps;
+      expect(steps.last.stableKey, 'foregroundBorderLayer:${layer.id}');
+      expect(steps.where((step) => step.kind == MapVisualCompositionStepKind.borderLayer), hasLength(1));
+    });
+
     test('constructs immutable defaults without collision data', () {
       const layer = MapLayer.border(id: 'border', name: 'Bordures');
       final borderLayer = layer as BorderLayer;

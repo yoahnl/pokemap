@@ -16,6 +16,76 @@ const _sceneIds = ['hide', 'show', 'explicit-absent', 'explicit-present'];
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final paused in [false, true]) {
+    testWidgets('a Scene-owned NPC move completes while player input stays locked externalLock=$paused', (tester) async {
+      await tester.runAsync(() async {
+        final game = await _mount(tester, moveNpcScene: true);
+        expect(game.debugNpcGridPosition('npc-main'), const GridPos(x: 3, y: 2));
+        expect(game.debugIsNpcActorVisible('npc-main'), isNull);
+        game.debugSetPlayerStateForTest(position: const GridPos(x: 4, y: 4), facing: Direction.east);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+        game.update(0);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+        for (var i = 0; i < 100 && !game.debugIsNarrativeSpatialDispatchInFlight; i++) {
+          game.update(.02);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        expect(game.debugIsNarrativeSpatialDispatchInFlight, isTrue);
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+        var reachedDestination = false;
+        var projectionObserved = false;
+        Future<void> tick() async {
+          game.update(.02);
+          reachedDestination |= game.debugNpcGridPosition('npc-main') == const GridPos(x: 4, y: 3);
+          if (game.debugIsCinematicPlaying) {
+            projectionObserved = true;
+            expect(game.debugNpcGridPosition('npc-main'), const GridPos(x: 4, y: 3));
+            expect(game.debugIsNpcActorVisible('npc-main'), isFalse);
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        if (paused) {
+          game.setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: true);
+          final original = game.debugPlayerGridPosition;
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.down));
+          for (var i = 0; i < 40; i++) {
+            await tick();
+          }
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.down));
+          expect(game.debugPlayerGridPosition, original);
+          game.setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: false);
+        }
+        for (var i = 0; i < 200; i++) {
+          await tick();
+        }
+        expect(reachedDestination, isTrue);
+        expect(projectionObserved, isTrue);
+        expect(game.debugIsNarrativeSpatialDispatchInFlight, isFalse);
+        expect(game.gameStateSnapshot.metadata['pokemap.npcPresence.main.npc-main'], 'present');
+        expect(_actors(game, 'main').length, lessThanOrEqualTo(1));
+      });
+    });
+  }
+
+  for (final initiallyHidden in [false, true]) {
+  testWidgets('a Scene removes NPC collision before the immediately following player route initiallyHidden=$initiallyHidden', (tester) async {
+    await tester.runAsync(() async {
+      final game = await _mount(tester, presenceThenRoute: true, initiallyHidden: initiallyHidden);
+      game.debugSetPlayerStateForTest(position: const GridPos(x: 4, y: 3), facing: Direction.east);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+      game.update(0);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+      for (var i = 0; i < 150; i++) {
+        game.update(.02);
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      expect(game.debugIsNarrativeSpatialDispatchInFlight, isFalse);
+      _expectActor(game, 'main', present: false);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 6, y: 3));
+    });
+  });
+  }
+
   for (final mapEnter in [false, true]) {
   for (final interactive in [false, true]) {
   for (final cancel in [false, true]) {
@@ -313,9 +383,82 @@ Future<PlayableMapGame> _mount(
   bool provisionalCinematic = false,
   bool interactiveCinematic = false,
   bool mapEnterCinematic = false,
+  bool presenceThenRoute = false,
+  bool moveNpcScene = false,
 }) async {
   RuntimeMapBundle load(String id) {
-    final bundle = _presentationBundle(id, presentationMode);
+    var bundle = _presentationBundle(id, presentationMode);
+    if (moveNpcScene) {
+      final original = bundle.manifest.scenes.singleWhere((s) => s.id == 'explicit-present');
+      final scene = SceneAsset.fromJson({...original.toJson(), 'graph': SceneGraph(
+        startNodeId: original.graph.startNodeId,
+        nodes: [...original.graph.nodes,
+          SceneNode(id: 'hide-moving-actor', kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(SceneInteractiveCommand.actorVisibility(
+              target: SceneActorTarget.entity(mapId: 'main', entityId: 'npc-main'), visible: false))),
+          SceneNode(id: 'move', kind: SceneNodeKind.action,
+          payload: SceneActionPayload.interactive(SceneInteractiveCommand.moveNpc(
+            mapId: 'main', entityId: 'npc-main', warpId: 'npc-destination'))),
+          SceneNode(id: 'project-again', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(factId: 'visible', value: true))),
+          SceneNode(id: 'hold-after-move', kind: SceneNodeKind.cinematic,
+            payload: SceneCinematicPayload(cinematicId: 'after-move'))],
+        edges: [for (final edge in original.graph.edges) if (edge.id != 'finish') edge,
+          SceneEdge(id: 'start-move', kind: SceneEdgeKind.actionCompleted,
+            fromNodeId: 'apply', fromPortId: 'completed', toNodeId: 'hide-moving-actor'),
+          SceneEdge(id: 'hide-move', kind: SceneEdgeKind.actionCompleted,
+            fromNodeId: 'hide-moving-actor', fromPortId: 'completed', toNodeId: 'move'),
+          SceneEdge(id: 'hide-blocked', kind: SceneEdgeKind.actionCompleted,
+            fromNodeId: 'hide-moving-actor', fromPortId: 'blocked', toNodeId: 'end'),
+          SceneEdge(id: 'move-end', kind: SceneEdgeKind.actionCompleted,
+            fromNodeId: 'move', fromPortId: 'completed', toNodeId: 'project-again'),
+          SceneEdge(id: 'project-hold', kind: SceneEdgeKind.actionCompleted,
+            fromNodeId: 'project-again', fromPortId: 'completed', toNodeId: 'hold-after-move'),
+          SceneEdge(id: 'hold-end', kind: SceneEdgeKind.cinematicCompleted,
+            fromNodeId: 'hold-after-move', fromPortId: 'completed', toNodeId: 'end'),
+          SceneEdge(id: 'move-blocked', kind: SceneEdgeKind.actionCompleted,
+            fromNodeId: 'move', fromPortId: 'blocked', toNodeId: 'end')],
+      ).toJson()});
+      bundle = bundle.copyWith(map: bundle.map.copyWith(warps: [...bundle.map.warps,
+        if (id == 'main') const MapWarp(id: 'npc-destination', pos: GridPos(x: 4, y: 3),
+          targetMapId: 'main', targetPos: GridPos(x: 4, y: 3), triggerMode: MapWarpTriggerMode.sceneOnly),
+      ]), manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(
+        mapInstanceRetentionPolicy: MapInstanceRetentionPolicy(viewportWidthTiles: 2, viewportHeightTiles: 2, marginTiles: 0)),
+      cinematics: [...bundle.manifest.cinematics,
+        CinematicAsset(id: 'after-move', title: 'After NPC move', mapId: 'main', timeline: CinematicTimeline(
+          steps: [CinematicTimelineStep(id: 'wait', kind: CinematicTimelineStepKind.wait, durationMs: 1000)])),
+      ], scenes: [
+        for (final existing in bundle.manifest.scenes) if (existing.id == scene.id) scene else existing,
+      ]));
+    }
+    if (presenceThenRoute) {
+      final original = bundle.manifest.scenes.singleWhere((s) => s.id == 'explicit-absent');
+      final scene = SceneAsset.fromJson({...original.toJson(), 'graph': SceneGraph(
+        startNodeId: original.graph.startNodeId,
+        nodes: [...original.graph.nodes,
+          SceneNode(id: 'walk', kind: SceneNodeKind.action, payload: SceneActionPayload(
+            interactiveCommand: SceneInteractiveCommand.actorRoute(
+              target: SceneActorTarget.player(mapId: 'main'),
+              steps: [SceneActorRouteStep.move(direction: EntityFacing.east, durationMs: 20)]))),
+        ],
+        edges: [for (final edge in original.graph.edges)
+          if (edge.id != 'finish') edge,
+          SceneEdge(id: 'hide-walk', kind: SceneEdgeKind.actionCompleted,
+              fromNodeId: 'apply', fromPortId: 'completed', toNodeId: 'walk'),
+          SceneEdge(id: 'walk-end', kind: SceneEdgeKind.actionCompleted,
+              fromNodeId: 'walk', fromPortId: 'completed', toNodeId: 'end'),
+          SceneEdge(id: 'blocked-end', kind: SceneEdgeKind.actionCompleted,
+              fromNodeId: 'walk', fromPortId: 'blocked', toNodeId: 'end'),
+        ],
+      ).toJson()});
+      bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [
+        for (final entity in bundle.map.entities)
+          if (entity.id == 'npc-main') entity.copyWith(pos: const GridPos(x: 6, y: 3)) else entity,
+      ]), manifest: bundle.manifest.copyWith(scenes: [
+        for (final existing in bundle.manifest.scenes)
+          if (existing.id == scene.id) scene else existing,
+      ]));
+    }
     if (!provisionalCinematic) return bundle;
     final scene = _scene('provisional', SceneConsequence.setFact(factId: 'hidden', value: false));
     return bundle.copyWith(map: bundle.map.copyWith(triggers: [...bundle.map.triggers,
@@ -357,6 +500,12 @@ Future<PlayableMapGame> _mount(
             saveId: 'remount',
             currentMapId: 'main',
             playerPosition: const GridPos(x: 1, y: 1),
+            metadata: {if (moveNpcScene) 'pokemap.npcPresence.main.npc-main': 'hidden'},
+            mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+              if (moveNpcScene) 'main': MapInstanceRuntimeState(instanceId: 'saved-npc-instance', npcPoses: {
+                'npc-main': MapInstanceNpcPose(position: const GridPos(x: 3, y: 2), facing: EntityFacing.south),
+              }),
+            }),
             narrativeFactRuntimeState: NarrativeFactRuntimeState(
               overridesByFactId: {'visible': true, 'hidden': initiallyHidden},
             ),

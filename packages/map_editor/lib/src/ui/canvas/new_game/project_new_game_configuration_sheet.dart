@@ -141,6 +141,9 @@ class _ProjectNewGameConfigurationFormState
   late PlayerPronounSet _playerPronounSet;
   late List<BagEntry> _initialBag;
   late Map<String, NarrativeValue> _initialFacts;
+  late Map<String, Map<String, NarrativeValue>> _avatarInitialFacts;
+  String _selectedAvatarFactCharacterId = '';
+  String _selectedAvatarFactId = '';
   late List<ProjectStarterOption> _starterOptions;
   late final TextEditingController _playerNameController;
   late final TextEditingController _startingMoneyController;
@@ -168,6 +171,10 @@ class _ProjectNewGameConfigurationFormState
     _initialFacts = Map<String, NarrativeValue>.from(
       config.resolvedInitialFactValues,
     );
+    _avatarInitialFacts = {
+      for (final avatar in config.initialFactValuesByAvatarCharacterId.entries)
+        avatar.key: Map.of(avatar.value),
+    };
     _starterOptions = config.starterOptions.toList(growable: true);
     _playerNameController = TextEditingController(text: config.playerName);
     _startingMoneyController = TextEditingController(
@@ -655,6 +662,8 @@ class _ProjectNewGameConfigurationFormState
           ),
         ),
         const SizedBox(height: 10),
+        _avatarInitialFactsSection(),
+        const SizedBox(height: 10),
         _NewGameSection(
           title: 'Partenaires proposés',
           description: widget.consequenceCatalogs.species.message,
@@ -789,9 +798,143 @@ class _ProjectNewGameConfigurationFormState
         '';
   }
 
+  Widget _avatarInitialFactsSection() {
+    final avatarSelected = _playerAvatarCharacterIds.contains(
+      _selectedAvatarFactCharacterId,
+    );
+    final factSelected =
+        _selectedAvatarFactId.isNotEmpty &&
+        _selectedAvatarFactId != _existingPartyFactId;
+    return _NewGameSection(
+      title: 'Valeurs initiales selon l’avatar',
+      description:
+          'Appliquées une seule fois au choix de l’avatar. Changer de tenue ne les recalcule pas.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapDropdownField<String>(
+            key: const ValueKey('new-game-avatar-initial-avatar-picker'),
+            label: 'Avatar proposé',
+            value: avatarSelected ? _selectedAvatarFactCharacterId : '',
+            enabled: _enabled && _playerAvatarCharacterIds.isNotEmpty,
+            items: [
+              const PokeMapDropdownItem(value: '', label: 'Choisir un avatar…'),
+              for (final character in widget.project.characters)
+                if (_playerAvatarCharacterIds.contains(character.id))
+                  PokeMapDropdownItem(
+                    value: character.id,
+                    label: character.name,
+                  ),
+            ],
+            onChanged: (value) => setState(() {
+              _selectedAvatarFactCharacterId = value;
+              _clearSaveStatus();
+            }),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: PokeMapDropdownField<String>(
+                  key: const ValueKey('new-game-avatar-initial-fact-picker'),
+                  label: 'Fact du projet',
+                  value: factSelected ? _selectedAvatarFactId : '',
+                  enabled: _enabled && avatarSelected,
+                  items: [
+                    const PokeMapDropdownItem(
+                      value: '',
+                      label: 'Choisir un Fact…',
+                    ),
+                    for (final fact in widget.project.facts)
+                      if (fact.id != _existingPartyFactId)
+                        PokeMapDropdownItem(value: fact.id, label: fact.label),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _selectedAvatarFactId = value;
+                    _clearSaveStatus();
+                  }),
+                ),
+              ),
+              const SizedBox(width: 8),
+              PokeMapButton(
+                key: const ValueKey('new-game-avatar-initial-fact-add'),
+                onPressed: _enabled && avatarSelected && factSelected
+                    ? () => setState(() {
+                        final fact = widget.project.facts.firstWhere(
+                          (fact) => fact.id == _selectedAvatarFactId,
+                        );
+                        _avatarInitialFacts
+                            .putIfAbsent(
+                              _selectedAvatarFactCharacterId,
+                              () => {},
+                            )
+                            .putIfAbsent(fact.id, () => fact.initialValue);
+                        _clearSaveStatus();
+                      })
+                    : null,
+                size: PokeMapButtonSize.medium,
+                variant: PokeMapButtonVariant.secondary,
+                leading: const Icon(Icons.add_rounded),
+                child: const Text('Ajouter'),
+              ),
+            ],
+          ),
+          for (final avatar in _avatarInitialFacts.entries)
+            for (final fact in avatar.value.entries) ...[
+              const SizedBox(height: 8),
+              _InitialFactCard(
+                key: ValueKey(
+                  'new-game-avatar-initial-fact-${avatar.key}-${fact.key}',
+                ),
+                label:
+                    '${widget.project.characters.where((character) => character.id == avatar.key).firstOrNull?.name ?? 'Avatar indisponible'} · ${_factLabel(fact.key)}',
+                value: fact.value,
+                enabled: _enabled,
+                onChanged: (value) => setState(() {
+                  _avatarInitialFacts[avatar.key]![fact.key] = value;
+                  _clearSaveStatus();
+                }),
+                onRemove: () => setState(() {
+                  _avatarInitialFacts[avatar.key]!.remove(fact.key);
+                  if (_avatarInitialFacts[avatar.key]!.isEmpty) {
+                    _avatarInitialFacts.remove(avatar.key);
+                  }
+                  _clearSaveStatus();
+                }),
+              ),
+            ],
+        ],
+      ),
+    );
+  }
+
   List<String> _validationErrors() {
-    if (!_enabled) return const <String>[];
     final errors = <String>[];
+    for (final avatar in _avatarInitialFacts.entries) {
+      if (!_playerAvatarCharacterIds.contains(avatar.key) ||
+          !widget.project.characters.any((value) => value.id == avatar.key)) {
+        errors.add(
+          'Un avatar avec des valeurs initiales n’est plus proposé. Retirez ses valeurs ou réactivez-le.',
+        );
+      }
+      for (final entry in avatar.value.entries) {
+        final fact = widget.project.facts
+            .where((fact) => fact.id == entry.key)
+            .firstOrNull;
+        if (fact == null || fact.valueKind != entry.value.kind) {
+          errors.add(
+            'Une valeur initiale d’avatar utilise un Fact absent ou d’un autre type.',
+          );
+        }
+        if (entry.key == _existingPartyFactId) {
+          errors.add(
+            'Le Fact « équipe déjà présente » ne peut pas être défini selon l’avatar.',
+          );
+        }
+      }
+    }
+    if (!_enabled) return errors;
     final map = _mapOption(_startMapId);
     if (_startMapId.trim().isEmpty) {
       errors.add('Choisissez une map de départ.');
@@ -903,10 +1046,16 @@ class _ProjectNewGameConfigurationFormState
               .any((value) => value.kind != NarrativeValueKind.boolean)
           ? Map<String, NarrativeValue>.unmodifiable(_initialFacts)
           : const {},
-      existingPartyFactId:
-          _existingPartyFactId.isEmpty ? null : _existingPartyFactId.trim(),
-      preSessionSceneId:
-          _preSessionSceneId.isEmpty ? null : _preSessionSceneId.trim(),
+      initialFactValuesByAvatarCharacterId: Map.unmodifiable({
+        for (final avatar in _avatarInitialFacts.entries)
+          avatar.key: Map<String, NarrativeValue>.unmodifiable(avatar.value),
+      }),
+      existingPartyFactId: _existingPartyFactId.isEmpty
+          ? null
+          : _existingPartyFactId.trim(),
+      preSessionSceneId: _preSessionSceneId.isEmpty
+          ? null
+          : _preSessionSceneId.trim(),
       starterOptions: List<ProjectStarterOption>.unmodifiable(_starterOptions),
     );
   }

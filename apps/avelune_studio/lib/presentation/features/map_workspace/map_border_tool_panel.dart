@@ -153,6 +153,19 @@ class MapBorderToolPanel extends StatelessWidget {
                 onChanged();
               },
             ),
+            if (map.spatialScene == null)
+              StudioButton(
+                key: const ValueKey('border-layer-foreground-button'),
+                label: selected.layer.renderInForeground ? 'Calque au premier plan' : 'Calque à l’arrière-plan',
+                icon: Icons.layers_outlined,
+                secondary: !selected.layer.renderInForeground,
+                onPressed: view.borderDraft != null || selectionRequired ? null : () => action(() {
+                  MapBorderEditingCommands(document, project).setForeground(
+                      layerId: selected.layer.id,
+                      renderInForeground: !selected.layer.renderInForeground);
+                  view.borderPreview = null;
+                }),
+              ),
             StudioButton(
               key: const ValueKey('border-regeneration-preview'),
               label: 'Préparer la régénération',

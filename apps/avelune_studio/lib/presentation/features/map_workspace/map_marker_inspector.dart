@@ -111,6 +111,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                   FieldObstacleKind.cutTree => 'Arbre à couper',
                   FieldObstacleKind.strengthBoulder => 'Rocher à pousser',
                   FieldObstacleKind.rockSmashRock => 'Rocher à briser',
+                  FieldObstacleKind.iceBlock => 'Bloc de glace',
                 }
               : healingDisplay != null
               ? 'Boules de soin'
@@ -256,11 +257,13 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                   'field-obstacle-strength-boulder',
                 FieldObstacleKind.rockSmashRock =>
                   'field-obstacle-rock-smash-rock',
+                FieldObstacleKind.iceBlock => 'field-obstacle-ice-block',
               }),
               label: switch (kind) {
                 FieldObstacleKind.cutTree => 'Arbre à couper',
                 FieldObstacleKind.strengthBoulder => 'Rocher à pousser',
                 FieldObstacleKind.rockSmashRock => 'Rocher à briser',
+                FieldObstacleKind.iceBlock => 'Bloc de glace',
               },
               subtitle: switch (kind) {
                 FieldObstacleKind.cutTree =>
@@ -268,6 +271,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                 FieldObstacleKind.strengthBoulder =>
                   'Requiert Force débloquée et un Pokémon apte à l’utiliser. Sur une zone Glissade, le rocher continue jusqu’à un obstacle ou la sortie de la zone.',
                 FieldObstacleKind.rockSmashRock => 'Requiert Éclate-Roc débloquée et un Pokémon apte à l’utiliser.',
+                FieldObstacleKind.iceBlock => 'Se pousse au contact, sans capacité. Sur la glace, continue jusqu’à un obstacle ou un sol normal.',
               },
               selected: entity.fieldObstacle?.kind == kind,
               onTap: entity.interactiveEncounter != null ? null : () => _change(
@@ -309,7 +313,9 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               : entity.interactiveEncounter?.trigger == InteractiveEncounterTrigger.headbutt
               ? 'Supprimer cet arbre'
               : entity.fieldObstacle != null
-              ? entity.fieldObstacle!.kind == FieldObstacleKind.cutTree
+              ? entity.fieldObstacle!.kind == FieldObstacleKind.iceBlock
+                    ? 'Supprimer ce bloc'
+                    : entity.fieldObstacle!.kind == FieldObstacleKind.cutTree
                     ? 'Supprimer cet arbre'
                     : 'Supprimer ce rocher'
               : healingDisplay != null

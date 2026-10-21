@@ -355,11 +355,6 @@ GameState createNewGameStateFromProject({
   final initialFacts = <String, NarrativeValue>{
     ...config.resolvedInitialFactValues,
   };
-  final existingPartyFactId = config.existingPartyFactId?.trim();
-  if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
-    initialFacts[existingPartyFactId] =
-        NarrativeValue.boolean(normalizedParty.members.isNotEmpty);
-  }
   final normalizedPlayerName = playerName?.trim();
   final resolvedPlayerName =
       normalizedPlayerName == null || normalizedPlayerName.isEmpty
@@ -387,6 +382,13 @@ GameState createNewGameStateFromProject({
                       authoredAvatarIds.contains(defaultAvatarId))
               ? defaultAvatarId
               : config.playerAvatarCharacterIds.firstOrNull;
+  initialFacts.addAll(
+      config.initialFactValuesByAvatarCharacterId[resolvedAvatarId] ?? const {});
+  final existingPartyFactId = config.existingPartyFactId?.trim();
+  if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
+    initialFacts[existingPartyFactId] =
+        NarrativeValue.boolean(normalizedParty.members.isNotEmpty);
+  }
   final resolvedPronounSet = playerPronounSet ?? config.playerPronounSet;
 
   final state = normalizeLoadedGameState(

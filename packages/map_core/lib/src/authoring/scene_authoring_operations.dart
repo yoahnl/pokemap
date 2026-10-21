@@ -2423,6 +2423,8 @@ ProjectManifest _replaceSceneConsumers(
     initialParty: newGame.initialParty,
     initialFacts: newGame.initialFacts,
     initialFactValues: newGame.initialFactValues,
+    initialFactValuesByAvatarCharacterId:
+        newGame.initialFactValuesByAvatarCharacterId,
     existingPartyFactId: newGame.existingPartyFactId,
     preSessionSceneId: newGame.preSessionSceneId == sourceSceneId
         ? replacementSceneId

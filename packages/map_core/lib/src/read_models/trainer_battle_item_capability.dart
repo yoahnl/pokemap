@@ -45,6 +45,7 @@ ProjectItemUseDefinition? resolveTrainerBattleItemUse(
         use.target == ProjectItemTargetKind.partyMember &&
         use.consumption == ProjectItemConsumptionPolicy.onApplied &&
         (use.effect is ProjectItemHealHpEffectDefinition ||
+            use.effect is ProjectItemFullRestoreEffectDefinition ||
             use.effect is ProjectItemCureStatusEffectDefinition)) {
       return use;
     }

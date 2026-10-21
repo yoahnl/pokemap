@@ -807,6 +807,48 @@ extension _PlayableMapInteractions on PlayableMapGame {
     _syncGameStateFromWorld();
   }
 
+  bool _tryPushIceBlock(Direction direction) {
+    if (!_canResolveOverworldInteraction(allowSliding: true)) return false;
+    final front = GridPos(
+      x: _world.player.pos.x + direction.dx,
+      y: _world.player.pos.y + direction.dy,
+    );
+    final target = _world.entityAt(front.x, front.y);
+    if (target?.fieldObstacle?.kind != FieldObstacleKind.iceBlock ||
+        _hasIntrinsicFieldObstacleOwner(target!)) {
+      return false;
+    }
+    final source = NarrativeEventSourceRef.entityBump(_activeMapId, target.id);
+    final registry = _bundle.manifest.eventRegistry;
+    if (registry?.records.any((record) => record.definitionOrNull?.source == source) == true ||
+        registry?.legacyClaims.any((claim) => claim.source == source) == true) {
+      return false;
+    }
+    _world = _world.withPlayer(_world.player.copyWith(facing: direction));
+    _syncGameStateFromWorld();
+    final result = startIceBlockPush(
+      world: _world,
+      gameState: _gameState,
+      entityId: target.id,
+      direction: direction,
+      authoringMap: (_runtimeBundleByMapId[_activeMapId] ?? _bundle).map,
+      project: _bundle.manifest,
+      characterReservations: _scriptedNpcReservedOccupiedCellsByEntity.values
+          .map((reservation) => reservation.contactRect)
+          .whereType<PixelRect>(),
+    );
+    _playerSlide.reset();
+    if (result is FieldObstacleSlideMoved) {
+      _world = result.world;
+      _applyIntrinsicFieldObstacleState(result.gameState);
+      _startIceBlockMovement(entityId: target.id, decision: result);
+    } else {
+      _player.syncState(_world.player);
+    }
+    _publishOverworldInteractions();
+    return true;
+  }
+
   bool _tryPushStrengthObstacle(Direction direction) {
     final instance = _gameState.mapInstanceWorldState.instanceRef(_activeMapId);
     if (instance == null ||

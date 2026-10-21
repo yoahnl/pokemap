@@ -328,7 +328,9 @@ final class _UseEditor extends StatelessWidget {
                     .copyWith(
                       effect: effect,
                       target:
-                          effect is ProjectItemRepelEffectDefinition ||
+                          effect is ProjectItemFullRestoreEffectDefinition
+                          ? ProjectItemTargetKind.partyMember
+                          : effect is ProjectItemRepelEffectDefinition ||
                               effect is ProjectItemFishingEffectDefinition
                           ? ProjectItemTargetKind.world
                           : effect is ProjectItemRestorePpEffectDefinition
@@ -341,6 +343,8 @@ final class _UseEditor extends StatelessWidget {
                           : use.target,
                       consumption: effect is ProjectItemFishingEffectDefinition
                           ? ProjectItemConsumptionPolicy.never
+                          : effect is ProjectItemFullRestoreEffectDefinition
+                          ? ProjectItemConsumptionPolicy.onApplied
                           : use.consumption,
                     )
                     .normalized(),
@@ -488,6 +492,10 @@ List<(String, String)> _effectOptions(
             mode: ProjectItemAmountMode.full,
           ),
           'Restaure tous les PV',
+        ),
+        (
+          const ProjectItemEffectDefinition.fullRestore(),
+          'Soin Total',
         ),
         (
           const ProjectItemEffectDefinition.cureStatus(

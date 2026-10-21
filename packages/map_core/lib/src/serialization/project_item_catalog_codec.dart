@@ -247,7 +247,7 @@ void _validateUse(
     'revive' => const {'kind', 'rateNumerator', 'rateDenominator'},
     'repel' => const {'kind', 'steps'},
     'fishing' => const {'kind', 'rodKind'},
-    'escape_rope' || 'bicycle' => const {'kind'},
+    'escape_rope' || 'bicycle' || 'full_restore' => const {'kind'},
     'semantic_action' => const {'kind', 'actionId'},
     _ => null,
   };

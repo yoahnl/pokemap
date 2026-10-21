@@ -20,6 +20,17 @@ String _rawSpeciesName(String speciesId) => speciesId;
 
 String _rawMoveName(String moveId, String fallbackName) => fallbackName;
 
+bool itemHealingAnnouncesStatusCure(
+  BattleTurnEvent? previous,
+  BattleTurnStatusCuredItemEvent cure,
+) {
+  if (previous is! BattleTurnBagHpHealItemEvent) return false;
+  final healing = previous.event;
+  return healing.itemId == cure.itemId &&
+      healing.side == cure.side &&
+      healing.targetLineupIndex == cure.targetLineupIndex;
+}
+
 final class BattleTurnAnimationPlanner {
   BattleTurnAnimationPlanner({
     BattleMoveVisualRecipeLibrary? recipeLibrary,
@@ -161,7 +172,9 @@ final class BattleTurnAnimationPlanner {
         .toSet();
     final steps = <BattleAnimationStep>[];
 
-    for (final event in turnResult.timeline) {
+    for (var index = 0; index < turnResult.timeline.length; index++) {
+      final event = turnResult.timeline[index];
+      final previous = index == 0 ? null : turnResult.timeline[index - 1];
       switch (event) {
         case BattleTurnExecutionEvent(:final execution):
           // Recette du 2026-08-24 : un dégât `effect:*` n'est pas l'usage
@@ -372,10 +385,12 @@ final class BattleTurnAnimationPlanner {
             );
           }
         case BattleTurnStatusCuredItemEvent():
-          steps.add(ShowMessageStep(
-            message:
-                '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
-          ));
+          if (!itemHealingAnnouncesStatusCure(previous, event)) {
+            steps.add(ShowMessageStep(
+              message:
+                  '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
+            ));
+          }
           steps.add(ShowMessageStep(
             message:
                 '${speciesDisplayName(event.targetSpeciesId)} est guéri de son problème de statut.',

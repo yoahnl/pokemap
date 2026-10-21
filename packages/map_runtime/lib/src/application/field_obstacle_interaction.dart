@@ -57,6 +57,7 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
       .singleWhere((entity) => entity.id == entityId)
       .fieldObstacle!
       .ability;
+  if (ability == null) return null;
   final name = switch (ability) {
     FieldAbility.cut => 'Coupe',
     FieldAbility.strength => 'Force',

@@ -20,7 +20,9 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   List<LegacyMapEventProjection> legacyProjections = const [],
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
   List<NarrativeEventRecord> proposedRecords = const [],
+  bool deferFingerprints = false,
 }) {
+  maps = List.unmodifiable(maps);
   final spatialSources = buildNarrativeSpatialEventSourceCatalog(
     project: project,
     maps: maps,
@@ -293,11 +295,11 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   }
 
   diagnostics.sort(_compareDiagnostics);
-  return NarrativeEventProjectCatalog(
+  final catalog = NarrativeEventProjectCatalog.withDeferredFingerprints(
     nativeMapIds: [for (final entry in project.maps) entry.id],
     nativeMaps: maps,
-    manifestHash: _jsonFingerprint(project.toJson()),
-    mapHashes: {
+    manifestHash: () => _jsonFingerprint(project.toJson()),
+    mapHashes: () => {
       for (final map in maps) map.id: _jsonFingerprint(map.toJson()),
     },
     spatialSources: spatialSources,
@@ -307,6 +309,11 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     events: events,
     diagnostics: diagnostics,
   );
+  if (!deferFingerprints) {
+    catalog.manifestHash;
+    catalog.mapHashes;
+  }
+  return catalog;
 }
 
 void _appendSourceCatalogDiagnostics({

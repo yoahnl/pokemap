@@ -8,6 +8,34 @@ import '../assets/resource_source_fixture.dart' show sourcePng;
 
 void main() {
   group('Character Studio character actions', () {
+    for (final targetExists in [false, true]) {
+      test('avatar initial facts remap without loss existing=$targetExists', () {
+        final draft = const CharacterStudioCharacterActions().build(_context(
+            snapshot: characterActionSnapshot(compatiblePlayer: true,
+                avatarInitialFacts: {
+                  'elia': {'identity': NarrativeValue.integer(0)},
+                  if (targetExists) 'nox': {'identity': NarrativeValue.integer(0)},
+                }),
+            actionId: 'characterStudio.character.delete',
+            parameters: {'characterId': 'elia', 'resolution': 'replace',
+              'replacementId': 'nox'}));
+        expect(_projectedManifest(draft).newGame.initialFactValuesByAvatarCharacterId,
+            {'nox': {'identity': NarrativeValue.integer(0)}});
+      });
+    }
+    test('avatar initial facts reject contradictory replacement before mutation', () {
+      expect(() => const CharacterStudioCharacterActions().build(_context(
+          snapshot: characterActionSnapshot(compatiblePlayer: true,
+              avatarInitialFacts: {
+                'elia': {'identity': NarrativeValue.integer(0)},
+                'nox': {'identity': NarrativeValue.integer(1)},
+              }),
+          actionId: 'characterStudio.character.delete',
+          parameters: {'characterId': 'elia', 'resolution': 'replace',
+            'replacementId': 'nox'})),
+          throwsA(isA<CharacterStudioActionException>().having((error) => error.code,
+              'code', 'character_studio.avatar_initial_facts_conflict')));
+    });
     test('deletion contracts expose disjoint strict schemas', () {
       final descriptors = CharacterStudioCharacterActions.descriptors;
       for (final id in ['deletePlan', 'delete']) {
@@ -629,6 +657,7 @@ ProjectSnapshot characterActionSnapshot({
   bool rawMetadata = false,
   bool cinematicCommand = false,
   bool compatibleClip = false,
+  Map<String, Map<String, NarrativeValue>> avatarInitialFacts = const {},
 }) {
   final manifest = ProjectManifest(
     name: 'Character action fixture',
@@ -725,10 +754,15 @@ ProjectSnapshot characterActionSnapshot({
       defaultPlayerCharacterId:
           withReferences ? 'elia' : defaultPlayerCharacterId,
     ),
+    facts: [if (avatarInitialFacts.isNotEmpty)
+      NarrativeFactDefinition(id: 'identity', label: 'Identity',
+        initialValue: NarrativeValue.integer(-1))],
     newGame: ProjectNewGameConfig(
       startMapId: configuredPlayer ? 'village' : '',
-      playerAvatarCharacterIds:
-          withReferences ? const <String>['elia'] : const <String>[],
+      playerAvatarCharacterIds: avatarInitialFacts.isNotEmpty
+          ? avatarInitialFacts.keys.toList()
+          : withReferences ? const <String>['elia'] : const <String>[],
+      initialFactValuesByAvatarCharacterId: avatarInitialFacts,
     ),
     trainers: withReferences
         ? const <ProjectTrainerEntry>[

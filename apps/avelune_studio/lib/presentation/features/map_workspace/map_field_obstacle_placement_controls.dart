@@ -19,12 +19,13 @@ class MapFieldObstaclePlacementControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ability = StudioSelect(
-      label: 'Capacité de terrain',
+      label: 'Type d’obstacle',
       value: view.fieldObstacleKind.name,
       options: const {
         'cutTree': 'Coupe · arbre à couper',
         'strengthBoulder': 'Force · rocher à pousser',
         'rockSmashRock': 'Éclate-Roc · rocher à briser',
+        'iceBlock': 'Glace · poussée au contact',
       },
       onChanged: (value) {
         view.fieldObstacleKind = FieldObstacleKind.values.byName(value);

@@ -3,6 +3,22 @@ import 'package:test/test.dart';
 
 void main() {
   group('Border layer operations', () {
+    test('foreground toggles preserve the full map and materialization', () {
+      final source = _map(layers: [
+        _tileLayer(),
+        const MapLayer.border(id: 'borders', name: 'Bordures'),
+      ]);
+      final after = setBorderLayerForeground(source,
+          layerId: 'borders', renderInForeground: true);
+      final restored = setBorderLayerForeground(after,
+          layerId: 'borders', renderInForeground: false);
+      expect(restored, source);
+      expect((after.layers.last as BorderLayer).renderInForeground, isTrue);
+      expect(identical(after.layers.first, source.layers.first), isTrue);
+      expect((restored.layers.last as BorderLayer).toJson().containsKey('renderInForeground'), isFalse);
+      expect(() => setBorderLayerForeground(source,
+          layerId: 'ground', renderInForeground: true), throwsA(isA<ValidationException>()));
+    });
     test('add fronts a Border layer, promotes V2, and preserves map data', () {
       final source = _map(
         layers: <MapLayer>[_tileLayer()],

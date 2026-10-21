@@ -373,8 +373,38 @@ class ProjectValidator {
     }
   }
 
+  static void _validateNewGameAvatarFactValues(ProjectManifest manifest) {
+    final config = manifest.newGame;
+    final avatars = config.playerAvatarCharacterIds.toSet();
+    final characters = manifest.characters.map((entry) => entry.id).toSet();
+    final facts = {for (final fact in manifest.facts) fact.id: fact};
+    for (final avatar in config.initialFactValuesByAvatarCharacterId.entries) {
+      if (avatar.key.isEmpty || avatar.key != avatar.key.trim() ||
+          !avatars.contains(avatar.key) || !characters.contains(avatar.key)) {
+        throw ValidationException(
+            'newGame avatar initial facts require an authored avatar choice: ${avatar.key}');
+      }
+      for (final entry in avatar.value.entries) {
+        final fact = facts[entry.key];
+        if (entry.key.isEmpty || entry.key != entry.key.trim() || fact == null) {
+          throw ValidationException(
+              'newGame avatar initial facts reference an unknown Fact: ${entry.key}');
+        }
+        if (fact.valueKind != entry.value.kind) {
+          throw ValidationException(
+              'newGame avatar initial Fact type does not match ${entry.key}');
+        }
+        if (entry.key == config.existingPartyFactId?.trim()) {
+          throw ValidationException(
+              'newGame avatar initial facts cannot override derived existingPartyFactId: ${entry.key}');
+        }
+      }
+    }
+  }
+
   static void _validateNewGameConfig(ProjectManifest manifest) {
     final config = manifest.newGame;
+    _validateNewGameAvatarFactValues(manifest);
     if (!config.enabled) {
       return;
     }

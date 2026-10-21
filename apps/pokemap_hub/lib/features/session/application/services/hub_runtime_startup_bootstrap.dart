@@ -252,6 +252,13 @@ final class HubRuntimeStartupBootstrap
         expectedIdentity: launch.identity,
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
+        resourceProfile: spatial
+            ? const RuntimeResourceProfile()
+            : const RuntimeResourceProfile(
+                maximumResidentBytes: 256 * 1024 * 1024,
+                maximumTransientBytes: 256 * 1024 * 1024,
+                maximumConcurrentDecodes: 1,
+              ),
       );
       final RuntimeNewGameFlowPort newGameFlow = RuntimeProjectNewGameFlowPort(
         projectFilePath: () async => projectFile.path,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/authoring_preview/runtime_authoring_map_renderer.dart';
 import 'package:map_runtime/src/border/border_runtime_asset_cache.dart';
 import 'package:map_runtime/src/border/border_runtime_asset_collection.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
@@ -24,6 +25,44 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('MapLayersComponent Border authored ordering', () {
+    test('foreground pillars cover door pixels only in the foreground pass', () async {
+      final pillar = await _transparentCliffStoneImage();
+      final assets = BorderRuntimeAssetBundle(snapshots: [
+        _loadedSnapshot(snapshotId: _snapshotA, digest: _digestA, image: pillar),
+      ]);
+      final layer = _borderPlacementLayer(id: 'pillars', snapshotId: _snapshotA)
+          .copyWith(renderInForeground: true);
+      final bundle = surfaceTestBundle(map: MapData(
+        id: 'foreground-pillars', name: 'Pillars',
+        size: const GridSize(width: 1, height: 1),
+        layers: [layer, _singleTileLayer(id: 'door', name: 'Door')],
+      ));
+      final images = {'base': await runtimeTilesetImage(const [Color(0xFF0000FF)])};
+      final back = MapLayersComponent(bundle: bundle, tileImagesByTilesetId: images,
+          borderAssets: assets);
+      final front = MapLayersComponent(bundle: bundle, tileImagesByTilesetId: images,
+          borderAssets: assets, renderPass: MapLayerRenderPass.foreground);
+      final background = await renderSurfaceTestComponent(back);
+      expect(await pixelAt(background, 16, 16), rgba(0, 0, 255, 255));
+      final foreground = await renderSurfaceTestComponent(front);
+      expect(await pixelAt(foreground, 16, 16), rgba(255, 255, 0, 255));
+      expect(await pixelAt(foreground, 5, 16), rgba(0, 0, 0, 0));
+      final renderer = RuntimeAuthoringMapRenderer(bundle: bundle,
+          images: images, borderAssets: assets)..update(0);
+      final recorder = ui.PictureRecorder();
+      renderer.paint(ui.Canvas(recorder));
+      final picture = recorder.endRecording();
+      final studio = await picture.toImage(32, 32);
+      expect(await pixelAt(studio, 16, 16), rgba(255, 255, 0, 255));
+      expect(await pixelAt(studio, 5, 16), rgba(0, 0, 255, 255));
+      studio.dispose();
+      picture.dispose();
+      renderer.dispose();
+      background.dispose();
+      foreground.dispose();
+      pillar.dispose();
+      for (final image in images.values) { image.dispose(); }
+    });
     test('keeps the exact legacy visual phases when no Border exists',
         () async {
       final component = await _objectThenTileComponent(

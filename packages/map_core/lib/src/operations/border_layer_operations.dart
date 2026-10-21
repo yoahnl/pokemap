@@ -29,6 +29,21 @@ MapData addBorderLayer(
   );
 }
 
+MapData setBorderLayerForeground(
+  MapData map, {
+  required String layerId,
+  required bool renderInForeground,
+}) {
+  if (renderInForeground && map.spatialScene != null) {
+    throw const ValidationException('Border foreground is available on 2D maps only');
+  }
+  return _updateBorderLayer(
+    map,
+    layerId: layerId,
+    update: (layer) => layer.copyWith(renderInForeground: renderInForeground),
+  );
+}
+
 /// Replaces the complete authored content of one Border layer.
 MapData setBorderLayerContent(
   MapData map, {

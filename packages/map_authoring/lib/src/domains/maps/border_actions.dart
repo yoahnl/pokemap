@@ -79,7 +79,14 @@ final class BorderPreviewArtifact {
 final class BorderActions {
   const BorderActions();
 
+  MapData setForeground(MapData map, {
+    required String layerId,
+    required bool renderInForeground,
+  }) => setBorderLayerForeground(map,
+      layerId: layerId, renderInForeground: renderInForeground);
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
+    _descriptor('border_layer.set_foreground', 'Place Border props in front of actors while keeping their ground behind'),
     _descriptor('border_layer.stroke_add', 'Add a Border feature stroke'),
     _descriptor('border_layer.stroke_update', 'Update a Border feature stroke'),
     _descriptor('border_layer.stroke_delete', 'Delete a Border feature stroke'),
@@ -438,6 +445,7 @@ final class BorderActions {
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
+      'border_layer.set_foreground' => const {'layerId', 'renderInForeground'},
       'border_layer.stroke_add' || 'border_layer.stroke_update' => const {
           'layerId',
           'featureId',
@@ -554,6 +562,10 @@ final class BorderActions {
     final extraPreview = <String, Object?>{};
 
     switch (actionId) {
+      case 'border_layer.set_foreground':
+        updated = setForeground(context.map,
+            layerId: layerId,
+            renderInForeground: parameters.boolean('renderInForeground'));
       case 'border_layer.stroke_erase':
         updated = eraseStroke(manifest: context.manifest, map: context.map,
             layerId: layerId, featureId: parameters.string('featureId'),
@@ -1089,11 +1101,20 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           AuthoringGuarantee.undoable
         ],
         extensions: {
+          if (id == 'border_layer.set_foreground') 'inputSchema': {
+            'type': 'object', 'additionalProperties': false,
+            'required': ['mapId', 'layerId', 'renderInForeground'],
+            'properties': {
+              for (final key in ['mapId', 'layerId'])
+                key: const {'type': 'string', 'minLength': 1},
+              'renderInForeground': const {'type': 'boolean'},
+            },
+          },
           if (_slotOverrideField(id) != null || id == 'border_layer.feature_clear_slot_override')
             'inputSchema': _slotOverrideInputSchema(id),
           'semanticIds': true,
           'rawTilesetRequired': false,
-          'visualKinds': id == 'border_layer.feature_set_offset'
+          'visualKinds': id == 'border_layer.feature_set_offset' || id == 'border_layer.set_foreground'
               ? const ['element'] : const ['element', 'model3d'],
           if (id == 'border_layer.stroke_erase') 'inputSchema': {
             'type': 'object', 'additionalProperties': false,

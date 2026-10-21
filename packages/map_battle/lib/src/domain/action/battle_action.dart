@@ -108,6 +108,10 @@ sealed class PsdkBattleItemActionEffect {
   const PsdkBattleItemActionEffect();
 }
 
+final class PsdkBattleFullRestoreItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattleFullRestoreItemEffect();
+}
+
 final class PsdkBattleHpHealItemEffect extends PsdkBattleItemActionEffect {
   const PsdkBattleHpHealItemEffect.flat(this.amount)
       : restoreToFull = false,

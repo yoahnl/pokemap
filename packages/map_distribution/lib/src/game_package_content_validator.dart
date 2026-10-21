@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:map_core/map_core.dart' show PokedexSpeciesRange;
 import 'package:path/path.dart' as p;
 
 import 'audio_media_format.dart';
@@ -197,10 +198,23 @@ final class GamePackageContentValidator {
       } else if (current.value case final Map values) {
         for (final entry in values.entries) {
           if (entry.key is String) {
+            final value = entry.value;
+            final storyFlagIdentifier = key == 'conditionSource' &&
+                values['sourceKind'] == 'factLikeStoryFlag' &&
+                entry.key == 'sourceId' &&
+                value is String &&
+                _namespacedStoryFlagId.hasMatch(value);
+            final pokedexRangeIdentifier = key == 'conditionSource' &&
+                values['sourceKind'] == 'pokedexCaughtCount' &&
+                entry.key == 'sourceId' &&
+                value is String &&
+                PokedexSpeciesRange.tryFromKey(value) != null;
             pending.add((
-              value: entry.value,
+              value: value,
               key: entry.key as String,
-              referenceContext: referenceContext,
+              referenceContext: storyFlagIdentifier || pokedexRangeIdentifier
+                  ? false
+                  : referenceContext,
             ));
           }
         }
@@ -652,6 +666,9 @@ final class GamePackageContentValidator {
   static final RegExp _camelCaseReferenceSuffix = RegExp(
     r'(?:Path|Paths|Uri|Uris|Url|Urls|Asset|Assets|Source|Sources|File|Files|'
     r'Dir|Directory|Root)$',
+  );
+  static final RegExp _namespacedStoryFlagId = RegExp(
+    r'^[A-Za-z][A-Za-z0-9_-]*:[A-Za-z0-9_][A-Za-z0-9_.-]*$',
   );
   static final RegExp _separatedReferenceSuffix = RegExp(
     r'(?:^|[_-])(?:path|paths|uri|uris|url|urls|asset|assets|source|sources|'

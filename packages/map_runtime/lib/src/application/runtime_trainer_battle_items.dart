@@ -32,6 +32,8 @@ List<PsdkBattleAiItemOption> resolveRuntimeTrainerBattleItems({
 
 PsdkBattleItemActionEffect _battleEffect(ProjectItemEffectDefinition effect) {
   return switch (effect) {
+    ProjectItemFullRestoreEffectDefinition() =>
+      const PsdkBattleFullRestoreItemEffect(),
     ProjectItemHealHpEffectDefinition() =>
       effect.mode == ProjectItemAmountMode.full
           ? const PsdkBattleHpHealItemEffect.full()

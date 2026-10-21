@@ -35,6 +35,8 @@ Map<String, Object?> _borderLayerContentToJson(BorderLayerContent content) =>
 Map<String, int>? _candidateWeightsToJson(Map<String, int> weights) =>
     weights.isEmpty ? null : weights;
 
+bool? _borderForegroundToJson(bool value) => value ? true : null;
+
 /// Declares whether a literal layer participates in the playable visual stack.
 ///
 /// Data layers remain fully authored and inspectable, but runtime composition
@@ -181,6 +183,9 @@ sealed class MapLayer with _$MapLayer {
     required String name,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
+    @JsonKey(toJson: _borderForegroundToJson, includeIfNull: false)
+    @Default(false)
+    bool renderInForeground,
     @JsonKey(
       readValue: _readBorderLayerContent,
       fromJson: _borderLayerContentFromJson,

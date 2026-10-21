@@ -10,6 +10,134 @@ import 'package:map_editor/src/ui/canvas/new_game/project_new_game_configuration
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets(
+    'authors and preserves typed initial facts by avatar with guided pickers',
+    (tester) async {
+      ProjectNewGameConfig? saved;
+      final project = _project().copyWith(
+        facts: [
+          ..._project().facts,
+          NarrativeFactDefinition(
+            id: 'identity',
+            label: 'Identité source',
+            initialValue: NarrativeValue.integer(-1),
+          ),
+        ],
+        newGame: ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          startSpawnId: 'spawn_home',
+          playerAvatarCharacterIds: const ['hero_a', 'hero_b'],
+          initialFactValuesByAvatarCharacterId: {
+            'hero_a': {'identity': NarrativeValue.integer(0)},
+            'hero_b': {'identity': NarrativeValue.integer(1)},
+          },
+        ),
+      );
+      await _pumpForm(
+        tester,
+        project: project,
+        mapCatalog: const NewGameMapAuthoringCatalog(
+          maps: [
+            NewGameMapAuthoringOption(
+              id: 'map_start',
+              label: 'Bourg',
+              spawns: [
+                NewGameSpawnAuthoringOption(id: 'spawn_home', label: 'Maison'),
+              ],
+            ),
+          ],
+        ),
+        consequenceCatalogs: const SceneConsequenceCatalogs.unavailable(),
+        onSave: (config) async {
+          saved = config;
+          return true;
+        },
+      );
+      expect(find.text('Valeurs initiales selon l’avatar'), findsOneWidget);
+      _selectDropdown(
+        tester,
+        'new-game-avatar-initial-avatar-picker',
+        'hero_b',
+      );
+      _selectDropdown(
+        tester,
+        'new-game-avatar-initial-fact-picker',
+        'fact_intro_active',
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('new-game-avatar-initial-fact-add')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('new-game-avatar-initial-fact-add')),
+      );
+      await tester.pump();
+      final booleanCard = find.byKey(
+        const ValueKey('new-game-avatar-initial-fact-hero_b-fact_intro_active'),
+      );
+      await tester.ensureVisible(booleanCard);
+      await tester.tap(
+        find.descendant(of: booleanCard, matching: find.text('Vrai')),
+      );
+      final integerCard = find.byKey(
+        const ValueKey('new-game-avatar-initial-fact-hero_a-identity'),
+      );
+      await tester.ensureVisible(integerCard);
+      await tester.enterText(
+        find.descendant(of: integerCard, matching: find.byType(TextField)),
+        '2',
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('new-game-save')));
+      await tester.tap(find.byKey(const ValueKey('new-game-save')));
+      await tester.pumpAndSettle();
+      expect(saved!.initialFactValuesByAvatarCharacterId, {
+        'hero_a': {'identity': NarrativeValue.integer(2)},
+        'hero_b': {
+          'identity': NarrativeValue.integer(1),
+          'fact_intro_active': const NarrativeValue.boolean(true),
+        },
+      });
+      expect(saved!.initialParty, isEmpty);
+      expect(saved!.initialBag, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('removing an avatar preserves its values until explicit removal', (tester) async {
+    ProjectNewGameConfig? saved;
+    final project = _project().copyWith(newGame: const ProjectNewGameConfig(
+      enabled: true, startMapId: 'map_start', startSpawnId: 'spawn_home',
+      playerAvatarCharacterIds: ['hero_a', 'hero_b'],
+      initialFactValuesByAvatarCharacterId: {
+        'hero_a': {'fact_intro_active': NarrativeValue.boolean(true)},
+      },
+    ));
+    await _pumpForm(tester, project: project,
+      mapCatalog: const NewGameMapAuthoringCatalog(maps: [
+        NewGameMapAuthoringOption(id: 'map_start', label: 'Bourg', spawns: [
+          NewGameSpawnAuthoringOption(id: 'spawn_home', label: 'Maison'),
+        ]),
+      ]), consequenceCatalogs: const SceneConsequenceCatalogs.unavailable(),
+      onSave: (config) async { saved = config; return true; });
+    await tester.tap(find.byKey(const ValueKey('new-game-player-avatar-hero_a')));
+    await tester.pump();
+    expect(find.text('Un avatar avec des valeurs initiales n’est plus proposé. Retirez ses valeurs ou réactivez-le.'), findsOneWidget);
+    final save = find.byKey(const ValueKey('new-game-save'));
+    expect(tester.widget<PokeMapButton>(save).onPressed, isNull);
+    final card = find.byKey(const ValueKey('new-game-avatar-initial-fact-hero_a-fact_intro_active'));
+    await tester.ensureVisible(card);
+    await tester.tap(find.descendant(of: card, matching: find.text('Retirer')));
+    await tester.pump();
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(saved!.playerAvatarCharacterIds, ['hero_b']);
+    expect(saved!.toJson(), isNot(contains('initialFactValuesByAvatarCharacterId')));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('exposes New Game authoring from the Narrative Studio overview', (
     tester,
   ) async {

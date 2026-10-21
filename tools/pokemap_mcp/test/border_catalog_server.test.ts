@@ -508,6 +508,20 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
     const placements = record(feature.materialization).placements as JsonRecord[];
     assert.equal(placements.length, 6);
     assert.deepEqual(placements.map(value => record(value.anchorCell).x), [1, 2, 3, 7, 8, 9]);
+    const foregroundDescriptor = (catalog.mutationActions as JsonRecord[]).find(value => value.id === "border_layer.set_foreground");
+    assert.ok(foregroundDescriptor);
+    const foregroundInput = record(record(foregroundDescriptor.extensions).inputSchema);
+    assert.equal(record(record(foregroundInput.properties).renderInForeground).type, "boolean");
+    await mutate("border_layer.set_foreground", { mapId: "map", layerId: "border", renderInForeground: true });
+    const foregroundMap = JSON.parse(await readFile(mapPath, "utf8")) as JsonRecord;
+    const foregroundLayer = (foregroundMap.layers as JsonRecord[]).find(value => value.id === "border")!;
+    assert.equal(foregroundLayer.renderInForeground, true);
+    assert.deepEqual(foregroundLayer.content, layer.content);
+    const foregroundHistory = (await readFile(join(root, ".pokemap/authoring/history.jsonl"), "utf8")).trimEnd().split("\n");
+    const foregroundEntry = record(record(JSON.parse(foregroundHistory.at(-1)!)).payload).entry;
+    await toolData(client, "pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
+      entryId: record(foregroundEntry).entryId, idempotencyKey: "foreground-undo" });
+    assert.deepEqual(await readFile(mapPath), before);
     for (const placement of placements) assert.deepEqual(placement.transform, { quarterTurns: 0, flipX: false });
     for (const points of [[{ x: 2, y: 1 }, { x: 2, y: 2 }],
       [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 2 }],

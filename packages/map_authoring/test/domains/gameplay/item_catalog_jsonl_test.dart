@@ -7,6 +7,33 @@ import 'package:test/test.dart';
 
 void main() {
   group('item mutation transport parity', () {
+    for (final context in ProjectItemUseContext.values) {
+      test('full restore $context roundtrips through direct API and JSONL', () async {
+        for (final jsonl in [false, true]) {
+          final harness = await _ItemTransportHarness.create('full-restore-${context.name}-$jsonl');
+          addTearDown(harness.dispose);
+          final use = ProjectItemUseDefinition(
+            contexts: {context},
+            target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: const ProjectItemEffectDefinition.fullRestore(),
+          );
+          final actionId = 'item.set_${context.name}_effect';
+          final scenario = _ItemMutationScenario(actionId, {
+            'itemId': 'potion', 'use': use.toJson(),
+          });
+          final result = jsonl ? await harness.executeJsonl(scenario)
+              : await harness.executeDirect(scenario);
+          final catalog = ProjectItemCatalog.fromJson(result.catalog);
+          expect(catalog.entries.singleWhere((i) => i.id == 'potion')
+              .uses.single, use);
+          final described = await _request(harness.worker, 'describe');
+          final action = (described.data['mutationActions'] as List).cast<Map>()
+              .singleWhere((a) => a['id'] == actionId);
+          expect(jsonEncode(action), contains('full_restore'));
+        }
+      });
+    }
     test(
         'Corde Sortie key-item is refused through API and JSONL with a readable reason',
         () async {
@@ -286,6 +313,7 @@ void main() {
       'black_sludge',
       'king_s_rock',
       'lum_berry',
+      'metal_coat',
       'sitrus_berry',
       'smoke_ball',
     ]) {

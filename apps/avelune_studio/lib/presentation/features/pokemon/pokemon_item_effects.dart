@@ -59,6 +59,7 @@ class PokemonItemEffects extends StatelessWidget {
       );
 
   ProjectItemEffectDefinition _effect(String kind) => switch (kind) {
+    'full_restore' => const ProjectItemEffectDefinition.fullRestore(),
     'repel' => const ProjectItemEffectDefinition.repel(steps: 100),
     'escape_rope' => const ProjectItemEffectDefinition.escapeRope(),
     'bicycle' => const ProjectItemEffectDefinition.bicycle(),
@@ -81,6 +82,7 @@ class PokemonItemEffects extends StatelessWidget {
   };
 
   String _kind(ProjectItemEffectDefinition effect) => switch (effect) {
+    ProjectItemFullRestoreEffectDefinition() => 'full_restore',
     ProjectItemHealHpEffectDefinition() => 'heal',
     ProjectItemCureStatusEffectDefinition() => 'cure',
     ProjectItemReviveEffectDefinition() => 'revive',
@@ -176,6 +178,7 @@ class PokemonItemEffects extends StatelessWidget {
                 value: kind,
                 options: {
                   'heal': 'Soigner les PV',
+                  'full_restore': 'Soin Total',
                   'cure': 'Guérir les statuts',
                   'revive': 'Réanimer',
                   if (context == ProjectItemUseContext.overworld)
@@ -195,7 +198,7 @@ class PokemonItemEffects extends StatelessWidget {
                     effect: _effect(value),
                     consumption: value == 'bicycle' || value == 'fishing'
                         ? ProjectItemConsumptionPolicy.never
-                        : value == 'escape_rope'
+                        : value == 'escape_rope' || value == 'full_restore'
                         ? ProjectItemConsumptionPolicy.onApplied
                         : use.consumption,
                     target: value == 'repel' || value == 'escape_rope' || value == 'bicycle' || value == 'fishing'

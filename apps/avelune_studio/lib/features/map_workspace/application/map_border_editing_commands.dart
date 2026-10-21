@@ -14,6 +14,7 @@ final class MapBorderRegenerationPreview {
   });
   final MapData source;
   final ProjectManifest project;
+
   final MapData result;
   final String layerId;
   final String featureId;
@@ -26,6 +27,10 @@ final class MapBorderEditingCommands {
 
   final EditableMapDocument document;
   final ProjectManifest project;
+
+  void setForeground({required String layerId, required bool renderInForeground}) =>
+      document.commit(const BorderActions().setForeground(document.current,
+          layerId: layerId, renderInForeground: renderInForeground));
 
   static List<BorderBlueprintRecord> publishedLines(ProjectManifest project) =>
       project.borderCatalog.records

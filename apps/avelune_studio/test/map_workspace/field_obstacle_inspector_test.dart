@@ -27,6 +27,7 @@ void main() {
       FieldObstacleKind.cutTree => 'field-obstacle-cut-tree',
       FieldObstacleKind.strengthBoulder => 'field-obstacle-strength-boulder',
       FieldObstacleKind.rockSmashRock => 'field-obstacle-rock-smash-rock',
+      FieldObstacleKind.iceBlock => 'field-obstacle-ice-block',
     });
     testWidgets(
       'Studio selects a custom object and toggles ${kind.name} with undo and redo',
@@ -45,6 +46,7 @@ void main() {
           tester.widget<StudioChoice>(find.byKey(control)).selected,
           isFalse,
         );
+        await tester.ensureVisible(find.byKey(control));
         await tester.tap(find.byKey(control));
         await tester.pumpAndSettle();
         expect(

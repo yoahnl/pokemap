@@ -12,6 +12,38 @@ typedef _ApplyAction = Future<Map<String, Object?>> Function({
 });
 
 void main() {
+  test('JSONL foreground action persists only the Border render plane', () async {
+    final harness = await BorderCatalogHarness.create('border-foreground-jsonl');
+    addTearDown(harness.dispose);
+    final projectFile = File('${harness.root.path}/project.json');
+    final raw = jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    raw['maps'] = [{'id': 'map', 'name': 'Map', 'relativePath': 'map.json'}];
+    await projectFile.writeAsString(jsonEncode(raw));
+    final original = MapData(id: 'map', name: 'Map', version: ProjectVersion.v8,
+        size: const GridSize(width: 2, height: 2),
+        layers: const [BorderLayer(id: 'pillars', name: 'Pillars'),
+          CollisionLayer(id: 'collision', name: 'Collision', collisions: [true, false, false, true])]);
+    final file = File('${harness.root.path}/map.json');
+    await file.writeAsString(jsonEncode(original.toJson()));
+    final opened = await harness._jsonl('open', {'projectRoot': harness.root.path});
+    for (final foreground in [true, false]) {
+      final validation = await harness._jsonl('validate', {'projectHandle': opened['projectHandle']});
+      final plan = await harness._jsonl('plan', {
+        'projectHandle': opened['projectHandle'],
+        'request': _request(workspaceHandle: opened['workspaceHandle'] as String,
+            revision: validation['snapshotRevision'] as String,
+            actionId: 'border_layer.set_foreground', sequence: 'foreground-$foreground',
+            parameters: {'mapId': 'map', 'layerId': 'pillars', 'renderInForeground': foreground}).toJson(),
+      });
+      await harness._jsonl('apply', {'projectHandle': opened['projectHandle'],
+        'planId': plan['planId'], 'operationId': 'foreground-$foreground'});
+      final after = MapData.fromJson(jsonDecode(await file.readAsString()));
+      expect(after.layers.whereType<BorderLayer>().single.renderInForeground, foreground);
+      expect(after.layers.last, original.layers.last);
+      expect(after.copyWith(layers: original.layers), original);
+    }
+    await harness._jsonl('close', {'workspaceHandle': opened['workspaceHandle']});
+  });
   test('native cardinal publication is identical through direct API and JSONL', () async {
     final direct = await BorderCatalogHarness.create('native-direct');
     final jsonl = await BorderCatalogHarness.create('native-jsonl');
@@ -53,7 +85,7 @@ void main() {
     final manifest = ProjectManifest.fromJson(
         jsonDecode(utf8.decode(await direct.projectBytes()))
             as Map<String, dynamic>);
-    expect(manifest.borderCatalog.formatVersion, 11);
+    expect(manifest.borderCatalog.formatVersion, 12);
     final published = manifest.borderCatalog.records.single.latestPublished!;
     expect(published.definition.template,
         BorderBlueprintTemplate.horizontalFacade);

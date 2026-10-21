@@ -264,11 +264,11 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        '836cbe79e7b76af15ce354ef2eee5e3dce2e8d9df77e07065fc94de4daa50a10',
+        '81bf827a37d6e6005234de0254c8c7eff5d6a39ecdfc8ed1406ea19eeb6ad7bb',
       );
       expect(
         first.packageSha256,
-        '836cbe79e7b76af15ce354ef2eee5e3dce2e8d9df77e07065fc94de4daa50a10',
+        '81bf827a37d6e6005234de0254c8c7eff5d6a39ecdfc8ed1406ea19eeb6ad7bb',
       );
       expect(first.archiveBytes, first.packageBytes.length);
       expect(

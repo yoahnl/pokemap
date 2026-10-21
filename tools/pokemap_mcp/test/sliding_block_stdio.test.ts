@@ -14,7 +14,8 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test('L26b real MCP composes a movable obstacle and sliding terrain with atomic plans and cold reopen',
+for (const kind of ['strengthBoulder', 'iceBlock']) {
+test(`real MCP composes ${kind} and sliding terrain with atomic plans and cold reopen`,
   { timeout: 120_000 }, async () => {
     const root = await mkdtemp(join(tmpdir(), 'sliding-block-mcp-'));
     const mapFile = join(root, 'puzzle.json');
@@ -94,17 +95,17 @@ test('L26b real MCP composes a movable obstacle and sliding terrain with atomic 
       const slideAction = actions.find(action => action.id === 'gameplay_zone.set_movement_effect_payload');
       assert.ok(obstacleAction);
       assert.ok(slideAction);
-      const blockContract = record(record(record(obstacleAction.extensions).fieldObstacle).strengthBoulder);
+      const blockContract = record(record(record(obstacleAction.extensions).fieldObstacle)[kind]);
       assert.equal(blockContract.ordinaryPushCells, 1);
       assert.equal(blockContract.slideZone, 'movementEffect.slide');
       assert.deepEqual(blockContract.stops, ['obstacle', 'zoneExit']);
       assert.equal(blockContract.saveDuringTraversal, false);
       assert.equal(blockContract.checkpointDuringTraversal, false);
       assert.deepEqual(record(record(record(slideAction.extensions).movementEffectZone).slide)
-        .affectedActors, ['player', 'strengthBoulder']);
+        .affectedActors, ['player', 'strengthBoulder', 'iceBlock']);
       workspace = await call('pokemap_workspace', { operation: 'open', projectRoot: root });
       const initial = await call('pokemap_validate', { projectHandle: workspace.projectHandle });
-      const obstacle = { kind: 'strengthBoulder', resetPolicy: 'mapInstance' };
+      const obstacle = { kind, resetPolicy: 'mapInstance' };
       const slide = { effectKind: 'slide', movementCost: 1 };
       await apply('entity.set_field_obstacle', { entityId: 'block', fieldObstacle: obstacle });
       await apply('gameplay_zone.create', { zone: { id: 'floor', name: 'Glissade',
@@ -132,7 +133,7 @@ test('L26b real MCP composes a movable obstacle and sliding terrain with atomic 
       workspace = await call('pokemap_workspace', { operation: 'open', projectRoot: root });
       const queried = await call('pokemap_query', { projectHandle: workspace.projectHandle,
         resourceKind: 'map', operation: 'get', ids: ['puzzle'], view: 'detail' });
-      assert.match(JSON.stringify(queried), /"kind":"strengthBoulder"/);
+      assert.match(JSON.stringify(queried), new RegExp(`"kind":"${kind}"`));
       assert.match(JSON.stringify(queried), /"effectKind":"slide"/);
       const map = await savedMap();
       const block = (map.entities as JsonRecord[]).find(entity => entity.id === 'block')!;
@@ -156,3 +157,5 @@ test('L26b real MCP composes a movable obstacle and sliding terrain with atomic 
       await rm(root, { recursive: true, force: true });
     }
   });
+
+}

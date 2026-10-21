@@ -103,6 +103,7 @@ class MapCreationTools extends StatelessWidget {
                     FieldObstacleKind.cutTree => 'Placer un arbre à couper',
                     FieldObstacleKind.strengthBoulder => 'Placer un rocher à pousser',
                     FieldObstacleKind.rockSmashRock => 'Placer un rocher à briser',
+                    FieldObstacleKind.iceBlock => 'Placer un bloc de glace',
                   },
                   icon: kind == FieldObstacleKind.cutTree
                       ? Icons.park_outlined

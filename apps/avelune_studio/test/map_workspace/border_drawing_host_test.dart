@@ -37,6 +37,15 @@ void main() {
     expect(placements.map((p) => p.transform),
         everyElement(BorderSpriteTransform(quarterTurns: 0, flipX: false)));
     expect(fixture.document.undoCount, undoBefore + 1);
+    await tester.ensureVisible(find.byKey(const ValueKey('border-layer-foreground-button')));
+    await tester.tap(find.byKey(const ValueKey('border-layer-foreground-button')));
+    await pumpIo(tester, frames: 4);
+    expect(fixture.document.current.layers.whereType<BorderLayer>().single.renderInForeground, isTrue);
+    expect(fixture.document.undoCount, undoBefore + 2);
+    fixture.document.restore(redo: false);
+    expect(fixture.document.current.layers.whereType<BorderLayer>().single.renderInForeground, isFalse);
+    fixture.document.restore(redo: true);
+    expect(fixture.document.current.layers.whereType<BorderLayer>().single.renderInForeground, isTrue);
     await tester.tap(find.byKey(const ValueKey('Enregistrer')));
     for (var index = 0; index < 50 && fixture.document.dirty; index++) {
       await pumpIo(tester, frames: 3);
@@ -49,6 +58,7 @@ void main() {
           project.maps.firstWhere((entry) => entry.id == fixture.document.current.id));
     }))!;
     expect(reopened.map.layers.whereType<BorderLayer>().single.content.features.single, feature);
+    expect(reopened.map.layers.whereType<BorderLayer>().single.renderInForeground, isTrue);
   });
 
   testWidgets('Bordures explains when this project has no published model', (

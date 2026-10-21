@@ -1465,6 +1465,7 @@ border_layer.region_fill
 border_layer.region_clear
 border_layer.feature_create
 border_layer.feature_update
+border_layer.set_foreground
 border_layer.feature_move
 border_layer.feature_reorder
 border_layer.feature_delete
@@ -3298,3 +3299,20 @@ et de musique, sans saisie d’identifiant. Les champs incompatibles avec
 l’opération choisie sont retirés avant validation. Les refus de référence, de
 paramètres ou de dimension sont vérifiés avant écriture par les actions natives,
 y compris via JSONL et le MCP.
+
+### Facts initiaux selon l’avatar choisi
+
+`campaign.new_game.update` accepte le champ facultatif
+`initialFactValuesByAvatarCharacterId`. Ses clés doivent désigner les avatars
+proposés par le projet ; chaque ligne associe des Facts déclarés à des valeurs de
+leur type exact. La création de partie applique les valeurs générales, puis la
+ligne de l’avatar effectivement choisi, puis la valeur dérivée
+`existingPartyFactId`. Cette dernière ne peut pas être définie dans une ligne
+avatar. Une table vide est omise de la sérialisation.
+
+Ces valeurs sont initialisées une seule fois. Un changement de tenue ou un
+rechargement de sauvegarde ne les recalcule pas. Le formulaire de démarrage
+propose des sélecteurs d’avatar et de Fact avec édition typée. Le remplacement
+d’un personnage conserve les lignes compatibles et refuse les valeurs
+contradictoires avant écriture. Le solveur conserve les valeurs d’une même ligne
+ensemble, sous son budget habituel, sans créer de combinaisons entre avatars.

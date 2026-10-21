@@ -57,7 +57,7 @@ void main() {
     expect(extension['parameters'], ['mapId', 'zoneId', 'payload']);
     final slide = extension['slide'] as Map;
     expect(slide['mapMode'], '2d');
-    expect(slide['affectedActors'], ['player', 'strengthBoulder']);
+    expect(slide['affectedActors'], ['player', 'strengthBoulder', 'iceBlock']);
     expect(slide['direction'], 'entry');
     expect(slide['stops'], ['obstacle', 'zoneExit']);
     expect(slide['inputDuringTraversal'], false);
@@ -66,297 +66,306 @@ void main() {
     expect(slide['movementCostConsumed'], false);
   });
 
-  for (final jsonl in [false, true]) {
-    test(
-        'sliding block ${jsonl ? 'JSONL' : 'direct API'} plans, applies, queries, '
-        'undoes and cold reopens without changing unrelated content', () async {
-      final root = await Directory.systemTemp.createTemp('slide-authoring-');
-      addTearDown(() => root.delete(recursive: true));
-      final initial = catalogMap('cave');
-      final map = initial.copyWith(
-        entities: const [
-          MapEntity(
-            id: 'rock',
-            name: 'Rocher',
-            kind: MapEntityKind.custom,
-            pos: GridPos(x: 2, y: 1),
-            editorVisual: MapEntityEditorVisual(elementId: 'rock-visual'),
-            properties: {'preserved': 'yes'},
-          ),
-        ],
-        layers: [
-          initial.layers.first,
-          MapLayer.collision(
-            id: 'collision',
-            name: 'Collision',
-            collisions: List.generate(30, (index) => index == 11),
-          ),
-        ],
-      );
-      final mapFile = File('${root.path}/maps/cave.json');
-      await mapFile.parent.create();
-      await mapFile.writeAsString(jsonEncode(map.toJson()));
-      const project = ProjectManifest(
-        name: 'Slide transport',
-        maps: [
-          ProjectMapEntry(
-            id: 'cave',
-            name: 'Cave',
-            relativePath: 'maps/cave.json',
-          ),
-        ],
-        tilesets: [
-          ProjectTilesetEntry(
-              id: 'props', name: 'Props', relativePath: 'props.png'),
-        ],
-        elementCategories: [ProjectElementCategory(id: 'props', name: 'Props')],
-        elements: [
-          ProjectElementEntry(
-            id: 'rock-visual',
-            name: 'Rocher',
-            tilesetId: 'props',
-            categoryId: 'props',
-            frames: [
-              TilesetVisualFrame(
-                  source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))
-            ],
-          ),
-        ],
-      );
-      final projectFile = File('${root.path}/project.json');
-      await projectFile.writeAsString(jsonEncode(project.toJson()));
-      final projectBefore = await projectFile.readAsBytes();
-      const reader = LocalProjectFileReader();
-      final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [root.path],
-        fileReader: reader,
-      );
-      final handles = WorkspaceHandleStore();
-      final snapshots = ProjectSnapshotLoader(handles: handles);
-      final api = AuthoringReadApi(
-        openService: ProjectOpenService(
-          policy: policy,
+  for (final obstacleKind in [
+    FieldObstacleKind.strengthBoulder,
+    FieldObstacleKind.iceBlock
+  ]) {
+    for (final jsonl in [false, true]) {
+      test(
+          '${obstacleKind.name} ${jsonl ? 'JSONL' : 'direct API'} plans, applies, queries, '
+          'undoes and cold reopens without changing unrelated content',
+          () async {
+        final root = await Directory.systemTemp.createTemp('slide-authoring-');
+        addTearDown(() => root.delete(recursive: true));
+        final initial = catalogMap('cave');
+        final map = initial.copyWith(
+          entities: const [
+            MapEntity(
+              id: 'rock',
+              name: 'Rocher',
+              kind: MapEntityKind.custom,
+              pos: GridPos(x: 2, y: 1),
+              editorVisual: MapEntityEditorVisual(elementId: 'rock-visual'),
+              properties: {'preserved': 'yes'},
+            ),
+          ],
+          layers: [
+            initial.layers.first,
+            MapLayer.collision(
+              id: 'collision',
+              name: 'Collision',
+              collisions: List.generate(30, (index) => index == 11),
+            ),
+          ],
+        );
+        final mapFile = File('${root.path}/maps/cave.json');
+        await mapFile.parent.create();
+        await mapFile.writeAsString(jsonEncode(map.toJson()));
+        const project = ProjectManifest(
+          name: 'Slide transport',
+          maps: [
+            ProjectMapEntry(
+              id: 'cave',
+              name: 'Cave',
+              relativePath: 'maps/cave.json',
+            ),
+          ],
+          tilesets: [
+            ProjectTilesetEntry(
+                id: 'props', name: 'Props', relativePath: 'props.png'),
+          ],
+          elementCategories: [
+            ProjectElementCategory(id: 'props', name: 'Props')
+          ],
+          elements: [
+            ProjectElementEntry(
+              id: 'rock-visual',
+              name: 'Rocher',
+              tilesetId: 'props',
+              categoryId: 'props',
+              frames: [
+                TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))
+              ],
+            ),
+          ],
+        );
+        final projectFile = File('${root.path}/project.json');
+        await projectFile.writeAsString(jsonEncode(project.toJson()));
+        final projectBefore = await projectFile.readAsBytes();
+        const reader = LocalProjectFileReader();
+        final policy = await WorkspacePolicy.create(
+          allowedRootPaths: [root.path],
           fileReader: reader,
-          handles: handles,
-        ),
-        snapshotLoader: snapshots,
-      );
-      final mutations = LocalMapAuthoringMutationApi(
-        policy: policy,
-        snapshotLoader: snapshots,
-      );
-      final worker = JsonlWorker(api: api, mutations: mutations);
-      var sequence = 0;
-      Future<AuthoringResult> wireResult(
-        String command,
-        Map<String, Object?> args,
-      ) async =>
-          AuthoringResult.fromJson(jsonDecode(
-            await worker.processLine(jsonEncode({
-              'id': 'slide-${sequence++}',
-              'command': command,
-              'args': args,
-            })),
-          ) as Map<String, dynamic>);
-      Future<Map<String, Object?>> wire(
-        String command,
-        Map<String, Object?> args,
-      ) async {
-        final result = await wireResult(command, args);
-        expect(result.status, AuthoringResultStatus.success,
-            reason: '${result.toJson()}');
-        return result.data;
-      }
-
-      final description = await wire('describe', {});
-      final descriptor = (description['mutationActions'] as List)
-          .cast<Map>()
-          .singleWhere((action) =>
-              action['id'] == 'gameplay_zone.set_movement_effect_payload');
-      expect(
-          (descriptor['extensions'] as Map)['movementEffectZone'], isNotNull);
-      late ProjectHandle projectHandle;
-      late WorkspaceHandle workspaceHandle;
-      if (jsonl) {
-        final opened = await wire('open', {'projectRoot': root.path});
-        projectHandle = ProjectHandle(opened['projectHandle'] as String);
-        workspaceHandle = WorkspaceHandle(opened['workspaceHandle'] as String);
-      } else {
-        final opened = await api.openProject(root.path);
-        projectHandle = opened.projectHandle;
-        workspaceHandle = opened.workspaceHandle;
-        await mutations.attachProject(
-          projectRootPath: root.path,
-          workspaceHandle: workspaceHandle,
-          projectHandle: projectHandle,
         );
-      }
-      Future<Map<String, Object?>> call(
-        String command,
-        Map<String, Object?> args,
-      ) async {
-        if (jsonl) {
-          return wire(command, {'projectHandle': projectHandle.value, ...args});
-        }
-        return switch (command) {
-          'plan' => mutations.plan(
-              projectHandle,
-              AuthoringRequest.fromJson(
-                  Map<String, dynamic>.from(args['request'] as Map))),
-          'apply' => mutations.apply(projectHandle,
-              planId: args['planId'] as String,
-              operationId: args['operationId'] as String),
-          'history' => mutations.history(projectHandle, limit: 1),
-          'undo' => mutations.undo(projectHandle,
-              entryId: args['entryId'] as String,
-              idempotencyKey: args['idempotencyKey'] as String),
-          'query' => api.query(
-              projectHandle,
-              AuthoringQueryRequest.fromJson(
-                  Map<String, dynamic>.from(args['request'] as Map))),
-          _ => throw StateError(command),
-        };
-      }
-
-      Future<AuthoringRequest> request(
-        String action,
-        Map<String, Object?> parameters,
-      ) async {
-        final snapshot = await snapshots.load(projectHandle);
-        return AuthoringRequest(
-          requestId: 'slide-${sequence++}',
-          actionId: action,
-          actionVersion: 1,
-          workspaceHandle: workspaceHandle.value,
-          expectedRevision: snapshot.revision,
-          idempotencyKey: 'slide-${sequence++}',
-          parameters: Map<String, Object?>.from(
-            jsonDecode(jsonEncode({'mapId': 'cave', ...parameters})) as Map,
+        final handles = WorkspaceHandleStore();
+        final snapshots = ProjectSnapshotLoader(handles: handles);
+        final api = AuthoringReadApi(
+          openService: ProjectOpenService(
+            policy: policy,
+            fileReader: reader,
+            handles: handles,
           ),
+          snapshotLoader: snapshots,
         );
-      }
-
-      Future<void> apply(
-        String action,
-        Map<String, Object?> parameters,
-      ) async {
-        final before = await mapFile.readAsBytes();
-        final prepared = await call('plan', {
-          'request': (await request(action, parameters)).toJson(),
-        });
-        expect(await mapFile.readAsBytes(), before);
-        await call('apply', {
-          'planId': prepared['planId'],
-          'operationId': 'slide-${sequence++}',
-        });
-      }
-
-      Future<MapData> query() async {
-        final data = await call('query', {
-          'request': AuthoringQueryRequest(
-            resourceKind: 'map',
-            operation: AuthoringQueryOperation.get,
-            view: AuthoringQueryView.detail,
-            ids: ['cave'],
-          ).toJson(),
-        });
-        return MapData.fromJson(Map<String, dynamic>.from(
-          (data['items'] as List).single as Map,
-        ));
-      }
-
-      const obstacle =
-          MapEntityFieldObstacleData(kind: FieldObstacleKind.strengthBoulder);
-      await apply('entity.set_field_obstacle', {
-        'entityId': 'rock',
-        'fieldObstacle': obstacle.toJson(),
-      });
-      expect((await query()).entities.single.fieldObstacle, obstacle);
-      await apply('gameplay_zone.create', {'zone': _zone.toJson()});
-      expect((await query()).gameplayZones.single, _zone);
-      await apply('gameplay_zone.set_movement_effect_payload', {
-        'zoneId': 'ice',
-        'payload': _slide.toJson(),
-      });
-      final expected = map.copyWith(
-        entities: [map.entities.single.copyWith(fieldObstacle: obstacle)],
-        gameplayZones: [_zone.copyWith(movementEffect: _slide)],
-      );
-      expect(await query(), expected);
-      final beforeFailure = await mapFile.readAsBytes();
-      for (final payload in [
-        {...obstacle.toJson(), 'movementPolicy': 'untilBlocked'},
-        {'kind': 'iceBlock', 'resetPolicy': 'mapInstance'},
-      ]) {
-        final invalid = await request('entity.set_field_obstacle', {
-          'entityId': 'rock',
-          'fieldObstacle': payload,
-        });
-        if (jsonl) {
-          final result = await wireResult('plan', {
-            'projectHandle': projectHandle.value,
-            'request': invalid.toJson(),
-          });
-          expect(result.status, AuthoringResultStatus.failure);
-          expect(result.error!.details['domainCode'],
-              'entity.field_obstacle_invalid');
-        } else {
-          await expectLater(
-              mutations.plan(projectHandle, invalid),
-              throwsA(
-                isA<MapAuthoringException>().having((error) => error.code,
-                    'code', 'entity.field_obstacle_invalid'),
-              ));
+        final mutations = LocalMapAuthoringMutationApi(
+          policy: policy,
+          snapshotLoader: snapshots,
+        );
+        final worker = JsonlWorker(api: api, mutations: mutations);
+        var sequence = 0;
+        Future<AuthoringResult> wireResult(
+          String command,
+          Map<String, Object?> args,
+        ) async =>
+            AuthoringResult.fromJson(jsonDecode(
+              await worker.processLine(jsonEncode({
+                'id': 'slide-${sequence++}',
+                'command': command,
+                'args': args,
+              })),
+            ) as Map<String, dynamic>);
+        Future<Map<String, Object?>> wire(
+          String command,
+          Map<String, Object?> args,
+        ) async {
+          final result = await wireResult(command, args);
+          expect(result.status, AuthoringResultStatus.success,
+              reason: '${result.toJson()}');
+          return result.data;
         }
-        expect(await mapFile.readAsBytes(), beforeFailure);
-      }
-      for (final payload in [
-        {..._slide.toJson(), 'direction': 'east'},
-        {
-          ..._slide.toJson(),
-          'directedJump': {
-            'direction': 'east',
-            'distanceCells': 2,
-            'durationMs': 500,
-            'peakHeightPx': 24,
+
+        final description = await wire('describe', {});
+        final descriptor = (description['mutationActions'] as List)
+            .cast<Map>()
+            .singleWhere((action) =>
+                action['id'] == 'gameplay_zone.set_movement_effect_payload');
+        expect(
+            (descriptor['extensions'] as Map)['movementEffectZone'], isNotNull);
+        late ProjectHandle projectHandle;
+        late WorkspaceHandle workspaceHandle;
+        if (jsonl) {
+          final opened = await wire('open', {'projectRoot': root.path});
+          projectHandle = ProjectHandle(opened['projectHandle'] as String);
+          workspaceHandle =
+              WorkspaceHandle(opened['workspaceHandle'] as String);
+        } else {
+          final opened = await api.openProject(root.path);
+          projectHandle = opened.projectHandle;
+          workspaceHandle = opened.workspaceHandle;
+          await mutations.attachProject(
+            projectRootPath: root.path,
+            workspaceHandle: workspaceHandle,
+            projectHandle: projectHandle,
+          );
+        }
+        Future<Map<String, Object?>> call(
+          String command,
+          Map<String, Object?> args,
+        ) async {
+          if (jsonl) {
+            return wire(
+                command, {'projectHandle': projectHandle.value, ...args});
           }
-        },
-        {'effectKind': 'unknown', 'movementCost': 1},
-        {'effectKind': 'slide', 'movementCost': 0},
-      ]) {
-        final invalid = await request(
-          'gameplay_zone.set_movement_effect_payload',
-          {'zoneId': 'ice', 'payload': payload},
-        );
-        if (jsonl) {
-          final result = await wireResult('plan', {
-            'projectHandle': projectHandle.value,
-            'request': invalid.toJson(),
-          });
-          expect(result.status, AuthoringResultStatus.failure);
-        } else {
-          await expectLater(mutations.plan(projectHandle, invalid),
-              throwsA(isA<MapAuthoringException>()));
+          return switch (command) {
+            'plan' => mutations.plan(
+                projectHandle,
+                AuthoringRequest.fromJson(
+                    Map<String, dynamic>.from(args['request'] as Map))),
+            'apply' => mutations.apply(projectHandle,
+                planId: args['planId'] as String,
+                operationId: args['operationId'] as String),
+            'history' => mutations.history(projectHandle, limit: 1),
+            'undo' => mutations.undo(projectHandle,
+                entryId: args['entryId'] as String,
+                idempotencyKey: args['idempotencyKey'] as String),
+            'query' => api.query(
+                projectHandle,
+                AuthoringQueryRequest.fromJson(
+                    Map<String, dynamic>.from(args['request'] as Map))),
+            _ => throw StateError(command),
+          };
         }
-        expect(await mapFile.readAsBytes(), beforeFailure);
-      }
-      final history = await call('history', {'limit': 1});
-      await call('undo', {
-        'entryId': ((history['entries'] as List).first as Map)['entryId'],
-        'idempotencyKey': 'undo-slide',
+
+        Future<AuthoringRequest> request(
+          String action,
+          Map<String, Object?> parameters,
+        ) async {
+          final snapshot = await snapshots.load(projectHandle);
+          return AuthoringRequest(
+            requestId: 'slide-${sequence++}',
+            actionId: action,
+            actionVersion: 1,
+            workspaceHandle: workspaceHandle.value,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'slide-${sequence++}',
+            parameters: Map<String, Object?>.from(
+              jsonDecode(jsonEncode({'mapId': 'cave', ...parameters})) as Map,
+            ),
+          );
+        }
+
+        Future<void> apply(
+          String action,
+          Map<String, Object?> parameters,
+        ) async {
+          final before = await mapFile.readAsBytes();
+          final prepared = await call('plan', {
+            'request': (await request(action, parameters)).toJson(),
+          });
+          expect(await mapFile.readAsBytes(), before);
+          await call('apply', {
+            'planId': prepared['planId'],
+            'operationId': 'slide-${sequence++}',
+          });
+        }
+
+        Future<MapData> query() async {
+          final data = await call('query', {
+            'request': AuthoringQueryRequest(
+              resourceKind: 'map',
+              operation: AuthoringQueryOperation.get,
+              view: AuthoringQueryView.detail,
+              ids: ['cave'],
+            ).toJson(),
+          });
+          return MapData.fromJson(Map<String, dynamic>.from(
+            (data['items'] as List).single as Map,
+          ));
+        }
+
+        final obstacle = MapEntityFieldObstacleData(kind: obstacleKind);
+        await apply('entity.set_field_obstacle', {
+          'entityId': 'rock',
+          'fieldObstacle': obstacle.toJson(),
+        });
+        expect((await query()).entities.single.fieldObstacle, obstacle);
+        await apply('gameplay_zone.create', {'zone': _zone.toJson()});
+        expect((await query()).gameplayZones.single, _zone);
+        await apply('gameplay_zone.set_movement_effect_payload', {
+          'zoneId': 'ice',
+          'payload': _slide.toJson(),
+        });
+        final expected = map.copyWith(
+          entities: [map.entities.single.copyWith(fieldObstacle: obstacle)],
+          gameplayZones: [_zone.copyWith(movementEffect: _slide)],
+        );
+        expect(await query(), expected);
+        final beforeFailure = await mapFile.readAsBytes();
+        for (final payload in [
+          {...obstacle.toJson(), 'movementPolicy': 'untilBlocked'},
+          {'kind': 'unknownIceBlock', 'resetPolicy': 'mapInstance'},
+        ]) {
+          final invalid = await request('entity.set_field_obstacle', {
+            'entityId': 'rock',
+            'fieldObstacle': payload,
+          });
+          if (jsonl) {
+            final result = await wireResult('plan', {
+              'projectHandle': projectHandle.value,
+              'request': invalid.toJson(),
+            });
+            expect(result.status, AuthoringResultStatus.failure);
+            expect(result.error!.details['domainCode'],
+                'entity.field_obstacle_invalid');
+          } else {
+            await expectLater(
+                mutations.plan(projectHandle, invalid),
+                throwsA(
+                  isA<MapAuthoringException>().having((error) => error.code,
+                      'code', 'entity.field_obstacle_invalid'),
+                ));
+          }
+          expect(await mapFile.readAsBytes(), beforeFailure);
+        }
+        for (final payload in [
+          {..._slide.toJson(), 'direction': 'east'},
+          {
+            ..._slide.toJson(),
+            'directedJump': {
+              'direction': 'east',
+              'distanceCells': 2,
+              'durationMs': 500,
+              'peakHeightPx': 24,
+            }
+          },
+          {'effectKind': 'unknown', 'movementCost': 1},
+          {'effectKind': 'slide', 'movementCost': 0},
+        ]) {
+          final invalid = await request(
+            'gameplay_zone.set_movement_effect_payload',
+            {'zoneId': 'ice', 'payload': payload},
+          );
+          if (jsonl) {
+            final result = await wireResult('plan', {
+              'projectHandle': projectHandle.value,
+              'request': invalid.toJson(),
+            });
+            expect(result.status, AuthoringResultStatus.failure);
+          } else {
+            await expectLater(mutations.plan(projectHandle, invalid),
+                throwsA(isA<MapAuthoringException>()));
+          }
+          expect(await mapFile.readAsBytes(), beforeFailure);
+        }
+        final history = await call('history', {'limit': 1});
+        await call('undo', {
+          'entryId': ((history['entries'] as List).first as Map)['entryId'],
+          'idempotencyKey': 'undo-slide',
+        });
+        expect((await query()).gameplayZones.single.movementEffect, _cost);
+        await apply('gameplay_zone.set_movement_effect_payload', {
+          'zoneId': 'ice',
+          'payload': _slide.toJson(),
+        });
+        await mutations.detachWorkspace(workspaceHandle);
+        await api.close(workspaceHandle);
+        final cold = await _coldRead(root, jsonl: jsonl);
+        expect(cold, expected);
+        _expectSlidingBlockMoves(cold);
+        expect(await projectFile.readAsBytes(), projectBefore);
       });
-      expect((await query()).gameplayZones.single.movementEffect, _cost);
-      await apply('gameplay_zone.set_movement_effect_payload', {
-        'zoneId': 'ice',
-        'payload': _slide.toJson(),
-      });
-      await mutations.detachWorkspace(workspaceHandle);
-      await api.close(workspaceHandle);
-      final cold = await _coldRead(root, jsonl: jsonl);
-      expect(cold, expected);
-      _expectSlidingBlockMoves(cold);
-      expect(await projectFile.readAsBytes(), projectBefore);
-    });
+    }
   }
 }
 
@@ -389,26 +398,48 @@ void _expectSlidingBlockMoves(MapData map) {
     playerPos: state.playerPosition,
     playerFacing: Direction.east,
   );
-  final pushed = commitStrengthPush(
-    ticket: FieldObstacleTicket(
-      fieldAction: const FieldActionTicket(
-          ability: FieldAbility.strength,
-          targetCell: GridPos(x: 2, y: 1),
-          issuedAtStateRevision: 7),
-      instance: scope,
-      entityId: 'rock',
-      playerPosition: state.playerPosition,
-      playerFacing: state.playerFacing,
-    ),
-    world: world,
-    gameState: state,
-    currentStateRevision: 7,
-    authoringMap: map,
-  ) as StrengthPushApplied;
-  expect(pushed.slide, isNotNull);
-  state = pushed.gameState;
-  var current = pushed.movement.world;
-  var slide = pushed.slide;
+  final pushed =
+      map.entities.single.fieldObstacle?.kind == FieldObstacleKind.iceBlock
+          ? startIceBlockPush(
+              world: world,
+              gameState: state,
+              entityId: 'rock',
+              direction: Direction.east,
+              authoringMap: map,
+            )
+          : commitStrengthPush(
+              ticket: FieldObstacleTicket(
+                fieldAction: const FieldActionTicket(
+                    ability: FieldAbility.strength,
+                    targetCell: GridPos(x: 2, y: 1),
+                    issuedAtStateRevision: 7),
+                instance: scope,
+                entityId: 'rock',
+                playerPosition: state.playerPosition,
+                playerFacing: state.playerFacing,
+              ),
+              world: world,
+              gameState: state,
+              currentStateRevision: 7,
+              authoringMap: map,
+            );
+  final (nextState, nextWorld, continuation) = switch (pushed) {
+    StrengthPushApplied(:final gameState, :final movement, :final slide) => (
+        gameState,
+        movement.world,
+        slide
+      ),
+    FieldObstacleSlideMoved(:final gameState, :final world, :final slide) => (
+        gameState,
+        world,
+        slide
+      ),
+    _ => throw StateError('Expected a real pushed block'),
+  };
+  expect(continuation, isNotNull);
+  state = nextState;
+  var current = nextWorld;
+  var slide = continuation;
   for (var count = 0; slide != null && count < 10; count++) {
     final result = stepFieldObstacleSlide(
       slide: slide,

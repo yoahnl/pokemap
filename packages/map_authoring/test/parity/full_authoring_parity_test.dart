@@ -7,6 +7,12 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('foreground Border action cites its four focused transport proofs', () {
+      final evidence = AuthoringFullParityCatalog.canonical()
+          .requireMutationAction('border_layer.set_foreground');
+      expect(evidence.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
+      expect(evidence.contractTestPath, 'test/domains/maps/border_actions_test.dart');
+    });
     test('runtime verification policy cites dedicated transport proofs', () {
       final evidence = AuthoringFullParityCatalog.canonical().requireMutationAction('validation.runtime_smoke_profile.configure');
       expect(evidence.contractTestPath, 'test/domains/project/runtime_smoke_profile_actions_test.dart');

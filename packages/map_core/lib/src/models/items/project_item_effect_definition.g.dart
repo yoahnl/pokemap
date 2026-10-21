@@ -27,6 +27,16 @@ const _$ProjectItemAmountModeEnumMap = {
   ProjectItemAmountMode.full: 'full',
 };
 
+ProjectItemFullRestoreEffectDefinition
+_$ProjectItemFullRestoreEffectDefinitionFromJson(Map<String, dynamic> json) {
+  $checkKeys(json, allowedKeys: const ['kind']);
+  return ProjectItemFullRestoreEffectDefinition($type: json['kind'] as String?);
+}
+
+Map<String, dynamic> _$ProjectItemFullRestoreEffectDefinitionToJson(
+  ProjectItemFullRestoreEffectDefinition instance,
+) => <String, dynamic>{'kind': instance.$type};
+
 ProjectItemCureStatusEffectDefinition
 _$ProjectItemCureStatusEffectDefinitionFromJson(Map<String, dynamic> json) =>
     ProjectItemCureStatusEffectDefinition(

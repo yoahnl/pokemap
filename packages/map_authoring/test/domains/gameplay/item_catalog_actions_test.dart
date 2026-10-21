@@ -6,6 +6,33 @@ import 'package:test/test.dart';
 
 void main() {
   group('ItemCatalogActions', () {
+    test('creates a passive stone while preserving an existing Metal Coat', () {
+      const metalCoat = ProjectItemDefinition(
+        id: 'metal_coat',
+        displayName: 'Peau Métal',
+        pocketId: 'items',
+        buyPrice: 1000,
+        heldEffectId: 'metal_coat',
+      );
+      const waterStone = ProjectItemDefinition(
+        id: 'water_stone',
+        displayName: 'Pierre Eau',
+        pocketId: 'items',
+        buyPrice: 3000,
+      );
+      final draft = const ItemCatalogActions().build(
+        _fixture(entries: const [metalCoat]).context(
+          actionId: 'item.create',
+          parameters: {'definition': waterStone.toJson()},
+        ),
+      );
+      final catalog = decodeProjectItemCatalog(jsonDecode(
+        utf8.decode(draft.changeSet.changes.single.afterBytes!),
+      ));
+
+      expect(catalog.entries, [metalCoat, waterStone]);
+    });
+
     test('registers only durable catalog mutations with full guarantees', () {
       final descriptors = ItemCatalogActions.descriptors;
 

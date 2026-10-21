@@ -19,6 +19,7 @@ import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
 import 'runtime_static_terrain_projection.dart';
+import 'runtime_regular_atlas_projection.dart';
 
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
@@ -490,6 +491,18 @@ final class RuntimeProjectProjectionBuilder {
       );
     }
 
+    final regularAtlases = await projectRuntimeRegularAtlases(
+      project: projectedProject,
+      assets: authorFiles.catalog,
+      readFile: (path) => authorFiles.read(path, budget),
+    );
+    projectedProject = regularAtlases.project;
+    authorFiles = _AuthorProjectFileResolver(
+      projectRoot,
+      regularAtlases.assets,
+      virtualFiles: {...authorFiles.virtualFiles, ...regularAtlases.files},
+    );
+
     final presentationPackage = await _preparePresentationPackage(
       authorProject,
       authorFiles,
@@ -500,6 +513,72 @@ final class RuntimeProjectProjectionBuilder {
           .toSet(),
     );
 
+    final mediaPaths = <String>{
+      ...authorFiles.catalog.records.map((record) => record.logicalPath),
+      ...projectedProject.tilesets.map((entry) => entry.relativePath),
+      ...projectedProject.models3d.map((entry) => entry.relativePath),
+      ...projectedProject.cinematicMediaAssets
+          .map((entry) => entry.relativePath),
+    };
+    final mediaAliases = <String, String>{};
+    final aliasedMedia = <String, List<int>>{};
+    for (final source in mediaPaths) {
+      final relative = _normalizeRelative(source);
+      final firstSegment = relative.split('/').first;
+      if (firstSegment == 'assets' ||
+          firstSegment == 'data' ||
+          !_projectMediaExtensions
+              .contains(p.extension(relative).toLowerCase())) {
+        continue;
+      }
+      final target = 'assets/runtime-media/$relative';
+      if (mediaPaths.contains(target) ||
+          authorFiles.virtualFiles.containsKey(target) ||
+          await FileSystemEntity.type(
+                p.joinAll([projectRoot.path, ...target.split('/')]),
+                followLinks: false,
+              ) !=
+              FileSystemEntityType.notFound) {
+        throw GamePackageExportException(
+          code: 'runtimeMediaAliasCollision',
+          path: target,
+          message: 'The portable media destination is already occupied.',
+        );
+      }
+      mediaAliases[relative] = target;
+      aliasedMedia[target] = await authorFiles.read(relative, budget);
+    }
+    if (mediaAliases.isNotEmpty) {
+      projectedProject = projectedProject.copyWith(
+        tilesets: [
+          for (final entry in projectedProject.tilesets)
+            entry.copyWith(
+                relativePath:
+                    mediaAliases[entry.relativePath] ?? entry.relativePath),
+        ],
+        cinematicMediaAssets: [
+          for (final entry in projectedProject.cinematicMediaAssets)
+            if (mediaAliases.containsKey(entry.relativePath))
+              CinematicMediaAsset.fromJson({
+                ...entry.toJson(),
+                'relativePath': mediaAliases[entry.relativePath],
+              })
+            else
+              entry,
+        ],
+      );
+      authorFiles = _AuthorProjectFileResolver(
+        projectRoot,
+        AssetCatalog(records: [
+          for (final record in authorFiles.catalog.records)
+            record.copyWith(
+                logicalPath:
+                    mediaAliases[record.logicalPath] ?? record.logicalPath),
+        ]),
+        virtualFiles: {...authorFiles.virtualFiles, ...aliasedMedia},
+      );
+    }
+
     await _addPortableAssetClosure(
       payload,
       authorFiles,
@@ -507,6 +586,12 @@ final class RuntimeProjectProjectionBuilder {
       excludedAssetIds:
           presentationPackage?.excludedSourceAssetIds ?? const <String>{},
     );
+    for (final entry in aliasedMedia.entries) {
+      final path = _normalizePackagePath('project/${entry.key}');
+      if (!payload.containsKey(path)) {
+        budget.addPayload(payload, path, entry.value);
+      }
+    }
 
     await for (final entity
         in projectRoot.list(recursive: true, followLinks: false)) {
@@ -1305,6 +1390,7 @@ final class RuntimeProjectProjectionBuilder {
     }
     if (segments.length == 1 &&
         (basename.startsWith('project.') ||
+            _numberedProjectManifest.hasMatch(basename) ||
             basename == 'walkthrough.json' ||
             basename == 'runtime_host_launch_save.json')) {
       return true;
@@ -1318,6 +1404,10 @@ final class RuntimeProjectProjectionBuilder {
 
   static String _normalizeKey(String value) =>
       value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+  static final RegExp _numberedProjectManifest = RegExp(
+    r'^project(?: \d+| \(\d+\))\.json$',
+  );
 
   static bool _isAuthorTimeRemoteReference(String key, String value) {
     final normalizedKey = _normalizeKey(key);

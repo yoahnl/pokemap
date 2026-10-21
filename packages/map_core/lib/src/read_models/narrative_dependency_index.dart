@@ -760,6 +760,16 @@ final class _NarrativeDependencyIndexBuilder {
         criticality: criticality,
       );
     }
+    for (final avatar in config.initialFactValuesByAvatarCharacterId.entries) {
+      for (final factId in avatar.value.keys) {
+        _usage(
+          target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, factId),
+          owner: _newGameOwner,
+          path: 'newGame.initialFactValuesByAvatarCharacterId[${avatar.key}][$factId]',
+          criticality: criticality,
+        );
+      }
+    }
     final existingPartyFactId = config.existingPartyFactId?.trim();
     if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
       _usage(

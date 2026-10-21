@@ -699,6 +699,10 @@ class MapLayersComponent extends PositionComponent {
         if (renderPass == MapLayerRenderPass.background) {
           _paintBorderLayer(canvas, step.layer! as BorderLayer);
         }
+      case MapVisualCompositionStepKind.foregroundBorderLayer:
+        if (renderPass == MapLayerRenderPass.foreground) {
+          _paintBorderLayer(canvas, step.layer! as BorderLayer);
+        }
       case MapVisualCompositionStepKind.objectLayer:
         if (renderPass == MapLayerRenderPass.background) {
           _paintObjectLayer(canvas, step.layer! as ObjectLayer);
@@ -750,6 +754,7 @@ class MapLayersComponent extends PositionComponent {
       layer: layer,
       tileWidthPx: bundle.manifest.settings.tileWidth,
       tileHeightPx: bundle.manifest.settings.tileHeight,
+      foregroundPass: renderPass == MapLayerRenderPass.foreground,
     );
     if (collection.instructions.isEmpty || collection.opacity <= 0) {
       return;

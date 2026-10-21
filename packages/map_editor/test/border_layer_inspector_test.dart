@@ -31,7 +31,7 @@ void main() {
       layers: <MapLayer>[MapLayer.border(id: 'border', name: 'Côte')],
     );
 
-    await _pumpBorderInspector(
+    final container = await _pumpBorderInspector(
       tester,
       initialState: EditorState(
         projectRootPath: '/tmp/border_inspector_project',
@@ -55,6 +55,10 @@ void main() {
     expect(find.text('Visuel uniquement — aucune collision'), findsOneWidget);
     expect(find.textContaining('Calque de collision actif'), findsNothing);
     expect(find.textContaining('Calque de surface actif'), findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('border-layer-foreground-button')));
+    await tester.tap(find.byKey(const ValueKey('border-layer-foreground-button')));
+    await tester.pump();
+    expect((container.read(editorNotifierProvider).activeMap!.layers.single as BorderLayer).renderInForeground, isTrue);
   });
 
   testWidgets(

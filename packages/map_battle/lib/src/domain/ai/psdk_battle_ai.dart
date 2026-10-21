@@ -261,6 +261,12 @@ final class PsdkBattleAi {
       return 0;
     }
     final effect = option.effect;
+    if (effect is PsdkBattleFullRestoreItemEffect) {
+      return (battler.maxHp - battler.currentHp).clamp(0, battler.maxHp)
+              .toDouble() +
+          (battler.majorStatus == null ? 0 : 45) +
+          (battler.effects.contains(PsdkBattleEffectIds.confusion) ? 45 : 0);
+    }
     if (effect is PsdkBattleHpHealItemEffect) {
       final missingHp = battler.maxHp - battler.currentHp;
       if (missingHp <= 0) {

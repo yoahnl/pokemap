@@ -4,6 +4,7 @@ import '../models/items/project_item_effect_definition.dart';
 
 enum ProjectItemEffectCapability {
   healHp,
+  fullRestore,
   cureStatus,
   revive,
   restorePp,
@@ -92,6 +93,10 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     ),
     ItemUseCapability(
       context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.fullRestore,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
       effect: ProjectItemEffectCapability.cureStatus,
     ),
     ItemUseCapability(
@@ -124,6 +129,10 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     ),
     ItemUseCapability(
       context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.fullRestore,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
       effect: ProjectItemEffectCapability.cureStatus,
     ),
     ItemUseCapability(
@@ -140,6 +149,7 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     'king_s_rock',
     'leftovers',
     'lum_berry',
+    'metal_coat',
     'prevent_evolution',
     'sitrus_berry',
     'smoke_ball',
@@ -165,6 +175,8 @@ ProjectItemEffectCapability projectItemEffectCapabilityOf(
 ) {
   return switch (effect) {
     ProjectItemHealHpEffectDefinition() => ProjectItemEffectCapability.healHp,
+    ProjectItemFullRestoreEffectDefinition() =>
+      ProjectItemEffectCapability.fullRestore,
     ProjectItemCureStatusEffectDefinition() =>
       ProjectItemEffectCapability.cureStatus,
     ProjectItemReviveEffectDefinition() => ProjectItemEffectCapability.revive,

@@ -72,6 +72,7 @@ import '../../application/character_animation_source_resolver.dart';
 import '../../application/runtime_committed_movement.dart';
 import '../../application/runtime_retained_world_catalog.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../application/runtime_narrative_map_instances.dart';
 import '../../application/runtime_overworld_interaction.dart';
 import '../../application/field_obstacle_interaction.dart';
 import '../../application/flash_zone_interaction.dart';
@@ -733,6 +734,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   var _tilesetLoadsInProgress = 0;
   var _borderLoadsInProgress = 0;
   var _memoryPressureSeen = false;
+  var _mapResourceDemandInProgress = false;
   var _observingMemoryPressure = false;
 
   /// Injected only by deterministic acceptance tests. Production retains a
@@ -1251,6 +1253,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     GameState? gameState,
   }) =>
       bundle.manifest.settings.mapInstanceRetentionPolicy != null ||
+      hasNarrativeMapInstanceReferences(bundle.manifest, bundle.map.id) ||
       _entityAutorunSourcesFor(bundle.manifest).isNotEmpty ||
       (gameState ?? _gameState).mapInstanceWorldState.instancesByMapId.isNotEmpty ||
       bundle.map.gameplayZones.any(isDarknessZone) ||
@@ -5980,6 +5983,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _player.syncState(_world.player);
       return;
     }
+    if (intent is MoveIntent && _tryPushIceBlock(intent.direction)) {
+      return;
+    }
     if (slideIntent == null && intent is MoveIntent &&
         _tryPushStrengthObstacle(intent.direction)) {
       return;
@@ -9807,6 +9813,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
                 request: request,
               ),
           medicineBattleState: _psdkBattleSession?.createLegacyWriteBackState,
+          medicineTargetIsConfused: _psdkBattleSession?.isPlayerLineupConfused,
           onCommandOverlaySnapshotChanged: (snapshot) {
             // Recette 2026-08-24 : après le commit de fin de combat, une
             // publication tardive de l'overlay démonté (course entre le null
@@ -16451,6 +16458,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final escapeSourceState = playerServiceGameStateSnapshot;
     final sourceInstances = _battleRuntimeGameState.mapInstanceWorldState;
     WarpTransitionOverlayComponent? overlay;
+    Map<String, RuntimeTilesetImage>? transferImages;
+    BorderRuntimeAssetBundle? transferBorderAssets;
     var swapCompleted = false;
     var transitionCompleted = false;
     MapInstanceWorldState? guardedInstances;
@@ -16496,6 +16505,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         );
         await overlay!.fadeOut(duration: transitionSpec.fadeOut);
       }
+      await _prepareMapResourcesForDemand(newBundle);
       debugPrint('[warp] loading target map visuals id=${newBundle.map.id}');
       final newImages = await _traceAsync(
         'warp',
@@ -16507,11 +16517,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           resourceBundle: newBundle,
         ),
       );
+      transferImages = newImages;
       final newBorderAssets = await _traceAsync(
         'warp',
         'loadBorderAssets',
         () => _loadBorderRuntimeAssets(newBundle),
       );
+      transferBorderAssets = newBorderAssets;
       newBundle = await _traceAsync(
         'warp',
         'revalidateBorderBeforeSwap',
@@ -16661,7 +16673,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if (identical(_warpTransitionOverlay, overlay)) {
         _warpTransitionOverlay = null;
       }
+      _pendingTileImageHandoffs.remove(transferImages);
+      _pendingBorderImageHandoffs.remove(transferBorderAssets);
       if (!presentedTransfer) _setFlowPhase(_RuntimeFlowPhase.overworld);
+      _resumeMapResourcePrefetch();
       debugPrint(
         '[warp] transfer cleanup flow=${_flowPhase.name} map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
@@ -16951,6 +16966,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _showNotification('Le passage vers la carte voisine a échoué.');
         return;
       }
+      await _prepareMapResourcesForDemand(
+        await _loadRuntimeMapBundleCached(connection.targetMapId),
+      );
       final target = await _ensureConnectionTargetLoaded(
         source: source,
         connection: connection,
@@ -17127,6 +17145,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _player.syncState(_world.player, snapToGrid: true);
       _showNotification('Le passage vers la carte voisine a échoué.');
     } finally {
+      _resumeMapResourcePrefetch();
       if (!transitionCompleted) {
         _preservingConnectionInput = false;
         _setFlowPhase(_RuntimeFlowPhase.overworld);
@@ -17412,19 +17431,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
   }
 
-  void _unmountLoadedMap(String mapId) {
+  Future<void> _unmountLoadedMap(String mapId) {
     _clearNpcCollisionDebugOverlay();
     final loaded = _loadedMapsById.remove(mapId);
     if (loaded == null) {
-      return;
+      return Future<void>.value();
     }
     _retiringLoadedMaps.add(loaded);
     final removed = Future.wait<void>([
-      loaded.backgroundLayers.removed,
-      loaded.foregroundLayers.removed,
-      for (final row in loaded.actorOcclusionLayers.rows) row.removed,
-      for (final patch in loaded.occlusionPatches) patch.removed,
-      for (final actor in loaded.npcActors) actor.removed,
+      for (final component in <Component>[
+        loaded.backgroundLayers,
+        loaded.foregroundLayers,
+        ...loaded.actorOcclusionLayers.rows,
+        ...loaded.occlusionPatches,
+        ...loaded.npcActors,
+      ])
+        if (component.isMounted) component.removed,
     ]);
     loaded.backgroundLayers.removeFromParent();
     loaded.foregroundLayers.removeFromParent();
@@ -17437,11 +17459,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _npcActors.remove(actor);
     }
     _worldRuleProjectionCacheByMapId.remove(mapId);
-    unawaited(removed.then((_) {
+    return removed.then((_) {
       _retiringLoadedMaps.remove(loaded);
       _trimUnusedTilesetImages();
-    }),
-    );
+    });
   }
 
   Future<_LoadedPlayableMap> _mountLoadedMap({
@@ -17515,6 +17536,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       separatePlacedElementOcclusion: true,
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,
+      borderAssets: resolvedBorderAssets,
       showCollisionOverlay: false,
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
@@ -17854,6 +17876,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _preloadActiveMapConnections() {
+    if (_mapResourceDemandInProgress || _isRemoved) return;
     final active = _loadedMapsById[_activeMapId];
     if (active == null) {
       return;
@@ -17873,7 +17896,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   void _prewarmActiveMapWarpTargets() {
     _prefetchQueue.invalidate();
-    if (_memoryPressureSeen) return;
+    if (_memoryPressureSeen || _mapResourceDemandInProgress || _isRemoved) return;
     final active = _loadedMapsById[_activeMapId];
     if (active == null) {
       return;
@@ -18334,6 +18357,43 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           ...?loaded.backgroundLayers.borderAssets?.images,
       ],
     );
+  }
+
+  Future<void> _prepareMapResourcesForDemand(RuntimeMapBundle target) async {
+    _mapResourceDemandInProgress = true;
+    _prefetchQueue.invalidate();
+    await Future.wait<void>([
+      for (final future in _loadMapFutureById.values.toList())
+        future.then((_) {}),
+      ..._prewarmedWarpTargetFutureByMapId.values,
+    ]);
+    if (_isRemoved) throw StateError('The runtime session is closed.');
+    final visible = camera.visibleWorldRect;
+    final removable = _loadedMapsById.values.where((loaded) {
+      if (loaded.bundle.map.id == _activeMapId ||
+          loaded.bundle.map.id == target.map.id) {
+        return false;
+      }
+      final origin = _originPixelsOf(loaded);
+      return !visible.overlaps(Rect.fromLTWH(
+        origin.x,
+        origin.y,
+        loaded.bundle.map.size.width * _cellWidth,
+        loaded.bundle.map.size.height * _cellHeight,
+      ));
+    }).map((loaded) => loaded.bundle.map.id).toList();
+    await Future.wait<void>([
+      for (final mapId in removable) _unmountLoadedMap(mapId),
+    ]);
+    if (_isRemoved) throw StateError('The runtime session is closed.');
+    _trimImageCachesForDemand(requestedBorders: target);
+  }
+
+  void _resumeMapResourcePrefetch() {
+    _mapResourceDemandInProgress = false;
+    if (_isRemoved) return;
+    _preloadActiveMapConnections();
+    _prewarmActiveMapWarpTargets();
   }
 
   void _trimImageCachesForDemand({

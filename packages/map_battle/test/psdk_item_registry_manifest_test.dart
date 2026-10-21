@@ -8,7 +8,12 @@ void main() {
     test('declared held effects have executable registry entries',
         () {
       final registry = ItemEffectRegistry();
-      for (final effectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+      for (final effectId in [
+        'lum_berry',
+        'metal_coat',
+        'sitrus_berry',
+        'smoke_ball',
+      ]) {
         expect(itemSystemV1CapabilityTruth.supportsHeldEffect(effectId), isTrue,
             reason: effectId);
         expect(registry.supportsHeldEffect(effectId), isTrue, reason: effectId);

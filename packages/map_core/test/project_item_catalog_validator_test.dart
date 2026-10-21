@@ -3,6 +3,37 @@ import 'package:test/test.dart';
 
 void main() {
   group('validateProjectItemCatalog', () {
+    test('existing Metal Coat does not block an evolution stone catalog', () {
+      final report = validateProjectItemCatalog(
+        ProjectItemCatalog(schemaVersion: 1, entries: [
+          ProjectItemDefinition(
+            id: 'metal_coat',
+            displayName: 'Peau Métal',
+            pocketId: 'items',
+            buyPrice: 1000,
+            heldEffectId: 'metal_coat',
+          ),
+          ProjectItemDefinition(
+            id: 'water_stone',
+            displayName: 'Pierre Eau',
+            pocketId: 'items',
+            buyPrice: 3000,
+          ),
+        ]),
+        capabilityTruth: itemSystemV1CapabilityTruth,
+      );
+
+      expect(report.hasBlockingDiagnostics, isFalse);
+      expect(
+        report.assessmentFor('metal_coat')?.readiness,
+        ItemCapabilityReadiness.runtimeReady,
+      );
+      expect(
+        report.assessmentFor('water_stone')?.readiness,
+        ItemCapabilityReadiness.passive,
+      );
+    });
+
     test('marks fully wired items runtime-ready', () {
       final report = validateProjectItemCatalog(
         ProjectItemCatalog(

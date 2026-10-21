@@ -22,6 +22,7 @@ void main() {
     (FieldObstacleKind.cutTree, 'Placer un arbre à couper'),
     (FieldObstacleKind.strengthBoulder, 'Placer un rocher à pousser'),
     (FieldObstacleKind.rockSmashRock, 'Placer un rocher à briser'),
+    (FieldObstacleKind.iceBlock, 'Placer un bloc de glace'),
   ]) {
     testWidgets('$label creates one undoable native object and cold reopens', (
       tester,

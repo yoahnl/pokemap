@@ -34,6 +34,10 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
     int? amount,
   }) = ProjectItemHealHpEffectDefinition;
 
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ProjectItemEffectDefinition.fullRestore() =
+      ProjectItemFullRestoreEffectDefinition;
+
   @JsonSerializable(explicitToJson: true)
   const factory ProjectItemEffectDefinition.cureStatus({
     required ProjectItemStatusCureMode mode,
@@ -79,6 +83,7 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
 
   ProjectItemEffectDefinition normalized() {
     return map(
+      fullRestore: (effect) => effect,
       healHp: (effect) => _normalizeAmountEffect(
         effect,
         mode: effect.mode,

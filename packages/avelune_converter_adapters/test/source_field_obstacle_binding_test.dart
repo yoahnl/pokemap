@@ -167,7 +167,7 @@ List<Map<String, Object?>> _assertReopenedFieldMechanics(
   final badgeDefinitions =
       project.badges.map((badge) => badge.toJson()).toList();
   final results = <Map<String, Object?>>[];
-  for (final kind in FieldObstacleKind.values) {
+  for (final kind in const [FieldObstacleKind.cutTree, FieldObstacleKind.strengthBoulder, FieldObstacleKind.rockSmashRock]) {
     ({MapData map, MapEntity entity, GameplayWorldState world})? selected;
     for (final map in maps) {
       for (final entity in map.entities
@@ -205,7 +205,7 @@ List<Map<String, Object?>> _assertReopenedFieldMechanics(
                 '${map.id}:${entity.id}@${entity.pos.x},${entity.pos.y}'
         ]}');
     final (map: map, entity: entity, world: world) = selected!;
-    final ability = entity.fieldObstacle!.ability;
+    final ability = entity.fieldObstacle!.ability!;
     final badge = project.badges
         .singleWhere((badge) => badge.fieldAbilityUnlock == ability);
     final pokemon = PlayerPokemon(
@@ -1134,7 +1134,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
             .toList();
         expect(objects, hasLength(6));
         expect(objects.map((entity) => entity.fieldObstacle!.kind).toSet(),
-            FieldObstacleKind.values.toSet());
+            {FieldObstacleKind.cutTree, FieldObstacleKind.strengthBoulder, FieldObstacleKind.rockSmashRock});
         expect(
             native.manifest.badges
                 .map((badge) => badge.fieldAbilityUnlock)

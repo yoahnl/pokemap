@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +10,69 @@ import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('a cinematic dialogue asset accepts primary while parallel movement stays locked', (tester) async {
+    await tester.runAsync(() async {
+      final root = await Directory.systemTemp.createTemp('cinematic-dialogue-input-');
+      addTearDown(() => root.delete(recursive: true));
+      await File('${root.path}/dialogue.yarn').writeAsString('title: Start\n---\nRadio: First page.\nRadio: Second page.\n===\n');
+      final movie = CinematicAsset(id: 'cinematic_lighthouse', title: 'Dialogue asset', mapId: 'map_port',
+          timeline: CinematicTimeline(steps: [
+            CinematicTimelineStep(id: 'talk', kind: CinematicTimelineStepKind.dialogueLine,
+                assetRef: 'radio', parallelGroupId: 'interview'),
+            CinematicTimelineStep(id: 'wait', kind: CinematicTimelineStepKind.wait,
+                durationMs: 2000, parallelGroupId: 'interview'),
+          ]));
+      final base = _bundle(cinematic: movie);
+      final bundle = base.copyWith(projectRootDirectory: root.path,
+          manifest: base.manifest.copyWith(dialogues: [
+            ProjectDialogueEntry(id: 'radio', name: 'Radio', relativePath: 'dialogue.yarn', defaultStartNode: 'Start'),
+          ]));
+      final game = PlayableMapGame(bundle: bundle, projectFilePath: '${root.path}/project.json');
+      Future<void> settleUntil(bool Function() condition) async {
+        for (var i = 0; i < 2000; i++) {
+          if (condition()) return;
+          game.update(.02);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        fail('Cinematic dialogue did not settle.');
+      }
+      game.onGameResize(Vector2(320, 240));
+      await tester.pumpWidget(Directionality(textDirection: TextDirection.ltr, child: GameWidget(game: game)));
+      await game.loaded; await tester.pump();
+      addTearDown(game.onRemove);
+      await _waitForInitialMapActivation(game);
+      game.setDialogueFlutterOverlayPreferred(false);
+      final completion = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
+          eventId: 'event', sceneId: 'scene_cinematic_runtime', executionId: 'dialogue-run', gameState: game.gameStateSnapshot));
+      await settleUntil(() => game.dialoguePresentationListenable.value?.isCurrentLineFullyRevealed == true);
+      final position = game.debugPlayerGridPosition;
+      expect(game.dialoguePresentationListenable.value!.fullText, 'First page.');
+      expect(game.inputAuthoritySnapshot.context, RuntimeInputContext.dialogue);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      game.setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: true);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      game.update(.1);
+      expect(game.dialoguePresentationListenable.value!.fullText, 'First page.');
+      game.setExternalInputLock(RuntimeExternalInputLock.pauseMenu, locked: false);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+      game.update(.1);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+      expect(game.debugPlayerGridPosition, position);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      for (var i = 0; i < 50; i++) { game.update(.02); await Future<void>.delayed(const Duration(milliseconds: 1)); }
+      expect(game.dialoguePresentationListenable.value!.fullText, 'Second page.');
+      await settleUntil(() => game.dialoguePresentationListenable.value?.isCurrentLineFullyRevealed == true);
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      await settleUntil(() => !game.debugIsCinematicPlaying);
+      expect(await completion, isA<NarrativeSceneExecutionCompleted>());
+      expect(game.dialoguePresentationListenable.value, isNull);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+  });
 
   for (final movementKind in [CinematicTimelineStepKind.actorMove, CinematicTimelineStepKind.actorJump]) {
   testWidgets('real player preserves facing during ${movementKind.name}', (

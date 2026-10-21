@@ -63,6 +63,14 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 
   BattlePublicState get state => _facade.state;
+
+  bool isPlayerLineupConfused(int lineupIndex) {
+    final party = state.psdkState.partyForBank(psdkPlayerSlot.bank);
+    if (lineupIndex < 0 || lineupIndex >= party.length) return false;
+    final target = party[lineupIndex];
+    return !target.isFainted &&
+        target.effects.contains(PsdkBattleEffectIds.confusion);
+  }
   BattleEngineDecisionRequest get decisionRequest => _facade.decisionRequest;
 
   RuntimeBattlePresentation get presentation {
@@ -719,6 +727,7 @@ final class RuntimePsdkBattleSessionAdapter {
           ),
           effect: _toLegacyHpHealEffect(hpEffect),
         ),
+      PsdkBattleFullRestoreItemEffect() ||
       PsdkBattleStatusCureItemEffect() ||
       PsdkBattleReviveItemEffect() ||
       PsdkBattlePpRestoreItemEffect() =>
@@ -734,6 +743,7 @@ final class RuntimePsdkBattleSessionAdapter {
         restoreToFull
             ? const BattleBagRestoreToFullHpHealEffect()
             : BattleBagFlatHpHealEffect(amount!),
+      PsdkBattleFullRestoreItemEffect() ||
       PsdkBattleStatusCureItemEffect() ||
       PsdkBattleReviveItemEffect() ||
       PsdkBattlePpRestoreItemEffect() =>

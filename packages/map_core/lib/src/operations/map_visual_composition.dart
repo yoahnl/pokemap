@@ -73,6 +73,7 @@ enum MapVisualCompositionStepKind {
   backgroundEntities,
   foregroundTilesAndPlacedElements,
   foregroundEntities,
+  foregroundBorderLayer,
   collisionOverlay,
 }
 
@@ -253,6 +254,12 @@ MapVisualCompositionPlan _buildAuthoredPlan(
     const MapVisualCompositionStep(
       MapVisualCompositionStepKind.foregroundEntities,
     ),
+    for (final layer in ordered.whereType<BorderLayer>())
+      if (layer.renderInForeground)
+        MapVisualCompositionStep(
+          MapVisualCompositionStepKind.foregroundBorderLayer,
+          layer: layer,
+        ),
   ];
   return MapVisualCompositionPlan(
     semantics: semantics,

@@ -72,6 +72,7 @@ PlayerItemEffectApplication applyPlayerItemEffect(
   required int maxHp,
   required String? moveId,
   required Map<String, int> maxPpByMoveId,
+  bool targetHasBattleConfusion = false,
 }) {
   // BETA-ITM-007 : le support vient de la source unique, pour que l'Item Studio
   // et le runtime ne puissent pas se contredire. Refuser ICI plutôt que dans une
@@ -84,6 +85,12 @@ PlayerItemEffectApplication applyPlayerItemEffect(
     );
   }
   return switch (use.effect) {
+    ProjectItemFullRestoreEffectDefinition() =>
+      _applyFullRestore(
+        target,
+        maxHp: maxHp,
+        targetHasBattleConfusion: targetHasBattleConfusion,
+      ),
     ProjectItemHealHpEffectDefinition(:final mode, :final amount) =>
       _applyHpHealing(target, mode: mode, amount: amount, maxHp: maxHp),
     ProjectItemCureStatusEffectDefinition(:final mode, :final statusIds) =>
@@ -116,6 +123,28 @@ PlayerItemEffectApplication applyPlayerItemEffect(
         PlayerItemUseFailure.unsupportedCapability,
       ),
   };
+}
+
+PlayerItemEffectApplication _applyFullRestore(
+  PlayerPokemon target, {
+  required int maxHp,
+  required bool targetHasBattleConfusion,
+}) {
+  if (target.isFainted) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.wrongTarget,
+    );
+  }
+  if (target.currentHp >= maxHp &&
+      target.statusId.trim().isEmpty &&
+      !targetHasBattleConfusion) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.noEffect,
+    );
+  }
+  return PlayerItemEffectApplication.applied(
+    target.copyWith(currentHp: maxHp, statusId: ''),
+  );
 }
 
 PlayerItemEffectApplication _applyHpHealing(

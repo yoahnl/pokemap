@@ -110,6 +110,7 @@ export 'src/domain/action/battle_action.dart'
         PsdkBattleFleeAction,
         PsdkBattleFightAction,
         PsdkBattleHpHealItemEffect,
+        PsdkBattleFullRestoreItemEffect,
         PsdkBattleItemAction,
         PsdkBattleItemActionEffect,
         PsdkBattleMegaAction,

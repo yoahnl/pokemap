@@ -429,6 +429,7 @@ void _validateEffect(
   final effect = use.effect;
   final targetIsCompatible = switch (effect) {
     ProjectItemHealHpEffectDefinition() ||
+    ProjectItemFullRestoreEffectDefinition() ||
     ProjectItemCureStatusEffectDefinition() ||
     ProjectItemReviveEffectDefinition() =>
       use.target == ProjectItemTargetKind.partyMember,
@@ -456,6 +457,8 @@ void _validateEffect(
   }
 
   switch (effect) {
+    case ProjectItemFullRestoreEffectDefinition():
+      break;
     case ProjectItemHealHpEffectDefinition(:final mode, :final amount):
     case ProjectItemRestorePpEffectDefinition(:final mode, :final amount):
       if ((mode == ProjectItemAmountMode.flat &&

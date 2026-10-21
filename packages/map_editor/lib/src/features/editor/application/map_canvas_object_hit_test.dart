@@ -185,6 +185,7 @@ final class MapCanvasObjectHitTest {
         case MapVisualCompositionStepKind.smartTileLayer:
         case MapVisualCompositionStepKind.tileBackgroundLayer:
         case MapVisualCompositionStepKind.borderLayer:
+        case MapVisualCompositionStepKind.foregroundBorderLayer:
         case MapVisualCompositionStepKind.collisionOverlay:
         case MapVisualCompositionStepKind.objectLayer:
         case MapVisualCompositionStepKind.environmentNoop:
