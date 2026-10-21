@@ -324,7 +324,8 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
 }
 
 ({Object? value, SourcePreservedData reference})? _externalWarpRawEvent(
-    SourceEventAnalyzer analyzer, int mapId, SourceEvent event) {
+    SourceEventAnalyzer analyzer, int mapId, SourceEvent event,
+    {int maximumArrayLength = 256}) {
   if (event.pages.isEmpty) {
     return null;
   }
@@ -413,14 +414,21 @@ SourceEventBlock? _sourceExternalWarpProgramBlock(SourceEventAnalyzer analyzer,
     }
   }
   return (
-    value: _ExternalWarpRawValue(document).read(matches.single.value),
+    value: _ExternalWarpRawValue(document,
+            maximumArrayLength: maximumArrayLength)
+        .read(matches.single.value),
     reference: reference
   );
 }
 
 final class _ExternalWarpRawValue {
-  _ExternalWarpRawValue(this.document);
+  _ExternalWarpRawValue(this.document, {this.maximumArrayLength = 256}) {
+    if (maximumArrayLength < 1 || maximumArrayLength > 1024) {
+      throw RangeError.range(maximumArrayLength, 1, 1024);
+    }
+  }
   final MarshalDocument document;
+  final int maximumArrayLength;
   final active = <int>{};
   var count = 0;
   Object? read(int id, [int depth = 0]) {
@@ -451,7 +459,7 @@ final class _ExternalWarpRawValue {
           }
           return text;
         case MarshalKind.array:
-          if (node.elements.length > 256) {
+          if (node.elements.length > maximumArrayLength) {
             throw const FormatException();
           }
           return [for (final child in node.elements) read(child, depth + 1)];
