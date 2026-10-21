@@ -13,13 +13,23 @@ final class SourceTransferProgramAuthority {
   final Sha256Hash _snapshotHash, _normalizationHash;
   final SourceEventProfile _profile;
 
-  late final SourceEventAnalysis _analysis =
-      SourceEventAnalyzer.forProject(_source, profile: _profile).analyze();
+  late final SourceEventAnalysis _analysis = _analyze();
   late final SourceParallelDormancyAuditor _parallelDormancyAuditor =
       SourceParallelDormancyAuditor.forProject(_source, profile: _profile);
   int _executionContextAcquisitionCount = 0;
+  int _analysisComputationCount = 0;
+  int _analysisQualificationCount = 0;
 
   int get executionContextAcquisitionCount => _executionContextAcquisitionCount;
+  int get analysisComputationCount => _analysisComputationCount;
+  int get analysisQualificationCount => _analysisQualificationCount;
+
+  SourceEventAnalysis _analyze() {
+    final result =
+        SourceEventAnalyzer.forProject(_source, profile: _profile).analyze();
+    _analysisComputationCount++;
+    return result;
+  }
 
   ({
     SourceEventAnalysis analysis,
@@ -50,7 +60,9 @@ final class SourceTransferProgramAuthority {
       throw const NativeWriteException('events.transfer.authority_binding',
           'Transfer qualification requires its exact source interpretation context.');
     }
-    return this.analysis;
+    final authoritative = this.analysis;
+    _analysisQualificationCount++;
+    return authoritative;
   }
 
   void _validateSource(NormalizedSourceProject source) {

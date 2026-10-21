@@ -417,7 +417,9 @@ final class SourceEventExecutionContextResolver {
     SourceTransferProgramAuthority? authority,
   }) async {
     cancellation?.check();
-    final owned = authority?.executionContextFor(source);
+    final ownedAuthority =
+        authority ?? SourceTransferProgramAuthority.forSource(source);
+    final owned = ownedAuthority.executionContextFor(source);
     return _read(
         source: source,
         base: base,
@@ -430,8 +432,9 @@ final class SourceEventExecutionContextResolver {
         stairProgram: stairProgram,
         elevatorProgram: elevatorProgram,
         staticDoorAnalysis: staticDoorAnalysis,
-        authoritativeSourceAnalysis: owned?.analysis,
-        parallelDormancyAuditor: owned?.parallelDormancyAuditor);
+        authority: ownedAuthority,
+        authoritativeSourceAnalysis: owned.analysis,
+        parallelDormancyAuditor: owned.parallelDormancyAuditor);
   }
 
   Future<Map<ConverterId, SourceEventExecutionContext>> readStaticTransfers({
@@ -521,14 +524,11 @@ final class SourceEventExecutionContextResolver {
         source: source, base: base, nativeMaps: nativeMaps,
         mutations: baseMutations, files: files, limits: limits,
         cancellation: cancellation);
-    final owned = authority?.executionContextFor(source);
-    final authoritativeSourceAnalysis = owned?.analysis ??
-        SourceEventAnalyzer.forProject(source,
-                profile: SourceEventProfile.forProject(source))
-            .analyze();
-    final parallelDormancyAuditor = owned?.parallelDormancyAuditor ??
-        SourceParallelDormancyAuditor.forProject(source,
-            profile: authoritativeSourceAnalysis.profile);
+    final ownedAuthority =
+        authority ?? SourceTransferProgramAuthority.forSource(source);
+    final owned = ownedAuthority.executionContextFor(source);
+    final authoritativeSourceAnalysis = owned.analysis;
+    final parallelDormancyAuditor = owned.parallelDormancyAuditor;
     final result = <ConverterId, SourceEventExecutionContext>{};
     final witnesses = <String, Map<String, Object?>>{};
     final retained = <String, Future<NormalizedSourceProject>>{};
@@ -572,6 +572,7 @@ final class SourceEventExecutionContextResolver {
           holeProgram: hole,
           elevatorProgram: elevator,
           staticDoorAnalysis: staticProgram == null ? null : analysis,
+          authority: ownedAuthority,
           authoritativeSourceAnalysis: authoritativeSourceAnalysis,
           parallelDormancyAuditor: parallelDormancyAuditor,
           surfBaseAdmission: surfBaseAdmission,
@@ -593,6 +594,7 @@ final class SourceEventExecutionContextResolver {
     required Map<int, MapData> nativeMaps,
     required SourceFilePort files,
     required NativeWriteLimits limits,
+    required SourceTransferProgramAuthority authority,
     ScanCancellation? cancellation,
     SourceStaticDoorProgram? staticDoorProgram,
     SourceRoutedDoorProgram? routedDoorProgram,
@@ -1012,7 +1014,9 @@ final class SourceEventExecutionContextResolver {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
     freshAnalysis ??= SourceEventAnalyzer.forProject(source, profile: profile).analyze();
-    final inventoryControllers = sourceInventoryControllerPrograms(source: source, analysis: freshAnalysis);
+    final inventoryControllers = sourceInventoryControllerPrograms(
+        source: source, analysis: freshAnalysis,
+        authority: authority);
     final inventoryControllerMaps = inventoryControllers.values.map((program) => program.sourceMapId).toSet();
     final dormancyScope = attestedMapIds.intersection(representedMapIds).difference(inventoryControllerMaps);
     final dormancy = dormancyScope.isEmpty ? null : (parallelDormancyAuditor ??

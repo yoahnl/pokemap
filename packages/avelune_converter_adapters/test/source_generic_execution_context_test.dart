@@ -416,6 +416,31 @@ void main() {
     });
 
     test(
+      'inventory qualification reuses one authority across transfers and direct reads',
+      () async {
+        final authority = SourceTransferProgramAuthority.forSource(source);
+        final batch = await const SourceEventExecutionContextResolver().readTransfers(
+          source: source,
+          base: draft(),
+          nativeMaps: {83: native},
+          files: fixture.files,
+          programs: programs,
+          analysis: analysis,
+          authority: authority,
+        );
+        expect(batch, hasLength(2));
+        expect(batch.values.every((context) => context.isQualified), isTrue);
+        expect(authority.analysisComputationCount, 1);
+        expect(authority.analysisQualificationCount, 2);
+        final single = await read(draft(), authority: authority);
+        expect(single.isQualified, isTrue);
+        expect(authority.analysisComputationCount, 1);
+        expect(authority.analysisQualificationCount, 3);
+        expect(authority.executionContextAcquisitionCount, 2);
+      },
+    );
+
+    test(
       'owned contexts retain exact native base and map refusals',
       () async {
         final authority = SourceTransferProgramAuthority.forSource(source);
