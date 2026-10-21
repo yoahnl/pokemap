@@ -40,7 +40,11 @@ class _ConverterPlayableStartSetupState
   ConverterPlayableStartMap? get _map =>
       widget.inspection.maps.where((value) => value.id == _mapId).firstOrNull;
 
-  bool get _locked => _busy || _applied || widget.inspection.configured;
+  bool get _locked =>
+      _busy ||
+      _applied ||
+      widget.inspection.configured ||
+      widget.inspection.existingNewGame;
 
   bool get _valid =>
       !_locked &&
@@ -105,6 +109,18 @@ class _ConverterPlayableStartSetupState
 
   @override
   Widget build(BuildContext context) {
+    if (widget.inspection.existingNewGame) {
+      return const StudioPanel(
+        title: 'Démarrage du projet',
+        children: [
+          StudioNotice('Un démarrage est déjà déclaré dans ce projet.'),
+          SizedBox(height: 12),
+          Text(
+            'Ouvrez le projet dans Avelune Studio pour modifier son démarrage ou lancer une nouvelle partie.',
+          ),
+        ],
+      );
+    }
     final mapQuery = _mapSearch.text.trim().toLowerCase();
     final speciesQuery = _speciesSearch.text.trim().toLowerCase();
     final maps = widget.inspection.maps.where(

@@ -7,6 +7,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets(
+    'existing project entry shows Studio guidance without starter or replacement controls',
+    (tester) async {
+      var calls = 0;
+      await _pump(
+        tester,
+        existingNewGame: true,
+        species: const [],
+        onApply:
+            ({
+              required mapId,
+              required spawnId,
+              required starterSpeciesIds,
+              required starterLevel,
+            }) async {
+              calls++;
+            },
+      );
+      expect(find.text('Démarrage du projet'), findsOneWidget);
+      expect(
+        find.text('Un démarrage est déjà déclaré dans ce projet.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Ouvrez le projet dans Avelune Studio pour modifier son démarrage ou lancer une nouvelle partie.',
+        ),
+        findsOneWidget,
+      );
+      for (final key in [
+        'playable-start-map',
+        'playable-start-spawn',
+        'playable-start-species-search',
+        'playable-start-level',
+        'apply-playable-start',
+      ]) {
+        expect(find.byKey(ValueKey(key)), findsNothing);
+      }
+      expect(find.textContaining('starters'), findsNothing);
+      expect(find.textContaining('introduction source'), findsNothing);
+      expect(find.textContaining('prêt à jouer'), findsNothing);
+      expect(calls, 0);
+    },
+  );
   testWidgets('requires a named spawn and two explicit native starters', (
     tester,
   ) async {
@@ -276,6 +320,7 @@ Future<void> _pump(
   ConverterPlayableStartApply? onApply,
   List<ConverterPlayableStartSpecies>? species,
   bool configured = false,
+  bool existingNewGame = false,
   String revision = 'revision-one',
 }) async {
   tester.view.physicalSize = const Size(1200, 1400);
@@ -292,6 +337,7 @@ Future<void> _pump(
             inspection: ConverterPlayableStartInspection(
               revision: revision,
               configured: configured,
+              existingNewGame: existingNewGame,
               maps: [
                 ConverterPlayableStartMap(
                   id: 'town',

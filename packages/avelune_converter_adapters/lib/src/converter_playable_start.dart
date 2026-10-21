@@ -43,6 +43,7 @@ final class ConverterPlayableStartInspection {
       required Iterable<ConverterPlayableStartAvatar> avatars,
       required Iterable<ConverterPlayableStartSpecies> species,
       this.configured = false,
+      this.existingNewGame = false,
       this.resumable = false})
       : maps = List.unmodifiable(maps),
         avatars = List.unmodifiable(avatars),
@@ -52,6 +53,7 @@ final class ConverterPlayableStartInspection {
   final List<ConverterPlayableStartAvatar> avatars;
   final List<ConverterPlayableStartSpecies> species;
   final bool configured;
+  final bool existingNewGame;
   final bool resumable;
 }
 
@@ -89,17 +91,31 @@ final class ConverterPlayableStartService {
     final session = await _StartSession.open(projectPath, allowedRootPath);
     try {
       final snapshot = await session.load();
-      final data = await _loadData(session, snapshot);
       final config = snapshot.manifest.newGame;
       final owned = _ownedConfig(config);
       final scene =
           snapshot.manifest.scenes.where((entry) => entry.id == sceneId);
-      final configured = owned &&
-          config.preSessionSceneId == sceneId &&
-          scene.length == 1 &&
-          scene.single.executionProfile == SceneExecutionProfile.preSession &&
-          !diagnoseSceneAgainstProject(scene.single, snapshot.manifest)
-              .hasErrors;
+      final resumable =
+          owned && config.preSessionSceneId == null && scene.isEmpty;
+      if (config.enabled && !resumable) {
+        _validateExistingNewGame(snapshot);
+        return ConverterPlayableStartInspection(
+            revision: snapshot.revision,
+            maps: [
+              for (final map in snapshot.maps)
+                ConverterPlayableStartMap(id: map.id, name: map.name, spawns: [
+                  for (final entity in map.entities)
+                    if (_playerSpawn(entity))
+                      ConverterPlayableStartSpawn(
+                          id: entity.id, name: entity.name),
+                ]),
+            ],
+            avatars: const [],
+            species: const [],
+            configured: true,
+            existingNewGame: true);
+      }
+      final data = await _loadData(session, snapshot);
       return ConverterPlayableStartInspection(
           revision: snapshot.revision,
           maps: [
@@ -122,11 +138,64 @@ final class ConverterPlayableStartService {
                   name:
                       species.names['fr'] ?? species.names['en'] ?? species.id)
           ],
-          configured: configured,
-          resumable:
-              owned && config.preSessionSceneId == null && scene.isEmpty);
+          resumable: resumable);
     } finally {
       await session.close();
+    }
+  }
+
+  void _validateExistingNewGame(ProjectSnapshot snapshot) {
+    try {
+      final config = snapshot.manifest.newGame;
+      final project = const CampaignContentActions()
+          .updateNewGame(snapshot.manifest, config, maps: snapshot.maps);
+      final map = snapshot.mapById(config.startMapId.trim());
+      if (map == null) throw StateError('Missing authored start map.');
+      MapValidator.validate(map, projectDialogueContext: project);
+      final configuredSpawn = config.startSpawnId?.trim();
+      final defaultSpawn = map.mapMetadata.defaultSpawnId?.trim();
+      final preferred = configuredSpawn?.isNotEmpty == true
+          ? configuredSpawn
+          : defaultSpawn?.isNotEmpty == true
+              ? defaultSpawn
+              : null;
+      final candidates = map.entities.where(_playerSpawn).toList()
+        ..sort((left, right) => left.id.compareTo(right.id));
+      final spawn = preferred == null
+          ? candidates.firstOrNull
+          : map.entities.where((entity) => entity.id == preferred).firstOrNull;
+      if (spawn == null ||
+          !_playerSpawn(spawn) ||
+          spawn.pos.x < 0 ||
+          spawn.pos.y < 0 ||
+          spawn.pos.x >= map.size.width ||
+          spawn.pos.y >= map.size.height) {
+        throw StateError('Missing or invalid authored player spawn.');
+      }
+      final sceneId = config.preSessionSceneId?.trim();
+      if (sceneId != null && sceneId.isNotEmpty) {
+        final scene =
+            project.scenes.singleWhere((entry) => entry.id == sceneId);
+        if (!buildSceneRuntimePlan(scene).canBuild) {
+          throw StateError(
+              'The authored entry Scene cannot build a native plan.');
+        }
+      }
+      final state = createNewGameStateFromProject(
+          project: project,
+          startMap: map,
+          initialRecoveryMap:
+              snapshot.mapById(config.initialRecoveryPoint?.mapId ?? ''),
+          tileWidthPx: project.settings.tileWidth,
+          tileHeightPx: project.settings.tileHeight);
+      if (state.currentMapId != map.id || state.playerPosition != spawn.pos) {
+        throw StateError(
+            'The native builder did not preserve the authored entry.');
+      }
+    } on Object {
+      throw const ConverterPlayableStartException(
+          'playable_start.existing_invalid',
+          'Le démarrage déclaré est invalide. Vérifiez sa carte, son point de départ, sa scène et son point de récupération dans Studio.');
     }
   }
 
@@ -147,6 +216,13 @@ final class ConverterPlayableStartService {
         throw const ConverterPlayableStartException(
             'playable_start.stale_revision',
             'Le projet a changé. Relis les choix avant de configurer son départ.');
+      }
+      final authored = snapshot.manifest.newGame;
+      if (authored.enabled &&
+          (!_ownedConfig(authored) || authored.preSessionSceneId != null)) {
+        throw const ConverterPlayableStartException(
+            'playable_start.already_authored',
+            'Un départ ou une scène existe déjà. Il ne sera pas remplacé.');
       }
       final ids = List<String>.of(starterSpeciesIds)..sort();
       if (ids.length < 2 ||

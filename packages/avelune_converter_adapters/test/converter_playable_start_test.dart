@@ -9,6 +9,84 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'inspects an existing canonical empty-party start without Pokemon catalogs or mutations',
+      () async {
+    final fixture = await _Fixture.emptyCanonical();
+    addTearDown(fixture.dispose);
+    final before = await fixture.contents(includeLocalState: true);
+    final inspected = await const ConverterPlayableStartService().inspect(
+        projectPath: fixture.root.path, allowedRootPath: fixture.root.path);
+    expect(inspected.configured, isTrue);
+    expect(inspected.existingNewGame, isTrue);
+    expect(inspected.resumable, isFalse);
+    expect(inspected.species, isEmpty);
+    expect(await fixture.contents(includeLocalState: true), before);
+    await expectLater(
+        const ConverterPlayableStartService().apply(
+            projectPath: fixture.root.path,
+            allowedRootPath: fixture.root.path,
+            expectedRevision: inspected.revision,
+            mapId: 'intro',
+            spawnId: 'entry',
+            starterSpeciesIds: const []),
+        _error('playable_start.already_authored'));
+    expect(await fixture.contents(includeLocalState: true), before);
+  });
+  test(
+      'rejects invalid existing start references without changing a portable project',
+      () async {
+    final fixture = await _Fixture.emptyCanonical();
+    addTearDown(fixture.dispose);
+    final project = await fixture.project();
+    final original = project.newGame.toJson();
+    for (final replacement in [
+      {...original, 'startMapId': 'missing'},
+      {...original, 'startSpawnId': 'missing'},
+      {...original, 'preSessionSceneId': 'missing'},
+      {
+        ...original,
+        'initialRecoveryPoint': {
+          'mapId': 'home',
+          'position': {'x': 2, 'y': 1},
+          'facing': 'south'
+        }
+      },
+    ]) {
+      await fixture.write(
+          'project.json',
+          project
+              .copyWith(newGame: ProjectNewGameConfig.fromJson(replacement))
+              .toJson());
+      final before = await fixture.contents(includeLocalState: true);
+      await expectLater(
+          const ConverterPlayableStartService().inspect(
+              projectPath: fixture.root.path,
+              allowedRootPath: fixture.root.path),
+          throwsA(anything));
+      expect(await fixture.contents(includeLocalState: true), before);
+    }
+  });
+  test(
+      'recognizes an existing direct empty-party start without a pre-session scene',
+      () async {
+    final fixture = await _Fixture.emptyCanonical();
+    addTearDown(fixture.dispose);
+    final project = await fixture.project();
+    await fixture.write(
+        'project.json',
+        project
+            .copyWith(
+                newGame: ProjectNewGameConfig.fromJson(
+                    {...project.newGame.toJson(), 'preSessionSceneId': null}))
+            .toJson());
+    final before = await fixture.contents(includeLocalState: true);
+    final inspected = await const ConverterPlayableStartService().inspect(
+        projectPath: fixture.root.path, allowedRootPath: fixture.root.path);
+    expect(inspected.existingNewGame, isTrue);
+    expect(inspected.species, isEmpty);
+    expect(await fixture.contents(includeLocalState: true), before);
+  });
   test('declares a native start with a genuine starter selection', () async {
     final fixture = await _Fixture.create();
     addTearDown(fixture.dispose);
@@ -320,6 +398,55 @@ final class _Fixture {
   final Directory root;
   final MapData map;
 
+  static Future<_Fixture> emptyCanonical() async {
+    final root =
+        await Directory.systemTemp.createTemp('existing-canonical-start-');
+    const map = MapData(
+        id: 'intro',
+        name: 'Intro',
+        size: GridSize(width: 3, height: 3),
+        entities: [
+          MapEntity(
+              id: 'entry',
+              kind: MapEntityKind.spawn,
+              pos: GridPos(x: 1, y: 1),
+              spawn: MapEntitySpawnData(
+                  role: EntitySpawnRole.playerStart,
+                  facing: EntityFacing.east)),
+        ]);
+    const recovery =
+        MapData(id: 'home', name: 'Home', size: GridSize(width: 2, height: 2));
+    const config = ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'intro',
+        startSpawnId: 'entry',
+        initialRecoveryPoint: ProjectNewGameRecoveryPoint(
+            mapId: 'home',
+            position: GridPos(x: 0, y: 1),
+            facing: EntityFacing.south));
+    const manifest = ProjectManifest(
+        name: 'Existing entry',
+        maps: [
+          ProjectMapEntry(
+              id: 'intro', name: 'Intro', relativePath: 'maps/intro.json'),
+          ProjectMapEntry(
+              id: 'home', name: 'Home', relativePath: 'maps/home.json'),
+        ],
+        tilesets: [],
+        newGame: config);
+    final project = const SceneActions().createPreSessionScene(manifest,
+        maps: [map, recovery],
+        sceneId: 'declared-identity',
+        name: 'Identity',
+        templateId: 'identitySetup',
+        setAsEntrypoint: true);
+    final fixture = _Fixture(root, map);
+    await fixture.write('project.json', project.toJson());
+    await fixture.write('maps/intro.json', map.toJson());
+    await fixture.write('maps/home.json', recovery.toJson());
+    return fixture;
+  }
+
   static Future<_Fixture> create({bool enabled = true}) async {
     final root =
         await Directory.systemTemp.createTemp('converter_playable_start');
@@ -453,13 +580,15 @@ final class _Fixture {
   Future<ProjectManifest> project() async => ProjectManifest.fromJson(
       jsonDecode(await File('${root.path}/project.json').readAsString())
           as Map<String, dynamic>);
-  Future<Map<String, String>> contents() async => {
+  Future<Map<String, String>> contents(
+          {bool includeLocalState = false}) async =>
+      {
         for (final file in await root
             .list(recursive: true)
             .where((entry) => entry is File)
             .cast<File>()
             .toList())
-          if (!file.path.contains('/.pokemap/'))
+          if (includeLocalState || !file.path.contains('/.pokemap/'))
             file.path: base64Encode(await file.readAsBytes())
       };
   Future<void> dispose() => root.delete(recursive: true);
