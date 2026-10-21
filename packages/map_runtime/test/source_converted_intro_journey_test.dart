@@ -501,6 +501,7 @@ Future<ConvertedSourceIntroMounted> mountConvertedSourceIntroGame(
   ConvertedSourceIntroDiskSave repository,
   GameState initial, {
   SaveData? restored,
+  bool loadActualPlayerServiceCaps = false,
 }) async {
   final bundle = await loadRuntimeMapBundle(
     projectFilePath: projectFile,
@@ -523,8 +524,13 @@ Future<ConvertedSourceIntroMounted> mountConvertedSourceIntroGame(
       RuntimeExternalInputLock.playerService,
       locked: locked,
     ),
-    loadRecoveryCaps: (_) async =>
-        const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
+    loadRecoveryCaps: (state) async => loadActualPlayerServiceCaps
+        ? loadRuntimePlayerServiceRecoveryCaps(
+            gameState: state,
+            projectRootDirectory: path.dirname(projectFile),
+            pokemonConfig: manifest.pokemon,
+          )
+        : const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
     projectRootDirectory: path.dirname(projectFile),
     pokemonConfig: manifest.pokemon,
   );
