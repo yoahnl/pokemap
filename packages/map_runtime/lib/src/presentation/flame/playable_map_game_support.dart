@@ -7,6 +7,8 @@ final class _PlayableMapCinematicRuntimeHost
 
   final PlayableMapGame _game;
   TextComponent? _dialogueLineOverlay;
+  String? _dialogueLine;
+  DialoguePresentationSnapshot? dialoguePresentation;
   RectangleComponent? _fadeOverlay;
   Paint? _fadePaint;
   static const double _emoteFrameStepSeconds = 0.28;
@@ -19,7 +21,7 @@ final class _PlayableMapCinematicRuntimeHost
   int _emoteRequestSerial = 0;
   final Map<String, RectangleComponent> _fxOverlays = {};
 
-  String? get dialogueLine => _dialogueLineOverlay?.text;
+  String? get dialogueLine => _dialogueLine;
 
   double? get fadeOpacity => _fadePaint?.color.a;
 
@@ -131,9 +133,38 @@ final class _PlayableMapCinematicRuntimeHost
 
   @override
   void showCinematicDialogueLine(String? text) {
+    final previous = dialoguePresentation;
+    dialoguePresentation = null;
+    if (previous != null &&
+        identical(_game._pendingDialoguePresentationSnapshot ??
+            _game._dialoguePresentationNotifier.value, previous)) {
+      _game._setDialoguePresentationSnapshot(null);
+    }
+    _dialogueLine = text == null || text.trim().isEmpty ? null : text;
+    if (_dialogueLine case final line?) {
+      final content = splitDialogueSpeakerLine(line);
+      final snapshot = DialoguePresentationSnapshot(
+        revision: _game._nextDialoguePresentationRevision(),
+        mode: DialoguePresentationMode.line,
+        nodeTitle: null,
+        speaker: content.speaker,
+        text: content.text,
+        fullText: content.text,
+        isCurrentLineFullyRevealed: true,
+        isLastContent: false,
+        choices: const [],
+      );
+      dialoguePresentation = snapshot;
+      _game._setDialoguePresentationSnapshot(snapshot);
+    }
+    refreshDialogueLineOverlay();
+  }
+
+  void refreshDialogueLineOverlay() {
     _dialogueLineOverlay?.removeFromParent();
     _dialogueLineOverlay = null;
-    if (text == null || text.trim().isEmpty) return;
+    final text = _dialogueLine;
+    if (text == null || _game._preferDialogueFlutterOverlay) return;
     final component = TextComponent(
       text: text,
       textRenderer: TextPaint(

@@ -652,6 +652,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   DialogueOverlayComponent? _dialogueOverlay;
   RuntimeDialogueTextSpeed _dialogueTextSpeed =
       RuntimeDialogueTextSpeed.instant;
+  int _dialoguePresentationRevision = 0;
   final ValueNotifier<DialoguePresentationSnapshot?>
       _dialoguePresentationNotifier =
       ValueNotifier<DialoguePresentationSnapshot?>(null,
@@ -2415,6 +2416,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   void setDialogueFlutterOverlayPreferred(bool preferred) {
     _preferDialogueFlutterOverlay = preferred;
     _dialogueOverlay?.setRenderInFlame(!preferred);
+    _cinematicRuntimeHost.refreshDialogueLineOverlay();
   }
 
   ValueListenable<DialoguePresentationSnapshot?>
@@ -2463,9 +2465,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final snapshot = _dialoguePresentationNotifier.value;
     final overlay = _dialogueOverlay;
     if (snapshot == null ||
-        overlay == null ||
         !validateDialoguePresentationCommand(snapshot, command).accepted) {
       return false;
+    }
+    if (overlay == null) {
+      if (command is! DialogueAdvanceCommand ||
+          !identical(snapshot, _cinematicRuntimeHost.dialoguePresentation) ||
+          !inputAuthoritySnapshot.acceptsRuntimeInput ||
+          inputAuthoritySnapshot.context != RuntimeInputContext.cinematic ||
+          !_cinematicRuntimeSink.signalDialogueLineComplete()) {
+        return false;
+      }
+      _cinematicRuntimeController.update(Duration.zero);
+      return true;
     }
     switch (command) {
       case DialogueAdvanceCommand():
@@ -2480,6 +2492,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     return true;
   }
+
+  int _nextDialoguePresentationRevision() => ++_dialoguePresentationRevision;
 
   void _setDialoguePresentationSnapshot(
     DialoguePresentationSnapshot? snapshot,
@@ -15223,6 +15237,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       textSpeed: _dialogueTextSpeed,
       renderInFlame: !_preferDialogueFlutterOverlay,
       onPresentationSnapshotChanged: _setDialoguePresentationSnapshot,
+      nextPresentationRevision: _nextDialoguePresentationRevision,
       portraitResolver: _dialoguePortraitResolver,
       feedbackPlaybackPort: session.lineFeedback.any((feedback) => feedback.audioCue != null)
           ? _dialogueFeedbackAudio

@@ -2775,11 +2775,15 @@ void main() {
     );
   });
 
-  testWidgets('renders the runtime dialogue overlay and routes a panel tap',
+  for (final context in [RuntimeInputContext.dialogue, RuntimeInputContext.cinematic]) {
+  testWidgets('renders the ${context.name} dialogue overlay and routes a mobile panel tap',
       (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final authority = ValueNotifier<RuntimeInputAuthoritySnapshot>(
-      const RuntimeInputAuthoritySnapshot(
-        context: RuntimeInputContext.dialogue,
+      RuntimeInputAuthoritySnapshot(
+        context: context,
       ),
     );
     final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(
@@ -2820,6 +2824,7 @@ void main() {
     );
 
     expect(find.text('Appuie ici pour continuer.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('runtime-player-touch-movement-zone')), findsNothing);
     await tester.tap(
       find.byKey(const ValueKey<String>('dialogue-tap-zone')),
     );
@@ -2843,6 +2848,7 @@ void main() {
     expect(find.text('Appuie ici pour continuer.'), findsOneWidget);
     expect(commands, hasLength(1));
   });
+  }
 
   testWidgets('renders the canonical battle overlay and routes its command',
       (tester) async {

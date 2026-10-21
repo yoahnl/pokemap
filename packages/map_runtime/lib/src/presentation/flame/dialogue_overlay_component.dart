@@ -22,6 +22,7 @@ class DialogueOverlayComponent extends PositionComponent {
     required Vector2 viewportSize,
     this.textSpeed = RuntimeDialogueTextSpeed.instant,
     this.onPresentationSnapshotChanged,
+    this.nextPresentationRevision,
     this.portraitResolver,
     this.feedbackPlaybackPort,
     this.iconBytesLoader,
@@ -42,6 +43,7 @@ class DialogueOverlayComponent extends PositionComponent {
   final OnDialogueFinished onFinished;
   final ValueChanged<DialoguePresentationSnapshot?>?
       onPresentationSnapshotChanged;
+  final int Function()? nextPresentationRevision;
   final DialoguePortraitResolver? portraitResolver;
   final DialogueFeedbackPlaybackPort? feedbackPlaybackPort;
   final DialogueIconBytesLoader? iconBytesLoader;
@@ -530,7 +532,7 @@ class DialogueOverlayComponent extends PositionComponent {
   void _publishPresentationSnapshot() {
     final snapshot = buildDialoguePresentationSnapshot(
       session: _session,
-      revision: ++_presentationRevision,
+      revision: nextPresentationRevision?.call() ?? ++_presentationRevision,
       visibleText: visibleText,
       isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
       resolvePortrait: portraitResolver?.resolve,
