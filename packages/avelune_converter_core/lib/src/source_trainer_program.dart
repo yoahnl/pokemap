@@ -15,6 +15,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
       required List<String> afterWinLines,
       required this.victoryContinuation,
       this.gymLeader,
+      required this.defeatPolicy,
       this.gymStageBody,
       this.gymStage,
       required this.endSpeechComment,
@@ -41,6 +42,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
   final List<String> challengeLines, afterWinLines;
   final SourceEventBlock victoryContinuation;
   final SourceGymLeaderPolicy? gymLeader;
+  final SourceTrainerDefeatPolicy? defeatPolicy;
   final SourceEventBlock? gymStageBody;
   final SourceGymLeaderStage? gymStage;
   final SourcePreservedData rawDataRef;
@@ -93,6 +95,7 @@ final class SourceTrainerProgramNode extends SourceEventNode {
         'trainerType': trainerType,
         'trainerName': trainerName,
         'trainerVersion': trainerVersion,
+        if (defeatPolicy != null) 'defeatPolicy': defeatPolicy!.toJson(),
         'detectionDistance': detectionDistance,
         'sourceTriggerCode': sourceTriggerCode,
         'sourceMoveType': sourceMoveType,
@@ -390,6 +393,7 @@ SourceEventBlock? _sourceTrainerProgramBlock(SourceEventAnalyzer analyzer,
           trainerType: battleMatch[1]!,
           trainerName: arguments.name,
           trainerVersion: arguments.version,
+          defeatPolicy: _sourceTrainerDefeatPolicy(analyzer),
           detectionDistance: distance,
           defeatedFactId: analyzer.selfFactId(mapId, event.sourceEventId, 'A'),
           afterDialogueFacesPlayer:

@@ -37,6 +37,7 @@ part 'src/source_center_services.dart';
 part 'src/source_automatic_center_services.dart';
 part 'src/source_shop_program.dart';
 part 'src/source_trainer_program.dart';
+part 'src/source_trainer_defeat_policy.dart';
 part 'src/source_gym_leader_program.dart';
 part 'src/source_passive_autorun.dart';
 part 'src/source_pbs.dart';

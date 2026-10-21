@@ -1393,6 +1393,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'entity.upsert',
           'entity.create',
           'campaign.new_game.update',
+          'campaign.defeat_recovery.update',
           'trigger.create',
           'warp.create',
           'dialogue.create',
@@ -1521,6 +1522,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final shops = <ShopDefinition>[];
   String? defaultPlayerCharacterId;
   ProjectNewGameConfig? sourceNewGame;
+  ProjectDefeatRecoveryConfig? sourceDefeatRecovery;
   final assetRecords = <AssetRecord>[];
   var mapCells = 0;
   final expandedMutations =
@@ -2370,6 +2372,17 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
                             customAnimationDefinitions)),
                 cinematic: cinematic)
             .cinematics;
+      case 'campaign.defeat_recovery.update':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {'defeatRecovery'});
+        final fresh = semantics.events?.freshEntry;
+        if (fresh == null || sourceDefeatRecovery != null ||
+            canonicalJsonOf(parameters['defeatRecovery'], limits: limits.jsonLimits) !=
+                canonicalJsonOf(fresh.defeatRecovery.toJson(), limits: limits.jsonLimits)) {
+          throw const NativeWriteException('native.events.defeat_recovery',
+              'Defeat recovery requires its exact regenerated source marker.');
+        }
+        sourceDefeatRecovery = fresh.defeatRecovery;
       case 'campaign.new_game.update':
         semantics.requireOperation(mutation);
         _allowParameters(parameters, const {'newGame'});
@@ -2476,7 +2489,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     }
   }
   final freshEntry = semantics.events?.freshEntry;
-  if ((freshEntry == null) != (sourceNewGame == null)) {
+  if ((freshEntry == null) != (sourceNewGame == null) ||
+      (freshEntry == null) != (sourceDefeatRecovery == null)) {
     throw const NativeWriteException('native.events.new_game_incomplete',
         'The regenerated source entry and its final new game action must agree.');
   }
@@ -2517,6 +2531,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               (projectedCatalogs?.documents.isNotEmpty ?? false)),
       encounterTables: projectedCatalogs?.encounterTables ?? const [],
       trainers: trainersById.values.toList(),
+      defeatRecovery: sourceDefeatRecovery,
       cinematicMediaAssets: mediaAssets,
       facts: [...?projectedEvents?.facts, ...?freshEntry?.facts],
       worldRules: projectedEvents?.worldRules ?? const [],

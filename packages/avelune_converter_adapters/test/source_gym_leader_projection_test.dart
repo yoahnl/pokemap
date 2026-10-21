@@ -250,7 +250,7 @@ SourceEventDefinition analyzeGym(NormalizedSourceProject source) =>
         scriptsArchiveHash: fixtureSourceInterpretationProfile.scriptsArchiveHash,
         interpretationProfile: fixtureSourceInterpretationProfile)).analyze().events.single;
 
-Future<({GameState state, List<String> effects, List<String> dialogues})> _run(SourceEventProjection projection,
+Future<({GameState state, List<String> effects, List<String> dialogues})> runSourceGymProjectionForTest(SourceEventProjection projection,
     SceneAsset scene, String outcome, {GameState initial = const GameState(saveId: 'gym')}) async {
   var state = initial;
   final effects = <String>[];
@@ -368,110 +368,39 @@ void main() {
     expect(binding.sourceEntryComparisonCount, beforeRefusal);
   });
 
-  test('qualified authored member moves remain admitted through the trainer event header guard', () async {
+  test(
+      'authored trainer bindings remain qualified while synthetic engine loss policy stays refused',
+      () async {
     final fixture = await _fixture(authoredTackle: true);
-    expect(fixture.trainers.byEventIdentity.values.single.nativeTrainer.team.single.moves, ['tackle']);
-    expect((fixture.projection.semanticEvidence['events'] as List).single['status'], 'adaptedStaticSemantics');
+    final trainer = fixture.trainers.byEventIdentity.values.single;
+    expect(trainer.nativeTrainer.team.single.moves, ['tackle']);
+    expect(trainer.programs.first.defeatPolicy, isNull);
+    _expectUnattestedGymRefused(fixture.projection);
   });
   for (final name in ['Blaine', 'Giovanni']) {
-    test('complete $name stages project without dropping conditional dialogue or post-victory actions', () async {
+    test(
+        '$name complete stages remain bound but cannot bypass unattested defeat rules',
+        () async {
       final fixture = await _fixture(gymName: name);
-      final row = (fixture.projection.semanticEvidence['events'] as List).single as Map;
-      expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
-      final projection = fixture.projection;
-      final win = await _run(projection, projection.scenes.firstWhere((s) => s.metadata['sourcePageIndex'] == '0'), 'victory');
-      expect(win.effects, ['badge', 'CT', 'count', 'flag']);
-      final after = projection.scenes.firstWhere((s) => s.metadata['sourcePageIndex'] == '1');
-      if (name == 'Blaine') {
-        final analyzer = SourceEventAnalyzer.forProject(fixture.source, profile: fixture.analysis.profile);
-        final writer = NarrativeFactRuntimeWriter(NarrativeFactRuntimeResolver.fromFacts(projection.facts));
-        for (final value in [0, 5, -1]) {
-          final set = writer.setFactValue(gameState: win.state,
-              factId: sourceEventIntegerVariableBindingId(analyzer.variableFactId(38)), value: NarrativeValue.integer(value));
-          final result = await _run(projection, after, 'victory', initial: set.gameState);
-          expect(result.effects, isEmpty);
-          expect(result.dialogues.any((text) => text.contains('A complete memory $value.')), value != 0);
-          expect(result.dialogues.where((text) => text.contains('A complete memory')), hasLength(value == 0 ? 0 : 1));
-        }
-      } else {
-        final departure = await _run(projection, after, 'victory', initial: win.state);
-        expect(departure.effects, ['sound', 'tone', 'wait', 'flag', 'tone']);
-        final pickup = projection.scenes.firstWhere((s) => s.metadata['sourcePageIndex'] == '2');
-        final collected = await _run(projection, pickup, 'victory', initial: departure.state);
-        expect(collected.effects, ['CT', 'flag']);
-        final removed = projection.scenes.firstWhere((s) => s.metadata['sourcePageIndex'] == '3');
-        final finalState = await _run(projection, removed, 'victory', initial: collected.state);
-        expect(finalState.effects, isEmpty);
-        expect(finalState.state.toJson(), collected.state.toJson());
-        final variants = projection.nativeMaps[1]!.entities.single.presentation!.variants;
-        expect(variants.where((v) => v.characterId == null), hasLength(2));
-        expect(variants.where((v) => v.characterId == null).every((v) => !v.blocksMovement), isTrue);
-      }
+      final trainer = fixture.trainers.byEventIdentity.values.single;
+      expect(trainer.gymLeader, isNotNull);
+      expect(trainer.programs.skip(1).any((program) => program.gymStageBody != null), isTrue);
+      expect(trainer.programs.first.defeatPolicy, isNull);
+      _expectUnattestedGymRefused(fixture.projection);
     });
   }
-  late Future<({SourceEventProjection projection, NormalizedSourceProject source,
-    SourceEventAnalysis analysis, SourceTrainerEventBindings trainers,
-    SourceFilePort files, Map<String, SourcePickupFeedbackBinding> pickups})> shared;
-  setUpAll(() { shared = _fixture(); });
-  test('gym rewards retain native badge policy, machine bag grant and source music', () async {
-    final fixture = await shared;
-    final projection = fixture.projection;
-    final row = (projection.semanticEvidence['events'] as List).single as Map;
-    expect(row['status'], 'adaptedStaticSemantics', reason: '${row['gaps']}');
+  test(
+      'badge and machine source bindings survive refusal without leaking native rewards',
+      () async {
+    final fixture = await _fixture();
     final trainer = fixture.trainers.byEventIdentity.values.single;
     expect(trainer.gymLeader!.badge.fieldAbilityUnlock, FieldAbility.flash);
-    expect(fixture.pickups.values.single.item.useGaps, contains('item.use.machine_not_projected'));
-    final scene = projection.scenes.singleWhere((scene) => scene.metadata['sourcePageIndex'] == '0');
-    final nodes = scene.graph.nodes;
-    expect(nodes.where((node) => node.payload is SceneBattlePayload), hasLength(1));
-    final actions = nodes.map((node) => node.payload).whereType<SceneActionPayload>();
-    expect(actions.map((action) => action.consequence).whereType<SceneAwardBadgeConsequence>()
-        .single.badgeId, trainer.gymLeader!.badge.id);
-    final cue = nodes.map((node) => node.payload).whereType<SceneYarnDialoguePayload>()
-        .expand((payload) => payload.linePolicies).map((policy) => policy.feedback.audioCue)
-        .whereType<DialogueAudioCue>().firstWhere((cue) => cue.mediaAssetId == trainer.gymLeader!.mediaId);
-    expect(cue.role, DialogueAudioCueRole.musicEffect);
-    expect(cue.volume, 1);
-    expect(trainer.gymLeader!.toJson()['sourceOpcode249TimingParityQualified'], isFalse);
+    expect(fixture.pickups.values.single.item.useGaps,
+        contains('item.use.machine_native_identity_unqualified'));
+    expect(trainer.gymLeader!.toJson()['sourceOpcode249TimingParityQualified'],
+        isFalse);
+    _expectUnattestedGymRefused(fixture.projection);
   });
-
-  for (final outcome in ['victory', 'defeat', 'cancel']) {
-    test('gym $outcome grants rewards exclusively on native victory', () async {
-      final fixture = await shared;
-      final projection = fixture.projection;
-      final scene = projection.scenes.singleWhere((scene) => scene.metadata['sourcePageIndex'] == '0');
-      final result = await _run(projection, scene, outcome);
-      expect(result.effects, outcome == 'victory' ? ['badge', 'CT', 'count', 'flag'] : isEmpty);
-      expect(result.state.trainerProfile.badgeIds.length, outcome == 'victory' ? 1 : 0);
-      expect(result.state.bag.entries.length, outcome == 'victory' ? 1 : 0);
-      final analyzer = SourceEventAnalyzer.forProject(fixture.source, profile: fixture.analysis.profile);
-      final resolver = NarrativeFactRuntimeResolver.fromFacts(projection.facts);
-      final count = resolver.resolve(factId: sourceEventIntegerVariableBindingId(analyzer.variableFactId(30)),
-          runtimeState: result.state.narrativeFactRuntimeState, storyFlags: result.state.storyFlags) as NarrativeFactRuntimeResolved;
-      expect(count.narrativeValue.intValue, outcome == 'victory' ? 1 : 0);
-      if (outcome == 'victory') {
-        final map = projection.nativeMaps[1]!;
-        final gymBinding = fixture.trainers.byEventIdentity.values.single.gymLeader!;
-        final project = ProjectManifest(name: 'Gym', tilesets: const [],
-            maps: [ProjectMapEntry(id: map.id, name: map.name, relativePath: 'maps/arena.json')],
-            eventRegistry: projection.registry, facts: projection.facts, scenes: projection.scenes,
-            dialogues: projection.dialogues, badges: [gymBinding.badge],
-            trainers: [fixture.trainers.byEventIdentity.values.single.nativeTrainer]);
-        final authority = NarrativeEventDispatchAuthority.prepare(
-            registryResult: EventRegistryDecodeResult.decoded(projection.registry),
-            occurrence: NarrativeEventOccurrence(source: NarrativeEventSourceRef.entityInteract(map.id, map.entities.single.id)),
-            factResolver: resolver, projectCatalog: buildNarrativeEventProjectCatalog(project: project, maps: [map]),
-            project: project, maps: [map]);
-        expect(authority, isA<NarrativeEventDispatchAuthorityReady>());
-        final decision = (authority as NarrativeEventDispatchAuthorityReady).plan(gameState: result.state);
-        final after = projection.scenes.singleWhere((scene) => scene.metadata['sourcePageIndex'] == '1');
-        expect((decision as NarrativeEventDispatchHandled).sceneId, after.id);
-        final replay = await _run(projection, after, 'victory', initial: result.state);
-        expect(replay.effects, isEmpty);
-        expect(replay.state.toJson(), result.state.toJson());
-      }
-    });
-  }
 
   test('missing CT attribution feedback refuses the complete gym event', () async {
     final fixture = await _fixture(pickup: false);
@@ -491,48 +420,88 @@ void main() {
     expect(fixture.projection.scenes, isEmpty);
   });
 
-  test('gym composer writes its badge, music, machine attribution and scene for strict reopening', () async {
+  test(
+      'strict gym writer preserves an unattested engine as refused content without executable rewards',
+      () async {
     final fixture = await _fixture(authoredTackle: true);
     final temporary = await Directory.systemTemp.createTemp('gym-native-');
     addTearDown(() => temporary.delete(recursive: true));
-    final literal = await const LiteralTileComposer().compose(source: fixture.source,
-        files: fixture.files, selectedSourceMapIds: [1], projectName: 'Gym',
-        parentPath: temporary.path, folderName: 'native');
+    final limits =
+        sourceCatalogStudyWriteLimitsFor(1, includeNativeCatalog: true);
+    final literal = await const LiteralTileComposer().compose(
+        source: fixture.source,
+        files: fixture.files,
+        selectedSourceMapIds: [1],
+        projectName: 'Gym',
+        parentPath: temporary.path,
+        folderName: 'native',
+        limits: limits);
     final semantic = (await const SourceSemanticStudyComposer().compose(
-        source: fixture.source, base: literal, files: fixture.files))!;
+        source: fixture.source,
+        base: literal,
+        files: fixture.files,
+        limits: limits))!;
     final nativeCatalog = _fixtureNativeCatalog();
-    final pbs = await const SourcePbsParser().read(snapshot: fixture.source.snapshot, files: fixture.files);
-    final release = await NativeEncounterCatalogQualification.prepare(snapshot: fixture.source.snapshot,
-        source: pbs, files: fixture.files, nativeCatalog: nativeCatalog, selectedSourceMapIds: [1]);
-    final composed = (await SourceEventStudyComposer(nativeEncounterQualification: release).compose(
-        source: fixture.source, base: semantic, files: fixture.files))!;
-    final catalog = (await SourceCatalogStudyComposer(nativeEncounterQualification: release).compose(
-        source: fixture.source, base: composed.draft, files: fixture.files))!;
-    expect((composed.projection.semanticEvidence['events'] as List).single['status'],
-        'adaptedStaticSemantics');
-    final gym = fixture.trainers.byEventIdentity.values.single.gymLeader!;
-    expect(composed.draft.mutations.where((m) => m.actionId == 'campaign.badge.upsert'), hasLength(1));
-    expect(composed.draft.mutations.where((m) => m.actionId == 'scene.dialogue.audioMedia.import')
-        .any((m) => m.parameters['mediaId'] == gym.mediaId), isTrue);
+    final pbs = await const SourcePbsParser()
+        .read(snapshot: fixture.source.snapshot, files: fixture.files);
+    final release = await NativeEncounterCatalogQualification.prepare(
+        snapshot: fixture.source.snapshot,
+        source: pbs,
+        files: fixture.files,
+        nativeCatalog: nativeCatalog,
+        selectedSourceMapIds: [1]);
+    final composed =
+        (await SourceEventStudyComposer(nativeEncounterQualification: release)
+            .compose(
+                source: fixture.source,
+                base: semantic,
+                files: fixture.files,
+                limits: limits))!;
+    final catalog =
+        (await SourceCatalogStudyComposer(nativeEncounterQualification: release)
+            .compose(
+                source: fixture.source,
+                base: composed.draft,
+                files: fixture.files,
+                limits: limits))!;
+    _expectUnattestedGymRefused(composed.projection);
+    expect(
+        composed.draft.mutations
+            .where((mutation) => mutation.actionId == 'campaign.badge.upsert'),
+        isEmpty);
+    expect(composed.projection.scenes, isEmpty);
     final approval = approveNativeFixtureDraft(catalog.draft);
-    final receipt = await NativeProjectWriter().write(approval.plan, approval.context, catalog.draft);
+    final receipt = await NativeProjectWriter()
+        .write(approval.plan, approval.context, catalog.draft, limits: limits);
     expect(receipt.verified, isTrue);
     const reader = LocalProjectFileReader();
     final handles = WorkspaceHandleStore();
-    final policy = await WorkspacePolicy.create(allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
-    final opener = ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [receipt.stagingRoot], fileReader: reader);
+    final opener = ProjectOpenService(
+        policy: policy, fileReader: reader, handles: handles);
     final opened = await opener.openProject(receipt.projectPath);
     try {
-      final native = await ProjectSnapshotLoader(handles: handles).load(
-          opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
+      final native = await ProjectSnapshotLoader(handles: handles)
+          .load(opened.projectHandle, policy: ProjectSnapshotLoadPolicy.strict);
       expect(native.loadDiagnostics, isEmpty);
-      expect(native.manifest.badges.single.toJson(), gym.badge.toJson());
+      expect(native.manifest.badges, isEmpty);
       expect(native.manifest.trainers.single.team.single.moves, ['tackle']);
-      expect(native.manifest.scenes.expand((s) => s.graph.nodes).map((n) => n.payload)
-          .whereType<SceneActionPayload>().map((p) => p.consequence)
-          .whereType<SceneAwardBadgeConsequence>().single.badgeId, gym.badge.id);
+      expect(native.manifest.scenes, isEmpty);
     } finally {
       opener.closeWorkspace(opened.workspaceHandle);
     }
   });
+}
+
+void _expectUnattestedGymRefused(SourceEventProjection projection) {
+  final row = (projection.semanticEvidence['events'] as List).single as Map;
+  expect(row['status'], 'quarantinedWholeEvent');
+  expect(row['gaps'], contains('sourceTrainerDefeatPolicyUnqualified'));
+  expect(projection.scenes, isEmpty);
+  expect(
+      projection.nativeMaps.values
+          .expand((map) => map.entities)
+          .where((entity) => entity.npc?.trainerId != null),
+      isEmpty);
 }

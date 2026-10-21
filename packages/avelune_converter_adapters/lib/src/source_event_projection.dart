@@ -17,6 +17,7 @@ import 'source_escort_program.dart';
 import 'source_actor_preparation_program.dart';
 import 'source_event_execution_context.dart';
 import 'source_center_recovery_binding.dart';
+import 'source_home_recovery_program.dart';
 import 'source_trainer_event_bindings.dart';
 import 'source_pokedex_reward_binding.dart';
 import 'source_town_map_binding.dart';
@@ -993,6 +994,9 @@ final class _ProjectionBuilder {
   }
   bool _isExternalWarpFamily(SourceEventDefinition event) => event.pages.expand((p) => p.body.nodes).whereType<SourceWarpNode>().any((n) => n.originalProgram != null);
 
+  final _homeRecoveryPrograms = <ConverterId, SourceHomeRecoveryProgram?>{};
+  SourceHomeRecoveryProgram? _homeRecoveryProgram(SourceEventDefinition event) => _homeRecoveryPrograms.putIfAbsent(event.identity, () => SourceHomeRecoveryProgram.read(source: source, analysis: analysis, event: event));
+
   bool _exclamationEventMatchesSource(SourceEventDefinition event) {
     final expected = _authoritativeSourceAnalysis.eventAt(event.sourceMapId, event.sourceEventId);
     if (expected == null || expected.name != event.name || expected.x != event.x ||
@@ -1463,6 +1467,8 @@ final class _ProjectionBuilder {
             'sourceScriptsExecuted': 0,
             'fullSourceServiceParityQualified': false,
           },
+        if (gaps.isEmpty && _homeRecoveryProgram(event) != null)
+          'nativeHomeRecovery': _homeRecoveryProgram(event)!.toJson(),
         if (gaps.isEmpty && _hasTrainerProgram(event))
           'nativeTrainerEncounter': {
             ...trainerBindings[event.identity]!.toJson(),
@@ -3906,7 +3912,8 @@ final class _ProjectionBuilder {
       gaps.add('sourceMapInstanceRetentionMissing');
     }
     if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
-    if (event.isQuarantined) gaps.add('sourceQuarantined');
+    if (event.isQuarantined && _homeRecoveryProgram(event) == null) gaps.add('sourceQuarantined');
+    if (_homeRecoveryProgram(event) != null && (centerRecoveryBinding[event.identity]?.isBoundTo(source, analysis.profile) != true || centerRecoveryBinding[event.identity]?.eventIdentity != event.identity)) gaps.add('sourceHomeRecoveryMusicMissing');
     if (event.pages.isEmpty) gaps.add('sourcePagesMissing');
     final footprint = _eventFootprint(event);
     final map = maps[event.sourceMapId]!;
@@ -4007,7 +4014,7 @@ final class _ProjectionBuilder {
       }
       if (page.triggerCode != 0 &&
           !const [1, 2].contains(page.triggerCode) &&
-          !_isSourceTransition(event) && !staticSign && !inventoryControllerPrograms.containsKey(event.identity)) {
+          !_isSourceTransition(event) && !staticSign && !inventoryControllerPrograms.containsKey(event.identity) && _homeRecoveryProgram(event) == null) {
         gaps.add('triggerContractUnsupported');
       }
       if (page.triggerCode == 0 && !page.isEmpty) {
@@ -4365,7 +4372,7 @@ final class _ProjectionBuilder {
           }
           break;
         case SourceInteractionFacingNode():
-          if (!_qualifiedGymStageContains(event, node) && !_supportsInteractionFacing(event,
+          if (_homeRecoveryProgram(event) == null && !_qualifiedGymStageContains(event, node) && !_supportsInteractionFacing(event,
               checkCharacterBindings: checkCharacterBindings)) {
             gaps.add('interactionFacingUnsupported');
           }
@@ -4457,6 +4464,7 @@ final class _ProjectionBuilder {
         case SourceShopProgramNode():
           if (_shopBinding(event, node) == null) gaps.add('sourceShopBindingsMissing');
         case SourceUnknownNode():
+          if (_homeRecoveryProgram(event) != null && const {314,249}.contains(node.command.code)) break;
           if (node.reason == 'events.actor_appearance_unsupported') {
             gaps.add('sourceActorAppearanceUnsupported');
           } else if (node.reason == 'events.move_route_appearance_unsupported') {
@@ -4499,7 +4507,7 @@ final class _ProjectionBuilder {
           }
         case SourceToneNode():
         case SourceWaitNode():
-          if (!_isSourceTransition(event) && !_qualifiedGymStageContains(event, node)) {
+          if (_homeRecoveryProgram(event) == null && !_isSourceTransition(event) && !_qualifiedGymStageContains(event, node)) {
             gaps.add('sourcePresentationUnsupported');
           }
         case SourceForcedMoveRouteNode():
@@ -4510,6 +4518,7 @@ final class _ProjectionBuilder {
             break;
           }
           if (node is SourceMoveRouteBarrierNode) {
+            if (_homeRecoveryProgram(event) != null) break;
             final index = block.nodes.indexOf(node);
             if (index > 0 && block.nodes[index - 1] is SourceForcedMoveRouteNode &&
                 _supportsStationaryNpcRotation(event,
@@ -5551,6 +5560,19 @@ final class _SceneBuilder {
         if (identical(node, escort.cinematicNodes.last)) next = _escort(escort, next);
         continue;
       }
+      if (node is SourceUnknownNode && projection._homeRecoveryProgram(event) != null) {
+        if(node.command.code == 314) {
+          final action = _node(SceneActionPayload.consequence(SceneConsequence.healParty()));
+          _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+          next = action;
+          continue;
+        }
+        if(node.command.code == 249) {
+          final audio = projection.centerRecoveryBinding[event.identity]!;
+          next = _interactive(SceneInteractiveCommand.playSoundEffect(mediaAssetId: audio.mediaId, volume: audio.volume / 100), next);
+          continue;
+        }
+      }
       switch (node) {
         case SourceCommonEventCallNode():
           final previousReturn = _commonReturn;
@@ -5615,7 +5637,7 @@ final class _SceneBuilder {
         case SourcePortraitPresentationNode():
           next = _portrait(node, next);
         case SourceInteractionFacingNode():
-          if (projection._supportsExplicitStationaryFacing(event)) {
+          if (projection._supportsExplicitStationaryFacing(event) || projection._homeRecoveryProgram(event) != null) {
             final mapId = projection.maps[event.sourceMapId]!.id;
             final joined = _interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: mapId), next);
             var dispatch = eventEnd;

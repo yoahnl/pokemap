@@ -3,6 +3,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_home_recovery_program.dart';
 
 final class SourceCenterRecoveryBindingUnavailable implements Exception {
   const SourceCenterRecoveryBindingUnavailable(this.reason);
@@ -97,7 +98,19 @@ final class SourceCenterRecoveryResolver {
     if (names.length != 1 || names.single == null || waits.length != 1 || waits.single == null || volumes.length != 1 || volumes.single == null || programs.any((p) => p.recoveryMusicPitch != 100)) {
       throw const SourceCenterRecoveryBindingUnavailable('source_music_unsupported');
     }
-    final name = names.single!;
+    return _readAudio(source: source, files: files, profile: profile, eventIdentity: nurse.identity, name: names.single!, waitTicks: waits.single!, volume: volumes.single!, programEvidence: [for(final program in programs) program.toJson()], limits: limits, cancellation: cancellation);
+  }
+
+  Future<SourceCenterRecoveryBinding> readHome({required NormalizedSourceProject source, required SourceEventAnalysis analysis, required SourceEventDefinition event, required SourceFilePort files, NativeWriteLimits limits = const NativeWriteLimits(), ScanCancellation? cancellation}) async {
+    limits.validate();
+    cancellation?.check();
+    final program = SourceHomeRecoveryProgram.read(source: source, analysis: analysis, event: event);
+    if(program == null) throw const SourceCenterRecoveryBindingUnavailable('source_home_program_unqualified');
+    return _readAudio(source: source, files: files, profile: analysis.profile, eventIdentity: event.identity, name: program.musicName, waitTicks: program.waitTicksByPage[2]!, volume: program.volume, programEvidence: [program.toJson()], limits: limits, cancellation: cancellation);
+  }
+
+  Future<SourceCenterRecoveryBinding> _readAudio({required NormalizedSourceProject source, required SourceFilePort files, required SourceEventProfile profile, required ConverterId eventIdentity, required String name, required int waitTicks, required int volume, required List<Map<String,Object?>> programEvidence, required NativeWriteLimits limits, required ScanCancellation? cancellation}) async {
+
     if (name.isEmpty || name.contains('/') || name.contains('\\') || name == '..') {
       throw const SourceCenterRecoveryBindingUnavailable('source_music_path_invalid');
     }
@@ -174,9 +187,9 @@ final class SourceCenterRecoveryResolver {
         normalizationHash: source.canonicalHash,
         profileHash: profile.canonicalHash,
         audioFile: audio,
-        eventIdentity: nurse.identity,
-        waitTicks: waits.single!,
-        volume: volumes.single!,
+        eventIdentity: eventIdentity,
+        waitTicks: waitTicks,
+        volume: volume,
         mediaId: mediaId,
         artifact: artifact,
         mutation: mutation,
@@ -186,21 +199,17 @@ final class SourceCenterRecoveryResolver {
           'sourceProfileHash': profile.canonicalHash.value,
           'sourceMusicName': name,
           'sourceAudioFile': audio.toJson(),
-          'sourcePrograms': [
-            for (final page in nurse.pages)
-              (page.body.nodes.single as SourceCenterServiceProgramNode)
-                  .toJson()
-          ],
+          'sourcePrograms': programEvidence,
           'sourceOpcode': 249,
-          'sourceVolume': volumes.single,
+          'sourceVolume': volume,
           'sourcePitch': 100,
-          'sourceWaitTicks': waits.single,
+          'sourceWaitTicks': waitTicks,
           'sourceTicksPerSecond': 20,
-          'nativeFeedbackAdvanceDelayMicros': waits.single! * 50000,
+          'nativeFeedbackAdvanceDelayMicros': waitTicks * 50000,
           'nativeRecoveryCueWithFirstCompletionLine': true,
           'sourceSilentWaitBeforeCompletionParityQualified': false,
           'nativeAudioRole': 'musicEffect',
-          'nativeAudioGain': volumes.single! / 100,
+          'nativeAudioGain': volume / 100,
           'sourceAudioGainParityQualified': false,
           'sourceNurseAndBallAnimationParityQualified': false,
           'sourceScriptsExecuted': 0,

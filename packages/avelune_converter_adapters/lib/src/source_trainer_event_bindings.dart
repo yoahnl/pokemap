@@ -113,6 +113,7 @@ final class SourceTrainerEventBinding {
         'nativeTrainerId': nativeTrainer.id,
         'nativeTrainerHash': nativeTrainerHash.value,
         'movePolicy': 'nativeDefaultsForUnspecifiedAndQualifiedAuthoredMoves',
+        'defeatPolicy': programs.first.defeatPolicy?.toJson(),
         'battleItemDefinitions': battleItemDefinitions.map((item) => item.toJson()).toList(),
         'nativeAbilityPolicy': 'speciesPrimary',
         'nativeStatProfile': 'trainerV0',

@@ -14,6 +14,7 @@ import 'source_card_key_gate_audio.dart';
 import 'source_event_character_identity.dart';
 import 'source_event_evidence.dart';
 import 'source_center_recovery_binding.dart';
+import 'source_home_recovery_program.dart';
 import 'source_event_execution_context.dart';
 import 'source_static_door_program.dart';
 import 'source_routed_door_program.dart';
@@ -461,6 +462,15 @@ final class SourceEventStudyComposer {
     final healingDisplay = <ConverterId, SourceHealingDisplayBinding>{};
     final healingDisplayEvidence = <Map<String, Object?>>[];
     for (final event in selectedEvents) {
+      if (SourceHomeRecoveryProgram.read(source: source, analysis: analysis, event: event) != null) {
+        try {
+          final binding = await const SourceCenterRecoveryResolver().readHome(source: source, analysis: analysis, event: event, files: recording, limits: limits, cancellation: cancellation);
+          centerRecovery[event.identity] = binding;
+          centerRecoveryEvidence.add({'sourceIdentity':event.identity.value,'status':'attestedHomeAdaptation',...binding.evidence,'diagnostic':'sourceStoredPokemonHealingUnsupported'});
+        } on SourceCenterRecoveryBindingUnavailable catch(error) {
+          centerRecoveryEvidence.add({'sourceIdentity':event.identity.value,'status':'preservedOnly','reason':error.reason});
+        }
+      }
       if (!event.isQuarantined && event.pages.expand((p) => p.body.nodes)
           .whereType<SourceCenterServiceProgramNode>().any((node) => !node.isPc)) {
         try {

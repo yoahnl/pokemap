@@ -40,6 +40,10 @@ final class SourceFreshEntryProgram {
   int get recoverySourceMapId => startSourceMapId;
   int get recoveryX => startX;
   int get recoveryY => startY;
+  int get startingOverTargetSourceMapId => intro.targetMapId;
+  int get startingOverTargetX => 9;
+  int get startingOverTargetY => 7;
+  int get startingOverTargetDirection => 8;
 
   bool isBoundTo(NormalizedSourceProject source) {
     if (source.snapshot.canonicalHash != sourceSnapshotHash ||
@@ -81,6 +85,15 @@ final class SourceFreshEntryProgram {
           'sourceFade': 1,
           'programHash': intro.programHash.value,
           'rawDataRef': intro.rawDataRef.toJson()
+        },
+        'startingOverBranch': {
+          'condition': {'sourceSwitchId': startingOverSwitchId, 'value': true},
+          'targetSourceMapId': startingOverTargetSourceMapId,
+          'targetX': startingOverTargetX,
+          'targetY': startingOverTargetY,
+          'targetDirection': startingOverTargetDirection,
+          'sourceVariableBanksRead': <int>[],
+          'sourceCommandIndices': [23, 24, 25],
         },
         'requiredEntryState': {
           'kind': 'freshNewGame',

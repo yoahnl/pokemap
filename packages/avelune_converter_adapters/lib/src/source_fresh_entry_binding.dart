@@ -12,6 +12,7 @@ import 'source_player_character_import.dart';
 final class SourceFreshEntryBinding {
   SourceFreshEntryBinding._({
     required this.config,
+    required this.defeatRecovery,
     required this.scene,
     required List<NativeArtifact> artifacts,
     required List<NativeMutation> importMutations,
@@ -29,6 +30,7 @@ final class SourceFreshEntryBinding {
         evidence = immutableCanonicalJsonOf(evidence) as Map<String, Object?>;
 
   final ProjectNewGameConfig config;
+  final ProjectDefeatRecoveryConfig defeatRecovery;
   final SceneAsset scene;
   final List<NativeArtifact> artifacts;
   final List<NativeMutation> importMutations, mutations;
@@ -105,6 +107,13 @@ final class SourceFreshEntryBindingResolver {
     }
     final start = maps[program.introSourceMapId]!;
     final recovery = maps[program.recoverySourceMapId]!;
+    final nativeRecovery = maps[program.startingOverTargetSourceMapId]!;
+    final recoveryPosition =
+        GridPos(x: program.startingOverTargetX, y: program.startingOverTargetY);
+    if (!_passableRecoveryCell(source, nativeRecovery,
+        program.startingOverTargetSourceMapId, recoveryPosition)) {
+      return null;
+    }
     final stationary = [
       _stationaryCell(source, start, program.introSourceMapId,
           GridPos(x: program.introX, y: program.introY)),
@@ -154,7 +163,38 @@ final class SourceFreshEntryBindingResolver {
     if (region.id != regionId) {
       throw StateError('The source region Fact identity drifted.');
     }
-    final facts = <NarrativeFactDefinition>[if (matching.isEmpty) region];
+    final recoveredSource = '$namespace:switch:${program.startingOverSwitchId}';
+    final recoveredId = sourceEventFactBindingId(recoveredSource);
+    final recoveredMatches =
+        projection.facts.where((fact) => fact.id == recoveredId).toList();
+    if (recoveredMatches.length > 1 ||
+        recoveredMatches.any((fact) =>
+            fact.initialValue != NarrativeValue.boolean(false) ||
+            fact.description !=
+                'Persistent source boolean: $recoveredSource')) {
+      throw ContractError('source.fresh_entry.recovery_fact_invalid', r'$',
+          'The recovery marker requires one exact source boolean initially false.');
+    }
+    final recovered = recoveredMatches.isNotEmpty
+        ? recoveredMatches.single
+        : addNarrativeFact(
+            const ProjectManifest(
+                name: 'Source event projection', maps: [], tilesets: []),
+            label: 'Source event ${canonicalHashOf({
+                  'sourceFactId': recoveredSource
+                }).value.substring(0, 24)} ${recoveredSource.split(':').skip(2).join(' ')}',
+            description: 'Persistent source boolean: $recoveredSource',
+            category: 'Source events',
+            tags: ['sourceImported']).createdFact;
+    if (recovered.id != recoveredId) {
+      throw StateError('The source recovery Fact identity drifted.');
+    }
+    final defeatRecovery =
+        ProjectDefeatRecoveryConfig(recoveredFactId: recoveredId);
+    final facts = <NarrativeFactDefinition>[
+      if (matching.isEmpty) region,
+      if (recoveredMatches.isEmpty) recovered
+    ];
     final identity = canonicalHashOf({
       'kind': 'sourceFreshEntryBinding',
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
@@ -290,12 +330,13 @@ final class SourceFreshEntryBindingResolver {
         playerAvatarCharacterIds: imported.map((a) => a.character.id).toList(),
         initialFactValues: {
           freshId: NarrativeValue.boolean(true),
-          regionId: NarrativeValue.integer(program.regionValue)
+          regionId: NarrativeValue.integer(program.regionValue),
+          recoveredId: NarrativeValue.boolean(false)
         },
         initialRecoveryPoint: ProjectNewGameRecoveryPoint(
-            mapId: recovery.id,
-            position: GridPos(x: program.recoveryX, y: program.recoveryY),
-            facing: direction.facing));
+            mapId: nativeRecovery.id,
+            position: recoveryPosition,
+            facing: EntityFacing.north));
     final context = ProjectManifest(
         name: 'Départ source',
         maps: [
@@ -320,6 +361,7 @@ final class SourceFreshEntryBindingResolver {
         characters: displayCharacters,
         facts: [...projection.facts, ...facts],
         newGame: config,
+        defeatRecovery: defeatRecovery,
         settings: const ProjectSettings(tileWidth: 32, tileHeight: 32));
     final ready = const SceneActions().createPreSessionScene(context,
         maps: nativeMaps.values.toList(),
@@ -330,13 +372,15 @@ final class SourceFreshEntryBindingResolver {
     final scene = ready.scenes.single;
     final mutations = <NativeMutation>[
       for (final fact in facts)
-        mutation(
-            'region-fact', 'fact.create', [fact.id], {'fact': fact.toJson()}),
+        mutation(fact.id == regionId ? 'region-fact' : 'recovery-fact',
+            'fact.create', [fact.id], {'fact': fact.toJson()}),
       if (spawnCandidates.isEmpty)
         mutation('intro-spawn', 'entity.create', [startMap.id, spawn.id],
             {'mapId': startMap.id, 'entity': spawn.toJson()}),
       mutation('identity-scene', 'scene.upsert', [scene.id],
           {'scene': scene.toJson()}),
+      mutation('defeat-recovery', 'campaign.defeat_recovery.update',
+          [recoveredId], {'defeatRecovery': defeatRecovery.toJson()}),
       mutation('new-game', 'campaign.new_game.update', [],
           {'newGame': ready.newGame.toJson()}),
     ];
@@ -346,6 +390,7 @@ final class SourceFreshEntryBindingResolver {
     }
     return SourceFreshEntryBinding._(
         config: ready.newGame,
+        defeatRecovery: defeatRecovery,
         scene: scene,
         artifacts: artifacts,
         importMutations: importMutations,
@@ -377,11 +422,27 @@ final class SourceFreshEntryBindingResolver {
           'avatars': imported.map((avatar) => avatar.evidence).toList(),
           'nativeMaps': {
             'intro': startMap.id,
-            'recovery': recovery.id,
+            'recovery': nativeRecovery.id,
             'home': maps[7]!.id
           },
           'nativeEntryFactId': freshId,
           'regionFactId': regionId,
+          'defeatRecovery': {
+            'sourceRecoveryPoint': {
+              'sourceMapId': program.recoverySourceMapId,
+              'x': program.recoveryX,
+              'y': program.recoveryY
+            },
+            'sourceStartingOverBranch': program.toJson()['startingOverBranch'],
+            'nativeRecoveryPoint': ready.newGame.initialRecoveryPoint!.toJson(),
+            'nativeMarker': defeatRecovery.toJson(),
+            'sourceTechnicalMapExecuted': false,
+            'adaptation': 'collapseAttestedStartingOverTransfer',
+            'nativePartyAndStorageRetained': true,
+            'sourceVariableBanksInjected': false,
+            'collisionModified': false,
+            'playerDefeatJourneyQualified': false,
+          },
           'nativeStartSpawnId': spawn.id,
           'initialPartyCount': 0,
           'initialPokemonStorage': 'empty',
@@ -640,4 +701,27 @@ Future<
       'sourceScriptsExecuted': 0
     }
   );
+}
+
+bool _passableRecoveryCell(NormalizedSourceProject source, MapData map,
+    int sourceMapId, GridPos point) {
+  if (point.x < 0 ||
+      point.y < 0 ||
+      point.x >= map.size.width ||
+      point.y >= map.size.height ||
+      map.layers.whereType<CollisionLayer>().any((layer) =>
+          layer.collisions.length != map.size.width * map.size.height ||
+          layer.collisions[point.y * map.size.width + point.x]) ||
+      map.entities.any((entity) =>
+          entity.blocksMovement &&
+          resolveEntityCollisionCells(entity).contains(point))) {
+    return false;
+  }
+  final resolver = SourceSemanticResolver.forProject(source);
+  return resolver.profile.isQualified &&
+      resolver
+              .resolveConnectionEntryTile(
+                  resolver.cellAt(sourceMapId, point.x, point.y))
+              .status ==
+          SourcePassageStatus.allowed;
 }

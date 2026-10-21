@@ -79,6 +79,12 @@ void main() {
         jsonDecode(await File('${receipt.projectPath}/project.json')
             .readAsString()) as Map));
     expect(project.newGame, fresh.config);
+    expect(project.defeatRecovery, fresh.defeatRecovery);
+    expect(
+        project.facts.singleWhere(
+            (fact) => fact.id == project.defeatRecovery!.recoveredFactId)
+            .initialValue,
+        NarrativeValue.boolean(false));
     expect(project.scenes.where((scene) => scene.id == fresh.scene.id),
         hasLength(1));
     final maps = <String, MapData>{
@@ -101,8 +107,11 @@ void main() {
       expect(state.currentMapId, fresh.startMap.id);
       expect(state.playerPosition, const GridPos(x: 0, y: 0));
       final recovery = PlayerRecoveryPoint.tryRead(state);
-      expect(recovery?.mapId, events.projection.nativeMaps[2]!.id);
-      expect(recovery?.position, const GridPos(x: 0, y: 1));
+      expect(recovery?.mapId, events.projection.nativeMaps[7]!.id);
+      expect(recovery?.position, const GridPos(x: 9, y: 7));
+      expect(recovery?.facing, EntityFacing.north);
+      expect(state.narrativeFactRuntimeState.valueFor(
+          project.defeatRecovery!.recoveredFactId), NarrativeValue.boolean(false));
       final freshFact = project.facts.singleWhere(
           (fact) => fact.description.contains(':nativeFreshEntry:'));
       expect(state.narrativeFactRuntimeState.valueFor(freshFact.id),
@@ -127,6 +136,8 @@ void main() {
         'initialMoney': 3000,
         'sourceOutfit': 1,
         'recoverySourceMap': 2,
+        'recoveryNativeHomeMap': 7,
+        'defeatRecovery': project.defeatRecovery!.toJson(),
         'newGame': project.newGame.toJson(),
         'source': fresh.evidence,
         'sourceScriptsExecuted': 0,

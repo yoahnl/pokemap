@@ -173,7 +173,7 @@ void main() {
       }
     });
     test(
-        'builds canonical identity scene, empty game and original recovery before intro',
+        'builds canonical identity scene, empty game and attested home recovery alias before intro',
         () async {
       final before = canonicalHashOf({
         for (final m in projection.nativeMaps.entries)
@@ -192,9 +192,9 @@ void main() {
       expect(
           binding.config.initialRecoveryPoint,
           const ProjectNewGameRecoveryPoint(
-              mapId: 'native_2',
-              position: GridPos(x: 0, y: 1),
-              facing: EntityFacing.south));
+              mapId: 'native_7',
+              position: GridPos(x: 9, y: 7),
+              facing: EntityFacing.north));
       expect(binding.config.playerAvatarCharacterIds,
           binding.imports.map((i) => i.character.id));
       expect(binding.imports.map((i) => i.selectedOutfit), [1, 1]);
@@ -213,8 +213,10 @@ void main() {
       expect(binding.mutations.last.actionId, 'campaign.new_game.update');
       expect(binding.mutations.map((m) => m.actionId), [
         'fact.create',
+        'fact.create',
         'entity.create',
         'scene.upsert',
+        'campaign.defeat_recovery.update',
         'campaign.new_game.update'
       ]);
       expect(
@@ -257,6 +259,7 @@ void main() {
           facts: [...projection.facts, ...binding.facts],
           scenes: [binding.scene],
           newGame: binding.config,
+          defeatRecovery: binding.defeatRecovery,
           settings: const ProjectSettings(tileWidth: 32, tileHeight: 32));
       final draft = NewGameDraft.start(
               draftId: 'fresh-native-test',
@@ -277,7 +280,7 @@ void main() {
       final game = createNewGameStateFromSeed(
           project: project,
           startMap: binding.startMap,
-          initialRecoveryMap: binding.nativeMaps[2],
+          initialRecoveryMap: binding.nativeMaps[7],
           seed: seed,
           currentProjectRevision: 'fresh-v1',
           tileWidthPx: 32,
@@ -291,9 +294,16 @@ void main() {
       expect(
           PlayerRecoveryPoint.tryRead(game),
           const PlayerRecoveryPoint(
-              mapId: 'native_2',
-              position: GridPos(x: 0, y: 1),
-              facing: EntityFacing.south));
+              mapId: 'native_7',
+              position: GridPos(x: 9, y: 7),
+              facing: EntityFacing.north));
+      expect(
+          game.narrativeFactRuntimeState
+              .valueFor(binding.defeatRecovery.recoveredFactId),
+          NarrativeValue.boolean(false));
+      expect(
+          (binding.evidence['defeatRecovery'] as Map)['sourceTechnicalMapExecuted'],
+          isFalse);
       final freshId = binding.evidence['nativeEntryFactId'] as String;
       final regionId = binding.evidence['regionFactId'] as String;
       expect(game.narrativeFactRuntimeState.valueFor(freshId),
@@ -370,6 +380,39 @@ void main() {
               files: fixture.files),
           throwsA(isA<ContractError>().having((e) => e.code, 'code',
               'source.fresh_entry.region_fact_invalid')));
+    });
+    test('refuses blocked home alias and a colliding recovery Fact', () async {
+      final home = projection.nativeMaps[7]!;
+      expect(
+          await resolver.read(
+              source: fixture.source,
+              projection: _copy(projection, maps: {
+                ...projection.nativeMaps,
+                7: home.copyWith(layers: [
+                  CollisionLayer(
+                      id: 'blocked',
+                      name: 'Collision',
+                      collisions:
+                          List.filled(home.size.width * home.size.height, true))
+                ])
+              }),
+              files: fixture.files),
+          isNull);
+      final recoveredId = sourceEventFactBindingId(
+          'source:${fixture.source.snapshot.logicalProjectNamespace.value}:switch:1');
+      await expectLater(
+          resolver.read(
+              source: fixture.source,
+              projection: _copy(projection, facts: [
+                ...projection.facts,
+                NarrativeFactDefinition(
+                    id: recoveredId,
+                    label: 'Foreign integer',
+                    initialValue: NarrativeValue.integer(0))
+              ]),
+              files: fixture.files),
+          throwsA(isA<ContractError>().having((error) => error.code, 'code',
+              'source.fresh_entry.recovery_fact_invalid')));
     });
     test('observes cancellation before any source binding', () async {
       final cancellation = ScanCancellation()..cancel();
