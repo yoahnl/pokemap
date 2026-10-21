@@ -152,6 +152,43 @@ void main() {
 }
 
 Map<String, SceneNodePayload Function()> _canonicalSamples() => {
+  NarrativeCommandIds.inputTextToFact: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.inputTextToFact(
+      factId: 'fact_name',
+      prompt: SceneInteractionPrompt(localizationKey: 'parity.name', fallbackText: 'Nom ?'),
+      confirmationPrompt: SceneInteractionPrompt(localizationKey: 'parity.confirm', fallbackText: 'Confirmer {value} ?'),
+      constraints: SceneTextInputConstraints(minGraphemes: 1, maxGraphemes: 7),
+    ),
+  ),
+  NarrativeCommandIds.adjustIntegerFact: () => SceneActionPayload.consequence(
+    SceneConsequence.adjustIntegerFact(factId: 'fact_counter', delta: 1, minimum: 0, maximum: 99),
+  ),
+  NarrativeCommandIds.markPokemonSeen: () => SceneActionPayload.consequence(
+    SceneConsequence.markPokemonSeen(speciesId: 'sproutle'),
+  ),
+  NarrativeCommandIds.receivePokemonFromCatalog: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.receivePokemonFromCatalog(
+      speciesId: 'sproutle', formId: 'base', level: 5,
+      nicknamePolicy: ScenePokemonGiftNicknamePolicy.offer,
+      nicknameMaxGraphemes: 12,
+      pokedexPresentationPolicy: ScenePokemonGiftPokedexPresentationPolicy.whenNewAndPokedexVisible,
+    ),
+  ),
+  NarrativeCommandIds.setNpcPose: () => SceneActionPayload.consequence(
+    SceneConsequence.setNpcPose(mapId: 'map_port', entityId: 'npc_variant', x: 1, y: 2, facing: EntityFacing.west),
+  ),
+  NarrativeCommandIds.setPlayerAvatar: () => SceneActionPayload.consequence(
+    SceneConsequence.setPlayerAvatar(characterId: 'hero'),
+  ),
+  NarrativeCommandIds.openRegionalMap: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.openRegionalMap(),
+  ),
+  NarrativeCommandIds.openPartyTrade: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.openPartyTrade(),
+  ),
+  NarrativeCommandIds.setPropState: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.setPropState(mapId: 'map_port', propIds: ['gate'], state: MovingPropState.open),
+  ),
   NarrativeCommandIds.whiteOut: () =>
       SceneActionPayload.interactive(SceneInteractiveCommand.whiteOut()),
   NarrativeCommandIds.setFact: () => SceneActionPayload.consequence(
@@ -399,12 +436,17 @@ ProjectManifest _project() => ProjectManifest(
       relativePath: 'maps/port.json',
     ),
   ],
-  tilesets: const [],
+  tilesets: const [ProjectTilesetEntry(id: 'sprites', name: 'Sprites', relativePath: 'assets/sprites.png')],
+  characters: [_avatarCharacter()],
   cinematicMediaAssets: [
     CinematicMediaAsset(id: 'door-sound', label: 'Door',
       kind: CinematicMediaAssetKind.sound, relativePath: 'assets/door.wav'),
   ],
-  facts: [NarrativeFactDefinition(id: 'fact_gate', label: 'Gate')],
+  facts: [
+    NarrativeFactDefinition(id: 'fact_gate', label: 'Gate'),
+    NarrativeFactDefinition(id: 'fact_counter', label: 'Counter', initialValue: NarrativeValue.integer(0)),
+    NarrativeFactDefinition(id: 'fact_name', label: 'Name', initialValue: NarrativeValue.string('')),
+  ],
   dialogues: const [
     ProjectDialogueEntry(
       id: 'dialogue_port',
@@ -484,6 +526,12 @@ MapData _map() => MapData(
   id: 'map_port',
   name: 'Port',
   size: const GridSize(width: 4, height: 4),
+  movingProps: [MovingPropDefinition(
+    id: 'gate', placedElementId: 'gate_visual',
+    closedPositionPx: const PixelOffset(x: 0, y: 0),
+    openPositionPx: const PixelOffset(x: 32, y: 0),
+    collisionRect: const PixelRect(leftPx: 0, topPx: 0, widthPx: 16, heightPx: 16),
+  )],
   movingPlatforms: [
     MovingPlatformDefinition(
       id: 'ferry',
@@ -529,7 +577,13 @@ MapData _map() => MapData(
       targetPos: GridPos(x: 2, y: 2),
     ),
   ],
-  entities: const [
+  entities: [
+    MapEntity(id: 'npc_variant', kind: MapEntityKind.custom,
+      pos: const GridPos(x: 1, y: 1),
+      presentation: MapEntityPresentation(variants: [
+        MapEntityPresentationVariant(id: 'base', characterId: 'hero', blocksMovement: true, size: const GridSize(width: 1, height: 1),
+          condition: NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('fact_gate', false))),
+      ])),
     MapEntity(
       id: 'npc_sailor',
       kind: MapEntityKind.npc,
@@ -538,6 +592,14 @@ MapData _map() => MapData(
       npc: MapEntityNpcData(),
     ),
   ],
+);
+
+ProjectCharacterEntry _avatarCharacter() => ProjectCharacterEntry(
+  id: 'hero', name: 'Hero', tilesetId: 'sprites',
+  animations: [for (final direction in EntityFacing.values) CharacterAnimation(
+    state: CharacterAnimationState.walk, direction: direction,
+    frames: [const CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))],
+  )],
 );
 
 ProjectModel3dEntry _doorModel() => ProjectModel3dEntry(

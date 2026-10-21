@@ -256,7 +256,15 @@ void main() {
         name: 'Route',
         size: GridSize(width: 1, height: 1),
       );
-      expect(collectAllRuntimeTilesetIds(map, project), {'pocket'});
+      expect(collectAllRuntimeTilesetIds(map, project), isEmpty);
+      expect(
+        collectAllRuntimeTilesetIds(
+          map,
+          project,
+          additionalSceneIds: {'pickup'},
+        ),
+        {'pocket'},
+      );
     },
   );
 
