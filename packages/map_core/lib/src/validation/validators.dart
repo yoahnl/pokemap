@@ -353,11 +353,22 @@ class ProjectValidator {
   static void validateNewGameInitialRecoveryMap(ProjectManifest manifest, MapData map) {
     final recovery = manifest.newGame.initialRecoveryPoint;
     if (recovery == null || !manifest.newGame.enabled) return;
-    _validateNewGameConfig(manifest);
+    _validateNewGameRecoveryPointReference(manifest);
     if (map.id != recovery.mapId || map.version != ProjectVersion.v8 ||
         map.spatialScene != null || recovery.position.x >= map.size.width ||
         recovery.position.y >= map.size.height) {
       throw const ValidationException('newGame initialRecoveryPoint must target an in-bounds position on its declared 2D map');
+    }
+  }
+
+  static void _validateNewGameRecoveryPointReference(ProjectManifest manifest) {
+    final recovery = manifest.newGame.initialRecoveryPoint;
+    if (recovery != null &&
+        (recovery.mapId.trim().isEmpty || recovery.mapId != recovery.mapId.trim() ||
+         !manifest.maps.any((map) => map.id == recovery.mapId) ||
+         recovery.position.x < 0 || recovery.position.y < 0 ||
+         manifest.settings.dimension != ProjectDimension.twoD)) {
+      throw const ValidationException('newGame initialRecoveryPoint requires a valid 2D project map and grid position');
     }
   }
 
@@ -383,14 +394,7 @@ class ProjectValidator {
         'newGame startSpawnId must not be blank when provided',
       );
     }
-    final recovery = config.initialRecoveryPoint;
-    if (recovery != null &&
-        (recovery.mapId.trim().isEmpty || recovery.mapId != recovery.mapId.trim() ||
-         !manifest.maps.any((map) => map.id == recovery.mapId) ||
-         recovery.position.x < 0 || recovery.position.y < 0 ||
-         manifest.settings.dimension != ProjectDimension.twoD)) {
-      throw const ValidationException('newGame initialRecoveryPoint requires a valid 2D project map and grid position');
-    }
+    _validateNewGameRecoveryPointReference(manifest);
     if (config.playerName.trim().isEmpty) {
       throw const ValidationException('newGame playerName must not be blank');
     }

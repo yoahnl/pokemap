@@ -50,6 +50,46 @@ void main() {
       expect(() => decode(invalid), throwsFormatException);
     });
   }
+  test('recovery-only validation accepts slim catalog metadata while full validation rejects unknown avatars', () {
+    const project = ProjectManifest(name: 'Partitioned metadata', maps: [
+      ProjectMapEntry(id: 'intro', name: 'Intro', relativePath: 'intro.json'),
+      ProjectMapEntry(id: 'recovery', name: 'Recovery', relativePath: 'recovery.json'),
+    ], tilesets: [], newGame: ProjectNewGameConfig(enabled: true, startMapId: 'intro',
+      playerAvatarCharacterIds: ['unhydrated-avatar'],
+      initialRecoveryPoint: ProjectNewGameRecoveryPoint(mapId: 'recovery', position: GridPos(x: 0, y: 1), facing: EntityFacing.south)));
+    const map = MapData(id: 'recovery', name: 'Recovery', size: GridSize(width: 2, height: 2));
+    expect(() => ProjectValidator.validateNewGameInitialRecoveryMap(project, map), returnsNormally);
+    expect(() => ProjectValidator.validate(project), throwsA(isA<ValidationException>().having(
+      (error) => error.message, 'avatar reference', contains('unknown character: unhydrated-avatar'))));
+  });
+  test('recovery-only validation leaves unhydrated Fact references to the full validator', () {
+    final project = ProjectManifest(name: 'Partitioned Facts', maps: const [
+      ProjectMapEntry(id: 'intro', name: 'Intro', relativePath: 'intro.json'),
+      ProjectMapEntry(id: 'recovery', name: 'Recovery', relativePath: 'recovery.json'),
+    ], tilesets: const [], newGame: ProjectNewGameConfig.fromJson({
+      ...decode(point).toJson(), 'initialFacts': {'unhydrated-fact': true},
+    }));
+    const map = MapData(id: 'recovery', name: 'Recovery', size: GridSize(width: 2, height: 2));
+    expect(() => ProjectValidator.validateNewGameInitialRecoveryMap(project, map), returnsNormally);
+    expect(() => ProjectValidator.validate(project), throwsA(isA<ValidationException>().having(
+      (error) => error.message, 'Fact reference', contains('unknown Fact: unhydrated-fact'))));
+  });
+  test('recovery-only validation retains project ownership, geometry and dimension guards', () {
+    ProjectManifest project({String mapId = 'recovery', int x = 0, int y = 1, bool known = true, ProjectDimension dimension = ProjectDimension.twoD}) => ProjectManifest(
+      name: 'Recovery guards', maps: [
+        const ProjectMapEntry(id: 'intro', name: 'Intro', relativePath: 'intro.json'),
+        if (known) const ProjectMapEntry(id: 'recovery', name: 'Recovery', relativePath: 'recovery.json'),
+      ], tilesets: const [], settings: ProjectSettings(dimension: dimension),
+      newGame: ProjectNewGameConfig(enabled: true, startMapId: 'intro', playerAvatarCharacterIds: const ['unhydrated-avatar'],
+        initialRecoveryPoint: ProjectNewGameRecoveryPoint(mapId: mapId, position: GridPos(x: x, y: y), facing: EntityFacing.south)));
+    const map = MapData(id: 'recovery', name: 'Recovery', size: GridSize(width: 2, height: 2));
+    for (final invalid in [project(known: false), project(mapId: ''), project(mapId: ' recovery'), project(x: -1), project(y: -1), project(x: 2), project(y: 2), project(dimension: ProjectDimension.threeD)]) {
+      expect(() => ProjectValidator.validateNewGameInitialRecoveryMap(invalid, map), throwsA(isA<ValidationException>()));
+    }
+    expect(() => ProjectValidator.validateNewGameInitialRecoveryMap(project(), map.copyWith(id: 'another')), throwsA(isA<ValidationException>()));
+    expect(() => ProjectValidator.validateNewGameInitialRecoveryMap(project(), map.copyWith(version: ProjectVersion.v9)), throwsA(isA<ValidationException>()));
+    expect(() => ProjectValidator.validateNewGameInitialRecoveryMap(project(), map.copyWith(spatialScene: MapSpatialScene(width: 2, depth: 2))), throwsA(isA<ValidationException>()));
+  });
   test('project and map validation refuse shrinking the configured recovery map', () {
     final project = ProjectManifest(name:'Recovery',maps:const [
       ProjectMapEntry(id:'intro',name:'Intro',relativePath:'maps/intro.json'),
