@@ -31568,7 +31568,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "dark",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 60,
           "accuracy": {
             "value": 100,
@@ -31762,7 +31762,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "ground",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 60,
           "accuracy": {
             "value": 100,
@@ -33221,7 +33221,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "electric",
           "category": "special",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 80,
           "accuracy": {
             "value": 100,
@@ -34023,7 +34023,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "ground",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 100,
           "accuracy": {
             "value": 100,
@@ -34490,7 +34490,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "normal",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 250,
           "accuracy": {
             "value": 100,
@@ -38852,7 +38852,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "ground",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 0,
           "accuracy": {
             "value": 100,
@@ -40222,7 +40222,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "grass",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 90,
           "accuracy": {
             "value": 100,
@@ -42996,7 +42996,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "normal",
           "category": "physical",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 200,
           "accuracy": {
             "value": 100,
@@ -43698,7 +43698,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "poison",
           "category": "special",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 95,
           "accuracy": {
             "value": 100,
@@ -45178,7 +45178,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "water",
           "category": "special",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 90,
           "accuracy": {
             "value": 100,
@@ -45791,7 +45791,7 @@ const nativePsdkTrainerBundleJson = r'''{
           "source": "pokemon_sdk_studio",
           "type": "normal",
           "category": "status",
-          "target": "scripted",
+          "target": "allAdjacent",
           "basePower": 0,
           "accuracy": {
             "value": 100,

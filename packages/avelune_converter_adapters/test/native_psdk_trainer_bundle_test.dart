@@ -1106,7 +1106,7 @@ void main() {
         ((source as Map)['relativePath'] as String)
             .startsWith('Data/Studio/natures/'));
     expect(canonicalHashOf(json).value,
-        '699bc40673918781767d199381f1113486e77c204fa9d8e12e5c08db443af069');
+        'aea1e95a21197e6d55f579bcfb0156af9d7c0508d25b3acdfcb13009c929904f');
   });
 
   test('rejects duplicate documents and incomplete type charts', () {

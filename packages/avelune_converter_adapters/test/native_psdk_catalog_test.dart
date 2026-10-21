@@ -13,6 +13,18 @@ import 'support/literal_tile_fixture.dart';
 import 'support/native_media_source_fixture.dart';
 
 void main() {
+  test('automatic catalogue covers the complete canonical Kanto dex', () {
+    final catalog = NativePsdkCatalogManifest.builtin();
+    final kanto = catalog.speciesById.values
+        .where((species) =>
+            species.forms.formId == '0' &&
+            species.nationalDex >= 1 &&
+            species.nationalDex <= 151)
+        .toList();
+    expect(kanto, hasLength(151));
+    expect(kanto.map((species) => species.nationalDex).toSet(), hasLength(151));
+  });
+
   for (final domain in [
     'species',
     'learnsets',

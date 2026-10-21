@@ -273,9 +273,11 @@ final class PokemonSdkMoveCatalogConverter {
     return switch (normalized) {
       '' || 'none' => PokemonMoveTarget.normal,
       'adjacentally' => PokemonMoveTarget.adjacentAlly,
-      'adjacentallyorself' => PokemonMoveTarget.adjacentAllyOrSelf,
+      'adjacentallyorself' ||
+      'useroradjacentally' =>
+        PokemonMoveTarget.adjacentAllyOrSelf,
       'adjacentfoe' || 'adjacentpokemon' => PokemonMoveTarget.adjacentFoe,
-      'alladjacent' => PokemonMoveTarget.allAdjacent,
+      'alladjacent' || 'adjacentallpokemon' => PokemonMoveTarget.allAdjacent,
       'alladjacentfoes' ||
       'adjacentallfoe' ||
       'adjacentallfoes' =>

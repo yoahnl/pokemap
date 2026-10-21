@@ -107,6 +107,40 @@ void main() {
       );
     });
 
+    for (final target in ['adjacent_all_pokemon', 'ADJACENT_ALL_POKEMON']) {
+      test('preserves native spread target $target', () {
+        final source = <String, Object?>{
+          'dbSymbol': 'surf',
+          'type': 'water',
+          'category': 'special',
+          'power': 90,
+          'accuracy': 100,
+          'pp': 15,
+          'battleEngineMethod': 's_basic',
+          'battleEngineAimedTarget': target,
+        };
+        final move = converter.convert(source);
+        expect(move.target, PokemonMoveTarget.allAdjacent);
+        expect(move.basePower, 90);
+        expect(source['battleEngineAimedTarget'], target);
+      });
+    }
+
+    test('keeps unknown native target opaque instead of inventing an opponent',
+        () {
+      final move = converter.convert(const <String, Object?>{
+        'dbSymbol': 'custom_target',
+        'type': 'water',
+        'category': 'special',
+        'power': 90,
+        'accuracy': 100,
+        'pp': 15,
+        'battleEngineMethod': 's_basic',
+        'battleEngineAimedTarget': 'unknown_plugin_target',
+      });
+      expect(move.target, PokemonMoveTarget.scripted);
+    });
+
     test('maps the PSDK zero accuracy sentinel to always-hits', () {
       final move = converter.convert(<String, Object?>{
         'dbSymbol': 'swift',
@@ -121,6 +155,20 @@ void main() {
       });
 
       expect(move.accuracy, const PokemonMoveAccuracy.alwaysHits());
+    });
+
+    test('preserves the native user-or-adjacent-ally target', () {
+      final move = converter.convert(const <String, Object?>{
+        'dbSymbol': 'acupressure',
+        'type': 'normal',
+        'category': 'status',
+        'power': 0,
+        'accuracy': 0,
+        'pp': 30,
+        'battleEngineMethod': 's_acupressure',
+        'battleEngineAimedTarget': 'user_or_adjacent_ally',
+      });
+      expect(move.target, PokemonMoveTarget.adjacentAllyOrSelf);
     });
 
     test('fails clearly when required Studio fields are missing', () {

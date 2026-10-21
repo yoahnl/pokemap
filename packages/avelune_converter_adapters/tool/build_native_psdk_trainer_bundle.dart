@@ -5,7 +5,8 @@ import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
 import 'package:avelune_converter_adapters/src/native_psdk_catalog.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 
 const _trainerKeys = {
   'FRLG_BUGCATCHER,Brent',
@@ -29,6 +30,10 @@ final class _SourceFiles implements SourceFilePort {
 }
 
 Future<void> main(List<String> args) async {
+  if (args.isNotEmpty && args.first == '--refresh-targets') {
+    await _refreshTargets(args.sublist(1));
+    return;
+  }
   if (args.isNotEmpty && args.first == '--embed-catalog') {
     await _embedCatalog(args.sublist(1));
     return;
@@ -194,6 +199,154 @@ Future<void> main(List<String> args) async {
     'sources': (bundle.evidence['sources'] as List).length,
     'bundleHash': canonicalHashOf(json).value,
     'sourceScriptsExecuted': 0,
+  }));
+}
+
+NativePsdkTrainerBundle refreshNativePsdkTrainerTargets({
+  required NativePsdkTrainerBundle bundle,
+  required List<NativePsdkTrainerSourceFile> sources,
+}) {
+  final witnesses = <String, NativePsdkTrainerSourceFile>{};
+  for (final source in sources) {
+    if (witnesses.containsKey(source.relativePath)) {
+      throw StateError('Duplicate native move witness.');
+    }
+    witnesses[source.relativePath] = source;
+  }
+  final provenance = <String, Map>{};
+  for (final raw in bundle.evidence['sources'] as List) {
+    final row = raw as Map;
+    final relative = row['relativePath'] as String;
+    if (provenance.containsKey(relative)) {
+      throw StateError('Duplicate native source provenance.');
+    }
+    provenance[relative] = row;
+  }
+  final document =
+      jsonDecode(jsonEncode(bundle.toJson())) as Map<String, dynamic>;
+  final catalogs = (document['catalogs'] as List).cast<Map>();
+  final catalog = catalogs.singleWhere((row) => row['catalog'] == 'moves');
+  final entries = catalog['entries'] as List;
+  for (var i = 0; i < entries.length; i++) {
+    final raw = Map<String, dynamic>.from(entries[i] as Map);
+    final move = PokemonMove.fromJson(raw);
+    final relative = 'Data/Studio/moves/${move.id}.json';
+    final witness = witnesses.remove(relative);
+    final origin = provenance[relative];
+    if (witness == null ||
+        origin == null ||
+        origin['sha256'] != witness.sha256.value ||
+        origin['byteLength'] != witness.bytes.length) {
+      throw StateError(
+          'Native move source does not match pinned provenance: $relative.');
+    }
+    final original =
+        jsonDecode(utf8.decode(witness.bytes)) as Map<String, dynamic>;
+    if (original['dbSymbol'] != move.id ||
+        (raw['sourceRefs'] as Map?)?['psdkDbSymbol'] != move.id) {
+      throw StateError('Native move identity changed: $relative.');
+    }
+    final projected = const PokemonSdkMoveCatalogConverter().convert({
+      for (final key in const [
+        'dbSymbol',
+        'type',
+        'category',
+        'power',
+        'accuracy',
+        'pp',
+        'battleEngineMethod'
+      ])
+        key: original[key],
+      'battleEngineAimedTarget': switch (original['battleEngineAimedTarget']) {
+        'any_other_pokemon' => 'anyFoe',
+        'all_ally' => 'allAllies',
+        final value => value,
+      },
+    });
+    if (projected.id != move.id) {
+      throw StateError('Projected native move identity changed.');
+    }
+    entries[i] = {
+      ...raw,
+      'target': move.copyWith(target: projected.target).target.name
+    };
+  }
+  if (witnesses.isNotEmpty) {
+    throw StateError('Unexpected native move source witness.');
+  }
+  final refreshed = NativePsdkTrainerBundle.fromJson(document);
+  Map<String, dynamic> withoutTargets(NativePsdkTrainerBundle value) {
+    final stripped =
+        jsonDecode(jsonEncode(value.toJson())) as Map<String, dynamic>;
+    final moveCatalog = (stripped['catalogs'] as List)
+        .cast<Map>()
+        .singleWhere((catalog) => catalog['catalog'] == 'moves');
+    for (final move in moveCatalog['entries'] as List) {
+      (move as Map).remove('target');
+    }
+    return stripped;
+  }
+
+  if (canonicalHashOf(withoutTargets(bundle),
+          limits: nativePsdkCatalogShardJsonLimits) !=
+      canonicalHashOf(withoutTargets(refreshed),
+          limits: nativePsdkCatalogShardJsonLimits)) {
+    throw StateError('Target refresh changed unrelated native bundle content.');
+  }
+  return refreshed;
+}
+
+Future<void> _refreshTargets(List<String> paths) async {
+  if (paths.length != 4) {
+    throw ArgumentError(
+        'Expected --refresh-targets PSDK root, pinned bundle, JSON output, Dart output.');
+  }
+  final root = await Directory(paths[0]).resolveSymbolicLinks();
+  final input = File(paths[1]);
+  if (await input.length() > 16777216) {
+    throw StateError('Pinned native bundle exceeds its input limit.');
+  }
+  final bundle = NativePsdkTrainerBundle.fromJson(
+      jsonDecode(await input.readAsString()) as Map<String, dynamic>);
+  final sources = <NativePsdkTrainerSourceFile>[];
+  for (final move in bundle.movesById.values) {
+    final relative = 'Data/Studio/moves/${move.id}.json';
+    if (!RegExp(r'^Data/Studio/moves/[a-z0-9_]+\.json$').hasMatch(relative)) {
+      throw StateError('Native source path is invalid.');
+    }
+    final file = File('$root/$relative');
+    final resolved = await file.resolveSymbolicLinks();
+    if (!resolved.startsWith('$root/') || await file.length() > 1048576) {
+      throw StateError('Native move exceeds its admitted root or input limit.');
+    }
+    final bytes = await file.readAsBytes();
+    sources.add(NativePsdkTrainerSourceFile(
+        relativePath: relative,
+        sha256: Sha256Hash(crypto.sha256.convert(bytes).toString()),
+        bytes: bytes));
+  }
+  final refreshed =
+      refreshNativePsdkTrainerTargets(bundle: bundle, sources: sources);
+  final contents =
+      '${const JsonEncoder.withIndent('  ').convert(refreshed.toJson())}\n';
+  if (contents.contains("'''")) {
+    throw StateError('Invalid embedded JSON literal.');
+  }
+  for (final path in [paths[2], paths[3]]) {
+    await File(path).parent.create(recursive: true);
+  }
+  await File(paths[2]).writeAsString(contents);
+  await File(paths[3])
+      .writeAsString("const nativePsdkTrainerBundleJson = r'''$contents''';\n");
+  stdout.writeln(jsonEncode({
+    'mode': 'pinnedMoveTargetRefresh',
+    'moves': refreshed.movesById.length,
+    'changedTargets': [
+      for (final move in refreshed.movesById.values)
+        if (move.target != bundle.movesById[move.id]!.target) move.id
+    ],
+    'sourceScriptsExecuted': 0,
+    'aiCalls': 0,
   }));
 }
 
