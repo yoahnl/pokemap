@@ -163,6 +163,10 @@ final class CampaignContentActions {
       'Create or update a bounded atomic batch of trainer definitions',
     ),
     _descriptor(
+      'campaign.defeat_recovery.update',
+      'Configure or clear the boolean Fact set atomically by native defeat recovery',
+    ),
+    _descriptor(
       'campaign.new_game.update',
       'Replace the validated project New Game configuration',
     ),
@@ -184,6 +188,18 @@ final class CampaignContentActions {
           values: values, itemCatalog: context.snapshot.itemCatalog);
       after = projected.trainers.map((value) => value.toJson()).toList();
       path = '/trainers';
+    } else if (actionId == 'campaign.defeat_recovery.update') {
+      _rejectUnknown(parameters, const {'defeatRecovery'});
+      if (!parameters.containsKey('defeatRecovery')) {
+        throw const FormatException('defeatRecovery must be declared, or null to clear.');
+      }
+      final value = parameters['defeatRecovery'] == null
+          ? null
+          : ProjectDefeatRecoveryConfig.fromJson(_object(parameters, 'defeatRecovery'));
+      before = context.snapshot.manifest.defeatRecovery?.toJson();
+      projected = updateDefeatRecovery(context.snapshot.manifest, value);
+      after = projected.defeatRecovery?.toJson();
+      path = '/defeatRecovery';
     } else if (actionId == 'campaign.new_game.update') {
       _rejectUnknown(parameters, const {'newGame'});
       final value =
@@ -229,6 +245,14 @@ final class CampaignContentActions {
       after: after,
       preview: const CampaignContentInspector().inspect(projected).toJson(),
     );
+  }
+
+  ProjectManifest updateDefeatRecovery(
+    ProjectManifest project,
+    ProjectDefeatRecoveryConfig? config,
+  ) {
+    config?.validate(project.facts);
+    return _validated(project.copyWith(defeatRecovery: config));
   }
 
   ProjectManifest upsert(
@@ -395,7 +419,20 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'campaignContent'],
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      extensions: id == 'campaign.new_game.update'
+      extensions: id == 'campaign.defeat_recovery.update'
+          ? const {
+              'defeatRecovery': {
+                'field': 'defeatRecovery.recoveredFactId',
+                'referenceKind': 'narrativeFact',
+                'valueType': 'boolean',
+                'value': true,
+                'optional': true,
+                'clearWithNull': true,
+                'atomicWith': 'nativeDefeatRecovery',
+                'sceneContinueApplies': false,
+              },
+            }
+          : id == 'campaign.new_game.update'
           ? const {
               'initialRecoveryPoint': {
                 'field': 'newGame.initialRecoveryPoint',

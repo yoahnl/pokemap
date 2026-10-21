@@ -104,7 +104,10 @@ PlayerDefeatRecoveryResult applyPlayerDefeatRecovery({
   Map<int, Map<String, int>> maxPpByPartyIndex =
       const <int, Map<String, int>>{},
   PlayerDefeatRecoveryPolicy policy = const PlayerDefeatRecoveryPolicy(),
+  ProjectDefeatRecoveryConfig? recoveryConfig,
+  Iterable<NarrativeFactDefinition> facts = const [],
 }) {
+  recoveryConfig?.validate(facts);
   for (var index = 0; index < state.party.members.length; index++) {
     if ((maxHpByPartyIndex[index] ?? 0) <= 0) {
       throw StateError(
@@ -126,7 +129,7 @@ PlayerDefeatRecoveryResult applyPlayerDefeatRecovery({
           : rawLoss;
   final previousDefeatCount =
       int.tryParse(state.metadata[playerDefeatCountMetadataKey] ?? '') ?? 0;
-  final nextState = healed.copyWith(
+  var nextState = healed.copyWith(
     currentMapId: recoveryPoint.mapId,
     playerPosition: recoveryPoint.position,
     playerSpatialPosition: null,
@@ -141,6 +144,19 @@ PlayerDefeatRecoveryResult applyPlayerDefeatRecovery({
       playerLastDefeatMoneyLossMetadataKey: moneyLost.toString(),
     },
   );
+  if (recoveryConfig != null) {
+    final written = NarrativeFactRuntimeWriter(
+      NarrativeFactRuntimeResolver.fromFacts(facts),
+    ).setFact(
+      gameState: nextState,
+      factId: recoveryConfig.recoveredFactId,
+      value: true,
+    );
+    if (!written.success) {
+      throw StateError('Defeat recovery could not publish its declared Fact.');
+    }
+    nextState = written.gameState;
+  }
   return PlayerDefeatRecoveryResult(
     state: nextState,
     recoveryPoint: recoveryPoint,

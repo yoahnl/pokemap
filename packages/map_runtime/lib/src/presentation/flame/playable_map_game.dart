@@ -11492,6 +11492,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     bool rethrowOnFailure = false,
     bool notify = true,
   }) async {
+    final sourceGameState = _gameState;
+    var recoveryCompleted = false;
     final recoveryLock = _inputLocks.acquire(
       owner: RuntimeInputLockOwner.checkpoint,
       surface: RuntimeInputSurface.transition,
@@ -11515,6 +11517,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         fallbackPoint: fallbackPoint,
         maxHpByPartyIndex: caps.maxHpByPartyIndex,
         maxPpByPartyIndex: caps.maxPpByPartyIndex,
+        recoveryConfig: _bundle.manifest.defeatRecovery,
+        facts: _bundle.manifest.facts,
       );
       final sourceMapId = _activeMapId;
       if (recovery.recoveryPoint.mapId == sourceMapId) {
@@ -11548,7 +11552,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           playerFacing: _world.player.facing.asFacing,
         );
         _setFlowPhase(_RuntimeFlowPhase.overworld);
-        await _handleWarp(
+        final transferred = await _handleWarp(
           TriggeredWarp(
             warpId: 'runtime:whiteout-recovery',
             targetMapId: recovery.recoveryPoint.mapId,
@@ -11557,6 +11561,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           ),
           allowMapActivationWork: allowMapActivationWork,
         );
+        if (!transferred) {
+          throw StateError('Defeat recovery did not reach its destination.');
+        }
         _world = _world.withPlayer(
           _gridAlignedPlayerState(
             position: _world.player.pos,
@@ -11567,11 +11574,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _player.syncState(_world.player, snapToGrid: true);
         _syncGameStateFromWorld(mapIdOverride: _activeMapId);
       }
+      recoveryCompleted = true;
       if (notify) _showNotification(_defeatRecoveryMessage(recovery.moneyLost));
       if (requestCheckpoint) await defeatRecoveryCheckpointEmitter?.call();
     } catch (error, stackTrace) {
       if (rethrowOnFailure || battleContext == null) rethrow;
+      if (recoveryCompleted) {
+        debugPrint('[whiteout] recovered state checkpoint failed: $error\n$stackTrace');
+        _showNotification(runtimeLocale.toLowerCase().startsWith('fr')
+            ? 'Le retour au point de reprise est effectué, mais la sauvegarde a échoué. Sauvegardez depuis le menu.'
+            : 'Recovery completed, but saving failed. Save again from the menu.');
+        return;
+      }
       debugPrint('[whiteout] recovery failed: $error\n$stackTrace');
+      _gameState = sourceGameState;
       _gameState = applyRuntimeDefeatRecoveryToGameState(
         gameState: _gameState,
         playerPartyIndex: battleContext.playerPartyIndex,

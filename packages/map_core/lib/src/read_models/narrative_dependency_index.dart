@@ -511,6 +511,7 @@ final class _NarrativeDependencyIndexBuilder {
     _collectProjectDefinitions();
     _collectMaps();
     _collectNewGame();
+    _collectDefeatRecovery();
     _collectMapScriptReferences();
     _collectRailMapReferences();
     _collectEvents();
@@ -697,6 +698,17 @@ final class _NarrativeDependencyIndexBuilder {
         metadata: <String, String>{'publicationStatus': publicationStatus},
       );
     }
+  }
+
+  void _collectDefeatRecovery() {
+    final config = project.defeatRecovery;
+    if (config == null) return;
+    _usage(
+      target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, config.recoveredFactId),
+      owner: const NarrativeDependencyKey(NarrativeDependencyTargetKind.sourceMap, 'defeatRecovery', scope: 'project', sourceKind: 'defeatRecovery'),
+      path: 'defeatRecovery.recoveredFactId',
+      criticality: NarrativeDependencyCriticality.runtimeBlocking,
+    );
   }
 
   void _collectNewGame() {

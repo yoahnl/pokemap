@@ -778,6 +778,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           ),
           maxHpByPartyIndex: caps.maxHpByPartyIndex,
           maxPpByPartyIndex: caps.maxPpByPartyIndex,
+          recoveryConfig: _bundle!.manifest.defeatRecovery,
+          facts: _bundle!.manifest.facts,
         ).state;
       }
       if (!_current(generation)) return;

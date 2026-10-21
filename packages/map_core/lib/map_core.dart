@@ -40,3 +40,5 @@ export 'src/catalog_storage/catalog_storage.dart';
 
 export 'src/catalog_storage/catalog_dynamic_dependency.dart';
 export 'src/catalog_storage/portable_catalog_publication.dart';
+
+export 'src/models/project_defeat_recovery_config.dart';

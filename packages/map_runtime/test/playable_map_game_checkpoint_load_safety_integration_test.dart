@@ -356,7 +356,8 @@ void main() {
         ],
       ));
       final manifest = source.manifest.copyWith(pokemon: fixture.pokemon, scenes: [scene],
-        facts: [NarrativeFactDefinition(id: 'defeat_seen', label: 'Défaite vécue')], trainers: const [
+        facts: [NarrativeFactDefinition(id: 'defeat_seen', label: 'Défaite vécue'), NarrativeFactDefinition(id: 'native_recovery', label: 'Retour après défaite')],
+        defeatRecovery: const ProjectDefeatRecoveryConfig(recoveredFactId: 'native_recovery'), trainers: const [
           ProjectTrainerEntry(id: _trainerId, name: 'Rival', trainerClass: 'Rival',
             moneyReward: 500, rewardFlagIds: ['victory_reward'],
             team: [ProjectTrainerPokemonEntry(speciesId: 'sparkitten', level: 50, moves: ['tackle'])]),
@@ -400,6 +401,10 @@ void main() {
       expect(recoveryLoads, 1);
       final state = game.gameStateSnapshot;
       expect(state.metadata[playerDefeatCountMetadataKey], '1');
+      expect(state.narrativeFactRuntimeState.valueFor('native_recovery')?.boolValue, isTrue);
+      final cold = gameStateFromSaveData(SaveData.fromJson(saveDataFromGameState(state).toJson()));
+      expect(cold.narrativeFactRuntimeState.valueFor('native_recovery')?.boolValue, isTrue);
+      expect(cold.party, state.party);
       expect(state.storyFlags.activeFlags, contains('defeat_seen'));
       expect(state.storyFlags.activeFlags, isNot(contains('trainer_defeated:$_trainerId')));
       expect(state.storyFlags.activeFlags, isNot(contains('victory_reward')));
@@ -408,6 +413,92 @@ void main() {
       expect(state.party.members.single.currentPpByMoveId!['tackle'], 35);
       expect(state.party.members.single.statusId, '');
       expect(state.playerPosition, const GridPos(x: 3, y: 3));
+    });
+    test('outcome seam recovery load failure cannot retain the recovery Fact', () async {
+      final source = _bundle(map: _plainMap(_sourceMapId));
+      final manifest = source.manifest.copyWith(
+        facts: [NarrativeFactDefinition(id: 'native_recovery', label: 'Retour après défaite')],
+        defeatRecovery: const ProjectDefeatRecoveryConfig(recoveredFactId: 'native_recovery'),
+        maps: [...source.manifest.maps, const ProjectMapEntry(id: _restoredMapId, name: 'Recovery', relativePath: 'maps/recovery.json')]);
+      final initial = _battleReadyState().copyWith(trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000), metadata: {
+        playerRecoveryMapIdMetadataKey: _restoredMapId, playerRecoveryPositionXMetadataKey: '3', playerRecoveryPositionYMetadataKey: '3', playerRecoveryFacingMetadataKey: 'north'});
+      var recoveryLoads = 0;
+      final game = _game(bundle: source.copyWith(manifest: manifest), initialState: initial,
+        defeatRecoveryCapsLoader: (_) async => const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {0: 20}),
+        runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async { recoveryLoads++; throw StateError('Recovery map unavailable'); });
+      await _load(game);
+      game.debugApplyBattleOutcomeForTest(context: _trainerContext(), outcome: _defeatOutcome());
+      await _waitUntil(game, () => recoveryLoads > 0 && game.debugFlowPhaseName == 'overworld');
+      await game.debugWaitForDefeatRecovery();
+      final state = game.gameStateSnapshot;
+      expect(state.currentMapId, _sourceMapId);
+      expect(state.narrativeFactRuntimeState.valueFor('native_recovery'), isNull);
+      expect(state.metadata[playerDefeatCountMetadataKey], isNull);
+      expect(state.trainerProfile.money, 1000);
+    });
+    test('outcome seam checkpoint failure retains committed recovery Fact without repeating the penalty', () async {
+      final source = _bundle(map: _plainMap(_sourceMapId));
+      final manifest = source.manifest.copyWith(facts: [NarrativeFactDefinition(id: 'native_recovery', label: 'Retour après défaite')], defeatRecovery: const ProjectDefeatRecoveryConfig(recoveredFactId: 'native_recovery'));
+      var checkpoints = 0;
+      final game = _game(bundle: source.copyWith(manifest: manifest), initialState: _battleReadyState().copyWith(trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000)),
+        defeatRecoveryCapsLoader: (_) async => const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {0: 20}),
+        defeatRecoveryCheckpointEmitter: () async { checkpoints++; throw StateError('Checkpoint unavailable'); });
+      await _load(game);
+      game.debugApplyBattleOutcomeForTest(context: _trainerContext(), outcome: _defeatOutcome());
+      await _waitUntil(game, () => checkpoints == 1 && game.debugFlowPhaseName == 'overworld');
+      await game.debugWaitForDefeatRecovery();
+      final state = game.gameStateSnapshot;
+      expect(state.narrativeFactRuntimeState.valueFor('native_recovery')?.boolValue, isTrue);
+      expect(state.metadata[playerDefeatCountMetadataKey], '1');
+      expect(state.trainerProfile.money, 900);
+      for(var i=0;i<10;i++) {game.update(.016);await Future<void>.delayed(Duration.zero);}
+      expect(checkpoints,1);
+      expect(game.gameStateSnapshot.trainerProfile.money,900);
+      expect(game.gameStateSnapshot.metadata[playerDefeatCountMetadataKey], '1');
+    });
+    test('real Scene battle continueScene does not publish the native recovery Fact', () async {
+      final fixtureRoot = Directory('../../examples/playable_runtime_host/golden_battle_slice').absolute;
+      final fixture = ProjectManifest.fromJson(jsonDecode(await File('${fixtureRoot.path}/project.json').readAsString()) as Map<String, dynamic>);
+      final source = _sceneBundle();
+      final manifest = source.manifest.copyWith(pokemon: fixture.pokemon,
+        facts: [NarrativeFactDefinition(id: 'native_recovery', label: 'Retour après défaite')],
+        defeatRecovery: const ProjectDefeatRecoveryConfig(recoveredFactId: 'native_recovery'),
+        trainers: const [ProjectTrainerEntry(id: _trainerId, name: 'Rival', trainerClass: 'Rival', moneyReward: 500, rewardFlagIds: ['victory_reward'], team: [ProjectTrainerPokemonEntry(speciesId: 'sparkitten', level: 50, moves: ['tackle'])])]);
+      final gate = NarrativeRuntimeActivityGate();
+      var checkpoints = 0;
+      var recoveryLoads = 0;
+      final game = _game(bundle: source.copyWith(manifest: manifest, projectRootDirectory: fixtureRoot.path),
+        initialState: _battleReadyState().copyWith(trainerProfile: const TrainerProfile(name: 'Joueur', money: 1000),
+          party: const PlayerParty(members: [PlayerPokemon(speciesId: 'sproutle', natureId: 'hardy', abilityId: 'overgrow', level: 5, currentHp: 1, knownMoveIds: ['tackle'], currentPpByMoveId: {'tackle': 2})])),
+        narrativeRuntimeActivityGate: gate, dialogueSessionLoader: (_) async => _singleLineDialogue(),
+        defeatRecoveryCapsLoader: (_) async { recoveryLoads++; return const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {0: 20}); },
+        defeatRecoveryCheckpointEmitter: () async { checkpoints++; });
+      await _load(game);
+      expect(_press(game, RuntimeInputControl.primary), isTrue);
+      await _waitUntilWithoutUpdate(() => game.debugFlowPhaseName == 'dialogue');
+      expect(_press(game, RuntimeInputControl.primary), isTrue);
+      var sawBattle = false;
+      for (var tick = 0; tick < 4000; tick++) {
+        game.update(0.1);
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+        final snapshot = game.battleCommandOverlayListenable.value;
+        if (snapshot != null) sawBattle = true;
+        if (snapshot != null && snapshot.interactionsEnabled && snapshot.entries.isNotEmpty) {
+          game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: 0));
+        }
+        if (sawBattle && game.debugFlowPhaseName == 'overworld' && gate.activity == NarrativeRuntimeActivity.idle) break;
+      }
+      expect(sawBattle, isTrue);
+      expect(game.debugFlowPhaseName, 'overworld');
+      expect(gate.activity, NarrativeRuntimeActivity.idle);
+      expect(recoveryLoads, 0);
+      expect(checkpoints, 0);
+      final state = game.gameStateSnapshot;
+      expect(state.metadata[playerDefeatCountMetadataKey], isNull);
+      expect(state.narrativeFactRuntimeState.valueFor('native_recovery'), isNull);
+      expect(state.storyFlags.activeFlags, isNot(contains('trainer_defeated:$_trainerId')));
+      expect(state.storyFlags.activeFlags, isNot(contains('victory_reward')));
+      expect(state.trainerProfile.money, 1000);
     });
     for (final repeated in [false, true]) {
       test('autonomous whiteOut repeated=$repeated commits one recovery and checkpoint after Scene', () async {
@@ -942,7 +1033,7 @@ void main() {
         final gate = NarrativeRuntimeActivityGate();
         final repository = _GateMemoryRepository(gate);
         final source = _sceneBundle(recovery: SceneBattleDefeatRecovery.returnToRecoveryPoint);
-        final manifest = source.manifest.copyWith(maps: [
+        final manifest = source.manifest.copyWith(facts: [NarrativeFactDefinition(id: 'native_recovery', label: 'Retour après défaite')], defeatRecovery: const ProjectDefeatRecoveryConfig(recoveredFactId: 'native_recovery'), maps: [
           ...source.manifest.maps,
           const ProjectMapEntry(id: _restoredMapId, name: 'Recovery', relativePath: 'maps/recovery.json'),
         ]);
@@ -984,6 +1075,7 @@ void main() {
         expect(state.playerPosition, failRecoveryLoad ? initial.playerPosition : const GridPos(x: 3, y: 3));
         expect(state.metadata[playerDefeatCountMetadataKey], failRecoveryLoad ? null : '1');
         expect(state.trainerProfile.money, failRecoveryLoad ? 1000 : 900);
+        expect(state.narrativeFactRuntimeState.valueFor('native_recovery')?.boolValue, failRecoveryLoad ? null : true);
         if (failRecoveryLoad) {
           expect(state.party, sourceState.party);
           expect(state.metadata, sourceState.metadata);

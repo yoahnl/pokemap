@@ -15,6 +15,7 @@ import 'project_trainer.dart';
 import 'rail_journey.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
+import 'project_defeat_recovery_config.dart';
 import 'pokemon_ruleset_profile.dart';
 import 'project_bag_capacity.dart';
 import 'save_data.dart';
@@ -527,6 +528,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default(ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1))
     ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
+    @JsonKey(includeIfNull: false) ProjectDefeatRecoveryConfig? defeatRecovery,
     @Default(ProjectBagCapacity.unlimited())
     @JsonKey(
       readValue: _readProjectBagCapacity,

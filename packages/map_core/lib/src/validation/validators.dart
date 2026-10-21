@@ -279,6 +279,7 @@ class ProjectValidator {
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
     _validateNewGameConfig(manifest);
+    manifest.defeatRecovery?.validate(manifest.facts);
     _validateTrainers(manifest);
     if (itemCatalog != null) {
       validateTrainerBallItemReferences(manifest.trainers, itemCatalog: itemCatalog);

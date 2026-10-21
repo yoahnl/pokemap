@@ -8,6 +8,7 @@ import '../design_system/design_system.dart';
 import 'narrative_overview_empty_states.dart';
 import 'narrative_overview_structure_inspector.dart';
 import 'new_game/project_new_game_configuration_sheet.dart';
+import 'new_game/project_defeat_recovery_configuration_sheet.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 
@@ -50,6 +51,20 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
       actions: overview == null
           ? const <Widget>[]
           : <Widget>[
+              PokeMapButton(
+                key: projectDefeatRecoveryLauncherKey,
+                onPressed: () => showPokeMapDesktopSideSheet<void>(
+                  context: context,
+                  title: 'Après une défaite',
+                  semanticLabel: 'Configuration du retour après défaite',
+                  width: 560,
+                  builder: (_) => const ProjectDefeatRecoveryConfigurationSheet(),
+                ),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.compact,
+                leading: const Icon(CupertinoIcons.arrow_uturn_left),
+                child: const Text('Après une défaite'),
+              ),
               PokeMapButton(
                 key: projectNewGameConfigurationLauncherKey,
                 onPressed: () => showPokeMapDesktopSideSheet<void>(
