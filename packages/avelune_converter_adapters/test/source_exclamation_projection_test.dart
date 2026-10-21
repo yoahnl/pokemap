@@ -6,7 +6,7 @@ import '../../avelune_converter_core/test/support/interpretation_profile_fixture
 import 'support/literal_tile_fixture.dart';
 
 Future<LiteralTileFixture> _fixture(String script,
-    {bool utilities = true, bool actor = true, bool badActor = false}) async {
+    {bool utilities = true, bool actor = true, bool badActor = false, bool ownerActor = false}) async {
   final profile = SourceInterpretationProfile.fromJson({
     ...syntheticSourceInterpretationProfile.toJson(),
     'sections': {
@@ -30,7 +30,7 @@ Future<LiteralTileFixture> _fixture(String script,
           List.filled(9, 0)
         ], events: [
           LiteralFixtureEvent(id: 1, x: 1, y: 2, pages: [
-            LiteralFixtureEventPage(commands: [
+            LiteralFixtureEventPage(characterName: ownerActor ? 'Clerk' : '', commands: [
               LiteralFixtureEventCommand(355, [script]),
               const LiteralFixtureEventCommand(101, ['A delivery for you.']),
             ])
@@ -90,10 +90,11 @@ Map _row(SourceEventProjection p) => (p.semanticEvidence['events'] as List)
 void main() {
   for (final script in [
     r'pbExclaim($game_player)',
-    'pbExclaim(get_character(2))'
+    'pbExclaim(get_character(2))',
+    'pbExclaim(get_character(1))'
   ]) {
     test('closed exclamation becomes native cinematic: $script', () async {
-      final f = await _fixture(script);
+      final f = await _fixture(script, ownerActor: script == 'pbExclaim(get_character(1))');
       expect(_analysis(f).eventAt(1, 1)!.isQuarantined, isFalse);
       expect(
           _analysis(f)
@@ -123,6 +124,9 @@ void main() {
               s.graph.nodes.any((n) => n.payload is SceneCinematicPayload)),
           isTrue);
       expect(p.mutations.any((m) => m.actionId == 'cinematic.upsert'), isTrue);
+      final mutation = p.mutations.singleWhere((m) => m.actionId == 'cinematic.upsert');
+      expect(mutation.sourceEntityIds.toSet(), hasLength(mutation.sourceEntityIds.length));
+      expect(mutation.sourceEntityIds, contains(_analysis(f).eventAt(1, 1)!.identity));
       expect(
           c.stageContext!.actorBindings.single.kind,
           script.contains('game_player')

@@ -5198,7 +5198,7 @@ final class _SceneBuilder {
           'converter.visualAndAudioParity': 'false', 'converter.temporalParity': 'false'});
     projection.cinematics.add(cinematic);
     projection.mutations.add(projection._mutation('cinematic.upsert', id,
-        [event.identity, event.sourceFileId, if (actor != null) actor.identity],
+        {event.identity, event.sourceFileId, if (actor != null) actor.identity}.toList(),
         [id], {'cinematic': cinematic.toJson()}));
     final start = _node(SceneCinematicPayload(cinematicId: id));
     _edge(start, 'completed', next, SceneEdgeKind.cinematicCompleted);
