@@ -31,6 +31,58 @@ void main() {
       }
     });
   });
+  testWidgets('headless audio emits once per loaded source across manual loop resumes', (tester) async {
+    await tester.runAsync(() async {
+      installConvertedQaHeadlessAudio(completePlayback: true);
+      final player = AudioPlayer();
+      var completions = 0;
+      final subscription = player.onPlayerComplete.listen((_) => completions++);
+      try {
+        await player.setReleaseMode(ReleaseMode.stop);
+        await player.play(DeviceFileSource('/explicit-headless-audio-stub.wav'));
+        await Future<void>.delayed(Duration.zero);
+        expect(completions, 1);
+        await player.seek(Duration.zero);
+        await player.resume();
+        await Future<void>.delayed(Duration.zero);
+        expect(completions, 1);
+        await player.setSource(DeviceFileSource('/next-headless-audio-stub.wav'));
+        await player.resume();
+        await Future<void>.delayed(Duration.zero);
+        expect(completions, 2);
+        await player.pause();
+        await player.resume();
+        await Future<void>.delayed(Duration.zero);
+        expect(completions, 2);
+      } finally {
+        await subscription.cancel();
+        await player.dispose();
+      }
+    });
+  });
+
+  testWidgets('headless audio never fabricates completion for native loops', (tester) async {
+    await tester.runAsync(() async {
+      installConvertedQaHeadlessAudio(completePlayback: true);
+      final player = AudioPlayer();
+      var completions = 0;
+      final subscription = player.onPlayerComplete.listen((_) => completions++);
+      try {
+        await player.setReleaseMode(ReleaseMode.loop);
+        await player.play(DeviceFileSource('/explicit-headless-audio-loop.wav'));
+        await Future<void>.delayed(Duration.zero);
+        expect(completions, 0);
+        await player.seek(Duration.zero);
+        await player.resume();
+        await Future<void>.delayed(Duration.zero);
+        expect(completions, 0);
+      } finally {
+        await subscription.cancel();
+        await player.dispose();
+      }
+    });
+  });
+
   final root = Platform.environment['AVELUNE_GYM_PROJECT'];
   final output = Platform.environment['AVELUNE_GYM_RECEIPT'];
   for (final leader in ['Brock', 'Blaine']) {
@@ -360,6 +412,9 @@ void installConvertedQaHeadlessAudio({bool completePlayback = false}) {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   final sinks = <String, MockStreamHandlerEventSink>{};
+  final releaseModes = <String, String>{};
+  final loaded = <String>{};
+  final completed = <String>{};
   for (final name in [
     'xyz.luan/audioplayers.global',
     'xyz.luan/audioplayers.global/events',
@@ -387,14 +442,24 @@ void installConvertedQaHeadlessAudio({bool completePlayback = false}) {
               },
             ),
           );
+        case 'setReleaseMode':
+          releaseModes[id] = arguments['releaseMode'] as String;
         case 'setSourceUrl' || 'setSourceBytes':
+          loaded.add(id);
+          completed.remove(id);
           sinks[id]?.success({'event': 'audio.onPrepared', 'value': true});
         case 'resume':
-          if (completePlayback) {
+          if (completePlayback && loaded.contains(id) &&
+              releaseModes[id] != ReleaseMode.loop.toString() &&
+              completed.add(id)) {
             sinks[id]?.success({'event': 'audio.onComplete'});
           }
         case 'seek':
           sinks[id]?.success({'event': 'audio.onSeekComplete'});
+        case 'dispose':
+          releaseModes.remove(id);
+          loaded.remove(id);
+          completed.remove(id);
         case 'getCurrentPosition' || 'getDuration':
           return 0;
       }

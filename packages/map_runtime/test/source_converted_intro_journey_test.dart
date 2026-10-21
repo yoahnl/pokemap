@@ -3,13 +3,15 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flame/game.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as path;
+
+import 'source_converted_gym_reward_journey_test.dart'
+    show installConvertedQaHeadlessAudio;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -575,49 +577,5 @@ Future<Map<String, String>> _hashProject(String root) async {
   return hashes;
 }
 
-void _installHeadlessAudio({bool completePlayback = false}) {
-  final messenger =
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  final sinks = <String, MockStreamHandlerEventSink>{};
-  for (final name in [
-    'xyz.luan/audioplayers.global',
-    'xyz.luan/audioplayers.global/events',
-  ]) {
-    messenger.setMockMethodCallHandler(
-      MethodChannel(name),
-      (call) async => null,
-    );
-  }
-  messenger.setMockMethodCallHandler(
-    const MethodChannel('xyz.luan/audioplayers'),
-    (call) async {
-      final arguments = call.arguments as Map;
-      final id = arguments['playerId'] as String;
-      switch (call.method) {
-        case 'create':
-          messenger.setMockStreamHandler(
-            EventChannel('xyz.luan/audioplayers/events/$id'),
-            MockStreamHandler.inline(
-              onListen: (arguments, sink) {
-                sinks[id] = sink;
-              },
-              onCancel: (arguments) {
-                sinks.remove(id);
-              },
-            ),
-          );
-        case 'setSourceUrl' || 'setSourceBytes':
-          sinks[id]?.success({'event': 'audio.onPrepared', 'value': true});
-        case 'resume':
-          if (completePlayback) {
-            sinks[id]?.success({'event': 'audio.onComplete'});
-          }
-        case 'seek':
-          sinks[id]?.success({'event': 'audio.onSeekComplete'});
-        case 'getCurrentPosition' || 'getDuration':
-          return 0;
-      }
-      return null;
-    },
-  );
-}
+void _installHeadlessAudio({bool completePlayback = false}) =>
+    installConvertedQaHeadlessAudio(completePlayback: completePlayback);
