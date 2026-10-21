@@ -139,6 +139,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.inputTextToFact ||
       id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.openRegionalMap ||
@@ -205,6 +206,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           widget.initialPayload?.consequence?.toJson() ??
           const <String, dynamic>{};
       final presentation = data['presentation'];
+      final textFact = data['kind'] == NarrativeCommandIds.inputTextToFact && command.id == NarrativeCommandIds.inputTextToFact;
+      final nestedText = textFact ? data[parameter.id] : null;
+      final textFactValue = !textFact ? null : parameter.id == 'minGraphemes' || parameter.id == 'maxGraphemes'
+          ? (data['constraints'] as Map? ?? const {})[parameter.id]
+          : parameter.id == 'presetValues'
+          ? (data['presetValues'] as List? ?? const []).join('\n')
+          : nestedText is Map ? nestedText['fallbackText'] : nestedText;
       final storedValue =
           data['kind'] == command.id &&
               (_is2DPresentationCommand(command.id) ||
@@ -213,7 +221,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   command.id == NarrativeCommandIds.adjustIntegerFact ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
-          ? command.id == NarrativeCommandIds.warp && presentation is Map
+          ? textFact ? textFactValue : command.id == NarrativeCommandIds.warp && presentation is Map
               ? parameter.id == 'presentationMode' ? presentation['mode']
                   : data[parameter.id] ?? presentation[parameter.id]
               : data[parameter.id]
@@ -231,7 +239,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
-              (command.id == NarrativeCommandIds.setPropState ? '350' :
+              (command.id == NarrativeCommandIds.inputTextToFact && parameter.id == 'maxGraphemes' ? '7' :
+              command.id == NarrativeCommandIds.setPropState ? '350' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'minimum' ? '0' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'maximum' ? '100' :
               (command.id == NarrativeCommandIds.receivePokemonFromCatalog && parameter.id == 'nicknameMaxGraphemes' ? '12' :
@@ -581,8 +590,21 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           !_warpReferenceLoading && _warpReferenceError == null) &&
       _missingParameters.isEmpty &&
       _validWarpPresentation &&
+      _validTextFactInput &&
       _validIntegerAdjustment &&
       (!_isGift || _giftMovesValid);
+
+  bool get _validTextFactInput {
+    if (_command.id != NarrativeCommandIds.inputTextToFact) return true;
+    try {
+      buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values);
+      return true;
+    } on ArgumentError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+  }
 
   bool get _validIntegerAdjustment {
     if (_command.id != NarrativeCommandIds.adjustIntegerFact) return true;
@@ -782,6 +804,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           label: parameter.label,
           fieldKey: ValueKey('scene-action-parameter-${parameter.id}'),
           controller: _textControllers[parameter.id],
+          maxLines: _command.id == NarrativeCommandIds.inputTextToFact && parameter.id == 'presetValues' ? 3 : 1,
           keyboardType: parameter.kind == NarrativeCommandParameterKind.number
               ? const TextInputType.numberWithOptions(
                   decimal: true,
@@ -916,6 +939,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     if (kind == NarrativeCommandParameterKind.movingProps) {
       return _loadedPropOptions ?? [for (final option in widget.pickerOptions[kind] ?? const <SceneActionPickerOption>[])
         if (option.parentId == _values['mapId']) option];
+    }
+    if (kind == NarrativeCommandParameterKind.fact &&
+        _command.id == NarrativeCommandIds.inputTextToFact) {
+      final facts = widget.project?.facts ?? const <NarrativeFactDefinition>[];
+      return [for (final fact in facts)
+        if (fact.valueKind == NarrativeValueKind.string &&
+            facts.where((candidate) => candidate.id == fact.id).length == 1)
+          SceneActionPickerOption(id: fact.id, label: fact.label)];
     }
     if (kind == NarrativeCommandParameterKind.fact &&
         _command.id == NarrativeCommandIds.adjustIntegerFact) {
@@ -1166,10 +1197,23 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   void _submit() {
     try {
       final parameters = Map<String, String>.unmodifiable(_values);
-      final payload = buildScenePayloadForNarrativeCommand(
+      var payload = buildScenePayloadForNarrativeCommand(
         commandId: _command.id,
         parameters: parameters,
       );
+      final original = widget.initialPayload?.interactiveCommand;
+      if (original is SceneInputTextToFactInteractiveCommand &&
+          payload is SceneActionPayload &&
+          payload.interactiveCommand is SceneInputTextToFactInteractiveCommand) {
+        final fresh = payload.interactiveCommand! as SceneInputTextToFactInteractiveCommand;
+        payload = SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({
+          ...fresh.toJson(),
+          'prompt': {...original.prompt.toJson(), 'fallbackText': fresh.prompt.fallbackText},
+          'confirmationPrompt': {...original.confirmationPrompt.toJson(), 'fallbackText': fresh.confirmationPrompt.fallbackText},
+          if (fresh.presetChoicePrompt != null && original.presetChoicePrompt != null)
+            'presetChoicePrompt': {...original.presetChoicePrompt!.toJson(), 'fallbackText': fresh.presetChoicePrompt!.fallbackText},
+        }));
+      }
       widget.onSubmitResult?.call(
         SceneActionBuildResult(
           command: _command,

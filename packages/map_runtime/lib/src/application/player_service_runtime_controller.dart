@@ -19,6 +19,7 @@ import 'runtime_pokemon_species_loader.dart';
 import '../player/runtime_pokemon_summary.dart';
 
 part 'runtime_party_trade_service.dart';
+part 'runtime_scene_text_input_service.dart';
 
 final class RuntimePlayerServiceRecoveryCaps {
   const RuntimePlayerServiceRecoveryCaps({
@@ -309,6 +310,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   _ContextualPartyTradeSession? _partyTradeSession;
   var _partyTradeRevision = -1;
   _ContextualTextSession? _textSession;
+  HeadlessSceneInteractionPort? _sceneTextPort;
   var _textRevision = -1;
   var _giftRevision = -1;
   _ContextualPokemonGiftSession? _giftSession;
@@ -491,6 +493,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _active = false;
     }
   }
+
+  Future<SceneInteractionResult> openSceneTextInteraction({required OpenSceneTextInteractionService request}) =>
+      _openSceneTextInteraction(this, request);
 
   RuntimeWorldServiceSnapshot _buildTextSnapshot(
     _ContextualTextSession session, {
@@ -1871,7 +1876,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     if (command.interactionResult != null &&
-        snapshot.request is! OpenTextInputService && snapshot.request is! OpenPokemonGiftInteractionService) {
+        snapshot.request is! OpenTextInputService && snapshot.request is! OpenSceneTextInteractionService && snapshot.request is! OpenPokemonGiftInteractionService) {
       return const RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
         safeMessage: 'Cette réponse appartient à une autre demande.',
@@ -1886,6 +1891,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
     final gift = _giftSession;
     if (gift != null) return _dispatchPokemonGift(gift, command);
+    if (_sceneTextPort != null) return _dispatchSceneTextInteraction(this, command);
     final shop = _shopSession;
     if (shop != null) return _dispatchShop(shop, command);
     final heal = _healSession;
@@ -3039,6 +3045,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       text.result.complete(const PlayerServiceRuntimeResult.cancelled());
     }
     _textSession = null;
+    _sceneTextPort?.close();
+    _sceneTextPort = null;
     _publishWorldService(null);
     await _worldServiceSnapshots.close();
   }

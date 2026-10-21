@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'scene_interactive_pokemon_gift.dart';
+import 'scene_interactive_text_input.dart';
 
 final class SceneRuntimeHostCallbacks {
   const SceneRuntimeHostCallbacks({
@@ -12,6 +13,7 @@ final class SceneRuntimeHostCallbacks {
     this.executeInteractiveCommand,
     this.requestStructuredInteraction,
     this.presentPokemonGift,
+    this.presentTextInput,
     this.presentPlayerAvatar,
   });
 
@@ -23,6 +25,7 @@ final class SceneRuntimeHostCallbacks {
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
   final SceneRuntimeIntentCallback? requestStructuredInteraction;
   final ScenePokemonGiftPresenter? presentPokemonGift;
+  final SceneTextInputPresenter? presentTextInput;
   final Future<void> Function(String? characterId)? presentPlayerAvatar;
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({

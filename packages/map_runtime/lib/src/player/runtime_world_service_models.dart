@@ -160,6 +160,19 @@ final class OpenTextInputService extends RuntimeWorldServiceRequest {
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.textInput;
 }
 
+final class OpenSceneTextInteractionService extends RuntimeWorldServiceRequest {
+  OpenSceneTextInteractionService({required super.interactionId, required this.interaction}) {
+    if (interaction is! SceneTextInteractionRequest && interaction is! SceneConfirmationInteractionRequest && interaction is! SceneChoiceInteractionRequest) {
+      throw ArgumentError('Scene text input requires a text, choice or confirmation request.');
+    }
+  }
+
+  final SceneInteractionRequest interaction;
+
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.textInput;
+}
+
 enum RuntimeWorldServiceStage {
   opening,
   active,

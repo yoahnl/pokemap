@@ -100,7 +100,7 @@ void main() {
       expect(result, command.outputPortIds.first);
     }
 
-    expect(calls, SceneInteractiveCommandKind.values);
+    expect(calls, SceneInteractiveCommandKind.values.where((kind) => kind != SceneInteractiveCommandKind.inputTextToFact && kind != SceneInteractiveCommandKind.receivePokemonFromCatalog));
   });
 
   test('presentation commands require their dedicated consumer', () async {

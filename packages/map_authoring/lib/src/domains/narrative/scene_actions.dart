@@ -30,6 +30,19 @@ final class ScenePreSessionInteractionCueBindingDraft {
 final class SceneActions {
   const SceneActions();
 
+  static const _inputTextToFactContract = {
+    'interactiveCommandKind': 'inputTextToFact',
+    'parameters': ['factId', 'prompt', 'confirmationPrompt', 'constraints', 'presetValues', 'customChoiceLabel', 'presetChoicePrompt'],
+    'factReference': 'knownUniqueStringFact',
+    'persistentField': 'narrativeFactRuntimeState',
+    'atomicity': 'orderedSceneConsequenceBuffer',
+    'validation': 'graphemeBoundsAndRevision',
+    'confirmation': 'yesCommitsNoRestartsInitialChoice',
+    'cancellation': 'noTextFactWrite',
+    'projectDimensions': ['twoD'],
+    'outputPorts': ['completed', 'cancelled'],
+  };
+
   static const _adjustIntegerFactContract = {
     'consequenceKind': 'adjustIntegerFact',
     'parameters': ['factId', 'delta', 'minimum', 'maximum'],
@@ -382,6 +395,7 @@ final class SceneActions {
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'setPlayerAvatar': _setPlayerAvatarContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
+        'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
@@ -435,6 +449,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'command'],
+        'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,
@@ -502,6 +517,7 @@ final class SceneActions {
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
         'setPlayerAvatar': _setPlayerAvatarContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
+        'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,

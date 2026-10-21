@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart' show immutable;
+import 'package:characters/characters.dart';
 
 import '../runtime/character_custom_animation_runtime_contract.dart';
 import 'rail_journey.dart';
@@ -8,8 +9,10 @@ import 'enums.dart';
 import 'scene_actor_route.dart';
 import 'scene_warp_presentation.dart';
 import 'scene_pokemon_gift_moves.dart';
+import 'scene_structured_interaction.dart';
 
 enum SceneInteractiveCommandKind {
+  inputTextToFact,
   giveItem,
   receivePokemonFromCatalog,
   warp,
@@ -50,6 +53,16 @@ enum SceneRailJourneyAdvanceEvent {
 @immutable
 abstract base class SceneInteractiveCommand {
   const SceneInteractiveCommand();
+
+  factory SceneInteractiveCommand.inputTextToFact({
+    required String factId,
+    required SceneInteractionPrompt prompt,
+    required SceneInteractionPrompt confirmationPrompt,
+    required SceneTextInputConstraints constraints,
+    List<String> presetValues,
+    String? customChoiceLabel,
+    SceneInteractionPrompt? presetChoicePrompt,
+  }) = SceneInputTextToFactInteractiveCommand;
 
   factory SceneInteractiveCommand.giveItem({
     required String itemId,
@@ -171,6 +184,8 @@ abstract base class SceneInteractiveCommand {
       ),
     );
     return switch (kind) {
+      SceneInteractiveCommandKind.inputTextToFact =>
+        SceneInputTextToFactInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.receivePokemonFromCatalog =>
         SceneReceivePokemonFromCatalogInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.giveItem => SceneGiveItemInteractiveCommand(
@@ -1330,6 +1345,137 @@ String? _healingDisplayIdentity(String? value) {
     throw const FormatException('The healing display identity must be nonblank and exact.');
   }
   return value;
+}
+
+final class SceneInputTextToFactInteractiveCommand
+    extends SceneInteractiveCommand {
+  SceneInputTextToFactInteractiveCommand({
+    required String factId,
+    required this.prompt,
+    required this.confirmationPrompt,
+    required this.constraints,
+    List<String> presetValues = const [],
+    this.customChoiceLabel,
+    this.presetChoicePrompt,
+  }) : factId = _normalize(factId, 'factId'),
+       presetValues = List.unmodifiable(presetValues) {
+    if (constraints.minGraphemes < 1 || constraints.maxGraphemes == null) {
+      throw ArgumentError('Text Fact input requires positive bounded length.');
+    }
+    if (presetValues.isEmpty !=
+            (customChoiceLabel == null && presetChoicePrompt == null) ||
+        (presetValues.isNotEmpty &&
+            (customChoiceLabel == null ||
+                customChoiceLabel!.trim().isEmpty ||
+                presetChoicePrompt == null)) ||
+        presetValues.toSet().length != presetValues.length ||
+        presetValues.any(
+          (value) =>
+              value.trim() != value ||
+              value.contains('\n') ||
+              value.contains('\r') ||
+              value.characters.length < constraints.minGraphemes ||
+              value.characters.length > constraints.maxGraphemes!,
+        )) {
+      throw ArgumentError(
+        'Text presets require unique valid values and both choice prompts.',
+      );
+    }
+  }
+
+  factory SceneInputTextToFactInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    const fields = {
+      'kind',
+      'factId',
+      'prompt',
+      'confirmationPrompt',
+      'constraints',
+      'presetValues',
+      'customChoiceLabel',
+      'presetChoicePrompt',
+    };
+    if (json.keys.any((key) => !fields.contains(key))) {
+      throw const FormatException('Unknown text Fact input field.');
+    }
+    final presets = json['presetValues'];
+    if (presets != null && (presets is! List || presets.any((value) => value is! String))) {
+      throw const FormatException('Text presets must be a list of strings.');
+    }
+    return SceneInputTextToFactInteractiveCommand(
+      factId: _required(json, 'factId'),
+      prompt: SceneInteractionPrompt.fromJson(_requiredObject(json, 'prompt')),
+      confirmationPrompt: SceneInteractionPrompt.fromJson(
+        _requiredObject(json, 'confirmationPrompt'),
+      ),
+      constraints: SceneTextInputConstraints.fromJson(
+        _requiredObject(json, 'constraints'),
+      ),
+      presetValues: json['presetValues'] == null
+          ? const []
+          : (json['presetValues'] as List).cast<String>(),
+      customChoiceLabel: _optional(json, 'customChoiceLabel'),
+      presetChoicePrompt: json['presetChoicePrompt'] == null
+          ? null
+          : SceneInteractionPrompt.fromJson(
+              _requiredObject(json, 'presetChoicePrompt'),
+            ),
+    );
+  }
+
+  final String factId;
+  final SceneInteractionPrompt prompt;
+  final SceneInteractionPrompt confirmationPrompt;
+  final SceneTextInputConstraints constraints;
+  final List<String> presetValues;
+  final String? customChoiceLabel;
+  final SceneInteractionPrompt? presetChoicePrompt;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.inputTextToFact;
+
+  @override
+  List<String> get outputPortIds => const ['completed', 'cancelled'];
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'factId': factId,
+    'prompt': prompt.toJson(),
+    'confirmationPrompt': confirmationPrompt.toJson(),
+    'constraints': constraints.toJson(),
+    if (presetValues.isNotEmpty) 'presetValues': presetValues,
+    if (customChoiceLabel != null) 'customChoiceLabel': customChoiceLabel,
+    if (presetChoicePrompt != null)
+      'presetChoicePrompt': presetChoicePrompt!.toJson(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneInputTextToFactInteractiveCommand &&
+      other.factId == factId &&
+      other.prompt == prompt &&
+      other.confirmationPrompt == confirmationPrompt &&
+      other.constraints == constraints &&
+      other.customChoiceLabel == customChoiceLabel &&
+      other.presetChoicePrompt == presetChoicePrompt &&
+      other.presetValues.length == presetValues.length &&
+      presetValues.indexed.every(
+        (entry) => entry.$2 == other.presetValues[entry.$1],
+      );
+
+  @override
+  int get hashCode => Object.hash(
+    factId,
+    prompt,
+    confirmationPrompt,
+    constraints,
+    customChoiceLabel,
+    presetChoicePrompt,
+    Object.hashAll(presetValues),
+  );
 }
 
 final class SceneReceivePokemonFromCatalogInteractiveCommand

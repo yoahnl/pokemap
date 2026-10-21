@@ -12200,6 +12200,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         presentationSession?.registerCompensation(() => _presentPlayerAvatar(previousId,
           isCurrent: () => _scenePresentationScopeIsCurrent(presentationSession)));
       },
+      presentTextInput: (request) async {
+        if (!_scenePresentationScopeIsCurrent(presentationSession)) {
+          throw StateError('The Scene text owner changed.');
+        }
+        final controller = _playerServiceRuntimeController;
+        if (controller == null) {
+          throw StateError('The Scene text presenter is unavailable.');
+        }
+        final result = await controller.openSceneTextInteraction(request: request);
+        if (!_scenePresentationScopeIsCurrent(presentationSession)) {
+          throw StateError('The Scene text owner changed.');
+        }
+        return result;
+      },
       presentPokemonGift: (request) async {
         final controller = _playerServiceRuntimeController;
         if (controller == null) {
@@ -13115,6 +13129,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     switch (request) {
       case OpenPokemonGiftInteractionService():
         throw StateError('Pokemon gift interactions require the Scene presenter.');
+      case OpenSceneTextInteractionService():
+        throw StateError('Scene text interactions require the Scene presenter.');
       case OpenTextInputService():
         return _scenePortForPlayerService(
           await controller.openTextInput(request: request),

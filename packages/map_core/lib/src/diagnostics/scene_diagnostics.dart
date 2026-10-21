@@ -1279,6 +1279,18 @@ void _diagnoseActionConsequenceAgainstProject(
 }) {
   final interactiveCommand = payload.interactiveCommand;
   final catalogConsequence = payload.consequence;
+  if (interactiveCommand is SceneInputTextToFactInteractiveCommand) {
+    final matches = project.facts.where((fact) => fact.id == interactiveCommand.factId).toList();
+    if (matches.length != 1 || matches.single.valueKind != NarrativeValueKind.string) {
+      diagnostics.add(SceneDiagnostic(
+        code: matches.length != 1 ? SceneDiagnosticCode.consequenceUnknownFact : SceneDiagnosticCode.consequenceFactTypeMismatch,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La saisie doit cibler un Fact texte unique du projet.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un Fact texte existant.',
+      ));
+    }
+  }
   if (interactiveCommand case SceneGiveItemInteractiveCommand(:final itemId)) {
     _diagnoseItemReference(
       scene,
@@ -1362,6 +1374,7 @@ void _diagnoseActionConsequenceAgainstProject(
     ));
   }
   if ((interactiveCommand is SceneWaitInteractiveCommand ||
+          interactiveCommand is SceneInputTextToFactInteractiveCommand ||
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||

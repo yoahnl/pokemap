@@ -6,6 +6,7 @@ import '../models/scene_consequence.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/scene_finish_game_contract.dart';
+import '../models/scene_structured_interaction.dart';
 import '../models/rail_journey.dart';
 import '../models/moving_platform.dart';
 import '../models/enums.dart';
@@ -22,6 +23,17 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
   int integer(String id, {int fallback = 1}) =>
       int.tryParse(parameters[id] ?? '') ?? fallback;
   return switch (commandId) {
+    NarrativeCommandIds.inputTextToFact => SceneActionPayload.interactive(
+      SceneInteractiveCommand.inputTextToFact(
+        factId: parameters['factId']!,
+        prompt: SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.prompt', fallbackText: parameters['prompt']),
+        confirmationPrompt: SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.confirmation', fallbackText: parameters['confirmationPrompt']),
+        constraints: SceneTextInputConstraints(minGraphemes: int.parse(parameters['minGraphemes']!), maxGraphemes: int.parse(parameters['maxGraphemes']!)),
+        presetValues: const LineSplitter().convert(parameters['presetValues'] ?? '').map((value) => value.trim()).where((value) => value.isNotEmpty).toList(),
+        customChoiceLabel: (parameters['presetValues'] ?? '').trim().isEmpty ? null : ((parameters['customChoiceLabel'] ?? '').trim().isEmpty ? 'Personnalisé' : parameters['customChoiceLabel']),
+        presetChoicePrompt: (parameters['presetValues'] ?? '').trim().isEmpty ? null : SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.choice', fallbackText: (parameters['presetChoicePrompt'] ?? '').trim().isEmpty ? parameters['prompt'] : parameters['presetChoicePrompt']),
+      ),
+    ),
     NarrativeCommandIds.setMapEventInstanceBoolean =>
       SceneActionPayload.consequence(_mapEventInstanceBooleanConsequence(parameters)),
     NarrativeCommandIds.setFact => SceneActionPayload.consequence(

@@ -542,7 +542,7 @@ final class SpatialExplorationGameSessionRuntime
                 openWorldService: (request) async {
                   final result = await switch (request) {
                     OpenPokemonGiftInteractionService() => throw StateError('Pokemon gifts require the Scene presenter.'),
-                    OpenTextInputService() =>
+                    OpenTextInputService() || OpenSceneTextInteractionService() =>
                       Future<PlayerServiceRuntimeResult>.value(
                         const PlayerServiceRuntimeResult.unavailable(
                           'La saisie de texte en scène n’est pas disponible en 3D.',

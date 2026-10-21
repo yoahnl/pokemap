@@ -13,6 +13,7 @@ void main() {
     const declared = <String>{
       NarrativeCommandIds.setMapEventInstanceBoolean,
       NarrativeCommandIds.setFact,
+      NarrativeCommandIds.inputTextToFact,
       NarrativeCommandIds.adjustIntegerFact,
       NarrativeCommandIds.markEventConsumed,
       NarrativeCommandIds.completeStoryStep,
@@ -52,6 +53,7 @@ void main() {
       NarrativeCommandIds.setPauseMenuEntryVisibility,
       NarrativeCommandIds.moveNpc,
       NarrativeCommandIds.movePlatform,
+      NarrativeCommandIds.setPropState,
       NarrativeCommandIds.playCharacterAnimation,
       NarrativeCommandIds.playModelAnimation,
       NarrativeCommandIds.railJourney,
@@ -99,6 +101,7 @@ void main() {
     };
 
     expect(published, {
+      NarrativeCommandIds.inputTextToFact: 'SceneInteractiveCommand.inputTextToFact',
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
       NarrativeCommandIds.receivePokemonFromCatalog:
           'SceneInteractiveCommand.receivePokemonFromCatalog',
@@ -114,6 +117,7 @@ void main() {
           'SceneInteractiveCommand.actorVisibility',
       NarrativeCommandIds.moveNpc: 'SceneInteractiveCommand.moveNpc',
       NarrativeCommandIds.movePlatform: 'SceneInteractiveCommand.movePlatform',
+      NarrativeCommandIds.setPropState: 'SceneInteractiveCommand.setPropState',
       NarrativeCommandIds.openShop: 'SceneInteractiveCommand.openShop',
       NarrativeCommandIds.openHeal: 'SceneInteractiveCommand.openHeal',
       NarrativeCommandIds.whiteOut: 'SceneInteractiveCommand.whiteOut',

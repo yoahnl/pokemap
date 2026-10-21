@@ -3,6 +3,7 @@ import '../models/scene_interactive_command.dart';
 import '../models/scene_consequence.dart';
 
 abstract final class NarrativeCommandIds {
+  static const inputTextToFact = 'inputTextToFact';
   static const setFact = 'setFact';
   static const adjustIntegerFact = 'adjustIntegerFact';
   static const setMapEventInstanceBoolean = 'setMapEventInstanceBoolean';
@@ -119,6 +120,16 @@ final class NarrativeCommandCatalog {
         );
 
     return NarrativeCommandCatalog._([
+      interactive(NarrativeCommandIds.inputTextToFact, 'Demander un texte', 'FG-088', [
+        _parameter('factId', 'Fact texte', NarrativeCommandParameterKind.fact),
+        _parameter('prompt', 'Question', NarrativeCommandParameterKind.text),
+        _parameter('confirmationPrompt', 'Question de confirmation ({value})', NarrativeCommandParameterKind.text),
+        _parameter('minGraphemes', 'Longueur minimale', NarrativeCommandParameterKind.integer),
+        _parameter('maxGraphemes', 'Longueur maximale', NarrativeCommandParameterKind.integer),
+        _parameter('presetValues', 'Noms proposés (un par ligne)', NarrativeCommandParameterKind.text, required: false),
+        _parameter('customChoiceLabel', 'Libellé du nom personnalisé', NarrativeCommandParameterKind.text, required: false),
+        _parameter('presetChoicePrompt', 'Question du choix de nom', NarrativeCommandParameterKind.text, required: false),
+      ], isPersistent: true),
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.setMapEventInstanceBoolean,
         label: 'Définir un booléen de cette instance',

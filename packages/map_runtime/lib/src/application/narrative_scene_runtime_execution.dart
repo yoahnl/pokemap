@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'scene_runtime/scene_interactive_text_input.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_runtime/scene_interactive_pokemon_gift.dart';
@@ -276,6 +277,29 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
               }
 
 
+              if (command is SceneInputTextToFactInteractiveCommand) {
+                final presenter = callbacks.presentTextInput;
+                if (presenter == null) throw StateError('The Scene text presenter is unavailable.');
+                final result = await inputSceneTextToFact(
+                  command: command,
+                  operationId: '${request.sceneId}:${request.executionId}:${intent.sourceNodeId}',
+                  project: project,
+                  readProjectedState: () {
+                    final projected = projectPending(currentGameState());
+                    if (!projected.success) throw StateError(projected.message ?? 'Text Fact projection failed.');
+                    return projected.gameState;
+                  },
+                  present: presenter,
+                );
+                if (result.consequence case final consequence?) {
+                  final validation = projectPending(currentGameState(), additional: consequence);
+                  if (!validation.success) throw StateError(validation.message ?? 'Text Fact write failed.');
+                  pendingConsequences.add(consequence);
+                  pendingPokemonGrantOperationIds.add(null);
+                  pendingRailProgressionOperationIds.add(null);
+                }
+                return result.outputPortId;
+              }
               if (command is! SceneGiveItemInteractiveCommand) {
                 final callback = callbacks.executeInteractiveCommand;
                 if (callback == null) {

@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_interactive_pokemon_gift.dart';
+import 'scene_interactive_text_input.dart';
 
 import 'scene_consequence_runtime_writer.dart';
 import 'scene_consequence_runtime_write_result.dart';
@@ -165,6 +166,25 @@ final class SceneEventRuntimeHook {
       requestStructuredInteraction: callbacks.requestStructuredInteraction,
       executeInteractiveCommand: (intent) async {
         final command = intent.interactiveCommand;
+        if (command is SceneInputTextToFactInteractiveCommand) {
+          final presenter = callbacks.presentTextInput;
+          if (presenter == null) throw StateError('The Scene text presenter is unavailable.');
+          final result = await inputSceneTextToFact(
+            command: command,
+            operationId: '$sceneId:$executionId:${intent.sourceNodeId}',
+            project: project,
+            readProjectedState: projectedState,
+            present: presenter,
+          );
+          if (result.consequence case final consequence?) {
+            final validation = writer.applyAll(projectedState(), [consequence]);
+            if (!validation.success) throw StateError(validation.message ?? 'Text Fact write failed.');
+            pendingConsequences.add(consequence);
+            pendingPokemonGrantOperationIds.add(null);
+            pendingRailProgressionOperationIds.add(null);
+          }
+          return result.outputPortId;
+        }
         if (command is SceneReceivePokemonFromCatalogInteractiveCommand) {
           final catalog = writer.pokemonCatalog;
           final presenter = callbacks.presentPokemonGift;

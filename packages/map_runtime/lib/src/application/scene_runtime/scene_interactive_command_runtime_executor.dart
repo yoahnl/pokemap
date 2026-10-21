@@ -69,6 +69,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
       throw StateError('Interactive Scene intent has no command payload.');
     }
     final output = switch (command.kind) {
+      SceneInteractiveCommandKind.inputTextToFact => throw StateError('Text Fact input requires the Scene transaction host.'),
       SceneInteractiveCommandKind.receivePokemonFromCatalog => throw StateError('Pokemon gifts require the Scene transaction host.'),
       SceneInteractiveCommandKind.giveItem => await _executeRequired(
           command,
