@@ -1096,6 +1096,24 @@ void main() {
         _error('native_trainer.source_changed'));
   });
 
+  test('shared context rereads and rejects changed compiled trainer reward types', () async {
+    final source = await _source([_roster()]);
+    final native = NativePsdkTrainerBundle.builtin();
+    final qualification = await _prepare(source, catalog: native);
+    final archive = qualification.artifacts();
+    final restored = await NativeTrainerCatalogQualification.fromArtifacts(
+      evidence: archive.evidence, artifacts: archive.artifacts,
+      normalizedSource: source.fixture.source, files: source.fixture.files, nativeCatalog: native);
+    final keys = [_key(source.pbs.logicalProjectNamespace)];
+    source.fixture.files.overrides['Data/trainer_types.dat'] = [
+      ...source.fixture.files.bytes['Data/trainer_types.dat']!, 10];
+    for (final value in [qualification, restored]) {
+      await expectLater(value.validateContext(normalizedSource: source.fixture.source,
+        source: source.pbs, files: source.fixture.files, nativeCatalog: native,
+        requestedTrainers: keys), _error('native_trainer.source_changed'));
+    }
+  });
+
   test('shared context rejects a native catalog changing during source reads',
       () async {
     final source = await _source([_roster()]);

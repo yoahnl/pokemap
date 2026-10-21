@@ -534,6 +534,7 @@ final class NativeTrainerCatalogQualification {
     for (final entry in normalizedSource.snapshot.entries.where((entry) =>
         pbsFiles.contains(entry.fileId) ||
         entry.relativePath == 'Data/trainers.dat' ||
+        entry.relativePath == 'Data/trainer_types.dat' ||
         entry.relativePath == 'Data/species.dat' ||
         entry.relativePath == 'Data/moves.dat' ||
         entry.relativePath == 'Data/items.dat')) {
