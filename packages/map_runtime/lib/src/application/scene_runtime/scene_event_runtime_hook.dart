@@ -1,3 +1,4 @@
+import 'scene_npc_pose_consequence_buffer.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -234,7 +235,14 @@ final class SceneEventRuntimeHook {
               'No interactive Scene command executor is installed.',
             );
           }
-          return callback(intent);
+          final before = (currentGameState?.call() ?? gameState)?.mapInstanceWorldState;
+          final port = await callback(intent);
+          retireSceneNpcPosesPublishedByActorRoute(command: command,
+            scope: command is SceneActorRouteInteractiveCommand ? writer.mapInstanceScopes[command.target.mapId] : null,
+            before: before, after: (currentGameState?.call() ?? gameState)?.mapInstanceWorldState,
+            consequences: pendingConsequences, pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+            railProgressionOperationIds: pendingRailProgressionOperationIds);
+          return port;
         }
         final result = executeSceneItemGift(
           command: command,

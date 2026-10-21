@@ -113,7 +113,7 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneGrantRailStampConsequence;
 
-  factory SceneConsequence.setNpcPose({required String mapId, required String entityId, required int x, required int y, EntityFacing? facing}) = SceneSetNpcPoseConsequence;
+  factory SceneConsequence.setNpcPose({required String mapId, required String entityId, int? x, int? y, EntityFacing? facing}) = SceneSetNpcPoseConsequence;
 
   factory SceneConsequence.markPokemonSeen({
     required String speciesId,
@@ -1065,14 +1065,27 @@ final class SceneHealPartyConsequence extends SceneConsequence {
 
 @immutable
 final class SceneSetNpcPoseConsequence extends SceneConsequence {
-  SceneSetNpcPoseConsequence({required String mapId, required String entityId, required int x, required int y, this.facing})
-      : mapId = _sceneNonemptyIdentity(mapId), entityId = _sceneNonemptyIdentity(entityId), x = _npcPoseCoordinate(x), y = _npcPoseCoordinate(y);
-  factory SceneSetNpcPoseConsequence.fromJson(Map<String, dynamic> json) => SceneSetNpcPoseConsequence(
+  SceneSetNpcPoseConsequence({required String mapId, required String entityId, int? x, int? y, this.facing})
+      : mapId = _sceneNonemptyIdentity(mapId), entityId = _sceneNonemptyIdentity(entityId), x = x == null ? null : _npcPoseCoordinate(x), y = y == null ? null : _npcPoseCoordinate(y) {
+    if ((x == null) != (y == null) || (x == null && facing == null)) {
+      throw const FormatException('NPC pose requires both coordinates or a facing without coordinates.');
+    }
+  }
+  factory SceneSetNpcPoseConsequence.fromJson(Map<String, dynamic> json) {
+    const fields = {'kind', 'mapId', 'entityId', 'x', 'y', 'facing'};
+    if (json['kind'] != 'setNpcPose' || !json.keys.every(fields.contains) ||
+        json.containsKey('x') != json.containsKey('y') ||
+        (json.containsKey('facing') && json['facing'] is! String)) {
+      throw const FormatException('Unsupported NPC pose fields.');
+    }
+    return SceneSetNpcPoseConsequence(
       mapId: _readRequiredString(json, 'mapId'), entityId: _readRequiredString(json, 'entityId'),
-      x: _readRequiredInt(json, 'x'), y: _readRequiredInt(json, 'y'),
-      facing: json['facing'] == null ? null : EntityFacing.values.where((v) => v.name == json['facing']).singleOrNull ?? (throw const FormatException('NPC pose facing must be cardinal.')));
+      x: json.containsKey('x') ? _readRequiredInt(json, 'x') : null,
+      y: json.containsKey('y') ? _readRequiredInt(json, 'y') : null,
+      facing: json.containsKey('facing') ? EntityFacing.values.where((v) => v.name == json['facing']).singleOrNull ?? (throw const FormatException('NPC pose facing must be cardinal.')) : null);
+  }
   final String mapId, entityId;
-  final int x, y;
+  final int? x, y;
   final EntityFacing? facing;
   @override
   SceneConsequenceKind get kind => SceneConsequenceKind.setNpcPose;

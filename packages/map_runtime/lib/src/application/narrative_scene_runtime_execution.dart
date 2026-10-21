@@ -1,3 +1,4 @@
+import 'scene_runtime/scene_npc_pose_consequence_buffer.dart';
 import 'package:map_core/map_core.dart';
 import 'scene_runtime/scene_interactive_text_input.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -309,6 +310,11 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                 }
                 final before = currentGameState().mapInstanceWorldState;
                 final port = await callback(intent);
+                retireSceneNpcPosesPublishedByActorRoute(command: command,
+                  scope: command is SceneActorRouteInteractiveCommand ? writer.mapInstanceScopes[command.target.mapId] : null,
+                  before: before, after: currentGameState().mapInstanceWorldState,
+                  consequences: pendingConsequences, pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+                  railProgressionOperationIds: pendingRailProgressionOperationIds);
                 if (command is SceneWarpInteractiveCommand &&
                     port == 'completed' &&
                     currentGameState().currentMapId ==

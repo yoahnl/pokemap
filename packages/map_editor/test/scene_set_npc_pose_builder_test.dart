@@ -6,8 +6,9 @@ import 'package:map_editor/src/ui/canvas/scenes/scene_action_builder.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  for (final onlyFacing in [false, true]) {
   testWidgets(
-    'logical pose uses a named owner picker and preserves position and facing when edited',
+    'logical pose named picker preserves mode facingOnly=$onlyFacing',
     (tester) async {
       tester.view.physicalSize = const Size(1000, 1000);
       tester.view.devicePixelRatio = 1;
@@ -25,8 +26,8 @@ void main() {
                   SceneConsequence.setNpcPose(
                     mapId: 'lab',
                     entityId: 'rival',
-                    x: 14,
-                    y: 4,
+                    x: onlyFacing ? null : 14,
+                    y: onlyFacing ? null : 4,
                     facing: EntityFacing.west,
                   ),
                 ),
@@ -62,7 +63,11 @@ void main() {
         'west',
       );
       final field = find.byKey(const ValueKey('scene-action-parameter-x'));
-      await tester.enterText(field, '5');
+      if (onlyFacing) {
+        expect(field, findsNothing);
+      } else {
+        await tester.enterText(field, '5');
+      }
       await tester.ensureVisible(
         find.byKey(const ValueKey('scene-action-submit')),
       );
@@ -72,12 +77,13 @@ void main() {
         SceneConsequence.setNpcPose(
           mapId: 'lab',
           entityId: 'rival',
-          x: 5,
-          y: 4,
+          x: onlyFacing ? null : 5,
+          y: onlyFacing ? null : 4,
           facing: EntityFacing.west,
         ),
       );
       expect(tester.takeException(), isNull);
     },
   );
+  }
 }

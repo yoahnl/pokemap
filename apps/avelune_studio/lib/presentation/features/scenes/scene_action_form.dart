@@ -15,6 +15,7 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 
 import 'scene_actor_action_form.dart';
+import 'scene_npc_pose_action_form.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
 
 part 'scene_action_references.dart';
@@ -127,6 +128,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _commands.where((command) => command.id == _commandId).firstOrNull;
 
   bool _is2DPresentationCommand(String? id) =>
+      id == NarrativeCommandIds.setNpcPose ||
       id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.waitForActorRoutes ||
@@ -604,11 +606,15 @@ class _SceneActionFormState extends State<SceneActionForm> {
           loadMap: widget.loadMap,
           onApply: widget.onApply,
         ),
+      if (_commandId == NarrativeCommandIds.setNpcPose)
+        SceneNpcPoseActionForm(project: widget.project,
+          current: widget.current is SceneActionPayload ? widget.current as SceneActionPayload : null,
+          loadMap: widget.loadMap, onApply: widget.onApply),
       if (_commandId == NarrativeCommandIds.sceneMusic)
         const StudioNotice(
           'La musique tourne en boucle pendant cette scène. L’ambiance précédente est restaurée à la fin ; les combats gardent la priorité.',
         ),
-      if (!_isActorCommand(_commandId)) ...[
+      if (!_isActorCommand(_commandId) && _commandId != NarrativeCommandIds.setNpcPose) ...[
         for (final parameter
             in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
           if (_warpFieldVisible(parameter)) Padding(

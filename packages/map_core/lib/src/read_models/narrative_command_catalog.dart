@@ -447,10 +447,10 @@ final class NarrativeCommandCatalog {
         ],
         isPersistent: true,
       ),
-      consequence(NarrativeCommandIds.setNpcPose, 'Placer un PNJ masqué', 'FG-092', [
+      consequence(NarrativeCommandIds.setNpcPose, 'Modifier la pose d’un PNJ', 'FG-092', [
         _parameter('npcRef', 'PNJ à variantes', NarrativeCommandParameterKind.mapEntityReference),
-        _parameter('x', 'Colonne', NarrativeCommandParameterKind.integer),
-        _parameter('y', 'Ligne', NarrativeCommandParameterKind.integer),
+        _parameter('x', 'Colonne', NarrativeCommandParameterKind.integer, required: false),
+        _parameter('y', 'Ligne', NarrativeCommandParameterKind.integer, required: false),
         _parameter('facing', 'Direction', NarrativeCommandParameterKind.characterDirection, required: false),
       ]),
       consequence(

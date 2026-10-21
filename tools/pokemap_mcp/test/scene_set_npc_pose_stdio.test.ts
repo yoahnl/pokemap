@@ -69,7 +69,7 @@ test("MCP discovers, authors and cold reopens native hidden actor pose commands"
     for (const id of ["scene.upsert", "scene.graph.patch"]) {
       const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === id);
       assert.ok(action);
-      assert.equal(record(record(action.extensions).setNpcPose).target, "validatedHiddenNpcPresentationOwner");
+      assert.equal(record(record(action.extensions).setNpcPose).target, "validatedNpcPresentationOwner");
     }
     let sequence = 0;
     for (const dimension of ["twoD"]) {
@@ -92,6 +92,7 @@ test("MCP discovers, authors and cold reopens native hidden actor pose commands"
       for (const [actionId, parameters] of [
         ["scene.upsert", { scene }],
         ["scene.graph.patch", { sceneId: "catalog-gift", upsertNodes: [giftNode(gift(8))] }],
+        ["scene.graph.patch", { sceneId: "catalog-gift", upsertNodes: [giftNode({kind: "setNpcPose", mapId: "lab", entityId: "rival", facing: "east"})] }],
       ] as [string, JsonRecord][]) {
         const planned = await plan(actionId, parameters);
         const applied = await call("pokemap_apply", {
@@ -107,7 +108,7 @@ test("MCP discovers, authors and cold reopens native hidden actor pose commands"
         }
       }
       const beforeInvalid = await readFile(file);
-      for (const invalid of [{ kind: "setNpcPose" }, { kind: "setNpcPose", mapId: "lab", entityId: " ", x: 1, y: 1 }, { kind: "setNpcPose", mapId: "lab", entityId: "rival", x: -1, y: 1 }]) {
+      for (const invalid of [{kind: "setNpcPose", mapId: "lab", entityId: "rival", x: 1, facing: "east"}, {kind: "setNpcPose", mapId: "lab", entityId: "rival", facing: null}, { kind: "setNpcPose" }, { kind: "setNpcPose", mapId: "lab", entityId: " ", x: 1, y: 1 }, { kind: "setNpcPose", mapId: "lab", entityId: "rival", x: -1, y: 1 }]) {
         const error = await plan("scene.graph.patch", {
           sceneId: "catalog-gift", upsertNodes: [giftNode(invalid)],
         }, true);
@@ -126,7 +127,7 @@ test("MCP discovers, authors and cold reopens native hidden actor pose commands"
       assert.deepEqual(stored.metadata, scene.metadata);
       assert.deepEqual(stored.layout, scene.layout);
       const node = (record(stored.graph).nodes as JsonRecord[]).find(entry => entry.id === "gift");
-      assert.deepEqual(record(node!.payload).consequence, gift(8));
+      assert.deepEqual(record(node!.payload).consequence, {kind: "setNpcPose", mapId: "lab", entityId: "rival", facing: "east"});
       await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
     }
   } finally {

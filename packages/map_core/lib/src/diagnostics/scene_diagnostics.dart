@@ -1883,15 +1883,16 @@ void _diagnoseActionConsequenceAgainstProject(
       }
     case SceneSetNpcPoseConsequence():
       final targetMap = mapsById[consequence.mapId];
+      final x = consequence.x, y = consequence.y;
       final owners = targetMap?.entities.where((entity) => entity.id == consequence.entityId).toList() ?? const <MapEntity>[];
       final owner = owners.length == 1 ? owners.single : null;
       final variants = owner?.presentation?.variants.where((variant) => variant.characterId != null).toList() ?? const <MapEntityPresentationVariant>[];
       if (targetMap == null || owner == null || targetMap.version == ProjectVersion.v9 ||
           targetMap.spatialScene != null || variants.isEmpty ||
           validateMapEntityPresentation(project: project, map: targetMap, entity: owner).isNotEmpty ||
-          consequence.x + owner.size.width > targetMap.size.width ||
-          consequence.y + owner.size.height > targetMap.size.height ||
-          variants.any((variant) => consequence.x + variant.size.width > targetMap.size.width || consequence.y + variant.size.height > targetMap.size.height)) {
+          (x != null && y != null &&
+            (x + owner.size.width > targetMap.size.width || y + owner.size.height > targetMap.size.height ||
+            variants.any((variant) => x + variant.size.width > targetMap.size.width || y + variant.size.height > targetMap.size.height)))) {
         diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.consequenceUnknownNpc,
           severity: SceneDiagnosticSeverity.error,
           message: 'La position doit cibler un PNJ à variantes valide et rester dans la carte.',

@@ -4387,6 +4387,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Set<String> _pendingPresentationRemounts = {};
   final Map<String, MapEntity> _lastNpcPresentations = {};
   final Map<String, EntityFacing> _lastNpcDeclaredFacings = {};
+  final Map<String, EntityFacing> _lastNpcLogicalFacings = {};
   final Map<String, EntityFacing> _remountedNpcFacings = {};
 
   void _refreshNpcPresentationActors() {
@@ -4399,20 +4400,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         if (next != null) _lastNpcPresentations[key] = next;
         final declaredFacing = resolveMapEntityPresentation(project: loaded.bundle.manifest,
           gameState: _scenePresentationGameState, map: loaded.bundle.map, entity: source)?.facing;
+        final logicalFacing = _scenePresentationGameState.mapInstanceWorldState
+            .instancesByMapId[loaded.bundle.map.id]?.npcPoses[source.id]?.facing;
+        final logicalFacingChanged = logicalFacing != _lastNpcLogicalFacings[key];
+        if (logicalFacing == null) {
+          _lastNpcLogicalFacings.remove(key);
+        } else {
+          _lastNpcLogicalFacings[key] = logicalFacing;
+        }
         final previousFacing = _lastNpcDeclaredFacings[key];
         final facingChanged = previousFacing != null && declaredFacing != null && previousFacing != declaredFacing;
         if (declaredFacing != null) _lastNpcDeclaredFacings[key] = declaredFacing;
+        final changedFacing = logicalFacingChanged ? logicalFacing ?? next?.npc?.facing ?? declaredFacing : facingChanged ? declaredFacing : null;
+        if (logicalFacingChanged && changedFacing != null && loaded.bundle.map.id == _world.map.id &&
+            _world.map.entities.where((entity) => entity.id == source.id && entity.kind == MapEntityKind.npc && entity.npc != null).length == 1) {
+          _world = _world.withEntityFacing(source.id, changedFacing);
+        }
         final actor = loaded.npcActorByEntityId[source.id];
         if (actor == null) {
-          if (facingChanged) _remountedNpcFacings[key] = declaredFacing;
+          if (changedFacing != null) _remountedNpcFacings[key] = changedFacing;
           continue;
         }
         if (next?.npc?.characterId == actor.character.id && next?.size == previous?.size) {
-          if (facingChanged) actor.restoreBase(declaredFacing);
+          if (changedFacing != null) actor.restoreBase(changedFacing);
           continue;
         }
         _runtimeNpcPositions[source.id] = actor.gridPos ?? next?.pos ?? source.pos;
-        _remountedNpcFacings[key] = facingChanged ? declaredFacing : actor.facing;
+        _remountedNpcFacings[key] = changedFacing ?? actor.facing;
         actor.setGameplayVisible(false);
         final removal = actor.isMounted
             ? actor.removed : Future<void>.value();
@@ -12277,6 +12291,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         gameState: currentGameState(),
       ),
       showDialogue: (intent) {
+        _refreshWorldNpcPresence();
         final adapter = SceneDialogueRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeExecutionSourceId,
           launcher: _CallbackSceneDialogueRuntimeLauncher(
@@ -13913,6 +13928,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         !_scenePresentationScopeIsCurrent(session)) {
       throw StateError('The Scene wait execution is no longer current.');
     }
+    _refreshWorldNpcPresence();
     if (command.durationMs == 0) return 'completed';
     final token = _inputLocks.acquire(
       owner: RuntimeInputLockOwner.blockingInteraction,
@@ -17646,6 +17662,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       npcActors.add(actor);
       if (sourceEntity.presentation != null) {
+        final poseKey = '${preparedBundle.map.id}/${entity.id}';
+        final savedFacing = _scenePresentationGameState.mapInstanceWorldState
+            .instancesByMapId[preparedBundle.map.id]?.npcPoses[entity.id]?.facing;
+        if (savedFacing == null) {
+          _lastNpcLogicalFacings.remove(poseKey);
+        } else {
+          _lastNpcLogicalFacings[poseKey] = savedFacing;
+        }
         _lastNpcPresentations['${preparedBundle.map.id}/${entity.id}'] = entity;
         _lastNpcDeclaredFacings['${preparedBundle.map.id}/${entity.id}'] =
           resolveMapEntityPresentation(project: preparedBundle.manifest,

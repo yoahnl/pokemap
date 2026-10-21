@@ -73,6 +73,49 @@ void main() {
     mapsById: {'lab': target ?? map},
     mapInstanceScopes: {'lab': scope ?? instance},
   );
+  test('facing only retains a modified hidden pose through cold state and later visibility', () {
+    final facing = SceneConsequence.fromJson({
+      'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'rival', 'facing': 'east',
+    });
+    final modified = initial.copyWith(mapInstanceWorldState:
+      initial.mapInstanceWorldState.setNpcPoses(instance, {
+        'rival': MapInstanceNpcPose(position: const GridPos(x: 9, y: 3), facing: EntityFacing.west),
+      }));
+    final result = writer().applyOne(modified, facing);
+    expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+    final cold = GameState.fromJson(result.gameState.toJson());
+    final saved = cold.mapInstanceWorldState.instancesByMapId['lab']!.npcPoses['rival']!;
+    expect(saved.position, const GridPos(x: 9, y: 3));
+    expect(saved.facing, EntityFacing.east);
+    expect(modified.mapInstanceWorldState.instancesByMapId['lab']!.npcPoses['rival']!.facing,
+      EntityFacing.west);
+    final visible = GameplayWorldState.initial(map: map, project: project,
+      gameState: cold, playerPos: const GridPos(x: 0, y: 0)).withEntityPresentations(
+        project: project, sourceMap: map, gameState: cold.copyWith(storyFlags: const StoryFlags()));
+    expect(visible.map.entities.single.pos, saved.position);
+    expect(visible.map.entities.single.npc!.facing, EntityFacing.east);
+  });
+  test('facing only uses the logical authored cell when no pose was saved', () {
+    final result = writer().applyOne(initial, SceneConsequence.fromJson({
+      'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'rival', 'facing': 'north',
+    }));
+    expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+    final saved = result.gameState.mapInstanceWorldState.instancesByMapId['lab']!.npcPoses['rival']!;
+    expect(saved.position, map.entities.single.pos);
+    expect(saved.facing, EntityFacing.north);
+  });
+  test('visible facing preserves its authored position and a later failure rolls it back atomically', () {
+    final visible = initial.copyWith(storyFlags: const StoryFlags());
+    final facing = SceneConsequence.setNpcPose(mapId: 'lab', entityId: 'rival', facing: EntityFacing.east);
+    final success = writer().applyOne(visible, facing);
+    expect(success.success, isTrue);
+    expect(success.gameState.mapInstanceWorldState.instancesByMapId['lab']!.npcPoses['rival']!.position,
+      const GridPos(x: 7, y: 6));
+    final failure = writer().applyAll(visible, [facing,
+      SceneConsequence.setNpcPose(mapId: 'lab', entityId: 'missing', facing: EntityFacing.south)]);
+    expect(failure.success, isFalse);
+    expect(identical(failure.gameState, visible), isTrue);
+  });
   test('hidden actor placement persists logically and restores visible position and facing', () {
     final result = writer().applyOne(initial, pose);
     expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);

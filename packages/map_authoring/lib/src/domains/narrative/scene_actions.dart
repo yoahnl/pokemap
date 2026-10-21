@@ -152,12 +152,14 @@ final class SceneActions {
 
   static const _setNpcPoseContract = {
     'consequenceKind': 'setNpcPose',
-    'parameters': ['mapId', 'entityId', 'x', 'y', 'facing?'],
-    'target': 'validatedHiddenNpcPresentationOwner',
-    'coordinates': 'absoluteInBoundsGridPosition',
-    'facing': 'optionalCardinalOtherwisePreserved',
+    'parameters': ['mapId', 'entityId', 'x?', 'y?', 'facing?'],
+    'target': 'validatedNpcPresentationOwner',
+    'modes': ['absolutePlacement', 'facingOnly'],
+    'coordinates': 'pairedAbsoluteInBoundsOrBothAbsent',
+    'facing': 'requiredWithoutCoordinatesOtherwiseOptionalCardinal',
+    'facingOnlyPosition': 'currentSavedPoseOrAuthoredAnchorPreserved',
     'persistence': 'canonicalCurrentMapInstanceNpcPose',
-    'visibleNpc': 'refused',
+    'visibleNpc': 'facingOnly',
     'staleInstance': 'refused',
   };
   static const _markPokemonSeenContract = {

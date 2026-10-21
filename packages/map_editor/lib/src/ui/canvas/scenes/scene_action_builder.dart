@@ -311,6 +311,15 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       }
       _syncMusicOperation();
     }
+    if (command.id == NarrativeCommandIds.setNpcPose) {
+      final pose = widget.initialPayload is SceneActionPayload ? (widget.initialPayload as SceneActionPayload).consequence : null;
+      _npcPosePosition = pose is SceneSetNpcPoseConsequence ? pose.x != null :
+          widget.initialParameters['x']?.isNotEmpty == true || widget.initialParameters['y']?.isNotEmpty == true;
+      if (!_npcPosePosition) {
+        _values.remove('x');
+        _values.remove('y');
+      }
+    }
     _giftMovesValid = !_isGift || _giftMoves == null;
     _loadWarpReferences(selectFirst: true);
   }
@@ -412,6 +421,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     super.dispose();
   }
 
+  bool _npcPosePosition = true;
+
   List<NarrativeCommandParameterDescriptor> get _missingParameters =>
       _isActorCommand(_command.id)
       ? const []
@@ -428,6 +439,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ];
 
   bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.setNpcPose) {
+      if (parameter.id == 'x' || parameter.id == 'y') return _npcPosePosition;
+      if (parameter.id == 'facing') return !_npcPosePosition;
+    }
     if (_command.id == NarrativeCommandIds.sceneMusic) return _isParameterVisible(parameter);
     if (_command.id == NarrativeCommandIds.warp && parameter.id == 'illustrationElementId') {
       return _values['presentationMode'] == 'illustrated' || _values['presentationMode'] == 'caveEntrance';
@@ -463,6 +478,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.setNpcPose && (parameter.id == 'x' || parameter.id == 'y')) return _npcPosePosition;
     if (_command.id == NarrativeCommandIds.sceneMusic) {
       return switch (parameter.id) {
         'mediaAssetId' || 'volume' => _values['operation'] == 'play',
@@ -791,6 +807,24 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                 title: 'Projet indisponible',
                 message: 'Ouvrir un projet 2D pour choisir un acteur.',
               ),
+          if (_command.id == NarrativeCommandIds.setNpcPose)
+            PokeMapDropdownField<String>(label: 'Modification du PNJ',
+              value: _npcPosePosition ? 'position' : 'facing',
+              items: const [
+                PokeMapDropdownItem(value: 'position', label: 'Position et direction'),
+                PokeMapDropdownItem(value: 'facing', label: 'Direction uniquement'),
+              ],
+              onChanged: (value) => setState(() {
+                _npcPosePosition = value == 'position';
+                if (_npcPosePosition) {
+                  _values['x'] = '0';
+                  _values['y'] = '0';
+                } else {
+                  _values.remove('x');
+                  _values.remove('y');
+                  if (_values['facing']?.isNotEmpty != true) _values['facing'] = 'south';
+                }
+              })),
           if (!_isActorCommand(_command.id))
             for (final parameter in _command.parameters)
               if (_isParameterVisible(parameter)) ...[
@@ -1136,7 +1170,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ),
       ],
       NarrativeCommandParameterKind.characterDirection => [
-        if (_command.id == NarrativeCommandIds.warp || _command.id == NarrativeCommandIds.setNpcPose)
+        if (_command.id == NarrativeCommandIds.warp || _command.id == NarrativeCommandIds.setNpcPose && _npcPosePosition)
           const SceneActionPickerOption(
             id: '',
             label: 'Conserver la direction',

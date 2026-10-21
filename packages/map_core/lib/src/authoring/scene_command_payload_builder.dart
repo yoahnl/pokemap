@@ -123,7 +123,8 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       switch (_parseNpcRef(parameters['npcRef'])) {
         (final mapId, final entityId) => SceneConsequence.setNpcPose(
           mapId: mapId, entityId: entityId,
-          x: int.parse(parameters['x']!), y: int.parse(parameters['y']!),
+          x: parameters['x']?.trim().isNotEmpty == true ? int.parse(parameters['x']!) : null,
+          y: parameters['y']?.trim().isNotEmpty == true ? int.parse(parameters['y']!) : null,
           facing: parameters['facing']?.isNotEmpty == true ? EntityFacing.values.byName(parameters['facing']!) : null,
         ),
       },

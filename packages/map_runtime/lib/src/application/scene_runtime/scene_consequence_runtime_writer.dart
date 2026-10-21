@@ -727,12 +727,17 @@ final class SceneConsequenceRuntimeWriter {
     final map = mapsById[consequence.mapId];
     final owner = map?.entities.where((e) => e.id == consequence.entityId).singleOrNull;
     final scope = mapInstanceScopes[consequence.mapId];
+    final savedPose = gameState.mapInstanceWorldState.instancesByMapId[consequence.mapId]?.npcPoses[consequence.entityId];
+    final position = consequence.x == null
+        ? savedPose?.position ?? owner?.pos
+        : GridPos(x: consequence.x!, y: consequence.y!);
     if (map == null || map.version == ProjectVersion.v9 || map.spatialScene != null || owner == null ||
         project.maps.where((m) => m.id == map.id).length != 1 || owner.presentation == null ||
         !owner.presentation!.variants.any((v) => v.characterId != null) ||
         validateMapEntityPresentation(project: project, map: map, entity: owner).isNotEmpty ||
-        consequence.x + owner.size.width > map.size.width || consequence.y + owner.size.height > map.size.height ||
-        owner.presentation!.variants.any((v) => consequence.x + v.size.width > map.size.width || consequence.y + v.size.height > map.size.height)) {
+        position == null || position.x < 0 || position.y < 0 ||
+        position.x + owner.size.width > map.size.width || position.y + owner.size.height > map.size.height ||
+        owner.presentation!.variants.any((v) => position.x + v.size.width > map.size.width || position.y + v.size.height > map.size.height)) {
       return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'NPC placement requires a declared two-dimensional presentation owner and bounded cell.');
     }
     var presentationUnavailable = false;
@@ -743,7 +748,7 @@ final class SceneConsequenceRuntimeWriter {
       entity: owner,
       onUnavailable: () => presentationUnavailable = true,
     );
-    if (presentationUnavailable || variant?.characterId != null) {
+    if (presentationUnavailable || (consequence.x != null && variant?.characterId != null)) {
       return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'Logical NPC placement requires its current presentation to be hidden.');
     }
     if (scope == null || gameState.mapInstanceWorldState.instanceRef(map.id) != scope) {
@@ -753,7 +758,7 @@ final class SceneConsequenceRuntimeWriter {
     final facing = consequence.facing ?? poses[owner.id]?.facing ?? owner.npc?.facing ??
         owner.presentation!.variants.firstWhere((v) => v.characterId != null).facing;
     final next = gameState.mapInstanceWorldState.setNpcPoses(scope, {...poses,
-      owner.id: MapInstanceNpcPose(position: GridPos(x: consequence.x, y: consequence.y), facing: facing)});
+      owner.id: MapInstanceNpcPose(position: position, facing: facing)});
     return _SceneConsequenceRuntimeWriteStep.applied(gameState.copyWith(mapInstanceWorldState: next));
   }
 

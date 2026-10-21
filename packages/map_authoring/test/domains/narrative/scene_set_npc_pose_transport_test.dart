@@ -12,12 +12,12 @@ void main() {
       final descriptor =
           SceneActions.descriptors.singleWhere((action) => action.id == id);
       expect((descriptor.extensions['setNpcPose'] as Map)['target'],
-          'validatedHiddenNpcPresentationOwner');
+          'validatedNpcPresentationOwner');
     }
   });
   for (final jsonl in [false, true]) {
     test(
-        '${jsonl ? 'JSONL' : 'direct API'} persists editable hidden NPC pose commands and refuses invalid species',
+        '${jsonl ? 'JSONL' : 'direct API'} persists editable hidden NPC pose commands and refuses incomplete or unknown owners',
         () async {
       final fixture = await _GiftFixture.create(jsonl: jsonl);
       addTearDown(fixture.dispose);
@@ -45,10 +45,21 @@ void main() {
         ]
       });
       await fixture.apply(patch);
+      final facing = await fixture.plan('scene.graph.patch', {
+        'sceneId': 'catalog-gift', 'upsertNodes': [
+          _giftNode({'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'rival', 'facing': 'east'})
+        ],
+      });
+      await fixture.apply(facing);
+      expect(await fixture.storedGift(), {
+        'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'rival', 'facing': 'east',
+      });
       final checkpoint = await fixture.bytes();
       for (final invalid in [
         {'kind': 'setNpcPose'},
-        {'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': ' ', 'x': 1, 'y': 1},
+        {'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'rival', 'x': 1, 'facing': 'south'},
+        {'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'rival', 'facing': null},
+                {'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': ' ', 'x': 1, 'y': 1},
         {
           'kind': 'setNpcPose',
           'mapId': 'lab',
@@ -63,13 +74,18 @@ void main() {
         });
         expect(await fixture.bytes(), checkpoint);
       }
+      await fixture.expectRefusal('scene.graph.patch', {
+        'sceneId': 'catalog-gift', 'upsertNodes': [_giftNode({
+          'kind': 'setNpcPose', 'mapId': 'lab', 'entityId': 'missing', 'facing': 'south',
+        })],
+      }, code: 'scene.publication_blocked');
+      expect(await fixture.bytes(), checkpoint);
       await fixture.reopen();
       expect(await fixture.storedGift(), {
         'kind': 'setNpcPose',
         'mapId': 'lab',
         'entityId': 'rival',
-        'x': 5,
-        'y': 4
+        'facing': 'east',
       });
     });
   }
@@ -237,7 +253,7 @@ final class _GiftFixture {
 
   Future<void> expectRefusal(
     String action,
-    Map<String, Object?> parameters,
+    Map<String, Object?> parameters, {String code = 'scene.graph.invalid_patch'}
   ) async {
     await expectLater(
       () => plan(action, parameters),
@@ -245,12 +261,12 @@ final class _GiftFixture {
           ? isA<AuthoringError>().having(
               (error) => error.details['domainCode'],
               'domainCode',
-              'scene.graph.invalid_patch',
+              code,
             )
           : isA<NarrativeAuthoringException>().having(
               (error) => error.code,
               'code',
-              'scene.graph.invalid_patch',
+              code,
             )),
     );
   }

@@ -459,7 +459,7 @@ _PreviewConsequenceResult _previewConsequence({
       );
     case SceneSetNpcPoseConsequence():
       before = '${consequence.mapId}::${consequence.entityId}=stored pose';
-      after = '${consequence.x},${consequence.y}';
+      after = consequence.x == null ? 'position preserved, ${consequence.facing!.name}' : '${consequence.x},${consequence.y}';
     case SceneSetNpcPresenceConsequence():
       final ref = '${consequence.mapId}::${consequence.entityId}';
       before = '$ref=${state.npcPresenceByRef[ref] ?? 'project default'}';
