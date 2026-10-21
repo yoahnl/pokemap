@@ -377,6 +377,22 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
       }
     }
+    final freshEntry = sourceFreshEntryProgram(source);
+    if (freshEntry != null) {
+      final program = freshEntry.intro;
+      try {
+        final binding = await const SourceEventSoundResolver().read(
+            source: source, files: recording, name: program.music.name,
+            kind: SourceEventAudioKind.music, limits: limits,
+            cancellation: cancellation);
+        sounds['bgm:${program.music.name}'] = binding;
+        soundEvidence.add({'sourceName': program.music.name,
+          'status': 'imported', ...binding.evidence});
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        soundEvidence.add({'sourceName': program.music.name,
+          'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
     final decorativePokemonBindings = <ConverterId, SourceDecorativePokemonBinding>{};
     final decorativePokemonEvidence = <Map<String, Object?>>[];
     SourcePbsProject? decorativePbs;

@@ -37,6 +37,8 @@ import 'source_card_key_gate_program.dart';
 import 'source_card_key_gate_audio.dart';
 import 'source_inventory_controller_program.dart';
 
+part 'source_intro_projection.dart';
+
 DialogueLineFeedback? _staticSourceTextFeedback(String source, {bool allowNativePlaceholders = false}) =>
     parseSourceDialogueText(source, allowPlayerName: false, allowTiming: false, allowLiteralEscapes: false,
         allowNativePlaceholders: allowNativePlaceholders);
@@ -1260,6 +1262,19 @@ final class _ProjectionBuilder {
         'status':
             gaps.isEmpty ? 'adaptedStaticSemantics' : 'quarantinedWholeEvent',
         'gaps': gaps.toList()..sort(),
+        if (_introProgram(event) case final intro? when gaps.isEmpty)
+          'nativeIntroduction': {
+            ...intro.toJson(),
+            'nativeEntryFactId': _introFreshFact(intro).id,
+            'nativeEntryFactDefault': false,
+            'requiresNativeFreshEntryFactory': true,
+            'sourceMusic': {
+              'sourceName': intro.music.name,
+              'status': _introMusicIsMissing(intro)
+                  ? 'missingOptionalSourceAudioOmittedWithoutSubstitution'
+                  : 'imported',
+            },
+          },
         if (gaps.isEmpty && _decorativePokemonBinding(event) != null)
           'nativeDecorativePokemon': _decorativePokemonBinding(event)!.toJson(),
         if (_cardKeyGatePrograms[event.identity] case final gate? when gaps.isEmpty)
@@ -1744,6 +1759,7 @@ final class _ProjectionBuilder {
     final ownersByFact = <String, Set<ConverterId>>{};
     for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty)) {
       final ids = <String>{};
+      if (_introProgram(event) case final intro?) ids.addAll(_introFactIds(intro));
       if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(elevatorPrograms[event.identity]!.currentFloorVariableId), _elevatorVariableKey(elevatorPrograms[event.identity]!.selectionVariableId)]);
       ids.addAll(_warpTileFactIds(event));
       for (final page in event.pages) {
@@ -3258,7 +3274,9 @@ final class _ProjectionBuilder {
         }
       }
       if (maps.containsKey(event.sourceMapId) &&
-          (elevatorPrograms.containsKey(event.identity) || warpTilePrograms.programs.containsKey(event.identity)) &&
+          (elevatorPrograms.containsKey(event.identity) ||
+              _introProgram(event) != null ||
+              warpTilePrograms.programs.containsKey(event.identity)) &&
           _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
         exempt.add(event.identity);
       }
@@ -3695,6 +3713,7 @@ final class _ProjectionBuilder {
 
   Set<String> _localGaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
+    if (_introProgram(event) != null) return _introGaps(event);
     if (event.name == 'Silph Gate size(2,2)') {
       return _cardKeyGateGaps(event, checkCharacterBindings: checkCharacterBindings);
     }
@@ -4528,6 +4547,7 @@ final class _ProjectionBuilder {
   }
 
   void _projectEvent(SourceEventDefinition event) {
+    if (_introProgram(event) case final program?) _prepareIntroFacts(program);
     if (elevatorPrograms.containsKey(event.identity)) {
       for (final variable in [elevatorPrograms[event.identity]!.currentFloorVariableId, elevatorPrograms[event.identity]!.selectionVariableId]) { final key = _elevatorVariableKey(variable); factsById.putIfAbsent(key, () => _elevatorFact(variable)); }
     }
@@ -4614,6 +4634,9 @@ final class _ProjectionBuilder {
         fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || _cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && projectedPages.first.originalPageIndex == 0)))];
     NarrativeEventConditionExpression pageExpression(int index) {
       final guard = _all([
+        if (_introProgram(event) case final intro?)
+          _Guard.expression(NarrativeEventConditionExpression.leaf(
+              NarrativeEventCondition.fact(_introFreshFact(intro).id, true))),
         _pageGuard(event, projectedPages[index].condition),
         _not(_any(projectedPages.skip(index + 1)
           .map((page) => _pageGuard(event, page.condition)).toList())),
@@ -4734,6 +4757,9 @@ final class _ProjectionBuilder {
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
       final guard = _all([
+        if (_introProgram(event) case final intro?)
+          _Guard.expression(NarrativeEventConditionExpression.leaf(
+              NarrativeEventCondition.fact(_introFreshFact(intro).id, true))),
         if (elevatorPrograms[event.identity]?.role == SourceElevatorRole.controller)
           for (final bound in [(NarrativeFactOperator.greaterThanOrEqual, 1), (NarrativeFactOperator.lessThanOrEqual, elevatorPrograms[event.identity]!.maximumFloor)])
             _Guard.expression(NarrativeEventConditionExpression.leaf(NarrativeEventCondition.factValue(_elevatorFact(elevatorPrograms[event.identity]!.currentFloorVariableId).id, operator: bound.$1, expectedValue: NarrativeValue.integer(bound.$2)))),
@@ -5017,7 +5043,9 @@ final class _SceneBuilder {
     final hole = projection.holePrograms[event.identity];
     final elevator = projection.elevatorPrograms[event.identity];
     final warpTile = projection.warpTilePrograms.programs[event.identity];
-    final first = hole != null ? _hole(hole, end)
+    final intro = projection._introProgram(event);
+    final first = intro != null ? _intro(intro, end)
+      : hole != null ? _hole(hole, end)
       : elevator != null && elevator.role != SourceElevatorRole.actor ? _elevator(elevator, end)
       : warpTile != null ? _warpTile(warpTile, end) : _block(page.body, end);
     final start = _node(SceneStartPayload());
