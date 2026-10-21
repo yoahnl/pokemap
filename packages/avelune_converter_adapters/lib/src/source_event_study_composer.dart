@@ -658,7 +658,7 @@ final class SourceEventStudyComposer {
             characterName: graphic.characterName,
             pattern: graphic.pattern,
             direction: graphic.direction,
-            fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)));
+            fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || routedDoorPrograms.values.any((program) => program.sourceMapId == event.sourceMapId && program.foreignCompanionEventIds.contains(event.sourceEventId)) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)));
         if (visited.contains(key)) continue;
         final presentation = resolveSourceCharacterPresentation(snapshot: source.snapshot,
             profile: source.interpretationProfile, charsetName: graphic.characterName);
@@ -674,7 +674,7 @@ final class SourceEventStudyComposer {
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
               stationaryFootprint: sourcePassiveFixedFootprint(event),
-              fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)),
+              fixedDirection: graphic.directionFix && (sourceEventUsesFixedDirectionPresentation(event) || cardKeyGatePrograms.containsKey(event.identity) || routedDoorPrograms.values.any((program) => program.sourceMapId == event.sourceMapId && program.foreignCompanionEventIds.contains(event.sourceEventId)) || (routedDoorPrograms[event.identity]?.fixedLockedPagePresentation == true && page.originalPageIndex == 0)),
               limits: limits,
               cancellation: cancellation);
           visited.add(key);

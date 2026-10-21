@@ -2663,6 +2663,18 @@ final class _SourceEventParser {
         }
         final literal = _routeText(doc, raw[1]);
         if (literal != _string(params[1])) throw const FormatException();
+        final foreignSelf = RegExp(
+            r"""^\s*\$game_self_switches\s*\[\s*\[\s*@map_id\s*,\s*([1-9][0-9]*)\s*,\s*(['"])([A-D])\2\s*\]\s*\]\s*$""").firstMatch(literal);
+        if (foreignSelf != null) {
+          final target = int.tryParse(foreignSelf.group(1)!);
+          if (target == null || !analyzer.project.maps.any((map) =>
+              map.map.sourceMapId == mapId && map.map.events.any((event) =>
+                  event.sourceEventId == target))) {
+            return _unqualifiedEventCondition('events.invalid_foreign_self_switch_condition');
+          }
+          return SourceEventCondition(kind: SourceEventConditionKind.selfSwitch,
+              factId: analyzer.selfFactId(mapId, target, foreignSelf.group(3)!));
+        }
         if (analyzer.supportsIntegerVariableHelpers) {
           final comparison = RegExp(r'^\s*pbGet\s*\(\s*([1-9][0-9]*)\s*\)\s*(==|!=|>=|<=|>|<)\s*(-?(?:0|[1-9][0-9]*))\s*$')
               .firstMatch(literal);

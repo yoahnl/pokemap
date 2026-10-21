@@ -18,6 +18,8 @@ final class SourceRoutedDoorProgram {
         normalizationHash = source.canonicalHash,
         profileHash = analysis.profile.canonicalHash,
         sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
+        foreignCompanionEventIds = Set.unmodifiable(
+            _foreignDoorCompanions(event, source) ?? const <int>{}),
         fixedLockedPagePresentation = _hasFixedLockedPage(event),
         _departureGraphic = event.pages[event.pages.length - 2].graphic!,
         _arrivalGraphic = event.pages.last.graphic!,
@@ -36,6 +38,7 @@ final class SourceRoutedDoorProgram {
       profileHash,
       sourceFileHash;
   final SourceEventGraphic _departureGraphic, _arrivalGraphic;
+  final Set<int> foreignCompanionEventIds;
   final bool nativeStableDepartureDoorSkin;
   final bool fixedLockedPagePresentation;
   final bool invisibleOwnerRouteTimingAdaptation;
@@ -69,6 +72,8 @@ final class SourceRoutedDoorProgram {
         'capability': 'completePairedDoorWithLocalForcedRouteBarrier',
         'temporaryState': 'nativeMapEventInstanceBoolean',
         'fixedLockedPagePresentation': fixedLockedPagePresentation,
+        if (foreignCompanionEventIds.isNotEmpty) 'foreignCompanionEventIds': foreignCompanionEventIds.toList()..sort(),
+        if (foreignCompanionEventIds.isNotEmpty) 'foreignCompanionInteractionPolicy': 'preservedQuarantinedWholeEvent',
         'sourceScriptsExecuted': 0,
         'sourceProgramPlaybackQualified': false,
         if (invisibleOwnerRouteTimingAdaptation)
@@ -229,9 +234,13 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
     }
   }
   final departureNodes = _runtimeNodes(departure.body);
-  final body = departureNodes.lastOrNull is SourceSwitchNode
-      ? departureNodes.take(departureNodes.length - 1).toList()
-      : departureNodes;
+  final foreignCompanions = _foreignDoorCompanions(event, source);
+  final routeNodes = foreignCompanions == null ? departureNodes : [
+    ...departureNodes.sublist(2, 12), ...departureNodes.sublist(13),
+  ];
+  final body = routeNodes.lastOrNull is SourceSwitchNode
+      ? routeNodes.take(routeNodes.length - 1).toList()
+      : routeNodes;
   final animated = departure.graphic!.characterName.isNotEmpty &&
       body.length == 12 &&
       _route(body[0], 0, [44, 15, 17, 15, 18, 15, 19, 15]) &&
@@ -268,7 +277,7 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           body[2] is SourceWarpNode &&
           body[3] is SourceToneNode));
   if (!animated && !invisible ||
-      animated && body.length != departureNodes.length) {
+      animated && body.length != routeNodes.length) {
     return false;
   }
   final warp = body.whereType<SourceWarpNode>().single;
@@ -323,6 +332,56 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           route[7] is SourceMoveRouteBarrierNode);
 }
 
+Set<int>? _foreignDoorCompanions(SourceEventDefinition event,
+    NormalizedSourceProject source) {
+  if (event.pages.length != 2) return null;
+  final nodes = _runtimeNodes(event.pages.first.body);
+  if (nodes.length != 15) return null;
+  final analyzer = SourceEventAnalyzer.forProject(source,
+      profile: SourceEventProfile.forProject(source));
+  final ids = source.maps.singleWhere((map) => map.map.sourceMapId == event.sourceMapId)
+      .map.events.map((actor) => actor.sourceEventId).where((id) => id != event.sourceEventId);
+  SourceSelfSwitchNode? writeAt(int index) {
+    final node = nodes[index];
+    if (node is! SourceConditionalNode ||
+        node.condition.kind != SourceEventConditionKind.selfSwitch ||
+        !node.condition.expectedValue || node.whenFalse.nodes.isNotEmpty ||
+        node.whenTrue.nodes.length != 1 ||
+        node.whenTrue.nodes.single is! SourceSelfSwitchNode) {
+      return null;
+    }
+    return node.whenTrue.nodes.single as SourceSelfSwitchNode;
+  }
+  final first = writeAt(0), second = writeAt(1), third = writeAt(12);
+  if (first == null || second == null || third == null || first.value ||
+      !second.value || !third.value || first.letter != 'A' || second.letter != 'C' ||
+      third.letter != 'A') {
+    return null;
+  }
+  final controls = ids.where((id) =>
+      (nodes[0] as SourceConditionalNode).condition.factId == analyzer.selfFactId(event.sourceMapId, id, 'A') &&
+      first.factId == analyzer.selfFactId(event.sourceMapId, id, 'A') &&
+      (nodes[1] as SourceConditionalNode).condition.factId == analyzer.selfFactId(event.sourceMapId, id, 'B') &&
+      second.factId == analyzer.selfFactId(event.sourceMapId, id, 'C') &&
+      (nodes[12] as SourceConditionalNode).condition.factId == analyzer.selfFactId(event.sourceMapId, id, 'C')).toList();
+  final successors = ids.where((id) => third.factId == analyzer.selfFactId(event.sourceMapId, id, 'A')).toList();
+  if (controls.length != 1 || successors.length != 1 || controls.single == successors.single) return null;
+  return {controls.single, successors.single};
+}
+
+bool sourceRoutedDoorCompanionIsBound({required NormalizedSourceProject source,
+    required SourceEventAnalysis analysis, required SourceEventDefinition event}) {
+  if (!analysis.profile.isQualified ||
+      analysis.profile.sourceSnapshotHash != source.snapshot.canonicalHash ||
+      analysis.profile.normalizationHash != source.canonicalHash ||
+      SourceEventProfile.forProject(source).canonicalHash != analysis.profile.canonicalHash) {
+    return false;
+  }
+  final expected = SourceEventAnalyzer.forProject(source, profile: analysis.profile)
+      .analyzeEventAt(event.sourceMapId, event.sourceEventId);
+  return expected != null && _fingerprintOf(expected) == _fingerprintOf(event);
+}
+
 bool _usesStableDepartureDoorSkin(SourceEventDefinition event, NormalizedSourceProject source) {
   if (event.pages.length != 2) return false;
   final departure = event.pages.first.graphic;
@@ -356,6 +415,10 @@ Object? _node(SourceEventNode node) => switch (node) {
           'lastId': node.lastId,
           'factIds': node.factIds,
           'value': node.value,
+        },
+      SourceSelfSwitchNode() => {
+          'kind': 'selfSwitch', 'span': node.span.toJson(),
+          'factId': node.factId, 'letter': node.letter, 'value': node.value,
         },
       SourceForcedMoveRouteNode() => node.toJson(),
       SourceMoveRouteBarrierNode() => node.toJson(),

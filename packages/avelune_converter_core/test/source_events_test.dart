@@ -765,6 +765,48 @@ void main() {
       expect(_analyzer(source).analyzeEventAt(1, 1), isNull);
     });
   });
+  group('literal foreign self-switch conditions', () {
+    for (final letter in ['A', 'B', 'C', 'D']) {
+      test('reads the declared current-map target $letter without Ruby', () async {
+        final source = await _events([_page([
+          _command(111, [12, "\$game_self_switches[[@map_id, 2, '$letter']] "]),
+          _command(101, ['Present'], indent: 1),
+          _command(0, [], indent: 1),
+          _command(412, []),
+          _command(0, []),
+        ])], extraEvents: {2: _event(2, [_page([])])});
+        final analyzer = _analyzer(source);
+        final event = analyzer.analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isFalse);
+        final branch = event.pages.single.body.nodes.single as SourceConditionalNode;
+        expect(branch.condition.kind, SourceEventConditionKind.selfSwitch);
+        expect(branch.condition.factId, analyzer.selfFactId(1, 2, letter));
+        expect(branch.condition.expectedValue, isTrue);
+        expect(branch.whenTrue.nodes.single, isA<SourceTextNode>());
+      });
+    }
+    for (final script in [
+      r"$game_self_switches[[8, 2, 'A']]",
+      r"$game_self_switches[[@map_id, 9, 'A']]",
+      r"$game_self_switches[[@map_id, 0, 'A']]",
+      r"$game_self_switches[[@map_id, -2, 'A']]",
+      r"$game_self_switches[[@map_id, 02, 'A']]",
+      r"$game_self_switches[[@map_id, event_id, 'A']]",
+      r"$game_self_switches[[@map_id, 2, 'E']]",
+      r"$game_self_switches[[@map_id, 2, 'A']]; unsafe()",
+      r"$game_self_switches[[@map_id, 2, 'A']].to_s",
+      r"$game_self_switches[[@map_id, 2, 'A']] == true",
+    ]) {
+      test('refuses opaque foreign read $script', () async {
+        final source = await _events([_page([
+          _command(111, [12, script]), _command(0, [], indent: 1),
+          _command(412, []), _command(0, []),
+        ])], extraEvents: {2: _event(2, [_page([])])});
+        expect(_analyzer(source).analyze().requireEvent(1, 1).isQuarantined, isTrue);
+      });
+    }
+  });
+
   group('literal foreign self-switch statements', () {
     for (final (script, target, value) in [
       ('pbSetSelfSwitch(1, "A", true)', (1, 1), true),

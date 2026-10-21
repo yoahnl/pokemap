@@ -44,6 +44,8 @@ part 'source_intro_projection.dart';
 
 part 'source_starter_choice_projection.dart';
 
+part 'source_door_companion_projection.dart';
+
 bool _dormantBlankSourceActionPage(SourceEventPageAnalysis page) =>
     page.triggerCode == 0 &&
     !page.isQuarantined &&
@@ -344,7 +346,7 @@ final class SourceEventProjector {
         nativeMaps.containsKey(event.sourceMapId) &&
         !builder._isFieldObstacleFamily(event) &&
         !builder._isHealingDisplayFamily(event) &&
-        (builder._gaps(event, checkCharacterBindings: false).isEmpty || builder._starterPassiveActorCandidate(event))));
+        (builder._gaps(event, checkCharacterBindings: false).isEmpty || builder._starterPassiveActorCandidate(event) || builder._doorCompanionCandidate(event))));
   }
 
   SourceEventProjection project(
@@ -673,6 +675,7 @@ Sha256Hash _sourceControlFingerprint(SourceEventDefinition event) => canonicalHa
 });
 
 final class _SourceSelfSwitchQualification {
+  final passiveCompanions = <ConverterId>{};
   final states = <(ConverterId, bool, String)>{};
   var evaluatedStateCount = 0;
   var hasForeignTargets = false;
@@ -1297,6 +1300,7 @@ final class _ProjectionBuilder {
       }
     }
     _projectStarterPassiveActors();
+    _projectDoorCompanions();
     for (final event in events) {
       final gaps = gapsByEvent[event.identity]!;
       if (gaps.isNotEmpty) {
@@ -1832,6 +1836,9 @@ final class _ProjectionBuilder {
     for (final entry in _starterFactOwners().entries) {
       ownersByFact.putIfAbsent(entry.key, () => {}).addAll(entry.value);
     }
+    for (final entry in _doorCompanionFactOwners().entries) {
+      ownersByFact.putIfAbsent(entry.key, () => {}).addAll(entry.value);
+    }
     final factIds = factsById.keys.toList()..sort();
     final factMutations = [
       for (final id in factIds)
@@ -1916,6 +1923,7 @@ final class _ProjectionBuilder {
           'contract': 'owner-local-closed-context-traversal-v1',
           'ownerClosures': _selfSwitchQualificationProofs,
         },
+      'doorCompanionPresentationPrograms': _doorCompanionEvidence(),
       'sourceSnapshotHash': sourceSnapshotHash.value,
       'normalizationHash': source.canonicalHash.value,
       'sourceProfileHash': analysis.profile.canonicalHash.value,
@@ -2949,6 +2957,9 @@ final class _ProjectionBuilder {
     }
     final gaps = <String>{};
     final map = maps[event.sourceMapId]!;
+    if (binding.programs.any((program) => program.kind == SourceTrainerProgramKind.encounter && program.defeatPolicy?.canLose != false)) {
+      gaps.add('sourceTrainerDefeatPolicyUnqualified');
+    }
     if (binding.nativeTrainer.battleItems.keys.any((id) =>
         binding.battleItemDefinitions.where((item) => item.id == id).length != 1)) {
       gaps.add('sourceTrainerBattleItemDefinitionMissing');
@@ -3631,6 +3642,8 @@ final class _ProjectionBuilder {
           'variableWriterAuditComplete': _unqualifiedVariableWriters != null,
           'evaluatedStateCount': qualification.evaluatedStateCount,
           'distinctStateCount': qualification.states.length,
+          if (qualification.passiveCompanions.isNotEmpty)
+            'presentationOnlyCompanionIdentities': qualification.passiveCompanions.map((id) => id.value).toList()..sort(),
           'arrivalContextCount': qualification.states.map((state) => state.$3).toSet().length,
           'bindingModes': qualification.states.map((state) => state.$2).toSet().toList()
             ..sort((a, b) => (a ? 1 : 0).compareTo(b ? 1 : 0)),
@@ -4339,7 +4352,9 @@ final class _ProjectionBuilder {
             qualification.hasForeignTargets = true;
             final selected = analysis.eventAt(target.sourceMapId, target.sourceEventId)!;
             final state = _selfSwitchQualificationState(selected, checkCharacterBindings);
-            if (qualification.states.add(state)) {
+            if (_qualifiedDoorCompanion(event, selected, checkCharacterBindings: checkCharacterBindings)) {
+              qualification.passiveCompanions.add(selected.identity);
+            } else if (qualification.states.add(state)) {
               qualification.evaluatedStateCount++;
               if (_gaps(selected, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
                 qualification.refused = true;
@@ -6009,7 +6024,12 @@ final class _SceneBuilder {
       final speech = _dialogue(program.span, null, null, winner,
           dialogueKey: 'trainer_pbs_lose_text',
           feedbackLines: [_staticSourceTextFeedback(binding.nativeVictorySpeech)!]);
+      if (program.defeatPolicy?.canLose != false) {
+        throw const NativeWriteException('events.trainer.defeat_policy_unqualified',
+            'Trainer recovery requires the exact source loss policy.');
+      }
       final battle = _node(SceneBattlePayload(battleKind: 'trainer',
+          defeatRecovery: SceneBattleDefeatRecovery.returnToRecoveryPoint,
           trainerId: binding.nativeTrainer.id,
           npcEntityId: projection._key(event, 'anchor'),
           declaredOutcomes: const ['victory', 'defeat']));
