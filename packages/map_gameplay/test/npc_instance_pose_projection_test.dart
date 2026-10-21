@@ -130,6 +130,33 @@ void main() {
     expect(refreshed.map.entities.single.npc!.facing, EntityFacing.west);
   });
 
+  test('no selected presentation preserves its logical pose until later reactivation', () {
+    final fixture = variantFixture();
+    final source = fixture.map.copyWith(entities: [fixture.map.entities.single.copyWith(
+      presentation: MapEntityPresentation(variants: [fixture.map.entities.single.presentation!.variants.first]))]);
+    final state = GameState(saveId: 'inactive-owner', mapInstanceWorldState: fixture.instances);
+    final world = GameplayWorldState.initial(map: source, project: fixture.project, gameState: state,
+      playerPos: const GridPos(x: 0, y: 0));
+    final inactive = world.withEntityPresentations(project: fixture.project, gameState: state, sourceMap: source);
+    expect(inactive.map.entities, isEmpty);
+    final active = inactive.withEntityPresentations(project: fixture.project, sourceMap: source,
+      gameState: state.copyWith(storyFlags: const StoryFlags(activeFlags: {'closed'})));
+    expect(active.map.entities.single.pos, const GridPos(x: 3, y: 3));
+    expect(active.map.entities.single.npc!.facing, EntityFacing.east);
+    expect(active.withEntityPresentations(project: fixture.project, gameState: state, sourceMap: source).map.entities, isEmpty);
+    expect(state.mapInstanceWorldState.instancesByMapId['room']!.npcPoses['wall']!.position, const GridPos(x: 3, y: 3));
+    final forged = state.copyWith(mapInstanceWorldState: state.mapInstanceWorldState.setNpcPoses(fixture.instance, {
+      'ghost': MapInstanceNpcPose(position: const GridPos(x: 2, y: 2), facing: EntityFacing.east)}));
+    expect(() => inactive.withEntityPresentations(project: fixture.project, gameState: forged, sourceMap: source), throwsStateError);
+    expect(() => MapInstanceNpcPose(position: const GridPos(x: -1, y: 0), facing: EntityFacing.east), throwsArgumentError);
+    for (final position in const [GridPos(x: 8, y: 0), GridPos(x: 7, y: 3)]) {
+      final corrupt = state.copyWith(mapInstanceWorldState: state.mapInstanceWorldState.setNpcPoses(fixture.instance, {
+        'wall': MapInstanceNpcPose(position: position, facing: EntityFacing.east)}));
+      expect(() => inactive.withEntityPresentations(project: fixture.project, gameState: corrupt, sourceMap: source), throwsStateError);
+    }
+
+  });
+
   for (final invalid in [
     'unknown character',
     'no project',

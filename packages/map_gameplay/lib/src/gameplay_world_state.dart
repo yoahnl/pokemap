@@ -971,9 +971,27 @@ class GameplayWorldState {
     ]);
     final instance = gameState.mapInstanceWorldState.instanceRef(sourceMap.id);
     final poses = instance == null ? const <String, MapInstanceNpcPose>{} : gameState.mapInstanceWorldState.instancesByMapId[sourceMap.id]!.npcPoses;
-    final logicalPoses = {for (final entry in poses.entries)
+    final logicalCandidates = {for (final entry in poses.entries)
       if (currentById[entry.key]?.kind != MapEntityKind.npc || currentById[entry.key]?.npc == null) entry.key: entry.value};
-    final presented = projectMapEntityPresentations(project: project, gameState: gameState, map: source);
+    final inactiveOwners = <String>{for (final entity in source.entities)
+      if (logicalCandidates.containsKey(entity.id) && entity.presentation != null &&
+          source.entities.where((other) => other.id == entity.id).length == 1 &&
+          validateMapEntityPresentation(project: project, map: source, entity: entity).isEmpty &&
+          resolveMapEntityPresentation(project: project, gameState: gameState, map: source, entity: entity) == null)
+        entity.id};
+    for (final id in inactiveOwners) {
+      final owner = source.entities.singleWhere((entity) => entity.id == id);
+      final position = logicalCandidates[id]!.position;
+      if (position.x < 0 || position.y < 0 ||
+          position.x + owner.size.width > source.size.width || position.y + owner.size.height > source.size.height ||
+          owner.presentation!.variants.any((variant) => position.x + variant.size.width > source.size.width ||
+              position.y + variant.size.height > source.size.height)) {
+        throw StateError('Saved NPC $id has an incompatible identity or pose.');
+      }
+    }
+    final logicalPoses = {for (final entry in logicalCandidates.entries)
+      if (!inactiveOwners.contains(entry.key)) entry.key: entry.value};
+    final presented = logicalPoses.isEmpty ? source : projectMapEntityPresentations(project: project, gameState: gameState, map: source);
     final positioned = instance == null || logicalPoses.isEmpty ? presented : applyNpcInstancePosesToMap(
       map: presented, authoringMap: source, project: project,
       instances: gameState.mapInstanceWorldState.setNpcPoses(instance, logicalPoses), instance: instance,
