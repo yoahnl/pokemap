@@ -2458,10 +2458,6 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     }
     await preparation.advance();
   }
-  await preparation.start(NativePreparationStage.projectValidation,
-      total: maps.length + (semantics.events?.projection.scenes.length ?? 0) +
-          2 + (semantics.events == null ? 0 : 1) +
-          (semantics.verified ? 0 : 1));
   if (usedArtifacts.length != artifacts.length ||
       tilesets.isEmpty ||
       maps.length != draft.mapIds.length ||
@@ -2545,6 +2541,10 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     manifest = const CampaignContentActions()
         .updateNewGame(manifest, sourceNewGame, maps: maps.values);
   }
+  await preparation.start(NativePreparationStage.projectValidation,
+      total: maps.length + (projectedEvents == null ? 0 : manifest.scenes.length) +
+          2 + (projectedEvents == null ? 0 : 1) +
+          (semantics.verified ? 0 : 1));
   if (projectedCatalogs != null) {
     _validateCatalogReferences(projectedCatalogs, manifest);
   }

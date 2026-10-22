@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
@@ -28,6 +30,17 @@ void main() {
                 .split('|')
                 .where((value) => value.isNotEmpty)
                 .toList());
+    final sourceBefore = jsonEncode(fixture.source.toJson());
+    final sourceFilesBefore = <String, String>{};
+    for (final entry in fixture.source.snapshot.entries.where((entry) =>
+        RegExp(r'^Data/(Map00[127]|Scripts)\.rxdata$')
+            .hasMatch(entry.relativePath))) {
+      sourceFilesBefore[entry.relativePath] =
+          crypto.sha256.convert(await fixture.files.read(entry.fileId)).toString();
+    }
+    expect(sourceFilesBefore.keys,
+        containsAll(['Data/Map001.rxdata', 'Data/Map002.rxdata',
+          'Data/Map007.rxdata', 'Data/Scripts.rxdata']));
     final limits = sourceCatalogStudyWriteLimitsFor(selected.length,
         includeNativeCatalog: true);
     Future<LiteralTileComposition> literal(
@@ -72,12 +85,28 @@ void main() {
     expect(fresh.scene.executionProfile, SceneExecutionProfile.preSession);
     expect(events.draft.mutations.last.actionId, 'campaign.new_game.update');
     final approval = approveNativeFixtureDraft(events.draft);
-    final receipt = await NativeProjectWriter()
+    final validationProgress = <JobProgress>[];
+    final receipt = await NativeProjectWriter(
+        preparationCheckpoint: (stage, progress) {
+      if (stage == NativePreparationStage.projectValidation) {
+        validationProgress.add(progress);
+      }
+    })
         .write(approval.plan, approval.context, events.draft, limits: limits);
     expect(receipt.verified, isTrue);
     final project = ProjectManifest.fromJson(Map<String, dynamic>.from(
         jsonDecode(await File('${receipt.projectPath}/project.json')
             .readAsString()) as Map));
+    expect(validationProgress.first.done, 0);
+    expect(validationProgress.last.total,
+        project.maps.length + project.scenes.length + 3);
+    expect(validationProgress.last.done, validationProgress.last.total);
+    expect(jsonEncode(fixture.source.toJson()), sourceBefore);
+    for (final entry in fixture.source.snapshot.entries.where(
+        (entry) => sourceFilesBefore.containsKey(entry.relativePath))) {
+      expect(crypto.sha256.convert(await fixture.files.read(entry.fileId)).toString(),
+          sourceFilesBefore[entry.relativePath], reason: entry.relativePath);
+    }
     expect(project.newGame, fresh.config);
     expect(project.defeatRecovery, fresh.defeatRecovery);
     expect(
