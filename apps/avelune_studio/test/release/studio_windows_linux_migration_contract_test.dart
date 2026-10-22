@@ -3,6 +3,73 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Windows release stops after each failed Flutter command', () {
+    final script = _windowsReleaseBuildScript();
+    for (final lastLine in [
+      'flutter pub get',
+      'flutter test test/release',
+      'flutter analyze',
+      r'  "--build-number=$env:RELEASE_BUILD_NUMBER"',
+    ]) {
+      expect(
+        script,
+        contains(
+          '$lastLine\n'
+          r'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }',
+        ),
+        reason: lastLine,
+      );
+    }
+  });
+
+  test(
+    'Windows release propagates native failures and accepts successful builds',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'avelune-studio-windows-exit-',
+      );
+      try {
+        final script = File('${directory.path}/build.ps1');
+        await script.writeAsString(
+          r'if ((Get-Command flutter).Source -ne $env:AVELUNE_RELEASE_TEST_FLUTTER) { throw "Unexpected Flutter executable" }'
+          '\n${_windowsReleaseBuildScript()}',
+        );
+        final bundle = Directory(
+          '${directory.path}/build/windows/x64/runner/Release',
+        );
+        await bundle.create(recursive: true);
+        await File('${bundle.path}/PokeMap.exe').writeAsString('fixture');
+        final flutter = File('${directory.path}/flutter.cmd');
+        for (final failingCommand in ['pub', 'test', 'analyze', 'build', '']) {
+          await flutter.writeAsString(
+            '@echo off\r\n'
+            'if "%1"=="$failingCommand" exit /b 23\r\n'
+            'exit /b 0\r\n',
+          );
+          final result = await Process.run(
+            'pwsh',
+            ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', script.path],
+            workingDirectory: directory.path,
+            environment: {
+              'PATH': '${directory.path};${Platform.environment['PATH']}',
+              'AVELUNE_RELEASE_TEST_FLUTTER': await flutter.resolveSymbolicLinks(),
+              'RELEASE_VERSION': '0.3.27',
+              'RELEASE_BUILD_NUMBER': '327',
+            },
+          );
+          expect(
+            result.exitCode,
+            failingCommand.isEmpty ? 0 : 23,
+            reason: '$failingCommand: ${result.stdout}\n${result.stderr}',
+          );
+        }
+      } finally {
+        await directory.delete(recursive: true);
+      }
+    },
+    skip: !Platform.isWindows,
+  );
+
   test('Windows installer upgrades the existing PokeMap installation', () {
     final previous = File(
       '../../packages/map_editor/windows/installer/pokemap.iss',
@@ -146,6 +213,26 @@ void main() {
     },
     skip: Platform.isWindows,
   );
+}
+
+String _windowsReleaseBuildScript() {
+  final workflow = File('../../.github/workflows/pokemap_desktop_release.yml')
+      .readAsStringSync()
+      .replaceAll('\r\n', '\n');
+  final start = workflow.indexOf(
+    '      - name: Build Windows manual release\n',
+  );
+  final end = workflow.indexOf(
+    '      - name: Package Windows manual installer\n',
+    start,
+  );
+  final step = workflow.substring(start, end);
+  const marker = '        run: |\n';
+  return step
+      .substring(step.indexOf(marker) + marker.length)
+      .split('\n')
+      .map((line) => line.startsWith('          ') ? line.substring(10) : line)
+      .join('\n');
 }
 
 String? _setupValue(String source, String key) {

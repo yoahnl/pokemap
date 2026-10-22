@@ -8,7 +8,7 @@ void main() {
     final workflow = File(
       '${repositoryRoot.path}/.github/workflows/'
       'pokemap_product_certification.yml',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     final performanceJob = workflow.substring(
       workflow.indexOf('  performance-observation:'),
     );
@@ -62,7 +62,7 @@ void main() {
     final workflow = File(
       '${repositoryRoot.path}/.github/workflows/'
       'pokemap_product_certification.yml',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     final performanceJob = workflow.substring(
       workflow.indexOf('  performance-observation:'),
     );
@@ -84,7 +84,7 @@ void main() {
     final workflow = File(
       '${repositoryRoot.path}/.github/workflows/'
       'pokemap_product_certification.yml',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
 
     String job(String name, String nextName) {
       final start = workflow.indexOf('  $name:');
@@ -197,11 +197,10 @@ void main() {
 
   test('performance workflow has a blocking sequential PERF-009 gate', () {
     final repositoryRoot = Directory.current.parent.parent;
-    final workflow =
-        File(
-          '${repositoryRoot.path}/.github/workflows/'
-          'pokemap_product_certification.yml',
-        ).readAsStringSync();
+    final workflow = File(
+      '${repositoryRoot.path}/.github/workflows/'
+      'pokemap_product_certification.yml',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     final gateStart = workflow.indexOf('  map-editor-performance-gate:');
     expect(gateStart, greaterThanOrEqualTo(0));
     if (gateStart < 0) return;

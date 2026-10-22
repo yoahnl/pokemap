@@ -6,7 +6,9 @@ void main() {
   final repositoryRoot = Directory.current.parent.parent;
 
   String workflow(String name) =>
-      File('${repositoryRoot.path}/.github/workflows/$name').readAsStringSync();
+      File('${repositoryRoot.path}/.github/workflows/$name')
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n');
 
   String triggers(String source) => source.substring(
     source.indexOf('on:\n'),

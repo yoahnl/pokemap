@@ -360,11 +360,15 @@ jobs:
         shell: pwsh
         run: |
           flutter pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           flutter test test/release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           flutter analyze
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           flutter build windows --release `
             "--build-name=$env:RELEASE_VERSION" `
             "--build-number=$env:RELEASE_BUILD_NUMBER"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $bundle = "build/windows/x64/runner/Release"
           foreach ($file in @("PokeMap.exe")) {
             if (-not (Test-Path "$bundle/$file")) {
