@@ -250,9 +250,11 @@ final class SourceEventStudyComposer {
     final musicBindings = <int, SourceMapMusicBinding>{};
     final musicEvidence = <Map<String, Object?>>[];
     final musicMapIds = nativeMaps.keys.toList()..sort();
+    final musicResolver = SourceMapMusicResolver.forProject(
+        source: source, files: recording);
     for (final sourceMapId in musicMapIds) {
       try {
-        final binding = await const SourceMapMusicResolver().read(
+        final binding = await musicResolver.read(
             source: source,
             files: recording,
             sourceMapId: sourceMapId,

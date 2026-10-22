@@ -79,7 +79,14 @@ final class SourceMapMusicBinding {
 }
 
 final class SourceMapMusicResolver {
-  const SourceMapMusicResolver();
+  const SourceMapMusicResolver() : _context = null;
+
+  SourceMapMusicResolver.forProject({
+    required NormalizedSourceProject source,
+    required SourceFilePort files,
+  }) : _context = _SourceMapMusicReadContext(source, files);
+
+  final _SourceMapMusicReadContext? _context;
 
   Future<SourceMapMusicBinding?> read({
     required NormalizedSourceProject source,
@@ -92,6 +99,12 @@ final class SourceMapMusicResolver {
     final cancel = cancellation ?? ScanCancellation();
     cancel.check();
     limits.validate();
+    final context = _context ?? _SourceMapMusicReadContext(source, files);
+    if (!identical(context.source, source) ||
+        !identical(context.files, files)) {
+      throw const NativeWriteException('source.map_music.binding',
+          'Music resolution requires its exact source and file owner.');
+    }
     final snapshot = source.snapshot;
     if (snapshot.state != SourceScanState.complete) {
       _unavailable('snapshot_incomplete');
@@ -131,11 +144,8 @@ final class SourceMapMusicResolver {
     }
 
     SourceFileEntry entry(String path, String reason) {
-      final matches = snapshot.entries
-          .where((candidate) =>
-              sourcePathCollisionKey(candidate.relativePath) ==
-              sourcePathCollisionKey(path))
-          .toList();
+      final matches = context.entries(cancel)[sourcePathCollisionKey(path)] ??
+          const <SourceFileEntry>[];
       if (matches.length != 1 ||
           matches.single.relativePath != path ||
           matches.single.kind != SourceNodeKind.file ||
@@ -158,7 +168,8 @@ final class SourceMapMusicResolver {
     if (document.node(autoplayId).booleanValue == false) return null;
     if (limits.maxArtifacts < 1 || limits.maxMutations < 2) _quota();
     final scripts = entry('Data/Scripts.rxdata', 'profile_unqualified');
-    if (scripts.sha256!.value != source.interpretationProfile?.scriptsArchiveHash.value ||
+    if (scripts.sha256!.value !=
+            source.interpretationProfile?.scriptsArchiveHash.value ||
         !SourceEventProfile.forProject(source).isQualified) {
       _unavailable('profile_unqualified');
     }
@@ -214,20 +225,20 @@ final class SourceMapMusicResolver {
     if (pitch != 100) _unavailable('pitch_unsupported');
     final base = 'Audio/BGM/$name';
     final baseKey = sourcePathCollisionKey(base);
-    bool matches(String path, String key) {
-      final candidate = sourcePathCollisionKey(path);
+    bool matches(String candidate, String key) {
       if (candidate == key) return true;
       if (!candidate.startsWith('$key.')) return false;
       return !candidate.substring(key.length + 1).contains('/');
     }
 
-    if (snapshot.entries
-        .any((value) => matches(value.relativePath, '${baseKey}_n'))) {
+    final indexedEntries = context.entries(cancel);
+    if (indexedEntries.keys.any((key) => matches(key, '${baseKey}_n'))) {
       _unavailable('night_variant_unsupported');
     }
-    final audioMatches = snapshot.entries
-        .where((value) => matches(value.relativePath, baseKey))
-        .toList();
+    final audioMatches = [
+      for (final entry in indexedEntries.entries)
+        if (matches(entry.key, baseKey)) ...entry.value,
+    ];
     if (audioMatches.isEmpty) _unavailable('audio_missing');
     if (audioMatches.length != 1) _unavailable('audio_ambiguous');
     final audio = audioMatches.single;
@@ -243,11 +254,12 @@ final class SourceMapMusicResolver {
     final bytes = await read(audioFile);
     late NativeArtifact artifact;
     try {
-      artifact = NativeArtifact(
-          bytes: bytes,
-          mediaType: mediaType,
-          expectedSha256: audioFile.sha256,
-          limits: limits);
+      artifact = context.artifacts[(audioFile.fileId, mediaType, limits)] ??
+          NativeArtifact(
+              bytes: bytes,
+              mediaType: mediaType,
+              expectedSha256: audioFile.sha256,
+              limits: limits);
     } on NativeWriteException catch (error) {
       if (error.code == 'native.artifact.audio') {
         _unavailable('audio_unsupported');
@@ -277,7 +289,7 @@ final class SourceMapMusicResolver {
       },
       limits: limits,
     );
-    return SourceMapMusicBinding._(
+    final binding = SourceMapMusicBinding._(
       sourceMapId: sourceMapId,
       policy: policy,
       sourceSnapshotHash: snapshot.canonicalHash,
@@ -353,7 +365,8 @@ final class SourceMapMusicResolver {
         'importBeforeMaps': true,
         'mapMutationAfterMapSave': true,
         'sourceOracle': {
-          'scriptsArchiveHash': source.interpretationProfile?.scriptsArchiveHash.value,
+          'scriptsArchiveHash':
+              source.interpretationProfile?.scriptsArchiveHash.value,
           'settings': {
             'section': 0,
             'sha256':
@@ -401,6 +414,47 @@ final class SourceMapMusicResolver {
         'importOperationIds': [import.operationId.value],
       },
     );
+    context.retainArtifact(audioFile.fileId, mediaType, limits, artifact);
+    return binding;
+  }
+}
+
+final class _SourceMapMusicReadContext {
+  _SourceMapMusicReadContext(this.source, this.files);
+
+  final NormalizedSourceProject source;
+  final SourceFilePort files;
+  Map<String, List<SourceFileEntry>>? _entries;
+  final artifacts =
+      <(ConverterId, String, NativeWriteLimits), NativeArtifact>{};
+  int _artifactBytes = 0;
+
+  Map<String, List<SourceFileEntry>> entries(ScanCancellation cancellation) {
+    if (_entries case final existing?) return existing;
+    final index = <String, List<SourceFileEntry>>{};
+    for (final entry in source.snapshot.entries) {
+      cancellation.check();
+      index
+          .putIfAbsent(sourcePathCollisionKey(entry.relativePath), () => [])
+          .add(entry);
+    }
+    cancellation.check();
+    return _entries = Map.unmodifiable({
+      for (final entry in index.entries)
+        entry.key: List<SourceFileEntry>.unmodifiable(entry.value),
+    });
+  }
+
+  void retainArtifact(ConverterId fileId, String mediaType,
+      NativeWriteLimits limits, NativeArtifact artifact) {
+    final key = (fileId, mediaType, limits);
+    if (!artifacts.containsKey(key) &&
+        artifacts.length < limits.maxArtifacts &&
+        artifact.bytes.length <=
+            limits.maxTotalArtifactBytes - _artifactBytes) {
+      artifacts[key] = artifact;
+      _artifactBytes += artifact.bytes.length;
+    }
   }
 }
 
