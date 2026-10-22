@@ -86,6 +86,70 @@ Matcher _arrivalFailure(String code) => throwsA(
     isA<NativeWriteException>().having((error) => error.code, 'code', code));
 
 void main() {
+  test('blank arrival owner keeps its qualified future character and other blockers',
+      () {
+    final owner = MapEntity(
+        id: 'entrance', kind: MapEntityKind.custom, pos: _position,
+        blocksMovement: false,
+        presentation: MapEntityPresentation(variants: [
+          MapEntityPresentationVariant(id: 'wall',
+              condition: NarrativeEventConditionExpression.all(const []),
+              characterId: 'wallCharacter', blocksMovement: true),
+          MapEntityPresentationVariant(id: 'blank',
+              condition: NarrativeEventConditionExpression.all(const []),
+              blocksMovement: false),
+        ]));
+    final map = _map(entities: [owner]);
+    const character = ProjectCharacterEntry(id: 'wallCharacter', name: 'Wall',
+        tilesetId: 'tiles', frameHeight: 1);
+    final manifest = _manifest(map).copyWith(characters: const [character]);
+    final before = map.toJson();
+    expect(isSceneActorEntityReferenceAvailable(manifest, owner), isTrue);
+    void validate(ProjectManifest project, MapData target,
+        {Map<String, String> owners = const {'arrival': 'entrance'}}) =>
+        const SourceEventArrivalValidator().validate(manifest: project,
+            maps: [target], arrivalAnchorIds: ['arrival'],
+            arrivalCollisionOwners: owners);
+    expect(() => validate(manifest, map), returnsNormally);
+    expect(() => validate(manifest, map, owners: const {}),
+        _arrivalFailure('events.arrival.blocked'));
+    for (final characters in [<ProjectCharacterEntry>[], [character, character]]) {
+      expect(() => validate(manifest.copyWith(characters: characters), map),
+          _arrivalFailure('events.arrival.binding'));
+    }
+    expect(() => validate(manifest, map.copyWith(entities: [owner, owner])),
+        _arrivalFailure('events.arrival.binding'));
+    expect(() => validate(manifest, map.copyWith(entities: [
+      owner.copyWith(presentation: MapEntityPresentation(variants: [
+        ...owner.presentation!.variants,
+        MapEntityPresentationVariant(id: 'foreign',
+            condition: NarrativeEventConditionExpression.all(const []),
+            characterId: 'unknownCharacter', blocksMovement: true),
+      ])),
+    ])), _arrivalFailure('events.arrival.binding'));
+    expect(() => validate(manifest, map.copyWith(entities: [owner,
+      const MapEntity(id: 'other', kind: MapEntityKind.custom, pos: _position,
+          blocksMovement: true, properties: {mapEntityCollisionWidthProperty: '1'}),
+    ])), _arrivalFailure('events.arrival.blocked'));
+    expect(() => validate(manifest, map.copyWith(entities: [
+      owner, owner.copyWith(id: 'other-future-wall'),
+    ])), _arrivalFailure('events.arrival.blocked'));
+    final otherOwner = owner.copyWith(id: 'other-entrance',
+        pos: const GridPos(x: 2, y: 2));
+    final twoArrivals = map.copyWith(entities: [owner, otherOwner], warps: [
+      ...map.warps, _arrival('other-arrival', otherOwner.pos),
+    ]);
+    expect(() => const SourceEventArrivalValidator().validate(manifest: manifest,
+        maps: [twoArrivals], arrivalAnchorIds: ['arrival', 'other-arrival'],
+        arrivalCollisionOwners: {'arrival': owner.id,
+          'other-arrival': otherOwner.id}), returnsNormally);
+    final collision = List<bool>.filled(_size.width * _size.height, false)
+      ..[_position.y * _size.width + _position.x] = true;
+    expect(() => validate(manifest, map.copyWith(layers: [
+      MapLayer.collision(id: 'solid', name: 'Solid', collisions: collision),
+    ])), _arrivalFailure('events.arrival.blocked'));
+    expect(map.toJson(), before);
+  });
   test('arrival owner remains available without a runtime presentation state',
       () {
     final owner = MapEntity(

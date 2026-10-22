@@ -104,7 +104,7 @@ final class SourceEventArrivalValidator {
         final world = worlds.putIfAbsent(
             map.id,
             () => GameplayWorldState.initial(
-                map: _arrivalValidationMap(map),
+                map: _arrivalValidationMap(map, manifest),
                 playerPos: pos,
                 project: manifest,
                 tileWidth: manifest.settings.tileWidth,
@@ -157,7 +157,7 @@ final class SourceEventArrivalValidator {
         }
       }
     }
-    final worlds = <String, GameplayWorldState>{};
+    final worlds = <(String, String?), GameplayWorldState>{};
     for (final id in anchors) {
       cancellation?.check();
       final matches = locations[id];
@@ -181,9 +181,10 @@ final class SourceEventArrivalValidator {
             'Arrival anchor $id lies outside its final native map');
       }
       final world = worlds.putIfAbsent(
-          map.id,
+          (map.id, arrivalCollisionOwners[id]),
           () => GameplayWorldState.initial(
-              map: _arrivalValidationMap(map),
+              map: _arrivalValidationMap(map, manifest,
+                  collisionOwnerId: arrivalCollisionOwners[id]),
               playerPos: pos,
               project: manifest,
               tileWidth: manifest.settings.tileWidth,
@@ -213,18 +214,27 @@ final class SourceEventArrivalValidator {
   }
 }
 
-MapData _arrivalValidationMap(MapData map) => map.copyWith(entities: [
+MapData _arrivalValidationMap(MapData map, ProjectManifest manifest,
+    {String? collisionOwnerId}) => map.copyWith(entities: [
       for (final entity in map.entities)
-        entity.presentation == null ? entity : _arrivalValidationEntity(entity),
+        entity.presentation == null ? entity : _arrivalValidationEntity(entity, manifest,
+            collisionOwner: entity.id == collisionOwnerId),
     ]);
 
-MapEntity _arrivalValidationEntity(MapEntity entity) {
+MapEntity _arrivalValidationEntity(MapEntity entity, ProjectManifest manifest,
+    {required bool collisionOwner}) {
   final footprints = [
     if (entity.blocksMovement) resolveEntityCollisionFootprint(entity),
     for (final variant in entity.presentation!.variants)
       if (variant.blocksMovement) MapRect(pos: entity.pos, size: variant.size),
   ];
-  final authored = entity.copyWith(presentation: null);
+  var authored = entity.copyWith(presentation: null);
+  if (collisionOwner && authored.npc == null &&
+      isSceneActorEntityReferenceAvailable(manifest, entity)) {
+    authored = authored.copyWith(kind: MapEntityKind.npc,
+        npc: MapEntityNpcData(characterId: entity.presentation!.variants
+            .map((variant) => variant.characterId).whereType<String>().first));
+  }
   if (footprints.isEmpty) return authored;
   final left = footprints.map((rect) => rect.pos.x).reduce(math.min);
   final top = footprints.map((rect) => rect.pos.y).reduce(math.min);

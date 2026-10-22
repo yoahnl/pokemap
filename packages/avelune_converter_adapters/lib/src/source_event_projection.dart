@@ -1269,7 +1269,14 @@ final class _ProjectionBuilder {
           'Source arrival map=${node.targetSourceMapId} position=(${node.x},${node.y}) requires qualified owner map=${owner.sourceMapId} event=${owner.sourceEventId} identity=${owner.identity.value}');
     }
     if (sequencePrograms[owner.identity]?.finiteAutorun == true &&
-        owner.pages.first.graphic?.characterName.isEmpty == true) {
+        owner.pages.first.graphic?.characterName.isEmpty == true &&
+        !owner.pages.any((page) => page.graphic!.characterName.isNotEmpty &&
+          characterBindings.containsKey(sourceEventCharacterBindingKey(
+            characterName: page.graphic!.characterName,
+            pattern: page.graphic!.pattern,
+            direction: page.graphic!.direction,
+            fixedDirection: page.graphic!.directionFix &&
+                sourceEventUsesFixedDirectionPresentation(owner))))) {
       return null;
     }
     return _key(owner, 'anchor');

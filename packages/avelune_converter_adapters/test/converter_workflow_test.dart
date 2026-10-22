@@ -761,10 +761,10 @@ void main() {
   }, skip: !Platform.isMacOS);
 
   test(
-      'closed self-switch qualification invalidates prior recursive recipes',
+      'qualified presented arrival owners invalidate prior recipes',
       () async {
     const oldRules =
-        'af983aba88b940492e99f0a00663013ddf9ff88df14b124eccb5c0c865abbe5e';
+        '3b846d31cf32ac2593ff6a70cc13fde5a445ef9dac126a006eac0a4a0f587453';
     final harness = await _WorkflowHarness.create();
     try {
       final snapshot = await harness.workflow.scanSource(harness.selection);

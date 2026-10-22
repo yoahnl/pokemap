@@ -40,6 +40,7 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
     bool terminal = false,
     String? terminalSwitch = 'A',
     bool terminalGraphic = false,
+    bool incomingWarp = false,
     bool activeFixed = false,
     bool activeGraphic = false,
     int? initialSwitch,
@@ -59,6 +60,12 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
       },
       maps: [
         LiteralFixtureMap(id: 1, events: [
+          if (incomingWarp)
+            const LiteralFixtureEvent(id: 2, x: 0, y: 0, pages: [
+              LiteralFixtureEventPage(commands: [
+                LiteralFixtureEventCommand(201, [0, 1, 1, 0, 0, 1]),
+              ]),
+            ]),
           LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [
             LiteralFixtureEventPage(
                 trigger: trigger,
@@ -89,6 +96,7 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source(
 
 Future<SourceEventProjection> _projection(LiteralTileFixture fixture,
     {bool context = true, bool mutateMap = false,
+    bool includeCharacterBindings = true,
     SourceEventAnalysis Function(SourceEventAnalysis)? transformAnalysis}) async {
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: fixture.snapshot,
@@ -158,7 +166,7 @@ Future<SourceEventProjection> _projection(LiteralTileFixture fixture,
       nativeMaps: maps,
       characterBindings: {
         for (final entry in fixture.snapshot.entries.where(
-            (entry) => entry.relativePath == 'Graphics/Characters/Wall.png'))
+            (entry) => includeCharacterBindings && entry.relativePath == 'Graphics/Characters/Wall.png'))
           sourceEventCharacterBindingKey(
                   characterName: 'Wall', pattern: 0, direction: 2):
               SourceEventCharacterBinding(
@@ -175,6 +183,77 @@ Future<SourceEventProjection> _projection(LiteralTileFixture fixture,
 }
 
 void main() {
+  for (final terminalGraphic in [false, true]) {
+    test('blank finite arrival preserves its terminal graphic=$terminalGraphic owner',
+        () async {
+      final source = await _source(const [
+        LiteralFixtureEventCommand(106, [2]),
+        LiteralFixtureEventCommand(123, ['A', 0]),
+      ], trigger: 3, terminal: true, terminalGraphic: terminalGraphic,
+          incomingWarp: true);
+      final projection = await _projection(source.fixture);
+      expect(projection.scenes, hasLength(3),
+          reason: jsonEncode(projection.semanticEvidence));
+      final map = projection.nativeMaps[1]!;
+      final owner = map.entities.singleWhere((entity) =>
+          entity.properties['sourceEventAnchorX'] == '1');
+      expect(owner.kind, MapEntityKind.custom);
+      expect(owner.npc, isNull);
+      expect(owner.blocksMovement, isFalse);
+      final arrival = (projection.semanticEvidence['arrivalAnchors'] as List)
+          .cast<Map>().single;
+      expect(arrival['arrivalCollisionOwnerEntityId'],
+          terminalGraphic ? owner.id : isNull);
+      final warp = projection.scenes.expand((scene) => scene.graph.nodes)
+          .map((node) => node.payload).whereType<SceneActionPayload>()
+          .map((payload) => payload.interactiveCommand)
+          .whereType<SceneWarpInteractiveCommand>().single;
+      expect(warp.arrivalCollisionOwnerEntityId,
+          terminalGraphic ? owner.id : isNull);
+      expect(owner.presentation!.variants
+          .where((variant) => variant.characterId != null),
+          hasLength(terminalGraphic ? 1 : 0));
+      final manifest = ProjectManifest(name: 'Arrival presentation',
+          maps: [ProjectMapEntry(id: map.id, name: map.name,
+              relativePath: 'maps/map.json')],
+          tilesets: const [],
+          facts: projection.facts,
+          characters: const [ProjectCharacterEntry(id: 'wall-character',
+              name: 'Wall', tilesetId: 'wall')],
+          settings: ProjectSettings(
+              mapInstanceRetentionPolicy: projection.retentionPolicy));
+      final instances = MapInstanceWorldState(instancesByMapId: {
+        map.id: MapInstanceRuntimeState(instanceId: 'arrival-instance'),
+      });
+      for (final completed in [false, true]) {
+        final presented = projectMapEntityPresentation(project: manifest,
+            gameState: GameState(saveId: 'arrival',
+                storyFlags: StoryFlags(activeFlags: completed
+                    ? projection.facts.map((fact) => fact.id).toSet() : const {}),
+                mapInstanceWorldState: instances.setEventBoolean(
+                    instances.instanceRef(map.id)!, owner.id, 'A', completed)),
+            map: map, entity: owner);
+        if (completed && !terminalGraphic) {
+          expect(presented, isNull);
+          continue;
+        }
+        expect(presented!.npc?.characterId,
+            completed && terminalGraphic ? 'wall-character' : isNull);
+        expect(presented.blocksMovement, completed && terminalGraphic);
+      }
+      if (terminalGraphic) {
+        for (final refused in [
+          await _projection(source.fixture, includeCharacterBindings: false),
+          await _projection(source.fixture, context: false),
+        ]) {
+          expect(refused.nativeMaps.values.expand((map) => map.warps), isEmpty);
+          expect((refused.semanticEvidence['events'] as List).cast<Map>()
+              .where((event) => event['status'] == 'adaptedStaticSemantics'),
+              isEmpty);
+        }
+      }
+    });
+  }
   for (final chain in [false, true]) {
   test(chain
       ? 'a solid NPC with only a warp is not an arrival collision owner'

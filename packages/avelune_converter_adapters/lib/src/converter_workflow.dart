@@ -2256,6 +2256,7 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'sourceRoutedDoorPatterns': 'attested-source-paired-pages-and-exact-atlas-v1',
       'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
       'sourceMissingItemSuggestions': 'qualified-selected-blocked-preparation-v1',
+      'sourceArrivalCollisionOwners': 'qualified-presented-owner-conservative-union-v1',
       'sourceAdaptations': 'closed-event-defects-and-missing-catalog-entries-original-byte-provenance-v1',
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {
