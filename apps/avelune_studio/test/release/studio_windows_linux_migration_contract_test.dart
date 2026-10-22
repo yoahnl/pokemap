@@ -31,7 +31,7 @@ void main() {
       try {
         final script = File('${directory.path}/build.ps1');
         await script.writeAsString(
-          r'if ((Get-Command flutter).Source -ne $env:AVELUNE_RELEASE_TEST_FLUTTER) { throw "Unexpected Flutter executable" }'
+          r'Set-Alias -Name flutter -Value $env:AVELUNE_RELEASE_TEST_FLUTTER -ErrorAction Stop'
           '\n${_windowsReleaseBuildScript()}',
         );
         final bundle = Directory(
@@ -51,7 +51,6 @@ void main() {
             ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', script.path],
             workingDirectory: directory.path,
             environment: {
-              'PATH': '${directory.path};${Platform.environment['PATH']}',
               'AVELUNE_RELEASE_TEST_FLUTTER': await flutter.resolveSymbolicLinks(),
               'RELEASE_VERSION': '0.3.27',
               'RELEASE_BUILD_NUMBER': '327',
