@@ -410,13 +410,13 @@ void main() {
     expect(fixture.projection.scenes, isEmpty);
   });
 
-  test('another unqualified badge-count writer keeps the complete gym event refused', () async {
+  test('inactive foreign bookkeeping cannot qualify an unattested gym battle', () async {
     final fixture = await _fixture(unknownBadgeCountWriter: true);
     final row = (fixture.projection.semanticEvidence['events'] as List)
         .cast<Map>().singleWhere((row) => row['sourceIdentity'] ==
             fixture.analysis.eventAt(1, 1)!.identity.value);
     expect(row['status'], 'quarantinedWholeEvent');
-    expect(row['gaps'], contains('sourceVariableWriterUnqualified'));
+    expect(row['gaps'], contains('sourceTrainerDefeatPolicyUnqualified'));
     expect(fixture.projection.scenes, isEmpty);
   });
 

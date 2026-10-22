@@ -643,7 +643,8 @@ bool _eventUsesTempSwitch(SourceEventDefinition event) => event.pages.any((page)
     _sourceControlNodes(page.body).any((node) => node is SourceTempSwitchNode ||
         node is SourceConditionalNode && _conditionUsesTempSwitch(node.condition)));
 
-Set<String> _sourceControlVariables(SourceEventDefinition event, String namespace) {
+Set<String> _sourceControlVariables(SourceEventDefinition event, String namespace,
+    {bool includeWrites = true}) {
   final ids = <String>{};
   void condition(SourceEventCondition value) {
     if (value.kind == SourceEventConditionKind.variableAtLeast ||
@@ -655,8 +656,8 @@ Set<String> _sourceControlVariables(SourceEventDefinition event, String namespac
   for (final page in event.pages) {
     condition(page.condition);
     for (final node in _sourceControlNodes(page.body)) {
-      if (node is SourceVariableSetNode) ids.addAll(node.factIds);
-      if (node is SourceVariableAdjustNode) ids.addAll(node.factIds);
+      if (includeWrites && node is SourceVariableSetNode) ids.addAll(node.factIds);
+      if (includeWrites && node is SourceVariableAdjustNode) ids.addAll(node.factIds);
       if (node is SourceConditionalNode) condition(node.condition);
       if (node is SourceTextNode) ids.addAll(sourceDialogueVariableIds(node.text).map((id) => 'source:$namespace:variable:$id'));
       if (node is SourceChoiceNode) {
@@ -3703,7 +3704,8 @@ final class _ProjectionBuilder {
           ? 'sourceSelfSwitchSourceMismatch' : 'sourceNumericControlSourceMismatch'};
     }
     if (_unqualifiedVariableWriters == null) return const {};
-    final variables = _sourceControlVariables(event, source.snapshot.logicalProjectNamespace.value);
+    final variables = _sourceControlVariables(event, source.snapshot.logicalProjectNamespace.value,
+        includeWrites: false);
     if (variables.isNotEmpty && _incompleteVariableRubyCensus) {
       return {'sourceVariableRubyCensusIncomplete'};
     }

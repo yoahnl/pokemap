@@ -1092,6 +1092,61 @@ void main() {
       });
     }
   }, skip: scriptsPath == null);
+  group('write-only source variable bookkeeping', () {
+    for (final operation in [0, 1]) {
+      test('literal operation $operation survives an inactive foreign writer while readers stay refused', () async {
+        final source = await _events([_page([
+          _command(122, [7, 7, operation, 0, 1]), _command(0, []),
+        ])], interpretationProfile: fixtureSourceInterpretationProfile, extraEvents: {
+          2: _event(2, [_page([
+            _command(122, [7, 7, 1, 0, 5]),
+            _command(355, ['unknown_call()']), _command(0, []),
+          ])]),
+          3: _event(3, [_page([
+            _command(111, [1, 7, 0, 1, 0]), _command(101, ['reader'], indent: 1),
+            _command(412, []), _command(0, []),
+          ])]),
+        });
+        final result = _projectEvents(source);
+        final rows = (result.semanticEvidence['events'] as List).cast<Map>();
+        final admitted = rows.singleWhere((row) => row['sourceIdentity'] == _analyzer(source).analyze().eventAt(1, 1)!.identity.value);
+        expect(admitted['gaps'], isEmpty);
+        expect(result.registry.records.where((record) => record.definitionOrNull != null), hasLength(1));
+        expect(rows.where((row) => row['status'] == 'quarantinedWholeEvent'), hasLength(2));
+        expect(rows.singleWhere((row) => row['sourceIdentity'] == _analyzer(source).analyze().eventAt(1, 3)!.identity.value)['gaps'], contains('sourceVariableWriterUnqualified'));
+        final first = await _runNumericScene(result, result.scenes.single);
+        final second = await _runNumericScene(result, result.scenes.single, initial: first.state);
+        expect(second.state.narrativeFactRuntimeState.valuesByFactId[result.facts.single.id],
+            NarrativeValue.integer(operation == 0 ? 1 : 2));
+      });
+    }
+    for (final reader in ['condition', 'text', 'choice', 'page']) {
+      test('a bookkeeping write retains the foreign writer guard for a local $reader reader', () async {
+        var page = _page([
+          _command(122, [7, 7, 1, 0, 1]),
+          if (reader == 'condition') ...[
+            _command(111, [1, 7, 0, 1, 0]), _command(101, ['read'], indent: 1), _command(412, []),
+          ],
+          if (reader == 'text') _command(101, [r'Counter \v[7]']),
+          if (reader == 'choice') ...[
+            _command(102, [[r'Counter \v[7]', 'No'], 0]),
+            _command(402, [0, r'Counter \v[7]']), _command(402, [1, 'No']), _command(404, []),
+          ],
+          _command(0, []),
+        ]);
+        if (reader == 'page') page = _withCondition(page, {'@variable_valid': true, '@variable_id': 7, '@variable_value': 1});
+        final source = await _events([page], interpretationProfile: fixtureSourceInterpretationProfile, extraEvents: {
+          2: _event(2, [_page([
+            _command(122, [7, 7, 1, 0, 5]), _command(355, ['unknown_call()']), _command(0, []),
+          ])]),
+        });
+        final result = _projectEvents(source);
+        expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue);
+        expect(jsonEncode(result.semanticEvidence), contains('sourceVariableWriterUnqualified'));
+      });
+    }
+  });
+
   group('literal arithmetic progression', () {
     for (final entry in <(int, int, int, int)>[
       (1, 0, 1, 1), (2, 0, 1, -1), (1, 4, -2, 2), (2, 4, -2, 6),

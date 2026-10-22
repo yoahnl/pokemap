@@ -12,6 +12,7 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis, SourceEventPr
     _source(List<LiteralFixtureEventCommand> commands,
     {Map<int, List<LiteralFixtureEventCommand>> common = const {},
     Map<int, int> triggers = const {}, bool helperPin = false,
+    bool readVariableOne = false,
     List<String?> switchNames = const [null, 'Original door opened', 'Original reward consumed'],
     List<LiteralFixtureEventCommand>? sibling}) async {
   final profile = helperPin ? SourceInterpretationProfile.fromJson({
@@ -24,7 +25,14 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis, SourceEventPr
     includeEventSystem: true, commonEvents: common, commonEventTriggers: triggers,
     switchNames: switchNames,
     maps: [LiteralFixtureMap(id: 1, events: [
-      LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [LiteralFixtureEventPage(commands: commands)]),
+      LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [LiteralFixtureEventPage(commands: [
+        ...commands,
+        if (readVariableOne) ...const [
+          LiteralFixtureEventCommand(111, [1, 1, 0, 9, 0]),
+          LiteralFixtureEventCommand(101, ['Variable consumed'], indent: 1),
+          LiteralFixtureEventCommand(412, []),
+        ],
+      ])]),
       if (sibling != null) LiteralFixtureEvent(id: 2, x: 2, y: 0,
         pages: [LiteralFixtureEventPage(commands: sibling)]),
     ])]);
@@ -255,7 +263,7 @@ void main() {
 
   test('EV05 opaque sibling common writer keeps variable consumers refused', () async {
     final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
-      common: const {1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
+      readVariableOne: true, common: const {1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
         2: [LiteralFixtureEventCommand(355, [r'pbSet(1, "string")'])]});
     expect(source.projection.scenes, isEmpty);
     expect(jsonEncode(source.projection.semanticEvidence), contains('sourceVariableWriterUnqualified'));
@@ -266,7 +274,7 @@ void main() {
     r'$game_temp.common_event_id = selected']) {
     test('EV05 opaque common invocation revokes represented writers: $script', () async {
       final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
-        common: const {1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])]},
+        readVariableOne: true, common: const {1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])]},
         sibling: [LiteralFixtureEventCommand(355, [script])]);
       expect(source.projection.scenes, isEmpty);
       expect(jsonEncode(source.projection.semanticEvidence), contains('sourceVariableWriterUnqualified'));
@@ -277,7 +285,7 @@ void main() {
     test('EV05 opaque $origin common invocation enters the writer census', () async {
       final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
         switchNames: [null, origin == 'switch' ? 's:pbCommonEvent(1)' : 'Ordinary'],
-        common: {1: const [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
+        readVariableOne: true, common: {1: const [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
           if (origin == 'common') 2: const [LiteralFixtureEventCommand(355, ['pbCommonEvent(1)'])]},
         sibling: switch (origin) {
           'condition' => const [LiteralFixtureEventCommand(111, [12, 'pbCommonEvent(1)']),
@@ -308,7 +316,7 @@ void main() {
 
   test('EV05 opaque invocation revocation closes transitive represented callees', () async {
     final source = await _source(const [LiteralFixtureEventCommand(117, [1]),
-      LiteralFixtureEventCommand(117, [3])], common: const {
+      LiteralFixtureEventCommand(117, [3])], readVariableOne: true, common: const {
       1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
       2: [LiteralFixtureEventCommand(355, ['pbCommonEvent(3)'])],
       3: [LiteralFixtureEventCommand(117, [1])],
@@ -332,7 +340,7 @@ void main() {
   }
 
   test('EV05 opaque transitive caller cannot certify a shared common writer', () async {
-    final source = await _source(const [LiteralFixtureEventCommand(117, [1])], common: const {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])], readVariableOne: true, common: const {
       1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
       2: [LiteralFixtureEventCommand(117, [1])],
       3: [LiteralFixtureEventCommand(355, ['unknown_plugin()']), LiteralFixtureEventCommand(117, [2])],
@@ -343,7 +351,7 @@ void main() {
 
   test('EV05 refused map caller cannot certify a shared common writer', () async {
     final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
-      common: const {1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])]},
+      readVariableOne: true, common: const {1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])]},
       sibling: const [LiteralFixtureEventCommand(117, [1]), LiteralFixtureEventCommand(355, ['unknown_plugin()'])]);
     expect(source.projection.scenes, isEmpty);
     expect(jsonEncode(source.projection.semanticEvidence), contains('sourceVariableWriterUnqualified'));

@@ -25,7 +25,9 @@ Future<NormalizedSourceProject> _source(String expression,
             const LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: [
               LiteralFixtureEventPage(commands: [
                 LiteralFixtureEventCommand(122, [7, 7, 0, 0, 3]),
-                LiteralFixtureEventCommand(101, ['Qualified integer dialogue']),
+                LiteralFixtureEventCommand(111, [1, 7, 0, 3, 0]),
+                LiteralFixtureEventCommand(101, ['Qualified integer dialogue'], indent: 1),
+                LiteralFixtureEventCommand(412, []),
                 LiteralFixtureEventCommand(0, []),
               ]),
             ]),
