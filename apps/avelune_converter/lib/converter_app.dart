@@ -335,6 +335,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           sourceCatalogStudyWriteLimitsFor(
             _selectedMaps.length,
             includeNativeCatalog: true,
+            fullGameContent: _contentScope == ConverterContentScope.full,
           ),
       profileAcknowledgement: snapshot == null || keepAcknowledgement
           ? previousAcknowledgement
@@ -2408,6 +2409,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
           sourceCatalogStudyWriteLimitsFor(
             _selectedMaps.length,
             includeNativeCatalog: true,
+            fullGameContent: _contentScope == ConverterContentScope.full,
           ),
       outputMode: _assetOutputMode,
       enabled: !_busy && _reviewSourceVerified && _sourceMatches,

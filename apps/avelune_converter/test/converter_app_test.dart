@@ -347,6 +347,72 @@ void main() {
     }
   });
 
+  for (final scope in [ConverterContentScope.full, ConverterContentScope.world]) {
+    testWidgets('nine-map ${scope.name} budget survives public preparation',
+        (tester) async {
+      final source = (await tester.runAsync(() => _OriginalSource.create(
+          maps: [for (var id = 1; id <= 9; id++) LiteralFixtureMap(id: id)])))!;
+      final store = LocalReviewSessionStore(rootPath: '${source.root.path}/sessions');
+      ConverterWorkflow? resumed;
+      _setWindow(tester, const Size(1600, 1000));
+      try {
+        await _scanAndPrepare(tester, source, sessionStore: store, contentScope: scope);
+        final initial = source.workflow.state.prepared!;
+        final expectedBytes = scope == ConverterContentScope.full ? 536870912 : 268435456;
+        expect(initial.settings.selectedSourceMapIds, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        expect(initial.settings.writeLimits.maxTotalArtifactBytes, expectedBytes);
+        if (scope == ConverterContentScope.full) {
+          await _showResources(tester);
+          expect(_reviewPanel(tester).limits.maxTotalArtifactBytes, expectedBytes);
+          await tester.tap(find.text('Analyse'));
+          await tester.pump();
+          await tester.ensureVisible(find.byKey(const ValueKey('save-review-session')));
+          await tester.tap(find.byKey(const ValueKey('save-review-session')));
+          await _waitFor(tester,
+              () => find.text('Session enregistrée').evaluate().isNotEmpty);
+          final saved = (await tester.runAsync(store.list))!.single;
+          expect(saved.resumeSettings.writeLimits.maxTotalArtifactBytes, expectedBytes);
+          expect(source.workflow.state.prepared, same(initial));
+          await tester.tap(find.byKey(const ValueKey('prepare-study')));
+          await _waitFor(tester, () =>
+              source.workflow.state.prepared != null &&
+              !identical(source.workflow.state.prepared, initial) &&
+              !source.workflow.state.isBusy);
+          expect(source.workflow.state.prepared!.settings.writeLimits.maxTotalArtifactBytes,
+              expectedBytes);
+          await tester.pumpWidget(const SizedBox());
+          resumed = ConverterWorkflow();
+          await tester.pumpWidget(ConverterApp(workflow: resumed, sessionStore: store));
+          await tester.tap(find.byKey(const ValueKey('load-review-session')));
+          final session = find.byKey(ValueKey('load-session-${saved.reviewSet.sessionId.value}'));
+          await _waitFor(tester, () => session.evaluate().isNotEmpty);
+          await tester.tap(session);
+          await _waitFor(tester, () =>
+              find.text('Session reprise · source vérifiée').evaluate().isNotEmpty &&
+              resumed!.state.prepared != null && !resumed.state.isBusy);
+          expect(resumed.state.prepared!.settings.contentScope, ConverterContentScope.full);
+          expect(resumed.state.prepared!.settings.selectedSourceMapIds,
+              initial.settings.selectedSourceMapIds);
+          expect(resumed.state.prepared!.settings.writeLimits.maxTotalArtifactBytes,
+              expectedBytes);
+          expect(resumed.state.approval, isNull);
+          expect(resumed.state.result, isNull);
+        } else {
+          expect(initial.reviewSet, isNull);
+          expect(find.byKey(const ValueKey('save-review-session')), findsNothing);
+        }
+        expect(source.nativeStages, isEmpty);
+        expect(await tester.runAsync(() => source.output.list().isEmpty), isTrue);
+        await tester.runAsync(source.expectSourceUnchanged);
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        if (resumed != null) await tester.runAsync(resumed.dispose);
+        await tester.runAsync(source.close);
+      }
+    }, skip: !Platform.isMacOS);
+  }
+
   testWidgets(
     'one-map native budget survives resource review and session save',
     (tester) async {
@@ -2784,7 +2850,8 @@ Future<void> _scanAndPrepare(
     () =>
         source.workflow.state.prepared != null && !source.workflow.state.isBusy,
   );
-  expect(source.workflow.state.prepared!.composition.nativeMaps, hasLength(2));
+  expect(source.workflow.state.prepared!.composition.nativeMaps,
+      hasLength(source.fixture.source.maps.length));
 }
 
 ConverterAssetReviewPanel _reviewPanel(WidgetTester tester) => tester
