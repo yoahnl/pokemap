@@ -203,6 +203,106 @@ void main() {
     }
   });
 
+  test('native study audits all fresh entry actions before approval', () async {
+    final harness = await _WorkflowHarness.create();
+    try {
+      final prepared = await harness.prepare();
+      final canonicalActions = AuthoringMutationDispatcher.canonical()
+          .descriptors.map((entry) => entry.id).toSet();
+      for (final action in [
+        'entity.create',
+        'campaign.defeat_recovery.update',
+        'campaign.new_game.update',
+      ]) {
+        final matching = prepared.targetCapabilities.capabilities.where(
+            (entry) => entry.capabilityId.value == 'native.study.$action');
+        expect(matching, hasLength(1), reason: action);
+        expect(matching.single.status, CapabilityStatus.supported);
+        expect(matching.single.evidence.map((entry) => entry.toJson()),
+            contains(containsPair('reference',
+                'repo:packages/avelune_converter_adapters/test/source_fresh_entry_binding_test.dart:builds canonical identity scene, empty game and attested home recovery alias before intro')));
+        expect(canonicalActions, contains(action));
+      }
+      expect(prepared.canApprove, isTrue);
+      expect(prepared.previewPlan!.findings
+          .where((finding) => finding.code.value == 'workflow.target_action.unsupported'),
+          isEmpty);
+      final approved = harness.approve(prepared).approvedPlan;
+      for (final unknown in ['entity.unknown', 'campaign.new_game.unknown']) {
+        expect(prepared.targetCapabilities.capabilities.any((entry) =>
+            entry.capabilityId.value == 'native.study.$unknown'), isFalse);
+        final plan = ConversionPlan.fromJson({
+          ...approved.toJson(),
+          'operations': [
+            for (final (index, operation) in approved.operations.indexed)
+              {...operation.toJson(), if (index == 0) 'targetActionId': unknown},
+          ],
+        });
+        final context = PlanContext(
+            logicalProjectNamespace: plan.logicalProjectNamespace,
+            sourceSnapshotHash: prepared.sourceSnapshotHash,
+            sessionId: prepared.reviewDecisions.sessionId,
+            targetCapabilities: prepared.targetCapabilities,
+            rulesHash: approved.rulesHash,
+            decisions: prepared.reviewDecisions,
+            candidates: prepared.assetCandidates,
+            converterVersion: approved.converterVersion,
+            approvedPlanHash: plan.canonicalHash,
+            sourceMapIds: prepared.normalizedSource.selectedSourceMapIds.toSet(),
+            sourceEntityIds: plan.operations.expand((op) => op.sourceEntityIds).toSet(),
+            targetEntityIds: plan.operations.expand((op) => op.targetEntityIds).toSet(),
+            actionCapabilities: {
+              for (final capability in prepared.targetCapabilities.capabilities)
+                capability.capabilityId.value.substring('native.study.'.length):
+                    capability.capabilityId,
+            },
+            approvedCandidateHashes: prepared.approvedCandidateHashes);
+        expect(() => admitPlan(plan, context), throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'policy.targetAction')));
+      }
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  final unauditedActions = Platform.environment['AVELUNE_TEST_UNAUDITED_ACTIONS'];
+  test('native preparation lists every unaudited action before approval', () async {
+    final expected = (jsonDecode(unauditedActions!) as List).cast<String>();
+    expect(expected, hasLength(3));
+    final harness = await _WorkflowHarness.create();
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final prepared = await harness.prepare();
+      expect(prepared.nativeDraft, isNotNull);
+      expect(prepared.nativeDraft!.mutations.map((mutation) => mutation.actionId),
+          containsAll(expected));
+      final findings = prepared.previewPlan!.findings.where((finding) =>
+          finding.code.value == 'workflow.target_action.unsupported').toList();
+      expect(findings, hasLength(expected.length));
+      for (final action in expected) {
+        final finding = findings.singleWhere((value) =>
+            value.message.contains('"$action"'));
+        expect(finding.blocksStudy, isTrue);
+        expect(finding.cause, DiagnosticCause.targetUnsupported);
+      }
+      expect(prepared.canApprove, isFalse);
+      expect(() => harness.workflow.exportStudyPlanRecipe(),
+          _throwsWorkflow('workflow.recipe.unavailable'));
+      expect(() => harness.approve(prepared), _throwsWorkflow('workflow.blocked'));
+      expect(harness.workflow.state.approval, isNull);
+      expect(harness.workflow.state.result, isNull);
+      expect(harness.nativeStages, isEmpty);
+      expect(await harness.output.list().toList(), isEmpty);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  }, skip: unauditedActions == null
+      ? 'Requires an isolated target contract with three omitted fixture actions.'
+      : false);
+
   for (final action in [
     'characterStudio.animationDefinition.create',
     'cinematic.upsert',

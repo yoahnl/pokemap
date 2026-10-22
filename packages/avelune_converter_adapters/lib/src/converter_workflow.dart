@@ -2411,6 +2411,7 @@ const _nativeStudyActions = [
   'characterStudio.character.setDefault',
   'event_v2.registry_mode.set',
   'fact.create',
+  'entity.create',
   'entity.upsert',
   'trigger.create',
   'warp.create',
@@ -2439,6 +2440,8 @@ const _nativeStudyActions = [
   'entity.set_interactive_encounter',
   'gameplay_zone.create',
   'campaign.trainer.upsert',
+  'campaign.defeat_recovery.update',
+  'campaign.new_game.update',
 ];
 
 TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
@@ -2506,6 +2509,24 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'Canonical shop action exposure and strict admission of the complete prepared action inventory, with unknown actions still refused; native stock application and runtime journeys are separate.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/converter_workflow_test.dart:native study declares supported canonical shop capability before approval',
+                },
+              if (const {'entity.create', 'campaign.defeat_recovery.update',
+                'campaign.new_game.update'}.contains(action))
+                {
+                  'type': 'test',
+                  'summary':
+                      'Attested fresh source entry produces the exact canonical stationary spawn, home defeat recovery and empty New Game identity setup.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_fresh_entry_binding_test.dart:builds canonical identity scene, empty game and attested home recovery alias before intro',
+                },
+              if (const {'entity.create', 'campaign.defeat_recovery.update',
+                'campaign.new_game.update'}.contains(action))
+                {
+                  'type': 'test',
+                  'summary':
+                      'Automatic source fresh entry survives strict native writer verification and an empty native factory; the exact new game configuration and recovery point are retained after fresh reopening.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_fresh_entry_composition_real_test.dart:automatic source fresh entry survives strict writer and empty native factory',
                 },
               if (action == 'smart_tile.animation.upsert')
                 {
@@ -2608,6 +2629,20 @@ ConversionPlan? _previewPlan(
       'blocksPlayableSlice': true,
       'acceptedByDecisionId': null,
     });
+  }
+
+  final actionCapabilities = _nativeActionCapabilities();
+  final capabilitiesById = {
+    for (final capability in capabilities.capabilities)
+      capability.capabilityId: capability,
+  };
+  for (final action in draft.mutations.map((mutation) => mutation.actionId).toSet()) {
+    if (capabilitiesById[actionCapabilities[action]]?.status !=
+        CapabilityStatus.supported) {
+      add('workflow.target_action.unsupported',
+          'Action "$action" lacks an audited supported capability in the native study target contract.',
+          true, cause: 'targetUnsupported', family: 'publication');
+    }
   }
 
   for (final diagnostic in normalized.diagnostics) {
@@ -2873,9 +2908,11 @@ PlanContext _planContext(
           mutations.expand((value) => value.sourceEntityIds).toSet(),
       targetEntityIds:
           mutations.expand((value) => value.targetEntityIds).toSet(),
-      actionCapabilities: {
-        for (final action in _nativeStudyActions)
-          action: ConverterId('native.study.$action'),
-      },
+      actionCapabilities: _nativeActionCapabilities(),
       approvedCandidateHashes: prepared.approvedCandidateHashes);
 }
+
+Map<String, ConverterId> _nativeActionCapabilities() => {
+  for (final action in _nativeStudyActions)
+    action: ConverterId('native.study.$action'),
+};
