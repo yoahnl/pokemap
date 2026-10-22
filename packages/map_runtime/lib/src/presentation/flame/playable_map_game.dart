@@ -826,7 +826,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   BattleMusicSelection? _activeBattleMusicSelection;
   bool _battleVictoryMusicActive = false;
   bool _trainerEncounterMusicActive = false;
-  int _presentationCinematicDepth = 0;
+  int _cinematicMusicDepth = 0;
 
   RuntimeMusicService get _music =>
       _injectedMusicService ??
@@ -870,7 +870,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<void> _applyRuntimeMusicSelection() async {
     if (_isRemoved) return;
-    if (_presentationCinematicDepth > 0) {
+    if (_cinematicMusicDepth > 0) {
       await _music.update(route: RuntimeAudioRoute.overworld, path: null);
       return;
     }
@@ -12482,7 +12482,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           project: _bundle.manifest,
           player: _cinematicRuntimeController,
         );
-        return adapter.playCinematic(intent).then((result) {
+        final cinematic = _bundle.manifest.cinematics
+            .where((asset) => asset.id == intent.cinematicId?.trim())
+            .singleOrNull;
+        final ownsMusic = cinematic?.timeline.steps.any(
+              (step) => step.kind == CinematicTimelineStepKind.music,
+            ) ??
+            false;
+        if (ownsMusic) _cinematicMusicDepth++;
+        try {
+          if (ownsMusic) {
+            await _music.update(route: RuntimeAudioRoute.overworld, path: null);
+          }
+          if (!_scenePresentationScopeIsCurrent(presentationSession)) {
+            throw StateError('The cinematic Scene owner changed before playback.');
+          }
+          final result = await adapter.playCinematic(intent);
           final scenePortId = result.scenePortId;
           if (!result.success || scenePortId == null) {
             throw StateError(
@@ -12492,7 +12507,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             );
           }
           return scenePortId;
-        });
+        } finally {
+          if (ownsMusic) {
+            _cinematicMusicDepth--;
+            await _applyRuntimeMusicSelection();
+          }
+        }
       },
       playPresentationCinematic: (intent) async {
         final player = presentationCinematicPlayer;
@@ -12515,7 +12535,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           assets: _bundle.manifest.presentationCinematics,
           player: player,
         );
-        _presentationCinematicDepth++;
+        _cinematicMusicDepth++;
         try {
           await _music.update(route: RuntimeAudioRoute.overworld, path: null);
           if (_isRemoved) {
@@ -12529,7 +12549,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           }
           return result.scenePortId!;
         } finally {
-          _presentationCinematicDepth--;
+          _cinematicMusicDepth--;
           _syncRuntimeMusic();
         }
       },

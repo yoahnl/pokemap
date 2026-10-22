@@ -81,6 +81,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         project: project,
         mapsById: mapsById);
   final retiredInstanceScopes = <MapInstanceRef>{};
+  var presentationRevision = 0;
+  ({GameState source, int revision, GameState projected})? presentationCache;
   SceneConsequenceRuntimeWriteResult projectPending(
     GameState state, {
     SceneConsequence? additional,
@@ -125,10 +127,22 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   var completed = false;
   try {
     onSceneStateProjection?.call(() {
-      final projected = projectPending(currentGameState());
+      final source = currentGameState();
+      final cached = presentationCache;
+      if (cached != null &&
+          identical(cached.source, source) &&
+          cached.revision == presentationRevision) {
+        return cached.projected;
+      }
+      final projected = projectPending(source);
       if (!projected.success) {
         throw StateError(projected.message ?? 'Scene state projection failed.');
       }
+      presentationCache = (
+        source: source,
+        revision: presentationRevision,
+        projected: projected.gameState,
+      );
       return projected.gameState;
     });
     final execution = await SceneRuntimeExecutor(
@@ -273,6 +287,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                   pendingConsequences.add(consequence);
                   pendingPokemonGrantOperationIds.add(operationId);
                   pendingRailProgressionOperationIds.add(null);
+                  presentationRevision++;
                 }
                 return result.outputPortId;
               }
@@ -298,6 +313,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                   pendingConsequences.add(consequence);
                   pendingPokemonGrantOperationIds.add(null);
                   pendingRailProgressionOperationIds.add(null);
+                  presentationRevision++;
                 }
                 return result.outputPortId;
               }
@@ -315,6 +331,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                   before: before, after: currentGameState().mapInstanceWorldState,
                   consequences: pendingConsequences, pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
                   railProgressionOperationIds: pendingRailProgressionOperationIds);
+                presentationRevision++;
                 if (command is SceneWarpInteractiveCommand &&
                     port == 'completed' &&
                     currentGameState().currentMapId ==
@@ -323,7 +340,9 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                   for (final scope in writer.mapInstanceScopes.values) {
                     if (before.instanceRef(scope.mapId) == scope &&
                         after.instanceRef(scope.mapId) != scope) {
-                      retiredInstanceScopes.add(scope);
+                      if (retiredInstanceScopes.add(scope)) {
+                        presentationRevision++;
+                      }
                     }
                   }
                 }
@@ -350,6 +369,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
                 );
                 pendingPokemonGrantOperationIds.add(null);
                 pendingRailProgressionOperationIds.add(null);
+                presentationRevision++;
               }
               return result.outcome.name;
             },
@@ -394,6 +414,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
           pendingPokemonGrantOperationIds.add(grantOperationId);
           pendingRailProgressionOperationIds.add(railProgressionOperationId,
               );
+          presentationRevision++;
           return 'completed';
         },
       ),

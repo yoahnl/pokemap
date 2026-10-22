@@ -4,8 +4,491 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_scene_runtime_execution.dart';
 
+import 'scene_interactive_pokemon_gift_test.dart' show giftCatalog, giftCommand;
+
 void main() {
   group('executeNarrativeEventScene', () {
+    for (final sceneCount in [1, 3940]) {
+      test(
+        'presentation reads reuse pending projection with $sceneCount scenes',
+        () async {
+          const initial = GameState(saveId: 'presentation-cache');
+          var host = initial;
+          final scene = _presentationProjectionScene();
+          final empty = SceneAsset(
+            id: 'unused',
+            name: 'Unused',
+            graph: SceneGraph(
+              startNodeId: 'start',
+              nodes: [
+                SceneNode(id: 'start', kind: SceneNodeKind.start),
+                SceneNode(id: 'end', kind: SceneNodeKind.end),
+              ],
+              edges: [
+                SceneEdge(
+                  id: 'finish',
+                  fromNodeId: 'start',
+                  fromPortId: 'completed',
+                  toNodeId: 'end',
+                  kind: SceneEdgeKind.defaultFlow,
+                ),
+              ],
+            ),
+          );
+          final project = ProjectManifest(
+            name: 'Presentation projection',
+            maps: const [],
+            tilesets: const [],
+            facts: [
+              for (var i = 0; i < 855; i++)
+                NarrativeFactDefinition(id: 'fact_$i', label: 'Fact $i'),
+            ],
+            scenes: [
+              scene,
+              for (var i = 1; i < sceneCount; i++)
+                SceneAsset(
+                  id: 'unused_$i',
+                  name: empty.name,
+                  graph: empty.graph,
+                ),
+            ],
+            dialogues: const [
+              ProjectDialogueEntry(
+                id: 'observe',
+                name: 'Observe',
+                relativePath: 'dialogues/observe.yarn',
+              ),
+            ],
+          );
+          final mutations = _CountingPresentationMutations();
+          GameState Function()? projection;
+          final replayCounts = <int>[];
+          final sameStates = <bool>[];
+          final money = <int>[];
+          final flags = <Set<String>>[];
+          void observe() {
+            final before = mutations.moneyWrites;
+            final states = [for (var i = 0; i < 20; i++) projection!()];
+            replayCounts.add(mutations.moneyWrites - before);
+            sameStates.add(
+              states.every((value) => identical(value, states.first)),
+            );
+            money.add(states.first.trainerProfile.money);
+            flags.add(states.first.storyFlags.activeFlags.toSet());
+          }
+
+          var dialogues = 0;
+          var writesAfterPresentation = 0;
+          final result = await executeNarrativeEventScene(
+            request: NarrativeSceneExecutionRequest(
+              eventId: 'event',
+              sceneId: scene.id,
+              executionId: 'execution',
+              gameState: initial,
+            ),
+            project: project,
+            mapsById: const {},
+            currentGameState: () => host,
+            consequenceWriter: SceneConsequenceRuntimeWriter(
+              project: project,
+              mutations: mutations,
+            ),
+            onSceneStateProjection: (value) => projection = value,
+            callbacks: SceneRuntimeHostCallbacks(
+              evaluateCondition: (_) =>
+                  throw StateError('Unexpected condition'),
+              startBattle: (_) => throw StateError('Unexpected battle'),
+              playCinematic: (_) => throw StateError('Unexpected cinematic'),
+              showDialogue: (_) {
+                observe();
+                if (dialogues++ == 0) {
+                  host = host.copyWith(
+                    trainerProfile: host.trainerProfile.copyWith(money: 100),
+                  );
+                  observe();
+                  host = GameState.fromJson(host.toJson());
+                  observe();
+                }
+                writesAfterPresentation = mutations.moneyWrites;
+                return 'completed';
+              },
+            ),
+          );
+          expect(result, isA<NarrativeSceneExecutionCompleted>());
+          final completed = result as NarrativeSceneExecutionCompleted;
+          expect(money, [1, 101, 101, 103]);
+          expect(
+            flags[0],
+            containsAll([for (var i = 0; i < 40; i++) 'fact_$i']),
+          );
+          expect(flags[3], isNot(contains('fact_0')));
+          expect(completed.updatedGameState.trainerProfile.money, 103);
+          expect(host.trainerProfile.money, 100);
+          expect(host.storyFlags.activeFlags, isEmpty);
+          expect(projection, isNull);
+          expect(replayCounts, [1, 1, 1, 2]);
+          expect(mutations.moneyWrites - writesAfterPresentation, 2);
+          expect(sameStates, everyElement(isTrue));
+        },
+      );
+    }
+
+    test(
+      'warmed presentation projection is released after callback failure',
+      () async {
+        const initial = GameState(saveId: 'presentation-failed');
+        final scene = _presentationCheckpointScene([
+          SceneNode(
+            id: 'money',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.giveMoney(amount: 25),
+            ),
+          ),
+          SceneNode(
+            id: 'observe',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(
+              dialogueId: 'observe',
+              yarnNodeName: 'Start',
+            ),
+          ),
+        ]);
+        final project = ProjectManifest(
+          name: 'Failed presentation',
+          maps: const [],
+          tilesets: const [],
+          scenes: [scene],
+          dialogues: const [
+            ProjectDialogueEntry(
+              id: 'observe',
+              name: 'Observe',
+              relativePath: 'dialogues/observe.yarn',
+            ),
+          ],
+        );
+        GameState Function()? projection;
+        GameState? warmedState;
+        var reusedBeforeFailure = false;
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+            eventId: 'failed',
+            sceneId: scene.id,
+            executionId: 'failed',
+            gameState: initial,
+          ),
+          project: project,
+          mapsById: const {},
+          currentGameState: () => initial,
+          onSceneStateProjection: (value) => projection = value,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => 'true',
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+            showDialogue: (_) {
+              warmedState = projection!();
+              reusedBeforeFailure = identical(projection!(), warmedState);
+              throw StateError('Host cancelled the dialogue');
+            },
+          ),
+        );
+        expect(result, isA<NarrativeSceneExecutionFailed>());
+        expect(initial.trainerProfile.money, 0);
+        expect(warmedState!.trainerProfile.money, 25);
+        expect(reusedBeforeFailure, isTrue);
+        expect(projection, isNull);
+      },
+    );
+
+    test(
+      'presentation projection invalidates after a prepared Pokemon gift',
+      () async {
+        const initial = GameState(
+          saveId: 'presentation-gift',
+          currentMapId: 'lab',
+        );
+        final scene = _presentationCheckpointScene(
+          [
+            SceneNode(
+              id: 'receive',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(
+                giftCommand(offer: false),
+              ),
+            ),
+            SceneNode(
+              id: 'observe',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'observe',
+                yarnNodeName: 'Start',
+              ),
+            ),
+          ],
+          ports: const {
+            'receive': ['party', 'pc', 'noCapacity'],
+          },
+        );
+        final project = ProjectManifest(
+          name: 'Prepared gift',
+          maps: const [],
+          tilesets: const [],
+          scenes: [scene],
+          dialogues: const [
+            ProjectDialogueEntry(
+              id: 'observe',
+              name: 'Observe',
+              relativePath: 'dialogues/observe.yarn',
+            ),
+          ],
+        );
+        GameState Function()? projection;
+        GameState? before;
+        GameState? after;
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+            eventId: 'gift',
+            sceneId: scene.id,
+            executionId: 'gift',
+            gameState: initial,
+          ),
+          project: project,
+          mapsById: const {},
+          currentGameState: () => initial,
+          consequenceWriter: SceneConsequenceRuntimeWriter(
+            project: project,
+            pokemonCatalog: giftCatalog(),
+          ),
+          onSceneStateProjection: (value) => projection = value,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => 'true',
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+            presentPokemonGift: (request) async {
+              before = projection!();
+              return SceneInteractionResult.acknowledged(
+                requestId: request.interaction.requestId,
+                revision: request.interaction.revision,
+              );
+            },
+            showDialogue: (_) {
+              after = projection!();
+              expect(projection!(), same(after));
+              return 'completed';
+            },
+          ),
+        );
+        expect(result, isA<NarrativeSceneExecutionCompleted>());
+        expect(before!.party.members, isEmpty);
+        expect(after!.party.members, hasLength(1));
+        expect(
+          (result as NarrativeSceneExecutionCompleted).updatedGameState.party,
+          after!.party,
+        );
+        expect(initial.party.members, isEmpty);
+        expect(projection, isNull);
+      },
+    );
+
+    test(
+      'presentation projection retires buffered NPC poses after a route',
+      () async {
+        final scope = MapInstanceRef(mapId: 'room', instanceId: 'visit');
+        final initial = GameState(
+          saveId: 'presentation-pose',
+          currentMapId: 'room',
+          storyFlags: const StoryFlags(activeFlags: {'visible'}),
+          mapInstanceWorldState: MapInstanceWorldState(
+            instancesByMapId: {
+              'room': MapInstanceRuntimeState(
+                instanceId: 'visit',
+                npcPoses: {
+                  'actor': MapInstanceNpcPose(
+                    position: const GridPos(x: 1, y: 1),
+                    facing: EntityFacing.south,
+                  ),
+                },
+              ),
+            },
+          ),
+        );
+        var host = initial;
+        final map = MapData(
+          id: 'room',
+          name: 'Room',
+          size: const GridSize(width: 5, height: 5),
+          entities: [
+            MapEntity(
+              id: 'actor',
+              kind: MapEntityKind.npc,
+              pos: const GridPos(x: 1, y: 1),
+              npc: const MapEntityNpcData(characterId: 'known'),
+              presentation: MapEntityPresentation(
+                variants: [
+                  MapEntityPresentationVariant(
+                    id: 'visible',
+                    characterId: 'known',
+                    blocksMovement: false,
+                    condition: NarrativeEventConditionExpression.leaf(
+                      NarrativeEventCondition.fact('visible', true),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+        final scene = _presentationCheckpointScene(
+          [
+            SceneNode(
+              id: 'pose',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.setNpcPose(
+                  mapId: 'room',
+                  entityId: 'actor',
+                  facing: EntityFacing.east,
+                ),
+              ),
+            ),
+            SceneNode(
+              id: 'route',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(
+                SceneInteractiveCommand.fromJson({
+                  'kind': 'actorRoute',
+                  'target': {
+                    'kind': 'entity',
+                    'mapId': 'room',
+                    'entityId': 'actor',
+                  },
+                  'steps': [
+                    {'kind': 'wait', 'durationMs': 1},
+                  ],
+                  'skippable': false,
+                }),
+              ),
+            ),
+            SceneNode(
+              id: 'observe',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'observe',
+                yarnNodeName: 'Start',
+              ),
+            ),
+          ],
+          ports: const {
+            'route': ['completed', 'blocked'],
+          },
+        );
+        final project = ProjectManifest(
+          name: 'Retired pose',
+          facts: [NarrativeFactDefinition(id: 'visible', label: 'Visible')],
+          maps: const [
+            ProjectMapEntry(
+              id: 'room',
+              name: 'Room',
+              relativePath: 'room.json',
+            ),
+          ],
+          tilesets: const [],
+          characters: const [
+            ProjectCharacterEntry(
+              id: 'known',
+              name: 'Known',
+              tilesetId: 'sheet',
+            ),
+          ],
+          scenes: [scene],
+          dialogues: const [
+            ProjectDialogueEntry(
+              id: 'observe',
+              name: 'Observe',
+              relativePath: 'dialogues/observe.yarn',
+            ),
+          ],
+        );
+        GameState Function()? projection;
+        EntityFacing? before;
+        EntityFacing? after;
+        final result = await executeNarrativeEventScene(
+          request: NarrativeSceneExecutionRequest(
+            eventId: 'pose',
+            sceneId: scene.id,
+            executionId: 'pose',
+            gameState: initial,
+          ),
+          project: project,
+          mapsById: {'room': map},
+          currentGameState: () => host,
+          consequenceWriter: SceneConsequenceRuntimeWriter(
+            project: project,
+            mapsById: {'room': map},
+            mapInstanceScopes: {'room': scope},
+          ),
+          onSceneStateProjection: (value) => projection = value,
+          callbacks: SceneRuntimeHostCallbacks(
+            evaluateCondition: (_) => 'true',
+            startBattle: (_) => throw StateError('Unexpected battle'),
+            playCinematic: (_) => throw StateError('Unexpected cinematic'),
+            executeInteractiveCommand: (_) {
+              before = projection!()
+                  .mapInstanceWorldState
+                  .instancesByMapId['room']!
+                  .npcPoses['actor']!
+                  .facing;
+              host = host.copyWith(
+                mapInstanceWorldState: host.mapInstanceWorldState.setNpcPoses(
+                  scope,
+                  {
+                    'actor': MapInstanceNpcPose(
+                      position: const GridPos(x: 1, y: 1),
+                      facing: EntityFacing.west,
+                    ),
+                  },
+                ),
+              );
+              return 'completed';
+            },
+            showDialogue: (_) {
+              final first = projection!();
+              expect(projection!(), same(first));
+              after = first
+                  .mapInstanceWorldState
+                  .instancesByMapId['room']!
+                  .npcPoses['actor']!
+                  .facing;
+              return 'completed';
+            },
+          ),
+        );
+        expect(
+          result,
+          isA<NarrativeSceneExecutionCompleted>(),
+          reason: result is NarrativeSceneExecutionFailed
+              ? '${result.failure}'
+              : null,
+        );
+        expect(before, EntityFacing.east);
+        expect(after, EntityFacing.west);
+        expect(
+          (result as NarrativeSceneExecutionCompleted)
+              .updatedGameState
+              .mapInstanceWorldState,
+          host.mapInstanceWorldState,
+        );
+        expect(
+          initial
+              .mapInstanceWorldState
+              .instancesByMapId['room']!
+              .npcPoses['actor']!
+              .facing,
+          EntityFacing.south,
+        );
+      },
+    );
+
     for (final mode in [
       'same',
       'retired',
@@ -1711,6 +2194,116 @@ SceneAsset _battleThenFactScene() {
           toNodeId: 'defeat_end',
           kind: SceneEdgeKind.battleDefeat,
         ),
+      ],
+    ),
+  );
+}
+
+final class _CountingPresentationMutations extends GameStateMutations {
+  int moneyWrites = 0;
+
+  @override
+  GameState addMoney(GameState state, int amount) {
+    moneyWrites++;
+    return super.addMoney(state, amount);
+  }
+}
+
+SceneAsset _presentationProjectionScene() {
+  final nodes = [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    for (var i = 0; i < 40; i++)
+      SceneNode(
+        id: 'fact_$i',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload(
+          consequence: SceneConsequence.setFact(factId: 'fact_$i', value: true),
+        ),
+      ),
+    SceneNode(
+      id: 'money_1',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload(
+        consequence: SceneConsequence.giveMoney(amount: 1),
+      ),
+    ),
+    SceneNode(
+      id: 'observe_1',
+      kind: SceneNodeKind.yarnDialogue,
+      payload: SceneYarnDialoguePayload(
+        dialogueId: 'observe',
+        yarnNodeName: 'Start',
+      ),
+    ),
+    SceneNode(
+      id: 'change_fact',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload(
+        consequence: SceneConsequence.setFact(factId: 'fact_0', value: false),
+      ),
+    ),
+    SceneNode(
+      id: 'money_2',
+      kind: SceneNodeKind.action,
+      payload: SceneActionPayload(
+        consequence: SceneConsequence.giveMoney(amount: 2),
+      ),
+    ),
+    SceneNode(
+      id: 'observe_2',
+      kind: SceneNodeKind.yarnDialogue,
+      payload: SceneYarnDialoguePayload(
+        dialogueId: 'observe',
+        yarnNodeName: 'Start',
+      ),
+    ),
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ];
+  return SceneAsset(
+    id: 'presentation',
+    name: 'Presentation',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: nodes,
+      edges: [
+        for (var i = 0; i < nodes.length - 1; i++)
+          SceneEdge(
+            id: 'next_$i',
+            fromNodeId: nodes[i].id,
+            fromPortId: 'completed',
+            toNodeId: nodes[i + 1].id,
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _presentationCheckpointScene(
+  List<SceneNode> body, {
+  Map<String, List<String>> ports = const {},
+}) {
+  final nodes = [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    ...body,
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ];
+  return SceneAsset(
+    id: 'checkpoint',
+    name: 'Checkpoint',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: nodes,
+      edges: [
+        for (var i = 0; i < nodes.length - 1; i++)
+          for (final port in ports[nodes[i].id] ?? ['completed'])
+            SceneEdge(
+              id: 'next_${i}_$port',
+              fromNodeId: nodes[i].id,
+              fromPortId: port,
+              toNodeId: nodes[i + 1].id,
+              kind: SceneEdgeKind.defaultFlow,
+            ),
       ],
     ),
   );
