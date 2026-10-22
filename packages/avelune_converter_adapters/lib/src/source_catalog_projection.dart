@@ -12,6 +12,7 @@ import 'native_trainer_catalog_bindings.dart';
 import 'native_trainer_catalog_qualification.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'native_source_species_bindings.dart';
+import 'source_battle_music_binding.dart';
 
 enum SourceCatalogDocumentKind { catalog, species, learnset, evolution, media }
 
@@ -67,6 +68,7 @@ final class SourceCatalogProjection {
   SourceCatalogProjection(
       {List<SourceCatalogDocument> documents = const [],
       this.mergedItemCatalog,
+      this.battleAudio,
       List<ProjectEncounterTable> encounterTables = const [],
       List<ProjectTrainerEntry> trainers = const [],
       List<NativeArtifact> artifacts = const [],
@@ -82,6 +84,7 @@ final class SourceCatalogProjection {
         evidence = _freeze(evidence) as Map<String, Object?>;
   final List<SourceCatalogDocument> documents;
   final ProjectItemCatalog? mergedItemCatalog;
+  final ProjectBattleAudioConfig? battleAudio;
   final List<ProjectEncounterTable> encounterTables;
   final List<ProjectTrainerEntry> trainers;
   final List<NativeArtifact> artifacts;
@@ -140,6 +143,7 @@ final class SourceCatalogProjection {
   Map<String, Object?> toJson() => {
         'documents': documents.map((d) => d.toJson()).toList(),
         'mergedItemCatalog': mergedItemCatalog?.toJson(),
+        if (battleAudio != null) 'battleAudio': battleAudio!.toJson(),
         'encounterTables': encounterTables.map((t) => t.toJson()).toList(),
         'trainers': trainers.map((t) => t.toJson()).toList(),
         'artifacts': artifacts.map((a) => a.reference.toJson()).toList(),
@@ -190,6 +194,7 @@ final class SourceCatalogProjector {
               NativeEncounterFishingRatePolicy.unresolved,
           NativeTrainerMovePolicy nativeTrainerMovePolicy =
               NativeTrainerMovePolicy.unresolved,
+          NativeWriteLimits writeLimits = const NativeWriteLimits(),
           SourceCatalogProjectionLimits limits =
               const SourceCatalogProjectionLimits(),
           ScanCancellation? cancellation}) async =>
@@ -209,7 +214,7 @@ final class SourceCatalogProjector {
               nativeEncounterRatePolicy,
               nativeEncounterFishingRatePolicy,
               limits,
-              cancellation ?? ScanCancellation())
+              cancellation ?? ScanCancellation(), writeLimits)
           .read();
 }
 
@@ -237,7 +242,7 @@ final class _Run {
       this.encounterRatePolicy,
       this.encounterFishingRatePolicy,
       this.limits,
-      this.cancel);
+      this.cancel, this.writeLimits);
   final NormalizedSourceProject source;
   final SourcePbsProject pbs;
   final SourceFilePort files;
@@ -256,6 +261,7 @@ final class _Run {
   final nativeAssetMutations = <NativeMutation>[];
   final SourceCatalogProjectionLimits limits;
   final ScanCancellation cancel;
+  final NativeWriteLimits writeLimits;
   final entries = <String, SourcePbsEntry>{};
   final identities = <String, SourcePbsIdentity>{};
   final edges = <String, Set<String>>{};
@@ -606,6 +612,12 @@ final class _Run {
                 'conditionalEvolutionExecutionQualified': false,
                 'media': media
               });
+    final battleMusic = await SourceBattleMusicBinding.read(
+        source: source, pbs: pbs, files: files,
+        trainers: nativeBinding?.trainers ?? const [],
+        limits: writeLimits, cancellation: cancel);
+    nativeArtifacts.addAll(battleMusic.artifacts);
+    nativeAssetMutations.addAll(battleMusic.importMutations);
     final nativeCatalogPublished = activeBundle != null;
     for (final method in encounterBinding?.unqualifiedMethods ??
         const <Map<String, Object?>>[]) {
@@ -663,7 +675,8 @@ final class _Run {
         documents: documents,
         mergedItemCatalog: !nativeCatalogPublished ? null : merged,
         encounterTables: encounterBinding?.tables ?? const [],
-        trainers: nativeBinding?.trainers ?? const [],
+        trainers: battleMusic.trainers,
+        battleAudio: battleMusic.battleAudio,
         diagnostics: diagnostics,
         evidence: {
           'kind': 'sourceCatalogProjection',
@@ -674,6 +687,7 @@ final class _Run {
           'profile': pbs.profile.name,
           'namespace': namespace.value,
           'battleAuthority': 'aveluneNative',
+          if (battleMusic.evidence.isNotEmpty) 'battleMusic': battleMusic.evidence,
           if (activeBundle != null)
             'nativeCatalogIdentity': {
               'canonicalHash': canonicalHashOf(activeBundleIdentity,

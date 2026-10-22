@@ -2256,6 +2256,8 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'sourceRoutedDoorPatterns': 'attested-source-paired-pages-and-exact-atlas-v1',
       'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
       'sourceMissingItemSuggestions': 'qualified-selected-blocked-preparation-v1',
+      'sourceVariableWriterPolicy': 'explicit-read-consumers-v1',
+      'sourceBattleMusic': 'attested-declarations-closed-renamed-audio-v1',
       'sourceArrivalCollisionOwners': 'qualified-presented-owner-conservative-union-v1',
       'sourceAdaptations': 'closed-event-defects-and-missing-catalog-entries-original-byte-provenance-v1',
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
@@ -2390,6 +2392,7 @@ const _nativeStudyActions = [
   'map.create',
   'map.save',
   'map.audio.update',
+  'project.battle_audio.update',
   'connection.create_bidirectional_apply',
   'border.blueprint.draft.upsert',
   'border.blueprint.publish',
@@ -2570,6 +2573,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                       'EV03 source-bound active-page variants preserve a single event owner, character bindings, initial facing, solid/through state, source-sized footprints and proven front/overlap interaction using canonical conditional presentation authoring. Unknown graphics, scripts and spatial counter reach remain refused.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/source_event_pages_ev02_test.dart:EV03 page variants switch graphics, solid state and overlap semantics on one owner',
+                },
+              if (action == 'project.battle_audio.update')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Exact source battle defaults and closed renamed-file adaptations retain SHA-bound audio imports through strict canonical catalogue regeneration and native reopening.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_battle_music_binding_test.dart:battle defaults survive canonical catalogue writer and strict reopening',
                 },
               if (action == 'map.audio.update')
                 {
@@ -2794,6 +2805,17 @@ ConversionPlan? _previewPlan(
         false,
         family: 'catalogs',
         disposition: 'adapted');
+    final projection = catalogEvidence['projection'];
+    final music = projection is Map ? projection['battleMusic'] : null;
+    if (music is Map) {
+      for (final raw in music['bindings'] as List) {
+        final binding = raw as Map;
+        final file = binding['sourceAudioFile'] as Map;
+        add('workflow.catalogs.battle_music',
+            '${binding['owner']}/${binding['field']}: ${binding['declaredName']} → ${file['relativePath']} (SHA-256 ${file['sha256']}; ${binding['resolution']}). Battle rules remain Avelune native. Global defaults and represented trainer overrides only; generic map, regional and dynamic music overrides are not imported.',
+            false, family: 'catalogs', disposition: 'adapted');
+      }
+    }
     for (final raw in (catalogEvidence['diagnostics'] as List).cast<Map>()) {
       add(raw['code'] as String, raw['message'] as String, false,
           family: 'catalogs',

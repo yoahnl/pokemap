@@ -364,7 +364,7 @@ final class NativeMutation {
   final Map<String, Object?> parameters;
 
   OperationDomain get domain => switch (actionId.split('.').first) {
-        'regionalMap' => OperationDomain.project,
+        'regionalMap' || 'project' => OperationDomain.project,
         'map' ||
         'entity' ||
         'trigger' ||
@@ -1450,6 +1450,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'pokemon.media.write',
           'campaign.encounter_table.upsert',
           'campaign.trainer.upsert',
+          'project.battle_audio.update',
         }.contains(mutation.actionId);
     if (!ordinary && !library && !semantic && !event && !catalogs) {
       throw const NativeWriteException('native.action.unsupported',
@@ -1537,6 +1538,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   final customAnimationDefinitions = <CharacterCustomAnimationDefinition>[];
   var cinematics = <CinematicAsset>[];
   final trainersById = <String, ProjectTrainerEntry>{};
+  ProjectBattleAudioConfig? battleAudio;
   final badges = <BadgeDefinition>[];
   final shops = <ShopDefinition>[];
   String? defaultPlayerCharacterId;
@@ -1908,16 +1910,24 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
                   (operation) => operation.operationId == mutation.operationId))
               .firstOrNull;
           final logicalPath = _string(parameters, 'logicalPath');
-          if (binding == null ||
-              binding.mapMusicPath != logicalPath ||
-              !binding.artifacts.any((entry) =>
-                  entry.handle == handle &&
-                  entry.rawSha256 == artifact.rawSha256) ||
+          final catalog = semantics.catalogs?.projection;
+          final catalogImports = catalog?.assetMutations.where((entry) =>
+              entry.operationId == mutation.operationId &&
+              entry.actionId == 'asset.import').toList();
+          final catalogAudio = catalogImports?.length == 1 &&
+              canonicalJsonOf(catalogImports!.single.toJson(0), limits: limits.jsonLimits) ==
+                  canonicalJsonOf(mutation.toJson(0), limits: limits.jsonLimits) &&
+              catalog!.artifacts.any((entry) => entry.handle == handle &&
+                  entry.rawSha256 == artifact.rawSha256);
+          final mapAudio = binding != null && binding.mapMusicPath == logicalPath &&
+              binding.artifacts.any((entry) => entry.handle == handle &&
+                  entry.rawSha256 == artifact.rawSha256);
+          if ((!mapAudio && !catalogAudio) ||
               audio.containsKey(id) ||
               assetRecords.any((entry) => entry.id == id) ||
               !_targetIds(mutation.targetEntityIds, {id})) {
             throw const NativeWriteException('native.events.map_audio',
-                'Map music requires one exact regenerated source audio binding');
+                'Music requires one exact regenerated source audio binding');
           }
           const PresentationMediaHeaderProbe().inspect(artifact.bytes,
               declaredMediaType: artifact.reference.mediaType);
@@ -2265,6 +2275,21 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
             for (final frame in primitive['frames'] as List) { usedArtifacts.add(frame['artifactHandle'] as String); }
           }
         }
+      case 'project.battle_audio.update':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {
+          'wildBattleMusicPath', 'trainerBattleMusicPath',
+          'wildVictoryMusicPath', 'trainerVictoryMusicPath'});
+        final expected = semantics.catalogs?.projection.battleAudio;
+        if (battleAudio != null || expected == null ||
+            canonicalJsonOf(parameters) != canonicalJsonOf(expected.toJson()) ||
+            expected.toJson().values.whereType<String>().any((path) =>
+                !assetRecords.any((entry) => entry.logicalPath == path &&
+                    entry.artifact.mediaType.startsWith('audio/')))) {
+          throw const NativeWriteException('native.catalogs.battle_audio',
+              'Battle defaults require their exact regenerated source declarations and imported audio.');
+        }
+        battleAudio = expected;
       case 'map.audio.update':
         semantics.requireOperation(mutation);
         _allowParameters(
@@ -2546,6 +2571,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               (projectedCatalogs?.documents.isNotEmpty ?? false)),
       encounterTables: projectedCatalogs?.encounterTables ?? const [],
       trainers: trainersById.values.toList(),
+      battleAudio: battleAudio,
       defeatRecovery: sourceDefeatRecovery,
       cinematicMediaAssets: mediaAssets,
       facts: [...?projectedEvents?.facts, ...?freshEntry?.facts],

@@ -227,6 +227,7 @@ final class SourceCatalogStudyComposer {
             : NativeEncounterFishingRatePolicy
                 .adaptSourceBaseFishingBiteChanceToNativeTable,
         nativeTrainerMovePolicy: nativeTrainerMovePolicy,
+        writeLimits: limits,
         cancellation: cancellation);
     if (includeNativeEncounterConsumers) {
       projection = await _seedNativeExplorationItems(
@@ -426,6 +427,20 @@ final class SourceCatalogStudyComposer {
           'campaign.trainer.upsert', trainer.id, {'value': trainer.toJson()}));
     }
     mutations.addAll(projection.assetMutations);
+    if (projection.battleAudio != null) {
+      final operation = mutation('project.battle_audio.update',
+          'source_battle_audio', projection.battleAudio!.toJson());
+      final music = projection.evidence['battleMusic'] as Map;
+      final sources = (music['sourceFiles'] as List).cast<Map>();
+      mutations.add(NativeMutation(operationId: operation.operationId,
+          actionId: operation.actionId,
+          sourceEntityIds: {
+            ...operation.sourceEntityIds,
+            for (final file in sources) ConverterId(file['fileId'] as String)
+          }.toList(), targetEntityIds: operation.targetEntityIds,
+          parameters: operation.parameters, limits: limits));
+    }
+
     final preservedArtifacts = <String, NativeArtifact>{};
     final preservedFiles = <Map<String, Object?>>[];
     for (final witness in recording.evidence) {
@@ -713,6 +728,7 @@ Future<SourceCatalogProjection> _seedNativeExplorationItems({
       mergedItemCatalog: merged,
       encounterTables: projection.encounterTables,
       trainers: projection.trainers,
+      battleAudio: projection.battleAudio,
       artifacts: projection.artifacts,
       assetMutations: projection.assetMutations,
       diagnostics: projection.diagnostics,
