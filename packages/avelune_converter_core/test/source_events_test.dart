@@ -3214,6 +3214,37 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         isTrue);
   });
 
+  test('fresh analyzers preserve snapshot ownership and profile qualification',
+      () async {
+    final first = await _events([_page([_command(101, ['First'])])]);
+    final second = await _events([_page([_command(101, ['Second'])])]);
+    expect(first.snapshot.entries.map((entry) => entry.fileId),
+        second.snapshot.entries.map((entry) => entry.fileId));
+    expect(first.snapshot.canonicalHash, isNot(second.snapshot.canonicalHash));
+    final firstProfile = _analyzer(first).profile;
+    List<String> texts(NormalizedSourceProject source) => _analyzer(source)
+        .analyze().requireEvent(1, 1).pages.single.body.nodes
+        .whereType<SourceTextNode>().map((node) => node.text).toList();
+    expect(texts(first), ['First']);
+    expect(texts(second), ['Second']);
+    for (var repeat = 0; repeat < 2; repeat++) {
+      expect(texts(second), ['Second']);
+      for (final rejected in [
+        _analyzer(first, scriptsHash: 'a' * 64).profile,
+        _analyzer(second).profile,
+        SourceEventProfile(
+            scriptsArchiveHash: firstProfile.scriptsArchiveHash,
+            sourceSnapshotHash: firstProfile.sourceSnapshotHash,
+            normalizationHash: _hash([9]),
+            interpretationProfile: firstProfile.interpretationProfile),
+      ]) {
+        expect(SourceEventAnalyzer.forProject(first, profile: rejected)
+            .analyze().requireEvent(1, 1).isQuarantined, isTrue);
+      }
+      expect(texts(first), ['First']);
+    }
+  });
+
   test('published analysis nodes branches and conditions are immutable',
       () async {
     final analysis = _analyzer(await _events([

@@ -396,6 +396,32 @@ void main() {
           () => (encodedEntries.first as Map).clear(), throwsUnsupportedError);
       expect(snapshot.canonicalHash, hash);
     });
+
+    test('snapshot constructor owns its entries before lazy reads', () async {
+      final original = await scan(FakeSourceTree.text({
+        'Data/a.rxdata': 'a',
+        'README.md': 'Pokemon Essentials v21.1',
+        'private/key': 'secret',
+      }), policy: SourceScanPolicy(excludedSegments: ['private']));
+      final entries = original.entries.toList();
+      final excluded = original.excludedPaths.toList();
+      final evidence = original.profileEvidence.toList();
+      final snapshot = snapshotWith(original, entries: entries,
+          excludedPaths: excluded, profileEvidence: evidence);
+      expect(entries, hasLength(2));
+      expect(excluded, isNotEmpty);
+      expect(evidence, isNotEmpty);
+      entries.clear();
+      excluded.clear();
+      evidence.clear();
+      expect(snapshot.entries, original.entries);
+      expect(snapshot.excludedPaths, original.excludedPaths);
+      expect(snapshot.profileEvidence, original.profileEvidence);
+      expect(snapshot.canonicalHash, original.canonicalHash);
+      expect(() => snapshot.entries[0] = original.entries.last,
+          throwsUnsupportedError);
+      expect(snapshot.canonicalHash, original.canonicalHash);
+    });
   });
 
   group('SRC-02 hostile source entries', () {

@@ -414,6 +414,9 @@ final class SourceSnapshot {
   final ConverterId logicalProjectNamespace;
   final Sha256Hash policyHash;
   final List<SourceFileEntry> entries;
+  late final Map<ConverterId, SourceFileEntry> _entriesById = {
+    for (final entry in entries) entry.fileId: entry,
+  };
   final List<SourceScanDiagnostic> diagnostics;
   final List<String> excludedPaths;
   final List<SourceProfileEvidence> profileEvidence;

@@ -975,9 +975,8 @@ final class SourceEventAnalyzer {
   SourceEventAnalyzer.forProject(this.project, {required this.profile});
   final NormalizedSourceProject project;
   final SourceEventProfile profile;
-  late final Map<ConverterId, SourceFileEntry> _snapshotEntries = {
-    for (final entry in project.snapshot.entries) entry.fileId: entry,
-  };
+  late final Map<ConverterId, SourceFileEntry> _snapshotEntries =
+      project.snapshot._entriesById;
   final _declaredRawEvents = <(int, Map<String, Object?>),
       ({Object? value, SourcePreservedData reference})?>{};
   late final SourceTrainerDefeatPolicy? _trainerDefeatPolicy =
