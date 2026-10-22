@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
@@ -93,6 +95,247 @@ void main() {
     expect(result.payloadFiles,
         isNot(contains('project/assets/runtime/provenance.json')));
   });
+
+  test('catalog closure excludes authoring JSON records and their blobs',
+      () async {
+    final root = await _fixture();
+    final record = await _catalogJson(root, 'provenance',
+        'assets/converter/provenance.json', {'file': 'shard:private-proof'},
+        tags: ['runtime'], usages: ['runtime']);
+    final before =
+        await File('${root.path}/$assetCatalogStorageKey').readAsBytes();
+    final projection = await _build(root);
+    final catalog = AssetCatalog.fromJson(jsonDecode(utf8
+        .decode(projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(catalog.find(record.id), isNull);
+    expect(
+        projection.payloadFiles,
+        isNot(contains(
+            PackagePathPolicy.normalizeNfc('project/${record.logicalPath}'))));
+    expect(projection.payloadFiles,
+        isNot(contains('project/${assetBlobStorageKey(record.artifact)}')));
+    final artifact = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    final inspected =
+        const GamePackageInspector().inspect(artifact.packageBytes);
+    expect(inspected.manifest.gameId, _profile().gameId);
+    expect(inspected.manifest.content.files.map((file) => file.path),
+        isNot(contains('project/${assetBlobStorageKey(record.artifact)}')));
+    expect(await File('${root.path}/$assetCatalogStorageKey').readAsBytes(),
+        before);
+  });
+
+  test('referenced catalog JSON survives misleading provenance labels',
+      () async {
+    final root = await _fixture();
+    final record = await _catalogJson(root, 'native-encounter-release',
+        'assets/converter/runtime-e\u0301.json', {
+      'catalog': 'moves',
+      'entries': [
+        PokemonMove(
+                id: 'tackle',
+                name: 'Tackle',
+                names: {'en': 'Tackle'},
+                generation: 1,
+                source: 'test',
+                type: 'normal',
+                category: PokemonMoveCategory.physical,
+                target: PokemonMoveTarget.normal,
+                basePower: 40,
+                accuracy: const PokemonMoveAccuracy.percent(value: 100),
+                pp: 35)
+            .toJson()
+      ]
+    },
+        tags: [
+          'preserved-native-provenance'
+        ],
+        usages: [
+          'converter.sourceEventBytes'
+        ]);
+    final file = File('${root.path}/project.json');
+    final project =
+        ProjectManifest.fromJson(jsonDecode(await file.readAsString()));
+    await file.writeAsString(jsonEncode(project
+        .copyWith(
+            pokemon: project.pokemon
+                .copyWith(catalogFiles: {'moves': record.logicalPath}))
+        .toJson()));
+    final projection = await _build(root);
+    final catalog = AssetCatalog.fromJson(jsonDecode(utf8
+        .decode(projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(
+        catalog.require(record.id).toJson(),
+        record
+            .copyWith(
+                logicalPath: PackagePathPolicy.normalizeNfc(record.logicalPath))
+            .toJson());
+    expect(
+        projection.payloadFiles,
+        contains(
+            PackagePathPolicy.normalizeNfc('project/${record.logicalPath}')));
+    expect(projection.payloadFiles,
+        contains('project/${assetBlobStorageKey(record.artifact)}'));
+    final artifact = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: _profile(),
+        mode: GamePackageExportMode.localTest);
+    expect(
+        const GamePackageInspector()
+            .inspect(artifact.packageBytes)
+            .manifest
+            .gameId,
+        _profile().gameId);
+    final exported = ZipDecoder().decodeBytes(artifact.packageBytes).findFile(
+        PackagePathPolicy.normalizeNfc('project/${record.logicalPath}'))!;
+    final decoded =
+        jsonDecode(utf8.decode(exported.content)) as Map<String, dynamic>;
+    final move = PokemonMove.fromJson(
+        Map<String, dynamic>.from((decoded['entries'] as List).single as Map));
+    expect(move.id, 'tackle');
+    expect(move.pp, 35);
+  });
+
+  test('admitted catalog JSON retains its nested reference closure', () async {
+    final root = await _fixture();
+    final record = await _catalogJson(root, 'config', 'config/runtime.json',
+        {'dependencyPath': 'config/child.json'});
+    await _write(root, 'config/child.json', {'value': 1});
+    final projection = await _build(root);
+    expect(projection.payloadFiles, contains('project/${record.logicalPath}'));
+    expect(projection.payloadFiles, contains('project/config/child.json'));
+  });
+
+  test('runtime character image survives misleading provenance tags', () async {
+    final root = await _fixture();
+    final file = File('${root.path}/$assetCatalogStorageKey');
+    final catalog =
+        AssetCatalog.fromJson(jsonDecode(await file.readAsString()));
+    await _write(
+        root,
+        assetCatalogStorageKey,
+        AssetCatalog(records: [
+          for (final record in catalog.records)
+            record.copyWith(
+                tags: ['preserved-native-provenance'],
+                usages: ['converter.sourceEventBytes'])
+        ]).toJson());
+    final projection = await _build(root);
+    final retained = AssetCatalog.fromJson(jsonDecode(utf8
+        .decode(projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(retained.require('hero-source').logicalPath, 'assets/hero.png');
+    expect(projection.payloadFiles, contains('project/assets/hero.png'));
+    expect(
+        projection.payloadFiles,
+        contains(
+            'project/${assetBlobStorageKey(retained.require('hero-source').artifact)}'));
+  });
+
+  test('Presentation media retain their referenced opaque source blobs',
+      () async {
+    final root = await _fixture();
+    final bytes = spatialPayload()['project/assets/hero.png']!;
+    final artifact =
+        ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png');
+    const path = 'assets/presentation/opening.bin';
+    final file = File('${root.path}/$assetCatalogStorageKey');
+    final catalog =
+        AssetCatalog.fromJson(jsonDecode(await file.readAsString()));
+    final record = AssetRecord(
+        id: 'opening-source', logicalPath: path, artifact: artifact);
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    await _write(root, assetBlobStorageKey(artifact), bytes);
+    await _write(
+        root,
+        projectMediaCatalogStorageKey,
+        encodeProjectMediaCatalogBytes(ProjectMediaCatalog(entries: [
+          ProjectMediaAsset(
+              id: 'opening',
+              label: 'Opening',
+              kind: ProjectMediaKind.image,
+              sourceAssetId: record.id,
+              provenance: ProjectMediaProvenance(source: 'Fixture'),
+              license: ProjectMediaLicense(identifier: 'CC0-1.0', name: 'CC0'),
+              technicalMetadata: ProjectMediaTechnicalMetadata(
+                  mediaType: 'image/png',
+                  container: 'png',
+                  codec: 'png',
+                  sizeBytes: bytes.length,
+                  width: 32,
+                  height: 32))
+        ])));
+    final projectFile = File('${root.path}/project.json');
+    final project =
+        ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()));
+    await _write(
+        root,
+        'maps/map.json',
+        MapData(
+                id: 'map',
+                name: 'Map',
+                size: const GridSize(width: 8, height: 8))
+            .toJson());
+    await projectFile.writeAsString(jsonEncode(project
+        .copyWith(
+            version: ProjectVersion.v8,
+            models3d: [],
+            settings:
+                project.settings.copyWith(dimension: ProjectDimension.twoD),
+            presentationCinematics: [
+              PresentationCinematicAsset(
+                  id: 'opening',
+                  title: 'Opening',
+                  durationUs: 1000000,
+                  layers: [
+                    PresentationLayer(
+                        id: 'background', label: 'Background', zIndex: 0)
+                  ],
+                  tracks: [
+                    PresentationTrack(
+                        id: 'visual',
+                        label: 'Visual',
+                        kind: PresentationTrackKind.visual,
+                        clips: [
+                          PresentationVisualClip(
+                              id: 'image',
+                              startUs: 0,
+                              durationUs: 1000000,
+                              layerId: 'background',
+                              resourceId: 'opening')
+                        ])
+                  ])
+            ])
+        .toJson()));
+    final projection = await _build(root);
+    final retained = AssetCatalog.fromJson(jsonDecode(utf8
+        .decode(projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(retained.require(record.id).toJson(), record.toJson());
+    expect(projection.payloadFiles['project/${assetBlobStorageKey(artifact)}'],
+        bytes);
+  });
+
+  for (final entry in <String, Map<String, Object>>{
+    'referenceEscapesRoot': {'file': 'shard:outside-runtime'},
+    'probableSecret': {'privateKey': '-----BEGIN PRIVATE KEY-----'},
+  }.entries) {
+    test('referenced catalog JSON still rejects ${entry.key}', () async {
+      final root = await _fixture();
+      final record = await _catalogJson(
+          root, 'provenance', 'assets/converter/runtime.json', entry.value,
+          tags: ['preserved-native-provenance']);
+      await _runtimeReference(root, record.logicalPath);
+      await expectLater(
+          const CanonicalGamePackageExportService().build(
+              projectRoot: root,
+              profile: _profile(),
+              mode: GamePackageExportMode.localTest),
+          throwsA(isA<GamePackageExportException>()
+              .having((error) => error.code, 'code', entry.key)));
+    });
+  }
 
   test('ID addressed data survives with optional Pokemon catalog defaults',
       () async {
@@ -185,3 +428,39 @@ Future<RuntimeProjectProjection> _build(Directory root) =>
           defaultLocale: 'fr',
           supportedLocales: ['fr']),
     );
+
+Future<AssetRecord> _catalogJson(
+    Directory root, String id, String path, Map<String, Object> value,
+    {List<String> tags = const [], List<String> usages = const []}) async {
+  final bytes = utf8.encode(jsonEncode(value));
+  final artifact =
+      ContentArtifactRef.fromBytes(bytes, mediaType: 'application/json');
+  final record = AssetRecord(
+      id: id,
+      logicalPath: path,
+      artifact: artifact,
+      tags: tags,
+      usages: usages);
+  final file = File('${root.path}/$assetCatalogStorageKey');
+  final catalog = AssetCatalog.fromJson(jsonDecode(await file.readAsString()));
+  await _write(root, assetCatalogStorageKey,
+      AssetCatalog(records: [...catalog.records, record]).toJson());
+  await _write(root, assetBlobStorageKey(artifact), bytes);
+  return record;
+}
+
+Future<void> _runtimeReference(Directory root, String path) async {
+  final file = File('${root.path}/project.json');
+  final project =
+      ProjectManifest.fromJson(jsonDecode(await file.readAsString()));
+  await file.writeAsString(jsonEncode(project
+      .copyWith(globalProperties: {'runtimeConfigPath': path}).toJson()));
+}
+
+GamePackageExportProfile _profile() => GamePackageExportProfile(
+    gameId: 'games.example.closure',
+    gameVersion: '0.1.0',
+    title: 'Closure',
+    authorName: 'Yoahn',
+    defaultLocale: 'fr',
+    supportedLocales: ['fr']);

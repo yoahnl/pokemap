@@ -579,13 +579,6 @@ final class RuntimeProjectProjectionBuilder {
       );
     }
 
-    await _addPortableAssetClosure(
-      payload,
-      authorFiles,
-      budget,
-      excludedAssetIds:
-          presentationPackage?.excludedSourceAssetIds ?? const <String>{},
-    );
     for (final entry in aliasedMedia.entries) {
       final path = _normalizePackagePath('project/${entry.key}');
       if (!payload.containsKey(path)) {
@@ -597,6 +590,13 @@ final class RuntimeProjectProjectionBuilder {
       'project.json',
       ...projectedProject.maps.map((entry) => entry.relativePath),
       ...compiledEntries.map((entry) => entry.relativePath),
+      for (final path in projectedProject.pokemon.catalogFiles.values)
+        if (authorFiles.catalog.findByLogicalPath(path) != null) path,
+      for (final record in authorFiles.catalog.records)
+        if (p.extension(record.logicalPath).toLowerCase() == '.json' &&
+            _isRuntimeProjectFile(record.logicalPath, '.json',
+                hasCanonicalAssetCatalog: true))
+          record.logicalPath,
       for (final path in payload.keys)
         if (path.startsWith('project/') && path.endsWith('.json'))
           path.substring('project/'.length),
@@ -830,6 +830,18 @@ final class RuntimeProjectProjectionBuilder {
       }
     }
 
+    await _addPortableAssetClosure(
+      payload,
+      authorFiles,
+      budget,
+      retainedAssetIds: presentationPackage?.catalog.entries
+              .map((media) => media.sourceAssetId)
+              .toSet() ??
+          const <String>{},
+      excludedAssetIds:
+          presentationPackage?.excludedSourceAssetIds ?? const <String>{},
+    );
+
     if (projectedProject.settings.dimension == ProjectDimension.threeD) {
       final gameplay =
           SpatialGameplayCapabilities.requiresGameplay(projectedProject, maps: [
@@ -867,9 +879,18 @@ final class RuntimeProjectProjectionBuilder {
 
   Future<void> _addPortableAssetClosure(Map<String, List<int>> payload,
       _AuthorProjectFileResolver authorFiles, _ProjectionBudget budget,
-      {Set<String> excludedAssetIds = const <String>{}}) async {
+      {Set<String> retainedAssetIds = const <String>{},
+      Set<String> excludedAssetIds = const <String>{}}) async {
     final records = authorFiles.catalog.records
-        .where((record) => !excludedAssetIds.contains(record.id))
+        .where((record) =>
+            !excludedAssetIds.contains(record.id) &&
+            (p.extension(record.logicalPath).toLowerCase() != '.json' ||
+                retainedAssetIds.contains(record.id) ||
+                _isRuntimeProjectFile(record.logicalPath,
+                    p.extension(record.logicalPath).toLowerCase(),
+                    hasCanonicalAssetCatalog: true) ||
+                payload.containsKey(
+                    _normalizePackagePath('project/${record.logicalPath}'))))
         .toList();
     if (records.isEmpty && authorFiles.catalog.records.isEmpty) return;
     budget.addPayload(
@@ -881,8 +902,10 @@ final class RuntimeProjectProjectionBuilder {
     for (final record in records) {
       final extension = p.extension(record.logicalPath).toLowerCase();
       final bytes = await authorFiles.read(record.logicalPath, budget);
-      if (_isRuntimeProjectFile(record.logicalPath, extension,
-          hasCanonicalAssetCatalog: true)) {
+      if (!payload.containsKey(
+              _normalizePackagePath('project/${record.logicalPath}')) &&
+          _isRuntimeProjectFile(record.logicalPath, extension,
+              hasCanonicalAssetCatalog: true)) {
         budget.addPayload(payload,
             _normalizePackagePath('project/${record.logicalPath}'), bytes);
       }
