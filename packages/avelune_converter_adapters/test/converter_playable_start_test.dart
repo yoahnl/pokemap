@@ -9,6 +9,58 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final ineligible in [false, true]) {
+    test(
+        'trainer medicine ${ineligible ? 'ineligible' : 'unknown'} refuses start before authoring attachment',
+        () async {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final project = await fixture.project();
+      await fixture.write(
+          'project.json',
+          project.copyWith(trainers: const [
+            ProjectTrainerEntry(
+                id: 'trainer',
+                name: 'Trainer',
+                trainerClass: 'Fixture',
+                battleItems: {
+                  'medicine': 1
+                },
+                team: [
+                  ProjectTrainerPokemonEntry(speciesId: 'bulbasaur', level: 5)
+                ]),
+          ]).toJson());
+      await fixture.write(
+          project.pokemon.catalogFiles['items']!,
+          ProjectItemCatalog(schemaVersion: 1, entries: [
+            if (ineligible)
+              const ProjectItemDefinition(
+                  id: 'medicine',
+                  displayName: 'Medicine',
+                  pocketId: 'medicine'),
+          ]).toJson());
+      const service = ConverterPlayableStartService();
+      final inspection = await service.inspect(
+          projectPath: fixture.root.path, allowedRootPath: fixture.root.path);
+      final before = await fixture.contents(includeLocalState: true);
+      await expectLater(
+          service.apply(
+              projectPath: fixture.root.path,
+              allowedRootPath: fixture.root.path,
+              expectedRevision: inspection.revision,
+              mapId: 'map_start',
+              spawnId: 'start',
+              starterSpeciesIds:
+                  inspection.species.take(2).map((value) => value.id).toList()),
+          throwsA(isA<ValidationException>().having(
+              (error) => error.code,
+              'code',
+              ineligible
+                  ? 'trainer.battle_item_ineligible'
+                  : 'trainer.battle_item_unknown')));
+      expect(await fixture.contents(includeLocalState: true), before);
+    });
+  }
   test(
       'inspects an existing canonical empty-party start without Pokemon catalogs or mutations',
       () async {
@@ -90,6 +142,26 @@ void main() {
   test('declares a native start with a genuine starter selection', () async {
     final fixture = await _Fixture.create();
     addTearDown(fixture.dispose);
+    final original = await fixture.project();
+    await fixture.write(
+        'project.json',
+        original.copyWith(trainers: const [
+          ProjectTrainerEntry(
+              id: 'trainer',
+              name: 'Trainer',
+              trainerClass: 'Fixture',
+              battleItems: {
+                'full-heal': 1
+              },
+              team: [
+                ProjectTrainerPokemonEntry(speciesId: 'bulbasaur', level: 5)
+              ]),
+        ]).toJson());
+    await fixture.write(
+        original.pokemon.catalogFiles['items']!,
+        ProjectItemCatalog(schemaVersion: 1, entries: [
+          mvpItemCatalog.entries.singleWhere((item) => item.id == 'full-heal'),
+        ]).toJson());
     const service = ConverterPlayableStartService();
     final before = await fixture.contents();
     final inspection = await service.inspect(

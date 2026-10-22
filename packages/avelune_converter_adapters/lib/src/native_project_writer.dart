@@ -873,7 +873,8 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.manifest',
             'Fresh native manifest differs from the approved draft');
       }
-      ProjectValidator.validate(snapshot.manifest, maps: snapshot.maps);
+      ProjectValidator.validate(snapshot.manifest, maps: snapshot.maps,
+          itemCatalog: snapshot.itemCatalog);
       if (snapshot.maps.length != prepared.maps.length) {
         throw const NativeWriteException('native.verify.maps',
             'Fresh native map inventory differs from the approved draft');
@@ -1056,7 +1057,8 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.changed',
             'Native staging project changed after verification');
       }
-      ProjectValidator.validate(finalSnapshot.manifest, maps: finalSnapshot.maps);
+      ProjectValidator.validate(finalSnapshot.manifest,
+          maps: finalSnapshot.maps, itemCatalog: finalSnapshot.itemCatalog);
       for (final map in finalSnapshot.maps) { MapValidator.validate(map, projectDialogueContext: finalSnapshot.manifest); }
       await _verifyNativeCatalogs(session, prepared, limits, cancellation,
           verifyEmptyInventory: draft.compositionEvidence.containsKey('sourceCatalogs'));
@@ -2612,7 +2614,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       chargeBorderJson(map.toJson());
     }
   }
-  ProjectValidator.validate(manifest, maps: maps.values);
+  ProjectValidator.validate(manifest, maps: maps.values,
+      itemCatalog: projectedCatalogs?.mergedItemCatalog ??
+          projectedEvents?.itemCatalog);
   await preparation.advance();
   for (final map in maps.values) {
     MapValidator.validate(map, projectDialogueContext: manifest);

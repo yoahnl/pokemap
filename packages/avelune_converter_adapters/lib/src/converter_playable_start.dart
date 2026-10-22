@@ -275,7 +275,8 @@ final class ConverterPlayableStartService {
             'Un départ ou une scène existe déjà. Il ne sera pas remplacé.');
       }
       final projected = snapshot.manifest.copyWith(newGame: config);
-      ProjectValidator.validate(projected, maps: snapshot.maps);
+      ProjectValidator.validate(projected,
+          maps: snapshot.maps, itemCatalog: snapshot.itemCatalog);
       const SceneActions().createPreSessionScene(projected,
           maps: snapshot.maps,
           sceneId: sceneId,

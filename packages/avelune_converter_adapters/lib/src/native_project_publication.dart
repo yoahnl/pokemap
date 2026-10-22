@@ -846,7 +846,8 @@ Future<void> _revision(String projectPath, String allowedRoot, String expected,
       throw const NativePublicationException('publication.native.changed',
           'Fresh native revision differs from the verified writer receipt');
     }
-    ProjectValidator.validate(snapshot.manifest, maps: snapshot.maps);
+    ProjectValidator.validate(snapshot.manifest,
+        maps: snapshot.maps, itemCatalog: snapshot.itemCatalog);
     final catalog = AssetCatalog.fromJson(jsonDecode(
             utf8.decode(snapshot.resourceBytes(assetCatalogResourceIdentity)))
         as Map<String, dynamic>);

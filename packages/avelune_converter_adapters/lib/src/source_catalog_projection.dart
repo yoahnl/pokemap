@@ -616,7 +616,7 @@ final class _Run {
           false,
           null);
     }
-    final merged = itemConflict
+    var merged = itemConflict
         ? !nativeCatalogPublished
             ? null
             : existing ??
@@ -625,6 +625,37 @@ final class _Run {
             schemaVersion: 1,
             entries: itemDefinitions.values.toList()
               ..sort((a, b) => a.id.compareTo(b.id)));
+    final qualifiedBattleItems = trainerQualification?.battleItemDefinitions ??
+        const <ProjectItemDefinition>[];
+    if (qualifiedBattleItems.isNotEmpty) {
+      final definitions = <String, ProjectItemDefinition>{
+        for (final item in merged?.entries ?? const <ProjectItemDefinition>[])
+          item.id: item,
+      };
+      var added = false;
+      for (final item in qualifiedBattleItems) {
+        cancel.check();
+        if (!isEligibleTrainerBattleItem(item)) {
+          throw ContractError('native_trainer.item_definition_ineligible',
+              item.id, 'A qualified trainer medicine must retain its native battle uses.');
+        }
+        final previous = definitions[item.id];
+        if (previous != null &&
+            canonicalJsonOf(previous.toJson()) != canonicalJsonOf(item.toJson())) {
+          throw ContractError('native_trainer.item_definition_conflict',
+              item.id, 'A qualified trainer medicine cannot replace a conflicting native definition.');
+        }
+        if (previous == null) {
+          definitions[item.id] = item;
+          added = true;
+        }
+      }
+      if (added) {
+        merged = ProjectItemCatalog(schemaVersion: 1,
+            entries: definitions.values.toList()
+              ..sort((left, right) => left.id.compareTo(right.id)));
+      }
+    }
     sourceOnlyData['mergedItemCatalog'] = merged?.toJson();
     final result = SourceCatalogProjection(
         artifacts: nativeArtifacts,
@@ -737,6 +768,10 @@ final class _Run {
             'nationalDexDisplayOffsetsImported': false
           },
         });
+    ProjectValidator.validateTrainerBattleItemReferences(result.trainers,
+        itemCatalog: result.mergedItemCatalog);
+    ProjectValidator.validateTrainerBallItemReferences(result.trainers,
+        itemCatalog: result.mergedItemCatalog);
     if (jsonEncode(result.evidence).length > limits.maxEvidenceCodeUnits) {
       throw ContractError('source.catalog.quota', r'$',
           'Projection evidence exceeds its bounded size.');

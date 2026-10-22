@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/native_writer_fixture.dart';
@@ -121,6 +122,59 @@ void main() {
         throwsA(isA<ConverterWorkflowFailure>()
             .having((error) => error.message, 'message', contains('maps'))));
   });
+
+  for (final ineligible in [false, true]) {
+    test(
+        'trainer medicine ${ineligible ? 'ineligible' : 'unknown'} fails before asset verification',
+        () async {
+      final root =
+          await Directory.systemTemp.createTemp('native-verify-medicine-');
+      addTearDown(() => root.delete(recursive: true));
+      final created = await Directory('${root.path}/output').create();
+      final output = Directory(await created.resolveSymbolicLinks());
+      final fixture = await NativeWriterFixture.create(output.path,
+          sourceRootPath: '${root.path}/source');
+      final receipt = await const NativeProjectWriter()
+          .write(fixture.plan, fixture.context, fixture.draft);
+      final projectFile = File('${receipt.projectPath}/project.json');
+      final project = ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>);
+      final invalid = project.copyWith(
+          pokemon: project.pokemon.copyWith(enabled: true),
+          trainers: const [
+            ProjectTrainerEntry(
+                id: 'trainer',
+                name: 'Trainer',
+                trainerClass: 'Fixture',
+                battleItems: {
+                  'medicine': 1
+                },
+                team: [
+                  ProjectTrainerPokemonEntry(speciesId: 'bulbasaur', level: 5)
+                ])
+          ]);
+      await projectFile.writeAsString(jsonEncode(invalid.toJson()));
+      final catalogFile = File(
+          '${receipt.projectPath}/${project.pokemon.catalogFiles['items']}');
+      await catalogFile.parent.create(recursive: true);
+      await catalogFile.writeAsString(
+          jsonEncode(ProjectItemCatalog(schemaVersion: 1, entries: [
+        if (ineligible)
+          const ProjectItemDefinition(
+              id: 'medicine', displayName: 'Medicine', pocketId: 'medicine')
+      ]).toJson()));
+      final before = await _tree(receipt.projectPath);
+      var loads = 0;
+      final verifier =
+          NativeStudyVerifier(snapshotLoadProfileSink: (_) => loads++);
+      await expectLater(
+          verifier.verify(
+              projectPath: receipt.projectPath, allowedParentPath: output.path),
+          throwsA(_failureContaining('Trainer')));
+      expect(loads, 1);
+      expect(await _tree(receipt.projectPath), before);
+    }, skip: !Platform.isMacOS);
+  }
 
   test('read-only verification admits 513 logical aliases of one retained blob',
       () async {

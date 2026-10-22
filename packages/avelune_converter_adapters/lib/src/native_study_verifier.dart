@@ -127,7 +127,8 @@ final class NativeStudyVerifier {
       if (snapshot.loadDiagnostics.isNotEmpty) {
         throw _failed('Strict native load reported diagnostics.');
       }
-      ProjectValidator.validate(snapshot.manifest, maps: snapshot.maps);
+      ProjectValidator.validate(snapshot.manifest,
+          maps: snapshot.maps, itemCatalog: snapshot.itemCatalog);
       for (final map in snapshot.maps) {
         MapValidator.validate(map, projectDialogueContext: snapshot.manifest);
       }
