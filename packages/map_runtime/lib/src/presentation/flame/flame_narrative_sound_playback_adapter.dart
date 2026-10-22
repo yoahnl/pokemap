@@ -15,6 +15,7 @@ final class FlameNarrativeSoundPlaybackAdapter
     required this.resolvePath,
     FlameCinematicAudioDriver? audioDriver,
     RuntimeAudioMixer? mixer,
+    this.maxConcurrentVoices,
     this._musicService,
   }) : _media = {for (final asset in mediaAssets) asset.id: asset},
        _driver = audioDriver ?? FlameAudioCinematicRuntimeDriver(),
@@ -35,6 +36,7 @@ final class FlameNarrativeSoundPlaybackAdapter
   final Map<String, Future<void>> _starting = {};
   final Map<String, _NarrativeSound> _active = {};
   bool _disposed = false;
+  int? maxConcurrentVoices;
 
   @override
   Future<void> playCue(DialogueAudioCue cue, {required String playbackId}) =>
@@ -82,6 +84,12 @@ final class FlameNarrativeSoundPlaybackAdapter
       return Future.error(StateError('Narrative sound playback is disposed.'));
     }
     if (_active.containsKey(playbackId)) return Future.value();
+    if (route == RuntimeAudioRoute.cinematicEffects &&
+        maxConcurrentVoices != null &&
+        !_starting.containsKey(playbackId) &&
+        {..._active.keys, ..._starting.keys}.length >= maxConcurrentVoices!) {
+      return Future.value();
+    }
     return _starting[playbackId] ??= _start(
       mediaAssetId,
       volume: volume,

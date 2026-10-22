@@ -15,6 +15,27 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final speed in PlaytestSpeed.values) {
+    testWidgets('×${speed.multiplier} transfers once and preserves arrival input locks', (tester) async {
+      await tester.runAsync(() async {
+        final game = await _mount(tester);
+        game.setTestSpeed(speed);
+        final before = game.debugCompletedMapActivationDispatchCount;
+        var done = false;
+        final execution = game.debugExecuteSceneInteractiveCommand(_command()).whenComplete(() => done = true);
+        await _until(game, () => _overlay(game) != null);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.right));
+        await _until(game, () => done);
+        game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
+        expect(await execution, 'completed');
+        expect(game.gameStateSnapshot.currentMapId, 'target');
+        expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 2));
+        expect(game.debugCompletedMapActivationDispatchCount, before + 1);
+        expect(game.debugIsGameplayInputLocked, isFalse);
+      });
+    });
+  }
+
   for (final solid in [false, true]) {
     testWidgets('first destination instance applies temporary presentation solid=$solid before warp commit', (tester) async {
       await tester.runAsync(() async {

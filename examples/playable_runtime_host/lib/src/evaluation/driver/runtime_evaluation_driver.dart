@@ -24,6 +24,7 @@ final class RuntimeEvaluationDriver
         EvaluationBagMutationAutomation,
         EvaluationRosterAutomation,
         EvaluationBattleAutomation,
+        EvaluationSimulationAutomation,
         EvaluationPlayerShellProvider {
   RuntimeEvaluationDriver._({
     required this.game,
@@ -66,6 +67,18 @@ final class RuntimeEvaluationDriver
   Map<String, Object?> _lastShop = const <String, Object?>{};
 
   GameState get state => game.gameStateSnapshot;
+
+  @override
+  Future<void> executeTiming(PlaytestTimingCommand command) async {
+    if (command.speed case final speed?) {
+      game.setTestSpeed(speed);
+    } else {
+      if (!_ownsGame) {
+        throw StateError('Manual simulation advancement requires a headless playtest.');
+      }
+      await game.advanceTestSimulation(command.duration!);
+    }
+  }
 
   EvaluationPlayableMapGame get headlessGame {
     final current = game;

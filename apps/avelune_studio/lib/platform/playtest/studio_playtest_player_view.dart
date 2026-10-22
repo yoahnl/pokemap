@@ -33,6 +33,7 @@ class _StudioPlaytestPlayerViewState extends State<StudioPlaytestPlayerView>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.game.inputAuthorityListenable.addListener(_handleInputAuthority);
+    widget.game.testSpeed.addListener(_restoreTestInputFocus);
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _setLifecycleActive(
       lifecycle == null || lifecycle == AppLifecycleState.resumed,
@@ -54,6 +55,16 @@ class _StudioPlaytestPlayerViewState extends State<StudioPlaytestPlayerView>
     _acceptsOverworldInput = accepts;
   }
 
+  void _restoreTestInputFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          _lifecycleActive &&
+          widget.game.inputAuthoritySnapshot.acceptsOverworldInput) {
+        _gameFocus.requestFocus();
+      }
+    });
+  }
+
   void _setLifecycleActive(bool active) {
     _lifecycleActive = active;
     widget.game.setExternalInputLock(
@@ -70,6 +81,7 @@ class _StudioPlaytestPlayerViewState extends State<StudioPlaytestPlayerView>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.game.inputAuthorityListenable.removeListener(_handleInputAuthority);
+    widget.game.testSpeed.removeListener(_restoreTestInputFocus);
     _gameFocus.dispose();
     super.dispose();
   }

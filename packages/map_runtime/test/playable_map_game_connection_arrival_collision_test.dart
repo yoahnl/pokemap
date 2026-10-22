@@ -1503,6 +1503,36 @@ void main() {
     );
   }
 
+  test('entity autorun reuses an unchanged decision and invalidates it after state changes', () async {
+    final fixture = await _fixture(
+      saveRepository: _MemorySaveRepository(),
+      sourceEntities: const [_logicalAutorunOwner],
+      scenes: [_instanceConditionScene(_autorunBooleanSource(), setBefore: true)],
+      eventRegistry: _autorunRegistryForTest(),
+    );
+    final game = fixture.game;
+    game.update(.025);
+    await _waitForAutorunIdle(game);
+    game.update(.025);
+    final evaluated = game.debugAutorunSelectionEvaluationCount;
+    for (var tick = 0; tick < 60; tick++) { game.update(1 / 60); }
+    expect(game.debugAutorunSelectionEvaluationCount, evaluated);
+    final money = game.gameStateSnapshot.trainerProfile.money;
+    game.debugSetPlayerStateForTest(position: const GridPos(x: 2, y: 2), facing: Direction.south);
+    game.update(.025);
+    expect(game.debugAutorunSelectionEvaluationCount, evaluated + 1);
+    expect(game.gameStateSnapshot.trainerProfile.money, money);
+    expect(_autorunBoolean(game), isTrue);
+    final state = game.gameStateSnapshot;
+    await game.commitAndSavePlayerServiceState(state.copyWith(
+      mapInstanceWorldState: state.mapInstanceWorldState.setEventBoolean(
+        state.mapInstanceWorldState.instanceRef('source')!, 'route-door', 'A', false),
+    ));
+    await _pumpAutorun(game, 15);
+    expect(game.gameStateSnapshot.trainerProfile.money, money + 100);
+    expect(_autorunBoolean(game), isTrue);
+  });
+
   test(
     'entity autorun retries authority preparation after a checkpoint starts',
     () async {

@@ -9,6 +9,7 @@ import 'package:avelune_studio/platform/playtest/studio_playtest_player_view.dar
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 Future<void> main() async {
@@ -61,10 +62,33 @@ Future<void> main() async {
     }
 
     WidgetsBinding.instance.rootElement?.visitChildren(visit);
+    final game = player?.game;
+    if (parameters['operation'] == 'holdMovement') {
+      final control = switch (parameters['direction']) {
+        'north' => RuntimeInputControl.up,
+        'east' => RuntimeInputControl.right,
+        'south' => RuntimeInputControl.down,
+        'west' => RuntimeInputControl.left,
+        _ => throw ArgumentError('A cardinal direction is required.'),
+      };
+      final durationMs = int.tryParse(parameters['durationMs'] ?? '');
+      if (game == null || !game.inputAuthoritySnapshot.acceptsOverworldInput ||
+          durationMs == null || durationMs < 1 || durationMs > 1000) {
+        throw StateError('An active overworld and a duration of 1 to 1000 ms are required.');
+      }
+      game.handleRuntimeInputEvent(RuntimeInputEvent.press(control));
+      try {
+        await Future<void>.delayed(Duration(milliseconds: durationMs));
+      } finally {
+        game.handleRuntimeInputEvent(RuntimeInputEvent.release(control));
+      }
+    }
     return developer.ServiceExtensionResponse.result(
       jsonEncode({
         'pid': pid,
         'projectPath': session.state.project?.directoryPath,
+        'testSpeed': game?.testSpeed.value.multiplier,
+        'inputContext': game?.inputAuthoritySnapshot.context.name,
         'gameState': player == null
             ? null
             : strictGameStateSaveJson(player!.game.gameStateSnapshot),

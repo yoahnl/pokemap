@@ -65,6 +65,7 @@ export function registerRuntimeTools(
         .object({
           projectHandle: z.string().min(1),
           scenarioId: z.string().min(1),
+          simulationSpeed: z.union([z.literal(1), z.literal(2), z.literal(5), z.literal(10)]).optional(),
           target: z.enum(["headless", "interactive"]).default("headless"),
           policy: z.enum(["probe", "certify"]).optional(),
         })
@@ -80,6 +81,7 @@ export function registerRuntimeTools(
         runtime.startPlaytest({
           projectHandle: request.projectHandle,
           scenarioId: request.scenarioId,
+          ...(request.simulationSpeed ? { simulationSpeed: request.simulationSpeed } : {}),
           target: request.target,
           ...(request.policy ? { policy: request.policy } : {}),
         }),

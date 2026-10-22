@@ -453,19 +453,22 @@ void main() {
     expect(repository.state!.playerPosition, _c);
   });
 
-  test('plain landing checks encounters exactly once after animation without intermediate step', () async {
+  for (final speed in PlaytestSpeed.values) {
+  test('×${speed.multiplier} plain landing checks encounters exactly once after animation without intermediate step', () async {
     final game = await _load();
     addTearDown(game.onRemove);
+    game.setTestSpeed(speed);
     _jump(game);
-    game.update(.49);
+    game.update(.49 / speed.multiplier);
     expect(game.debugEncounterCheckCount, 0);
-    game.update(.01);
+    game.update(.01 / speed.multiplier);
     expect(game.debugEncounterCheckCount, 1);
     game.update(2);
     game.update(2);
     expect(game.debugEncounterCheckCount, 1);
     expect(game.debugPlayerGridPosition, _c);
   });
+  }
 
   test(
     'jump hides and refuses spatial touch interactions at logical landing',

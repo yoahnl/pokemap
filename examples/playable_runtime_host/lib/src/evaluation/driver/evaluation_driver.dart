@@ -1,4 +1,9 @@
 import '../contracts/evaluation_state_snapshot.dart';
+import 'package:map_runtime/map_runtime.dart' show PlaytestTimingCommand;
+
+abstract interface class EvaluationSimulationAutomation {
+  Future<void> executeTiming(PlaytestTimingCommand command);
+}
 
 /// Runtime authority shared by scenario runs and Authoring API playtests.
 ///

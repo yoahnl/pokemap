@@ -30,6 +30,7 @@ export interface RenderToolRequest {
 }
 
 export interface PlaytestToolRequest {
+  simulationSpeed?: 1 | 2 | 5 | 10;
   projectHandle: string;
   scenarioId: string;
   target: "headless" | "interactive";
@@ -158,6 +159,9 @@ export class LocalRuntimeGateway implements RuntimeGateway {
 
   async startPlaytest(request: PlaytestToolRequest): Promise<RuntimeToolResult> {
     this.#ensureOpen();
+    if (request.simulationSpeed !== undefined && ![1, 2, 5, 10].includes(request.simulationSpeed)) {
+      throw new PokeMapToolError("playtest.speed_invalid", "Simulation speed must be 1, 2, 5 or 10.");
+    }
     const record = this.#createJob(
       request,
       this.#roots.resolveProjectRoot(request.projectHandle),
@@ -586,6 +590,7 @@ function createLocalPlaytestExecutor(
       "--target",
       request.target,
       ...(request.policy ? ["--policy", request.policy] : []),
+      ...(request.simulationSpeed ? ["--test-speed", String(request.simulationSpeed)] : []),
     ];
     const execution = await runProcess(
       options.dartExecutable,

@@ -51,6 +51,7 @@ async function runtimeFixture() {
   let projectionDisposeCount = 0;
   let executorCount = 0;
   const executedProjectRoots: string[] = [];
+  const executedSimulationSpeeds: number[] = [];
   const runtime = new LocalRuntimeGateway({
     roots: authoring,
     artifacts,
@@ -93,6 +94,7 @@ async function runtimeFixture() {
     }) => {
       executorCount += 1;
       executedProjectRoots.push(projectRoot);
+      executedSimulationSpeeds.push(request.simulationSpeed ?? 1);
       emit("playtest.sandbox_started", { isolated: true });
       if (request.scenarioId === "slow.cancel") {
         await new Promise<never>((_resolve, reject) => {
@@ -152,6 +154,7 @@ async function runtimeFixture() {
         return executorCount;
       },
       executedProjectRoots,
+      executedSimulationSpeeds,
     },
     runtime,
     server,
@@ -336,6 +339,27 @@ test("retry rebuilds and revalidates a fresh Pokemon projection", async () => {
     assert.equal(fixture.projectionStats.buildCount, 2);
     assert.equal(fixture.projectionStats.executorCount, 1);
     assert.equal(fixture.projectionStats.disposeCount, 1);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.runtime.close();
+    await fixture.authoring.close();
+  }
+});
+
+ test("playtest selects a session simulation speed through MCP", async () => {
+  const fixture = await runtimeFixture();
+  try {
+    const catalog = await tool(fixture.client, "pokemap_describe", {});
+    assert.deepEqual(record(catalog.data.playtestTiming).multipliers, [1, 2, 5, 10]);
+    for (const simulationSpeed of [1, 2, 5, 10]) {
+      const started = await tool(fixture.client, "pokemap_playtest", {projectHandle: fixture.projectHandle, scenarioId: "speed.smoke", target: "headless", simulationSpeed});
+      const completed = await terminalJob(fixture.client, String(started.data.jobId));
+      assert.equal(completed.data.state, "succeeded");
+    }
+    assert.deepEqual(fixture.projectionStats.executedSimulationSpeeds, [1, 2, 5, 10]);
+    const invalid = await fixture.client.callTool({name: "pokemap_playtest", arguments: {projectHandle: fixture.projectHandle, scenarioId: "speed.smoke", target: "headless", simulationSpeed: 100}});
+    assert.equal(invalid.isError, true);
   } finally {
     await fixture.client.close();
     await fixture.server.close();

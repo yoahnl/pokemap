@@ -15,6 +15,29 @@ import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.
 import '../../tool/src/pokemap_eval_cli.dart';
 
 void main() {
+  test('run accepts only the four session simulation speeds', () {
+    for (final speed in [1, 2, 5, 10]) {
+      final options = PokeMapEvalCli.parse(['run', 'speed.smoke', '--test-speed', '$speed']);
+      expect(options.testSpeed.multiplier, speed);
+    }
+    expect(() => PokeMapEvalCli.parse(['run', 'speed.smoke', '--test-speed', '100']), throwsA(isA<PokeMapEvalUsageException>()));
+  });
+
+  test('run projects the selected speed as a canonical session command', () async {
+    final fixture = await _CliFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.writeScenario();
+    fixture.worker.result = EvaluationWorkerResult.completed(runId: 'run-test', status: EvaluationRunStatus.succeeded, exitCode: 0);
+    final result = await fixture.cli.execute(['run', 'selbrume.test', '--test-speed', '10']);
+    expect(result.exitCode, 0);
+    final request = fixture.worker.requests.single;
+    final scenario = const EvaluationScenarioParser().parseString(await File(p.join(fixture.root.path, request.scenarioPath)).readAsString());
+    final command = scenario.steps.first as EvaluationCommandStep;
+    expect(command.operation, 'simulation.setSpeed');
+    expect(command.arguments, {'multiplier': 10});
+    expect(scenario.steps.last.id, 'snapshot');
+  });
+
   test('run command resolves a scenario by ID', () {
     final options = PokeMapEvalCli.parse(
       <String>['run', 'selbrume.shop.after-lysa', '--json',

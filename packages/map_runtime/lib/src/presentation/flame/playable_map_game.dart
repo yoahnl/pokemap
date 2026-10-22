@@ -22,6 +22,7 @@ import 'package:path/path.dart' as p;
 import '../../../domain/repositories/game_save_repository.dart';
 import '../../../src/application/load_game_use_case.dart';
 import '../../../src/application/save_game_use_case.dart';
+import '../../application/runtime_simulation_clock.dart';
 import '../../../src/infrastructure/file_game_save_repository.dart';
 import '../../application/battle_start_request.dart';
 import '../../application/dialogue_runtime_models.dart';
@@ -847,6 +848,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ),
         mixer: _audioMixer,
         musicService: _music,
+        maxConcurrentVoices: testSpeed.value == PlaytestSpeed.normal ? null : 4,
       );
 
   void _clearBattleMusicState() {
@@ -1269,6 +1271,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute);
 
   NarrativeEventDispatchHandled? _selectEntityAutorun() {
+    final state = gameStateSnapshot;
+    final project = _bundle.manifest;
+    final snapshot = _cachedNarrativeRuntimeSnapshot;
+    if (identical(project, _cachedAutorunSelectionProject) &&
+        identical(snapshot, _cachedAutorunSelectionSnapshot) &&
+        state == _cachedAutorunSelectionState) {
+      return _cachedAutorunSelection;
+    }
+    _autorunSelectionEvaluationCount++;
     NarrativeEventDispatchHandled? selected;
     for (final source
         in _entityAutorunSourcesFor(_bundle.manifest)[_activeMapId] ??
@@ -1277,7 +1288,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         NarrativeEventOccurrence(source: source),
       );
       if (preparation is! NarrativeEventDispatchAuthorityReady) continue;
-      final decision = preparation.plan(gameState: gameStateSnapshot);
+      final decision = preparation.plan(gameState: state);
       if (decision is! NarrativeEventDispatchHandled) continue;
       if (selected == null ||
           decision.priority > selected.priority ||
@@ -1292,6 +1303,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         selected = decision;
       }
     }
+    _cachedAutorunSelectionProject = project;
+    _cachedAutorunSelectionSnapshot = snapshot;
+    _cachedAutorunSelectionState = state;
+    _cachedAutorunSelection = selected;
     return selected;
   }
 
@@ -2302,6 +2317,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   ProjectManifest? _cachedEntityAutorunProject;
   Map<String, List<NarrativeEventSourceRef>> _cachedEntityAutorunSources =
       const {};
+  ProjectManifest? _cachedAutorunSelectionProject;
+  NarrativeEventRuntimeSnapshot? _cachedAutorunSelectionSnapshot;
+  GameState? _cachedAutorunSelectionState;
+  NarrativeEventDispatchHandled? _cachedAutorunSelection;
+  int _autorunSelectionEvaluationCount = 0;
+
+  @visibleForTesting
+  int get debugAutorunSelectionEvaluationCount => _autorunSelectionEvaluationCount;
   bool _entityAutorunInFlight = false;
   int _nextMapActivationSerial = 0;
   int _nextNarrativeRuntimeIdSerial = 0;
@@ -4982,6 +5005,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void onRemove() {
+    if (!_isRemoved) _simulationClock.dispose();
     _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _isRemoved = true;
@@ -5004,12 +5028,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _warpTransitionOverlay = null;
     }
     _disposeNpcFixedRoutes();
-    for (final pending in _sceneActorRouteWaits) {
+    final interruptedWaits = _sceneActorRouteWaits.toList(growable: false);
+    _sceneActorRouteWaits.clear();
+    for (final pending in interruptedWaits) {
       pending.completer.completeError(
         StateError('Scene presentation interrupted when the runtime closed.'),
       );
     }
-    _sceneActorRouteWaits.clear();
     _worldTonePostProcessComponent?.removeFromParent();
     _worldTonePostProcessComponent = null;
     _worldTone.dispose();
@@ -5603,7 +5628,53 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void update(double dt) {
-    super.update(dt);
+    if (_advancingTestSimulation) return;
+    _updateFps(dt);
+    if (_simulationClock.advanceFrame(dt, (step) {
+      super.update(step);
+      _updateSimulationStep(step);
+    }) == 0) {
+      super.update(0);
+      _updateSimulationStep(0);
+    }
+  }
+
+  final _simulationClock = RuntimeSimulationClock();
+  bool _advancingTestSimulation = false;
+
+  ValueListenable<PlaytestSpeed> get testSpeed => _simulationClock.speed;
+
+  void setTestSpeed(PlaytestSpeed speed) {
+    if (_isRemoved) throw StateError('The test session is closed.');
+    _simulationClock.speed.value = speed;
+    _battleSfxPlayer?.maxConcurrentVoices = speed == PlaytestSpeed.normal ? null : 4;
+    _dialogueFeedbackPlayer?.maxConcurrentVoices = speed == PlaytestSpeed.normal ? null : 4;
+  }
+
+  Future<void> advanceTestSimulation(Duration duration) async {
+    if (duration <= Duration.zero || duration > const Duration(minutes: 1)) {
+      throw ArgumentError.value(duration, 'duration', 'Use a duration between 0 and 60 seconds.');
+    }
+    if (_isRemoved || _advancingTestSimulation) {
+      throw StateError('The test session cannot advance now.');
+    }
+    _advancingTestSimulation = true;
+    try {
+      var remaining = duration.inMicroseconds / Duration.microsecondsPerSecond;
+      while (remaining > 1e-10) {
+        if (_isRemoved) throw StateError('The test session is closed.');
+        final step = math.min(remaining, RuntimeSimulationClock.stepSeconds);
+        super.update(step);
+        _updateSimulationStep(step);
+        remaining -= step;
+        await Future<void>.delayed(Duration.zero);
+      }
+    } finally {
+      _advancingTestSimulation = false;
+    }
+  }
+
+  void _updateSimulationStep(double dt) {
     try {
       _maybePromptRepelExpiration();
       _advancePlayerFishing(dt);
@@ -5633,7 +5704,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       loaded.actorOcclusionLayers.update(dt);
     }
     _pixelCamera.refreshDevicePixelRatio();
-    _updateFps(dt);
     _runtimeClockMs += dt * 1000;
     _processSceneActorRouteWaits();
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
@@ -9481,6 +9551,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _bundle.manifest.battleAudio?.battleStartSePath?.trim();
     if (battleStartSePath != null && battleStartSePath.isNotEmpty) {
       (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer,
+        maxConcurrentVoices: testSpeed.value == PlaytestSpeed.normal ? null : 4,
       ))
           .playProjectFile(
         p.normalize(
@@ -9809,6 +9880,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           introEnabled: _battleTransitionOverlay != null,
           playSfx: (_battleSfxPlayer ??=
                   FlameAudioBattleSfxPlayer(mixer: _audioMixer,
+        maxConcurrentVoices: testSpeed.value == PlaytestSpeed.normal ? null : 4,
           ))
               .play,
           // BETA-BAT-028 : les cris viennent de la DONNÉE du projet
@@ -9981,6 +10053,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       if (File(path).existsSync()) {
         (_battleSfxPlayer ??= FlameAudioBattleSfxPlayer(mixer: _audioMixer,
+        maxConcurrentVoices: testSpeed.value == PlaytestSpeed.normal ? null : 4,
         ))
             .playProjectFile(path);
         return;
@@ -12855,7 +12928,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _clearPressedMovementControls();
     _setFlowPhase(_RuntimeFlowPhase.blockingInteraction);
     try {
-      await Future<void>.delayed(Duration(milliseconds: durationMs.round()));
+      await _waitForSceneActorRoute(
+        isCurrent: () => !_isRemoved && _activeMapId == mapId,
+        durationMs: durationMs.round(),
+      );
       return _activeMapId == mapId;
     } finally {
       if (_activeMapId == mapId &&
@@ -13063,6 +13139,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required String mapId,
     required String? mapActivationId,
   }) async {
+    final startedAtMs = _runtimeClockMs;
+    var frameIndex = 0;
     for (final frame in result.frames) {
       if (_isRemoved ||
           _activeMapId != mapId ||
@@ -13070,7 +13148,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         throw StateError('Platform movement was interrupted.');
       }
       _applyMovingPlatformFrame(frame.world);
-      await Future<void>.delayed(const Duration(milliseconds: 8));
+      final remaining = startedAtMs + 8 * (++frameIndex) - _runtimeClockMs;
+      if (remaining > 0) {
+        await _waitForSceneActorRoute(
+          isCurrent: () => !_isRemoved && _activeMapId == mapId && _currentMapActivationId == mapActivationId,
+          durationMs: remaining.ceil(),
+        );
+      }
     }
     if (_isRemoved ||
         _activeMapId != mapId ||
@@ -13436,6 +13520,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   void _processSceneActorRouteWaits() {
     for (final pending in _sceneActorRouteWaits.toList(growable: false)) {
+      if (pending.completer.isCompleted) continue;
       if (!pending.isCurrent()) {
         _sceneActorRouteWaits.remove(pending);
         pending.completer.completeError(

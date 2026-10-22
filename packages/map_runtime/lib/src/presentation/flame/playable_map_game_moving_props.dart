@@ -71,7 +71,7 @@ extension _PlayableMapMovingProps on PlayableMapGame {
     });
     var completed = false;
     try {
-      final clock = Stopwatch()..start();
+      final startedAtMs = _runtimeClockMs;
       for (var index = 0; index < result.frames.length; index++) {
         if (!current()) throw StateError('Prop movement was interrupted.');
         final frame = result.frames[index];
@@ -80,11 +80,13 @@ extension _PlayableMapMovingProps on PlayableMapGame {
           frame.positions,
         );
         final due =
-            (command.durationMs * 1000 * (index + 1) / result.frames.length)
-                .round();
-        final remaining = due - clock.elapsedMicroseconds;
+            command.durationMs * (index + 1) / result.frames.length;
+        final remaining = due - (_runtimeClockMs - startedAtMs);
         if (remaining > 0) {
-          await Future<void>.delayed(Duration(microseconds: remaining));
+          await _waitForSceneActorRoute(
+            isCurrent: current,
+            durationMs: remaining.ceil(),
+          );
         }
       }
       if (!current()) throw StateError('Prop movement was interrupted.');

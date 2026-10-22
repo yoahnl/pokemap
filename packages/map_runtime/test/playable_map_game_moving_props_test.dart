@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
@@ -151,8 +152,12 @@ void main() {
           repository: repository,
         );
         final player = game.debugPlayerWorldTopLeft;
-        final execution = _executeProduction(game);
-        await Future<void>.delayed(const Duration(milliseconds: 25));
+        final continueMovement = Completer<void>();
+        addTearDown(() { if (!continueMovement.isCompleted) continueMovement.complete(); });
+        final execution = _executeProduction(game, pauseMovement: continueMovement);
+        for (var i = 0; i < 100 && game.debugMovingPropPosition('gate-a')!.x <= 64; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
         expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
         expect(await game.saveGame(), isFalse);
         expect(await game.loadGame(), isFalse);
@@ -166,6 +171,7 @@ void main() {
         expect(first.x, lessThan(128));
         expect(first.x, second.x);
         expect(game.debugPlayerWorldTopLeft, player);
+        continueMovement.complete();
         final committed = await execution;
         expect(
           committed.movingPropWorldState.prop('gym', 'gate-a'),
@@ -419,7 +425,7 @@ Future<NarrativeSceneExecutionResult> _execute(PlayableMapGame game) =>
       ),
     );
 
-Future<GameState> _executeProduction(PlayableMapGame game) async {
+Future<GameState> _executeProduction(PlayableMapGame game, {Completer<void>? pauseMovement}) async {
   expect(
     game.handleRuntimeInputEvent(
       const RuntimeInputEvent.press(RuntimeInputControl.primary),
@@ -441,6 +447,10 @@ Future<GameState> _executeProduction(PlayableMapGame game) async {
     tick++
   ) {
     game.update(.016);
+    if (pauseMovement != null && game.debugMovingPropPosition('gate-a')!.x > 64) {
+      await pauseMovement.future;
+      pauseMovement = null;
+    }
     await Future<void>.delayed(const Duration(milliseconds: 1));
   }
   expect(game.debugIsNarrativeSpatialDispatchInFlight, isFalse);
@@ -718,6 +728,8 @@ Future<PlayableMapGame> _game(
   addTearDown(game.onRemove);
   await game.loaded;
   await tester.pump();
+  final ticker = Timer.periodic(const Duration(milliseconds: 2), (_) => game.update(.002));
+  addTearDown(ticker.cancel);
   for (
     var tick = 0;
     tick < 1000 && game.debugIsMapActivationDispatchInFlight;

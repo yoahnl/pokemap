@@ -11,6 +11,25 @@ import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playbac
 import 'package:map_runtime/src/presentation/flame/flame_narrative_sound_playback_adapter.dart';
 
 void main() {
+  test('accelerated Scene sounds bound both starting and playing voices', () async {
+    final driver = _Driver()..playGate = Completer<Object>();
+    final player = FlameNarrativeSoundPlaybackAdapter(
+      mediaAssets: [_asset()], resolvePath: (asset) => asset.relativePath,
+      audioDriver: driver, maxConcurrentVoices: 4,
+    );
+    final requests = [for (var i = 0; i < 50; i++) player.playSoundEffect('fanfare', volume: 1, playbackId: 'route:$i')];
+    expect(driver.paths, hasLength(4));
+    driver.playGate!.complete(driver.handle);
+    await Future.wait(requests);
+    expect(driver.paths, hasLength(4));
+    driver.completed.add(null);
+    await Future<void>.delayed(Duration.zero);
+    await player.playSoundEffect('fanfare', volume: 1, playbackId: 'next');
+    expect(driver.paths, hasLength(5));
+    await player.dispose();
+    await driver.completed.close();
+  });
+
   test('starts a Scene sound without waiting for natural completion', () async {
     final driver = _Driver();
     final player = _player(driver);

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:map_authoring/map_authoring.dart' show PlaytestCommand, PlaytestTimingCommand;
 
 import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_scenario.dart';
@@ -189,6 +190,13 @@ final class EvaluationScenarioParser {
     );
     for (final entry in arguments.entries) {
       _validateArgument(entry.key, entry.value, '$path.${entry.key}');
+    }
+    if (operation == 'simulation.setSpeed' || operation == 'simulation.advance') {
+      try {
+        PlaytestTimingCommand.fromCommand(PlaytestCommand(commandId: id, operation: operation, arguments: arguments));
+      } on ArgumentError catch (error) {
+        _fail(path, error.message.toString());
+      }
     }
     return EvaluationCommandStep(
       id: id,

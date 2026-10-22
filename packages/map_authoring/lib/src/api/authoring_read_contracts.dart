@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
+import '../contracts/playtest_timing_contracts.dart';
 import '../domains/project/capability_truth_adapter.dart';
 import '../references/project_reference_index.dart';
 import '../registry/resource_kind_registry.dart';
@@ -43,6 +44,7 @@ final class AuthoringReadDescription {
           'schemaVersion': schemaVersion,
           'protocol': protocol,
           'readOnly': readOnly,
+          'playtestTiming': playtestTimingContract,
           'commands': [for (final command in commands) command.toJson()],
           'queryOperations': [
             for (final operation in queryOperations) operation.wireName,

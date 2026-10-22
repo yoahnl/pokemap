@@ -30,10 +30,13 @@ void main() {
     }
   });
 
+  Map<String, Object?>? baseline;
+  for (final speed in PlaytestSpeed.values) {
   test(
-    'playtest selects requested item and reserve move without phantom turns',
+    '×${speed.multiplier} playtest selects requested item and reserve move without phantom turns',
     () async {
       final owner = await _driver();
+      owner.game.setTestSpeed(speed);
       addTearDown(owner.dispose);
       final driver = RuntimeEvaluationDriver.attach(
         game: owner.game,
@@ -140,8 +143,22 @@ void main() {
       expect(_quantity(driver, 'a-hp-tool'), 1);
       expect(driver.state.party.members[0].currentHp, reserveHp);
       expect(driver.state.party.members[1].currentPpByMoveId!['guard'], 7);
+      await owner.resolveBattle('win');
+      expect(game.debugFlowPhaseName, 'overworld');
+      final terminal = <String, Object?>{
+        'party': owner.state.party.toJson(),
+        'bag': owner.state.bag.toJson(),
+        'trainer': owner.state.trainerProfile.toJson(),
+        'storyFlags': owner.state.storyFlags.toJson(),
+      };
+      baseline ??= terminal;
+      expect(terminal, baseline, reason: 'The same battle request and actions must produce the same outcome at every speed.');
+      await owner.saveAndReload();
+      expect(owner.state.party.toJson(), terminal['party']);
+      expect(owner.state.bag.toJson(), terminal['bag']);
     },
   );
+  }
 }
 
 Future<void> _item(

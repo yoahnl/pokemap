@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
@@ -46,7 +47,7 @@ void main() {
         expect(await game.loadGame(), isFalse);
         expect(game.gameStateSnapshot.movingPlatformWorldState, fixture.state);
         game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.right));
-        game.update(1);
+        game.update(.016);
         expect(await game.saveGame(), isFalse);
         for (var tick = 0; tick < 1000 && !game.inputAuthoritySnapshot.acceptsOverworldInput; tick++) {
           game.update(.016);
@@ -367,6 +368,8 @@ Future<PlayableMapGame> _game(
   addTearDown(game.onRemove);
   await game.loaded;
   await tester.pump();
+  final ticker = Timer.periodic(const Duration(milliseconds: 2), (_) => game.update(.002));
+  addTearDown(ticker.cancel);
   for (var i = 0; i < 1000 && game.debugIsMapActivationDispatchInFlight; i++) {
     game.update(0);
     await Future<void>.delayed(const Duration(milliseconds: 2));

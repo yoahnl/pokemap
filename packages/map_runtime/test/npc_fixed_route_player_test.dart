@@ -17,6 +17,30 @@ const _east = GridPos(x: 3, y: 2);
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  Map<String, Object?>? normalState;
+  for (final speed in PlaytestSpeed.values) {
+    test('×${speed.multiplier} preserves seeded autonomous movement over equal simulation time', () async {
+      final random = math.Random(42);
+      final encounters = _CountingRandom([37]);
+      final game = await _load(_bundle(randomMove: true), npcRouteRandom: random, encounterRandom: encounters);
+      game.setTestSpeed(speed);
+      for (var tick = 0; tick < 420 ~/ speed.multiplier; tick++) {
+        game.update(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      final state = <String, Object?>{
+        'position': game.debugMapEntityPosition(_id),
+        'facing': game.debugNpcActorFacing(_id),
+        'runtimePositions': game.debugRuntimeNpcPositions,
+        'nextRandom': random.nextInt(100000),
+        'encounterDraws': encounters.draws,
+      };
+      normalState ??= state;
+      expect(state, normalState);
+      expect(encounters.draws, 0);
+    });
+  }
+
   for (final blocked in [false, true]) {
     test(
       'native random move ${blocked ? 'waits at collision' : 'animates and commits'} in Player',

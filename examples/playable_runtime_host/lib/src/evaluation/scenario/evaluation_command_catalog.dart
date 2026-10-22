@@ -26,6 +26,14 @@ final class EvaluationCommandDefinition {
 }
 
 const evaluationCommandCatalog = <String, EvaluationCommandDefinition>{
+  'simulation.setSpeed': EvaluationCommandDefinition(
+    operation: 'simulation.setSpeed',
+    requiredKeys: {'multiplier'},
+  ),
+  'simulation.advance': EvaluationCommandDefinition(
+    operation: 'simulation.advance',
+    requiredKeys: {'milliseconds'},
+  ),
   'game.new': EvaluationCommandDefinition(
     operation: 'game.new',
     requiredKeys: <String>{},

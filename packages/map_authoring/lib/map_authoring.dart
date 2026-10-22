@@ -20,6 +20,7 @@ export 'src/application/map_mutation_dispatcher.dart';
 export 'src/domains/assets/resource_library_actions.dart';
 export 'src/references/resource_library_scope_guard.dart';
 export 'src/application/playtest_player_state_service.dart';
+export 'src/contracts/playtest_timing_contracts.dart';
 export 'src/architecture/package_boundaries.dart';
 export 'src/contracts/action_descriptor.dart';
 export 'src/contracts/artifact_contracts.dart';

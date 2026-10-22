@@ -1,4 +1,5 @@
 import '../driver/evaluation_driver.dart';
+import 'package:map_runtime/map_runtime.dart' show PlaytestCommand, PlaytestTimingCommand;
 
 typedef EvaluationCommandEvidenceCapture = Future<void> Function({
   required String stepId,
@@ -13,6 +14,8 @@ final class EvaluationCommandDispatcher {
   const EvaluationCommandDispatcher();
 
   static const supportedOperations = <String>{
+    'simulation.setSpeed',
+    'simulation.advance',
     'game.new',
     'save.write',
     'save.reload',
@@ -74,6 +77,9 @@ final class EvaluationCommandDispatcher {
   }) async {
     final values = EvaluationCommandArguments(arguments);
     await switch (operation) {
+      'simulation.setSpeed' || 'simulation.advance' => _timing(driver, PlaytestTimingCommand.fromCommand(
+        PlaytestCommand(commandId: commandId, operation: operation, arguments: arguments),
+      )),
       'game.new' => driver.startNewGame(),
       'save.write' => driver.save(),
       'save.reload' => driver.saveAndReload(),
@@ -284,6 +290,13 @@ final class EvaluationCommandDispatcher {
     throw EvaluationScenarioExecutionError(
       'Operation "$operation" requires an attached player shell.',
     );
+  }
+
+  Future<void> _timing(EvaluationDriver driver, PlaytestTimingCommand command) {
+    if (driver is EvaluationSimulationAutomation) {
+      return (driver as EvaluationSimulationAutomation).executeTiming(command);
+    }
+    throw const EvaluationScenarioExecutionError('The driver has no simulation clock.');
   }
 }
 

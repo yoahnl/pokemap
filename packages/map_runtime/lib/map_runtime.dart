@@ -1,5 +1,8 @@
 library;
 
+export 'src/application/runtime_simulation_clock.dart';
+export 'package:map_core/map_core.dart' show PlaytestSpeed;
+
 export 'src/infrastructure/runtime_ui_image.dart'
     show RuntimeUiImageLease, loadRuntimeUiImageFromFilePath;
 
@@ -29,6 +32,8 @@ export 'package:map_authoring/map_authoring.dart'
         AuthoringJobSnapshot,
         AuthoringJobState,
         PlaytestCommand,
+        PlaytestTimingCommand,
+        playtestTimingContract,
         PlaytestCommandResult,
         PlaytestEvent,
         PlaytestPort,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:map_core/map_core.dart' show PlaytestSpeed;
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
@@ -22,6 +23,7 @@ final class PokeMapEvalOptions {
     this.projectRoot,
     this.expectedProjectTreeHash,
     this.policy,
+    this.testSpeed = PlaytestSpeed.normal,
     this.checkpointId,
     this.includeFacts = false,
     this.includeParty = false,
@@ -41,6 +43,7 @@ final class PokeMapEvalOptions {
   final String? projectRoot;
   final String? expectedProjectTreeHash;
   final EvaluationPolicy? policy;
+  final PlaytestSpeed testSpeed;
   final String? checkpointId;
   final bool includeFacts;
   final bool includeParty;
@@ -212,6 +215,7 @@ final class PokeMapEvalCli {
       return (await _executeScenario(
         discovered: discovered,
         policyOverride: options.policy,
+        testSpeed: options.testSpeed,
         jsonOnly: options.jsonOnly,
         target: options.target,
         buildMode: options.buildMode,
@@ -228,6 +232,7 @@ final class PokeMapEvalCli {
       final execution = await _executeScenario(
         discovered: discovered,
         policyOverride: options.policy,
+        testSpeed: options.testSpeed,
         jsonOnly: false,
         target: options.target,
         buildMode: options.buildMode,
@@ -376,6 +381,7 @@ final class PokeMapEvalCli {
     required bool jsonOnly,
     required EvaluationTarget target,
     EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
+    PlaytestSpeed testSpeed = PlaytestSpeed.normal,
     String? projectRoot,
     String? expectedProjectTreeHash,
     bool emitOutput = true,
@@ -385,7 +391,7 @@ final class PokeMapEvalCli {
     final outputDirectory = _outputDirectory(effectiveRunId);
     var scenario = discovered.scenario;
     var scenarioFile = discovered.file;
-    if (policyOverride != null && policyOverride != scenario.policy) {
+    if ((policyOverride != null && policyOverride != scenario.policy) || testSpeed != PlaytestSpeed.normal) {
       final decoded = jsonDecode(await scenarioFile.readAsString());
       if (decoded is! Map) {
         throw const EvaluationScenarioFormatException(
@@ -393,8 +399,17 @@ final class PokeMapEvalCli {
           'Scenario root must be an object.',
         );
       }
-      final json = Map<String, Object?>.from(decoded)
-        ..['policy'] = policyOverride.name;
+      final json = Map<String, Object?>.from(decoded);
+      if (policyOverride != null) json['policy'] = policyOverride.name;
+      if (testSpeed != PlaytestSpeed.normal) {
+        final ids = scenario.steps.map((step) => step.id).toSet();
+        var stepId = 'session-test-speed';
+        while (ids.contains(stepId)) { stepId = '$stepId-session'; }
+        json['steps'] = [
+          {'id': stepId, 'command': 'simulation.setSpeed', 'multiplier': testSpeed.multiplier},
+          ...json['steps']! as List,
+        ];
+      }
       scenarioFile = File(
         p.join(repositoryRoot.path, outputDirectory, 'scenario.json'),
       );
@@ -1044,6 +1059,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
   final scenarioId = arguments.first;
   EvaluationPolicy? policy;
   var target = EvaluationTarget.headless;
+  var testSpeed = PlaytestSpeed.normal;
   var buildMode = EvaluationBuildMode.debug;
   var runs = 1;
   String? jsonOutput;
@@ -1073,6 +1089,13 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
               'Unknown evaluation target "$value".',
             ),
         };
+        index += 2;
+      case '--test-speed':
+        final value = int.tryParse(_optionValue(arguments, index, '--test-speed'));
+        if (value == null || ![1, 2, 5, 10].contains(value)) {
+          throw const PokeMapEvalUsageException('--test-speed must be 1, 2, 5 or 10.');
+        }
+        testSpeed = PlaytestSpeed.fromMultiplier(value);
         index += 2;
       case '--build-mode':
         final value = _optionValue(arguments, index, '--build-mode');
@@ -1138,6 +1161,7 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
   }
   return PokeMapEvalOptions(
     command: PokeMapEvalCommand.run,
+    testSpeed: testSpeed,
     scenarioId: scenarioId,
     policy: policy,
     jsonOnly: jsonOnly,
@@ -1360,7 +1384,7 @@ String _usage() {
 Usage:
   pokemap eval list [--project <id>]
   pokemap eval run <scenario-id> [--policy probe|certify]
-    [--target headless|interactive] [--json]
+    [--target headless|interactive] [--test-speed 1|2|5|10] [--json]
     [--project-root <path> --expected-project-tree-hash <sha256>]
     [--build-mode debug|profile] [--runs <positive-int>]
     [--json-output <package-relative-path>]

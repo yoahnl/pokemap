@@ -743,7 +743,7 @@ final class _PendingSceneActorRouteWait {
   final double deadlineMs;
   final bool Function() isCurrent;
   final bool Function() isReady;
-  final Completer<void> completer = Completer<void>();
+  final Completer<void> completer = Completer<void>.sync();
 }
 
 final class _FlameSceneActorRouteExecutionPort

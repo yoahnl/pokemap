@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:pokemap_loader/src/evaluation/runner/evaluation_command_dispatcher.dart';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -14,6 +15,22 @@ import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.d
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('session timing commands use the runtime speed and reject live manual stepping', () async {
+    final fixture = await _createFixture();
+    final driver = RuntimeEvaluationDriver.attach(
+      game: fixture.game, project: fixture.bundle.manifest,
+      projectRoot: Directory(fixture.bundle.projectRootDirectory),
+      services: _RecordingPlayerServiceAutomation(),
+    );
+    addTearDown(driver.dispose);
+    for (final multiplier in [1, 2, 5, 10]) {
+      await const EvaluationCommandDispatcher().execute(driver: driver, commandId: 'speed-$multiplier', operation: 'simulation.setSpeed', arguments: {'multiplier': multiplier});
+      expect(fixture.game.testSpeed.value.multiplier, multiplier);
+    }
+    await expectLater(const EvaluationCommandDispatcher().execute(driver: driver, commandId: 'invalid', operation: 'simulation.setSpeed', arguments: {'multiplier': 100}), throwsArgumentError);
+    await expectLater(const EvaluationCommandDispatcher().execute(driver: driver, commandId: 'advance', operation: 'simulation.advance', arguments: {'milliseconds': 1000}), throwsStateError);
+  });
 
   test('attached driver does not dispose the host-owned game', () async {
     final fixture = await _createFixture();

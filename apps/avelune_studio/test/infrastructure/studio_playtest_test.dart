@@ -140,6 +140,14 @@ void main() {
     }
     expect(game, isNotNull);
     expect(game!.isLoaded, isTrue);
+    expect(game.testSpeed.value, PlaytestSpeed.normal);
+    for (final speed in PlaytestSpeed.values.reversed) {
+      await tester.tap(find.byKey(ValueKey('playtest-speed-${speed.multiplier}')));
+      await tester.pump();
+      expect(game.testSpeed.value, speed);
+      expect(tester.widget<GameWidget<PlayableMapGame>>(find.byType(GameWidget<PlayableMapGame>)).focusNode!.hasFocus, isTrue);
+      expect(find.text('Vitesse du test ×${speed.multiplier}'), findsOneWidget);
+    }
     addTearDown(() => tester.binding.setSurfaceSize(null));
     for (final size in const [Size(960, 810), Size(700, 620)]) {
       await tester.binding.setSurfaceSize(size);

@@ -25,6 +25,7 @@ typedef BattleSfxPlayer = void Function(
 /// introuvable journalise une erreur unique sans casser l'animation.
 final class FlameAudioBattleSfxPlayer {
   FlameAudioBattleSfxPlayer({
+    this.maxConcurrentVoices,
     Map<String, String> manifest = battleSeManifest,
     RuntimeAudioMixer? mixer,
     AudioPlayer Function()? playerFactory,
@@ -40,6 +41,10 @@ final class FlameAudioBattleSfxPlayer {
   final AudioPlayer Function() _playerFactory;
   final Set<String> _reportedMisses = <String>{};
   final Set<AudioPlayer> _livePlayers = <AudioPlayer>{};
+  int? maxConcurrentVoices;
+  bool get _atVoiceLimit =>
+      maxConcurrentVoices != null &&
+      _livePlayers.length >= maxConcurrentVoices!;
   var _disposed = false;
 
   /// BETA-BAT-018 : un cache d'assets PARTAGÉ entre tous les lecteurs.
@@ -69,7 +74,7 @@ final class FlameAudioBattleSfxPlayer {
   }
 
   void play(String seName, {required int volume, required int pitch}) {
-    if (_disposed) return;
+    if (_disposed || _atVoiceLimit) return;
     final fileName = _manifest[seName];
     if (fileName == null) {
       if (_reportedMisses.add(seName)) {
@@ -112,7 +117,7 @@ final class FlameAudioBattleSfxPlayer {
   /// Le son de début de combat est un chemin projet, pas un asset embarqué :
   /// même cycle de vie que les sons nommés, même tolérance aux échecs.
   void playProjectFile(String absolutePath) {
-    if (_disposed) return;
+    if (_disposed || _atVoiceLimit) return;
     final player = _playerFactory()..audioCache = AudioCache(prefix: '');
     _livePlayers.add(player);
     player.onPlayerComplete.first.then<void>(

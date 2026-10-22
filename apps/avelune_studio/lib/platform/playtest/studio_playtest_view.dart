@@ -401,6 +401,29 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
                 secondary: true,
                 onPressed: _busy || !_ready ? null : _toggleSpatialPause,
               ),
+            if (_game case final game?)
+              ValueListenableBuilder<PlaytestSpeed>(
+                valueListenable: game.testSpeed,
+                builder: (context, speed, _) => Wrap(
+                  spacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Vitesse du test ×${speed.multiplier}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    for (final preset in PlaytestSpeed.values)
+                      StudioButton(
+                        key: ValueKey('playtest-speed-${preset.multiplier}'),
+                        label: '×${preset.multiplier}',
+                        secondary: preset != speed,
+                        onPressed: _busy || !_ready
+                            ? null
+                            : () => game.setTestSpeed(preset),
+                      ),
+                  ],
+                ),
+              ),
             if (_spatial case final spatial?)
               ListenableBuilder(
                 listenable: Listenable.merge([
