@@ -423,6 +423,7 @@ final class NormalizedSourceProject {
   final SourceInterpretationProfile? interpretationProfile;
   final List<int> selectedSourceMapIds;
   final List<int> unprocessedSourceMapIds;
+  ({Sha256Hash profileHash, SourceEventAnalysis analysis})? _eventAnalysisCache;
 
   bool get canPlan =>
       maps.isNotEmpty &&

@@ -992,7 +992,23 @@ final class SourceEventAnalyzer {
       profile.sourceSnapshotHash == project.snapshot.canonicalHash &&
       profile.normalizationHash == project.canonicalHash;
 
-  SourceEventAnalysis analyze() => _analyze();
+  SourceEventAnalysis analyze() {
+    if (!_isQualified) return _analyze();
+    final profileHash = profile.canonicalHash;
+    final cached = project._eventAnalysisCache;
+    if (cached != null && cached.profileHash == profileHash) {
+      final analysis = cached.analysis;
+      if (identical(analysis.profile, profile)) return analysis;
+      return SourceEventAnalysis._analyzed(
+          profile: profile,
+          events: analysis.events,
+          diagnostics: analysis.diagnostics,
+          source: project);
+    }
+    final analysis = _analyze();
+    project._eventAnalysisCache = (profileHash: profileHash, analysis: analysis);
+    return analysis;
+  }
 
   SourceEventDefinition? analyzeEventAt(int sourceMapId, int sourceEventId) {
     final maps = project.maps.where((map) => map.map.sourceMapId == sourceMapId).toList();

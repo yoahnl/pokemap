@@ -3245,6 +3245,77 @@ interpretationProfile: fixtureSourceInterpretationProfile,
     }
   });
 
+  test('full analyses share owned immutable nodes and preserve current profiles',
+      () async {
+    final source = await _events([_page([_command(101, ['First'])])],
+        extraEvents: {2: _event(2, [_page([_command(101, ['Second'])])])});
+    final sourceJson = canonicalHashOf(source.toJson());
+    final profile = _analyzer(source).profile;
+    final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
+    final targeted = analyzer.analyzeEventAt(1, 2)!;
+    expect(targeted.sourceEventId, 2);
+    final full = analyzer.analyze();
+    expect(full.events, hasLength(2));
+    expect(analyzer.analyze(), same(full));
+    final repeated = SourceEventAnalyzer.forProject(source, profile: profile).analyze();
+    expect(repeated, same(full));
+    final clone = SourceEventProfile(
+        scriptsArchiveHash: profile.scriptsArchiveHash,
+        sourceSnapshotHash: profile.sourceSnapshotHash,
+        normalizationHash: profile.normalizationHash,
+        interpretationProfile: profile.interpretationProfile);
+    expect(clone, isNot(same(profile)));
+    expect(clone.canonicalHash, profile.canonicalHash);
+    final wrapped = SourceEventAnalyzer.forProject(source, profile: clone).analyze();
+    expect(wrapped.profile, same(clone));
+    expect(wrapped.events.first, same(full.events.first));
+    expect(wrapped.events.first.pages.single.body.nodes.single,
+        same(full.events.first.pages.single.body.nodes.single));
+    Sha256Hash shape(SourceEventAnalysis value) => canonicalHashOf([
+      value.profile.toJson(),
+      for (final event in value.events) [event.identity.value,
+        for (final page in event.pages) [page.sourcePage.toJson(),
+          page.condition.toJson(), page.body.span.toJson(),
+          for (final node in page.body.nodes.whereType<SourceTextNode>()) node.text]],
+      value.diagnostics.map((diagnostic) => diagnostic.toJson()).toList(),
+    ]);
+    expect(shape(wrapped), shape(full));
+    expect(() => wrapped.events.clear(), throwsUnsupportedError);
+    expect(() => wrapped.events.first.pages.single.body.nodes.clear(),
+        throwsUnsupportedError);
+    final after = analyzer.analyzeEventAt(1, 2)!;
+    expect(after.sourceEventId, 2);
+    expect((after.pages.single.body.nodes.single as SourceTextNode).text, 'Second');
+    expect(analyzer.analyze(), same(full));
+    final foreign = await _events([_page([_command(101, ['First'])])],
+        extraEvents: {2: _event(2, [_page([_command(101, ['Second'])])])});
+    expect(foreign.snapshot.canonicalHash, source.snapshot.canonicalHash);
+    expect(foreign.canonicalHash, source.canonicalHash);
+    final separatelyOwned = SourceEventAnalyzer.forProject(foreign,
+        profile: clone).analyze();
+    expect(shape(separatelyOwned), shape(full));
+    expect(separatelyOwned.events.first, isNot(same(full.events.first)));
+    final alternate = SourceEventProfile.forProject(source,
+        scriptsArchiveHash: profile.scriptsArchiveHash,
+        interpretationProfile: SourceInterpretationProfile.fromJson({
+          ...profile.interpretationProfile!.toJson(),
+          'profileId': 'alternate-full-analysis-profile',
+        }));
+    expect(alternate.isQualified, isTrue);
+    expect(alternate.canonicalHash, isNot(profile.canonicalHash));
+    final alternateResult = SourceEventAnalyzer.forProject(source,
+        profile: alternate).analyze();
+    expect(alternateResult.profile, same(alternate));
+    expect(alternateResult.events.first, isNot(same(full.events.first)));
+    expect(alternateResult.events.first.isQuarantined, isFalse);
+    final invalid = _analyzer(source, scriptsHash: 'a' * 64).analyze();
+    expect(invalid.events.first.isQuarantined, isTrue);
+    expect(SourceEventAnalyzer.forProject(source, profile: alternate).analyze(),
+        same(alternateResult));
+    expect(shape(analyzer.analyze()), shape(full));
+    expect(canonicalHashOf(source.toJson()), sourceJson);
+  });
+
   test('published analysis nodes branches and conditions are immutable',
       () async {
     final analysis = _analyzer(await _events([

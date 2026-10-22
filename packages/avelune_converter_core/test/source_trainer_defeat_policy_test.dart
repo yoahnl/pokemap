@@ -99,7 +99,7 @@ void main() {
     expect(programHash(separatelyOwned), programHash(analysis));
     expect(separatelyOwned.eventAt(98, 1)!.pages.first.body.nodes
         .whereType<SourceTrainerProgramNode>().single.defeatPolicy,
-        isNot(same(program.defeatPolicy)));
+        same(program.defeatPolicy));
     for (final (index, rejected) in [
       SourceEventProfile(
           sourceSnapshotHash: Sha256Hash('0' * 64),
