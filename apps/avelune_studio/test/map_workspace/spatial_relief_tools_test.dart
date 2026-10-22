@@ -63,7 +63,7 @@ void main() {
         hasLength(6),
       );
       expect(find.textContaining('vers le nord'), findsOneWidget);
-      expect(find.textContaining('0 → 1 blocs'), findsOneWidget);
+      expect(find.textContaining('0.0 → 1.0 blocs'), findsOneWidget);
       expect(find.textContaining('Zone 2 × 3 cases'), findsOneWidget);
       expect(document.current, same(map));
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
@@ -479,7 +479,7 @@ void main() {
           heightLevels: [
             for (var z = 0; z < 43; z++)
               for (var x = 0; x < 68; x++)
-                switch (ramp.direction) {
+                (switch (ramp.direction) {
                   SpatialRampDirection.north =>
                     z < ramp.z ? ramp.highLevel : ramp.lowLevel,
                   SpatialRampDirection.west =>
@@ -489,7 +489,7 @@ void main() {
                   SpatialRampDirection.south => throw StateError(
                     'Unexpected fixture',
                   ),
-                },
+                }).toInt(),
           ],
           navigation: SpatialNavigationProfile(ramps: [ramp]),
         );

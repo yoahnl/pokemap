@@ -37,6 +37,7 @@ dependencies:
 
 dev_dependencies:
   archive: 4.0.9
+  crypto: ^3.0.7
   flutter_test:
     sdk: flutter
   integration_test:

@@ -123,8 +123,9 @@ Future<void> officialExport(Host host, String kind) async {
   await c.selectFiltered();
   await c.prepare();
   expect(c.error, isNull);
-  if (c.requiresOrganizationAcknowledgement)
+  if (c.requiresOrganizationAcknowledgement) {
     c.setOrganizationAcknowledgement(true);
+  }
   await c.export();
   expect(c.error, isNull);
   expect(c.outputPath, host.archive.path);
@@ -423,7 +424,7 @@ void main() {
               capElementId: 'original-piece',
               straightElementId: 'original-piece',
               cornerElementId: 'original-piece',
-              publish: true,
+              publish: false,
             ),
           ),
         );
@@ -474,7 +475,7 @@ void main() {
         final custom = BorderBlueprintRecord(
           id: 'original-custom-border',
           draft: BorderBlueprintDraft(
-            baseRevision: 1,
+            baseRevision: 0,
             definition: BorderBlueprintDraftDefinition(
               name: 'Original custom border',
               previewSeed: BorderSignedInt64.zero,

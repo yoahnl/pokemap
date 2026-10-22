@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import '../../app/providers/core/repository_providers.dart';
