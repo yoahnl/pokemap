@@ -16,7 +16,7 @@ final class NativeProjectCreationCapability {
     if (_inventory.isEmpty ||
         _inventory.length > nativeProjectCreationMaxResources ||
         byteLength < 0 ||
-        byteLength > nativeProjectCreationMaxBytes ||
+        byteLength > nativeProjectCreationHardMaxBytes ||
         _inventory.fold<int>(0, (sum, item) => sum + item.byteLength) !=
             byteLength ||
         _inventoryFingerprint(_inventory) != inventoryFingerprint) {

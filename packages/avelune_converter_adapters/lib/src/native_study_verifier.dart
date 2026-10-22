@@ -35,6 +35,52 @@ final class NativeStudyVerifier {
   const NativeStudyVerifier({this.snapshotLoadProfileSink});
 
   static const maxLogicalAssetRecords = 16384;
+  static const maxLogicalAssetBytes = 536870912;
+  static const maxRetainedBlobBytes = 536870912;
+
+  static ({int logicalAssetBytes, int retainedBlobBytes}) validateAssetBudget(
+      AssetCatalog catalog,
+      {ScanCancellation? cancellation}) {
+    cancellation?.check();
+    validateInventory(logicalAssetCount: catalog.records.length, mapCount: 0);
+    var logicalAssetBytes = 0;
+    var retainedBlobBytes = 0;
+    final blobs = <String>{};
+    final paths = <String, ContentArtifactRef>{};
+    for (final record in catalog.records) {
+      cancellation?.check();
+      if (record.artifact.byteLength > 67108864) {
+        throw _failed(
+            'Registered asset exceeds the 64 MiB verification budget.');
+      }
+      logicalAssetBytes += record.artifact.byteLength;
+      if (logicalAssetBytes > maxLogicalAssetBytes) {
+        throw _failed(
+            'Registered logical assets exceed the 512 MiB verification budget.');
+      }
+      final blob = assetBlobStorageKey(record.artifact);
+      if (blobs.add(blob)) retainedBlobBytes += record.artifact.byteLength;
+      if (retainedBlobBytes > maxRetainedBlobBytes) {
+        throw _failed(
+            'Retained unique blobs exceed the 512 MiB verification budget.');
+      }
+      for (final key in {record.logicalPath, blob}) {
+        final previous = paths[key];
+        if (previous != null &&
+            (previous.digest != record.artifact.digest ||
+                previous.byteLength != record.artifact.byteLength)) {
+          throw _failed(
+              'Registered storage key $key has conflicting content identities.');
+        }
+        paths[key] = record.artifact;
+      }
+    }
+    cancellation?.check();
+    return (
+      logicalAssetBytes: logicalAssetBytes,
+      retainedBlobBytes: retainedBlobBytes
+    );
+  }
 
   static void validateInventory(
       {required int logicalAssetCount, required int mapCount}) {
@@ -91,25 +137,16 @@ final class NativeStudyVerifier {
       validateInventory(
           logicalAssetCount: catalog.records.length,
           mapCount: snapshot.maps.length);
+      validateAssetBudget(catalog, cancellation: cancellation);
       final access = handles.resolveProject(opened.projectHandle);
-      var total = 0;
       final identities = <String, ProjectResourceIdentity>{};
       for (final record in catalog.records) {
         cancellation?.check();
-        if (record.artifact.byteLength > 67108864) {
-          throw _failed(
-              'Registered asset exceeds the 64 MiB verification budget.');
-        }
         for (final key in {
           record.logicalPath,
           assetBlobStorageKey(record.artifact)
         }) {
           if (identities.containsKey(key)) continue;
-          total += record.artifact.byteLength;
-          if (total > 536870912) {
-            throw _failed(
-                'Registered assets and blobs exceed the 512 MiB verification budget.');
-          }
           final before = await access.readResourceIdentity(key);
           if (before == null ||
               before.byteLength != record.artifact.byteLength) {

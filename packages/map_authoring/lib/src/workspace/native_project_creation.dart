@@ -29,6 +29,7 @@ import 'workspace_policy.dart';
 part '../security/native_project_creation_capability.dart';
 
 const nativeProjectCreationMaxBytes = 500 * 1024 * 1024;
+const nativeProjectCreationHardMaxBytes = 1280 * 1024 * 1024;
 const nativeProjectCreationMaxResources = 32768;
 const nativeProjectCreationActionId = 'project.create_prepared_native';
 
@@ -269,7 +270,9 @@ final class NativeProjectCreationReceipt {
 
 final class NativeProjectCreationService {
   const NativeProjectCreationService(
-      {this.faultInjector, this.checkpoint, this.clock});
+      {this.faultInjector, this.checkpoint, this.clock,
+      this.maxInventoryBytes = nativeProjectCreationMaxBytes});
+  final int maxInventoryBytes;
   final AuthoringTransactionFaultInjector? faultInjector;
   final DateTime Function()? clock;
   DateTime get _now => (clock?.call() ?? DateTime.now()).toUtc();
@@ -277,6 +280,12 @@ final class NativeProjectCreationService {
 
   Future<NativePreparedProjectCreation> prepare(
       NativeProjectCreationInput input) async {
+    if (maxInventoryBytes < 1 ||
+        maxInventoryBytes > nativeProjectCreationHardMaxBytes) {
+      throw FormatException('native.creation.quota.invalid_limit: '
+          'attempted=$maxInventoryBytes, minimum=1, '
+          'limit=$nativeProjectCreationHardMaxBytes');
+    }
     final files = <String, List<int>>{};
     final folded = <String>{};
     var size = 0;
@@ -296,12 +305,18 @@ final class NativeProjectCreationService {
       if (!folded.add(path.toLowerCase())) {
         throw const FormatException('Duplicate native creation path.');
       }
-      size += bytes.length;
-      if (files.length >= nativeProjectCreationMaxResources ||
-          size > nativeProjectCreationMaxBytes) {
-        throw const FormatException(
-            'Native creation inventory exceeds its budget.');
+      final attemptedResources = files.length + 1;
+      if (attemptedResources > nativeProjectCreationMaxResources) {
+        throw FormatException('native.creation.quota.resources: '
+            'attempted=$attemptedResources, '
+            'limit=$nativeProjectCreationMaxResources, path=$path');
       }
+      final attemptedBytes = size + bytes.length;
+      if (attemptedBytes > maxInventoryBytes) {
+        throw FormatException('native.creation.quota.bytes: '
+            'attempted=$attemptedBytes, limit=$maxInventoryBytes, path=$path');
+      }
+      size = attemptedBytes;
       files[path] = bytes is Uint8List
           ? bytes.asUnmodifiableView()
           : Uint8List.fromList(bytes).asUnmodifiableView();

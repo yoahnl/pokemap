@@ -27,6 +27,7 @@ import 'native_psdk_catalog.dart';
 import 'source_catalog_projection.dart';
 import 'native_source_event_atlas_admission.dart';
 import 'native_mutation_batches.dart';
+import 'native_study_verifier.dart';
 
 const nativeMaxUniqueArtifacts = 4096;
 const nativeMaxLogicalMutations = 32768;
@@ -79,6 +80,15 @@ final class NativeWriteLimits {
 
   int get maxMaps => maxMutations.clamp(1, 2048);
   int get maxEntityReferences => maxMutations.clamp(1, 2048);
+
+  int get maxNativeCreationBytes {
+    _validate();
+    final materializedBytes =
+        maxTotalArtifactBytes * 2 + maxTotalDraftJsonBytes;
+    return materializedBytes < nativeProjectCreationMaxBytes
+        ? nativeProjectCreationMaxBytes
+        : materializedBytes;
+  }
 
   void validate() => _validate();
 
@@ -802,8 +812,12 @@ final class NativeProjectWriter {
       final prepared =
           await _prepareNativeDraft(plan, context, draft, limits, cancellation,
               _NativePreparationReporter(preparationCheckpoint, cancellation));
-      final creator = creation ?? const NativeProjectCreationService();
-      final nativeCreation = await creator.prepare(_nativeCreationInput(prepared, draft));
+      final creator = creation ?? NativeProjectCreationService(
+          maxInventoryBytes: limits.maxNativeCreationBytes);
+      final creationInput = _nativeCreationInput(prepared, draft);
+      NativeStudyVerifier.validateAssetBudget(creationInput.assetCatalog,
+          cancellation: cancellation);
+      final nativeCreation = await creator.prepare(creationInput);
       _checkCancelled(cancellation);
       _requireAbsolute(draft.parentPath);
       final parent = await Directory(draft.parentPath).resolveSymbolicLinks();
@@ -1251,7 +1265,10 @@ NativeProjectCreationInput _nativeCreationInput(
   var importBytes = 0;
   var importPixels = 0;
   for (final mutation in draft.mutations) {
-    for (final parameters in nativeImportParameters(mutation)) {
+    final imports = mutation.actionId == 'scene.dialogue.audioMedia.import'
+        ? [mutation.parameters]
+        : nativeImportParameters(mutation);
+    for (final parameters in imports) {
       final handle = parameters['artifactHandle'];
       final artifact = artifacts[handle];
       final size = dimensions[handle];

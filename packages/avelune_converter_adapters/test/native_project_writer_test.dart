@@ -17,6 +17,20 @@ Matcher get _nativeFailure => isA<NativeWriteException>()
     .having((error) => error.code, 'code', startsWith('native.'));
 
 void main() {
+  test('native creation budget accounts for logical assets, blobs and JSON', () {
+    final limits = sourceCatalogStudyWriteLimitsFor(383,
+        includeNativeCatalog: true, fullGameContent: true);
+    expect(limits.maxNativeCreationBytes, 1280 * 1024 * 1024);
+    expect(limits.maxNativeCreationBytes, nativeProjectCreationHardMaxBytes);
+    expect(const NativeWriteLimits().maxNativeCreationBytes,
+        nativeProjectCreationMaxBytes);
+    expect(
+        () => const NativeWriteLimits(maxTotalArtifactBytes: 536870913)
+            .maxNativeCreationBytes,
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.invalid_limits')));
+  });
+
   test('AC-08 canonical JSON artifact retains immutable exact content', () {
     final json = canonicalJsonOf({
       'kind': 'approvedAssetLibraryProvenance',
@@ -1895,6 +1909,24 @@ void main() {
     await refuseBeforeStage(draft,
         limits: NativeWriteLimits(
             maxTotalArtifactBytes: fixture.atlasBytes.length));
+  });
+
+  test('dialogue audio imports cannot bypass the logical import byte budget',
+      () async {
+    final firstImport = fixture.draft.mutations.first;
+    final audioImport = copyNativeFixtureMutation(firstImport,
+        operationId: ConverterId('fixture-audio-budget'),
+        actionId: 'scene.dialogue.audioMedia.import');
+    final draft = copyNativeFixtureDraft(fixture.draft,
+        mutations: [...fixture.draft.mutations, audioImport]);
+    expect(
+        () => draft.validateResourceBudget(
+            limits: NativeWriteLimits(
+                maxTotalArtifactBytes: fixture.atlasBytes.length)),
+        throwsA(isA<NativeWriteException>()
+            .having((error) => error.code, 'code', 'native.quota.artifact')));
+    expect(await _treeShape(output.path), isEmpty);
+    await sourceUnchanged();
   });
 
   test('malformed PNG and invalid palette map cannot return verified success',

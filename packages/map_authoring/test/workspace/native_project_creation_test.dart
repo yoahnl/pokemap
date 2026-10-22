@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:map_authoring/src/transactions/authoring_payload.dart';
+import 'package:map_authoring/src/workspace/project_creation_transaction.dart';
 import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/src/workspace/project_creation_kit.dart';
@@ -29,6 +32,209 @@ void main() {
         maps: const [],
         assetCatalog: AssetCatalog(records: const []));
   }
+
+  test('default native byte budget reports exact attempted bytes and path',
+      () async {
+    final bytes = Uint8List(16 * 1024 * 1024).asUnmodifiableView();
+    final reference = ContentArtifactRef.fromBytes(bytes,
+        mediaType: 'application/octet-stream');
+    final source = NativeProjectCreationInput(
+        manifest: input().manifest,
+        maps: const [],
+        assetCatalog: AssetCatalog(records: [
+          for (var index = 0; index < 31; index++)
+            AssetRecord(id: 'resource_$index',
+                logicalPath: 'assets/data/$index.bin', artifact: reference)
+        ]),
+        artifacts: [NativeProjectCreationArtifact(
+            reference: reference, bytes: bytes)]);
+    final attempted = utf8.encode(jsonEncode(source.manifest.toJson())).length +
+        utf8.encode(jsonEncode(source.assetCatalog.toJson())).length +
+        bytes.length * 32;
+    await expectLater(const NativeProjectCreationService().prepare(source),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', 'native.creation.quota.bytes: attempted=$attempted, '
+            'limit=$nativeProjectCreationMaxBytes, '
+            'path=${source.assetCatalog.records.last.logicalPath}')));
+    expect(await parent.list().toList(), isEmpty);
+  });
+
+  test('native resource budget reports exact attempted count and path',
+      () async {
+    final bytes = Uint8List.fromList([1, 2]).asUnmodifiableView();
+    final reference = ContentArtifactRef.fromBytes(bytes,
+        mediaType: 'application/octet-stream');
+    final source = NativeProjectCreationInput(
+        manifest: input().manifest,
+        maps: const [],
+        assetCatalog: AssetCatalog(records: [
+          for (var index = 0; index < nativeProjectCreationMaxResources - 2;
+              index++)
+            AssetRecord(id: 'resource_$index',
+                logicalPath: 'assets/data/$index.bin', artifact: reference)
+        ]),
+        artifacts: [NativeProjectCreationArtifact(
+            reference: reference, bytes: bytes)]);
+    await expectLater(const NativeProjectCreationService().prepare(source),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', 'native.creation.quota.resources: '
+            'attempted=${nativeProjectCreationMaxResources + 1}, '
+            'limit=$nativeProjectCreationMaxResources, '
+            'path=${source.assetCatalog.records.last.logicalPath}')));
+    expect(await parent.list().toList(), isEmpty);
+  });
+
+  test('explicit native byte budget accepts its exact boundary and binds receipt',
+      () async {
+    final source = input();
+    final reference = await const NativeProjectCreationService().prepare(source);
+    final service = NativeProjectCreationService(
+        maxInventoryBytes: reference.byteLength);
+    final prepared = await service.prepare(source);
+    expect(const NativeProjectCreationService().maxInventoryBytes,
+        nativeProjectCreationMaxBytes);
+    expect(nativeProjectCreationMaxBytes, 500 * 1024 * 1024);
+    expect(nativeProjectCreationHardMaxBytes, 1280 * 1024 * 1024);
+    expect(prepared.byteLength, reference.byteLength);
+    expect(prepared.inventoryFingerprint, reference.inventoryFingerprint);
+    final plan = await service.plan(prepared: prepared,
+        parentPath: parent.path, folderName: 'boundary');
+    final receipt = await service.publish(plan);
+    expect(receipt.inventoryFingerprint, prepared.inventoryFingerprint);
+    expect(receipt.transactionReceipt.extensions['inventoryFingerprint'],
+        prepared.inventoryFingerprint);
+    expect(receipt.transactionReceipt.afterRevision, plan.afterRevision);
+    expect(receipt.transactionReceipt.diff.toJson(), plan.diff.toJson());
+    await expectLater(NativeProjectCreationService(
+        maxInventoryBytes: reference.byteLength - 1).prepare(source),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', 'native.creation.quota.bytes: '
+            'attempted=${reference.byteLength}, '
+            'limit=${reference.byteLength - 1}, '
+            'path=assets/.pokemap-assets.json')));
+  });
+
+  test('minimum valid native byte budget fails closed on its first resource',
+      () async {
+    final source = input();
+    final attempted = utf8.encode(jsonEncode(source.manifest.toJson())).length;
+    await expectLater(const NativeProjectCreationService(maxInventoryBytes: 1)
+        .prepare(source), throwsA(isA<FormatException>().having(
+            (error) => error.message, 'message',
+            'native.creation.quota.bytes: attempted=$attempted, '
+            'limit=1, path=project.json')));
+    expect(await parent.list().toList(), isEmpty);
+  });
+
+  for (final limit in [-1, 0, nativeProjectCreationHardMaxBytes + 1]) {
+    test('native byte budget refuses invalid limit $limit before creation',
+        () async {
+      await expectLater(NativeProjectCreationService(
+          maxInventoryBytes: limit).prepare(input()),
+          throwsA(isA<FormatException>().having((error) => error.message,
+              'message', 'native.creation.quota.invalid_limit: '
+              'attempted=$limit, minimum=1, '
+              'limit=$nativeProjectCreationHardMaxBytes')));
+      expect(await parent.list().toList(), isEmpty);
+    });
+  }
+
+  test('explicit large native budget binds canonical shared aliases without I/O',
+      () async {
+    final bytes = Uint8List(16 * 1024 * 1024).asUnmodifiableView();
+    final reference = ContentArtifactRef.fromBytes(bytes,
+        mediaType: 'application/octet-stream');
+    final artifact = NativeProjectCreationArtifact(
+        reference: reference, bytes: bytes);
+    final source = NativeProjectCreationInput(
+        manifest: input().manifest,
+        maps: const [],
+        assetCatalog: AssetCatalog(records: [
+          for (var index = 0; index < 31; index++)
+            AssetRecord(id: 'resource_$index',
+                logicalPath: 'assets/data/$index.bin', artifact: reference)
+        ]),
+        artifacts: [artifact]);
+    final service = NativeProjectCreationService(
+        maxInventoryBytes: nativeProjectCreationHardMaxBytes);
+    final prepared = await service.prepare(source);
+    expect(prepared.byteLength, greaterThan(nativeProjectCreationMaxBytes));
+    expect(prepared.byteLength,
+        utf8.encode(jsonEncode(source.manifest.toJson())).length +
+        utf8.encode(jsonEncode(source.assetCatalog.toJson())).length +
+        bytes.length * 32);
+    expect(prepared.resourceCount, 34);
+    final nativePlan = await service.plan(prepared: prepared,
+        parentPath: parent.path, folderName: 'shared-aliases');
+    final files = <String, List<int>>{
+      'project.json': utf8.encode(jsonEncode(prepared.manifest.toJson())),
+      assetCatalogStorageKey:
+          utf8.encode(jsonEncode(source.assetCatalog.toJson())),
+      for (final record in source.assetCatalog.records)
+        record.logicalPath: artifact.bytes,
+      assetBlobStorageKey(reference): artifact.bytes,
+    };
+    final changes = <AuthoringResourceChange>[];
+    final artifactSha = crypto.sha256.convert(artifact.bytes).toString();
+    for (final entry in files.entries) {
+      final payload = await AuthoringPayload.verifiedSource(
+          storageKey: entry.key, byteLength: entry.value.length,
+          rawSha256: identical(entry.value, artifact.bytes)
+              ? artifactSha : crypto.sha256.convert(entry.value).toString(),
+          openRead: () => Stream.value(entry.value));
+      changes.add(AuthoringResourceChange.withPayloads(
+          resource: projectCreationResourceRef(entry.key, nativePlan.projectId),
+          storageKey: entry.key, beforePayload: null, afterPayload: payload));
+    }
+    final plan = AuthoringPlan(
+        planId: nativePlan.planId, receiptId: 'receipt-native-budget',
+        request: AuthoringRequest(requestId: nativePlan.operationId,
+            actionId: nativeProjectCreationActionId, actionVersion: 1,
+            workspaceHandle: 'workspace-native-budget',
+            expectedRevision: nativePlan.beforeRevision,
+            idempotencyKey: nativePlan.operationId),
+        baseRevision: nativePlan.beforeRevision, seed: 0,
+        createdAt: nativePlan.createdAt, expiresAt: nativePlan.expiresAt,
+        changeSet: AuthoringChangeSet(changes: changes, diff: nativePlan.diff));
+    addTearDown(plan.releasePayloads);
+    final capability = NativeProjectCreationCapability.forPreparedPlan(
+        prepared: prepared, plan: plan, actorId: 'native-budget',
+        projectId: nativePlan.projectId, operationId: nativePlan.operationId);
+    plan.bindNativeCreationCapability(capability);
+    expect(capability.byteLength, prepared.byteLength);
+    expect(capability.inventoryFingerprint, prepared.inventoryFingerprint);
+    final recovered = NativeProjectCreationCapability.fromJournalJson(
+        Map<String, dynamic>.from(capability.toJson()));
+    expect(recovered.byteLength, capability.byteLength);
+    expect(recovered.toJson(), capability.toJson());
+    expect(() => recovered.requirePlan(plan, actorId: capability.actorId,
+        projectId: capability.projectId, operationId: capability.operationId),
+        throwsStateError);
+    expect(() => capability.requirePlan(plan, actorId: capability.actorId,
+        projectId: 'foreign-project', operationId: capability.operationId),
+        throwsFormatException);
+    final altered = Map<String, dynamic>.from(capability.toJson())
+      ..['byteLength'] = prepared.byteLength + 1;
+    expect(() => NativeProjectCreationCapability.fromJournalJson(altered),
+        throwsFormatException);
+    final oversizedInventory = [
+      for (final item in capability.toJson()['inventory'] as List)
+        Map<String, Object?>.from(item as Map)
+    ];
+    oversizedInventory.first['byteLength'] =
+        (oversizedInventory.first['byteLength'] as int) +
+        nativeProjectCreationHardMaxBytes + 1 - capability.byteLength;
+    final oversized = Map<String, dynamic>.from(capability.toJson())
+      ..['inventory'] = oversizedInventory
+      ..['inventoryFingerprint'] = computeAuthoringJsonFingerprint(
+          oversizedInventory,
+          logicalName: 'native-project-creation-inventory.json')
+      ..['byteLength'] = nativeProjectCreationHardMaxBytes + 1;
+    expect(() => NativeProjectCreationCapability.fromJournalJson(oversized),
+        throwsFormatException);
+    expect(await parent.list().toList(), isEmpty);
+  }, timeout: const Timeout(Duration(minutes: 2)),
+      skip: Platform.environment['AVELUNE_NATIVE_CREATION_LARGE_BUDGET'] != '1');
 
   test(
       'prepared native creation publishes exact inventory with a canonical receipt',

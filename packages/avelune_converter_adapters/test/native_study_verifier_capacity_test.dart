@@ -2,12 +2,105 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
+import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
 import 'support/native_writer_fixture.dart';
 
 void main() {
+  const mib = 1024 * 1024;
+
+  test('separates logical assets and retained blobs at both byte boundaries',
+      () {
+    final catalog = AssetCatalog(records: [
+      for (var index = 0; index < 8; index++) _declaredRecord(index, 64 * mib),
+    ]);
+    expect(NativeStudyVerifier.validateAssetBudget(catalog),
+        (logicalAssetBytes: 512 * mib, retainedBlobBytes: 512 * mib));
+  });
+
+  test('logical aliases retain one blob and cannot exceed the logical budget',
+      () {
+    final artifact = _declaredRecord(0, 64 * mib).artifact;
+    final records = [
+      for (var index = 0; index < 8; index++)
+        _declaredRecord(index, 64 * mib, artifact: artifact)
+    ];
+    final budget =
+        NativeStudyVerifier.validateAssetBudget(AssetCatalog(records: records));
+    expect(budget, (logicalAssetBytes: 512 * mib, retainedBlobBytes: 64 * mib));
+    expect(
+        budget.retainedBlobBytes, lessThanOrEqualTo(budget.logicalAssetBytes));
+    expect(
+        () => NativeStudyVerifier.validateAssetBudget(AssetCatalog(records: [
+              ...records,
+              _declaredRecord(8, 1),
+            ])),
+        throwsA(_failureContaining('logical assets')));
+  });
+
+  test('asset budget preserves the exact per-artifact byte ceiling', () {
+    expect(
+        () => NativeStudyVerifier.validateAssetBudget(AssetCatalog(records: [
+              _declaredRecord(0, 64 * mib + 1),
+            ])),
+        throwsA(_failureContaining('64 MiB')));
+  });
+
+  test('logical paths may name the same exact retained blob', () {
+    final record = _declaredRecord(0, 64 * mib);
+    final alias =
+        record.copyWith(logicalPath: assetBlobStorageKey(record.artifact));
+    expect(
+        NativeStudyVerifier.validateAssetBudget(AssetCatalog(records: [alias])),
+        (logicalAssetBytes: 64 * mib, retainedBlobBytes: 64 * mib));
+  });
+
+  test('one retained blob may serve references with distinct media types', () {
+    final first = _declaredRecord(0, 32);
+    final second = _declaredRecord(1, 32,
+        artifact: ContentArtifactRef(
+            digest: first.artifact.digest,
+            mediaType: 'application/json',
+            byteLength: first.artifact.byteLength));
+    expect(
+        NativeStudyVerifier.validateAssetBudget(
+            AssetCatalog(records: [first, second])),
+        (logicalAssetBytes: 64, retainedBlobBytes: 32));
+  });
+
+  test('asset budget refuses conflicting identities on a shared storage key',
+      () {
+    final first = _declaredRecord(0, 32);
+    final second = _declaredRecord(1, 32);
+    expect(
+        () => NativeStudyVerifier.validateAssetBudget(AssetCatalog(records: [
+              first.copyWith(logicalPath: assetBlobStorageKey(second.artifact)),
+              second,
+            ])),
+        throwsA(_failureContaining('conflicting content identities')));
+    expect(
+        () => NativeStudyVerifier.validateAssetBudget(AssetCatalog(records: [
+              first,
+              _declaredRecord(1, 33,
+                  artifact: ContentArtifactRef(
+                      digest: first.artifact.digest,
+                      mediaType: first.artifact.mediaType,
+                      byteLength: 33)),
+            ])),
+        throwsA(_failureContaining('conflicting content identities')));
+  });
+
+  test('asset budget honors cancellation before traversing records', () {
+    final cancellation = ScanCancellation()..cancel();
+    expect(
+        () => NativeStudyVerifier.validateAssetBudget(AssetCatalog(),
+            cancellation: cancellation),
+        throwsA(isA<ContractError>()
+            .having((error) => error.code, 'code', 'source.cancelled')));
+  });
+
   test('logical record ceiling remains independent from maps and blob count',
       () {
     expect(NativeStudyVerifier.maxLogicalAssetRecords, 16384);
@@ -77,11 +170,45 @@ void main() {
       expect(second.assetCount, first.assetCount);
       expect(await _tree(result.projectPath), before);
       expect(first.playableCertified, isFalse);
+      final aliasFile = File('${result.projectPath}/assets/aliases/1.png');
+      final aliasBytes = await aliasFile.readAsBytes();
+      await aliasFile.writeAsBytes([...aliasBytes]..[0] ^= 1);
+      await expectLater(
+          verifier.verify(
+              projectPath: result.projectPath, allowedParentPath: output.path),
+          throwsA(isA<ConverterWorkflowFailure>()
+              .having((error) => error.code, 'code', 'native.verify.failed')));
+      await aliasFile.writeAsBytes(aliasBytes);
+      final blob = blobs.single as File;
+      final blobBytes = await blob.readAsBytes();
+      await blob.writeAsBytes([...blobBytes]..[0] ^= 1);
+      await expectLater(
+          verifier.verify(
+              projectPath: result.projectPath, allowedParentPath: output.path),
+          throwsA(isA<ConverterWorkflowFailure>()
+              .having((error) => error.code, 'code', 'native.verify.failed')));
+      await blob.writeAsBytes(blobBytes);
+      expect(await _tree(result.projectPath), before);
     } finally {
       await root.delete(recursive: true);
     }
   }, skip: !Platform.isMacOS);
 }
+
+AssetRecord _declaredRecord(int index, int byteLength,
+        {ContentArtifactRef? artifact}) =>
+    AssetRecord(
+        id: 'asset_$index',
+        logicalPath: 'assets/test/$index.bin',
+        artifact: artifact ??
+            ContentArtifactRef(
+                digest: 'sha256:${index.toRadixString(16).padLeft(64, '0')}',
+                mediaType: 'application/octet-stream',
+                byteLength: byteLength));
+
+Matcher _failureContaining(String text) => isA<ConverterWorkflowFailure>()
+    .having((error) => error.code, 'code', 'native.verify.failed')
+    .having((error) => error.message, 'message', contains(text));
 
 Future<Map<String, List<int>>> _tree(String root) async => {
       await for (final file in Directory(root).list(recursive: true))
