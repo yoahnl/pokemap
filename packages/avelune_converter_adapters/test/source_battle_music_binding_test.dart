@@ -32,6 +32,8 @@ const _renamed = {
 
 Future<LiteralTileFixture> _fixture(
         {bool renamed = false,
+        Map<String, String> defaults = _defaults,
+        Map<String, String> renamedNames = _renamed,
         Map<String, List<int>> extra = const {},
         String? sourceRootPath}) =>
     LiteralTileFixture.create(
@@ -44,19 +46,19 @@ Future<LiteralTileFixture> _fixture(
           'PBS/items.txt':
               utf8.encode('[ORIGINAL]\nName = Original\nPocket = 1\n'),
           'PBS/metadata.txt': utf8.encode(
-              '[0]\n${_defaults.entries.map((e) => '${e.key} = ${e.value}\n').join()}[1]\nWalkCharset = Player\n'),
+              '[0]\n${defaults.entries.map((e) => '${e.key} = ${e.value}\n').join()}[1]\nWalkCharset = Player\n'),
           'Graphics/Characters/Player.png': image
               .encodePng(image.Image(width: 128, height: 192, numChannels: 4)),
           'Data/metadata.dat': literalFixtureMarshal({
             0: LiteralFixtureObject('GameData::Metadata', {
               '@id': 0,
-              '@wild_battle_BGM': _defaults['WildBattleBGM'],
-              '@trainer_battle_BGM': _defaults['TrainerBattleBGM'],
-              '@wild_victory_BGM': _defaults['WildVictoryBGM'],
-              '@trainer_victory_BGM': _defaults['TrainerVictoryBGM'],
+              '@wild_battle_BGM': defaults['WildBattleBGM'],
+              '@trainer_battle_BGM': defaults['TrainerBattleBGM'],
+              '@wild_victory_BGM': defaults['WildVictoryBGM'],
+              '@trainer_victory_BGM': defaults['TrainerVictoryBGM'],
             })
           }),
-          for (final name in (renamed ? _renamed : _defaults).values)
+          for (final name in (renamed ? renamedNames : defaults).values)
             'Audio/BGM/$name.wav': sourceMapMusicFixtureWav(),
           ...extra,
         });
@@ -74,6 +76,46 @@ Future<SourceCatalogProjection> _project(LiteralTileFixture f,
 }
 
 void main() {
+  test('battle audio resolves exact source descriptors without game names',
+      () async {
+    const defaults = {'TrainerBattleBGM': 'Orbit Match (Opponent)'};
+    const renamed = {
+      'TrainerBattleBGM': 'Orbit Original Arrangement (Match (Opponent))'
+    };
+    final fixture = await _fixture(
+        renamed: true, defaults: defaults, renamedNames: renamed);
+    final result = await _project(fixture);
+    final binding =
+        ((result.evidence['battleMusic'] as Map)['bindings'] as List).single;
+    expect(binding['declaredName'], defaults['TrainerBattleBGM']);
+    expect(binding['sourceAudioFile']['relativePath'],
+        'Audio/BGM/${renamed['TrainerBattleBGM']}.wav');
+    expect(binding['resolution'], 'sourceAudioDescriptor');
+  });
+
+  test('source audio descriptors reject ambiguous and partial matches',
+      () async {
+    const defaults = {'TrainerBattleBGM': 'Orbit Match (Opponent)'};
+    for (final variant in ['ambiguous', 'partial', 'namespace']) {
+      final fixture =
+          await _fixture(renamed: true, defaults: defaults, renamedNames: {
+        'TrainerBattleBGM': variant == 'partial'
+            ? 'Orbit Original Arrangement (Match)'
+            : variant == 'namespace'
+                ? 'Other Original Arrangement (Match (Opponent))'
+                : 'Orbit Original Arrangement (Match (Opponent))',
+      }, extra: {
+        if (variant == 'ambiguous')
+          'Audio/BGM/Orbit Another Arrangement (Match (Opponent)).wav':
+              sourceMapMusicFixtureWav(),
+      });
+      await expectLater(
+          _project(fixture),
+          throwsA(isA<ContractError>().having((error) => error.code, 'code',
+              'source.battle_music.audio_missing_or_ambiguous')));
+    }
+  });
+
   test('catalogue imports attested battle and victory defaults automatically',
       () async {
     final f = await _fixture();
@@ -100,7 +142,7 @@ void main() {
   });
 
   test(
-      'closed renamed battle audio adaptation retains exact declarations and files',
+      'exact source descriptor battle audio resolution retains exact declarations and files',
       () async {
     final f = await _fixture(renamed: true);
     final result = await _project(f);
@@ -108,7 +150,7 @@ void main() {
     final evidence = result.evidence['battleMusic'] as Map;
     final bindings = evidence['bindings'] as List;
     expect(bindings, hasLength(4));
-    expect(bindings.every((b) => b['resolution'] == 'closedRenamedSourceAudio'),
+    expect(bindings.every((b) => b['resolution'] == 'sourceAudioDescriptor'),
         isTrue);
     for (final b in bindings) {
       expect(_defaults.values, contains(b['declaredName']));
@@ -483,7 +525,7 @@ void main() {
       expect(musical, hasLength(4));
       expect(
           musical.every((f) =>
-              f.toString().contains('closedRenamedSourceAudio') &&
+              f.toString().contains('sourceAudioDescriptor') &&
               f.toString().contains('SHA-256')),
           isTrue);
       final approval = workflow.approvePrepared(

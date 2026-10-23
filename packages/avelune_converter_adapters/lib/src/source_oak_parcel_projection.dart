@@ -119,21 +119,24 @@ extension _OakParcelProjection on _ProjectionBuilder {
     }
     final pickup = pickupBindings[sourcePickupFeedbackBindingKey(
         sourceMapId: event.sourceMapId,
-        sourceSymbol: 'POKEBALL',
+        sourceSymbol: binding.program.rewardSymbol,
         helper: SourceItemGrantHelper.receiveItem,
-        quantity: 5)];
+        quantity: binding.program.rewardQuantity)];
     if (pickup == null ||
-        pickup.quantity != 5 ||
+        pickup.quantity != binding.program.rewardQuantity ||
         pickup.helper != SourceItemGrantHelper.receiveItem ||
-        pickup.item.sourceSymbol != 'POKEBALL' ||
-        pickup.item.definition.id != binding.items['POKEBALL']!.definition.id ||
+        pickup.item.sourceSymbol != binding.program.rewardSymbol ||
+        pickup.item.definition.id !=
+            binding.items[binding.program.rewardSymbol]!.definition.id ||
         pickup.sourceSnapshotHash != sourceSnapshotHash ||
         pickup.sourceMapId != event.sourceMapId ||
-        pickup.evidence['sourceQuantity'] != 5 ||
+        pickup.evidence['sourceQuantity'] != binding.program.rewardQuantity ||
         pickup.evidence['sourceHelper'] !=
             SourceItemGrantHelper.receiveItem.name ||
-        pickup.foundFeedback(cueId: 'source-bound-quantity').plainText !=
-            'You obtained 5 ${pickup.item.portionNamePlural}!') {
+        canonicalJsonOf(pickup.item.definition.toJson()) !=
+            canonicalJsonOf(binding
+                .items[binding.program.rewardSymbol]!.definition
+                .toJson())) {
       gaps.add('sourceOakParcelFiveBallFeedbackMissing');
     }
     for (final audio in binding.audio.entries) {
@@ -156,7 +159,7 @@ extension _OakParcelProjection on _ProjectionBuilder {
       for (final node in body.nodes) {
         switch (node) {
           case SourceConditionalNode():
-            final facing = SourceOakParcelProgram.approaches.any((approach) =>
+            final facing = binding.program.approaches.any((approach) =>
                 approach.firstCommandIndex == node.span.firstCommandIndex);
             if (!facing &&
                 node.condition.kind != SourceEventConditionKind.itemPresence) {
@@ -171,17 +174,7 @@ extension _OakParcelProjection on _ProjectionBuilder {
               gaps.add('sourceOakParcelDialogueUnsupported');
             }
           case SourceScriptNode():
-            if (!const {
-              'FollowingPkmn.toggle_off',
-              r'$player.has_pokedex = true',
-              r'$player.pokedex.unlock(1)',
-              r'$player.has_pokedex = true' '\n' r'$player.pokedex.unlock(1)',
-              'FollowingPkmn.toggle_off\n'
-                  r'$player.has_pokedex = true'
-                  '\n'
-                  r'$player.pokedex.unlock(1)',
-              r'$bag.remove(:OAKPARCEL)'
-            }.contains(node.script.trim())) {
+            if (binding.program.scriptKind(node.script) == null) {
               gaps.add('sourceOakParcelScriptUnsupported');
             }
           case SourceUnknownNode():
@@ -197,8 +190,12 @@ extension _OakParcelProjection on _ProjectionBuilder {
           case SourceForcedMoveRouteNode():
             if (node.repeat ||
                 node.skippable ||
-                !const {-1, 0, 1, 12, 15, 25}
-                    .contains(node.targetSourceCharacterId) ||
+                !{
+                  -1,
+                  0,
+                  binding.program.sourceEventId,
+                  ...binding.program.companionEventIds
+                }.contains(node.targetSourceCharacterId) ||
                 node.steps.any((step) => !const {
                       SourceMoveRouteStepKind.moveDown,
                       SourceMoveRouteStepKind.moveUp,
@@ -214,8 +211,8 @@ extension _OakParcelProjection on _ProjectionBuilder {
               gaps.add('sourceOakParcelRouteUnsupported');
             }
           case SourcePickupNode():
-            if (node.sourceSymbol != 'POKEBALL' ||
-                node.quantity != 5 ||
+            if (node.sourceSymbol != binding.program.rewardSymbol ||
+                node.quantity != binding.program.rewardQuantity ||
                 node.helper != SourceItemGrantHelper.receiveItem) {
               gaps.add('sourceOakParcelRewardUnsupported');
             }
@@ -284,7 +281,7 @@ extension _OakParcelSceneProjection on _SceneBuilder {
       for (final node in body.nodes.reversed) {
         switch (node) {
           case SourceConditionalNode():
-            final approach = SourceOakParcelProgram.approaches
+            final approach = binding.program.approaches
                 .where((approach) =>
                     approach.firstCommandIndex == node.span.firstCommandIndex)
                 .singleOrNull;
@@ -311,10 +308,10 @@ extension _OakParcelSceneProjection on _SceneBuilder {
               target = guard;
             }
           case SourceScriptNode():
-            switch (node.script.trim()) {
-              case 'FollowingPkmn.toggle_off':
+            switch (binding.program.scriptKind(node.script)) {
+              case SourceOakParcelScriptKind.cosmetic:
                 break;
-              case r'$player.has_pokedex = true':
+              case SourceOakParcelScriptKind.enableDex:
                 target = _fact(
                     binding.hasPokedexSourceFactId,
                     true,
@@ -323,13 +320,8 @@ extension _OakParcelSceneProjection on _SceneBuilder {
                             actionId: ProjectPauseActionId.pokedex,
                             visible: true),
                         target));
-              case 'FollowingPkmn.toggle_off\n'
-                    r'$player.has_pokedex = true'
-                    '\n'
-                    r'$player.pokedex.unlock(1)':
-              case r'$player.has_pokedex = true'
-                    '\n'
-                    r'$player.pokedex.unlock(1)':
+              case SourceOakParcelScriptKind.cosmeticEnableAndUnlockDex:
+              case SourceOakParcelScriptKind.enableAndUnlockDex:
                 target = _fact(
                     binding.hasPokedexSourceFactId,
                     true,
@@ -338,15 +330,16 @@ extension _OakParcelSceneProjection on _SceneBuilder {
                             actionId: ProjectPauseActionId.pokedex,
                             visible: true),
                         _fact(binding.unlockedDexSourceFactId, true, target)));
-              case r'$player.pokedex.unlock(1)':
+              case SourceOakParcelScriptKind.unlockDex:
                 target = _fact(binding.unlockedDexSourceFactId, true, target);
-              case r'$bag.remove(:OAKPARCEL)':
-                final item = binding.items['OAKPARCEL']!.definition;
+              case SourceOakParcelScriptKind.removeParcel:
+                final item =
+                    binding.items[binding.program.parcelSymbol]!.definition;
                 projection.usedItems[item.id] = item;
                 target = consequence(
                     SceneConsequence.takeItem(itemId: item.id, quantity: 1),
                     target);
-              default:
+              case null:
                 throw const NativeWriteException('events.oak_parcel.script',
                     'An unknown source command cannot be omitted.');
             }
@@ -383,7 +376,8 @@ extension _OakParcelSceneProjection on _SceneBuilder {
           case SourceForcedMoveRouteNode():
             target = _block(
                 SourceEventBlock(nodes: [node], span: node.span), target,
-                initialActorRouteThrough: node.targetSourceCharacterId == 25);
+                initialActorRouteThrough: node.targetSourceCharacterId ==
+                    binding.program.rivalEventId);
           case SourcePickupNode():
             target = _oakFiveBalls(node, target);
           default:

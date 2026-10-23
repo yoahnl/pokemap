@@ -5,7 +5,10 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import 'native_psdk_trainer_bundle.dart';
+import 'native_psdk_reference_index.dart';
 import 'generated/native_psdk_catalog_data.dart';
+
+export 'native_psdk_reference_index.dart';
 
 const nativePsdkCatalogShardJsonLimits = ContractLimits(
   maxNodes: 2000000,
@@ -49,6 +52,7 @@ final class NativePsdkCatalogLimits {
 
 final class NativePsdkCatalogManifest implements NativePsdkCatalog {
   static const builtinManifestHash = nativePsdkCatalogManifestHash;
+  static const builtinReferenceAdmissionHash = nativePsdkReferenceAdmissionHash;
 
   factory NativePsdkCatalogManifest.builtin() {
     final catalog = NativePsdkCatalogManifest.fromJson(
@@ -62,8 +66,32 @@ final class NativePsdkCatalogManifest implements NativePsdkCatalog {
         nativePsdkCatalogManifestHash) {
       _invalid('builtin_manifest');
     }
+    _builtinReferenceAdmission(catalog);
     return catalog;
   }
+
+  static NativePsdkReferenceIndex builtinReferenceAdmission({
+    required NativePsdkCatalog catalog,
+  }) {
+    if (canonicalHashOf(catalog.toJson(),
+                limits: nativePsdkCatalogShardJsonLimits)
+            .value !=
+        builtinManifestHash) {
+      _invalid('builtin_manifest');
+    }
+    return _builtinReferenceAdmission(catalog);
+  }
+
+  static NativePsdkReferenceIndex _builtinReferenceAdmission(
+    NativePsdkCatalog catalog,
+  ) =>
+      NativePsdkReferenceIndex.fromJson(
+        (jsonDecode(nativePsdkReferenceAdmissionJson) as Map)
+            .cast<String, Object?>(),
+        expectedHash: Sha256Hash(nativePsdkReferenceAdmissionHash),
+        catalogManifestHash: Sha256Hash(nativePsdkCatalogManifestHash),
+        catalogSpeciesIds: catalog.speciesById.keys,
+      );
 
   NativePsdkCatalogManifest._({
     required this.shards,

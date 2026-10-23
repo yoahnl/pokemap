@@ -2965,6 +2965,14 @@ void main() {
               .where((diagnostic) => diagnostic.blocksPlanning),
           isNotEmpty);
       expect(prepared.composition.draft, isNull);
+      final blocking = prepared.normalizedSource.diagnostics
+          .firstWhere((diagnostic) => diagnostic.blocksPlanning);
+      expect(() => harness.workflow.exportStudyPlanRecipe(),
+          throwsA(isA<ConverterWorkflowFailure>()
+              .having((error) => error.code, 'code', 'workflow.recipe.unavailable')
+              .having((error) => error.message, 'message',
+                  allOf(contains(blocking.code), contains(blocking.message)))));
+
       expect(
           () => harness.approve(prepared), _throwsWorkflow('workflow.blocked'));
       expect(harness.nativeStages, isEmpty);

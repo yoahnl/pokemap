@@ -7,6 +7,7 @@ import 'native_project_writer.dart';
 import 'native_mutation_batches.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
+import 'native_catalog_publication_selection.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_encounter_catalog_bindings.dart';
 import 'source_catalog_projection.dart';
@@ -203,6 +204,15 @@ final class SourceCatalogStudyComposer {
           'Active trainer events require the same exact shared catalog qualification.');
     }
     final trainerRelease = trainerQualification?.artifacts(limits: limits);
+    final requestedSpecies = nativeSpeciesReferences(
+      expandNativeMutationBatches(base, limits)
+          .where((mutation) => const {
+                'scene.upsert',
+                'dialogue.upsert',
+                'campaign.new_game.update',
+              }.contains(mutation.actionId))
+          .map((mutation) => mutation.parameters),
+    );
     var projection = await const SourceCatalogProjector().read(
         source: source,
         pbs: pbs,
@@ -211,9 +221,11 @@ final class SourceCatalogStudyComposer {
         existingItemCatalog: existing?.catalog,
         requestedItemSymbols: selection.items,
         requestedTrainerKeys: selection.trainers,
+        requestedNativeSpeciesIds: requestedSpecies,
         nativeTrainerQualification: trainerQualification,
         nativeTrainerBundle: trainerQualification == null &&
                 !nativePartyTrade &&
+                requestedSpecies.isEmpty &&
                 nativeTrainerCatalog == null
             ? null
             : native,
@@ -281,7 +293,11 @@ final class SourceCatalogStudyComposer {
     }
     final nativeCatalogQualified =
         projection.evidence['nativeTrainerBindings'] is Map ||
-            projection.evidence['nativeEncounterBindings'] is Map || nativeGift;
+        projection.evidence['nativeEncounterBindings'] is Map ||
+        nativeGift ||
+        ((requestedSpecies.isNotEmpty || nativePartyTrade) &&
+            projection.evidence['nativeCatalogIdentity'] is Map &&
+            projection.evidence['nativePublicationSelection'] is Map);
     final hasData = nativeCatalogQualified && projection.documents.isNotEmpty;
     if (hasData &&
         !base.mutations.any((entry) =>

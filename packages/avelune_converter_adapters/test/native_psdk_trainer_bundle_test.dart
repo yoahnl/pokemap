@@ -12,8 +12,444 @@ import 'package:test/test.dart';
 import '../tool/build_native_psdk_trainer_bundle.dart' as generator;
 
 void main() {
+  test('implicit native catalog mode is rejected before changing outputs',
+      () async {
+    final root = await Directory.systemTemp.createTemp('native_implicit_mode_');
+    addTearDown(() => root.delete(recursive: true));
+    final recipe = File('${root.path}/recipe.txt');
+    await recipe.writeAsString('obsolete implicit recipe');
+    final json = File('${root.path}/previous.json');
+    final dart = File('${root.path}/previous.dart');
+    await json.writeAsString('previous native document');
+    await dart.writeAsString('previous embedded document');
+    await expectLater(
+        generator.main([root.path, recipe.path, json.path, dart.path]),
+        throwsA(isA<ArgumentError>().having((error) => error.message, 'message',
+            contains('explicit native catalog mode'))));
+    expect(await json.readAsString(), 'previous native document');
+    expect(await dart.readAsString(), 'previous embedded document');
+  });
+
+  for (final mode in ['--catalog-requests', '--catalog-shards']) {
+    test('explicit native catalog mode $mode preserves native definitions',
+        () async {
+      final root =
+          await Directory.systemTemp.createTemp('native_explicit_mode_');
+      addTearDown(() => root.delete(recursive: true));
+      await _writeReferenceFiles(root, _fixtureSources());
+      final recipe = File('${root.path}/recipe.json');
+      await recipe.writeAsString(jsonEncode({
+        'kind': 'nativePsdkCatalogRequests',
+        'version': 1,
+        'requests': [
+          {'baseId': 'fixture', 'form': 0, 'level': 1}
+        ],
+      }));
+      final output = File('${root.path}/out/catalog.json');
+      final companion = '${root.path}/out/companion';
+      await generator
+          .main([mode, root.path, recipe.path, output.path, companion]);
+      final document =
+          jsonDecode(await output.readAsString()) as Map<String, dynamic>;
+      if (mode == '--catalog-requests') {
+        expect(NativePsdkTrainerBundle.fromJson(document).speciesById.keys,
+            containsAll(['fixture', 'fixture_form1']));
+        expect(await File(companion).exists(), isTrue);
+      } else {
+        final hash = (document['shards'] as List).single;
+        final shard =
+            jsonDecode(await File('$companion/$hash.json').readAsString())
+                as Map<String, dynamic>;
+        expect(NativePsdkTrainerBundle.fromJson(shard).speciesById.keys,
+            containsAll(['fixture', 'fixture_form1']));
+      }
+    });
+  }
+
+  test('english reference names retain native indices and quoted CSV fields',
+      () {
+    final source = _csvSource('Data/Text/Dialogs/100000.csv',
+        'fr,en\r\nŒuf,Egg\r\nTémoin,"Name, ""Quoted"""\r\n');
+    final names = nativePsdkEnglishSpeciesNames(source);
+    expect(names, {0: 'Egg', 1: 'Name, "Quoted"'});
+    expect(() => names[0] = 'Changed', throwsUnsupportedError);
+  });
+
+  test('english reference names reject malformed CSV without a partial table',
+      () {
+    for (final text in [
+      'en,fr\n"unterminated,Nom\n',
+      'en,en\nName,Nom\n',
+      'fr\nNom\n',
+      'en,fr\nName,Nom,Extra\n',
+    ]) {
+      expect(
+          () => nativePsdkEnglishSpeciesNames(
+              _csvSource('Data/Text/Dialogs/100000.csv', text)),
+          throwsA(isA<ContractError>()));
+    }
+  });
+
+  test('english reference names preserve the exact source byte ceiling', () {
+    final text = 'en,fr\n${'a' * (1048576 - 9)},x\n';
+    final source = _csvSource('Data/Text/Dialogs/100000.csv', text);
+    expect(source.bytes, hasLength(1048576));
+    expect(nativePsdkEnglishSpeciesNames(source)[0], hasLength(1048576 - 9));
+    expect(() => _csvSource('Data/Text/Dialogs/100000.csv', '$text '),
+        _code('source_witness'));
+  });
+
   final nativeReferenceRoot =
       Platform.environment['AVELUNE_NATIVE_PSDK_REFERENCE_ROOT'];
+  test(
+      'reference generation enumerates native definitions without a game recipe',
+      () async {
+    final root = await Directory.systemTemp.createTemp('native_reference_all_');
+    addTearDown(() => root.delete(recursive: true));
+    final files = _fixtureSources();
+    _addNativeMove(files, 'future_cut', level: 20);
+    await _writeReferenceFiles(root, files);
+    await generator.main([
+      '--catalog-reference',
+      root.path,
+      '${root.path}/out/manifest.json',
+      '${root.path}/out/shards',
+      '${root.path}/out/admission.json',
+    ]);
+    final admission =
+        jsonDecode(await File('${root.path}/out/admission.json').readAsString())
+            as Map;
+    expect(admission['kind'], 'nativePsdkReferenceAdmission');
+    expect(admission['version'], 1);
+    final definitions = (admission['definitions'] as List).cast<Map>();
+    expect(definitions.map((row) => row['baseId']), ['fixture']);
+    expect(definitions.single['status'], 'admitted');
+    expect(definitions.single['englishName'], 'Beedrill');
+    expect(
+        definitions.single['nativeSpeciesIds'], ['fixture', 'fixture_form1']);
+    expect(definitions.single['forms'], [0, 1]);
+    expect(definitions.single['reasons'], isEmpty);
+    final manifest =
+        jsonDecode(await File('${root.path}/out/manifest.json').readAsString())
+            as Map;
+    expect(admission['catalogManifestHash'], canonicalHashOf(manifest).value);
+    final shard = NativePsdkTrainerBundle.fromJson(jsonDecode(await File(
+            '${root.path}/out/shards/${(manifest['shards'] as List).single}.json')
+        .readAsString()) as Map<String, dynamic>);
+    expect(shard.speciesById.keys, containsAll(['fixture', 'fixture_form1']));
+    expect(shard.movesById, contains('future_cut'));
+    expect(
+        shard.learnsetsBySpeciesId['fixture']!.levelUp
+            .where((move) => move.level == 20)
+            .single
+            .moveId,
+        'future_cut');
+    expect(shard.evidence['catalogRequests'], [
+      {'baseId': 'fixture', 'form': 0, 'level': 1}
+    ]);
+    final firstAdmission =
+        await File('${root.path}/out/admission.json').readAsBytes();
+    final second =
+        await Directory.systemTemp.createTemp('native_reference_reverse_');
+    addTearDown(() => second.delete(recursive: true));
+    await _writeReferenceFiles(second, files.reversed);
+    await generator.main([
+      '--catalog-reference',
+      second.path,
+      '${second.path}/out/manifest.json',
+      '${second.path}/out/shards',
+      '${second.path}/out/admission.json',
+    ]);
+    expect(await File('${second.path}/out/admission.json').readAsBytes(),
+        firstAdmission);
+    expect(await File('${second.path}/out/manifest.json').readAsBytes(),
+        await File('${root.path}/out/manifest.json').readAsBytes());
+  });
+
+  test(
+      'reference generation refuses a complete broken family without hiding it',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('native_reference_refusal_');
+    addTearDown(() => root.delete(recursive: true));
+    final files = _fixtureSources();
+    final template = jsonDecode(utf8.decode(files.first.bytes)) as Map;
+    final broken = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+    broken['id'] = 16;
+    broken['dbSymbol'] = 'broken';
+    ((broken['forms'] as List).last as Map)['resources'] = {
+      'front': 'missing',
+      'back': 'missing'
+    };
+    files.add(_source('Data/Studio/pokemon/broken.json', broken));
+    final linked = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+    linked['id'] = 1;
+    linked['dbSymbol'] = 'linked';
+    linked['forms'] = [(linked['forms'] as List).first];
+    ((linked['forms'] as List).first as Map)['evolutions'] = [
+      {'dbSymbol': 'broken', 'form': 0, 'conditions': []}
+    ];
+    files.add(_source('Data/Studio/pokemon/linked.json', linked));
+    await _writeReferenceFiles(root, files);
+    await generator.main([
+      '--catalog-reference',
+      root.path,
+      '${root.path}/out/manifest.json',
+      '${root.path}/out/shards',
+      '${root.path}/out/admission.json',
+    ]);
+    final admission =
+        jsonDecode(await File('${root.path}/out/admission.json').readAsString())
+            as Map;
+    final definitions = (admission['definitions'] as List).cast<Map>();
+    expect(definitions.map((row) => row['baseId']),
+        ['broken', 'fixture', 'linked']);
+    expect(definitions.map((row) => row['status']),
+        ['refused', 'admitted', 'refused']);
+    expect(definitions.first['familyId'], definitions.last['familyId']);
+    expect(definitions.first['familyId'], isNot(definitions[1]['familyId']));
+    for (final row in [definitions.first, definitions.last]) {
+      expect(jsonEncode(row['reasons']), contains('pokefront/missing.png'));
+    }
+    expect(admission['counts'], containsPair('inspectedBases', 3));
+    expect(admission['counts'], containsPair('admittedBases', 1));
+    expect(admission['counts'], containsPair('refusedBases', 2));
+  });
+
+  for (final partnerState in ['valid', 'missing', 'refused']) {
+    test('reference generation closes trade partner family $partnerState',
+        () async {
+      final root =
+          await Directory.systemTemp.createTemp('native_reference_trade_');
+      addTearDown(() => root.delete(recursive: true));
+      final files = _fixtureSources();
+      final template = jsonDecode(utf8.decode(files.first.bytes)) as Map;
+      for (final (base, id) in [
+        ('trader', 1),
+        ('evolved', 2),
+        ('partner', 3)
+      ]) {
+        if (base == 'partner' && partnerState == 'missing') continue;
+        final definition =
+            jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+        definition['id'] = id;
+        definition['dbSymbol'] = base;
+        definition['forms'] = [(definition['forms'] as List).first];
+        if (base == 'trader') {
+          (definition['forms'] as List).single['evolutions'] = [
+            {
+              'dbSymbol': 'evolved',
+              'form': 0,
+              'conditions': [
+                {'type': 'tradeWith', 'value': 'partner'}
+              ]
+            }
+          ];
+        }
+        if (base == 'partner' && partnerState == 'refused') {
+          definition['version'] = 99;
+        }
+        files.add(_source('Data/Studio/pokemon/$base.json', definition));
+      }
+      await _writeReferenceFiles(root, files);
+      final output = File('${root.path}/out/admission.json');
+      await generator.main([
+        '--catalog-reference-preflight',
+        root.path,
+        output.path,
+      ]);
+      final admission = jsonDecode(await output.readAsString()) as Map;
+      final rows = {
+        for (final row in (admission['definitions'] as List).cast<Map>())
+          row['baseId'] as String: row
+      };
+      expect(rows['fixture']!['status'], 'admitted');
+      expect(rows['trader']!['familyId'], rows['evolved']!['familyId']);
+      if (partnerState == 'valid') {
+        expect(rows['trader']!['status'], 'admitted');
+        expect(rows['trader']!['familyId'], rows['partner']!['familyId']);
+      } else {
+        expect(rows['trader']!['status'], 'refused');
+        expect(rows['evolved']!['status'], 'refused');
+        expect(
+            jsonEncode(rows['trader']!['reasons']),
+            contains(partnerState == 'missing'
+                ? 'species_dependency_missing'
+                : 'species_schema'));
+        if (partnerState == 'refused') {
+          expect(rows['partner']!['familyId'], rows['trader']!['familyId']);
+        }
+      }
+    });
+  }
+
+  test('reference generation records unknown species schemas as refused',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('native_reference_schema_');
+    addTearDown(() => root.delete(recursive: true));
+    final files = _fixtureSources();
+    files.add(_source('Data/Studio/pokemon/unknown.json', {
+      'klass': 'FutureSpecie',
+      'version': 99,
+      'dbSymbol': 'unknown',
+      'id': 99,
+      'forms': [
+        {'form': 0}
+      ],
+    }));
+    await _writeReferenceFiles(root, files);
+    await generator.main([
+      '--catalog-reference',
+      root.path,
+      '${root.path}/out/manifest.json',
+      '${root.path}/out/shards',
+      '${root.path}/out/admission.json',
+    ]);
+    final admission =
+        jsonDecode(await File('${root.path}/out/admission.json').readAsString())
+            as Map;
+    final definitions = (admission['definitions'] as List).cast<Map>();
+    expect(definitions.map((row) => row['baseId']), ['fixture', 'unknown']);
+    expect(definitions.last['status'], 'refused');
+    expect(definitions.last['reasons'], isNotEmpty);
+    expect(jsonEncode(definitions.last['reasons']), contains('species_schema'));
+    expect(definitions.first['status'], 'admitted');
+  });
+
+  test('reference generation refuses unknown dependency versions per family',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('native_reference_move_version_');
+    addTearDown(() => root.delete(recursive: true));
+    final files = _fixtureSources();
+    _addNativeMove(files, 'future_move');
+    _mutateSource(files, 'Data/Studio/moves/future_move.json',
+        (raw) => raw['version'] = 99);
+    final broken =
+        jsonDecode(utf8.decode(files.first.bytes)) as Map<String, dynamic>;
+    broken['id'] = 16;
+    broken['dbSymbol'] = 'broken';
+    for (final form in (broken['forms'] as List).cast<Map>()) {
+      (form['moveSet'] as List).add({
+        'klass': 'LevelLearnableMove',
+        'move': 'future_move',
+        'level': 20,
+      });
+    }
+    files.add(_source('Data/Studio/pokemon/broken.json', broken));
+    await _writeReferenceFiles(root, files);
+    await generator.main([
+      '--catalog-reference',
+      root.path,
+      '${root.path}/out/manifest.json',
+      '${root.path}/out/shards',
+      '${root.path}/out/admission.json',
+    ]);
+    final admission =
+        jsonDecode(await File('${root.path}/out/admission.json').readAsString())
+            as Map;
+    final definitions = (admission['definitions'] as List).cast<Map>();
+    expect(definitions.first['baseId'], 'broken');
+    expect(definitions.first['status'], 'refused');
+    expect(
+        jsonEncode(definitions.first['reasons']), contains('source_version'));
+    expect(definitions.last['status'], 'admitted');
+  });
+
+  test('reference generation embedding rejects an admission coverage forgery',
+      () async {
+    final root =
+        await Directory.systemTemp.createTemp('native_reference_embed_');
+    addTearDown(() => root.delete(recursive: true));
+    await _writeReferenceFiles(root, _fixtureSources());
+    await generator.main([
+      '--catalog-reference',
+      root.path,
+      '${root.path}/out/manifest.json',
+      '${root.path}/out/shards',
+      '${root.path}/out/admission.json',
+    ]);
+    await generator.main([
+      '--embed-reference-catalog',
+      '${root.path}/out/manifest.json',
+      '${root.path}/out/shards',
+      '${root.path}/out/admission.json',
+      '${root.path}/out/reference.dart',
+    ]);
+    final embedded =
+        await File('${root.path}/out/reference.dart').readAsBytes();
+    expect(utf8.decode(embedded), contains('nativePsdkReferenceAdmissionHash'));
+    final file = File('${root.path}/out/admission.json');
+    final forged = jsonDecode(await file.readAsString()) as Map;
+    ((forged['definitions'] as List).single as Map)['nativeSpeciesIds'] = [
+      'fixture'
+    ];
+    await file.writeAsString(jsonEncode(forged));
+    await expectLater(
+        generator.main([
+          '--embed-reference-catalog',
+          '${root.path}/out/manifest.json',
+          '${root.path}/out/shards',
+          file.path,
+          '${root.path}/out/reference.dart',
+        ]),
+        throwsA(isA<StateError>()));
+    expect(
+        await File('${root.path}/out/reference.dart').readAsBytes(), embedded);
+  });
+
+  for (final forgery in ['counts', 'refused reasons']) {
+    test('reference generation embedding rejects forged $forgery before output',
+        () async {
+      final root = await Directory.systemTemp
+          .createTemp('native_reference_embed_guard_');
+      addTearDown(() => root.delete(recursive: true));
+      final files = _fixtureSources();
+      final broken =
+          jsonDecode(utf8.decode(files.first.bytes)) as Map<String, dynamic>;
+      broken['id'] = 16;
+      broken['dbSymbol'] = 'broken';
+      broken['version'] = 99;
+      files.add(_source('Data/Studio/pokemon/broken.json', broken));
+      await _writeReferenceFiles(root, files);
+      await generator.main([
+        '--catalog-reference',
+        root.path,
+        '${root.path}/out/manifest.json',
+        '${root.path}/out/shards',
+        '${root.path}/out/admission.json',
+      ]);
+      final output = File('${root.path}/out/reference.dart');
+      await output.writeAsString('previous qualified output');
+      final previous = await output.readAsBytes();
+      final file = File('${root.path}/out/admission.json');
+      final forged = jsonDecode(await file.readAsString()) as Map;
+      if (forgery == 'counts') {
+        (forged['counts'] as Map)['inspectedBases'] = 1;
+      } else {
+        for (final row in (forged['definitions'] as List).cast<Map>()) {
+          if (row['status'] == 'refused') row['reasons'] = [];
+        }
+        for (final row in (forged['families'] as List).cast<Map>()) {
+          if (row['status'] == 'refused') row['reasons'] = [];
+        }
+      }
+      await file.writeAsString(jsonEncode(forged));
+      await expectLater(
+          generator.main([
+            '--embed-reference-catalog',
+            '${root.path}/out/manifest.json',
+            '${root.path}/out/shards',
+            file.path,
+            output.path,
+          ]),
+          throwsA(isA<ContractError>().having((error) => error.code, 'code',
+              'native_catalog.reference_partition')));
+      expect(await output.readAsBytes(), previous);
+    });
+  }
+
   test('corrects only the exact witnessed dangling native Sneasel baby form',
       () async {
     final requests = [
@@ -1598,5 +2034,14 @@ void _addNativeMove(List<NativePsdkTrainerSourceFile> sources, String id,
             .add({'klass': 'LevelLearnableMove', 'move': id, 'level': level});
       }
     });
+  }
+}
+
+Future<void> _writeReferenceFiles(
+    Directory root, Iterable<NativePsdkTrainerSourceFile> sources) async {
+  for (final source in sources) {
+    final file = File('${root.path}/${source.relativePath}');
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(source.bytes);
   }
 }

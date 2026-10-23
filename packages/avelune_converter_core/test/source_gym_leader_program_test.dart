@@ -13,7 +13,11 @@ const gymCases = [
 ];
 
 Future<NormalizedSourceProject> gymSource((String, int, int, String) gym,
-    {void Function(List<TrainerRubyObject>)? mutate}) => trainerSource(
+    {void Function(List<TrainerRubyObject>)? mutate,
+    int mapId = 417, int eventId = 23, String? trainerType,
+    int badgeCountVariableId = 30,
+    String musicName = 'FRLG Fanfare - Badge (Fanfare! Badge Obtained)'}) => trainerSource(
+    mapId: mapId, eventId: eventId,
     eventName: 'Gym leader ${gym.$1}',
     switchNames: List.generate(60, (id) => 'Flag $id'),
     variableNames: List.generate(40, (id) => 'Variable $id'),
@@ -22,21 +26,21 @@ Future<NormalizedSourceProject> gymSource((String, int, int, String) gym,
       pages.first.fields['@list'] = [
         trainerCommand(108, ['Gym battle.']),
         trainerCommand(101, ['Welcome.']),
-        trainerCommand(355, ['pbTrainerIntro(:FRLG_LEADER_${gym.$1})']),
+        trainerCommand(355, ['pbTrainerIntro(:${trainerType ?? 'FRLG_LEADER_${gym.$1}'})']),
         trainerCommand(101, ['Ready?']),
         trainerCommand(108, ['EndSpeech: Good game!']),
-        trainerCommand(111, [12, 'TrainerBattle.start(:FRLG_LEADER_${gym.$1}, "${gym.$1}")']),
+        trainerCommand(111, [12, 'TrainerBattle.start(:${trainerType ?? 'FRLG_LEADER_${gym.$1}'}, "${gym.$1}")']),
         trainerCommand(355, ['\$player.badges[${gym.$2}]=true'], indent: 1),
         trainerCommand(101, [r'\PN received the badge!'], indent: 1),
         trainerCommand(249, [TrainerRubyObject('RPG::AudioFile', {
-          '@name': 'FRLG Fanfare - Badge (Fanfare! Badge Obtained)',
+          '@name': musicName,
           '@volume': 100, '@pitch': 100,
         })], indent: 1),
         trainerCommand(210, [], indent: 1),
         trainerCommand(101, ['Take this TM.'], indent: 1),
         trainerCommand(355, ['pbReceiveItem(:${gym.$4})'], indent: 1),
         trainerCommand(101, ['It teaches a move.'], indent: 1),
-        trainerCommand(122, [30, 30, 1, 0, 1], indent: 1),
+        trainerCommand(122, [badgeCountVariableId, badgeCountVariableId, 1, 0, 1], indent: 1),
         trainerCommand(121, [gym.$3, gym.$3, 0], indent: 1),
         trainerCommand(0, [], indent: 1),
         trainerCommand(412, []), trainerCommand(355, ['pbTrainerEnd']),
@@ -92,6 +96,39 @@ Future<NormalizedSourceProject> extendedGymSource(String name,
 }
 
 void main() {
+  test(
+      'gym roles are derived from authored trainer badge counter reward and music',
+      () async {
+    final source = await gymSource(('Aster', 4, 43, 'ORIGINAL_REWARD'),
+        mapId: 731,
+        eventId: 87,
+        trainerType: 'ORIGINAL_MASTER',
+        badgeCountVariableId: 9,
+        musicName: 'Original Award');
+    final event = analyzeTrainerSource(source).events.single;
+    final program =
+        event.pages.first.body.nodes.single as SourceTrainerProgramNode;
+    expect(event.sourceMapId, 731);
+    expect(event.sourceEventId, 87);
+    expect(program.trainerType, 'ORIGINAL_MASTER');
+    expect(program.trainerName, 'Aster');
+    expect(program.gymLeader!.sourceBadgeIndex, 4);
+    expect(program.gymLeader!.completionSwitchId, 43);
+    expect(program.gymLeader!.rewardSymbol, 'ORIGINAL_REWARD');
+    expect(program.gymLeader!.toJson()['badgeCountVariableId'], 9);
+    expect(
+        (program.victoryContinuation.nodes.first
+                as SourceGymBadgePresentationNode)
+            .musicName,
+        'Original Award');
+    expect(
+        program.isBoundToSourceEvent(
+            source: source,
+            profile: analyzeTrainerSource(source).profile,
+            sourceMapId: 731,
+            event: source.maps.single.map.events.single),
+        isTrue);
+  });
   for (final name in ['Blaine', 'Giovanni']) {
     test('recognizes complete multistage gym $name with raw stage binding', () async {
       final source = await extendedGymSource(name);
@@ -126,11 +163,11 @@ void main() {
         switch (mutation) {
           case 'extraBranchEffect': after.insert(3, trainerCommand(123, ['A', 0], indent: 1));
           case 'wrongBranchVariable': after[1] = trainerCommand(111, [1, 39, 0, 5, 0]);
-          case 'wrongBranchValue': after[1] = trainerCommand(111, [1, 38, 0, 6, 0]);
+          case 'wrongBranchValue': after[1] = trainerCommand(111, [1, 38, 0, -1, 0]);
           case 'missingDeparture': after.removeAt(4);
           case 'wrongFade': (after[2] as TrainerRubyObject).fields['@parameters'] = [0, 6];
           case 'wrongPickupSwitch': (pages[2].fields['@list'] as List)[1] = trainerCommand(123, ['A', 0], indent: 1);
-          case 'wrongPickup': (pages[2].fields['@list'] as List)[0] = trainerCommand(111, [12, 'pbItemBall(:POTION)']);
+          case 'wrongPickup': (pages[2].fields['@list'] as List)[0] = trainerCommand(111, [12, 'pbItemBall()']);
           case 'visibleHiddenPage': (pages[2].fields['@graphic'] as TrainerRubyObject).fields['@character_name'] = 'trainer_BUGCATCHER';
           case 'wrongRemovedCondition': (pages[3].fields['@condition'] as TrainerRubyObject).fields['@self_switch_ch'] = 'C';
         }
@@ -184,9 +221,9 @@ void main() {
       final source = await gymSource(gymCases.first, mutate: (pages) {
         final commands = pages.first.fields['@list'] as List;
         switch (mutation) {
-          case 'badge': commands[6] = trainerCommand(355, [r'$player.badges[12]=true'], indent: 1);
+          case 'badge': commands[6] = trainerCommand(355, [r'$player.badges[-1]=true'], indent: 1);
           case 'switch': commands[14] = trainerCommand(121, [52, 52, 0], indent: 1);
-          case 'tm': commands[11] = trainerCommand(355, ['pbReceiveItem(:TM999)'], indent: 1);
+          case 'tm': commands[11] = trainerCommand(355, ['pbReceiveItem()'], indent: 1);
           case 'lossReward': commands[6] = trainerCommand(355, [r'$player.badges[11]=true']);
           case 'extraEffect': commands.insert(13, trainerCommand(355, ['arbitrary()'], indent: 1));
           case 'missingBarrier': commands.removeAt(9);

@@ -266,10 +266,27 @@ final class SourceBattleMusicBinding {
       var candidates = matches(name);
       var resolution = 'exactSourceAudio';
       var resolvedName = name;
-      if (candidates.isEmpty && _renamedSourceAudio.containsKey(name)) {
-        resolvedName = _renamedSourceAudio[name]!;
-        candidates = matches(resolvedName);
-        resolution = 'closedRenamedSourceAudio';
+      if (candidates.isEmpty) {
+        final separator = name.indexOf(' ');
+        if (separator > 0 && separator < name.length - 1) {
+          final namespace = name.substring(0, separator);
+          final title = name.substring(separator + 1);
+          final descriptors = <String>[
+            for (final entry in snapshot.entries)
+              if (entry.relativePath.startsWith('Audio/BGM/$namespace ') &&
+                  !entry.relativePath
+                      .substring('Audio/BGM/'.length)
+                      .contains('/') &&
+                  RegExp(r'\.(ogg|wav|mp3|flac)$').hasMatch(entry.relativePath))
+                entry.relativePath.substring(
+                    'Audio/BGM/'.length, entry.relativePath.lastIndexOf('.'))
+          ].where((value) => value.endsWith('($title)')).toList();
+          if (descriptors.length == 1) {
+            resolvedName = descriptors.single;
+            candidates = matches(resolvedName);
+            resolution = 'sourceAudioDescriptor';
+          }
+        }
       }
       if (candidates.length != 1) refuse('audio_missing_or_ambiguous', name);
       final file = candidates.single;
@@ -378,9 +395,9 @@ final class SourceBattleMusicBinding {
       'limitations': [
         'Global metadata defaults and represented trainer overrides only.',
         'Generic map, regional and dynamic source music overrides are not imported.',
-        'Closed renamed-file adaptations are explicit; source playback gain is not reproduced.'
+        'Exact source title descriptors are required; source playback gain is not reproduced.'
       ],
-      'policy': 'exact-declarations-with-closed-renamed-source-audio-v1',
+      'policy': 'exact-declarations-with-source-audio-descriptors-v1',
       'bindings': bindings,
       'sourceFiles': [
         for (final id in readFiles.keys)
@@ -401,23 +418,6 @@ const _globalFields = {
   'TrainerBattleBGM': ('@trainer_battle_BGM', 'trainerBattleMusicPath'),
   'WildVictoryBGM': ('@wild_victory_BGM', 'wildVictoryMusicPath'),
   'TrainerVictoryBGM': ('@trainer_victory_BGM', 'trainerVictoryMusicPath'),
-};
-
-const _renamedSourceAudio = {
-  'FRLG Battle (VS Wild Pokemon)':
-      'FRLG Battle Music - Wild Pokemon (Battle (VS Wild Pokemon))',
-  'FRLG Battle (VS Trainer)':
-      'FRLG Battle Music - Trainer (Battle (VS Trainer))',
-  'FRLG Victory (VS Wild Pokemon)':
-      'FRLG Battle Victory - Wild Pokemon (Victory (VS Wild Pokemon))',
-  'FRLG Victory (VS Trainer)':
-      'FRLG Battle Victory - Trainer (Victory (VS Trainer))',
-  'FRLG Battle (VS Gym Leader)':
-      'FRLG Battle Music - Gym Leader (Battle (VS Gym Leader))',
-  'FRLG Victory (VS Gym Leader)':
-      'FRLG Battle Victory - Gym Leader (Victory (VS Gym Leader))',
-  'FRLG The Last Battle (VS Rival)':
-      'FRLG Battle Intro - Champion (The Last Battle (VS Rival))',
 };
 
 Object? _freeze(Object? value) => switch (value) {

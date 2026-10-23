@@ -18,7 +18,8 @@ Object? _literal(Object? value) => switch (value) {
     };
 
 Future<LiteralTileFixture> _mutant(NormalizedSourceProject source,
-    ExternalOriginalFiles files, Map raw, void Function(Map) mutate) async {
+    ExternalOriginalFiles files, Map raw, void Function(Map) mutate,
+    {int mapId = 9}) async {
   final changed = jsonDecode(jsonEncode(raw)) as Map;
   mutate(changed);
   final scripts = source.snapshot.entries
@@ -66,7 +67,7 @@ Future<LiteralTileFixture> _mutant(NormalizedSourceProject source,
         for (var i = 1; i <= 29; i++) 'Variable $i'
       ],
       maps: [
-        LiteralFixtureMap(id: 9, width: 20, height: 20, layers: [
+        LiteralFixtureMap(id: mapId, width: 20, height: 20, layers: [
           List.filled(400, 384),
           List.filled(400, 0),
           List.filled(400, 0)
@@ -90,6 +91,140 @@ final class _PbsOverlayFiles implements SourceFilePort {
 void main() {
   final root = Platform.environment['AVELUNE_STATIC_DOOR_SOURCE_ROOT'];
   final snapshot = Platform.environment['AVELUNE_STATIC_DOOR_SNAPSHOT'];
+  test(
+      'rival roles derive names coordinates switches actor identities rosters and music',
+      () async {
+    final fixture = await readExternalOriginalSource(root!, snapshot!,
+        selectedMapIds: {9},
+        supplementalRoots:
+            (Platform.environment['AVELUNE_STATIC_DOOR_SUPPLEMENTAL_ROOTS'] ??
+                    '')
+                .split('|')
+                .where((v) => v.isNotEmpty)
+                .toList());
+    for (final eventId in [2, 3, 9]) {
+      final original = fixture.source.maps.single.map.events
+          .singleWhere((event) => event.sourceEventId == eventId);
+      final program = SourceFirstRivalProgram.read(
+          source: fixture.source,
+          profile: SourceEventProfile.forProject(fixture.source),
+          sourceMapId: 9,
+          event: original)!;
+      void rename(Map event) {
+        event['id'] = 92;
+        event['name'] = 'Original counterpart';
+        event['x'] = 4;
+        event['y'] = 5;
+        for (final page in event['pages'] as List) {
+          if (page['condition']['switch1_valid'] == true) {
+            page['condition']['switch1_id'] = 65;
+          }
+          if (page['condition']['variable_valid'] == true) {
+            page['condition']['variable_id'] = 19;
+          }
+          for (final command in page['list'] as List) {
+            final args = command['parameters'] as List;
+            if (command['code'] == 111 && args.length == 5 && args[0] == 1) {
+              args[1] = 19;
+            }
+            if (command['code'] == 111 && args.length == 2 && args[0] == 12) {
+              args[1] = (args[1] as String)
+                  .replaceAll('FRLG_RIVAL1', 'ORIGINAL_RIVAL')
+                  .replaceAll('Blue', 'Aster');
+              args[1] = (args[1] as String).replaceAllMapped(
+                  RegExp(r', ([0-9]+)\)$'),
+                  (m) => ', ${int.parse(m[1]!) + 10})');
+              if ((args[1] as String).endsWith('"Aster")')) {
+                args[1] =
+                    (args[1] as String).replaceAll('"Aster")', '"Aster", 10)');
+              }
+            }
+            if (command['code'] == 209 && args[0] is int && args[0] > 0) {
+              args[0] += 100;
+            }
+            if (command['code'] == 355 && args.single is String) {
+              args[0] = (args[0] as String).replaceAllMapped(
+                  RegExp(r'pbSetSelfSwitch\(([0-9]+),'),
+                  (m) => 'pbSetSelfSwitch(${int.parse(m[1]!) + 100},');
+            }
+            if (command['code'] == 241) {
+              args.single['name'] = 'Orbit Overture';
+            }
+          }
+        }
+      }
+
+      for (final variant in [
+        'valid',
+        'mixedName',
+        'mixedMusic',
+        'duplicateVersion',
+        'pathMusic'
+      ]) {
+        final changed =
+            await _mutant(fixture.source, fixture.files, program.raw, (event) {
+          rename(event);
+          final commands = event['pages'][1]['list'] as List;
+          if (variant == 'mixedName' || variant == 'duplicateVersion') {
+            final battle = commands.firstWhere((c) =>
+                c['code'] == 111 &&
+                c['parameters'].length == 2 &&
+                c['parameters'][0] == 12);
+            battle['parameters'][1] = variant == 'mixedName'
+                ? (battle['parameters'][1] as String)
+                    .replaceAll('Aster', 'Another')
+                : (battle['parameters'][1] as String).replaceAll(
+                    RegExp(r', [0-9]+\)$'),
+                    ', ${program.battles[1].trainerVersion + 10})');
+          }
+          if (variant == 'pathMusic') {
+            for (final command in commands.where((c) => c['code'] == 241)) {
+              command['parameters'][0]['name'] = '../Outside';
+            }
+          }
+          if (variant == 'mixedMusic') {
+            commands.firstWhere((c) => c['code'] == 241)['parameters'][0]
+                ['name'] = 'Other Overture';
+          }
+        }, mapId: 731);
+        final source = changed.source;
+        final current = SourceFirstRivalProgram.read(
+            source: source,
+            profile: SourceEventProfile.forProject(source),
+            sourceMapId: 731,
+            event: source.maps.single.map.events.single);
+        if (variant != 'valid') {
+          expect(current, isNull, reason: variant);
+          continue;
+        }
+        expect(current, isNotNull);
+        expect(current!.sourceEventId, 92);
+        expect(current.sourceMapId, 731);
+        expect(current.choiceVariableId, 19);
+        expect(current.offerSwitchId, 65);
+        expect(current.battles.map((b) => b.trainerName).toSet(), {'Aster'});
+        expect(current.battles.map((b) => b.trainerType).toSet(),
+            {'ORIGINAL_RIVAL'});
+        expect(current.battles.map((b) => b.trainerVersion),
+            program.battles.map((b) => b.trainerVersion + 10));
+        expect(current.battles.map((b) => b.lossExitsEvent),
+            program.battles.map((b) => b.lossExitsEvent));
+        expect(current.raw['x'], 4);
+        expect(current.raw['y'], 5);
+        expect(current.battles.every((b) => b.actorEventId > 100), isTrue);
+        expect(current.toJson()['musicName'], 'Orbit Overture');
+        expect(
+            current.isBoundTo(
+                source: source,
+                profile: SourceEventProfile.forProject(source),
+                event: source.maps.single.map.events.single),
+            isTrue);
+      }
+    }
+  },
+      skip: root == null || snapshot == null
+          ? 'Requires explicit original source root and snapshot'
+          : false);
   test(
       'closed first rival preserves all nine source roster branches and lane-specific loss exits',
       () async {
@@ -124,7 +259,9 @@ void main() {
                 509
               }.contains(c.code)).map((c) => "${c.code}:${c.indent}").join(","))}');
       expect(program!.choiceVariableId, 29);
-      final ownedPrograms = analysis.eventAt(9, id)!.pages
+      final ownedPrograms = analysis
+          .eventAt(9, id)!
+          .pages
           .expand((page) => page.body.nodes)
           .whereType<SourceFirstRivalProgramNode>()
           .map((node) => node.program)
@@ -132,15 +269,20 @@ void main() {
       expect(ownedPrograms, hasLength(2));
       for (final owned in ownedPrograms) {
         expect(owned.programHash, program.programHash);
-        expect(canonicalHashOf(owned.toJson()), canonicalHashOf(program.toJson()));
+        expect(
+            canonicalHashOf(owned.toJson()), canonicalHashOf(program.toJson()));
       }
-      expect(SourceFirstRivalProgram.read(source: source,
-          profile: SourceEventProfile(
-              scriptsArchiveHash: profile.scriptsArchiveHash,
-              sourceSnapshotHash: Sha256Hash('0' * 64),
-              normalizationHash: profile.normalizationHash,
-              interpretationProfile: profile.interpretationProfile),
-          sourceMapId: 9, event: original), isNull);
+      expect(
+          SourceFirstRivalProgram.read(
+              source: source,
+              profile: SourceEventProfile(
+                  scriptsArchiveHash: profile.scriptsArchiveHash,
+                  sourceSnapshotHash: Sha256Hash('0' * 64),
+                  normalizationHash: profile.normalizationHash,
+                  interpretationProfile: profile.interpretationProfile),
+              sourceMapId: 9,
+              event: original),
+          isNull);
       expect(program.offerSwitchId, 75);
       expect(
           program.battles.map((b) => b.starterValue), orderedEquals([1, 2, 3]));

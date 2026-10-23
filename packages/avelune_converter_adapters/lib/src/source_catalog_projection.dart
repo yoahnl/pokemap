@@ -8,6 +8,7 @@ import 'native_project_writer.dart';
 import 'native_field_machine_learnsets.dart';
 import 'native_psdk_trainer_bundle.dart';
 import 'native_psdk_catalog.dart';
+import 'native_catalog_publication_selection.dart';
 import 'native_trainer_catalog_bindings.dart';
 import 'native_trainer_catalog_qualification.dart';
 import 'native_encounter_catalog_bindings.dart';
@@ -186,6 +187,7 @@ final class SourceCatalogProjector {
           List<SourcePbsIdentity> requestedTrainerKeys = const [],
           List<SourcePbsIdentity> nativeTrainerKeys = const [],
           NativePsdkCatalog? nativeTrainerBundle,
+          List<String>? requestedNativeSpeciesIds,
           NativeTrainerCatalogQualification? nativeTrainerQualification,
           NativeEncounterCatalogQualification? nativeEncounterQualification,
           NativeEncounterRatePolicy nativeEncounterRatePolicy =
@@ -208,6 +210,7 @@ final class SourceCatalogProjector {
               requestedTrainerKeys,
               nativeTrainerKeys,
               nativeTrainerBundle,
+              requestedNativeSpeciesIds,
               nativeTrainerQualification,
               nativeTrainerMovePolicy,
               nativeEncounterQualification,
@@ -236,6 +239,7 @@ final class _Run {
       this.trainers,
       this.nativeTrainers,
       this.nativeBundle,
+      this.requestedNativeSpeciesIds,
       this.trainerQualification,
       this.nativeMovePolicy,
       this.encounterQualification,
@@ -252,6 +256,7 @@ final class _Run {
   final List<SourcePbsIdentity> trainers;
   final List<SourcePbsIdentity> nativeTrainers;
   final NativePsdkCatalog? nativeBundle;
+  final List<String>? requestedNativeSpeciesIds;
   final NativeTrainerCatalogQualification? trainerQualification;
   final NativeTrainerMovePolicy nativeMovePolicy;
   final NativeEncounterCatalogQualification? encounterQualification;
@@ -277,6 +282,7 @@ final class _Run {
   final preservation = <Map<String, Object?>>[];
   Map<String, Object?> dexEvidence = {};
   NativeSourceSpeciesBindingResult? nativeMediaSpeciesBindings;
+  NativeCatalogPublicationSelection? nativePublicationSelection;
   ConverterId get namespace => source.snapshot.logicalProjectNamespace;
   SourcePbsIdentity identity(SourcePbsFamily family, String symbol,
           {int form = 0}) =>
@@ -595,6 +601,26 @@ final class _Run {
             cancellation: cancel);
     final activeBundle = encounterQualification?.bundle ?? nativeBundle;
     final activeBundleIdentity = activeBundle?.toJson();
+    final nativeReferenceAvailability = activeBundleIdentity != null &&
+            canonicalHashOf(activeBundleIdentity,
+                    limits: nativePsdkCatalogShardJsonLimits).value ==
+                NativePsdkCatalogManifest.builtinManifestHash
+        ? NativePsdkCatalogManifest.builtinReferenceAdmission(
+                catalog: activeBundle!)
+            .summary
+        : null;
+    if (nativeReferenceAvailability != null) {
+      final counts = nativeReferenceAvailability['counts'] as Map;
+      if ((counts['refusedBases'] as int) > 0) {
+        diagnostics.add(SourceCatalogDiagnostic(
+            code: 'native_catalog.reference_partial',
+            message: 'Catalogue natif : ${counts['admittedBases']} espèces de base '
+                'admises sur ${counts['inspectedBases']}. '
+                '${counts['refusedBases']} sont refusées avec leurs familles ; '
+                'les causes et empreintes figurent dans nativeReferenceAvailability.',
+            blocking: false));
+      }
+    }
     final media = activeBundle == null
         ? const <Map<String, Object?>>[]
         : await _publishNativeBundle(
@@ -607,7 +633,7 @@ final class _Run {
             evidence: {
                 ...trainerBinding.evidence,
                 'nativeClosureComplete': true,
-                'globalLearnsetsPublished': true,
+                'selectedSpeciesLearnsetsComplete': true,
                 'globalCatalogComplete': false,
                 'conditionalEvolutionExecutionQualified': false,
                 'media': media
@@ -707,6 +733,10 @@ final class _Run {
                     activeBundle.evidence['sourceSpeciesAdaptations'],
               'runtimeBattleBuilderQualified': false,
             },
+          if (nativePublicationSelection != null)
+            'nativePublicationSelection': nativePublicationSelection!.toJson(),
+          if (nativeReferenceAvailability != null)
+            'nativeReferenceAvailability': nativeReferenceAvailability,
           if (nativeBinding != null)
             'nativeTrainerBindings': nativeBinding.evidence,
           if (nativeMediaSpeciesBindings case final binding?)
@@ -859,13 +889,24 @@ final class _Run {
         }
       }
     }
+    final selection = NativeCatalogPublicationSelection.select(bundle, {
+      ...?requestedNativeSpeciesIds,
+      if (requestedNativeSpeciesIds == null)
+        ...sourceDeclaredNativeSpecies(pbs, bundle),
+      for (final trainer in trainers)
+        ...trainer.team.map((member) => member.speciesId),
+      for (final row in encounterQualification?.sourceMappings ?? const [])
+        row['nativeSpeciesId'] as String,
+    });
+    nativePublicationSelection = selection;
     for (final catalog in bundle.catalogs.values) {
       documents.add(SourceCatalogDocument(
           kind: SourceCatalogDocumentKind.catalog,
           relativePath: 'data/pokemon/catalogs/${catalog.catalog}.json',
           document: catalog.toJson()));
     }
-    for (final species in bundle.speciesById.values) {
+    for (final id in selection.speciesIds.toList()..sort()) {
+      final species = bundle.speciesById[id]!;
       _doc(SourceCatalogDocumentKind.species, 'species', species.id,
           species.toJson());
       _doc(
@@ -881,7 +922,8 @@ final class _Run {
           bundle.mediaBySpeciesId[species.id]!.toJson());
     }
     final targets = <String>{};
-    for (final media in bundle.mediaBySpeciesId.values) {
+    for (final id in selection.speciesIds) {
+      final media = bundle.mediaBySpeciesId[id]!;
       for (final variant in media.variants.values) {
         targets.addAll([variant.frontStatic!, variant.backStatic!]);
       }

@@ -87,7 +87,7 @@ Future<({SourceEventProjection projection, NormalizedSourceProject source,
     SourceEventAnalysis analysis, SourceTrainerEventBindings trainers,
     SourceFilePort files, Map<String, SourcePickupFeedbackBinding> pickups})> _fixture({bool pickup = true,
       bool unknownBadgeCountWriter = false, String gymName = 'Brock',
-      bool authoredTackle = false}) async {
+      bool authoredTackle = false, int region = 1}) async {
   final base = gymName == 'Brock' ? await gym.gymSource(gym.gymCases.first)
       : await gym.extendedGymSource(gymName);
   final event = analyzeGym(base);
@@ -107,7 +107,7 @@ Future<({SourceEventProjection projection, NormalizedSourceProject source,
           command.fields['@code'] as int, (command.fields['@parameters'] as List).cast<Object?>(),
           indent: command.fields['@indent'] as int)]));
   }
-  const settings = 'FIELD_MOVES_COUNT_BADGES = false\nREGION_HM_ARRAY = [[],[12,13,15,14,11,17]]\n'
+  final settings = 'FIELD_MOVES_COUNT_BADGES = false\nREGION_HM_ARRAY = ${jsonEncode(List.generate(region + 1, (_) => [12,13,15,14,11,17]))}\n'
       'BADGE_FOR_CUT = 0\nBADGE_FOR_FLY = 1\nBADGE_FOR_SURF = 2\nBADGE_FOR_STRENGTH = 3\n'
       'BADGE_FOR_FLASH = 4\nBADGE_FOR_ROCKSMASH = 5\n';
   final settingsBytes = utf8.encode(settings);
@@ -135,7 +135,7 @@ Future<({SourceEventProjection projection, NormalizedSourceProject source,
       'events.Settings': {'index': 0, 'name': 'Settings', 'sha256': literalFixtureHash(settingsBytes).value},
     },
     'presentationBindings': {'characterSubstitutions': [], 'routedDoorPatterns': [],
-      'pickupFeedbackByRegion': [{'regionId': 1,
+      'pickupFeedbackByRegion': [{'regionId': region,
         'windowskinPinnedAsset': pin(skinPath, skin),
         'iconsByPocket': {'4': pin(iconPath, icon), '1': pin(iconPath, icon)},
         'audioByItemKind': {'machine': pin(audioPath, audio), 'item': pin(audioPath, audio)}}]},
@@ -179,9 +179,9 @@ Future<({SourceEventProjection projection, NormalizedSourceProject source,
             '@species': LiteralFixtureSymbol('RATTATA'), '@form': 0, '@real_name': 'Rattata'})}),
         'Graphics/Characters/trainer_BUGCATCHER.png': image.encodePng(image.Image(width: 128, height: 192)),
         'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = trainer_BUGCATCHER\n'),
-        'PBS/map_metadata.txt': utf8.encode('[001]\nMapPosition = 1,0,0\n'),
-        'Data/map_metadata.dat': literalFixtureMarshal({1: const LiteralFixtureObject('GameData::MapMetadata',
-          {'@id': 1, '@town_map_position': [1, 16, 5], '@real_name': 'Arena'})}),
+        'PBS/map_metadata.txt': utf8.encode('[001]\nMapPosition = $region,0,0\n'),
+        'Data/map_metadata.dat': literalFixtureMarshal({1: LiteralFixtureObject('GameData::MapMetadata',
+          {'@id': 1, '@town_map_position': [region, 16, 5], '@real_name': 'Arena'})}),
         'Data/items.dat': literalFixtureMarshal({LiteralFixtureSymbol(machine):
           LiteralFixtureObject('GameData::Item', {
             '@id': LiteralFixtureSymbol(machine), '@real_name': machine, '@real_name_plural': '${machine}s',
@@ -329,6 +329,13 @@ Future<({GameState state, List<String> effects, List<String> dialogues})> runSou
 }
 
 void main() {
+  test('gym badge region comes from source metadata and settings matrix', () async {
+    final fixture = await _fixture(region: 0);
+    final binding = fixture.trainers.byEventIdentity.values.single.gymLeader!;
+    expect(binding.badge.id, startsWith('source_badge_r0_b11_'));
+    expect(binding.badge.fieldAbilityUnlock, FieldAbility.flash);
+  });
+
   test('gym bindings compare only matching inventory identities and preserve exact admission', () async {
     final fixture = await _fixture();
     final trainer = fixture.trainers.byEventIdentity.values.single;

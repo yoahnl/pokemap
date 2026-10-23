@@ -307,6 +307,15 @@ final class NativePsdkCatalogRequest {
 
 final _nativeSymbol = RegExp(r'^[a-z][a-z0-9_]*$');
 
+Map<int, String> nativePsdkEnglishSpeciesNames(
+    NativePsdkTrainerSourceFile file) {
+  final table = _NativePsdkNameTable(file);
+  return Map.unmodifiable({
+    for (var index = 0; index < table.rows.length; index++)
+      index: table.rows[index][table.enIndex].replaceAll(r'\nl', '\n'),
+  });
+}
+
 final class _NativePsdkNameTable {
   _NativePsdkNameTable._(this.path, this.rows, this.enIndex, this.frIndex);
 

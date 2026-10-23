@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_psdk_catalog.dart';
+import 'native_psdk_trainer_bundle.dart';
 import 'native_source_species_bindings.dart';
 import 'native_project_writer.dart';
 import 'source_event_sound_binding.dart';
@@ -151,6 +152,7 @@ final class SourceDecorativePokemonBindingResolver {
       required SourceEventDefinition event,
       required SourceFilePort files,
       SourcePbsProject? pbs,
+      NativePsdkCatalog? nativeCatalog,
       NativeWriteLimits limits = const NativeWriteLimits(),
       ScanCancellation? cancellation}) async {
     Never refuse() => throw const NativeWriteException(
@@ -181,7 +183,7 @@ final class SourceDecorativePokemonBindingResolver {
         snapshot: source.snapshot,
         source: catalogSource,
         files: files,
-        nativeCatalog: NativePsdkCatalogManifest.builtin(),
+        nativeCatalog: nativeCatalog ?? NativePsdkCatalogManifest.builtin(),
         requestedSourceSymbols: [symbol],
         cancellation: cancellation);
     if (species.rows.length != 1 ||

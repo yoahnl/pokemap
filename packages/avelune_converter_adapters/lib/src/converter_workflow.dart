@@ -599,8 +599,24 @@ final class ConverterWorkflow {
         !prepared.canApprove ||
         prepared.nativeDraft == null ||
         prepared.previewPlan == null) {
-      throw const ConverterWorkflowFailure('workflow.recipe.unavailable',
-          'Prepare a current, reviewable study plan before exporting its recipe.');
+      final reasons = <String>{
+        if (prepared != null) ...[
+          for (final diagnostic in prepared.normalizedSource.diagnostics)
+            if (diagnostic.blocksPlanning)
+              '${diagnostic.code}: ${diagnostic.message}',
+          for (final diagnostic in prepared.composition.diagnostics)
+            if (diagnostic.blocksPlanning)
+              '${diagnostic.code}: ${diagnostic.message}',
+          for (final finding in prepared.previewPlan?.findings ?? const [])
+            if (finding.blocksStudy)
+              '${finding.code.value}: ${finding.message}',
+        ],
+      };
+      final detail = reasons.take(8).map((reason) =>
+          reason.length <= 512 ? reason : reason.substring(0, 512)).join('\n');
+      throw ConverterWorkflowFailure('workflow.recipe.unavailable',
+          'Prepare a current, reviewable study plan before exporting its recipe.'
+          '${detail.isEmpty ? '' : '\n$detail'}');
     }
     return _studyPlanRecipe(prepared);
   }
@@ -2252,18 +2268,22 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 8,
+      'version': 9,
       'sourceRoutedDoorPatterns': 'attested-source-paired-pages-and-exact-atlas-v1',
       'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
       'sourceMissingItemSuggestions': 'qualified-selected-blocked-preparation-v1',
       'sourceVariableWriterPolicy': 'explicit-read-consumers-v1',
-      'sourceBattleMusic': 'attested-declarations-closed-renamed-audio-v1',
+      'sourceBattleMusic': 'exact-declarations-with-source-audio-descriptors-v1',
+      'sourceContentPrograms': 'coherent-structural-operand-capture-v1',
+      'nativeCatalogPublication': 'project-reference-dependency-closure-v1',
       'sourceArrivalCollisionOwners': 'qualified-presented-owner-conservative-union-v1',
       'sourceAdaptations': 'closed-event-defects-and-missing-catalog-entries-original-byte-provenance-v1',
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {
         'qualification': 'exact-source-full-pbs-selected-map-scope-v2',
         'catalogManifestHash': NativePsdkCatalogManifest.builtinManifestHash,
+        'referenceAdmissionHash':
+            NativePsdkCatalogManifest.builtinReferenceAdmissionHash,
         'rockSmashProof': 'qualification-evidence-sha256-v2',
         'defaultBudget': _writeLimitsJson(sourceCatalogStudyWriteLimitsFor(1,
             includeNativeCatalog: true)),

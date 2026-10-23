@@ -4,13 +4,13 @@ enum SourceGymLeaderStage { afterVictory, departure, hiddenPickup, removed }
 
 final class SourceGymLeaderPolicy {
   const SourceGymLeaderPolicy._(this.sourceBadgeIndex, this.completionSwitchId,
-      this.rewardSymbol);
-  final int sourceBadgeIndex, completionSwitchId;
+      this.rewardSymbol, this.badgeCountVariableId, this.rewardQuantity);
+  final int sourceBadgeIndex, completionSwitchId, badgeCountVariableId, rewardQuantity;
   final String rewardSymbol;
   Map<String, Object?> toJson() => {
-    'kind': 'kantoGymLeader', 'sourceBadgeIndex': sourceBadgeIndex,
-    'completionSwitchId': completionSwitchId, 'badgeCountVariableId': 30,
-    'rewardSymbol': rewardSymbol, 'rewardQuantity': 1,
+    'kind': 'gymLeader', 'sourceBadgeIndex': sourceBadgeIndex,
+    'completionSwitchId': completionSwitchId, 'badgeCountVariableId': badgeCountVariableId,
+    'rewardSymbol': rewardSymbol, 'rewardQuantity': rewardQuantity,
     'badgePresentation': 'aveluneAnnouncementWithSourceMusicEffect',
     'sourceOpcode249TimingParityQualified': false,
     'machineUseParityQualified': false,
@@ -125,20 +125,9 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
     final cursor = _SourceTrainerProgramCursor(values.first['list'] as List);
     final challenge = cursor.texts();
     final intro = cursor.literal(355);
-    final match = RegExp(r'^pbTrainerIntro\(:(FRLG_LEADER_(Brock|Misty|Surge|Erika|Koga|Sabrina|Blaine|Giovanni))\)$').firstMatch(intro);
+    final match = RegExp(r'^pbTrainerIntro\(:([A-Za-z_][A-Za-z0-9_]*)\)$').firstMatch(intro);
     if (match == null) return null;
-    final policy = switch (match[2]) {
-      'Brock' => const SourceGymLeaderPolicy._(11, 51, 'TM100'),
-      'Misty' => const SourceGymLeaderPolicy._(12, 52, 'TM089'),
-      'Surge' => const SourceGymLeaderPolicy._(13, 53, 'TM098'),
-      'Erika' => const SourceGymLeaderPolicy._(14, 54, 'TM065'),
-      'Koga' => const SourceGymLeaderPolicy._(15, 55, 'TM006'),
-      'Sabrina' => const SourceGymLeaderPolicy._(16, 56, 'TM090'),
-      'Blaine' => const SourceGymLeaderPolicy._(17, 57, 'TM038'),
-      'Giovanni' => const SourceGymLeaderPolicy._(18, 58, 'TM026'),
-      _ => throw const FormatException(),
-    };
-    if (event.pages.length != (match[2] == 'Giovanni' ? 4 : 2)) return null;
+    final hasDeparture = event.pages.length == 4;
     challenge.addAll(cursor.texts());
     final endSpeech = cursor.literal(108);
     if (!endSpeech.startsWith('EndSpeech: ')) return null;
@@ -147,18 +136,22 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
     final battleMatch = RegExp(r'^TrainerBattle\.start\(:([A-Za-z_][A-Za-z0-9_]*), (.+)\)$').firstMatch(battle.last as String);
     if (battleMatch == null || battleMatch[1] != match[1]) return null;
     final args = _sourceTrainerLiteralArguments(battleMatch[2]!);
-    if (args == null || args.version != 0) return null;
+    if (args == null) return null;
     final completion = analyzer._pageCondition(event.pages[1],
         mapId, event.sourceEventId, analyzer._switchNames());
     if (completion.kind != SourceEventConditionKind.all ||
         completion.children.length != 1 ||
         completion.children.single.kind != SourceEventConditionKind.globalSwitch ||
-        completion.children.single.factId != analyzer.globalFactId(policy.completionSwitchId) ||
         !completion.children.single.expectedValue) {
       return null;
     }
     final start = cursor.index;
-    cursor.expect(355, 1, ['\$player.badges[${policy.sourceBadgeIndex}]=true']);
+    final badge = cursor.take(355, 1);
+    if (badge.length != 1 || badge.single is! String) return null;
+    final badgeMatch = RegExp(r'^\$player\.badges\[([0-9]{1,4})\]=true$')
+        .firstMatch(badge.single as String);
+    if (badgeMatch == null) return null;
+    final badgeIndex = int.parse(badgeMatch[1]!);
     final parser = _SourceEventParser(analyzer, event.pages.first.commands,
         _eventLocator(path, mapId, event.sourceEventId, 0), mapId,
         event.sourceEventId, analyzer._switchNames(), refs.first)..index = cursor.index;
@@ -173,18 +166,17 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
     if (audio.length != 1 || audio.single is! Map) return null;
     final music = audio.single as Map;
     if (music['__class__'] != 'RPG::AudioFile' ||
-        music['name'] != 'FRLG Fanfare - Badge (Fanfare! Badge Obtained)' ||
+        music['name'] is! String ||
+        (music['name'] as String).isEmpty ||
+        (music['name'] as String).length > 512 ||
+        RegExp(r'[\\/:<>\x00-\x1f]').hasMatch(music['name'] as String) ||
         music['volume'] != 100 || music['pitch'] != 100) {
       return null;
     }
     final rawAudio = parser._rawFacingParameters(event.pages.first.commands[audioIndex], 1);
     final audioReference = parser._facingReference(event.pages.first.commands[audioIndex], 0, rawAudio.single);
     cursor.expect(210, 1, const []);
-    final presentation = SourceGymBadgePresentationNode._(
-        SourceEventSpan(firstCommandIndex: start, lastCommandIndex: cursor.index - 1,
-            locator: event.pages.first.commands[start].sourceLocator),
-        policy: policy, announcement: announcement,
-        musicName: music['name'] as String, volume: 100, rawAudioReference: audioReference);
+    final presentationEnd = cursor.index - 1;
     parser.index = cursor.index;
     final remainder = parser._block(1);
     if (remainder.isQuarantined) return null;
@@ -201,18 +193,30 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
     if (!texts() || i >= nodes.length || nodes[i] is! SourcePickupNode) return null;
     final pickup = nodes[i++] as SourcePickupNode;
     if (pickup.helper != SourceItemGrantHelper.receiveItem ||
-        pickup.sourceSymbol != policy.rewardSymbol || pickup.quantity != 1 || !texts() ||
+        pickup.quantity < 1 || !texts() ||
         i + 2 != nodes.length || nodes[i] is! SourceVariableAdjustNode ||
         nodes[i + 1] is! SourceSwitchNode) {
       return null;
     }
     final count = nodes[i] as SourceVariableAdjustNode;
     final flag = nodes[i + 1] as SourceSwitchNode;
-    if (count.firstId != 30 || count.lastId != 30 || count.subtract || count.operand != 1 ||
+    if (count.firstId < 1 || count.lastId != count.firstId || count.subtract || count.operand != 1 ||
         count.factIds.length != 1 || !flag.value || flag.factIds.length != 1 ||
-        flag.factIds.single != analyzer.globalFactId(policy.completionSwitchId)) {
+        flag.factIds.single != completion.children.single.factId) {
       return null;
     }
+    final policy = SourceGymLeaderPolicy._(badgeIndex, flag.firstId,
+        pickup.sourceSymbol, count.firstId, pickup.quantity);
+    final presentation = SourceGymBadgePresentationNode._(
+        SourceEventSpan(
+            firstCommandIndex: start,
+            lastCommandIndex: presentationEnd,
+            locator: event.pages.first.commands[start].sourceLocator),
+        policy: policy,
+        announcement: announcement,
+        musicName: music['name'] as String,
+        volume: 100,
+        rawAudioReference: audioReference);
     cursor.index = parser.index;
     final terminal = (values.first['list'] as List)[cursor.index - 1] as Map;
     if (terminal['code'] != 0 || terminal['indent'] != 1 ||
@@ -226,9 +230,25 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
     final after = _SourceTrainerProgramCursor(values[1]['list'] as List);
     final afterLines = after.texts();
     final stageBodies = <int, SourceEventBlock>{};
-    if (match[2] == 'Blaine') {
-      for (final expected in [5, -1]) {
-        after.expect(111, 0, [1, 38, 0, expected, 0]);
+    final hasMemoryBranches =
+        !after.isDone && (after.commands[after.index] as Map)['code'] == 111;
+    if (hasMemoryBranches) {
+      int? variable;
+      final compared = <int>{};
+      for (var branch = 0; branch < 2; branch++) {
+        final condition = after.take(111, 0);
+        if (condition.length != 5 ||
+            condition[0] != 1 ||
+            condition[1] is! int ||
+            (condition[1] as int) < 1 ||
+            condition[2] != 0 ||
+            condition[3] is! int ||
+            condition[4] != 0 ||
+            variable != null && variable != condition[1] ||
+            !compared.add(condition[3] as int)) {
+          return null;
+        }
+        variable = condition[1] as int;
         var lines = 0;
         while (!after.isDone && (after.commands[after.index] as Map)['code'] == 101) {
           final text = after.take(101, 1);
@@ -244,15 +264,23 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
       }
     }
     const turn = {'__class__': 'RPG::MoveCommand', 'code': 25, 'parameters': <Object?>[]};
-    if (match[2] != 'Giovanni') {
+    if (!hasDeparture) {
       after.expect(209, 0, [0, {'__class__': 'RPG::MoveRoute', 'repeat': false,
         'skippable': false, 'list': [turn, const {'__class__': 'RPG::MoveCommand',
           'code': 0, 'parameters': <Object?>[]}]}]);
       after.expect(509, 0, const [turn]);
       after.expect(0, 0, const []);
     } else {
-      after.expect(250, 0, [const {'__class__': 'RPG::AudioFile',
-        'name': 'Exit Door', 'volume': 80, 'pitch': 100}]);
+      final sound = after.take(250, 0);
+      if (sound.length != 1 || sound.single is! Map) return null;
+      final effect = sound.single as Map;
+      if (effect['__class__'] != 'RPG::AudioFile' ||
+          effect['name'] is! String ||
+          (effect['name'] as String).isEmpty ||
+          effect['volume'] != 80 ||
+          effect['pitch'] != 100) {
+        return null;
+      }
       final firstTone = after.take(223, 0);
       if (firstTone.length != 2 || firstTone[1] != 6) return null;
       after.expect(106, 0, const [8]);
@@ -262,7 +290,7 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
       after.expect(0, 0, const []);
     }
     if (!after.isDone) return null;
-    if (const {'Blaine', 'Giovanni'}.contains(match[2])) {
+    if (hasMemoryBranches || hasDeparture) {
       for (final candidate in event.pages.skip(1)) {
         final stageParser = _SourceEventParser(analyzer, candidate.commands,
             _eventLocator(path, mapId, event.sourceEventId, candidate.originalPageIndex),
@@ -271,7 +299,7 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
         if (body.isQuarantined) return null;
         stageBodies[candidate.originalPageIndex] = body;
       }
-      if (match[2] == 'Giovanni' && !_sourceGymGiovanniStages(analyzer, mapId,
+      if (hasDeparture && !_sourceGymDepartureStages(analyzer, mapId,
           event, stageBodies)) {
         return null;
       }
@@ -284,14 +312,14 @@ SourceEventBlock? _sourceGymLeaderProgramBlock(SourceEventAnalyzer analyzer,
             locator: event.pages.first.commands[start].sourceLocator));
     return SourceEventBlock(span: span, nodes: [SourceTrainerProgramNode._(span,
         kind: page.originalPageIndex == 0 ? SourceTrainerProgramKind.encounter : SourceTrainerProgramKind.afterWin,
-        trainerType: match[1]!, trainerName: args.name, trainerVersion: 0,
+        trainerType: match[1]!, trainerName: args.name, trainerVersion: args.version,
         defeatPolicy: _sourceTrainerDefeatPolicy(analyzer),
         detectionDistance: 0, defeatedFactId: analyzer.globalFactId(policy.completionSwitchId),
-        afterDialogueFacesPlayer: match[2] != 'Giovanni', challengeLines: challenge, afterWinLines: afterLines,
+        afterDialogueFacesPlayer: !hasDeparture, challengeLines: challenge, afterWinLines: afterLines,
         victoryContinuation: victory, gymLeader: policy, endSpeechComment: endSpeech,
         gymStageBody: stageBodies[page.originalPageIndex],
         gymStage: page.originalPageIndex == 0 ? null : page.originalPageIndex == 1
-            ? (match[2] == 'Giovanni' ? SourceGymLeaderStage.departure : SourceGymLeaderStage.afterVictory)
+            ? (hasDeparture ? SourceGymLeaderStage.departure : SourceGymLeaderStage.afterVictory)
             : page.originalPageIndex == 2 ? SourceGymLeaderStage.hiddenPickup : SourceGymLeaderStage.removed,
         sourceTriggerCode: 0, sourceMoveType: 0, rawDataRef: refs[page.originalPageIndex],
         sourcePageRefs: refs, sourceSnapshotHash: analyzer.project.snapshot.canonicalHash,
@@ -322,7 +350,7 @@ bool _sourceGymPageMetadata(Map<String, Object?> value, int index) {
   }, 0);
 }
 
-bool _sourceGymGiovanniStages(SourceEventAnalyzer analyzer, int mapId,
+bool _sourceGymDepartureStages(SourceEventAnalyzer analyzer, int mapId,
     SourceEvent event, Map<int, SourceEventBlock> stages) {
   for (final (index, letter) in [(2, 'A'), (3, 'B')]) {
     final condition = analyzer._pageCondition(event.pages[index], mapId,
@@ -358,8 +386,7 @@ bool _sourceGymGiovanniStages(SourceEventAnalyzer analyzer, int mapId,
   final branch = pickup.single as SourceConditionalNode;
   if (branch.condition.kind != SourceEventConditionKind.pickup ||
       branch.condition.pickup?.helper != SourceItemGrantHelper.itemBall ||
-      branch.condition.pickup?.sourceSymbol != 'MACHOBRACE' ||
-      branch.condition.pickup?.quantity != 1 || branch.whenFalse.nodes.isNotEmpty ||
+      (branch.condition.pickup?.quantity ?? 0) < 1 || branch.whenFalse.nodes.isNotEmpty ||
       branch.whenTrue.nodes.length != 1 || branch.whenTrue.nodes.single is! SourceSelfSwitchNode) {
     return false;
   }

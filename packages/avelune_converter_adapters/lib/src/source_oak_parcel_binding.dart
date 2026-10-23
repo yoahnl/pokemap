@@ -78,7 +78,7 @@ final class SourceOakParcelBinding {
         },
         'regionalDex': {
           'file': dexFile.toJson(),
-          'index': 1,
+          'index': program.dexIndex,
           'sourceSpecies': dexSpecies,
           'sourceStatePreserved': true,
           'nativePresentation': 'avelunePokedexCatalog',
@@ -198,7 +198,7 @@ final class SourceOakParcelBindingResolver {
       }
     }
     final companions = <int, Sha256Hash>{};
-    for (final id in const [12, 15, 25]) {
+    for (final id in program.companionEventIds) {
       final actor = analysis.eventAt(program.sourceMapId, id);
       final fresh = originalAnalysis.eventAt(program.sourceMapId, id);
       if (actor == null ||
@@ -207,12 +207,13 @@ final class SourceOakParcelBindingResolver {
               canonicalJsonOf(_eventValue(fresh))) {
         return null;
       }
-      if (id == 25 && !_rivalCompanion(actor, analyzer)) {
+      if (id == program.rivalEventId && !_rivalCompanion(actor, analyzer)) {
         return null;
       }
       companions[id] = canonicalHashOf(_eventValue(actor));
     }
-    final through = _oakInheritedActorThrough(source, program.sourceMapId, 25);
+    final through = _oakInheritedActorThrough(
+        source, program.sourceMapId, program.rivalEventId);
     if (through == null) return null;
     final commonEvents = source.archive.files.values
         .singleWhere(
@@ -231,7 +232,7 @@ final class SourceOakParcelBindingResolver {
       throw const NativeWriteException('events.oak_parcel.concurrency_changed',
           'The source common-event interpreter census differs from its complete inventory.');
     }
-    for (final symbol in const ['OAKPARCEL', 'POKEBALL']) {
+    for (final symbol in [program.parcelSymbol, program.rewardSymbol]) {
       final item = items[symbol];
       if (item == null ||
           item.sourceSymbol != symbol ||
@@ -318,11 +319,11 @@ final class SourceOakParcelBindingResolver {
     final document = archive.add(dex, bytes).document;
     final root = document.node(document.rootId);
     if (root.kind != MarshalKind.array ||
-        root.elements.length < 2 ||
+        root.elements.length <= program.dexIndex ||
         root.elements.length > 32) {
       return null;
     }
-    final region = document.node(root.elements[1]);
+    final region = document.node(root.elements[program.dexIndex]);
     if (region.kind != MarshalKind.array ||
         region.elements.isEmpty ||
         region.elements.length > 2048) {
@@ -345,7 +346,8 @@ final class SourceOakParcelBindingResolver {
         companionHashes: Map.unmodifiable(companions),
         tileActors: Map.unmodifiable(props),
         items: Map.unmodifiable({
-          for (final symbol in ['OAKPARCEL', 'POKEBALL']) symbol: items[symbol]!
+          for (final symbol in [program.parcelSymbol, program.rewardSymbol])
+            symbol: items[symbol]!
         }),
         audio: Map.unmodifiable(audio),
         dexFile: dex,
@@ -354,7 +356,8 @@ final class SourceOakParcelBindingResolver {
         inheritedThroughEvidence: through,
         throughCommonEventsFile: commonEvents,
         hasPokedexSourceFactId: 'source:$namespace:player:has_pokedex',
-        unlockedDexSourceFactId: 'source:$namespace:player:pokedex:unlocked:1');
+        unlockedDexSourceFactId:
+            'source:$namespace:player:pokedex:unlocked:${program.dexIndex}');
     return result.isBoundTo(source, analysis, event) ? result : null;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 
 import 'native_psdk_trainer_bundle.dart';
+import 'native_psdk_catalog.dart';
 import 'source_character_presentation_binding.dart';
 
 final class SourcePartyTradeBinding {
@@ -121,7 +122,7 @@ final class SourcePartyTradeBindingResolver {
         profile: source.interpretationProfile,
         charsetName: event.pages.single.graphic?.characterName ?? '');
     final visual = presentation?.substitution == null ? null : presentation;
-    final native = nativeCatalog ?? NativePsdkTrainerBundle.builtin();
+    final native = nativeCatalog ?? NativePsdkCatalogManifest.builtin();
     final rules = <String, Object?>{};
     for (final entry in native.evolutionsBySpeciesId.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key))) {

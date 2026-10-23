@@ -176,7 +176,7 @@ final class SourceFirstRivalBindingResolver {
         final music = await const SourceEventSoundResolver().read(
             source: source,
             files: files,
-            name: 'FRLG Battle Intro - Rival (Rival Appears)',
+            name: program.musicName,
             kind: SourceEventAudioKind.music,
             limits: limits,
             cancellation: cancellation);

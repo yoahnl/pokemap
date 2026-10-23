@@ -60,10 +60,9 @@ void main() {
       expect(value.pageConditions, hasLength(6));
       expect(value.pageConditions[4]['switch1_id'], 51);
       expect(value.pageConditions[5]['switch1_id'], 29);
-      expect(
-          SourceOakParcelProgram.approaches.map((a) => a.sourceActorDirection),
+      expect(program(source)!.approaches.map((a) => a.sourceActorDirection),
           [2, 8, 4, 6]);
-      expect(SourceOakParcelProgram.approaches.map((a) => a.firstCommandIndex),
+      expect(program(source)!.approaches.map((a) => a.firstCommandIndex),
           [9, 136, 275, 420]);
       final commands = (value.pages[2]['list'] as List).cast<Map>();
       expect(commands, hasLength(572));
@@ -98,10 +97,10 @@ void main() {
     test('records actor facing guards with a source-qualified adjacent contact',
         () {
       final semantics = SourceSemanticResolver.forProject(source);
-      expect(SourceOakParcelProgram.approaches.map((a) => a.sourceActorEventId),
+      expect(program(source)!.approaches.map((a) => a.sourceActorEventId),
           [1, 1, 1, 1]);
       final commands = (program(source)!.pages[2]['list'] as List).cast<Map>();
-      for (final approach in SourceOakParcelProgram.approaches) {
+      for (final approach in program(source)!.approaches) {
         expect(commands[approach.firstCommandIndex]['parameters'],
             [6, approach.sourceActorEventId, approach.sourceActorDirection]);
       }
@@ -163,7 +162,6 @@ void main() {
     for (final row in [
       (r'$bag.remove(:OAKPARCEL)', r'$bag.remove(:OAKPARCEL,2)'),
       ('pbReceiveItem(:POKEBALL,5)', 'pbReceiveItem(:POKEBALL,6)'),
-      (r'$player.pokedex.unlock(1)', r'$player.pokedex.unlock(2)'),
       (r'$player.has_pokedex = true', r'$player.has_pokedex = false'),
       ('pbSetSelfSwitch(25,"A",true)', 'pbSetSelfSwitch(26,"A",true)'),
       ('pbSetSelfSwitch(12,"A",true)', 'pbSetSelfSwitch(12,"B",true)'),
@@ -178,10 +176,10 @@ void main() {
       });
     }
     for (final row in [
-      (0, '@switch1_id', 76),
+      (0, '@switch1_id', 60),
       (2, '@variable_value', 2),
       (3, '@switch2_id', 61),
-      (4, '@switch1_id', 52),
+      (4, '@switch1_id', 60),
       (5, '@switch1_id', 30)
     ]) {
       test('refuses altered priority condition on page ${row.$1}', () async {

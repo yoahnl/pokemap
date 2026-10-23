@@ -103,7 +103,7 @@ final class SourceOakParcelTileBindingResolver {
     }
     final original = analyzer.analyze();
     final props = <SourceEventDefinition>[];
-    for (final id in const [12, 15]) {
+    for (final id in program.tileActorEventIds) {
       final candidates = analysis.events
           .where((e) =>
               e.sourceMapId == program.sourceMapId && e.sourceEventId == id)

@@ -70,9 +70,7 @@ SourceEventBlock? _sourceFirstRivalProgramBlock(SourceEventAnalyzer analyzer,
     int mapId, SourceEvent event, SourceEventPage page, SourceLocator locator) {
   if (page.originalPageIndex == 2) return null;
   final program = SourceFirstRivalProgram._read(
-      analyzer: analyzer,
-      sourceMapId: mapId,
-      event: event);
+      analyzer: analyzer, sourceMapId: mapId, event: event);
   if (program == null) return null;
   final raw = analyzer._reference(page.rawDataRef);
   if (raw == null) return null;
@@ -132,11 +130,16 @@ final class SourceFirstRivalProgram {
       profileHash,
       programHash;
 
+  String get musicName => (((raw['pages'] as List)[1]['list'] as List)
+              .firstWhere((command) => command['code'] == 241)['parameters']
+          as List)
+      .single['name'] as String;
+
   static SourceFirstRivalProgram? read(
-      {required NormalizedSourceProject source,
-      required SourceEventProfile profile,
-      required int sourceMapId,
-      required SourceEvent event}) =>
+          {required NormalizedSourceProject source,
+          required SourceEventProfile profile,
+          required int sourceMapId,
+          required SourceEvent event}) =>
       _read(
           analyzer: SourceEventAnalyzer.forProject(source, profile: profile),
           sourceMapId: sourceMapId,
@@ -244,6 +247,7 @@ final class SourceFirstRivalProgram {
         'sourceEventId': sourceEventId,
         'choiceVariableId': choiceVariableId,
         'offerSwitchId': offerSwitchId,
+        'musicName': musicName,
         'sourceSnapshotHash': sourceSnapshotHash.value,
         'normalizationHash': normalizationHash.value,
         'profileHash': profileHash.value,
@@ -383,6 +387,7 @@ final class SourceFirstRivalProgram {
   var phase = 0;
   var rules = 0;
   final music = <int>[];
+  String? musicName;
   final foreign = <int>[];
   final ownWrites = <int>[];
   final allowed = const {
@@ -434,14 +439,21 @@ final class SourceFirstRivalProgram {
       if (c['code'] == 241) {
         if (args.length != 1 || args.single is! Map) return null;
         final a = args.single as Map;
-        if (!same(a, {
-          '__class__': 'RPG::AudioFile',
-          'name': 'FRLG Battle Intro - Rival (Rival Appears)',
-          'volume': 100,
-          'pitch': 100
-        })) {
+        final name = a['name'];
+        if (name is! String ||
+            name.isEmpty ||
+            name.length > 512 ||
+            RegExp(r'[\\/:<>\x00-\x1f]').hasMatch(name) ||
+            musicName != null && musicName != name ||
+            !same(a, {
+              '__class__': 'RPG::AudioFile',
+              'name': name,
+              'volume': 100,
+              'pitch': 100
+            })) {
           return null;
         }
+        musicName = name;
       } else if (!same(args, c['code'] == 242 ? [2] : [])) {
         return null;
       }
@@ -520,17 +532,14 @@ final class SourceFirstRivalProgram {
       calls.length != 3 ||
       !same(calls.map((c) => c.starterValue).toList(), [1, 2, 3]) ||
       calls.map((c) => c.trainerType).toSet().length != 1 ||
-      calls.first.trainerType != 'FRLG_RIVAL1' ||
-      calls.any((c) => c.trainerName != 'Blue') ||
-      !const ['0,1,2', '1,2,0']
-          .contains(calls.map((c) => c.trainerVersion).join(',')) ||
+      calls.map((c) => c.trainerName).toSet().length != 1 ||
+      calls.map((c) => c.trainerVersion).toSet().length != 3 ||
       calls.map((c) => c.lossExitsEvent).toSet().length != 1 ||
       calls.map((c) => c.actorEventId).toSet().length != 3 ||
       calls.any((c) => !foreign.contains(c.actorEventId)) ||
       foreign.length != 6 ||
       foreign.toSet().length != 6 ||
       foreign.contains(raw['id']) ||
-      !foreign.contains(1) ||
       !same(music, [247, 241, 248, 247, 241, 242, 248]) ||
       ownWrites.isEmpty) {
     return null;

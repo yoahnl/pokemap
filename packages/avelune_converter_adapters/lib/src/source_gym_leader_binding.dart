@@ -117,7 +117,7 @@ final class SourceGymLeaderBindingResolver {
     final matrix = RegExp(r'^\s*REGION_HM_ARRAY\s*=\s*(\[(?:[\s\d,\-\[\]])+\])', multiLine: true).allMatches(settings).toList();
     if (count.length != 1 || count.single.group(1) != 'false' || matrix.length != 1) refuse('settings_policy');
     final raw = jsonDecode(matrix.single.group(1)!) as List;
-    if (raw.length > 64 || raw.length < 2 || raw.any((row) => row is! List || row.length > 64 || row.any((value) => value is! int))) refuse('settings_matrix');
+    if (raw.length > 64 || raw.isEmpty || raw.any((row) => row is! List || row.length > 64 || row.any((value) => value is! int))) refuse('settings_matrix');
     final metadata = await read('PBS/map_metadata.txt');
     int? current, region;
     final sections = <int>{};
@@ -134,7 +134,7 @@ final class SourceGymLeaderBindingResolver {
         region = int.parse(position[1]!);
       }
     }
-    if (region != 1) refuse('region');
+    if (region == null || region < 0 || region >= raw.length) refuse('region');
     FieldAbility? ability;
     for (final entry in const {'CUT': FieldAbility.cut, 'FLY': FieldAbility.fly,
       'SURF': FieldAbility.surf, 'STRENGTH': FieldAbility.strength,
@@ -142,7 +142,7 @@ final class SourceGymLeaderBindingResolver {
       final matches = RegExp('^\\s*BADGE_FOR_${entry.key}\\s*=\\s*(-?\\d+)\\s*\$', multiLine: true).allMatches(settings).toList();
       if (matches.length != 1) refuse('ability_policy');
       final column = int.parse(matches.single[1]!);
-      final badges = raw[1] as List;
+      final badges = raw[region] as List;
       if (column < 0 || column >= badges.length) refuse('ability_column');
       if (badges[column] == policy.sourceBadgeIndex) {
         if (ability != null) refuse('ability_conflict');
@@ -151,9 +151,9 @@ final class SourceGymLeaderBindingResolver {
     }
     final namespace = canonicalHashOf({'namespace': source.snapshot.logicalProjectNamespace.value,
       'kind': 'sourceFieldObstacles'}).value.substring(0, 24);
-    final badgeId = 'source_badge_r1_b${policy.sourceBadgeIndex}_$namespace';
+    final badgeId = 'source_badge_r${region}_b${policy.sourceBadgeIndex}_$namespace';
     final badge = BadgeDefinition(id: badgeId,
-        label: 'Badge source ${policy.sourceBadgeIndex} (région 1)', fieldAbilityUnlock: ability);
+        label: 'Badge source ${policy.sourceBadgeIndex} (région $region)', fieldAbilityUnlock: ability);
     final presentation = program.victoryContinuation.nodes.first as SourceGymBadgePresentationNode;
     final base = 'Audio/ME/${presentation.musicName}';
     final audioMatches = source.snapshot.entries.where((entry) {

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'native_psdk_reference_admission.dart';
+
 import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
 import 'package:avelune_converter_adapters/src/native_psdk_catalog.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
@@ -8,28 +10,33 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
-const _trainerKeys = {
-  'FRLG_BUGCATCHER,Brent',
-  'FRLG_BUGCATCHER,Conner',
-  'FRLG_HIKER,Jeremy',
-  'FRLG_HIKER,Alan',
-  'FRLG_HIKER,Brice',
-  'FRLG_PICNICKER,Alicia',
-  'FRLG_PICNICKER,Caitlin',
-  'FRLG_CAMPER,Chris',
-  'FRLG_CAMPER,Drew',
-  'FRLG_PICNICKER,Heidi',
-  'FRLG_POKEMANIAC,Mark',
-};
-
-final class _SourceFiles implements SourceFilePort {
-  const _SourceFiles(this.bytes);
-  final List<int> bytes;
-  @override
-  Future<List<int>> read(ConverterId id) async => bytes;
-}
-
 Future<void> main(List<String> args) async {
+  if (args.isNotEmpty && args.first == '--catalog-reference') {
+    await _buildReference(args.sublist(1));
+    return;
+  }
+  if (args.isNotEmpty && args.first == '--catalog-reference-preflight') {
+    await _buildReference(args.sublist(1), preflight: true);
+    return;
+  }
+  if (args.isNotEmpty && args.first == '--embed-reference-catalog') {
+    final paths = args.sublist(1);
+    if (paths.length != 4) {
+      throw ArgumentError(
+          'Expected manifest, shard directory, admission, Dart output.');
+    }
+    final admission = jsonDecode(await File(paths[2]).readAsString());
+    final manifest = jsonDecode(await File(paths[0]).readAsString());
+    if (admission is! Map<String, dynamic> ||
+        admission['kind'] != 'nativePsdkReferenceAdmission' ||
+        admission['version'] != 1 ||
+        admission['catalogManifestHash'] != canonicalHashOf(manifest).value) {
+      throw StateError(
+          'Reference admission must bind the exact native manifest.');
+    }
+    await _embedCatalog([paths[0], paths[1], paths[3]], admission: admission);
+    return;
+  }
   if (args.isNotEmpty && args.first == '--refresh-targets') {
     await _refreshTargets(args.sublist(1));
     return;
@@ -39,93 +46,41 @@ Future<void> main(List<String> args) async {
     return;
   }
   final sharded = args.isNotEmpty && args.first == '--catalog-shards';
-  final generic =
-      sharded || (args.isNotEmpty && args.first == '--catalog-requests');
-  final paths = generic ? args.sublist(1) : args;
+  if (!sharded && (args.isEmpty || args.first != '--catalog-requests')) {
+    throw ArgumentError(
+        'An explicit native catalog mode is required: --catalog-requests, '
+        '--catalog-shards, or --catalog-reference.');
+  }
+  final paths = args.sublist(1);
   if (paths.length != 4) {
     throw ArgumentError(
-        'Expected [--catalog-requests|--catalog-shards] PSDK root, '
-        'recipe, JSON output, Dart output (or shard directory for --catalog-shards).');
+        'Expected PSDK root, recipe, JSON output, and Dart output '
+        '(or shard directory for --catalog-shards).');
   }
   final root = await Directory(paths[0]).resolveSymbolicLinks();
   final input = File(paths[1]);
-  if (await input.length() >
-      (sharded
-          ? 1048576
-          : generic
-              ? 262144
-              : 16777216)) {
+  if (await input.length() > (sharded ? 1048576 : 262144)) {
     throw StateError('Native catalog recipe input exceeds its limit.');
   }
   final inputBytes = await input.readAsBytes();
-  SourceFileEntry? trainerFile;
-  final trainers = <SourcePbsEntry>[];
   final requests = <NativePsdkCatalogRequest>[];
-  if (generic) {
-    final raw = jsonDecode(utf8.decode(inputBytes));
-    if (raw is! Map<String, dynamic> ||
-        raw['kind'] != 'nativePsdkCatalogRequests' ||
-        raw['version'] != 1 ||
-        raw.keys.any(
-            (key) => !const {'kind', 'version', 'requests'}.contains(key)) ||
-        raw['requests'] is! List ||
-        (raw['requests'] as List).isEmpty ||
-        (raw['requests'] as List).length > (sharded ? 8192 : 256)) {
-      throw StateError(
-          'An exact bounded native catalog request recipe is required.');
+  final raw = jsonDecode(utf8.decode(inputBytes));
+  if (raw is! Map<String, dynamic> ||
+      raw['kind'] != 'nativePsdkCatalogRequests' ||
+      raw['version'] != 1 ||
+      raw.keys
+          .any((key) => !const {'kind', 'version', 'requests'}.contains(key)) ||
+      raw['requests'] is! List ||
+      (raw['requests'] as List).isEmpty ||
+      (raw['requests'] as List).length > (sharded ? 8192 : 256)) {
+    throw StateError(
+        'An exact bounded native catalog request recipe is required.');
+  }
+  for (final request in raw['requests'] as List) {
+    if (request is! Map<String, dynamic>) {
+      throw StateError('A native catalog request must be an object.');
     }
-    for (final request in raw['requests'] as List) {
-      if (request is! Map<String, dynamic>) {
-        throw StateError('A native catalog request must be an object.');
-      }
-      requests.add(NativePsdkCatalogRequest.fromJson(request));
-    }
-  } else {
-    trainerFile = SourceFileEntry(
-        fileId: ConverterId('source-native-trainer-recipe'),
-        relativePath: 'PBS/trainers.txt',
-        kind: SourceNodeKind.file,
-        byteLength: inputBytes.length,
-        sha256: Sha256Hash(crypto.sha256.convert(inputBytes).toString()),
-        format: 'pbs',
-        family: 'pbs');
-    final snapshot = SourceSnapshot(
-        logicalProjectNamespace: ConverterId('kanto-native-trainer-recipe'),
-        policyHash: SourceScanPolicy().canonicalHash,
-        entries: [trainerFile],
-        diagnostics: [],
-        excludedPaths: [],
-        profileEvidence: [],
-        state: SourceScanState.complete);
-    final pbs = await const SourcePbsParser().read(
-        snapshot: snapshot,
-        files: _SourceFiles(inputBytes),
-        families: const {SourcePbsFamily.trainers});
-    trainers.addAll(pbs.entries.where((entry) =>
-        _trainerKeys.contains(
-            '${entry.identity?.trainerType},${entry.identity?.trainerName}') &&
-        entry.identity?.version == 0));
-    if (trainers.length != _trainerKeys.length ||
-        trainers.any((entry) => entry.isBlocked)) {
-      throw StateError('The exact eleven source trainers are required.');
-    }
-    final levels = <String, Set<int>>{};
-    for (final trainer in trainers) {
-      for (final member in trainer.party) {
-        if (member.fields.isNotEmpty || member.headerField.values.length != 2) {
-          throw StateError('Unexpected source party overrides.');
-        }
-        final tokens = member.headerField.values;
-        levels
-            .putIfAbsent(tokens.first.toLowerCase(), () => {})
-            .add(int.parse(tokens.last));
-      }
-    }
-    requests.addAll([
-      for (final entry in levels.entries)
-        for (final level in entry.value)
-          NativePsdkCatalogRequest(baseId: entry.key, form: 0, level: level)
-    ]);
+    requests.add(NativePsdkCatalogRequest.fromJson(request));
   }
 
   if (sharded) {
@@ -157,26 +112,6 @@ Future<void> main(List<String> args) async {
   }
   final bundle = await buildNativePsdkTrainerShard(root, requests);
   final json = bundle.toJson();
-  if (trainerFile != null) {
-    json['evidence'] = {
-      ...bundle.evidence,
-      'sourceRosterFile': trainerFile.toJson(),
-      'sourceTrainerKeys': _trainerKeys.toList()..sort(),
-      'sourceTrainerRosters': {
-        for (final trainer in trainers)
-          '${trainer.identity!.trainerType},${trainer.identity!.trainerName}': [
-            for (final member in trainer.party)
-              {
-                'sourceSpeciesSymbol': member.headerField.values.first,
-                'level': int.parse(member.headerField.values.last)
-              }
-          ]
-      },
-      'sourceRosterLocators': [
-        for (final trainer in trainers) trainer.headerLocator.toJson()
-      ],
-    };
-  }
   final contents = '${const JsonEncoder.withIndent('  ').convert(json)}\n';
   if (contents.contains("'''")) {
     throw StateError('Invalid embedded JSON literal.');
@@ -188,9 +123,6 @@ Future<void> main(List<String> args) async {
   await File(paths[3])
       .writeAsString("const nativePsdkTrainerBundleJson = r'''$contents''';\n");
   stdout.writeln(jsonEncode({
-    'trainers': trainers.length,
-    'members':
-        trainers.fold<int>(0, (sum, trainer) => sum + trainer.party.length),
     'species': bundle.speciesById.length,
     'moves': bundle.movesById.length,
     'types': bundle.catalogs['types']!.entries.length,
@@ -350,7 +282,8 @@ Future<void> _refreshTargets(List<String> paths) async {
   }));
 }
 
-Future<void> _embedCatalog(List<String> paths) async {
+Future<void> _embedCatalog(List<String> paths,
+    {Map<String, dynamic>? admission}) async {
   if (paths.length != 3) {
     throw ArgumentError(
         'Expected --embed-catalog manifest, shard directory, Dart output.');
@@ -390,6 +323,7 @@ Future<void> _embedCatalog(List<String> paths) async {
     shards[hash] = shard;
   }
   final catalog = NativePsdkCatalogManifest.fromJson(raw, shards: shards);
+  if (admission != null) _checkAdmissionCoverage(admission, catalog);
   String literal(Object? document,
           {ContractLimits limits = const ContractLimits()}) =>
       canonicalJsonOf(document, limits: limits).replaceAll("'", r'\u0027');
@@ -404,6 +338,12 @@ Future<void> _embedCatalog(List<String> paths) async {
         "'${entry.key}': r'''${literal(entry.value.toJson(), limits: nativePsdkCatalogShardJsonLimits)}''',");
   }
   output.writeln('};');
+  if (admission != null) {
+    output.writeln(
+        "const nativePsdkReferenceAdmissionHash = '${canonicalHashOf(admission).value}';");
+    output.writeln(
+        "const nativePsdkReferenceAdmissionJson = r'''${literal(admission)}''';");
+  }
   final target = File(paths[2]);
   await target.parent.create(recursive: true);
   await target.writeAsString(output.toString());
@@ -413,6 +353,145 @@ Future<void> _embedCatalog(List<String> paths) async {
     'species': catalog.speciesById.length,
     'moves': catalog.movesById.length,
     'sourceScriptsExecuted': 0,
+  }));
+}
+
+void _checkAdmissionCoverage(
+    Map<String, dynamic> admission, NativePsdkCatalogManifest catalog) {
+  final definitions = admission['definitions'];
+  final families = admission['families'];
+  final sources = admission['sources'];
+  if (definitions is! List || families is! List || sources is! List) {
+    throw StateError(
+        'Reference admission must contain its complete partition.');
+  }
+  final admitted = <String>{};
+  final bases = <String>{};
+  final definitionPaths = <String>[];
+  for (final raw in definitions) {
+    if (raw is! Map ||
+        raw['baseId'] is! String ||
+        !bases.add(raw['baseId'] as String) ||
+        raw['forms'] is! List ||
+        raw['source'] is! Map ||
+        !const {'admitted', 'refused'}.contains(raw['status'])) {
+      throw StateError('Reference admission contains an invalid definition.');
+    }
+    final base = raw['baseId'] as String;
+    final source = raw['source'] as Map;
+    if (source['relativePath'] != 'Data/Studio/pokemon/$base.json') {
+      throw StateError('Reference admission definition source is invalid.');
+    }
+    definitionPaths.add(source['relativePath'] as String);
+    final expected = [
+      for (final form in raw['forms'] as List)
+        if (form is int) nativePsdkFormSpeciesId(base, form),
+    ];
+    if (canonicalJsonOf(raw['nativeSpeciesIds']) != canonicalJsonOf(expected)) {
+      throw StateError('Reference admission form coverage is invalid.');
+    }
+    final matches = families
+        .where(
+            (family) => family is Map && family['familyId'] == raw['familyId'])
+        .cast<Map>()
+        .toList();
+    if (matches.length != 1 ||
+        matches.single['status'] != raw['status'] ||
+        !(matches.single['baseIds'] as List).contains(base) ||
+        canonicalJsonOf(matches.single['reasons']) !=
+            canonicalJsonOf(raw['reasons'])) {
+      throw StateError('Reference admission family coverage is invalid.');
+    }
+    if (raw['status'] == 'admitted') {
+      if (raw['englishName'] is! String ||
+          (raw['englishName'] as String).trim().isEmpty ||
+          (raw['reasons'] as List).isNotEmpty ||
+          expected.any((id) => !admitted.add(id))) {
+        throw StateError('Reference admission has ambiguous admitted species.');
+      }
+    }
+  }
+  definitionPaths.sort();
+  if (catalog.speciesById.length != admitted.length ||
+      !admitted.containsAll(catalog.speciesById.keys) ||
+      admission['referenceSnapshotHash'] !=
+          canonicalHashOf({
+            'definitionPaths': definitionPaths,
+            'sources': sources,
+          }).value) {
+    throw StateError('Reference admission differs from its native catalog.');
+  }
+  NativePsdkReferenceIndex.fromJson(
+    admission,
+    expectedHash: canonicalHashOf(admission),
+    catalogManifestHash: canonicalHashOf(catalog.toJson()),
+    catalogSpeciesIds: catalog.speciesById.keys,
+  );
+}
+
+Future<void> _buildReference(List<String> paths,
+    {bool preflight = false}) async {
+  if (paths.length != (preflight ? 2 : 4)) {
+    throw ArgumentError(preflight
+        ? 'Expected PSDK root and admission output.'
+        : 'Expected PSDK root, manifest output, shard directory, admission output.');
+  }
+  final root = await Directory(paths.first).resolveSymbolicLinks();
+  final admission = await inspectNativePsdkReference(
+    root: root,
+    qualifyFamily: (requests) => buildNativePsdkTrainerShard(root, requests),
+    onProgress: (done, total) =>
+        stderr.writeln('nativeReference: $done/$total families'),
+  );
+  await admission.verifyUnchanged();
+  if (preflight) {
+    final file = File(paths[1]);
+    await file.parent.create(recursive: true);
+    await file.writeAsString('${canonicalJsonOf(admission.toJson())}\n');
+    stdout.writeln(jsonEncode(admission.toJson()['counts']));
+    return;
+  }
+  if (admission.requests.isEmpty) {
+    throw StateError('No complete native family was admitted.');
+  }
+  final catalog = await const NativePsdkCatalogBuilder().build(
+    requests: admission.requests,
+    buildShard: (requests) => buildNativePsdkTrainerShard(root, requests),
+  );
+  await admission.verifyUnchanged();
+  final document = admission.toJson(
+      catalogManifestHash: canonicalHashOf(catalog.toJson()).value);
+  final admitted = {
+    for (final definition in admission.definitions)
+      if (definition['status'] == 'admitted')
+        ...List<String>.from(definition['nativeSpeciesIds'] as List),
+  };
+  if (catalog.speciesById.length != admitted.length ||
+      !admitted.containsAll(catalog.speciesById.keys)) {
+    throw StateError(
+        'The generated native catalog differs from its admission index.');
+  }
+  for (final entry in catalog.shards.entries) {
+    final file = File('${paths[2]}/${entry.key}.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+        '${canonicalJsonOf(entry.value.toJson(), limits: nativePsdkCatalogShardJsonLimits)}\n');
+  }
+  final manifest = File(paths[1]);
+  await manifest.parent.create(recursive: true);
+  await manifest.writeAsString('${canonicalJsonOf(catalog.toJson())}\n');
+  final index = File(paths[3]);
+  await index.parent.create(recursive: true);
+  await index.writeAsString('${canonicalJsonOf(document)}\n');
+  stdout.writeln(jsonEncode({
+    ...document['counts'] as Map,
+    'shards': catalog.shards.length,
+    'species': catalog.speciesById.length,
+    'moves': catalog.movesById.length,
+    'admissionHash': canonicalHashOf(document).value,
+    'catalogManifestHash': document['catalogManifestHash'],
+    'sourceScriptsExecuted': 0,
+    'aiSourceInferenceCalls': 0,
   }));
 }
 

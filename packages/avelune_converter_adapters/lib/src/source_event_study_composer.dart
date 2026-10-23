@@ -88,6 +88,8 @@ final class SourceEventStudyComposer {
     limits.validate();
     late final nativeCatalog =
         nativeEncounterQualification?.bundle ?? nativeTrainerCatalog;
+    late final sharedNativeCatalog =
+        nativeCatalog ?? NativePsdkCatalogManifest.builtin();
     if (nativeTrainerCatalog != null && nativeEncounterQualification != null &&
         canonicalHashOf(nativeTrainerCatalog!.toJson(), limits: nativePsdkCatalogShardJsonLimits) !=
             canonicalHashOf(nativeCatalog!.toJson(), limits: nativePsdkCatalogShardJsonLimits)) {
@@ -452,7 +454,8 @@ final class SourceEventStudyComposer {
             files: recording, cancellation: cancellation);
         final binding = await const SourceDecorativePokemonBindingResolver().read(
             source: source, analysis: analysis, event: event, files: recording,
-            pbs: decorativePbs, limits: limits, cancellation: cancellation);
+            pbs: decorativePbs, nativeCatalog: sharedNativeCatalog,
+            limits: limits, cancellation: cancellation);
         decorativePokemonBindings[event.identity] = binding;
         sounds[binding.sound.name] = binding.sound;
         soundEvidence.add({'sourceName': binding.sound.name, 'status': 'imported', ...binding.sound.evidence});
@@ -517,13 +520,13 @@ final class SourceEventStudyComposer {
       }
     }
     final trainerBindings = await const SourceTrainerEventBindingResolver().read(
-        nativeCatalog: nativeCatalog,
+        nativeCatalog: sharedNativeCatalog,
         qualification: nativeTrainerQualification,
         source: source, analysis: analysis, files: recording,
         limits: limits, cancellation: cancellation);
     final firstRivals = await const SourceFirstRivalBindingResolver().read(
         source: source, analysis: analysis, files: recording,
-        nativeCatalog: nativeCatalog, qualification: trainerBindings.qualification,
+        nativeCatalog: sharedNativeCatalog, qualification: trainerBindings.qualification,
         limits: limits, cancellation: cancellation);
     for(final binding in firstRivals.byEventIdentity.values) {
       sounds['bgm:${binding.music.name}']=binding.music;
@@ -548,17 +551,17 @@ final class SourceEventStudyComposer {
     for (final event in selectedEvents.where((e) => e.pages.expand((p) => p.body.nodes).any((n) => n is SourcePokedexRewardProgramNode))) {
       final binding = await const SourcePokedexRewardBindingResolver().read(source: source,
           analysis: analysis, files: recording, sourceMapId: event.sourceMapId,
-          sourceEventId: event.sourceEventId, nativeCatalog: nativeCatalog,
+          sourceEventId: event.sourceEventId, nativeCatalog: sharedNativeCatalog,
           cancellation: cancellation);
       if (binding != null) pokedexReward[event.identity] = binding;
     }
     final starterChoiceBindings = await const SourceStarterChoiceBindingResolver().read(
       source: source, analysis: analysis, files: recording,
-      nativeCatalog: nativeCatalog ?? NativePsdkCatalogManifest.builtin(), cancellation: cancellation);
+      nativeCatalog: sharedNativeCatalog, cancellation: cancellation);
     final pokemonGiftCatalog = nativeCatalog ??
         (starterChoiceBindings.isNotEmpty || selectedEvents.any((event) => event.pages.any((page) =>
             page.body.nodes.whereType<SourcePokemonGiftNode>().isNotEmpty))
-          ? NativePsdkCatalogManifest.builtin() : null);
+          ? sharedNativeCatalog : null);
     final pokemonGifts = await const SourcePokemonGiftBindingResolver().read(
         source: source, analysis: analysis, files: recording,
         nativeCatalog: pokemonGiftCatalog,
@@ -568,7 +571,7 @@ final class SourceEventStudyComposer {
     for (final event in selectedEvents) {
       final binding = const SourcePartyTradeBindingResolver().resolve(source: source,
           analysis: analysis, sourceMapId: event.sourceMapId, sourceEventId: event.sourceEventId,
-          nativeCatalog: nativeCatalog);
+          nativeCatalog: sharedNativeCatalog);
       if (binding != null) partyTrade[event.identity] = binding;
       if (event.pages.expand((p) => p.body.nodes).any((node) => node is SourceTownMapProgramNode)) {
         try {

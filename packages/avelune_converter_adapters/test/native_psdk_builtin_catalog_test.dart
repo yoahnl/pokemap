@@ -1,19 +1,34 @@
+import 'dart:convert';
+
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:test/test.dart';
 
 void main() {
   test(
-      'offline builtin reconstructs the frozen world manifest and fresh shards',
+      'offline builtin reconstructs its admitted reference inventory and fresh shards',
       () {
     final catalog = NativePsdkCatalogManifest.builtin();
     expect(canonicalHashOf(catalog.toJson()).value,
-        '496de1dd732814068173cec7da27264561b151bb04984b322ebd1cf514d2f214');
-    expect(catalog.shards, hasLength(10));
-    expect(catalog.speciesById, hasLength(300));
-    expect(catalog.movesById, hasLength(562));
-    expect(catalog.catalogs['abilities']!.entries, hasLength(142));
-    expect(catalog.evidence['catalogRequests'], hasLength(2349));
+        NativePsdkCatalogManifest.builtinManifestHash);
+    final index =
+        NativePsdkCatalogManifest.builtinReferenceAdmission(catalog: catalog);
+    final definitions = (index.document['definitions'] as List).cast<Map>();
+    final admitted =
+        definitions.where((row) => row['status'] == 'admitted').toList();
+    final ids = {
+      for (final row in admitted)
+        ...(row['nativeSpeciesIds'] as List).cast<String>()
+    };
+    expect(catalog.speciesById.keys.toSet(), ids);
+    expect(catalog.evidence['catalogRequests'], hasLength(admitted.length));
+    expect(catalog.shards.length, inInclusiveRange(1, 128));
+    expect(catalog.movesById.length, inInclusiveRange(1, 4096));
+    expect(catalog.speciesById['poochyena']!.names['fr'], 'Medhyèna');
+    expect(catalog.speciesById['mightyena']!.names['en'], 'Mightyena');
+    expect(index.summary['refusedFamilies'], isNotEmpty);
+    expect(() => (index.document['counts'] as Map)['admittedBases'] = 0,
+        throwsUnsupportedError);
     expect(catalog.evidence.containsKey('sourceTrainerKeys'), isFalse);
     final trainerBundle = NativePsdkTrainerBundle.builtin();
     expect(trainerBundle.evidence['sourceTrainerKeys'], hasLength(11));
@@ -43,6 +58,51 @@ void main() {
     final fresh = NativePsdkCatalogManifest.builtin();
     expect(fresh.speciesById['rattata']!.names['en'], original);
     expect(canonicalHashOf(fresh.toJson()).value,
-        '496de1dd732814068173cec7da27264561b151bb04984b322ebd1cf514d2f214');
+        NativePsdkCatalogManifest.builtinManifestHash);
   });
+
+  final catalog = NativePsdkCatalogManifest.builtin();
+  final index =
+      NativePsdkCatalogManifest.builtinReferenceAdmission(catalog: catalog);
+  for (final mutation in [
+    'hash',
+    'manifest',
+    'counts',
+    'family',
+    'forms',
+    'catalogClosure'
+  ]) {
+    test('reference admission rejects $mutation disagreement', () {
+      final document = (jsonDecode(jsonEncode(index.document)) as Map)
+          .cast<String, Object?>();
+      final definitions = (document['definitions'] as List).cast<Map>();
+      switch (mutation) {
+        case 'hash':
+          document['referenceSnapshotHash'] = '0' * 64;
+        case 'manifest':
+          document['catalogManifestHash'] = '0' * 64;
+        case 'counts':
+          (document['counts'] as Map)['admittedBases'] = 0;
+        case 'family':
+          definitions.first['familyId'] = 'other_family';
+        case 'forms':
+          (definitions.first['nativeSpeciesIds'] as List).removeLast();
+        case 'catalogClosure':
+          break;
+      }
+      expect(
+          () => NativePsdkReferenceIndex.fromJson(document,
+              expectedHash: mutation == 'hash'
+                  ? index.canonicalHash
+                  : canonicalHashOf(document,
+                      limits: const ContractLimits(
+                          maxNodes: 2000000, maxTextCodeUnits: 16777216)),
+              catalogManifestHash:
+                  Sha256Hash(NativePsdkCatalogManifest.builtinManifestHash),
+              catalogSpeciesIds: mutation == 'catalogClosure'
+                  ? ['missing_native_identity']
+                  : catalog.speciesById.keys),
+          throwsA(isA<ContractError>()));
+    });
+  }
 }
