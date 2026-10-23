@@ -170,6 +170,10 @@ void main() {
       expect(publication, isNotEmpty);
       expect(publication.every((progress) => progress.total == 1), isTrue);
       expect(publication.last.done, 1);
+      expect(harness.workflow.state.prepared, same(prepared));
+      expect(result.preparationHash, prepared.preparationHash);
+      expect(result.sourceSnapshotHash, prepared.sourceSnapshotHash);
+      expect(result.receipt.draftHash, prepared.nativeDraft!.canonicalHash);
       expect(result.receipt.creationTransactionReceipt.actionId, nativeProjectCreationActionId);
       expect(result.receipt.importUndoHistoryRetained, isFalse);
       var done = 0;
@@ -1906,6 +1910,40 @@ void main() {
       await harness.close();
     }
   }, skip: !Platform.isMacOS);
+  test('publication cancellation after sealing keeps host review and consumes approval',
+      () async {
+    late _WorkflowHarness harness;
+    harness = await _WorkflowHarness.create(publicationCheckpoint: (stage) {
+      if (stage == NativePublicationStage.nativeSealed) {
+        harness.workflow.cancelCurrentJob();
+      }
+    });
+    try {
+      final sourceBefore = await _diskHashes(harness.sourceRoot);
+      final prepared = await harness.prepare();
+      final approval = harness.approve(prepared);
+      await expectLater(harness.workflow.writeApproved(approval),
+          _throwsWorkflow('workflow.cancelled'));
+      final failure = harness.workflow.state.failure!;
+      expect(harness.workflow.state.prepared, same(prepared));
+      expect(harness.workflow.state.approval, isNull);
+      expect(harness.workflow.state.result, isNull);
+      expect(failure.promotionMayHaveOccurred, isFalse);
+      expect(await Directory(harness.destination).exists(), isFalse);
+      expect(await Directory(failure.stagingPath!).exists(), isTrue);
+      final journal = await File(failure.journalPath!).readAsLines();
+      final states = journal.map((line) => (jsonDecode(line) as Map)['state']);
+      expect(states, contains('sealed'));
+      expect(states, isNot(contains('publishIntent')));
+      expect(states, isNot(contains('published')));
+      await expectLater(harness.workflow.writeApproved(approval),
+          _throwsWorkflow('workflow.stale_approval'));
+      expect(await _diskHashes(harness.sourceRoot), sourceBefore);
+    } finally {
+      await harness.close();
+    }
+  }, skip: !Platform.isMacOS);
+
   test('AC-15 publication cancellation before bootstrap stays cancelled',
       () async {
     late _WorkflowHarness harness;

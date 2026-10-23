@@ -880,8 +880,8 @@ final class ConverterWorkflow {
       throw const ConverterWorkflowFailure('workflow.stale_approval',
           'This approval is absent, stale, or consumed.');
     }
-    admitPlan(approval.approvedPlan,
-        _planContext(prepared, approval.approvedPlan, _sessionId));
+    final context = _planContext(prepared, approval.approvedPlan, _sessionId);
+    admitPlan(approval.approvedPlan, context);
     _state = _state._copy(
         approval: null,
         result: null,
@@ -901,8 +901,11 @@ final class ConverterWorkflow {
           source: _state.source!,
           snapshot: _state.snapshot!,
           sharedSourceFiles: _state.sharedSourceFiles,
-          settings: prepared.settings,
-          prepared: prepared,
+          write: _NativeWriteRequest(
+              draft: prepared.nativeDraft!,
+              context: context,
+              writeLimits: prepared.settings.writeLimits,
+              preparationHash: prepared.preparationHash),
           approval: approval));
       final result = outcome.result!;
       _state = _state._copy(result: result, isBusy: false, failure: null);
@@ -1171,7 +1174,7 @@ final class _WorkerRequest {
     this.sharedSourceFiles = const [],
     this.snapshot,
     this.settings,
-    this.prepared,
+    this.write,
     this.approval,
   });
   final _WorkerKind kind;
@@ -1181,8 +1184,21 @@ final class _WorkerRequest {
   final List<ConverterSharedSourceFile> sharedSourceFiles;
   final SourceSnapshot? snapshot;
   final ConverterStudySettings? settings;
-  final PreparedStudy? prepared;
+  final _NativeWriteRequest? write;
   final StudyApproval? approval;
+}
+
+final class _NativeWriteRequest {
+  const _NativeWriteRequest({
+    required this.draft,
+    required this.context,
+    required this.writeLimits,
+    required this.preparationHash,
+  });
+  final NativeProjectDraft draft;
+  final PlanContext context;
+  final NativeWriteLimits writeLimits;
+  final Sha256Hash preparationHash;
 }
 
 final class _WorkflowRun {
@@ -1420,8 +1436,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
     if (request.kind == _WorkerKind.write) {
       admitPlan(
           request.approval!.approvedPlan,
-          _planContext(request.prepared!, request.approval!.approvedPlan,
-              request.sessionId));
+          request.write!.context);
     }
     await relay.start(
         request.kind == _WorkerKind.scan
@@ -1873,13 +1888,12 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                     plan != null &&
                     !plan.findings.any((finding) => finding.blocksStudy)));
       } else {
-        final prepared = request.prepared!;
-        final draft = prepared.nativeDraft!;
+        final write = request.write!;
+        final draft = write.draft;
         final approval = request.approval!;
         await relay.start(
             ConverterWorkflowPhase.validateNativeBindings, JobUnit.operations);
-        final context =
-            _planContext(prepared, approval.approvedPlan, request.sessionId);
+        final context = write.context;
         Future<void> publicationCheckpoint(NativePublicationStage? stage,
             String? journalPath, String? destinationPath) async {
           try {
@@ -2003,7 +2017,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
           }
         });
         receipt = await writer.write(approval.approvedPlan, context, draft,
-            limits: prepared.settings.writeLimits,
+            limits: write.writeLimits,
             cancellation: relay.cancellation);
         relay.finish(
             done: receipt.mapHashes.length +
@@ -2039,7 +2053,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
                 receipt: receipt,
                 publication: publication,
                 sourceSnapshotHash: snapshot.canonicalHash,
-                preparationHash: prepared.preparationHash,
+                preparationHash: write.preparationHash,
                 approvedPlanHash: approval.approvedPlanHash,
                 sessionRevision: request.revision,
                 sourceUnchanged: true,
