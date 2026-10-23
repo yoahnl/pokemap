@@ -29,6 +29,7 @@ part 'src/source_declared_programs.dart';
 part 'src/source_semantics.dart';
 part 'src/source_directed_jump_semantics.dart';
 part 'src/source_events.dart';
+part 'src/source_presentation_nodes.dart';
 part 'src/source_integer_events.dart';
 part 'src/source_intro_program.dart';
 part 'src/source_fresh_entry_program.dart';

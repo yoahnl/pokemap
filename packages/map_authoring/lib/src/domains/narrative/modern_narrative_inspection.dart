@@ -137,12 +137,14 @@ final class ModernNarrativeInspector {
     required ProjectManifest project,
     required List<MapData> maps,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
   }) {
     final diagnostics = <ModernNarrativeDiagnostic>[];
     final mapsById = {for (final map in maps) map.id: map};
     final availableItemIds = itemCatalog?.entries.map((item) => item.id).toSet();
     final sceneContext = SceneProjectDiagnosticsContext(
       project,
+      presentationMediaCatalog: presentationMediaCatalog,
       availableItemIds: availableItemIds,
       mapsById: mapsById,
     );
@@ -201,6 +203,7 @@ final class ModernNarrativeInspector {
       final catalog = buildNarrativeEventProjectCatalog(
         project: project,
         maps: maps,
+        presentationMediaCatalog: presentationMediaCatalog,
       );
       final validationReport = buildNarrativeEventValidationReport(
         registry: registry,

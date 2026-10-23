@@ -7,6 +7,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
+import '../assets/project_media_store.dart';
 import 'modern_narrative_inspection.dart';
 
 AuthoringActionDescriptor narrativeActionDescriptor(
@@ -52,13 +53,19 @@ AuthoringMutationDraft narrativeProjectDraft(
     revision: snapshot.resourceFingerprints['project'],
   );
   final inspector = const ModernNarrativeInspector();
+  final mediaBytes =
+      snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+  final mediaCatalog =
+      mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
   final beforeInspection = inspector.inspect(
     project: snapshot.manifest,
+    presentationMediaCatalog: mediaCatalog,
     maps: snapshot.maps,
     itemCatalog: snapshot.itemCatalog,
   );
   final afterInspection = inspector.inspect(
     project: projected,
+    presentationMediaCatalog: mediaCatalog,
     maps: snapshot.maps,
     itemCatalog: snapshot.itemCatalog,
   );

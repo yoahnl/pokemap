@@ -64,6 +64,11 @@ extension _FirstRivalProjection on _ProjectionBuilder {
               }.contains(node.script.trim())) {
                 gaps.add('sourceFirstRivalScriptUnsupported');
               }
+            case SourceAudioControlNode():
+              if (!const {'memorize', 'restoreMemorized', 'fadeOut'}.contains(node.operation) ||
+                  !const {'music', 'both'}.contains(node.channel)) {
+                gaps.add('sourceFirstRivalCommandUnsupported');
+              }
             case SourceUnknownNode():
               final code = node.command.code;
               if (!const {247, 248, 242}.contains(code) &&
@@ -213,6 +218,9 @@ extension _FirstRivalSceneProjection on _SceneBuilder {
             next = _firstRivalMusic(node, binding, next);
           case SourceScriptNode():
             break;
+          case SourceAudioControlNode():
+            final command = _baselineSceneAudioAdaptation(node);
+            if (command != null) next = _interactive(command, next);
           case SourceUnknownNode():
             if (node.command.code == 209 &&
                 _firstRivalRelativeRoutePart(wrapper, node)) {

@@ -2,6 +2,63 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('STD08 publication retains a picture referenced only by a scene', () {
+    final picture = _media(
+      id: 'scene-picture',
+      kind: ProjectMediaKind.image,
+      sizeBytes: 100,
+      width: 10,
+      height: 10,
+    );
+    final scene = SceneAsset(
+      id: 'scene',
+      name: 'Scene',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'picture',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.worldPresentation(
+                operation: SceneWorldPresentationOperation.showPicture,
+                slotId: 1,
+                mediaAssetId: picture.id,
+                referenceWidth: 512,
+                referenceHeight: 384,
+                x: 0,
+                y: 0,
+                scaleX: 1,
+                scaleY: 1,
+                opacity: 1,
+              ),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: const [],
+      ),
+    );
+    final receipt = const PresentationMediaPublicationPreflight().inspect(
+      catalog: ProjectMediaCatalog(entries: [picture]),
+      cinematics: const [],
+      scenes: [scene],
+    );
+    expect(receipt.canPublish, isTrue);
+    expect(receipt.media.map((entry) => entry.id), [picture.id]);
+    final missing = const PresentationMediaPublicationPreflight().inspect(
+      catalog: ProjectMediaCatalog(),
+      cinematics: const [],
+      scenes: [scene],
+    );
+    expect(missing.canPublish, isFalse);
+    expect(
+      missing.diagnostics.any((item) => item.mediaId == picture.id),
+      isTrue,
+    );
+  });
+
   group('PresentationMediaPublicationPreflight', () {
     test('exports rights and exact-boundary budgets before runtime', () {
       final catalog = ProjectMediaCatalog(

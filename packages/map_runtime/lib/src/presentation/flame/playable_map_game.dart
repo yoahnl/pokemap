@@ -1,3 +1,6 @@
+import '../../application/scene_runtime/scene_world_presentation_controller.dart';
+import '../../application/scene_runtime/world_presentation_image_loader.dart';
+import 'world_presentation_renderer.dart';
 import '../../application/narrative_parallel_execution.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -58,6 +61,7 @@ import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_music_service.dart';
 import '../../player/runtime_scene_music_controller.dart';
+import '../../player/runtime_world_audio_controller.dart';
 import '../../player/runtime_world_service_models.dart';
 import '../../player/runtime_regional_map_builder.dart';
 import '../../application/resolve_dialogue.dart';
@@ -184,6 +188,7 @@ import 'warp_presentation_overlay_component.dart';
 import 'warp_presentation_renderer.dart';
 
 part 'playable_map_game_parallel_events.dart';
+part 'playable_map_game_world_presentation.dart';
 part 'playable_map_game_support.dart';
 part 'playable_map_game_scene_music.dart';
 part 'playable_map_game_cinematic_poses.dart';
@@ -342,12 +347,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     this.dialogueIconBytesLoader,
     this.presentationCinematicPlayer,
     @visibleForTesting RuntimeMusicService? musicService,
+    @visibleForTesting RuntimeMusicService? ambienceMusicService,
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
         _audioMixer = audioMixer,
         _overworldSfxPlayer = overworldSfxPlayer ??
             FlameAudioOverworldSfxPlayer(mixer: audioMixer),
         _injectedMusicService = musicService,
+        _injectedAmbienceMusicService = ambienceMusicService,
         _gameState = normalizeLoadedGameState(
           initialGameState ??
               (saveData == null
@@ -815,6 +822,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final OverworldSfxPlayer _overworldSfxPlayer;
   final DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
   final SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort;
+  final SceneWorldPresentationController _worldPresentation = SceneWorldPresentationController();
+  final _worldPresentationImages = <String, ui.Image>{};
+  WorldPresentationImageLoader? _worldPresentationImageLoader;
+  int _worldPresentationGeneration = 0;
+  int _worldPresentationImageBytes = 0;
   final SceneWorldToneController _worldTone = SceneWorldToneController();
   final Set<SceneActorTarget> _sceneActorRouteTargets = {};
   final Map<Object, bool> _sceneActorRenderAboveMap = {};
@@ -826,7 +838,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final DialogueIconBytesLoader? dialogueIconBytesLoader;
   FlameNarrativeSoundPlaybackAdapter? _dialogueFeedbackPlayer;
   final RuntimeMusicService? _injectedMusicService;
+  final RuntimeMusicService? _injectedAmbienceMusicService;
   RuntimeMusicService? _musicService;
+  RuntimeMusicService? _ambienceMusicService;
+  RuntimeWorldAudioController? _mapAudio;
+  Object? _mapAudioOwner;
+  final Map<String, Set<Object>> _soundMapOwnersByActivation = {};
+  bool _audioLifecycleSuspended = false;
+  int _worldAudioSelectionSerial = 0;
   final BattleMusicResolver _battleMusicResolver = const BattleMusicResolver();
   BattleMusicSelection? _activeBattleMusicSelection;
   bool _battleVictoryMusicActive = false;
@@ -837,6 +856,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _injectedMusicService ??
       (_musicService ??= RuntimeMusicService(
         mixer: _audioMixer));
+
+  RuntimeMusicService get _ambienceMusic => _injectedAmbienceMusicService ??
+      (_ambienceMusicService ??= RuntimeMusicService(mixer: _audioMixer));
 
   DialogueFeedbackPlaybackPort get _dialogueFeedbackAudio =>
       dialogueFeedbackPlaybackPort ?? _narrativeSoundAudio;
@@ -875,6 +897,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<void> _applyRuntimeMusicSelection() async {
     if (_isRemoved) return;
+    final serial = ++_worldAudioSelectionSerial;
+    final ambience = _activeNarrativeSceneWorkingSession?.sceneAudio?.ambience.selection ??
+        _mapAudio?.ambience.selection;
+    await _ambienceMusic.setSuspended(_audioLifecycleSuspended ||
+        _cinematicMusicDepth > 0 || _flowPhase == _RuntimeFlowPhase.battle ||
+        _flowPhase == _RuntimeFlowPhase.battleTransition);
+    if (_isRemoved || serial != _worldAudioSelectionSerial) return;
+    await _ambienceMusic.update(route: RuntimeAudioRoute.ambience,
+        path: ambience?.path, volume: ambience?.volume ?? 0, immediateStop: true);
+    if (_isRemoved || serial != _worldAudioSelectionSerial) return;
     if (_cinematicMusicDepth > 0) {
       await _music.update(route: RuntimeAudioRoute.overworld, path: null);
       return;
@@ -882,6 +914,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     String? path;
     var route = RuntimeAudioRoute.overworld;
     var volume = 0.8;
+    var immediateStop = false;
     switch (_flowPhase) {
       case _RuntimeFlowPhase.battle:
       case _RuntimeFlowPhase.battleTransition:
@@ -904,11 +937,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           route = RuntimeAudioRoute.battle;
           path = encounterPath;
         } else {
-          final scopedMusic = _activeNarrativeSceneWorkingSession?.sceneMusic?.selection;
+          final scopedMusic = _activeNarrativeSceneWorkingSession?.sceneMusic?.selection ?? _mapAudio?.music.selection;
           if (scopedMusic != null) {
             route = scopedMusic.route;
             path = scopedMusic.path;
             volume = scopedMusic.volume;
+            immediateStop = scopedMusic.path == null;
           } else {
             volume = _bundle.map.mapMetadata.musicVolume ?? 0.8;
             path = _battleMusicResolver.resolveMapMusicAbsolutePath(
@@ -917,7 +951,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           }
         }
     }
-    await _music.update(route: route, path: path, volume: volume);
+    await _music.update(route: route, path: path, volume: volume, immediateStop: immediateStop);
   }
 
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
@@ -981,6 +1015,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _installMapActivation(MapActivation activation) {
+    _resetWorldPresentation();
+    _resetMapAudio();
     _parallelFaultedOwners.clear();
     _parallelScheduler.clear();
     _cancelFieldTerrainTraversal?.call();
@@ -1434,6 +1470,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return cached;
     }
     final snapshot = await NarrativeEventRuntimeSnapshot.build(
+      loadPresentationMediaCatalog: () => (_worldPresentationImageLoader ??= WorldPresentationImageLoader(_bundle.projectRootDirectory)).loadCatalog(),
       project: project,
       loadMap: (mapId) async {
         final catalog = _bundle.projectCatalog;
@@ -1568,6 +1605,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         request: request,
         project: snapshot.project,
         mapsById: snapshot.mapsById,
+        presentationMediaCatalog: snapshot.presentationMediaCatalog,
         currentGameState: () => session.gameState,
         hostedBattleOutcomes: hostedBattleOutcomes,
         consequenceWriter: consequenceWriter,
@@ -1639,8 +1677,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
       return NarrativeSceneExecutionResult.failed(error);
     } finally {
-      await session.sceneMusic?.close();
+      await session.sceneAudio?.close();
       session.restoreActorRoutes();
+      _worldPresentation.clearScene(owner: session);
       if (identical(_activeNarrativeSceneWorkingSession, session)) {
         _activeNarrativeSceneWorkingSession = null;
       }
@@ -5085,7 +5124,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _isRemoved = true;
-    unawaited(_activeNarrativeSceneWorkingSession?.sceneMusic?.close());
+    unawaited(_activeNarrativeSceneWorkingSession?.sceneAudio?.close());
+    _resetMapAudio();
+    unawaited(_ambienceMusicService?.dispose());
+    _ambienceMusicService = null;
     _playerSlide.reset();
     _slideSuppressedMovementControls.clear();
     if (_observingMemoryPressure) {
@@ -5114,6 +5156,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _worldTonePostProcessComponent?.removeFromParent();
     _worldTonePostProcessComponent = null;
     _worldTone.dispose();
+    _resetWorldPresentation();
     _cancelPendingDirectedJump();
     unawaited(_overworldSfxPlayer.dispose());
     unawaited(_dialogueFeedbackPlayer?.dispose());
@@ -5395,6 +5438,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             map: _world.map, gameState: _gameState)),
         ]),
       );
+      camera.viewport.add(_WorldPresentationViewportComponent(this));
       _worldTonePostProcessComponent = tonePostProcess;
       camera.add(tonePostProcess);
       _syncCameraToPlayer();
@@ -5706,12 +5750,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   void lifecycleStateChange(AppLifecycleState state) {
     super.lifecycleStateChange(state);
     _parallelLifecycleSuspended = state != AppLifecycleState.resumed;
+    _audioLifecycleSuspended = state != AppLifecycleState.resumed;
+    _syncRuntimeMusic();
     _parallelScheduler.clear();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _parallelLifecycleSuspended = state != AppLifecycleState.resumed;
+    _audioLifecycleSuspended = state != AppLifecycleState.resumed;
+    _syncRuntimeMusic();
     _parallelScheduler.clear();
   }
 
@@ -5786,6 +5834,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
     if (!_isRemoved) _worldTone.advance(dt);
+    if (_worldPresentationVisible && !_parallelLifecycleSuspended && !isPaused) {
+      _worldPresentation.advance(dt);
+    }
     for (final loaded in _loadedMapsById.values) {
       if (loaded.bundle.map.id == _activeMapId && !_player.isStepping) {
         loaded.smartTileAnimationController.onPlayerStepCompleted();
@@ -12477,8 +12528,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       _showNotification('Scene V1 impossible.');
     } finally {
-      await workingSession?.sceneMusic?.close();
+      await workingSession?.sceneAudio?.close();
       workingSession?.restoreActorRoutes();
+      _worldPresentation.clearScene(owner: workingSession);
       if (identical(_activeNarrativeSceneWorkingSession, workingSession)) {
         _activeNarrativeSceneWorkingSession = null;
       }
@@ -12680,6 +12732,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           command,
           session: presentationSession,
         ),
+        worldPresentation: (command) => _executeSceneWorldPresentationCommand(command, session: presentationSession),
         worldTone: (command) => _executeSceneWorldToneCommand(
           command,
           session: presentationSession,
@@ -12698,6 +12751,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           session: presentationSession,
           playbackId: '$runtimeExecutionSourceId:se:${soundIndex++}',
         ),
+        stopSoundEffects: (command) => _executeSceneStopSoundEffectsCommand(command, session: presentationSession),
         actorRoute: (command) => _executeSceneActorRouteCommand(
           command,
           session: presentationSession,
@@ -14416,11 +14470,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return 'blocked';
     }
     try {
-      await _sceneSoundEffectAudio.playSoundEffect(
-        command.mediaAssetId,
-        volume: command.volume,
-        playbackId: playbackId,
-      );
+      final port = _sceneSoundEffectAudio;
+      if (port is SceneOwnedSoundEffectPlaybackPort) {
+        final owner = _soundMapOwner;
+        final activation = _currentMapActivationId;
+        if (activation == null) return 'blocked';
+        _soundMapOwnersByActivation.putIfAbsent(activation, () => {}).add(owner);
+        await port.playOwnedSoundEffect(command.mediaAssetId, volume: command.volume,
+            playbackId: playbackId, owner: owner, sceneOwner: session);
+      } else {
+        await port.playSoundEffect(command.mediaAssetId, volume: command.volume, playbackId: playbackId);
+      }
     } on Object catch (error) {
       debugPrint('[scene_runtime] sound start failed: $error');
       if (session != null && !_scenePresentationScopeIsCurrent(session)) {
@@ -14438,6 +14498,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   @visibleForTesting
+  SceneWorldPresentationFrame get debugWorldPresentationFrame => _worldPresentation.frame;
+
+  @visibleForTesting
+  bool get debugWorldPresentationVisible => _worldPresentationVisible;
+
   SceneWorldToneValue get debugWorldToneValue => _worldTone.value;
 
   @visibleForTesting
@@ -19500,7 +19565,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (!isLoaded) {
       return;
     }
-    _pixelCamera.setPosition(_player.focusPoint);
+    final frame = _worldPresentation.frame;
+    final referenceWidth = frame.shakeReferenceWidth;
+    final referenceHeight = frame.shakeReferenceHeight;
+    final shakeScale = referenceWidth == null || referenceHeight == null ? 0.0 : math.min(camera.viewport.size.x / referenceWidth, camera.viewport.size.y / referenceHeight) / camera.viewfinder.zoom;
+    _pixelCamera.setPosition(_player.focusPoint + Vector2(frame.shakeOffset * shakeScale, 0));
   }
 
   /// Propage le rectangle visible caméra vers tous les [MapLayersComponent]

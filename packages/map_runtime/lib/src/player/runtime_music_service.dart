@@ -47,6 +47,7 @@ final class RuntimeMusicService {
   final Duration Function() _clock;
   final Timer Function(Duration, void Function()) _loopTimerFactory;
   final Map<Object, Duration> _musicEffects = {};
+  final Object _suspensionOwner = Object();
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
@@ -64,6 +65,7 @@ final class RuntimeMusicService {
   String? _desiredPath;
   RuntimeAudioRoute _desiredRoute = RuntimeAudioRoute.overworld;
   double _desiredVolume = 0.8;
+  bool _desiredImmediateStop = false;
   bool _disposed = false;
 
   Object? lastFailure;
@@ -81,11 +83,13 @@ final class RuntimeMusicService {
     required RuntimeAudioRoute route,
     required String? path,
     double volume = 0.8,
+    bool immediateStop = false,
   }) {
     if (_disposed) return Future<void>.value();
     _desiredPath = path;
     _desiredRoute = route;
     _desiredVolume = volume.clamp(0.0, 1.0);
+    _desiredImmediateStop = immediateStop;
     return _enqueue(_applyDesiredState);
   }
 
@@ -116,6 +120,28 @@ final class RuntimeMusicService {
     return _resumeInterruption(fadeIn, generation);
   }
 
+  Future<void> setSuspended(bool suspended) async {
+    if (_disposed) return;
+    if (!suspended) {
+      await endMusicEffect(_suspensionOwner);
+      return;
+    }
+    beginMusicEffect(
+      owner: _suspensionOwner,
+      fadeOut: Duration.zero,
+      fadeIn: Duration.zero,
+    );
+    await _pending;
+    final handle = _handle;
+    if (handle != null && _musicEffects.containsKey(_suspensionOwner)) {
+      await _enqueue(() async {
+        if (identical(_handle, handle) &&
+            _musicEffects.containsKey(_suspensionOwner))
+          await _pauseCurrentHandle(handle);
+      });
+    }
+  }
+
   Future<void> dispose() {
     if (_disposed) return _pending;
     _disposed = true;
@@ -128,7 +154,7 @@ final class RuntimeMusicService {
   Future<void> _applyDesiredState() async {
     final path = _desiredPath;
     if (_disposed || path == null) {
-      await _stop(fade: true);
+      await _stop(fade: !_desiredImmediateStop);
       return;
     }
     if (_handle != null && _playingPath == path) {

@@ -13,8 +13,25 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
   Future<bool> _prepare() async {
     if (_closed) return false;
     final manifest = narrative.project;
-    if (_preparedManifest == manifest) return true;
     try {
+      final gateway = port;
+      final mediaCatalog = gateway is EventPresentationCatalogPort
+          ? await (gateway as EventPresentationCatalogPort)
+                .loadPresentationMediaCatalog(manifest)
+          : null;
+      if (_closed) {
+        return false;
+      }
+      if (manifest != narrative.project) {
+        return _fail(
+          'Le projet a changé pendant le chargement de la médiathèque. Réessayez.',
+        );
+      }
+      _presentationMediaCatalog = mediaCatalog;
+      if (_preparedManifest == manifest) {
+        changed();
+        return true;
+      }
       final loaded = <String, MapData>{};
       for (final entry in manifest.maps) {
         if (_closed) return false;
@@ -37,6 +54,9 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
       changed();
       return true;
     } catch (failure) {
+      _presentationMediaCatalog = null;
+      _preparedManifest = null;
+      _cachedContext = null;
       if (!_closed) _fail(failure.toString());
       return false;
     }
@@ -45,6 +65,7 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
   NarrativeEventAuthoringContext get context {
     final signature = <Object?>[
       narrative.project,
+      _presentationMediaCatalog,
       ..._pending.entries.map((e) => (e.key, e.value)),
       ...narrative.facts,
       ...narrative.stories,
@@ -53,9 +74,8 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
     ];
     if (_cachedContext != null &&
         signature.length == _catalogSignature.length &&
-        Iterable<int>.generate(
-          signature.length,
-        ).every((i) => signature[i] == _catalogSignature[i])) {
+        Iterable<int>.generate(signature.length)
+            .every((i) => signature[i] == _catalogSignature[i])) {
       return _cachedContext!;
     }
     _catalogSignature = signature;
@@ -68,6 +88,7 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
     final catalog = buildNarrativeEventProjectCatalog(
       project: value,
       maps: maps,
+      presentationMediaCatalog: _presentationMediaCatalog,
     );
     return NarrativeEventAuthoringContext(
       registryState: registry == null

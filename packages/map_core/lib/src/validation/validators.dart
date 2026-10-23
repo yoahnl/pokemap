@@ -1,3 +1,4 @@
+import '../models/project_media_catalog.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../encounters/encounter_contract.dart';
 import '../exceptions/map_exceptions.dart';
@@ -113,6 +114,7 @@ class ProjectValidator {
     ProjectManifest manifest, {
     Iterable<MapData>? maps,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
   }) {
     final spatial = manifest.settings.dimension == ProjectDimension.threeD;
     if (manifest.version != (spatial ? ProjectVersion.v9 : ProjectVersion.v8)) {
@@ -279,7 +281,7 @@ class ProjectValidator {
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
-    _validateNewGameConfig(manifest);
+    _validateNewGameConfig(manifest, presentationMediaCatalog: presentationMediaCatalog);
     manifest.defeatRecovery?.validate(manifest.facts);
     _validateTrainers(manifest);
     if (itemCatalog != null) {
@@ -403,7 +405,7 @@ class ProjectValidator {
     }
   }
 
-  static void _validateNewGameConfig(ProjectManifest manifest) {
+  static void _validateNewGameConfig(ProjectManifest manifest, {ProjectMediaCatalog? presentationMediaCatalog}) {
     final config = manifest.newGame;
     _validateNewGameAvatarFactValues(manifest);
     if (!config.enabled) {
@@ -520,7 +522,7 @@ class ProjectValidator {
           code: 'new_game_pre_session_profile_required',
         );
       }
-      final diagnostics = diagnoseSceneAgainstProject(scene, manifest);
+      final diagnostics = diagnoseSceneAgainstProject(scene, manifest, presentationMediaCatalog: presentationMediaCatalog);
       if (diagnostics.hasErrors) {
         throw ValidationException(
           'newGame preSessionSceneId references an invalid Scene: '

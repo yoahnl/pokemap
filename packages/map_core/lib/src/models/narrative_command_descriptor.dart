@@ -22,6 +22,8 @@ enum NarrativeCommandParameterKind {
   soundMediaReference,
   musicMediaReference,
   sceneMusicOperation,
+  sceneMusicChannel,
+  sceneMusicScope,
   actorTarget,
   actorRouteSteps,
   actorTargetKind,

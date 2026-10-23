@@ -2409,6 +2409,10 @@ Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene, {S
   final report = diagnoseSceneAgainstProject(
     scene,
     snapshot.manifest,
+    presentationMediaCatalog: switch (snapshot.findResourceBytes(projectMediaCatalogResourceIdentity)) {
+      final bytes? => decodeProjectMediaCatalogBytes(bytes),
+      null => null,
+    },
     availableMoveIds: availableMoveIds,
     availableItemIds: snapshot.itemCatalog?.entries.map((item) => item.id).toSet(),
     mapsById: {for (final map in snapshot.maps) map.id: map},
@@ -2459,9 +2463,14 @@ List<_QueryRecord> _eventV2Records(
   NarrativeEventProjectCatalog catalogForValidation() {
     final existing = catalog;
     if (existing != null) return existing;
+    final mediaBytes =
+        snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+    final presentationMediaCatalog =
+        mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
     final built = buildNarrativeEventProjectCatalog(
       project: snapshot.manifest,
       maps: snapshot.maps,
+      presentationMediaCatalog: presentationMediaCatalog,
     );
     catalog = built;
     onCatalogBuilt?.call();

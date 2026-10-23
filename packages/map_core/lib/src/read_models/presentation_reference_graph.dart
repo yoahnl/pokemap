@@ -2,6 +2,7 @@ import '../models/presentation_cinematic_asset.dart';
 import '../models/presentation_diagnostic.dart';
 import '../models/project_media_catalog.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_interactive_command.dart';
 
 enum PresentationReferenceKind {
   presentationCinematic,
@@ -13,6 +14,7 @@ enum PresentationReferenceKind {
 
 enum PresentationReferenceRelation {
   sceneCinematic,
+  scenePicture,
   sceneInteractionCue,
   clipMedia,
   mediaSource,
@@ -552,6 +554,21 @@ final class _PresentationReferenceGraphBuilder {
       final owner = PresentationReferenceKey.scene(scene.id);
       _define(owner, scene.name);
       for (final node in scene.graph.nodes) {
+        final payload = node.payload;
+        final command = payload is SceneActionPayload
+            ? payload.interactiveCommand
+            : null;
+        if (command is SceneWorldPresentationInteractiveCommand &&
+            command.operation == SceneWorldPresentationOperation.showPicture) {
+          _reference(
+            owner: owner,
+            target: PresentationReferenceKey.media(command.mediaAssetId!),
+            path:
+                'scenes[${scene.id}].graph.nodes[${node.id}].payload.interactiveCommand.mediaAssetId',
+            relation: PresentationReferenceRelation.scenePicture,
+            acceptedMediaTypes: {ProjectMediaKind.image},
+          );
+        }
         if (node.payload case final ScenePresentationCinematicPayload payload) {
           _reference(
             owner: owner,

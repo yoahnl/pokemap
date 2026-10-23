@@ -43,6 +43,7 @@ class EventWorkspaceController {
   final _publishing = <String>{};
   Future<bool>? _preparing;
   ProjectManifest? _preparedManifest;
+  ProjectMediaCatalog? _presentationMediaCatalog;
   List<Object?> _catalogSignature = [];
   NarrativeEventAuthoringContext? _cachedContext;
   bool _disposed = false;

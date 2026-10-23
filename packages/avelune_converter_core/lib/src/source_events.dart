@@ -2306,6 +2306,19 @@ final class _SourceEventParser {
             profileHash: analyzer.profile.canonicalHash);
       case 223:
         return _tone();
+      case 204:
+      case 224:
+      case 225:
+      case 231:
+      case 232:
+      case 235:
+      case 242:
+      case 245:
+      case 246:
+      case 247:
+      case 248:
+      case 251:
+        return _standardPresentation();
       case 241:
         return _soundEffect(music: true);
       case 249:
@@ -2518,6 +2531,172 @@ final class _SourceEventParser {
       whenFalse: SourceEventBlock(nodes: [], span: _span(end, end)));
   }
 
+  SourceEventNode _standardPresentation() {
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final command = commands[index];
+    final code = command.code;
+    final arity = switch (code) {
+      204 => 8,
+      224 => 2,
+      225 => 3,
+      231 || 232 => 10,
+      235 || 242 || 245 || 246 => 1,
+      _ => 0,
+    };
+    _arity(command.parameters, arity);
+    final raw = _rawFacingParameters(command, arity);
+    final doc = _document;
+    int integer(int slot, int minimum, int maximum) {
+      final value =
+          _eventInt(doc, _facingPlain(doc, raw[slot], MarshalKind.integer));
+      if (value != _integer(command.parameters[slot]) ||
+          value < minimum ||
+          value > maximum) {
+        throw const FormatException(
+            'events.presentation_parameters_unsupported');
+      }
+      return value;
+    }
+
+    String text(int slot) {
+      final value = _eventLiteralText(doc, raw[slot]);
+      if (value != _string(command.parameters[slot]) || value.length > 512) {
+        throw const FormatException(
+            'events.presentation_parameters_unsupported');
+      }
+      return value;
+    }
+
+    final reference = rawPage;
+    if (reference == null) {
+      return _unknown('events.common_event_page_bound_presentation_unsupported');
+    }
+    final span = _span(index, index);
+    final profile = analyzer.profile.canonicalHash;
+    SourceEventNode result;
+    switch (code) {
+      case 204:
+        if (integer(0, 0, 2) != 1) {
+          return _unknown('events.map_presentation_unsupported');
+        }
+        result = SourceMapFogNode._(span,
+            name: text(1),
+            parameters: [
+              integer(2, 0, 360),
+              integer(3, 0, 255),
+              integer(4, 0, 2),
+              integer(5, 1, 1000),
+              integer(6, -255, 255),
+              integer(7, -255, 255),
+            ],
+            rawDataRef: reference,
+            profileHash: profile);
+      case 231:
+      case 232:
+        final slot = integer(0, 1, 100);
+        final name = code == 231 ? text(1) : null;
+        final duration = code == 232 ? integer(1, 0, 1200) * 50 : 0;
+        final origin = integer(2, 0, 1);
+        if (integer(3, 0, 1) != 0 ||
+            integer(9, 0, 2) != 0 ||
+            (name != null && name.trim().isEmpty)) {
+          throw const FormatException('events.picture_parameters_unsupported');
+        }
+        result = SourcePictureNode._(span,
+            operation: code == 231 ? 'show' : 'move',
+            slot: slot,
+            name: name,
+            origin: origin,
+            x: integer(4, -4096, 4096),
+            y: integer(5, -4096, 4096),
+            scaleX: integer(6, 1, 1000) / 100,
+            scaleY: integer(7, 1, 1000) / 100,
+            opacity: integer(8, 0, 255),
+            durationMs: duration,
+            rawDataRef: reference,
+            profileHash: profile);
+      case 235:
+        result = SourcePictureNode._(span,
+            operation: 'erase',
+            slot: integer(0, 1, 100),
+            rawDataRef: reference,
+            profileHash: profile);
+      case 224:
+        final color =
+            doc.node(_facingPlain(doc, raw[0], MarshalKind.userDefined));
+        if (color.className != 'Color' || color.bytes?.length != 32) {
+          throw const FormatException();
+        }
+        final bytes = ByteData.sublistView(Uint8List.fromList(color.bytes!));
+        final channels = [
+          for (var i = 0; i < 4; i++) bytes.getFloat64(i * 8, Endian.little)
+        ];
+        if (channels
+            .any((value) => !value.isFinite || value < 0 || value > 255)) {
+          throw const FormatException();
+        }
+        result = SourceScreenEffectNode._(span,
+            effect: 'flash',
+            red: channels[0],
+            green: channels[1],
+            blue: channels[2],
+            alpha: channels[3],
+            durationMs: integer(1, 1, 1200) * 50,
+            rawDataRef: reference,
+            profileHash: profile);
+      case 225:
+        result = SourceScreenEffectNode._(span,
+            effect: 'shake',
+            power: integer(0, 0, 9),
+            speed: integer(1, 1, 9),
+            durationMs: integer(2, 1, 1200) * 50,
+            rawDataRef: reference,
+            profileHash: profile);
+      case 245:
+        final fields = _facingFields(doc, raw.single, 'RPG::AudioFile',
+            const {'@name', '@volume', '@pitch'});
+        final name = _eventLiteralText(doc, _eventField(fields, '@name'));
+        final volume = _eventInt(
+            doc,
+            _facingPlain(
+                doc, _eventField(fields, '@volume'), MarshalKind.integer));
+        final pitch = _eventInt(
+            doc,
+            _facingPlain(
+                doc, _eventField(fields, '@pitch'), MarshalKind.integer));
+        if (name.length > 512 || volume < 0 || volume > 100 || pitch != 100) {
+          throw const FormatException('events.ambience_parameters_unsupported');
+        }
+        result = SourceAudioControlNode._(span,
+            operation: name.isEmpty ? 'stop' : 'play',
+            channel: 'ambience',
+            name: name.isEmpty ? null : name,
+            volume: name.isEmpty ? null : volume,
+            rawDataRef: reference,
+            profileHash: profile);
+      default:
+        result = SourceAudioControlNode._(span,
+            operation: switch (code) {
+              242 || 246 => 'fadeOut',
+              247 => 'memorize',
+              248 => 'restoreMemorized',
+              _ => 'stopEffects',
+            },
+            channel: switch (code) {
+              242 => 'music',
+              246 => 'ambience',
+              247 || 248 => 'both',
+              _ => 'effects',
+            },
+            durationMs:
+                code == 242 || code == 246 ? integer(0, 0, 60) * 1000 : null,
+            rawDataRef: reference,
+            profileHash: profile);
+    }
+    index++;
+    return result;
+  }
+
   SourceEventNode _wait() {
     if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
     final command = commands[index];
@@ -2597,6 +2776,14 @@ final class _SourceEventParser {
       throw const FormatException();
     }
     final current = index++;
+    if (music && name.isEmpty) {
+      if (pitch != 100) throw const FormatException();
+      return SourceAudioControlNode._(_span(current, current),
+          operation: 'stop',
+          channel: 'music',
+          rawDataRef: reference,
+          profileHash: analyzer.profile.canonicalHash);
+    }
     if (musicEffect) {
       return SourceMusicEffectNode(_span(current, current),
           name: name, volume: volume, pitch: pitch, rawDataRef: reference,

@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show AuthoringTransactionFaultInjector;
+    show AuthoringTransactionFaultInjector, ProjectSnapshot;
 import 'package:map_core/map_core.dart';
+
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
@@ -22,6 +24,7 @@ class LocalNarrativeCatalogTransaction {
     required String actionId,
     required Map<String, Object?> Function(ProjectManifest) parameters,
     void Function(ProjectManifest, List<MapData>)? validate,
+    void Function(ProjectSnapshot)? validateSnapshot,
     bool refreshCatalog = false,
   }) => mapAdapter.withResourceMutation(() async {
     final baseline = await mapAdapter.resourceBaseline(
@@ -56,6 +59,7 @@ class LocalNarrativeCatalogTransaction {
       attached = true;
       final snapshot = await snapshots.load(opened.projectHandle);
       validate?.call(snapshot.manifest, snapshot.maps);
+      validateSnapshot?.call(snapshot);
       if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
           baseline.revision) {
         throw const NarrativeCatalogFailure(

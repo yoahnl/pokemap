@@ -299,6 +299,32 @@ final class SceneActions {
     'outputPorts': ['completed', 'cancelled'],
   };
 
+  static const _worldPresentationContract = {
+    'projectDimension': 'twoD',
+    'operations': ['showPicture', 'movePicture', 'erasePicture', 'flash', 'shake'],
+    'parameters': ['operation', 'scope', 'slotId', 'mediaAssetId', 'referenceWidth', 'referenceHeight', 'x', 'y', 'scaleX', 'scaleY', 'opacity', 'origin', 'red', 'green', 'blue', 'alpha', 'power', 'speed', 'durationMs', 'waitForCompletion'],
+    'scopes': ['scene', 'map'],
+    'defaultScope': 'map',
+    'origins': ['topLeft', 'center'],
+    'slotIdRange': [1, 100],
+    'referenceDimensionRange': [1, 8192],
+    'positionRange': [-1000000, 1000000],
+    'scaleRange': [0, 16],
+    'scaleMinimumExclusive': true,
+    'opacityRange': [0, 1],
+    'rgbaRange': [0, 255],
+    'powerRange': [0, 128],
+    'speedHzRange': [0.1, 60],
+    'durationMsRange': [0, 60000],
+    'finiteNumbers': true,
+    'mediaReference': 'ProjectMediaCatalog.image',
+    'viewport': 'referenceFrameLetterbox',
+    'blend': 'normal',
+    'mapScopeEnd': 'mapActivation',
+    'sceneScopeEnd': 'sceneCompletion',
+    'outputPorts': ['completed', 'blocked'],
+  };
+
   static const _worldToneContract = {
     'projectDimension': 'twoD',
     'parameters': ['red', 'green', 'blue', 'gray', 'durationMs'],
@@ -327,30 +353,44 @@ final class SceneActions {
   static const _sceneMusicContract = {
     'projectDimension': 'twoD',
     'executionProfile': 'world',
-    'parameters': ['operation', 'mediaAssetId', 'volume', 'durationMs'],
+    'parameters': ['operation', 'channel', 'scope', 'mediaAssetId', 'volume', 'durationMs'],
     'operations': {
       'play': ['operation', 'mediaAssetId', 'volume'],
       'restore': ['operation'],
       'fadeOut': ['operation', 'durationMs'],
+      'stop': ['operation'],
+      'memorize': ['operation'],
+      'restoreMemorized': ['operation'],
     },
     'mediaReference': 'knownUniqueMusic',
     'forcedLoop': true,
     'volumeRange': [0, 1],
     'finiteNumbers': true,
     'durationMsRange': [0, 60000],
-    'scope': 'sceneTransaction',
+    'scope': 'ownerScoped',
+    'scopes': ['scene', 'map'],
+    'channels': ['music', 'ambience', 'both'],
+    'defaultScope': 'scene',
+    'defaultChannel': 'music',
+    'bothChannelOperations': ['memorize', 'restoreMemorized'],
     'restoreBaseline': 'capturedBeforeFirstModification',
     'recaptureAfterRestore': true,
     'battlePriority': 'higher',
     'completion': 'scheduled',
-    'persistent': false,
-    'terminalRestoration': [
+    'persistentScopes': ['map'],
+    'persistence': 'mapOwnerUntilActivationEnds',
+    'sceneCompletion': 'restoreSceneOwnerOnly',
+    'ambienceBus': 'effects',
+    'ambienceBattlePolicy': 'pauseAndResumeSameHandle',
+    'memorizedPosition': false,
+    'sceneTerminalRestoration': [
       'completed',
       'failure',
       'abort',
       'exitEvent',
       'dispose',
     ],
+    'mapTerminalRestoration': ['activationEnds', 'abortCompensatesCheckpoint', 'dispose'],
     'staleOwnerPolicy': 'rejectAndCancelLateCallbacks',
     'outputPorts': ['completed', 'blocked'],
   };
@@ -535,9 +575,11 @@ final class SceneActions {
         'openRegionalMap': _openRegionalMapContract,
         'openPartyTrade': _openPartyTradeContract,
         'worldTone': _worldToneContract,
+        'worldPresentation': _worldPresentationContract,
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
         'sceneMusic': _sceneMusicContract,
+        'stopSoundEffects': {'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
         'actorRoute': _actorRouteContract,
       },
     ),
@@ -591,9 +633,11 @@ final class SceneActions {
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,
+        'worldPresentation': _worldPresentationContract,
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
         'sceneMusic': _sceneMusicContract,
+        'stopSoundEffects': {'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -667,9 +711,11 @@ final class SceneActions {
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
         'worldTone': _worldToneContract,
+        'worldPresentation': _worldPresentationContract,
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
         'sceneMusic': _sceneMusicContract,
+        'stopSoundEffects': {'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -846,6 +892,7 @@ final class SceneActions {
         !context.snapshot.manifest.scenes.contains(scene)).toList() ?? const <SceneAsset>[];
     final diagnosticsContext = context.request.actionId == 'scene.upsert_batch'
         ? SceneProjectDiagnosticsContext(draft.projectedProject!,
+            presentationMediaCatalog: _presentationMedia(context),
             availableItemIds: context.snapshot.itemCatalog?.entries.map((item) => item.id).toSet(),
             mapsById: {for (final map in context.snapshot.maps) map.id: map})
         : null;
@@ -856,6 +903,7 @@ final class SceneActions {
         scene: scene,
         itemCatalog: context.snapshot.itemCatalog,
         context: diagnosticsContext,
+        presentationMediaCatalog: _presentationMedia(context),
       );
     }
     final moveScenes = scenes.where(sceneNeedsPartyMoveCatalog).toList();
@@ -947,6 +995,7 @@ final class SceneActions {
         }
         final projected = upsertBatch(context.snapshot.manifest,
             maps: context.snapshot.maps, scenes: scenes,
+            presentationMediaCatalog: _presentationMedia(context),
             itemCatalog: context.snapshot.itemCatalog);
         return narrativeProjectDraft(context.snapshot, projected,
             operation: context.request.actionId, path: '/scenes',
@@ -969,6 +1018,7 @@ final class SceneActions {
           maps: context.snapshot.maps,
           scene: scene,
           itemCatalog: context.snapshot.itemCatalog,
+          presentationMediaCatalog: _presentationMedia(context),
         );
         return narrativeProjectDraft(
           context.snapshot,
@@ -1473,6 +1523,7 @@ final class SceneActions {
       try {
         projected = patchGraph(
           context.snapshot.manifest,
+          presentationMediaCatalog: _presentationMedia(context),
           maps: context.snapshot.maps,
           sceneId: sceneId,
           upsertNodes: objects('upsertNodes', SceneNode.fromJson),
@@ -1588,6 +1639,7 @@ final class SceneActions {
       }
       projected = patchGraph(
         context.snapshot.manifest,
+        presentationMediaCatalog: _presentationMedia(context),
         maps: context.snapshot.maps,
         sceneId: sceneId,
         upsertNodes: [
@@ -1615,6 +1667,7 @@ final class SceneActions {
 
   ProjectManifest patchGraph(
     ProjectManifest project, {
+    ProjectMediaCatalog? presentationMediaCatalog,
     required List<MapData> maps,
     required String sceneId,
     List<SceneNode> upsertNodes = const [],
@@ -1695,7 +1748,8 @@ final class SceneActions {
         details: {'sceneId': sceneId},
       );
     }
-    return upsert(project, maps: maps, scene: updated);
+    return upsert(project, maps: maps, scene: updated,
+        presentationMediaCatalog: presentationMediaCatalog);
   }
 
   ProjectManifest upsert(
@@ -1703,6 +1757,7 @@ final class SceneActions {
     required List<MapData> maps,
     required SceneAsset scene,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
   }) {
     final exists = project.scenes.any((candidate) => candidate.id == scene.id);
     final projected = project.copyWith(
@@ -1718,6 +1773,7 @@ final class SceneActions {
       maps: maps,
       scene: scene,
       itemCatalog: itemCatalog,
+      presentationMediaCatalog: presentationMediaCatalog,
     );
     return projected;
   }
@@ -1727,6 +1783,7 @@ final class SceneActions {
     required List<MapData> maps,
     required List<SceneAsset> scenes,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
   }) {
     if (scenes.isEmpty || scenes.length > 128) {
       throw NarrativeAuthoringException('scene.batch_invalid',
@@ -1748,6 +1805,7 @@ final class SceneActions {
       for (final scene in scenes) if (!existingIds.contains(scene.id)) scene,
     ]);
     final context = SceneProjectDiagnosticsContext(projected,
+        presentationMediaCatalog: presentationMediaCatalog,
         availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
         mapsById: {for (final map in maps) map.id: map});
     for (final scene in scenes) {
@@ -1761,11 +1819,13 @@ final class SceneActions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
     void Function(SceneProjectDiagnosticsContext context)? onContextBuilt,
   }) {
     for (final _ in validateInOrder(project,
       maps: maps,
       itemCatalog: itemCatalog,
+      presentationMediaCatalog: presentationMediaCatalog,
       onContextBuilt: onContextBuilt,
     )) {}
   }
@@ -1774,10 +1834,12 @@ final class SceneActions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
     void Function(SceneProjectDiagnosticsContext context)? onContextBuilt,
   }) sync* {
     final context = SceneProjectDiagnosticsContext(
       project,
+      presentationMediaCatalog: presentationMediaCatalog,
       availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
       mapsById: {for (final map in maps) map.id: map},
     );
@@ -1799,11 +1861,13 @@ final class SceneActions {
     required List<MapData> maps,
     required SceneAsset scene,
     ProjectItemCatalog? itemCatalog,
+    ProjectMediaCatalog? presentationMediaCatalog,
     SceneProjectDiagnosticsContext? context,
   }) {
     final diagnostics = context?.diagnose(scene) ?? diagnoseSceneAgainstProject(
       scene,
       project,
+      presentationMediaCatalog: presentationMediaCatalog,
       availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
       mapsById: {for (final map in maps) map.id: map},
     );

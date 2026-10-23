@@ -182,6 +182,7 @@ Widget? workspaceSecondaryContent({
       loadMoves: loadSceneMoves,
       loadItems: loadSceneItems,
       loadSpecies: loadSceneSpecies,
+      loadVisualMedia: presentations == null ? null : () async => (await presentations.port.prepare(scenes.project)).mediaCatalog,
       onPresentation: onScenePresentation,
       onCreatePresentation: onCreatePresentation,
       presentationFor: presentations?.assetFor,

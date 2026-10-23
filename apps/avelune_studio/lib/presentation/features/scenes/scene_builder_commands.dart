@@ -129,6 +129,7 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
         loadMap: mapLoader.load,
         loadMoves: widget.loadMoves,
         loadSpecies: widget.loadSpecies,
+        loadVisualMedia: widget.loadVisualMedia,
       );
       if (!mounted || widget.controller.active != session || payload == null) {
         return;

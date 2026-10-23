@@ -16,6 +16,102 @@ import 'source_converted_gym_reward_journey_test.dart'
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final exit in ['sceneEnd', 'blocked']) {
+    testWidgets('map ambience survives completion and rolls back on $exit', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        final created = await Directory.systemTemp.createTemp('world-audio-');
+        final root = Directory(await created.resolveSymbolicLinks());
+        addTearDown(() => root.delete(recursive: true));
+        for (final name in ['map', 'scene', 'broken']) {
+          await File('${root.path}/$name.ogg').writeAsBytes([0]);
+        }
+        final wire = jsonDecode(
+          jsonEncode(_scene(exit).toJson()),
+        ) as Map<String, dynamic>;
+        for (final node in (wire['graph'] as Map)['nodes'] as List) {
+          final command = (node['payload'] as Map)['interactiveCommand'];
+          if (command is Map && command['kind'] == 'sceneMusic') {
+            command['scope'] = 'map';
+            command['channel'] = 'ambience';
+          }
+        }
+        final scene = SceneAsset.fromJson(wire);
+        final musicDriver = _Driver();
+        final ambienceDriver = _Driver();
+        final music = RuntimeMusicService(
+          driver: musicDriver,
+          fadeDelay: (_) async {},
+          fadeSteps: 1,
+        );
+        final ambience = RuntimeMusicService(
+          driver: ambienceDriver,
+          fadeDelay: (_) async {},
+          fadeSteps: 1,
+        );
+        final game = PlayableMapGame(
+          bundle: _bundle(root.path, scene),
+          projectFilePath: '${root.path}/project.json',
+          musicService: music,
+          ambienceMusicService: ambience,
+        );
+        addTearDown(() async {
+          game.onRemove();
+          await music.dispose();
+          await ambience.dispose();
+        });
+        game.onGameResize(Vector2(320, 240));
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: GameWidget(game: game),
+          ),
+        );
+        await game.loaded;
+        await tester.pump();
+        await _until(game, () => !game.debugIsMapActivationDispatchInFlight);
+        var finished = false;
+        final completion = game.debugExecuteNarrativeSceneForTest(
+          NarrativeSceneExecutionRequest(
+            eventId: 'world-audio-test',
+            sceneId: scene.id,
+            executionId: exit,
+            gameState: game.gameStateSnapshot,
+          ),
+        );
+        unawaited(
+          completion.then((_) {
+            finished = true;
+          }),
+        );
+        await _until(
+          game,
+          () => ambience.playingPath == '${root.path}/scene.ogg',
+        );
+        expect(music.playingPath, '${root.path}/map.ogg');
+        await _until(game, () => finished);
+        if (exit == 'sceneEnd') {
+          expect(await completion, isA<NarrativeSceneExecutionCompleted>());
+          expect(ambience.playingPath, '${root.path}/scene.ogg');
+          game.didChangeAppLifecycleState(AppLifecycleState.paused);
+          await _until(game, () => ambienceDriver.paused.isNotEmpty);
+          game.didChangeAppLifecycleState(AppLifecycleState.resumed);
+          await _until(game, () => ambienceDriver.resumed.isNotEmpty);
+          expect(ambienceDriver.loops, hasLength(1));
+        } else {
+          expect(
+            await completion,
+            isNot(isA<NarrativeSceneExecutionCompleted>()),
+          );
+          expect(ambience.playingPath, isNull);
+        }
+        expect(music.playingPath, '${root.path}/map.ogg');
+        await tester.pumpWidget(const SizedBox());
+      });
+    });
+  }
+
   testWidgets(
     'native battle owns BGM then returns to scoped music and map ambience',
     (tester) async {
@@ -526,10 +622,17 @@ RuntimeMapBundle _bundle(String root, SceneAsset scene) => RuntimeMapBundle(
   ),
 );
 
-final class _Driver implements FlameCinematicAudioDriver {
+final class _Driver
+    implements FlameCinematicAudioDriver, FlameCinematicAudioPausableDriver {
   int next = 0;
   final loops = <(String, bool)>[];
   final failedPaths = <String>[];
+  final paused = <Object>[];
+  final resumed = <Object>[];
+  @override
+  Future<void> pause(Object handle) async => paused.add(handle);
+  @override
+  Future<void> resume(Object handle) async => resumed.add(handle);
   @override
   Future<Object> play(
     String path, {

@@ -163,7 +163,7 @@ export 'src/application/dialogue_portrait_resolver.dart'
 export 'src/application/dialogue_feedback_playback_port.dart'
     show DialogueFeedbackPlaybackPort, DialogueIconBytesLoader, ProjectDialogueIconLoader;
 export 'src/application/scene_runtime/scene_sound_effect_playback_port.dart'
-    show SceneSoundEffectPlaybackPort;
+    show SceneSoundEffectPlaybackPort, SceneOwnedSoundEffectPlaybackPort;
 export 'src/presentation/flame/flame_narrative_sound_playback_adapter.dart'
     show FlameNarrativeSoundPlaybackAdapter;
 export 'src/application/character_animation_source_resolver.dart'

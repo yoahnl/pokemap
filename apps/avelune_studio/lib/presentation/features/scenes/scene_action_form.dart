@@ -15,6 +15,7 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 
 import 'scene_actor_action_form.dart';
+import 'scene_world_visual_action_form.dart';
 import 'scene_npc_pose_action_form.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
 import 'scene_integer_authoring_fields.dart';
@@ -30,6 +31,7 @@ class SceneActionForm extends StatefulWidget {
     this.loadMap,
     this.loadMoves,
     this.loadSpecies,
+    this.loadVisualMedia,
     this.commandCatalog,
   });
 
@@ -39,6 +41,7 @@ class SceneActionForm extends StatefulWidget {
   final Future<MapData> Function(String)? loadMap;
   final Future<Map<String, String>> Function()? loadMoves;
   final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
+  final Future<ProjectMediaCatalog> Function()? loadVisualMedia;
   @visibleForTesting
   final List<NarrativeCommandDescriptor>? commandCatalog;
 
@@ -136,7 +139,9 @@ class _SceneActionFormState extends State<SceneActionForm> {
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
+      id == NarrativeCommandIds.worldPresentation ||
       id == NarrativeCommandIds.playSoundEffect ||
+      id == NarrativeCommandIds.stopSoundEffects ||
       id == NarrativeCommandIds.playMusicEffect ||
       id == NarrativeCommandIds.sceneMusic;
 
@@ -293,7 +298,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
     if (commandId == NarrativeCommandIds.sceneMusic) {
       _values['operation'] = 'play';
       _values['volume'] = '1';
+      _values['channel'] = 'music';
+      _values['scope'] = 'scene';
     }
+    if (commandId == NarrativeCommandIds.stopSoundEffects) _values['scope'] = 'scene';
     if (commandId == NarrativeCommandIds.playModelAnimation) {
       _values['speed'] = '1';
     } else if (commandId == NarrativeCommandIds.setPropState) {
@@ -558,8 +566,18 @@ class _SceneActionFormState extends State<SceneActionForm> {
     NarrativeCommandParameterKind.musicMediaReference => _musicMediaOptions(),
     NarrativeCommandParameterKind.sceneMusicOperation => const {
       'play': 'Jouer une musique en boucle',
-      'restore': 'Restaurer l’ambiance',
-      'fadeOut': 'Fondre la musique',
+      'restore': 'Restaurer l’état initial',
+      'fadeOut': 'Fondre puis arrêter',
+      'stop': 'Arrêter',
+      'memorize': 'Mémoriser',
+      'restoreMemorized': 'Restaurer la mémorisation',
+    },
+    NarrativeCommandParameterKind.sceneMusicChannel => {
+      'music': 'Musique', 'ambience': 'Ambiance sonore',
+      if (_values['operation'] == 'memorize' || _values['operation'] == 'restoreMemorized') 'both': 'Les deux canaux',
+    },
+    NarrativeCommandParameterKind.sceneMusicScope => const {
+      'scene': 'Pendant la scène', 'map': 'Jusqu’au prochain transfert',
     },
     NarrativeCommandParameterKind.shop => {
       for (final shop in widget.project.shops) shop.id: shop.label,
@@ -643,15 +661,19 @@ class _SceneActionFormState extends State<SceneActionForm> {
           loadMap: widget.loadMap,
           onApply: widget.onApply,
         ),
+      if (_commandId == NarrativeCommandIds.worldPresentation)
+        SceneWorldVisualActionForm(key: ValueKey(_commandId),
+          current: widget.current is SceneActionPayload ? widget.current as SceneActionPayload : null,
+          loadVisualMedia: widget.loadVisualMedia, onApply: widget.onApply),
       if (_commandId == NarrativeCommandIds.setNpcPose)
         SceneNpcPoseActionForm(project: widget.project,
           current: widget.current is SceneActionPayload ? widget.current as SceneActionPayload : null,
           loadMap: widget.loadMap, onApply: widget.onApply),
       if (_commandId == NarrativeCommandIds.sceneMusic)
         const StudioNotice(
-          'La musique tourne en boucle pendant cette scène. L’ambiance précédente est restaurée à la fin ; les combats gardent la priorité.',
+          'La portée Scène restaure les canaux à sa fin. La portée Carte conserve les changements jusqu’au transfert. Le combat garde la priorité musicale et suspend l’ambiance sonore. La mémorisation conserve les pistes et volumes, sans leur position.',
         ),
-      if (!_isActorCommand(_commandId) && _commandId != NarrativeCommandIds.setNpcPose) ...[
+      if (!_isActorCommand(_commandId) && _commandId != NarrativeCommandIds.setNpcPose && _commandId != NarrativeCommandIds.worldPresentation) ...[
         for (final parameter
             in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
           if (_warpFieldVisible(parameter)) Padding(
@@ -706,6 +728,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _error = null;
       if (_commandId == NarrativeCommandIds.sceneMusic &&
           parameter.id == 'operation') {
+        if (_values['channel'] == 'both' && value != 'memorize' && value != 'restoreMemorized') _values['channel'] = 'music';
         for (final key in ['mediaAssetId', 'volume', 'durationMs']) {
           _values.remove(key);
         }

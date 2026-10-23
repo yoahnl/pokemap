@@ -532,6 +532,11 @@ bool _auditSourceOakParcelPartialWrites(SourceEventDefinition event,
                 throw const FormatException();
               }
           }
+        case SourceAudioControlNode():
+          if (!const {'memorize', 'restoreMemorized', 'fadeOut'}.contains(node.operation) ||
+              !const {'music', 'both'}.contains(node.channel)) {
+            throw const FormatException();
+          }
         case SourceUnknownNode():
           if (!const {247, 248, 242}.contains(node.command.code)) {
             throw const FormatException();

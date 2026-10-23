@@ -29,7 +29,9 @@ abstract final class NarrativeCommandIds {
   static const wait = 'wait';
   static const waitForActorRoutes = 'waitForActorRoutes';
   static const worldTone = 'worldTone';
+  static const worldPresentation = 'worldPresentation';
   static const playSoundEffect = 'playSoundEffect';
+  static const stopSoundEffects = 'stopSoundEffects';
   static const playMusicEffect = 'playMusicEffect';
   static const sceneMusic = 'sceneMusic';
   static const actorRoute = 'actorRoute';
@@ -782,6 +784,33 @@ final class NarrativeCommandCatalog {
         isAwaitable: true,
       ),
       NarrativeCommandDescriptor(
+        id: NarrativeCommandIds.worldPresentation,
+        label: 'Images, flash et secousse',
+        description: 'Affiche et anime des images dans un cadre de référence explicite. Les effets de carte durent jusqu’au transfert ; les effets de scène se terminent avec la scène.',
+        backend: NarrativeCommandBackend.interactiveRuntimeCommand,
+        capabilities: const NarrativeCommandCapabilities(
+          model: NarrativeCommandCapabilityStatus.supported,
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
+          reason: 'Player 2D ; images du catalogue de présentation, cadrage proportionnel, mélange normal.',
+        ),
+        fgLotId: 'FG-093',
+        wireId: 'SceneInteractiveCommand.worldPresentation',
+        parameters: [
+          _parameter('operation', 'Effet', NarrativeCommandParameterKind.text),
+          _parameter('scope', 'Durée de présence', NarrativeCommandParameterKind.text, required: false),
+          _parameter('slotId', 'Emplacement', NarrativeCommandParameterKind.integer, required: false),
+          _parameter('mediaAssetId', 'Image', NarrativeCommandParameterKind.text, required: false),
+          for (final name in ['referenceWidth', 'referenceHeight', 'durationMs'])
+            _parameter(name, name, NarrativeCommandParameterKind.integer, required: false),
+          for (final name in ['x', 'y', 'scaleX', 'scaleY', 'opacity', 'red', 'green', 'blue', 'alpha', 'power', 'speed'])
+            _parameter(name, name, NarrativeCommandParameterKind.number, required: false),
+          _parameter('origin', 'Origine', NarrativeCommandParameterKind.text, required: false),
+          _parameter('waitForCompletion', 'Attendre la fin', NarrativeCommandParameterKind.boolean, required: false),
+        ],
+        isAwaitable: true,
+      ),
+      NarrativeCommandDescriptor(
         id: NarrativeCommandIds.playSoundEffect,
         label: 'Jouer un effet sonore',
         description:
@@ -807,14 +836,14 @@ final class NarrativeCommandCatalog {
       ),
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.sceneMusic,
-        label: 'Musique de scène',
-        description: 'Joue une musique en boucle pendant la scène, lance un fondu ou restaure l’ambiance capturée avant la première modification (lecture ou fondu). La musique de combat garde la priorité.',
+        label: 'Musique et ambiance',
+        description: 'Contrôle la musique ou l’ambiance de la scène ou de la carte. Mémorise et restaure les deux canaux ensemble. Le combat garde la priorité musicale.',
         backend: NarrativeCommandBackend.interactiveRuntimeCommand,
         capabilities: const NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.supported,
           editor: NarrativeCommandCapabilityStatus.supported,
           runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: 'Player 2D uniquement ; indisponible avant la session et en 3D. Musique temporaire restaurée à la fin de la transaction. Le lecteur de présentation autonome conserve sa priorité audio.',
+          reason: 'Player 2D uniquement ; propriétaire scène temporaire ou carte jusqu’au transfert. Le combat suspend l’ambiance et garde la priorité musicale. La mémorisation conserve les descripteurs, sans position.',
         ),
         fgLotId: 'FG-093',
         wireId: 'SceneInteractiveCommand.sceneMusic',
@@ -824,6 +853,8 @@ final class NarrativeCommandCatalog {
             'Action musicale',
             NarrativeCommandParameterKind.sceneMusicOperation,
           ),
+          _parameter('channel', 'Canal', NarrativeCommandParameterKind.sceneMusicChannel, required: false),
+          _parameter('scope', 'Durée de vie', NarrativeCommandParameterKind.sceneMusicScope, required: false),
           _parameter(
             'mediaAssetId',
             'Musique en boucle',
@@ -845,6 +876,9 @@ final class NarrativeCommandCatalog {
         ],
         isAwaitable: true,
       ),
+      interactive(NarrativeCommandIds.stopSoundEffects, 'Arrêter les effets sonores', 'FG-093', [
+        _parameter('scope', 'Durée de vie', NarrativeCommandParameterKind.sceneMusicScope),
+      ]),
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.playMusicEffect,
         label: 'Jouer une fanfare',

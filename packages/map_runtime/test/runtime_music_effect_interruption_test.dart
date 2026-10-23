@@ -9,6 +9,52 @@ import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playbac
 
 void main() {
   test(
+    'explicit silence stops without appending the map transition fade',
+    () async {
+      final driver = _Driver();
+      final fades = _Fades();
+      final service = _service(driver, fades: fades);
+      await service.update(route: RuntimeAudioRoute.overworld, path: 'map.ogg');
+      await service.update(
+        route: RuntimeAudioRoute.overworld,
+        path: null,
+        immediateStop: true,
+      );
+      expect(fades.delays, isEmpty);
+      expect(driver.stopped, hasLength(1));
+      await service.dispose();
+    },
+  );
+  test('owner suspension and ME retain independent pause leases on the same handle', () async {
+    final driver = _Driver();
+    final service = RuntimeMusicService(
+      driver: driver,
+      fadeDelay: (_) async {},
+      fadeSteps: 1,
+    );
+    await service.update(
+      route: RuntimeAudioRoute.ambience,
+      path: 'rain.ogg',
+      volume: .4,
+    );
+    final handle = driver.lastHandle;
+    await service.setSuspended(true);
+    expect(driver.paused, [handle]);
+    final me = Object();
+    service.beginMusicEffect(
+      owner: me,
+      fadeOut: Duration.zero,
+      fadeIn: Duration.zero,
+    );
+    await service.setSuspended(false);
+    expect(driver.resumed, isEmpty);
+    await service.endMusicEffect(me);
+    expect(driver.resumed, [handle]);
+    expect(driver.played, hasLength(1));
+    expect(driver.stopped, isEmpty);
+    await service.dispose();
+  });
+  test(
     'ME begins without waiting and pauses only the current BGM handle',
     () async {
       final driver = _Driver();

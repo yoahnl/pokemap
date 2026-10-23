@@ -4,10 +4,56 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_sound_effect_playback_port.dart';
 import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'map transfer stops the original SE owner without any map music controller',
+    () async {
+      final effects = _OwnedEffects();
+      final game = await _mount(
+        const MapWarpTransition(type: MapWarpTransitionType.none),
+        effects: effects,
+        logicalInstances: true,
+      );
+      final sourceInstance = game.gameStateSnapshot.mapInstanceWorldState
+          .instanceRef('source');
+      expect(sourceInstance, isNotNull);
+      expect(
+        await game.debugExecuteSceneInteractiveCommand(
+          SceneInteractiveCommand.playSoundEffect(
+            mediaAssetId: 'effect',
+            volume: .5,
+          ),
+        ),
+        'completed',
+      );
+      final sourceOwner = effects.started.single;
+      expect(effects.active, contains(sourceOwner));
+      var finished = false;
+      final warp = game
+          .debugExecuteSceneInteractiveCommand(
+            SceneInteractiveCommand.warp(
+              destinationMapId: 'target',
+              warpId: 'passage',
+              transition: SceneWarpTransition.none,
+            ),
+          )
+          .whenComplete(() => finished = true);
+      await _until(game, () => finished);
+      expect(await warp, 'completed');
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+      expect(
+        game.gameStateSnapshot.mapInstanceWorldState.instanceRef('target'),
+        isNotNull,
+      );
+      expect(effects.stopped, contains(sourceOwner));
+      expect(effects.active, isEmpty);
+    },
+  );
 
   test(
     'physical 2D passage with none transfers without a visual overlay',
@@ -141,6 +187,8 @@ Future<PlayableMapGame> _mount(
   MapWarpTransition transition, {
   Completer<void>? gate,
   bool invalidArrival = false,
+  SceneOwnedSoundEffectPlaybackPort? effects,
+  bool logicalInstances = false,
 }) async {
   final maps = [
     for (final id in ['source', 'target'])
@@ -184,6 +232,23 @@ Future<PlayableMapGame> _mount(
   ];
   final project = ProjectManifest(
     name: 'Native transitions',
+    settings: ProjectSettings(
+      mapInstanceRetentionPolicy: logicalInstances
+          ? MapInstanceRetentionPolicy(
+              viewportWidthTiles: 20,
+              viewportHeightTiles: 20,
+              marginTiles: 0,
+            )
+          : null,
+    ),
+    cinematicMediaAssets: [
+      CinematicMediaAsset(
+        id: 'effect',
+        label: 'Effect',
+        kind: CinematicMediaAssetKind.sound,
+        relativePath: 'effect.wav',
+      ),
+    ],
     maps: [
       for (final map in maps)
         ProjectMapEntry(
@@ -203,6 +268,7 @@ Future<PlayableMapGame> _mount(
   final game = _LoadedGame(
     bundle: bundle('source'),
     projectFilePath: '/tmp/native-transitions/project.json',
+    sceneSoundEffectPlaybackPort: effects,
     runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async {
       if (mapId == 'target') await gate?.future;
       return bundle(mapId);
@@ -225,7 +291,40 @@ final class _LoadedGame extends PlayableMapGame {
     required super.projectFilePath,
     required super.runtimeMapBundleLoader,
     required super.runtimeTilesetImageLoader,
+    super.sceneSoundEffectPlaybackPort,
   });
   @override
   bool get isLoaded => true;
+}
+
+final class _OwnedEffects implements SceneOwnedSoundEffectPlaybackPort {
+  final started = <Object>[];
+  final stopped = <Object>[];
+  final active = <Object>{};
+  @override
+  Future<void> playOwnedSoundEffect(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+    required Object owner,
+    Object? sceneOwner,
+  }) async {
+    started.add(owner);
+    active.add(owner);
+  }
+
+  @override
+  Future<void> stopOwnedSoundEffects(Object owner) async {
+    stopped.add(owner);
+    active.remove(owner);
+  }
+
+  @override
+  Future<void> playSoundEffect(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+  }) async {
+    throw StateError('Expected the owned sound playback path.');
+  }
 }

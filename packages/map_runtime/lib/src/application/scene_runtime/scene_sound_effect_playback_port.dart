@@ -5,3 +5,15 @@ abstract interface class SceneSoundEffectPlaybackPort {
     required String playbackId,
   });
 }
+
+abstract interface class SceneOwnedSoundEffectPlaybackPort
+    implements SceneSoundEffectPlaybackPort {
+  Future<void> playOwnedSoundEffect(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+    required Object owner,
+    Object? sceneOwner,
+  });
+  Future<void> stopOwnedSoundEffects(Object owner);
+}

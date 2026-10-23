@@ -6,6 +6,7 @@ enum RuntimeAudioRoute {
   splash,
   title,
   overworld,
+  ambience,
   battle,
   cinematicMusic,
   cinematicEffects,
@@ -17,17 +18,16 @@ enum RuntimeAudioBus { music, effects }
 
 extension RuntimeAudioRouteBus on RuntimeAudioRoute {
   RuntimeAudioBus get bus => switch (this) {
-        RuntimeAudioRoute.title ||
-        RuntimeAudioRoute.splash ||
-        RuntimeAudioRoute.overworld ||
-        RuntimeAudioRoute.battle ||
-        RuntimeAudioRoute.cinematicMusic =>
-          RuntimeAudioBus.music,
-        RuntimeAudioRoute.cinematicEffects ||
-        RuntimeAudioRoute.battleEffects ||
-        RuntimeAudioRoute.overworldEffects =>
-          RuntimeAudioBus.effects,
-      };
+    RuntimeAudioRoute.title ||
+    RuntimeAudioRoute.splash ||
+    RuntimeAudioRoute.overworld ||
+    RuntimeAudioRoute.battle ||
+    RuntimeAudioRoute.cinematicMusic => RuntimeAudioBus.music,
+    RuntimeAudioRoute.cinematicEffects ||
+    RuntimeAudioRoute.ambience ||
+    RuntimeAudioRoute.battleEffects ||
+    RuntimeAudioRoute.overworldEffects => RuntimeAudioBus.effects,
+  };
 }
 
 /// Persistable three-bus mix projected by the embedding player.
@@ -36,18 +36,18 @@ final class RuntimeAudioMix {
     this.masterVolume = 1,
     this.musicVolume = 1,
     this.effectsVolume = 1,
-  })  : assert(
-          masterVolume >= 0 && masterVolume <= 1,
-          'masterVolume must be between 0 and 1',
-        ),
-        assert(
-          musicVolume >= 0 && musicVolume <= 1,
-          'musicVolume must be between 0 and 1',
-        ),
-        assert(
-          effectsVolume >= 0 && effectsVolume <= 1,
-          'effectsVolume must be between 0 and 1',
-        );
+  }) : assert(
+         masterVolume >= 0 && masterVolume <= 1,
+         'masterVolume must be between 0 and 1',
+       ),
+       assert(
+         musicVolume >= 0 && musicVolume <= 1,
+         'musicVolume must be between 0 and 1',
+       ),
+       assert(
+         effectsVolume >= 0 && effectsVolume <= 1,
+         'effectsVolume must be between 0 and 1',
+       );
 
   final double masterVolume;
   final double musicVolume;
@@ -66,10 +66,7 @@ final class RuntimeAudioMix {
     );
   }
 
-  double volumeFor(
-    RuntimeAudioRoute route, {
-    double sourceVolume = 1,
-  }) {
+  double volumeFor(RuntimeAudioRoute route, {double sourceVolume = 1}) {
     final normalizedSource = sourceVolume.clamp(0.0, 1.0);
     final busVolume = switch (route.bus) {
       RuntimeAudioBus.music => musicVolume,
@@ -93,9 +90,9 @@ final class RuntimeAudioMixer {
     RuntimeAudioMix mix = const RuntimeAudioMix(),
     RuntimeAudioFadeDelay? fadeDelay,
     int fadeSteps = 8,
-  })  : _mix = mix,
-        _fadeDelay = fadeDelay ?? Future<void>.delayed,
-        _fadeSteps = fadeSteps < 1 ? 1 : fadeSteps;
+  }) : _mix = mix,
+       _fadeDelay = fadeDelay ?? Future<void>.delayed,
+       _fadeSteps = fadeSteps < 1 ? 1 : fadeSteps;
 
   RuntimeAudioMix _mix;
   final RuntimeAudioFadeDelay _fadeDelay;
@@ -270,9 +267,8 @@ final class _RuntimeMixedChannel {
   final double sourceVolume;
   final RuntimeAudioVolumeSetter setVolume;
 
-  Future<void> apply(RuntimeAudioMix mix, double duckingGain) => setVolume(
-        mix.volumeFor(route, sourceVolume: sourceVolume) * duckingGain,
-      );
+  Future<void> apply(RuntimeAudioMix mix, double duckingGain) =>
+      setVolume(mix.volumeFor(route, sourceVolume: sourceVolume) * duckingGain);
 
   _RuntimeMixedChannel copyWith({required double sourceVolume}) =>
       _RuntimeMixedChannel(

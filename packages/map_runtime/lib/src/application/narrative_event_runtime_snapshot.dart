@@ -12,6 +12,7 @@ import 'runtime_project_catalog.dart';
 final class NarrativeEventRuntimeSnapshot {
   NarrativeEventRuntimeSnapshot._({
     required this.project,
+    required this.presentationMediaCatalog,
     required this.mapsById,
     required this.registryResult,
     required this.factResolver,
@@ -22,6 +23,7 @@ final class NarrativeEventRuntimeSnapshot {
        _owner = RuntimeProjectCatalog.ownerOf(project);
 
   final ProjectManifest project;
+  final ProjectMediaCatalog? presentationMediaCatalog;
   final Map<String, NarrativeMapView> mapsById;
   final EventRegistryDecodeResult registryResult;
   final NarrativeFactRuntimeResolver factResolver;
@@ -38,6 +40,8 @@ final class NarrativeEventRuntimeSnapshot {
 
   static Future<NarrativeEventRuntimeSnapshot> build({
     required ProjectManifest project,
+    ProjectMediaCatalog? presentationMediaCatalog,
+    Future<ProjectMediaCatalog?> Function()? loadPresentationMediaCatalog,
     required Future<({ProjectManifest project, MapData map})> Function(
       String mapId,
     )
@@ -61,8 +65,12 @@ final class NarrativeEventRuntimeSnapshot {
     final validatedProjects = Set<ProjectManifest>.identity()..add(project);
     if (registry.mode == EventSystemMode.legacyOnly &&
         !registry.hasLocalRuntimeAuthority) {
+      if (presentationMediaCatalog == null && _hasWorldPictures(project)) {
+        presentationMediaCatalog = await loadPresentationMediaCatalog?.call();
+      }
       return NarrativeEventRuntimeSnapshot._(
         project: project,
+        presentationMediaCatalog: presentationMediaCatalog,
         mapsById: const <String, MapData>{},
         registryResult: registryResult,
         factResolver: factResolver,
@@ -70,6 +78,7 @@ final class NarrativeEventRuntimeSnapshot {
           project: project,
           maps: const <MapData>[],
           deferFingerprints: true,
+          presentationMediaCatalog: presentationMediaCatalog,
         ),
         legacyClaimIndex: structuralClaimIndex,
         validatedProjects: validatedProjects,
@@ -139,17 +148,22 @@ final class NarrativeEventRuntimeSnapshot {
     final validationProject = owner == null
         ? project
         : owner.mergeNarrativeVisualDefinitions(project, validatedProjects);
+    if (presentationMediaCatalog == null && _hasWorldPictures(validationProject)) {
+      presentationMediaCatalog = await loadPresentationMediaCatalog?.call();
+    }
     final catalog = await Isolate.run(
       () => _buildNarrativeCatalog(
         project: validationProject,
         mapsById: mapsById,
         registry: registry,
         structuralClaimIndex: structuralClaimIndex,
+        presentationMediaCatalog: presentationMediaCatalog,
       ),
     );
 
     return NarrativeEventRuntimeSnapshot._(
       project: validationProject,
+      presentationMediaCatalog: presentationMediaCatalog,
       mapsById: Map<String, NarrativeMapView>.unmodifiable(mapsById),
       registryResult: registryResult,
       factResolver: factResolver,
@@ -169,6 +183,7 @@ _buildNarrativeCatalog({
   required Map<String, NarrativeMapView> mapsById,
   required NarrativeEventRegistry registry,
   required ValidatedLegacyClaimIndex structuralClaimIndex,
+  required ProjectMediaCatalog? presentationMediaCatalog,
 }) {
   final legacyMapProjections = <LegacyMapEventProjection>[
     for (final map in mapsById.values)
@@ -230,6 +245,7 @@ _buildNarrativeCatalog({
     deferFingerprints: true,
     legacyProjections: legacyMapProjections,
     referencedOutcomes: referencedOutcomes,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
 
   return (
@@ -260,3 +276,9 @@ String _runtimeProjectFingerprint(ProjectManifest project) {
   );
   return canonicalizeNarrativeEventJson(ordered.toJson());
 }
+
+bool _hasWorldPictures(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) {
+  final payload = node.payload;
+  final command = payload is SceneActionPayload ? payload.interactiveCommand : null;
+  return command is SceneWorldPresentationInteractiveCommand && command.operation == SceneWorldPresentationOperation.showPicture;
+}));

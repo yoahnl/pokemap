@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
+import '../assets/project_media_store.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 
@@ -61,6 +62,10 @@ final class EventV2Actions {
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
+    final mediaBytes = context.snapshot
+        .findResourceBytes(projectMediaCatalogResourceIdentity);
+    final presentationMediaCatalog =
+        mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
     if (context.request.actionId == 'event_v2.record_upsert_batch') {
       rejectUnknownNarrativeParameters(parameters, const {'records'});
       final raw = parameters['records'];
@@ -79,7 +84,8 @@ final class EventV2Actions {
         records.add(_decodeRecord(Map<String, dynamic>.from(value)));
       }
       final projected = upsertRecords(context.snapshot.manifest,
-          maps: context.snapshot.maps, records: records);
+          maps: context.snapshot.maps, records: records,
+          presentationMediaCatalog: presentationMediaCatalog);
       return narrativeProjectDraft(context.snapshot, projected,
           operation: context.request.actionId,
           path: '/eventRegistry/records',
@@ -137,6 +143,7 @@ final class EventV2Actions {
         projected = createDraft(
           context.snapshot.manifest,
           maps: context.snapshot.maps,
+          presentationMediaCatalog: presentationMediaCatalog,
           revision: context.snapshot.revision,
           name: name,
           rawUuid: rawUuid,
@@ -160,6 +167,7 @@ final class EventV2Actions {
         projected = upsertRecord(
           context.snapshot.manifest,
           maps: context.snapshot.maps,
+          presentationMediaCatalog: presentationMediaCatalog,
           record: record,
         );
       case 'event_v2.publish':
@@ -174,30 +182,35 @@ final class EventV2Actions {
           'event_v2.publish' => publish(
               context.snapshot.manifest,
               maps: context.snapshot.maps,
+              presentationMediaCatalog: presentationMediaCatalog,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
           'event_v2.unpublish' => unpublish(
               context.snapshot.manifest,
               maps: context.snapshot.maps,
+              presentationMediaCatalog: presentationMediaCatalog,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
           'event_v2.activate' => activate(
               context.snapshot.manifest,
               maps: context.snapshot.maps,
+              presentationMediaCatalog: presentationMediaCatalog,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
           'event_v2.deactivate' => deactivate(
               context.snapshot.manifest,
               maps: context.snapshot.maps,
+              presentationMediaCatalog: presentationMediaCatalog,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
           'event_v2.delete' => delete(
               context.snapshot.manifest,
               maps: context.snapshot.maps,
+              presentationMediaCatalog: presentationMediaCatalog,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
@@ -224,12 +237,14 @@ final class EventV2Actions {
   ProjectManifest createDraft(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required String revision,
     required String name,
     required String rawUuid,
     NarrativeEventSourceRef? initialSource,
   }) {
-    final context = _context(project, maps: maps, revision: revision);
+    final context = _context(project, maps: maps, revision: revision,
+        presentationMediaCatalog: presentationMediaCatalog);
     return _apply(
       project,
       createNarrativeEventDraft(
@@ -245,14 +260,17 @@ final class EventV2Actions {
   ProjectManifest upsertRecord(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required NarrativeEventRecord record,
   }) {
-    return upsertRecords(project, maps: maps, records: [record]);
+    return upsertRecords(project, maps: maps, records: [record],
+        presentationMediaCatalog: presentationMediaCatalog);
   }
 
   ProjectManifest upsertRecords(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required List<NarrativeEventRecord> records,
   }) {
     if (records.isEmpty || records.length > maxBatchRecords) {
@@ -284,7 +302,8 @@ final class EventV2Actions {
         (record.definitionOrNull?.source ?? record.draftOrNull?.source)?.kind ==
             NarrativeEventSourceKind.triggerBump);
     final catalog = requiresCatalog
-        ? buildNarrativeEventProjectCatalog(project: projected, maps: maps)
+        ? buildNarrativeEventProjectCatalog(project: projected, maps: maps,
+            presentationMediaCatalog: presentationMediaCatalog)
         : null;
     for (final record in records) {
       final source =
@@ -378,13 +397,17 @@ final class EventV2Actions {
   ProjectManifest publish(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required String revision,
     required String eventId,
   }) =>
       _apply(
         project,
         publishNarrativeEvent(
-          context: _context(project, maps: maps, revision: revision),
+          context: _context(project,
+              maps: maps,
+              revision: revision,
+              presentationMediaCatalog: presentationMediaCatalog),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -393,13 +416,17 @@ final class EventV2Actions {
   ProjectManifest unpublish(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required String revision,
     required String eventId,
   }) =>
       _apply(
         project,
         unpublishNarrativeEvent(
-          context: _context(project, maps: maps, revision: revision),
+          context: _context(project,
+              maps: maps,
+              revision: revision,
+              presentationMediaCatalog: presentationMediaCatalog),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -408,13 +435,17 @@ final class EventV2Actions {
   ProjectManifest activate(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required String revision,
     required String eventId,
   }) =>
       _apply(
         project,
         activateNarrativeEvent(
-          context: _context(project, maps: maps, revision: revision),
+          context: _context(project,
+              maps: maps,
+              revision: revision,
+              presentationMediaCatalog: presentationMediaCatalog),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -423,13 +454,17 @@ final class EventV2Actions {
   ProjectManifest deactivate(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required String revision,
     required String eventId,
   }) =>
       _apply(
         project,
         deactivateNarrativeEvent(
-          context: _context(project, maps: maps, revision: revision),
+          context: _context(project,
+              maps: maps,
+              revision: revision,
+              presentationMediaCatalog: presentationMediaCatalog),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -438,13 +473,17 @@ final class EventV2Actions {
   ProjectManifest delete(
     ProjectManifest project, {
     required List<MapData> maps,
+    ProjectMediaCatalog? presentationMediaCatalog,
     required String revision,
     required String eventId,
   }) =>
       _apply(
         project,
         deleteNarrativeEvent(
-          context: _context(project, maps: maps, revision: revision),
+          context: _context(project,
+              maps: maps,
+              revision: revision,
+              presentationMediaCatalog: presentationMediaCatalog),
           expectedRevision: revision,
           eventId: eventId,
           dependencyIndex: buildNarrativeDependencyIndex(
@@ -459,11 +498,13 @@ NarrativeEventAuthoringContext _context(
   ProjectManifest project, {
   required List<MapData> maps,
   required String revision,
+  ProjectMediaCatalog? presentationMediaCatalog,
 }) {
   final registry = project.eventRegistry;
   final catalog = buildNarrativeEventProjectCatalog(
     project: project,
     maps: maps,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
   return NarrativeEventAuthoringContext(
     registryState: registry == null

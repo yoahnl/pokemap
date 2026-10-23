@@ -24,6 +24,7 @@ import 'source_hole_native_program.dart';
 import 'source_elevator_program.dart';
 import 'source_warp_tile_native_program.dart';
 import 'source_event_sound_binding.dart';
+import 'source_picture_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_dialogue_text.dart';
 import 'source_sequence_program.dart';
@@ -370,6 +371,12 @@ final class SourceEventStudyComposer {
         for (final event in selectedEvents.where((event) => !event.isQuarantined))
           for (final page in event.pages) ..._soundNames(page.body, dialogueOnly: true),
     };
+    final nativePresentationSoundNames = {
+      for (final event in selectedEvents.where((event) => !event.isQuarantined &&
+          (sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity)) &&
+          event.pages.any((page) => sourcePresentationProgramNodes(page.body).any((node) => node is SourcePresentationNode))))
+        for (final page in event.pages) ..._soundNames(page.body),
+    };
     for (final name in {
       if (cardKeyGatePrograms.isNotEmpty) ...['ItemGet', 'frlg_gateopen'],
       ...inlineSounds,
@@ -382,7 +389,9 @@ final class SourceEventStudyComposer {
       try {
         final binding = await const SourceEventSoundResolver().read(
           source: source, files: recording, name: name, limits: limits,
-          policy: transitionSounds.contains(name) || inlineSounds.contains(name) || trainerVictorySounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
+          policy: nativePresentationSoundNames.contains(name)
+              ? SourceEventSoundPolicy.nativeAuthoredVolume
+              : transitionSounds.contains(name) || inlineSounds.contains(name) || trainerVictorySounds.contains(name) ? SourceEventSoundPolicy.sourceEngineGain
               : SourceEventSoundPolicy.nativeAuthoredVolume,
           cancellation: cancellation);
         sounds[name] = binding;
@@ -406,6 +415,55 @@ final class SourceEventStudyComposer {
               'reason': proofError.code});
           }
         }
+      }
+    }
+    final pictures = <String, SourcePictureBinding>{};
+    final pictureEvidence = <Map<String, Object?>>[];
+    final presentationEvents = selectedEvents.where((event) =>
+        !event.isQuarantined && (sequencePrograms.containsKey(event.identity) ||
+            interactionPrograms.containsKey(event.identity))).toList();
+    final presentationNodes = presentationEvents.expand((event) => event.pages)
+        .expand((page) => sourcePresentationProgramNodes(page.body)).toList();
+    final pictureNames = presentationNodes.whereType<SourcePictureNode>()
+        .where((node) => node.operation == 'show').map((node) => node.name!).toSet().toList()..sort();
+    for (final name in pictureNames) {
+      try {
+        final binding = await const SourcePictureBindingResolver().read(
+            source: source, files: recording, name: name,
+            limits: limits, cancellation: cancellation);
+        pictures[name] = binding;
+        pictureEvidence.add({'status': 'imported', ...binding.evidence});
+      } on SourcePictureBindingUnavailable catch (error) {
+        if (error.reason == 'picture_changed' || error.reason == 'picture_quota') {
+          throw NativeWriteException('events.picture.${error.reason}', 'Source picture binding must retain its exact bounded source image.');
+        }
+        pictureEvidence.add({'name': name, 'status': 'preservedOnly', 'reason': error.reason});
+      }
+    }
+    final presentationAudio = <(String, String)>{
+      for (final node in presentationNodes)
+        if (node is SourceMusicNode) ('music', node.name)
+        else if (node is SourceAudioControlNode && node.operation == 'play')
+          (node.channel, node.name!),
+    }.toList()..sort((left, right) => '${left.$1}:${left.$2}'.compareTo('${right.$1}:${right.$2}'));
+    for (final (channel, name) in presentationAudio) {
+      final key = '${channel == 'ambience' ? 'bgs' : 'bgm'}:$name';
+      try {
+        final binding = await const SourceEventSoundResolver().read(
+            source: source, files: recording, name: name,
+            kind: channel == 'ambience' ? SourceEventAudioKind.ambience : SourceEventAudioKind.music,
+            policy: SourceEventSoundPolicy.nativeAuthoredVolume,
+            limits: limits, cancellation: cancellation);
+        sounds[key] = binding;
+        soundEvidence.add({'sourceName': name, 'channel': channel,
+          'scope': 'map', 'scopeAdaptation': 'aveluneMapAudioResetOnTransfer',
+          'status': 'imported', ...binding.evidence});
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        if (error.reason == 'audio_changed' || error.reason == 'audio_quota') {
+          throw NativeWriteException('events.audio.${error.reason}', 'Source audio must retain its exact bounded source witness.');
+        }
+        soundEvidence.add({'sourceName': name, 'channel': channel,
+          'status': 'preservedOnly', 'reason': error.reason});
       }
     }
     final musicEffects = {
@@ -731,6 +789,7 @@ final class SourceEventStudyComposer {
             pickupBindings: pickupBindings,
             itemBindings: items?.bindings ?? const {},
             soundBindings: sounds,
+        pictureBindings: pictures,
             centerRecoveryBinding: centerRecovery,
             trainerBindings: trainerBindings.byEventIdentity,
             firstRivalBindings: firstRivals.byEventIdentity,
@@ -872,6 +931,7 @@ final class SourceEventStudyComposer {
         pickupBindings: pickupBindings,
         itemBindings: items?.bindings ?? const {},
         soundBindings: sounds,
+        pictureBindings: pictures,
         centerRecoveryBinding: centerRecovery,
         trainerBindings: trainerBindings.byEventIdentity,
             firstRivalBindings: firstRivals.byEventIdentity,
@@ -952,6 +1012,8 @@ final class SourceEventStudyComposer {
     }
     final preservedFileIds =
         selectedEvents.map((event) => event.sourceFileId.value).toSet();
+    preservedFileIds.addAll(pictures.values.map((binding) => binding.imageFile.fileId.value));
+    preservedFileIds.addAll(sounds.values.map((binding) => binding.audioFile.fileId.value));
     for (final entry in decorativePokemonBindings.entries.where((entry) => admittedIdentities.contains(entry.key))) {
       preservedFileIds.addAll(entry.value.witnesses.map((file) => file.fileId.value));
     }
@@ -1198,6 +1260,7 @@ final class SourceEventStudyComposer {
         ...usedCenterRecovery.map((b) => b.artifact),
         ...usedGyms.map((gym) => gym.artifact),
         ...pickupArtifacts,
+        ...pictures.values.map((binding) => binding.artifact),
         ...sounds.values.map((binding) => binding.artifact),
         ...musicBindings.values.expand((entry) => entry.artifacts),
         ...preservedArtifacts.values,
@@ -1228,6 +1291,7 @@ final class SourceEventStudyComposer {
       ...usedTownMap.expand((b) => b.mutations.where((entry) => entry.actionId == 'asset.import')),
       ...usedCenterRecovery.map((b) => b.mutation),
       ...pickupMutations,
+      ...pictures.values.map((binding) => binding.mutation),
       ...sounds.values.map((binding) => binding.mutation),
       ...musicBindings.values.expand((entry) => entry.importMutations),
       ...catalogMutations
@@ -1341,6 +1405,7 @@ final class SourceEventStudyComposer {
         'sourceOracle': {'viewport': '000:684-686', 'margin': '043:475-495',
           'clamp': '042:322-341'},
       },
+      'pictures': pictureEvidence,
       'mapMusic': musicEvidence,
       'witnesses': recording.evidence,
       'actorDepthParityQualified': false,

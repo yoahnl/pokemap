@@ -11,6 +11,7 @@ import '../maps/map_lifecycle_adapter.dart';
 import 'dialogue_authoring_service.dart';
 import 'dialogue_source_guards.dart';
 import 'dialogue_source_store.dart';
+import '../assets/project_media_store.dart';
 import 'event_actions.dart';
 import 'narrative_action_support.dart';
 import 'scene_actions.dart';
@@ -59,6 +60,10 @@ class NarrativeDocumentActions {
       'events',
     });
     final snapshot = context.snapshot;
+    final mediaBytes =
+        snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+    final presentationMediaCatalog =
+        mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
     final map = MapData.fromJson(narrativeObjectParameter(fields, 'map'));
     final previousMap = snapshot.mapById(map.id);
     if (previousMap == null ||
@@ -105,18 +110,21 @@ class NarrativeDocumentActions {
         if (item.id == map.id) map else item
     ];
     for (final scene in scenes) {
-      project = const SceneActions().upsert(project, maps: maps, scene: scene);
+      project = const SceneActions().upsert(project, maps: maps, scene: scene,
+          presentationMediaCatalog: presentationMediaCatalog);
     }
     for (final value in _objects(fields, 'events')) {
       project = const EventV2Actions().upsertRecord(project,
-          maps: maps, record: NarrativeEventRecord.fromJson(value));
+          maps: maps, record: NarrativeEventRecord.fromJson(value),
+          presentationMediaCatalog: presentationMediaCatalog);
     }
     final registry = project.eventRegistry;
     if (registry != null) {
       final report = buildNarrativeEventValidationReport(
         registry: registry,
         catalog:
-            buildNarrativeEventProjectCatalog(project: project, maps: maps),
+            buildNarrativeEventProjectCatalog(project: project, maps: maps,
+                presentationMediaCatalog: presentationMediaCatalog),
       );
       if (report.hasBlockingDiagnostics) {
         throw StateError(

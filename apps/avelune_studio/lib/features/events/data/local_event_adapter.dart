@@ -2,6 +2,8 @@ import 'package:map_authoring/map_authoring.dart'
     show
         AuthoringTransactionFaultInjector,
         StandardEventTemplateSpec,
+        decodeProjectMediaCatalogBytes,
+        projectMediaCatalogResourceIdentity,
         compileStandardEventTemplate;
 import 'package:map_core/map_core_domain.dart';
 
@@ -11,13 +13,18 @@ import '../../narrative/data/local_narrative_adapter.dart';
 import '../../narrative/domain/narrative_port.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';
+import '../../presentations/data/local_presentation_adapter.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/event_port.dart';
 import '../domain/event_record_view.dart';
 import '../domain/event_template_port.dart';
 
 class LocalEventAdapter
-    implements EventPort, EventRegistryModePort, EventTemplatePort {
+    implements
+        EventPort,
+        EventRegistryModePort,
+        EventTemplatePort,
+        EventPresentationCatalogPort {
   const LocalEventAdapter({
     required this.session,
     required this.mapAdapter,
@@ -26,6 +33,19 @@ class LocalEventAdapter
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+
+  @override
+  Future<ProjectMediaCatalog> loadPresentationMediaCatalog(
+    ProjectManifest project,
+  ) async {
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      return ProjectMediaCatalog();
+    }
+    return (await LocalPresentationAdapter(
+      session: session,
+      mapAdapter: mapAdapter,
+    ).prepare(project)).mediaCatalog;
+  }
 
   @override
   Future<NarrativePublicationReceipt> publishTemplate({
@@ -101,12 +121,21 @@ class LocalEventAdapter
         actionId: current == null
             ? 'event_v2.delete'
             : 'event_v2.record_upsert',
-        validate: (project, maps) {
+        validateSnapshot: (snapshot) {
+          final project = snapshot.manifest;
+          final maps = snapshot.maps;
+          final bytes = snapshot.findResourceBytes(
+            projectMediaCatalogResourceIdentity,
+          );
+          final presentationMediaCatalog = bytes == null
+              ? null
+              : decodeProjectMediaCatalogBytes(bytes);
           final source = current?.source;
           if (source != null && source != base?.source) {
             final catalog = buildNarrativeEventProjectCatalog(
               project: project,
               maps: maps,
+              presentationMediaCatalog: presentationMediaCatalog,
             );
             if (catalog.resolveSource(source).status !=
                 NarrativeEventProjectResolutionStatus.found) {

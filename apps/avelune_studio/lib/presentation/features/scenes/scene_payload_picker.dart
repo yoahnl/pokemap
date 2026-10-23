@@ -12,6 +12,7 @@ Future<SceneNodePayload?> chooseScenePayload(
   Future<MapData> Function(String)? loadMap,
   Future<Map<String, String>> Function()? loadMoves,
   Future<List<PokemonSpeciesSummary>> Function()? loadSpecies,
+  Future<ProjectMediaCatalog> Function()? loadVisualMedia,
 }) => showDialog<SceneNodePayload>(
   context: context,
   builder: (context) {
@@ -77,6 +78,7 @@ Future<SceneNodePayload?> chooseScenePayload(
                   loadMap: loadMap,
                   loadMoves: loadMoves,
                   loadSpecies: loadSpecies,
+                  loadVisualMedia: loadVisualMedia,
                   onApply: (payload) => Navigator.pop(context, payload),
                 )
               : Column(

@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import '../../contracts/query_page.dart';
 import '../../contracts/query_request.dart';
 import '../../workspace/project_snapshot.dart';
+import '../assets/project_media_store.dart';
 import 'narrative_authoring_exception.dart';
 
 AuthoringQueryPage queryEventSimulation(
@@ -48,12 +49,17 @@ AuthoringQueryPage queryEventSimulation(
 
   final registry = snapshot.manifest.eventRegistry;
   try {
+    final mediaBytes =
+        snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+    final presentationMediaCatalog =
+        mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
     final report = simulateNarrativeEventDispatch(
       registryResult: registry == null
           ? EventRegistryDecodeResult.absent()
           : EventRegistryDecodeResult.decoded(registry),
       projectCatalog: buildNarrativeEventProjectCatalog(
-          project: snapshot.manifest, maps: snapshot.maps),
+          project: snapshot.manifest, maps: snapshot.maps,
+          presentationMediaCatalog: presentationMediaCatalog),
       project: snapshot.manifest,
       maps: snapshot.maps,
       facts: snapshot.manifest.facts,

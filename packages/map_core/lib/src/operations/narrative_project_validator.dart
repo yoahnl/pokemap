@@ -1,3 +1,4 @@
+import '../models/project_media_catalog.dart';
 import 'package:meta/meta.dart' show immutable;
 import 'dive_zone_validation.dart';
 
@@ -235,6 +236,7 @@ final class NarrativeProjectValidationReport {
 NarrativeProjectValidationReport validateNarrativeProject(
   ProjectManifest project, {
   required List<MapData> maps,
+  ProjectMediaCatalog? presentationMediaCatalog,
   /// Nombre d'erreurs du rapport de cohérence des catalogues Pokémon.
   ///
   /// BETA-SYS-005 : `null` laisse la gate dire qu'elle n'a pas pu se prononcer,
@@ -282,6 +284,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
     mapsById,
     diagnostics,
     knownItemIds: knownItemIds,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
   _appendPresentationTextReferenceDiagnostics(project, diagnostics);
   _appendSceneBattleReadinessDiagnostics(
@@ -294,7 +297,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
   _appendCinematicDiagnostics(project, diagnostics);
   _appendWorldRuleDiagnostics(project, maps, diagnostics);
   _appendEventSceneLinkDiagnostics(project, maps, diagnostics);
-  _appendEventV2Diagnostics(project, maps, diagnostics);
+  _appendEventV2Diagnostics(project, maps, diagnostics, presentationMediaCatalog: presentationMediaCatalog);
   _appendRuntimeReadinessDiagnostics(
     project,
     mapsById,
@@ -574,6 +577,7 @@ void _appendSceneDiagnostics(
   Map<String, MapData> mapsById,
   List<NarrativeProjectDiagnostic> target, {
   required Set<String>? knownItemIds,
+  required ProjectMediaCatalog? presentationMediaCatalog,
 }) {
   for (final scene in project.scenes) {
     for (final diagnostic in diagnoseSceneAgainstProject(
@@ -581,6 +585,7 @@ void _appendSceneDiagnostics(
       project,
       mapsById: mapsById,
       availableItemIds: knownItemIds,
+      presentationMediaCatalog: presentationMediaCatalog,
     ).diagnostics) {
       final dialogueId =
           diagnostic.code == SceneDiagnosticCode.dialogueRefUnknown
@@ -747,13 +752,15 @@ void _appendEventSceneLinkDiagnostics(
 void _appendEventV2Diagnostics(
   ProjectManifest project,
   List<MapData> maps,
-  List<NarrativeProjectDiagnostic> target,
-) {
+  List<NarrativeProjectDiagnostic> target, {
+  required ProjectMediaCatalog? presentationMediaCatalog,
+}) {
   final registry = project.eventRegistry;
   if (registry == null) return;
   final catalog = buildNarrativeEventProjectCatalog(
     project: project,
     maps: maps,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
   final report = buildNarrativeEventValidationReport(
     registry: registry,

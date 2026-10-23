@@ -11,6 +11,7 @@ import 'source_shop_binding.dart';
 import 'source_pickup_feedback_binding.dart';
 import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
+import 'source_picture_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_sequence_program.dart';
 import 'source_interaction_program.dart';
@@ -313,6 +314,7 @@ final class SourceEventProjector {
     Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventItemBinding> itemBindings = const {},
     Map<String, SourceEventSoundBinding> soundBindings = const {},
+    Map<String, SourcePictureBinding> pictureBindings = const {},
     Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding = const {},
     Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings = const {},
@@ -357,7 +359,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, missingOptionalSounds: missingOptionalSounds, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
+        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, pictureBindings: pictureBindings, programContexts: programContexts, missingOptionalSounds: missingOptionalSounds, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -375,6 +377,7 @@ final class SourceEventProjector {
       Map<String, SourcePickupFeedbackBinding> pickupBindings = const {},
     Map<String, SourceEventItemBinding> itemBindings = const {},
       Map<String, SourceEventSoundBinding> soundBindings = const {},
+    Map<String, SourcePictureBinding> pictureBindings = const {},
       Map<ConverterId, SourceCenterRecoveryBinding> centerRecoveryBinding = const {},
       Map<ConverterId, SourceTrainerEventBinding> trainerBindings = const {},
     Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings = const {},
@@ -431,7 +434,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, missingOptionalSounds: missingOptionalSounds, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
+            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, pictureBindings: pictureBindings, programContexts: programContexts, missingOptionalSounds: missingOptionalSounds, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
         .build();
   }
 }
@@ -559,6 +562,7 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourceFirstRivalProgramNode() => node.toJson(),
     SourceOakParcelProgramNode() => node.toJson(),
     SourceMusicNode() => node.toJson(),
+    SourcePresentationNode() => node.toJson(),
     SourceMusicEffectNode() => node.toJson(),
     SourceSoundEffectNode() => node.toJson(),
     SourceScriptNode() => {'script': node.script},
@@ -590,6 +594,7 @@ Object? _sourceControlNode(SourceEventNode node) => {
   'kind': node.runtimeType.toString(), 'span': node.span.toJson(),
   'value': switch (node) {
     SourceAnnotationNode() => node.toJson(),
+    SourcePresentationNode() => node.toJson(),
     SourceExclamationNode() => node.toJson(),
     SourceActorPoseSequenceNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
@@ -776,7 +781,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
       this.portraitBindings, this.escortBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
-      {required SourceTransferProgramAuthority transferAuthority, this.programContexts = const {}, this.missingOptionalSounds = const {}, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
+      {required SourceTransferProgramAuthority transferAuthority, this.pictureBindings = const {}, this.programContexts = const {}, this.missingOptionalSounds = const {}, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
@@ -988,6 +993,7 @@ final class _ProjectionBuilder {
   }
   final SourceMissingOptionalSoundProof? cardKeyGateMissingAudioProof;
   final Map<String, SourceMissingOptionalSoundProof> missingOptionalSounds;
+  final Map<String, SourcePictureBinding> pictureBindings;
   final dialogues = <ProjectDialogueEntry>[];
   final dialogueSources = <String, String>{};
   final worldRules = <WorldRuleDefinition>[];
@@ -1362,6 +1368,58 @@ final class _ProjectionBuilder {
         binding?.kind == SourceEventAudioKind.musicEffect &&
         binding?.policy == SourceEventSoundPolicy.nativeAuthoredVolume
         ? binding : null;
+  }
+
+  bool _hasStandardPresentation(SourceEventDefinition event) =>
+      (sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity)) &&
+      event.pages.any((page) => sourcePresentationProgramNodes(page.body).any((node) =>
+          node is SourcePresentationNode && node is! SourceMapFogNode));
+
+  SourceEventSoundBinding? _presentationAudio(String name, String channel) {
+    final kind = channel == 'ambience' ? SourceEventAudioKind.ambience : SourceEventAudioKind.music;
+    final binding = soundBindings['${channel == 'ambience' ? 'bgs' : 'bgm'}:$name'];
+    return binding?.name == name && binding?.kind == kind &&
+        binding?.sourceSnapshotHash == sourceSnapshotHash ? binding : null;
+  }
+
+  void _standardPresentationGaps(SourceEventDefinition event,
+      SourcePresentationNode node, Set<String> gaps) {
+    if (node.profileHash != analysis.profile.canonicalHash ||
+        node.rawDataRef.fileId != event.sourceFileId ||
+        node.rawDataRef.contentHash != source.sourceFiles[event.sourceFileId]?.contentHash) {
+      gaps.add('sourcePresentationAttestationUnqualified');
+    }
+    if (node is SourceMapFogNode) {
+      gaps.add('sourceMapFogUnsupported');
+      final path = 'Graphics/Fogs/${node.name}.png';
+      final images = source.snapshot.entries.where((entry) =>
+          sourcePathCollisionKey(entry.relativePath) == sourcePathCollisionKey(path)).toList();
+      if (node.name.isNotEmpty && images.isEmpty) {
+        gaps.add('sourceFogImageMissing');
+      } else if (images.length != 1 || images.single.relativePath != path ||
+          images.single.kind != SourceNodeKind.file || images.single.sha256 == null) {
+        gaps.add('sourceFogImageUnqualified');
+      }
+      return;
+    }
+    if (!sequencePrograms.containsKey(event.identity) &&
+        !interactionPrograms.containsKey(event.identity)) {
+      gaps.add('sourcePresentationProgramUnsupported');
+    }
+    if (event.pages.expand((page) => sourcePresentationProgramNodes(page.body))
+        .any((value) => value is SourceWarpNode)) {
+      gaps.add('sourcePresentationTransferScopeUnsupported');
+    }
+    if (node is SourceAudioControlNode && node.operation == 'play' &&
+        _presentationAudio(node.name!, node.channel) == null) {
+      gaps.add('source${node.channel == 'ambience' ? 'Ambience' : 'Music'}BindingMissing');
+    }
+    if (node is SourcePictureNode && node.operation == 'show') {
+      final binding = pictureBindings[node.name];
+      if (binding?.name != node.name || binding?.isBoundTo(source) != true) {
+        gaps.add('sourcePictureBindingMissing');
+      }
+    }
   }
 
   String _key(SourceEventDefinition event, String suffix) =>
@@ -4828,6 +4886,8 @@ final class _ProjectionBuilder {
       {bool checkCharacterBindings = true}) {
     for (final node in block.nodes) {
       switch (node) {
+        case SourcePresentationNode():
+          _standardPresentationGaps(event, node, gaps);
         case SourceGymBadgePresentationNode():
           final trainer = trainerBindings[event.identity];
           final gym = trainer?.gymLeader;
@@ -5035,7 +5095,13 @@ final class _ProjectionBuilder {
         case SourceOakParcelProgramNode():
           gaps.add('sourceOakParcelBindingsMissing');
         case SourceMusicNode():
-          if (escortPrograms[event.identity] == null ||
+          if (sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity)) {
+            if (node.pitch != 100) gaps.add('sourceMusicPitchUnsupported');
+            if (_presentationAudio(node.name, 'music') == null) gaps.add('sourceMusicBindingMissing');
+            if (event.pages.expand((page) => sourcePresentationProgramNodes(page.body)).any((value) => value is SourceWarpNode)) {
+              gaps.add('sourcePresentationTransferScopeUnsupported');
+            }
+          } else if (escortPrograms[event.identity] == null ||
               escortBindings[event.identity]?.isBoundTo(source, analysis, event) != true) {
             gaps.add('sourceMusicProgramUnsupported');
           }
@@ -5055,7 +5121,7 @@ final class _ProjectionBuilder {
           }
           if (node.pitch != 100) gaps.add('sourceSoundPitchUnsupported');
           if (!_soundIsSourceNoOp(node.name) &&
-              _sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
+              _sound(node.name, allowNativeAdaptation: _isItemGiver(event) || _hasStandardPresentation(event)) == null) {
             gaps.add('sourceSoundBindingMissing');
           }
           if (_decorativePokemonBinding(event) == null && !_isSourceTransition(event) && !_isItemGiver(event) && !_qualifiedGymStageContains(event, node) &&
@@ -6292,6 +6358,59 @@ final class _SceneBuilder {
     return sound(transfer);
   }
 
+  SceneInteractiveCommand? _baselineSceneAudioAdaptation(SourceAudioControlNode node) =>
+      switch (node.operation) {
+        'memorize' => null,
+        'restoreMemorized' => SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore),
+        'fadeOut' => SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.fadeOut, durationMs: node.durationMs!),
+        _ => throw const NativeWriteException('events.audio.baseline_adaptation', 'Closed scene audio requires its exact complete source program.'),
+      };
+
+  SceneInteractiveCommand _presentationCommand(SourcePresentationNode node) {
+    if (node is SourceAudioControlNode) {
+      if (node.operation == 'stopEffects') {
+        return SceneInteractiveCommand.fromJson({'kind': 'stopSoundEffects', 'scope': 'map'});
+      }
+      final binding = node.operation == 'play'
+          ? projection._presentationAudio(node.name!, node.channel)! : null;
+      return SceneInteractiveCommand.fromJson({
+        'kind': 'sceneMusic', 'operation': node.operation,
+        'channel': node.channel, 'scope': 'map',
+        if (binding != null) 'mediaAssetId': binding.mediaId,
+        if (binding != null) 'volume': binding.gainForVolume(node.volume!),
+        if (node.durationMs != null) 'durationMs': node.durationMs,
+      });
+    }
+    if (node is SourcePictureNode) {
+      return SceneInteractiveCommand.fromJson({
+        'kind': 'worldPresentation', 'scope': 'map',
+        'operation': '${node.operation}Picture', 'slotId': node.slot,
+        'durationMs': node.durationMs, 'waitForCompletion': false,
+        if (node.operation == 'show') 'mediaAssetId': projection.pictureBindings[node.name]!.mediaId,
+        if (node.operation != 'erase') ...{
+          'referenceWidth': 512, 'referenceHeight': 384,
+          'x': node.x!.toDouble(), 'y': node.y!.toDouble(),
+          'scaleX': node.scaleX, 'scaleY': node.scaleY,
+          'opacity': node.opacity! / 255,
+          'origin': node.origin == 0 ? 'topLeft' : 'center',
+        },
+      });
+    }
+    if (node is SourceScreenEffectNode) {
+      return SceneInteractiveCommand.fromJson({
+        'kind': 'worldPresentation', 'scope': 'map', 'operation': node.effect,
+        'durationMs': node.durationMs, 'waitForCompletion': false,
+        if (node.effect == 'flash') ...{
+          'red': node.red, 'green': node.green, 'blue': node.blue, 'alpha': node.alpha,
+        } else ...{
+          'referenceWidth': 512, 'referenceHeight': 384,
+          'power': node.power! * 2.0, 'speed': node.speed! / 2,
+        },
+      });
+    }
+    throw const NativeWriteException('events.presentation.unsupported', 'Map fog requires a native map overlay capability.');
+  }
+
   String _block(SourceEventBlock block, String continuation,
       {bool initialActorRouteThrough = false}) {
     var next = continuation;
@@ -6487,8 +6606,15 @@ final class _SceneBuilder {
           next = _firstRival(node, next);
         case SourceOakParcelProgramNode():
           next = _oakParcel(node, next);
+        case SourcePresentationNode():
+          next = _interactive(_presentationCommand(node), next);
         case SourceMusicNode():
-          throw const NativeWriteException('events.music.binding', 'Music requires a qualified complete cinematic.');
+          final audio = projection._presentationAudio(node.name, 'music')!;
+          next = _interactive(SceneInteractiveCommand.fromJson({
+            'kind': 'sceneMusic', 'operation': 'play', 'scope': 'map',
+            'channel': 'music', 'mediaAssetId': audio.mediaId,
+            'volume': audio.gainForVolume(node.volume),
+          }), next);
         case SourceMusicEffectNode():
           final audio = projection._musicEffect(node.name)!;
           next = _interactive(SceneInteractiveCommand.playMusicEffect(
@@ -6498,7 +6624,7 @@ final class _SceneBuilder {
           if (projection._soundIsSourceNoOp(node.name)) break;
           if (node.name == 'frlg_gateopen' && projection._cardKeyGateSoundIsSourceNoOp(event)) break;
           final sound = projection._sound(node.name,
-              allowNativeAdaptation: projection._isItemGiver(event))!;
+              allowNativeAdaptation: projection._isItemGiver(event) || projection._hasStandardPresentation(event))!;
           next = _interactive(SceneInteractiveCommand.playSoundEffect(
             mediaAssetId: sound.mediaId, volume: sound.gainForVolume(node.volume)), next);
         case SourcePlayerVisibilityNode():

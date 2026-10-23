@@ -22,6 +22,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   required GameState Function() currentGameState,
   required SceneRuntimeHostCallbacks callbacks,
   SceneConsequenceRuntimeWriter? consequenceWriter,
+  ProjectMediaCatalog? presentationMediaCatalog,
   void Function(GameState Function()? projector)? onSceneStateProjection,
   List<NarrativeOutcomeRef> hostedBattleOutcomes = const [],
   int maxSteps = 100,
@@ -52,6 +53,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     scene,
     project,
     mapsById: mapsById,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
   if (diagnostics.hasErrors) {
     return NarrativeSceneExecutionResult.failed(

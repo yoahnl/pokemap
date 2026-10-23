@@ -154,6 +154,12 @@ bool _isSequence(SourceEventDefinition event) {
         break;
       case SourceTextNode():
         if (node.followingChoice != null) return false;
+      case SourcePresentationNode():
+        if (node is SourceMapFogNode) return false;
+        primitive = true;
+      case SourceMusicNode():
+        if (node.pitch != 100 || node.name.trim().isEmpty) return false;
+        primitive = true;
       case SourceWaitNode():
       case SourceToneNode():
       case SourceSoundEffectNode():
@@ -240,6 +246,8 @@ Object? _node(SourceEventNode node) => switch (node) {
       SourceWaitNode() => node.toJson(),
       SourceToneNode() => node.toJson(),
       SourceSoundEffectNode() => node.toJson(),
+      SourcePresentationNode() => node.toJson(),
+      SourceMusicNode() => node.toJson(),
       SourceMusicEffectNode() => node.toJson(),
       SourceExclamationNode() => node.toJson(),
       SourcePickupNode() => node.toJson(),

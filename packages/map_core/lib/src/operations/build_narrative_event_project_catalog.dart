@@ -1,3 +1,4 @@
+import '../models/project_media_catalog.dart';
 import '../models/map_spatial_scene.dart';
 import 'narrative_parallel_program.dart';
 import 'dart:convert';
@@ -21,6 +22,7 @@ import 'narrative_event_canonical_json.dart';
 NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   required ProjectManifest project,
   required List<NarrativeMapView> maps,
+  ProjectMediaCatalog? presentationMediaCatalog,
   List<LegacyMapEventProjection> legacyProjections = const [],
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
   List<NarrativeEventRecord> proposedRecords = const [],
@@ -35,6 +37,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   final outcomeSources = buildNarrativeOutcomeEventSourceCatalog(
     project: project,
     maps: maps,
+    presentationMediaCatalog: presentationMediaCatalog,
     referencedOutcomes: referencedOutcomes,
   );
   final diagnostics = <NarrativeEventProjectDiagnostic>[];
@@ -47,6 +50,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   final sceneDiagnostics = SceneProjectDiagnosticsContext(
     project,
     mapsById: mapsById,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
   final scenes = [
     for (final scene in project.scenes)

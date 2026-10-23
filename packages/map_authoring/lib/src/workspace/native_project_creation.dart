@@ -10,6 +10,7 @@ import '../contracts/artifact_ref.dart';
 import '../contracts/authoring_diff.dart';
 import '../contracts/authoring_receipt.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/assets/project_media_store.dart';
 import '../ports/exclusive_project_directory.dart';
 import '../ports/project_file_reader.dart';
 import '../support/authoring_fingerprint.dart';
@@ -91,6 +92,7 @@ final class NativeProjectCreationInput {
       Iterable<NativeProjectCreationArtifact> artifacts = const [],
       Map<String, String> dialogueSources = const {},
       this.itemCatalog,
+      this.presentationMediaCatalog,
       Iterable<PokemonCatalogFile> pokemonCatalogs = const [],
       Iterable<PokemonSpeciesFile> species = const [],
       Iterable<PokemonLearnsetFile> learnsets = const [],
@@ -112,6 +114,7 @@ final class NativeProjectCreationInput {
   final List<NativeProjectCreationArtifact> artifacts;
   final Map<String, String> dialogueSources;
   final ProjectItemCatalog? itemCatalog;
+  final ProjectMediaCatalog? presentationMediaCatalog;
   final List<PokemonCatalogFile> pokemonCatalogs;
   final List<PokemonSpeciesFile> species;
   final List<PokemonLearnsetFile> learnsets;
@@ -128,6 +131,7 @@ final class NativeProjectCreationInput {
       'artifacts',
       'dialogueSources',
       'itemCatalog',
+      'presentationMediaCatalog',
       'pokemonCatalogs',
       'species',
       'learnsets',
@@ -152,6 +156,10 @@ final class NativeProjectCreationInput {
         itemCatalog: json['itemCatalog'] == null
             ? null
             : ProjectItemCatalog.fromJson(_object(json['itemCatalog'])),
+        presentationMediaCatalog: json['presentationMediaCatalog'] == null
+            ? null
+            : ProjectMediaCatalog.fromJson(
+                _object(json['presentationMediaCatalog'])),
         pokemonCatalogs: list('pokemonCatalogs', PokemonCatalogFile.fromJson),
         species: list('species', PokemonSpeciesFile.fromJson),
         learnsets: list('learnsets', PokemonLearnsetFile.fromJson),
@@ -169,6 +177,8 @@ final class NativeProjectCreationInput {
         'artifacts': [for (final value in artifacts) value.toJson()],
         'dialogueSources': dialogueSources,
         if (itemCatalog != null) 'itemCatalog': itemCatalog!.toJson(),
+        if (presentationMediaCatalog != null)
+          'presentationMediaCatalog': presentationMediaCatalog!.toJson(),
         'pokemonCatalogs': [
           for (final value in pokemonCatalogs) value.toJson()
         ],
@@ -270,7 +280,9 @@ final class NativeProjectCreationReceipt {
 
 final class NativeProjectCreationService {
   const NativeProjectCreationService(
-      {this.faultInjector, this.checkpoint, this.clock,
+      {this.faultInjector,
+      this.checkpoint,
+      this.clock,
       this.maxInventoryBytes = nativeProjectCreationMaxBytes});
   final int maxInventoryBytes;
   final AuthoringTransactionFaultInjector? faultInjector;
@@ -295,6 +307,8 @@ final class NativeProjectCreationService {
           segments.any((part) =>
               part.startsWith('.') &&
               part != '.pokemap-assets.json' &&
+              !(path == projectMediaCatalogStorageKey &&
+                  part == '.pokemap-media.json') &&
               part != '.pokemap-store') ||
           path.contains('\\') ||
           path.contains(':')) {
@@ -344,6 +358,17 @@ final class NativeProjectCreationService {
       json(entry.relativePath, map.toJson());
     }
     json(assetCatalogStorageKey, input.assetCatalog.toJson());
+    final presentationMedia = input.presentationMediaCatalog;
+    if (presentationMedia != null) {
+      final assetIds =
+          input.assetCatalog.records.map((record) => record.id).toSet();
+      if (presentationMedia.entries
+          .any((entry) => !assetIds.contains(entry.sourceAssetId))) {
+        throw const FormatException(
+            'A presentation media source asset is missing.');
+      }
+      json(projectMediaCatalogStorageKey, presentationMedia.toJson());
+    }
     final artifacts = <String, NativeProjectCreationArtifact>{};
     for (final artifact in input.artifacts) {
       if (artifacts.containsKey(artifact.reference.handle)) {

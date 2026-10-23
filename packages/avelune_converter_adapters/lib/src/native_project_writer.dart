@@ -880,6 +880,14 @@ final class NativeProjectWriter {
         throw const NativeWriteException('native.verify.maps',
             'Fresh native map inventory differs from the approved draft');
       }
+      if (prepared.mediaCatalog != null) {
+        final bytes = snapshot.resourceBytes(projectMediaCatalogResourceIdentity);
+        final actual = decodeProjectMediaCatalogBytes(bytes);
+        if (canonicalJsonOf(actual.toJson()) != canonicalJsonOf(prepared.mediaCatalog!.toJson())) {
+          throw const NativeWriteException('native.verify.picture_catalog',
+              'Fresh native image media must equal its regenerated source catalog.');
+        }
+      }
       final mapHashes = <String, Sha256Hash>{};
       for (final entry in prepared.dialogueSources.entries) {
         _checkCancelled(cancellation);
@@ -1125,7 +1133,8 @@ final class _PreparedNativeDraft {
       this.audio,
       this.itemCatalog,
       this.pokemonDocuments,
-      this.borderSnapshots);
+      this.borderSnapshots,
+      this.mediaCatalog);
   final ProjectManifest bootstrap;
   final ProjectManifest manifest;
   final Map<String, MapData> maps;
@@ -1137,6 +1146,7 @@ final class _PreparedNativeDraft {
   final Map<String, String> dialogueSources;
   final Map<String, NativeArtifact> audio;
   final ProjectItemCatalog? itemCatalog;
+  final ProjectMediaCatalog? mediaCatalog;
   final List<SourceCatalogDocument> pokemonDocuments;
   final Map<String, NativeArtifact> borderSnapshots;
 }
@@ -1213,6 +1223,7 @@ NativeProjectCreationInput _nativeCreationInput(
                 (throw NativeWriteException('native.creation.artifact',
                     'No retained bytes for native artifact ${reference.handle}'))).bytes)],
       dialogueSources: prepared.dialogueSources, itemCatalog: prepared.itemCatalog,
+      presentationMediaCatalog: prepared.mediaCatalog,
       pokemonCatalogs: catalogs, species: species, learnsets: learnsets,
       evolutions: evolutions, media: media, borderFrames: borderFrames);
 }
@@ -1428,6 +1439,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'pokemon.configuration.set_enabled',
           'item.create',
           'scene.dialogue.audioMedia.import',
+          'presentationMedia.import',
           'map.audio.update',
           'campaign.badge.upsert',
           'campaign.shop.upsert',
@@ -1526,6 +1538,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   ProjectRegionalMapCatalog? regionalMap;
   final audio = <String, NativeArtifact>{};
   final mediaAssets = <CinematicMediaAsset>[];
+  final presentationMedia = <ProjectMediaAsset>[];
   final categories = <ProjectElementCategory>[];
   final elements = <ProjectElementEntry>[];
   final smartTileAtlases = <ProjectSmartTileAtlas>[];
@@ -1838,6 +1851,34 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'Semantic player default requires its preceding character');
         }
         defaultPlayerCharacterId = id;
+      case 'presentationMedia.import':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {
+          'artifactHandle', 'assetId', 'mediaId', 'label', 'logicalPath', 'kind'
+        });
+        final handle = _string(parameters, 'artifactHandle');
+        final id = _string(parameters, 'assetId');
+        final mediaId = _string(parameters, 'mediaId');
+        final logicalPath = _string(parameters, 'logicalPath');
+        final artifact = artifacts[handle];
+        if (artifact == null || artifact.reference.mediaType != 'image/png' ||
+            parameters['kind'] != 'image' ||
+            !logicalPath.startsWith('assets/presentation/') ||
+            !logicalPath.endsWith('.png') ||
+            assetRecords.any((record) => record.id == id || record.logicalPath == logicalPath) ||
+            presentationMedia.any((media) => media.id == mediaId) ||
+            !_targetIds(mutation.targetEntityIds, {id, mediaId})) {
+          throw const NativeWriteException('native.events.picture',
+              'Pictures require one exact regenerated image media import.');
+        }
+        final inspected = const PresentationMediaHeaderProbe().inspect(
+            artifact.bytes, declaredMediaType: artifact.reference.mediaType);
+        usedArtifacts.add(handle);
+        assetRecords.add(AssetRecord(id: id, logicalPath: logicalPath,
+            artifact: artifact.reference, tags: const ['presentation']));
+        presentationMedia.add(ProjectMediaAsset(id: mediaId,
+            label: _string(parameters, 'label'), kind: ProjectMediaKind.image,
+            sourceAssetId: id, technicalMetadata: inspected.toTechnicalMetadata()));
       case 'scene.dialogue.audioMedia.import':
         semantics.requireOperation(mutation);
         _allowParameters(parameters, const {
@@ -2603,6 +2644,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
     manifest = const CampaignContentActions()
         .updateNewGame(manifest, sourceNewGame, maps: maps.values);
   }
+  final presentationMediaCatalog = presentationMedia.isEmpty ? null : ProjectMediaCatalog(entries: presentationMedia);
   await preparation.start(NativePreparationStage.projectValidation,
       total: maps.length + (projectedEvents == null ? 0 : manifest.scenes.length) +
           2 + (projectedEvents == null ? 0 : 1) +
@@ -2677,7 +2719,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   if (projectedEvents != null) {
     try {
       for (final _ in const SceneActions()
-            .validateInOrder(manifest, maps: maps.values.toList())) {
+            .validateInOrder(manifest, maps: maps.values.toList(),
+                presentationMediaCatalog: presentationMediaCatalog)) {
         await preparation.advance();
       }
     } on NarrativeAuthoringException catch (error) {
@@ -2717,7 +2760,8 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       audio,
       projectedCatalogs?.mergedItemCatalog ?? projectedEvents?.itemCatalog,
       projectedCatalogs?.documents ?? const [],
-      borderSnapshots);
+      borderSnapshots,
+      presentationMediaCatalog);
 }
 
 Map<String, Object?>? _regeneratedTownMap(_VerifiedSourceSemantics semantics,

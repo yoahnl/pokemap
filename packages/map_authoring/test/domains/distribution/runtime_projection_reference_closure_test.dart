@@ -233,89 +233,161 @@ void main() {
             'project/${assetBlobStorageKey(retained.require('hero-source').artifact)}'));
   });
 
-  test('Presentation media retain their referenced opaque source blobs',
-      () async {
-    final root = await _fixture();
-    final bytes = spatialPayload()['project/assets/hero.png']!;
-    final artifact =
-        ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png');
-    const path = 'assets/presentation/opening.bin';
-    final file = File('${root.path}/$assetCatalogStorageKey');
-    final catalog =
-        AssetCatalog.fromJson(jsonDecode(await file.readAsString()));
-    final record = AssetRecord(
-        id: 'opening-source', logicalPath: path, artifact: artifact);
-    await _write(root, assetCatalogStorageKey,
-        AssetCatalog(records: [...catalog.records, record]).toJson());
-    await _write(root, assetBlobStorageKey(artifact), bytes);
-    await _write(
-        root,
-        projectMediaCatalogStorageKey,
-        encodeProjectMediaCatalogBytes(ProjectMediaCatalog(entries: [
-          ProjectMediaAsset(
-              id: 'opening',
-              label: 'Opening',
-              kind: ProjectMediaKind.image,
-              sourceAssetId: record.id,
-              provenance: ProjectMediaProvenance(source: 'Fixture'),
-              license: ProjectMediaLicense(identifier: 'CC0-1.0', name: 'CC0'),
-              technicalMetadata: ProjectMediaTechnicalMetadata(
-                  mediaType: 'image/png',
-                  container: 'png',
-                  codec: 'png',
-                  sizeBytes: bytes.length,
-                  width: 32,
-                  height: 32))
-        ])));
-    final projectFile = File('${root.path}/project.json');
-    final project =
-        ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()));
-    await _write(
-        root,
-        'maps/map.json',
-        MapData(
-                id: 'map',
-                name: 'Map',
-                size: const GridSize(width: 8, height: 8))
-            .toJson());
-    await projectFile.writeAsString(jsonEncode(project
-        .copyWith(
-            version: ProjectVersion.v8,
-            models3d: [],
-            settings:
-                project.settings.copyWith(dimension: ProjectDimension.twoD),
-            presentationCinematics: [
-              PresentationCinematicAsset(
-                  id: 'opening',
-                  title: 'Opening',
-                  durationUs: 1000000,
-                  layers: [
-                    PresentationLayer(
-                        id: 'background', label: 'Background', zIndex: 0)
-                  ],
-                  tracks: [
-                    PresentationTrack(
-                        id: 'visual',
-                        label: 'Visual',
-                        kind: PresentationTrackKind.visual,
-                        clips: [
-                          PresentationVisualClip(
-                              id: 'image',
-                              startUs: 0,
-                              durationUs: 1000000,
-                              layerId: 'background',
-                              resourceId: 'opening')
-                        ])
-                  ])
-            ])
-        .toJson()));
-    final projection = await _build(root);
-    final retained = AssetCatalog.fromJson(jsonDecode(utf8
-        .decode(projection.payloadFiles['project/$assetCatalogStorageKey']!)));
-    expect(retained.require(record.id).toJson(), record.toJson());
-    expect(projection.payloadFiles['project/${assetBlobStorageKey(artifact)}'],
-        bytes);
-  });
+  for (final sceneOnly in [false, true]) {
+    test(
+        'Presentation media retain their referenced opaque source blobs sceneOnly=$sceneOnly',
+        () async {
+      final root = await _fixture();
+      final bytes = spatialPayload()['project/assets/hero.png']!;
+      final artifact =
+          ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png');
+      const path = 'assets/presentation/opening.bin';
+      final file = File('${root.path}/$assetCatalogStorageKey');
+      final catalog =
+          AssetCatalog.fromJson(jsonDecode(await file.readAsString()));
+      final record = AssetRecord(
+          id: 'opening-source', logicalPath: path, artifact: artifact);
+      await _write(root, assetCatalogStorageKey,
+          AssetCatalog(records: [...catalog.records, record]).toJson());
+      await _write(root, assetBlobStorageKey(artifact), bytes);
+      await _write(
+          root,
+          projectMediaCatalogStorageKey,
+          encodeProjectMediaCatalogBytes(ProjectMediaCatalog(entries: [
+            ProjectMediaAsset(
+                id: 'opening',
+                label: 'Opening',
+                kind: ProjectMediaKind.image,
+                sourceAssetId: record.id,
+                provenance: ProjectMediaProvenance(source: 'Fixture'),
+                license:
+                    ProjectMediaLicense(identifier: 'CC0-1.0', name: 'CC0'),
+                technicalMetadata: ProjectMediaTechnicalMetadata(
+                    mediaType: 'image/png',
+                    container: 'png',
+                    codec: 'png',
+                    sizeBytes: bytes.length,
+                    width: 32,
+                    height: 32))
+          ])));
+      final projectFile = File('${root.path}/project.json');
+      final project = ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()));
+      await _write(
+          root,
+          'maps/map.json',
+          MapData(
+                  id: 'map',
+                  name: 'Map',
+                size: const GridSize(width: 8, height: 8),
+                entities: const [MapEntity(id: 'spawn', name: 'Spawn',
+                  kind: MapEntityKind.spawn, pos: GridPos(x: 1, y: 1),
+                  spawn: MapEntitySpawnData(role: EntitySpawnRole.playerStart))])
+              .toJson());
+      await projectFile.writeAsString(jsonEncode(project
+          .copyWith(
+              version: ProjectVersion.v8,
+              models3d: [],
+            newGame: const ProjectNewGameConfig(enabled: true, startMapId: 'map', startSpawnId: 'spawn', playerName: 'Player'),
+              settings:
+                project.settings.copyWith(dimension: ProjectDimension.twoD, spatialCamera: null),
+              scenes: sceneOnly
+                  ? [
+                      SceneAsset(
+                          id: 'picture',
+                          name: 'Picture',
+                          graph: SceneGraph(startNodeId: 'start', nodes: [
+                            SceneNode(id: 'start', kind: SceneNodeKind.start),
+                            SceneNode(
+                                id: 'show',
+                                kind: SceneNodeKind.action,
+                                payload: SceneActionPayload.interactive(
+                                    SceneInteractiveCommand.worldPresentation(
+                                        operation:
+                                            SceneWorldPresentationOperation
+                                                .showPicture,
+                                        slotId: 1,
+                                        mediaAssetId: 'opening',
+                                        referenceWidth: 512,
+                                        referenceHeight: 384,
+                                        x: 0,
+                                        y: 0))),
+                            SceneNode(id: 'end', kind: SceneNodeKind.end),
+                          ], edges: [
+                            SceneEdge(
+                                id: 'start_show',
+                                fromNodeId: 'start',
+                                fromPortId: 'completed',
+                                toNodeId: 'show',
+                                kind: SceneEdgeKind.defaultFlow),
+                            SceneEdge(
+                                id: 'show_end',
+                                fromNodeId: 'show',
+                                fromPortId: 'completed',
+                                toNodeId: 'end',
+                                kind: SceneEdgeKind.actionCompleted),
+                          ]))
+                    ]
+                  : const [],
+              presentationCinematics: [
+                if (!sceneOnly)
+                  PresentationCinematicAsset(
+                      id: 'opening',
+                      title: 'Opening',
+                      durationUs: 1000000,
+                      layers: [
+                        PresentationLayer(
+                            id: 'background', label: 'Background', zIndex: 0)
+                      ],
+                      tracks: [
+                        PresentationTrack(
+                            id: 'visual',
+                            label: 'Visual',
+                            kind: PresentationTrackKind.visual,
+                            clips: [
+                              PresentationVisualClip(
+                                  id: 'image',
+                                  startUs: 0,
+                                  durationUs: 1000000,
+                                  layerId: 'background',
+                                  resourceId: 'opening')
+                            ])
+                      ])
+              ])
+          .toJson()));
+      final projection = await _build(root);
+      final retained = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+          projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+      expect(retained.require(record.id).toJson(), record.toJson());
+      expect(
+          projection.payloadFiles['project/${assetBlobStorageKey(artifact)}'],
+          bytes);
+      final projectedMedia = decodeProjectMediaCatalogBytes(
+          projection.payloadFiles['project/$projectMediaCatalogStorageKey']!);
+      expect(projectedMedia.find('opening'), isNotNull);
+      if (sceneOnly) {
+        final artifact = await const CanonicalGamePackageExportService().build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest);
+        final archive =
+            ZipDecoder().decodeBytes(artifact.packageBytes, verify: true);
+        expect(
+            archive
+                .findFile('project/${assetBlobStorageKey(record.artifact)}')!
+                .content,
+            bytes);
+        expect(
+            decodeProjectMediaCatalogBytes(archive
+                    .findFile('project/$projectMediaCatalogStorageKey')!
+                    .content)
+                .find('opening'),
+            isNotNull);
+        expect(artifact.inspection.payloadPaths,
+            contains('project/$projectMediaCatalogStorageKey'));
+      }
+    });
+  }
 
   for (final entry in <String, Map<String, Object>>{
     'referenceEscapesRoot': {'file': 'shard:outside-runtime'},

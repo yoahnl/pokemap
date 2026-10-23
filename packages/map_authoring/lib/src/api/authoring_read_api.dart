@@ -8,6 +8,7 @@ import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/project/capability_truth_adapter.dart';
+import '../domains/assets/project_media_store.dart';
 import '../domains/narrative/scene_simulation_query.dart';
 import '../domains/narrative/event_simulation_query.dart';
 import '../references/project_reference_index.dart';
@@ -69,10 +70,10 @@ final class AuthoringReadApi
     required ProjectSnapshotLoader snapshotLoader,
     ProjectQueryService queryService = const ProjectQueryService(),
     ResourcePackTransferApiPort? Function()? resourcePacks,
-  }) : _openService = openService,
-       _snapshotLoader = snapshotLoader,
-       _queryService = queryService,
-       _resourcePacks = resourcePacks;
+  })  : _openService = openService,
+        _snapshotLoader = snapshotLoader,
+        _queryService = queryService,
+        _resourcePacks = resourcePacks;
 
   final ProjectOpenService _openService;
   final ProjectSnapshotLoader _snapshotLoader;
@@ -148,10 +149,25 @@ final class AuthoringReadApi
       );
     }
     final catalog = await _openService.catalogProject(projectHandle);
-    if(catalog!=null && request.resourceKind=='map' && request.extensions['materializeProject']!=true) return catalog.queryMaps(request,readMap:(id) async { final selection=await CatalogTargetedMapSelection.read(reader:catalog,mapId:id); return (map:selection.map,revision:selection.snapshotRevision); });
-    if (catalog != null && (catalogResourceKinds.containsKey(request.resourceKind) || (request.resourceKind=='project' && request.view==AuthoringQueryView.summary))) return catalog.query(request);
-    if(catalog!=null && request.resourceKind=='project' && request.view==AuthoringQueryView.detail && request.extensions['materializeProject']!=true) {
-      throw const AuthoringQueryException('query.materialization_required','Full catalog project reads require extensions.materializeProject=true.');
+    if (catalog != null &&
+        request.resourceKind == 'map' &&
+        request.extensions['materializeProject'] != true)
+      return catalog.queryMaps(request, readMap: (id) async {
+        final selection =
+            await CatalogTargetedMapSelection.read(reader: catalog, mapId: id);
+        return (map: selection.map, revision: selection.snapshotRevision);
+      });
+    if (catalog != null &&
+        (catalogResourceKinds.containsKey(request.resourceKind) ||
+            (request.resourceKind == 'project' &&
+                request.view == AuthoringQueryView.summary)))
+      return catalog.query(request);
+    if (catalog != null &&
+        request.resourceKind == 'project' &&
+        request.view == AuthoringQueryView.detail &&
+        request.extensions['materializeProject'] != true) {
+      throw const AuthoringQueryException('query.materialization_required',
+          'Full catalog project reads require extensions.materializeProject=true.');
     }
     final snapshot = await _snapshotLoader.load(
       projectHandle,
@@ -204,6 +220,11 @@ final class AuthoringReadApi
     try {
       ProjectValidator.validate(
         snapshot.manifest,
+        presentationMediaCatalog: switch (
+            snapshot.findResourceBytes(projectMediaCatalogResourceIdentity)) {
+          final bytes? => decodeProjectMediaCatalogBytes(bytes),
+          null => null,
+        },
         maps: snapshot.maps,
         itemCatalog: snapshot.itemCatalog,
       );

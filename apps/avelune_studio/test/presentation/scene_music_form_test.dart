@@ -75,7 +75,7 @@ void main() {
       );
       expect(
         tester.widget<StudioSelect>(select('Action musicale')).options.keys,
-        ['play', 'restore', 'fadeOut'],
+        ['play', 'restore', 'fadeOut', 'stop', 'memorize', 'restoreMemorized'],
       );
       expect(tester.widget<StudioSelect>(select('Musique en boucle')).options, {
         'theme': 'Thème musical',
@@ -90,14 +90,30 @@ void main() {
           'volume': .8,
         },
       );
-      await pick('Action musicale', 'Restaurer l’ambiance');
+      await pick('Canal', 'Ambiance sonore');
+      await pick('Durée de vie', 'Jusqu’au prochain transfert');
+      await tester.tap(apply());
+      expect(
+        (applied.last as SceneActionPayload).interactiveCommand!.toJson(),
+        {
+          'kind': 'sceneMusic',
+          'operation': 'play',
+          'channel': 'ambience',
+          'scope': 'map',
+          'mediaAssetId': 'theme',
+          'volume': .8,
+        },
+      );
+      await pick('Canal', 'Musique');
+      await pick('Durée de vie', 'Pendant la scène');
+      await pick('Action musicale', 'Restaurer l’état initial');
       expect(select('Musique en boucle'), findsNothing);
       await tester.tap(apply());
       expect(
         (applied.last as SceneActionPayload).interactiveCommand!.toJson(),
         {'kind': 'sceneMusic', 'operation': 'restore'},
       );
-      await pick('Action musicale', 'Fondre la musique');
+      await pick('Action musicale', 'Fondre puis arrêter');
       expect(select('Musique en boucle'), findsNothing);
       final field = find.descendant(
         of: find.byKey(const ValueKey('action-sceneMusic-durationMs')),
@@ -112,6 +128,27 @@ void main() {
       expect(
         (applied.last as SceneActionPayload).interactiveCommand!.toJson(),
         {'kind': 'sceneMusic', 'operation': 'fadeOut', 'durationMs': 0},
+      );
+      await pick('Action musicale', 'Mémoriser');
+      await pick('Canal', 'Les deux canaux');
+      await tester.tap(apply());
+      expect(
+        (applied.last as SceneActionPayload).interactiveCommand!.toJson(),
+        {
+          'kind': 'sceneMusic',
+          'operation': 'memorize',
+          'channel': 'both',
+          'scope': 'scene',
+        },
+      );
+      await pick('Action musicale', 'Arrêter');
+      expect(tester.widget<StudioSelect>(select('Canal')).value, 'music');
+      expect(
+        tester
+            .widget<StudioSelect>(select('Canal'))
+            .options
+            .containsKey('both'),
+        isFalse,
       );
     },
   );

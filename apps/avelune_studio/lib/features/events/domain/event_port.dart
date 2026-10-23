@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import '../../resources/domain/resource_port.dart';
 
 abstract interface class EventPort {
@@ -21,4 +22,10 @@ abstract interface class EventRegistryModePort {
     required NarrativeEventRegistry? base,
     required EventSystemMode mode,
   });
+}
+
+abstract interface class EventPresentationCatalogPort {
+  Future<ProjectMediaCatalog> loadPresentationMediaCatalog(
+    ProjectManifest project,
+  );
 }

@@ -13,6 +13,17 @@ typedef RuntimeSceneMusicTimerFactory = Timer Function(
   void Function() callback,
 );
 
+final class RuntimeSceneMusicCheckpoint {
+  const RuntimeSceneMusicCheckpoint._(
+    this.owner,
+    this.selection,
+    this.baseline,
+  );
+  final RuntimeSceneMusicController owner;
+  final RuntimeSceneMusicSelection? selection;
+  final RuntimeSceneMusicSelection? baseline;
+}
+
 final class RuntimeSceneMusicController {
   RuntimeSceneMusicController({
     required this.owner,
@@ -21,6 +32,7 @@ final class RuntimeSceneMusicController {
     required this.onChanged,
     RuntimeSceneMusicTimerFactory? timerFactory,
     this.fadeSteps = 12,
+    this.route = RuntimeAudioRoute.cinematicMusic,
   }) : _timerFactory = timerFactory ?? Timer.new {
     if (fadeSteps < 1 || fadeSteps > 120) {
       throw RangeError.range(fadeSteps, 1, 120, 'fadeSteps');
@@ -29,6 +41,7 @@ final class RuntimeSceneMusicController {
 
   final Object owner;
   final int fadeSteps;
+  final RuntimeAudioRoute route;
   final bool Function(Object owner) isOwnerCurrent;
   final RuntimeSceneMusicSelection Function() captureBaseline;
   final Future<void> Function() onChanged;
@@ -58,11 +71,7 @@ final class RuntimeSceneMusicController {
     final previousBaseline = _baseline;
     _cancelFade();
     _baseline ??= captureBaseline();
-    _selection = (
-      route: RuntimeAudioRoute.cinematicMusic,
-      path: path,
-      volume: volume,
-    );
+    _selection = (route: route, path: path, volume: volume);
     final generation = _generation;
     try {
       await onChanged();
@@ -101,6 +110,41 @@ final class RuntimeSceneMusicController {
     }
   }
 
+  RuntimeSceneMusicCheckpoint captureCheckpoint() =>
+      RuntimeSceneMusicCheckpoint._(this, _selection, _baseline);
+
+  Future<bool> restoreCheckpoint(RuntimeSceneMusicCheckpoint checkpoint) async {
+    if (!identical(checkpoint.owner, this))
+      throw ArgumentError('Audio checkpoint belongs to another controller.');
+    if (!isCurrent) return false;
+    _cancelFade();
+    _selection = checkpoint.selection;
+    _baseline = checkpoint.baseline;
+    await onChanged();
+    return isCurrent;
+  }
+
+  Future<bool> select(RuntimeSceneMusicSelection selection) async {
+    if (!isCurrent) return false;
+    final checkpoint = captureCheckpoint();
+    _cancelFade();
+    _baseline ??= captureBaseline();
+    _selection = selection;
+    try {
+      await onChanged();
+      return isCurrent;
+    } catch (error) {
+      if (isCurrent) {
+        _selection = checkpoint.selection;
+        _baseline = checkpoint.baseline;
+        await _restoreAfterFailure(error);
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> stop() => select((route: route, path: null, volume: 0));
+
   Future<bool> fadeOut({required Duration duration}) async {
     if (!isCurrent) return false;
     if (duration < Duration.zero || duration > const Duration(seconds: 60)) {
@@ -112,7 +156,7 @@ final class RuntimeSceneMusicController {
     final generation = _generation;
     final start = _selection!;
     if (duration == Duration.zero) {
-      _selection = (route: start.route, path: start.path, volume: 0.0);
+      _selection = (route: start.route, path: null, volume: 0.0);
       try {
         await onChanged();
         return isCurrent && generation == _generation;
@@ -131,7 +175,7 @@ final class RuntimeSceneMusicController {
         if (!isCurrent || generation != _generation) return;
         _selection = (
           route: start.route,
-          path: start.path,
+          path: step == fadeSteps ? null : start.path,
           volume: start.volume * (1 - step / fadeSteps),
         );
         final change = () async {

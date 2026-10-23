@@ -1,3 +1,4 @@
+import '../models/project_media_catalog.dart';
 import '../models/narrative_event_definition.dart';
 import '../operations/narrative_parallel_program.dart';
 import '../operations/scene_warp_presentation_visual.dart';
@@ -77,6 +78,7 @@ enum SceneDiagnosticCode {
   commandUnknownModelInstance,
   commandUnknownModel,
   commandUnknownModelAnimation,
+  commandUnknownPictureMedia,
   commandUnknownMusicMedia,
   commandInvalidMusicMedia,
   commandUnknownSoundMedia,
@@ -482,16 +484,19 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   Map<String, NarrativeMapView> mapsById = const {},
   Set<String>? availableMoveIds,
   Set<String>? availableItemIds,
+  ProjectMediaCatalog? presentationMediaCatalog,
 }) => SceneProjectDiagnosticsContext(project,
     mapsById: mapsById,
     availableMoveIds: availableMoveIds,
-    availableItemIds: availableItemIds).diagnose(scene);
+    availableItemIds: availableItemIds,
+    presentationMediaCatalog: presentationMediaCatalog).diagnose(scene);
 
 final class SceneProjectDiagnosticsContext {
   factory SceneProjectDiagnosticsContext(ProjectManifest project, {
     Map<String, NarrativeMapView> mapsById = const {},
     Set<String>? availableMoveIds,
     Set<String>? availableItemIds,
+    ProjectMediaCatalog? presentationMediaCatalog,
   }) {
     mapsById = Map.unmodifiable(mapsById);
     availableMoveIds = availableMoveIds == null ? null : Set.unmodifiable(availableMoveIds);
@@ -554,6 +559,7 @@ final class SceneProjectDiagnosticsContext {
       availableMoveIds: availableMoveIds,
       availableItemIds: availableItemIds,
       modelsById: modelsById,
+      presentationMediaCatalog: presentationMediaCatalog,
       soundMediaById: soundMediaById,
       contracts: contracts,
       dialogueById: dialogueById,
@@ -582,6 +588,7 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
   required Set<String>? availableMoveIds,
   required Set<String>? availableItemIds,
   required Map<String, ProjectModel3dEntry> modelsById,
+  required ProjectMediaCatalog? presentationMediaCatalog,
   required Map<String, List<CinematicMediaAsset>> soundMediaById,
   required LinkedAssetContractsSnapshot contracts,
   required Map<String, DialoguePublicContract> dialogueById,
@@ -878,6 +885,7 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
           node,
           payload,
           project: project,
+          presentationMediaCatalog: presentationMediaCatalog,
           soundMediaById: soundMediaById,
           factIds: factIds,
           projectMapIds: projectMapIds,
@@ -1295,6 +1303,7 @@ void _diagnoseActionConsequenceAgainstProject(
   SceneNode node,
   SceneActionPayload payload, {
   required ProjectManifest project,
+  required ProjectMediaCatalog? presentationMediaCatalog,
   required Map<String, List<CinematicMediaAsset>> soundMediaById,
   required Set<String> factIds,
   required Set<String> projectMapIds,
@@ -1425,7 +1434,9 @@ void _diagnoseActionConsequenceAgainstProject(
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
+          interactiveCommand is SceneWorldPresentationInteractiveCommand ||
           interactiveCommand is ScenePlaySoundEffectInteractiveCommand ||
+          interactiveCommand is SceneStopSoundEffectsInteractiveCommand ||
           interactiveCommand is ScenePlayMusicEffectInteractiveCommand ||
           interactiveCommand is SceneMusicInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
@@ -1440,6 +1451,13 @@ void _diagnoseActionConsequenceAgainstProject(
         suggestedFixLabel: 'Utiliser cette commande dans un projet 2D.',
       ),
     );
+  }
+  if (interactiveCommand is SceneWorldPresentationInteractiveCommand &&
+      interactiveCommand.operation == SceneWorldPresentationOperation.showPicture &&
+      presentationMediaCatalog?.find(interactiveCommand.mediaAssetId!)?.kind != ProjectMediaKind.image) {
+    diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownPictureMedia,
+      severity: SceneDiagnosticSeverity.error, message: 'Choisir une image disponible dans la médiathèque de présentation.',
+      sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node));
   }
   if (interactiveCommand is SceneWaitForActorRoutesInteractiveCommand) {
     if (project.settings.dimension != ProjectDimension.twoD) {

@@ -124,7 +124,7 @@ void main() {
     () async {
       final fixture = _Fixture();
       expect(await fixture.music.fadeOut(duration: Duration.zero), isTrue);
-      expect(fixture.music.selection?.path, '/map.ogg');
+      expect(fixture.music.selection?.path, isNull);
       expect(fixture.music.selection?.volume, 0);
       await fixture.music.restore();
       expect(fixture.music.selection?.volume, .4);

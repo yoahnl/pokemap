@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../narrative/data/local_narrative_adapter.dart';
 import '../../project_session/domain/project_session.dart';
+import '../../presentations/data/local_presentation_adapter.dart';
 import '../domain/verification_port.dart';
 import 'verification_analysis_worker.dart';
 
@@ -108,6 +109,24 @@ class LocalVerificationAdapter implements VerificationPort {
     unawaited(() async {
       try {
         final itemCatalog = await _loadItemCatalog(project, maps);
+        final hasPictures = project.scenes.any(
+          (scene) => scene.graph.nodes.any((node) {
+            final payload = node.payload;
+            final command = payload is SceneActionPayload
+                ? payload.interactiveCommand
+                : null;
+            return command is SceneWorldPresentationInteractiveCommand &&
+                command.operation ==
+                    SceneWorldPresentationOperation.showPicture;
+          }),
+        );
+        final presentationMediaCatalog =
+            hasPictures && project.settings.dimension == ProjectDimension.twoD
+            ? (await LocalPresentationAdapter(
+                session: session,
+                mapAdapter: mapAdapter,
+              ).prepare(project)).mediaCatalog
+            : null;
         if (settled) return;
         final spawned = await Isolate.spawn(
           verificationAnalysisWorker,
@@ -117,6 +136,7 @@ class LocalVerificationAdapter implements VerificationPort {
             maps,
             sources,
             itemCatalog: itemCatalog,
+            presentationMediaCatalog: presentationMediaCatalog,
           ),
           debugName: verificationWorkerName,
           errorsAreFatal: true,

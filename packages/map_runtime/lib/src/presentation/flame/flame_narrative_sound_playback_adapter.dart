@@ -9,7 +9,7 @@ import '../../player/runtime_music_service.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 
 final class FlameNarrativeSoundPlaybackAdapter
-    implements DialogueFeedbackPlaybackPort, SceneSoundEffectPlaybackPort {
+    implements DialogueFeedbackPlaybackPort, SceneOwnedSoundEffectPlaybackPort {
   FlameNarrativeSoundPlaybackAdapter({
     required Iterable<CinematicMediaAsset> mediaAssets,
     required this.resolvePath,
@@ -35,6 +35,8 @@ final class FlameNarrativeSoundPlaybackAdapter
   Object? lastFailure;
   final Map<String, Future<void>> _starting = {};
   final Map<String, _NarrativeSound> _active = {};
+  final Map<Object, int> _ownerGenerations = {};
+  final Map<String, (Object?, Object?)> _startingOwners = {};
   bool _disposed = false;
   int? maxConcurrentVoices;
 
@@ -73,12 +75,55 @@ final class FlameNarrativeSoundPlaybackAdapter
     }
   }
 
+  @override
+  Future<void> playOwnedSoundEffect(
+    String mediaAssetId, {
+    required double volume,
+    required String playbackId,
+    required Object owner,
+    Object? sceneOwner,
+  }) async {
+    if (!volume.isFinite ||
+        volume < 0 ||
+        volume > 1 ||
+        playbackId.trim().isEmpty)
+      throw ArgumentError('Invalid owned sound parameters.');
+    await _queue(
+      mediaAssetId,
+      volume: volume,
+      playbackId: playbackId,
+      route: RuntimeAudioRoute.cinematicEffects,
+      owner: owner,
+      sceneOwner: sceneOwner,
+    );
+  }
+
+  @override
+  Future<void> stopOwnedSoundEffects(Object owner) async {
+    _ownerGenerations[owner] = (_ownerGenerations[owner] ?? 0) + 1;
+    for (final entry in _active.entries.toList(growable: false)) {
+      if (entry.value.owner == owner || entry.value.sceneOwner == owner)
+        await _release(entry.key, entry.value);
+    }
+    _pruneOwnerGenerations();
+  }
+
+  void _pruneOwnerGenerations() {
+    final owners = <Object?>{
+      for (final sound in _active.values) ...[sound.owner, sound.sceneOwner],
+      for (final owner in _startingOwners.values) ...[owner.$1, owner.$2],
+    };
+    _ownerGenerations.removeWhere((owner, _) => !owners.contains(owner));
+  }
+
   Future<void> _queue(
     String mediaAssetId, {
     required double volume,
     required String playbackId,
     required RuntimeAudioRoute route,
     DialogueBgmInterruption? interruption,
+    Object? owner,
+    Object? sceneOwner,
   }) {
     if (_disposed) {
       return Future.error(StateError('Narrative sound playback is disposed.'));
@@ -90,15 +135,23 @@ final class FlameNarrativeSoundPlaybackAdapter
         {..._active.keys, ..._starting.keys}.length >= maxConcurrentVoices!) {
       return Future.value();
     }
-    return _starting[playbackId] ??= _start(
-      mediaAssetId,
-      volume: volume,
-      playbackId: playbackId,
-      route: route,
-      interruption: interruption,
-    ).whenComplete(() {
-      _starting.remove(playbackId);
-    });
+    final starting = _starting[playbackId];
+    if (starting != null) return starting;
+    _startingOwners[playbackId] = (owner, sceneOwner);
+    return _starting[playbackId] =
+        _start(
+          mediaAssetId,
+          volume: volume,
+          playbackId: playbackId,
+          route: route,
+          interruption: interruption,
+          owner: owner,
+          sceneOwner: sceneOwner,
+        ).whenComplete(() {
+          _starting.remove(playbackId);
+          _startingOwners.remove(playbackId);
+          _pruneOwnerGenerations();
+        });
   }
 
   Future<void> _start(
@@ -107,6 +160,8 @@ final class FlameNarrativeSoundPlaybackAdapter
     required String playbackId,
     required RuntimeAudioRoute route,
     required DialogueBgmInterruption? interruption,
+    Object? owner,
+    Object? sceneOwner,
   }) async {
     final asset = _media[mediaAssetId];
     if (asset == null ||
@@ -114,15 +169,17 @@ final class FlameNarrativeSoundPlaybackAdapter
         asset.loopByDefault) {
       throw StateError('Narrative cue requires a known non-looping sound.');
     }
-    Object? owner;
+    final ownerGeneration = _ownerGenerations[owner] ?? 0;
+    final sceneGeneration = _ownerGenerations[sceneOwner] ?? 0;
+    Object? musicOwner;
     if (interruption != null) {
       final music = _musicService;
       if (music == null) {
         throw StateError('Music effect interruption requires the BGM service.');
       }
-      owner = Object();
+      musicOwner = Object();
       music.beginMusicEffect(
-        owner: owner,
+        owner: musicOwner,
         fadeOut: Duration(milliseconds: interruption.fadeOutMs),
         fadeIn: Duration(milliseconds: interruption.fadeInMs),
       );
@@ -135,18 +192,20 @@ final class FlameNarrativeSoundPlaybackAdapter
         loop: false,
       );
     } on Object {
-      if (owner != null) await _musicService!.endMusicEffect(owner);
+      if (musicOwner != null) await _musicService!.endMusicEffect(musicOwner);
       rethrow;
     }
-    if (_disposed) {
+    if (_disposed ||
+        (_ownerGenerations[owner] ?? 0) != ownerGeneration ||
+        (_ownerGenerations[sceneOwner] ?? 0) != sceneGeneration) {
       try {
         await _driver.stop(handle);
       } finally {
-        if (owner != null) await _musicService!.endMusicEffect(owner);
+        if (musicOwner != null) await _musicService!.endMusicEffect(musicOwner);
       }
       return;
     }
-    final sound = _NarrativeSound(handle, owner);
+    final sound = _NarrativeSound(handle, musicOwner, owner, sceneOwner);
     _active[playbackId] = sound;
     try {
       sound.completion = (_driver as FlameCinematicAudioLoopDriver)
@@ -191,6 +250,7 @@ final class FlameNarrativeSoundPlaybackAdapter
     } finally {
       final owner = sound.musicEffectOwner;
       if (owner != null) await _musicService!.endMusicEffect(owner);
+      _pruneOwnerGenerations();
     }
   }
 
@@ -206,8 +266,15 @@ final class FlameNarrativeSoundPlaybackAdapter
 }
 
 final class _NarrativeSound {
-  _NarrativeSound(this.handle, this.musicEffectOwner);
+  _NarrativeSound(
+    this.handle,
+    this.musicEffectOwner,
+    this.owner,
+    this.sceneOwner,
+  );
   final Object handle;
   final Object? musicEffectOwner;
+  final Object? owner;
+  final Object? sceneOwner;
   StreamSubscription<void>? completion;
 }

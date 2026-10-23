@@ -933,6 +933,7 @@ final class RuntimeProjectProjectionBuilder {
     final receipt = const PresentationMediaPublicationPreflight().inspect(
       catalog: sourceCatalog,
       cinematics: project.presentationCinematics,
+      scenes: project.scenes,
     );
     if (!receipt.canPublish) {
       final diagnostic = receipt.diagnostics.first;

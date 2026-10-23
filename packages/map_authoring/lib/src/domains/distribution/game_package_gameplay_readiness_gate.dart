@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import 'runtime_project_projection_builder.dart';
 import 'game_package_export_profile.dart';
+import '../assets/project_media_store.dart';
 
 /// Evaluates the exact runtime projection that will be handed to the package
 /// builder. It only orchestrates canonical map_core validators and adds the
@@ -197,6 +198,10 @@ final class GamePackageGameplayReadinessGate {
     try {
       narrativeReport = validateNarrativeProject(
         project,
+        presentationMediaCatalog: switch (projection.payloadFiles['project/$projectMediaCatalogStorageKey']) {
+          final bytes? => decodeProjectMediaCatalogBytes(bytes),
+          null => null,
+        },
         maps: maps,
         knownSpeciesIds: speciesIds,
         knownMoveIds: moveIds,

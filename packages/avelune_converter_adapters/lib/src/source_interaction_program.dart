@@ -186,6 +186,7 @@ final class _InteractionShape {
   final nodeIdentities = <String>{};
   var nodeCount = 0;
   var hasPlayerRoutes = false;
+  var hasPresentation = false;
   final cinematicRouteGroups = <List<SourceForcedMoveRouteNode>>[];
 
   bool admit() {
@@ -197,7 +198,7 @@ final class _InteractionShape {
         return false;
       }
     }
-    return routeIdentities.isNotEmpty;
+    return routeIdentities.isNotEmpty || hasPresentation;
   }
 
   bool _block(SourceEventBlock block, int depth, {bool terminal = true, Map<int, Set<(int, int)>>? routePositions}) {
@@ -226,6 +227,12 @@ final class _InteractionShape {
           }
           _mergePositions(
               positions, [whenTrue, whenFalse], analysis, event.sourceMapId);
+        case SourcePresentationNode():
+          if (node is SourceMapFogNode || node.profileHash != analysis.profile.canonicalHash) return false;
+          hasPresentation = true;
+        case SourceMusicNode():
+          if (node.profileHash != analysis.profile.canonicalHash || node.pitch != 100 || node.name.trim().isEmpty) return false;
+          hasPresentation = true;
         case SourceWaitNode():
           if (node.profileHash != analysis.profile.canonicalHash ||
               node.durationTicks < 0 || node.durationTicks > 1200) {
@@ -513,6 +520,8 @@ Object? _node(SourceEventNode node) => switch (node) {
     'condition': node.condition.toJson(), 'true': _block(node.whenTrue), 'false': _block(node.whenFalse)},
   SourceWaitNode() => node.toJson(),
   SourceSoundEffectNode() => node.toJson(),
+  SourcePresentationNode() => node.toJson(),
+  SourceMusicNode() => node.toJson(),
   SourceMusicEffectNode() => node.toJson(),
   SourceForcedMoveRouteNode() => node.toJson(),
   SourceMoveRouteBarrierNode() => node.toJson(),

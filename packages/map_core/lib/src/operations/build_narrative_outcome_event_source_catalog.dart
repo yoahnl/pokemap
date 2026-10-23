@@ -1,3 +1,4 @@
+import '../models/project_media_catalog.dart';
 import '../catalogs/narrative_outcome_event_source_catalog.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/narrative_map_view.dart';
@@ -20,6 +21,7 @@ import 'narrative_event_canonical_json.dart';
 /// this operation has no dependency on map_battle.
 NarrativeOutcomeEventSourceCatalog buildNarrativeOutcomeEventSourceCatalog({
   required ProjectManifest project,
+  ProjectMediaCatalog? presentationMediaCatalog,
   List<NarrativeMapView> maps = const [],
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
 }) {
@@ -32,6 +34,7 @@ NarrativeOutcomeEventSourceCatalog buildNarrativeOutcomeEventSourceCatalog({
     project.scenes,
     project: project,
     mapsById: mapsById,
+    presentationMediaCatalog: presentationMediaCatalog,
     options: options,
     diagnostics: diagnostics,
   );
@@ -65,6 +68,7 @@ void _appendSceneOutcomes(
   List<SceneAsset> scenes, {
   required ProjectManifest project,
   required Map<String, NarrativeMapView> mapsById,
+  required ProjectMediaCatalog? presentationMediaCatalog,
   required List<NarrativeOutcomeEventSourceOption> options,
   required List<NarrativeOutcomeEventSourceDiagnostic> diagnostics,
 }) {
@@ -76,6 +80,7 @@ void _appendSceneOutcomes(
   final sceneDiagnostics = SceneProjectDiagnosticsContext(
     project,
     mapsById: mapsById,
+    presentationMediaCatalog: presentationMediaCatalog,
   );
   for (final id in ids) {
     final group = byId[id]!;

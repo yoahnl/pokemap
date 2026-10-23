@@ -177,7 +177,12 @@ extension _OakParcelProjection on _ProjectionBuilder {
             if (binding.program.scriptKind(node.script) == null) {
               gaps.add('sourceOakParcelScriptUnsupported');
             }
-          case SourceUnknownNode():
+          case SourceAudioControlNode():
+              if (!const {'memorize', 'restoreMemorized', 'fadeOut'}.contains(node.operation) ||
+                  !const {'music', 'both'}.contains(node.channel)) {
+                gaps.add('sourceOakParcelCommandUnsupported');
+              }
+            case SourceUnknownNode():
             if (!const {247, 248, 242}.contains(node.command.code)) {
               gaps.add('sourceOakParcelCommandUnsupported');
             }
@@ -351,6 +356,9 @@ extension _OakParcelSceneProjection on _SceneBuilder {
                     mediaAssetId: audio.mediaId,
                     volume: audio.gainForVolume(node.volume)),
                 target);
+          case SourceAudioControlNode():
+            final command = _baselineSceneAudioAdaptation(node);
+            if (command != null) target = _interactive(command, target);
           case SourceUnknownNode():
             switch (node.command.code) {
               case 247:

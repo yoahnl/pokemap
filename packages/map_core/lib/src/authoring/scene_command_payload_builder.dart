@@ -240,10 +240,12 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.waitForActorRoutes => _buildWaitForActorRoutesPayload(parameters,
     ),
     NarrativeCommandIds.wait => _buildWaitPayload(parameters),
+    NarrativeCommandIds.worldPresentation => _buildWorldPresentationPayload(parameters),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
     NarrativeCommandIds.sceneMusic => _buildSceneMusicPayload(parameters),
     NarrativeCommandIds.playMusicEffect => _buildMusicEffectPayload(parameters),
     NarrativeCommandIds.playSoundEffect => _buildSoundEffectPayload(parameters),
+    NarrativeCommandIds.stopSoundEffects => _buildStopSoundEffectsPayload(parameters),
     NarrativeCommandIds.actorVisibility => _buildActorVisibilityPayload(
       parameters,
     ),
@@ -565,14 +567,16 @@ SceneActionPayload _buildSceneMusicPayload(Map<String, String> parameters) {
   final operation = SceneMusicOperation.values.byName(
     parameters['operation'] ?? '',
   );
-  _requirePresentationParameters(parameters, switch (operation) {
+  _requirePresentationParameters(parameters, {...switch (operation) {
     SceneMusicOperation.play => const {'operation', 'mediaAssetId', 'volume'},
-    SceneMusicOperation.restore => const {'operation'},
+    SceneMusicOperation.restore || SceneMusicOperation.stop || SceneMusicOperation.memorize || SceneMusicOperation.restoreMemorized => const {'operation'},
     SceneMusicOperation.fadeOut => const {'operation', 'durationMs'},
-  });
+  }, if (parameters.containsKey('channel')) 'channel', if (parameters.containsKey('scope')) 'scope'});
   return SceneActionPayload.interactive(
     SceneInteractiveCommand.sceneMusic(
       operation: operation,
+      channel: SceneMusicChannel.values.byName(parameters['channel'] ?? 'music'),
+      scope: SceneMusicScope.values.byName(parameters['scope'] ?? 'scene'),
       mediaAssetId: operation == SceneMusicOperation.play
           ? parameters['mediaAssetId']
           : null,
@@ -584,6 +588,13 @@ SceneActionPayload _buildSceneMusicPayload(Map<String, String> parameters) {
           : null,
     ),
   );
+}
+
+SceneActionPayload _buildStopSoundEffectsPayload(Map<String, String> parameters) {
+  _requirePresentationParameters(parameters, const {'scope'});
+  return SceneActionPayload.interactive(SceneInteractiveCommand.stopSoundEffects(
+    scope: SceneMusicScope.values.byName(parameters['scope']!),
+  ));
 }
 
 SceneActionPayload _buildMusicEffectPayload(Map<String, String> parameters) {
@@ -623,3 +634,14 @@ SceneIntegerOperand _integerOperandFromParameters(
   ),
   _ => throw const FormatException('Unknown integer operand source.'),
 };
+
+SceneNodePayload _buildWorldPresentationPayload(Map<String, String> parameters) {
+  final json = <String, dynamic>{'kind': 'worldPresentation'};
+  const integers = {'slotId', 'referenceWidth', 'referenceHeight', 'durationMs'};
+  const numbers = {'x', 'y', 'scaleX', 'scaleY', 'opacity', 'red', 'green', 'blue', 'alpha', 'power', 'speed'};
+  for (final entry in parameters.entries) {
+    if (entry.value.trim().isEmpty) { continue; }
+    json[entry.key] = integers.contains(entry.key) ? int.parse(entry.value) : numbers.contains(entry.key) ? double.parse(entry.value) : entry.key == 'waitForCompletion' ? entry.value == 'true' : entry.value;
+  }
+  return SceneActionPayload.interactive(SceneWorldPresentationInteractiveCommand.fromJson(json));
+}

@@ -21,12 +21,14 @@ class VerificationAnalysisRequest {
     this.maps,
     this.sources, {
     this.itemCatalog,
+    this.presentationMediaCatalog,
   });
   final SendPort reply;
   final ProjectManifest project;
   final List<MapData> maps;
   final List<VerificationDialogueSource> sources;
   final ProjectItemCatalog? itemCatalog;
+  final ProjectMediaCatalog? presentationMediaCatalog;
 }
 
 /// Runs the canonical validators in the spawned isolate. The interface isolate
@@ -36,6 +38,7 @@ void verificationAnalysisWorker(VerificationAnalysisRequest request) {
     final canonical = validateNarrativeProject(
       request.project,
       maps: request.maps,
+      presentationMediaCatalog: request.presentationMediaCatalog,
       knownItemIds: request.itemCatalog == null
           ? null
           : {for (final entry in request.itemCatalog!.entries) entry.id},

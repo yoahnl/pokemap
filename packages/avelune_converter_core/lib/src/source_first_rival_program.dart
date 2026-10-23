@@ -44,6 +44,7 @@ Object? _firstRivalBodyJson(SourceEventBlock body) => {
             SourceAnnotationNode() => node.toJson(),
             SourceForcedMoveRouteNode() => node.toJson(),
             SourceMoveRouteBarrierNode() => node.toJson(),
+            SourceAudioControlNode() => node.toJson(),
             SourceMusicNode() => node.toJson(),
             SourceWaitNode() => node.toJson(),
             SourceSelfSwitchNode() => {

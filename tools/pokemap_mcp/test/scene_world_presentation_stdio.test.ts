@@ -83,11 +83,14 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     assert.equal(record(extension.playSoundEffect).mediaReference, "knownNonLoopingSound");
     assert.deepEqual(record(extension.playSoundEffect).volumeRange, [0, 1]);
     assert.deepEqual(record(extension.playSoundEffect).unsupportedParameters, ["pitch"]);
-    assert.equal(record(extension.sceneMusic).scope, "sceneTransaction");
+    assert.equal(record(extension.sceneMusic).scope, "ownerScoped");
+    assert.deepEqual(record(extension.sceneMusic).scopes, ["scene", "map"]);
+    assert.deepEqual(record(extension.sceneMusic).channels, ["music", "ambience", "both"]);
     assert.equal(record(extension.sceneMusic).forcedLoop, true);
     assert.equal(record(extension.sceneMusic).restoreBaseline, "capturedBeforeFirstModification");
     assert.deepEqual(record(extension.sceneMusic).operations, {
       play: ["operation", "mediaAssetId", "volume"], restore: ["operation"], fadeOut: ["operation", "durationMs"],
+      stop: ["operation"], memorize: ["operation"], restoreMemorized: ["operation"],
     });
     assert.equal(record(extension.playMusicEffect).role, "musicEffect");
     assert.equal(record(extension.playMusicEffect).mediaReference, "knownNonLoopingSound");
@@ -101,6 +104,8 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     for (const id of ["wait", "worldTone", "playSoundEffect", "playMusicEffect", "sceneMusic"]) {
       assert.equal(record(extension[id]).projectDimension, "twoD");
     }
+    assert.deepEqual(record(extension.stopSoundEffects).scopes, ["scene", "map"]);
+    assert.ok(extension.worldPresentation);
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
     async function plan(command: JsonRecord, failure = false, replacePorts = false): Promise<JsonRecord> {
@@ -127,6 +132,14 @@ test("live MCP persists native presentation data and refuses invalid sound refer
       { kind: "sceneMusic", operation: "play", mediaAssetId: "music", volume: 0.8 },
       { kind: "sceneMusic", operation: "restore" },
       { kind: "sceneMusic", operation: "fadeOut", durationMs: 0 },
+      { kind: "sceneMusic", operation: "play", channel: "ambience", scope: "map", mediaAssetId: "music", volume: .4 },
+      { kind: "sceneMusic", operation: "memorize", channel: "both", scope: "map" },
+      { kind: "sceneMusic", operation: "stop", channel: "music", scope: "map" },
+      { kind: "sceneMusic", operation: "restoreMemorized", channel: "both", scope: "map" },
+      { kind: "stopSoundEffects", scope: "map" },
+      { kind: "worldPresentation", operation: "erasePicture", scope: "scene", durationMs: 0, waitForCompletion: false, slotId: 1 },
+      { kind: "worldPresentation", operation: "flash", scope: "scene", durationMs: 300, waitForCompletion: false, red: 255, green: 20, blue: 0, alpha: 128 },
+      { kind: "worldPresentation", operation: "shake", scope: "scene", durationMs: 500, waitForCompletion: false, referenceWidth: 512, referenceHeight: 384, power: 8, speed: 3 },
       { kind: "wait", durationMs: 400 },
     ];
     for (const command of commands) {
@@ -163,6 +176,11 @@ test("live MCP persists native presentation data and refuses invalid sound refer
       { kind: "sceneMusic", operation: "play", mediaAssetId: "music", volume: 1.1 },
       { kind: "sceneMusic", operation: "fadeOut", durationMs: 60001 },
       { kind: "sceneMusic", operation: "fadeOut", durationMs: -1 },
+      { kind: "sceneMusic", operation: "play", channel: "both", mediaAssetId: "music", volume: .8 },
+      { kind: "stopSoundEffects", scope: "all" },
+      { kind: "worldPresentation", operation: "erasePicture", slotId: 0 },
+      { kind: "worldPresentation", operation: "flash", red: 256, green: 0, blue: 0, alpha: 255, durationMs: 300 },
+      { kind: "worldPresentation", operation: "showPicture", slotId: 1, mediaAssetId: "missing", referenceWidth: 512, referenceHeight: 384, x: 0, y: 0, scaleX: 1, scaleY: 1, opacity: 1, origin: "topLeft" },
     ]) await plan(command, true);
     for (const id of ["missing", "music", "fx", "loop"]) await plan({ kind: "playSoundEffect", mediaAssetId: id, volume: 0.8 }, true);
     for (const id of ["missing", "music", "fx", "loop"]) await plan({ kind: "playMusicEffect", mediaAssetId: id, volume: .8,

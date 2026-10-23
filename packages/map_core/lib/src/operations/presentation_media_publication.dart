@@ -1,5 +1,7 @@
 import '../models/presentation_cinematic_asset.dart';
 import '../models/project_media_catalog.dart';
+import '../models/scene_asset.dart';
+import '../models/scene_interactive_command.dart';
 
 enum PresentationMediaTargetPlatform {
   android,
@@ -327,6 +329,7 @@ final class PresentationMediaPublicationPreflight {
   PresentationMediaPublicationReceipt inspect({
     required ProjectMediaCatalog catalog,
     required Iterable<PresentationCinematicAsset> cinematics,
+    Iterable<SceneAsset> scenes = const [],
     PresentationMediaBudgetPolicy policy =
         const PresentationMediaBudgetPolicy(),
     Set<PresentationMediaTargetPlatform> targetPlatforms =
@@ -337,6 +340,30 @@ final class PresentationMediaPublicationPreflight {
     final diagnostics = <PresentationMediaPublicationDiagnostic>[];
     final rootsByCinematic = <String, Set<String>>{};
     final allRoots = <String>{};
+    for (final scene in scenes) {
+      for (final node in scene.graph.nodes) {
+        final payload = node.payload;
+        if (payload is! SceneActionPayload) continue;
+        final command = payload.interactiveCommand;
+        if (command is! SceneWorldPresentationInteractiveCommand ||
+            command.operation != SceneWorldPresentationOperation.showPicture)
+          continue;
+        final mediaId = command.mediaAssetId!;
+        allRoots.add(mediaId);
+        if (catalog.find(mediaId)?.kind != ProjectMediaKind.image) {
+          diagnostics.add(
+            PresentationMediaPublicationDiagnostic(
+              code: PresentationMediaPublicationDiagnosticCodes.mediaMissing,
+              constraint:
+                  PresentationMediaPublicationConstraints.mediaReference,
+              path: 'scenes[${scene.id}].nodes[${node.id}].mediaAssetId',
+              message: 'The Scene references a missing image media.',
+              mediaId: mediaId,
+            ),
+          );
+        }
+      }
+    }
     for (final cinematic in orderedCinematics) {
       final roots = _rootMediaIds(cinematic);
       rootsByCinematic[cinematic.id] = roots;

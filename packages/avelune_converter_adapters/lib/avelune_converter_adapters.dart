@@ -81,3 +81,5 @@ export 'src/source_decorative_pokemon_binding.dart';
 export 'src/source_grass_rustle_compiler.dart';
 
 export 'src/source_routed_door_pattern_derivation.dart';
+
+export 'src/source_picture_binding.dart';

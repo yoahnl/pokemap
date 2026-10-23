@@ -1,3 +1,4 @@
+import '../application/scene_runtime/world_presentation_image_loader.dart';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
@@ -303,6 +304,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
               : null;
           if (generation != _generation) return;
           narrativeSnapshot = await NarrativeEventRuntimeSnapshot.build(
+            loadPresentationMediaCatalog: () => WorldPresentationImageLoader(bundle.projectRootDirectory).loadCatalog(),
             preparedMaps: preparedMaps,
             project: manifest,
             loadMap: (id) async {

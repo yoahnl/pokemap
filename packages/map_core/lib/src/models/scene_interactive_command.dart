@@ -14,6 +14,7 @@ import 'scene_structured_interaction.dart';
 import 'scene_integer_operand.dart';
 
 part 'scene_integer_commands.dart';
+part 'scene_world_presentation_commands.dart';
 
 enum SceneInteractiveCommandKind {
   inputIntegerToFact,
@@ -25,7 +26,9 @@ enum SceneInteractiveCommandKind {
   wait,
   waitForActorRoutes,
   worldTone,
+  worldPresentation,
   playSoundEffect,
+  stopSoundEffects,
   playMusicEffect,
   sceneMusic,
   actorRoute,
@@ -50,7 +53,11 @@ enum ScenePokemonGiftPokedexPresentationPolicy { never, whenNewAndPokedexVisible
 
 enum SceneRailJourneyOperation { begin, advance, acknowledge }
 
-enum SceneMusicOperation { play, restore, fadeOut }
+enum SceneMusicOperation { play, restore, fadeOut, stop, memorize, restoreMemorized }
+
+enum SceneMusicChannel { music, ambience, both }
+
+enum SceneMusicScope { scene, map }
 
 enum SceneWarpTransition { mapDefault, none }
 
@@ -121,10 +128,37 @@ abstract base class SceneInteractiveCommand {
     required int durationMs,
   }) = SceneWorldToneInteractiveCommand;
 
+  factory SceneInteractiveCommand.worldPresentation({
+    required SceneWorldPresentationOperation operation,
+    SceneVisualScope scope,
+    int? slotId,
+    String? mediaAssetId,
+    int? referenceWidth,
+    int? referenceHeight,
+    double? x,
+    double? y,
+    double scaleX,
+    double scaleY,
+    double opacity,
+    ScenePictureOrigin origin,
+    double? red,
+    double? green,
+    double? blue,
+    double? alpha,
+    double? power,
+    double? speed,
+    int durationMs,
+    bool waitForCompletion,
+  }) = SceneWorldPresentationInteractiveCommand;
+
   factory SceneInteractiveCommand.playSoundEffect({
     required String mediaAssetId,
     required double volume,
   }) = ScenePlaySoundEffectInteractiveCommand;
+
+  factory SceneInteractiveCommand.stopSoundEffects({
+    SceneMusicScope scope,
+  }) = SceneStopSoundEffectsInteractiveCommand;
 
   factory SceneInteractiveCommand.playMusicEffect({
     required String mediaAssetId,
@@ -134,6 +168,8 @@ abstract base class SceneInteractiveCommand {
 
   factory SceneInteractiveCommand.sceneMusic({
     required SceneMusicOperation operation,
+    SceneMusicChannel channel,
+    SceneMusicScope scope,
     String? mediaAssetId,
     double? volume,
     int? durationMs,
@@ -256,12 +292,16 @@ abstract base class SceneInteractiveCommand {
         SceneWaitForActorRoutesInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.worldTone =>
         SceneWorldToneInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.worldPresentation =>
+        SceneWorldPresentationInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playMusicEffect =>
         ScenePlayMusicEffectInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.sceneMusic =>
         SceneMusicInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.playSoundEffect =>
         ScenePlaySoundEffectInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.stopSoundEffects =>
+        SceneStopSoundEffectsInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.actorRoute =>
         SceneActorRouteInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.actorVisibility =>
@@ -717,97 +757,89 @@ final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveComma
 final class SceneMusicInteractiveCommand extends SceneInteractiveCommand {
   SceneMusicInteractiveCommand({
     required this.operation,
+    this.channel = SceneMusicChannel.music,
+    this.scope = SceneMusicScope.scene,
     String? mediaAssetId,
     double? volume,
     this.durationMs,
-  }) : mediaAssetId = mediaAssetId == null
-           ? null
-           : _normalize(mediaAssetId, 'mediaAssetId'),
-       volume = volume == null
-           ? null
-           : _boundedPresentationNumber(volume, 'volume', 0, 1) {
+  }) : mediaAssetId = mediaAssetId == null ? null : _normalize(mediaAssetId, 'mediaAssetId'),
+       volume = volume == null ? null : _boundedPresentationNumber(volume, 'volume', 0, 1) {
     final valid = switch (operation) {
-      SceneMusicOperation.play =>
-        this.mediaAssetId != null && this.volume != null && durationMs == null,
-      SceneMusicOperation.restore =>
-        this.mediaAssetId == null && this.volume == null && durationMs == null,
-      SceneMusicOperation.fadeOut =>
-        this.mediaAssetId == null &&
-            this.volume == null &&
-            durationMs != null &&
-            durationMs! >= 0 &&
-            durationMs! <= 60000,
+      SceneMusicOperation.play => this.mediaAssetId != null && this.volume != null && durationMs == null,
+      SceneMusicOperation.restore || SceneMusicOperation.stop || SceneMusicOperation.memorize || SceneMusicOperation.restoreMemorized => this.mediaAssetId == null && this.volume == null && durationMs == null,
+      SceneMusicOperation.fadeOut => this.mediaAssetId == null && this.volume == null && durationMs != null && durationMs! >= 0 && durationMs! <= 60000,
     };
-    if (!valid) {
-      throw ArgumentError('Scene music parameters do not match the operation.');
+    if (!valid || (channel == SceneMusicChannel.both && operation != SceneMusicOperation.memorize && operation != SceneMusicOperation.restoreMemorized)) {
+      throw ArgumentError('Audio parameters do not match the operation.');
     }
   }
 
   factory SceneMusicInteractiveCommand.fromJson(Map<String, dynamic> json) {
-    if (json['kind'] != 'sceneMusic') {
-      throw const FormatException('Invalid scene music command.');
-    }
-    final operation = SceneMusicOperation.values
-        .where((v) => v.name == json['operation'])
-        .firstOrNull;
-    if (operation == null) {
-      throw const FormatException('Invalid scene music operation.');
-    }
-    _presentationCommandFields(json, switch (operation) {
-      SceneMusicOperation.play => const {
-        'kind',
-        'operation',
-        'mediaAssetId',
-        'volume',
-      },
-      SceneMusicOperation.restore => const {'kind', 'operation'},
+    if (json['kind'] != 'sceneMusic') throw const FormatException('Invalid audio command.');
+    final operation = SceneMusicOperation.values.where((v) => v.name == json['operation']).firstOrNull;
+    if (operation == null) throw const FormatException('Invalid audio operation.');
+    _presentationCommandFields(json, {...switch (operation) {
+      SceneMusicOperation.play => const {'kind', 'operation', 'mediaAssetId', 'volume'},
+      SceneMusicOperation.restore || SceneMusicOperation.stop || SceneMusicOperation.memorize || SceneMusicOperation.restoreMemorized => const {'kind', 'operation'},
       SceneMusicOperation.fadeOut => const {'kind', 'operation', 'durationMs'},
-    });
-    if (operation == SceneMusicOperation.fadeOut &&
-        json['durationMs'] is! int) {
-      throw const FormatException('durationMs must be an integer.');
-    }
+    }, if (json.containsKey('channel')) 'channel', if (json.containsKey('scope')) 'scope'});
+    final channel = json.containsKey('channel') ? SceneMusicChannel.values.where((v) => v.name == json['channel']).firstOrNull : SceneMusicChannel.music;
+    final scope = json.containsKey('scope') ? SceneMusicScope.values.where((v) => v.name == json['scope']).firstOrNull : SceneMusicScope.scene;
+    if (channel == null || scope == null) throw const FormatException('Invalid audio channel or scope.');
+    if (operation == SceneMusicOperation.fadeOut && json['durationMs'] is! int) throw const FormatException('durationMs must be an integer.');
     return SceneMusicInteractiveCommand(
-      operation: operation,
-      mediaAssetId: operation == SceneMusicOperation.play
-          ? _required(json, 'mediaAssetId')
-          : null,
-      volume: operation == SceneMusicOperation.play
-          ? _presentationNumber(json, 'volume')
-          : null,
-      durationMs: operation == SceneMusicOperation.fadeOut
-          ? json['durationMs'] as int
-          : null,
+      operation: operation, channel: channel, scope: scope,
+      mediaAssetId: operation == SceneMusicOperation.play ? _required(json, 'mediaAssetId') : null,
+      volume: operation == SceneMusicOperation.play ? _presentationNumber(json, 'volume') : null,
+      durationMs: operation == SceneMusicOperation.fadeOut ? json['durationMs'] as int : null,
     );
   }
 
   final SceneMusicOperation operation;
+  final SceneMusicChannel channel;
+  final SceneMusicScope scope;
   final String? mediaAssetId;
   final double? volume;
   final int? durationMs;
-
   @override
-  SceneInteractiveCommandKind get kind =>
-      SceneInteractiveCommandKind.sceneMusic;
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.sceneMusic;
   @override
   List<String> get outputPortIds => const ['completed', 'blocked'];
   @override
   Map<String, dynamic> toJson() => {
-    'kind': kind.name,
-    'operation': operation.name,
+    'kind': kind.name, 'operation': operation.name,
+    if (channel != SceneMusicChannel.music || scope != SceneMusicScope.scene) 'channel': channel.name,
+    if (channel != SceneMusicChannel.music || scope != SceneMusicScope.scene) 'scope': scope.name,
     if (operation == SceneMusicOperation.play) 'mediaAssetId': mediaAssetId!,
     if (operation == SceneMusicOperation.play) 'volume': volume!,
     if (operation == SceneMusicOperation.fadeOut) 'durationMs': durationMs!,
   };
   @override
-  bool operator ==(Object other) =>
-      other is SceneMusicInteractiveCommand &&
-      operation == other.operation &&
-      mediaAssetId == other.mediaAssetId &&
-      volume == other.volume &&
-      durationMs == other.durationMs;
+  bool operator ==(Object other) => other is SceneMusicInteractiveCommand && operation == other.operation && channel == other.channel && scope == other.scope && mediaAssetId == other.mediaAssetId && volume == other.volume && durationMs == other.durationMs;
   @override
-  int get hashCode => Object.hash(operation, mediaAssetId, volume, durationMs);
+  int get hashCode => Object.hash(operation, channel, scope, mediaAssetId, volume, durationMs);
+}
+
+final class SceneStopSoundEffectsInteractiveCommand extends SceneInteractiveCommand {
+  const SceneStopSoundEffectsInteractiveCommand({this.scope = SceneMusicScope.scene});
+  factory SceneStopSoundEffectsInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    _presentationCommandFields(json, const {'kind', 'scope'});
+    if (json['kind'] != 'stopSoundEffects') throw const FormatException('Invalid stop effects command.');
+    final scope = SceneMusicScope.values.where((value) => value.name == json['scope']).firstOrNull;
+    if (scope == null) throw const FormatException('Invalid sound effects scope.');
+    return SceneStopSoundEffectsInteractiveCommand(scope: scope);
+  }
+  final SceneMusicScope scope;
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.stopSoundEffects;
+  @override
+  List<String> get outputPortIds => const ['completed', 'blocked'];
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'scope': scope.name};
+  @override
+  bool operator ==(Object other) => other is SceneStopSoundEffectsInteractiveCommand && other.scope == scope;
+  @override
+  int get hashCode => Object.hash(kind, scope);
 }
 
 void _presentationCommandFields(Map<String, dynamic> json, Set<String> fields) {

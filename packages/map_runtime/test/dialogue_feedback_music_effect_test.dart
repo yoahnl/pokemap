@@ -10,6 +10,77 @@ import 'package:map_runtime/src/presentation/flame/flame_narrative_sound_playbac
 
 void main() {
   test(
+    'stop effects releases only the requested owner and leaves the ME alive',
+    () async {
+      final driver = _Driver();
+      final mixer = RuntimeAudioMixer();
+      final music = RuntimeMusicService(
+        driver: driver,
+        mixer: mixer,
+        fadeDelay: (_) async {},
+      );
+      final player = _player(driver, mixer, music);
+      final map = Object();
+      final scene = Object();
+      final other = Object();
+      await player.playOwnedSoundEffect(
+        'fanfare',
+        volume: .5,
+        playbackId: 'a',
+        owner: map,
+        sceneOwner: scene,
+      );
+      final a = driver.handles.last;
+      await player.playOwnedSoundEffect(
+        'fanfare',
+        volume: .5,
+        playbackId: 'b',
+        owner: other,
+      );
+      final b = driver.handles.last;
+      await player.playCue(_cue(), playbackId: 'me');
+      final me = driver.handles.last;
+      await player.stopOwnedSoundEffects(scene);
+      expect(driver.stopped, [a]);
+      expect(driver.stopped, isNot(contains(b)));
+      expect(driver.stopped, isNot(contains(me)));
+      await player.dispose();
+      await music.dispose();
+    },
+  );
+
+  test(
+    'a stopped owner discards its pending SE without publishing a late voice',
+    () async {
+      final driver = _Driver();
+      final mixer = RuntimeAudioMixer();
+      final music = RuntimeMusicService(
+        driver: driver,
+        mixer: mixer,
+        fadeDelay: (_) async {},
+      );
+      final player = _player(driver, mixer, music);
+      final owner = Object();
+      final gate = Completer<Object>();
+      driver.playGate = gate;
+      final started = player.playOwnedSoundEffect(
+        'fanfare',
+        volume: .5,
+        playbackId: 'pending',
+        owner: owner,
+      );
+      await _flush();
+      final handle = driver.handles.last;
+      await player.stopOwnedSoundEffects(owner);
+      gate.complete(handle);
+      await started;
+      expect(driver.stopped, [handle]);
+      await player.dispose();
+      expect(driver.stopped, [handle]);
+      await music.dispose();
+    },
+  );
+  test(
     'ME uses the music bus and starts before the BGM fade completes',
     () async {
       final driver = _Driver();
