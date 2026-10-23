@@ -39,6 +39,7 @@ class WorkspaceActions {
     this.worldInputsValid,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
+    this.projectRuntimeBuilder,
   });
   final MapWorkspaceController controller;
   final BuildContext Function() context;
@@ -56,6 +57,7 @@ class WorkspaceActions {
   final bool Function()? worldInputsValid;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
+  final Widget Function(VoidCallback onClose)? projectRuntimeBuilder;
   bool testing = false;
   bool closing = false;
   bool get busy =>
@@ -134,7 +136,12 @@ class WorkspaceActions {
     return false;
   }
 
-  Future<void> test() async {
+  Future<void> test({bool fullProject = false}) async {
+    if (fullProject && projectRuntimeBuilder == null) {
+      controller.error = 'Le test du jeu complet est indisponible.';
+      changed();
+      return;
+    }
     if (!controller.hasCompleteProject) {
       controller.active?.error =
           'Chargez tous les ateliers avant de tester le jeu complet.';
@@ -247,11 +254,12 @@ class WorkspaceActions {
       }
       await Navigator.of(context()).push<void>(
         MaterialPageRoute(
-          builder: (routeContext) => runtimeBuilder(
-            entry,
-            document.base.revision,
-            () => Navigator.of(routeContext).pop(),
-          ),
+          builder: (routeContext) {
+            void close() => Navigator.of(routeContext).pop();
+            return fullProject
+                ? projectRuntimeBuilder!(close)
+                : runtimeBuilder(entry, document.base.revision, close);
+          },
         ),
       );
     } finally {

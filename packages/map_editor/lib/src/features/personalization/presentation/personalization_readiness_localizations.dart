@@ -104,6 +104,8 @@ final class PersonalizationReadinessCopy {
       'presentationAssetNotRegular' => 'File not allowed',
       'presentationAssetUnreadable' => 'Unreadable file',
       'brandingImageCorrupt' => 'Invalid branding image',
+      'titleMusicReplayRequiresMusic' => 'Missing title music',
+      'titleMusicReplayRequiresIntro' => 'Missing replayable introduction',
       'titleMusicSignatureInvalid' => 'Invalid title music',
       'introCodecSignatureInvalid' => 'Invalid intro video',
       'introAudioSignatureMismatch' => 'Inconsistent audio track',

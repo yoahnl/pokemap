@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'narrative_action_support.dart';
+import 'presentation_publication_guards.dart';
 
 final class PresentationCinematicTemplateAuthoringException
     implements Exception {
@@ -66,10 +67,10 @@ final class PresentationCinematicTemplateActions {
         'The requested Presentation cinematic template action is unsupported.',
       );
     }
-    if (context.snapshot.manifest.version != ProjectVersion.v8) {
+    if (!supportsPresentationProjectVersion(context.snapshot.manifest)) {
       throw PresentationCinematicTemplateAuthoringException(
         'presentation_cinematic_template.project_version_unsupported',
-        'Presentation cinematic templates require ProjectVersion.v8.',
+        'Presentation cinematic templates require ProjectVersion.v8 (2D) or ProjectVersion.v9 (3D).',
       );
     }
     final parameters = context.request.parameters;

@@ -284,7 +284,7 @@ as String,
 /// @nodoc
 mixin _$ProjectBrandingProfile {
 
-@JsonKey(includeIfNull: false) String? get iconPath;@JsonKey(includeIfNull: false) String? get coverPath;@JsonKey(includeIfNull: false) String? get heroPath;@JsonKey(includeIfNull: false) String? get accentColor;@JsonKey(includeIfNull: false) String? get titleMusicPath; String get layoutVariant;
+@JsonKey(includeIfNull: false) String? get iconPath;@JsonKey(includeIfNull: false) String? get coverPath;@JsonKey(includeIfNull: false) String? get heroPath;@JsonKey(includeIfNull: false) String? get accentColor;@JsonKey(includeIfNull: false) String? get titleMusicPath; ProjectTitleMusicEndBehavior get titleMusicEndBehavior; String get layoutVariant;
 /// Create a copy of ProjectBrandingProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -297,16 +297,16 @@ $ProjectBrandingProfileCopyWith<ProjectBrandingProfile> get copyWith => _$Projec
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectBrandingProfile&&(identical(other.iconPath, iconPath) || other.iconPath == iconPath)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.heroPath, heroPath) || other.heroPath == heroPath)&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor)&&(identical(other.titleMusicPath, titleMusicPath) || other.titleMusicPath == titleMusicPath)&&(identical(other.layoutVariant, layoutVariant) || other.layoutVariant == layoutVariant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectBrandingProfile&&(identical(other.iconPath, iconPath) || other.iconPath == iconPath)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.heroPath, heroPath) || other.heroPath == heroPath)&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor)&&(identical(other.titleMusicPath, titleMusicPath) || other.titleMusicPath == titleMusicPath)&&(identical(other.titleMusicEndBehavior, titleMusicEndBehavior) || other.titleMusicEndBehavior == titleMusicEndBehavior)&&(identical(other.layoutVariant, layoutVariant) || other.layoutVariant == layoutVariant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,iconPath,coverPath,heroPath,accentColor,titleMusicPath,layoutVariant);
+int get hashCode => Object.hash(runtimeType,iconPath,coverPath,heroPath,accentColor,titleMusicPath,titleMusicEndBehavior,layoutVariant);
 
 @override
 String toString() {
-  return 'ProjectBrandingProfile(iconPath: $iconPath, coverPath: $coverPath, heroPath: $heroPath, accentColor: $accentColor, titleMusicPath: $titleMusicPath, layoutVariant: $layoutVariant)';
+  return 'ProjectBrandingProfile(iconPath: $iconPath, coverPath: $coverPath, heroPath: $heroPath, accentColor: $accentColor, titleMusicPath: $titleMusicPath, titleMusicEndBehavior: $titleMusicEndBehavior, layoutVariant: $layoutVariant)';
 }
 
 
@@ -317,7 +317,7 @@ abstract mixin class $ProjectBrandingProfileCopyWith<$Res>  {
   factory $ProjectBrandingProfileCopyWith(ProjectBrandingProfile value, $Res Function(ProjectBrandingProfile) _then) = _$ProjectBrandingProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? iconPath,@JsonKey(includeIfNull: false) String? coverPath,@JsonKey(includeIfNull: false) String? heroPath,@JsonKey(includeIfNull: false) String? accentColor,@JsonKey(includeIfNull: false) String? titleMusicPath, String layoutVariant
+@JsonKey(includeIfNull: false) String? iconPath,@JsonKey(includeIfNull: false) String? coverPath,@JsonKey(includeIfNull: false) String? heroPath,@JsonKey(includeIfNull: false) String? accentColor,@JsonKey(includeIfNull: false) String? titleMusicPath, ProjectTitleMusicEndBehavior titleMusicEndBehavior, String layoutVariant
 });
 
 
@@ -334,14 +334,15 @@ class _$ProjectBrandingProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectBrandingProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? iconPath = freezed,Object? coverPath = freezed,Object? heroPath = freezed,Object? accentColor = freezed,Object? titleMusicPath = freezed,Object? layoutVariant = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? iconPath = freezed,Object? coverPath = freezed,Object? heroPath = freezed,Object? accentColor = freezed,Object? titleMusicPath = freezed,Object? titleMusicEndBehavior = null,Object? layoutVariant = null,}) {
   return _then(_self.copyWith(
 iconPath: freezed == iconPath ? _self.iconPath : iconPath // ignore: cast_nullable_to_non_nullable
 as String?,coverPath: freezed == coverPath ? _self.coverPath : coverPath // ignore: cast_nullable_to_non_nullable
 as String?,heroPath: freezed == heroPath ? _self.heroPath : heroPath // ignore: cast_nullable_to_non_nullable
 as String?,accentColor: freezed == accentColor ? _self.accentColor : accentColor // ignore: cast_nullable_to_non_nullable
 as String?,titleMusicPath: freezed == titleMusicPath ? _self.titleMusicPath : titleMusicPath // ignore: cast_nullable_to_non_nullable
-as String?,layoutVariant: null == layoutVariant ? _self.layoutVariant : layoutVariant // ignore: cast_nullable_to_non_nullable
+as String?,titleMusicEndBehavior: null == titleMusicEndBehavior ? _self.titleMusicEndBehavior : titleMusicEndBehavior // ignore: cast_nullable_to_non_nullable
+as ProjectTitleMusicEndBehavior,layoutVariant: null == layoutVariant ? _self.layoutVariant : layoutVariant // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }
@@ -427,10 +428,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? iconPath, @JsonKey(includeIfNull: false)  String? coverPath, @JsonKey(includeIfNull: false)  String? heroPath, @JsonKey(includeIfNull: false)  String? accentColor, @JsonKey(includeIfNull: false)  String? titleMusicPath,  String layoutVariant)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? iconPath, @JsonKey(includeIfNull: false)  String? coverPath, @JsonKey(includeIfNull: false)  String? heroPath, @JsonKey(includeIfNull: false)  String? accentColor, @JsonKey(includeIfNull: false)  String? titleMusicPath,  ProjectTitleMusicEndBehavior titleMusicEndBehavior,  String layoutVariant)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectBrandingProfile() when $default != null:
-return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,_that.titleMusicPath,_that.layoutVariant);case _:
+return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,_that.titleMusicPath,_that.titleMusicEndBehavior,_that.layoutVariant);case _:
   return orElse();
 
 }
@@ -448,10 +449,10 @@ return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? iconPath, @JsonKey(includeIfNull: false)  String? coverPath, @JsonKey(includeIfNull: false)  String? heroPath, @JsonKey(includeIfNull: false)  String? accentColor, @JsonKey(includeIfNull: false)  String? titleMusicPath,  String layoutVariant)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? iconPath, @JsonKey(includeIfNull: false)  String? coverPath, @JsonKey(includeIfNull: false)  String? heroPath, @JsonKey(includeIfNull: false)  String? accentColor, @JsonKey(includeIfNull: false)  String? titleMusicPath,  ProjectTitleMusicEndBehavior titleMusicEndBehavior,  String layoutVariant)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectBrandingProfile():
-return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,_that.titleMusicPath,_that.layoutVariant);case _:
+return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,_that.titleMusicPath,_that.titleMusicEndBehavior,_that.layoutVariant);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -468,10 +469,10 @@ return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? iconPath, @JsonKey(includeIfNull: false)  String? coverPath, @JsonKey(includeIfNull: false)  String? heroPath, @JsonKey(includeIfNull: false)  String? accentColor, @JsonKey(includeIfNull: false)  String? titleMusicPath,  String layoutVariant)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? iconPath, @JsonKey(includeIfNull: false)  String? coverPath, @JsonKey(includeIfNull: false)  String? heroPath, @JsonKey(includeIfNull: false)  String? accentColor, @JsonKey(includeIfNull: false)  String? titleMusicPath,  ProjectTitleMusicEndBehavior titleMusicEndBehavior,  String layoutVariant)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectBrandingProfile() when $default != null:
-return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,_that.titleMusicPath,_that.layoutVariant);case _:
+return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,_that.titleMusicPath,_that.titleMusicEndBehavior,_that.layoutVariant);case _:
   return null;
 
 }
@@ -483,7 +484,7 @@ return $default(_that.iconPath,_that.coverPath,_that.heroPath,_that.accentColor,
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectBrandingProfile implements ProjectBrandingProfile {
-  const _ProjectBrandingProfile({@JsonKey(includeIfNull: false) this.iconPath, @JsonKey(includeIfNull: false) this.coverPath, @JsonKey(includeIfNull: false) this.heroPath, @JsonKey(includeIfNull: false) this.accentColor, @JsonKey(includeIfNull: false) this.titleMusicPath, this.layoutVariant = 'standard'});
+  const _ProjectBrandingProfile({@JsonKey(includeIfNull: false) this.iconPath, @JsonKey(includeIfNull: false) this.coverPath, @JsonKey(includeIfNull: false) this.heroPath, @JsonKey(includeIfNull: false) this.accentColor, @JsonKey(includeIfNull: false) this.titleMusicPath, this.titleMusicEndBehavior = ProjectTitleMusicEndBehavior.loop, this.layoutVariant = 'standard'});
   factory _ProjectBrandingProfile.fromJson(Map<String, dynamic> json) => _$ProjectBrandingProfileFromJson(json);
 
 @override@JsonKey(includeIfNull: false) final  String? iconPath;
@@ -491,6 +492,7 @@ class _ProjectBrandingProfile implements ProjectBrandingProfile {
 @override@JsonKey(includeIfNull: false) final  String? heroPath;
 @override@JsonKey(includeIfNull: false) final  String? accentColor;
 @override@JsonKey(includeIfNull: false) final  String? titleMusicPath;
+@override@JsonKey() final  ProjectTitleMusicEndBehavior titleMusicEndBehavior;
 @override@JsonKey() final  String layoutVariant;
 
 /// Create a copy of ProjectBrandingProfile
@@ -506,16 +508,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectBrandingProfile&&(identical(other.iconPath, iconPath) || other.iconPath == iconPath)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.heroPath, heroPath) || other.heroPath == heroPath)&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor)&&(identical(other.titleMusicPath, titleMusicPath) || other.titleMusicPath == titleMusicPath)&&(identical(other.layoutVariant, layoutVariant) || other.layoutVariant == layoutVariant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectBrandingProfile&&(identical(other.iconPath, iconPath) || other.iconPath == iconPath)&&(identical(other.coverPath, coverPath) || other.coverPath == coverPath)&&(identical(other.heroPath, heroPath) || other.heroPath == heroPath)&&(identical(other.accentColor, accentColor) || other.accentColor == accentColor)&&(identical(other.titleMusicPath, titleMusicPath) || other.titleMusicPath == titleMusicPath)&&(identical(other.titleMusicEndBehavior, titleMusicEndBehavior) || other.titleMusicEndBehavior == titleMusicEndBehavior)&&(identical(other.layoutVariant, layoutVariant) || other.layoutVariant == layoutVariant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,iconPath,coverPath,heroPath,accentColor,titleMusicPath,layoutVariant);
+int get hashCode => Object.hash(runtimeType,iconPath,coverPath,heroPath,accentColor,titleMusicPath,titleMusicEndBehavior,layoutVariant);
 
 @override
 String toString() {
-  return 'ProjectBrandingProfile(iconPath: $iconPath, coverPath: $coverPath, heroPath: $heroPath, accentColor: $accentColor, titleMusicPath: $titleMusicPath, layoutVariant: $layoutVariant)';
+  return 'ProjectBrandingProfile(iconPath: $iconPath, coverPath: $coverPath, heroPath: $heroPath, accentColor: $accentColor, titleMusicPath: $titleMusicPath, titleMusicEndBehavior: $titleMusicEndBehavior, layoutVariant: $layoutVariant)';
 }
 
 
@@ -526,7 +528,7 @@ abstract mixin class _$ProjectBrandingProfileCopyWith<$Res> implements $ProjectB
   factory _$ProjectBrandingProfileCopyWith(_ProjectBrandingProfile value, $Res Function(_ProjectBrandingProfile) _then) = __$ProjectBrandingProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? iconPath,@JsonKey(includeIfNull: false) String? coverPath,@JsonKey(includeIfNull: false) String? heroPath,@JsonKey(includeIfNull: false) String? accentColor,@JsonKey(includeIfNull: false) String? titleMusicPath, String layoutVariant
+@JsonKey(includeIfNull: false) String? iconPath,@JsonKey(includeIfNull: false) String? coverPath,@JsonKey(includeIfNull: false) String? heroPath,@JsonKey(includeIfNull: false) String? accentColor,@JsonKey(includeIfNull: false) String? titleMusicPath, ProjectTitleMusicEndBehavior titleMusicEndBehavior, String layoutVariant
 });
 
 
@@ -543,14 +545,15 @@ class __$ProjectBrandingProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectBrandingProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? iconPath = freezed,Object? coverPath = freezed,Object? heroPath = freezed,Object? accentColor = freezed,Object? titleMusicPath = freezed,Object? layoutVariant = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? iconPath = freezed,Object? coverPath = freezed,Object? heroPath = freezed,Object? accentColor = freezed,Object? titleMusicPath = freezed,Object? titleMusicEndBehavior = null,Object? layoutVariant = null,}) {
   return _then(_ProjectBrandingProfile(
 iconPath: freezed == iconPath ? _self.iconPath : iconPath // ignore: cast_nullable_to_non_nullable
 as String?,coverPath: freezed == coverPath ? _self.coverPath : coverPath // ignore: cast_nullable_to_non_nullable
 as String?,heroPath: freezed == heroPath ? _self.heroPath : heroPath // ignore: cast_nullable_to_non_nullable
 as String?,accentColor: freezed == accentColor ? _self.accentColor : accentColor // ignore: cast_nullable_to_non_nullable
 as String?,titleMusicPath: freezed == titleMusicPath ? _self.titleMusicPath : titleMusicPath // ignore: cast_nullable_to_non_nullable
-as String?,layoutVariant: null == layoutVariant ? _self.layoutVariant : layoutVariant // ignore: cast_nullable_to_non_nullable
+as String?,titleMusicEndBehavior: null == titleMusicEndBehavior ? _self.titleMusicEndBehavior : titleMusicEndBehavior // ignore: cast_nullable_to_non_nullable
+as ProjectTitleMusicEndBehavior,layoutVariant: null == layoutVariant ? _self.layoutVariant : layoutVariant // ignore: cast_nullable_to_non_nullable
 as String,
   ));
 }

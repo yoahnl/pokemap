@@ -40,6 +40,7 @@ import 'package:avelune_studio/platform/files/native_project_directory_picker.da
 import 'package:avelune_studio/platform/files/native_resource_image_picker.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
+import 'package:avelune_studio/platform/playtest/studio_game_playtest_view.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/shell/studio_workspace_host.dart';
 
@@ -253,6 +254,12 @@ class StudioBootstrap extends StatelessWidget {
           mapAdapter: ref.watch(
             mapWorkspacePortProvider(session),
           ) as LocalMapWorkspaceAdapter,
+        ),
+      ),
+      projectRuntimeBuilderProvider.overrideWithValue(
+        (session, close) => StudioGamePlaytestView(
+          projectFilePath: '${session.directoryPath}/project.json',
+          onClose: close,
         ),
       ),
       workspaceRuntimeBuilderProvider.overrideWithValue((session, port) {

@@ -583,7 +583,8 @@ class PlayerTitleSurface extends StatelessWidget {
                 SizedBox(
                   key: const ValueKey<String>('player-title-premium-title'),
                   height: 64,
-                  child: Align(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
                     alignment: Alignment.topLeft,
                     child: Text(
                       _premiumTitle,

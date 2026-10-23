@@ -21,6 +21,7 @@ class ProjectBrandingEditor extends StatelessWidget {
     this.onEditAccent,
     this.onResetAccent,
     this.onLayoutVariantChanged,
+    this.onTitleMusicEndBehaviorChanged,
     this.onImportTitleMusic,
     this.onToggleTitleMusicPreview,
     this.onRemoveTitleMusic,
@@ -38,6 +39,8 @@ class ProjectBrandingEditor extends StatelessWidget {
   final VoidCallback? onEditAccent;
   final VoidCallback? onResetAccent;
   final ValueChanged<String>? onLayoutVariantChanged;
+  final ValueChanged<ProjectTitleMusicEndBehavior>?
+  onTitleMusicEndBehaviorChanged;
   final VoidCallback? onImportTitleMusic;
   final VoidCallback? onToggleTitleMusicPreview;
   final VoidCallback? onRemoveTitleMusic;
@@ -161,11 +164,30 @@ class ProjectBrandingEditor extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              PokeMapDropdownField<ProjectTitleMusicEndBehavior>(
+                key: const ValueKey<String>(
+                  'branding-title-music-end-behavior',
+                ),
+                label: 'À la fin de la musique',
+                value: profile.titleMusicEndBehavior,
+                items: const [
+                  PokeMapDropdownItem(
+                    value: ProjectTitleMusicEndBehavior.loop,
+                    label: 'Rejouer la musique en boucle',
+                  ),
+                  PokeMapDropdownItem(
+                    value: ProjectTitleMusicEndBehavior.replayIntro,
+                    label: 'Rejouer l’introduction',
+                  ),
+                ],
+                enabled: onTitleMusicEndBehaviorChanged != null,
+                onChanged: onTitleMusicEndBehaviorChanged ?? (_) {},
+              ),
+              const SizedBox(height: 10),
               Text(profile.titleMusicPath ?? 'Aucun morceau importé'),
               const SizedBox(height: 4),
               const Text(
-                'OGG, WAV, MP3, FLAC ou M4A • 30 Mio maximum',
-              ),
+                'OGG, WAV, MP3, FLAC ou M4A • 30 Mio maximum'),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -173,8 +195,7 @@ class ProjectBrandingEditor extends StatelessWidget {
                 children: <Widget>[
                   PokeMapButton(
                     key: const ValueKey<String>(
-                      'branding-import-title-music',
-                    ),
+                      'branding-import-title-music'),
                     size: PokeMapButtonSize.compact,
                     leading: const Icon(Icons.library_music_outlined),
                     onPressed: onImportTitleMusic,
@@ -184,8 +205,7 @@ class ProjectBrandingEditor extends StatelessWidget {
                   ),
                   PokeMapButton(
                     key: const ValueKey<String>(
-                      'branding-preview-title-music',
-                    ),
+                      'branding-preview-title-music'),
                     variant: PokeMapButtonVariant.secondary,
                     size: PokeMapButtonSize.compact,
                     leading: Icon(
@@ -202,8 +222,7 @@ class ProjectBrandingEditor extends StatelessWidget {
                   ),
                   PokeMapButton(
                     key: const ValueKey<String>(
-                      'branding-remove-title-music',
-                    ),
+                      'branding-remove-title-music'),
                     variant: PokeMapButtonVariant.ghost,
                     size: PokeMapButtonSize.compact,
                     leading: const Icon(Icons.delete_outline_rounded),

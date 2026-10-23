@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  nativeDoorSourceReplacementTests();
   for (final defaultBlocking in [true, false]) {
     test('configure unchanged model default blocking $defaultBlocking is a no-op', () async {
       final f = await _Fixture.create();
@@ -474,6 +475,127 @@ void main() {
   });
 
   test(
+      'delete removes only its model classification and undo restores it',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final staged = await f.request(
+        'stage_artifact', {'sourcePath': '${f.root.path}/input.glb'});
+    expect(
+        (await f.apply(await f.planAction('model3d.import', {
+          'artifactHandle': staged.data['artifactHandle'],
+          'modelId': 'tree',
+          'name': 'Tree',
+        })))
+            .status,
+        AuthoringResultStatus.success);
+    expect(
+        (await f.apply(await f.planAction('resource.family.create', {
+          'familyId': 'scenery',
+          'name': 'Scenery',
+        })))
+            .status,
+        AuthoringResultStatus.success);
+    expect(
+        (await f.apply(await f.planAction('resource.classify_batch', {
+          'entries': [
+            {
+              'resourceKind': 'model3d',
+              'resourceId': 'house',
+              'familyId': 'scenery',
+              'placementContext': 'exterior',
+              'description': 'Reusable building.',
+            },
+            {
+              'resourceKind': 'model3d',
+              'resourceId': 'tree',
+              'familyId': 'scenery',
+              'role': 'component',
+            },
+          ],
+        })))
+            .status,
+        AuthoringResultStatus.success);
+    final before = await f.snapshots.load(f.project);
+    expect(before.manifest.resourceLibraryCatalog.entries, hasLength(2));
+    expect(before.manifest.resourceLibraryCatalog.entryFor('model3d', 'house'),
+        isNotNull);
+    final plan = await f.planAction('model3d.delete', {'modelId': 'house'});
+    expect(plan.status, AuthoringResultStatus.success,
+        reason: jsonEncode(plan.toJson()));
+    final deleted = await f.apply(plan, confirm: true);
+    expect(deleted.status, AuthoringResultStatus.success,
+        reason: jsonEncode(deleted.toJson()));
+    final after = await f.snapshots.load(f.project);
+    final stored = jsonDecode(await f.projectFile.readAsString()) as Map;
+    expect(
+        ((stored['resourceLibraryCatalog'] as Map)['entries'] as List)
+            .map((entry) => (entry as Map)['resourceId']),
+        ['tree']);
+    expect(after.manifest.models3d.map((model) => model.id), ['tree']);
+    expect(after.manifest.resourceLibraryCatalog.families,
+        before.manifest.resourceLibraryCatalog.families);
+    expect(after.manifest.resourceLibraryCatalog.entries,
+        [before.manifest.resourceLibraryCatalog.entryFor('model3d', 'tree')]);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').exists(),
+        isFalse);
+    expect(await File('${f.root.path}/assets/models3d/tree.glb').readAsBytes(),
+        triangleGlb());
+    final history = await f
+        .request('history', {'projectHandle': f.project.value, 'limit': 10});
+    final entry = (history.data['entries'] as List).cast<Map>().firstWhere(
+        (entry) => (entry['receipt'] as Map)['actionId'] == 'model3d.delete');
+    final undone = await f.request('undo', {
+      'projectHandle': f.project.value,
+      'entryId': entry['entryId'],
+      'idempotencyKey': 'undo-classified-model-delete',
+    });
+    expect(undone.status, AuthoringResultStatus.success,
+        reason: jsonEncode(undone.toJson()));
+    final restored = await f.snapshots.load(f.project);
+    expect(restored.manifest.models3d, before.manifest.models3d);
+    expect(restored.manifest.resourceLibraryCatalog,
+        before.manifest.resourceLibraryCatalog);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        triangleGlb());
+  });
+
+  test('used classified model deletion preserves all library metadata',
+      () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect(
+        (await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    expect(
+        (await f.apply(await f.planAction('resource.family.create', {
+          'familyId': 'custom-buildings',
+          'name': 'Buildings',
+        })))
+            .status,
+        AuthoringResultStatus.success);
+    expect(
+        (await f.apply(await f.planAction('resource.classify', {
+          'resourceKind': 'model3d',
+          'resourceId': 'house',
+          'familyId': 'custom-buildings',
+          'placementContext': 'exterior',
+        })))
+            .status,
+        AuthoringResultStatus.success);
+    final map = await f.addPlacement();
+    final beforeProject = await f.projectFile.readAsBytes();
+    final beforeMap = await map.readAsBytes();
+    final plan = await f.planAction('model3d.delete', {'modelId': 'house'});
+    expect(plan.status, AuthoringResultStatus.failure);
+    expect(await f.projectFile.readAsBytes(), beforeProject);
+    expect(await map.readAsBytes(), beforeMap);
+    expect(await File('${f.root.path}/assets/models3d/house.glb').readAsBytes(),
+        triangleGlb());
+  });
+
+  test(
       'delete removes unused model bytes and undo restores the complete resource',
       () async {
     final f = await _Fixture.create();
@@ -695,6 +817,42 @@ void main() {
         throwsA(isA<AuthoringPlanException>()));
     expect(await File('${f.root.path}/assets/models3d/house.glb').exists(),
         isTrue);
+  });
+}
+
+void nativeDoorSourceReplacementTests() {
+  test('native door bindings protect both clips during single and batch source replacement', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    expect((await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+    final original = animatedGlb(edit: (json) {
+      final clips = json['animations'] as List;
+      clips.add({...clips.single as Map, 'name': 'Close'});
+    });
+    expect((await f.apply(await f.planReplacement(original))).status, AuthoringResultStatus.success);
+    await f.addPlacement();
+    final warpPlan = await f.planAction('warp.create', {
+      'mapId': 'room', 'warp': const MapWarp(
+        id: 'entrance', pos: GridPos(x: 1, y: 1), targetMapId: 'room',
+        targetPos: GridPos(x: 2, y: 1), door: MapWarpDoor(
+          instanceId: 'placed', openAnimationIndex: 0, closeAnimationIndex: 1,
+          exitPos: GridPos(x: 1, y: 2)),
+      ).toJson(),
+    });
+    expect(warpPlan.status, AuthoringResultStatus.success, reason: jsonEncode(warpPlan.toJson()));
+    expect((await f.apply(warpPlan)).status, AuthoringResultStatus.success);
+    final before = await f.projectFile.readAsBytes();
+    for (final bytes in [triangleGlb(), animatedGlb()]) {
+      for (final batch in [false, true]) {
+        await File('${f.root.path}/replacement.glb').writeAsBytes(bytes);
+        final staged = await f.request('stage_artifact', {'sourcePath': '${f.root.path}/replacement.glb'});
+        final replacement = {'modelId': 'house', 'artifactHandle': staged.data['artifactHandle']};
+        final result = await f.planAction(batch ? 'model3d.source.replace_batch' : 'model3d.source.replace',
+          batch ? {'replacements': [replacement]} : replacement);
+        expect(result.status, AuthoringResultStatus.failure, reason: jsonEncode(result.toJson()));
+        expect(await f.projectFile.readAsBytes(), before);
+      }
+    }
   });
 }
 

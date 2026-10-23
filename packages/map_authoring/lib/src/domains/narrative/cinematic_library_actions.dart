@@ -1,3 +1,4 @@
+import 'presentation_publication_guards.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -96,10 +97,10 @@ final class CinematicLibraryActions {
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
-    if (context.snapshot.manifest.version != ProjectVersion.v8) {
+    if (!supportsPresentationProjectVersion(context.snapshot.manifest)) {
       throw CinematicLibraryAuthoringException(
-        'cinematic_library.project_v8_required',
-        'Cinematic library authoring requires ProjectVersion.v8.',
+        'cinematic_library.project_version_unsupported',
+        'Cinematic library authoring requires ProjectVersion.v8 (2D) or ProjectVersion.v9 (3D).',
         details: {
           'projectVersion': context.snapshot.manifest.version.name,
         },

@@ -74,6 +74,8 @@ final class PersonalizationReadinessIssue {
         'presentationAssetNotRegular' => 'Fichier non autorisé',
         'presentationAssetUnreadable' => 'Fichier illisible',
         'brandingImageCorrupt' => 'Image de branding invalide',
+        'titleMusicReplayRequiresMusic' => 'Musique du titre manquante',
+        'titleMusicReplayRequiresIntro' => 'Introduction rejouable manquante',
         'titleMusicSignatureInvalid' => 'Musique du titre invalide',
         'introCodecSignatureInvalid' => 'Vidéo d’intro invalide',
         'introAudioSignatureMismatch' => 'Piste audio incohérente',
@@ -116,6 +118,10 @@ final class PersonalizationReadinessIssue {
           'Vérifiez les autorisations de lecture du fichier.',
         'brandingImageCorrupt' =>
           'Réimportez une image PNG, JPEG ou WebP valide.',
+        'titleMusicReplayRequiresMusic' =>
+          'Importez une musique du titre ou choisissez la lecture en boucle.',
+        'titleMusicReplayRequiresIntro' =>
+          'Importez une introduction et autorisez sa relecture, ou choisissez la lecture en boucle.',
         'titleMusicSignatureInvalid' =>
           'Réimportez une piste audio dont le contenu correspond à son format.',
         'introCodecSignatureInvalid' =>

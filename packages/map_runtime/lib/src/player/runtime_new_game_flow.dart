@@ -101,8 +101,14 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
         ? _snapshotContent(await loadProjectManifestFromFile(projectFilePath)) ==
             _snapshotContent(normalizeRuntimeProjectManifest(bundle.manifest))
         : await catalog.isCurrentPublication();
+    final projectedSnapshotMap = projectSpatialSmartTileModels(
+      map: snapshot.map,
+      catalog: bundle.manifest.smartTileCatalog,
+      sourceCellWidth: bundle.manifest.settings.tileWidth,
+      sourceCellHeight: bundle.manifest.settings.tileHeight,
+    );
     if (!publicationIsCurrent ||
-        _snapshotContent(snapshot.map) != _snapshotContent(bundle.map)) {
+        _snapshotContent(projectedSnapshotMap) != _snapshotContent(bundle.map)) {
       clear();
       throw const RuntimeNewGameException(
         code: 'new_game.project_changed',

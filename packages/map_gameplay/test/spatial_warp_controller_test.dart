@@ -20,6 +20,32 @@ MapWarp passage(
         allowedApproachFacings: allowed,
         triggerPadding: padding);
 void main() {
+  test('native door is found before entering its threshold only with directed input', () {
+    final warp = passage(allowed: [EntityFacing.south]).copyWith(door: const MapWarpDoor(instanceId: 'door', openAnimationIndex: 0, closeAnimationIndex: 1, exitPos: GridPos(x: 3, y: 3)));
+    final controller = SpatialWarpController(map: warpMap(warp), x: 3.5, z: 3.5);
+    expect(controller.candidateDoorApproach(x: 3.5, z: 3.5, facing: EntityFacing.north, inputX: 0, inputZ: -1), warp);
+    expect(controller.candidateDoorApproach(x: 3.5, z: 3.5, facing: EntityFacing.north, inputX: 0, inputZ: 0), isNull);
+    expect(controller.candidateDoorApproach(x: 3.5, z: 3.5, facing: EntityFacing.south, inputX: 0, inputZ: 1), isNull);
+    expect(controller.candidateDoorApproach(x: 3.5, z: 3.5, facing: EntityFacing.north, inputX: 1, inputZ: -1), isNull);
+    expect(controller.candidateDoorApproach(x: 3.5, z: 2.5, facing: EntityFacing.north, inputX: 0, inputZ: -1), isNull);
+    expect(controller.candidateDoorApproach(x: double.nan, z: 3.5, facing: EntityFacing.north, inputX: 0, inputZ: -1), isNull);
+  });
+
+  test('native approach respects approach side and excludes ordinary and scene markers', () {
+    final ordinary = passage();
+    final native = ordinary.copyWith(door: const MapWarpDoor(instanceId: 'door', openAnimationIndex: 0, closeAnimationIndex: 1, exitPos: GridPos(x: 3, y: 3)));
+    for (final warp in [ordinary, native.copyWith(triggerMode: MapWarpTriggerMode.sceneOnly), native.copyWith(allowedApproachFacings: [EntityFacing.north])]) {
+      final controller = SpatialWarpController(map: warpMap(warp), x: 3.5, z: 3.5);
+      expect(controller.candidateDoorApproach(x: 3.5, z: 3.5, facing: EntityFacing.north, inputX: 0, inputZ: -1), isNull);
+    }
+    for (final side in EntityFacing.values) {
+      final delta = switch(side) {EntityFacing.north => (0, -1), EntityFacing.south => (0, 1), EntityFacing.east => (1, 0), EntityFacing.west => (-1, 0)};
+      final warp = native.copyWith(door: native.door!.copyWith(exitPos: GridPos(x: 3 - delta.$1, y: 2 - delta.$2)));
+      final controller = SpatialWarpController(map: warpMap(warp), x: 0, z: 0);
+      expect(controller.candidateDoorApproach(x: warp.door!.exitPos.x + .5, z: warp.door!.exitPos.y + .5, facing: side, inputX: delta.$1, inputZ: delta.$2), warp);
+    }
+  });
+
   test('every padded cell and approach matches the canonical 2D resolver', () {
     for (final mode in MapWarpTriggerMode.values) {
       final warp = passage(

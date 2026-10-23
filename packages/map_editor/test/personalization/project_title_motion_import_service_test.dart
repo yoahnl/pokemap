@@ -39,11 +39,67 @@ void main() {
     expect(importer.allowReplay, isFalse);
   });
 
-  test('rejects a loop longer than fifteen seconds before copying', () async {
+  for (final duration in [30000, 90000, 120000]) {
+    test('imports a bounded title loop of $duration ms', () async {
+      final importer = _RecordingIntroImporter();
+      final service = ProjectTitleMotionImportService(
+        introImporter: importer,
+        probe: _Probe(Duration(milliseconds: duration)),
+      );
+      expect(
+        await service.importIntoProject(
+          projectRoot: root,
+          videoFile: video,
+          posterFile: poster,
+        ),
+        _media,
+      );
+      expect(importer.calls, 1);
+    });
+  }
+
+  for (final extra in [0, 1]) {
+    test(
+      'title loop import enforces the 64 MiB boundary plus $extra',
+      () async {
+        final file = await video.open(mode: FileMode.append);
+        await file.truncate(64 * 1024 * 1024 + extra);
+        await file.close();
+        final importer = _RecordingIntroImporter();
+        final service = ProjectTitleMotionImportService(
+          introImporter: importer,
+          probe: const _Probe(Duration(seconds: 90)),
+        );
+        final result = service.importIntoProject(
+          projectRoot: root,
+          videoFile: video,
+          posterFile: poster,
+        );
+        if (extra == 0) {
+          expect(await result, _media);
+          expect(importer.calls, 1);
+        } else {
+          await expectLater(
+            result,
+            throwsA(
+              isA<ProjectIntroVideoImportException>().having(
+                (e) => e.code,
+                'code',
+                'titleMotionLoopSizeExceeded',
+              ),
+            ),
+          );
+          expect(importer.calls, 0);
+        }
+      },
+    );
+  }
+
+  test('rejects a loop longer than two minutes before copying', () async {
     final importer = _RecordingIntroImporter();
     final service = ProjectTitleMotionImportService(
       introImporter: importer,
-      probe: const _Probe(Duration(milliseconds: 15001)),
+      probe: const _Probe(Duration(milliseconds: 120001)),
     );
 
     await expectLater(

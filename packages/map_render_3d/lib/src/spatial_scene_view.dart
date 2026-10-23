@@ -18,11 +18,14 @@ import 'model_preview.dart';
 import 'model_playback.dart';
 import 'spatial_picking.dart';
 import 'adaptive_camera.dart';
+import 'spatial_camera_magnification.dart';
 import 'flutter_frame_graphics_device.dart';
+import 'spatial_render_context.dart';
 import 'spatial_actor_visual.dart';
 import 'spatial_game_surface.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_ground.dart';
+import 'spatial_ground_mesh_batches.dart';
 import 'spatial_terrain_geometry.dart';
 import 'spatial_selection.dart';
 import 'spatial_cell_overlay.dart';
@@ -32,6 +35,7 @@ import 'spatial_model_placement_preview.dart';
 import 'spatial_runtime_model_index.dart';
 import 'spatial_clipped_model_cache.dart';
 import 'spatial_model_source_clip.dart';
+import 'spatial_scene_preparation.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -62,6 +66,10 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  Future<bool> Function(SpatialScenePreparation)? _prepareDestination;
+
+  Future<bool> prepareDestination(SpatialScenePreparation request) =>
+      _prepareDestination?.call(request) ?? Future.value(false);
   @override
   void dolly(double delta) {
     zoom = (zoom * math.exp(delta * .001)).clamp(.125, 1 / .15);
@@ -128,6 +136,7 @@ class SpatialSceneView extends StatefulWidget {
     this.rasterAnimationElapsedMsForCell,
     this.presentationPaused,
     this.cameraPose,
+    this.cameraMagnification,
     this.resourceBudget,
     this.resourceIdentity,
   });
@@ -145,6 +154,7 @@ class SpatialSceneView extends StatefulWidget {
   rasterAnimationElapsedMsForCell;
   final bool Function()? presentationPaused;
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
+  final double Function()? cameraMagnification;
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
   final VoidCallback? onReady;
   final ValueChanged<Set<String>>? onVisibleMapsChanged;
@@ -179,9 +189,17 @@ class SpatialSceneView extends StatefulWidget {
   final Widget Function(BuildContext, Object) errorBuilder;
 
   bool modelSourcesMatch(SpatialSceneView other) =>
+      immutableResourcesMatch(other) ||
       identical(groundProject, other.groundProject) &&
-      loadModel == other.loadModel &&
-      listEquals(models, other.models);
+          loadModel == other.loadModel &&
+          listEquals(models, other.models);
+
+  bool immutableResourcesMatch(SpatialSceneView other) =>
+      resourceIdentity != null &&
+      resourceIdentity!.isNotEmpty &&
+      resourceIdentity == other.resourceIdentity &&
+      resourceBudget != null &&
+      identical(resourceBudget, other.resourceBudget);
 
   bool surfaceGeometryMatches(SpatialSceneView other) =>
       groundProject != null &&
@@ -233,8 +251,12 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   void initState() {
     super.initState();
     widget.controller.addListener(scheduleHoverRefresh);
+    widget.controller._prepareDestination = prepareDestination;
     initialize();
   }
+
+  Future<bool> prepareDestination(SpatialScenePreparation request) async =>
+      mounted ? await game?.prepareDestination(request) ?? false : false;
 
   void scheduleHoverRefresh() {
     if (!mounted ||
@@ -396,7 +418,11 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(scheduleHoverRefresh);
+      if (oldWidget.controller._prepareDestination == prepareDestination) {
+        oldWidget.controller._prepareDestination = null;
+      }
       widget.controller.addListener(scheduleHoverRefresh);
+      widget.controller._prepareDestination = prepareDestination;
     }
     if (widget.onHover == null) hoverPosition = null;
     final game = this.game;
@@ -416,7 +442,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
         !identical(widget.resourceBudget, oldWidget.resourceBudget);
     final modelSourcesChanged =
         !widget.modelSourcesMatch(oldWidget) || resourceIdentityChanged;
-    if (!identical(oldWidget.groundProject, widget.groundProject) ||
+    if ((!widget.immutableResourcesMatch(oldWidget) &&
+            !identical(oldWidget.groundProject, widget.groundProject)) ||
         resourceIdentityChanged) {
       game.clearGroundResourceCache(retire: true);
       game.placementRenderer.clear();
@@ -453,6 +480,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   @override
   void dispose() {
     widget.controller.removeListener(scheduleHoverRefresh);
+    if (widget.controller._prepareDestination == prepareDestination) {
+      widget.controller._prepareDestination = null;
+    }
     game?.placementRenderer.dispose();
     super.dispose();
   }
@@ -633,6 +663,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   late final GraphicsDevice device = FlutterFrameGraphicsDevice();
 
+  @override
+  late final RenderContext3D context = SpatialRenderContext(device);
+
   _SpatialGame(
     this.configuration, {
     required this.onPreviewStatus,
@@ -671,6 +704,47 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   final modelReservations = <String, RuntimeResourceReservation>{};
   final groundReservations = <String, RuntimeResourceReservation>{};
   final retiredReservations = <RuntimeResourceReservation>[];
+  SpatialSceneResourcePreparation? _destinationPreparation;
+
+  Future<bool> prepareDestination(SpatialScenePreparation request) async {
+    if (!sceneReady ||
+        closed ||
+        refreshing ||
+        request.resourceIdentity.isEmpty ||
+        request.resourceIdentity != configuration.resourceIdentity ||
+        !identical(request.resourceBudget, resourceBudget) ||
+        !request.isCurrent())
+      return false;
+    _destinationPreparation?.discard();
+    final ticket = generation;
+    final preparation = SpatialSceneResourcePreparation(
+      request,
+      modelCache: cache,
+      groundTextureCache: groundTextureCache,
+      isCurrent: () =>
+          !closed &&
+          generation == ticket &&
+          configuration.resourceIdentity == request.resourceIdentity &&
+          identical(resourceBudget, request.resourceBudget),
+    );
+    _destinationPreparation = preparation;
+    try {
+      if (!await preparation.prepare()) return false;
+      preparation.adoptInto(
+        cache,
+        groundTextureCache,
+        modelReservations,
+        groundReservations,
+      );
+      return true;
+    } on Object {
+      preparation.discard();
+      if (identical(_destinationPreparation, preparation)) {
+        _destinationPreparation = null;
+      }
+      rethrow;
+    }
+  }
 
   void clearGroundResourceCache({bool retire = false}) {
     groundTextureCache.clear();
@@ -778,6 +852,16 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   Future<bool> refresh() async {
     if (!sceneReady || closed) return false;
+    final prepared = _destinationPreparation;
+    if (prepared != null) {
+      if (prepared.request.map.id == configuration.groundMap?.id &&
+          prepared.isCurrent) {
+        prepared.commit();
+      } else {
+        prepared.discard();
+      }
+      _destinationPreparation = null;
+    }
     final ticket = ++generation;
     refreshing = true;
     placementRenderer.clear();
@@ -1106,7 +1190,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             if (source != null) clippedModelCache.releaseSource(source);
             return true;
           });
-          for (final lease in retiredReservations) { lease.release(); }
+          for (final lease in retiredReservations) {
+            lease.release();
+          }
           retiredReservations.clear();
           for (final entry in nextAnimationModels.entries) {
             final previous = animationModels[entry.key];
@@ -1272,7 +1358,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       pitch = scene.camera.pitchDegrees * math.pi / 180;
       yaw = scene.camera.yawDegrees * math.pi / 180;
       distance = scene.camera.distance * control.zoom * (cameraPose?.zoom ?? 1);
-      camera.fovY = scene.camera.fieldOfViewDegrees;
+      applySpatialCameraMagnification(
+        camera,
+        baseFieldOfViewDegrees: scene.camera.fieldOfViewDegrees,
+        magnification: configuration.cameraMagnification?.call() ?? 1,
+      );
     }
     center.x += control.pan.dx + configuration.sceneOffset.dx;
     center.z += control.pan.dy + configuration.sceneOffset.dy;
@@ -1290,6 +1380,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   void update(double dt) {
     super.update(dt);
+    final prepared = _destinationPreparation;
+    if (prepared != null && !prepared.isCurrent) {
+      prepared.discard();
+      _destinationPreparation = null;
+    }
     if (!sceneReady || closed || (refreshing && renderedConfiguration == null))
       return;
     if (grounds.any((ground) => ground.plan.animated)) {
@@ -1660,6 +1755,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   @override
   void onRemove() {
+    _destinationPreparation?.discard();
+    _destinationPreparation = null;
     closed = true;
     generation++;
     sceneComponents.dispose();
@@ -1742,6 +1839,19 @@ final class _SceneGround {
   List<MeshComponent> components = [];
   List<MeshComponent> underlays = [];
   bool initialized = false;
+  late final _meshBatches = SpatialGroundMeshBatches(
+    (visuals) => [
+      for (final mesh in spatialGroundMeshes(
+        visuals,
+        textures,
+        scene: plan.scene,
+        excludedCellsFor: plan.excludedCellsFor,
+        flatSurfaceFor: plan.flatSurfaceFor,
+        groundReplacements: plan.borderGroundReplacements,
+      ))
+        MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
+    ],
+  );
 
   bool resolve(
     int elapsedMs, {
@@ -1772,14 +1882,21 @@ final class _SceneGround {
       final before = visuals[index].visual, after = next[index].visual;
       geometryChanged =
           before.transform != after.transform ||
+          before.geometry.destinationRect != after.geometry.destinationRect ||
           before.geometry.visualBounds != after.geometry.visualBounds ||
+          before.geometry.anchorOffset != after.geometry.anchorOffset ||
+          before.geometry.transformedAnchorOffset !=
+              after.geometry.transformedAnchorOffset ||
+          before.spatialFollowTerrain != after.spatialFollowTerrain ||
           before.spatialHeightOffset != after.spatialHeightOffset ||
           before.spatialClip != after.spatialClip;
       changed =
           changed ||
           geometryChanged ||
           before.sourceRect != after.sourceRect ||
-          before.tilesetId != after.tilesetId;
+          before.tilesetId != after.tilesetId ||
+          visuals[index].height != next[index].height ||
+          visuals[index].opacity != next[index].opacity;
     }
     if (!changed) return false;
     initialized = true;
@@ -1804,18 +1921,8 @@ final class _SceneGround {
           MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
       ];
     }
-    components = [
-      for (final mesh in spatialGroundMeshes(
-        visuals,
-        textures,
-        scene: plan.scene,
-        excludedCellsFor: plan.excludedCellsFor,
-        flatSurfaceFor: plan.flatSurfaceFor,
-        groundReplacements: plan.borderGroundReplacements,
-      ))
-        MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
-      ...underlays,
-    ];
+    _meshBatches.resolve(visuals, invalidateGeometry: geometryChanged);
+    components = [..._meshBatches.components, ...underlays];
     return true;
   }
 }

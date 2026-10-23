@@ -141,6 +141,9 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   late final AnimationController _splashAmbientAnimation;
   late final AnimationController _splashFinishAnimation;
   late final RuntimePlayerFocusController _focusController;
+  final _startupFocus = FocusScopeNode(
+    traversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
+  );
   late final PlayerIntroVideoPlayerController _introPlaybackController;
   int? _consumedStartupRevision;
   RuntimePresentationOrientation? _reportedOrientation;
@@ -238,16 +241,20 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _handleBack();
       },
-      child: RuntimePlayerActions(
-        onBack: _handleBack,
-        onMenu: () => _handleInput(
-          const PlayerInputCommand.press(
-            PlayerInputAction.menu,
-            source: PlayerInputSource.keyboard,
+      child: FocusScope(
+        node: _startupFocus,
+        autofocus: true,
+        child: RuntimePlayerActions(
+          onBack: _handleBack,
+          onMenu: () => _handleInput(
+            const PlayerInputCommand.press(
+              PlayerInputAction.menu,
+              source: PlayerInputSource.keyboard,
+            ),
           ),
+          onInputSourceChanged: _focusController.noteInputSource,
+          child: IgnorePointer(ignoring: !_active, child: child),
         ),
-        onInputSourceChanged: _focusController.noteInputSource,
-        child: IgnorePointer(ignoring: !_active, child: child),
       ),
     );
   }
@@ -395,15 +402,17 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   Widget _buildTitlePrompt() {
     final player = widget.snapshot.playerSnapshot;
     return PlayerTitlePromptSurface(
-      gameTitle: player?.gameTitle ?? widget.branding.displayName,
+      gameTitle: widget.titlePresentation.resolveTitle(
+        player?.gameTitle ?? widget.branding.displayName,
+      ),
+      prompt: widget.titlePresentation.description,
       background: widget.titlePresentation.background,
       logo: widget.titlePresentation.logo,
       backgroundContent: _titleMotion(
         source: widget.titlePromptSource,
         poster: widget.titlePromptPoster,
       ),
-      eyebrow: widget.branding.signature,
-      footer: widget.branding.displayName,
+      eyebrow: widget.titlePresentation.author,
       onStart: () => _dispatchStartup(RuntimeStartupAction.pressStart),
     );
   }
@@ -719,6 +728,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     _splashAmbientAnimation.dispose();
     _splashFinishAnimation.dispose();
     _focusController.dispose();
+    _startupFocus.dispose();
     super.dispose();
   }
 }

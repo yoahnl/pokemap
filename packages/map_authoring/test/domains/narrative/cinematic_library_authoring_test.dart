@@ -509,7 +509,7 @@ void main() {
         isA<CinematicLibraryAuthoringException>().having(
           (error) => error.code,
           'code',
-          'cinematic_library.project_v8_required',
+          'cinematic_library.project_version_unsupported',
         ),
       ),
     );

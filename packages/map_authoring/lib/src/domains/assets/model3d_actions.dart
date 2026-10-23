@@ -350,6 +350,7 @@ final class Model3dActions {
       }
       final inspection = const GlbModel3dInspector().inspect(bytes);
       _requireClippedSource(context, current, inspection: inspection);
+      _requireNativeDoorSource(context, current, inspection);
       for (final map in context.snapshot.maps) {
         for (final instance
             in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
@@ -512,6 +513,7 @@ final class Model3dActions {
             artifact.handle, () => const GlbModel3dInspector().inspect(bytes));
         _requireClippedSource(context, entry.model,
             inspection: inspection, clippedIds: clippedIds);
+        _requireNativeDoorSource(context, entry.model, inspection);
         if ((usedAnimations[entry.model.id] ?? const <int>{})
             .any((index) => index >= inspection.animations.length)) {
           throw const FormatException(
@@ -838,10 +840,44 @@ final class Model3dActions {
               seed: context.seed));
 }
 
-void _requireClippedSource(AuthoringPlanningContext context,
-    ProjectModel3dEntry model, {Model3dInspection? inspection, Set<String>? clippedIds}) {
-  final clipped = clippedIds ?? SpatialModelClipCapabilities.modelIds(
-      context.snapshot.manifest, maps: context.snapshot.maps);
+void _requireNativeDoorSource(AuthoringPlanningContext context,
+    ProjectModel3dEntry model, Model3dInspection inspection) {
+  final projectedModels = [
+    for (final candidate in context.snapshot.manifest.models3d)
+      candidate.id == model.id
+          ? ProjectModel3dEntry(
+              id: candidate.id,
+              name: candidate.name,
+              sourceAssetId: candidate.sourceAssetId,
+              relativePath: candidate.relativePath,
+              inspection: inspection,
+              scale: candidate.scale,
+              pivot: candidate.pivot,
+              collisionBounds: candidate.collisionBounds,
+              rampProfile: candidate.rampProfile,
+              blocksMovementByDefault: candidate.blocksMovementByDefault)
+          : candidate,
+  ];
+  for (final map in context.snapshot.maps) {
+    final instances =
+        map.spatialScene?.instances ?? const <SpatialModelInstance>[];
+    for (final warp in map.warps) {
+      final door = warp.door;
+      if (door != null &&
+          instances.any((instance) =>
+              instance.id == door.instanceId && instance.modelId == model.id)) {
+        validateMapWarpDoor(map, warp, models: projectedModels);
+      }
+    }
+  }
+}
+
+void _requireClippedSource(
+    AuthoringPlanningContext context, ProjectModel3dEntry model,
+    {Model3dInspection? inspection, Set<String>? clippedIds}) {
+  final clipped = clippedIds ??
+      SpatialModelClipCapabilities.modelIds(context.snapshot.manifest,
+          maps: context.snapshot.maps);
   if (!clipped.contains(model.id)) return;
   if ((inspection ?? model.inspection).animations.isNotEmpty) {
     throw const FormatException('Clipped model sources require a static GLB without node or material animations.');

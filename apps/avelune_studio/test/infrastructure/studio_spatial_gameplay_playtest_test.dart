@@ -137,6 +137,112 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  for (final (defaultAvatar, allowedAvatars, expectedAvatar) in [
+    ('second', ['hero', 'second'], 'second'),
+    ('hero', ['second', 'third'], 'second'),
+  ]) {
+    test(
+      'map preview resolves $defaultAvatar against $allowedAvatars and restores its saved actor',
+      () async {
+        final hero = bundle.manifest.characters.single;
+        var project = bundle.manifest.copyWith(
+          settings: bundle.manifest.settings.copyWith(
+            defaultPlayerCharacterId: defaultAvatar,
+          ),
+          characters: [
+            hero,
+            hero.copyWith(id: 'second', name: 'Deuxième'),
+            hero.copyWith(id: 'third', name: 'Troisième'),
+          ],
+          newGame: ProjectNewGameConfig(
+            enabled: true,
+            startMapId: 'field',
+            playerName: 'Map preview',
+            playerAvatarCharacterIds: allowedAvatars,
+          ),
+        );
+        project = const SceneActions().createPreSessionScene(
+          project,
+          maps: [bundle.map],
+          sceneId: 'identity',
+          name: 'Identité interactive',
+          templateId: 'identitySetup',
+          setAsEntrypoint: true,
+        );
+        bundle = bundle.copyWith(manifest: project);
+        final host = await prepare();
+        await host.runtime.load((_) {});
+        expect(
+          host.runtime.gameStateSnapshot.trainerProfile.avatarCharacterId,
+          expectedAvatar,
+        );
+        expect(
+          host.runtime.gameStateSnapshot.trainerProfile.name,
+          'Map preview',
+        );
+        expect(host.runtime.session!.character.id, expectedAvatar);
+        await host.save();
+        bundle = bundle.copyWith(
+          manifest: bundle.manifest.copyWith(
+            settings: bundle.manifest.settings.copyWith(
+              defaultPlayerCharacterId: 'third',
+            ),
+          ),
+        );
+        final restored = await prepare(restore: true);
+        await restored.runtime.load((_) {});
+        expect(restored.runtime.session!.character.id, expectedAvatar);
+        expect(
+          restored.runtime.gameStateSnapshot.trainerProfile.avatarCharacterId,
+          expectedAvatar,
+        );
+      },
+    );
+  }
+
+  test('map preview keeps ambiguous starter selection blocked', () async {
+    bundle = bundle.copyWith(
+      manifest: bundle.manifest.copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'field',
+          playerAvatarCharacterIds: ['hero'],
+          starterOptions: [
+            ProjectStarterOption(
+              id: 'first',
+              label: 'Premier',
+              pokemon: PlayerPokemon(
+                speciesId: 'first',
+                natureId: 'hardy',
+                abilityId: 'run_away',
+              ),
+            ),
+            ProjectStarterOption(
+              id: 'second',
+              label: 'Deuxième',
+              pokemon: PlayerPokemon(
+                speciesId: 'second',
+                natureId: 'hardy',
+                abilityId: 'run_away',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    await expectLater(
+      prepare(),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'diagnostic',
+          contains('starter'),
+        ),
+      ),
+    );
+    expect(saves.hasSave, isFalse);
+  });
+
   test('3D direct test rejects a missing authored New Game', () async {
     bundle = bundle.copyWith(
       manifest: bundle.manifest.copyWith(

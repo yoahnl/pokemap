@@ -2227,6 +2227,66 @@ void main() {
     },
   );
 
+  testWidgets('keyboard selects and confirms a preSession Presentation choice',
+      (tester) async {
+    SceneInteractionPrompt prompt(String text) => SceneInteractionPrompt(
+      localizationKey: 'test.$text', fallbackText: text,
+    );
+    final request = SceneInteractionRequest.choice(
+      requestId: 'identity-choice', revision: 4, prompt: prompt('Choisissez'),
+      options: [
+        SceneInteractionOption(id: 'first', label: prompt('Premier')),
+        SceneInteractionOption(id: 'second', label: prompt('Deuxième')),
+      ],
+    );
+    final controller = _FakeRuntimePlayerCoordinator(RuntimePlayerSnapshot(
+      revision: 18, phase: RuntimePlayerPhase.preSession, gameTitle: 'Voyage',
+      preSessionRequest: request,
+      actions: const [RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.resolvePreSessionInteraction)],
+    ));
+    final presentation = ValueNotifier<RuntimePresentationFrameSnapshot?>(
+      RuntimePresentationFrameSnapshot(assetRevision: 'opening',
+        frame: _presentationFrame(),
+        orientation: PresentationFrameOrientation.portrait),
+    );
+    addTearDown(controller.dispose);
+    addTearDown(presentation.dispose);
+    await tester.pumpWidget(_app(_view(controller,
+      presentationFrame: presentation,
+      presentationContentPort: _PresentationContentPort(),
+    )));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(controller.commands, hasLength(1));
+    expect(controller.commands.single.action,
+      RuntimePlayerAction.resolvePreSessionInteraction);
+    expect(controller.commands.single.payload,
+      isA<SceneChoiceSelectedInteractionResult>().having(
+        (result) => result.selectedOptionId, 'selected option', 'second'));
+    controller.publish(RuntimePlayerSnapshot(
+      revision: 19, phase: RuntimePlayerPhase.preSession, gameTitle: 'Voyage',
+      preSessionRequest: SceneInteractionRequest.confirmation(
+        requestId: 'confirm-identity', revision: 5, prompt: prompt('Valider ?')),
+      actions: const [RuntimePlayerActionAvailability.enabled(
+        RuntimePlayerAction.resolvePreSessionInteraction)],
+    ));
+    await tester.pump();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(controller.commands, hasLength(2));
+    expect(controller.commands.last.snapshotRevision, 19);
+    expect(controller.commands.last.payload,
+      isA<SceneConfirmedInteractionResult>().having(
+        (result) => result.value, 'confirmation', isFalse));
+  });
+
   testWidgets(
     'keeps preSession presentation chrome out of the cinematic',
     (tester) async {

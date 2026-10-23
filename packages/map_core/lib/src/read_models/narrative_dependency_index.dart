@@ -842,6 +842,16 @@ final class _NarrativeDependencyIndexBuilder {
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
         );
       }
+      for (final warp in map.warps) {
+        final door = warp.door;
+        if (door == null) continue;
+        _usage(
+          target: _mapSourceChildKey(map.id, 'modelInstance', door.instanceId),
+          owner: mapKey,
+          path: 'maps[${map.id}].warps[${warp.id}].door.instanceId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      }
       for (var index = 0; index < map.entities.length; index++) {
         final entity = map.entities[index];
         final owner = _definition(

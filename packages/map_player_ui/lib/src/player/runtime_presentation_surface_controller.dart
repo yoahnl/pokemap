@@ -24,13 +24,14 @@ final class RuntimePresentationSurfaceController
     RuntimeAudioMixer? audioMixer,
     RuntimePresentationFrameDeltas? frameDeltas,
     RuntimePresentationBeforeTerminal? beforeTerminal,
-    this.reduceMotion = false,
+    bool reduceMotion = false,
     this.reduceFlashes = false,
     this.showCaptions = true,
     PresentationFrameOrientation orientation =
         PresentationFrameOrientation.landscape,
   })  : mediaUris = Map<String, Uri>.unmodifiable(mediaUris),
         _orientation = orientation,
+        _reduceMotion = reduceMotion,
         _videoDriver = videoDriver,
         super(null) {
     final mixer = audioMixer ?? RuntimeAudioMixer();
@@ -63,7 +64,8 @@ final class RuntimePresentationSurfaceController
   final ProjectMediaCatalog catalog;
   final Map<String, Uri> mediaUris;
   final RuntimePresentationVideoPlaybackDriver _videoDriver;
-  final bool reduceMotion;
+  bool _reduceMotion;
+  bool get reduceMotion => _reduceMotion;
   final bool reduceFlashes;
   final bool showCaptions;
 
@@ -80,6 +82,23 @@ final class RuntimePresentationSurfaceController
   bool get isPlaying => _playbackController.isPlaying;
 
   PresentationFrameOrientation get orientation => _orientation;
+
+  void setReducedMotion(bool enabled) {
+    if (_closed || _reduceMotion == enabled) return;
+    _reduceMotion = enabled;
+    final current = value;
+    if (current == null) return;
+    value = RuntimePresentationFrameSnapshot(
+      assetRevision: current.assetRevision,
+      frame: current.frame,
+      orientation: current.orientation,
+      orientationOverrides: current.orientationOverrides,
+      mediaBindings: current.mediaBindings,
+      reduceMotion: enabled,
+      reduceFlashes: current.reduceFlashes,
+      showCaptions: current.showCaptions,
+    );
+  }
 
   void setOrientation(PresentationFrameOrientation value) {
     if (_orientation == value) return;

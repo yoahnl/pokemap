@@ -191,6 +191,24 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Project presentation profile',
         summary:
             'Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation',
+        extensions: const {
+          'titleMusicEndBehavior': {
+            'field': 'branding.titleMusicEndBehavior',
+            'values': ['loop', 'replayIntro'],
+            'default': 'loop',
+            'replayIntroRequires': ['branding.titleMusicPath', 'intro.allowReplay'],
+            'trigger': 'naturalAudioCompletion',
+            'eligibleSurface': 'titlePrompt',
+          },
+          'titleLoopLimits': {
+            'maxDurationMilliseconds': projectTitleLoopMaxDurationMilliseconds,
+            'maxSizeBytes': projectTitleLoopMaxSizeBytes,
+            'maxBitrateKbps': projectIntroVideoMaxBitrateKbps,
+            'maxLongestEdgePixels': projectIntroVideoMaxWidth,
+            'maxShortestEdgePixels': projectIntroVideoMaxHeight,
+            'audioCodec': 'none',
+          },
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationPreset',
@@ -212,6 +230,17 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map',
         summary: 'Editable PokeMap map',
         extensions: const {
+          'warpTransition': {
+            'field': 'warps[].transition',
+            'configureAction': 'warp.transition.configure',
+            'sceneOnly': 'unsupported',
+            'types': ['fade', 'hgss', 'none'],
+            'default': {'type': 'fade', 'durationSeconds': .2},
+            'durationSeconds': {'exclusiveMinimum': 0, 'maximum': 5},
+            'durationIgnoredFor': 'none',
+            'doorBindingIndependent': true,
+            'sceneOrCinematicRequired': false,
+          },
           'interactiveEncounters': {'field': 'entities[].interactiveEncounter', 'query': 'map:get:detail', 'action': 'entity.set_interactive_encounter', 'triggers': ['headbutt','afterRockSmash'], 'reusePolicies': ['repeatable','oncePerMapInstance'], 'consumption': 'battlePrepared', 'mapMode': '2d'},
           'documentedFieldMasks': ['connections', 'gameplayZones'],
           'gameplayZoneFieldActions': ['darkness', 'waterfall', 'dive'],
@@ -291,6 +320,11 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Presentation media',
         summary:
             'Stable logical media identity linked to project-owned source assets',
+        extensions: const {
+          'managementActions': ['presentationMedia.rename', 'presentationMedia.delete'],
+          'deleteRetainsSourceAsset': true,
+          'sourceDeleteAction': 'asset.delete',
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'cinematicLibraryCatalog',

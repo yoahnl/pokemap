@@ -56,6 +56,45 @@ void main() {
       expect(serialized, isNot(contains('#0 private frame')));
     });
 
+    test('sanitizes presentation failures while retaining diagnostic paths',
+        () async {
+      final result = await _request(
+        JsonlWorker(
+            api: _ThrowingNarrativeReadApi(PresentationAuthoringException(
+          'presentation.validation_failed',
+          'Profile rejected at /Users/private/project.json Bearer secret',
+          details: {
+            'diagnostics': [
+              {
+                'code': 'introBitrateExceeded',
+                'path': 'intro.media.landscape.bitrateKbps',
+                'severity': 'error'
+              }
+            ],
+            'sourcePath': '/Users/private/project.json',
+            'authorization': 'Bearer secret',
+            'domainCode': 'spoofed.code',
+          },
+        ))),
+        id: 'presentation-diagnostic',
+        command: 'describe',
+      );
+      expect(result.error?.code, AuthoringErrorCode.validationFailed);
+      expect(result.error?.details['domainCode'],
+          'presentation.validation_failed');
+      expect(result.error?.details['diagnostics'], [
+        {
+          'code': 'introBitrateExceeded',
+          'path': 'intro.media.landscape.bitrateKbps',
+          'severity': 'error'
+        }
+      ]);
+      expect(result.error?.details['sourcePath'], '<absolute-path>');
+      final serialized = jsonEncode(result.toJson());
+      expect(serialized, isNot(contains('/Users/private')));
+      expect(serialized, isNot(contains('secret')));
+    });
+
     test('keeps unexpected exceptions behind the worker boundary', () async {
       final result = await _request(
         JsonlWorker(

@@ -112,6 +112,12 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
         _toolChanged();
       case 'story':
         if (_narrative != null) _show(WorkspaceSpace.story);
+      case 'testGame':
+        if (_controller.active != null &&
+            !_actions.busy &&
+            widget.projectRuntimeBuilder != null) {
+          unawaited(_actions.test(fullProject: true));
+        }
       case 'test':
         if (_controller.active != null && !_actions.busy) {
           unawaited(_actions.test());

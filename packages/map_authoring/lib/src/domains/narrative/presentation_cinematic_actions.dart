@@ -5,6 +5,7 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../assets/project_media_store.dart';
 import 'narrative_action_support.dart';
+import 'presentation_publication_guards.dart';
 
 final class PresentationCinematicAuthoringException implements Exception {
   PresentationCinematicAuthoringException(
@@ -220,7 +221,7 @@ final class PresentationCinematicActions {
   );
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
-    _requireProjectV7(context);
+    _requireSupportedProjectVersion(context);
     try {
       final mutation = switch (context.request.actionId) {
         'presentationCinematic.create' => _createCinematic(context),
@@ -1607,11 +1608,11 @@ _PresentationMutation _deleteVisualFolder(AuthoringPlanningContext context) {
   );
 }
 
-void _requireProjectV7(AuthoringPlanningContext context) {
-  if (context.snapshot.manifest.version != ProjectVersion.v8) {
+void _requireSupportedProjectVersion(AuthoringPlanningContext context) {
+  if (!supportsPresentationProjectVersion(context.snapshot.manifest)) {
     throw PresentationCinematicAuthoringException(
-      'presentation_cinematic.project_v8_required',
-      'Presentation cinematic authoring requires ProjectVersion.v8.',
+      'presentation_cinematic.project_version_unsupported',
+      'Presentation cinematic authoring requires ProjectVersion.v8 (2D) or ProjectVersion.v9 (3D).',
       details: <String, Object?>{
         'projectVersion': context.snapshot.manifest.version.name,
       },

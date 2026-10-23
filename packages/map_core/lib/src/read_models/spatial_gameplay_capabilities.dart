@@ -84,6 +84,9 @@ abstract final class SpatialGameplayCapabilities {
     ProjectManifest project, {
     Iterable<MapData> maps = const [],
   }) {
+    if (maps.any((map) => map.warps.any((warp) => warp.door != null))) {
+      return true;
+    }
     if (project.scenes.any(
       (scene) => scene.graph.nodes.any(
         (node) =>

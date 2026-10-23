@@ -3,6 +3,7 @@ import '../encounters/encounter_contract.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/badge_definition.dart';
 import '../operations/map_connections.dart';
+import '../operations/map_warps.dart';
 import '../models/border_blueprint.dart';
 import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
@@ -3255,6 +3256,8 @@ class MapValidator {
     );
 
     for (final warp in map.warps) {
+      validateMapWarpTransition(warp.transition);
+      validateMapWarpDoor(map, warp, models: projectDialogueContext?.models3d);
       final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
       _requireNonBlank(warp.targetMapId, 'Warp $warpId has empty targetMapId');
       _validatePositionInBounds(warp.pos, map.size, errorLabel: 'Warp $warpId');

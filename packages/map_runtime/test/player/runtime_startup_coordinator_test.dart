@@ -5,10 +5,151 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test(
+    'natural title music ending replays intro and returns to prompt',
+    () async {
+      final source = _presentationWithIntroAndMusic().toJson();
+      (source['branding'] as Map<String, dynamic>)['titleMusicEndBehavior'] =
+          'replayIntro';
+      final harness = _RuntimeStartupTestHarness(
+        profile: ProjectPresentationProfile.fromJson(source),
+      );
+      addTearDown(harness.dispose);
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      await harness.startup.introPlaybackCompleted(
+        snapshotRevision: harness.startup.snapshot.revision,
+      );
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+      harness.audio.completion.add(null);
+      await _flushEvents();
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.intro);
+      await harness.startup.introPlaybackCompleted(
+        snapshotRevision: harness.startup.snapshot.revision,
+      );
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+      expect(harness.audio.played, hasLength(2));
+    },
+  );
+
+  for (final reducedMotion in [false, true]) {
+    test(
+      'title completion respects menu and reduced motion $reducedMotion',
+      () async {
+        final source = _presentationWithIntroAndMusic().toJson();
+        (source['branding'] as Map<String, dynamic>)['titleMusicEndBehavior'] =
+            'replayIntro';
+        final harness = _RuntimeStartupTestHarness(
+          profile: ProjectPresentationProfile.fromJson(source),
+          reducedMotion: reducedMotion,
+        );
+        addTearDown(harness.dispose);
+        harness.startup.start();
+        harness.clock.elapseMinimum();
+        await _flushEvents();
+        if (reducedMotion) {
+          await harness.startup.dispatch(
+            RuntimeStartupCommand(
+              action: RuntimeStartupAction.continueFromPoster,
+              snapshotRevision: harness.startup.snapshot.revision,
+            ),
+          );
+        } else {
+          await harness.startup.introPlaybackCompleted(
+            snapshotRevision: harness.startup.snapshot.revision,
+          );
+          await harness.startup.dispatch(
+            RuntimeStartupCommand(
+              action: RuntimeStartupAction.pressStart,
+              snapshotRevision: harness.startup.snapshot.revision,
+            ),
+          );
+        }
+        final phase = harness.startup.snapshot.phase;
+        harness.audio.completion.add(null);
+        await _flushEvents();
+        expect(harness.startup.snapshot.phase, phase);
+        expect(harness.audio.played, hasLength(1));
+      },
+    );
+  }
+
+  test(
+    'title completion during lifecycle pause replays only after resume',
+    () async {
+      final source = _presentationWithIntroAndMusic().toJson();
+      (source['branding'] as Map<String, dynamic>)['titleMusicEndBehavior'] =
+          'replayIntro';
+      final harness = _RuntimeStartupTestHarness(
+        profile: ProjectPresentationProfile.fromJson(source),
+      );
+      addTearDown(harness.dispose);
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      await harness.startup.introPlaybackCompleted(
+        snapshotRevision: harness.startup.snapshot.revision,
+      );
+      await harness.startup.pauseForLifecycle();
+      harness.audio.completion.add(null);
+      await _flushEvents();
+      expect(
+        harness.startup.snapshot.phase,
+        RuntimeStartupPhase.lifecyclePaused,
+      );
+      await harness.startup.resumeFromLifecycle();
+      await _flushEvents();
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.intro);
+    },
+  );
+
+  test(
+    'lifecycle pause during automatic intro replay keeps the intro stopped',
+    () async {
+      final source = _presentationWithIntroAndMusic().toJson();
+      (source['branding'] as Map<String, dynamic>)['titleMusicEndBehavior'] =
+          'replayIntro';
+      final harness = _RuntimeStartupTestHarness(
+        profile: ProjectPresentationProfile.fromJson(source),
+      );
+      addTearDown(harness.dispose);
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      await harness.startup.introPlaybackCompleted(
+        snapshotRevision: harness.startup.snapshot.revision,
+      );
+      var paused = false;
+      final subscription = harness.startup.snapshots.listen((snapshot) {
+        if (!paused &&
+            snapshot.phase == RuntimeStartupPhase.titlePrompt &&
+            snapshot.isTransitioning) {
+          paused = true;
+          unawaited(harness.startup.pauseForLifecycle());
+        }
+      });
+      addTearDown(subscription.cancel);
+      harness.audio.completion.add(null);
+      await _flushEvents();
+      expect(paused, isTrue);
+      expect(
+        harness.startup.snapshot.phase,
+        RuntimeStartupPhase.lifecyclePaused,
+      );
+      expect(harness.intro.phase, isNot(RuntimeIntroPhase.playing));
+      await harness.startup.resumeFromLifecycle();
+      await _flushEvents();
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.intro);
+    },
+  );
+
+
   for (final missing in [false, true]) {
     test(
         'menu background is prepared with a nonblocking fallback missing=$missing',
@@ -856,9 +997,9 @@ void main() {
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
     expect(harness.audio.stopCount, 0);
     await harness.startup.pauseForLifecycle();
-    expect(harness.audio.stopCount, 1);
+    expect(harness.audio.stopCount, 0);
     await harness.startup.resumeFromLifecycle();
-    expect(harness.audio.played, hasLength(2));
+    expect(harness.audio.played, hasLength(1));
   });
 
   test('blocking preparation retries and ignores the previous attempt',
@@ -2019,7 +2160,20 @@ final class _ManualStartupDelay {
   final Completer<void> completer = Completer<void>();
 }
 
-final class _FakeAudioDriver implements FlameCinematicAudioDriver {
+final class _FakeAudioDriver
+    implements
+        FlameCinematicAudioDriver,
+        FlameCinematicAudioLoopDriver,
+        FlameCinematicAudioPausableDriver {
+  final completion = StreamController<void>.broadcast(sync: true);
+  @override
+  Future<void> pause(Object handle) async {}
+  @override
+  Future<void> resume(Object handle) async {}
+  @override
+  Stream<void> onComplete(Object handle) => completion.stream;
+  @override
+  Future<void> seekAndResume(Object handle, Duration position) async {}
   _FakeAudioDriver({this.stopGate});
 
   final Completer<void>? stopGate;

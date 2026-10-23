@@ -6,6 +6,93 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectPresentationProfile', () {
+    test(
+      'title music ending policy survives JSON and requires replay media',
+      () {
+        final profile = ProjectPresentationProfile.fromJson({
+          'branding': {'titleMusicEndBehavior': 'replayIntro'},
+        });
+        expect(
+          profile.branding.toJson()['titleMusicEndBehavior'],
+          'replayIntro',
+        );
+        expect(
+          validateProjectPresentationProfile(profile).map((d) => d.code),
+          containsAll([
+            'titleMusicReplayRequiresMusic',
+            'titleMusicReplayRequiresIntro',
+          ]),
+        );
+      },
+    );
+
+    test('title loop size accepts 64 MiB and rejects the next byte', () {
+      for (final size in [64 * 1024 * 1024, 64 * 1024 * 1024 + 1]) {
+        final profile = ProjectPresentationProfile(
+          titleMotion: ProjectTitleMotionProfile(
+            promptLoop: ProjectResponsiveVideoProfile(
+              landscape: ProjectVideoVariantProfile(
+                videoPath: 'title.mp4',
+                posterPath: 'title.png',
+                durationMilliseconds: 90000,
+                width: 1920,
+                height: 1080,
+                bitrateKbps: 5000,
+                sizeBytes: size,
+                videoCodec: 'h264',
+              ),
+            ),
+          ),
+        );
+        expect(
+          validateProjectPresentationProfile(
+            profile,
+          ).any((d) => d.code == 'titleLoopSizeExceeded'),
+          size > 64 * 1024 * 1024,
+        );
+      }
+    });
+
+    test('title media aggregate budget includes both prompt and menu loops', () {
+      ProjectResponsiveVideoProfile media(int size) => ProjectResponsiveVideoProfile(landscape: ProjectVideoVariantProfile(videoPath: 'title.mp4', posterPath: 'title.png', durationMilliseconds: 90000, width: 1920, height: 1080, bitrateKbps: 5000, sizeBytes: size, videoCodec: 'h264'));
+      for (final extra in [0,1]) {
+        final profile = ProjectPresentationProfile(titleMotion: ProjectTitleMotionProfile(promptLoop: media(64 * 1024 * 1024), menuLoop: media(64 * 1024 * 1024 + extra)));
+        final diagnostics = validateProjectPresentationProfile(profile);
+        expect(diagnostics.any((d) => d.code == 'titleMotionCombinedSizeExceeded'), extra == 1);
+        if (extra == 1) expect(diagnostics.singleWhere((d) => d.code == 'titleMotionCombinedSizeExceeded').message, contains('128 MiB'));
+      }
+    });
+
+    for (final duration in [30000, 90000, 120000, 120001]) {
+      test('title loops validate the two minute boundary at $duration ms', () {
+        final variant = ProjectVideoVariantProfile(
+          videoPath: 'presentation/title.mp4',
+          posterPath: 'presentation/title.png',
+          durationMilliseconds: duration,
+          width: 1920,
+          height: 1080,
+          bitrateKbps: 10000,
+          sizeBytes: 24 * 1024 * 1024,
+          videoCodec: 'h264',
+        );
+        final profile = ProjectPresentationProfile(
+          titleMotion: ProjectTitleMotionProfile(
+            promptLoop: ProjectResponsiveVideoProfile(landscape: variant),
+            menuLoop: ProjectResponsiveVideoProfile(landscape: variant),
+          ),
+        );
+        final diagnostics = validateProjectPresentationProfile(profile);
+        if (duration <= 120000) {
+          expect(diagnostics, isEmpty);
+        } else {
+          expect(diagnostics.map((value) => value.code), [
+            'titleLoopDurationExceeded',
+            'titleLoopDurationExceeded',
+          ]);
+        }
+      });
+    }
+
     test('default pause action order follows the menu contract', () {
       expect(
         defaultProjectPauseActions.map((action) => action.id),
@@ -207,8 +294,8 @@ void main() {
         ProjectVideoVariantProfile variant({
           String video = 'assets/presentation/title/loop.mp4',
           String poster = 'assets/presentation/title/loop.png',
-          int duration = 16000,
-          int size = 60 * 1024 * 1024,
+          int duration = 120001,
+          int size = 70 * 1024 * 1024,
           String audio = 'aac',
           double focalX = 1.2,
         }) => ProjectVideoVariantProfile(

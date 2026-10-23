@@ -758,7 +758,7 @@ void main() {
           isA<PresentationCinematicAuthoringException>().having(
             (error) => error.code,
             'code',
-            'presentation_cinematic.project_v8_required',
+            'presentation_cinematic.project_version_unsupported',
           ),
         ),
       );

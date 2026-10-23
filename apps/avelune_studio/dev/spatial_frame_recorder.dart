@@ -18,19 +18,37 @@ Future<Directory> requireStudioCaptureRoot(String configuredPath) async {
     '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Documents/nb2-modular-qa-20261011/captures':
         'avelune-studio-modular-nb2-capture@1',
   };
-  final expectedMarker = ownedRoots[configuredPath];
+  final temporaryRoot = await Directory.systemTemp.resolveSymbolicLinks();
+  final temporaryCaptureParent = p.join(
+    temporaryRoot,
+    'avelune-studio-captures',
+  );
+  final temporaryRun =
+      p.isAbsolute(configuredPath) &&
+      p.normalize(configuredPath) == configuredPath &&
+      p.dirname(configuredPath) == temporaryCaptureParent &&
+      RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$')
+          .hasMatch(p.basename(configuredPath));
+  final expectedMarker = temporaryRun
+      ? 'avelune-studio-capture@1'
+      : ownedRoots[configuredPath];
   if (expectedMarker == null ||
       await FileSystemEntity.type(configuredPath, followLinks: false) !=
           FileSystemEntityType.directory ||
-      await Directory(configuredPath).resolveSymbolicLinks() != configuredPath) {
+      await Directory(configuredPath).resolveSymbolicLinks() !=
+          configuredPath) {
     throw StateError(
-      'MARIONETTE_CAPTURE_ROOT must be the owned Studio capture directory.',
+      'MARIONETTE_CAPTURE_ROOT must be a canonical owned run under '
+      '$temporaryCaptureParent/<runid>, or an existing owned legacy capture root.',
     );
   }
   final marker = File(p.join(configuredPath, '.avelune-studio-capture-owner'));
   if (await FileSystemEntity.type(marker.path, followLinks: false) !=
           FileSystemEntityType.file ||
-      (await marker.readAsString()).trim() != expectedMarker) {
+      (temporaryRun
+              ? await marker.readAsString()
+              : (await marker.readAsString()).trim()) !=
+          expectedMarker) {
     throw StateError('The Studio capture ownership marker is missing.');
   }
   return Directory(configuredPath);

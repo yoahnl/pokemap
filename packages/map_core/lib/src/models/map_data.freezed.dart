@@ -2698,7 +2698,7 @@ $MapEntityEditorVisualCopyWith<$Res>? get editorVisual {
 /// @nodoc
 mixin _$MapWarp {
 
- String get id; GridPos get pos; String get targetMapId; GridPos get targetPos; MapWarpTriggerMode get triggerMode; List<EntityFacing> get allowedApproachFacings; WarpTriggerPadding get triggerPadding;
+ String get id; GridPos get pos; String get targetMapId; GridPos get targetPos; MapWarpTriggerMode get triggerMode; List<EntityFacing> get allowedApproachFacings; WarpTriggerPadding get triggerPadding;@JsonKey(includeIfNull: false) MapWarpDoor? get door; MapWarpTransition get transition;
 /// Create a copy of MapWarp
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2711,16 +2711,16 @@ $MapWarpCopyWith<MapWarp> get copyWith => _$MapWarpCopyWithImpl<MapWarp>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapWarp&&(identical(other.id, id) || other.id == id)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos)&&(identical(other.triggerMode, triggerMode) || other.triggerMode == triggerMode)&&const DeepCollectionEquality().equals(other.allowedApproachFacings, allowedApproachFacings)&&(identical(other.triggerPadding, triggerPadding) || other.triggerPadding == triggerPadding));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapWarp&&(identical(other.id, id) || other.id == id)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos)&&(identical(other.triggerMode, triggerMode) || other.triggerMode == triggerMode)&&const DeepCollectionEquality().equals(other.allowedApproachFacings, allowedApproachFacings)&&(identical(other.triggerPadding, triggerPadding) || other.triggerPadding == triggerPadding)&&(identical(other.door, door) || other.door == door)&&(identical(other.transition, transition) || other.transition == transition));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,pos,targetMapId,targetPos,triggerMode,const DeepCollectionEquality().hash(allowedApproachFacings),triggerPadding);
+int get hashCode => Object.hash(runtimeType,id,pos,targetMapId,targetPos,triggerMode,const DeepCollectionEquality().hash(allowedApproachFacings),triggerPadding,door,transition);
 
 @override
 String toString() {
-  return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding)';
+  return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding, door: $door, transition: $transition)';
 }
 
 
@@ -2731,11 +2731,11 @@ abstract mixin class $MapWarpCopyWith<$Res>  {
   factory $MapWarpCopyWith(MapWarp value, $Res Function(MapWarp) _then) = _$MapWarpCopyWithImpl;
 @useResult
 $Res call({
- String id, GridPos pos, String targetMapId, GridPos targetPos, MapWarpTriggerMode triggerMode, List<EntityFacing> allowedApproachFacings, WarpTriggerPadding triggerPadding
+ String id, GridPos pos, String targetMapId, GridPos targetPos, MapWarpTriggerMode triggerMode, List<EntityFacing> allowedApproachFacings, WarpTriggerPadding triggerPadding,@JsonKey(includeIfNull: false) MapWarpDoor? door, MapWarpTransition transition
 });
 
 
-$GridPosCopyWith<$Res> get pos;$GridPosCopyWith<$Res> get targetPos;$WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
+$GridPosCopyWith<$Res> get pos;$GridPosCopyWith<$Res> get targetPos;$WarpTriggerPaddingCopyWith<$Res> get triggerPadding;$MapWarpDoorCopyWith<$Res>? get door;
 
 }
 /// @nodoc
@@ -2748,7 +2748,7 @@ class _$MapWarpCopyWithImpl<$Res>
 
 /// Create a copy of MapWarp
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? pos = null,Object? targetMapId = null,Object? targetPos = null,Object? triggerMode = null,Object? allowedApproachFacings = null,Object? triggerPadding = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? pos = null,Object? targetMapId = null,Object? targetPos = null,Object? triggerMode = null,Object? allowedApproachFacings = null,Object? triggerPadding = null,Object? door = freezed,Object? transition = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
@@ -2757,7 +2757,9 @@ as String,targetPos: null == targetPos ? _self.targetPos : targetPos // ignore: 
 as GridPos,triggerMode: null == triggerMode ? _self.triggerMode : triggerMode // ignore: cast_nullable_to_non_nullable
 as MapWarpTriggerMode,allowedApproachFacings: null == allowedApproachFacings ? _self.allowedApproachFacings : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
 as List<EntityFacing>,triggerPadding: null == triggerPadding ? _self.triggerPadding : triggerPadding // ignore: cast_nullable_to_non_nullable
-as WarpTriggerPadding,
+as WarpTriggerPadding,door: freezed == door ? _self.door : door // ignore: cast_nullable_to_non_nullable
+as MapWarpDoor?,transition: null == transition ? _self.transition : transition // ignore: cast_nullable_to_non_nullable
+as MapWarpTransition,
   ));
 }
 /// Create a copy of MapWarp
@@ -2786,6 +2788,18 @@ $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
   
   return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
     return _then(_self.copyWith(triggerPadding: value));
+  });
+}/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapWarpDoorCopyWith<$Res>? get door {
+    if (_self.door == null) {
+    return null;
+  }
+
+  return $MapWarpDoorCopyWith<$Res>(_self.door!, (value) {
+    return _then(_self.copyWith(door: value));
   });
 }
 }
@@ -2869,10 +2883,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding, @JsonKey(includeIfNull: false)  MapWarpDoor? door,  MapWarpTransition transition)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapWarp() when $default != null:
-return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding);case _:
+return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding,_that.door,_that.transition);case _:
   return orElse();
 
 }
@@ -2890,10 +2904,10 @@ return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.trigg
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding, @JsonKey(includeIfNull: false)  MapWarpDoor? door,  MapWarpTransition transition)  $default,) {final _that = this;
 switch (_that) {
 case _MapWarp():
-return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding);case _:
+return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding,_that.door,_that.transition);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2910,10 +2924,10 @@ return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.trigg
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding, @JsonKey(includeIfNull: false)  MapWarpDoor? door,  MapWarpTransition transition)?  $default,) {final _that = this;
 switch (_that) {
 case _MapWarp() when $default != null:
-return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding);case _:
+return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding,_that.door,_that.transition);case _:
   return null;
 
 }
@@ -2925,7 +2939,7 @@ return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.trigg
 
 @JsonSerializable(explicitToJson: true)
 class _MapWarp implements MapWarp {
-  const _MapWarp({required this.id, required this.pos, required this.targetMapId, required this.targetPos, this.triggerMode = MapWarpTriggerMode.onEnter, final  List<EntityFacing> allowedApproachFacings = const [], this.triggerPadding = const WarpTriggerPadding()}): _allowedApproachFacings = allowedApproachFacings;
+  const _MapWarp({required this.id, required this.pos, required this.targetMapId, required this.targetPos, this.triggerMode = MapWarpTriggerMode.onEnter, final  List<EntityFacing> allowedApproachFacings = const [], this.triggerPadding = const WarpTriggerPadding(), @JsonKey(includeIfNull: false) this.door, this.transition = const MapWarpTransition()}): _allowedApproachFacings = allowedApproachFacings;
   factory _MapWarp.fromJson(Map<String, dynamic> json) => _$MapWarpFromJson(json);
 
 @override final  String id;
@@ -2941,6 +2955,8 @@ class _MapWarp implements MapWarp {
 }
 
 @override@JsonKey() final  WarpTriggerPadding triggerPadding;
+@override@JsonKey(includeIfNull: false) final  MapWarpDoor? door;
+@override@JsonKey() final  MapWarpTransition transition;
 
 /// Create a copy of MapWarp
 /// with the given fields replaced by the non-null parameter values.
@@ -2955,16 +2971,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapWarp&&(identical(other.id, id) || other.id == id)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos)&&(identical(other.triggerMode, triggerMode) || other.triggerMode == triggerMode)&&const DeepCollectionEquality().equals(other._allowedApproachFacings, _allowedApproachFacings)&&(identical(other.triggerPadding, triggerPadding) || other.triggerPadding == triggerPadding));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapWarp&&(identical(other.id, id) || other.id == id)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos)&&(identical(other.triggerMode, triggerMode) || other.triggerMode == triggerMode)&&const DeepCollectionEquality().equals(other._allowedApproachFacings, _allowedApproachFacings)&&(identical(other.triggerPadding, triggerPadding) || other.triggerPadding == triggerPadding)&&(identical(other.door, door) || other.door == door)&&(identical(other.transition, transition) || other.transition == transition));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,pos,targetMapId,targetPos,triggerMode,const DeepCollectionEquality().hash(_allowedApproachFacings),triggerPadding);
+int get hashCode => Object.hash(runtimeType,id,pos,targetMapId,targetPos,triggerMode,const DeepCollectionEquality().hash(_allowedApproachFacings),triggerPadding,door,transition);
 
 @override
 String toString() {
-  return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding)';
+  return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding, door: $door, transition: $transition)';
 }
 
 
@@ -2975,11 +2991,11 @@ abstract mixin class _$MapWarpCopyWith<$Res> implements $MapWarpCopyWith<$Res> {
   factory _$MapWarpCopyWith(_MapWarp value, $Res Function(_MapWarp) _then) = __$MapWarpCopyWithImpl;
 @override @useResult
 $Res call({
- String id, GridPos pos, String targetMapId, GridPos targetPos, MapWarpTriggerMode triggerMode, List<EntityFacing> allowedApproachFacings, WarpTriggerPadding triggerPadding
+ String id, GridPos pos, String targetMapId, GridPos targetPos, MapWarpTriggerMode triggerMode, List<EntityFacing> allowedApproachFacings, WarpTriggerPadding triggerPadding,@JsonKey(includeIfNull: false) MapWarpDoor? door, MapWarpTransition transition
 });
 
 
-@override $GridPosCopyWith<$Res> get pos;@override $GridPosCopyWith<$Res> get targetPos;@override $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
+@override $GridPosCopyWith<$Res> get pos;@override $GridPosCopyWith<$Res> get targetPos;@override $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;@override $MapWarpDoorCopyWith<$Res>? get door;
 
 }
 /// @nodoc
@@ -2992,7 +3008,7 @@ class __$MapWarpCopyWithImpl<$Res>
 
 /// Create a copy of MapWarp
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? pos = null,Object? targetMapId = null,Object? targetPos = null,Object? triggerMode = null,Object? allowedApproachFacings = null,Object? triggerPadding = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? pos = null,Object? targetMapId = null,Object? targetPos = null,Object? triggerMode = null,Object? allowedApproachFacings = null,Object? triggerPadding = null,Object? door = freezed,Object? transition = null,}) {
   return _then(_MapWarp(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
@@ -3001,7 +3017,9 @@ as String,targetPos: null == targetPos ? _self.targetPos : targetPos // ignore: 
 as GridPos,triggerMode: null == triggerMode ? _self.triggerMode : triggerMode // ignore: cast_nullable_to_non_nullable
 as MapWarpTriggerMode,allowedApproachFacings: null == allowedApproachFacings ? _self._allowedApproachFacings : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
 as List<EntityFacing>,triggerPadding: null == triggerPadding ? _self.triggerPadding : triggerPadding // ignore: cast_nullable_to_non_nullable
-as WarpTriggerPadding,
+as WarpTriggerPadding,door: freezed == door ? _self.door : door // ignore: cast_nullable_to_non_nullable
+as MapWarpDoor?,transition: null == transition ? _self.transition : transition // ignore: cast_nullable_to_non_nullable
+as MapWarpTransition,
   ));
 }
 
@@ -3031,6 +3049,308 @@ $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
   
   return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
     return _then(_self.copyWith(triggerPadding: value));
+  });
+}/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapWarpDoorCopyWith<$Res>? get door {
+    if (_self.door == null) {
+    return null;
+  }
+
+  return $MapWarpDoorCopyWith<$Res>(_self.door!, (value) {
+    return _then(_self.copyWith(door: value));
+  });
+}
+}
+
+
+/// @nodoc
+mixin _$MapWarpDoor {
+
+ String get instanceId; int get openAnimationIndex; int get closeAnimationIndex; GridPos get exitPos;
+/// Create a copy of MapWarpDoor
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapWarpDoorCopyWith<MapWarpDoor> get copyWith => _$MapWarpDoorCopyWithImpl<MapWarpDoor>(this as MapWarpDoor, _$identity);
+
+  /// Serializes this MapWarpDoor to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapWarpDoor&&(identical(other.instanceId, instanceId) || other.instanceId == instanceId)&&(identical(other.openAnimationIndex, openAnimationIndex) || other.openAnimationIndex == openAnimationIndex)&&(identical(other.closeAnimationIndex, closeAnimationIndex) || other.closeAnimationIndex == closeAnimationIndex)&&(identical(other.exitPos, exitPos) || other.exitPos == exitPos));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,instanceId,openAnimationIndex,closeAnimationIndex,exitPos);
+
+@override
+String toString() {
+  return 'MapWarpDoor(instanceId: $instanceId, openAnimationIndex: $openAnimationIndex, closeAnimationIndex: $closeAnimationIndex, exitPos: $exitPos)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $MapWarpDoorCopyWith<$Res>  {
+  factory $MapWarpDoorCopyWith(MapWarpDoor value, $Res Function(MapWarpDoor) _then) = _$MapWarpDoorCopyWithImpl;
+@useResult
+$Res call({
+ String instanceId, int openAnimationIndex, int closeAnimationIndex, GridPos exitPos
+});
+
+
+$GridPosCopyWith<$Res> get exitPos;
+
+}
+/// @nodoc
+class _$MapWarpDoorCopyWithImpl<$Res>
+    implements $MapWarpDoorCopyWith<$Res> {
+  _$MapWarpDoorCopyWithImpl(this._self, this._then);
+
+  final MapWarpDoor _self;
+  final $Res Function(MapWarpDoor) _then;
+
+/// Create a copy of MapWarpDoor
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? instanceId = null,Object? openAnimationIndex = null,Object? closeAnimationIndex = null,Object? exitPos = null,}) {
+  return _then(_self.copyWith(
+instanceId: null == instanceId ? _self.instanceId : instanceId // ignore: cast_nullable_to_non_nullable
+as String,openAnimationIndex: null == openAnimationIndex ? _self.openAnimationIndex : openAnimationIndex // ignore: cast_nullable_to_non_nullable
+as int,closeAnimationIndex: null == closeAnimationIndex ? _self.closeAnimationIndex : closeAnimationIndex // ignore: cast_nullable_to_non_nullable
+as int,exitPos: null == exitPos ? _self.exitPos : exitPos // ignore: cast_nullable_to_non_nullable
+as GridPos,
+  ));
+}
+/// Create a copy of MapWarpDoor
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get exitPos {
+
+  return $GridPosCopyWith<$Res>(_self.exitPos, (value) {
+    return _then(_self.copyWith(exitPos: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [MapWarpDoor].
+extension MapWarpDoorPatterns on MapWarpDoor {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapWarpDoor value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapWarpDoor() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapWarpDoor value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapWarpDoor():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapWarpDoor value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapWarpDoor() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String instanceId,  int openAnimationIndex,  int closeAnimationIndex,  GridPos exitPos)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapWarpDoor() when $default != null:
+return $default(_that.instanceId,_that.openAnimationIndex,_that.closeAnimationIndex,_that.exitPos);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String instanceId,  int openAnimationIndex,  int closeAnimationIndex,  GridPos exitPos)  $default,) {final _that = this;
+switch (_that) {
+case _MapWarpDoor():
+return $default(_that.instanceId,_that.openAnimationIndex,_that.closeAnimationIndex,_that.exitPos);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String instanceId,  int openAnimationIndex,  int closeAnimationIndex,  GridPos exitPos)?  $default,) {final _that = this;
+switch (_that) {
+case _MapWarpDoor() when $default != null:
+return $default(_that.instanceId,_that.openAnimationIndex,_that.closeAnimationIndex,_that.exitPos);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class _MapWarpDoor implements MapWarpDoor {
+  const _MapWarpDoor({required this.instanceId, required this.openAnimationIndex, required this.closeAnimationIndex, required this.exitPos});
+  factory _MapWarpDoor.fromJson(Map<String, dynamic> json) => _$MapWarpDoorFromJson(json);
+
+@override final  String instanceId;
+@override final  int openAnimationIndex;
+@override final  int closeAnimationIndex;
+@override final  GridPos exitPos;
+
+/// Create a copy of MapWarpDoor
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapWarpDoorCopyWith<_MapWarpDoor> get copyWith => __$MapWarpDoorCopyWithImpl<_MapWarpDoor>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$MapWarpDoorToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapWarpDoor&&(identical(other.instanceId, instanceId) || other.instanceId == instanceId)&&(identical(other.openAnimationIndex, openAnimationIndex) || other.openAnimationIndex == openAnimationIndex)&&(identical(other.closeAnimationIndex, closeAnimationIndex) || other.closeAnimationIndex == closeAnimationIndex)&&(identical(other.exitPos, exitPos) || other.exitPos == exitPos));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,instanceId,openAnimationIndex,closeAnimationIndex,exitPos);
+
+@override
+String toString() {
+  return 'MapWarpDoor(instanceId: $instanceId, openAnimationIndex: $openAnimationIndex, closeAnimationIndex: $closeAnimationIndex, exitPos: $exitPos)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapWarpDoorCopyWith<$Res> implements $MapWarpDoorCopyWith<$Res> {
+  factory _$MapWarpDoorCopyWith(_MapWarpDoor value, $Res Function(_MapWarpDoor) _then) = __$MapWarpDoorCopyWithImpl;
+@override @useResult
+$Res call({
+ String instanceId, int openAnimationIndex, int closeAnimationIndex, GridPos exitPos
+});
+
+
+@override $GridPosCopyWith<$Res> get exitPos;
+
+}
+/// @nodoc
+class __$MapWarpDoorCopyWithImpl<$Res>
+    implements _$MapWarpDoorCopyWith<$Res> {
+  __$MapWarpDoorCopyWithImpl(this._self, this._then);
+
+  final _MapWarpDoor _self;
+  final $Res Function(_MapWarpDoor) _then;
+
+/// Create a copy of MapWarpDoor
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? instanceId = null,Object? openAnimationIndex = null,Object? closeAnimationIndex = null,Object? exitPos = null,}) {
+  return _then(_MapWarpDoor(
+instanceId: null == instanceId ? _self.instanceId : instanceId // ignore: cast_nullable_to_non_nullable
+as String,openAnimationIndex: null == openAnimationIndex ? _self.openAnimationIndex : openAnimationIndex // ignore: cast_nullable_to_non_nullable
+as int,closeAnimationIndex: null == closeAnimationIndex ? _self.closeAnimationIndex : closeAnimationIndex // ignore: cast_nullable_to_non_nullable
+as int,exitPos: null == exitPos ? _self.exitPos : exitPos // ignore: cast_nullable_to_non_nullable
+as GridPos,
+  ));
+}
+
+/// Create a copy of MapWarpDoor
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get exitPos {
+
+  return $GridPosCopyWith<$Res>(_self.exitPos, (value) {
+    return _then(_self.copyWith(exitPos: value));
   });
 }
 }

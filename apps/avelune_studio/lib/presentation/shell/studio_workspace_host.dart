@@ -132,6 +132,9 @@ class _StudioMapWorkspaceHost extends ConsumerWidget {
       gameExportPicker: ref.watch(gameExportPickerProvider),
       loadVisuals: ref.watch(workspaceVisualsLoaderProvider),
       runtimeBuilder: ref.watch(sessionRuntimeBuilderProvider(session)),
+      projectRuntimeBuilder: ref.watch(projectRuntimeBuilderProvider) == null
+          ? null
+          : (close) => ref.read(projectRuntimeBuilderProvider)!(session, close),
       onClose: onClose,
       registerExitGuard: registerExitGuard,
     );

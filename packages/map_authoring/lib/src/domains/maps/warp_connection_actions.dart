@@ -67,6 +67,7 @@ final class WarpConnectionActions {
     for (final entry in const <(String, String, AuthoringRiskLevel)>[
       ('warp.create', 'Create a validated warp', AuthoringRiskLevel.low),
       ('warp.update', 'Replace a validated warp', AuthoringRiskLevel.low),
+      ('warp.transition.configure', 'Configure the native screen transition of one warp', AuthoringRiskLevel.low),
       ('warp.delete', 'Delete a warp', AuthoringRiskLevel.low),
       (
         'warp.create_reciprocal_apply',
@@ -213,6 +214,7 @@ final class WarpConnectionActions {
       'warp.create' => const {'warp'},
       'warp.create_reciprocal_apply' => const {'warp', 'reciprocalWarpId'},
       'warp.update' => const {'warpId', 'warp'},
+      'warp.transition.configure' => const {'warpId', 'transition'},
       'warp.update_pair_apply' => const {
           'warpId',
           'warp',
@@ -260,6 +262,27 @@ final class WarpConnectionActions {
           changedItems: 1,
           preview: {'warpId': warp.id, 'targetMapId': warp.targetMapId},
         );
+      case 'warp.transition.configure':
+        final warpId = parameters.string('warpId');
+        final current = _warp(context.map, warpId);
+        if (current.triggerMode == MapWarpTriggerMode.sceneOnly) {
+          throw _failure('warp.transition_requires_active_warp',
+              'A passive scene arrival does not own an automatic screen transition.');
+        }
+        final MapWarpTransition transition;
+        try {
+          transition = MapWarpTransition.fromJson(
+              Map<String, dynamic>.from(parameters.object('transition')));
+        } on Object {
+          throw _failure('warp.transition_invalid',
+              'Choose a valid native transition and a duration greater than zero and at most five seconds.');
+        }
+        return context.draftMap(
+          after: updateWarpOnMap(context.map, warpId: current.id, transition: transition),
+          operation: 'warp.transition.configure',
+          changedItems: 1,
+          preview: {'warpId': current.id, 'transition': transition.toJson()},
+        );
       case 'warp.delete':
         final warpId = parameters.string('warpId');
         return context.draftMap(
@@ -299,7 +322,8 @@ final class WarpConnectionActions {
     AuthoringPlanningContext planning,
     SemanticMapActionContext context,
   ) {
-    final sourceWarp = _parseWarp(context.map, context.parameters.object('warp'));
+    final sourceWarp =
+        _parseWarp(context.map, context.parameters.object('warp'));
     _requireActivePairWarp(sourceWarp);
     final target = _validateWarpTarget(planning, context.map, sourceWarp);
     _requireDistinctMaps(context.map, target, kind: 'warp pair');
@@ -359,7 +383,7 @@ final class WarpConnectionActions {
         sourceMap: context.map,
         sourceWarp: updated,
         id: reciprocal.id,
-      ),
+      ).copyWith(door: reciprocal.door, transition: reciprocal.transition),
     );
     return _draftPair(
       planning: planning,
@@ -568,11 +592,72 @@ AuthoringActionDescriptor _descriptor(
       ],
       extensions: {
         'multiFileGuarantee': 'recoverable',
+        if (id.startsWith('warp.'))
+          'screenTransition': const {
+            'field': 'transition',
+            'types': ['fade', 'hgss', 'none'],
+            'default': {'type': 'fade', 'durationSeconds': .2},
+            'durationMeaning': 'perFadePhase',
+            'durationIgnoredFor': 'none',
+            'doorBindingIndependent': true,
+            'sceneOnly': 'unsupported',
+            'sceneOrCinematicRequired': false,
+          },
+        if (id == 'warp.transition.configure')
+          'inputSchema': const {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['mapId', 'warpId', 'transition'],
+            'properties': {
+              'mapId': {'type': 'string', 'minLength': 1},
+              'warpId': {'type': 'string', 'minLength': 1},
+              'transition': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['type', 'durationSeconds'],
+                'properties': {
+                  'type': {'type': 'string', 'enum': ['fade', 'hgss', 'none']},
+                  'durationSeconds': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 5},
+                },
+              },
+            },
+          },
         if (id.startsWith('connection.'))
           'connectionIdentity': const {
             'fields': ['direction', 'targetMapId'],
             'multipleNeighbors': 'nonOverlapping2d',
             'ambiguousDirectionOnly': 'rejected'
+          },
+        if (id.startsWith('warp.'))
+          'nativeDoor': const {
+            'field': 'door',
+            'projectDimension': 'threeD',
+            'required': [
+              'instanceId',
+              'openAnimationIndex',
+              'closeAnimationIndex',
+              'exitPos'
+            ],
+            'properties': {
+              'instanceId': {'type': 'string', 'minLength': 1},
+              'openAnimationIndex': {'type': 'integer', 'minimum': 0},
+              'closeAnimationIndex': {'type': 'integer', 'minimum': 0},
+              'exitPos': {
+                'type': 'object',
+                'required': ['x', 'y'],
+                'properties': {
+                  'x': {'type': 'integer', 'minimum': 0},
+                  'y': {'type': 'integer', 'minimum': 0}
+                }
+              },
+            },
+            'playbackOwner': 'nativeWarpTransition',
+            'instanceAnimationIndex': null,
+            'entry': 'openThenTransfer',
+            'arrival': 'uniqueDoorAtTargetPosThenOpenExitClose',
+            'exit': 'adjacentCardinalTraversableCell',
+            'sceneOnly': 'unsupported',
+            'sceneOrCinematicRequired': false,
           },
         if (id.startsWith('warp.'))
           'warpDestinationContract': const {
@@ -760,6 +845,8 @@ MapWarp _parseWarp(MapData map, Map<String, Object?> value) {
     'triggerMode',
     'allowedApproachFacings',
     'triggerPadding',
+    'door',
+    'transition',
   };
   final unknown = value.keys.where((key) => !allowed.contains(key)).toList()
     ..sort();
@@ -791,6 +878,8 @@ MapWarp _parseWarp(MapData map, Map<String, Object?> value) {
       targetPos: warp.targetPos,
       allowedApproachFacings: warp.allowedApproachFacings,
       triggerPadding: warp.triggerPadding,
+      door: warp.door,
+      transition: warp.transition,
     );
   } on Object {
     throw _failure(
@@ -846,6 +935,9 @@ MapData _replaceWarp(MapData map, String warpId, MapWarp warp) {
       triggerMode: warp.triggerMode,
       allowedApproachFacings: warp.allowedApproachFacings,
       triggerPadding: warp.triggerPadding,
+      door: warp.door,
+      transition: warp.transition,
+      clearDoor: warp.door == null,
     );
   } on Object catch (error) {
     throw _coreFailure('warp.update_invalid', error);

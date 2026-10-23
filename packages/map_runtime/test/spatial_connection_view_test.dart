@@ -58,7 +58,10 @@ void main() {
     Widget app(Brightness brightness) => MaterialApp(
         theme: ThemeData(brightness: brightness),
         home: SpatialExplorationView(session: session));
+    expect(session.prepareNativeDoorDestination, isNull);
     await tester.pumpWidget(app(Brightness.light));
+    final preparation = session.prepareNativeDoorDestination;
+    expect(preparation, isNotNull);
     final before =
         tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
     expect(before.background, Colors.black);
@@ -67,7 +70,9 @@ void main() {
         tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
     expect(after.loadModel, before.loadModel);
     expect(after.background, Colors.black);
+    expect(session.prepareNativeDoorDestination, preparation);
     await tester.pumpWidget(const SizedBox());
+    expect(session.prepareNativeDoorDestination, isNull);
     session.dispose();
     await tester.runAsync(() => directory.delete(recursive: true));
   });

@@ -24,7 +24,7 @@ void main() {
 
     expect(find.text('Boucle d’invitation'), findsOneWidget);
     expect(find.text('Boucle du menu'), findsOneWidget);
-    expect(find.textContaining('15 s et 24 Mio'), findsNWidgets(2));
+    expect(find.textContaining('120 s et 64 Mio'), findsNWidgets(2));
 
     await tester.tap(
       find.byKey(const ValueKey<String>('title-motion-import-menu')),

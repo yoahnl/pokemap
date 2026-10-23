@@ -1,16 +1,23 @@
 import 'dart:convert';
 import 'package:map_core/map_core.dart';
+import 'package:freezed_annotation/freezed_annotation.dart'
+    show DeepCollectionEquality;
 import '../assets/asset_store.dart';
 import '../assets/project_media_store.dart';
 import '../../workspace/project_snapshot.dart';
-import '../../support/authoring_fingerprint.dart';
 import '../../ports/artifact_store.dart';
+
+bool supportsPresentationProjectVersion(ProjectManifest project) =>
+    project.version ==
+    (project.settings.dimension == ProjectDimension.threeD
+        ? ProjectVersion.v9
+        : ProjectVersion.v8);
 
 void validatePresentationPublicationBase(
     ProjectSnapshot snapshot, String id, Map<String, Object?> p) {
   final project = snapshot.manifest;
-  if (project.version != ProjectVersion.v8) {
-    throw StateError('Les présentations nécessitent un projet v8.');
+  if (!supportsPresentationProjectVersion(project)) {
+    throw StateError('Les présentations nécessitent un projet v8 (2D) ou v9 (3D).');
   }
   final current =
       project.presentationCinematics.where((a) => a.id == id).firstOrNull;
@@ -66,9 +73,7 @@ void validatePresentationPublicationBase(
   }
 }
 
-bool _same(Object? a, Object? b) =>
-    computeAuthoringJsonFingerprint(a, logicalName: 'baseline') ==
-    computeAuthoringJsonFingerprint(b, logicalName: 'baseline');
+bool _same(Object? a, Object? b) => const DeepCollectionEquality().equals(a, b);
 
 bool presentationImportAlreadyPublished(
     ProjectSnapshot snapshot,

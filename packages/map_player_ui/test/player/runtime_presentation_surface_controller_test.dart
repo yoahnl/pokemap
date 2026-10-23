@@ -18,7 +18,20 @@ void main() {
     );
     addTearDown(controller.close);
     final values = <RuntimePresentationFrameSnapshot?>[];
-    controller.addListener(() => values.add(controller.value));
+    var accessibilityUpdated = false;
+    controller.addListener(() {
+      final current = controller.value;
+      values.add(current);
+      if (current == null || accessibilityUpdated) return;
+      accessibilityUpdated = true;
+      controller.setReducedMotion(true);
+      expect(controller.value!.reduceMotion, isTrue);
+      expect(controller.value!.frame, same(current.frame));
+      expect(controller.value!.assetRevision, current.assetRevision);
+      controller.setReducedMotion(false);
+      expect(controller.value!.reduceMotion, isFalse);
+      expect(controller.value!.frame, same(current.frame));
+    });
 
     final terminal = await controller.playPresentationCinematic(
       ScenePresentationCinematicRuntimeRequest(
@@ -61,6 +74,7 @@ void main() {
       ),
     );
     expect(terminal.result, RuntimePresentationExecutionResult.completed);
+    expect(accessibilityUpdated, isTrue);
     final snapshot = values
         .whereType<RuntimePresentationFrameSnapshot>()
         .firstWhere((value) => value.frame.texts.isNotEmpty);

@@ -17,6 +17,8 @@ import '../contracts/authoring_result.dart';
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_actions.dart';
+import '../domains/assets/presentation_actions.dart';
+import '../domains/assets/presentation_media_configuration_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/distribution/game_package_export_api.dart';
@@ -312,6 +314,28 @@ final class JsonlWorker {
         code: _artifactDomainErrorCode(error.code),
         domainCode: error.code,
         message: error.message,
+      );
+    } on PresentationAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message:
+            const AuthoringOutputRedactor().redact(error.message)! as String,
+        details: Map<String, Object?>.from(_safeDetails(error.details))
+          ..remove('domainCode'),
+      );
+    } on PresentationMediaConfigurationException catch (error) {
+      result = _failure(
+        requestId,
+        code: error.code == 'presentation_media.baseline_changed'
+            ? AuthoringErrorCode.revisionConflict
+            : error.code == 'presentation_media.missing'
+                ? AuthoringErrorCode.notFound
+                : AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
       );
     } on AssetActionException catch (error) {
       result = _failure(

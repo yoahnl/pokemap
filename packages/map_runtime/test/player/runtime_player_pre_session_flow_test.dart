@@ -366,6 +366,72 @@ void main() {
     expect(harness.adapters, hasLength(1));
   });
 
+  for (final withSave in [false, true]) {
+    test(
+      'user cancellation returns to title without failure, existingSave=$withSave',
+      () async {
+        final seed = RuntimePlayerTestHarness();
+        final saved = withSave
+            ? compatiblePlayerSave(seed.source.identity)
+            : null;
+        await seed.dispose();
+        final harness = RuntimePlayerTestHarness(
+          latestSave: saved,
+          preSessionRunner: _MessagePreSessionRunner(),
+        );
+        addTearDown(harness.dispose);
+        await harness.coordinator.initialize();
+        final launch = harness.coordinator.dispatch(
+          RuntimePlayerCommand(
+            action: RuntimePlayerAction.newGame,
+            snapshotRevision: harness.coordinator.snapshot.revision,
+            payload: const RuntimePlayerLoadSlot(
+              profileId: 'player',
+              slotId: 'slot_1',
+            ),
+          ),
+        );
+        await _waitForInteraction(harness.coordinator);
+        final snapshot = harness.coordinator.snapshot;
+        final request = snapshot.preSessionRequest!;
+        final stale = await harness.coordinator.dispatch(
+          RuntimePlayerCommand(
+            action: RuntimePlayerAction.resolvePreSessionInteraction,
+            snapshotRevision: snapshot.revision,
+            payload: SceneInteractionResult.cancelled(
+              requestId: request.requestId,
+              revision: request.revision + 1,
+              reason: SceneInteractionCancellationReason.user,
+            ),
+          ),
+        );
+        expect(stale.status, RuntimePlayerCommandStatus.stale);
+        expect(harness.coordinator.snapshot.preSessionRequest, same(request));
+        final result = await harness.coordinator.dispatch(
+          RuntimePlayerCommand(
+            action: RuntimePlayerAction.resolvePreSessionInteraction,
+            snapshotRevision: snapshot.revision,
+            payload: SceneInteractionResult.cancelled(
+              requestId: request.requestId,
+              revision: request.revision,
+              reason: SceneInteractionCancellationReason.user,
+            ),
+          ),
+        );
+        expect(result.status, RuntimePlayerCommandStatus.accepted);
+        expect((await launch).status, RuntimePlayerCommandStatus.cancelled);
+        expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+        expect(harness.coordinator.snapshot.failure, isNull);
+        expect(harness.coordinator.snapshot.preSessionRequest, isNull);
+        expect(harness.source.requests, isEmpty);
+        expect(harness.saves.commits, isEmpty);
+        if (saved != null) {
+          expect(await harness.saves.readSummary(saved.address), same(saved));
+        }
+      },
+    );
+  }
+
   test('clears a resolved preSession request while its runner continues',
       () async {
     final release = Completer<void>();

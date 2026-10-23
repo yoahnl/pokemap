@@ -522,6 +522,14 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'warp.transition.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/warp_transition_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/warp_transition_transport_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/warp_transition_stdio.test.ts',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentation/map_warp_transition_editor_test.dart',
+    };
+  }
   if (actionId == 'entity.set_item_payload') {
     return const {
       AuthoringTransport.directApi:
@@ -1232,6 +1240,13 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'presentation_studio_add_authoring_gateway_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'presentationMedia.delete' || actionId == 'presentationMedia.rename') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi: 'test/domains/assets/presentation_media_management_test.dart',
+      AuthoringTransport.cli: 'test/domains/assets/presentation_media_management_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/presentation_project_dimension_stdio.test.ts',
     };
   }
   if (actionId == 'presentationMedia.configure') {
@@ -1960,6 +1975,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/environment_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['warp.transition.configure'],
+    'test/domains/maps/warp_transition_transport_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['warp.', 'connection.'],
     'test/domains/maps/warp_connection_transaction_test.dart',
   ),
@@ -2023,6 +2042,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['presentationMedia.import'],
     'test/domains/assets/presentation_media_import_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['presentationMedia.delete', 'presentationMedia.rename'],
+    'test/domains/assets/presentation_media_management_test.dart',
   ),
   _ContractEvidenceRule(
     ['presentationMedia.configure'],

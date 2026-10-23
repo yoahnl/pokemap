@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -42,3 +43,6 @@ final workspaceRuntimeBuilderProvider =
     Provider<StudioRuntimeBuilder Function(ProjectSession, MapWorkspacePort)>(
       (ref) => throw StateError('Workspace runtime builder must be configured'),
     );
+
+final projectRuntimeBuilderProvider =
+    Provider<Widget Function(ProjectSession, VoidCallback)?>((ref) => null);

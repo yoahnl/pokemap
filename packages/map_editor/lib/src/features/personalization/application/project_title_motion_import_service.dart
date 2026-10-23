@@ -37,7 +37,9 @@ final class ProjectTitleMotionImportService
       throw ProjectIntroVideoImportException(
         code: 'titleMotionLoopSizeExceeded',
         path: videoFile.path,
-        message: 'Title loops must not exceed 24 MiB.',
+        message:
+            'Title loops must not exceed '
+            '${projectTitleLoopMaxSizeBytes ~/ (1024 * 1024)} MiB.',
       );
     }
     final probeResult = await probe.probe(videoFile);
@@ -46,7 +48,9 @@ final class ProjectTitleMotionImportService
       throw ProjectIntroVideoImportException(
         code: 'titleMotionLoopDurationExceeded',
         path: videoFile.path,
-        message: 'Title loops must not exceed 15 seconds.',
+        message:
+            'Title loops must not exceed '
+            '${projectTitleLoopMaxDurationMilliseconds ~/ 1000} seconds.',
       );
     }
     final intro = await introImporter.importIntoProject(

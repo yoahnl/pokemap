@@ -142,6 +142,13 @@ class PersonalizationTitleInspector extends StatelessWidget {
             branding: profile.branding.copyWith(layoutVariant: layoutVariant),
           ),
         ),
+        onTitleMusicEndBehaviorChanged: (behavior) => onChanged(
+          profile.copyWith(
+            branding: profile.branding.copyWith(
+              titleMusicEndBehavior: behavior,
+            ),
+          ),
+        ),
         onImportTitleMusic: onImportTitleMusic,
         onToggleTitleMusicPreview: onToggleTitleMusicPreview,
         onRemoveTitleMusic: onRemoveTitleMusic,

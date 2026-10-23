@@ -92,7 +92,9 @@ class _TitleMotionLoopCard extends StatelessWidget {
             Text('Poster : ${variant.posterPath}'),
           ],
           const SizedBox(height: 5),
-          const Text('MP4 H.264 • 15 s et 24 Mio maximum par boucle'),
+          const Text('MP4 H.264 • '
+              '${projectTitleLoopMaxDurationMilliseconds ~/ 1000} s et '
+              '${projectTitleLoopMaxSizeBytes ~/ (1024 * 1024)} Mio maximum par boucle'),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,

@@ -823,6 +823,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       return;
     }
     final command = playerInputCommandFromRuntimeEvent(event, source: source);
+    if (_latestSnapshot.phase == RuntimePlayerPhase.preSession &&
+        _latestSnapshot.preSessionRequest != null) {
+      await _routeSurfaceInput(command);
+      return;
+    }
     if (widget.presentationFrame?.value != null && command.isPress) {
       if (command.action == PlayerInputAction.confirm &&
           _latestSnapshot.phase != RuntimePlayerPhase.preSession) {
@@ -914,7 +919,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   Future<void> _routeSurfaceInput(PlayerInputCommand command) async {
     if (!command.isPress) return;
     final snapshot = _latestSnapshot;
-    if (snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap ||
+    if (snapshot.phase == RuntimePlayerPhase.preSession ||
+        snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap ||
         snapshot.worldService?.request.kind ==
             RuntimeWorldServiceKind.partyTrade ||
         snapshot.phase == RuntimePlayerPhase.paused ||

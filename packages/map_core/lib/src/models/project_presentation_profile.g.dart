@@ -14,6 +14,12 @@ _ProjectBrandingProfile _$ProjectBrandingProfileFromJson(
   heroPath: json['heroPath'] as String?,
   accentColor: json['accentColor'] as String?,
   titleMusicPath: json['titleMusicPath'] as String?,
+  titleMusicEndBehavior:
+      $enumDecodeNullable(
+        _$ProjectTitleMusicEndBehaviorEnumMap,
+        json['titleMusicEndBehavior'],
+      ) ??
+      ProjectTitleMusicEndBehavior.loop,
   layoutVariant: json['layoutVariant'] as String? ?? 'standard',
 );
 
@@ -25,7 +31,14 @@ Map<String, dynamic> _$ProjectBrandingProfileToJson(
   'heroPath': ?instance.heroPath,
   'accentColor': ?instance.accentColor,
   'titleMusicPath': ?instance.titleMusicPath,
+  'titleMusicEndBehavior':
+      _$ProjectTitleMusicEndBehaviorEnumMap[instance.titleMusicEndBehavior]!,
   'layoutVariant': instance.layoutVariant,
+};
+
+const _$ProjectTitleMusicEndBehaviorEnumMap = {
+  ProjectTitleMusicEndBehavior.loop: 'loop',
+  ProjectTitleMusicEndBehavior.replayIntro: 'replayIntro',
 };
 
 _ProjectVideoVariantProfile _$ProjectVideoVariantProfileFromJson(

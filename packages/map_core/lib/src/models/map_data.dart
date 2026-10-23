@@ -680,10 +680,73 @@ abstract class MapWarp with _$MapWarp {
     @Default(MapWarpTriggerMode.onEnter) MapWarpTriggerMode triggerMode,
     @Default([]) List<EntityFacing> allowedApproachFacings,
     @Default(WarpTriggerPadding()) WarpTriggerPadding triggerPadding,
+    @JsonKey(includeIfNull: false) MapWarpDoor? door,
+    @Default(MapWarpTransition()) MapWarpTransition transition,
   }) = _MapWarp;
 
-  factory MapWarp.fromJson(Map<String, dynamic> json) =>
-      _$MapWarpFromJson(json);
+  factory MapWarp.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('transition') && json['transition'] is! Map<String, dynamic>) {
+      throw const FormatException('Warp transition must be an object.');
+    }
+    return _$MapWarpFromJson(json);
+  }
+}
+
+@freezed
+abstract class MapWarpDoor with _$MapWarpDoor {
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory MapWarpDoor({
+    required String instanceId,
+    required int openAnimationIndex,
+    required int closeAnimationIndex,
+    required GridPos exitPos,
+  }) = _MapWarpDoor;
+
+  factory MapWarpDoor.fromJson(Map<String, dynamic> json) =>
+      _$MapWarpDoorFromJson(json);
+}
+
+enum MapWarpTransitionType { fade, hgss, none }
+
+final class MapWarpTransition {
+  const MapWarpTransition({
+    this.type = MapWarpTransitionType.fade,
+    this.durationSeconds = .2,
+  }) : assert(durationSeconds > 0 && durationSeconds <= 5);
+
+  final MapWarpTransitionType type;
+  final double durationSeconds;
+
+  factory MapWarpTransition.fromJson(Map<String, dynamic> json) {
+    if (json.keys.any((key) => key != 'type' && key != 'durationSeconds')) {
+      throw const FormatException('Unexpected warp transition field.');
+    }
+    final rawType = json['type'];
+    final rawDuration = json['durationSeconds'];
+    final type = MapWarpTransitionType.values
+        .where((value) => value.name == rawType).firstOrNull;
+    if (type == null || rawDuration is! num || !rawDuration.isFinite ||
+        rawDuration <= 0 || rawDuration > 5) {
+      throw const FormatException('Invalid warp transition type or duration.');
+    }
+    return MapWarpTransition(type: type, durationSeconds: rawDuration.toDouble());
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': type.name,
+    'durationSeconds': durationSeconds,
+  };
+
+  MapWarpTransition copyWith({MapWarpTransitionType? type, double? durationSeconds}) =>
+      MapWarpTransition(type: type ?? this.type,
+          durationSeconds: durationSeconds ?? this.durationSeconds);
+
+  @override
+  bool operator ==(Object other) => other is MapWarpTransition &&
+      type == other.type && durationSeconds == other.durationSeconds;
+
+  @override
+  int get hashCode => Object.hash(type, durationSeconds);
 }
 
 enum MapWarpTriggerMode {

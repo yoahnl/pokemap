@@ -74,6 +74,7 @@ void main() {
       profile: const RuntimeResourceProfile(maximumResidentBytes: 20000),
     );
     const warp = MapWarp(
+      transition: MapWarpTransition(type: MapWarpTransitionType.none),
       id: 'next', pos: GridPos(x: 4, y: 4),
       targetMapId: 'target', targetPos: GridPos(x: 4, y: 4),
     );
@@ -359,11 +360,13 @@ void main() {
     const connection = MapConnection(
         direction: MapConnectionDirection.east, targetMapId: 'target');
     const outward = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'outward',
         pos: GridPos(x: 2, y: 2),
         targetMapId: 'third',
         targetPos: GridPos(x: 3, y: 3));
     const back = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'back',
         pos: GridPos(x: 2, y: 2),
         targetMapId: 'source',
@@ -438,12 +441,14 @@ void main() {
     tester,
   ) async {
     const outward = MapWarp(
+      transition: MapWarpTransition(type: MapWarpTransitionType.none),
       id: 'outward',
       pos: GridPos(x: 2, y: 2),
       targetMapId: 'target',
       targetPos: GridPos(x: 6, y: 1),
     );
     const back = MapWarp(
+      transition: MapWarpTransition(type: MapWarpTransitionType.none),
       id: 'back',
       pos: GridPos(x: 2, y: 2),
       targetMapId: 'source',
@@ -509,6 +514,7 @@ void main() {
       back
     ], warps: [
       const MapWarp(
+          transition: MapWarpTransition(type: MapWarpTransitionType.none),
           id: 'door',
           pos: GridPos(x: 3, y: 3),
           targetMapId: 'source',
@@ -713,6 +719,7 @@ void main() {
     const connection = MapConnection(
         direction: MapConnectionDirection.east, targetMapId: 'target');
     const warp = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'back',
         pos: GridPos(x: 3, y: 3),
         targetMapId: 'source',

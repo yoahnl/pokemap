@@ -97,7 +97,13 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FocusScope(
+        key: ValueKey((widget.request.requestId, widget.request.revision)),
+        autofocus: true,
+        child: _buildContent(context),
+      );
+
+  Widget _buildContent(BuildContext context) {
     final request = widget.request;
     if (request is SceneMessageInteractionRequest) {
       return _buildMessageDialogue(context, request);

@@ -17,6 +17,7 @@ import '../../transactions/local_authoring_payload.dart';
 import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'asset_store.dart';
+import 'project_media_store.dart';
 
 final class AssetActionException implements Exception {
   AssetActionException(
@@ -442,6 +443,10 @@ final class AssetActions {
         parameters.allow(const {'assetId', 'acknowledgedUsages'});
         final current = state.catalog.require(parameters.string('assetId'));
         final mediaDocuments = <String, Object?>{};
+        final presentationMediaBytes = context.snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+        if (presentationMediaBytes != null) {
+          mediaDocuments[projectMediaCatalogResourceIdentity] = decodeProjectMediaCatalogBytes(presentationMediaBytes).toJson();
+        }
         if (context.snapshot.manifest.pokemon.enabled) {
           if (!context.snapshot.pokemonInventoryComplete) {
             throw AssetActionException('asset.inventory_unavailable',
@@ -1073,17 +1078,19 @@ Future<AuthoringMutationDraft> _draft(
         operation: AuthoringDiffOperation.add,
       );
     case 'delete':
-      await _addLogicalAssetChange(
-        snapshot: snapshot,
-        changes: changes,
-        diff: diff,
-        record: beforeRecord!,
-        beforePayload: beforeLogicalPayload,
-        afterBytes: null,
-        beforeArtifact: beforeRecord.artifact,
-        afterArtifact: null,
-        operation: AuthoringDiffOperation.remove,
-      );
+      if (beforeLogicalPayload != null) {
+        await _addLogicalAssetChange(
+          snapshot: snapshot,
+          changes: changes,
+          diff: diff,
+          record: beforeRecord!,
+          beforePayload: beforeLogicalPayload,
+          afterBytes: null,
+          beforeArtifact: beforeRecord.artifact,
+          afterArtifact: null,
+          operation: AuthoringDiffOperation.remove,
+        );
+      }
   }
   if (addedArtifact != null &&
       !state.catalog.records.any(

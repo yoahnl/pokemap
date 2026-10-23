@@ -9,6 +9,8 @@ import 'package:avelune_studio/features/project_session/data/local_project_sessi
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest_view.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
+import 'package:avelune_studio/platform/playtest/studio_game_playtest_view.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
@@ -68,6 +70,105 @@ void applyStudioCaptureLifecycle(AppLifecycleState target) {
   throw StateError('Unsupported Studio capture lifecycle transition.');
 }
 
+Map<String, Object?> readStudioFullGameState(String expectedProjectPath) {
+  StudioGamePlaytestView? game;
+  PlayerRuntimeStartupShell? startup;
+  PokeMapPlayerSessionView? player;
+  SpatialExplorationView? spatial;
+  Element? surface;
+  void visitGame(Element element) {
+    final widget = element.widget;
+    if (widget is PlayerRuntimeStartupShell) startup = widget;
+    if (widget is PokeMapPlayerSessionView) player = widget;
+    if (widget is SpatialExplorationView) {
+      spatial = widget;
+      surface = element;
+    }
+    element.visitChildren(visitGame);
+  }
+
+  void visit(Element element) {
+    if (element.widget case final StudioGamePlaytestView view) {
+      if (game != null) {
+        throw StateError('More than one full game test is mounted.');
+      }
+      game = view;
+      element.visitChildren(visitGame);
+      return;
+    }
+    element.visitChildren(visit);
+  }
+
+  WidgetsBinding.instance.rootElement?.visitChildren(visit);
+  final belongsToProject =
+      game != null &&
+      File(game!.projectFilePath).parent.path == expectedProjectPath;
+  if (game != null && !belongsToProject) {
+    throw StateError('The full game test belongs to another project.');
+  }
+  final snapshot =
+      player?.controller.snapshot ?? startup?.snapshot.playerSnapshot;
+  final exploration = spatial?.session;
+  if (exploration != null &&
+      exploration.bundle.projectRootDirectory != expectedProjectPath) {
+    throw StateError('The full game surface belongs to another project.');
+  }
+  final render = surface?.findRenderObject();
+  final box = render is RenderBox && render.hasSize ? render : null;
+  final address = snapshot?.activeSaveAddress;
+  return {
+    'pid': pid,
+    'fullGameMounted': game != null,
+    'matchesRequestedProject': belongsToProject,
+    'projectPath': game == null
+        ? null
+        : File(game!.projectFilePath).parent.path,
+    'startupPhase': startup?.snapshot.phase.name,
+    'startupSuspendedPhase': startup?.snapshot.suspendedPhase?.name,
+    'playerPhase': snapshot?.phase.name,
+    'playerRevision': snapshot?.revision,
+    'preSessionRequest': snapshot?.preSessionRequest?.toJson(),
+    'playerFailure': snapshot?.failure?.safeMessage,
+    'pressedKeys': [
+      for (final key in HardwareKeyboard.instance.logicalKeysPressed)
+        key.keyLabel,
+    ],
+    'activeSaveAddress': address == null
+        ? null
+        : {
+            'gameId': address.gameId,
+            'profileId': address.profileId,
+            'slotId': address.slotId,
+          },
+    'identitySource': address == null
+        ? null
+        : 'RuntimePlayerSnapshot.activeSaveAddress',
+    'spatial': exploration == null
+        ? null
+        : {
+            'projectPath': exploration.bundle.projectRootDirectory,
+            'mapId': exploration.bundle.map.id,
+            'avatarCharacterId': exploration.character.id,
+            'x': exploration.movement.x,
+            'z': exploration.movement.z,
+            'facing': exploration.movement.facing.name,
+            'paused': exploration.movement.paused,
+          },
+    'frameReadiness': {
+      'spatialSurfaceMounted': exploration != null,
+      'hasLayout': box != null,
+      'paintPending': box?.debugNeedsPaint,
+      'playerEnteredSession':
+          snapshot?.phase == RuntimePlayerPhase.playing ||
+          snapshot?.phase == RuntimePlayerPhase.paused,
+      'width': box?.size.width,
+      'height': box?.size.height,
+      'evidence':
+          'Widget layout and player phase; GPU pixels require a capture.',
+    },
+  };
+}
+
 Future<void> main() async {
   if (!kDebugMode || !Platform.isMacOS) {
     throw StateError(
@@ -108,6 +209,8 @@ Future<void> main() async {
         'apps/avelune_studio/dev/marionette_main.dart',
         'apps/avelune_studio/dev/spatial_frame_recorder.dart',
         'apps/avelune_studio/lib/platform/playtest/studio_spatial_playtest_view.dart',
+        'apps/avelune_studio/lib/platform/playtest/studio_game_playtest_view.dart',
+        'apps/avelune_studio/lib/platform/playtest/studio_game_playtest.dart',
       ],
     },
   );
@@ -163,6 +266,85 @@ Future<void> main() async {
   ) async {
     return developer.ServiceExtensionResponse.result(
       jsonEncode({'path': session.state.project?.directoryPath}),
+    );
+  });
+  developer.registerExtension('ext.flutter.avelune.fullGameState', (
+    method,
+    params,
+  ) async {
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode({
+        'activeProjectPath': session.state.project?.directoryPath,
+        'lifecycle': WidgetsBinding.instance.lifecycleState?.name,
+        ...readStudioFullGameState(root),
+      }),
+    );
+  });
+  var fullGameInputInFlight = false;
+  developer.registerExtension('ext.flutter.avelune.fullGameInput', (
+    method,
+    params,
+  ) async {
+    final observation = readStudioFullGameState(root);
+    if (observation['matchesRequestedProject'] != true ||
+        session.state.project?.directoryPath != root ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        fullGameInputInFlight) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.extensionError,
+        'The requested full game must be active and resumed, with no other test key held.',
+      );
+    }
+    final key = switch (params['key']) {
+      'confirm' => (LogicalKeyboardKey.enter, PhysicalKeyboardKey.enter),
+      'back' => (LogicalKeyboardKey.escape, PhysicalKeyboardKey.escape),
+      'north' => (LogicalKeyboardKey.arrowUp, PhysicalKeyboardKey.arrowUp),
+      'east' => (LogicalKeyboardKey.arrowRight, PhysicalKeyboardKey.arrowRight),
+      'south' => (LogicalKeyboardKey.arrowDown, PhysicalKeyboardKey.arrowDown),
+      'west' => (LogicalKeyboardKey.arrowLeft, PhysicalKeyboardKey.arrowLeft),
+      _ => null,
+    };
+    final duration = int.tryParse(params['milliseconds'] ?? '80');
+    if (key == null ||
+        duration == null ||
+        duration < 1 ||
+        duration > 1000 ||
+        HardwareKeyboard.instance.logicalKeysPressed.contains(key.$1)) {
+      return developer.ServiceExtensionResponse.error(
+        developer.ServiceExtensionResponse.invalidParams,
+        'Use confirm, back or a cardinal direction, held for 1 to 1000 milliseconds.',
+      );
+    }
+    fullGameInputInFlight = true;
+    bool downHandled;
+    try {
+      downHandled = dispatchStudioTestKey(
+        KeyDownEvent(
+          physicalKey: key.$2,
+          logicalKey: key.$1,
+          timeStamp: Duration.zero,
+        ),
+      );
+      await Future<void>.delayed(Duration(milliseconds: duration));
+    } finally {
+      dispatchStudioTestKey(
+        KeyUpEvent(
+          physicalKey: key.$2,
+          logicalKey: key.$1,
+          timeStamp: Duration(milliseconds: duration),
+        ),
+      );
+      fullGameInputInFlight = false;
+    }
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode({
+        'key': params['key'],
+        'milliseconds': duration,
+        'downHandled': downHandled,
+        'activeProjectPath': session.state.project?.directoryPath,
+        'lifecycle': WidgetsBinding.instance.lifecycleState?.name,
+        ...readStudioFullGameState(root),
+      }),
     );
   });
   developer.registerExtension('ext.flutter.avelune.spatialEditorState', (

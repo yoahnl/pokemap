@@ -1077,21 +1077,6 @@ class _FollowPathPlan {
   final List<GridPos> path;
 }
 
-enum _WarpTransitionStyle {
-  fade }
-
-class _WarpTransitionSpec {
-  const _WarpTransitionSpec({
-    required this.style,
-    required this.fadeOut,
-    required this.fadeIn,
-  });
-
-  final _WarpTransitionStyle style;
-  final Duration fadeOut;
-  final Duration fadeIn;
-}
-
 /// Projection World Rules mémoïsée avec les entrées identitaires qui l'ont
 /// produite (manifeste, état de jeu, carte).
 class _WorldRuleProjectionCache {

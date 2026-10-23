@@ -1,4 +1,6 @@
 import 'package:map_core/map_core.dart';
+import 'package:freezed_annotation/freezed_annotation.dart'
+    show DeepCollectionEquality;
 
 import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
@@ -29,6 +31,8 @@ final class PresentationMediaConfigurationActions {
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
+      _mediaManagementDescriptor('delete'),
+      _mediaManagementDescriptor('rename'),
       AuthoringActionDescriptor(
         id: 'presentationMedia.configure',
         version: 1,
@@ -54,6 +58,10 @@ final class PresentationMediaConfigurationActions {
   );
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
+    if (context.request.actionId == 'presentationMedia.delete' ||
+        context.request.actionId == 'presentationMedia.rename') {
+      return _managePresentationMedia(context);
+    }
     if (context.request.actionId != 'presentationMedia.configure') {
       throw PresentationMediaConfigurationException(
         'presentation_media.action_unsupported',
@@ -228,4 +236,158 @@ final class _ConfigurationParameters {
       return ProjectMediaCaption.fromJson(Map<String, Object?>.from(item));
     }).toList();
   }
+}
+
+AuthoringActionDescriptor _mediaManagementDescriptor(String operation) =>
+    AuthoringActionDescriptor(
+      id: 'presentationMedia.$operation',
+      version: 1,
+      summary: operation == 'delete'
+          ? 'Delete an unreferenced media definition while retaining its source asset'
+          : 'Rename one media without changing its source, rights or fallback metadata',
+      inputSchemaId: 'pokemap.authoring.presentationMedia.$operation.input.v1',
+      outputSchemaId:
+          'pokemap.authoring.presentationMedia.$operation.output.v1',
+      riskLevel: operation == 'delete'
+          ? AuthoringRiskLevel.high
+          : AuthoringRiskLevel.low,
+      resourceKinds: const ['presentationMedia'],
+      capabilityIds: const ['authoring.presentation_media'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.atomic,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: {
+        'inputSchema': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': [
+            'mediaId',
+            'expectedMedia',
+            if (operation == 'rename') 'label'
+          ],
+          'properties': {
+            'mediaId': {'type': 'string', 'minLength': 1},
+            'expectedMedia': {'type': 'object'},
+            if (operation == 'rename')
+              'label': {'type': 'string', 'minLength': 1}
+          },
+        }
+      },
+    );
+
+AuthoringMutationDraft _managePresentationMedia(
+    AuthoringPlanningContext context) {
+  final deleting = context.request.actionId == 'presentationMedia.delete';
+  final p = context.request.parameters;
+  final keys = {'mediaId', 'expectedMedia', if (!deleting) 'label'};
+  if (p.length != keys.length ||
+      !p.keys.toSet().containsAll(keys) ||
+      p['mediaId'] is! String ||
+      (p['mediaId'] as String).trim().isEmpty ||
+      p['mediaId'] != (p['mediaId'] as String).trim() ||
+      p['expectedMedia'] is! Map) {
+    throw PresentationMediaConfigurationException(
+        'presentation_media.request_invalid',
+        'A media identity and its explicit current baseline are required.');
+  }
+  final bytes =
+      context.snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+  if (bytes == null) {
+    throw PresentationMediaConfigurationException(
+        'presentation_media.catalog_missing',
+        'The project media catalog does not exist.');
+  }
+  final catalog = decodeProjectMediaCatalogBytes(bytes);
+  final id = p['mediaId'] as String;
+  final current = catalog.find(id);
+  if (current == null) {
+    throw PresentationMediaConfigurationException('presentation_media.missing',
+        'The requested Presentation media does not exist.',
+        details: {'mediaId': id});
+  }
+  if (!const DeepCollectionEquality()
+      .equals(current.toJson(), p['expectedMedia'])) {
+    throw PresentationMediaConfigurationException(
+        'presentation_media.baseline_changed',
+        'The media changed after its baseline was read.',
+        details: {'mediaId': id});
+  }
+  ProjectMediaAsset? after;
+  if (deleting) {
+    final graph = PresentationReferenceGraph.build(
+        cinematics: context.snapshot.manifest.presentationCinematics,
+        scenes: context.snapshot.manifest.scenes,
+        mediaCatalog: catalog);
+    final deletion = graph.planDeletion(PresentationReferenceKey.media(id));
+    if (!deletion.canDelete) {
+      throw PresentationMediaConfigurationException(
+          'presentation_media.references_blocking',
+          'The media is still referenced and cannot be deleted.',
+          details: deletion.toJson());
+    }
+  } else {
+    final label = p['label'];
+    if (label is! String || label.trim().isEmpty || label != label.trim()) {
+      throw PresentationMediaConfigurationException(
+          'presentation_media.request_invalid',
+          'The media label must be nonblank and trimmed.');
+    }
+    after = ProjectMediaAsset.fromJson({...current.toJson(), 'label': label});
+    if (const DeepCollectionEquality()
+        .equals(after.toJson(), current.toJson())) {
+      return AuthoringMutationDraft(
+          changeSet: AuthoringChangeSet.noChanges(),
+          preview: {
+            'operation': context.request.actionId,
+            'mediaId': id,
+            'noOp': true
+          });
+    }
+  }
+  final updated = deleting
+      ? ProjectMediaCatalog(
+          entries: catalog.entries.where((entry) => entry.id != id))
+      : catalog.replace(after!);
+  final resource = AuthoringResourceRef(
+      kind: 'presentationMediaCatalog',
+      id: 'project',
+      revision: context
+          .snapshot.resourceFingerprints[projectMediaCatalogResourceIdentity]);
+  return AuthoringMutationDraft(
+    changeSet: AuthoringChangeSet(
+        changes: [
+          AuthoringResourceChange(
+              resource: resource,
+              storageKey: projectMediaCatalogStorageKey,
+              beforeBytes: bytes,
+              afterBytes: encodeProjectMediaCatalogBytes(updated))
+        ],
+        diff: AuthoringDiff([
+          AuthoringDiffEntry(
+              operation: deleting
+                  ? AuthoringDiffOperation.remove
+                  : AuthoringDiffOperation.replace,
+              resource: resource,
+              path: '/entries/$id',
+              before: current.toJson(),
+              after: after?.toJson())
+        ])),
+    preview: {
+      'operation': context.request.actionId,
+      'mediaId': id,
+      'sourceAssetId': current.sourceAssetId,
+      'sourceAssetRetained': true,
+      if (after != null) 'media': after.toJson()
+    },
+    referenceImpact: {
+      'mediaId': id,
+      'sourceAssetId': current.sourceAssetId,
+      'sourceAssetRetained': true
+    },
+  );
 }

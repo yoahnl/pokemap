@@ -5839,6 +5839,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
       final warp = _handleWarp(
         pendingWarp,
+        passageTransition: _world.map.warps
+            .where((candidate) => candidate.id == pendingWarp.warpId &&
+                candidate.triggerMode != MapWarpTriggerMode.sceneOnly)
+            .firstOrNull?.transition,
         allowMapActivationWork:
             _restoreFenceOwnsSource(matchingOwner?.runtimeSourceId,
         ),
@@ -16585,6 +16589,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     TriggeredWarp warp, {
     bool allowMapActivationWork = false,
     bool skipVisualTransition = false,
+    MapWarpTransition? passageTransition,
     EntityFacing? arrivalFacing,
     MovementMode? arrivalMovementMode,
     bool Function(MapInstanceWorldState? nextInstances)? transferGuard,
@@ -16611,6 +16616,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       reason: MapActivationReason.warp,
     );
     final sourceBundle = _bundle;
+    final transition = passageTransition ?? const MapWarpTransition();
     final sourceWorld = _world;
     final sourceMapId = _activeMapId;
     final sourceActivationId = _currentMapActivationId;
@@ -16627,9 +16633,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     try {
       _suspendMapResourcePrefetch();
       _clearTransientUiState(preservedWarpOwner: presentationOwner);
-      if (!skipVisualTransition) {
+      if (!skipVisualTransition && transition.type != MapWarpTransitionType.none) {
         overlay = WarpTransitionOverlayComponent(
           viewportSize: camera.viewport.size,
+          transition: transition,
         );
         camera.viewport.add(overlay);
         _warpTransitionOverlay = overlay;
@@ -16656,16 +16663,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           : sourceInstances;
       final destinationState = transitionState.copyWith(mapInstanceWorldState: nextInstances,
         currentMapId: newBundle.map.id, playerPosition: warp.targetPos);
-      final transitionSpec = _resolveWarpTransitionSpec(
-        sourceMap: sourceBundle.map,
-        targetMap: newBundle.map,
-      );
-      if (!skipVisualTransition &&
-          transitionSpec.style == _WarpTransitionStyle.fade) {
-        debugPrint(
-          '[warp] fade out durationMs=${transitionSpec.fadeOut.inMilliseconds}',
-        );
-        await overlay!.fadeOut(duration: transitionSpec.fadeOut);
+      if (overlay != null) {
+        await overlay.fadeOut();
       }
       await _prepareMapResourcesForDemand(newBundle);
       debugPrint('[warp] loading target map visuals id=${newBundle.map.id}');
@@ -16799,12 +16798,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _traceSync('warp', 'refreshWorldNpcPresence', () {
         _refreshWorldNpcPresence();
       });
-      if (!skipVisualTransition &&
-          transitionSpec.style == _WarpTransitionStyle.fade) {
-        debugPrint(
-          '[warp] fade in durationMs=${transitionSpec.fadeIn.inMilliseconds}',
-        );
-        await overlay!.fadeIn(duration: transitionSpec.fadeIn);
+      if (overlay != null) {
+        await overlay.fadeIn();
       }
       if (destinationTransferGuard?.call(activation) == false) {
         return false;
@@ -16917,30 +16912,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
     }
     return transitionCompleted;
-  }
-
-  _WarpTransitionSpec _resolveWarpTransitionSpec({
-    required MapData sourceMap,
-    required MapData targetMap,
-  }) {
-    final sourceIndoor = sourceMap.mapMetadata.isIndoor ||
-        sourceMap.mapMetadata.mapType == MapType.building ||
-        sourceMap.mapMetadata.mapType == MapType.interior ||
-        sourceMap.mapMetadata.mapType == MapType.cave ||
-        sourceMap.mapMetadata.mapType == MapType.facility;
-    final targetIndoor = targetMap.mapMetadata.isIndoor ||
-        targetMap.mapMetadata.mapType == MapType.building ||
-        targetMap.mapMetadata.mapType == MapType.interior ||
-        targetMap.mapMetadata.mapType == MapType.cave ||
-        targetMap.mapMetadata.mapType == MapType.facility;
-    final duration = sourceIndoor == targetIndoor
-        ? const Duration(milliseconds: 170)
-        : const Duration(milliseconds: 230);
-    return _WarpTransitionSpec(
-      style: _WarpTransitionStyle.fade,
-      fadeOut: duration,
-      fadeIn: duration,
-    );
   }
 
   Future<void> _recoverFromWarpFailure({

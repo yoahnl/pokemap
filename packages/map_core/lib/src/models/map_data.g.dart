@@ -486,6 +486,12 @@ _MapWarp _$MapWarpFromJson(Map<String, dynamic> json) => _MapWarp(
       : WarpTriggerPadding.fromJson(
           json['triggerPadding'] as Map<String, dynamic>,
         ),
+  door: json['door'] == null
+      ? null
+      : MapWarpDoor.fromJson(json['door'] as Map<String, dynamic>),
+  transition: json['transition'] == null
+      ? const MapWarpTransition()
+      : MapWarpTransition.fromJson(json['transition'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$MapWarpToJson(_MapWarp instance) => <String, dynamic>{
@@ -498,6 +504,8 @@ Map<String, dynamic> _$MapWarpToJson(_MapWarp instance) => <String, dynamic>{
       .map((e) => _$EntityFacingEnumMap[e]!)
       .toList(),
   'triggerPadding': instance.triggerPadding.toJson(),
+  'door': ?instance.door?.toJson(),
+  'transition': instance.transition.toJson(),
 };
 
 const _$MapWarpTriggerModeEnumMap = {
@@ -505,6 +513,32 @@ const _$MapWarpTriggerModeEnumMap = {
   MapWarpTriggerMode.onBump: 'on_bump',
   MapWarpTriggerMode.sceneOnly: 'scene_only',
 };
+
+_MapWarpDoor _$MapWarpDoorFromJson(Map<String, dynamic> json) {
+  $checkKeys(
+    json,
+    allowedKeys: const [
+      'instanceId',
+      'openAnimationIndex',
+      'closeAnimationIndex',
+      'exitPos',
+    ],
+  );
+  return _MapWarpDoor(
+    instanceId: json['instanceId'] as String,
+    openAnimationIndex: (json['openAnimationIndex'] as num).toInt(),
+    closeAnimationIndex: (json['closeAnimationIndex'] as num).toInt(),
+    exitPos: GridPos.fromJson(json['exitPos'] as Map<String, dynamic>),
+  );
+}
+
+Map<String, dynamic> _$MapWarpDoorToJson(_MapWarpDoor instance) =>
+    <String, dynamic>{
+      'instanceId': instance.instanceId,
+      'openAnimationIndex': instance.openAnimationIndex,
+      'closeAnimationIndex': instance.closeAnimationIndex,
+      'exitPos': instance.exitPos.toJson(),
+    };
 
 _WarpTriggerPadding _$WarpTriggerPaddingFromJson(Map<String, dynamic> json) =>
     _WarpTriggerPadding(

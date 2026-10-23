@@ -69,12 +69,18 @@ final class StudioSpatialPlaytest {
         slotId: 'test',
         config: project.newGame,
       );
-      if (draft.allowedAvatarCharacterIds.length == 1) {
+      final previewAvatar =
+          draft.allowedAvatarCharacterIds.contains(
+            project.settings.defaultPlayerCharacterId,
+          )
+          ? project.settings.defaultPlayerCharacterId
+          : draft.allowedAvatarCharacterIds.firstOrNull;
+      if (previewAvatar != null) {
         draft = draft
             .apply(
               NewGameDraftCommand.selectAvatar(
                 expectedRevision: draft.revision,
-                avatarCharacterId: draft.allowedAvatarCharacterIds.single,
+                avatarCharacterId: previewAvatar,
               ),
             )
             .draft;
@@ -98,7 +104,9 @@ final class StudioSpatialPlaytest {
       );
       if (committed.seed == null) {
         throw StateError(
-          'La configuration de départ est incomplète. Choisissez un héros et un starter uniques pour le test direct de la carte.',
+          draft.allowedStarterOptionIds.length > 1
+              ? 'Le test direct de la carte nécessite un starter unique. Utilisez Tester le jeu pour effectuer le choix interactif.'
+              : 'La configuration de nouvelle partie est incomplète pour le test direct de la carte.',
         );
       }
       initialState = createNewGameStateFromSeed(

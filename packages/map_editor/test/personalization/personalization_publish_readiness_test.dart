@@ -3,6 +3,16 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
 
 void main() {
+  test('title music replay blockers explain their correction in French', () {
+    final diagnostics = validateProjectPresentationProfile(const ProjectPresentationProfile(
+      branding: ProjectBrandingProfile(titleMusicEndBehavior: ProjectTitleMusicEndBehavior.replayIntro),
+    ));
+    final issues = diagnostics.map(PersonalizationReadinessIssue.fromDiagnostic).toList();
+    expect(issues.map((issue) => issue.title), ['Musique du titre manquante', 'Introduction rejouable manquante']);
+    expect(issues.first.explanation, contains('Importez'));
+    expect(issues.last.explanation, contains('relecture'));
+  });
+
   test('projects readiness for every presentation category', () {
     final profile = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(accentColor: 'purple'),

@@ -151,9 +151,7 @@ final class RuntimePlayerCoordinator {
       return _cancel(command);
     }
     if (command.action == RuntimePlayerAction.resolvePreSessionInteraction) {
-      return Future<RuntimePlayerCommandResult>.value(
-        _resolvePreSessionInteraction(command),
-      );
+      return _resolvePreSessionInteraction(command);
     }
     if (command.snapshotRevision == _snapshot.revision &&
         _snapshot.phase == RuntimePlayerPhase.saving) {
@@ -1386,9 +1384,9 @@ final class RuntimePlayerCoordinator {
     return result.draft;
   }
 
-  RuntimePlayerCommandResult _resolvePreSessionInteraction(
+  Future<RuntimePlayerCommandResult> _resolvePreSessionInteraction(
     RuntimePlayerCommand command,
-  ) {
+  ) async {
     if (command.snapshotRevision != _snapshot.revision) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
@@ -1410,6 +1408,12 @@ final class RuntimePlayerCoordinator {
     }
     final resolution = interactions.resolve(result);
     if (resolution.status == SceneInteractionResolutionStatus.accepted) {
+      if (result is SceneCancelledInteractionResult) {
+        return _cancel(RuntimePlayerCommand(
+          action: RuntimePlayerAction.cancel,
+          snapshotRevision: command.snapshotRevision,
+        ));
+      }
       _publish(
         _snapshot.next(
           clearPreSessionRequest: true,

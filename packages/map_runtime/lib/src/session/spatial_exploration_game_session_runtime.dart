@@ -280,6 +280,7 @@ final class SpatialExplorationGameSessionRuntime
     final session = _session;
     final state = _gameState;
     if (session == null || state == null) return;
+    if (session.nativeDoorTraversalActive) return;
     final movement = session.movement;
     final position = PlayerSpatialPosition(x: movement.x, z: movement.z);
     if (state.currentMapId == session.bundle.map.id &&
@@ -743,6 +744,7 @@ final class SpatialExplorationGameSessionRuntime
 
   void _onMapActivated() {
     if (_disposed || _stopped || _materializingState) return;
+    if (_session?.nativeDoorTraversalActive ?? false) return;
     _syncGameState();
     _lastCell = _gameState!.playerPosition;
     final gameplay = _gameplay;
@@ -933,6 +935,13 @@ final class SpatialExplorationGameSessionRuntime
   bool handleInput(RuntimeInputEvent event) {
     if (_disposed || _session == null) return false;
     if (event.isRelease) _pressed.remove(event.control);
+    if (!_paused && _locks.isEmpty && _session!.nativeDoorTraversalActive &&
+        event.isPress && !event.isRepeat &&
+        event.control == RuntimeInputControl.secondary) {
+      _session!.cancelPendingTransition();
+      _syncMovement();
+      return true;
+    }
     if (!_paused &&
         _locks.isEmpty &&
         _session?.storyActive.value == true &&
@@ -1028,7 +1037,7 @@ final class SpatialExplorationGameSessionRuntime
       _materializationResumed?.complete();
       _materializationResumed = null;
     }
-    _session?.dialoguePaused = paused;
+    _session?.dialoguePaused = _paused || _stopped || _locks.isNotEmpty;
     _session?.movement.setPaused(paused || talking || battling || busy,
         preserveInput: !paused && !talking && !battling);
     if (!paused && !talking && !battling && !busy) {
@@ -1063,7 +1072,8 @@ final class SpatialExplorationGameSessionRuntime
     _transferPauseEpoch++;
     _paused = true;
     _playWatch.stop();
-    if (_session?.transitioning.value ?? false) {
+    if ((_session?.transitioning.value ?? false) &&
+        !(_session?.nativeDoorTraversalActive ?? false)) {
       _session!.cancelPendingTransition();
     }
     _syncMovement();

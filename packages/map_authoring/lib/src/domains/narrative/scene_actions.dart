@@ -12,6 +12,7 @@ import 'dialogue_source_store.dart';
 import 'dialogue_source_guards.dart';
 import 'scene_party_move_catalog.dart';
 import 'narrative_action_support.dart';
+import 'presentation_publication_guards.dart';
 import 'narrative_authoring_exception.dart';
 import 'presentation_cinematic_template_actions.dart';
 import 'presentation_publication_snapshot.dart';
@@ -2011,10 +2012,10 @@ final class SceneActions {
     required String? targetFolderId,
     required int targetIndex,
   }) {
-    if (project.version != ProjectVersion.v8) {
+    if (!supportsPresentationProjectVersion(project)) {
       throw NarrativeAuthoringException(
         'scene.preSession.presentation.project_version_unsupported',
-        'Presentation create-and-link requires ProjectVersion.v8.',
+        'Presentation create-and-link requires ProjectVersion.v8 (2D) or ProjectVersion.v9 (3D).',
       );
     }
     final cinematicId = cinematic.id;

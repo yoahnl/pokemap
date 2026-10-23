@@ -79,9 +79,30 @@ class WarpEditingCommands {
         targetMapId: targetMapId,
         targetPos: targetPos,
         triggerMode: triggerMode,
+        clearDoor: triggerMode == MapWarpTriggerMode.sceneOnly,
       ),
     );
   }
+
+  void configureDoor(String id, MapWarpDoor? door) {
+    final next = updateWarpOnMap(
+      document.current,
+      warpId: id,
+      door: door,
+      clearDoor: door == null,
+    );
+    validateMapWarpDoor(
+      next,
+      next.warps.singleWhere((warp) => warp.id == id),
+      models: project.models3d,
+    );
+    document.commit(next);
+  }
+
+  void configureTransition(String id, MapWarpTransition transition) =>
+      document.commit(
+        updateWarpOnMap(document.current, warpId: id, transition: transition),
+      );
 
   void delete(String id) =>
       document.commit(removeWarpFromMap(document.current, warpId: id));

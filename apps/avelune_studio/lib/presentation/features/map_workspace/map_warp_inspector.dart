@@ -7,6 +7,8 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'map_warp_door_editor.dart';
+import 'map_warp_transition_editor.dart';
 
 class MapWarpInspector extends StatefulWidget {
   const MapWarpInspector({
@@ -247,6 +249,27 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
           Text(
             'Utilisé par une scène',
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        if (!passive && !pending) ...[
+          const SizedBox(height: 12),
+          MapWarpTransitionEditor(
+            key: ValueKey('warp-transition-$owner'),
+            warp: warp,
+            onApply: (transition) =>
+                _change(() => _commands.configureTransition(warp.id, transition)),
+          ),
+        ],
+        if (!passive &&
+            !pending &&
+            widget.document.current.spatialScene != null) ...[
+          const SizedBox(height: 12),
+          MapWarpDoorEditor(
+            map: widget.document.current,
+            project: widget.project,
+            warp: warp,
+            onApply: (door) =>
+                _change(() => _commands.configureDoor(warp.id, door)),
           ),
         ],
         const SizedBox(height: 16),

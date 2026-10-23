@@ -655,11 +655,13 @@ void main() {
       'warps load a centered arrival, preserve the session and clear held input',
       () async {
     const warp = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'out',
         pos: GridPos(x: 5, y: 4),
         targetMapId: 'other',
         targetPos: GridPos(x: 2, y: 3));
     const back = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'back',
         pos: GridPos(x: 2, y: 3),
         targetMapId: 'field',
@@ -1278,6 +1280,7 @@ void main() {
   test('blocked arrival preserves the source map and restores controls',
       () async {
     const warp = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'out',
         pos: GridPos(x: 5, y: 4),
         targetMapId: 'other',
@@ -1303,6 +1306,7 @@ void main() {
 
   test('disposal discards a late destination load', () async {
     const warp = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'out',
         pos: GridPos(x: 5, y: 4),
         targetMapId: 'other',
@@ -1322,6 +1326,7 @@ void main() {
   test('reset cannot supersede a pending passage and stop cancels its arrival',
       () async {
     const warp = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'out',
         pos: GridPos(x: 5, y: 4),
         targetMapId: 'other',
@@ -1349,6 +1354,7 @@ void main() {
 
   test('unreadable destination preserves the source session', () async {
     const warp = MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'out',
         pos: GridPos(x: 5, y: 4),
         targetMapId: 'other',
@@ -2397,6 +2403,7 @@ Future<RuntimeMapBundle> spatialWarpBundle(
     ),
   );
   const arrival = MapWarp(
+      transition: MapWarpTransition(type: MapWarpTransitionType.none),
       id: 'arrival',
       pos: GridPos(x: 2, y: 3),
       targetMapId: 'field',
@@ -2427,6 +2434,7 @@ Future<RuntimeMapBundle> spatialWarpBundle(
     ],
     warps: const [
       MapWarp(
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
         id: 'arrival',
         pos: GridPos(x: 2, y: 3),
         targetMapId: 'field',

@@ -207,6 +207,7 @@ final class SpatialMovementController {
   late PixelPosition _position;
   double _remainderX = 0, _remainderZ = 0;
   int _inputX = 0, _inputZ = 0;
+  ({int x, int z}) get inputDirection => (x: _inputX, z: _inputZ);
   bool _run = false, paused = false, moving = false;
   bool allowDiagonalMovement;
   int inputEpoch = 0;
@@ -397,6 +398,51 @@ final class SpatialMovementController {
     }
     paused = value;
     if (!preserveInput) releaseInput();
+  }
+
+  void setNativeTraversalPose(
+      {required double x,
+      required double z,
+      required EntityFacing facing,
+      required bool moving,
+      required double animationSeconds}) {
+    if (!paused ||
+        !x.isFinite ||
+        !z.isFinite ||
+        !animationSeconds.isFinite ||
+        animationSeconds < 0) {
+      throw StateError('Une traversée native doit posséder le déplacement.');
+    }
+    final targetX = (x * pixelsPerCell).round() / pixelsPerCell;
+    final targetZ = (z * pixelsPerCell).round() / pixelsPerCell;
+    if ((this.x != targetX || this.z != targetZ) &&
+        !canTraverseActor(this.x, this.z, targetX, targetZ)) {
+      throw StateError('La sortie de la porte est bloquée.');
+    }
+    _position = PixelPosition(
+        leftPx: (targetX * pixelsPerCell).round() - 16,
+        topPx: (targetZ * pixelsPerCell).round() - 31);
+    this.facing = facing;
+    this.moving = moving;
+    this.animationSeconds = animationSeconds;
+  }
+
+  void Function() captureNativeTraversalRollback() {
+    if (!paused) {
+      throw StateError('Une traversée native doit posséder le déplacement.');
+    }
+    final position = _position;
+    final originalFacing = facing;
+    final originalAnimationSeconds = animationSeconds;
+    return () {
+      if (!paused) {
+        throw StateError('Une traversée native doit posséder le déplacement.');
+      }
+      releaseInput();
+      _position = position;
+      facing = originalFacing;
+      animationSeconds = originalAnimationSeconds;
+    };
   }
 
   void setDiagonalMovement(bool value) {
@@ -687,7 +733,9 @@ final class SpatialMovementController {
       }
     }
     for (final sourceEntity in entities) {
-      final entity = entityProjection == null ? sourceEntity : entityProjection!(sourceEntity);
+      final entity = entityProjection == null
+          ? sourceEntity
+          : entityProjection!(sourceEntity);
       if (entity == null || !entity.blocksMovement) continue;
       if (entity.id == ignoredEntityId) continue;
       if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;

@@ -367,7 +367,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         child: Text(
           _spatial == null
               ? 'Cliquez dans la carte · flèches pour marcher · Entrée pour interagir'
-              : 'Cliquez dans la carte · flèches / ZQSD pour marcher · Maj pour courir · Entrée pour interagir · Échap pour interrompre la scène',
+              : 'Cliquez dans la carte · flèches / ZQSD pour marcher · Maj pour courir · Entrée pour interagir · Échap pour interrompre l’action en cours',
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),

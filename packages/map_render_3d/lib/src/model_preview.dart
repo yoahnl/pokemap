@@ -12,6 +12,7 @@ import 'package:flutter/widgets.dart';
 import 'model_byte_loader.dart';
 import 'adaptive_camera.dart';
 import 'flutter_frame_graphics_device.dart';
+import 'spatial_render_context.dart';
 import 'model_playback.dart';
 
 class ModelPreviewController extends ChangeNotifier {
@@ -145,6 +146,9 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   static Future<void>? _initialization;
   @override
   late final GraphicsDevice device = FlutterFrameGraphicsDevice();
+
+  @override
+  late final RenderContext3D context = SpatialRenderContext(device);
 
   _ModelPreviewGame(
     this.bytes,

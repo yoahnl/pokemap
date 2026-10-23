@@ -2,6 +2,8 @@ import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_layer.dart';
+import '../models/project_model3d.dart';
 
 MapWarp createMapWarp(
   MapData map, {
@@ -12,6 +14,8 @@ MapWarp createMapWarp(
   GridPos? targetPos,
   List<EntityFacing> allowedApproachFacings = const [],
   WarpTriggerPadding triggerPadding = const WarpTriggerPadding(),
+  MapWarpDoor? door,
+  MapWarpTransition transition = const MapWarpTransition(),
 }) {
   final passive = triggerMode == MapWarpTriggerMode.sceneOnly;
   if (passive) {
@@ -29,6 +33,8 @@ MapWarp createMapWarp(
     triggerMode: triggerMode,
     allowedApproachFacings: allowedApproachFacings,
     triggerPadding: triggerPadding,
+    door: door,
+    transition: transition,
   );
   _validateWarp(map, warp, duplicateIdLabel: 'Warp ID already exists');
   return warp;
@@ -58,6 +64,9 @@ MapData updateWarpOnMap(
   MapWarpTriggerMode? triggerMode,
   List<EntityFacing>? allowedApproachFacings,
   WarpTriggerPadding? triggerPadding,
+  MapWarpDoor? door,
+  bool clearDoor = false,
+  MapWarpTransition? transition,
 }) {
   final index = map.warps.indexWhere((warp) => warp.id == warpId);
   if (index < 0) {
@@ -75,6 +84,18 @@ MapData updateWarpOnMap(
       'Activating a scene-only point requires an explicit destination',
     );
   }
+  final currentDoor = current.door;
+  final nextDoor = clearDoor
+      ? null
+      : door ??
+            (currentDoor == null
+                ? null
+                : currentDoor.copyWith(
+                    exitPos: GridPos(
+                      x: currentDoor.exitPos.x + nextPos.x - current.pos.x,
+                      y: currentDoor.exitPos.y + nextPos.y - current.pos.y,
+                    ),
+                  ));
   final next = current.copyWith(
     id: id?.trim() ?? current.id,
     pos: nextPos,
@@ -84,6 +105,8 @@ MapData updateWarpOnMap(
     allowedApproachFacings:
         allowedApproachFacings ?? current.allowedApproachFacings,
     triggerPadding: triggerPadding ?? current.triggerPadding,
+    door: nextDoor,
+    transition: transition ?? current.transition,
   );
   _validateWarp(
     map,
@@ -116,6 +139,17 @@ void _validateWarp(
   required String duplicateIdLabel,
 }) {
   final id = warp.id.trim();
+  validateMapWarpTransition(warp.transition);
+  validateMapWarpDoor(
+    excludedWarpId == null
+        ? map
+        : map.copyWith(
+            warps: map.warps
+                .where((entry) => entry.id != excludedWarpId)
+                .toList(),
+          ),
+    warp,
+  );
   if (id.isEmpty) {
     throw const ValidationException('Warp ID cannot be empty');
   }
@@ -150,6 +184,118 @@ void _validateWarp(
     if (!seen.add(facing)) {
       throw ValidationException(
         'Warp $id has duplicate allowed approach facing: ${facing.name}',
+      );
+    }
+  }
+}
+
+void validateMapWarpTransition(MapWarpTransition transition) {
+  if (!transition.durationSeconds.isFinite || transition.durationSeconds <= 0 ||
+      transition.durationSeconds > 5) {
+    throw const ValidationException('La transition doit durer plus de zéro et au plus cinq secondes.',
+        code: 'warp.transition_invalid_duration');
+  }
+}
+
+void validateMapWarpDoor(
+  MapData map,
+  MapWarp warp, {
+  Iterable<ProjectModel3dEntry>? models,
+}) {
+  final door = warp.door;
+  if (door == null) return;
+  Never invalid(String code, String message) => throw ValidationException(
+    message,
+    code: code,
+    details: {'mapId': map.id, 'warpId': warp.id},
+  );
+  final scene = map.spatialScene;
+  if (scene == null || warp.triggerMode == MapWarpTriggerMode.sceneOnly) {
+    invalid(
+      'warp.door_requires_active_3d_warp',
+      'Une porte native nécessite un passage actif sur une carte 3D.',
+    );
+  }
+  if (door.instanceId.trim().isEmpty ||
+      door.instanceId != door.instanceId.trim() ||
+      door.openAnimationIndex < 0 ||
+      door.closeAnimationIndex < 0) {
+    invalid(
+      'warp.door_invalid_binding',
+      'Choisissez un décor et des animations de porte valides.',
+    );
+  }
+  if (!_isInBounds(door.exitPos, map.size) ||
+      (door.exitPos.x - warp.pos.x).abs() +
+              (door.exitPos.y - warp.pos.y).abs() !=
+          1) {
+    invalid(
+      'warp.door_invalid_exit',
+      'La sortie de porte doit être une case voisine, au nord, au sud, à l’est ou à l’ouest, dans la carte.',
+    );
+  }
+  final exitIndex = door.exitPos.y * map.size.width + door.exitPos.x;
+  if (map.layers.whereType<CollisionLayer>().any(
+    (layer) =>
+        exitIndex < layer.collisions.length && layer.collisions[exitIndex],
+  )) {
+    invalid(
+      'warp.door_blocked_exit',
+      'La case de sortie de porte est bloquée.',
+    );
+  }
+  if (scene.navigation.blockedAreas.any(
+    (area) => area.contains(door.exitPos.x + .5, door.exitPos.y + .5),
+  )) {
+    invalid(
+      'warp.door_blocked_exit',
+      'La case de sortie de porte est bloquée.',
+    );
+  }
+  if (map.warps
+      .where((other) => other.pos == warp.pos && other.door != null)
+      .where((other) => other.id != warp.id)
+      .isNotEmpty) {
+    invalid(
+      'warp.door_ambiguous',
+      'Cette position contient plusieurs portes : conservez un seul passage de porte à cet endroit.',
+    );
+  }
+  final instances = scene.instances
+      .where((instance) => instance.id == door.instanceId)
+      .toList();
+  if (instances.length != 1 || instances.single.clip != null) {
+    invalid(
+      'warp.door_instance_invalid',
+      'Le décor de porte est introuvable, dupliqué ou découpé. Choisissez un décor 3D complet de cette carte.',
+    );
+  }
+  if (instances.single.animationIndex != null) {
+    invalid(
+      'warp.door_ambient_animation',
+      'Désactivez la lecture automatique sur ce décor avant de le lier à une porte.',
+    );
+  }
+  if (models == null) return;
+  final matchingModels = models
+      .where((model) => model.id == instances.single.modelId)
+      .toList();
+  if (matchingModels.length != 1) {
+    invalid(
+      'warp.door_model_missing',
+      'Le modèle du décor de porte est introuvable ou dupliqué dans la bibliothèque.',
+    );
+  }
+  for (final index in [door.openAnimationIndex, door.closeAnimationIndex]) {
+    final clips = matchingModels.single.inspection.animations
+        .where((clip) => clip.index == index)
+        .toList();
+    if (clips.length != 1 ||
+        !clips.single.durationSeconds.isFinite ||
+        clips.single.durationSeconds <= 0) {
+      invalid(
+        'warp.door_clip_invalid',
+        'Une animation de porte est absente ou sans durée. Choisissez les animations d’ouverture et de fermeture du modèle.',
       );
     }
   }

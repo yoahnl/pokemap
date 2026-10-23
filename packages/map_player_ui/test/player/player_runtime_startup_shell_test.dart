@@ -717,6 +717,28 @@ void main() {
     );
   });
 
+  testWidgets('title prompt uses authored title copy without host branding',
+      (tester) async {
+    await tester.pumpWidget(_app(PlayerRuntimeStartupShell(
+      branding: branding,
+      snapshot: _startup(RuntimeStartupPhase.titlePrompt, player: _titlePlayer()),
+      titlePresentation: const RuntimePlayerTitlePresentation(
+        title: 'Le voyage', author: 'Équipe du voyage',
+        description: 'Appuyez pour voyager',
+      ),
+      onStartupCommand: (_) {}, onPlayerCommand: _acceptPlayerCommand,
+      onIntroPlaybackCompleted: (_) {}, onIntroPlaybackFailed: (_, _) {},
+    )));
+    final surface = tester.widget<PlayerTitlePromptSurface>(
+      find.byType(PlayerTitlePromptSurface),
+    );
+    expect(surface.gameTitle, 'Le voyage');
+    expect(find.text('ÉQUIPE DU VOYAGE'), findsOneWidget);
+    expect(find.text('Appuyez pour voyager'), findsOneWidget);
+    expect(find.text(branding.signature.toUpperCase()), findsNothing);
+    expect(find.text(branding.displayName.toUpperCase()), findsNothing);
+  });
+
   testWidgets('preserves authored cinematic layout in the startup menu',
       (tester) async {
     await tester.pumpWidget(
@@ -928,6 +950,75 @@ void main() {
     );
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     expect(commands, isEmpty);
+  });
+
+  testWidgets('intro takes focus from a previously focused host close button', (
+    tester,
+  ) async {
+    var closed = 0;
+    final commands = <RuntimeStartupCommand>[];
+    final pauseGate = Completer<void>()..complete();
+    final driver = _GatePlaybackDriver(pauseGate);
+    Widget host({required bool intro}) => _app(
+      Scaffold(
+        body: Column(
+          children: [
+            OutlinedButton(
+              autofocus: true,
+              onPressed: () => closed++,
+              child: const Text('Retour à Studio'),
+            ),
+            Expanded(
+              child: intro
+                  ? PlayerRuntimeStartupShell(
+                      branding: branding,
+                      snapshot: _startup(
+                        RuntimeStartupPhase.intro,
+                        introPhase: RuntimeIntroPhase.playing,
+                      ),
+                      titlePresentation: presentation,
+                      introSource: PlayerIntroVideoSource(
+                        videoUri: Uri.parse('file:///installed/intro.mp4'),
+                      ),
+                      introDriverFactory: (_) => driver,
+                      onStartupCommand: commands.add,
+                      onPlayerCommand: _acceptPlayerCommand,
+                      onIntroPlaybackCompleted: (_) {},
+                      onIntroPlaybackFailed: (_, _) {},
+                    )
+                  : const SizedBox(),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpWidget(host(intro: false));
+    await tester.pump();
+    final before = FocusManager.instance.primaryFocus?.context;
+    expect(before?.findAncestorWidgetOfExactType<OutlinedButton>(), isNotNull);
+    await tester.pumpWidget(host(intro: true));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(
+      closed,
+      0,
+      reason: 'the new intro owns Enter after the asynchronous startup mounts',
+    );
+    expect(commands, hasLength(1));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(closed, 0);
+    expect(commands, hasLength(1));
+    expect(commands.single.action, RuntimeStartupAction.skipIntro);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    final after = FocusManager.instance.primaryFocus?.context;
+    expect(after?.findAncestorWidgetOfExactType<OutlinedButton>(), isNotNull,
+      reason: 'deliberate traversal must still reach the host close control');
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(closed, 1);
   });
 
   testWidgets('host stop bridge awaits the active intro pause', (tester) async {

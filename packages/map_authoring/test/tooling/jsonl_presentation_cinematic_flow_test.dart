@@ -7,6 +7,300 @@ import 'package:test/test.dart';
 
 void main() {
   test(
+      'title music replay policy is discoverable and rejects invalid direct and JSONL updates',
+      () async {
+    final harness = await _Harness.create('title-music-replay');
+    addTearDown(harness.dispose);
+    final description = await harness._jsonl('describe', {});
+    final kinds = description['resourceKinds'] as List;
+    final kind = kinds
+        .cast<Map>()
+        .singleWhere((value) => value['id'] == 'projectPresentationProfile');
+    expect((kind['extensions'] as Map)['titleMusicEndBehavior'], {
+      'field': 'branding.titleMusicEndBehavior',
+      'values': ['loop', 'replayIntro'],
+      'default': 'loop',
+      'replayIntroRequires': ['branding.titleMusicPath', 'intro.allowReplay'],
+      'trigger': 'naturalAudioCompletion',
+      'eligibleSurface': 'titlePrompt',
+    });
+    final opened =
+        await harness._jsonl('open', {'projectRoot': harness.root.path});
+    final project = ProjectHandle(opened['projectHandle'] as String);
+    final snapshot = await harness.snapshots.load(project);
+    final request = AuthoringRequest(
+        requestId: 'replay-invalid',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: opened['workspaceHandle'] as String,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'replay-invalid',
+        parameters: {
+          'profile': {
+            'branding': {'titleMusicEndBehavior': 'replayIntro'}
+          }
+        });
+    await expectLater(
+        harness.mutations.plan(project, request),
+        throwsA(isA<PresentationAuthoringException>()
+            .having((e) => e.code, 'code', 'presentation.validation_failed')));
+    final result = await harness._jsonlResult(
+        'plan', {'projectHandle': project.value, 'request': request.toJson()});
+    expect(result.error?.code, AuthoringErrorCode.validationFailed);
+    expect(
+        (result.error?.details['diagnostics'] as List)
+            .map((value) => (value as Map)['code']),
+        containsAll([
+          'titleMusicReplayRequiresMusic',
+          'titleMusicReplayRequiresIntro'
+        ]));
+  });
+
+  test('title music replay policy survives direct and JSONL apply reload',
+      () async {
+    for (final jsonl in [false, true]) {
+      final harness =
+          await _Harness.create('title-music-${jsonl ? 'jsonl' : 'direct'}');
+      addTearDown(harness.dispose);
+      final assets = <AssetRecord>[];
+      for (final entry in [
+        ('music', 'ogg', 'audio/ogg'),
+        ('intro', 'mp4', 'video/mp4'),
+        ('poster', 'png', 'image/png')
+      ]) {
+        final bytes = entry.$1.codeUnits;
+        final artifact =
+            ContentArtifactRef.fromBytes(bytes, mediaType: entry.$3);
+        final blob =
+            File('${harness.root.path}/${assetBlobStorageKey(artifact)}');
+        await blob.parent.create(recursive: true);
+        await blob.writeAsBytes(bytes);
+        assets.add(AssetRecord(
+            id: entry.$1,
+            logicalPath: 'presentation/${entry.$1}.${entry.$2}',
+            artifact: artifact));
+      }
+      await File('${harness.root.path}/$assetCatalogStorageKey')
+          .writeAsString(jsonEncode(AssetCatalog(records: assets).toJson()));
+      final opened =
+          await harness._jsonl('open', {'projectRoot': harness.root.path});
+      final project = ProjectHandle(opened['projectHandle'] as String);
+      final snapshot = await harness.snapshots.load(project);
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(
+            titleMusicPath: 'presentation/music.ogg',
+            titleMusicEndBehavior: ProjectTitleMusicEndBehavior.replayIntro),
+        intro: ProjectIntroVideoProfile(
+            media: ProjectResponsiveVideoProfile(
+                landscape: ProjectVideoVariantProfile(
+                    videoPath: 'presentation/intro.mp4',
+                    posterPath: 'presentation/poster.png',
+                    durationMilliseconds: 6000,
+                    width: 1920,
+                    height: 1080,
+                    bitrateKbps: 4000,
+                    sizeBytes: 3,
+                    videoCodec: 'h264'))),
+      );
+      final request = AuthoringRequest(
+          requestId: 'music-replay',
+          actionId: 'presentation.update',
+          actionVersion: 1,
+          workspaceHandle: opened['workspaceHandle'] as String,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: 'music-replay',
+          parameters: {'profile': profile.toJson()});
+      if (jsonl) {
+        final plan = await harness._jsonl('plan',
+            {'projectHandle': project.value, 'request': request.toJson()});
+        await harness._jsonl('apply', {
+          'projectHandle': project.value,
+          'planId': plan['planId'],
+          'operationId': 'music-replay'
+        });
+      } else {
+        final plan = await harness.mutations.plan(project, request);
+        await harness.mutations.apply(project,
+            planId: plan['planId'] as String, operationId: 'music-replay');
+      }
+      expect((await harness.snapshots.load(project)).manifest.presentation,
+          profile);
+    }
+  });
+
+  test(
+    'title loop duration bounds agree through direct and JSONL plans',
+    () async {
+      final harness = await _Harness.create('title-loop-duration');
+      addTearDown(harness.dispose);
+      final assets = <AssetRecord>[];
+      for (final entry in [
+        ('video', 'mp4', 'video/mp4'),
+        ('poster', 'png', 'image/png'),
+      ]) {
+        final bytes = entry.$1 == 'video' ? [1, 2, 3] : [4, 5, 6];
+        final artifact = ContentArtifactRef.fromBytes(
+          bytes,
+          mediaType: entry.$3,
+        );
+        final blob = File(
+          '${harness.root.path}/${assetBlobStorageKey(artifact)}',
+        );
+        await blob.parent.create(recursive: true);
+        await blob.writeAsBytes(bytes);
+        assets.add(
+          AssetRecord(
+            id: entry.$1,
+            logicalPath: 'presentation/${entry.$1}.${entry.$2}',
+            artifact: artifact,
+          ),
+        );
+      }
+      final catalog = File('${harness.root.path}/$assetCatalogStorageKey');
+      await catalog.writeAsString(
+        jsonEncode(AssetCatalog(records: assets).toJson()),
+      );
+      final opened = await harness._jsonl('open', {
+        'projectRoot': harness.root.path,
+      });
+      final project = ProjectHandle(opened['projectHandle']! as String);
+      final snapshot = await harness.snapshots.load(project);
+      final before = await harness._projectBytes();
+      for (final (duration, size) in [
+        (30000, 64 * 1024 * 1024),
+        (90000, 64 * 1024 * 1024),
+        (120000, 64 * 1024 * 1024),
+        (120001, 64 * 1024 * 1024),
+        (90000, 64 * 1024 * 1024 + 1),
+      ]) {
+        final accepted = duration <= 120000 && size <= 64 * 1024 * 1024;
+        final variant = ProjectVideoVariantProfile(
+          videoPath: 'presentation/video.mp4',
+          posterPath: 'presentation/poster.png',
+          durationMilliseconds: duration,
+          width: 1920,
+          height: 1080,
+          bitrateKbps: 10000,
+          sizeBytes: size,
+          videoCodec: 'h264',
+        );
+        final profile = ProjectPresentationProfile(
+          titleMotion: ProjectTitleMotionProfile(
+            promptLoop: ProjectResponsiveVideoProfile(landscape: variant),
+            menuLoop: ProjectResponsiveVideoProfile(landscape: variant),
+          ),
+        );
+        final request = AuthoringRequest(
+          requestId: 'title-loop-$duration-$size',
+          actionId: 'presentation.update',
+          actionVersion: 1,
+          workspaceHandle: opened['workspaceHandle']! as String,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: 'title-loop-$duration-$size',
+          dryRun: false,
+          parameters: {'profile': profile.toJson()},
+        );
+        if (accepted) {
+          expect(
+            (await harness.mutations.plan(project, request))['applicable'],
+            isTrue,
+          );
+        } else {
+          await expectLater(
+            harness.mutations.plan(project, request),
+            throwsA(
+              isA<PresentationAuthoringException>().having(
+                (error) => error.code,
+                'code',
+                'presentation.validation_failed',
+              ),
+            ),
+          );
+        }
+        final result = await harness._jsonlResult('plan', {
+          'projectHandle': project.value,
+          'request': request.toJson(),
+        });
+        if (accepted) {
+          expect(result.status, AuthoringResultStatus.success);
+          expect(result.data['applicable'], isTrue);
+        } else {
+          expect(result.error?.code, AuthoringErrorCode.validationFailed);
+          final diagnostics = result.error!.details['diagnostics']! as List;
+          expect(diagnostics.map((value) => (value as Map)['code']), containsAll(duration > 120000 ? ['titleLoopDurationExceeded', 'titleLoopDurationExceeded'] : ['titleLoopSizeExceeded', 'titleLoopSizeExceeded', 'titleMotionCombinedSizeExceeded']));
+        }
+        expect(await harness._projectBytes(), before);
+      }
+    },
+  );
+
+  test('profile bitrate rejection preserves direct and JSONL diagnostics',
+      () async {
+    final harness = await _Harness.create('invalid-profile-bitrate');
+    addTearDown(harness.dispose);
+    final opened =
+        await harness._jsonl('open', {'projectRoot': harness.root.path});
+    final project = ProjectHandle(opened['projectHandle']! as String);
+    final snapshot = await harness.snapshots.load(project);
+    final before = await harness._projectBytes();
+    const profile = ProjectPresentationProfile(
+      intro: ProjectIntroVideoProfile(
+        media: ProjectResponsiveVideoProfile(
+          landscape: ProjectVideoVariantProfile(
+            videoPath: 'presentation/private-intro.mp4',
+            posterPath: 'presentation/private-poster.png',
+            durationMilliseconds: 6000,
+            width: 1920,
+            height: 1080,
+            bitrateKbps: 12448,
+            sizeBytes: 4000000,
+            videoCodec: 'h264',
+          ),
+        ),
+      ),
+    );
+    final request = AuthoringRequest(
+      requestId: 'invalid-profile-bitrate',
+      actionId: 'presentation.update',
+      actionVersion: 1,
+      workspaceHandle: opened['workspaceHandle']! as String,
+      expectedRevision: snapshot.revision,
+      idempotencyKey: 'invalid-profile-bitrate',
+      parameters: {'profile': profile.toJson()},
+    );
+    late PresentationAuthoringException direct;
+    try {
+      await harness.mutations.plan(project, request);
+      fail('The invalid profile must be rejected.');
+    } on PresentationAuthoringException catch (error) {
+      direct = error;
+    }
+    expect(direct.code, 'presentation.validation_failed');
+    final diagnostics = direct.details['diagnostics']! as List;
+    expect(
+        diagnostics
+            .where((value) => (value as Map)['code'] == 'introBitrateExceeded')
+            .single,
+        {
+          'code': 'introBitrateExceeded',
+          'path': r'$.presentation.intro.media.landscape.bitrateKbps',
+          'severity': 'error',
+        });
+    final result = await harness._jsonlResult('plan', {
+      'projectHandle': project.value,
+      'request': request.toJson(),
+    });
+    expect(result.status, AuthoringResultStatus.failure);
+    expect(result.error?.code, AuthoringErrorCode.validationFailed);
+    expect(result.error?.message, direct.message);
+    expect(result.error?.details['domainCode'], direct.code);
+    expect(result.error?.details['diagnostics'], direct.details['diagnostics']);
+    expect(result.error?.retryable, isFalse);
+    expect(await harness._projectBytes(), before);
+    expect(jsonEncode(result.toJson()), isNot(contains(harness.root.path)));
+  });
+
+  test(
       'quests and profile presentation updates survive JSONL plan apply and reload',
       () async {
     final harness = await _Harness.create('pause-actions');

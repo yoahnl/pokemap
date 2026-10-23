@@ -47,6 +47,11 @@ void main() {
         expect(destinations, ['map']);
         await tester.tap(find.byKey(const ValueKey('home-tool-regionalMap')));
         expect(destinations, ['map', 'regionalMap']);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('home-tool-testGame')),
+        );
+        await tester.tap(find.byKey(const ValueKey('home-tool-testGame')));
+        expect(destinations, ['map', 'regionalMap', 'testGame']);
         expect(tester.takeException(), isNull);
       },
     );

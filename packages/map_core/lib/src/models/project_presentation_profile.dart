@@ -19,6 +19,8 @@ enum ProjectPresentationCategory { branding, intro, typography, theme, layouts }
 
 enum ProjectPresentationDiagnosticSeverity { warning, error }
 
+enum ProjectTitleMusicEndBehavior { loop, replayIntro }
+
 enum ProjectTypographyRole { display, body, dialogue, numbers, combat }
 
 @freezed
@@ -42,6 +44,8 @@ abstract class ProjectBrandingProfile with _$ProjectBrandingProfile {
     @JsonKey(includeIfNull: false) String? heroPath,
     @JsonKey(includeIfNull: false) String? accentColor,
     @JsonKey(includeIfNull: false) String? titleMusicPath,
+    @Default(ProjectTitleMusicEndBehavior.loop)
+    ProjectTitleMusicEndBehavior titleMusicEndBehavior,
     @Default('standard') String layoutVariant,
   }) = _ProjectBrandingProfile;
 
@@ -597,9 +601,9 @@ const int projectIntroVideoMaxHeight = 1080;
 const int projectIntroVideoMaxBitrateKbps = 12000;
 const int projectIntroVideoMaxSizeBytes = 100 * 1024 * 1024;
 const int projectIntroResponsiveMaxSizeBytes = 160 * 1024 * 1024;
-const int projectTitleLoopMaxDurationMilliseconds = 15000;
-const int projectTitleLoopMaxSizeBytes = 24 * 1024 * 1024;
-const int projectTitleMotionMaxSizeBytes = 96 * 1024 * 1024;
+const int projectTitleLoopMaxDurationMilliseconds = 120000;
+const int projectTitleLoopMaxSizeBytes = 64 * 1024 * 1024;
+const int projectTitleMotionMaxSizeBytes = 128 * 1024 * 1024;
 const int projectPresentationMediaMaxSizeBytes = 220 * 1024 * 1024;
 
 const Set<String> supportedProjectTitleLayoutVariants = <String>{
@@ -696,6 +700,34 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
           severity: ProjectPresentationDiagnosticSeverity.error,
           path: r'$.presentation.branding.' + asset.field,
           message: 'Choose a file located inside the project.',
+        ),
+      );
+    }
+  }
+
+  if (branding.titleMusicEndBehavior ==
+      ProjectTitleMusicEndBehavior.replayIntro) {
+    if (branding.titleMusicPath == null) {
+      diagnostics.add(
+        const ProjectPresentationDiagnostic(
+          code: 'titleMusicReplayRequiresMusic',
+          category: ProjectPresentationCategory.branding,
+          severity: ProjectPresentationDiagnosticSeverity.error,
+          path: r'$.presentation.branding.titleMusicEndBehavior',
+          message:
+              'Choose title music before replaying the introduction at its end.',
+        ),
+      );
+    }
+    if (profile.intro?.allowReplay != true) {
+      diagnostics.add(
+        const ProjectPresentationDiagnostic(
+          code: 'titleMusicReplayRequiresIntro',
+          category: ProjectPresentationCategory.branding,
+          severity: ProjectPresentationDiagnosticSeverity.error,
+          path: r'$.presentation.branding.titleMusicEndBehavior',
+          message:
+              'Choose an introduction and allow replay before using this ending behavior.',
         ),
       );
     }
@@ -1949,7 +1981,8 @@ void _validateTitleMotion(
       'titleMotionCombinedSizeExceeded',
       ProjectPresentationCategory.branding,
       r'$.presentation.titleMotion',
-      'All title and menu loops must total at most 96 MiB.',
+      'All title and menu loops must total at most '
+      '${projectTitleMotionMaxSizeBytes ~/ (1024 * 1024)} MiB.',
     );
   }
 }

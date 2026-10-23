@@ -141,6 +141,46 @@ void main() {
     expect(changed?.title?.actions, actions);
   });
 
+  testWidgets('persists the title music ending choice through the profile', (
+    tester,
+  ) async {
+    ProjectPresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationTitleInspector(
+            profile: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(titleMusicPath: 'title.ogg'),
+            ),
+            projectName: 'Test',
+            projectRootPath: '',
+            onChanged: (value) => changed = value,
+            onImportImage: (_) {},
+            onRemoveImage: (_) {},
+            onEditAccent: () {},
+            onResetAccent: () {},
+            onImportTitleMusic: () {},
+            onToggleTitleMusicPreview: () {},
+            onRemoveTitleMusic: () {},
+            onImportMotion: (_) {},
+            onRemoveMotion: (_) {},
+          ),
+        ),
+      ),
+    );
+    final field = find.byKey(
+      const ValueKey<String>('branding-title-music-end-behavior'),
+    );
+    expect(field, findsOneWidget);
+    await tester.ensureVisible(field);
+    await tester.tap(field);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rejouer l’introduction').last);
+    await tester.pumpAndSettle();
+    expect(changed?.branding.toJson()['titleMusicEndBehavior'], 'replayIntro');
+    expect(ProjectPresentationProfile.fromJson(changed!.toJson()), changed);
+  });
+
   testWidgets('offers three guided title compositions', (tester) async {
     ProjectPresentationProfile? changed;
     await tester.pumpWidget(

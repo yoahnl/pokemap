@@ -19,6 +19,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
     this.onReplayIntro,
     this.eyebrow,
     this.footer,
+    this.prompt,
   });
 
   final String gameTitle;
@@ -29,11 +30,13 @@ class PlayerTitlePromptSurface extends StatelessWidget {
   final VoidCallback? onReplayIntro;
   final String? eyebrow;
   final String? footer;
+  final String? prompt;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final strings = PlayerStartupStrings.of(context);
+    final startPrompt = prompt ?? strings.pressStart;
     final onMedia = colors.background.computeLuminance() >=
             colors.textPrimary.computeLuminance()
         ? colors.background
@@ -47,7 +50,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
         autofocus: true,
         child: Semantics(
           button: true,
-          label: '$gameTitle. ${strings.pressStart}',
+          label: '$gameTitle. $startPrompt',
           onTap: onStart,
           child: GestureDetector(
             key: const ValueKey<String>('player-title-prompt-hit-area'),
@@ -227,7 +230,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                             ),
                                             Flexible(
                                               child: Text(
-                                                strings.pressStart,
+                                                startPrompt,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: Theme.of(context)
                                                     .textTheme

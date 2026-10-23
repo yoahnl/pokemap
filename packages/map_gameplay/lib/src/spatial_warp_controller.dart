@@ -17,6 +17,48 @@ final class SpatialWarpController {
   late Set<MapWarp> _arrivalSuppressed;
   Set<MapWarp> _bumped = {};
 
+  MapWarp? candidateDoorApproach({
+    required double x,
+    required double z,
+    required EntityFacing facing,
+    required int inputX,
+    required int inputZ,
+  }) {
+    if (!x.isFinite || !z.isFinite || x < 0 || z < 0 ||
+        x >= map.size.width || z >= map.size.height ||
+        inputX.abs() + inputZ.abs() != 1) {
+      return null;
+    }
+    final direction = switch (facing) {
+      EntityFacing.north => (0, -1),
+      EntityFacing.south => (0, 1),
+      EntityFacing.east => (1, 0),
+      EntityFacing.west => (-1, 0),
+    };
+    if (direction.$1 != inputX || direction.$2 != inputZ) return null;
+    final approach = switch (facing) {
+      EntityFacing.north => EntityFacing.south,
+      EntityFacing.south => EntityFacing.north,
+      EntityFacing.east => EntityFacing.west,
+      EntityFacing.west => EntityFacing.east,
+    };
+    for (final warp in map.warps) {
+      final door = warp.door;
+      if (door == null || warp.triggerMode == MapWarpTriggerMode.sceneOnly ||
+          _arrivalSuppressed.contains(warp) ||
+          (warp.allowedApproachFacings.isNotEmpty &&
+              !warp.allowedApproachFacings.contains(approach))) {
+        continue;
+      }
+      if (x.floor() == door.exitPos.x && z.floor() == door.exitPos.y &&
+          warp.pos.x - door.exitPos.x == inputX &&
+          warp.pos.y - door.exitPos.y == inputZ) {
+        return warp;
+      }
+    }
+    return null;
+  }
+
   MapWarp? update({
     required double x,
     required double z,

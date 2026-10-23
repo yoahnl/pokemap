@@ -108,6 +108,14 @@ final class RuntimeStartupCoordinator {
       );
     }
     _playerSubscription = _player.snapshots.listen(_onPlayerSnapshot);
+    _titleMusicSubscription = _titleMusic.completions.listen((_) {
+      if (_disposed ||
+          _reducedMotion ||
+          _effectivePhase != RuntimeStartupPhase.titlePrompt)
+        return;
+      _titleMusicReplayPending = true;
+      _tryReplayAfterMusicEnd();
+    });
   }
 
   final RuntimePlayerCoordinator _player;
@@ -131,6 +139,9 @@ final class RuntimeStartupCoordinator {
   final StreamController<RuntimeStartupSnapshot> _snapshots =
       StreamController<RuntimeStartupSnapshot>.broadcast();
   late final StreamSubscription<RuntimePlayerSnapshot> _playerSubscription;
+
+  late final StreamSubscription<void> _titleMusicSubscription;
+  bool _titleMusicReplayPending = false;
 
   RuntimeStartupSnapshot _snapshot;
   RuntimeStartupPreparation? _activePreparation;
@@ -336,6 +347,7 @@ final class RuntimeStartupCoordinator {
       await _titleMusic.update(
         path: _titleMusicAsset?.playbackLocation,
         titleVisible: true,
+        endBehavior: _titleMusicEndBehavior,
       );
       _publishDesiredPhase(
         RuntimeStartupPhase.titleMenu,
@@ -346,8 +358,7 @@ final class RuntimeStartupCoordinator {
   }
 
   Future<RuntimeStartupCommandResult> _requestBack(
-    int snapshotRevision,
-  ) async {
+    int snapshotRevision) async {
     switch (_snapshot.phase) {
       case RuntimeStartupPhase.preparing ||
             RuntimeStartupPhase.splash ||
@@ -436,6 +447,7 @@ final class RuntimeStartupCoordinator {
         introPhase: _intro.phase,
       ),
     );
+    _tryReplayAfterMusicEnd();
   }
 
   Future<void> dispose() async {
@@ -447,6 +459,7 @@ final class RuntimeStartupCoordinator {
     _initialMapPreloadPort.clear();
     _activeAttempt = null;
     await _playerSubscription.cancel();
+    await _titleMusicSubscription.cancel();
     await _stopIntroSafely();
     _intro.skip();
     await _splashJingle.dispose();
@@ -472,6 +485,7 @@ final class RuntimeStartupCoordinator {
     _preparationReadyObserved = false;
     _pendingSplashExit = null;
     _titleMusicAsset = null;
+    _titleMusicReplayPending = false;
     _resumePhase = null;
     _publish(
       _snapshot.next(
@@ -713,8 +727,8 @@ final class RuntimeStartupCoordinator {
     final assets = await Future.wait<
         RuntimeResolvedAsset?>(<Future<RuntimeResolvedAsset?>>[
       video,
-      poster,
-    ]);
+      poster],
+    );
     attempt.introVideo = assets[0];
     attempt.introPoster = assets[1];
     final diagnostics = <RuntimeStartupDiagnostic>[];
@@ -788,7 +802,8 @@ final class RuntimeStartupCoordinator {
       promptPoster,
       menuVideo,
       menuPoster,
-    ]);
+    ],
+    );
     attempt.menuBackground =
         switch (attempt.profile?.pause?.background?.imagePath) {
       final String path => await _resolveImageSafely(path),
@@ -806,7 +821,9 @@ final class RuntimeStartupCoordinator {
         attempt.menuBackground == null) {
       diagnostics.add(const RuntimeStartupDiagnostic(
           code: 'menuBackgroundUnavailable',
-          safeMessage: 'Le fond du menu est indisponible.'));
+          safeMessage: 'Le fond du menu est indisponible.',
+        ),
+      );
     }
     if (branding.titleMusicPath != null && attempt.titleMusic == null) {
       diagnostics.add(
@@ -1093,6 +1110,26 @@ final class RuntimeStartupCoordinator {
         : _cancelled();
   }
 
+  ProjectTitleMusicEndBehavior get _titleMusicEndBehavior =>
+      _snapshot.presentation?.profile?.branding.titleMusicEndBehavior ??
+      ProjectTitleMusicEndBehavior.loop;
+
+  void _tryReplayAfterMusicEnd() {
+    if (!_titleMusicReplayPending || _disposed || !_snapshot.isLifecycleActive)
+      return;
+    if (_snapshot.phase != RuntimeStartupPhase.titlePrompt) {
+      _titleMusicReplayPending = false;
+      return;
+    }
+    if (_snapshot.isTransitioning) return;
+    _titleMusicReplayPending = false;
+    if (_reducedMotion ||
+        !_snapshot.canReplayIntro ||
+        _titleMusicEndBehavior != ProjectTitleMusicEndBehavior.replayIntro)
+      return;
+    unawaited(_replayIntro(_snapshot.revision));
+  }
+
   Future<RuntimeStartupCommandResult> _replayIntro(int expectedRevision) async {
     if (expectedRevision != _snapshot.revision) {
       return const RuntimeStartupCommandResult(
@@ -1103,6 +1140,18 @@ final class RuntimeStartupCoordinator {
     _publish(_snapshot.next(isTransitioning: true));
     await _titleMusic.update(path: null, titleVisible: false);
     if (!_isCurrent(generation)) return _cancelled();
+    if (!_snapshot.isLifecycleActive) {
+      _titleMusicReplayPending =
+          _effectivePhase == RuntimeStartupPhase.titlePrompt &&
+          _titleMusicEndBehavior == ProjectTitleMusicEndBehavior.replayIntro;
+      _publish(_snapshot.next(isTransitioning: false));
+      await _titleMusic.update(
+        path: _titleMusicAsset?.playbackLocation,
+        titleVisible: true,
+        endBehavior: _titleMusicEndBehavior,
+      );
+      return _cancelled();
+    }
     if (!_intro.replay()) {
       _publish(_snapshot.next(isTransitioning: false));
       return _unavailable();
@@ -1121,6 +1170,7 @@ final class RuntimeStartupCoordinator {
     await _titleMusic.update(
       path: _titleMusicAsset?.playbackLocation,
       titleVisible: true,
+      endBehavior: _titleMusicEndBehavior,
     );
     if (!_isCurrent(generation)) return;
     final diagnostics = <RuntimeStartupDiagnostic>[
@@ -1137,6 +1187,7 @@ final class RuntimeStartupCoordinator {
       isTransitioning: false,
       diagnostics: diagnostics,
     );
+    _tryReplayAfterMusicEnd();
   }
 
   Future<RuntimeResolvedAsset?> _resolveImageSafely(String assetId) async {
@@ -1166,12 +1217,12 @@ final class RuntimeStartupCoordinator {
     await _titleMusic.update(
       path: _titleMusicAsset?.playbackLocation,
       titleVisible: true,
+      endBehavior: _titleMusicEndBehavior,
     );
     if (!_isCurrent(generation)) return;
     _publishDesiredPhase(
       RuntimeStartupPhase.titleMenu,
-      isTransitioning: false,
-    );
+      isTransitioning: false);
   }
 
   bool _acceptsIntroCallback(int revision) =>
@@ -1198,6 +1249,7 @@ final class RuntimeStartupCoordinator {
         _titleMusic.update(
           path: _titleMusicAsset?.playbackLocation,
           titleVisible: true,
+          endBehavior: _titleMusicEndBehavior,
         ),
       );
     }
@@ -1214,8 +1266,7 @@ final class RuntimeStartupCoordinator {
     _publish(
       _snapshot.next(
         phase: desiredPhase,
-        playerSnapshot: playerSnapshot,
-      ),
+        playerSnapshot: playerSnapshot),
     );
   }
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../application/runtime_map_bundle.dart';
+import '../presentation/map_warp_transition_overlay.dart';
 import 'spatial_exploration_session.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 
@@ -15,7 +17,8 @@ class SpatialExplorationView extends StatefulWidget {
       required this.session,
       this.keyboardInputEnabled = true,
       this.onReady,
-      this.onError});
+    this.onError,
+  });
   final SpatialExplorationSession session;
   final bool keyboardInputEnabled;
   final VoidCallback? onReady;
@@ -37,6 +40,24 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   Object? neighborError;
   String? renderedFramesMapId;
   Map<String, SpatialActorVisual> renderedFrames = const {};
+  Future<void> waitForBlackoutFrame() => WidgetsBinding.instance.endOfFrame;
+  Future<void> prepareNativeDestination(
+    RuntimeMapBundle destination,
+    bool Function() isCurrent,
+  ) async {
+    final identity = destination.projectCatalog?.identity;
+    if (identity == null) return;
+    final session = widget.session;
+    await camera.prepareDestination(SpatialScenePreparation(
+      map: destination.map,
+      project: destination.manifest,
+      loadModel: (id) => session.modelBytesForBundle(destination, id),
+      loadGroundImage: (id) => groundBytes(destination, id),
+      resourceIdentity: identity,
+      resourceBudget: destination.resourceBudget,
+      isCurrent: () => mounted && identical(widget.session, session) && isCurrent(),
+    ));
+  }
   void release() {
     keys.clear();
     if (widget.keyboardInputEnabled) widget.session.movement.releaseInput();
@@ -49,6 +70,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
+    widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
+    widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     widget.session.setVisibleMaps({});
     loadNeighbors();
   }
@@ -66,19 +89,22 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           entry.sourceSize,
           activeBundle.map.size,
           entry.connection.direction,
-          entry.connection.offset);
+        entry.connection.offset,
+      );
       sceneOffset += translation;
       neighbors = [
         SpatialSceneNeighbor(
             map: previous.map,
             offset: -translation,
-            loadGroundImage: (id) => groundBytes(previous, id)),
+          loadGroundImage: (id) => groundBytes(previous, id),
+        ),
         for (final existing in neighbors)
           if (existing.map.id != activeBundle.map.id)
             SpatialSceneNeighbor(
                 map: existing.map,
                 offset: existing.offset - translation,
-                loadGroundImage: existing.loadGroundImage),
+              loadGroundImage: existing.loadGroundImage,
+            ),
       ];
     }
     neighborError = null;
@@ -87,14 +113,19 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   }
 
   SpatialSceneNeighbor neighbor(
-          RuntimeMapBundle bundle, MapConnection connection) =>
-      SpatialSceneNeighbor(
+    RuntimeMapBundle bundle,
+    MapConnection connection,
+  ) => SpatialSceneNeighbor(
           map: bundle.map,
           project: bundle.manifest,
           loadModel: (id) => widget.session.modelBytesForBundle(bundle, id),
           offset: spatialConnectionOffset(activeBundle.map.size,
-              bundle.map.size, connection.direction, connection.offset),
-          loadGroundImage: (id) => groundBytes(bundle, id));
+      bundle.map.size,
+      connection.direction,
+      connection.offset,
+    ),
+    loadGroundImage: (id) => groundBytes(bundle, id),
+  );
 
   Future<Uint8List> groundBytes(RuntimeMapBundle bundle, String id) async {
     final path = bundle.runtimeImageAbsolutePathsById[id];
@@ -182,9 +213,13 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     renderedFrames = const {};
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
+    oldWidget.session.waitForNativeDoorBlackoutFrame = null;
+    oldWidget.session.prepareNativeDoorDestination = null;
     keys.clear();
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
+    widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
+    widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     activeBundle = widget.session.bundle;
     sceneOffset = Offset.zero;
     neighbors = const [];
@@ -224,7 +259,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
         } else if (widget.session.dialoguePresentation.value
             case final snapshot?) {
           widget.session.dispatchDialogueCommand(
-              DialogueAdvanceCommand(snapshotRevision: snapshot.revision));
+            DialogueAdvanceCommand(snapshotRevision: snapshot.revision),
+          );
         } else {
           widget.session.interact();
         }
@@ -245,7 +281,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       LogicalKeyboardKey.keyS,
       LogicalKeyboardKey.keyD,
       LogicalKeyboardKey.shiftLeft,
-      LogicalKeyboardKey.shiftRight
+      LogicalKeyboardKey.shiftRight,
     };
     if (!supported.contains(key)) return KeyEventResult.ignored;
     if (event is KeyUpEvent) {
@@ -269,7 +305,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                 ? 1
                 : 0),
         run: keys.contains(LogicalKeyboardKey.shiftLeft) ||
-            keys.contains(LogicalKeyboardKey.shiftRight));
+          keys.contains(LogicalKeyboardKey.shiftRight),
+    );
     return KeyEventResult.handled;
   }
 
@@ -278,6 +315,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     neighborGeneration++;
     release();
     widget.session.mapRevision.removeListener(mapChanged);
+    widget.session.waitForNativeDoorBlackoutFrame = null;
+    widget.session.prepareNativeDoorDestination = null;
     widget.session.transitioning.removeListener(release);
     WidgetsBinding.instance.removeObserver(this);
     focus.dispose();
@@ -332,8 +371,20 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                           widget.session.rasterAnimationElapsedMsForCell,
                       presentationPaused: () =>
                           widget.session.presentationPaused,
+                      cameraMagnification: () => widget.session.nativeCameraMagnification,
                       cameraPose: () {
                         final pose = widget.session.storyCamera?.call();
+                  if (pose == null &&
+                      widget.session.nativeDoorTraversalActive) {
+                    final movement = widget.session.movement;
+                    final anchor = widget.session.nativeCameraAnchor;
+                    return (
+                      x: anchor?.x ?? movement.x,
+                      y: anchor == null ? movement.y : movement.scene.worldHeightAt(anchor.x, anchor.z),
+                      z: anchor?.z ?? movement.z,
+                      zoom: 1.0,
+                    );
+                  }
                         return pose == null
                             ? null
                             : (
@@ -347,10 +398,34 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                       ground: colors.primaryContainer,
                       edge: colors.outlineVariant,
                       errorBuilder: (_, error) {
+                  scheduleMicrotask(
+                    () => widget.session.reportNativeDoorRenderFailure(
+                      renderedMapId,
+                      error,
+                    ),
+                  );
                         widget.onError?.call(error);
                         return Center(
-                            child: Text('Erreur d’exploration 3D : $error'));
-                      })),
+                    child: Text('Erreur d’exploration 3D : $error'),
+                  );
+                },
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ValueListenableBuilder<double>(
+                  valueListenable: widget.session.nativeDoorBlackout,
+                  builder: (context, opacity, _) => opacity == 0
+                      ? const SizedBox.shrink()
+                      : MapWarpTransitionOverlay(
+                          key: const ValueKey('native-door-blackout'),
+                          transition: widget.session.nativeScreenTransition,
+                          coverage: opacity,
+                          revealing: widget.session.nativeScreenRevealing,
+                        ),
+                ),
+              ),
+            ),
               Positioned(
                   bottom: 16,
                   left: 16,
@@ -361,13 +436,17 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                         : Row(children: [
                             FilledButton.tonal(
                                 onPressed: widget.session.onSkipStory,
-                                child: const Text('Passer la scène')),
+                            child: const Text('Passer la scène'),
+                          ),
                             const SizedBox(width: 8),
                             FilledButton.tonal(
                                 onPressed: widget.session.onCancelStory,
-                                child: const Text('Annuler')),
-                          ]),
-                  )),
+                            child: const Text('Annuler'),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
               Positioned(
                   left: 16,
                   right: 16,
@@ -385,9 +464,15 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                                     neighborError != null && error == null
                                         ? 'Impossible d’afficher une carte voisine.'
                                         : 'Impossible d’ouvrir ce passage ou ce dialogue.',
-                                    style: TextStyle(
-                                        color: colors.onErrorContainer)))),
-                  )),
-            ])));
+                            style: TextStyle(color: colors.onErrorContainer),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

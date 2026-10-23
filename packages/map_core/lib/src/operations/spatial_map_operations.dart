@@ -200,6 +200,12 @@ final class SpatialMapOperations {
 
   MapData deleteInstance(MapData map, String instanceId) {
     _requireAuthoredInstance(instanceId);
+    if (map.warps.any((warp) => warp.door?.instanceId == instanceId)) {
+      throw const ValidationException(
+        'A native door still references this model instance.',
+        code: 'map3d.instance_referenced',
+      );
+    }
     final scene = _scene(map);
     if (!scene.instances.any((value) => value.id == instanceId)) {
       throw const FormatException('The spatial instance does not exist.');

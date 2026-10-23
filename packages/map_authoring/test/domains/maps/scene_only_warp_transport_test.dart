@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
+import '../../support/glb_fixture.dart';
 
 Map<String, Object?> _point({int x = 1}) => {
       'id': 'arrival',
@@ -12,6 +13,132 @@ Map<String, Object?> _point({int x = 1}) => {
     };
 
 void main() {
+  test('warp descriptors expose the typed native door contract', () {
+    for (final id in [
+      'warp.create',
+      'warp.update',
+      'warp.create_reciprocal_apply',
+      'warp.update_pair_apply'
+    ]) {
+      final descriptor =
+          WarpConnectionActions.descriptors.singleWhere((d) => d.id == id);
+      expect(descriptor.extensions['nativeDoor'], isA<Map>());
+    }
+  });
+
+  for (final wire in [false, true]) {
+    test(
+        'native door survives ${wire ? 'JSONL' : 'API'} create, replace, pair and cold reopen',
+        () async {
+      final f = await _Fixture.create(spatial: true);
+      addTearDown(f.dispose);
+      final warp = const MapWarp(
+        id: 'entrance',
+        pos: GridPos(x: 1, y: 1),
+        targetMapId: 'beta',
+        targetPos: GridPos(x: 2, y: 1),
+        door: MapWarpDoor(
+            instanceId: 'door',
+            openAnimationIndex: 0,
+            closeAnimationIndex: 1,
+            exitPos: GridPos(x: 1, y: 2)),
+      );
+      await f.mutate(
+          'warp.create_reciprocal_apply',
+          {
+            'warp': warp.toJson(),
+            'reciprocalWarpId': 'return',
+          },
+          wire);
+      await f.reopen();
+      var snapshot = await f.snapshots.load(f.project);
+      expect(snapshot.mapById('alpha')!.warps.single.door, warp.door);
+      expect(snapshot.mapById('beta')!.warps.single.door, isNull);
+      await f.mutate(
+          'map3d.instance.upsert',
+          {
+            'mapId': 'beta',
+            'instance': SpatialModelInstance(
+              id: 'target-door',
+              modelId: 'door-model',
+              position: Model3dVector3(x: 2, y: 0, z: 1),
+              blocksMovement: false,
+            ).toJson()
+          },
+          wire);
+      const targetDoor = MapWarpDoor(
+          instanceId: 'target-door',
+          openAnimationIndex: 0,
+          closeAnimationIndex: 1,
+          exitPos: GridPos(x: 2, y: 2));
+      await f.mutate(
+          'warp.update',
+          {
+            'mapId': 'beta',
+            'warpId': 'return',
+            'warp': snapshot
+                .mapById('beta')!
+                .warps
+                .single
+                .copyWith(door: targetDoor)
+                .toJson()
+          },
+          wire);
+      final replacement = warp.copyWith(
+          door: warp.door!.copyWith(exitPos: const GridPos(x: 0, y: 1)));
+      await f.mutate(
+          'warp.update_pair_apply',
+          {
+            'warpId': 'entrance',
+            'warp': replacement.toJson(),
+            'reciprocalWarpId': 'return',
+          },
+          wire);
+      await f.reopen();
+      snapshot = await f.snapshots.load(f.project);
+      expect(snapshot.mapById('alpha')!.warps.single.door, replacement.door);
+      expect(snapshot.mapById('beta')!.warps.single.door, targetDoor);
+      for (final action in [
+        'map3d.instance.delete',
+        'map3d.instance.delete_batch'
+      ]) {
+        await f.reject(
+            action,
+            {
+              if (action.endsWith('_batch'))
+                'instanceIds': ['door']
+              else
+                'instanceId': 'door',
+            },
+            wire);
+      }
+      await f.reject(
+          'map3d.instance.upsert',
+          {
+            'instance': SpatialModelInstance(
+              id: 'door',
+              modelId: 'door-model',
+              position: Model3dVector3(x: 1, y: 0, z: 1),
+              animationIndex: 0,
+            ).toJson()
+          },
+          wire);
+      await f.mutate(
+          'warp.update',
+          {
+            'warpId': 'entrance',
+            'warp': replacement.copyWith(door: null).toJson()
+          },
+          wire);
+      expect(
+          (await f.snapshots.load(f.project))
+              .mapById('alpha')!
+              .warps
+              .single
+              .door,
+          isNull);
+    });
+  }
   test('warp actions discover conditional passive destination contracts', () {
     for (final id in ['warp.create', 'warp.update']) {
       final contract = WarpConnectionActions.descriptors
@@ -166,11 +293,17 @@ final class _Fixture {
   File get alpha => File('${directory.path}/maps/alpha.json');
   File get beta => File('${directory.path}/maps/beta.json');
 
-  static Future<_Fixture> create({bool seeded = false}) async {
+  static Future<_Fixture> create(
+      {bool seeded = false, bool spatial = false}) async {
     final directory = await Directory.systemTemp.createTemp('scene-only-api-');
     await Directory('${directory.path}/maps').create();
     final manifest = ProjectManifest(
         name: 'Native arrival',
+        version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+        settings: ProjectSettings(
+            dimension:
+                spatial ? ProjectDimension.threeD : ProjectDimension.twoD,
+            spatialCamera: spatial ? SpatialCameraProfile() : null),
         tilesets: const [],
         maps: const [
           ProjectMapEntry(
@@ -184,6 +317,8 @@ final class _Fixture {
       final map = MapData(
           id: id,
           name: id,
+          version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+          spatialScene: spatial ? MapSpatialScene(width: 4, depth: 4) : null,
           size: const GridSize(width: 4, height: 4),
           warps: [
             if (seeded && id == 'alpha')
@@ -206,11 +341,45 @@ final class _Fixture {
         openService: ProjectOpenService(
             policy: policy, fileReader: reader, handles: handles),
         snapshotLoader: snapshots);
-    final mutations =
-        LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: snapshots);
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: snapshots,
+      artifactStore: LocalArtifactStore(
+          allowedSourceRoots: [directory.path], maximumArtifactBytes: 1048576),
+    );
     final f = _Fixture(directory, snapshots, mutations,
         JsonlWorker(api: api, mutations: mutations));
     await f.open();
+    if (spatial) {
+      final source = File('${directory.path}/door.glb');
+      await source.writeAsBytes(animatedGlb(edit: (json) {
+        final animations = json['animations'] as List;
+        animations.add({...animations.single as Map, 'name': 'Close'});
+      }));
+      final staged =
+          await f.command('stage_artifact', {'sourcePath': source.path});
+      expect(staged.status, AuthoringResultStatus.success,
+          reason: jsonEncode(staged.toJson()));
+      await f.mutate(
+          'model3d.import',
+          {
+            'artifactHandle': staged.data['artifactHandle'],
+            'modelId': 'door-model',
+            'name': 'Door'
+          },
+          false);
+      await f.mutate(
+          'map3d.instance.upsert',
+          {
+            'instance': SpatialModelInstance(
+              id: 'door',
+              modelId: 'door-model',
+              position: Model3dVector3(x: 1, y: 0, z: 1),
+              blocksMovement: false,
+            ).toJson()
+          },
+          false);
+    }
     return f;
   }
 
@@ -244,7 +413,10 @@ final class _Fixture {
         workspaceHandle: workspace.value,
         expectedRevision: (await snapshots.load(project)).revision,
         idempotencyKey: id,
-        parameters: {'mapId': 'alpha', ...parameters});
+        parameters: {
+          if (!action.startsWith('model3d.')) 'mapId': 'alpha',
+          ...parameters
+        });
   }
 
   Future<void> mutate(

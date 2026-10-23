@@ -118,6 +118,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.controller,
     required this.loadVisuals,
     required this.runtimeBuilder,
+    this.projectRuntimeBuilder,
     required this.onClose,
     required this.registerExitGuard,
     this.resourcePort,
@@ -175,6 +176,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final PickResourceImage? imagePicker;
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
+  final Widget Function(VoidCallback onClose)? projectRuntimeBuilder;
   final Future<void> Function() onClose;
   final void Function(Future<bool> Function()? guard) registerExitGuard;
   @override
@@ -267,6 +269,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       worldInputsValid: () => _worldView.invalidFields.isEmpty,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
+      projectRuntimeBuilder: widget.projectRuntimeBuilder,
     );
     _configureCatalogueGuard();
     widget.registerExitGuard(_allowCloseWithExport);

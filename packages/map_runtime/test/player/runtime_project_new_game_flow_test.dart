@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../support/spatial_smart_tile_fixture.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -119,6 +121,97 @@ void main() {
         },
       );
     }
+  }
+
+  for (final changeMap in [false, true]) {
+    test(
+      'spatial SmartTile new game preserves the publication guard, changed=$changeMap',
+      () async {
+        final root = await Directory.systemTemp.createTemp(
+          'spatial-new-game-projection-',
+        );
+        addTearDown(() => root.delete(recursive: true));
+        final fixture = spatialGrassFixture();
+        final project = fixture.project.copyWith(
+          settings: fixture.project.settings.copyWith(
+            spatialCamera: SpatialCameraProfile(),
+          ),
+          newGame: const ProjectNewGameConfig(
+            enabled: true,
+            startMapId: 'field',
+          ),
+        );
+        final projectFile = File('${root.path}/project.json');
+        final projectBytes = utf8.encode(jsonEncode(project.toJson()));
+        await projectFile.writeAsBytes(projectBytes);
+        final mapFile = File('${root.path}/maps/field.json');
+        await mapFile.parent.create(recursive: true);
+        final mapBytes = utf8.encode(jsonEncode(fixture.map.toJson()));
+        await mapFile.writeAsBytes(mapBytes);
+        final projected = projectSpatialSmartTileModels(
+          map: fixture.map,
+          catalog: project.smartTileCatalog,
+          sourceCellWidth: project.settings.tileWidth,
+          sourceCellHeight: project.settings.tileHeight,
+        );
+        expect(fixture.map.spatialScene!.instances, isEmpty);
+        expect(projected.spatialScene!.instances, hasLength(2));
+        final preloader = RuntimeInitialMapPreloader(
+          projectFilePath: () async => projectFile.path,
+          loadSave: (_) async => null,
+          bundleLoader:
+              ({
+                required projectFilePath,
+                required mapId,
+                required preloadedManifest,
+              }) async {
+                final bundle = RuntimeMapBundle(
+                  manifest: preloadedManifest,
+                  map: fixture.map,
+                  projectRootDirectory: root.path,
+                  tilesetAbsolutePathsById: const {},
+                );
+                if (changeMap) {
+                  await mapFile.writeAsString(
+                    jsonEncode(fixture.map.copyWith(name: 'Changed').toJson()),
+                  );
+                }
+                return bundle;
+              },
+          tilesetImageLoader: (
+            paths, {
+            transparentColorByTilesetId = const {},
+            onProgress,
+          }) async => {},
+        );
+        final flow = RuntimeProjectNewGameFlowPort(
+          projectFilePath: () async => projectFile.path,
+          initialMapPreloader: preloader,
+        );
+        addTearDown(flow.clear);
+        if (changeMap) {
+          await expectLater(
+            flow.prepare(),
+            throwsA(
+              isA<RuntimeNewGameException>().having(
+                (error) => error.code,
+                'code',
+                'new_game.project_changed',
+              ),
+            ),
+          );
+        } else {
+          final preparation = await flow.prepare();
+          expect(preparation.startMap, projected);
+          expect(
+            await flow.readCurrentProjectRevision(),
+            preparation.projectRevision,
+          );
+          expect(await mapFile.readAsBytes(), mapBytes);
+        }
+        expect(await projectFile.readAsBytes(), projectBytes);
+      },
+    );
   }
 
   final publishedProject = Platform.environment['AVELUNE_NEW_GAME_PROJECT'];

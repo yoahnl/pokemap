@@ -76,6 +76,13 @@ class StudioHomeTools extends StatelessWidget {
       title: 'Vos outils de création',
       actions: [
         StudioButton(
+          key: const ValueKey('home-tool-testGame'),
+          label: 'Tester le jeu',
+          icon: Icons.play_circle_outline,
+          secondary: true,
+          onPressed: !busy && canTest ? () => onDestination('testGame') : null,
+        ),
+        StudioButton(
           key: const ValueKey('home-tool-regionalMap'),
           label: 'Carte régionale',
           icon: Icons.public,
@@ -139,7 +146,9 @@ class StudioHomeTools extends StatelessWidget {
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
                           key: ValueKey('home-tool-${tool.$4}'),
-                          onTap: !busy && (tool.$4 != 'test' || canTest)
+                          onTap:
+                              !busy &&
+                                  (tool.$4 != 'test' || canTest)
                               ? () => onDestination(tool.$4)
                               : null,
                           child: Padding(
