@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
@@ -4147,13 +4148,28 @@ int _crc32(List<int> bytes, int start, int end) {
   return (crc ^ 0xffffffff) & 0xffffffff;
 }
 
+final class _FrozenNativeJsonMap extends UnmodifiableMapView<String, Object?> {
+  _FrozenNativeJsonMap._(super.owned);
+}
+
+final class _FrozenNativeJsonList extends UnmodifiableListView<Object?> {
+  _FrozenNativeJsonList._(super.owned);
+}
+
 Object? _freezeNativeJson(Object? value) {
-  if (value is Map<String, dynamic>) {
-    return Map<String, Object?>.unmodifiable(
-        value.map((key, child) => MapEntry(key, _freezeNativeJson(child))));
+  if (value is _FrozenNativeJsonMap || value is _FrozenNativeJsonList) {
+    return value;
+  }
+  if (value is Map) {
+    return _FrozenNativeJsonMap._(<String, Object?>{
+      for (final entry in value.entries)
+        entry.key as String: _freezeNativeJson(entry.value),
+    });
   }
   if (value is List) {
-    return List<Object?>.unmodifiable(value.map(_freezeNativeJson));
+    return _FrozenNativeJsonList._(<Object?>[
+      for (final child in value) _freezeNativeJson(child),
+    ]);
   }
   return value;
 }

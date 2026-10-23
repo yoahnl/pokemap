@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -2017,6 +2018,94 @@ void main() {
         () => NativeArtifact(
             bytes: fixture.atlasBytes, expectedSha256: Sha256Hash('0' * 64)),
         throwsA(_nativeFailure));
+  });
+
+  test('draft evidence copies dynamic maps and externally backed views deeply',
+      () {
+    final nested = <dynamic, dynamic>{'value': 'before'};
+    final callerList = <Object?>[nested];
+    final backing = <dynamic, dynamic>{
+      'rows': UnmodifiableListView<Object?>(callerList),
+    };
+    final evidence = <String, Object?>{
+      'payload': [UnmodifiableMapView<dynamic, dynamic>(backing)],
+      'shallow': Map<String, Object?>.unmodifiable({'child': nested}),
+    };
+    final draft = copyNativeFixtureDraft(fixture.draft,
+        compositionEvidence: evidence);
+    final before = canonicalJsonOf(draft.compositionEvidence);
+    nested['value'] = 'changed';
+    callerList.add('changed');
+    backing['extra'] = true;
+    evidence.clear();
+    expect(canonicalJsonOf(draft.compositionEvidence), before);
+    expect(draft.compositionEvidence['payload'], [
+      {'rows': [{'value': 'before'}]},
+    ]);
+    expect(() => ((draft.compositionEvidence['payload'] as List).single
+        as Map)['extra'] = true, throwsUnsupportedError);
+    final rows = ((draft.compositionEvidence['payload'] as List).single
+        as Map)['rows'] as List;
+    expect(() => rows.cast<Object?>().add(null), throwsUnsupportedError);
+    expect(() => (rows.single as Map).cast<String, Object?>()['value'] = 'new',
+        throwsUnsupportedError);
+    draft.validateResourceBudget();
+  });
+
+  test('derived draft evidence preserves immutable children and exact hashes',
+      () {
+    final first = copyNativeFixtureDraft(fixture.draft,
+        compositionEvidence: {
+          'earlier': {'values': [1, {'value': 'earlier'}]},
+        });
+    final incoming = <String, Object?>{
+      'values': [2, <dynamic, dynamic>{'value': 'later'}],
+    };
+    final derived = copyNativeFixtureDraft(first, compositionEvidence: {
+      ...first.compositionEvidence,
+      'later': incoming,
+    });
+    final encoded = canonicalJsonOf(derived.compositionEvidence);
+    final reconstructed = copyNativeFixtureDraft(fixture.draft,
+        compositionEvidence: (jsonDecode(encoded) as Map).cast<String, Object?>());
+    expect(derived.canonicalHash, reconstructed.canonicalHash);
+    expect(derived.validatedJsonByteLength, reconstructed.validatedJsonByteLength);
+    expect(derived.bindingEvidence, reconstructed.bindingEvidence);
+    (incoming['values'] as List).clear();
+    expect(canonicalJsonOf(derived.compositionEvidence), encoded);
+    expect(first.compositionEvidence, {
+      'earlier': {'values': [1, {'value': 'earlier'}]},
+    });
+    for (final evidence in [first.compositionEvidence, derived.compositionEvidence]) {
+      final oldChild = evidence['earlier'] as Map;
+      expect(() => oldChild['changed'] = true, throwsUnsupportedError);
+      expect(() => (oldChild['values'] as List).clear(), throwsUnsupportedError);
+    }
+    final newValues = (derived.compositionEvidence['later'] as Map)['values'] as List;
+    expect(() => newValues.clear(), throwsUnsupportedError);
+    expect(() => (newValues.last as Map)['value'] = 'changed',
+        throwsUnsupportedError);
+  });
+
+  test('reused draft evidence still obeys stricter current JSON quotas', () {
+    final first = copyNativeFixtureDraft(fixture.draft,
+        compositionEvidence: {
+          'large': List.generate(32, (i) => {'value': i}),
+        });
+    expect(
+        () => copyNativeFixtureDraft(first,
+            compositionEvidence: {'large': first.compositionEvidence['large']},
+            limits: const NativeWriteLimits(maxDraftEvidenceJsonNodes: 8)),
+        throwsA(isA<ContractError>().having((error) => error.code, 'code',
+            'json.quota')));
+  });
+
+  test('draft evidence rejects non-string map keys before freezing', () {
+    expect(
+        () => copyNativeFixtureDraft(fixture.draft,
+            compositionEvidence: {'rows': [<dynamic, dynamic>{7: 'invalid'}]}),
+        throwsA(isA<ContractError>().having((error) => error.code, 'code',
+            'json.key')));
   });
 }
 
