@@ -293,6 +293,7 @@ export 'src/authoring/narrative_outcome_authoring_operations.dart';
 export 'src/authoring/narrative_predicate_authoring_draft.dart';
 export 'src/authoring/narrative_scenario_authoring_draft.dart';
 export 'src/authoring/scene_authoring_operations.dart';
+export 'src/operations/scene_dialogue_policy_authoring.dart';
 export 'src/authoring/storyline_authoring_operations.dart';
 export 'src/authoring/storyline_progression_operations.dart';
 export 'src/authoring/world_rule_authoring_operations.dart';

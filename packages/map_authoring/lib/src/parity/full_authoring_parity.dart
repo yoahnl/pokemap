@@ -791,6 +791,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/scenes/scene_dialogue_policy_publication_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
     };
   }
@@ -798,7 +799,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/application/scene_dialogue_choice_policy_authoring_gateway_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/scenes/scene_dialogue_policy_publication_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
     };
   }

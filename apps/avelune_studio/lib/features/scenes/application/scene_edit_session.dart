@@ -10,6 +10,17 @@ class SceneEditSession {
   static const historyLimit = 64;
   final _undo = <SceneAsset>[];
   final _redo = <SceneAsset>[];
+  final _dialogueReads = <String, Object>{};
+
+  Object beginDialogueRead(String nodeId) => _dialogueReads[nodeId] = Object();
+
+  bool isCurrentDialogueRead(String nodeId, Object token) =>
+      identical(_dialogueReads[nodeId], token);
+
+  void finishDialogueRead(String nodeId, Object token) {
+    if (isCurrentDialogueRead(nodeId, token)) _dialogueReads.remove(nodeId);
+  }
+
   int revision = 0;
   String? savedRevision;
   String? error;

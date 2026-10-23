@@ -14,16 +14,16 @@ extension _SceneInspectorFields on SceneInspector {
           options: {for (final d in project.dialogues) d.id: d.name},
           onChanged: (id) {
             final selected = project.dialogues.firstWhere((d) => d.id == id);
-            payload(
+            retargetDialogue(
+              context,
               node,
-              SceneYarnDialoguePayload(
-                dialogueId: id,
-                yarnNodeName: selected.defaultStartNode,
-                expectedOutcomes: selected.declaredOutcomes
-                    .map((outcome) => outcome.id)
-                    .toList(),
-                speakerHints: value.speakerHints,
-              ),
+              value,
+              selected,
+              start: selected.defaultStartNode,
+              outcomes: {
+                ...selected.declaredOutcomes.map((outcome) => outcome.id),
+                ...value.declaredCancellationOutcomes,
+              }.toList(),
             );
           },
         ),
@@ -53,16 +53,65 @@ extension _SceneInspectorFields on SceneInspector {
             value,
             project,
             narrative,
-            onStartChanged: (start) => payload(
+            onStartChanged: (start) => retargetDialogue(
+              context,
               node,
-              SceneYarnDialoguePayload(
-                dialogueId: value.dialogueId,
-                yarnNodeName: start,
-                expectedOutcomes: value.expectedOutcomes,
-                speakerHints: value.speakerHints,
-              ),
+              value,
+              entry,
+              start: start,
+              outcomes: value.expectedOutcomes,
+            ),
+            configurationBuilder: (document) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                StudioSection(
+                  title: 'Comportement des choix',
+                  collapsible: true,
+                  initiallyExpanded: false,
+                  children: [
+                    SceneDialogueChoicePolicyForm(
+                      scene: session.current,
+                      nodeId: node.id,
+                      payload: value,
+                      document: document,
+                      onApply: (policy) => edit(
+                        (scene) => updateSceneDialogueChoicePolicy(
+                          scene,
+                          nodeId: node.id,
+                          dialogue: document,
+                          choicePolicy: policy,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                StudioSection(
+                  title: 'Rythme et son des lignes',
+                  collapsible: true,
+                  initiallyExpanded: false,
+                  children: [
+                    SceneDialogueLinePolicyForm(
+                      project: project,
+                      payload: value,
+                      document: document,
+                      onApply: (policy) => edit(
+                        (scene) => updateSceneDialogueLinePolicy(
+                          scene,
+                          nodeId: node.id,
+                          dialogue: document,
+                          linePolicy: policy,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
+        ],
+        if (session.error != null) ...[
+          const SizedBox(height: 12),
+          StudioNotice(session.error!, isError: true),
         ],
         if (entry == null)
           const StudioNotice(
@@ -238,11 +287,19 @@ extension _SceneInspectorFields on SceneInspector {
             'continueScene': 'Continuer la scène',
             'returnToRecoveryPoint': 'Revenir au point de reprise',
           },
-          onChanged: project.settings.dimension != ProjectDimension.twoD ? null : (id) => payload(
-            node, SceneBattlePayload.fromJson({...value.toJson(), 'defeatRecovery': id}),
-          ),
+          onChanged: project.settings.dimension != ProjectDimension.twoD
+              ? null
+              : (id) => payload(
+                  node,
+                  SceneBattlePayload.fromJson({
+                    ...value.toJson(),
+                    'defeatRecovery': id,
+                  }),
+                ),
         ),
-        const StudioNotice('Le retour au point de reprise a lieu à la fin réussie de la Scene. L’équipe est soignée et la pénalité de défaite est appliquée. Disponible uniquement en 2D.'),
+        const StudioNotice(
+          'Le retour au point de reprise a lieu à la fin réussie de la Scene. L’équipe est soignée et la pénalité de défaite est appliquée. Disponible uniquement en 2D.',
+        ),
       ];
     }
     if (value is SceneBranchByOutcomePayload) {

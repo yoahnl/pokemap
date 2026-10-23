@@ -1306,36 +1306,17 @@ final class SceneActions {
     required RuntimeDialogueDocument dialogue,
   }) {
     final scene = _requireDialoguePolicyScene(project, sceneId);
-    final node = _requireDialoguePolicyNode(scene, nodeId);
-    final payload = node.payload as SceneYarnDialoguePayload;
-    final policies = [
-      for (final item in payload.choicePolicies)
-        if (item.nodeName != choicePolicy.nodeName || item.choiceIndex != choicePolicy.choiceIndex) item,
-      choicePolicy,
-    ]..sort((left, right) {
-      final byName = left.nodeName.compareTo(right.nodeName);
-      return byName == 0 ? left.choiceIndex.compareTo(right.choiceIndex) : byName;
-    });
-    late final SceneYarnDialoguePayload updated;
+    _requireDialoguePolicyNode(scene, nodeId);
+    late final SceneAsset updated;
     try {
-      updated = SceneYarnDialoguePayload(dialogueId: payload.dialogueId, yarnNodeName: payload.yarnNodeName,
-        expectedOutcomes: payload.expectedOutcomes, speakerHints: payload.speakerHints,
-        choicePolicies: policies, linePolicies: payload.linePolicies,
-        declaredCancellationOutcomes: payload.declaredCancellationOutcomes);
-      validateSceneDialogueChoicePolicies(sceneDialogueChoiceScopes(dialogue), updated.choicePolicies);
+      updated = updateSceneDialogueChoicePolicy(scene, nodeId: nodeId,
+        dialogue: dialogue, choicePolicy: choicePolicy);
     } on Object catch (error) {
       throw NarrativeAuthoringException('scene.dialogue.choice_policy.invalid',
         'The choice policy does not resolve against the compiled dialogue.',
         details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
     }
-    return upsert(project, maps: maps, scene: _copyScene(scene, graph: SceneGraph(
-      startNodeId: scene.graph.startNodeId,
-      nodes: [for (final candidate in scene.graph.nodes)
-        if (candidate.id == nodeId) SceneNode(id: candidate.id, kind: candidate.kind,
-          title: candidate.title, description: candidate.description, payload: updated)
-        else candidate],
-      edges: scene.graph.edges,
-    )));
+    return upsert(project, maps: maps, scene: updated);
   }
 
   ProjectManifest updateDialogueLineFeedback(
@@ -1348,25 +1329,14 @@ final class SceneActions {
   }) {
     final scene = _requireDialoguePolicyScene(project, sceneId,
       errorPrefix: 'scene.dialogue.line_feedback');
-    final node = _requireDialoguePolicyNode(scene, nodeId,
+    _requireDialoguePolicyNode(scene, nodeId,
       errorPrefix: 'scene.dialogue.line_feedback');
-    final payload = node.payload as SceneYarnDialoguePayload;
-    final policies = [
-      for (final item in payload.linePolicies)
-        if (item.nodeName != linePolicy.nodeName || item.lineIndex != linePolicy.lineIndex) item,
-      linePolicy,
-    ]..sort((left, right) {
-      final byName = left.nodeName.compareTo(right.nodeName);
-      return byName == 0 ? left.lineIndex.compareTo(right.lineIndex) : byName;
-    });
-    late final SceneYarnDialoguePayload updated;
+    late final SceneAsset updated;
     try {
-      updated = SceneYarnDialoguePayload(dialogueId: payload.dialogueId, yarnNodeName: payload.yarnNodeName,
-        expectedOutcomes: payload.expectedOutcomes, speakerHints: payload.speakerHints,
-        choicePolicies: payload.choicePolicies, linePolicies: policies,
-        declaredCancellationOutcomes: payload.declaredCancellationOutcomes);
-      validateSceneDialogueChoicePolicies(sceneDialogueChoiceScopes(dialogue), updated.choicePolicies);
-      validateDialogueLineFeedbackAgainstProject(project: project, document: dialogue, policies: updated.linePolicies);
+      updated = updateSceneDialogueLinePolicy(scene, nodeId: nodeId,
+        dialogue: dialogue, linePolicy: linePolicy);
+      final payload = updated.graph.nodes.firstWhere((node) => node.id == nodeId).payload as SceneYarnDialoguePayload;
+      validateDialogueLineFeedbackAgainstProject(project: project, document: dialogue, policies: payload.linePolicies);
     } on ValidationException catch (error) {
       throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid',
         'The line feedback does not resolve against the compiled dialogue and project media.',
@@ -1380,14 +1350,7 @@ final class SceneActions {
         'The line feedback does not resolve against the compiled dialogue and project media.',
         details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
     }
-    return upsert(project, maps: maps, scene: _copyScene(scene, graph: SceneGraph(
-      startNodeId: scene.graph.startNodeId,
-      nodes: [for (final candidate in scene.graph.nodes)
-        if (candidate.id == nodeId) SceneNode(id: candidate.id, kind: candidate.kind,
-          title: candidate.title, description: candidate.description, payload: updated)
-        else candidate],
-      edges: scene.graph.edges,
-    )));
+    return upsert(project, maps: maps, scene: updated);
   }
 
   AuthoringMutationDraft _buildGraphEdit(AuthoringPlanningContext context) {

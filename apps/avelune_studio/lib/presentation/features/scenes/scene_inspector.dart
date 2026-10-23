@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_panel.dart';
+import 'package:avelune_studio/presentation/shared/widgets/layout/studio_section.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -12,6 +14,8 @@ import 'package:avelune_studio/presentation/features/scenes/scene_graph_canvas.d
 import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_condition_form.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_linked_document.dart';
+import 'package:avelune_studio/presentation/features/scenes/scene_dialogue_choice_policy_form.dart';
+import 'package:avelune_studio/presentation/features/scenes/scene_dialogue_line_policy_form.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 
 part 'scene_inspector_fields.dart';
@@ -77,6 +81,75 @@ class SceneInspector extends StatelessWidget {
       ),
     ),
   );
+
+  Future<void> retargetDialogue(
+    BuildContext context,
+    SceneNode node,
+    SceneYarnDialoguePayload original,
+    ProjectDialogueEntry target, {
+    required String? start,
+    required List<String> outcomes,
+  }) async {
+    final request = session.beginDialogueRead(node.id);
+    try {
+      if ((documents == null || narrative == null) &&
+          original.choicePolicies.isEmpty &&
+          original.linePolicies.isEmpty &&
+          original.declaredCancellationOutcomes.isEmpty) {
+        payload(
+          node,
+          SceneYarnDialoguePayload.fromJson({
+            ...original.toJson(),
+            'dialogueId': target.id,
+            'yarnNodeName': start,
+            'expectedOutcomes': outcomes,
+          }),
+        );
+        return;
+      }
+      final linked = documents;
+      if (linked == null) {
+        throw StateError('La source du dialogue est indisponible.');
+      }
+      final compiled = await linked.readDialogueDocument(
+        target.id,
+        project,
+        narrative,
+      );
+      if (!context.mounted ||
+          !session.isCurrentDialogueRead(node.id, request)) {
+        return;
+      }
+      final scene = session.current;
+      final current = scene.graph.nodes
+          .where((candidate) => candidate.id == node.id)
+          .firstOrNull;
+      if (current?.payload != original) {
+        throw StateError(
+          'La scène a changé pendant la lecture du dialogue. Réessayez.',
+        );
+      }
+      final updated = retargetSceneDialogue(
+        scene,
+        nodeId: node.id,
+        dialogueId: target.id,
+        yarnNodeName: start,
+        expectedOutcomes: outcomes,
+        dialogue: compiled,
+      );
+      session.commit(updated);
+      changed();
+    } catch (_) {
+      if (!context.mounted ||
+          !session.isCurrentDialogueRead(node.id, request)) {
+        return;
+      }
+      session.error = 'Le document est indisponible ou incompatible avec les réglages conservés. Le dialogue et ses réglages n’ont pas été modifiés.';
+      changed();
+    } finally {
+      session.finishDialogueRead(node.id, request);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

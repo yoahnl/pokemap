@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/dialogue_draft_codec.dart';
 import 'package:avelune_studio/features/narrative/application/interaction_edit_session.dart';
@@ -11,6 +12,7 @@ import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../support/map_workspace_fixture.dart';
 
 void main() {
@@ -161,6 +163,46 @@ void main() {
       expect(port.writes, 0);
     },
   );
+
+  test('pending policy source read returns a newly opened local draft instead of stale disk text', () async {
+    final pending = documents.readDialogueDocument(
+      entry.id,
+      maps.project!,
+      narrative,
+    );
+    expect(port.reads, 1);
+    final session = local(readOnly: false);
+    session.change(
+      dialogue: DialogueDraft(
+        entry: entry,
+        branches: [
+          DialogueBranchDraft(
+            id: 'Latest',
+            name: 'Brouillon actuel',
+            lines: [DialogueLineDraft(text: 'Dernier texte du brouillon.')],
+          ),
+        ],
+      ),
+    );
+    final before = session.current;
+    port.pending[entry.id]!.complete(
+      const NarrativeDialogueSource(entry: entry, source: raw),
+    );
+
+    final document = await pending;
+
+    expect(document.nodes, hasLength(1));
+    expect(
+      document.nodes.single.steps.whereType<RuntimeDialogueLine>().map(
+        (line) => line.text,
+      ),
+      ['Dernier texte du brouillon.'],
+    );
+    expect(session.current, same(before));
+    expect(session.dirty, isTrue);
+    expect(port.reads, 1);
+    expect(port.writes, 0);
+  });
 
   testWidgets('new workspace identity cannot reuse the previous source cache', (
     tester,
