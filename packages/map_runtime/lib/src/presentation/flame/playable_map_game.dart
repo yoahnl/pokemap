@@ -1441,7 +1441,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           if (!p.isWithin(_bundle.projectRootDirectory, path)) {
             throw StateError('The narrative map escapes the project.');
           }
-          final map = mapId == _bundle.map.id ? _bundle.map :
+          final map = mapId == _bundle.map.id ? (_runtimeBundleByMapId[mapId]?.map ?? _bundle.map) :
               await loadMapDataFromFile(
                 path,
                 projectDialogueContext: null,
@@ -1465,7 +1465,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             throw StateError('The narrative map path escapes the project.');
           }
           final map = mapId == _bundle.map.id
-              ? _bundle.map
+              ? (_runtimeBundleByMapId[mapId]?.map ?? _bundle.map)
               : await loadMapDataFromFile(
                   mapPath,
                   projectDialogueContext: project,
@@ -4436,6 +4436,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Set<String> _pendingPresentationRemounts = {};
   final Map<String, MapEntity> _lastNpcPresentations = {};
   final Map<String, EntityFacing> _lastNpcDeclaredFacings = {};
+  final Map<String, String?> _lastNpcVariantIds = {};
+  final Map<String, int> _npcPresentationRevisions = {};
   final Map<String, EntityFacing> _lastNpcLogicalFacings = {};
   final Map<String, EntityFacing> _remountedNpcFacings = {};
 
@@ -4447,10 +4449,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         final next = projection?.resolveEntity(source);
         final previous = _lastNpcPresentations[key];
         if (next != null) _lastNpcPresentations[key] = next;
-        final declaredFacing = resolveMapEntityPresentation(project: loaded.bundle.manifest,
-          gameState: _scenePresentationGameState, map: loaded.bundle.map, entity: source)?.facing;
+        final variant = resolveMapEntityPresentation(project: loaded.bundle.manifest,
+          gameState: _scenePresentationGameState, map: loaded.bundle.map, entity: source);
+        final declaredFacing = variant?.facing;
+        final pageChanged = _lastNpcVariantIds.containsKey(key) &&
+            _lastNpcVariantIds[key] != variant?.id;
+        _lastNpcVariantIds[key] = variant?.id;
+        if (pageChanged) {
+          _npcPresentationRevisions[key] =
+            (_npcPresentationRevisions[key] ?? 0) + 1;
+        }
+        if (pageChanged && loaded.bundle.map.id == _activeMapId) {
+          _interruptNpcFixedRoute(source.id);
+          final controller = _scriptedEntityMovementController;
+          if (controller?.isPatrolling(source.id) == true) {
+            controller!.stopPatrol(source.id);
+            controller.trackEntity(source.id, next?.pos ?? source.pos);
+            _scriptedNpcReservedOccupiedCellsByEntity.remove(source.id);
+          }
+        }
         final logicalFacing = _scenePresentationGameState.mapInstanceWorldState
             .instancesByMapId[loaded.bundle.map.id]?.npcPoses[source.id]?.facing;
+        final session = _activeNarrativeSceneWorkingSession;
+        final provisionalFacing = session?.stateProjection != null &&
+            logicalFacing != null &&
+            logicalFacing != session?.gameState.mapInstanceWorldState
+                .instancesByMapId[loaded.bundle.map.id]?.npcPoses[source.id]?.facing;
         final logicalFacingChanged = logicalFacing != _lastNpcLogicalFacings[key];
         if (logicalFacing == null) {
           _lastNpcLogicalFacings.remove(key);
@@ -4460,8 +4484,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         final previousFacing = _lastNpcDeclaredFacings[key];
         final facingChanged = previousFacing != null && declaredFacing != null && previousFacing != declaredFacing;
         if (declaredFacing != null) _lastNpcDeclaredFacings[key] = declaredFacing;
-        final changedFacing = logicalFacingChanged ? logicalFacing ?? next?.npc?.facing ?? declaredFacing : facingChanged ? declaredFacing : null;
-        if (logicalFacingChanged && changedFacing != null && loaded.bundle.map.id == _world.map.id &&
+        final changedFacing = !(pageChanged || logicalFacingChanged || facingChanged)
+            ? null
+            : provisionalFacing ? logicalFacing : pageChanged ? declaredFacing : logicalFacingChanged ? logicalFacing ?? next?.npc?.facing ?? declaredFacing : declaredFacing;
+        if ((logicalFacingChanged || pageChanged) && changedFacing != null && loaded.bundle.map.id == _world.map.id &&
             _world.map.entities.where((entity) => entity.id == source.id && entity.kind == MapEntityKind.npc && entity.npc != null).length == 1) {
           _world = _world.withEntityFacing(source.id, changedFacing);
         }
@@ -4472,6 +4498,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
         if (next?.npc?.characterId == actor.character.id && next?.size == previous?.size) {
           if (changedFacing != null) actor.restoreBase(changedFacing);
+          continue;
+        }
+        final character = loaded.bundle.manifest.characters.where(
+          (value) => value.id == next?.npc?.characterId).firstOrNull;
+        if (next != null && character != null) {
+          actor.applyCharacterPresentation(character,
+            position: next.pos, footprint: next.size,
+            facing: changedFacing ?? actor.facing);
           continue;
         }
         _runtimeNpcPositions[source.id] = actor.gridPos ?? next?.pos ?? source.pos;
@@ -6135,6 +6169,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
     final previousWorld = _world;
     final previousPlayerPos = previousWorld.player.pos;
+    if (intent is MoveIntent) _stabilizeAutonomousNpcBump(intent);
     final result = stepGameplayWorld(
       _world,
       intent,
@@ -11998,6 +12033,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final instance = _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
       contact.mapId,
     );
+    final variantId = _npcFixedRouteVariant(contact.entityId)?.id;
+    final revisionKey = '${contact.mapId}/${contact.entityId}';
+    final pageRevision = _npcPresentationRevisions[revisionKey];
+    _interruptNpcFixedRoute(contact.entityId);
     final actor =
         _loadedMapsById[contact.mapId]?.npcActorByEntityId[contact.entityId];
     if (actor == null || actor.isRemoved || actor.isStepping) {
@@ -12023,6 +12062,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           actor.position != actorPosition ||
           actor.gridPos != actorAnchor ||
           actor.gridPos != contact.entityPos ||
+          _npcFixedRouteVariant(contact.entityId)?.id != variantId ||
+          _npcPresentationRevisions[revisionKey] != pageRevision ||
           _player.isStepping ||
           _world.player.facing != contact.direction ||
           !isNarrativeEntityBumpSourceAvailable(
@@ -12081,6 +12122,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     MapEntity entity, {
     NarrativeSpatialInteractionGuard? interactionGuard,
   }) async {
+    final variantId = _npcFixedRouteVariant(entity.id)?.id;
+    final revisionKey = '$_activeMapId/${entity.id}';
+    final pageRevision = _npcPresentationRevisions[revisionKey];
+    final guarded = interactionGuard == null ? null : NarrativeSpatialInteractionGuard(
+      eventId: interactionGuard.eventId, sceneId: interactionGuard.sceneId,
+      isApplicable: () => _npcFixedRouteVariant(entity.id)?.id == variantId &&
+        _npcPresentationRevisions[revisionKey] == pageRevision &&
+        interactionGuard.isApplicable());
     await _dispatchSpatialOccurrence(
       occurrence: NarrativeEventOccurrence(
         source: NarrativeEventSourceRef.entityInteract(
@@ -12088,7 +12137,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           entity.id),
       ),
       legacyFallback: (_) async => _runLegacyInteractionFallback(result),
-      interactionGuard: interactionGuard,
+      interactionGuard: guarded,
     );
   }
 
@@ -17831,6 +17880,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _lastNpcDeclaredFacings['${preparedBundle.map.id}/${entity.id}'] =
           resolveMapEntityPresentation(project: preparedBundle.manifest,
             gameState: _scenePresentationGameState, map: preparedBundle.map, entity: sourceEntity)!.facing;
+        _lastNpcVariantIds[poseKey] = resolveMapEntityPresentation(
+          project: preparedBundle.manifest, gameState: _scenePresentationGameState,
+          map: preparedBundle.map, entity: sourceEntity)?.id;
       }
       npcActorByEntityId[entity.id] = actor;
       _npcActors.add(actor);

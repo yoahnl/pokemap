@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_entity_edi
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/entity_presentation_controls.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,119 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
+  for (final mode in [
+    MapEntityNpcMovementMode.idle,
+    MapEntityNpcMovementMode.patrol,
+  ]) {
+    testWidgets('Studio authors page movement and contact from ${mode.name}', (
+      tester,
+    ) async {
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 6, height: 6),
+        entities: [
+          MapEntity(
+            id: 'guide',
+            kind: MapEntityKind.npc,
+            pos: const GridPos(x: 1, y: 1),
+            npc: MapEntityNpcData(
+              characterId: 'guide-character',
+              movement: MapEntityNpcMovementConfig(
+                mode: mode,
+                waypoints: mode == MapEntityNpcMovementMode.patrol
+                    ? const [GridPos(x: 2, y: 1)]
+                    : const [],
+              ),
+            ),
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Pages',
+        maps: [],
+        tilesets: [],
+        characters: [
+          ProjectCharacterEntry(
+            id: 'guide-character',
+            name: 'Guide',
+            tilesetId: 'guide-atlas',
+          ),
+        ],
+      );
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(map: map, revision: 'base', mapId: map.id),
+      );
+      final commands = MapEntityEditingCommands(document, project);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, redraw) => SingleChildScrollView(
+                child: EntityPresentationControls(
+                  entity: document.current.entities.single,
+                  project: project,
+                  map: map,
+                  onChanged: (value) =>
+                      redraw(() => commands.setPresentation('guide', value)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Ajouter une variante'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<StudioSelect>(find.byKey(const ValueKey('npc-movement-mode')))
+          .onChanged!('fixedRoute');
+      await tester.pumpAndSettle();
+      expect(
+        document
+            .current
+            .entities
+            .single
+            .presentation!
+            .variants
+            .single
+            .movement
+            .mode,
+        MapEntityNpcMovementMode.fixedRoute,
+      );
+      final contact = find.byWidgetPredicate(
+        (widget) =>
+            widget is StudioChoice &&
+            widget.label ==
+                'Déclencher le contact quand le PNJ atteint le joueur',
+      );
+      await tester.ensureVisible(contact);
+      await tester.tap(contact);
+      await tester.pumpAndSettle();
+      expect(
+        document
+            .current
+            .entities
+            .single
+            .presentation!
+            .variants
+            .single
+            .startsOnNpcContact,
+        isTrue,
+      );
+      final graphic = tester
+          .widgetList<StudioSelect>(find.byType(StudioSelect))
+          .singleWhere((widget) => widget.label == 'Personnage de la variante');
+      graphic.onChanged!('');
+      await tester.pumpAndSettle();
+      final variant =
+          document.current.entities.single.presentation!.variants.single;
+      expect(variant.characterId, isNull);
+      expect(variant.movement.mode, MapEntityNpcMovementMode.idle);
+      expect(variant.startsOnNpcContact, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets(
     'Studio edits variants through canonical action with validation and undo',
     (tester) async {
@@ -42,8 +156,7 @@ void main() {
                   child: EntityPresentationControls(
                     entity: document.current.entities.single,
                     project: project,
-                    mapId: 'map',
-                    mapSize: map.size,
+                    map: map,
                     onChanged: (value) => setState(
                       () => commands.setPresentation('owner', value),
                     ),

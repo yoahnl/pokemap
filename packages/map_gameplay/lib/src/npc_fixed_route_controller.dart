@@ -4,6 +4,8 @@ import 'package:map_core/map_core.dart';
 
 import 'actor_route_motion.dart';
 import 'gameplay_world_state.dart';
+import 'direction.dart';
+import 'movement_terrain_policy.dart';
 
 enum NpcFixedRouteStepOutcome { completed, blocked, interrupted }
 
@@ -153,11 +155,13 @@ final class NpcFixedRouteStepPlan {
     required this.world,
     required this.motion,
     required this.isBlocked,
+    this.playerContact = false,
   });
 
   final GameplayWorldState world;
   final ActorRouteMotionPlan? motion;
   final bool isBlocked;
+  final bool playerContact;
 }
 
 NpcFixedRouteStepPlan planNpcFixedRouteStep({
@@ -207,5 +211,78 @@ NpcFixedRouteStepPlan planNpcFixedRouteStep({
     world: faced,
     motion: motion,
     isBlocked: motion == null,
+    playerContact: motion == null &&
+        npcFixedRouteTouchesPlayer(
+            world: faced,
+            entityId: actor.id,
+            direction: attempt.direction,
+            dynamicBlockedCells: dynamicBlockedCells,
+            characterReservations: characterReservations),
   );
+}
+
+bool npcFixedRouteTouchesPlayer({
+  required GameplayWorldState world,
+  required String entityId,
+  required EntityFacing direction,
+  Iterable<GridPos> dynamicBlockedCells = const [],
+  Iterable<PixelRect> characterReservations = const [],
+}) {
+  if (world.map.spatialScene != null || world.map.version == ProjectVersion.v9)
+    return false;
+  final actors = world.map.entities.where((entity) => entity.id == entityId);
+  if (actors.length != 1) return false;
+  final actor = actors.single;
+  if (actor.kind != MapEntityKind.npc ||
+      actor.npc == null ||
+      !actor.blocksMovement ||
+      !(world.npcMapPresencePredicate?.call(world.map.id, actor) ?? true) ||
+      !(world.mapEntityPresencePredicate?.call(world.map.id, actor) ?? true))
+    return false;
+  final source = resolveEntityCollisionRectPx(actor,
+      tileWidthPx: world.tileWidthPx, tileHeightPx: world.tileHeightPx);
+  final player =
+      world.playerCharacterContactRect(world.player.playerCollisionRectPx);
+  bool intersects(PixelRect first, PixelRect second) =>
+      first.leftPx < second.leftPx + second.widthPx &&
+      first.leftPx + first.widthPx > second.leftPx &&
+      first.topPx < second.topPx + second.heightPx &&
+      first.topPx + first.heightPx > second.topPx;
+  if (intersects(source, player)) return false;
+  final delta = direction.asDirection;
+  final distance = delta.dx == 0 ? world.tileHeightPx : world.tileWidthPx;
+  final reservations = characterReservations.toList(growable: false);
+  final blockedCells = dynamicBlockedCells
+      .where((cell) => cell != world.player.pos)
+      .toList(growable: false);
+  for (var pixel = 1; pixel <= distance; pixel++) {
+    final rect = PixelRect(
+        leftPx: source.leftPx + delta.dx * pixel,
+        topPx: source.topPx + delta.dy * pixel,
+        widthPx: source.widthPx,
+        heightPx: source.heightPx);
+    if (rect.leftPx < 0 ||
+        rect.topPx < 0 ||
+        rect.leftPx + rect.widthPx > world.map.size.width * world.tileWidthPx ||
+        rect.topPx + rect.heightPx >
+            world.map.size.height * world.tileHeightPx ||
+        !movementTerrainAllowsRect(
+            map: world.map,
+            rect: rect,
+            tileWidth: world.tileWidthPx,
+            tileHeight: world.tileHeightPx,
+            mode: MovementMode.walk) ||
+        world.worldStaticObstaclesCollidePixelRect(rect,
+            ignoredEntityId: actor.id) ||
+        reservations.any((reservation) => intersects(rect, reservation)) ||
+        blockedCells.any((cell) => intersects(
+            rect,
+            PixelRect(
+                leftPx: cell.x * world.tileWidthPx,
+                topPx: cell.y * world.tileHeightPx,
+                widthPx: world.tileWidthPx,
+                heightPx: world.tileHeightPx)))) return false;
+    if (intersects(rect, player)) return true;
+  }
+  return false;
 }

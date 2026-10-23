@@ -1,17 +1,82 @@
 import 'dart:convert';
 import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/events/event_conditions.dart';
+import 'package:avelune_studio/presentation/features/events/event_page_content.dart';
+import 'package:avelune_studio/presentation/features/events/event_view_state.dart';
+import 'package:avelune_studio/presentation/features/events/event_map_loader.dart';
 import 'package:avelune_studio/presentation/features/events/event_simulation_dialog.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'support/event_backend_fixture.dart';
 import 'support/ui06_scene_fixture.dart';
+import 'support/map_workspace_fixture.dart';
 
 void main() {
+  testWidgets('condition workspace passes a real owner only for entity sources', (tester) async {
+    final fixture = (await tester.runAsync(EventBackendFixture.create))!;
+    addTearDown(fixture.dispose);
+    final document = fixture.workspace.documents.values.first;
+    final owner = MapEntityEditingCommands(document, fixture.workspace.project!)
+        .place(MapEntityKind.sign, const GridPos(x: 1, y: 1));
+    final controller = fixture.attach();
+    expect(await tester.runAsync(controller.prepare), isTrue);
+    final map = controller.maps.singleWhere((map) => map.id == document.current.id);
+    final view = EventViewState()..tab = EventTab.conditions;
+    addTearDown(view.dispose);
+    for (final entitySource in [true, false]) {
+      final record = controller.create('Conditions', source: entitySource
+          ? NarrativeEventSourceRef.entityInteract(map.id, owner.id)
+          : NarrativeEventSourceRef.mapEnter(map.id))!;
+      await tester.pumpWidget(MaterialApp(theme: studioTheme(), home: Scaffold(body:
+        EventPageContent(record: record, controller: controller, view: view,
+          loader: EventMapLoader(fixture.workspace), visuals: WorkspaceTestVisuals(),
+          onLocate: (_) {}, onScene: (_) {}, mutate: (_) {}, sceneDirtyIds: {}, onMode: () {}))));
+      final conditions = tester.widget<EventConditions>(find.byType(EventConditions));
+      expect(conditions.entityId, entitySource ? owner.id : null);
+      expect(conditions.mapId, entitySource ? map.id : null);
+    }
+  });
+  testWidgets('local simulation uses real owners and reports an absent instance', (tester) async {
+    final fixture = (await tester.runAsync(EventBackendFixture.create))!;
+    addTearDown(fixture.dispose);
+    final controller = fixture.attach();
+    expect(await tester.runAsync(controller.prepare), isTrue);
+    final map = controller.maps.firstWhere((map) => map.entities.isNotEmpty);
+    final owner = map.entities.first;
+    expect(controller.setEnabled(Ui06SceneFixture.eventId, false), isTrue);
+    expect(controller.setExpression(Ui06SceneFixture.eventId,
+      NarrativeEventConditionExpression.leaf(NarrativeEventCondition.mapEventInstanceBoolean(
+        mapId: map.id, eventId: owner.id, key: 'opened', expectedValue: true))), isTrue,
+      reason: controller.error);
+    expect(controller.setEnabled(Ui06SceneFixture.eventId, true), isTrue,
+      reason: controller.error);
+    final bytes = jsonEncode(controller.project.toJson());
+    await _openSimulation(tester, controller);
+    await tester.tap(find.text('Simuler'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aucun événement sélectionné'), findsOneWidget);
+    final local = find.byKey(ValueKey('simulation-local:${map.id}:${owner.id}:opened'));
+    await tester.ensureVisible(local);
+    final select = tester.widget<StudioSelect>(local);
+    select.onChanged!('true');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Simuler'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cet événement est sélectionné'), findsOneWidget);
+    tester.widget<StudioSelect>(find.byKey(ValueKey('simulation-instance:${map.id}'))).onChanged!('absent');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Simuler'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aucun événement sélectionné'), findsOneWidget);
+    expect(jsonEncode(controller.project.toJson()), bytes);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'simulation reruns against a removed source without stale success',
     (tester) async {

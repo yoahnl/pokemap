@@ -1,12 +1,18 @@
 part of 'playable_map_game.dart';
 
 final class _NpcFixedRouteRuntimeEntry {
-  _NpcFixedRouteRuntimeEntry({required this.scope, required this.controller});
+  _NpcFixedRouteRuntimeEntry({
+    required this.scope,
+    required this.controller,
+    required this.variantId,
+  });
 
   final MapInstanceRef scope;
   final NpcFixedRouteController controller;
+  final String? variantId;
   NpcFixedRouteAttempt? pendingAttempt;
   ActorRouteMotionPlan? pendingMotion;
+  bool playerContactActive = false;
 }
 
 extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
@@ -36,15 +42,20 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
         }
         active.add(entity.id);
         final existing = _npcFixedRoutes[entity.id];
+        final variantId = _npcFixedRouteVariant(entity.id)?.id;
         if (existing != null &&
             existing.scope == scope &&
+            existing.variantId == variantId &&
             existing.controller.movement == movement) {
-          _interruptNpcFixedRoute(entity.id);
           continue;
         }
-        existing?.controller.dispose();
+        if (existing != null) {
+          _cancelNpcFixedRouteMotion(entity.id, existing);
+          existing.controller.dispose();
+        }
         _npcFixedRoutes[entity.id] = _NpcFixedRouteRuntimeEntry(
           scope: scope,
+          variantId: variantId,
           controller: NpcFixedRouteController(
             target: SceneActorTarget.entity(
               mapId: _activeMapId,
@@ -61,15 +72,33 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
     }
     for (final id in _npcFixedRoutes.keys.toList(growable: false)) {
       if (active.contains(id)) continue;
-      _npcFixedRoutes.remove(id)!.controller.dispose();
+      final entry = _npcFixedRoutes.remove(id)!;
+      _cancelNpcFixedRouteMotion(id, entry);
+      entry.controller.dispose();
     }
   }
 
   void _disposeNpcFixedRoutes() {
-    for (final entry in _npcFixedRoutes.values) {
-      entry.controller.dispose();
+    for (final item in _npcFixedRoutes.entries) {
+      _cancelNpcFixedRouteMotion(item.key, item.value);
+      item.value.controller.dispose();
     }
     _npcFixedRoutes.clear();
+  }
+
+  MapEntityPresentationVariant? _npcFixedRouteVariant(String entityId) {
+    final map = (_runtimeBundleByMapId[_activeMapId] ?? _bundle).map;
+    final entity = map.entities
+        .where((value) => value.id == entityId)
+        .firstOrNull;
+    return entity == null
+        ? null
+        : resolveMapEntityPresentation(
+            project: _bundle.manifest,
+            gameState: _scenePresentationGameState,
+            map: map,
+            entity: entity,
+          );
   }
 
   void _interruptNpcFixedRoute(String entityId) {
@@ -84,10 +113,13 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
     _NpcFixedRouteRuntimeEntry entry,
   ) {
     if (entry.pendingMotion != null) {
-      final entity = _world.map.entities
+      final loaded = _loadedMapsById[entry.scope.mapId];
+      final map = _world.map.id == entry.scope.mapId
+          ? _world.map
+          : loaded?.bundle.map;
+      final entity = map?.entities
           .where((candidate) => candidate.id == entityId)
           .firstOrNull;
-      final loaded = _loadedMapsById[_activeMapId];
       final actor = loaded?.npcActorByEntityId[entityId];
       if (entity != null && actor != null && loaded != null) {
         actor.configureGridPlacement(
@@ -95,7 +127,10 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
           footprint: entity.size,
           mapOrigin: _originPixelsOf(loaded),
         );
-        actor.setMotion(entity.npc!.facing, CharacterAnimationState.idle);
+        actor.setMotion(
+          entity.npc?.facing ?? actor.facing,
+          CharacterAnimationState.idle,
+        );
       }
       _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
     }
@@ -113,6 +148,7 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
       final id = item.key;
       final entry = item.value;
       if (scope != entry.scope) {
+        _cancelNpcFixedRouteMotion(id, entry);
         entry.controller.dispose();
         _npcFixedRoutes.remove(id);
         continue;
@@ -121,12 +157,21 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
           .where((candidate) => candidate.id == id)
           .firstOrNull;
       if (entity?.npc?.movement != entry.controller.movement ||
+          _npcFixedRouteVariant(id)?.id != entry.variantId ||
           !_npcPresencePredicateFor(_bundle.manifest)(_activeMapId, entity!) ||
           _loadedMapsById[_activeMapId]?.npcActorByEntityId[id] == null) {
         entry.controller.dispose();
         _cancelNpcFixedRouteMotion(id, entry);
         _npcFixedRoutes.remove(id);
         continue;
+      }
+      if (entry.playerContactActive &&
+          !npcFixedRouteTouchesPlayer(
+            world: _world,
+            entityId: id,
+            direction: entity.npc!.facing,
+          )) {
+        entry.playerContactActive = false;
       }
       final binding = entry.controller.movement.suspendWhenInstanceBoolean;
       if (binding != null &&
@@ -196,6 +241,17 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
               ? NpcFixedRouteStepOutcome.blocked
               : NpcFixedRouteStepOutcome.completed,
         );
+        if (plan.playerContact &&
+            !entry.playerContactActive &&
+            _npcFixedRouteVariant(id)?.startsOnNpcContact == true &&
+            !_player.isStepping) {
+          entry.playerContactActive = true;
+          _runDetachedNarrativeTask(
+            operation: 'npcRoute.entityBump',
+            task: () =>
+                _dispatchNpcFixedRouteContact(id, entry, attempt.direction),
+          );
+        }
         _checkTrainerLineOfSight();
         continue;
       }
@@ -211,6 +267,86 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
       } else {
         entry.controller.resolveStep(attempt, NpcFixedRouteStepOutcome.blocked);
       }
+    }
+  }
+
+  Future<void> _dispatchNpcFixedRouteContact(
+    String entityId,
+    _NpcFixedRouteRuntimeEntry entry,
+    EntityFacing direction,
+  ) async {
+    final activation = _currentMapActivationId;
+    final player = _world.player;
+    final actor = _loadedMapsById[_activeMapId]?.npcActorByEntityId[entityId];
+    final position = _world.map.entities
+        .where((entity) => entity.id == entityId)
+        .firstOrNull
+        ?.pos;
+    bool applicable() =>
+        !_isRemoved &&
+        !_player.isStepping &&
+        activation == _currentMapActivationId &&
+        _activeMapId == entry.scope.mapId &&
+        _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
+              _activeMapId,
+            ) ==
+            entry.scope &&
+        identical(_npcFixedRoutes[entityId], entry) &&
+        identical(
+          _loadedMapsById[_activeMapId]?.npcActorByEntityId[entityId],
+          actor,
+        ) &&
+        actor != null &&
+        !actor.isRemoved &&
+        !actor.isStepping &&
+        _npcFixedRouteVariant(entityId)?.id == entry.variantId &&
+        _npcFixedRouteVariant(entityId)?.startsOnNpcContact == true &&
+        _world.map.entities
+                .where((entity) => entity.id == entityId)
+                .firstOrNull
+                ?.pos ==
+            position &&
+        _world.player.playerPositionPx == player.playerPositionPx &&
+        npcFixedRouteTouchesPlayer(
+          world: _world,
+          entityId: entityId,
+          direction: direction,
+          dynamicBlockedCells: _scriptedNpcDynamicBlockedCells(
+            ignoreEntityId: entityId,
+          ),
+          characterReservations: [
+            for (final item
+                in _scriptedNpcReservedOccupiedCellsByEntity.entries)
+              if (item.key != entityId && item.value.contactRect != null)
+                item.value.contactRect!,
+          ],
+        );
+    if (!applicable()) return;
+    await _dispatchSpatialOccurrence(
+      occurrence: NarrativeEventOccurrence(
+        source: NarrativeEventSourceRef.entityBump(_activeMapId, entityId),
+      ),
+      legacyFallback: (_) async {},
+      contactIsApplicable: applicable,
+    );
+  }
+
+  void _stabilizeAutonomousNpcBump(MoveIntent intent) {
+    for (final item in _npcFixedRoutes.entries.toList(growable: false)) {
+      if (item.value.pendingMotion == null) continue;
+      final contact = resolvePlayerEntityBumpContact(
+        _world,
+        intent.direction,
+        attemptedPixelsPerStep: intent.pixelsPerStep,
+        characterReservations: [
+          for (final reservation
+              in _scriptedNpcReservedOccupiedCellsByEntity.entries)
+            if (reservation.key != item.key &&
+                reservation.value.contactRect != null)
+              reservation.value.contactRect!,
+        ],
+      );
+      if (contact?.entityId == item.key) _interruptNpcFixedRoute(item.key);
     }
   }
 }

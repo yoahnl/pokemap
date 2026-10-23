@@ -2,10 +2,15 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 const _instanceJson = <String, dynamic>{
-  'schemaVersion': 2,
+  'schemaVersion': currentMapInstanceWorldStateSchemaVersion,
   'instancesByMapId': <String, dynamic>{
     'source': <String, dynamic>{
       'instanceId': 'map-instance-source-1',
+      'consumedInteractiveEncounterEntityIds': <String>[],
+      'illuminatedZoneIds': <String>[],
+      'fieldObstaclePositions': <String, dynamic>{},
+      'npcPoses': <String, dynamic>{},
+      'strengthActive': false,
       'clearedFieldObstacleIds': <String>[],
       'eventBooleans': <String, dynamic>{
         'door': <String, dynamic>{'A': true, 'B': false},
@@ -14,6 +19,11 @@ const _instanceJson = <String, dynamic>{
     },
     'neighbor': <String, dynamic>{
       'instanceId': 'map-instance-neighbor-1',
+      'consumedInteractiveEncounterEntityIds': <String>[],
+      'illuminatedZoneIds': <String>[],
+      'fieldObstaclePositions': <String, dynamic>{},
+      'npcPoses': <String, dynamic>{},
+      'strengthActive': false,
       'clearedFieldObstacleIds': <String>[],
       'eventBooleans': <String, dynamic>{
         'door': <String, dynamic>{'A': false},

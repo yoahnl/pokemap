@@ -154,6 +154,7 @@ void main() {
             );
             var finished = false;
             var facingObserved = false;
+            var identicalRefreshObserved = false;
             execution.then((_) => finished = true);
             for (var i = 0; i < 1000 && !finished; i++) {
               game.update(.01);
@@ -168,6 +169,22 @@ void main() {
                   current.single.facing == EntityFacing.east &&
                   current.single.gridPos == const GridPos(x: 2, y: 2)) {
                 facingObserved = true;
+                if (remount && !baseNpc && !identicalRefreshObserved) {
+                  const clip = CharacterCustomAnimationClip(
+                    definitionId: 'scene-wave', sourceAssetId: 'scene-wave',
+                    frames: [CharacterAnimationFrame(
+                      source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32),
+                      durationMs: 100)],
+                  );
+                  current.single.playCustomAnimation(clip);
+                  expect(current.single.debugCustomAnimationDefinitionId, 'scene-wave');
+                  expect(await game.debugExecuteSceneInteractiveCommand(
+                    SceneInteractiveCommand.wait(durationMs: 0)), 'completed');
+                  expect(current.single.debugCustomAnimationDefinitionId, 'scene-wave',
+                    reason: 'An unchanged provisional pose must preserve custom playback.');
+                  expect(current.single.facing, EntityFacing.east);
+                  identicalRefreshObserved = true;
+                }
               }
               await Future<void>.delayed(const Duration(milliseconds: 1));
             }
@@ -193,6 +210,7 @@ void main() {
               isTrue,
               reason: 'The active sprite must observe the logical facing inside the scene.',
             );
+            if (remount && !baseNpc) expect(identicalRefreshObserved, isTrue);
             final saved = committed
                 .mapInstanceWorldState
                 .instancesByMapId['room']!
@@ -278,6 +296,9 @@ RuntimeMapBundle _bundle({
   projectRootDirectory: '/tmp/conditional-actor',
   tilesetAbsolutePathsById: const {
     'actors': '/tmp/conditional-actor/actors.png',
+  },
+  characterAnimationAbsolutePathsByAssetId: const {
+    'scene-wave': '/tmp/conditional-actor/actors.png',
   },
   map: MapData(
     id: 'room',

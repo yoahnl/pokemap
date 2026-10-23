@@ -82,7 +82,13 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         expect(native['sourceProgramQualified'], true);
         expect(native['sourceScriptsExecuted'], 0);
         expect(native['pages'], hasLength(event.pages.length));
-        expect(native['movement'], movement.toJson());
+        final policies = (native['movementPolicies'] as List).cast<Map>();
+        expect(policies, hasLength(event.pages.length));
+        for (final page in event.pages) {
+          final policy = policies.singleWhere((value) => value['sourcePageIndex'] == page.originalPageIndex);
+          final variant = entity.presentation!.variants.singleWhere((value) => value.id == 'page_${page.originalPageIndex}');
+          expect(policy['movement'], variant.movement.toJson());
+        }
         if (identity.$1 == 98) {
           expect(entity.npc!.trainerId,
               trainers.byEventIdentity[event.identity]!.nativeTrainer.id);

@@ -517,6 +517,17 @@ final class AuthoringResourceKindRegistry {
         summary: 'Revision-gated narrative event record',
         extensions: {
           'sourceVariants': NarrativeEventSourceRef.contracts,
+          'queryActions': ['event_v2.simulate'],
+          'simulation': {
+            'operation': 'get', 'authority': 'NarrativeEventDispatchAuthority',
+            'parameters': ['factNarrativeValues', 'mapInstanceWorldState', 'consumedNarrativeEventIds', 'inFlightNarrativeEventIds'],
+            'localState': {'owner': 'knownUniqueLogicalMapEntity',
+              'schemaVersion': currentMapInstanceWorldStateSchemaVersion, 'missingKey': false,
+              'lifetime': 'mapEventInstance', 'missingInstance': 'runtimeReferenceUnavailable',
+              'missingOwner': 'runtimeReferenceUnavailable', 'saveResume': 'retainedInstanceState',
+              'recreatedInstance': 'defaultsRestored'},
+            'proofKind': 'simulation', 'mountedPlayer': false, 'effects': 'none',
+          },
         },
       ),
       AuthoringResourceKindDescriptor(

@@ -10,6 +10,38 @@ const _door = MapEntity(
 );
 
 void main() {
+  test('builder simulation uses retained instance authority and real owners', () {
+    final registry = _registry();
+    final catalog = buildNarrativeEventProjectCatalog(
+      project: _project(registry),
+      maps: [_map()],
+    );
+    NarrativeEventSimulationReport simulate(MapInstanceWorldState state,
+            {List<MapData>? maps}) =>
+        simulateNarrativeEventDispatch(
+          registryResult: EventRegistryDecodeResult.decoded(registry),
+          projectCatalog: catalog,
+          facts: const [],
+          maps: maps ?? [_map()],
+          input: NarrativeEventSimulationInput(
+            targetEventId: _onEvent,
+            mapInstanceWorldState: state,
+          ),
+        );
+    final state = _state().mapInstanceWorldState;
+    final scope = state.instanceRef('map')!;
+    final on = state.setEventBoolean(scope, 'door', 'A', true);
+    expect(simulate(state).handledEventId, _offEvent);
+    expect(simulate(on).handledEventId, _onEvent);
+    expect(simulate(MapInstanceWorldState.fromJson(on.toJson())).handledEventId,
+        _onEvent);
+    expect(simulate(const MapInstanceWorldState.empty()).handledEventId, isNull);
+    expect(simulate(on, maps: [_map(entities: [])]).handledEventId, isNull);
+    expect(simulate(on).targetCandidate!.conditions.single.instanceId,
+        scope.instanceId);
+    expect(state.eventBoolean(scope, 'door', 'A'), isFalse);
+  });
+
   test('logical pages select the instance boolean rather than a Fact', () {
     final authority = _authority();
     final off = _state();

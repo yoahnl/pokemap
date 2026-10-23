@@ -129,6 +129,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _commands.where((command) => command.id == _commandId).firstOrNull;
 
   bool _is2DPresentationCommand(String? id) =>
+      id == NarrativeCommandIds.setMapEventInstanceBoolean ||
       id == NarrativeCommandIds.setNpcPose ||
       id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
@@ -320,6 +321,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
   bool get _valid {
     final command = _command;
     if (command == null) return false;
+    if (command.id == NarrativeCommandIds.setMapEventInstanceBoolean &&
+        (_referenceLoading || _referenceError != null || _referenceMap == null ||
+         !_options(NarrativeCommandParameterKind.mapEntityReference).containsKey(_values['eventId']))) {
+      return false;
+    }
     if (command.id == NarrativeCommandIds.setPropState) {
       if (_referenceLoading || _referenceError != null || _referenceMap == null) return false;
       try {
@@ -476,6 +482,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
   Map<String, String> _options(
     NarrativeCommandParameterKind kind,
   ) => integerSceneOptions(kind, project: widget.project, commandId: _commandId) ?? switch (kind) {
+    NarrativeCommandParameterKind.mapEntityReference => {
+      for (final entity in _referenceMap?.entities ?? const <MapEntity>[])
+        if (_referenceMap!.entities.where((other) => other.id == entity.id).length == 1)
+          entity.id: entity.name.trim().isNotEmpty ? entity.name : 'Élément (${entity.pos.x}, ${entity.pos.y})',
+    },
     NarrativeCommandParameterKind.character => _playerAvatarOptions(),
     NarrativeCommandParameterKind.species => {
       for (final species in _species) species.id: species.name,
@@ -722,6 +733,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         _values.remove('warpId');
         _loadReferenceMap();
       } else if (parameter.id == 'mapId') {
+        _values.remove('eventId');
         _values.remove('instanceId');
         _values.remove('animationIndex');
         if (_commandId == NarrativeCommandIds.setPropState) _values['propIds'] = '[]';

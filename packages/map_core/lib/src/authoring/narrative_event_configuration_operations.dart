@@ -1,5 +1,7 @@
 import '../catalogs/narrative_event_project_catalog.dart';
 import '../models/game_state.dart';
+import '../models/map_data.dart';
+import '../models/project_manifest.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_occurrence.dart';
 import '../models/narrative_event_progress.dart';
@@ -24,6 +26,8 @@ NarrativeEventSimulationReport simulateNarrativeEventDispatch({
   required NarrativeEventProjectCatalog projectCatalog,
   required Iterable<NarrativeFactDefinition> facts,
   required NarrativeEventSimulationInput input,
+  Iterable<MapData> maps = const [],
+  ProjectManifest? project,
   ValidatedLegacyClaimIndex? legacyClaimIndex,
 }) {
   final registry = registryResult.registryOrNull;
@@ -68,6 +72,8 @@ NarrativeEventSimulationReport simulateNarrativeEventDispatch({
     factResolver: resolver,
     legacyClaimIndex: legacyClaimIndex,
     projectCatalog: projectCatalog,
+    maps: maps.toList(),
+    project: project,
   );
   if (preparation is NarrativeEventDispatchAuthorityBlocked) {
     return NarrativeEventSimulationReport(
@@ -86,6 +92,7 @@ NarrativeEventSimulationReport simulateNarrativeEventDispatch({
 
   final gameState = GameState(
     saveId: 'event-builder-simulation',
+    mapInstanceWorldState: input.mapInstanceWorldState,
     narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
       valuesByFactId: input.resolvedFactValues,
     ),

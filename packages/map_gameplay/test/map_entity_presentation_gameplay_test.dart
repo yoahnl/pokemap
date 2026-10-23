@@ -4,6 +4,70 @@ import 'package:test/test.dart';
 
 void main() {
   test(
+      'a new page applies its declared facing and unchanged page preserves route facing',
+      () {
+    final condition = NarrativeEventConditionExpression.leaf(
+        NarrativeEventCondition.fact('changed', true));
+    final owner = MapEntity(
+        id: 'owner',
+        kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 2),
+        npc: const MapEntityNpcData(characterId: 'hero'),
+        presentation: MapEntityPresentation(variants: [
+          MapEntityPresentationVariant(
+              id: 'changed',
+              condition: condition,
+              characterId: 'hero',
+              facing: EntityFacing.west,
+              blocksMovement: true),
+          MapEntityPresentationVariant(
+              id: 'base',
+              condition: NarrativeEventConditionExpression.not(condition),
+              characterId: 'hero',
+              facing: EntityFacing.south,
+              blocksMovement: true),
+        ]));
+    final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 8, height: 8),
+        entities: [owner]);
+    final project = ProjectManifest(
+        name: 'Test',
+        maps: const [],
+        tilesets: const [],
+        characters: const [
+          ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'actors')
+        ],
+        facts: [
+          NarrativeFactDefinition(id: 'changed', label: 'Changed')
+        ]);
+    const initial = GameState(saveId: 'save');
+    final old = GameplayWorldState.initial(
+            map: map,
+            project: project,
+            gameState: initial,
+            playerPos: const GridPos(x: 0, y: 0))
+        .withEntityFacing('owner', EntityFacing.east);
+    final state = initial.copyWith(
+        storyFlags: const StoryFlags(activeFlags: {'changed'}));
+    final changed = old.withEntityPresentations(
+        project: project, gameState: state, sourceMap: map);
+    expect(changed.map.entities.single.npc!.facing, EntityFacing.west);
+    final faced = changed.withEntityFacing('owner', EntityFacing.north);
+    expect(
+        faced
+            .withEntityPresentations(
+                project: project, gameState: state, sourceMap: map)
+            .map
+            .entities
+            .single
+            .npc!
+            .facing,
+        EntityFacing.north);
+  });
+
+  test(
       'spatial collision and interaction consume the current presentation before spawn checks',
       () {
     var state = const GameState(saveId: 'save');

@@ -135,6 +135,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   String? _submissionError;
   List<SceneActionPickerOption>? _loadedWarpOptions;
   List<SceneActionPickerOption>? _loadedPropOptions;
+  List<SceneActionPickerOption>? _loadedLocalOwnerOptions;
   String? _warpReferenceError;
   bool _warpReferenceLoading = false;
   int _warpReferenceRequest = 0;
@@ -160,6 +161,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   NarrativeCommandDescriptor get _command => _catalog.byId(_commandId)!;
 
   bool _is2DPresentationCommand(String id) =>
+      id == NarrativeCommandIds.setMapEventInstanceBoolean ||
       id == NarrativeCommandIds.inputTextToFact ||
       id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
@@ -356,7 +358,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     if ((_isGift || _commandId == NarrativeCommandIds.setPlayerAvatar ||
         _commandId == NarrativeCommandIds.adjustIntegerFact ||
-        _commandId == NarrativeCommandIds.markPokemonSeen || _commandId == NarrativeCommandIds.setNpcPose) &&
+        _commandId == NarrativeCommandIds.markPokemonSeen || _commandId == NarrativeCommandIds.setNpcPose ||
+        _commandId == NarrativeCommandIds.setMapEventInstanceBoolean) &&
         oldWidget.initialPayload != widget.initialPayload) {
       _seedParameterValues(_command);
     }
@@ -370,12 +373,14 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     final request = ++_warpReferenceRequest;
     _loadedWarpOptions = null;
     _loadedPropOptions = null;
+    _loadedLocalOwnerOptions = null;
     _warpReferenceError = null;
     _warpReferenceLoading = false;
     final load = widget.loadWarpMap;
     final isProp = _command.id == NarrativeCommandIds.setPropState;
-    final mapId = _values[isProp ? 'mapId' : 'destinationMapId'];
-    if ((_command.id != NarrativeCommandIds.warp && !isProp) ||
+    final isLocal = _command.id == NarrativeCommandIds.setMapEventInstanceBoolean;
+    final mapId = _values[isProp || isLocal ? 'mapId' : 'destinationMapId'];
+    if ((_command.id != NarrativeCommandIds.warp && !isProp && !isLocal) ||
         load == null ||
         mapId == null ||
         !_optionsFor(
@@ -389,6 +394,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         if (!mounted || request != _warpReferenceRequest) return;
         setState(() {
           _warpReferenceLoading = false;
+          if (isLocal) {
+            if (map == null || map.id != mapId || map.spatialScene != null || map.version == ProjectVersion.v9) {
+              _warpReferenceError = 'La mémoire locale nécessite une carte 2D disponible.';
+              return;
+            }
+            _loadedLocalOwnerOptions = [for (final entity in map.entities)
+              if (map.entities.where((candidate) => candidate.id == entity.id).length == 1)
+                SceneActionPickerOption(id: entity.id, parentId: map.id,
+                  label: entity.name.isEmpty ? 'Élément (${entity.pos.x}, ${entity.pos.y})' : entity.name),
+            ];
+            return;
+          }
           if (isProp) {
             if (map == null || map.id != mapId || map.spatialScene != null ||
                 map.movingProps.map((prop) => prop.id).toSet().length != map.movingProps.length) {
@@ -701,7 +718,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       _runtimeAllows(_command) &&
       (!_is2DPresentationCommand(_command.id) ||
           widget.project?.settings.dimension == ProjectDimension.twoD) &&
-      ((_command.id != NarrativeCommandIds.warp && _command.id != NarrativeCommandIds.setPropState) ||
+      ((_command.id != NarrativeCommandIds.warp && _command.id != NarrativeCommandIds.setPropState &&
+          _command.id != NarrativeCommandIds.setMapEventInstanceBoolean) ||
           !_warpReferenceLoading && _warpReferenceError == null) &&
       _missingParameters.isEmpty &&
       _validWarpPresentation &&
@@ -1034,18 +1052,22 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         );
       default:
         if (_command.id == NarrativeCommandIds.warp &&
-            parameter.kind == NarrativeCommandParameterKind.warp) {
+            parameter.kind == NarrativeCommandParameterKind.warp ||
+            _command.id == NarrativeCommandIds.setMapEventInstanceBoolean &&
+            parameter.kind == NarrativeCommandParameterKind.mapEntityReference) {
           if (_warpReferenceLoading) {
-            return const PokeMapDiagnosticCallout(
+            return PokeMapDiagnosticCallout(
               severity: PokeMapDiagnosticSeverity.info,
-              title: 'Chargement des points d’arrivée',
-              message: 'Lecture de la carte de destination…',
+              title: _command.id == NarrativeCommandIds.setMapEventInstanceBoolean
+                  ? 'Chargement des éléments' : 'Chargement des points d’arrivée',
+              message: 'Lecture de la carte choisie…',
             );
           }
           if (_warpReferenceError != null) {
             return PokeMapDiagnosticCallout(
               severity: PokeMapDiagnosticSeverity.error,
-              title: 'Points d’arrivée indisponibles',
+              title: _command.id == NarrativeCommandIds.setMapEventInstanceBoolean
+                  ? 'Éléments indisponibles' : 'Points d’arrivée indisponibles',
               message: _warpReferenceError!,
               actionLabel: 'Recharger',
               onAction: () => setState(() => _loadWarpReferences()),
@@ -1166,6 +1188,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return _loadedPropOptions ?? [for (final option in widget.pickerOptions[kind] ?? const <SceneActionPickerOption>[])
         if (option.parentId == _values['mapId']) option,
           ];
+    }
+    if (kind == NarrativeCommandParameterKind.mapEntityReference &&
+        _command.id == NarrativeCommandIds.setMapEventInstanceBoolean) {
+      return _loadedLocalOwnerOptions ?? const [];
     }
     if (kind == NarrativeCommandParameterKind.fact &&
         _command.id == NarrativeCommandIds.inputTextToFact) {
@@ -1447,6 +1473,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         }
       }
       _applyOptionParameters(parameter.kind, value);
+      if (_command.id == NarrativeCommandIds.setMapEventInstanceBoolean && parameter.id == 'mapId') {
+        _values.remove('eventId');
+        _loadWarpReferences();
+      }
       if (_command.id == NarrativeCommandIds.setPropState && parameter.id == 'mapId') {
         _values['propIds'] = '[]';
         _loadWarpReferences();

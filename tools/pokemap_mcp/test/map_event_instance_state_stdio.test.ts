@@ -87,13 +87,34 @@ test("MCP discovers and authors scoped temporary event state with owner validati
     await apply("scene.condition.set", { sceneId: "temporary", nodeId: "condition",
       conditionSource: { ...condition, operator: "isFalse" } });
     const temporaryCondition = { kind: "mapEventInstanceBoolean", mapId: "map", eventId: "owner", key: "A", expectedValue: false };
-    const event = { state: "configured", enabled: false, definition: {
+    const event = { state: "configured", enabled: true, definition: {
       id: "evt_00000000-0000-7000-8000-000000000052", name: "Temporary page",
       source: { kind: "entityInteract", mapId: "map", entityId: "owner" },
       conditions: [temporaryCondition], sceneId: "temporary", reusePolicy: "reusable", priority: 1, order: 0,
     } };
     await apply("event_v2.record_upsert", { record: event });
     const savedBytes = await readFile(file);
+    const simulate = async (parameters: JsonRecord) => {
+      const page = await call("pokemap_query", {projectHandle: workspace!.projectHandle,
+        resourceKind: "eventV2", operation: "get", ids: [event.definition.id],
+        extensions: {actionId: "event_v2.simulate", parameters}});
+      return record(record((page.items as JsonRecord[])[0]).simulation);
+    };
+    const unavailable = await simulate({});
+    assert.equal(unavailable.handledEventId, null);
+    const retained = {schemaVersion: 6, instancesByMapId: {map: {
+      instanceId: "retained", eventBooleans: {owner: {A: false}},
+      clearedFieldObstacleIds: [], consumedInteractiveEncounterEntityIds: [], illuminatedZoneIds: [],
+      fieldObstaclePositions: {}, npcPoses: {}, strengthActive: false,
+    }}};
+    const simulation = await simulate({mapInstanceWorldState: retained});
+    const trace = (record((simulation.candidates as JsonRecord[])[0]).conditions as JsonRecord[])[0];
+    assert.ok(trace);
+    assert.equal(trace.instanceId, "retained");
+    assert.equal(trace.actualValue, false);
+    assert.equal(trace.passed, true);
+    const resources = description.resourceKinds as JsonRecord[];
+    assert.ok((record(resources.find((value) => value.id === "eventV2")?.extensions).queryActions as string[]).includes("event_v2.simulate"));
     const saved = record(JSON.parse(savedBytes.toString("utf8")));
     const savedScene = (saved.scenes as JsonRecord[]).find((value) => value.id === "temporary");
     assert.ok(savedScene);

@@ -8,37 +8,467 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/parse_yarn_dialogue.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
+import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
 
 const _id = 'walker';
 const _mapId = 'fixed-route-center';
 const _origin = GridPos(x: 2, y: 2);
 const _east = GridPos(x: 3, y: 2);
+const _pageRoute = MapEntityNpcMovementConfig(
+  mode: MapEntityNpcMovementMode.fixedRoute,
+  routeSteps: [
+    MapEntityNpcRouteStep.move(direction: EntityFacing.east),
+    MapEntityNpcRouteStep.move(direction: EntityFacing.west),
+  ],
+  pauseDurationMs: 1600,
+  stepDurationMs: 250,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'a page change and return invalidates the old pending player contact',
+    () async {
+      var bundle = _bundle(
+        v2: true,
+        contactEvent: true,
+        pageMovement: const MapEntityNpcMovementConfig(),
+      );
+      final original = bundle.manifest.scenes.single;
+      final transient = SceneAsset(
+        id: 'transient-page',
+        name: 'Transient page',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            ...original.graph.nodes,
+            SceneNode(
+              id: 'hold',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(dialogueId: 'talk'),
+            ),
+          ],
+          edges: [
+            for (final edge in original.graph.edges)
+              if (edge.id != 'done') edge,
+            SceneEdge(
+              id: 'hold',
+              fromNodeId: 'stop',
+              fromPortId: 'completed',
+              toNodeId: 'hold',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+            SceneEdge(
+              id: 'end',
+              fromNodeId: 'hold',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      );
+      bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(scenes: [original, transient]),
+      );
+      late PlayableMapGame game;
+      var transientFinished = false;
+      game = await _load(
+        bundle,
+        beforeNarrativeAuthorityPreparation: (occurrence) async {
+          if (occurrence.source.kind != NarrativeEventSourceKind.entityBump) {
+            return;
+          }
+          final result = await game.debugExecuteNarrativeSceneForTest(
+            NarrativeSceneExecutionRequest(
+              eventId: 'evt_019abcde-1600-7000-8000-000000000001',
+              sceneId: transient.id,
+              executionId: 'temporary-page',
+              gameState: game.gameStateSnapshot,
+            ),
+          );
+          expect(result, isA<NarrativeSceneExecutionCompleted>());
+          transientFinished = true;
+        },
+      );
+      game.debugSetPlayerStateForTest(
+        position: const GridPos(x: 2, y: 3),
+        facing: Direction.north,
+      );
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.up),
+      );
+      game.update(.016);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.release(RuntimeInputControl.up),
+      );
+      await _until(game, () => game.debugFlowPhaseName == 'dialogue');
+      _confirm(game);
+      await _until(
+        game,
+        () =>
+            transientFinished && !game.debugIsNarrativeSpatialDispatchInFlight,
+      );
+      final state = game.gameStateSnapshot.mapInstanceWorldState;
+      expect(
+        state.eventBoolean(
+          state.instanceRef(_mapId)!,
+          _id,
+          'npc.autonomousRouteStopped',
+        ),
+        isFalse,
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    },
+  );
+
+  for (final startsOnNpcContact in [false, true]) {
+    test(
+      'autonomous contact follows page policy and is latched starts=$startsOnNpcContact',
+      () async {
+        var preparations = 0;
+        final game = await _load(
+          _bundle(
+            v2: true,
+            contactEvent: true,
+            startsOnNpcContact: startsOnNpcContact,
+          ),
+          beforeNarrativeAuthorityPreparation: (occurrence) async {
+            if (occurrence.source.kind == NarrativeEventSourceKind.entityBump) {
+              preparations++;
+            }
+          },
+        );
+        game.debugSetPlayerStateForTest(
+          position: _east,
+          facing: Direction.north,
+        );
+        await _pump(game, milliseconds: 8500);
+        final instances = game.gameStateSnapshot.mapInstanceWorldState;
+        expect(
+          instances.eventBoolean(
+            instances.instanceRef(_mapId)!,
+            _id,
+            'npc.autonomousRouteStopped',
+          ),
+          startsOnNpcContact,
+        );
+        expect(preparations, startsOnNpcContact ? 1 : 0);
+        expect(game.debugMapEntityPosition(_id), _origin);
+        expect(game.debugIsGameplayInputLocked, isFalse);
+      },
+    );
+  }
+
+  test('player contact interrupts moving NPC before dispatch without a late commit', () async {
+    var preparations = 0;
+    final game = await _load(
+      _bundle(v2: true, contactEvent: true),
+      beforeNarrativeAuthorityPreparation: (occurrence) async {
+        if (occurrence.source.kind == NarrativeEventSourceKind.entityBump) {
+          preparations++;
+        }
+      },
+    );
+    await _until(
+      game,
+      () => game.debugNpcActorFacing(_id) == EntityFacing.east,
+    );
+    game.debugSetPlayerStateForTest(
+      position: const GridPos(x: 2, y: 3),
+      facing: Direction.north,
+    );
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.up),
+    );
+    game.update(.016);
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.release(RuntimeInputControl.up),
+    );
+    await _until(game, () => preparations > 0);
+    await _pump(game, milliseconds: 400);
+    expect(game.debugMapEntityPosition(_id), _origin);
+    expect(game.debugNpcGridPosition(_id), _origin);
+    expect(preparations, 1);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
+
+  test(
+    'a different page with equal route restarts at its first command',
+    () async {
+      final game = await _load(_bundle(v2: true, pageMovement: _pageRoute));
+      await _until(game, () => game.debugMapEntityPosition(_id) == _east);
+      game.debugSetPlayerStateForTest(
+        position: const GridPos(x: 0, y: 4),
+        facing: Direction.north,
+      );
+      _interact(game);
+      await _until(game, () {
+        final instances = game.gameStateSnapshot.mapInstanceWorldState;
+        return instances.eventBoolean(
+          instances.instanceRef(_mapId)!,
+          _id,
+          'npc.autonomousRouteStopped',
+        );
+      });
+      await _until(game, () => game.debugMapEntityPosition(_id) != _east);
+      expect(game.debugMapEntityPosition(_id), const GridPos(x: 4, y: 2));
+    },
+  );
+
+  test('local stationary page survives save restore but a recreated instance moves', () async {
+    final bundle = _bundle(
+      v2: true,
+      pageMovement: const MapEntityNpcMovementConfig(),
+    );
+    final first = await _load(bundle);
+    first.debugSetPlayerStateForTest(
+      position: const GridPos(x: 0, y: 4),
+      facing: Direction.north,
+    );
+    _interact(first);
+    await _until(first, () {
+      final instances = first.gameStateSnapshot.mapInstanceWorldState;
+      return instances.eventBoolean(
+        instances.instanceRef(_mapId)!,
+        _id,
+        'npc.autonomousRouteStopped',
+      );
+    });
+    final saved = gameStateFromStrictSaveJson(
+      strictGameStateSaveJson(first.gameStateSnapshot),
+    );
+    final restored = await _load(bundle, state: saved);
+    await _pump(restored, milliseconds: 5000);
+    expect(restored.debugMapEntityPosition(_id), _origin);
+    final reset = saved.copyWith(
+      mapInstanceWorldState: setupDifferentMapInstance(
+        state: saved.mapInstanceWorldState,
+        targetMapId: _mapId,
+        allocateId: (_) => 'fresh-visit',
+      ),
+    );
+    final recreated = await _load(bundle, state: reset);
+    await _until(
+      recreated,
+      () => recreated.debugMapEntityPosition(_id) == _east,
+    );
+    expect(saved.storyFlags, reset.storyFlags);
+  });
+
+  test('complete local program changes appearance collision trigger and movement across restore and eviction', () async {
+    final bundle = _bundle(
+      v2: true,
+      contactEvent: true,
+      startsOnNpcContact: true,
+      pageMovement: const MapEntityNpcMovementConfig(),
+      pageAppearanceChange: true,
+    );
+    var preparations = 0;
+    final first = await _load(
+      bundle,
+      beforeNarrativeAuthorityPreparation: (occurrence) async {
+        if (occurrence.source.kind == NarrativeEventSourceKind.entityBump) {
+          preparations++;
+        }
+      },
+    );
+    final original = first.world.children
+        .whereType<OverworldActorComponent>()
+        .single;
+    final originalFacts = first.gameStateSnapshot.narrativeFactRuntimeState;
+    first.debugSetPlayerStateForTest(position: _east, facing: Direction.west);
+    await _until(first, () {
+      final state = first.gameStateSnapshot.mapInstanceWorldState;
+      return state.eventBoolean(
+        state.instanceRef(_mapId)!,
+        _id,
+        'npc.autonomousRouteStopped',
+      );
+    });
+    await _pump(first, milliseconds: 5000);
+    final changed = first.world.children
+        .whereType<OverworldActorComponent>()
+        .single;
+    expect(identical(changed, original), isTrue);
+    expect(changed.character.id, 'alternate-character');
+    expect(first.debugNpcVisualFacing(_id), EntityFacing.west);
+    expect(first.debugMapEntityPosition(_id), _origin);
+    first.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.left),
+    );
+    first.update(.016);
+    first.handleRuntimeInputEvent(
+      const RuntimeInputEvent.release(RuntimeInputControl.left),
+    );
+    await _until(
+      first,
+      () =>
+          first.debugPlayerGridPosition == _origin &&
+          !first.debugIsPlayerStepping,
+    );
+    expect(preparations, 1);
+    expect(first.gameStateSnapshot.narrativeFactRuntimeState, originalFacts);
+    final saved = gameStateFromStrictSaveJson(
+      strictGameStateSaveJson(first.gameStateSnapshot),
+    );
+    final retained = await _load(bundle, state: saved);
+    await _pump(retained, milliseconds: 5000);
+    expect(
+      retained.world.children
+          .whereType<OverworldActorComponent>()
+          .single
+          .character
+          .id,
+      'alternate-character',
+    );
+    expect(retained.debugNpcVisualFacing(_id), EntityFacing.west);
+    expect(retained.debugMapEntityPosition(_id), _origin);
+    expect(retained.debugIsGameplayInputLocked, isFalse);
+    final elsewhere = retainMapInstance(
+      state: saved.mapInstanceWorldState,
+      mapId: 'elsewhere',
+      allocateId: (_) => 'elsewhere-visit',
+    );
+    final evicted = updateMapInstanceRetention(
+      state: elsewhere,
+      activeMap: MapInstanceMapGeometry(
+        mapId: 'elsewhere',
+        originTiles: const GridPos(x: 100, y: 100),
+        sizeTiles: const GridSize(width: 8, height: 5),
+      ),
+      directConnectedMaps: [
+        MapInstanceMapGeometry(
+          mapId: _mapId,
+          originTiles: const GridPos(x: 0, y: 0),
+          sizeTiles: bundle.map.size,
+        ),
+      ],
+      logicalViewport: MapInstanceLogicalViewport(
+        leftTiles: 100,
+        topTiles: 100,
+      ),
+      policy: bundle.manifest.settings.mapInstanceRetentionPolicy!,
+      settled: true,
+      allocateId: (_) => 'unused',
+    );
+    expect(evicted.instanceRef(_mapId), isNull);
+    final reset = saved.copyWith(
+      playerPosition: const GridPos(x: 0, y: 4),
+      playerPixelPosition: null,
+      mapInstanceWorldState: setupDifferentMapInstance(
+        state: evicted,
+        targetMapId: _mapId,
+        allocateId: (_) => 'after-eviction',
+      ),
+    );
+    final recreated = await _load(bundle, state: reset);
+    expect(
+      recreated.world.children
+          .whereType<OverworldActorComponent>()
+          .single
+          .character
+          .id,
+      'npc-character',
+    );
+    await _until(
+      recreated,
+      () => recreated.debugMapEntityPosition(_id) == _east,
+    );
+    final instances = recreated.gameStateSnapshot.mapInstanceWorldState;
+    expect(
+      instances.eventBoolean(
+        instances.instanceRef(_mapId)!,
+        _id,
+        'npc.autonomousRouteStopped',
+      ),
+      isFalse,
+    );
+    expect(
+      recreated.gameStateSnapshot.narrativeFactRuntimeState,
+      originalFacts,
+    );
+  });
+
+  for (final nextMovement in [
+    const MapEntityNpcMovementConfig(),
+    const MapEntityNpcMovementConfig(
+      mode: MapEntityNpcMovementMode.fixedRoute,
+      routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.west)],
+      pauseDurationMs: 1600,
+      stepDurationMs: 250,
+    ),
+  ]) {
+    test(
+      'page change cancels in-flight route before ${nextMovement.mode.name}',
+      () async {
+        final game = await _load(_bundle(v2: true, pageMovement: nextMovement));
+        await _until(
+          game,
+          () => game.debugNpcActorFacing(_id) == EntityFacing.east,
+        );
+        expect(game.debugMapEntityPosition(_id), _origin);
+        game.debugSetPlayerStateForTest(
+          position: const GridPos(x: 0, y: 4),
+          facing: Direction.north,
+        );
+        _interact(game);
+        await _until(game, () {
+          final instances = game.gameStateSnapshot.mapInstanceWorldState;
+          return instances.eventBoolean(
+            instances.instanceRef(_mapId)!,
+            _id,
+            'npc.autonomousRouteStopped',
+          );
+        });
+        await _pump(game, milliseconds: 500);
+        expect(game.debugMapEntityPosition(_id), _origin);
+        expect(game.debugNpcGridPosition(_id), _origin);
+        expect(game.debugNpcVisualFacing(_id), EntityFacing.north);
+        if (nextMovement.mode == MapEntityNpcMovementMode.idle) {
+          await _pump(game, milliseconds: 5000);
+          expect(game.debugMapEntityPosition(_id), _origin);
+        } else {
+          await _until(
+            game,
+            () => game.debugMapEntityPosition(_id) == const GridPos(x: 1, y: 2),
+          );
+        }
+        expect(game.debugIsGameplayInputLocked, isFalse);
+      },
+    );
+  }
+
   Map<String, Object?>? normalState;
   for (final speed in PlaytestSpeed.values) {
-    test('×${speed.multiplier} preserves seeded autonomous movement over equal simulation time', () async {
-      final random = math.Random(42);
-      final encounters = _CountingRandom([37]);
-      final game = await _load(_bundle(randomMove: true), npcRouteRandom: random, encounterRandom: encounters);
-      game.setTestSpeed(speed);
-      for (var tick = 0; tick < 420 ~/ speed.multiplier; tick++) {
-        game.update(1 / 60);
-        await Future<void>.delayed(Duration.zero);
-      }
-      final state = <String, Object?>{
-        'position': game.debugMapEntityPosition(_id),
-        'facing': game.debugNpcActorFacing(_id),
-        'runtimePositions': game.debugRuntimeNpcPositions,
-        'nextRandom': random.nextInt(100000),
-        'encounterDraws': encounters.draws,
-      };
-      normalState ??= state;
-      expect(state, normalState);
-      expect(encounters.draws, 0);
-    });
+    test(
+      '×${speed.multiplier} preserves seeded autonomous movement over equal simulation time',
+      () async {
+        final random = math.Random(42);
+        final encounters = _CountingRandom([37]);
+        final game = await _load(
+          _bundle(randomMove: true),
+          npcRouteRandom: random,
+          encounterRandom: encounters,
+        );
+        game.setTestSpeed(speed);
+        for (var tick = 0; tick < 420 ~/ speed.multiplier; tick++) {
+          game.update(1 / 60);
+          await Future<void>.delayed(Duration.zero);
+        }
+        final state = <String, Object?>{
+          'position': game.debugMapEntityPosition(_id),
+          'facing': game.debugNpcActorFacing(_id),
+          'runtimePositions': game.debugRuntimeNpcPositions,
+          'nextRandom': random.nextInt(100000),
+          'encounterDraws': encounters.draws,
+        };
+        normalState ??= state;
+        expect(state, normalState);
+        expect(encounters.draws, 0);
+      },
+    );
   }
 
   for (final blocked in [false, true]) {
@@ -430,11 +860,22 @@ RuntimeMapBundle _bundle({
   bool randomMove = false,
   bool suspend = false,
   bool v2 = false,
+  MapEntityNpcMovementConfig? pageMovement,
+  bool contactEvent = false,
+  bool startsOnNpcContact = false,
+  bool pageAppearanceChange = false,
 }) => RuntimeMapBundle(
   projectRootDirectory: '/tmp/fixed-route-player',
   tilesetAbsolutePathsById: const {},
   manifest: ProjectManifest(
     name: 'Native fixed routes',
+    settings: ProjectSettings(
+      mapInstanceRetentionPolicy: MapInstanceRetentionPolicy(
+        viewportWidthTiles: 8,
+        viewportHeightTiles: 5,
+        marginTiles: 0,
+      ),
+    ),
     eventRegistry: v2
         ? NarrativeEventRegistry(
             schemaVersion: 1,
@@ -444,12 +885,22 @@ RuntimeMapBundle _bundle({
                 NarrativeEventDefinition(
                   id: 'evt_019abcde-1600-7000-8000-000000000001',
                   name: 'Stop current route',
-                  source: NarrativeEventSourceRef.entityInteract(
-                    _mapId,
-                    'stop-switch',
-                  ),
+                  source: contactEvent
+                      ? NarrativeEventSourceRef.entityBump(_mapId, _id)
+                      : NarrativeEventSourceRef.entityInteract(
+                          _mapId,
+                          'stop-switch',
+                        ),
                   sceneId: 'stop-route',
-                  conditions: const [],
+                  conditions: [
+                    if (pageAppearanceChange)
+                      NarrativeEventCondition.mapEventInstanceBoolean(
+                        mapId: _mapId,
+                        eventId: _id,
+                        key: 'npc.autonomousRouteStopped',
+                        expectedValue: false,
+                      ),
+                  ],
                   reusePolicy: NarrativeEventReusePolicy.reusable,
                   priority: 0,
                   order: 0,
@@ -472,6 +923,11 @@ RuntimeMapBundle _bundle({
       ProjectCharacterEntry(
         id: 'npc-character',
         name: 'NPC',
+        tilesetId: 'npc-sheet',
+      ),
+      ProjectCharacterEntry(
+        id: 'alternate-character',
+        name: 'Alternate',
         tilesetId: 'npc-sheet',
       ),
     ],
@@ -561,6 +1017,56 @@ RuntimeMapBundle _bundle({
         id: _id,
         kind: MapEntityKind.npc,
         pos: _origin,
+        presentation: pageMovement == null && !contactEvent
+            ? null
+            : MapEntityPresentation(
+                variants: [
+                  if (pageMovement != null)
+                    MapEntityPresentationVariant(
+                      id: 'changed',
+                      condition: NarrativeEventConditionExpression.leaf(
+                        NarrativeEventCondition.mapEventInstanceBoolean(
+                          mapId: _mapId,
+                          eventId: _id,
+                          key: 'npc.autonomousRouteStopped',
+                          expectedValue: true,
+                        ),
+                      ),
+                      characterId: pageAppearanceChange
+                          ? 'alternate-character'
+                          : 'npc-character',
+                      blocksMovement: !pageAppearanceChange,
+                      interactionMode: pageAppearanceChange
+                          ? MapEntityInteractionMode.overlap
+                          : MapEntityInteractionMode.front,
+                      facing: pageAppearanceChange
+                          ? EntityFacing.west
+                          : EntityFacing.north,
+                      movement: pageMovement,
+                    ),
+                  MapEntityPresentationVariant(
+                    id: 'moving',
+                    condition: NarrativeEventConditionExpression.all([]),
+                    characterId: 'npc-character',
+                    blocksMovement: true,
+                    startsOnNpcContact: startsOnNpcContact,
+                    facing: EntityFacing.north,
+                    movement: const MapEntityNpcMovementConfig(
+                      mode: MapEntityNpcMovementMode.fixedRoute,
+                      routeSteps: [
+                        MapEntityNpcRouteStep.move(
+                          direction: EntityFacing.east,
+                        ),
+                        MapEntityNpcRouteStep.move(
+                          direction: EntityFacing.west,
+                        ),
+                      ],
+                      pauseDurationMs: 1600,
+                      stepDurationMs: 250,
+                    ),
+                  ),
+                ],
+              ),
         npc: MapEntityNpcData(
           characterId: 'npc-character',
           facing: EntityFacing.north,
@@ -605,6 +1111,7 @@ final class _FixedRouteGame extends PlayableMapGame {
     super.encounterRandom,
     super.npcRouteRandom,
     super.narrativeRuntimeActivityGate,
+    super.beforeNarrativeAuthorityPreparation,
   }) : super(
          projectFilePath: '/tmp/fixed-route-player/project.json',
          dialogueSessionLoader: (_) async => DialogueSession.start(
@@ -624,6 +1131,8 @@ Future<PlayableMapGame> _load(
   math.Random? encounterRandom,
   math.Random? npcRouteRandom,
   NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
+  Future<void> Function(NarrativeEventOccurrence occurrence)?
+  beforeNarrativeAuthorityPreparation,
 }) async {
   final game = _FixedRouteGame(
     bundle: bundle,
@@ -631,6 +1140,7 @@ Future<PlayableMapGame> _load(
     encounterRandom: encounterRandom,
     npcRouteRandom: npcRouteRandom,
     narrativeRuntimeActivityGate: narrativeRuntimeActivityGate,
+    beforeNarrativeAuthorityPreparation: beforeNarrativeAuthorityPreparation,
     initialMapActivationReason: state == null
         ? MapActivationReason.initialBoot
         : MapActivationReason.saveRestore,

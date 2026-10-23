@@ -11,6 +11,8 @@ import 'support/literal_tile_fixture.dart';
 
 Future<SourceEventProjection> _project({bool choices = true,
     bool hiddenPage = false, bool visibleStationaryPage = false,
+    bool differentRoutePage = false,
+    int trigger = 0, bool through = false,
     bool unknownEffect = false, bool randomWalk = false,
     bool forge = false, bool forgeHidden = false,
     bool unknownRoute = false, bool openLoop = false, bool invisibleFirst = false}) async {
@@ -47,10 +49,13 @@ Future<SourceEventProjection> _project({bool choices = true,
         if (invisibleFirst) const LiteralFixtureEventPage(moveType: 3, through: true, autonomousRouteCodes: [3, 2, 0], commands: [LiteralFixtureEventCommand(0, [])]),
         LiteralFixtureEventPage(characterName: 'Guide', moveType: randomWalk ? 1 : 3,
           autonomousRouteCodes: unknownRoute ? [45, 0] : openLoop ? [3, 0] : [3, 2, 0],
-          commands: commands),
-        if (hiddenPage || visibleStationaryPage) LiteralFixtureEventPage(
-          globalSwitch: 1, characterName: visibleStationaryPage ? 'Guide' : '', through: !visibleStationaryPage,
-          commands: visibleStationaryPage ? commands : const [LiteralFixtureEventCommand(0, [])]),
+          trigger: trigger, through: through,
+          commands: trigger == 0 ? commands : const [LiteralFixtureEventCommand(101, ['Hello']), LiteralFixtureEventCommand(0, [])]),
+        if (hiddenPage || visibleStationaryPage || differentRoutePage) LiteralFixtureEventPage(
+          globalSwitch: 1, characterName: hiddenPage ? '' : 'Guide', through: hiddenPage,
+          moveType: differentRoutePage ? 3 : 0,
+          autonomousRouteCodes: differentRoutePage ? [4, 1, 0] : const [0],
+          commands: hiddenPage ? const [LiteralFixtureEventCommand(0, [])] : commands),
       ])])]);
   final original = SourceEventAnalyzer.forProject(fixture.source,
     profile: SourceEventProfile.forProject(fixture.source)).analyze();
@@ -78,6 +83,38 @@ Map _row(SourceEventProjection projection) =>
     (projection.semanticEvidence['events'] as List).single as Map;
 
 void main() {
+  for (final trigger in [1, 2]) {
+    test('qualified moving contact preserves trigger $trigger ownership', () async {
+      final projection = await _project(trigger: trigger);
+      expect(_row(projection)['status'], 'adaptedStaticSemantics', reason: '${_row(projection)['gaps']}');
+      final entity = projection.nativeMaps[1]!.entities.single;
+      expect(entity.presentation!.variants.single.startsOnNpcContact, trigger == 2);
+      expect(entity.presentation!.variants.single.movement.mode, MapEntityNpcMovementMode.fixedRoute);
+      expect(projection.registry.records.single.definitionOrNull!.source.kind, NarrativeEventSourceKind.entityBump);
+    });
+  }
+  test('moving through contact is quarantined rather than converted to a static trigger', () async {
+    final projection = await _project(trigger: 2, through: true);
+    expect(_row(projection)['status'], 'quarantinedWholeEvent');
+  });
+  for (final idle in [true, false]) {
+    test('each visible page owns its ${idle ? 'stationary' : 'different route'} policy', () async {
+      final projection = await _project(visibleStationaryPage: idle,
+          differentRoutePage: !idle);
+      expect(_row(projection)['status'], 'adaptedStaticSemantics',
+          reason: '${_row(projection)['gaps']}');
+      final variants = projection.nativeMaps[1]!.entities.single.presentation!.variants;
+      expect(variants, hasLength(2));
+      expect(variants.last.movement.mode, MapEntityNpcMovementMode.fixedRoute);
+      if (idle) {
+        expect(variants.first.movement.mode, MapEntityNpcMovementMode.idle);
+      } else {
+        expect(variants.first.movement, isNot(variants.last.movement));
+        expect((variants.first.movement.routeSteps.first as MapEntityNpcMoveStep).direction,
+            EntityFacing.north);
+      }
+    });
+  }
   test('fixed patrol keeps choices and terminal face-player without losing movement', () async {
     final projection = await _project();
     expect(_row(projection)['status'], 'adaptedStaticSemantics', reason: '${_row(projection)['gaps']}');
@@ -115,10 +152,10 @@ void main() {
     expect(hidden.blocksMovement, false);
   });
 
-  test('fixed route retains an earlier invisible page with the same qualified route', () async {
+  test('invisible autonomous pages remain explicitly unsupported', () async {
     final projection = await _project(choices: false, invisibleFirst: true);
-    expect(_row(projection)['status'], 'adaptedStaticSemantics', reason: '${_row(projection)['gaps']}');
-    expect((_row(projection)['nativeFixedRoute'] as Map)['pages'], hasLength(2));
+    expect(_row(projection)['status'], 'quarantinedWholeEvent');
+    expect(_row(projection)['nativeFixedRoute'], isNull);
   });
 
   for (final (name, run) in <(String, Future<SourceEventProjection> Function())>[
@@ -128,7 +165,6 @@ void main() {
     ('forged hidden condition', () => _project(choices: false, hiddenPage: true, forgeHidden: true)),
     ('unknown autonomous route', () => _project(unknownRoute: true)),
     ('open looping route', () => _project(openLoop: true)),
-    ('visible stationary override', () => _project(visibleStationaryPage: true)),
   ]) {
     test('refuses $name', () async {
       final projection = await run();

@@ -9,6 +9,7 @@ import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/project/capability_truth_adapter.dart';
 import '../domains/narrative/scene_simulation_query.dart';
+import '../domains/narrative/event_simulation_query.dart';
 import '../references/project_reference_index.dart';
 import '../registry/resource_kind_registry.dart';
 import '../workspace/project_open_service.dart';
@@ -161,6 +162,9 @@ final class AuthoringReadApi
     );
     if (request.extensions['actionId'] == 'scene.simulate') {
       return querySceneSimulation(snapshot, request);
+    }
+    if (request.extensions['actionId'] == 'event_v2.simulate') {
+      return queryEventSimulation(snapshot, request);
     }
     return _queryService.queryAsync(snapshot, request);
   }

@@ -163,7 +163,7 @@ void main() {
     });
   });
 
-  testWidgets('presentation changes remount the same owner and retain pose until declared facing changes', (tester) async {
+  testWidgets('presentation changes retain actor identity and pose until declared facing changes', (tester) async {
     await tester.runAsync(() async {
       final game = await _mount(tester, presentationMode: 'variants');
       final original = _actors(game, 'main').single;
@@ -174,6 +174,7 @@ void main() {
       expect(original.facing, EntityFacing.east);
       await _execute(game, 'hide');
       final changed = _actors(game, 'main').single;
+      expect(identical(changed, original), isTrue);
       expect(changed.character.id, 'alternate-main');
       expect(changed.gridPos, original.gridPos);
       expect(changed.facing, EntityFacing.west);

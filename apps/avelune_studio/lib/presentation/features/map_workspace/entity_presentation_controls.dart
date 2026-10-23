@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../events/event_conditions.dart';
+import '../characters/character_fixed_route_inspector.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -15,14 +16,12 @@ class EntityPresentationControls extends StatefulWidget {
     super.key,
     required this.entity,
     required this.project,
-    required this.mapId,
-    required this.mapSize,
+    required this.map,
     required this.onChanged,
   });
   final MapEntity entity;
   final ProjectManifest project;
-  final String mapId;
-  final GridSize mapSize;
+  final MapData map;
   final ValueChanged<MapEntityPresentation?> onChanged;
 
   @override
@@ -34,12 +33,18 @@ class _EntityPresentationControlsState
     extends State<EntityPresentationControls> {
   MapEntity get entity => widget.entity;
   ProjectManifest get project => widget.project;
-  String get mapId => widget.mapId;
+  String get mapId => widget.map.id;
   ValueChanged<MapEntityPresentation?> get onChanged => widget.onChanged;
   String? _error;
 
   void _replace(int index, Map<String, dynamic> changes) {
     try {
+      if (changes.containsKey('characterId') && changes['characterId'] == null) {
+        changes = {...changes, 'movement': const MapEntityNpcMovementConfig().toJson(), 'startsOnNpcContact': false};
+      }
+      if (changes['blocksMovement'] == false) {
+        changes = {...changes, 'startsOnNpcContact': false};
+      }
       final variants = [...entity.presentation!.variants];
       variants[index] = MapEntityPresentationVariant.fromJson({
         ...variants[index].toJson(),
@@ -62,8 +67,8 @@ class _EntityPresentationControlsState
         number < 1 ||
         number > 64 ||
         (width
-            ? entity.pos.x + number > widget.mapSize.width
-            : entity.pos.y + number > widget.mapSize.height)) {
+            ? entity.pos.x + number > widget.map.size.width
+            : entity.pos.y + number > widget.map.size.height)) {
       setState(
         () => _error =
             'Choisissez une taille de 1 à 64 cases qui reste dans la carte.',
@@ -161,6 +166,25 @@ class _EntityPresentationControlsState
                   'blocksMovement': !entry.$2.blocksMovement,
                 }),
               ),
+              if (entry.$2.characterId != null) ...[
+                CharacterFixedRouteInspector(
+                  key: ValueKey('variant-movement:${entry.$2.id}'),
+                  entity: entity.copyWith(npc: (entity.npc ?? const MapEntityNpcData()).copyWith(
+                    characterId: entry.$2.characterId,
+                    facing: entry.$2.facing,
+                    movement: entry.$2.movement,
+                  )),
+                  map: widget.map,
+                  project: project,
+                  onChanged: (value) => _replace(entry.$1, {'movement': value.toJson()}),
+                ),
+                if (project.settings.dimension == ProjectDimension.twoD && entry.$2.blocksMovement)
+                  StudioChoice(
+                    label: 'Déclencher le contact quand le PNJ atteint le joueur',
+                    selected: entry.$2.startsOnNpcContact,
+                    onTap: () => _replace(entry.$1, {'startsOnNpcContact': !entry.$2.startsOnNpcContact}),
+                  ),
+              ],
               StudioSelect(
                 label: 'Déclencher l’interaction',
                 value: entry.$2.interactionMode.name,
@@ -237,6 +261,9 @@ class _EntityPresentationControlsState
                           ),
                           characterId: entity.npc?.characterId,
                           facing: entity.npc?.facing ?? EntityFacing.south,
+                          movement: entity.npc?.movement.mode == MapEntityNpcMovementMode.patrol
+                              ? const MapEntityNpcMovementConfig()
+                              : entity.npc?.movement ?? const MapEntityNpcMovementConfig(),
                           blocksMovement: entity.blocksMovement,
                           size: entity.size,
                           interactionMode: entity.interactionMode,

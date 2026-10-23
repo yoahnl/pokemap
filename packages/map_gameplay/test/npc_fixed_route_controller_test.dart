@@ -5,6 +5,69 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final blocked in [false, true]) {
+    test(
+        'autonomous contact identifies only the first unobstructed player footprint blocked=$blocked',
+        () {
+      final world = _world(blocker: blocked);
+      final withPlayer = world.withPlayer(GameplayPlayerState.fromGridSpawn(
+          cell: const GridPos(x: 5, y: 5),
+          facing: Direction.west,
+          tileWidthPx: 32,
+          tileHeightPx: 32,
+          mapWidthCells: 20,
+          mapHeightCells: 15));
+      final attempt =
+          _controller().nextStep(const Duration(milliseconds: 2550))!;
+      final result = planNpcFixedRouteStep(world: withPlayer, attempt: attempt);
+      expect(result.isBlocked, isTrue);
+      expect(result.playerContact, !blocked);
+    });
+  }
+
+  test('an initial player overlap is not a new autonomous contact', () {
+    final world = _world();
+    final overlapping = world.withPlayer(GameplayPlayerState.fromGridSpawn(
+        cell: const GridPos(x: 4, y: 5),
+        facing: Direction.east,
+        tileWidthPx: 32,
+        tileHeightPx: 32,
+        mapWidthCells: 20,
+        mapHeightCells: 15));
+    final attempt = _controller().nextStep(const Duration(milliseconds: 2550))!;
+    expect(
+        planNpcFixedRouteStep(world: overlapping, attempt: attempt)
+            .playerContact,
+        isFalse);
+  });
+
+  test(
+      'autonomous contact uses the wide owner footprint and respects reservations',
+      () {
+    final source = _world();
+    final world = GameplayWorldState.initial(
+        map: source.map.copyWith(entities: [
+          source.map.entities.single
+              .copyWith(size: const GridSize(width: 2, height: 1)),
+        ]),
+        playerPos: const GridPos(x: 6, y: 5),
+        tileWidth: 32,
+        tileHeight: 32);
+    expect(
+        npcFixedRouteTouchesPlayer(
+            world: world, entityId: 'actor', direction: EntityFacing.east),
+        isTrue);
+    expect(
+        npcFixedRouteTouchesPlayer(
+            world: world,
+            entityId: 'actor',
+            direction: EntityFacing.east,
+            characterReservations: const [
+              PixelRect(leftPx: 192, topPx: 160, widthPx: 32, heightPx: 32)
+            ]),
+        isFalse);
+  });
+
   test('initial delay and post-step cadence exclude time spent moving', () {
     final controller = _controller();
     expect(controller.nextStep(const Duration(milliseconds: 2549)), isNull);

@@ -2,6 +2,144 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('each page owns its movement and wire version', () {
+    final stationary = MapEntityPresentationVariant(
+      id: 'stationary',
+      condition: NarrativeEventConditionExpression.all([]),
+      characterId: 'hero',
+      blocksMovement: true,
+    );
+    final moving = MapEntityPresentationVariant(
+      id: 'moving',
+      condition: NarrativeEventConditionExpression.all([]),
+      characterId: 'hero',
+      blocksMovement: true,
+      movement: const MapEntityNpcMovementConfig(
+        mode: MapEntityNpcMovementMode.fixedRoute,
+        routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)],
+      ),
+    );
+    final presentation = MapEntityPresentation(variants: [moving, stationary]);
+    expect(stationary.movement.mode, MapEntityNpcMovementMode.idle);
+    expect(presentation.toJson()['schemaVersion'], 2);
+    expect(MapEntityPresentation.fromJson(presentation.toJson()), presentation);
+    expect(
+      () => MapEntityPresentation.fromJson({
+        ...presentation.toJson(),
+        'schemaVersion': 1,
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => MapEntityPresentationVariant.fromJson({
+        ...moving.toJson(),
+        'movement': {'mode': 'fixedRoute', 'routeSteps': []},
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'page movement replaces owner movement and rejects spatial autonomy',
+    () {
+      const route = MapEntityNpcMovementConfig(
+        mode: MapEntityNpcMovementMode.fixedRoute,
+        routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)],
+      );
+      MapEntity owner(MapEntityNpcMovementConfig movement) => MapEntity(
+        id: 'owner',
+        kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 2),
+        npc: const MapEntityNpcData(characterId: 'hero', movement: route),
+        presentation: MapEntityPresentation(
+          variants: [
+            MapEntityPresentationVariant(
+              id: 'page',
+              condition: NarrativeEventConditionExpression.all([]),
+              characterId: 'hero',
+              blocksMovement: true,
+              movement: movement,
+            ),
+          ],
+        ),
+      );
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 8, height: 8),
+      );
+      const project = ProjectManifest(
+        name: 'Test',
+        maps: [],
+        tilesets: [],
+        characters: [
+          ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'actors'),
+        ],
+      );
+      final stationary = projectMapEntityPresentation(
+        project: project,
+        gameState: const GameState(saveId: 'save'),
+        map: map,
+        entity: owner(const MapEntityNpcMovementConfig()),
+      );
+      expect(stationary!.npc!.movement.mode, MapEntityNpcMovementMode.idle);
+      final moving = owner(route);
+      expect(
+        validateMapEntityPresentation(
+          project: project,
+          map: map,
+          entity: moving,
+        ),
+        isEmpty,
+      );
+      expect(
+        validateMapEntityPresentation(
+          project: project.copyWith(
+            settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+          ),
+          map: map,
+          entity: moving,
+        ),
+        contains('variantMovementSpatialUnsupported'),
+      );
+      final through = moving.copyWith(
+        presentation: MapEntityPresentation(
+          variants: [
+            MapEntityPresentationVariant(
+              id: 'through',
+              condition: NarrativeEventConditionExpression.all([]),
+              characterId: 'hero',
+              blocksMovement: false,
+              movement: route,
+              startsOnNpcContact: true,
+            ),
+          ],
+        ),
+      );
+      expect(
+        validateMapEntityPresentation(
+          project: project,
+          map: map,
+          entity: through,
+        ),
+        contains('variantNpcContactRequiresCollision'),
+      );
+      expect(
+        validateMapEntityPresentation(
+          project: project,
+          map: map,
+          entity: owner(
+            const MapEntityNpcMovementConfig(
+              mode: MapEntityNpcMovementMode.patrol,
+              waypoints: [GridPos(x: 2, y: 2), GridPos(x: 3, y: 2)],
+            ),
+          ),
+        ),
+        contains('variantMovementModeUnsupported'),
+      );
+    },
+  );
+
   test(
     'presentation selects one page, masks graphics and restores collision',
     () {
@@ -185,7 +323,7 @@ void main() {
     () {
       expect(
         () => MapEntityPresentation.fromJson({
-          'schemaVersion': 2,
+          'schemaVersion': 99,
           'variants': [],
         }),
         throwsFormatException,
@@ -229,10 +367,21 @@ void main() {
         'variantCharacterReferenceInvalid',
       ]),
     );
-    expect(() => MapValidator.validate(map.copyWith(entities: [
-      entity.copyWith(pos: const GridPos(x: 1, y: 1)),
-    ]), projectDialogueContext: project),
-      throwsA(isA<ValidationException>().having((error) => error.code, 'code', 'entity.presentation.invalid')));
+    expect(
+      () => MapValidator.validate(
+        map.copyWith(
+          entities: [entity.copyWith(pos: const GridPos(x: 1, y: 1))],
+        ),
+        projectDialogueContext: project,
+      ),
+      throwsA(
+        isA<ValidationException>().having(
+          (error) => error.code,
+          'code',
+          'entity.presentation.invalid',
+        ),
+      ),
+    );
     expect(
       () => MapEntity.fromJson(
         entity

@@ -130,7 +130,7 @@ class _CharacterInspectorState extends State<CharacterInspector> {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         EntityPresentationControls(entity: entity, project: widget.project,
-          mapId: widget.document.current.id, mapSize: widget.document.current.size,
+          map: widget.document.current,
           onChanged: (value) => _change(() => MapEntityEditingCommands(widget.document,
             widget.project).setPresentation(entity.id, value))),
         const SizedBox(height: 12),

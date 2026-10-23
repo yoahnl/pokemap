@@ -8,7 +8,7 @@ import '../../infrastructure/runtime_tileset_image.dart';
 
 class OverworldActorComponent extends PositionComponent with HasVisibility {
   OverworldActorComponent({
-    required this.character,
+    required ProjectCharacterEntry character,
     required this.tileImages,
     required int tileWidth,
     required int tileHeight,
@@ -19,7 +19,8 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     CharacterAnimationState animState = CharacterAnimationState.idle,
     void Function(CharacterAnimationSourceDiagnostic diagnostic)?
         onSourceDiagnostic,
-  })  : _facing = facing,
+  })  : _character = character,
+        _facing = facing,
         _animState = animState,
         _sourceResolver = CharacterAnimationSourceResolver(
           onDiagnostic: onSourceDiagnostic,
@@ -39,15 +40,16 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
           ),
         );
 
-  final ProjectCharacterEntry character;
+  ProjectCharacterEntry _character;
+  ProjectCharacterEntry get character => _character;
   final bool centerOnFootprint;
   final Map<String, RuntimeTilesetImage> tileImages;
   final int _tileWidth;
   final int _tileHeight;
   final double _cellWidth;
   final double _cellHeight;
-  final int _frameWidthTiles;
-  final int _frameHeightTiles;
+  int _frameWidthTiles;
+  int _frameHeightTiles;
   final CharacterAnimationSourceResolver _sourceResolver;
   final Set<String> _availableImageIds;
 
@@ -176,6 +178,17 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     _facing = facing;
     _animState = CharacterAnimationState.idle;
     _animElapsed = 0;
+  }
+
+  void applyCharacterPresentation(ProjectCharacterEntry character,
+      {required GridPos position, required GridSize footprint,
+      required EntityFacing facing}) {
+    _character = character;
+    _frameWidthTiles = math.max(2, character.frameWidth);
+    _frameHeightTiles = math.max(2, character.frameHeight);
+    size = Vector2(_frameWidthTiles * _cellWidth, _frameHeightTiles * _cellHeight);
+    configureGridPlacement(pos: position, footprint: footprint, mapOrigin: _mapOrigin);
+    restoreBase(facing);
   }
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {

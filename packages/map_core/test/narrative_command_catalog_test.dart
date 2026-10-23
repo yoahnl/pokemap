@@ -2,6 +2,13 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('local memory is publishable after complete 2D instance program qualification', () {
+    final command = NarrativeCommandCatalog.canonical().byId(NarrativeCommandIds.setMapEventInstanceBoolean)!;
+    expect(command.isPublishable, isTrue);
+    expect(command.description, contains('2D'));
+    expect(command.description, contains('éviction'));
+    expect(command.parameters.map((parameter) => parameter.id), ['mapId', 'eventId', 'key', 'value']);
+  });
   test('canonical catalog has unique ids, backends and wires', () {
     final catalog = NarrativeCommandCatalog.canonical();
 

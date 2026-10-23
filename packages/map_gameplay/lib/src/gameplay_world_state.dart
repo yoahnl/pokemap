@@ -1007,6 +1007,12 @@ class GameplayWorldState {
       npcMapPresencePredicate: npcMapPresencePredicate,
       mapEntityPresencePredicate: mapEntityPresencePredicate).withPlayer(player);
     for (final entity in result.map.entities) {
+      final current = currentById[entity.id];
+      final pageChanged = current != null && current.kind == MapEntityKind.npc &&
+          current.npc != null && entity.presentation != null &&
+          current.properties[mapEntityPresentationVariantIdProperty] !=
+              entity.properties[mapEntityPresentationVariantIdProperty];
+      if (pageChanged) continue;
       final facing = logicalPoses[entity.id]?.facing ?? currentById[entity.id]?.npc?.facing;
       if (entity.kind == MapEntityKind.npc && entity.npc != null && facing != null) {
         result = result.withEntityFacing(entity.id, facing);

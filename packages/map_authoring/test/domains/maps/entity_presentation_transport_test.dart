@@ -29,6 +29,8 @@ void main() {
       await projectFile.writeAsString(jsonEncode(ProjectManifest(
           name: 'Counter transport',
           version: ProjectVersion.v8,
+          characters: const [ProjectCharacterEntry(id: 'guide', name: 'Guide', tilesetId: 'guide-atlas')],
+          facts: [NarrativeFactDefinition(id: 'walking', label: 'Marcher')],
           maps: [
             const ProjectMapEntry(
                 id: 'center', name: 'Center', relativePath: 'maps/center.json')
@@ -90,7 +92,12 @@ void main() {
                   id: 'page_0',
                   condition: NarrativeEventConditionExpression.all([]),
                   blocksMovement: false,
-                  size: const GridSize(width: 2, height: 2))
+                  size: const GridSize(width: 2, height: 2)),
+              MapEntityPresentationVariant(id: 'moving',
+                condition: NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('walking', true)),
+                characterId: 'guide', blocksMovement: true, startsOnNpcContact: true,
+                movement: MapEntityNpcMovementConfig(mode: MapEntityNpcMovementMode.fixedRoute,
+                  routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)])),
             ]).toJson(),
           });
       final before = await mapFile.readAsBytes();
@@ -112,11 +119,13 @@ void main() {
       }
       final updated = MapData.fromJson(
           jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>);
-      expect(updated.entities.single.presentation!.variants.single.size,
+      expect(updated.entities.single.presentation!.variants.first.size,
           const GridSize(width: 2, height: 2));
       expect(
-          updated.entities.single.presentation!.variants.single.blocksMovement,
+          updated.entities.single.presentation!.variants.first.blocksMovement,
           isFalse);
+      expect(updated.entities.single.presentation!.variants.last.startsOnNpcContact, isTrue);
+      expect(updated.entities.single.presentation!.variants.last.movement.mode, MapEntityNpcMovementMode.fixedRoute);
       expect(updated.entities.single.npc!.displayName, 'Nurse');
       expect(updated.entities.single.pos, map.entities.single.pos);
       expect(updated.layers, map.layers);

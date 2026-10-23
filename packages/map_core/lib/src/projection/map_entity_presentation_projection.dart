@@ -11,6 +11,8 @@ import '../operations/narrative_condition_expression_evaluator.dart';
 import '../operations/narrative_fact_runtime.dart';
 import '../operations/map_entity_collision_footprint.dart';
 
+const mapEntityPresentationVariantIdProperty = 'presentation.variantId';
+
 MapEntityPresentationVariant? resolveMapEntityPresentation({
   required ProjectManifest project,
   required GameState gameState,
@@ -105,8 +107,7 @@ MapEntity? projectMapEntityPresentation({
     map: map,
     entity: entity,
     maps: maps,
-  ).isNotEmpty)
-  {
+  ).isNotEmpty) {
     return null;
   }
   final variant = resolveMapEntityPresentation(
@@ -122,6 +123,7 @@ MapEntity? projectMapEntityPresentation({
       : (entity.npc ?? const MapEntityNpcData()).copyWith(
           characterId: variant.characterId,
           facing: variant.facing,
+          movement: variant.movement,
           counterInteractionSides: variant.counterInteractionSides,
         );
   return entity.copyWith(
@@ -146,6 +148,7 @@ MapEntity? projectMapEntityPresentation({
       mapEntityCollisionHeightProperty: '${variant.size.height}',
       mapEntityCollisionOffsetXProperty: '0',
       mapEntityCollisionOffsetYProperty: '0',
+      mapEntityPresentationVariantIdProperty: variant.id,
     },
   );
 }
@@ -191,8 +194,28 @@ List<String> validateMapEntityPresentation({
   for (final variant
       in entity.presentation?.variants ??
           const <MapEntityPresentationVariant>[]) {
-    if ((map.spatialScene != null || map.version == ProjectVersion.v9 ||
-        project.settings.dimension == ProjectDimension.threeD) && variant.counterInteractionSides.isNotEmpty) {
+    final moves =
+        variant.movement.mode != MapEntityNpcMovementMode.idle &&
+        variant.movement.mode != MapEntityNpcMovementMode.scriptedOnly;
+    if (variant.movement.mode == MapEntityNpcMovementMode.patrol) {
+      errors.add('variantMovementModeUnsupported');
+    }
+    if ((map.spatialScene != null ||
+            map.version == ProjectVersion.v9 ||
+            project.settings.dimension == ProjectDimension.threeD) &&
+        (moves || variant.startsOnNpcContact)) {
+      errors.add('variantMovementSpatialUnsupported');
+    }
+    if (variant.characterId == null && (moves || variant.startsOnNpcContact)) {
+      errors.add('variantMovementCharacterRequired');
+    }
+    if (variant.startsOnNpcContact && !variant.blocksMovement) {
+      errors.add('variantNpcContactRequiresCollision');
+    }
+    if ((map.spatialScene != null ||
+            map.version == ProjectVersion.v9 ||
+            project.settings.dimension == ProjectDimension.threeD) &&
+        variant.counterInteractionSides.isNotEmpty) {
       errors.add('variantCounterReachSpatialUnsupported');
     }
     final x = entity.pos.x;

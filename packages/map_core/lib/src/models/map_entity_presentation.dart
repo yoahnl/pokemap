@@ -4,7 +4,10 @@ import 'package:freezed_annotation/freezed_annotation.dart'
 
 import 'enums.dart';
 import 'geometry.dart';
+import 'map_entity_payloads.dart';
 import 'narrative_event_definition.dart';
+import '../operations/map_entities.dart';
+import '../exceptions/map_exceptions.dart';
 
 enum MapEntityInteractionMode { front, overlap }
 
@@ -25,7 +28,7 @@ final class MapEntityPresentation {
 
   factory MapEntityPresentation.fromJson(Map<String, dynamic> json) {
     if (json.length != 2 ||
-        json['schemaVersion'] != 1 ||
+        json['schemaVersion'] != 2 ||
         json['variants'] is! List) {
       throw const FormatException('Unsupported entity presentation contract.');
     }
@@ -42,7 +45,7 @@ final class MapEntityPresentation {
   }
 
   Map<String, dynamic> toJson() => {
-    'schemaVersion': 1,
+    'schemaVersion': 2,
     'variants': [for (final variant in variants) variant.toJson()],
   };
 
@@ -62,6 +65,8 @@ final class MapEntityPresentationVariant {
     this.characterId,
     this.facing = EntityFacing.south,
     this.interactionMode = MapEntityInteractionMode.front,
+    this.movement = const MapEntityNpcMovementConfig(),
+    this.startsOnNpcContact = false,
     required this.blocksMovement,
     this.size = const GridSize(width: 1, height: 1),
     List<EntityFacing> counterInteractionSides = const [],
@@ -79,6 +84,11 @@ final class MapEntityPresentationVariant {
             counterInteractionSides.length) {
       throw ArgumentError('Invalid entity presentation variant.');
     }
+    try {
+      assertValidMapEntityNpcMovementConfig(movement);
+    } on ValidationException catch (error) {
+      throw ArgumentError('Invalid entity presentation movement: $error');
+    }
   }
 
   final String id;
@@ -86,6 +96,8 @@ final class MapEntityPresentationVariant {
   final String? characterId;
   final EntityFacing facing;
   final MapEntityInteractionMode interactionMode;
+  final MapEntityNpcMovementConfig movement;
+  final bool startsOnNpcContact;
   final bool blocksMovement;
   final GridSize size;
   final List<EntityFacing> counterInteractionSides;
@@ -100,6 +112,8 @@ final class MapEntityPresentationVariant {
       'blocksMovement',
       'size',
       'counterInteractionSides',
+      'movement',
+      'startsOnNpcContact',
     };
     final rawSize = _object(json['size']);
     if (json.length != fields.length ||
@@ -111,6 +125,8 @@ final class MapEntityPresentationVariant {
           (value) => value.name == json['interactionMode'],
         ) ||
         json['blocksMovement'] is! bool ||
+        json['movement'] is! Map ||
+        json['startsOnNpcContact'] is! bool ||
         rawSize.length != 2 ||
         rawSize['width'] is! int ||
         rawSize['height'] is! int ||
@@ -132,6 +148,10 @@ final class MapEntityPresentationVariant {
           json['interactionMode'] as String,
         ),
         blocksMovement: json['blocksMovement'] as bool,
+        movement: MapEntityNpcMovementConfig.fromJson(
+          _object(json['movement']),
+        ),
+        startsOnNpcContact: json['startsOnNpcContact'] as bool,
         size: GridSize.fromJson(rawSize),
         counterInteractionSides: [
           for (final raw in json['counterInteractionSides'] as List)
@@ -151,6 +171,8 @@ final class MapEntityPresentationVariant {
     'blocksMovement': blocksMovement,
     'size': size.toJson(),
     'interactionMode': interactionMode.name,
+    'movement': movement.toJson(),
+    'startsOnNpcContact': startsOnNpcContact,
     'counterInteractionSides': counterInteractionSides
         .map((side) => side.name)
         .toList(),

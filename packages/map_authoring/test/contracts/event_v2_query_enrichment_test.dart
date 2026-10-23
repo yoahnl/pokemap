@@ -276,6 +276,24 @@ void main() {
     final opened = await api.openProject(root.path);
     addTearDown(() => api.closeWorkspace(opened.workspaceHandle));
     final worker = JsonlWorker(api: api);
+    final simulationRequest = AuthoringQueryRequest(
+      resourceKind: 'eventV2', operation: AuthoringQueryOperation.get,
+      ids: [_id(0)], extensions: {
+        'actionId': 'event_v2.simulate',
+        'parameters': {'mapInstanceWorldState': const MapInstanceWorldState.empty().toJson()},
+      },
+    );
+    final directSimulation = await api.queryProject(opened.projectHandle, simulationRequest);
+    final jsonlSimulation = AuthoringResult.fromJson(jsonDecode(await worker.processLine(jsonEncode({
+      'id': 'event-simulation', 'command': 'query', 'args': {
+        'projectHandle': opened.projectHandle.value, 'request': simulationRequest.toJson(),
+      },
+    }))) as Map<String, dynamic>);
+    expect(jsonlSimulation.status, AuthoringResultStatus.success);
+    expect(AuthoringQueryPage.fromJson(Map<String, dynamic>.from(jsonlSimulation.data)).items,
+        directSimulation.items);
+    expect(directSimulation.items.single['proofKind'], 'simulation');
+    expect(await File('${root.path}/project.json').readAsString(), manifestJson);
     for (final scenario in [
       (request: _request(pageSize: 2), catalogs: 1, validations: 2),
       (

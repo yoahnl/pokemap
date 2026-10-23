@@ -69,6 +69,17 @@ String? eventTargetId(NarrativeEventSourceRef? source) => source?.when(
   outcomeReceived: (_) => null,
 );
 
+String? eventOwnerId(NarrativeEventSourceRef? source) => source?.when(
+  entityAutorun: (_, id) => id,
+  entityBump: (_, id) => id,
+  entityInteract: (_, id) => id,
+  modelInteract: (_, _) => null,
+  triggerBump: (_, _) => null,
+  triggerEnter: (_, _) => null,
+  mapEnter: (_) => null,
+  outcomeReceived: (_) => null,
+);
+
 String eventKindLabel(NarrativeEventSourceKind? kind) => switch (kind) {
   NarrativeEventSourceKind.entityAutorun => 'Automatique',
   NarrativeEventSourceKind.entityBump => 'Contact du joueur',

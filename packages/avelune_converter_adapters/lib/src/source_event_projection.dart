@@ -1655,7 +1655,11 @@ final class _ProjectionBuilder {
           'nativeFixedRoute': {
             'nativeExecutionQualified': true,
             'pages': [for (final binding in _fixedRouteBindings(event)!) binding.toJson()],
-            'movement': _nativeFixedMovement(event).toJson(),
+            'movementPolicies': [for (final page in event.pages) {
+              'sourcePageIndex': page.originalPageIndex,
+              'movement': _nativePageMovement(event, page).toJson(),
+            }],
+            'pageChange': 'cancelMotionAndReservationsThenSelectPagePolicy',
             'sourceProgramQualified': true,
             'sourceParity': false,
             'nativePauseScope': 'allAutonomousNpcsDuringDialogueOrMenu',
@@ -2306,6 +2310,11 @@ final class _ProjectionBuilder {
     try {
       for (final page in event.pages) {
         if (_fixedRouteInvisiblePage(event, page)) continue;
+        if (page.graphic?.moveType == 0 && _fixedRoutePageBound(event, page)) continue;
+        if (page.graphic?.characterName.isEmpty == true) {
+          _fixedRouteBindingsByEvent[event] = null;
+          return null;
+        }
         if (!const {1, 3}.contains(page.graphic?.moveType)) {
           _fixedRouteBindingsByEvent[event] = null;
           return null;
@@ -2315,10 +2324,7 @@ final class _ProjectionBuilder {
             sourceEventId: event.sourceEventId,
             sourcePageIndex: page.originalPageIndex);
         if (!binding.isBoundToPage(source: source, profile: analysis.profile,
-            event: event, page: page) ||
-            (bindings.isNotEmpty &&
-                (bindings.first.nativeMovement != binding.nativeMovement ||
-                 bindings.first.initialFacing != binding.initialFacing))) {
+            event: event, page: page)) {
           _fixedRouteBindingsByEvent[event] = null;
           return null;
         }
@@ -2344,11 +2350,18 @@ final class _ProjectionBuilder {
         graphic.stepAnime || !page.condition.isQualified) {
       return false;
     }
+    return _fixedRoutePageBound(event, page);
+  }
+
+  bool _fixedRoutePageBound(
+      SourceEventDefinition event, SourceEventPageAnalysis page) {
+    final graphic = page.graphic;
     final expected = _authoritativeSourceAnalysis.eventAt(
         event.sourceMapId, event.sourceEventId);
     final original = expected?.pages.where((value) =>
         value.originalPageIndex == page.originalPageIndex).singleOrNull;
-    if (expected == null || original == null ||
+    if (expected == null || original == null || expected.name != event.name ||
+        expected.x != event.x || expected.y != event.y ||
         expected.pages.length != event.pages.length ||
         _sourceControlFingerprint(expected) != _sourceControlFingerprint(event)) {
       return false;
@@ -2374,13 +2387,47 @@ final class _ProjectionBuilder {
     );
   }
 
+  MapEntityNpcMovementConfig _nativePageMovement(
+      SourceEventDefinition event, SourceEventPageAnalysis page) {
+    if (page.graphic?.moveType == 0 || page.graphic?.characterName.isEmpty == true) {
+      return const MapEntityNpcMovementConfig();
+    }
+    final binding = _fixedRouteBindings(event)?.where((binding) =>
+        binding.sourcePageIndex == page.originalPageIndex).singleOrNull;
+    return (binding?.nativeMovement ?? const MapEntityNpcMovementConfig()).copyWith(
+      suspendWhenInstanceBoolean: binding != null && _hasTrainerProgram(event)
+          ? MapEntityNpcRouteInstanceBoolean(key: 'npc.autonomousRouteStopped')
+          : null,
+    );
+  }
+
   List<EntityFacing>? _fixedRouteCounterSides(SourceEventDefinition event) {
+    return _fixedRouteCounterSidesByEvent.putIfAbsent(event,
+        () => _resolveFixedRouteCounterSides(event));
+  }
+
+  final _fixedRouteCounterSidesByEvent =
+      Map<SourceEventDefinition, List<EntityFacing>?>.identity();
+
+  List<EntityFacing>? _resolveFixedRouteCounterSides(SourceEventDefinition event) {
     final bindings = _fixedRouteBindings(event);
     if (bindings == null) return null;
     final map = maps[event.sourceMapId]!;
     if (map.spatialScene != null || map.version == ProjectVersion.v9) return null;
     final positions = <GridPos>{GridPos(x: event.x, y: event.y)};
-    if (bindings.first.nativeMovement.routeSteps.any((step) => step is MapEntityNpcRandomMoveStep)) {
+    final movements = bindings.map((binding) => binding.nativeMovement).toSet();
+    for (final movement in movements) {
+      var endpoint = GridPos(x: event.x, y: event.y);
+      for (final step in movement.routeSteps.whereType<MapEntityNpcMoveStep>()) {
+        endpoint = GridPos(x: endpoint.x + switch (step.direction) {
+          EntityFacing.east => 1, EntityFacing.west => -1, _ => 0,
+        }, y: endpoint.y + switch (step.direction) {
+          EntityFacing.south => 1, EntityFacing.north => -1, _ => 0,
+        });
+      }
+      if (movement.loop && endpoint != GridPos(x: event.x, y: event.y)) return null;
+    }
+    if (event.pages.length > 1 || movements.length > 1 || bindings.any((binding) => binding.nativeMovement.routeSteps.any((step) => step is MapEntityNpcRandomMoveStep))) {
       if (_eventFootprint(event) != const GridSize(width: 1, height: 1)) return null;
       final pending = positions.toList();
       for (var index = 0; index < pending.length; index++) {
@@ -4416,8 +4463,27 @@ final class _ProjectionBuilder {
   }
 
   SourceEventTouchResolution _touch(
-          SourceEventDefinition event, SourceEventPageAnalysis page) =>
-      holePrograms.containsKey(event.identity)
+          SourceEventDefinition event, SourceEventPageAnalysis page) {
+    final graphic = page.graphic;
+    final map = maps[event.sourceMapId];
+    if (graphic != null && graphic.moveType != 0 &&
+        const [1, 2].contains(page.triggerCode) &&
+        !page.isQuarantined && page.condition.isQualified &&
+        graphic.characterName.isNotEmpty && !graphic.through &&
+        !graphic.alwaysOnTop && graphic.tileId == 0 &&
+        _eventFootprint(event) == const GridSize(width: 1, height: 1) &&
+        map != null && map.spatialScene == null && map.version != ProjectVersion.v9 &&
+        _fixedRouteBindings(event)?.any((binding) =>
+            binding.sourcePageIndex == page.originalPageIndex &&
+            binding.isBoundToPage(source: source, profile: analysis.profile,
+                event: event, page: page)) == true &&
+        _fixedRouteCounterSides(event) != null && !_nativeSolidAt(event) &&
+        semanticResolver.resolveConnectionEntryTile(
+          semanticResolver.cellAt(event.sourceMapId, event.x, event.y)).status == SourcePassageStatus.allowed) {
+      return SourceEventTouchResolution(kind: SourceEventTouchKind.front,
+          reason: 'qualifiedAutonomousBlockingCharacter');
+    }
+    return holePrograms.containsKey(event.identity)
           ? _holeTouch(event, page)
           : _usesMultiCellTouchFootprint(event, page)
           ? semanticResolver.resolveEventTouchFootprint(event: event, page: page,
@@ -4430,6 +4496,7 @@ final class _ProjectionBuilder {
           event: event,
           page: page,
           mapEvents: _sourceContextEvents);
+  }
 
   SourceEventTouchResolution _holeTouch(SourceEventDefinition event, SourceEventPageAnalysis page) {
     SourceEventTouchResolution refused(String reason) => SourceEventTouchResolution(
@@ -5219,6 +5286,8 @@ final class _ProjectionBuilder {
       if (guard.constant == false) continue;
       variants.add(MapEntityPresentationVariant(id: 'page_${page.originalPageIndex}',
         condition: pageExpression(index), characterId: boundCharacter?.characterId,
+        movement: _nativePageMovement(event, page),
+        startsOnNpcContact: page.triggerCode == 2 && boundCharacter != null && !pageGraphic.through,
         interactionMode: _eventAction(event, page).kind == SourceEventTouchKind.enter
           ? MapEntityInteractionMode.overlap : MapEntityInteractionMode.front,
         facing: switch (pageGraphic.direction) {

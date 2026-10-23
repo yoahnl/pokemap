@@ -40,9 +40,9 @@ test("MCP discovers, authors and cold reopens native hidden actor pose commands"
     await mkdir(join(directory, "maps"));
     await writeFile(join(directory, "maps/lab.json"), JSON.stringify({id: "lab", name: "Laboratoire", version: "v8", size: {width: 20, height: 12}, layers: [], entities: [
       {id: "rival", kind: "custom", pos: {x: 7, y: 6}, size: {width: 1, height: 1}, blocksMovement: false,
-        presentation: {schemaVersion: 1, variants: [
-          {id: "hidden", characterId: null, condition: {kind: "all", children: []}, size: {width: 1, height: 1}, blocksMovement: false, facing: "south", interactionMode: "front", counterInteractionSides: []},
-          {id: "visible", condition: {kind: "leaf", condition: {kind: "fact", factId: "visible", expectedValue: true}}, characterId: "rival-sprite", size: {width: 1, height: 1}, blocksMovement: true, facing: "south", interactionMode: "front", counterInteractionSides: []},
+        presentation: {schemaVersion: 2, variants: [
+          {id: "hidden", characterId: null, condition: {kind: "all", children: []}, size: {width: 1, height: 1}, blocksMovement: false, facing: "south", interactionMode: "front", counterInteractionSides: [], movement: {mode: "idle", waypoints: [], routeSteps: [], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 0, stepDurationMs: 200}, startsOnNpcContact: false},
+          {id: "visible", condition: {kind: "leaf", condition: {kind: "fact", factId: "visible", expectedValue: true}}, characterId: "rival-sprite", size: {width: 1, height: 1}, blocksMovement: true, facing: "south", interactionMode: "front", counterInteractionSides: [], movement: {mode: "idle", waypoints: [], routeSteps: [], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 0, stepDurationMs: 200}, startsOnNpcContact: false},
         ]}}
     ]}));
     await writeFile(join(directory, "data/moves.json"), JSON.stringify({ schemaVersion: 1, kind: "catalog", catalog: "moves", entries: [{ id: "tackle" }, { id: "exceptional" }] }));

@@ -99,7 +99,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         EntityPresentationControls(entity: entity, project: widget.project,
-          mapId: widget.document.current.id, mapSize: widget.document.current.size,
+          map: widget.document.current,
           onChanged: (value) => _change(() => _commands.setPresentation(entity.id, value))),
         Text(
           spawn != null

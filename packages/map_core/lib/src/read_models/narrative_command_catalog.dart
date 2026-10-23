@@ -302,13 +302,12 @@ final class NarrativeCommandCatalog {
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.setMapEventInstanceBoolean,
         label: 'Définir un booléen de cette instance',
-        description: 'État booléen capturé pour le propriétaire logique d’une instance de carte.',
+        description: 'Mémoire booléenne d’un élément de carte 2D : conservée à la sauvegarde tant que son instance existe, réinitialisée après éviction. Les états persistants du jeu restent distincts.',
         backend: NarrativeCommandBackend.sceneConsequence,
         capabilities: const NarrativeCommandCapabilities(
           model: NarrativeCommandCapabilityStatus.supported,
-          editor: NarrativeCommandCapabilityStatus.unsupported,
-          runtime: NarrativeCommandCapabilityStatus.unsupported,
-          reason: 'Contrat d’instance logique ; formulaire guidé et exécution de programme complet non qualifiés, aucun support 3D annoncé.',
+          editor: NarrativeCommandCapabilityStatus.supported,
+          runtime: NarrativeCommandCapabilityStatus.supported,
         ),
         fgLotId: 'FG-081',
         wireId: 'SceneConsequence.setMapEventInstanceBoolean',

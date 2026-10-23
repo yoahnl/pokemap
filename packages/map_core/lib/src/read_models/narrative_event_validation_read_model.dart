@@ -4,6 +4,7 @@ import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/narrative_value.dart';
+import '../models/map_instance_world_state.dart';
 
 enum NarrativeEventValidationSeverity { info, warning, error }
 
@@ -46,6 +47,7 @@ final class NarrativeEventSimulationInput {
   NarrativeEventSimulationInput({
     required String targetEventId,
     this.source,
+    this.mapInstanceWorldState = const MapInstanceWorldState.empty(),
     Map<String, bool> factValues = const {},
     Map<String, NarrativeValue> factNarrativeValues = const {},
     Set<String> consumedNarrativeEventIds = const {},
@@ -58,6 +60,7 @@ final class NarrativeEventSimulationInput {
 
   final String targetEventId;
   final NarrativeEventSourceRef? source;
+  final MapInstanceWorldState mapInstanceWorldState;
   final Map<String, bool> factValues;
   final Map<String, NarrativeValue> factNarrativeValues;
 
@@ -181,6 +184,43 @@ final class NarrativeEventSimulationReport {
   final List<NarrativeEventSimulationReason> reasons;
   final List<NarrativeEventSimulationCandidateTrace> candidates;
   final List<String> diagnostics;
+
+  Map<String, Object?> toJson() => {
+    'status': status.name,
+    'targetEventId': targetEventId,
+    'source': source?.toJson(),
+    'mode': mode?.name,
+    'handledEventId': handledEventId,
+    'sceneId': sceneId,
+    'legacyFallbackAllowed': legacyFallbackAllowed,
+    'reasons': reasons.map((reason) => reason.name).toList(),
+    'diagnostics': diagnostics,
+    'candidates': [for (final candidate in candidates) {
+      'eventId': candidate.eventId,
+      'name': candidate.name,
+      'configured': candidate.configured,
+      'enabled': candidate.enabled,
+      'selected': candidate.selected,
+      'sourceMatches': candidate.sourceMatches,
+      'priority': candidate.priority,
+      'order': candidate.order,
+      'reusePolicy': candidate.reusePolicy?.name,
+      'reasons': candidate.reasons.map((reason) => reason.name).toList(),
+      'conditions': [for (final condition in candidate.conditions) {
+        'index': condition.index,
+        'kind': condition.kind.name,
+        'targetId': condition.targetId,
+        'mapId': condition.mapId,
+        'instanceId': condition.instanceId,
+        'key': condition.key,
+        'operator': condition.operator.name,
+        'expectedValue': condition.expectedNarrativeValue.toJson(),
+        'actualValue': condition.actualNarrativeValue?.toJson(),
+        'passed': condition.passed,
+        'reason': condition.reason?.name,
+      }],
+    }],
+  };
 
   NarrativeEventSimulationCandidateTrace? get targetCandidate {
     for (final candidate in candidates) {

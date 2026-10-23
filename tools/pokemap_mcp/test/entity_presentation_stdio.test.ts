@@ -20,6 +20,8 @@ test("live MCP discovers and edits typed conditional entity presentations", { ti
   const projectFile = join(root, "project.json");
   await writeFile(projectFile, JSON.stringify({ name: "Presentation MCP", version: "v8",
     pokemon: canonicalPokemonConfig(), tilesets: [],
+    characters: [{id: "guide", name: "Guide", tilesetId: "guide-atlas"}],
+    facts: [{id: "walking", label: "Marcher", valueType: "bool", defaultValue: false}],
     maps: [{ id: "map", name: "Map", relativePath: "maps/map.json" }] }));
   await writeFile(mapFile, JSON.stringify({ id: "map", name: "Map", version: "v8",
     size: { width: 8, height: 6 }, layers: [], entities: [
@@ -36,7 +38,13 @@ test("live MCP discovers and edits typed conditional entity presentations", { ti
     assert.equal(response.ok, !failed, JSON.stringify(response));
     return record(response[failed ? "error" : "data"]);
   }
-  const presentation = { schemaVersion: 1, variants: [{ id: "first", condition: { kind: "all", children: [] },
+  const presentation = { schemaVersion: 2, variants: [{id: "walking",
+    condition: {kind: "leaf", condition: {kind: "fact", factId: "walking", expectedValue: true}},
+    characterId: "guide", facing: "east", interactionMode: "front", blocksMovement: true,
+    movement: {mode: "fixedRoute", waypoints: [], routeSteps: [{kind: "move", direction: "east"}, {kind: "move", direction: "west"}], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 50, stepDurationMs: 200}, startsOnNpcContact: true,
+    size: {width: 1, height: 1}, counterInteractionSides: [],
+  }, { id: "first", condition: { kind: "all", children: [] },
+    movement: {mode: "idle", waypoints: [], routeSteps: [], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 0, stepDurationMs: 200}, startsOnNpcContact: false,
     characterId: null, facing: "south", interactionMode: "overlap", blocksMovement: false,
     size: { width: 2, height: 2 }, counterInteractionSides: ["south"] }] };
   try {
@@ -44,6 +52,8 @@ test("live MCP discovers and edits typed conditional entity presentations", { ti
     const description = await call("pokemap_describe", {});
     const action = (description.mutationActions as JsonRecord[]).find(value => value.id === "entity.set_presentation");
     assert.ok(action);
+    assert.equal(record(record(action.extensions).presentation).schemaVersion, 2);
+    assert.equal(record(record(record(action.extensions).presentation).movement).scope, "selectedVariant");
     assert.deepEqual(record(record(action.extensions).presentation).conditionExpressionKinds, ["leaf", "all", "any", "not"]);
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const projectBefore = await readFile(projectFile);

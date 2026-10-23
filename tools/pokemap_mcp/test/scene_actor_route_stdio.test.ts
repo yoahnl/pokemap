@@ -59,10 +59,11 @@ function visibility(actor = target("map", "actor")): JsonRecord {
 }
 
 function conditionalActor(id: string, secondCharacter: string): JsonRecord {
-  return { id, kind: "custom", presentation: { schemaVersion: 1,
+  return { id, kind: "custom", presentation: { schemaVersion: 2,
     variants: ["actor-character", secondCharacter, null].map((characterId, index) => ({
       id: `variant_${index}`, condition: { kind: "all", children: [] },
       characterId, facing: "south", interactionMode: "front", blocksMovement: characterId !== null,
+      movement: {mode: "idle", waypoints: [], routeSteps: [], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 0, stepDurationMs: 200}, startsOnNpcContact: false,
       size: { width: 1, height: 1 }, counterInteractionSides: [],
     })),
   } };

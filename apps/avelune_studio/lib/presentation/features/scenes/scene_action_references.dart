@@ -8,6 +8,7 @@ extension _SceneActionReferences on _SceneActionFormState {
     _referenceLoading = false;
     _referenceMapId = switch (_commandId) {
       NarrativeCommandIds.setPropState => _values['mapId'],
+      NarrativeCommandIds.setMapEventInstanceBoolean => _values['mapId'],
       NarrativeCommandIds.playModelAnimation => _values['mapId'],
       NarrativeCommandIds.warp => _values['destinationMapId'],
       _ => null,
@@ -25,17 +26,18 @@ extension _SceneActionReferences on _SceneActionFormState {
     _referenceLoading = true;
     final isWarp = _commandId == NarrativeCommandIds.warp;
     final isProp = _commandId == NarrativeCommandIds.setPropState;
+    final isLocal = _commandId == NarrativeCommandIds.setMapEventInstanceBoolean;
     Future<MapData>.sync(() => load(id)).then(
       (map) {
         if (!mounted || request != _referenceRequest) return;
         _refreshReferences(() {
           _referenceLoading = false;
-          if (map.id != id && (isWarp || isProp)) {
+          if (map.id != id && (isWarp || isProp || isLocal)) {
             _referenceError =
                 'La carte chargée ne correspond pas à la destination.';
-          } else if (isProp && map.spatialScene != null) {
+          } else if ((isProp || isLocal) && (map.spatialScene != null || map.version == ProjectVersion.v9)) {
             _referenceError = 'Les décors mobiles nécessitent une carte 2D.';
-          } else if (!isWarp && !isProp && (map.id != id || map.spatialScene == null)) {
+          } else if (!isWarp && !isProp && !isLocal && (map.id != id || map.spatialScene == null)) {
             _referenceError = 'La carte choisie ne contient pas de scène 3D.';
           } else {
             _referenceMap = map;

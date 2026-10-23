@@ -98,6 +98,8 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
       projectCatalog: snapshot.catalog,
       facts: project.facts,
       input: input,
+      maps: maps,
+      project: project,
       legacyClaimIndex: registry?.mode == EventSystemMode.dualRead
           ? buildValidatedLegacyClaimIndex(registry!)
           : null,
