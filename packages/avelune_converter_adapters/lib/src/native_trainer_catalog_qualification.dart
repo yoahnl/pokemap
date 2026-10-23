@@ -261,7 +261,7 @@ final class NativeTrainerCatalogQualification {
       } on ContractError catch (error) {
         if (error.code == 'source.cancelled') rethrow;
         final parts = <Map<String, Object?>>[];
-        for (final symbol in symbols.toList()..sort()) {
+        Future<void> bindPartition(List<String> partition) async {
           cancellation?.check();
           try {
             final bound = await const NativeSourceSpeciesBindings().bind(
@@ -269,18 +269,35 @@ final class NativeTrainerCatalogQualification {
                 source: source,
                 files: cached,
                 nativeCatalog: nativeCatalog,
-                requestedSourceSymbols: [symbol],
+                requestedSourceSymbols: partition,
                 cancellation: cancellation);
             bindings.addAll(bound.mappings);
-            parts.add({
-              'sourceSymbol': symbol,
-              'bindingEvidenceHash':
-                  canonicalHashOf(bound.evidence, limits: _jsonLimits).value
-            });
+            final hash =
+                canonicalHashOf(bound.evidence, limits: _jsonLimits).value;
+            for (final symbol in partition) {
+              parts.add({
+                'sourceSymbol': symbol,
+                'bindingEvidenceHash': hash,
+              });
+            }
           } on ContractError catch (failure) {
             if (failure.code == 'source.cancelled') rethrow;
-            speciesErrors[symbol] = failure;
+            if (partition.length == 1) {
+              speciesErrors[partition.single] = failure;
+            } else {
+              final middle = partition.length ~/ 2;
+              await bindPartition(partition.sublist(0, middle));
+              await bindPartition(partition.sublist(middle));
+            }
           }
+        }
+        final sorted = symbols.toList()..sort();
+        if (sorted.length == 1) {
+          speciesErrors[sorted.single] = error;
+        } else {
+          final middle = sorted.length ~/ 2;
+          await bindPartition(sorted.sublist(0, middle));
+          await bindPartition(sorted.sublist(middle));
         }
         speciesEvidence = {
           'kind': 'nativeTrainerPartialSpeciesBindings',

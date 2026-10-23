@@ -14,6 +14,46 @@ import 'package:avelune_converter_adapters/src/native_catalog_publication_select
 import 'package:avelune_converter_adapters/src/native_mutation_batches.dart';
 
 void main() {
+  test('catalog projection isolates its qualified catalog between runs',
+      () async {
+    final catalog = _namedCatalog(['species_a']);
+    final fixture = await LiteralTileFixture.create(
+        extraFiles: nativeMediaSourceFiles(catalog));
+    final pbs = await const SourcePbsParser()
+        .read(snapshot: fixture.snapshot, files: fixture.files);
+    final qualification = await NativeEncounterCatalogQualification.prepare(
+        snapshot: fixture.snapshot,
+        source: pbs,
+        files: fixture.files,
+        nativeCatalog: catalog,
+        selectedSourceMapIds: [1]);
+    Future<SourceCatalogProjection> project() =>
+        const SourceCatalogProjector().read(
+            source: fixture.source,
+            pbs: pbs,
+            files: fixture.files,
+            nativeMapIds: {1: 'map-1'},
+            nativeTrainerBundle: catalog,
+            nativeEncounterQualification: qualification,
+            nativeEncounterRatePolicy: NativeEncounterRatePolicy
+                .adaptSourceBasePercentToNativeConstantChance);
+    final first = await project();
+    final escaped = qualification.bundle;
+    escaped.speciesById['species_a']!.names['en'] = 'Changed outside run';
+    final second = await project();
+    expect(second.canonicalHash, first.canonicalHash);
+    expect(
+        second.documents
+            .singleWhere((document) =>
+                document.kind == SourceCatalogDocumentKind.species)
+            .document['names'],
+        {'en': 'Native species_a'});
+    expect(qualification.bundle.speciesById['species_a']!.names['en'],
+        'Native species_a');
+    catalog.speciesById['species_a']!.names['en'] = 'Changed explicit catalog';
+    await expectLater(project(), _code('integrity_mutation'));
+  });
+
   for (final (speciesId, sourceSymbol) in [
     ('species_a', 'RENAMED_WILDLIFE'),
     ('species_b', 'OTHER_WILDLIFE'),

@@ -783,6 +783,17 @@ final class _AssetInputs {
       throw ContractError('asset.proposal.binding', r'$',
           'A current complete source and literal composition are required');
     }
+    final inventoryEntries = <ConverterId, SourceFileEntry>{};
+    final ambiguousInventoryIds = <ConverterId>{};
+    for (final entry in source.snapshot.entries) {
+      if (inventoryEntries.containsKey(entry.fileId)) {
+        ambiguousInventoryIds.add(entry.fileId);
+      } else {
+        inventoryEntries[entry.fileId] = entry;
+      }
+    }
+    SourceFileEntry? inventoryEntry(ConverterId fileId) =>
+        ambiguousInventoryIds.contains(fileId) ? null : inventoryEntries[fileId];
     var mapCells = 0;
     for (final ir in source.maps) {
       final map = ir.map;
@@ -796,14 +807,12 @@ final class _AssetInputs {
             'The admitted source grid must be 32 pixels');
       }
       final mapFileId = map.sourceFileId;
-      final entries = source.snapshot.entries
-          .where((entry) => entry.fileId == mapFileId)
-          .toList();
-      if (entries.length != 1) {
+      final entry = inventoryEntry(mapFileId);
+      if (entry == null) {
         throw ContractError('asset.proposal.binding', r'$',
             'Selected source map has no unique inventory file');
       }
-      sourceMapEntries[map.sourceMapId] = entries.single;
+      sourceMapEntries[map.sourceMapId] = entry;
       maps[map.sourceMapId] = map;
       sourceMaps[map.sourceMapId] = ir;
       sourceMapHashes[map.sourceMapId] = ir.canonicalHash;
@@ -825,13 +834,12 @@ final class _AssetInputs {
     var sourceBytes = 0;
     var sourcePixels = 0;
     void addImage(ConverterId fileId, Sha256Hash hash) {
-      final entries =
-          source.snapshot.entries.where((entry) => entry.fileId == fileId);
-      if (entries.length != 1 ||
-          entries.single.sha256 != hash ||
-          entries.single.kind != SourceNodeKind.file ||
-          entries.single.format != 'raster' ||
-          !entries.single.relativePath.toLowerCase().endsWith('.png')) {
+      final entry = inventoryEntry(fileId);
+      if (entry == null ||
+          entry.sha256 != hash ||
+          entry.kind != SourceNodeKind.file ||
+          entry.format != 'raster' ||
+          !entry.relativePath.toLowerCase().endsWith('.png')) {
         throw ContractError('asset.proposal.binding', r'$',
             'Source is not an admitted original PNG image');
       }
@@ -839,7 +847,6 @@ final class _AssetInputs {
       if (images.length >= limits.maxSourceImages) {
         _quota('Source image count budget exceeded');
       }
-      final entry = entries.single;
       sourceBytes += entry.byteLength;
       if (sourceBytes > limits.maxSourceBytes) {
         _quota('Source image byte budget exceeded');
@@ -876,13 +883,12 @@ final class _AssetInputs {
           tileset.images.where((image) => image.role == 'tileset').toList();
       final entry =
           references.length == 1 ? references.single.sourceFile : null;
+      final original = entry == null ? null : inventoryEntry(entry.fileId);
       if (entry == null ||
           references.single.state != 'resolved' ||
           entry.sha256 == null ||
-          !source.snapshot.entries.any((current) =>
-              current.fileId == entry.fileId &&
-              canonicalJsonOf(current.toJson()) ==
-                  canonicalJsonOf(entry.toJson()))) {
+          original == null ||
+          canonicalJsonOf(original.toJson()) != canonicalJsonOf(entry.toJson())) {
         throw ContractError('asset.proposal.binding', r'$',
             'Selected tileset has no exact admitted original image');
       }

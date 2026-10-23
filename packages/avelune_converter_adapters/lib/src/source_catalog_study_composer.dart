@@ -136,11 +136,12 @@ final class SourceCatalogStudyComposer {
         profile: SourcePbsProfile.essentials21_1,
         cancellation: cancellation);
     if (pbs.documents.isEmpty) return null;
+    final qualifiedEncounterCatalog = nativeEncounterQualification?.bundle;
     if (nativeTrainerCatalog != null &&
-        nativeEncounterQualification != null &&
+        qualifiedEncounterCatalog != null &&
         canonicalHashOf(nativeTrainerCatalog!.toJson(),
                 limits: nativePsdkCatalogShardJsonLimits) !=
-            canonicalHashOf(nativeEncounterQualification!.bundle.toJson(),
+            canonicalHashOf(qualifiedEncounterCatalog.toJson(),
                 limits: nativePsdkCatalogShardJsonLimits)) {
       throw ContractError(
           'native_catalog.encounter_qualification_identity',
@@ -159,7 +160,8 @@ final class SourceCatalogStudyComposer {
     final encounterRelease = encounters?.artifacts(limits: limits);
     final selection = sourceCatalogSelection(source, base.mapIds.keys.toSet());
     final existing = _precedingItemCatalog(base);
-    final native = encounters?.bundle ?? nativeTrainerCatalog ??
+    final native = qualifiedEncounterCatalog ??
+        encounters?.bundle ?? nativeTrainerCatalog ??
         NativePsdkCatalogManifest.builtin();
     final sourceEvents = base.compositionEvidence['sourceEvents'];
     final partyTrades = sourceEvents is Map ? sourceEvents['partyTrade'] : null;

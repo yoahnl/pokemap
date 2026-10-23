@@ -20,6 +20,45 @@ import 'support/native_trainer_fixture.dart';
 import 'source_portrait_projection_test.dart' as portrait;
 
 void main() {
+  test('full conversion retains dynamic events in quarantine and publishes supported events', () async {
+    final harness = await _WorkflowHarness.create(
+      scriptsBytes: syntheticInterpretationArchive,
+      includeEventSystem: true,
+      extraFiles: {
+        'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+        'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+            image.Image(width: 128, height: 192, numChannels: 4)),
+      },
+      maps: [LiteralFixtureMap(id: 1, events: const [
+        LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: [
+          LiteralFixtureEventPage(commands: [LiteralFixtureEventCommand(201, [1, 8, 0, 0, 2, 0])]),
+        ]),
+        LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+          LiteralFixtureEventPage(commands: [LiteralFixtureEventCommand(101, ['A supported greeting'])]),
+        ]),
+      ])],
+    );
+    try {
+      final before = await _diskHashes(harness.sourceRoot);
+      final snapshot = await harness.workflow.scanSource(harness.selection);
+      harness.workflow.updateSettings(harness.settings(snapshot, selected: [1],
+          interpretationProfile: syntheticSourceInterpretationProfile));
+      final prepared = await harness.workflow.prepareStudy();
+      expect(prepared.canApprove, isTrue);
+      expect(prepared.composition.dependencies.single.targetSourceMapId, isNull);
+      expect(prepared.composition.nativeMaps[1]!.warps, isEmpty);
+      final events = (prepared.nativeDraft!.compositionEvidence['sourceEvents'] as Map)['projection'] as Map;
+      expect(events['qualifiedEventCount'], 1);
+      expect(events['quarantinedEventCount'], 1);
+      final published = await harness.workflow.writeApproved(harness.approve(prepared));
+      expect(published.published, isTrue);
+      expect(published.receipt.verified, isTrue);
+      expect(await _diskHashes(harness.sourceRoot), before);
+    } finally {
+      await harness.close();
+    }
+  });
+
   test('world content preserves source IR and publishes before full interactions', () async {
     final harness = await _WorkflowHarness.create(
       scriptsBytes: syntheticInterpretationArchive,
@@ -530,7 +569,7 @@ void main() {
           },
           maps: [
             LiteralFixtureMap(id: 1,
-                warpParameters: [[1, 8, 0, 0, 0, 0]],
+                warpParameters: [[9, 8, 0, 0, 0, 0]],
                 events: selectedPickup ? [pickup] : []),
             LiteralFixtureMap(id: 8, events: selectedPickup ? [] : [pickup]),
           ]);
@@ -564,7 +603,7 @@ void main() {
             selected: [1], interpretationProfile: profile));
         final prepared = await harness.workflow.prepareStudy();
         expect(prepared.composition.diagnostics.where((entry) =>
-            entry.code == 'literal.dependency.dynamic' && entry.blocksPlanning),
+            entry.code == 'literal.dependency.invalid' && entry.blocksPlanning),
             isNotEmpty);
         expect(prepared.nativeDraft, isNull);
         expect(prepared.canApprove, isFalse);

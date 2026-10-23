@@ -5,6 +5,7 @@ import '../../avelune_converter_core/test/support/interpretation_profile_fixture
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/native_trainer_money_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
@@ -280,6 +281,35 @@ final class _OracleFiles implements SourceFilePort {
       return bytes;
     }
     throw StateError('Source witness unavailable: ${entry.relativePath}');
+  }
+}
+
+final class _CountingCatalog implements NativePsdkCatalog {
+  _CountingCatalog(this.delegate);
+  final NativePsdkCatalog delegate;
+  int attestations = 0;
+  @override
+  Map<String, PokemonSpeciesFile> get speciesById => delegate.speciesById;
+  @override
+  Map<String, PokemonLearnsetFile> get learnsetsBySpeciesId =>
+      delegate.learnsetsBySpeciesId;
+  @override
+  Map<String, PokemonMove> get movesById => delegate.movesById;
+  @override
+  Map<String, PokemonEvolutionFile> get evolutionsBySpeciesId =>
+      delegate.evolutionsBySpeciesId;
+  @override
+  Map<String, PokemonMediaFile> get mediaBySpeciesId => delegate.mediaBySpeciesId;
+  @override
+  Map<String, Map<String, Object?>> get fallbackMedia => delegate.fallbackMedia;
+  @override
+  Map<String, PokemonCatalogFile> get catalogs => delegate.catalogs;
+  @override
+  Map<String, Object?> get evidence => delegate.evidence;
+  @override
+  Map<String, Object?> toJson() {
+    attestations++;
+    return delegate.toJson();
   }
 }
 
@@ -1522,6 +1552,72 @@ void main() {
       expect(
           source.fixture.files.reads.where((read) => read == id), hasLength(1));
     }
+  });
+
+  test('mixed species fallback isolates refusals with bounded attestations',
+      () async {
+    final native = NativePsdkTrainerBundle.builtin();
+    final species = native.speciesById.values
+        .where((row) => row.forms.formId == '0')
+        .take(15)
+        .toList();
+    expect(species, hasLength(15));
+    final symbols = [for (var i = 0; i < species.length; i++) 'SOURCE$i'];
+    final rosters = [
+      for (var i = 0; i < species.length; i++)
+        _roster(name: 'Trainer$i', party: [_member(symbol: symbols[i])]),
+      _roster(name: 'Broken', party: [_member(symbol: 'ZZZ_UNKNOWN')]),
+    ];
+    final source = await _source(rosters, extraFiles: {
+      'PBS/pokemon.txt': utf8.encode([
+        for (var i = 0; i < species.length; i++)
+          '[${symbols[i]}]\nName = ${species[i].names['en']}\n',
+      ].join()),
+      'Data/species.dat': [
+        4,
+        8,
+        ..._encode({
+          for (var i = 0; i < species.length; i++)
+            _Symbol(symbols[i]): LiteralFixtureObject('GameData::Species', {
+              '@id': _Symbol(symbols[i]),
+              '@species': _Symbol(symbols[i]),
+              '@form': 0,
+              '@real_name': species[i].names['en'],
+            }),
+        }),
+      ],
+    });
+    final requested = [
+      for (var i = 0; i < species.length; i++)
+        _key(source.pbs.logicalProjectNamespace, name: 'Trainer$i'),
+    ];
+    final goodCatalog = _CountingCatalog(native);
+    final good = await _prepare(source,
+        requested: requested, catalog: goodCatalog);
+    expect(good.refusals, isEmpty);
+    expect(good.trainers, hasLength(15));
+    source.fixture.files.reads.clear();
+    final mixedCatalog = _CountingCatalog(native);
+    final mixed = await _prepare(source, catalog: mixedCatalog, requested: [
+      ...requested,
+      _key(source.pbs.logicalProjectNamespace, name: 'Broken'),
+    ]);
+    expect(mixed.trainers.map((row) => row.toJson()),
+        good.trainers.map((row) => row.toJson()));
+    expect(mixed.refusals.single.identity.trainerName, 'Broken');
+    expect(mixed.refusals.single.code, 'native_trainer.species_binding');
+    expect(mixed.refusals.single.message,
+        contains('native_species.compiled_identity'));
+    for (final path in ['Data/trainers.dat', 'Data/species.dat']) {
+      final id = source.fixture.snapshot.entries
+          .singleWhere((row) => row.relativePath == path)
+          .fileId;
+      expect(source.fixture.files.reads.where((read) => read == id), hasLength(1));
+    }
+    expect(mixedCatalog.attestations - goodCatalog.attestations,
+        inInclusiveRange(1, 20),
+        reason: 'One refused identity among sixteen must retain healthy groups: '
+            'good=${goodCatalog.attestations}, mixed=${mixedCatalog.attestations}.');
   });
 
   test('cancellation during an owned source read is propagated', () async {

@@ -650,8 +650,8 @@ final class NativePsdkTrainerBundleBuilder {
           1 => 'medium',
           2 => 'slow',
           3 => 'medium_slow',
-          4 => 'erratic',
-          5 => 'fluctuating',
+          4 => 'slow_then_very_fast',
+          5 => 'fast_then_very_slow',
           _ => throw ContractError('native_trainer.growth_rate', id,
               'The PSDK experience curve is unknown.'),
         };

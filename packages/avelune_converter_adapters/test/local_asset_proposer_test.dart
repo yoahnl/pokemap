@@ -146,6 +146,50 @@ int _textCodeUnits(Object? value) {
 }
 
 void main() {
+  test('image inventory lookup remains local to each exact proposal run',
+      () async {
+    final first = await LiteralTileFixture.create();
+    final second = await LiteralTileFixture.create(tilesets: [
+      LiteralFixtureTileset(id: 1,
+          png: literalFixtureAtlas(alternate: true)),
+    ]);
+    Future<LiteralTileComposition> compose(LiteralTileFixture fixture) =>
+        const LiteralTileComposer().compose(
+            source: fixture.source,
+            files: fixture.files,
+            selectedSourceMapIds: const [1],
+            projectName: 'Original inventory lookup study',
+            parentPath: '/private/tmp/used-static-tiles-output',
+            folderName: 'original-inventory-lookup');
+    final firstLiteral = await compose(first);
+    final secondLiteral = await compose(second);
+    expect(firstLiteral.canWrite, isTrue);
+    expect(secondLiteral.canWrite, isTrue);
+    const proposer = LocalAssetProposer();
+    Future<LocalAssetProposalSet> propose(LiteralTileFixture fixture,
+        LiteralTileComposition literal) => proposer.propose(
+        source: fixture.source, files: fixture.files, literal: literal,
+        strategy: LocalAssetProposalStrategy.usedStaticTiles);
+    first.files.reads.clear();
+    final firstResult = await propose(first, firstLiteral);
+    final secondResult = await propose(second, secondLiteral);
+    expect(firstResult.sourceImages.single.fileId,
+        secondResult.sourceImages.single.fileId);
+    expect(firstResult.sourceImages.single.contentHash,
+        isNot(secondResult.sourceImages.single.contentHash));
+    expect(first.files.reads, [
+      first.snapshot.entries.singleWhere((entry) =>
+          entry.relativePath.startsWith('Graphics/Tilesets/')).fileId,
+    ]);
+    expect((await propose(first, firstLiteral)).canonicalHash,
+        firstResult.canonicalHash);
+    final imagePath = second.snapshot.entries.singleWhere((entry) =>
+        entry.relativePath.startsWith('Graphics/Tilesets/')).relativePath;
+    second.files.overrides[imagePath] = first.sourceBytes[imagePath]!;
+    await expectLater(propose(second, secondLiteral),
+        throwsA(_failure('asset.proposal.source_changed')));
+  });
+
   test('batch placement validation preserves every candidate claim and mode',
       () async {
     final fixture = await _mapFileLookupFixture();

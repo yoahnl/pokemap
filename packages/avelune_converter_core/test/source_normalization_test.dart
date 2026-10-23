@@ -475,6 +475,180 @@ List<Object?> _routeConnections() => [
     ];
 
 void main() {
+  group('invisible empty source autotiles', () {
+    Map<String, List<int>> input({bool image = true,
+        _RubyObject? tileset}) => _project(image: image,
+        tileset: tileset,
+        maps: {1: _map(data: _RubyTable(3, 2, 3,
+            [48, 95, ...List.filled(16, 0)]))});
+
+    test('unqualified source keeps used empty slots blocking', () async {
+      final source = await _normalize(_source(input()));
+      _blocked(source);
+      expect(source.diagnostics.any((issue) =>
+          issue.code == 'normalization.empty_used_image' && issue.blocksPlanning),
+          isTrue);
+    });
+
+    for (final renderer in [false, true]) {
+      test('a verified profile without the known renderer stays blocking: $renderer',
+          () async {
+        final profile = SourceInterpretationProfile.fromJson({
+          ...fixtureSourceInterpretationProfile.toJson(),
+          'declaredPrograms': <Object?>[],
+          'sections': {
+            ...fixtureSourceInterpretationProfile.sections,
+            if (renderer) 'autotiles.TilemapRenderer': {
+              'index': 0,
+              'name': 'Synthetic',
+              'sha256': crypto.sha256.convert(syntheticInterpretationSection).toString(),
+            },
+          },
+        });
+        final files = _source(input()
+          ..['Data/Scripts.rxdata'] = syntheticInterpretationArchive);
+        final source = await const RmxpSourceNormalizer().normalize(
+            snapshot: files.snapshot, files: files,
+            interpretationProfile: profile);
+        _blocked(source);
+        expect(source.diagnostics.any((issue) =>
+            issue.code == 'normalization.empty_used_image' && issue.blocksPlanning),
+            isTrue);
+      });
+    }
+
+    final scriptsPath = Platform.environment['AVELUNE_BUILTIN_HOENN_SCRIPTS'] ??
+        Platform.environment['AVELUNE_BUILTIN_JOHTO_SCRIPTS'];
+    group('attested source renderer', () {
+      late List<int> scripts;
+      late SourceInterpretationProfile profile;
+      setUpAll(() async {
+        scripts = await File(scriptsPath!).readAsBytes();
+        profile = SourceInterpretationProfile.fromJson({
+          'kind': 'sourceInterpretationProfile',
+          'schemaVersion': 2,
+          'profileId': 'attested-empty-autotile-renderer',
+          'semanticsId': 'rmxp-essentials-static-v1',
+          'scriptsArchive': {'relativePath': 'Data/Scripts.rxdata',
+            'sha256': crypto.sha256.convert(scripts).toString()},
+          'capabilities': ['autotiles'],
+          'sections': {'autotiles.TilemapRenderer': {
+            'index': 72,
+            'name': 'TilemapRenderer',
+            'sha256': '321f334b2eeee0f1fa45d16f52117feb7ea765e17643b88c09a69285ada4bdef',
+          }},
+        });
+      });
+      Future<NormalizedSourceProject> normalize(Map<String, List<int>> bytes) {
+        final files = _source(bytes..['Data/Scripts.rxdata'] = scripts);
+        return const RmxpSourceNormalizer().normalize(snapshot: files.snapshot,
+            files: files, interpretationProfile: profile);
+      }
+      test('preserves invisible source IDs and their exact collision metadata',
+          () async {
+        final source = await normalize(input());
+        expect(source.canPlan, isTrue);
+        expect(source.maps.single.map.layers.first.cells.take(2), [48, 95]);
+        final tileset = source.tilesets.single;
+        expect(tileset.passages.valueAt(48, 0, 0), 0);
+        expect(tileset.passages.valueAt(95, 0, 0), 15);
+        expect(tileset.priorities.valueAt(95, 0, 0), 5);
+        expect(tileset.terrainTags.valueAt(95, 0, 0), 7);
+        expect(tileset.images.singleWhere((image) =>
+            image.role == 'autotile' && image.slot == 0).state, 'none');
+        expect(source.diagnostics.where((issue) =>
+            issue.code == 'normalization.empty_used_image').single.blocksPlanning,
+            isFalse);
+      });
+      test('never relaxes missing main atlas validation', () async {
+        final source = await normalize(input(image: false));
+        _blocked(source);
+        expect(source.diagnostics.any((issue) =>
+            issue.code == 'normalization.missing_image' && issue.blocksPlanning),
+            isTrue);
+      });
+      test('never supplies absent collision metadata for an invisible tile',
+          () async {
+        final tileset = _tileset();
+        for (final field in ['@passages', '@priorities', '@terrain_tags']) {
+          tileset.fields[field] = _RubyTable(48, 1, 1,
+              List.filled(48, 0), dimensions: 1);
+        }
+        final source = await normalize(input(tileset: tileset));
+        _blocked(source);
+        expect(source.diagnostics.any((issue) =>
+            issue.code == 'normalization.tile_metadata_missing' && issue.blocksPlanning),
+            isTrue);
+      });
+    }, skip: scriptsPath == null ? 'An exact source renderer archive is required' : false);
+  });
+
+  group('GIF source image resolution', () {
+    final gif = base64Decode(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+    Map<String, List<int>> panorama(String name) {
+      final tileset = _tileset();
+      tileset.fields['@panorama_name'] = name;
+      return _project(tileset: tileset);
+    }
+
+    test('resolves an implicit GIF panorama with exact source provenance',
+        () async {
+      final input = panorama('Animated')
+        ..['Graphics/Panoramas/Animated.gif'] = gif;
+      final source = await _normalize(_source(input));
+      final reference = source.tilesets.single.images
+          .singleWhere((image) => image.role == 'panorama');
+      expect(source.canPlan, isTrue);
+      expect(reference.state, 'resolved');
+      expect(reference.sourceFile!.relativePath,
+          'Graphics/Panoramas/Animated.gif');
+      expect(reference.sourceFile!.sha256, _hash(gif));
+      expect(reference.appliedImageBinding, isNull);
+    });
+
+    test('resolves an explicit GIF extension without case sensitivity',
+        () async {
+      final input = panorama('Animated.GIF')
+        ..['Graphics/Panoramas/Animated.gIf'] = gif;
+      final source = await _normalize(_source(input));
+      final reference = source.tilesets.single.images
+          .singleWhere((image) => image.role == 'panorama');
+      expect(source.canPlan, isTrue);
+      expect(reference.sourceName, 'Animated.GIF');
+      expect(reference.state, 'resolved');
+      expect(reference.sourceFile!.relativePath,
+          'Graphics/Panoramas/Animated.gIf');
+    });
+
+    test('refuses ambiguous implicit PNG and GIF source images', () async {
+      final input = panorama('Animated')
+        ..['Graphics/Panoramas/Animated.gif'] = gif
+        ..['Graphics/Panoramas/Animated.png'] = _png();
+      final source = await _normalize(_source(input));
+      final reference = source.tilesets.single.images
+          .singleWhere((image) => image.role == 'panorama');
+      expect(source.canPlan, isFalse);
+      expect(reference.state, 'ambiguous');
+      expect(reference.sourceFile, isNull);
+      expect(source.diagnostics.where((issue) =>
+          issue.code == 'normalization.ambiguous_image' && issue.blocksPlanning),
+          hasLength(1));
+    });
+
+    test('keeps an actually missing source panorama blocking', () async {
+      final source = await _normalize(_source(panorama('Absent')));
+      final reference = source.tilesets.single.images
+          .singleWhere((image) => image.role == 'panorama');
+      expect(source.canPlan, isFalse);
+      expect(reference.state, 'missing');
+      expect(reference.sourceFile, isNull);
+      expect(source.diagnostics.where((issue) =>
+          issue.code == 'normalization.missing_image' && issue.blocksPlanning),
+          hasLength(1));
+    });
+  });
+
   test('normalization exposes an explicit immutable source adaptation context', () async {
     final source = await _normalize(_source(_project()));
     expect(source.toJson()['sourceAdaptations'], isEmpty);

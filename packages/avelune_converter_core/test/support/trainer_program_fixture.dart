@@ -211,11 +211,14 @@ Future<NormalizedSourceProject> trainerSource({
   String trainerName = "Élodie d'Arc",
   List<String?>? variableNames,
   List<String?>? switchNames,
+  List<int>? scriptsBytes,
+  SourceInterpretationProfile? interpretationProfile,
   void Function(List<TrainerRubyObject>)? mutate,
 }) async {
   final pages = trainerPages(name: trainerName);
   mutate?.call(pages);
   final files = <String, Object?>{
+    if (scriptsBytes != null) 'Data/Scripts.rxdata': null,
     'Data/MapInfos.rxdata': {
       mapId: TrainerRubyObject('RPG::MapInfo', {
         '@name': 'Route libre',
@@ -263,7 +266,9 @@ Future<NormalizedSourceProject> trainerSource({
     for (final entry in files.entries)
       ConverterId(
               'fixture:${base64Url.encode(utf8.encode(entry.key)).replaceAll('=', '')}'):
-          _Dump().dump(entry.value)
+          entry.key == 'Data/Scripts.rxdata'
+              ? scriptsBytes!
+              : _Dump().dump(entry.value)
   };
   final snapshot = SourceSnapshot(
     logicalProjectNamespace: ConverterId('trainer-template-fixture'),
@@ -289,6 +294,7 @@ Future<NormalizedSourceProject> trainerSource({
       snapshot: snapshot,
       files: _Files(bytes),
       selectedMapIds: {mapId},
+      interpretationProfile: interpretationProfile,
       includeEventSystem: true);
 }
 

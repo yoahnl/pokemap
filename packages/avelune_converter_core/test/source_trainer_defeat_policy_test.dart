@@ -7,6 +7,110 @@ import 'support/source_external_original_fixture.dart';
 import 'support/trainer_program_fixture.dart';
 
 void main() {
+  for (final variable in [
+    'AVELUNE_BUILTIN_JOHTO_SCRIPTS',
+    'AVELUNE_BUILTIN_HOENN_SCRIPTS'
+  ]) {
+    final scriptsPath = Platform.environment[variable];
+    group('trainer defeat engine witnesses $variable', () {
+      late List<int> scripts;
+      late SourceInterpretationProfile profile;
+      setUpAll(() async {
+        scripts = await File(scriptsPath!).readAsBytes();
+        profile = _engineProfile(scripts);
+      });
+      test('attests the same loss policy for an independently bound archive',
+          () async {
+        final source = await trainerSource(
+            scriptsBytes: scripts, interpretationProfile: profile);
+        final analysis = SourceEventAnalyzer.forProject(source,
+                profile: SourceEventProfile.forProject(source))
+            .analyze();
+        final event = analysis.eventAt(417, 23)!;
+        expect(event.isQuarantined, isFalse);
+        for (final program in event.pages
+            .expand((page) => page.body.nodes)
+            .whereType<SourceTrainerProgramNode>()) {
+          expect(program.defeatPolicy, isNotNull);
+          expect(program.defeatPolicy!.canLose, isFalse);
+          expect(program.defeatPolicy!.scriptsArchiveHash,
+              profile.scriptsArchiveHash);
+          expect(program.defeatPolicy!.toJson()['oracleSections'],
+              [for (final section in profile.sections.values) section]);
+        }
+      });
+      for (final role in [
+        'events.Battle',
+        'events.Overworld_BattleStarting'
+      ]) {
+        test('does not infer defeat semantics without $role', () async {
+          final sections = {...profile.sections}..remove(role);
+          final incomplete = SourceInterpretationProfile.fromJson({
+            ...profile.toJson(),
+            'sections': sections,
+          });
+          final source = await trainerSource(
+              scriptsBytes: scripts, interpretationProfile: incomplete);
+          final event = SourceEventAnalyzer.forProject(source,
+                  profile: SourceEventProfile.forProject(source))
+              .analyze()
+              .eventAt(417, 23)!;
+          final programs = event.pages
+              .expand((page) => page.body.nodes)
+              .whereType<SourceTrainerProgramNode>();
+          expect(programs, isNotEmpty);
+          expect(programs.map((program) => program.defeatPolicy),
+              everyElement(isNull));
+        });
+        test('normalization rejects altered bytes declared for $role',
+            () async {
+          final altered = SourceInterpretationProfile.fromJson({
+            ...profile.toJson(),
+            'sections': {
+              ...profile.sections,
+              role: {...profile.sections[role]!, 'sha256': '0' * 64},
+            },
+          });
+          await expectLater(
+              trainerSource(
+                  scriptsBytes: scripts, interpretationProfile: altered),
+              throwsA(isA<ContractError>().having((error) => error.code,
+                  'code', 'interpretation_profile.section_mismatch')));
+        });
+      }
+      test('rejects a forged profile or a different source archive', () async {
+        final source = await trainerSource(
+            scriptsBytes: scripts, interpretationProfile: profile);
+        final forged = SourceInterpretationProfile.fromJson({
+          ...profile.toJson(),
+          'profileId': 'forged-loss-policy-profile',
+        });
+        final forgedEvent = SourceEventAnalyzer.forProject(source,
+                profile: SourceEventProfile.forProject(source,
+                    interpretationProfile: forged))
+            .analyze()
+            .eventAt(417, 23)!;
+        final programs = forgedEvent.pages
+            .expand((page) => page.body.nodes)
+            .whereType<SourceTrainerProgramNode>();
+        expect(programs, isNotEmpty);
+        expect(programs.map((program) => program.defeatPolicy),
+            everyElement(isNull));
+        final mismatched = SourceEventAnalyzer.forProject(source,
+                profile: SourceEventProfile.forProject(source,
+                    scriptsArchiveHash: Sha256Hash('0' * 64)))
+            .analyze()
+            .eventAt(417, 23)!;
+        expect(mismatched.isQuarantined, isTrue);
+        expect(
+            mismatched.pages
+                .expand((page) => page.body.nodes)
+                .whereType<SourceTrainerProgramNode>(),
+            isEmpty);
+      });
+    }, skip: scriptsPath == null ? '$variable is required' : false);
+  }
+
   test(
       'an otherwise recognized trainer does not invent a loss policy for an unattested engine',
       () async {
@@ -48,12 +152,17 @@ void main() {
       () async {
     final fixture = await readExternalOriginalSource(root!, snapshot!,
         selectedMapIds: {98});
+    final declared = externalOracleInterpretationProfile();
+    final verifiedProfile = SourceInterpretationProfile.fromJson({
+      ...declared.toJson(),
+      'sections': {...declared.sections, ..._engineSections},
+    });
     final source = await const RmxpSourceNormalizer().normalize(
         snapshot: fixture.source.snapshot,
         files: _TrainerFiles(fixture.files),
         selectedMapIds: {98},
         includeEventSystem: true,
-        interpretationProfile: externalOracleInterpretationProfile());
+        interpretationProfile: verifiedProfile);
     final profile = SourceEventProfile.forProject(source);
     final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
     final analysis = analyzer.analyze();
@@ -144,6 +253,37 @@ void main() {
     }
   }, skip: !enabled);
 }
+
+SourceInterpretationProfile _engineProfile(List<int> scripts) =>
+    SourceInterpretationProfile.fromJson({
+      'kind': 'sourceInterpretationProfile',
+      'schemaVersion': 2,
+      'profileId': 'attested-trainer-defeat-engine',
+      'semanticsId': 'rmxp-essentials-static-v1',
+      'scriptsArchive': {
+        'relativePath': 'Data/Scripts.rxdata',
+        'sha256': crypto.sha256.convert(scripts).toString(),
+      },
+      'capabilities': ['events'],
+      'sections': _engineSections,
+    });
+
+const _engineSections = {
+  'events.Battle': {
+    'index': 147,
+    'name': 'Battle',
+    'sha256':
+        'd61fd2ce22cc27e9d9682c14ced068dca544f39921af9b1acaa18c9022325c5b',
+    'lines': [131, 134],
+  },
+  'events.Overworld_BattleStarting': {
+    'index': 256,
+    'name': 'Overworld_BattleStarting',
+    'sha256':
+        '7a0e305aad2f7939254b9e322bb86ee592e2da338b114cdec2a74e4cb1ff4b04',
+    'lines': [492, 527],
+  },
+};
 
 final class _TrainerFiles implements SourceFilePort {
   const _TrainerFiles(this.primary);

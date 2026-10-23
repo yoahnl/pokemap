@@ -89,13 +89,19 @@ final class NativeEncounterCatalogBindings {
     mappings.addAll(resolved.mappings);
     final tables = <ProjectEncounterTable>[];
     final rows = <Map<String, Object?>>[];
-    final unqualified = <Map<String, Object?>>[];
+    final unqualified = <Map<String, Object?>>[
+      for (final row in qualification.unqualifiedSourceTables)
+        if (nativeMapIds
+            .containsKey((row['sourceIdentity'] as Map)['sourceMapId']))
+          {...row, 'method': null},
+    ];
     final usedCases = <String>{};
     Map<String, Object?>? fishingOracle;
     final selected = source.entries
         .where((entry) =>
             entry.family == SourcePbsFamily.encounters &&
-            nativeMapIds.containsKey(entry.identity?.sourceMapId))
+            nativeMapIds.containsKey(entry.identity?.sourceMapId) &&
+            entry.identity?.version == 0)
         .toList()
       ..sort((a, b) => a.identity!.key.compareTo(b.identity!.key));
     final seenMaps = <int>{};
@@ -104,7 +110,6 @@ final class NativeEncounterCatalogBindings {
       final identity = entry.identity!;
       if (entry.isBlocked ||
           source.lookup(identity) == null ||
-          identity.version != 0 ||
           !seenMaps.add(identity.sourceMapId!)) {
         _invalid('table_identity',
             'Native encounter tables require unique version-zero source entries.');

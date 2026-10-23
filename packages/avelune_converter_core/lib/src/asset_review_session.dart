@@ -232,7 +232,7 @@ final class SourcePlacementClaim {
     final layers = map.map.layers.where((layer) => layer.sourceZ == sourceZ);
     _reviewRequire(
         layers.length == 1 &&
-            layers.single.cells[y * map.map.width + x] == tileId,
+            layers.single.cellAt(y * map.map.width + x) == tileId,
         'review.claim.cell',
         'Placement claim does not match the source cell');
   }

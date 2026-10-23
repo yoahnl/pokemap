@@ -2058,7 +2058,7 @@ Future<void> _converterWorker(_WorkerLaunch launch) async {
     await tree?.close();
     await relay.close();
   }
-  launch.parent.send(outcome);
+  Isolate.exit(launch.parent, outcome);
 }
 
 void _workflowPath(String value) {
@@ -2268,7 +2268,15 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 9,
+      'version': 10,
+      'sourceDynamicTransferPolicy':
+          'qualified-event-quarantine-without-fabricated-destination-v1',
+      'sourceTrainerDefeatPolicy':
+          'verified-engine-helper-sections-independent-of-archive-identity-v1',
+      'sourceTrainerSpeciesBindingPolicy':
+          'attested-partitions-with-exact-local-refusals-v1',
+      'sourceGraphicsPolicy':
+          'gif-source-references-and-attested-invisible-empty-autotiles-v1',
       'sourceRoutedDoorPatterns': 'attested-source-paired-pages-and-exact-atlas-v1',
       'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
       'sourceMissingItemSuggestions': 'qualified-selected-blocked-preparation-v1',
@@ -2281,6 +2289,8 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'sourceDeclaredPrograms': 'complete-typed-raw-pages-explicit-human-binding-v2',
       'nativeEncounters': {
         'qualification': 'exact-source-full-pbs-selected-map-scope-v2',
+        'sourceVersions':
+            'version-zero-qualified-variants-preserved-and-attested-v1',
         'catalogManifestHash': NativePsdkCatalogManifest.builtinManifestHash,
         'referenceAdmissionHash':
             NativePsdkCatalogManifest.builtinReferenceAdmissionHash,
@@ -2852,6 +2862,8 @@ ConversionPlan? _previewPlan(
       cause: 'policy',
       family: 'publication',
       disposition: 'adapted');
+  final acknowledgementHash = settings.profileAcknowledgement.canonicalHash;
+  final settingsHash = settings.canonicalHash;
   return ConversionPlan.fromJson({
     'schemaVersion': '1.0',
     'kind': 'conversionPlan',
@@ -2888,8 +2900,8 @@ ConversionPlan? _previewPlan(
           'status': 'planned',
           'evidenceRefs': [
             draft.bindingEvidence,
-            'source-study-ack-sha256:${settings.profileAcknowledgement.canonicalHash.value}',
-            'study-settings-sha256:${settings.canonicalHash.value}',
+            'source-study-ack-sha256:${acknowledgementHash.value}',
+            'study-settings-sha256:${settingsHash.value}',
           ],
         }
     ],

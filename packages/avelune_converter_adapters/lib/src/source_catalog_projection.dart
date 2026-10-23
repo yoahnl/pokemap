@@ -260,6 +260,10 @@ final class _Run {
   final NativeTrainerCatalogQualification? trainerQualification;
   final NativeTrainerMovePolicy nativeMovePolicy;
   final NativeEncounterCatalogQualification? encounterQualification;
+  late final NativePsdkCatalog? qualifiedEncounterBundle =
+      encounterQualification?.bundle;
+  late final NativePsdkCatalog? activeNativeBundle =
+      qualifiedEncounterBundle ?? nativeBundle;
   final NativeEncounterRatePolicy encounterRatePolicy;
   final NativeEncounterFishingRatePolicy encounterFishingRatePolicy;
   final nativeArtifacts = <NativeArtifact>[];
@@ -308,7 +312,7 @@ final class _Run {
         encounterQualification != null &&
         canonicalHashOf(nativeBundle!.toJson(),
                 limits: nativePsdkCatalogShardJsonLimits) !=
-            canonicalHashOf(encounterQualification!.bundle.toJson(),
+            canonicalHashOf(qualifiedEncounterBundle!.toJson(),
                 limits: nativePsdkCatalogShardJsonLimits)) {
       throw ContractError(
           'native_catalog.encounter_qualification_identity',
@@ -356,7 +360,8 @@ final class _Run {
     final roots = pbs.entries
         .where((e) =>
             e.family == SourcePbsFamily.encounters &&
-            maps.containsKey(e.identity?.sourceMapId))
+            maps.containsKey(e.identity?.sourceMapId) &&
+            (encounterQualification == null || e.identity?.version == 0))
         .map((e) => e.identity!)
         .toList();
     roots.addAll(trainers);
@@ -599,7 +604,7 @@ final class _Run {
             ratePolicy: encounterRatePolicy,
             fishingRatePolicy: encounterFishingRatePolicy,
             cancellation: cancel);
-    final activeBundle = encounterQualification?.bundle ?? nativeBundle;
+    final activeBundle = activeNativeBundle;
     final activeBundleIdentity = activeBundle?.toJson();
     final nativeReferenceAvailability = activeBundleIdentity != null &&
             canonicalHashOf(activeBundleIdentity,
@@ -826,7 +831,7 @@ final class _Run {
   Future<NativeTrainerCatalogBindingResult?> _bindNativeTrainers() async {
     final qualification = trainerQualification;
     if (qualification != null) {
-      final bundle = encounterQualification?.bundle ?? nativeBundle;
+      final bundle = activeNativeBundle;
       if (bundle == null || nativeMovePolicy != NativeTrainerMovePolicy.nativeAveluneDefaults) {
         throw ContractError('native_trainer.projection_binding', r'$',
             'Qualified trainers require their active native catalog and explicit native defaults policy.');

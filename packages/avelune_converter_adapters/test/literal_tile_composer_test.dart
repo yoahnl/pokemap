@@ -505,6 +505,101 @@ void main() {
     }
   });
 
+  final emptyAutotileScripts =
+      Platform.environment['AVELUNE_BUILTIN_HOENN_SCRIPTS'] ??
+          Platform.environment['AVELUNE_BUILTIN_JOHTO_SCRIPTS'];
+  for (final qualifiedRenderer in [true, false]) {
+    test(
+        'empty autotile slots ${qualifiedRenderer ? 'stay invisible with exact renderer' : 'remain blocked with an unknown renderer'}',
+        () async {
+      final scripts = await File(emptyAutotileScripts!).readAsBytes();
+      final profile = SourceInterpretationProfile.fromJson({
+        'kind': 'sourceInterpretationProfile',
+        'schemaVersion': 2,
+        'profileId': 'literal-empty-autotile-renderer',
+        'semanticsId': 'rmxp-essentials-static-v1',
+        'scriptsArchive': {
+          'relativePath': 'Data/Scripts.rxdata',
+          'sha256': literalFixtureHash(scripts).value,
+        },
+        'capabilities': ['autotiles'],
+        'sections': {
+          qualifiedRenderer
+              ? 'autotiles.TilemapRenderer'
+              : 'autotiles.UnknownRenderer': {
+            'index': 72,
+            'name': 'TilemapRenderer',
+            'sha256':
+                '321f334b2eeee0f1fa45d16f52117feb7ea765e17643b88c09a69285ada4bdef',
+          },
+        },
+      });
+      final originalLayers = <List<int>>[
+        [48, 384, 95],
+        [96, 0, 383],
+        [0, 144, 0],
+      ];
+      final fixture = await LiteralTileFixture.create(
+        scriptsBytes: scripts,
+        interpretationProfile: profile,
+        maps: [LiteralFixtureMap(id: 1, layers: originalLayers)],
+        tilesets: [
+          LiteralFixtureTileset(id: 1,
+              passages: {48: 15, 95: 1, 383: 8},
+              priorities: {48: 1, 95: 2},
+              terrainTags: {48: 7, 383: 3}),
+        ],
+      );
+      expect(fixture.source.canPlan, qualifiedRenderer);
+      final result = await _compose(fixture);
+      if (!qualifiedRenderer) {
+        expect(result.canWrite, isFalse);
+        expect(result.nativeMaps, isEmpty);
+        return;
+      }
+      expect(result.canWrite, isTrue,
+          reason: result.diagnostics.map((row) => row.toJson()).toString());
+      expect(result.autotiles, isEmpty);
+      expect(result.crops.map((row) => row.sourceTileId), [384]);
+      expect(result.draft!.artifacts, hasLength(1));
+      expect(_layerFor(result, 1, 0).cells, [0, 1, 0]);
+      expect(_layerFor(result, 1, 1).cells, [0, 0, 0]);
+      expect(_layerFor(result, 1, 2).cells, [0, 0, 0]);
+      expect(_layerFor(result, 1, 1).palette, isEmpty);
+      expect(_layerFor(result, 1, 2).palette, isEmpty);
+      final originalMap = fixture.source.maps.single.map;
+      expect(originalMap.layers.map((row) => row.cells), originalLayers);
+      final metadata = fixture.source.tilesets.single;
+      expect(metadata.passages.valueAt(48, 0, 0), 15);
+      expect(metadata.passages.valueAt(95, 0, 0), 1);
+      expect(metadata.passages.valueAt(383, 0, 0), 8);
+      expect(metadata.priorities.valueAt(48, 0, 0), 1);
+      expect(metadata.terrainTags.valueAt(383, 0, 0), 3);
+      for (final provenance in result.layerProvenance) {
+        expect(provenance.sourceLayerHash,
+            canonicalHashOf(originalLayers[provenance.sourceZ]));
+      }
+    }, skip: emptyAutotileScripts == null
+            ? 'Set an explicit exact source Scripts archive to verify the renderer oracle.'
+            : false);
+  }
+
+  test('empty autotile slots remain blocked without a source renderer profile',
+      () async {
+    final fixture = await LiteralTileFixture.create(maps: [
+      LiteralFixtureMap(id: 1, layers: const [
+        [48, 384, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ]),
+    ]);
+    expect(fixture.source.canPlan, isFalse);
+    final result = await _compose(fixture);
+    expect(result.canWrite, isFalse);
+    expect(result.nativeMaps, isEmpty);
+    expect(result.draft, isNull);
+  });
+
   for (final entry in const {
     1: 'literal.tile.reserved',
     47: 'literal.tile.reserved',
@@ -771,6 +866,36 @@ void main() {
     expect(result.dependencies.single.targetSourceMapId, isNull);
     expect(result.includedSourceMapIds, isEmpty);
     _blocking(result, 'literal.dependency.dynamic');
+  });
+
+  test('qualified event profile defers dynamic transfers without a fabricated destination', () async {
+    final fixture = await LiteralTileFixture.create(
+      interpretationProfile: syntheticSourceInterpretationProfile,
+      scriptsBytes: syntheticInterpretationArchive,
+      includeEventSystem: true,
+      maps: [LiteralFixtureMap(id: 1, warpParameters: [[1, 8, 1, 0, 2, 0]])],
+    );
+    final result = await _compose(fixture);
+    expect(result.canWrite, isTrue);
+    expect(result.nativeMaps.keys, [1]);
+    expect(result.nativeMaps[1]!.warps, isEmpty);
+    expect(result.includedSourceMapIds, isEmpty);
+    expect(result.dependencies.single.kind, LiteralDependencyKind.dynamicTransfer);
+    expect(result.dependencies.single.targetSourceMapId, isNull);
+    expect(result.dependencies.single.decision, isNull);
+    expect(result.diagnostics.singleWhere((item) =>
+        item.code == 'literal.dependency.dynamic_deferred').blocksPlanning, isFalse);
+    expect(result.draft!.source.maps.single.map.events.single.pages.single.commands.first.parameters,
+        [1, 8, 1, 0, 2, 0]);
+    final blocked = await _compose(fixture, decisions: [LiteralDependencyDecision(
+      sourceSnapshotHash: fixture.snapshot.canonicalHash,
+      selectionHash: result.selectionHash,
+      locator: result.dependencies.single.locator,
+      targetSourceMapId: null,
+      decision: LiteralDependencyDisposition.block,
+    )]);
+    expect(blocked.canWrite, isFalse);
+    _blocking(blocked, 'literal.dependency.dynamic');
   });
 
   test(

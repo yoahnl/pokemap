@@ -7,11 +7,90 @@ import 'package:avelune_converter_adapters/src/native_psdk_catalog.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 import '../tool/build_native_psdk_trainer_bundle.dart' as generator;
 
 void main() {
+  test('builtin species only publish supported native experience curves', () {
+    final catalog = NativePsdkCatalogManifest.builtin();
+    expect(
+        catalog.speciesById.values
+            .where((species) => !PokemonExperienceCurve.supportedIds
+                .contains(species.progression.growthRateId))
+            .map((species) =>
+                '${species.id}:${species.progression.growthRateId}'),
+        isEmpty);
+  });
+
+  for (final (type, nativeId) in [
+    (0, 'fast'),
+    (1, 'medium'),
+    (2, 'slow'),
+    (3, 'medium_slow'),
+    (4, 'slow_then_very_fast'),
+    (5, 'fast_then_very_slow'),
+  ]) {
+    test('PSDK experience type $type publishes native curve $nativeId', () {
+      final bundle = _experienceFixture(type);
+      expect(bundle.speciesById.values
+          .map((species) => species.progression.growthRateId),
+          everyElement(nativeId));
+      expect(bundle.catalogs['growth_rates']!.entries, [{'id': nativeId}]);
+    });
+  }
+
+  test('unknown PSDK experience types remain refused', () {
+    expect(() => _experienceFixture(6), _code('growth_rate'));
+  });
+
+  for (final (type, thresholds) in [
+    (4, {1: 1, 15: 5737, 16: 6881, 35: 55737, 36: 59719, 38: 68041,
+      50: 125000, 51: 131324, 68: 257834, 69: 267406,
+      98: 583539, 99: 591882, 100: 600000}),
+    (5, {1: 0, 15: 1957, 16: 2457, 35: 42017, 36: 46656, 38: 55969,
+      50: 142500, 51: 151222, 68: 415050, 69: 433631,
+      98: 1524731, 99: 1571884, 100: 1640000}),
+  ]) {
+    test('native wild generation accepts PSDK curve $type at boundaries', () {
+      final bundle = _experienceFixture(type);
+      final species = bundle.speciesById['fixture']!;
+      final stats = species.baseStats;
+      final learnset = bundle.learnsetsBySpeciesId[species.id]!;
+      for (final threshold in thresholds.entries) {
+        final pokemon = const WildPlayerPokemonGenerator().generate(
+            seed: 17,
+            species: WildPokemonGenerationSpecies(
+                id: species.id,
+                formId: species.forms.formId,
+                baseStats: PokemonBaseStats(hp: stats.hp, attack: stats.atk,
+                    defense: stats.def, specialAttack: stats.spa,
+                    specialDefense: stats.spd, speed: stats.spe),
+                primaryAbilityId: species.abilities.primary,
+                standardAbilityIds: [species.abilities.primary],
+                allowedAbilityIds: [species.abilities.primary],
+                genderRatio: species.breeding.genderRatio,
+                growthRateId: species.progression.growthRateId,
+                baseFriendship: species.progression.baseFriendship),
+            learnset: WildPokemonGenerationLearnset(
+                startingMoves: learnset.startingMoves,
+                relearnMoves: learnset.relearnMoves,
+                levelUp: [for (final row in learnset.levelUp)
+                  WildPokemonLevelUpMove(moveId: row.moveId, level: row.level)]),
+            maxPpByMoveId: {for (final move in bundle.movesById.values)
+              move.id: move.pp},
+            level: threshold.key,
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            context: WildPokemonGenerationContext(mapId: 'curve-proof',
+                sourceId: 'curve-$type', individualKey: '${threshold.key}'))
+            .pokemon;
+        expect(pokemon.level, threshold.key);
+        expect(pokemon.experience, threshold.value);
+      }
+    });
+  }
+
   test('implicit native catalog mode is rejected before changing outputs',
       () async {
     final root = await Directory.systemTemp.createTemp('native_implicit_mode_');
@@ -1876,6 +1955,17 @@ NativePsdkTrainerBundle _buildFixture({Object? femaleRate = 50}) =>
         requests: [
           NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)
         ]);
+
+NativePsdkTrainerBundle _experienceFixture(int type) {
+  final files = _fixtureSources();
+  _mutateSource(files, 'Data/Studio/pokemon/fixture.json', (raw) {
+    for (final form in (raw['forms'] as List).cast<Map>()) {
+      form['experienceType'] = type;
+    }
+  });
+  return const NativePsdkTrainerBundleBuilder().build(files: files,
+      requests: [NativePsdkCatalogRequest(baseId: 'fixture', form: 0, level: 1)]);
+}
 
 NativePsdkTrainerSourceFile _source(String path, Object raw) {
   final bytes = utf8.encode(jsonEncode(raw));

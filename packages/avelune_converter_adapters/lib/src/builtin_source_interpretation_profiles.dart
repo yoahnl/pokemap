@@ -48,6 +48,18 @@ const _essentialsStaticProfileJson = r'''
     "walking"
   ],
   "sections": {
+    "events.Battle": {
+      "index": 147,
+      "name": "Battle",
+      "sha256": "d61fd2ce22cc27e9d9682c14ced068dca544f39921af9b1acaa18c9022325c5b",
+      "lines": [131, 134]
+    },
+    "events.Overworld_BattleStarting": {
+      "index": 256,
+      "name": "Overworld_BattleStarting",
+      "sha256": "7a0e305aad2f7939254b9e322bb86ee592e2da338b114cdec2a74e4cb1ff4b04",
+      "lines": [492, 527]
+    },
     "autotiles.AutotileExpander": {
       "index": 74,
       "sha256": "c40587686d2176794b79aa926e0adc5fdb67db102dd6f14a7e54a1618635e597",

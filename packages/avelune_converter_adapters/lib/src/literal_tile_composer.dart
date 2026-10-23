@@ -442,6 +442,25 @@ final class _LiteralCompositionRun {
   int diagnosticText = 0;
   late final Sha256Hash sourceHash;
   late final Sha256Hash snapshotHash;
+  late final SourceEventProfile eventProfile =
+      SourceEventProfile.forProject(source);
+  late final Set<(int, int)> invisibleAutotileSlots =
+      sourceUsesInvisibleEmptyAutotiles(
+              snapshot: source.snapshot, profile: source.interpretationProfile)
+          ? {
+              for (final tileset in source.tilesets)
+                for (final image in tileset.images)
+                  if (image.role == 'autotile' &&
+                      image.state == 'none' &&
+                      image.slot != null)
+                    (tileset.sourceTilesetId, image.slot!),
+            }
+          : {};
+
+  bool isInvisibleTile(int tilesetId, int tile) =>
+      tile >= 48 &&
+      tile < 384 &&
+      invisibleAutotileSlots.contains((tilesetId, tile ~/ 48 - 1));
 
   Future<LiteralTileComposition> run() async {
     cancellation?.check();
@@ -541,6 +560,8 @@ final class _LiteralCompositionRun {
               if (decision != null) usedDecisions.add(key);
               final retainedInactive = decision?.decision ==
                   LiteralDependencyDisposition.excludeStudy;
+              final deferredToEvents =
+                  decision == null && eventProfile.isQualified;
               dependencies.add(LiteralMapDependency(
                   sourceMapId: id,
                   targetSourceMapId: null,
@@ -550,11 +571,15 @@ final class _LiteralCompositionRun {
               diagnostic(
                   retainedInactive
                       ? 'literal.dependency.dynamic_inactive'
+                      : deferredToEvents
+                      ? 'literal.dependency.dynamic_deferred'
                       : 'literal.dependency.dynamic',
-                  !retainedInactive,
+                  !retainedInactive && !deferredToEvents,
                   command.sourceLocator.toJson(),
                   retainedInactive
                       ? 'The variable transfer is preserved inactive without a fabricated destination'
+                      : deferredToEvents
+                      ? 'The qualified event pipeline must preserve and quarantine this unsupported variable transfer without a fabricated destination'
                       : 'A variable transfer cannot be resolved as a static dependency');
               continue;
             }
@@ -881,7 +906,7 @@ final class _LiteralCompositionRun {
                 .toSet()
                 .toList()
               ..sort()))
-          (id, slot),
+          if (!invisibleAutotileSlots.contains((id, slot))) (id, slot),
     ];
     if (slots.isEmpty) return;
     if (closure.length * 2 + usedTiles.length + slots.length * 2 >
@@ -983,7 +1008,10 @@ final class _LiteralCompositionRun {
     final tileReferences = <int, Map<int, TileLayerPaletteEntry>>{};
     for (final id in usedTiles.keys.toList()..sort()) {
       final tileset = sourceTileset(id)!;
-      final tileIds = usedTiles[id]!.toList()..sort();
+      final tileIds = usedTiles[id]!
+          .where((tile) => !isInvisibleTile(id, tile))
+          .toList()
+        ..sort();
       final atlas = atlasArtifacts[id]!;
       final nativeId = tilesetIds[id]!;
       tileReferences[id] = {
@@ -1087,14 +1115,20 @@ final class _LiteralCompositionRun {
       final layers = <MapLayer>[];
       for (var z = 0; z < 3; z++) {
         final layerId = '${nativeId}_z$z';
-        final tileIds =
-            input.cells[z].where((tile) => tile != 0).toSet().toList()..sort();
+        final tileIds = input.cells[z]
+            .where((tile) =>
+                tile != 0 && !isInvisibleTile(map.sourceTilesetId, tile))
+            .toSet()
+            .toList()
+          ..sort();
         final paletteCells = {
           for (var index = 0; index < tileIds.length; index++)
             tileIds[index]: index + 1,
         };
-        final cells = List<int>.unmodifiable(
-            input.cells[z].map((tile) => tile == 0 ? 0 : paletteCells[tile]!));
+        final cells = List<int>.unmodifiable(input.cells[z].map((tile) =>
+            tile == 0 || isInvisibleTile(map.sourceTilesetId, tile)
+                ? 0
+                : paletteCells[tile]!));
         layers.add(MapLayer.tile(
             id: layerId,
             name: 'Source Z $z',

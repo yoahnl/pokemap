@@ -1,9 +1,11 @@
 part of '../avelune_converter_core.dart';
 
 final class SourceTrainerDefeatPolicy {
-  const SourceTrainerDefeatPolicy._(this.scriptsArchiveHash);
+  const SourceTrainerDefeatPolicy._(
+      this.scriptsArchiveHash, this._oracleSections);
 
   final Sha256Hash scriptsArchiveHash;
+  final List<Map<String, Object?>> _oracleSections;
   bool get canLose => false;
 
   Map<String, Object?> toJson() => {
@@ -14,22 +16,7 @@ final class SourceTrainerDefeatPolicy {
         'sourcePageRuleOverrides': 'noneInCompleteRecognizedProgram',
         'sourceBattleRulesLifetime': 'clearedWhenBattleStarts',
         'unknownRuleSetup': 'preserveAndQuarantine',
-        'oracleSections': const [
-          {
-            'index': 147,
-            'name': 'Battle',
-            'sha256':
-                'd61fd2ce22cc27e9d9682c14ced068dca544f39921af9b1acaa18c9022325c5b',
-            'lines': [131, 134]
-          },
-          {
-            'index': 256,
-            'name': 'Overworld_BattleStarting',
-            'sha256':
-                '7a0e305aad2f7939254b9e322bb86ee592e2da338b114cdec2a74e4cb1ff4b04',
-            'lines': [492, 527]
-          },
-        ],
+        'oracleSections': _oracleSections,
         'sourceScriptsExecuted': 0,
       };
 }
@@ -40,21 +27,32 @@ SourceTrainerDefeatPolicy? _sourceTrainerDefeatPolicy(
 
 SourceTrainerDefeatPolicy? _computeSourceTrainerDefeatPolicy(
     SourceEventAnalyzer analyzer) {
-  const expected =
-      '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
+  final expected = analyzer.profile.scriptsArchiveHash;
   if (!analyzer._isQualified ||
       !analyzer.project.canPlan ||
       !analyzer.project.archive.isSealed ||
-      analyzer.profile.scriptsArchiveHash?.value != expected ||
-      _eventScriptsHash(analyzer.project)?.value != expected) {
+      expected == null ||
+      _eventScriptsHash(analyzer.project) != expected) {
     return null;
   }
   final verified = analyzer.project.interpretationProfile;
   if (verified == null ||
-      verified.scriptsArchiveHash.value != expected ||
+      verified.scriptsArchiveHash != expected ||
       canonicalJsonOf(verified.toJson()) !=
           canonicalJsonOf(analyzer.profile.interpretationProfile?.toJson())) {
     return null;
+  }
+  const helpers = {
+    'events.Battle':
+        'd61fd2ce22cc27e9d9682c14ced068dca544f39921af9b1acaa18c9022325c5b',
+    'events.Overworld_BattleStarting':
+        '7a0e305aad2f7939254b9e322bb86ee592e2da338b114cdec2a74e4cb1ff4b04',
+  };
+  final sections = <Map<String, Object?>>[];
+  for (final helper in helpers.entries) {
+    final section = verified.sections[helper.key];
+    if (section == null || section['sha256'] != helper.value) return null;
+    sections.add(section);
   }
   final files = analyzer.project.snapshot.entries
       .where((file) =>
@@ -62,8 +60,9 @@ SourceTrainerDefeatPolicy? _computeSourceTrainerDefeatPolicy(
       .toList(growable: false);
   if (files.length != 1 ||
       files.single.kind != SourceNodeKind.file ||
-      files.single.sha256?.value != expected) {
+      files.single.sha256 != expected) {
     return null;
   }
-  return SourceTrainerDefeatPolicy._(files.single.sha256!);
+  return SourceTrainerDefeatPolicy._(
+      files.single.sha256!, List.unmodifiable(sections));
 }

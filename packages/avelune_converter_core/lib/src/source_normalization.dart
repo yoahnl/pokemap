@@ -543,7 +543,8 @@ final class RmxpSourceNormalizer {
             selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds),
             includeEventSystem,
             includeConnections,
-            List.unmodifiable(imageBindings))
+            List.unmodifiable(imageBindings),
+            interpretationProfile: interpretationProfile)
         .run();
     final originalHash = canonicalHashOf({
       ...normalized._normalizedJson(),
@@ -556,7 +557,8 @@ final class RmxpSourceNormalizer {
       documents = inventory._apply(decisions);
       final adaptedRun = _SourceNormalizationRun(snapshot, files, limits, token,
           selectedMapIds == null ? null : Set.unmodifiable(selectedMapIds),
-          includeEventSystem, includeConnections, List.unmodifiable(imageBindings));
+          includeEventSystem, includeConnections, List.unmodifiable(imageBindings),
+          interpretationProfile: interpretationProfile);
       adaptedRun.documentOverrides.addAll(documents);
       normalized = await adaptedRun.run();
     }
@@ -584,6 +586,25 @@ final class RmxpSourceNormalizer {
   }
 }
 
+bool sourceUsesInvisibleEmptyAutotiles({
+  required SourceSnapshot snapshot,
+  required SourceInterpretationProfile? profile,
+}) {
+  if (snapshot.state != SourceScanState.complete ||
+      profile == null ||
+      !profile.supports('autotiles') ||
+      profile.sections['autotiles.TilemapRenderer']?['sha256'] !=
+          '321f334b2eeee0f1fa45d16f52117feb7ea765e17643b88c09a69285ada4bdef') {
+    return false;
+  }
+  final archives = snapshot.entries.where((entry) =>
+      sourcePathCollisionKey(entry.relativePath) == 'data/scripts.rxdata').toList();
+  return archives.length == 1 &&
+      archives.single.relativePath == profile.scriptsRelativePath &&
+      archives.single.kind == SourceNodeKind.file &&
+      profile.matchesArchive(archives.single.sha256);
+}
+
 final class _SourceNormalizationRun {
   _SourceNormalizationRun(
       this.snapshot,
@@ -593,7 +614,8 @@ final class _SourceNormalizationRun {
       this.selectedMapIds,
       this.includeEventSystem,
       this.includeConnections,
-      this.requestedImageBindings)
+      this.requestedImageBindings,
+      {this.interpretationProfile})
       : archive = SourceArchive(
           limits: SourceArchiveLimits(maxTotalBytes: limits.maxTotalBytes),
         ),
@@ -619,6 +641,9 @@ final class _SourceNormalizationRun {
   final bool includeEventSystem;
   final bool includeConnections;
   final List<SourceImageBinding> requestedImageBindings;
+  final SourceInterpretationProfile? interpretationProfile;
+  late final bool invisibleEmptyAutotiles = sourceUsesInvisibleEmptyAutotiles(
+      snapshot: snapshot, profile: interpretationProfile);
   final imageBindings = <String, SourceImageBinding>{};
   final boundImages = <String, SourceFileEntry>{};
   final usedImageBindings = <String>{};
@@ -1607,11 +1632,11 @@ final class _SourceNormalizationRun {
           slot: slot);
     }
     final explicit =
-        RegExp(r'\.(png|bmp|jpe?g)$', caseSensitive: false).hasMatch(name);
+        RegExp(r'\.(png|bmp|jpe?g|gif)$', caseSensitive: false).hasMatch(name);
     final candidates = <SourceFileEntry>[];
     for (final candidatePath in explicit
         ? [path]
-        : ['$path.png', '$path.bmp', '$path.jpg', '$path.jpeg']) {
+        : ['$path.png', '$path.bmp', '$path.jpg', '$path.jpeg', '$path.gif']) {
       final entry = byPath[sourcePathCollisionKey(candidatePath)];
       if (entry?.kind == SourceNodeKind.file) candidates.add(entry!);
     }
@@ -1824,7 +1849,8 @@ final class _SourceNormalizationRun {
             ((image.role == 'tileset' && mainUsed) ||
                 (image.role == 'autotile' && usedSlots.contains(image.slot)))) {
           diagnostic('normalization.empty_used_image', image.locator,
-              'Map ${map.map.sourceMapId} uses an empty ${image.role} slot ${image.slot}');
+              'Map ${map.map.sourceMapId} uses an empty ${image.role} slot ${image.slot}',
+              blocks: image.role != 'autotile' || !invisibleEmptyAutotiles);
         }
       }
     }

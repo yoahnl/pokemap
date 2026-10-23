@@ -37,6 +37,7 @@ final class NativeEncounterCatalogQualification {
     final sourceHash = source.canonicalHash.value;
     final encoded = _encodeCatalog(nativeCatalog);
     final slots = _selectedSlots(source, maps, cancellation);
+    final unqualified = _unqualifiedSourceTables(source, maps, cancellation);
     final symbols = slots.map((slot) => slot.species).toSet().toList()..sort();
     final binding = await const NativeSourceSpeciesBindings().bind(
         snapshot: snapshot,
@@ -53,7 +54,7 @@ final class NativeEncounterCatalogQualification {
     final requests = _requestsForSlots(slots, binding.mappings);
     final context = <String, Object?>{
       'kind': 'nativeEncounterGenericQualification',
-      'version': 2,
+      'version': 3,
       'sourceSnapshotHash': snapshot.canonicalHash.value,
       'sourcePbsHash': sourceHash,
       'logicalProjectNamespace': snapshot.logicalProjectNamespace.value,
@@ -65,6 +66,7 @@ final class NativeEncounterCatalogQualification {
       'sourceMappings': binding.rows,
       'speciesBindingEvidence': binding.evidence,
       'requests': requests,
+      'unqualifiedSourceTables': unqualified,
     };
     return _generic(encoded, context, cancellation);
   }
@@ -127,6 +129,13 @@ final class NativeEncounterCatalogQualification {
         });
         if (canonicalJsonOf(required, limits: _qualificationLimits) !=
             canonicalJsonOf(_attestation['requests'],
+                limits: _qualificationLimits)) {
+          return false;
+        }
+        if (canonicalJsonOf(
+                _unqualifiedSourceTables(source, scope.toList(), null),
+                limits: _qualificationLimits) !=
+            canonicalJsonOf(_attestation['unqualifiedSourceTables'],
                 limits: _qualificationLimits)) {
           return false;
         }
@@ -343,6 +352,10 @@ final class NativeEncounterCatalogQualification {
   List<Map<String, Object?>> get sourceMappings =>
       (_attestation['sourceMappings'] as List).cast<Map<String, Object?>>();
 
+  List<Map<String, Object?>> get unqualifiedSourceTables =>
+      (_attestation['unqualifiedSourceTables'] as List)
+          .cast<Map<String, Object?>>();
+
   bool admitsAutomaticSource(SourceSnapshot snapshot) =>
       snapshot.canonicalHash.value == _attestation['sourceSnapshotHash'] &&
       snapshot.logicalProjectNamespace.value ==
@@ -410,12 +423,12 @@ List<SourcePbsEncounterSlot> _selectedSlots(
   final slots = <SourcePbsEncounterSlot>[];
   for (final entry in source.entries.where((entry) =>
       entry.family == SourcePbsFamily.encounters &&
-      selected.contains(entry.identity?.sourceMapId))) {
+      selected.contains(entry.identity?.sourceMapId) &&
+      entry.identity?.version == 0)) {
     cancellation?.check();
     final identity = entry.identity!;
     if (entry.isBlocked ||
         source.lookup(identity) == null ||
-        identity.version != 0 ||
         !seen.add(identity.sourceMapId!)) {
       _invalid('table_identity',
           'Selected encounters require unique nonblocked version-zero identities.');
@@ -442,6 +455,43 @@ List<SourcePbsEncounterSlot> _selectedSlots(
     }
   }
   return slots;
+}
+
+List<Map<String, Object?>> _unqualifiedSourceTables(
+    SourcePbsProject source, List<int> maps, ScanCancellation? cancellation) {
+  final selected = maps.toSet();
+  final rows = <Map<String, Object?>>[];
+  for (final document in source.documents
+      .where((document) => document.family == SourcePbsFamily.encounters)) {
+    for (var index = 0; index < document.entries.length; index++) {
+      cancellation?.check();
+      final entry = document.entries[index];
+      final identity = entry.identity;
+      if (identity == null ||
+          identity.version == 0 ||
+          !selected.contains(identity.sourceMapId)) {
+        continue;
+      }
+      final first = entry.headerLocator.line! - 1;
+      final end = index + 1 < document.entries.length
+          ? document.entries[index + 1].headerLocator.line! - 1
+          : document.rawLines.length;
+      rows.add({
+        'kind': 'unqualifiedSourceEncounterTable',
+        'sourceIdentity': identity.toJson(),
+        'sourceVersion': identity.version,
+        'sourceLocator': entry.headerLocator.toJson(),
+        'sourceFile': document.file.toJson(),
+        'sourceEntry': entry.toJson(),
+        'sourceRawLines': document.rawLines.sublist(first, end),
+        'reason': 'sourceVersionConditionUnqualified',
+        'published': false,
+      });
+    }
+  }
+  String key(Map<String, Object?> row) => canonicalJsonOf(
+      {'identity': row['sourceIdentity'], 'locator': row['sourceLocator']});
+  return rows..sort((a, b) => key(a).compareTo(key(b)));
 }
 
 Map<String, List<int>> _encodeCatalog(NativePsdkCatalog catalog) {
@@ -516,12 +566,13 @@ void _validateContext(Map<String, Object?> context, NativePsdkCatalog catalog) {
     'nativeCatalogHash',
     'sourceMappings',
     'speciesBindingEvidence',
-    'requests'
+    'requests',
+    'unqualifiedSourceTables'
   };
   if (context.length != keys.length ||
       !context.keys.every(keys.contains) ||
       context['kind'] != 'nativeEncounterGenericQualification' ||
-      context['version'] != 2 ||
+      context['version'] != 3 ||
       context['sourceProfile'] != SourcePbsProfile.essentials21_1.name ||
       context['logicalProjectNamespace'] is! String ||
       (context['logicalProjectNamespace'] as String).isEmpty ||
@@ -537,6 +588,9 @@ void _validateContext(Map<String, Object?> context, NativePsdkCatalog catalog) {
       (context['sourceMappings'] as List).length > 2048 ||
       context['requests'] is! List ||
       (context['requests'] as List).length > 8192 ||
+      context['unqualifiedSourceTables'] is! List ||
+      (context['unqualifiedSourceTables'] as List).length >
+          const SourcePbsLimits().maxEntries ||
       context['speciesBindingEvidence'] is! Map) {
     _invalid('qualification_context',
         'The bounded exact qualification context is invalid.');
@@ -544,6 +598,41 @@ void _validateContext(Map<String, Object?> context, NativePsdkCatalog catalog) {
   final maps = (context['selectedSourceMapIds'] as List).cast<int>();
   if (canonicalJsonOf(_selectedMaps(maps)) != canonicalJsonOf(maps)) {
     _invalid('source_scope', 'Selected map scope requires canonical ordering.');
+  }
+  for (final raw in context['unqualifiedSourceTables'] as List) {
+    if (raw is! Map ||
+        raw.length != 9 ||
+        raw['kind'] != 'unqualifiedSourceEncounterTable' ||
+        raw['reason'] != 'sourceVersionConditionUnqualified' ||
+        raw['published'] != false ||
+        raw['sourceVersion'] is! int ||
+        raw['sourceVersion'] == 0 ||
+        raw['sourceIdentity'] is! Map ||
+        raw['sourceLocator'] is! Map ||
+        raw['sourceFile'] is! Map ||
+        raw['sourceEntry'] is! Map ||
+        raw['sourceRawLines'] is! List ||
+        (raw['sourceRawLines'] as List).any((line) => line is! String)) {
+      _invalid('qualification_context',
+          'Source encounter variants require their complete inert inventory.');
+    }
+    final identity = raw['sourceIdentity'] as Map;
+    final entry = raw['sourceEntry'] as Map;
+    final locator = raw['sourceLocator'] as Map;
+    final file = raw['sourceFile'] as Map;
+    if (identity['family'] != SourcePbsFamily.encounters.name ||
+        identity['namespace'] != context['logicalProjectNamespace'] ||
+        identity['version'] != raw['sourceVersion'] ||
+        !maps.contains(identity['sourceMapId']) ||
+        entry['family'] != SourcePbsFamily.encounters.name ||
+        canonicalJsonOf(entry['identity']) != canonicalJsonOf(identity) ||
+        canonicalJsonOf(entry['headerLocator']) != canonicalJsonOf(locator) ||
+        locator['file'] != file['relativePath'] ||
+        file['sha256'] is! String ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(file['sha256'] as String)) {
+      _invalid('qualification_context',
+          'Source encounter variants must retain exact source identities and file witnesses.');
+    }
   }
   final mappings = <String, Map>{};
   for (final raw in context['sourceMappings'] as List) {

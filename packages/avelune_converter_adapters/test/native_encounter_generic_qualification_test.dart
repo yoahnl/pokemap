@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';
+import 'support/native_media_source_fixture.dart';
 
 List<int> _integer(int value) => value == 0
     ? [0]
@@ -70,13 +71,16 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     List<LiteralFixtureTileset>? tilesets,
     List<int>? scriptsBytes,
     String encounters = '[001]\nLand,11\n100,RATTATA,14,17\n',
-    List<int>? compiled}) async {
+    List<int>? compiled,
+    Map<String, List<int>> extraFiles = const {}}) async {
   final fixture = await LiteralTileFixture.create(
       maps: maps,
       tilesets: tilesets,
-      interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
+      interpretationProfile:
+          scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
       scriptsBytes: scriptsBytes,
       extraFiles: {
+        ...extraFiles,
         'PBS/encounters.txt': utf8.encode(encounters),
         'Data/species.dat': compiled ?? _compiled(records),
         'PBS/pokemon.txt': utf8.encode(pbs ??
@@ -184,20 +188,32 @@ Future<NativeEncounterCatalogQualification> _prepare(
 Future<({NormalizedSourceProject source, SourceFilePort files})>
     _profileProject(LiteralTileFixture fixture) async {
   final hasScripts = fixture.sourceBytes.containsKey('Data/Scripts.rxdata');
-  final bytes = {...fixture.sourceBytes,
-    if (!hasScripts) 'Data/Scripts.rxdata': syntheticInterpretationArchive};
-  final profile = hasScripts ? fixtureSourceInterpretationProfile : syntheticSourceInterpretationProfile;
+  final bytes = {
+    ...fixture.sourceBytes,
+    if (!hasScripts) 'Data/Scripts.rxdata': syntheticInterpretationArchive
+  };
+  final profile = hasScripts
+      ? fixtureSourceInterpretationProfile
+      : syntheticSourceInterpretationProfile;
   final snapshot = SourceSnapshot(
       logicalProjectNamespace: fixture.snapshot.logicalProjectNamespace,
       policyHash: fixture.snapshot.policyHash,
       entries: [
         ...fixture.snapshot.entries,
-        if (!hasScripts) SourceFileEntry(fileId: ConverterId('profile-scripts'),
-          relativePath: 'Data/Scripts.rxdata', kind: SourceNodeKind.file,
-          byteLength: syntheticInterpretationArchive.length, sha256: profile.scriptsArchiveHash,
-          format: 'ruby-marshal', family: 'data')
-      ], diagnostics: [], excludedPaths: [],
-      profileEvidence: fixture.snapshot.profileEvidence, state: SourceScanState.complete);
+        if (!hasScripts)
+          SourceFileEntry(
+              fileId: ConverterId('profile-scripts'),
+              relativePath: 'Data/Scripts.rxdata',
+              kind: SourceNodeKind.file,
+              byteLength: syntheticInterpretationArchive.length,
+              sha256: profile.scriptsArchiveHash,
+              format: 'ruby-marshal',
+              family: 'data')
+      ],
+      diagnostics: [],
+      excludedPaths: [],
+      profileEvidence: fixture.snapshot.profileEvidence,
+      state: SourceScanState.complete);
   final files = LiteralFixtureFiles(snapshot, bytes);
   final source = await const RmxpSourceNormalizer().normalize(
       snapshot: snapshot,
@@ -280,6 +296,164 @@ NativeEncounterReleaseArtifacts _rewritePortableFile(
 }
 
 void main() {
+  test('source encounter variants remain inert beside strict version zero',
+      () async {
+    final source = await _source(
+        const [_Record('RATTATA', 'RATTATA', 'Rattata')],
+        encounters: '[001]\nLand,11\n100,RATTATA,14\n'
+            '[001,7] # Unmapped source variant\nLand,19\n100,UNMAPPED_VARIANT,20\n'
+            '[001,12]\nLand,15\n100,RATTATA,21\n100,BROKEN-SYMBOL,99\nLand,15\n100,RATTATA,22\n');
+    final qualification = await _prepare(source);
+    final result = await _bindPrepared(source, qualification);
+    expect(qualification.evidence['version'], 3);
+    expect(qualification.wildCases.keys, ['rattata|0|14']);
+    expect(result.tables, hasLength(1));
+    expect(result.tables.single.tags, contains('source-version:0'));
+    expect(result.tables.single.entries.single.minLevel, 14);
+    expect(result.tables.single.chancePerStep, 0.11);
+    final preserved =
+        (qualification.evidence['unqualifiedSourceTables'] as List).cast<Map>();
+    expect(preserved.map((row) => row['sourceVersion']).toSet(), {7, 12});
+    for (final row in preserved) {
+      final version = row['sourceVersion'];
+      final original = source.pbs.entries.singleWhere((entry) =>
+          entry.family == SourcePbsFamily.encounters &&
+          entry.identity?.version == version);
+      expect(row['sourceEntry'], original.toJson());
+      expect(row['reason'], 'sourceVersionConditionUnqualified');
+      expect(row['published'], false);
+    }
+    expect(
+        (preserved
+                .singleWhere((row) => row['sourceVersion'] == 12)['sourceEntry']
+            as Map)['isBlocked'],
+        true);
+    expect(
+        preserved
+            .singleWhere((row) => row['sourceVersion'] == 12)['sourceRawLines'],
+        contains('100,BROKEN-SYMBOL,99'));
+    expect(result.unqualifiedMethods, hasLength(2));
+    expect(
+        result.unqualifiedMethods
+            .every((row) => row['method'] == null && row['published'] == false),
+        true);
+    expect(result.evidence['runtimeBattleBuilderQualified'], false);
+    final release = qualification.artifacts();
+    final restored = NativeEncounterCatalogQualification.fromArtifacts(
+        evidence: release.evidence, artifacts: release.artifacts);
+    expect(restored.evidenceHash, qualification.evidenceHash);
+    expect((await _bindPrepared(source, restored)).unqualifiedMethods,
+        result.unqualifiedMethods);
+  });
+
+  test('source encounter variants projector preserves inert malformed tables',
+      () async {
+    final native = _catalog([_native('rattata', 'Rattata')]);
+    final source = await _source(
+        const [_Record('RATTATA', 'RATTATA', 'Rattata')],
+        pbs: '[RATTATA]\nName = Rattata\nTypes = NORMAL\n'
+            'BaseStats = 30,56,35,72,25,35\nAbilities = RUNAWAY\n',
+        extraFiles: {
+          ...nativeMediaSourceFiles(native),
+          'PBS/types.txt': utf8.encode('[NORMAL]\nName = Normal\n'),
+          'PBS/abilities.txt': utf8.encode('[RUNAWAY]\nName = Run Away\n'),
+        },
+        encounters: '[001]\nLand,11\n100,RATTATA,14\n'
+            '[001,17] # Inert alternative\nLand,19\n100,UNMAPPED_VARIANT,20\n'
+            '100,BROKEN-SYMBOL,99\n');
+    final qualification = await _prepare(source, catalog: native);
+    final projection = await const SourceCatalogProjector().read(
+        source: source.fixture.source,
+        pbs: source.pbs,
+        files: source.fixture.files,
+        nativeMapIds: {1: 'native-one'},
+        nativeTrainerBundle: native,
+        nativeEncounterQualification: qualification,
+        nativeEncounterRatePolicy: NativeEncounterRatePolicy
+            .adaptSourceBasePercentToNativeConstantChance);
+    expect(projection.diagnostics.where((row) => row.blocking), isEmpty,
+        reason: jsonEncode(projection.diagnostics.map((row) => row.toJson()).toList()));
+    expect(projection.encounterTables, hasLength(1));
+    expect(
+        projection.encounterTables.single.tags, contains('source-version:0'));
+    final binding = projection.evidence['nativeEncounterBindings'] as Map;
+    final preserved = (binding['unqualifiedMethods'] as List).single as Map;
+    expect(preserved['sourceVersion'], 17);
+    expect(preserved['published'], false);
+    expect(preserved['sourceRawLines'], contains('100,BROKEN-SYMBOL,99'));
+    expect(jsonEncode(preserved), contains('UNMAPPED_VARIANT'));
+    expect((preserved['sourceEntry'] as Map)['isBlocked'], true);
+    expect(projection.evidence['runtimeReady'], false);
+  });
+
+  test(
+      'source encounter variants alone remain inspectable without native tables',
+      () async {
+    final source = await _source(
+        const [_Record('RATTATA', 'RATTATA', 'Rattata')],
+        encounters: '[001,23]\nLand,17\n100,UNMAPPED_VARIANT,40\n');
+    final qualification = await _prepare(source);
+    final result = await _bindPrepared(source, qualification);
+    expect(qualification.wildCases, isEmpty);
+    expect(qualification.sourceMappings, isEmpty);
+    expect(result.tables, isEmpty);
+    expect(result.unqualifiedMethods.single['sourceVersion'], 23);
+    expect(jsonEncode(result.unqualifiedMethods), contains('UNMAPPED_VARIANT'));
+    expect(result.unqualifiedMethods.single['published'], false);
+  });
+
+  test(
+      'source encounter variants do not relax duplicate version zero rejection',
+      () async {
+    final source =
+        await _source(const [_Record('RATTATA', 'RATTATA', 'Rattata')],
+            encounters: '[001]\nLand,11\n100,RATTATA,14\n'
+                '[001]\nLand,12\n100,RATTATA,15\n'
+                '[001,9]\nLand,15\n100,UNMAPPED_VARIANT,30\n');
+    await expectLater(
+        _prepare(source), _code('native_encounter.table_identity'));
+  });
+
+  test(
+      'source encounter variants require their fresh complete portable inventory',
+      () async {
+    final source =
+        await _source(const [_Record('RATTATA', 'RATTATA', 'Rattata')],
+            encounters: '[001]\nLand,11\n100,RATTATA,14\n'
+                '[001,8]\nLand,19\n100,UNMAPPED_VARIANT,20\n');
+    final qualification = await _prepare(source);
+    for (final mutation in ['omitted', 'changed']) {
+      final forged =
+          _rewritePortableFile(qualification.artifacts(), 'context', (context) {
+        final rows = context['unqualifiedSourceTables'] as List;
+        if (mutation == 'omitted') {
+          rows.clear();
+        } else {
+          final entry = (rows.single as Map)['sourceEntry'] as Map;
+          (((entry['methods'] as List).single as Map)['slots'] as List)
+              .single['weight'] = 9;
+        }
+      });
+      final restored = NativeEncounterCatalogQualification.fromArtifacts(
+          evidence: forged.evidence, artifacts: forged.artifacts);
+      expect(
+          restored.admitsSourceScope(source.fixture.snapshot, [1],
+              source: source.pbs),
+          false);
+      await expectLater(_bindPrepared(source, restored),
+          _code('native_encounter.source_binding'));
+    }
+    final published =
+        _rewritePortableFile(qualification.artifacts(), 'context', (context) {
+      ((context['unqualifiedSourceTables'] as List).single
+          as Map)['published'] = true;
+    });
+    expect(
+        () => NativeEncounterCatalogQualification.fromArtifacts(
+            evidence: published.evidence, artifacts: published.artifacts),
+        _code('native_encounter.qualification_context'));
+  });
+
   test('consumers reject a different valid qualification fingerprint',
       () async {
     final fixture =
@@ -385,7 +559,8 @@ void main() {
               source: project.source,
               files: project.files,
               selectedSourceMapIds: maps.keys))!;
-      expect(qualification.evidence['kind'], 'nativeEncounterGenericQualification');
+      expect(qualification.evidence['kind'],
+          'nativeEncounterGenericQualification');
       expect(qualification.evidence['sourcePbsHash'], pbs.canonicalHash.value);
       final binding = await const NativeEncounterCatalogBindings().bind(
           snapshot: project.source.snapshot,
@@ -522,14 +697,12 @@ void main() {
 
   for (final methods in [
     '[001]\nLand,11\n100,RATTATA,14\n[001]\nLand,11\n100,RATTATA,14\n',
-    '[001,1]\nLand,11\n100,RATTATA,14\n',
     '[001]\nLand,11\n0,RATTATA,14\n',
     '[001]\nLand,11\n100,RATTATA,18,14\n',
     '[001]\nLand,11\n100,RATTATA,0,101\n',
     '[001]\nLand,11\n100,RATTATA,14\nLand,11\n100,RATTATA,14\n',
   ]) {
-    test(
-        'rejects malformed ambiguous blocked or nonzero encounter section $methods',
+    test('rejects malformed ambiguous or blocked encounter section $methods',
         () async {
       final source = await _source(
           const [_Record('RATTATA', 'RATTATA', 'Rattata')],
