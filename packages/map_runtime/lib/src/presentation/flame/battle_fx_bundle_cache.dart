@@ -16,6 +16,7 @@ final class BattleFxBundleCache {
     BattleFxImageLoader? imageLoader,
     RuntimeResourceBudget? resourceBudget,
     bool Function()? isCurrent,
+    this.onResourcePressure,
   }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
        _ownsResourceBudget = resourceBudget == null {
     _images = RuntimeOwnedImageCache(
@@ -26,6 +27,7 @@ final class BattleFxBundleCache {
   }
 
   final RuntimeResourceBudget resourceBudget;
+  final VoidCallback? onResourcePressure;
   final bool _ownsResourceBudget;
   late final RuntimeOwnedImageCache _images;
 
@@ -54,7 +56,16 @@ final class BattleFxBundleCache {
   Future<ui.Image> loadImage(String effectId) async {
     final normalizedEffectId = effectId.trim();
     final spec = BattleFxCatalog.require(normalizedEffectId);
-    return _images.load(spec.assetKey);
+    try {
+      return await _images.load(spec.assetKey);
+    } on RuntimeResourceAdmissionException catch (error) {
+      final releaseUnusedResources = onResourcePressure;
+      if (error.reason != 'resident_bytes' || releaseUnusedResources == null) {
+        rethrow;
+      }
+      releaseUnusedResources();
+      return _images.load(spec.assetKey);
+    }
   }
 
   Future<Sprite> loadSprite(String effectId) async {
@@ -72,10 +83,12 @@ final class BattleFxBundleCache {
         await loadImage(normalizedEffectId);
       } on RuntimeResourceAdmissionException catch (error) {
         final spec = BattleFxCatalog.require(normalizedEffectId);
-        debugPrint('[battle_fx] admission rejected effect=$normalizedEffectId '
-            'reason=${error.reason} resident=${resourceBudget.residentBytes} '
-            'maximum=${resourceBudget.profile.maximumResidentBytes} '
-            'sheetRgba=${spec.width * spec.height * 4} cached=${_images.length}');
+        debugPrint(
+          '[battle_fx] admission rejected effect=$normalizedEffectId '
+          'reason=${error.reason} resident=${resourceBudget.residentBytes} '
+          'maximum=${resourceBudget.profile.maximumResidentBytes} '
+          'sheetRgba=${spec.width * spec.height * 4} cached=${_images.length}',
+        );
         rethrow;
       }
     }

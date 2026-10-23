@@ -778,7 +778,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// Cache FX au scope jeu : construit par combat auparavant, chaque combat
   /// re-décodait les mêmes PNG et orphelinait les images du combat précédent.
   late final BattleFxBundleCache _battleFxBundleCache = BattleFxBundleCache(
-    resourceBudget: _bundle.resourceBudget, isCurrent: () => !_isRemoved);
+    resourceBudget: _bundle.resourceBudget,
+    isCurrent: () => !_isRemoved,
+    onResourcePressure: () => _trimImageCachesForDemand(forceEviction: true),
+  );
 
   /// BETA-BAT-014 : le lecteur des sons de combat, créé au premier combat.
   /// Les assets sont embarqués dans le runtime, donc le moteur fournit le
