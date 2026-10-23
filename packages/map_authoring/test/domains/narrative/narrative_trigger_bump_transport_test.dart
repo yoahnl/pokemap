@@ -49,6 +49,77 @@ void main() {
   for (final wire in [false, true]) {
     final label = wire ? 'JSONL' : 'direct API';
     test(
+        '$label preserves parallel policy through publication and rejects interactive edits',
+        () async {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      final record = _record({'kind': 'mapEnter', 'mapId': 'map'});
+      (record['definition'] as Map)['parallelPolicy'] = {'cadenceMs': 100};
+      final planned = await f.plan(
+          await f.request('event_v2.record_upsert', {'record': record}), wire);
+      await f.apply(planned['planId'] as String, wire);
+      for (final action in ['event_v2.unpublish', 'event_v2.publish']) {
+        final change =
+            await f.plan(await f.request(action, {'eventId': _id}), wire);
+        await f.apply(change['planId'] as String, wire);
+      }
+      await f.reopen();
+      final saved = (await f.snapshots.load(f.project)).manifest;
+      expect(
+          saved.eventRegistry!.records.single.definitionOrNull!.parallelPolicy,
+          NarrativeEventParallelPolicy(cadenceMs: 100));
+      final before = await f.manifest.readAsBytes();
+      Future<void> expectRejected(
+          AuthoringRequest request, String prefix) async {
+        if (wire) {
+          final result = await f.command('plan',
+              {'projectHandle': f.project.value, 'request': request.toJson()});
+          expect(result.status, AuthoringResultStatus.failure);
+          expect(result.error!.details['domainCode'], startsWith(prefix));
+          expect(result.error!.details['domainCode'], isNot('worker.internal'));
+        } else {
+          await expectLater(f.mutations.plan(f.project, request),
+              throwsA(isA<NarrativeAuthoringException>()));
+        }
+      }
+
+      (record['definition'] as Map)['parallelPolicy'] = {'cadenceMs': 99};
+      await expectRejected(
+          await f.request('event_v2.record_upsert', {'record': record}),
+          'event_v2.');
+      final scene = saved.scenes.singleWhere((scene) => scene.id == 'hello');
+      final interactive = SceneAsset(
+          id: scene.id,
+          name: scene.name,
+          graph: SceneGraph(startNodeId: 'start', nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+                id: 'action',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.interactive(
+                    SceneInteractiveCommand.wait(durationMs: 100))),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ], edges: [
+            SceneEdge(
+                id: 'a',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'action',
+                kind: SceneEdgeKind.defaultFlow),
+            SceneEdge(
+                id: 'b',
+                fromNodeId: 'action',
+                fromPortId: 'completed',
+                toNodeId: 'end',
+                kind: SceneEdgeKind.actionCompleted),
+          ]));
+      await expectRejected(
+          await f.request('scene.upsert', {'scene': interactive.toJson()}),
+          'scene.');
+      expect(await f.manifest.readAsBytes(), before);
+      expect(await f.map.readAsBytes(), f.mapBefore);
+    });
+    test(
         '$label preserves a genuine source change through upsert and cold reopen',
         () async {
       final f = await _Fixture.create();

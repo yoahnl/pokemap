@@ -34,6 +34,7 @@ NarrativeEventRecord compileNarrativeEventDraftStructurally(
       priority: draft.priority,
       order: draft.order,
       resetPolicy: draft.resetPolicy,
+      parallelPolicy: draft.parallelPolicy,
     ),
     enabled: false,
   );
@@ -122,6 +123,7 @@ NarrativeEventAuthoringResult duplicateNarrativeEvent({
       priority: draft.priority,
       order: nextOrder,
       resetPolicy: draft.resetPolicy,
+      parallelPolicy: draft.parallelPolicy,
     ),
     configured: (definition, _) => NarrativeEventDraft(
       id: cloneId,
@@ -134,6 +136,7 @@ NarrativeEventAuthoringResult duplicateNarrativeEvent({
       priority: definition.priority,
       order: nextOrder,
       resetPolicy: definition.resetPolicy,
+      parallelPolicy: definition.parallelPolicy,
     ),
   );
   final nextRecord = NarrativeEventRecord.draft(clone);
@@ -211,6 +214,7 @@ NarrativeEventAuthoringResult unpublishNarrativeEvent({
       priority: definition.priority,
       order: definition.order,
       resetPolicy: definition.resetPolicy,
+      parallelPolicy: definition.parallelPolicy,
     ),
   );
   return NarrativeEventAuthoringResult.applied(

@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -19,6 +20,150 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 import 'package:path/path.dart' as p;
 
 void main() {
+  test('parallel process failure leaves other processes running', () async {
+    final bad = _parallelIncrement('bad-count');
+    final good = _parallelIncrement('good-count');
+    final fixture = await _fixture(facts: [for (final id in ['bad-count', 'good-count'])
+      NarrativeFactDefinition(id: id, label: id, initialValue: NarrativeValue.integer(0))], scenes: [bad, good],
+      gameState: GameState(saveId: 'parallel-failure', currentMapId: 'source', playerPosition: const GridPos(x: 1, y: 1),
+        narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(valuesByFactId: {'bad-count': NarrativeValue.boolean(true)})),
+      eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+        records: [_parallelRecord(bad, 0), _parallelRecord(good, 1)], legacyClaims: const []));
+    final game = fixture.game;
+    for (var tick = 0; tick < 12; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(_parallelInteger(game, 'good-count'), greaterThan(0));
+    expect(game.gameStateSnapshot.narrativeFactRuntimeState.valueFor('bad-count')!.boolValue, isTrue);
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
+  test('parallel scheduling honors World Rules enabling a disabled record', () async {
+    final scene = _parallelIncrement('enabled-count');
+    final record = _parallelRecord(scene, 0);
+    final fixture = await _fixture(facts: [NarrativeFactDefinition(id: 'enabled', label: 'Enabled', defaultValue: true),
+      NarrativeFactDefinition(id: 'enabled-count', label: 'Count', initialValue: NarrativeValue.integer(0))], scenes: [scene],
+      eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: [
+        NarrativeEventRecord.configuredStructurallyUnchecked(record.definitionOrNull!, enabled: false)], legacyClaims: const []),
+      worldRules: [WorldRuleDefinition(id: 'enable-parallel', label: 'Enable parallel',
+        source: const WorldRuleSource(kind: WorldRuleSourceKind.fact, sourceId: 'enabled', predicate: WorldRuleSourcePredicate.isTrue),
+        target: WorldRuleTarget(kind: WorldRuleTargetKind.narrativeEvent, mapId: 'source', eventId: record.id),
+        effect: const WorldRuleEffect(kind: WorldRuleEffectKind.eventEnabled))]);
+    final game = fixture.game;
+    for (var tick = 0; tick < 8; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(_parallelInteger(game, 'enabled-count'), greaterThan(0));
+  });
+  test('parallel independent processes and dependent conditions observe each committed cycle', () async {
+    final scenes = [_parallelIncrement('first'), _parallelIncrement('independent'), _parallelIncrement('dependent', after: 'first')];
+    final fixture = await _fixture(facts: [for (final id in ['first', 'independent', 'dependent']) NarrativeFactDefinition(id: id, label: id, initialValue: NarrativeValue.integer(0))],
+      scenes: scenes, eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+        records: [for (var index = 0; index < scenes.length; index++) _parallelRecord(scenes[index], index)], legacyClaims: const []));
+    final game = fixture.game;
+    for (var tick = 0; tick < 6; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(_parallelInteger(game, 'first'), greaterThan(0));
+    expect(_parallelInteger(game, 'independent'), _parallelInteger(game, 'first'));
+    expect(_parallelInteger(game, 'dependent'), _parallelInteger(game, 'first'));
+    expect(game.debugIsGameplayInputLocked, isFalse);
+  });
+
+  test('parallel owner page changes restart cadence and leaving the map stops the process', () async {
+    final counter = _parallelIncrement('page-count');
+    final owner = _logicalAutorunOwner.copyWith(presentation: MapEntityPresentation(variants: [
+      MapEntityPresentationVariant(id: 'page_0', condition: NarrativeEventConditionExpression.all([
+        NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('pause', false)),
+      ]), blocksMovement: false),
+      MapEntityPresentationVariant(id: 'page_1', condition: NarrativeEventConditionExpression.all([]), blocksMovement: false),
+    ]));
+    final fixture = await _fixture(warpArrival: true, saveRepository: _MemorySaveRepository(), sourceEntities: [owner],
+      facts: [NarrativeFactDefinition(id: 'pause', label: 'Pause'), NarrativeFactDefinition(id: 'page-count', label: 'Count', initialValue: NarrativeValue.integer(0))],
+      scenes: [counter], eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+        records: [_parallelRecord(counter, 0, entityOwner: true)], legacyClaims: const []));
+    final game = fixture.game;
+    for (var tick = 0; tick < 6; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(_parallelInteger(game, 'page-count'), greaterThan(0));
+    Future<void> pause(bool value) async {
+      final state = game.gameStateSnapshot;
+      await game.commitAndSavePlayerServiceState(state.copyWith(narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+        valuesByFactId: {...state.narrativeFactRuntimeState.valuesByFactId, 'pause': NarrativeValue.boolean(value)})));
+    }
+    await pause(true);
+    final stopped = _parallelInteger(game, 'page-count');
+    for (var tick = 0; tick < 20; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(_parallelInteger(game, 'page-count'), stopped);
+    await pause(false);
+    game.update(.05); await Future<void>.delayed(Duration.zero);
+    expect(_parallelInteger(game, 'page-count'), stopped);
+    for (var tick = 0; tick < 6; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(_parallelInteger(game, 'page-count'), greaterThan(stopped));
+    final moved = await _warp(game, _arrivalCommand(transition: SceneWarpTransition.none));
+    expect(moved.port, 'completed');
+    final left = _parallelInteger(game, 'page-count');
+    for (var tick = 0; tick < 20; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(game.gameStateSnapshot.currentMapId, 'target');
+    expect(_parallelInteger(game, 'page-count'), left);
+  });
+  test('parallel counter runs during walking and preserves live position across save lifecycle and reload', () async {
+    final saves = _MemorySaveRepository();
+    final activity = NarrativeRuntimeActivityGate();
+    final scene = SceneAsset(id: 'parallel-counter', name: 'Parallel counter', graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(id: 'count', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(SceneConsequence.adjustIntegerFact(factId: 'parallel-count', delta: 1, minimum: 0, maximum: 9999))),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      SceneEdge(id: 'a', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'count', kind: SceneEdgeKind.defaultFlow),
+      SceneEdge(id: 'b', fromNodeId: 'count', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+    ]));
+    final fixture = await _fixture(saveRepository: saves, narrativeRuntimeActivityGate: activity,
+      sourceSize: const GridSize(width: 8, height: 8),
+      facts: [NarrativeFactDefinition(id: 'parallel-count', label: 'Parallel count', initialValue: NarrativeValue.integer(0))],
+      scenes: [scene], eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+        records: [NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(
+          id: _entityBumpEventId, name: 'Parallel counter', source: NarrativeEventSourceRef.mapEnter('source'),
+          conditions: const [], sceneId: scene.id, reusePolicy: NarrativeEventReusePolicy.reusable,
+          priority: 0, order: 0, parallelPolicy: NarrativeEventParallelPolicy(cadenceMs: 100)), enabled: true)], legacyClaims: const []));
+    final game = fixture.game;
+    int count() => (NarrativeFactRuntimeResolver.fromFacts([NarrativeFactDefinition(id: 'parallel-count', label: 'Parallel count', initialValue: NarrativeValue.integer(0))]).resolve(
+      factId: 'parallel-count', runtimeState: game.gameStateSnapshot.narrativeFactRuntimeState,
+      storyFlags: game.gameStateSnapshot.storyFlags) as NarrativeFactRuntimeResolved).narrativeValue.intValue;
+    final initial = count();
+    game.update(.05);
+    await Future<void>.delayed(Duration.zero);
+    expect(count(), initial);
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.down));
+    for (var tick = 0; tick < 16; tick++) {
+      game.update(.025);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    }
+    game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.down));
+    expect(count(), greaterThan(initial));
+    expect(game.gameStateSnapshot.playerPosition, game.debugPlayerGridPosition);
+    expect(game.debugPlayerGridPosition, isNot(const GridPos(x: 1, y: 1)));
+    expect(await game.saveGame(), isTrue);
+    final saved = count();
+    final releaseCheckpoint = Completer<void>();
+    final checkpoint = activity.runCheckpoint<void>(NarrativeRuntimeCheckpointOperation.save, () => releaseCheckpoint.future);
+    for (var tick = 0; tick < 12; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(count(), saved);
+    releaseCheckpoint.complete();
+    await checkpoint;
+    final narrativeLease = activity.enter(NarrativeRuntimeActivity.sceneActive);
+    for (var tick = 0; tick < 12; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(count(), saved);
+    narrativeLease.close();
+    game.lifecycleStateChange(AppLifecycleState.inactive);
+    for (var tick = 0; tick < 20; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(count(), saved);
+    game.lifecycleStateChange(AppLifecycleState.resumed);
+    game.update(.05); await Future<void>.delayed(Duration.zero);
+    expect(count(), saved);
+    expect(await game.loadGame(), isTrue);
+    final loaded = count();
+    game.update(.05); await Future<void>.delayed(Duration.zero);
+    expect(count(), loaded);
+    for (var tick = 0; tick < 6; tick++) { game.update(.025); await Future<void>.delayed(Duration.zero); }
+    expect(count(), greaterThan(loaded));
+    final stopped = count();
+    game.onRemove(); game.update(.2); await Future<void>.delayed(Duration.zero);
+    expect(count(), stopped);
+  });
   for (final npc in [false, true]) {
     test('visibility route waits for movement and explicitly restores pixels npc=$npc', () async {
       final fixture = await _fixture(sourceSize: const GridSize(width: 5, height: 5),
@@ -5908,3 +6053,29 @@ final class _SceneMusicEffectPort implements DialogueFeedbackPlaybackPort {
     await gate?.future;
   }
 }
+
+int _parallelInteger(PlayableMapGame game, String id) => game.gameStateSnapshot.narrativeFactRuntimeState.valueFor(id)?.intValue ?? 0;
+
+SceneAsset _parallelIncrement(String factId, {String? after}) => SceneAsset(id: 'parallel-$factId', name: factId,
+  graph: SceneGraph(startNodeId: 'start', nodes: [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    if (after != null) SceneNode(id: 'condition', kind: SceneNodeKind.condition, payload: SceneConditionPayload(conditionSource:
+      SceneConditionSource.integerComparison(left: SceneIntegerOperand.integerFact(after), comparison: NarrativeFactOperator.greaterThan,
+        right: SceneIntegerOperand.literal(0)))),
+    SceneNode(id: 'increment', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(
+      SceneConsequence.adjustIntegerFact(factId: factId, delta: 1, minimum: 0, maximum: 9999))),
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ], edges: [
+    SceneEdge(id: 'a', fromNodeId: 'start', fromPortId: 'completed', toNodeId: after == null ? 'increment' : 'condition', kind: SceneEdgeKind.defaultFlow),
+    if (after != null) ...[
+      SceneEdge(id: 'true', fromNodeId: 'condition', fromPortId: 'true', toNodeId: 'increment', kind: SceneEdgeKind.conditionTrue),
+      SceneEdge(id: 'false', fromNodeId: 'condition', fromPortId: 'false', toNodeId: 'end', kind: SceneEdgeKind.conditionFalse),
+    ],
+    SceneEdge(id: 'b', fromNodeId: 'increment', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+  ]));
+
+NarrativeEventRecord _parallelRecord(SceneAsset scene, int index, {bool entityOwner = false}) => NarrativeEventRecord.configuredStructurallyUnchecked(
+  NarrativeEventDefinition(id: 'evt_00000000-0000-7000-8000-${(index + 1).toString().padLeft(12, '0')}', name: scene.name,
+    source: entityOwner ? NarrativeEventSourceRef.entityAutorun('source', 'route-door') : NarrativeEventSourceRef.mapEnter('source'),
+    conditions: const [], sceneId: scene.id, reusePolicy: NarrativeEventReusePolicy.reusable, priority: 0, order: index,
+    parallelPolicy: NarrativeEventParallelPolicy(cadenceMs: 100, ownerVariantId: entityOwner ? 'page_0' : null)), enabled: true);

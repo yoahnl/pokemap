@@ -32,6 +32,7 @@ final class EventV2Actions {
         resourceKinds: const ['project', 'eventV2'],
         extensions: {
           'sourceVariants': NarrativeEventSourceRef.contracts,
+          'parallelPolicy': NarrativeEventParallelPolicy.contract,
           if (entry.$1 == 'event_v2.record_upsert' ||
               entry.$1 == 'event_v2.record_upsert_batch')
             'mapEventInstanceBoolean': {

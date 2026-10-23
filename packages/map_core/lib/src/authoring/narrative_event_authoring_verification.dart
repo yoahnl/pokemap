@@ -152,6 +152,9 @@ NarrativeEventAuthoringResult _replay(NarrativeEventAuthoringContext context,
         eventId: nextRecord.id,
         resetPolicy: _resetPolicy(nextRecord),
       ),
+    NarrativeEventAuthoringMutation.setParallelPolicy => setNarrativeEventParallelPolicy(
+      context: context, expectedRevision: result.expectedRevision, eventId: nextRecord.id,
+      parallelPolicy: nextRecord.definitionOrNull?.parallelPolicy ?? nextRecord.draftOrNull?.parallelPolicy),
     NarrativeEventAuthoringMutation.setPriority => setNarrativeEventPriority(
         context: context,
         expectedRevision: result.expectedRevision,

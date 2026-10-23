@@ -1,3 +1,5 @@
+import '../models/map_spatial_scene.dart';
+import 'narrative_parallel_program.dart';
 import 'dart:convert';
 
 import '../catalogs/narrative_event_project_catalog.dart';
@@ -111,6 +113,22 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
         recordsById[record.id]!.length == 1 && !cycleIds.contains(record.id);
     final definition = record.definitionOrNull;
     if (definition == null) {
+      final draft = record.draftOrNull;
+      final parallel = draft?.parallelPolicy;
+      if (parallel != null) {
+        if (project.settings.dimension != ProjectDimension.twoD) {
+          _recordEventIssue(diagnostics: diagnostics, code: 'narrativeEventParallelInvalid',
+            message: 'Les processus parallèles exigent un projet 2D.', eventId: record.id, suffix: 'parallelPolicy');
+        }
+        if (parallel.ownerVariantId != null && draft!.source != null) {
+          final source = draft.source!.toJson();
+          final entities = mapsById[source['mapId']]?.entities.where((entity) => entity.id == source['entityId']).toList() ?? const <MapEntity>[];
+          if (entities.length != 1 || entities.single.presentation?.variants.where((variant) => variant.id == parallel.ownerVariantId).length != 1) {
+            _recordEventIssue(diagnostics: diagnostics, code: 'narrativeEventParallelInvalid',
+              message: 'La page propriétaire parallèle est absente ou ambiguë.', eventId: record.id, suffix: 'parallelPolicy');
+          }
+        }
+      }
       valid = false;
       if (input.proposed) {
         _recordEventIssue(
@@ -171,6 +189,30 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
         eventId: record.id,
         suffix: 'sceneId',
       );
+    }
+    final parallel = definition.parallelPolicy;
+    if (parallel != null) {
+      final issues = <String>[
+        if (project.settings.dimension != ProjectDimension.twoD)
+          'Les processus parallèles sont disponibles uniquement dans un projet 2D.',
+        if (sceneMatches.length == 1) ...validateNarrativeParallelProgram(sceneMatches.single.scene, ownerMapId: definition.source.toJson()['mapId'] as String?),
+      ];
+      if (parallel.ownerVariantId != null) {
+        final owner = definition.source.when<(String, String)?>(
+          entityAutorun: (map, entity) => (map, entity),
+          entityInteract: (_, entityId) => null, entityBump: (_, entityId) => null,
+          modelInteract: (_, instanceId) => null, triggerBump: (_, triggerId) => null,
+          triggerEnter: (_, triggerId) => null, mapEnter: (_) => null, outcomeReceived: (_) => null,
+        );
+        final entities = owner == null ? const <MapEntity>[] : mapsById[owner.$1]?.entities.where((entity) => entity.id == owner.$2).toList() ?? const <MapEntity>[];
+        if (entities.length != 1 || entities.single.presentation?.variants.where((variant) => variant.id == parallel.ownerVariantId).length != 1) {
+          issues.add('La page propriétaire parallèle est absente ou ambiguë.');
+        }
+      }
+      for (final issue in issues) {
+        valid = false;
+        _recordEventIssue(diagnostics: diagnostics, code: 'narrativeEventParallelInvalid', message: issue, eventId: record.id, suffix: 'parallelPolicy');
+      }
     }
     final eventDependencies = <_EventDependency>[];
     for (var index = 0; index < definition.conditions.length; index++) {

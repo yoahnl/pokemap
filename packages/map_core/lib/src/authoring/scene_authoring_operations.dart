@@ -2460,6 +2460,7 @@ NarrativeEventRecord _replaceSceneInEventRecord(
         priority: draft.priority,
         order: draft.order,
         resetPolicy: draft.resetPolicy,
+        parallelPolicy: draft.parallelPolicy,
       ),
     ),
     configured: (definition, enabled) =>
@@ -2477,6 +2478,7 @@ NarrativeEventRecord _replaceSceneInEventRecord(
             priority: definition.priority,
             order: definition.order,
             resetPolicy: definition.resetPolicy,
+            parallelPolicy: definition.parallelPolicy,
           ),
           enabled: enabled,
         ),

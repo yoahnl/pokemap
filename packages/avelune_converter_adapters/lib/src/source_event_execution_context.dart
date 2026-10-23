@@ -1145,11 +1145,21 @@ final class SourceEventExecutionContextResolver {
     final inventoryControllers = inventoryControllerPrograms ?? sourceInventoryControllerPrograms(
         source: source, analysis: freshAnalysis,
         authority: authority);
-    final inventoryControllerMaps = inventoryControllers.values.map((program) => program.sourceMapId).toSet();
-    final dormancyScope = attestedMapIds.intersection(representedMapIds).difference(inventoryControllerMaps);
+    final executablePageReferences = <String>{
+      for (final program in inventoryControllers.values)
+        if (freshAnalysis.eventAt(program.sourceMapId, program.sourceEventId) case final event?)
+          if (program.isBoundTo(source: source, analysis: freshAnalysis, event: event))
+            event.pages.first.rawDataRef!.id.value,
+    };
+    final dormancyScope = attestedMapIds.intersection(representedMapIds);
     final dormancy = dormancyScope.isEmpty ? null : (parallelDormancyAuditor ??
         SourceParallelDormancyAuditor.forProject(source, profile: profile))
-        .audit(activeSourceMapIds: dormancyScope);
+        .audit(activeSourceMapIds: dormancyScope, executablePageReferences: {
+          for (final event in freshAnalysis.events)
+            if (dormancyScope.contains(event.sourceMapId))
+              for (final page in event.pages)
+                if (executablePageReferences.contains(page.rawDataRef?.id.value)) page.rawDataRef!.id.value,
+        });
     if (dormancy != null && (dormancy.sourceSnapshotHash != snapshotHash ||
         dormancy.normalizationHash != normalizationHash ||
         dormancy.profileHash != profile.canonicalHash ||
@@ -1319,7 +1329,7 @@ final class SourceEventExecutionContextResolver {
         },
         'pluginInventoryHash': pluginInventoryHash.value,
         'commonEvents': 'manualOnly',
-        'parallelEvents': inventoryControllers.isEmpty ? 'wholeEventQuarantinedWithClosedNativeWriterSet' : 'closedMapEntryInventoryControllersAndDormantParallelPages',
+        'parallelEvents': inventoryControllers.isEmpty ? 'wholeEventQuarantinedWithClosedNativeWriterSet' : 'ownedPeriodicInventoryControllersAndDormantParallelPages',
         'parallelDormancy': dormancy?.toJson(),
         'inventoryControllers': [for (final program in inventoryControllers.values) program.toJson()],
         'sourceMapExecutionScope': {
@@ -1332,7 +1342,7 @@ final class SourceEventExecutionContextResolver {
           'profile': 'declared-fresh-local-autonomy-v1',
           'pages': autonomy,
           'automaticCommonEvents': 'refused',
-          'parallelEvents': 'refusedUnlessClosedDormancyOrBoundMapEntryInventoryController',
+          'parallelEvents': 'refusedUnlessClosedDormancyOrBoundOwnedPeriodicInventoryController',
           'customRouteCodes': [0, 1, 2, 3, 4, 9, 16, 17, 18, 19, 24, 32],
           'customRouteScripts': 'refused',
           'autoruns': 'serialMainInterpreterCannotOverlapExecutingProgram',

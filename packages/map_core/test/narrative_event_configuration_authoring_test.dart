@@ -4,6 +4,37 @@ import 'package:test/test.dart';
 import 'support/narrative_event_authoring_fixtures.dart';
 
 void main() {
+  test('authors and clears a parallel policy without losing it on ordinary edits', () {
+    final record = draftRecord(source: mapSource, reusePolicy: NarrativeEventReusePolicy.reusable);
+    final result = setNarrativeEventParallelPolicy(
+      context: configuredAuthoringContext(registry: registryWithRecords([record])),
+      expectedRevision: authoringRevision, eventId: eventIdA,
+      parallelPolicy: NarrativeEventParallelPolicy(cadenceMs: 100),
+    );
+    expect(result.status, NarrativeEventAuthoringStatus.applied);
+    expect(result.nextRecord!.draftOrNull!.parallelPolicy!.cadenceMs, 100);
+    final renamed = renameNarrativeEvent(
+      context: configuredAuthoringContext(registry: registryWithRecords([result.nextRecord!])),
+      expectedRevision: authoringRevision, eventId: eventIdA, name: 'Renamed',
+    );
+    expect(renamed.nextRecord!.draftOrNull!.parallelPolicy, result.nextRecord!.draftOrNull!.parallelPolicy);
+    final cleared = setNarrativeEventParallelPolicy(
+      context: configuredAuthoringContext(registry: registryWithRecords([renamed.nextRecord!])),
+      expectedRevision: authoringRevision, eventId: eventIdA, parallelPolicy: null,
+    );
+    expect(cleared.nextRecord!.draftOrNull!.parallelPolicy, isNull);
+    final sourceCleared = removeNarrativeEventSource(
+      context: configuredAuthoringContext(registry: registryWithRecords([result.nextRecord!])),
+      expectedRevision: authoringRevision, eventId: eventIdA,
+    );
+    expect(sourceCleared.nextRecord!.draftOrNull!.source, isNull);
+    expect(sourceCleared.nextRecord!.draftOrNull!.parallelPolicy, result.nextRecord!.draftOrNull!.parallelPolicy);
+    final incompatible = replaceNarrativeEventSource(
+      context: configuredAuthoringContext(registry: registryWithRecords([result.nextRecord!])),
+      expectedRevision: authoringRevision, eventId: eventIdA, source: entitySource,
+    );
+    expect(incompatible.status, NarrativeEventAuthoringStatus.rejected);
+  });
   group('E3 configuration authoring', () {
     test('accepts exact conditions and preserves author order and duplicates',
         () {

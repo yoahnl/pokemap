@@ -69,6 +69,7 @@ test("live MCP discovers and authors native autorun sources without interaction 
     const description = await call("pokemap_describe", {});
     const resource = (description.resourceKinds as JsonRecord[]).find((entry) => entry.id === "eventV2");
     assert.ok(resource);
+    assert.ok(record(resource.extensions).parallelPolicy);
     for (const entry of [resource, ...(description.mutationActions as JsonRecord[]).filter((entry) =>
       ["event_v2.create_draft", "event_v2.record_upsert", "event_v2.publish"].includes(String(entry.id)))]) {
       const variants = record(entry.extensions).sourceVariants as JsonRecord[];
@@ -82,6 +83,16 @@ test("live MCP discovers and authors native autorun sources without interaction 
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const upsert = await plan("event_v2.record_upsert", { record: event(source()) });
     await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: upsert.planId, operationId: "apply-autorun" });
+    const descriptor = (description.mutationActions as JsonRecord[]).find((entry) => entry.id === "event_v2.record_upsert");
+    assert.ok(record(descriptor!.extensions).parallelPolicy);
+    const parallel = event(source());
+    record(parallel.definition).parallelPolicy = { cadenceMs: 100 };
+    const parallelPlan = await plan("event_v2.record_upsert", { record: parallel });
+    await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: parallelPlan.planId, operationId: "apply-parallel" });
+    for (const policy of [{ cadenceMs: 99 }, { cadenceMs: 100, ownerVariantId: "missing" }]) {
+      record(parallel.definition).parallelPolicy = policy;
+      await plan("event_v2.record_upsert", { record: parallel }, true);
+    }
     const draft = await plan("event_v2.create_draft", { name: "Automatic draft",
       rawUuid: "019abcde-0000-7000-8000-000000000002", initialSource: source() });
     await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: draft.planId, operationId: "apply-draft" });
@@ -95,12 +106,14 @@ test("live MCP discovers and authors native autorun sources without interaction 
     const registry = record(saved.eventRegistry);
     const records = registry.records as JsonRecord[];
     assert.deepEqual(record(records.find((entry) => record(entry.definition ?? entry.draft).id === eventId)!.definition).source, source());
+    assert.deepEqual(record(records.find((entry) => record(entry.definition ?? entry.draft).id === eventId)!.definition).parallelPolicy, { cadenceMs: 100 });
     assert.deepEqual(record(records.find((entry) => entry.state === "draft")!.draft).source, source());
     assert.deepEqual(registry.legacyClaims, []);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const queried = await call("pokemap_query", { projectHandle: workspace.projectHandle, resourceKind: "eventV2", operation: "list", view: "detail" });
     assert.ok(JSON.stringify(queried).includes('"entityAutorun"'));
+    assert.ok(JSON.stringify(queried).includes('"parallelPolicy"'));
     assert.ok(!JSON.stringify(queried).includes('"entityInteract"'));
     assert.deepEqual(await readFile(mapFile), beforeMap);
   } finally {

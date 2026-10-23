@@ -517,6 +517,7 @@ final class AuthoringResourceKindRegistry {
         summary: 'Revision-gated narrative event record',
         extensions: {
           'sourceVariants': NarrativeEventSourceRef.contracts,
+          'parallelPolicy': NarrativeEventParallelPolicy.contract,
           'queryActions': ['event_v2.simulate'],
           'simulation': {
             'operation': 'get', 'authority': 'NarrativeEventDispatchAuthority',

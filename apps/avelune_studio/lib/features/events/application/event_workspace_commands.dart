@@ -160,6 +160,26 @@ extension EventWorkspaceCommands on EventWorkspaceController {
       resetPolicy: policy,
     ),
   );
+  bool setParallel(String id, NarrativeEventParallelPolicy? policy) => _edit(id, (c) {
+    var nextContext = c;
+    if (policy != null) {
+      final current = record(id)!;
+      if (current.resetPolicy is! NarrativeEventResetNever) {
+        final reset = setNarrativeEventResetPolicy(context: nextContext, expectedRevision: nextContext.revision,
+          eventId: id, resetPolicy: const NarrativeEventResetPolicy.never());
+        if (reset.status != NarrativeEventAuthoringStatus.applied && reset.status != NarrativeEventAuthoringStatus.noOp) return reset;
+        nextContext = _context(project.copyWith(eventRegistry: reset.nextRegistry ?? nextContext.registryOrNull));
+      }
+      if (current.reusePolicy != NarrativeEventReusePolicy.reusable) {
+        final reuse = setNarrativeEventReusePolicy(context: nextContext, expectedRevision: nextContext.revision,
+          eventId: id, reusePolicy: NarrativeEventReusePolicy.reusable);
+        if (reuse.status != NarrativeEventAuthoringStatus.applied && reuse.status != NarrativeEventAuthoringStatus.noOp) return reuse;
+        nextContext = _context(project.copyWith(eventRegistry: reuse.nextRegistry ?? nextContext.registryOrNull));
+      }
+    }
+    return setNarrativeEventParallelPolicy(context: nextContext, expectedRevision: nextContext.revision,
+      eventId: id, parallelPolicy: policy);
+  });
   bool setPriority(String id, int priority) => _edit(
     id,
     (c) => setNarrativeEventPriority(

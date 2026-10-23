@@ -28,6 +28,7 @@ const Set<String> _definitionWireFields = {
   'order',
   'conditionExpression',
   'resetPolicy',
+  'parallelPolicy',
 };
 
 const Set<String> _definitionKnownFields = {
@@ -45,6 +46,78 @@ const Set<String> _recordWireFields = {
   'enabled',
   'activeInLegacyMode',
 };
+
+final class NarrativeEventParallelPolicy {
+  static const contract = <String, Object>{
+    'parameters': ['cadenceMs', 'ownerVariantId'],
+    'cadenceMsRange': [100, 60000],
+    'sources': ['entityAutorun', 'mapEnter'],
+    'dimension': 'twoD',
+    'reusePolicy': 'reusable',
+    'ownerVariantId': 'optionalUniqueEntityPresentationVariant',
+    'firstCycle': 'fullCadenceAfterActivationResumeOrLoad',
+    'scheduling': 'fourCyclesPerUpdateRoundRobinNoCatchup',
+    'program': 'acyclicWorldSceneMaximum64Nodes',
+    'nodeKinds': ['start', 'end', 'condition', 'action', 'merge'],
+    'consequences': ['setFact', 'adjustIntegerFact', 'setMapEventInstanceBoolean'],
+    'instanceBooleanScope': 'activeOwnerMap',
+    'suspension': ['narrative', 'dialogue', 'battle', 'transition', 'checkpoint', 'lifecycle'],
+    'walking': 'unblocked',
+    'save': 'committedStateOnlyNoExecutionCursor',
+  };
+  NarrativeEventParallelPolicy({required this.cadenceMs, String? ownerVariantId})
+      : ownerVariantId = ownerVariantId == null ? null : _validateIdentityArgument(ownerVariantId, 'ownerVariantId') {
+    if (cadenceMs < 100 || cadenceMs > 60000) {
+      throw ArgumentError.value(cadenceMs, 'cadenceMs', 'must be between 100 and 60000');
+    }
+  }
+
+  factory NarrativeEventParallelPolicy.fromJson(Object? json) {
+    final object = NarrativeEventWire.object(json, path: 'parallelPolicy');
+    NarrativeEventWire.expectExactFields(object, const {'cadenceMs', 'ownerVariantId'}, path: 'parallelPolicy');
+    final cadence = NarrativeEventWire.requiredInt(object, 'cadenceMs', path: 'parallelPolicy');
+    if (cadence < 100 || cadence > 60000) {
+      NarrativeEventWire.invalid('Cadence must be between 100 and 60000.', path: 'parallelPolicy.cadenceMs', source: cadence);
+    }
+    return NarrativeEventParallelPolicy(
+      cadenceMs: cadence,
+      ownerVariantId: object.containsKey('ownerVariantId')
+          ? NarrativeEventWire.requiredIdentity(object, 'ownerVariantId', path: 'parallelPolicy') : null,
+    );
+  }
+
+  final int cadenceMs;
+  final String? ownerVariantId;
+  Map<String, Object?> toJson() => {'cadenceMs': cadenceMs, if (ownerVariantId != null) 'ownerVariantId': ownerVariantId};
+  @override
+  bool operator ==(Object other) => other is NarrativeEventParallelPolicy && other.cadenceMs == cadenceMs && other.ownerVariantId == ownerVariantId;
+  @override
+  int get hashCode => Object.hash(cadenceMs, ownerVariantId);
+}
+
+void _validateParallelPolicy(
+  NarrativeEventParallelPolicy? policy,
+  NarrativeEventSourceRef? source,
+  NarrativeEventReusePolicy? reusePolicy, {
+  bool allowIncomplete = false,
+}) {
+  if (policy == null) return;
+  if (!allowIncomplete && (source == null || reusePolicy == null)) {
+    throw ArgumentError('Parallel Events require a source and a reuse policy.');
+  }
+  if (reusePolicy != null && reusePolicy != NarrativeEventReusePolicy.reusable) {
+    throw ArgumentError('Parallel Events must be reusable.');
+  }
+  if (source != null &&
+      source.kind != NarrativeEventSourceKind.entityAutorun &&
+      source.kind != NarrativeEventSourceKind.mapEnter) {
+    throw ArgumentError('Parallel Events require an entity autorun or map entry source.');
+  }
+  if (policy.ownerVariantId != null && source != null &&
+      source.kind != NarrativeEventSourceKind.entityAutorun) {
+    throw ArgumentError('A parallel owner variant requires an entity autorun source.');
+  }
+}
 
 enum NarrativeEventReusePolicy { oneShot, reusable }
 
@@ -654,6 +727,7 @@ final class NarrativeEventDefinition {
     required int order,
     NarrativeEventConditionExpression? conditionExpression,
     this.resetPolicy = const NarrativeEventResetPolicy.never(),
+    this.parallelPolicy,
   })  : id = _validateEventIdArgument(id, 'id'),
         name = _validateName(name),
         conditionExpression = _validatedExpression(
@@ -666,6 +740,7 @@ final class NarrativeEventDefinition {
         ),
         sceneId = _validateIdentityArgument(sceneId, 'sceneId'),
         order = _validateOrder(order) {
+    _validateParallelPolicy(parallelPolicy, source, reusePolicy);
     _validateConfiguredResetPolicy(
       source: source,
       reusePolicy: reusePolicy,
@@ -686,12 +761,14 @@ final class NarrativeEventDefinition {
       'order',
       if (object.containsKey('conditionExpression')) 'conditionExpression',
       if (object.containsKey('resetPolicy')) 'resetPolicy',
+      if (object.containsKey('parallelPolicy')) 'parallelPolicy',
     };
     NarrativeEventWire.expectExactFields(object, expectedFields,
         path: 'definition', knownFields: _definitionKnownFields);
     final expressionJson = object['conditionExpression'];
     final resetJson = object['resetPolicy'];
-    return NarrativeEventDefinition(
+    try {
+      return NarrativeEventDefinition(
       id: _decodeEventId(
         NarrativeEventWire.requiredIdentity(object, 'id', path: 'definition'),
         path: 'definition.id',
@@ -720,10 +797,14 @@ final class NarrativeEventDefinition {
         path: 'definition',
       ),
       order: _decodeOrder(object, path: 'definition'),
+      parallelPolicy: object.containsKey('parallelPolicy') ? NarrativeEventParallelPolicy.fromJson(object['parallelPolicy']) : null,
       resetPolicy: resetJson == null
           ? const NarrativeEventResetPolicy.never()
           : NarrativeEventResetPolicy.fromJson(resetJson),
-    );
+      );
+    } on ArgumentError catch (error) {
+      return NarrativeEventWire.invalid(error.message?.toString() ?? 'Invalid parallel Event configuration.', path: 'parallelPolicy', source: object);
+    }
   }
 
   final String id;
@@ -736,6 +817,7 @@ final class NarrativeEventDefinition {
   final int priority;
   final int order;
   final NarrativeEventResetPolicy resetPolicy;
+  final NarrativeEventParallelPolicy? parallelPolicy;
 
   Map<String, Object?> toJson() => {
         'id': id,
@@ -748,6 +830,7 @@ final class NarrativeEventDefinition {
         'reusePolicy': reusePolicy.name,
         'priority': priority,
         'order': order,
+        if (parallelPolicy != null) 'parallelPolicy': parallelPolicy!.toJson(),
         if (resetPolicy is! NarrativeEventResetNever)
           'resetPolicy': resetPolicy.toJson(),
       };
@@ -765,7 +848,8 @@ final class NarrativeEventDefinition {
           other.reusePolicy == reusePolicy &&
           other.priority == priority &&
           other.order == order &&
-          other.resetPolicy == resetPolicy;
+          other.resetPolicy == resetPolicy &&
+          other.parallelPolicy == parallelPolicy;
 
   @override
   int get hashCode => Object.hash(
@@ -779,6 +863,7 @@ final class NarrativeEventDefinition {
         priority,
         order,
         resetPolicy,
+        parallelPolicy,
       );
 }
 
@@ -795,6 +880,7 @@ final class NarrativeEventDraft {
     required int order,
     NarrativeEventConditionExpression? conditionExpression,
     this.resetPolicy = const NarrativeEventResetPolicy.never(),
+    this.parallelPolicy,
   })  : id = _validateEventIdArgument(id, 'id'),
         name = _validateName(name),
         conditionExpression = _validatedExpression(
@@ -809,6 +895,7 @@ final class NarrativeEventDraft {
             ? null
             : _validateIdentityArgument(sceneId, 'sceneId'),
         order = _validateOrder(order) {
+    _validateParallelPolicy(parallelPolicy, source, reusePolicy, allowIncomplete: true);
     _validateDraftResetPolicy(
       source: source,
       reusePolicy: reusePolicy,
@@ -829,13 +916,15 @@ final class NarrativeEventDraft {
       'order',
       if (object.containsKey('conditionExpression')) 'conditionExpression',
       if (object.containsKey('resetPolicy')) 'resetPolicy',
+      if (object.containsKey('parallelPolicy')) 'parallelPolicy',
     };
     NarrativeEventWire.expectExactFields(object, expectedFields,
         path: 'draft', knownFields: _definitionKnownFields);
     final sourceJson = object['source'];
     final sceneIdJson = object['sceneId'];
     final reusePolicyJson = object['reusePolicy'];
-    return NarrativeEventDraft(
+    try {
+      return NarrativeEventDraft(
       id: _decodeEventId(
         NarrativeEventWire.requiredIdentity(object, 'id', path: 'draft'),
         path: 'draft.id',
@@ -862,10 +951,14 @@ final class NarrativeEventDraft {
         path: 'draft',
       ),
       order: _decodeOrder(object, path: 'draft'),
+      parallelPolicy: object.containsKey('parallelPolicy') ? NarrativeEventParallelPolicy.fromJson(object['parallelPolicy']) : null,
       resetPolicy: object['resetPolicy'] == null
           ? const NarrativeEventResetPolicy.never()
           : NarrativeEventResetPolicy.fromJson(object['resetPolicy']),
-    );
+      );
+    } on ArgumentError catch (error) {
+      return NarrativeEventWire.invalid(error.message?.toString() ?? 'Invalid parallel Event configuration.', path: 'parallelPolicy', source: object);
+    }
   }
 
   final String id;
@@ -878,6 +971,7 @@ final class NarrativeEventDraft {
   final int priority;
   final int order;
   final NarrativeEventResetPolicy resetPolicy;
+  final NarrativeEventParallelPolicy? parallelPolicy;
 
   bool get isComplete =>
       source != null && sceneId != null && reusePolicy != null;
@@ -893,6 +987,7 @@ final class NarrativeEventDraft {
         if (reusePolicy != null) 'reusePolicy': reusePolicy!.name,
         'priority': priority,
         'order': order,
+        if (parallelPolicy != null) 'parallelPolicy': parallelPolicy!.toJson(),
         if (resetPolicy is! NarrativeEventResetNever)
           'resetPolicy': resetPolicy.toJson(),
       };
@@ -910,7 +1005,8 @@ final class NarrativeEventDraft {
           other.reusePolicy == reusePolicy &&
           other.priority == priority &&
           other.order == order &&
-          other.resetPolicy == resetPolicy;
+          other.resetPolicy == resetPolicy &&
+          other.parallelPolicy == parallelPolicy;
 
   @override
   int get hashCode => Object.hash(
@@ -924,6 +1020,7 @@ final class NarrativeEventDraft {
         priority,
         order,
         resetPolicy,
+        parallelPolicy,
       );
 }
 

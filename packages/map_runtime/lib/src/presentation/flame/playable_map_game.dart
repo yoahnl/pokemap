@@ -1,3 +1,4 @@
+import '../../application/narrative_parallel_execution.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -182,6 +183,7 @@ import 'warp_transition_overlay_component.dart';
 import 'warp_presentation_overlay_component.dart';
 import 'warp_presentation_renderer.dart';
 
+part 'playable_map_game_parallel_events.dart';
 part 'playable_map_game_support.dart';
 part 'playable_map_game_scene_music.dart';
 part 'playable_map_game_cinematic_poses.dart';
@@ -979,6 +981,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _installMapActivation(MapActivation activation) {
+    _parallelFaultedOwners.clear();
+    _parallelScheduler.clear();
     _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _cancelPendingDirectedJump();
@@ -2329,6 +2333,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   @visibleForTesting
   int get debugAutorunSelectionEvaluationCount => _autorunSelectionEvaluationCount;
   bool _entityAutorunInFlight = false;
+  final _parallelScheduler = NarrativeParallelScheduler();
+  final Set<NarrativeParallelOwner> _parallelFaultedOwners = {};
+  final Map<String, List<NarrativeEventDefinition>> _parallelDefinitionsByMap = {};
+  final Map<String, NarrativeParallelProgram> _parallelPrograms = {};
+  ProjectManifest? _parallelProgramProject;
+  Future<void>? _parallelDrainFuture;
+  bool _parallelLifecycleSuspended = false;
   int _nextMapActivationSerial = 0;
   int _nextNarrativeRuntimeIdSerial = 0;
   String? _currentMapActivationId;
@@ -5068,6 +5079,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void onRemove() {
+    _parallelFaultedOwners.clear();
+    _parallelScheduler.clear();
     if (!_isRemoved) _simulationClock.dispose();
     _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
@@ -5690,8 +5703,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   @override
+  void lifecycleStateChange(AppLifecycleState state) {
+    super.lifecycleStateChange(state);
+    _parallelLifecycleSuspended = state != AppLifecycleState.resumed;
+    _parallelScheduler.clear();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _parallelLifecycleSuspended = state != AppLifecycleState.resumed;
+    _parallelScheduler.clear();
+  }
+
+  @override
   void update(double dt) {
-    if (_advancingTestSimulation) return;
+    if (_isRemoved || _advancingTestSimulation) return;
     _updateFps(dt);
     if (_simulationClock.advanceFrame(dt, (step) {
       super.update(step);
@@ -5743,6 +5769,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _advancePlayerFishing(dt);
       _updateRuntime(dt);
       _updateNpcFixedRoutes(dt);
+      _updateParallelEvents(dt);
       _maybePromptRepelExpiration();
     } finally {
       _refreshLogicalMapInstances();
@@ -16271,6 +16298,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _logCheckpointInterlock('load');
       return false;
     }
+    _parallelFaultedOwners.clear();
+    _parallelScheduler.clear();
     _isLoadActivationWorkInFlight = true;
     if (_flowPhase == _RuntimeFlowPhase.overworld) {
       _clearPressedMovementControls();

@@ -4381,6 +4381,11 @@ final class _ProjectionBuilder {
     }
     final staticSign = _supportsStaticSign(event);
     final inventoryController = inventoryControllerPrograms[event.identity];
+    if (inventoryController != null &&
+        (maps[event.sourceMapId]!.version == ProjectVersion.v9 ||
+          maps[event.sourceMapId]!.spatialScene != null)) {
+      gaps.add('sourceParallelSpatialUnsupported');
+    }
     if (inventoryController != null && _itemBinding(inventoryController.sourceItemSymbol)?.isKeyItem != true) {
       gaps.add('sourceInventoryControllerKeyItemBindingMissing');
     }
@@ -5464,7 +5469,7 @@ final class _ProjectionBuilder {
         !(page.graphic!.characterName.isNotEmpty && !page.graphic!.through);
     NarrativeEventSourceRef pageSource(SourceEventPageAnalysis page) {
       if (page.triggerCode == 4 && inventoryControllerPrograms.containsKey(event.identity)) {
-        return NarrativeEventSourceRef.mapEnter(map.id);
+        return NarrativeEventSourceRef.entityAutorun(map.id, entityId);
       }
       if (page.triggerCode == 3) {
         return NarrativeEventSourceRef.entityAutorun(map.id, entityId);
@@ -5545,6 +5550,9 @@ final class _ProjectionBuilder {
               conditionExpression: expression,
               sceneId: scene.id,
               reusePolicy: NarrativeEventReusePolicy.reusable,
+              parallelPolicy: page.triggerCode == 4 && inventoryControllerPrograms.containsKey(event.identity)
+                  ? NarrativeEventParallelPolicy(cadenceMs: 100, ownerVariantId: 'page_${page.originalPageIndex}')
+                  : null,
               priority: page.originalPageIndex,
               order: event.sourceEventId),
           enabled: guard.constant != false,

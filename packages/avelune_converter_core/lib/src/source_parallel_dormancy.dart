@@ -53,9 +53,15 @@ final class SourceParallelDormancyAuditor {
   late final SourceEventAnalysis _analysis = _analyzer.analyze();
   late final _writes = _sourceDormancyNativeWrites(_analysis, _analyzer);
 
-  SourceParallelDormancyAudit audit({Set<int>? activeSourceMapIds}) =>
+  bool hasExclusiveNativeWriter({required String factId, required ConverterId eventIdentity}) =>
+      _writes.refusals.isEmpty && _writes.writes.every((write) =>
+          write['factId'] != factId || write['sourceEventIdentity'] == eventIdentity.value);
+
+  SourceParallelDormancyAudit audit({Set<int>? activeSourceMapIds,
+    Set<String> executablePageReferences = const {}}) =>
       _auditSourceParallelDormancy(source: source, profile: profile,
           analyzer: _analyzer, analysis: _analysis, nativeWrites: _writes,
+          executablePageReferences: executablePageReferences,
           activeSourceMapIds: activeSourceMapIds ??
               source.maps.map((map) => map.map.sourceMapId).toSet());
 }
@@ -67,10 +73,22 @@ SourceParallelDormancyAudit _auditSourceParallelDormancy(
     required SourceEventAnalysis analysis,
     required ({List<Map<String, Object?>> writes, List<String> projected,
       List<String> quarantined, List<String> refusals}) nativeWrites,
-    required Set<int> activeSourceMapIds}) {
+    required Set<int> activeSourceMapIds,
+    required Set<String> executablePageReferences}) {
   final refusals = <String>{};
   final controllerPages = <(int, int, int), SourcePreservedData>{};
   final witnesses = <Map<String, Object?>>[];
+  final qualifiedExecutableReferences = <String>{
+    for (final event in analysis.events)
+      if (!event.isQuarantined && activeSourceMapIds.contains(event.sourceMapId))
+        for (final page in event.pages)
+          if (page.triggerCode == 4 && page.rawDataRef != null &&
+              executablePageReferences.contains(page.rawDataRef!.id.value))
+            page.rawDataRef!.id.value,
+  };
+  if (!qualifiedExecutableReferences.containsAll(executablePageReferences)) {
+    refusals.add('sourceDormancyExecutablePageUnqualified');
+  }
   final representedMapIds = source.maps.map((map) => map.map.sourceMapId).toSet();
   if (activeSourceMapIds.isEmpty || !representedMapIds.containsAll(activeSourceMapIds)) {
     refusals.add('sourceDormancyScopeUnqualified');
@@ -87,6 +105,10 @@ SourceParallelDormancyAudit _auditSourceParallelDormancy(
   for (final event in analysis.events
       .where((event) => activeSourceMapIds.contains(event.sourceMapId) &&
           event.pages.any((page) => page.triggerCode == 4))) {
+    if (event.pages.where((page) => page.triggerCode == 4).every((page) =>
+        qualifiedExecutableReferences.contains(page.rawDataRef?.id.value))) {
+      continue;
+    }
     try {
       final rawMap = source.maps
           .where((map) => map.map.sourceMapId == event.sourceMapId)
@@ -159,6 +181,9 @@ SourceParallelDormancyAudit _auditSourceParallelDormancy(
   }
   for (final event in analysis.events.where((event) => activeSourceMapIds.contains(event.sourceMapId))) {
       for (final page in event.pages.where((page) => page.triggerCode == 4)) {
+        if (qualifiedExecutableReferences.contains(page.rawDataRef?.id.value)) {
+          continue;
+        }
         final key =
             (event.sourceMapId, event.sourceEventId, page.originalPageIndex);
         if (!controllerPages.containsKey(key) ||
@@ -189,6 +214,7 @@ SourceParallelDormancyAudit _auditSourceParallelDormancy(
         ],
         'controllerGuardFactIds': targets.toList()..sort(),
         'nativeControllerExecution': false,
+        'executableParallelPageReferences': qualifiedExecutableReferences.toList()..sort(),
         'nativeSourceWritesToControllerGuards': targetWrites,
         'potentiallyProjectableEvents': nativeWrites.projected,
         'quarantinedWholeEvents': nativeWrites.quarantined,
@@ -323,6 +349,9 @@ void _auditSourceFactWriteBlock(
           throw const FormatException();
         }
         write(rewardFactId, true);
+        for (final factId in node.foreignRewardFactIds) {
+          write(factId, true);
+        }
       case SourceForcedMoveRouteNode(:final steps):
         for (final step in steps) {
           final allowed = switch (step.kind) {

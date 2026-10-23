@@ -5,6 +5,7 @@ import '../map_workspace/map_workspace_visuals.dart';
 import 'event_view_state.dart';
 import 'event_map_loader.dart';
 import 'event_labels.dart';
+import '../../../features/events/domain/event_record_view.dart';
 import 'event_trigger_panel.dart';
 import 'event_conditions.dart';
 import 'event_scene_panel.dart';
@@ -72,6 +73,8 @@ class EventPageContent extends StatelessWidget {
       outcomes: controller.catalog.outcomeSources,
       priorityInput: view.invalidNumbers['${record.id}:priority'],
       orderInput: view.invalidNumbers['${record.id}:order'],
+      onParallel: (policy) => mutate(() => controller.setParallel(record.id, policy)),
+      ownerVariants: _ownerVariants(),
       onReuse: (p) => mutate(() => controller.setReuse(record.id, p)),
       onReset: (p) => mutate(() => controller.setReset(record.id, p)),
       onPriority: (v) =>
@@ -85,6 +88,17 @@ class EventPageContent extends StatelessWidget {
       onMode: onMode,
     ),
   };
+
+  Map<String, String> _ownerVariants() {
+    final source = record.source;
+    if (source?.kind != NarrativeEventSourceKind.entityAutorun) return const {};
+    final maps = controller.maps.where((map) => map.id == eventMapId(source)).toList();
+    if (maps.length != 1) return const {};
+    final owners = maps.single.entities.where((entity) => entity.id == eventOwnerId(source)).toList();
+    if (owners.length != 1) return const {};
+    final variants = owners.single.presentation?.variants ?? const <MapEntityPresentationVariant>[];
+    return {for (var index = 0; index < variants.length; index++) variants[index].id: 'Page ${index + 1}'};
+  }
 
   void _number(String field, String value, bool Function(int) apply) {
     final key = '${record.id}:$field';

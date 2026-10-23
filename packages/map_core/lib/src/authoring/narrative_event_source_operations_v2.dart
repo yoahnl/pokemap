@@ -159,6 +159,14 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
       message: 'Choisissez un réarmement compatible avant cette source.',
     );
   }
+  final parallel = record.definitionOrNull?.parallelPolicy ?? record.draftOrNull?.parallelPolicy;
+  if (parallel != null &&
+      (!const {NarrativeEventSourceKind.entityAutorun, NarrativeEventSourceKind.mapEnter}.contains(source.kind) ||
+       (parallel.ownerVariantId != null && source.kind != NarrativeEventSourceKind.entityAutorun))) {
+    return _sourceRejection(context: context, expectedRevision: expectedRevision, record: record,
+      mutation: requestedMutation, code: 'parallelSourceIncompatible',
+      message: 'Choisissez une source automatique compatible ou désactivez d’abord le mode parallèle.');
+  }
   final nextRecord = record.when(
     draft: (draft) => NarrativeEventRecord.draft(
       NarrativeEventDraft(
@@ -172,6 +180,7 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
         priority: draft.priority,
         order: draft.order,
         resetPolicy: draft.resetPolicy,
+        parallelPolicy: draft.parallelPolicy,
       ),
     ),
     configured: (definition, _) =>
@@ -187,6 +196,7 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
         priority: definition.priority,
         order: definition.order,
         resetPolicy: definition.resetPolicy,
+        parallelPolicy: definition.parallelPolicy,
       ),
       enabled: false,
       activeInLegacyMode: record.activeInLegacyMode,
@@ -295,6 +305,7 @@ NarrativeEventAuthoringResult removeNarrativeEventSource({
         priority: draft.priority,
         order: draft.order,
         resetPolicy: draft.resetPolicy,
+        parallelPolicy: draft.parallelPolicy,
       ),
     ),
     configured: (definition, _) => NarrativeEventRecord.draft(
@@ -309,6 +320,7 @@ NarrativeEventAuthoringResult removeNarrativeEventSource({
         priority: definition.priority,
         order: definition.order,
         resetPolicy: definition.resetPolicy,
+        parallelPolicy: definition.parallelPolicy,
       ),
     ),
   );

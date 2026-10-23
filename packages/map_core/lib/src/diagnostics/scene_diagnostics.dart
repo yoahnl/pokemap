@@ -1,3 +1,5 @@
+import '../models/narrative_event_definition.dart';
+import '../operations/narrative_parallel_program.dart';
 import '../operations/scene_warp_presentation_visual.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
@@ -596,6 +598,21 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
   required Map<String, int> storyStepCounts,
 }) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
+  final parallelOwners = project.eventRegistry?.records.where((record) =>
+    (record.definitionOrNull?.sceneId ?? record.draftOrNull?.sceneId) == scene.id &&
+    (record.definitionOrNull?.parallelPolicy ?? record.draftOrNull?.parallelPolicy) != null);
+  for (final record in parallelOwners ?? const <NarrativeEventRecord>[]) {
+    if (project.settings.dimension != ProjectDimension.twoD) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.capabilityForbiddenForProfile,
+        severity: SceneDiagnosticSeverity.error, message: 'Les processus parallèles exigent un projet 2D.',
+        sceneId: scene.id, target: SceneDiagnosticTarget.scene));
+    }
+    final source = record.definitionOrNull?.source ?? record.draftOrNull?.source;
+    for (final issue in validateNarrativeParallelProgram(scene, ownerMapId: source?.toJson()['mapId'] as String?)) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.capabilityForbiddenForProfile,
+        severity: SceneDiagnosticSeverity.error, message: issue, sceneId: scene.id, target: SceneDiagnosticTarget.scene));
+    }
+  }
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
     switch (payload) {

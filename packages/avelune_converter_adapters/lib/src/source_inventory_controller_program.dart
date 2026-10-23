@@ -37,7 +37,7 @@ final class SourceInventoryControllerProgram {
 
   Map<String, Object?> toJson() => {
         'kind': 'sourceInventoryControllerProgram',
-        'version': 1,
+        'version': 2,
         'sourceMapId': sourceMapId,
         'sourceEventId': sourceEventId,
         'eventIdentity': eventIdentity.value,
@@ -48,17 +48,22 @@ final class SourceInventoryControllerProgram {
         'normalizationHash': _source.canonicalHash.value,
         'profileHash': _profileHash.value,
         'programHash': canonicalHashOf(_fingerprint).value,
-        'activation': 'mapEnter',
+        'activation': 'parallel',
         'sourceTrigger': 'parallel',
-        'adaptation': 'mapEntryInventoryLatchWithClosedLocalAcquisitionSet',
-        'nativeLocalItemAcquisition': false,
-        'inventoryClosure': 'typedNativeUpperBoundAndNonExecutableWholeEventQuarantine',
+        'adaptation': 'ownedPeriodicStateLatch',
+        'cadenceMs': 100,
+        'sourceTemporalParity': false,
+        'safePointResume': 'fullCadenceAfterLoadOrSuspension',
+        'nativeLocalItemAcquisition': true,
+        'guardWriteClosure':
+            'globalTypedSourceWritersAndNonExecutableWholeEventQuarantine',
         'keyItemBindingRequired': true,
         'quarantinedWholeEvents': _quarantinedEvents,
         'wholeEventQuarantineIsNonExecutable': true,
         'sourceScriptsExecuted': 0,
         'aiCalls': 0,
         'generalParallelExecutionQualified': false,
+        'parallelStateExecutionQualified': true,
       };
 }
 
@@ -75,18 +80,14 @@ Map<ConverterId, SourceInventoryControllerProgram>
           SourceEventProfile.forProject(source).canonicalHash) {
     return const {};
   }
-  final actual = (authority ?? SourceTransferProgramAuthority.forSource(source))
-      .analysisFor(source: source, analysis: analysis);
+  final ownedAuthority = authority ?? SourceTransferProgramAuthority.forSource(source);
+  final actual = ownedAuthority.analysisFor(source: source, analysis: analysis);
   final candidates =
       actual.events.where((event) => _match(source, event) != null).toList();
+  final writeClosure = candidates.isEmpty ? null :
+      ownedAuthority.executionContextFor(source).parallelDormancyAuditor;
   final result = <ConverterId, SourceInventoryControllerProgram>{};
   for (final event in candidates) {
-    if (candidates
-            .where((other) => other.sourceMapId == event.sourceMapId)
-            .length !=
-        1) {
-      continue;
-    }
     final supplied = analysis.eventAt(event.sourceMapId, event.sourceEventId);
     if (supplied == null ||
         _match(source, supplied) == null ||
@@ -94,10 +95,10 @@ Map<ConverterId, SourceInventoryControllerProgram>
       continue;
     }
     final match = _match(source, event)!;
-    final local =
-        actual.events.where((other) => other.sourceMapId == event.sourceMapId);
-    if (local.any((other) => !_localAcquisitionClosed(
-        other, match.item, match.ownFact, event.identity))) {
+    final local = actual.events.where((other) => other.sourceMapId == event.sourceMapId);
+    if (!writeClosure!.hasExclusiveNativeWriter(
+        factId: match.ownFact, eventIdentity: event.identity) ||
+        local.any((other) => !_opaqueLocalAcquisitionClosed(other, match.item))) {
       continue;
     }
     result[event.identity] = SourceInventoryControllerProgram._(
@@ -204,8 +205,7 @@ bool _singleSelf(SourceEventCondition condition, String fact) =>
         condition.children.length == 1 &&
         _singleSelf(condition.children.single, fact);
 
-bool _localAcquisitionClosed(SourceEventDefinition event, String item,
-    String guardFact, ConverterId controller) {
+bool _opaqueLocalAcquisitionClosed(SourceEventDefinition event, String item) {
   if (event.isQuarantined &&
       event.pages.any((page) => page.sourcePage.commands.any((command) =>
           const {117, 126, 301, 302, 605}.contains(command.code) ||
@@ -216,38 +216,7 @@ bool _localAcquisitionClosed(SourceEventDefinition event, String item,
                       .hasMatch(value))))) {
     return false;
   }
-  bool condition(SourceEventCondition value) =>
-      !(value.kind == SourceEventConditionKind.pickup &&
-          value.pickup?.sourceSymbol == item) &&
-      value.children.every(condition);
-  late bool Function(SourceEventBlock) block;
-  bool choice(SourceChoiceNode value) =>
-      value.branches.every((branch) => block(branch.body)) &&
-      (value.cancelBranch == null || block(value.cancelBranch!));
-  bool node(SourceEventNode value) => switch (value) {
-        SourcePickupNode() => value.sourceSymbol != item,
-        SourceConditionalNode() => condition(value.condition) &&
-            block(value.whenTrue) &&
-            block(value.whenFalse),
-        SourceTextNode() =>
-          value.followingChoice == null || choice(value.followingChoice!),
-        SourceChoiceNode() => choice(value),
-        SourceCommonEventCallNode() => block(value.body),
-        SourcePortraitProgramNode() => block(value.body),
-        SourceSelfSwitchNode() =>
-          value.factId != guardFact || event.identity == controller,
-        SourceShopProgramNode() ||
-        SourcePokemonGiftNode() ||
-        SourcePartyTradeProgramNode() ||
-        SourceTrainerProgramNode() ||
-        SourcePokedexRewardProgramNode() =>
-          event.isQuarantined,
-        SourceUnknownNode() || SourceScriptNode() => event.isQuarantined,
-        _ => true,
-      };
-  block = (value) => value.nodes.every(node);
-  return event.pages
-      .every((page) => condition(page.condition) && block(page.body));
+  return true;
 }
 
 String _fingerprintOf(SourceEventDefinition event) => canonicalJsonOf({

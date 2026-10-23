@@ -440,3 +440,5 @@ export 'src/operations/resource_pack_publication.dart';
 export 'src/models/scene_integer_operand.dart';
 export 'src/models/scene_random_state.dart';
 export 'src/operations/scene_integer_operations.dart';
+
+export 'src/operations/narrative_parallel_program.dart';

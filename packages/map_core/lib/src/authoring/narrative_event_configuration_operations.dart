@@ -352,10 +352,11 @@ NarrativeEventAuthoringResult setNarrativeEventReusePolicy({
       ),
     );
   }
-  return _applyConfiguration(
-    target,
-    current.copyWith(reusePolicy: reusePolicy).toOriginalState(),
-  );
+  if (current.parallelPolicy != null && reusePolicy != NarrativeEventReusePolicy.reusable) {
+    return _rejectConfiguration(target, NarrativeEventAuthoringDiagnostic(code: 'parallelRequiresReusable',
+      message: 'Désactivez le mode parallèle avant de choisir une occurrence unique.', path: 'reusePolicy'));
+  }
+  return _applyConfiguration(target, current.copyWith(reusePolicy: reusePolicy).toOriginalState());
 }
 
 NarrativeEventAuthoringResult setNarrativeEventResetPolicy({
@@ -394,6 +395,29 @@ NarrativeEventAuthoringResult setNarrativeEventResetPolicy({
         path: 'resetPolicy',
       ),
     );
+  }
+}
+
+NarrativeEventAuthoringResult setNarrativeEventParallelPolicy({
+  required NarrativeEventAuthoringContext context,
+  required String expectedRevision,
+  required String eventId,
+  required NarrativeEventParallelPolicy? parallelPolicy,
+}) {
+  final target = _configurationTarget(context: context, expectedRevision: expectedRevision, eventId: eventId,
+    mutation: NarrativeEventAuthoringMutation.setParallelPolicy);
+  if (target.rejection != null) return target.rejection!;
+  final current = _EditableNarrativeEvent.fromRecord(target.record!);
+  if (current.parallelPolicy == parallelPolicy) return _noOpConfiguration(target);
+  if (current.enabled) return _mustDisableFirst(target, 'changer son exécution parallèle');
+  try {
+    final next = current.copyWith(parallelPolicy: parallelPolicy).toOriginalState();
+    final rejection = _configurationCatalogRejection(target, projectedRecord: next);
+    if (rejection != null) return rejection;
+    return _applyConfiguration(target, next);
+  } on ArgumentError catch (error) {
+    return _rejectConfiguration(target, NarrativeEventAuthoringDiagnostic(
+      code: 'invalidParallelPolicy', message: error.message?.toString() ?? 'Exécution parallèle invalide.', path: 'parallelPolicy'));
   }
 }
 
@@ -635,6 +659,7 @@ final class _EditableNarrativeEvent {
     required this.priority,
     required this.order,
     required this.resetPolicy,
+    required this.parallelPolicy,
     required this.configured,
     required this.enabled,
     this.activeInLegacyMode = false,
@@ -653,6 +678,7 @@ final class _EditableNarrativeEvent {
         priority: draft.priority,
         order: draft.order,
         resetPolicy: draft.resetPolicy,
+        parallelPolicy: draft.parallelPolicy,
         configured: false,
         enabled: false,
       ),
@@ -667,6 +693,7 @@ final class _EditableNarrativeEvent {
         priority: definition.priority,
         order: definition.order,
         resetPolicy: definition.resetPolicy,
+        parallelPolicy: definition.parallelPolicy,
         configured: true,
         enabled: enabled,
         activeInLegacyMode: record.activeInLegacyMode,
@@ -684,6 +711,7 @@ final class _EditableNarrativeEvent {
   final int priority;
   final int order;
   final NarrativeEventResetPolicy resetPolicy;
+  final NarrativeEventParallelPolicy? parallelPolicy;
   final bool configured;
   final bool enabled;
   final bool activeInLegacyMode;
@@ -697,6 +725,7 @@ final class _EditableNarrativeEvent {
     int? priority,
     int? order,
     NarrativeEventResetPolicy? resetPolicy,
+    Object? parallelPolicy = _notSet,
   }) {
     final nextConditions = List<NarrativeEventCondition>.unmodifiable(
       conditionExpression?.leaves ?? conditions ?? this.conditions,
@@ -721,6 +750,7 @@ final class _EditableNarrativeEvent {
       priority: priority ?? this.priority,
       order: order ?? this.order,
       resetPolicy: resetPolicy ?? this.resetPolicy,
+      parallelPolicy: identical(parallelPolicy, _notSet) ? this.parallelPolicy : parallelPolicy as NarrativeEventParallelPolicy?,
       configured: configured,
       enabled: enabled,
       activeInLegacyMode: activeInLegacyMode,
@@ -741,6 +771,7 @@ final class _EditableNarrativeEvent {
         priority: priority,
         order: order,
         resetPolicy: resetPolicy,
+        parallelPolicy: parallelPolicy,
       ),
       enabled: enabled,
       activeInLegacyMode: activeInLegacyMode,
@@ -760,6 +791,7 @@ final class _EditableNarrativeEvent {
         priority: priority,
         order: order,
         resetPolicy: resetPolicy,
+        parallelPolicy: parallelPolicy,
       ),
     );
   }

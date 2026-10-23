@@ -33,6 +33,7 @@ enum NarrativeEventAuthoringMutation {
   removeScene,
   setReusePolicy,
   setResetPolicy,
+  setParallelPolicy,
   setPriority,
   setOrder,
   publish,

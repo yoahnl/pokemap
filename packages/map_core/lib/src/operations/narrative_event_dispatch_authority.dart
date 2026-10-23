@@ -180,6 +180,7 @@ final class NarrativeEventDispatchAuthorityReady
   NarrativeEventDispatchDecision plan({
     required GameState gameState,
     Set<String> inFlightNarrativeEventIds = const <String>{},
+    String? parallelEventId,
   }) {
     final source = occurrence.source;
     if (mode == EventSystemMode.legacyOnly &&
@@ -205,6 +206,11 @@ final class NarrativeEventDispatchAuthorityReady
     _collectStructuralReasons(source, gameState, reasons);
     for (final record in _candidateRecords(source)) {
       final definition = record.definitionOrNull!;
+      if (parallelEventId == null
+          ? definition.parallelPolicy != null
+          : definition.id != parallelEventId || definition.parallelPolicy == null) {
+        continue;
+      }
       final ruleState = _worldRuleState(definition.id, gameState);
       if (!_isEffectivelyEnabled(record, ruleState)) {
         reasons.add(_reasonForWorldRuleState(ruleState));
@@ -261,7 +267,9 @@ final class NarrativeEventDispatchAuthorityReady
     required String targetEventId,
     Set<String> inFlightNarrativeEventIds = const <String>{},
   }) {
+    final parallelTarget = _registry.records.where((record) => record.id == targetEventId && record.definitionOrNull?.parallelPolicy != null).firstOrNull;
     final decision = plan(
+      parallelEventId: parallelTarget?.id,
       gameState: gameState,
       inFlightNarrativeEventIds: inFlightNarrativeEventIds,
     );

@@ -10,6 +10,20 @@ const _fingerprint =
     'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 void main() {
+  test('ordinary dispatch skips parallel events and dedicated dispatch is explicit', () {
+    final source = NarrativeEventSourceRef.mapEnter('map');
+    final record = NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: _eventA, name: 'Parallel', source: source, conditions: const [],
+        sceneId: 'scene_$_eventA', reusePolicy: NarrativeEventReusePolicy.reusable,
+        priority: 0, order: 0, parallelPolicy: NarrativeEventParallelPolicy(cadenceMs: 100),
+      ), enabled: true,
+    );
+    final authority = _prepare(_registry(EventSystemMode.v2Only, records: [record]), source);
+    expect(authority.plan(gameState: const GameState(saveId: 'save')), isA<NarrativeEventDispatchNoMatch>());
+    expect(authority.plan(gameState: const GameState(saveId: 'save'), parallelEventId: _eventA), isA<NarrativeEventDispatchHandled>());
+    expect(authority.simulate(gameState: const GameState(saveId: 'save'), targetEventId: _eventA).handledEventId, _eventA);
+  });
   test('legacyOnly and v2Only expose their closed fallback decisions', () {
     final source = NarrativeEventSourceRef.mapEnter('map');
     final planner = NarrativeEventDispatchPlanner();

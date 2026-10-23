@@ -393,3 +393,5 @@ export 'src/waterfall_action.dart';
 export 'src/whirlpool_action.dart';
 export 'src/field_traversal_action.dart';
 export 'src/field_traversal_geometry.dart';
+
+export 'src/narrative_parallel_scheduler.dart';

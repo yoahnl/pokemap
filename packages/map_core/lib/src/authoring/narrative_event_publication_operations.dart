@@ -69,6 +69,7 @@ NarrativeEventAuthoringResult publishNarrativeEvent({
     priority: draft.priority,
     order: draft.order,
     resetPolicy: draft.resetPolicy,
+    parallelPolicy: draft.parallelPolicy,
   );
   final nextRecord = NarrativeEventRecord.configuredStructurallyUnchecked(
     definition,

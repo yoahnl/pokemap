@@ -21,6 +21,8 @@ class EventOptionsPanel extends StatelessWidget {
     required this.onConfigure,
     required this.onEnabled,
     required this.onMode,
+    this.onParallel,
+    this.ownerVariants = const {},
     this.priorityInput,
     this.orderInput,
   });
@@ -28,6 +30,8 @@ class EventOptionsPanel extends StatelessWidget {
   final EventSystemMode? mode;
   final String? priorityInput, orderInput;
   final NarrativeOutcomeEventSourceCatalog outcomes;
+  final ValueChanged<NarrativeEventParallelPolicy?>? onParallel;
+  final Map<String, String> ownerVariants;
   final ValueChanged<NarrativeEventReusePolicy> onReuse;
   final ValueChanged<NarrativeEventResetPolicy> onReset;
   final ValueChanged<String> onPriority, onOrder;
@@ -40,6 +44,43 @@ class EventOptionsPanel extends StatelessWidget {
         const Text(
           'Ces changements restent locaux jusqu’à Enregistrer. Modifier un événement activé prépare une version désactivée.',
         ),
+        const SizedBox(height: 16),
+        StudioSelect(
+          label: 'Exécution',
+          value: record.parallelPolicy == null ? 'sequential' : 'parallel',
+          options: {
+            'sequential': 'Séquentielle',
+            if (record.source?.kind == NarrativeEventSourceKind.entityAutorun || record.source?.kind == NarrativeEventSourceKind.mapEnter)
+              'parallel': 'Parallèle',
+          },
+          onChanged: onParallel == null ? null : (value) => onParallel!(value == 'parallel' ? NarrativeEventParallelPolicy(cadenceMs: 1000) : null),
+        ),
+        if (record.parallelPolicy case final policy?) ...[
+          const SizedBox(height: 12),
+          const Text('Répète une courte mise à jour d’état sans immobiliser le joueur. Les dialogues, combats et transitions suspendent le cycle.'),
+          const SizedBox(height: 12),
+          StudioCommitField(
+            key: ValueKey('parallel-cadence:${record.id}'),
+            label: 'Cadence (ms)',
+            value: '${policy.cadenceMs}',
+            tryCommit: (value) {
+              final cadence = int.tryParse(value);
+              if (cadence == null || cadence < 100 || cadence > 60000 || onParallel == null) return false;
+              onParallel!(NarrativeEventParallelPolicy(cadenceMs: cadence, ownerVariantId: policy.ownerVariantId));
+              return true;
+            },
+          ),
+          if (record.source?.kind == NarrativeEventSourceKind.entityAutorun) ...[
+            const SizedBox(height: 12),
+            StudioSelect(
+              label: 'Page propriétaire',
+              value: policy.ownerVariantId ?? '',
+              options: {'': 'Toutes les pages actives', ...ownerVariants},
+              onChanged: onParallel == null ? null : (value) => onParallel!(NarrativeEventParallelPolicy(
+                cadenceMs: policy.cadenceMs, ownerVariantId: value.isEmpty ? null : value)),
+            ),
+          ],
+        ],
         const SizedBox(height: 16),
         StudioSelect(
           label: 'Après avoir joué',
