@@ -550,9 +550,13 @@ final class CinematicStagePoint {
     required this.x,
     required this.y,
     String? description,
+    String? relativeToActorId,
   })  : id = _requireTrimmed(id, 'CinematicStagePoint.id'),
         label = _requireTrimmed(label, 'CinematicStagePoint.label'),
-        description = _trimOptional(description);
+        description = _trimOptional(description),
+        relativeToActorId = relativeToActorId == null
+            ? null
+            : _requireTrimmed(relativeToActorId, 'CinematicStagePoint.relativeToActorId');
 
   factory CinematicStagePoint.fromJson(Map<String, dynamic> json) {
     return CinematicStagePoint(
@@ -561,6 +565,7 @@ final class CinematicStagePoint {
       x: _readRequiredDouble(json, 'x'),
       y: _readRequiredDouble(json, 'y'),
       description: _readOptionalString(json, 'description'),
+      relativeToActorId: _readOptionalString(json, 'relativeToActorId'),
     );
   }
 
@@ -569,6 +574,7 @@ final class CinematicStagePoint {
   final double x;
   final double y;
   final String? description;
+  final String? relativeToActorId;
 
   Map<String, dynamic> toJson() => _withoutNulls({
         'id': id,
@@ -576,6 +582,7 @@ final class CinematicStagePoint {
         'x': x,
         'y': y,
         'description': description,
+        'relativeToActorId': relativeToActorId,
       });
 
   @override
@@ -586,10 +593,28 @@ final class CinematicStagePoint {
           other.label == label &&
           other.x == x &&
           other.y == y &&
-          other.description == description;
+          other.description == description &&
+          other.relativeToActorId == relativeToActorId;
 
   @override
-  int get hashCode => Object.hash(id, label, x, y, description);
+  int get hashCode => Object.hash(id, label, x, y, description, relativeToActorId);
+}
+
+CinematicStagePoint? resolveCinematicStagePoint(
+  CinematicStagePoint point,
+  Map<String, ({double x, double y})> actorOrigins,
+) {
+  final actorId = point.relativeToActorId;
+  if (actorId == null) return point;
+  final origin = actorOrigins[actorId];
+  if (origin == null) return null;
+  return CinematicStagePoint(
+    id: point.id,
+    label: point.label,
+    x: origin.x + point.x,
+    y: origin.y + point.y,
+    description: point.description,
+  );
 }
 
 @immutable

@@ -3667,6 +3667,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   @visibleForTesting
+  void debugReplaceNarrativePresentationStateForTest(GameState state) {
+    final session = _activeNarrativeSceneWorkingSession;
+    if (session == null) throw StateError('No narrative presentation session is active.');
+    session.gameState = state;
+    session.stateProjection = () => state;
+    _applyNarrativeGameState(state);
+  }
+
+  @visibleForTesting
   Future<GameState> debugReadNarrativeGameStateForTest() =>
       _narrativeStateTransactions.read();
 
@@ -4438,6 +4447,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Map<String, EntityFacing> _lastNpcDeclaredFacings = {};
   final Map<String, String?> _lastNpcVariantIds = {};
   final Map<String, int> _npcPresentationRevisions = {};
+  final _sceneActorAppearanceOverrides = <Object, ({ProjectCharacterEntry character, int? revision})>{};
   final Map<String, EntityFacing> _lastNpcLogicalFacings = {};
   final Map<String, EntityFacing> _remountedNpcFacings = {};
 
@@ -4496,6 +4506,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           if (changedFacing != null) _remountedNpcFacings[key] = changedFacing;
           continue;
         }
+        final appearanceKey = _sceneActorTransientKey(SceneActorTarget.entity(
+            mapId: loaded.bundle.map.id, entityId: source.id));
+        if (pageChanged) actor.isVisible = true;
+        final appearance = _sceneActorAppearanceOverrides[appearanceKey];
+        if (appearance != null && next != null &&
+            appearance.revision == _npcPresentationRevisions[key]) {
+          if (actor.character.id != appearance.character.id) {
+            actor.applyCharacterPresentation(appearance.character,
+                position: actor.gridPos ?? next.pos, footprint: next.size,
+                facing: changedFacing ?? actor.facing);
+          } else if (changedFacing != null) {
+            actor.restoreBase(changedFacing);
+          }
+          continue;
+        }
+        if (appearance != null) _sceneActorAppearanceOverrides.remove(appearanceKey);
         if (next?.npc?.characterId == actor.character.id && next?.size == previous?.size) {
           if (changedFacing != null) actor.restoreBase(changedFacing);
           continue;
@@ -13699,7 +13725,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   Object _sceneActorTransientKey(SceneActorTarget target) =>
     target.kind == SceneActorTargetKind.player ? SceneActorTargetKind.player :
       (target.mapId, target.entityId, _battleRuntimeGameState.mapInstanceWorldState.instanceRef(target.mapId)
-        ?? _currentMapActivationId);
+        ?? _currentMapActivationId, _npcPresentationRevisions['${target.mapId}/${target.entityId}']);
 
   Future<String> _executeSceneActorRouteCommand(
     SceneInteractiveCommand command, {
@@ -13737,10 +13763,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         return 'blocked';
       }
     }
+    final appearanceImages = actor is PlayerComponent
+        ? _loadedMapsById[_activeMapId]?.tileImagesById ?? actor.tileImages
+        : (actor as OverworldActorComponent).tileImages;
+    for (final step in command.steps.whereType<SceneActorAppearanceStep>()) {
+      if (!isSceneActorAppearanceReferenceAvailable(_bundle.manifest, step.characterId)) return 'blocked';
+      final characters = _bundle.manifest.characters.where((value) => value.id == step.characterId).toList();
+      if (characters.length != 1) return 'blocked';
+      final character = characters.single;
+      final imageIds = runtimePlayerAvatarImageIds(character);
+      if (imageIds.isEmpty || !imageIds.every(appearanceImages.containsKey)) return 'blocked';
+      try {
+        validateRuntimePlayerAvatarImages(character: character,
+            settings: _bundle.manifest.settings,
+            availableImageIds: appearanceImages.keys.toSet(),
+            containsSourceRect: (id, rect) => appearanceImages[id]?.containsSourceRect(rect) ?? false);
+      } catch (_) {
+        return 'blocked';
+      }
+    }
     final activationId = _currentMapActivationId;
+    final routePresentationRevisionKey = '${target.mapId}/${target.entityId}';
+    final routePresentationRevision = _npcPresentationRevisions[routePresentationRevisionKey];
     bool current() =>
         _currentMapActivationId == activationId &&
-        identical(_resolveSceneActor(target, session), actor);
+        identical(_resolveSceneActor(target, session), actor) &&
+        (target.kind == SceneActorTargetKind.player ||
+          _npcPresentationRevisions[routePresentationRevisionKey] == routePresentationRevision);
     final originalPlayer = _world.player;
     final originalPosition = actor is OverworldActorComponent
         ? actor.gridPos
@@ -13757,6 +13806,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final originalMapActivationId = _currentMapActivationId;
     session?.registerCompensation(() async {
       if (_isRemoved) return;
+      if (target.kind == SceneActorTargetKind.entity &&
+          _npcPresentationRevisions[routePresentationRevisionKey] != routePresentationRevision) {
+        return;
+      }
       final restoredActor = _resolveSceneActor(target, session);
       final restoredScopeIsCurrent = originalInstance != null
           ? _battleRuntimeGameState.mapInstanceWorldState.instanceRef(
@@ -13817,11 +13870,80 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _clearPressedMovementControls();
     _publishInputAuthoritySnapshot();
     final transientKey = _sceneActorTransientKey(target);
+    final appearanceRevisionKey = '${target.mapId}/${target.entityId}';
+    final appearanceRevision = _npcPresentationRevisions[appearanceRevisionKey];
+    Object captureActorAppearance() {
+      final previous = _sceneActorAppearanceOverrides[transientKey];
+      final character = actor is PlayerComponent ? actor.characterEntry : (actor as OverworldActorComponent).character;
+      final images = actor is PlayerComponent ? actor.tileImages : (actor as OverworldActorComponent).tileImages;
+      final retainedImages = _playerRetainedImages.toList(growable: false);
+      return () {
+        if (previous == null) {
+          _sceneActorAppearanceOverrides.remove(transientKey);
+        } else {
+          _sceneActorAppearanceOverrides[transientKey] = previous;
+        }
+        if (_isRemoved || !_scenePresentationScopeIsCurrent(session)) return;
+        if (target.kind == SceneActorTargetKind.player) {
+          _player.replaceCharacter(character, images);
+          _playerRetainedImages = retainedImages;
+          _playerSupportsRunning = _player.hasRunningAnimation;
+        } else if (current() && character != null &&
+            appearanceRevision == _npcPresentationRevisions[appearanceRevisionKey]) {
+          final npc = actor as OverworldActorComponent;
+          final entity = _world.map.entities.singleWhere((value) => value.id == target.entityId);
+          npc.applyCharacterPresentation(character, position: npc.gridPos ?? entity.pos,
+              footprint: entity.size, facing: npc.facing);
+        }
+      };
+    }
+    void restoreActorAppearance(Object snapshot) => (snapshot as void Function())();
+    Future<void> applyActorAppearance(String id) async {
+      if (!current() || appearanceRevision != _npcPresentationRevisions[appearanceRevisionKey]) {
+        throw StateError('The actor appearance owner changed.');
+      }
+      final character = _bundle.manifest.characters.singleWhere((value) => value.id == id);
+      _sceneActorAppearanceOverrides[transientKey] = (character: character, revision: appearanceRevision);
+      if (actor is PlayerComponent) {
+        final requiredIds = runtimePlayerAvatarImageIds(character);
+        final images = {for (final id in requiredIds) id: appearanceImages[id]!};
+        actor.replaceCharacter(character, images);
+        _playerRetainedImages = {..._playerRetainedImages, ...images.values};
+        _playerSupportsRunning = actor.hasRunningAnimation;
+      } else {
+        final npc = actor as OverworldActorComponent;
+        final entity = _world.map.entities.singleWhere((value) => value.id == target.entityId);
+        npc.applyCharacterPresentation(character, position: npc.gridPos ?? entity.pos,
+            footprint: entity.size, facing: npc.facing);
+      }
+    }
+    bool actorVisible() => switch (actor) {
+      PlayerComponent() => actor.isVisible,
+      OverworldActorComponent() => actor.isVisible,
+      _ => true,
+    };
+    void restoreActorVisibility(bool visible) {
+      if (_isRemoved || !current()) return;
+      if (actor is PlayerComponent) actor.isVisible = visible;
+      if (actor is OverworldActorComponent) actor.isVisible = visible;
+    }
     ActorRouteTransientState? sceneState;
     if (command.transientScope == ActorRouteTransientScope.scene) {
       sceneState = session!.actorRouteStates.putIfAbsent(transientKey, () {
         final previous = _sceneActorRenderAboveMap[transientKey];
+        final previousVisible = actorVisible();
+        final previousAppearance = captureActorAppearance();
         session.actorRouteCleanup.add(() {
+          if (_sceneActorAppearanceOverrides.containsKey(transientKey)) {
+            restoreActorAppearance(previousAppearance);
+          }
+          if (!_isRemoved) {
+            if (target.kind == SceneActorTargetKind.player) {
+              _player.isVisible = previousVisible;
+            } else {
+              restoreActorVisibility(previousVisible);
+            }
+          }
           if (previous == null) {
             _sceneActorRenderAboveMap.remove(transientKey);
           } else {
@@ -13835,6 +13957,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     var soundIndex = 0;
     final port = _FlameSceneActorRouteExecutionPort(
       current: current,
+      visibilityValue: actorVisible,
+      visibilityRestoreAction: restoreActorVisibility,
+      appearanceCaptureAction: captureActorAppearance,
+      appearanceRestoreAction: restoreActorAppearance,
+      appearanceAction: applyActorAppearance,
       faceAction: (target, facing) async =>
           _faceSceneActor(target, facing, session),
       moveAction:

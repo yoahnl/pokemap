@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../map_core_domain.dart';
+import '../models/scene_actor_route.dart';
 import 'catalog_storage.dart';
 import 'portable_catalog_publication.dart';
 
@@ -156,6 +157,11 @@ final class ProjectCatalogSelection {
     for (final scene in scenes) {
       for (final node in scene.graph.nodes) {
         final payload = node.payload;
+        if (payload is SceneActionPayload && payload.interactiveCommand is SceneActorRouteInteractiveCommand) {
+          for (final step in (payload.interactiveCommand as SceneActorRouteInteractiveCommand).steps) {
+            if (step is SceneActorAppearanceStep) add(CatalogDefinitionKind.character, step.characterId);
+          }
+        }
         if (payload case SceneActionPayload(
           interactiveCommand: SceneWarpInteractiveCommand(:final presentation),
         )) {

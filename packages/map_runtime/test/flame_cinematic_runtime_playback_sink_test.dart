@@ -6,6 +6,168 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('player map placement keeps current pose facing and camera before waiting', () async {
+    final host = _FakeHost();
+    host.actors['hero']!.setFacing(EntityFacing.west);
+    host.cameraPosition = Vector2(7, 9);
+    final base = _visualAsset(steps: [CinematicTimelineStep(id: 'pause', kind: CinematicTimelineStepKind.wait, durationMs: 100)]);
+    final asset = CinematicAsset.fromJson({...base.toJson(), 'stageContext': {...base.stageContext!.toJson(),
+      'initialPlacements': [{'actorId': 'hero', 'kind': 'fromMapEntity'}],
+    }});
+    final controller = CinematicRuntimePlaybackController(sink: FlameCinematicRuntimePlaybackSink(host: host));
+    addTearDown(() { controller.cancel(); });
+    final completion = controller.play(asset);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    expect(host.actors['hero']!.facing, EntityFacing.west);
+    expect(host.cameraPosition, Vector2(7, 9));
+    controller.update(const Duration(milliseconds: 50));
+    expect(host.actors['hero']!.facing, EntityFacing.west);
+    expect(host.cameraPosition, Vector2(7, 9));
+    controller.cancel();
+    expect((await completion).success, isFalse);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    expect(host.actors['hero']!.facing, EntityFacing.west);
+    expect(host.cameraPosition, Vector2(7, 9));
+    expect(host.inputLocked, isFalse);
+  });
+
+  test('relative jump lands from the current actor origin on each replay', () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final asset = CinematicAsset.fromJson({...base.toJson(),
+      'actorCompletionPolicy': 'keepFinal',
+      'timeline': {'steps': [{'id': 'jump-relative', 'kind': 'actorJump', 'actorId': 'hero',
+        'targetId': 'lighthouse', 'durationMs': 500, 'metadata': {'actor.jumpHeightCells': '1'}}]},
+      'stageContext': {...base.stageContext!.toJson(), 'stagePoints': [
+        {'id': 'lighthouse_point', 'label': 'Offset', 'x': -1.0, 'y': 0.0, 'relativeToActorId': 'hero'},
+      ]},
+    });
+    final controller = CinematicRuntimePlaybackController(sink: FlameCinematicRuntimePlaybackSink(host: host));
+    for (final origin in [Vector2(20, 20), Vector2(40, 30)]) {
+      host.actors['hero']!.setFocusPoint(origin);
+      final result = controller.play(asset);
+      controller.update(const Duration(milliseconds: 500));
+      expect((await result).success, isTrue);
+      expect(host.actors['hero']!.focusPoint, origin + Vector2(-1, 0));
+    }
+  });
+
+  test('relative origin with an authored teleport refuses before input capture', () async {
+    final host = _FakeHost();
+    final base = _visualAsset(steps: [_actorMoveStep()]);
+    final asset = CinematicAsset.fromJson({...base.toJson(),
+      'stageContext': {...base.stageContext!.toJson(), 'stagePoints': [
+        {'id': 'lighthouse_point', 'label': 'Offset', 'x': 2.0, 'y': 0.0, 'relativeToActorId': 'hero'},
+        {'id': 'start', 'label': 'Start', 'x': 100.0, 'y': 100.0},
+      ], 'initialPlacements': [{'actorId': 'hero', 'kind': 'stagePoint', 'stagePointId': 'start'}]},
+    });
+    final controller = CinematicRuntimePlaybackController(sink: FlameCinematicRuntimePlaybackSink(host: host));
+    expect((await controller.play(asset)).success, isFalse);
+    expect(host.events, isEmpty);
+    expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+  });
+
+  test(
+    'actor-relative targets and waypoints replay from each playback origin',
+    () async {
+      final host = _FakeHost()
+        ..stageOffset = Vector2(100, 200)
+        ..stageCell = Vector2(24, 40);
+      final base = _visualAsset(steps: [_actorMoveStep()]);
+      final asset = CinematicAsset.fromJson({
+        ...base.toJson(),
+        'actorCompletionPolicy': 'keepFinal',
+        'timeline': {
+          'steps': [
+            {
+              ..._actorMoveStep().toJson(),
+              'metadata': {
+                ..._actorMoveStep().metadata,
+                cinematicTimelineActorPathModeMetadataKey: 'manual',
+              },
+            },
+          ],
+        },
+        'stageContext': {
+          ...base.stageContext!.toJson(),
+          'stagePoints': [
+            {
+              'id': 'lighthouse_point',
+              'label': 'Offset',
+              'x': 2.0,
+              'y': -1.0,
+              'relativeToActorId': 'hero',
+            },
+            {
+              'id': 'corner',
+              'label': 'Corner',
+              'x': 1.0,
+              'y': 0.0,
+              'relativeToActorId': 'hero',
+            },
+          ],
+          'manualPaths': [
+            {
+              'id': 'path',
+              'label': 'Path',
+              'ownerActorMoveStepId': 'move',
+              'waypointStagePointIds': ['corner'],
+            },
+          ],
+        },
+      });
+      final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host),
+      );
+      for (final origin in [Vector2(20, 20), Vector2(40, 30)]) {
+        host.actors['hero']!.setFocusPoint(origin);
+        final completion = controller.play(
+          CinematicAsset.fromJson(asset.toJson()),
+        );
+        expect(host.actors['hero']!.focusPoint, origin);
+        controller.update(const Duration(milliseconds: 100));
+        expect((await completion).success, isTrue);
+        expect(host.actors['hero']!.focusPoint, origin + Vector2(48, -40));
+      }
+      host.actors['hero']!.setFocusPoint(Vector2(50, 50));
+      final cancelled = controller.play(asset);
+      controller.update(const Duration(milliseconds: 50));
+      controller.cancel();
+      expect((await cancelled).success, isFalse);
+      expect(host.actors['hero']!.focusPoint, Vector2(50, 50));
+      expect(host.inputLocked, isFalse);
+    },
+  );
+
+  test(
+    'relative target refuses a missing origin before capture or input lock',
+    () async {
+      final host = _FakeHost();
+      final base = _visualAsset(steps: [_actorMoveStep()]);
+      final asset = CinematicAsset.fromJson({
+        ...base.toJson(),
+        'stageContext': {
+          ...base.stageContext!.toJson(),
+          'stagePoints': [
+            {
+              'id': 'lighthouse_point',
+              'label': 'Offset',
+              'x': 2.0,
+              'y': 0.0,
+              'relativeToActorId': 'missing',
+            },
+          ],
+        },
+      });
+      final controller = CinematicRuntimePlaybackController(
+        sink: FlameCinematicRuntimePlaybackSink(host: host),
+      );
+      expect((await controller.play(asset)).success, isFalse);
+      expect(host.events, isEmpty);
+      expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
+    },
+  );
+
   test('resolved media channel conflict rejects before capturing or locking', () async {
     final host = _FakeHost();
     final media = _BlockingMediaPort();
@@ -639,9 +801,13 @@ final class _FakeHost implements FlameCinematicRuntimeHost, FlameCinematicPoseRu
     return actors[entityId]?.focusPoint.clone();
   }
 
+  Vector2 stageOffset = Vector2.zero();
+  Vector2 stageCell = Vector2(1, 1);
+
   @override
   Vector2 stagePointFocusPoint(CinematicStagePoint point) {
-    return Vector2(point.x, point.y);
+    return Vector2(point.x * stageCell.x + stageOffset.x,
+      point.y * stageCell.y + stageOffset.y);
   }
 
   @override

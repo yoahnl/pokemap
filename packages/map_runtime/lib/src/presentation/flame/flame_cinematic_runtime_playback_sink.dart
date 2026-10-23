@@ -229,6 +229,49 @@ final class FlameCinematicRuntimePlaybackSink
       }
     }
 
+    if (asset.stageContext?.stagePoints.any(
+          (point) => point.relativeToActorId != null,
+        ) ??
+        false) {
+      final poseHost = host;
+      if (poseHost is! FlameCinematicPoseRuntimeHost) {
+        return const CinematicRuntimeSinkPreflightResult.rejected(
+          message: 'Actor-relative cinematic paths require pose validation.',
+        );
+      }
+      try {
+        for (final step in asset.timeline.steps.where(
+          (step) =>
+              step.kind == CinematicTimelineStepKind.actorMove ||
+              step.kind == CinematicTimelineStepKind.actorJump,
+        )) {
+          final binding = asset.stageContext!.actorBindings
+              .where((binding) => binding.actorId == step.actorId)
+              .firstOrNull;
+          final route = _movementRoute(asset, step);
+          if (binding == null || route == null) {
+            throw StateError(
+              'Actor-relative path has no mounted actor or destination.',
+            );
+          }
+          for (final point in route) {
+            (poseHost as FlameCinematicPoseRuntimeHost)
+                .validateCinematicActorPoses({
+                  binding: FlameCinematicActorPose(
+                    focusX: point.x,
+                    focusY: point.y,
+                    facing: _resolveActor(binding)!.facing,
+                  ),
+                });
+          }
+        }
+      } catch (error) {
+        return CinematicRuntimeSinkPreflightResult.rejected(
+          message: 'Actor-relative cinematic path is invalid: $error',
+        );
+      }
+    }
+
     for (final step in asset.timeline.steps) {
       final failure = _preflightStep(asset, step);
       if (failure != null) return failure;
@@ -699,6 +742,7 @@ final class FlameCinematicRuntimePlaybackSink
     for (final placement in includeInitialPlacements
         ? asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]
         : const <CinematicActorInitialPlacement>[]) {
+      if (placement.kind == CinematicActorInitialPlacementKind.fromMapEntity) continue;
       final point = _initialPlacement(asset, placement);
       final pose = poses[placement.actorId];
       if (point == null || pose == null) continue;
@@ -780,6 +824,7 @@ final class FlameCinematicRuntimePlaybackSink
       actors: Map<String, _ActorVisualSnapshot>.unmodifiable(actorSnapshots),
     );
     for (final placement in asset.stageContext?.initialPlacements ?? const <CinematicActorInitialPlacement>[]) {
+      if (placement.kind == CinematicActorInitialPlacementKind.fromMapEntity) continue;
       final position = _initialPlacement(asset, placement);
       if (position == null) continue;
       final actor = _requireActor(placement.actorId);
@@ -794,7 +839,8 @@ final class FlameCinematicRuntimePlaybackSink
       if (binding.kind != CinematicActorBindingKind.player) continue;
       final placed = asset.stageContext!.initialPlacements.any((placement) =>
           placement.actorId == binding.actorId &&
-          placement.kind != CinematicActorInitialPlacementKind.unset);
+          placement.kind != CinematicActorInitialPlacementKind.unset &&
+          placement.kind != CinematicActorInitialPlacementKind.fromMapEntity);
       if (placed) host.cameraPosition = _requireActor(binding.actorId).focusPoint.clone();
     }
     _playbackCameraPosition = host.cameraPosition.clone();
@@ -1127,6 +1173,23 @@ final class FlameCinematicRuntimePlaybackSink
     return actor;
   }
 
+  Vector2? _resolveStagePoint(CinematicAsset asset, CinematicStagePoint point) {
+    final actorId = point.relativeToActorId;
+    if (actorId == null) return host.stagePointFocusPoint(point);
+    final binding = asset.stageContext?.actorBindings
+        .where((binding) => binding.actorId == actorId)
+        .firstOrNull;
+    if (binding == null) return null;
+    final origin =
+        _snapshot?.actors[actorId]?.focusPoint ??
+        _resolveActor(binding)?.focusPoint;
+    if (origin == null) return null;
+    final zero = host.stagePointFocusPoint(
+      CinematicStagePoint(id: point.id, label: point.label, x: 0, y: 0),
+    );
+    return origin + host.stagePointFocusPoint(point) - zero;
+  }
+
   Vector2? _resolveMovementTarget(CinematicAsset asset, String targetId) {
     final context = asset.stageContext;
     if (context == null) return null;
@@ -1148,7 +1211,7 @@ final class FlameCinematicRuntimePlaybackSink
         return host.mapEntityFocusPoint(sourceId);
       case CinematicMovementTargetBindingKind.stagePoint:
         for (final point in context.stagePoints) {
-          if (point.id == sourceId) return host.stagePointFocusPoint(point);
+          if (point.id == sourceId) return _resolveStagePoint(asset, point);
         }
         return null;
       case CinematicMovementTargetBindingKind.abstractPoint:
@@ -1185,7 +1248,9 @@ final class FlameCinematicRuntimePlaybackSink
     for (final pointId in manualPath.waypointStagePointIds) {
       final point = stagePoints[pointId];
       if (point == null) return null;
-      route.add(host.stagePointFocusPoint(point));
+      final resolved = _resolveStagePoint(asset, point);
+      if (resolved == null) return null;
+      route.add(resolved);
     }
     if (route.isEmpty || route.last != target) route.add(target.clone());
     return route;
@@ -1210,7 +1275,7 @@ final class FlameCinematicRuntimePlaybackSink
   Vector2? _stagePointById(CinematicAsset asset, String? pointId) {
     if (pointId == null) return null;
     for (final point in asset.stageContext?.stagePoints ?? const []) {
-      if (point.id == pointId) return host.stagePointFocusPoint(point);
+      if (point.id == pointId) return _resolveStagePoint(asset, point);
     }
     return null;
   }

@@ -729,6 +729,16 @@ CinematicActorPreviewPosition _positionFromMapEntity({
   required MapData? mapData,
   required List<CinematicActorDisplayPreviewDiagnostic> diagnostics,
 }) {
+  if (binding.kind == CinematicActorBindingKind.player && mapData != null) {
+    final spawns = mapData.entities.where((entity) => entity.kind == MapEntityKind.spawn).toList();
+    final starts = spawns.where((entity) => entity.spawn?.role == EntitySpawnRole.playerStart).toList();
+    final spawn = spawns.where((entity) => entity.id == mapData.mapMetadata.defaultSpawnId).firstOrNull
+        ?? (starts.length == 1 ? starts.single : null);
+    if (spawn != null) {
+      return _positionForEntity(actorId: actorId, entity: spawn, mapData: mapData,
+          diagnostics: diagnostics);
+    }
+  }
   if (binding.kind != CinematicActorBindingKind.mapEntity ||
       binding.mapEntityId == null ||
       entity == null ||

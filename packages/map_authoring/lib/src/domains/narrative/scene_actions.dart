@@ -373,10 +373,14 @@ final class SceneActions {
   };
 
   static const _actorRouteContract = {
-    'contractVersion': 3,
+    'contractVersion': 4,
     'parameters': ['target', 'steps', 'skippable', 'transientScope'],
     'transientScopes': ['route', 'scene'],
     'defaultTransientScope': 'route',
+    'transientFlags': ['through', 'renderAboveMap', 'visibility', 'appearance'],
+    'execution': 'awaitedSequentialRoute',
+    'simultaneousActorsAndJumps': 'cinematicTimeline',
+    'nonSkippableObstruction': 'blockedWithoutRetry',
     'transientLifetime': 'explicitScopeWithRestorationOnCompletionFailureOrCancellation',
     'playerSceneScope': 'continuousAcrossMapTransfers',
     'entitySceneScope': 'exactMapInstanceAndEntity',
@@ -390,13 +394,14 @@ final class SceneActions {
       'player': ['kind', 'mapId'],
       'entity': ['kind', 'mapId', 'entityId'],
     },
-    'stepKinds': ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'visibility', 'sound'],
+    'stepKinds': ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'visibility', 'appearance', 'sound'],
     'stepFields': {
       'face': ['kind', 'direction', 'durationMs', 'yieldAfter'],
       'move': ['kind', 'direction', 'durationMs', 'initialCollisionOwnerEntityId'],
       'moveDiagonal': ['kind', 'horizontal', 'vertical', 'durationMs'],
       'renderAboveMap': ['kind', 'enabled'],
       'visibility': ['kind', 'visible'],
+      'appearance': ['kind', 'characterId'],
       'wait': ['kind', 'durationMs'],
       'through': ['kind', 'enabled'],
       'sound': ['kind', 'mediaAssetId', 'gain'],

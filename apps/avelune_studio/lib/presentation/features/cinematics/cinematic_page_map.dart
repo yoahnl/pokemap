@@ -127,12 +127,25 @@ extension _CinematicPageMap on _CinematicWorkspacePageState {
         controller.active?.revision != owner.revision) {
       return;
     }
+    final source = owner.asset.stageContext!.stagePoints.firstWhere(
+      (entry) => entry.id == point.id,
+    );
+    final origin = source.relativeToActorId == null
+        ? null
+        : model!.actorOrigins[source.relativeToActorId];
+    if (source.relativeToActorId != null && origin == null) {
+      view!.spatialError =
+          'L’acteur d’origine doit être présent pour déplacer ce repère.';
+      refresh();
+      return;
+    }
     controller.setStagePoint(
       CinematicStagePoint(
         id: point.id,
         label: point.label,
-        x: destination.dx,
-        y: destination.dy,
+        x: destination.dx - (origin?.x ?? 0),
+        y: destination.dy - (origin?.y ?? 0),
+        relativeToActorId: source.relativeToActorId,
         description: point.description,
       ),
     );

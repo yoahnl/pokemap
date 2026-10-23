@@ -14,7 +14,13 @@ final class SourceInteractionProgram {
         profileHash = analysis.profile.canonicalHash,
         sourceFileHash = source.sourceFiles[event.sourceFileId]!.contentHash,
         actorEventIds = Set.unmodifiable(shape.actorIds),
+        hasPlayerRoutes = shape.hasPlayerRoutes,
         allowedRouteIdentities = Set.unmodifiable(shape.routeIdentities),
+        routes = List.unmodifiable(shape.routes),
+        cinematicRouteGroups = List.unmodifiable([
+          for (final group in shape.cinematicRouteGroups)
+            List<SourceForcedMoveRouteNode>.unmodifiable(group)
+        ]),
         _allowedNodeIdentities = Set.unmodifiable(shape.nodeIdentities),
         _eventFingerprint = _fingerprint(event),
         _actorFingerprints = Map.unmodifiable({
@@ -32,7 +38,10 @@ final class SourceInteractionProgram {
   final int sourceMapId, sourceEventId;
   final Sha256Hash sourceSnapshotHash, normalizationHash, profileHash, sourceFileHash;
   final Set<int> actorEventIds;
+  final bool hasPlayerRoutes;
   final Set<String> allowedRouteIdentities;
+  final List<SourceForcedMoveRouteNode> routes;
+  final List<List<SourceForcedMoveRouteNode>> cinematicRouteGroups;
   final Set<String> _allowedNodeIdentities;
   final String _eventFingerprint;
   final Map<int, String> _actorFingerprints;
@@ -61,9 +70,16 @@ final class SourceInteractionProgram {
   bool permitsRoute(SourceForcedMoveRouteNode node) =>
       allowedRouteIdentities.contains(_nodeIdentity(node));
 
+  List<SourceForcedMoveRouteNode>? cinematicRoutesFor(
+          SourceForcedMoveRouteNode route) =>
+      cinematicRouteGroups
+          .where((group) => group.any(
+              (candidate) => _nodeIdentity(candidate) == _nodeIdentity(route)))
+          .singleOrNull;
+
   Map<String, Object?> toJson() => {
     'kind': 'sourceFiniteInteractionProgram',
-    'version': 1,
+    'version': 2,
     'eventIdentity': eventIdentity.value,
     'sourceMapId': sourceMapId,
     'sourceEventId': sourceEventId,
@@ -85,9 +101,23 @@ final class SourceInteractionProgram {
     'nativeCardinalStepDurationMs': 250,
     'sourceRouteCompletion': 'asynchronousUnlessExplicitBarrier',
     'nativeRouteCompletion': 'awaited',
-    'routeContinuationPolicy': 'terminalBranchOrImmediateBarrier',
+    'routeContinuationPolicy':
+            'terminalBranchOrContiguousRoutesBeforeBarrier',
+        'finiteRouteStepBudget': 64,
+        'cinematicRouteGroups': [
+          for (final group in cinematicRouteGroups)
+            [for (final route in group) _nodeIdentity(route)]
+        ],
+        'cinematicCollisionAdmission': 'sourceExplicitThroughForEveryMovement',
+        'cinematicCoordinates': 'relativeToActorAtPlaybackStart',
+        'cinematicTiming': '250msCardinalAndRotation500msJump20HzSourceWait',
+        'transientRoutePresentation': 'explicitlyRestoredBeforeRouteEnd',
+    'appearancePose': 'importedPatternAndConditionalOriginalDirectionChange',
     'routeBarrier': 'nativeWaitForActorRoutesWithQualifiedMapContext',
-    'authoredRouteBoundsQualified': true,
+    'authoredRouteBoundsQualified': !hasPlayerRoutes,
+    'authoredNpcRouteBoundsQualified': true,
+    if (hasPlayerRoutes) 'playerRouteBoundsAuthority': 'aveluneCurrentPositionOnQualifiedMap',
+    'nativeBlockedRoutePolicy': 'boundedBlockedOutcomeWithSceneControlReleased',
     'runtimeCollisionAndCurrentPositionAuthority': 'aveluneNative',
     'sourceTemporalParity': false,
     'nativeExecutionQualified': false,
@@ -152,9 +182,11 @@ final class _InteractionShape {
   final int width, height;
   final actorIds = <int>{};
   final routeIdentities = <String>{};
+  final routes = <SourceForcedMoveRouteNode>[];
   final nodeIdentities = <String>{};
   var nodeCount = 0;
-  var choices = 0;
+  var hasPlayerRoutes = false;
+  final cinematicRouteGroups = <List<SourceForcedMoveRouteNode>>[];
 
   bool admit() {
     if (event.isQuarantined || event.pages.isEmpty || event.pages.length > 32) return false;
@@ -165,10 +197,11 @@ final class _InteractionShape {
         return false;
       }
     }
-    return choices > 0 && routeIdentities.isNotEmpty;
+    return routeIdentities.isNotEmpty;
   }
 
-  bool _block(SourceEventBlock block, int depth, {bool terminal = true}) {
+  bool _block(SourceEventBlock block, int depth, {bool terminal = true, Map<int, Set<(int, int)>>? routePositions}) {
+    final positions = routePositions ?? <int, Set<(int, int)>>{};
     if (block.isQuarantined || depth > 16) return false;
     for (final (index, node) in block.nodes.indexed) {
       if (++nodeCount > 1024) return false;
@@ -178,17 +211,21 @@ final class _InteractionShape {
           break;
         case SourceTextNode():
           if (node.followingChoice != null &&
-              !_choice(node.followingChoice!, depth + 1, terminalNode)) {
+              !_choice(node.followingChoice!, depth + 1, terminalNode, positions)) {
             return false;
           }
         case SourceChoiceNode():
-          if (!_choice(node, depth + 1, terminalNode)) return false;
+          if (!_choice(node, depth + 1, terminalNode, positions)) return false;
         case SourceConditionalNode():
+          final whenTrue = _copyPositions(positions),
+              whenFalse = _copyPositions(positions);
           if (!_condition(node.condition) ||
-              !_block(node.whenTrue, depth + 1, terminal: terminalNode) ||
-              !_block(node.whenFalse, depth + 1, terminal: terminalNode)) {
+              !_block(node.whenTrue, depth + 1, terminal: terminalNode, routePositions: whenTrue) ||
+              !_block(node.whenFalse, depth + 1, terminal: terminalNode, routePositions: whenFalse)) {
             return false;
           }
+          _mergePositions(
+              positions, [whenTrue, whenFalse], analysis, event.sourceMapId);
         case SourceWaitNode():
           if (node.profileHash != analysis.profile.canonicalHash ||
               node.durationTicks < 0 || node.durationTicks > 1200) {
@@ -215,10 +252,26 @@ final class _InteractionShape {
         case SourceMoveRouteBarrierNode():
           if (node.profileHash != analysis.profile.canonicalHash) return false;
         case SourceForcedMoveRouteNode():
-          final immediateBarrier = index + 1 < block.nodes.length &&
-              block.nodes[index + 1] is SourceMoveRouteBarrierNode;
-          if (!terminalNode && !immediateBarrier) return false;
-          if (!_route(node)) return false;
+          final runStart = index == 0 ||
+              block.nodes[index - 1] is! SourceForcedMoveRouteNode;
+          var last = index;
+          while (last + 1 < block.nodes.length &&
+              block.nodes[last + 1] is SourceForcedMoveRouteNode) {
+            last++;
+          }
+          final barrier = last + 1 < block.nodes.length &&
+              block.nodes[last + 1] is SourceMoveRouteBarrierNode;
+          if (!terminalNode && !barrier) return false;
+          final hasJump = node.steps
+              .any((step) => step.kind == SourceMoveRouteStepKind.jump);
+          if (runStart && (last > index || hasJump)) {
+            final group = block.nodes
+                .sublist(index, last + 1)
+                .cast<SourceForcedMoveRouteNode>();
+            if (!_cinematicGroup(group)) return false;
+            cinematicRouteGroups.add(group);
+          }
+          if (!_route(node, positions)) return false;
         default:
           return false;
       }
@@ -227,59 +280,195 @@ final class _InteractionShape {
     return true;
   }
 
-  bool _choice(SourceChoiceNode node, int depth, bool terminal) {
+  bool _choice(SourceChoiceNode node, int depth, bool terminal,
+      Map<int, Set<(int, int)>> positions) {
     if (depth > 16 || node.branches.isEmpty || node.branches.length > 16 ||
         node.branches.map((branch) => branch.index).toSet().length != node.branches.length) {
       return false;
     }
-    choices++;
+    final branches = <Map<int, Set<(int, int)>>>[];
     for (final branch in node.branches) {
-      if (!_block(branch.body, depth + 1, terminal: terminal)) return false;
+      final branchPositions = _copyPositions(positions);
+      if (!_block(branch.body, depth + 1, terminal: terminal, routePositions: branchPositions)) return false;
+      branches.add(branchPositions);
     }
-    if (node.cancelBranch != null &&
-        !_block(node.cancelBranch!, depth + 1, terminal: terminal)) {
-      return false;
+    if (node.cancelBranch != null) {
+      final cancel = _copyPositions(positions);
+      if (!_block(node.cancelBranch!, depth + 1, terminal: terminal, routePositions: cancel)) return false;
+      branches.add(cancel);
+    } else {
+      branches.add(_copyPositions(positions));
     }
+    _mergePositions(positions, branches, analysis, event.sourceMapId);
     nodeIdentities.add(_nodeIdentity(node));
     return true;
   }
 
-  bool _route(SourceForcedMoveRouteNode node) {
+  bool _cinematicGroup(List<SourceForcedMoveRouteNode> routes) {
+    final targets = routes
+        .map((route) => route.targetSourceCharacterId == 0
+            ? event.sourceEventId
+            : route.targetSourceCharacterId)
+        .toSet();
+    if (routes.length > 16 || targets.length != routes.length) return false;
+    var slots = 0;
+    for (final route in routes) {
+      var through = false;
+      for (final step in route.steps) {
+        switch (step.kind) {
+          case SourceMoveRouteStepKind.throughOn:
+            through = true;
+          case SourceMoveRouteStepKind.throughOff:
+            through = false;
+          case SourceMoveRouteStepKind.moveDown:
+          case SourceMoveRouteStepKind.moveUp:
+          case SourceMoveRouteStepKind.moveLeft:
+          case SourceMoveRouteStepKind.moveRight:
+            if (!through) return false;
+            slots++;
+          case SourceMoveRouteStepKind.jump:
+            if (!through || routes.length != 1) return false;
+            slots += 2;
+          case SourceMoveRouteStepKind.wait:
+            final ticks = step.durationTicks;
+            if (ticks == null || ticks < 0 || ticks % 5 != 0) return false;
+            slots += ticks ~/ 5;
+          case SourceMoveRouteStepKind.turnDown:
+          case SourceMoveRouteStepKind.turnLeft:
+          case SourceMoveRouteStepKind.turnRight:
+          case SourceMoveRouteStepKind.turnUp:
+            slots++;
+          default:
+            return false;
+        }
+      }
+      if (through) return false;
+    }
+    return slots > 0 && slots <= 256;
+  }
+
+  bool _route(SourceForcedMoveRouteNode node, Map<int, Set<(int, int)>> positions) {
     if (node.profileHash != analysis.profile.canonicalHash || node.repeat ||
-        !node.skippable || node.targetSourceCharacterId <= 0 ||
-        node.steps.isEmpty || node.steps.length > 16) {
+        node.targetSourceCharacterId < -1 || node.steps.isEmpty || node.steps.length > 64) {
       return false;
     }
-    final actor = analysis.eventAt(event.sourceMapId, node.targetSourceCharacterId);
-    if (actor == null || actor.isQuarantined || actor.pages.isEmpty ||
-        actor.pages.length > 32 || !_unconditional(actor.pages.first.condition)) {
-      return false;
+    final player = node.targetSourceCharacterId == -1;
+    final actor = player ? null : node.targetSourceCharacterId == 0 ? event :
+        analysis.eventAt(event.sourceMapId, node.targetSourceCharacterId);
+    if (!player) {
+      if (actor == null || actor.isQuarantined || actor.pages.isEmpty ||
+          actor.pages.length > 32 || !_unconditional(actor.pages.first.condition)) {
+        return false;
+      }
+      final charset = actor.pages.first.graphic?.characterName;
+      if (charset == null || charset.isEmpty) return false;
+      final moves = node.steps.any((step) => const {
+        SourceMoveRouteStepKind.moveDown, SourceMoveRouteStepKind.moveUp,
+        SourceMoveRouteStepKind.moveLeft, SourceMoveRouteStepKind.moveRight,
+        SourceMoveRouteStepKind.jump,
+      }.contains(step.kind));
+      for (final page in actor.pages) {
+        if (!const {0, 1, 2}.contains(page.triggerCode) || !_staticGraphic(page.graphic) ||
+            page.graphic!.directionFix || moves && !page.graphic!.walkAnime ||
+            page.graphic!.characterName != charset || !_condition(page.condition)) {
+          return false;
+        }
+      }
+      final footprint = RegExp(r'\bsize\(([0-9]+),([0-9]+)\)').firstMatch(actor.name);
+      if (footprint != null && (footprint[1] != '1' || footprint[2] != '1')) return false;
     }
-    final charset = actor.pages.first.graphic?.characterName;
-    if (charset == null || charset.isEmpty) return false;
-    for (final page in actor.pages) {
-      if (!const {0, 1, 2}.contains(page.triggerCode) || !_staticGraphic(page.graphic) ||
-          page.graphic!.characterName != charset || !_condition(page.condition)) {
+    final appearances = node.steps.where((step) => step.kind == SourceMoveRouteStepKind.appearance).toList();
+    if (appearances.isNotEmpty) {
+      if (player) return false;
+      final original = actor!.pages.first.graphic!;
+      if (actor.pages.any((page) => page.graphic!.direction != original.direction ||
+          page.graphic!.pattern != original.pattern || page.graphic!.hue != original.hue)) {
+        return false;
+      }
+      for (final step in appearances) {
+        if (step.characterName == null || step.characterName!.trim().isEmpty ||
+            step.characterHue != 0 || !const {2, 4, 6, 8}.contains(step.characterDirection) ||
+            step.characterPattern == null || step.characterPattern! < 0 || step.characterPattern! > 3) {
+          return false;
+        }
+      }
+      final restored = appearances.last;
+      if (restored.characterName != original.characterName || restored.characterHue != original.hue ||
+          restored.characterDirection != original.direction || restored.characterPattern != original.pattern) {
         return false;
       }
     }
-    final footprint = RegExp(r'\bsize\(([0-9]+),([0-9]+)\)').firstMatch(actor.name);
-    if (footprint != null && (footprint[1] != '1' || footprint[2] != '1')) return false;
-    var x = actor.x, y = actor.y;
-    if (x < 0 || y < 0 || x >= width || y >= height) return false;
-    for (final step in node.steps) {
-      switch (step.kind) {
-        case SourceMoveRouteStepKind.moveDown: y++;
-        case SourceMoveRouteStepKind.moveUp: y--;
-        case SourceMoveRouteStepKind.moveLeft: x--;
-        case SourceMoveRouteStepKind.moveRight: x++;
-        default: return false;
+    final actorId = player ? -1 : actor!.sourceEventId;
+    final starts = positions[actorId] ?? {player ? (0, 0) : (actor!.x, actor.y)};
+    if (starts.length > 64) return false;
+    final ends = <(int, int)>{};
+    for (final start in starts) {
+      var x = start.$1, y = start.$2;
+      if (!player && (x < 0 || y < 0 || x >= width || y >= height)) return false;
+      var through = false, hidden = false, above = false;
+      for (final step in node.steps) {
+        switch (step.kind) {
+          case SourceMoveRouteStepKind.moveDown: y++;
+          case SourceMoveRouteStepKind.moveUp: y--;
+          case SourceMoveRouteStepKind.moveLeft: x--;
+          case SourceMoveRouteStepKind.moveRight: x++;
+          case SourceMoveRouteStepKind.jump:
+            if (!through || step.jumpX == null || step.jumpY == null ||
+                step.jumpX!.abs() > 64 || step.jumpY!.abs() > 64) {
+              return false;
+            }
+            x += step.jumpX!;
+            y += step.jumpY!;
+          case SourceMoveRouteStepKind.appearance:
+            break;
+          case SourceMoveRouteStepKind.wait:
+            if (step.durationTicks == null || step.durationTicks! < 0 ||
+                step.durationTicks! > 1200) {
+              return false;
+            }
+          case SourceMoveRouteStepKind.turnDown:
+          case SourceMoveRouteStepKind.turnLeft:
+          case SourceMoveRouteStepKind.turnRight:
+          case SourceMoveRouteStepKind.turnUp:
+            break;
+          case SourceMoveRouteStepKind.throughOn: through = true;
+          case SourceMoveRouteStepKind.throughOff: through = false;
+          case SourceMoveRouteStepKind.hide: hidden = true;
+          case SourceMoveRouteStepKind.show: hidden = false;
+          case SourceMoveRouteStepKind.alwaysOnTopOn: above = true;
+          case SourceMoveRouteStepKind.alwaysOnTopOff: above = false;
+          default: return false;
+        }
+        if (!player && (x < 0 || y < 0 || x >= width || y >= height)) return false;
       }
-      if (x < 0 || y < 0 || x >= width || y >= height) return false;
+      if (through || hidden || above) return false;
+      ends.add((x, y));
     }
-    actorIds.add(actor.sourceEventId);
+    positions[actorId] = ends;
+    if (player) { hasPlayerRoutes = true; } else { actorIds.add(actorId); }
     routeIdentities.add(_nodeIdentity(node));
+    routes.add(node);
     return true;
+  }
+
+}
+
+Map<int, Set<(int, int)>> _copyPositions(Map<int, Set<(int, int)>> positions) =>
+    {
+      for (final entry in positions.entries) entry.key: {...entry.value},
+    };
+
+void _mergePositions(
+    Map<int, Set<(int, int)>> target,
+    List<Map<int, Set<(int, int)>>> branches,
+    SourceEventAnalysis analysis,
+    int mapId) {
+  final keys = {for (final branch in branches) ...branch.keys};
+  target.clear();
+  for (final key in keys) {
+    final actor = key == -1 ? null : analysis.eventAt(mapId, key)!;
+    final initial = actor == null ? (0, 0) : (actor.x, actor.y);
+    target[key] = {for (final branch in branches) ...branch[key] ?? {initial}};
   }
 }
 

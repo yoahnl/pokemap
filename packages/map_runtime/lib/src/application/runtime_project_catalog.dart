@@ -880,6 +880,11 @@ Iterable<CatalogDefinitionKey> _mapRoots(
     for (final node in scene.graph.nodes) {
       final payload = node.payload;
       if (payload is SceneActionPayload) {
+        if (payload.interactiveCommand case SceneActorRouteInteractiveCommand(:final steps)) {
+          for (final step in steps) {
+            if (step is SceneActorAppearanceStep) yield key(CatalogDefinitionKind.character, step.characterId);
+          }
+        }
         if (payload.interactiveCommand case SceneWarpInteractiveCommand(
           :final presentation,
         )) {

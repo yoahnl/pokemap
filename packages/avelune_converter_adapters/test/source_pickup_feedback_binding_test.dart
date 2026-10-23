@@ -1168,7 +1168,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
         expect(
             events.every((event) => (event['gaps'] as List).contains(
                 placement == 'yesMove'
-                    ? 'sourceDoorProgramUnsupported'
+                    ? 'sourceFiniteRouteProgramUnsupported'
                     : 'interactionFacingUnsupported')),
             isTrue);
       });

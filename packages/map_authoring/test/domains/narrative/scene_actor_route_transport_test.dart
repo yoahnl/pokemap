@@ -75,6 +75,7 @@ Map<String, dynamic> _route({
         {'kind': 'visibility', 'visible': true},
         {'kind': 'through', 'enabled': true},
         {'kind': 'sound', 'mediaAssetId': mediaId, 'gain': 0.8},
+        {'kind': 'appearance', 'characterId': 'actor-character'},
       ],
       'skippable': false,
     };
@@ -123,6 +124,31 @@ MapEntity _conditionalActor({bool missing = false}) => MapEntity(
     ]));
 
 void main() {
+  test('character deletion keeps appearance-only route dependencies intact', () async {
+    final f = await _Fixture.create(characters: [_character(), _character().copyWith(id: 'costume'),
+      _character().copyWith(id: 'broken', animations: [])]);
+    addTearDown(f.dispose);
+    final invalid = await f.request({..._route(target: _target()),
+      'steps': [{'kind': 'appearance', 'characterId': 'broken'}]});
+    final invalidBefore = await f.projectFile.readAsBytes();
+    await expectLater(f.mutations.plan(f.project, invalid), throwsA(isA<NarrativeAuthoringException>()));
+    expect(await f.projectFile.readAsBytes(), invalidBefore);
+    final request = await f.request({..._route(target: _target()),
+      'steps': [{'kind': 'appearance', 'characterId': 'costume'}]});
+    final planned = await f.mutations.plan(f.project, request);
+    await f.mutations.apply(f.project, planId: planned['planId']! as String, operationId: 'appearance-before-delete');
+    final before = await f.projectFile.readAsBytes();
+    final snapshot = await f.snapshot();
+    final deletion = AuthoringRequest(requestId: 'delete-costume', actionId: 'characterStudio.character.delete',
+      actionVersion: 1, workspaceHandle: f.workspace.value,
+      expectedRevision: snapshot.revision, idempotencyKey: 'delete-costume',
+      parameters: {'characterId': 'costume', 'resolution': 'clear'});
+    await expectLater(f.mutations.plan(f.project, deletion), throwsA(isA<CharacterStudioActionException>()));
+    expect(await f.projectFile.readAsBytes(), before);
+    expect(buildCharacterStudioReferenceIndex(snapshot.manifest)
+      .referencesTo(CharacterStudioReferenceTargetKind.character, 'costume').single.sourceKind,
+      CharacterStudioReferenceSourceKind.sceneActorAppearance);
+  });
   for (final jsonl in [false, true]) {
     for (final action in ['scene.interactive_command.set', 'scene.upsert', 'scene.graph.patch']) {
       test('conditional actor variants survive $action transport jsonl=$jsonl and reopen', () async {
@@ -245,9 +271,13 @@ void main() {
       expect(route, isA<Map>());
       expect(visibility, isA<Map>());
       expect((route as Map)['parameters'], ['target', 'steps', 'skippable', 'transientScope']);
-      expect(route['stepKinds'], ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'visibility', 'sound']);
+      expect(route['stepKinds'], ['face', 'move', 'moveDiagonal', 'wait', 'through', 'renderAboveMap', 'visibility', 'appearance', 'sound']);
       expect((route['stepFields'] as Map)['visibility'], ['kind', 'visible']);
-      expect(route['contractVersion'], 3);
+      expect(route['contractVersion'], 4);
+      expect(route['transientFlags'], ['through', 'renderAboveMap', 'visibility', 'appearance']);
+      expect(route['execution'], 'awaitedSequentialRoute');
+      expect(route['simultaneousActorsAndJumps'], 'cinematicTimeline');
+      expect(route['nonSkippableObstruction'], 'blockedWithoutRetry');
       expect(route['transientScopes'], ['route', 'scene']);
       expect(route['completion'], 'routeFinished');
       expect(route['targetReference'], 'uniqueActorOnExactMap');
@@ -557,6 +587,7 @@ void main() {
         for (final wire in [
           _route(target: _target(mapId: 'missing')),
           _route(target: _target(entityId: 'missing')),
+          {..._route(), 'steps': [{'kind': 'appearance', 'characterId': 'missing'}]},
           _route(
             target: _target(mapId: 'other', entityId: 'actor'),
           ),

@@ -55,6 +55,22 @@ class CinematicMapModel {
   final MapData map;
   late final MapData background;
   late final CinematicActorDisplayPreviewModel actors;
+  Map<String, ({double x, double y})> get actorOrigins => {
+    for (final actor in actors.actors)
+      if (actor.position.isResolved &&
+          actor.position.x != null &&
+          actor.position.y != null)
+        actor.actorId: (
+          x: actor.position.x!.toDouble(),
+          y: actor.position.y!.toDouble(),
+        ),
+  };
+  List<CinematicStagePoint> get resolvedStagePoints => [
+    for (final point
+        in asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[])
+      if (map.spatialScene == null || point.relativeToActorId == null)
+        ?resolveCinematicStagePoint(point, actorOrigins),
+  ];
   final targets = <String, CinematicPreviewPlaybackPoint>{};
   CinematicPreviewPlaybackStageBounds get bounds =>
       CinematicPreviewPlaybackStageBounds(

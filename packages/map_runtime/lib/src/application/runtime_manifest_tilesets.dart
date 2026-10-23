@@ -194,6 +194,12 @@ Set<String> collectRuntimeMapCharacterIds(
     for (final scene in manifest.scenes)
       if (sceneIds.contains(scene.id))
         for (final node in scene.graph.nodes)
+          if (node.payload case SceneActionPayload(interactiveCommand: SceneActorRouteInteractiveCommand(:final steps)))
+            for (final step in steps)
+              if (step is SceneActorAppearanceStep) step.characterId,
+    for (final scene in manifest.scenes)
+      if (sceneIds.contains(scene.id))
+        for (final node in scene.graph.nodes)
           if (node.payload case SceneActionPayload(:final consequence))
             if (consequence case SceneSetPlayerAvatarConsequence(:final characterId))
               characterId,

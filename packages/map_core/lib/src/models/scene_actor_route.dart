@@ -14,6 +14,7 @@ enum SceneActorRouteStepKind {
   through,
   renderAboveMap,
   visibility,
+  appearance,
   sound,
 }
 
@@ -92,6 +93,8 @@ sealed class SceneActorRouteStep {
       SceneActorRenderAboveMapStep;
   factory SceneActorRouteStep.visibility({required bool visible}) =
       SceneActorVisibilityStep;
+  factory SceneActorRouteStep.appearance({required String characterId}) =
+      SceneActorAppearanceStep;
   factory SceneActorRouteStep.sound({
     required String mediaAssetId,
     required double gain,
@@ -176,6 +179,11 @@ sealed class SceneActorRouteStep {
           throw const FormatException('visible must be a boolean.');
         }
         return SceneActorVisibilityStep(visible: json['visible'] as bool);
+      case SceneActorRouteStepKind.appearance:
+        _actorFields(json, const {'kind', 'characterId'});
+        final id = json['characterId'];
+        if (id is! String || id.isEmpty || id.trim() != id) throw const FormatException('characterId must be a canonical nonempty identity.');
+        return SceneActorAppearanceStep(characterId: id);
       case SceneActorRouteStepKind.sound:
         _actorFields(json, const {'kind', 'mediaAssetId', 'gain'});
         final gain = json['gain'];
@@ -191,6 +199,27 @@ sealed class SceneActorRouteStep {
 
   SceneActorRouteStepKind get kind;
   Map<String, dynamic> toJson();
+}
+
+final class SceneActorAppearanceStep extends SceneActorRouteStep {
+  SceneActorAppearanceStep({required String characterId})
+      : characterId = _actorAppearanceCharacterId(characterId);
+  final String characterId;
+  @override
+  SceneActorRouteStepKind get kind => SceneActorRouteStepKind.appearance;
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'characterId': characterId};
+  @override
+  bool operator ==(Object other) => other is SceneActorAppearanceStep && other.characterId == characterId;
+  @override
+  int get hashCode => Object.hash(kind, characterId);
+}
+
+String _actorAppearanceCharacterId(String value) {
+  if (value.isEmpty || value.trim() != value) {
+    throw ArgumentError.value(value, 'characterId', 'Must be a canonical nonempty identity.');
+  }
+  return value;
 }
 
 final class SceneActorFaceStep extends SceneActorRouteStep {

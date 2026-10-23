@@ -97,7 +97,7 @@ final class CinematicActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     narrativeActionDescriptor(
       'cinematic.upsert',
-      'Create or update a cinematic; optional step.parallelGroupId groups contiguous steps concurrently, rejects physical actor/camera-shake/dialogue/fade/global-emote/media-channel conflicts and differing actorMove/actorJump durations; markers remain ungrouped; actorCompletionPolicy accepts keepFinal (default) or restoreInitial; actorJump requires actorId/targetId, durationMs 200..30000 and metadata actor.jumpHeightCells >0 <=4; actorMove/actorJump metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
+      'Create or update a cinematic; stageContext.stagePoints accept optional relativeToActorId (bound actorId), making x/y cell offsets from that actor snapshot at playback start; destinations and waypoints share that immutable origin, initial placement and spatial playback reject relative points; optional step.parallelGroupId groups contiguous steps concurrently, rejects physical actor/camera-shake/dialogue/fade/global-emote/media-channel conflicts and differing actorMove/actorJump durations; markers remain ungrouped; actorCompletionPolicy accepts keepFinal (default) or restoreInitial; actorJump requires actorId/targetId, durationMs 200..30000 and metadata actor.jumpHeightCells >0 <=4; actorMove/actorJump metadata actor.facingMode accepts followMovement (default) or preserve; optional libraryPlacement {folderId, index} atomically places its world entry (project v7)',
       resourceKinds: const ['project', 'cinematic'],
     ),
     narrativeActionDescriptor(
@@ -415,6 +415,11 @@ CinematicAsset _decodeCinematic(Map<String, dynamic> json, {
 }) {
   try {
     final asset = CinematicAsset.fromJson(json);
+    if (asset.stageContext?.stagePoints.any((point) => point.relativeToActorId != null) ?? false) {
+      final preflight = preflightCinematicPlayback(cinematic: asset, mediaAssets: mediaAssets);
+      final originIssue = preflight.issues.where((issue) => issue.kind == CinematicPlaybackPreflightIssueKind.invalidActorReference || issue.kind == CinematicPlaybackPreflightIssueKind.invalidTargetReference).firstOrNull;
+      if (originIssue != null) throw ArgumentError(originIssue.message);
+    }
     final schedule = buildCinematicTimelineSchedule(asset, mediaAssets: mediaAssets);
     if (!schedule.isValid) throw ArgumentError(schedule.issues.first.message);
     for (final step in asset.timeline.steps) {

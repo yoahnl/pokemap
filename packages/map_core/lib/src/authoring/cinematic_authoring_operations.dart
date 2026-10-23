@@ -2299,7 +2299,8 @@ String? cinematicTimelineActorJumpValidationErrorOf(
       return 'Actor jump requires an existing unique stage point.';
     }
     final point = points.single;
-    if (!point.x.isFinite || !point.y.isFinite || point.x < 0 || point.y < 0) {
+    if (!point.x.isFinite || !point.y.isFinite ||
+        (point.relativeToActorId == null && (point.x < 0 || point.y < 0))) {
       return 'Actor jump coordinates must be finite and nonnegative.';
     }
   }
@@ -4040,6 +4041,15 @@ void _validateStageContextForAuthoring(
     }
     if (point.label.trim().isEmpty) {
       throw ArgumentError('Stage point label must not be empty.');
+    }
+    if (point.relativeToActorId != null && stageContext.initialPlacements.any((placement) => placement.actorId == point.relativeToActorId && placement.kind != CinematicActorInitialPlacementKind.unset && placement.kind != CinematicActorInitialPlacementKind.fromMapEntity)) {
+      throw ArgumentError('Actor-relative origins cannot use an initial placement that repositions their actor.');
+    }
+    if (point.relativeToActorId != null &&
+        !stageContext.actorBindings.any(
+          (binding) => binding.actorId == point.relativeToActorId,
+        )) {
+      throw ArgumentError('Stage point origin must reference a bound actor.');
     }
     if (!point.x.isFinite || !point.y.isFinite) {
       throw ArgumentError('Stage point coordinates must be finite.');

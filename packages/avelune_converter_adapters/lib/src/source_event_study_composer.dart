@@ -823,6 +823,46 @@ final class SourceEventStudyComposer {
         }
       }
     }
+    final candidateIdentities = {for (final event in characterCandidates) event.identity};
+    for (final program in interactionPrograms.values.where((program) =>
+        candidateIdentities.contains(program.eventIdentity))) {
+      for (final step in program.routes.expand((route) => route.steps).where((step) =>
+          step.kind == SourceMoveRouteStepKind.appearance)) {
+        cancellation?.check();
+        final key = sourceEventCharacterBindingKey(characterName: step.characterName!,
+            pattern: step.characterPattern!, direction: step.characterDirection!);
+        if (visited.contains(key)) continue;
+        try {
+          final imported = await const SourceEventCharacterImporter().read(
+              snapshot: source.snapshot, files: recording,
+              charsetName: step.characterName!, sourcePattern: step.characterPattern!,
+              sourceDirection: step.characterDirection!, limits: limits, cancellation: cancellation);
+          visited.add(key);
+          bindings[key] = imported.binding;
+          characterArtifacts.addAll(imported.artifacts);
+          characterMutations.addAll(imported.mutations);
+          characterEvidence.add({'bindingKey': key, 'status': 'imported',
+            'sourceRouteAppearance': true, 'sourceEventIdentity': program.eventIdentity.value,
+            ...imported.evidence});
+        } on NativeWriteException catch (error) {
+          cancellation?.check();
+          if (error.code.contains('quota') || error.code.contains('limit') ||
+              error.code.contains('changed') || error.code.contains('hash')) {
+            rethrow;
+          }
+          characterEvidence.add({'bindingKey': key, 'status': 'preservedOnly', 'code': error.code,
+            'sourceRouteAppearance': true, 'sourceEventIdentity': program.eventIdentity.value});
+        } on ContractError catch (error) {
+          cancellation?.check();
+          if (error.code.contains('quota') || error.code.contains('limit') ||
+              error.code.contains('changed') || error.code.contains('hash')) {
+            rethrow;
+          }
+          characterEvidence.add({'bindingKey': key, 'status': 'preservedOnly', 'code': error.code,
+            'sourceRouteAppearance': true, 'sourceEventIdentity': program.eventIdentity.value});
+        }
+      }
+    }
     final projection = const SourceEventProjector().project(
         source: source,
         analysis: analysis,

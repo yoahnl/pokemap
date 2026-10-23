@@ -136,6 +136,14 @@ final class SpatialCinematicRuntimePlaybackSink
       if (!(isReady?.call() ?? true)) {
         throw StateError('The spatial cinematic host is unavailable.');
       }
+      if (asset.stageContext?.stagePoints.any(
+            (point) => point.relativeToActorId != null,
+          ) ??
+          false) {
+        return _rejected(
+          'Actor-relative stage points require a 2D cinematic map.',
+        );
+      }
       final map = activeMap();
       if (map.spatialScene == null || asset.mapId != map.id) {
         return _rejected(

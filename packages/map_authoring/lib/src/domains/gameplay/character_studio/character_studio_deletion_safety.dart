@@ -58,10 +58,12 @@ List<Map<String, Object?>> _sceneAvatarCharacterDeletionProblems(
   for (final reference in buildCharacterStudioReferenceIndex(
     context.snapshot.manifest,
   ).referencesTo(CharacterStudioReferenceTargetKind.character, characterId))
-    if (reference.sourceKind == CharacterStudioReferenceSourceKind.scenePlayerAvatar)
+    if (reference.sourceKind == CharacterStudioReferenceSourceKind.scenePlayerAvatar ||
+        reference.sourceKind == CharacterStudioReferenceSourceKind.sceneActorAppearance)
       {
-        'code': 'scene_player_avatar_character_required',
-        'message': 'Choisir un autre avatar dans la Scene avant de supprimer ce personnage.',
+        'code': reference.sourceKind == CharacterStudioReferenceSourceKind.sceneActorAppearance
+          ? 'scene_actor_appearance_character_required' : 'scene_player_avatar_character_required',
+        'message': 'Choisir un autre personnage dans la scène avant de supprimer ce personnage.',
         'sourceId': reference.sourceId,
         'path': reference.path,
       },

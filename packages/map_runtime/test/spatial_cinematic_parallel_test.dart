@@ -6,6 +6,20 @@ import 'package:map_runtime/src/application/scene_runtime/cinematic_runtime_play
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('spatial playback refuses actor-relative stage points without any writes', () async {
+    final host = _Host();
+    final base = _asset();
+    final context = base.stageContext!;
+    final asset = CinematicAsset.fromJson({...base.toJson(), 'stageContext': {...context.toJson(),
+      'stagePoints': [for (final point in context.stagePoints) {...point.toJson(), 'relativeToActorId': 'hero'}],
+    }});
+    final initial = Map.of(host.poses);
+    expect((await host.controller.play(asset)).success, isFalse);
+    expect(host.writes, 0);
+    expect(host.poses, initial);
+    expect(host.locked, isFalse);
+  });
+
   test(
     'parallel actors can clear one another path at the same timestamp',
     () async {

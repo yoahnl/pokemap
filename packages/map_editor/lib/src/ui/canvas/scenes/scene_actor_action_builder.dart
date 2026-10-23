@@ -236,6 +236,12 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
     ],
   );
 
+  Map<String, String> get _characters => {
+    for (final character in widget.project.characters)
+      if (isSceneActorAppearanceReferenceAvailable(widget.project, character.id))
+        character.id: character.name,
+  };
+
   Map<String, String> get _sounds {
     final counts = <String, int>{};
     for (final media in widget.project.cinematicMediaAssets) {
@@ -297,6 +303,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
       : SceneActorTarget.entity(mapId: _mapId!, entityId: _entityId!);
 
   SceneActorRouteStep _typedStep(_ActorStepDraft step) => switch (step.kind) {
+    SceneActorRouteStepKind.appearance => SceneActorRouteStep.appearance(characterId: step.characterId!),
     SceneActorRouteStepKind.face => SceneActorRouteStep.face(
       direction: step.direction,
       durationMs: step.duration!,
@@ -324,6 +331,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
   };
 
   bool _stepValid(_ActorStepDraft step) {
+    if (step.kind == SceneActorRouteStepKind.appearance && !_characters.containsKey(step.characterId)) return false;
     if (step.kind == SceneActorRouteStepKind.sound &&
         !_sounds.containsKey(step.soundId)) {
       return false;
@@ -429,8 +437,8 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
           options: const {'route': 'Cette route', 'scene': 'Toute la scène'},
           onChanged: (value) => setState(() => _transientScope = ActorRouteTransientScope.values.byName(value))),
         _notice(_transientScope == ActorRouteTransientScope.scene
-          ? 'La traversée et le premier plan restent actifs entre les routes et les changements de carte de cette scène.'
-          : 'La traversée et le premier plan sont rétablis à la fin de cette route.'),
+          ? 'La traversée, le premier plan, la visibilité et le graphisme sont conservés entre les routes, puis rétablis à la fin de la scène. Le joueur conserve ces effets entre les cartes ; un PNJ reste lié à son instance de carte.'
+          : 'La traversée, le premier plan, la visibilité et le graphisme sont rétablis à la fin de cette route.'),
         PokeMapToggleTile(
           label: 'Continuer si un déplacement est bloqué',
           value: _skippable,
@@ -571,6 +579,7 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
               'moveDiagonal': 'Avancer en diagonale',
               'renderAboveMap': 'Passer devant la carte',
               'visibility': 'Afficher ou masquer',
+              'appearance': 'Changer le graphisme',
               'wait': 'Attendre',
               'through': 'Traverser les obstacles',
               'sound': 'Jouer un son',
@@ -651,6 +660,13 @@ class _SceneActorActionBuilderState extends State<SceneActorActionBuilder> {
           if (step.kind == SceneActorRouteStepKind.visibility)
             PokeMapToggleTile(label: 'Acteur visible', value: step.enabled,
               onChanged: (value) => setState(() => step.enabled = value)),
+        if (step.kind == SceneActorRouteStepKind.appearance)
+          _select(
+            label: 'Graphisme de l’étape ${index + 1}',
+            value: step.characterId,
+            options: _characters,
+            onChanged: _characters.isEmpty ? null : (value) => setState(() => step.characterId = value),
+          ),
           if (step.kind == SceneActorRouteStepKind.sound) ...[
             const SizedBox(height: 8),
             _select(
@@ -693,7 +709,7 @@ class _ActorStepDraft {
   EntityFacing direction = EntityFacing.south;
   EntityFacing horizontal = EntityFacing.east, vertical = EntityFacing.north;
   String durationText = '0', gainText = '1';
-  String? soundId;
+  String? soundId, characterId;
   String? initialCollisionOwnerEntityId, initialCollisionOwnerMapId;
   bool enabled = false, yieldAfter = false;
 
@@ -720,6 +736,8 @@ class _ActorStepDraft {
         draft.horizontal = step.horizontal;
         draft.vertical = step.vertical;
         draft.durationText = '${step.durationMs}';
+      case SceneActorAppearanceStep():
+        draft.characterId = step.characterId;
       case SceneActorVisibilityStep():
         draft.enabled = step.visible;
       case SceneActorRenderAboveMapStep():

@@ -80,9 +80,7 @@ class CinematicMapOverlay extends StatelessWidget {
                 false,
               ),
           if (!transport.previewActive)
-            for (final point
-                in model.asset.stageContext?.stagePoints ??
-                    <CinematicStagePoint>[])
+            for (final point in model.resolvedStagePoints)
               Positioned(
                 left: point.x * cell.width - 12,
                 top: point.y * cell.height - 12,

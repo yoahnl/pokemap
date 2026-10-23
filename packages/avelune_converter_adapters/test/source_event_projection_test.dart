@@ -2154,9 +2154,13 @@ void main() {
       final evidence = jsonEncode(result.semanticEvidence);
       expect(
           evidence,
-          contains(entry.key == 'tempSwitchSetter'
-              ? 'sourceMapInstanceRetentionMissing'
-              : 'sourceDoorProgramUnsupported'));
+          contains(switch (entry.key) {
+            'tempSwitchSetter' => 'sourceMapInstanceRetentionMissing',
+            'forcedRoute' => 'sourceFiniteRouteProgramUnsupported',
+            'routeBarrier' => 'sourceRouteBarrierProgramUnsupported',
+            'playerVisibility' => 'sourcePlayerVisibilityProgramUnsupported',
+            _ => 'sourceDoorProgramUnsupported',
+          }));
       expect(result.registry.records.single.definitionOrNull, isNull);
       expect(
           result.registry.records

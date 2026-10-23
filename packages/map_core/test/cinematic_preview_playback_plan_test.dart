@@ -3,6 +3,97 @@ import 'package:test/test.dart';
 
 void main() {
   group('buildCinematicPreviewPlaybackPlan', () {
+    for (final manual in [false, true]) {
+      test('relative destinations and waypoints outside preview bounds block movement manual=$manual', () {
+        final base = manual ? _manualPathCinematic() : _directMoveCinematic();
+        final cinematic = CinematicAsset.fromJson({...base.toJson(), 'stageContext': {...base.stageContext!.toJson(),
+          'initialPlacements': [],
+          'stagePoints': [for (final point in base.stageContext!.stagePoints)
+            if (point.id == 'dest') {'id': point.id, 'label': point.label, 'x': manual ? 0.0 : 3.0,
+              'y': manual ? 1.0 : 0.0, 'relativeToActorId': 'actor_lysa'}
+            else if (manual && point.id == 'wp_a') {'id': point.id, 'label': point.label, 'x': 3.0, 'y': 0.0,
+              'relativeToActorId': 'actor_lysa'}
+            else point.toJson()],
+        }});
+        final display = CinematicActorDisplayPreviewModel(
+          status: CinematicActorDisplayPreviewStatus.ready, summary: 'Actor', diagnostics: [], actors: [
+            CinematicActorDisplayPreviewActor(actorId: 'actor_lysa', label: 'Lysa', role: null,
+              bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+              bindingKind: CinematicActorBindingKind.cinematicOnly, bindingSourceId: null, bindingSourceLabel: null,
+              position: const CinematicActorPreviewPosition(status: CinematicActorPreviewPositionStatus.resolved,
+                sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity, x: 4, y: 2),
+              appearance: const CinematicActorPreviewAppearance(status: CinematicActorPreviewAppearanceStatus.placeholderOnly),
+              direction: CinematicActorPreviewDirection.south, directionSource: CinematicActorPreviewDirectionSource.actorFace,
+              renderHint: CinematicActorPreviewRenderHint.placeholder, diagnostics: []),
+          ]);
+        final plan = buildCinematicPreviewPlaybackPlan(cinematic: cinematic, actorDisplayPreviewModel: display,
+          stageBounds: const CinematicPreviewPlaybackStageBounds(width: 5, height: 5));
+        expect(plan.diagnostics.any((diagnostic) => diagnostic.blocking), isTrue);
+        expect(plan.diagnostics.map((diagnostic) => diagnostic.code), contains(CinematicPreviewPlaybackDiagnosticCode.cinematicPreviewPlaybackRelativePointOutOfMap));
+        expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+        final pose = plan.frameAt(plan.totalDurationMs).actorPoseById('actor_lysa')!;
+        expect(pose.x, 4);
+        expect(pose.y, 2);
+      });
+    }
+
+    test('invalid relative origin blocks preview before moving the actor', () {
+      final base = _directMoveCinematic();
+      final cinematic = CinematicAsset.fromJson({...base.toJson(), 'stageContext': {...base.stageContext!.toJson(),
+        'stagePoints': [
+          {'id': 'start', 'label': 'Start', 'x': 0.0, 'y': 0.0},
+          {'id': 'dest', 'label': 'Offset', 'x': 2.0, 'y': 0.0, 'relativeToActorId': 'actor_lysa'},
+        ],
+      }});
+      final plan = buildCinematicPreviewPlaybackPlan(cinematic: cinematic);
+      expect(plan.diagnostics.any((diagnostic) => diagnostic.blocking), isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+      expect(plan.frameAt(plan.totalDurationMs).actorPoseById('actor_lysa')!.x, 0);
+    });
+
+    test(
+      'relative destinations use each preview initial pose without teleporting',
+      () {
+        for (final start in [2.0, 7.0]) {
+          final base = _directMoveCinematic();
+          final cinematic = CinematicAsset.fromJson({
+            ...base.toJson(),
+            'stageContext': {
+              ...base.stageContext!.toJson(), 'initialPlacements': [],
+              'stagePoints': [
+                {'id': 'start', 'label': 'Start', 'x': start, 'y': 3.0},
+                {
+                  'id': 'dest',
+                  'label': 'Offset',
+                  'x': 2.0,
+                  'y': -1.0,
+                  'relativeToActorId': 'actor_lysa',
+                },
+              ],
+            },
+          });
+          final plan = buildCinematicPreviewPlaybackPlan(cinematic: cinematic,
+            actorDisplayPreviewModel: CinematicActorDisplayPreviewModel(
+              status: CinematicActorDisplayPreviewStatus.ready, summary: 'Actor', diagnostics: [], actors: [
+                CinematicActorDisplayPreviewActor(actorId: 'actor_lysa', label: 'Lysa', role: null,
+                  bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+                  bindingKind: CinematicActorBindingKind.cinematicOnly, bindingSourceId: null, bindingSourceLabel: null,
+                  position: CinematicActorPreviewPosition(status: CinematicActorPreviewPositionStatus.resolved,
+                    sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity, x: start.toInt(), y: 3),
+                  appearance: const CinematicActorPreviewAppearance(status: CinematicActorPreviewAppearanceStatus.placeholderOnly),
+                  direction: CinematicActorPreviewDirection.south, directionSource: CinematicActorPreviewDirectionSource.actorFace,
+                  renderHint: CinematicActorPreviewRenderHint.placeholder, diagnostics: []),
+              ]));
+          expect(plan.frameAt(0).actorPoseById('actor_lysa')!.x, start);
+          final finish = plan
+              .frameAt(plan.totalDurationMs)
+              .actorPoseById('actor_lysa')!;
+          expect(finish.x, start + 2);
+          expect(finish.y, 2);
+        }
+      },
+    );
+
     test('empty cinematic produces an empty plan and timeline diagnostic', () {
       final cinematic = CinematicAsset(
         id: 'cinematic_empty',

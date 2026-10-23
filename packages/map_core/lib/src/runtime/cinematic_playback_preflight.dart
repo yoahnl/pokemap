@@ -131,6 +131,56 @@ CinematicPlaybackPreflightReport preflightCinematicPlayback({
     }
   }
 
+  for (final point in context?.stagePoints ?? const <CinematicStagePoint>[]) {
+    final origin = point.relativeToActorId;
+    if (origin != null && (context?.initialPlacements.any((placement) => placement.actorId == origin && placement.kind != CinematicActorInitialPlacementKind.unset && placement.kind != CinematicActorInitialPlacementKind.fromMapEntity) ?? false)) {
+      issues.add(_issue(CinematicPlaybackPreflightIssueKind.invalidTargetReference,
+        'Actor-relative origins cannot use an initial placement that repositions their actor.', referenceId: origin));
+    }
+    if (origin != null && (!actorBindings.containsKey(origin) || !cinematic.requiredActors.any((actor) => actor.actorId == origin))) {
+      issues.add(
+        _issue(
+          CinematicPlaybackPreflightIssueKind.invalidActorReference,
+          'Stage point "${point.id}" requires a bound origin actor "$origin".',
+          referenceId: origin,
+        ),
+      );
+    }
+  }
+
+  for (final placement
+      in context?.initialPlacements ??
+          const <CinematicActorInitialPlacement>[]) {
+    final pointId =
+        placement.kind == CinematicActorInitialPlacementKind.stagePoint
+        ? placement.stagePointId
+        : placement.kind ==
+              CinematicActorInitialPlacementKind.fromMovementTarget
+        ? context?.movementTargetBindings
+              .where(
+                (binding) =>
+                    binding.targetId == placement.targetId &&
+                    binding.kind ==
+                        CinematicMovementTargetBindingKind.stagePoint,
+              )
+              .firstOrNull
+              ?.sourceId
+        : null;
+    if (pointId != null &&
+        (context?.stagePoints.any(
+              (point) => point.id == pointId && point.relativeToActorId != null,
+            ) ??
+            false)) {
+      issues.add(
+        _issue(
+          CinematicPlaybackPreflightIssueKind.invalidTargetReference,
+          'Actor-relative stage points cannot reposition an actor before playback.',
+          referenceId: pointId,
+        ),
+      );
+    }
+  }
+
   final targetIds =
       cinematic.movementTargets.map((target) => target.targetId).toSet();
   final stagePointIds = (context?.stagePoints ?? const <CinematicStagePoint>[])

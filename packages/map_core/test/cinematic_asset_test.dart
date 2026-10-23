@@ -6,6 +6,23 @@ import 'package:test/test.dart';
 
 void main() {
   group('CinematicAsset', () {
+    test('stage point preserves an explicit actor-relative origin', () {
+      final source = <String, dynamic>{
+        'id': 'east',
+        'label': 'East',
+        'x': 2.0,
+        'y': -1.0,
+        'relativeToActorId': 'guide',
+      };
+      final point = CinematicStagePoint.fromJson(source);
+      expect(point.toJson(), containsPair('relativeToActorId', 'guide'));
+      expect(CinematicStagePoint.fromJson(point.toJson()), point);
+      expect(
+        point,
+        isNot(CinematicStagePoint(id: 'east', label: 'East', x: 2, y: -1)),
+      );
+    });
+
     test('round-trips a linear cinematic asset through JSON', () {
       final asset = CinematicAsset(
         id: 'cinematic_intro',

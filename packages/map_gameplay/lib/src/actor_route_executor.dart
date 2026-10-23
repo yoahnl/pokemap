@@ -22,6 +22,11 @@ abstract interface class ActorRouteExecutionPort {
   Future<void> wait(int durationMs);
   Future<void> sound(String mediaAssetId, {required double gain});
   Future<void> setVisibility(SceneActorTarget target, {required bool visible});
+  bool get isVisible;
+  void restoreVisibility(SceneActorTarget target, {required bool visible});
+  Object captureAppearance(SceneActorTarget target);
+  Future<void> setAppearance(SceneActorTarget target, String characterId);
+  void restoreAppearance(SceneActorTarget target, Object snapshot);
 }
 
 final class ActorRouteTransientState {
@@ -45,6 +50,9 @@ final class ActorRouteExecutor {
         : ActorRouteTransientState(renderAboveMap: port.renderAboveMap);
     final beforeThrough = state.through;
     final beforeAbove = port.renderAboveMap;
+    final beforeVisible = port.isVisible;
+    final beforeAppearance = port.captureAppearance(command.target);
+    var appearanceChanged = false;
     var completed = false;
     try {
       for (final step in command.steps) {
@@ -52,6 +60,9 @@ final class ActorRouteExecutor {
           return ActorRouteExecutionOutcome.interrupted;
         }
         switch (step) {
+          case SceneActorAppearanceStep():
+            appearanceChanged = true;
+            await port.setAppearance(command.target, step.characterId);
           case SceneActorRenderAboveMapStep():
             state.renderAboveMap = step.enabled;
             await port.setRenderAboveMap(command.target, enabled: step.enabled);
@@ -122,6 +133,10 @@ final class ActorRouteExecutor {
           : ActorRouteExecutionOutcome.interrupted;
     } finally {
       if (!sceneScope || !completed) {
+        if (appearanceChanged) port.restoreAppearance(command.target, beforeAppearance);
+        if (port.isVisible != beforeVisible) {
+          port.restoreVisibility(command.target, visible: beforeVisible);
+        }
         state.through = beforeThrough;
         state.renderAboveMap = beforeAbove;
         if (port.renderAboveMap != beforeAbove) {

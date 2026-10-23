@@ -23,6 +23,7 @@ enum CinematicPreviewPlaybackDiagnosticCode {
   cinematicPreviewPlaybackActorMissing,
   cinematicPreviewPlaybackActorInitialPoseMissing,
   cinematicPreviewPlaybackMoveDestinationMissing,
+  cinematicPreviewPlaybackRelativePointOutOfMap,
   cinematicPreviewPlaybackMoveFacingModeInvalid,
   cinematicPreviewPlaybackManualPathMissing,
   cinematicPreviewPlaybackManualPathPointMissing,
@@ -994,7 +995,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   Iterable<String>? availableMapIds,
 }) {
   final timeLayout = buildCinematicTimelineTimeLayoutReadModel(cinematic);
-  final stageContext = cinematic.stageContext;
+  var stageContext = cinematic.stageContext;
   final diagnostics = <CinematicPreviewPlaybackDiagnostic>[];
   final dialogueList = dialogues.toList(growable: false);
   final dialogueById = {
@@ -1025,6 +1026,16 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
         blocking: true,
       ),
     );
+  }
+  final relativeOriginIssues = (stageContext?.stagePoints.any((point) => point.relativeToActorId != null) ?? false)
+      ? preflight.issues.where((issue) => issue.kind == CinematicPlaybackPreflightIssueKind.invalidActorReference || issue.kind == CinematicPlaybackPreflightIssueKind.invalidTargetReference).toList()
+      : const <CinematicPlaybackPreflightIssue>[];
+  for (final issue in relativeOriginIssues) {
+    diagnostics.add(CinematicPreviewPlaybackDiagnostic(
+      code: CinematicPreviewPlaybackDiagnosticCode.cinematicPreviewPlaybackMoveDestinationMissing,
+      severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+      message: issue.message, blocking: true,
+    ));
   }
   final actorTracks = <CinematicPreviewActorTrack>[];
   final stagePointsById = <String, CinematicStagePoint>{
@@ -1075,6 +1086,49 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
     );
   }
 
+  var relativeGeometryInvalid = false;
+  if (stageContext != null &&
+      stageContext.stagePoints.any(
+        (point) => point.relativeToActorId != null,
+      )) {
+    final origins = <String, ({double x, double y})>{
+      for (final track in actorTracks)
+        if (track.initialPose.x != null && track.initialPose.y != null)
+          track.actorId: (x: track.initialPose.x!, y: track.initialPose.y!),
+    };
+    final resolvedPoints = <CinematicStagePoint>[];
+    for (final point in stageContext.stagePoints) {
+      final resolved = resolveCinematicStagePoint(point, origins);
+      if (resolved == null) continue;
+      if (point.relativeToActorId != null &&
+          (!resolved.x.isFinite || !resolved.y.isFinite ||
+              stageBounds != null && !stageBounds.containsPoint(resolved.x, resolved.y))) {
+        relativeGeometryInvalid = true;
+        diagnostics.add(CinematicPreviewPlaybackDiagnostic(
+          code: CinematicPreviewPlaybackDiagnosticCode.cinematicPreviewPlaybackRelativePointOutOfMap,
+          severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+          message: 'Le repère relatif "${point.label}" est en dehors des limites de la carte à partir de la position de son acteur.',
+          actorId: point.relativeToActorId,
+          blocking: true,
+        ));
+        continue;
+      }
+      resolvedPoints.add(resolved);
+    }
+    stageContext = CinematicStageContext(
+      backdropMode: stageContext.backdropMode,
+      actorBindings: stageContext.actorBindings,
+      actorAppearanceBindings: stageContext.actorAppearanceBindings,
+      initialPlacements: stageContext.initialPlacements,
+      movementTargetBindings: stageContext.movementTargetBindings,
+      stagePoints: resolvedPoints,
+      manualPaths: stageContext.manualPaths,
+    );
+    stagePointsById
+      ..clear()
+      ..addEntries(resolvedPoints.map((point) => MapEntry(point.id, point)));
+  }
+
   final actorTrackIds = {for (final track in actorTracks) track.actorId};
   final movePlans = <String, _ActorMovePlaybackPlan>{};
   final jumpPlans = <String, _ActorJumpPlaybackPlan>{};
@@ -1087,12 +1141,12 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   final cameraFocusBindings = <String, CinematicTimelineCameraFocusBinding>{};
   final timelineItems = <CinematicPreviewPlaybackTimelineItem>[];
   final playbackCues = <CinematicPlaybackCue>[];
-  var hasUnsupportedSteps = mapIssues.isNotEmpty;
+  var hasUnsupportedSteps = mapIssues.isNotEmpty || relativeOriginIssues.isNotEmpty || relativeGeometryInvalid;
 
   for (final block in timeLayout.blocks) {
     final step = cinematic.timeline.steps[block.stepIndex];
     final itemDiagnostics = <CinematicPreviewPlaybackDiagnostic>[];
-    var supported = _stepSupportedForPlayback(step);
+    var supported = _stepSupportedForPlayback(step) && relativeOriginIssues.isEmpty && !relativeGeometryInvalid;
     final advancedIssues = preflight.issues
         .where(
           (issue) =>
@@ -1133,7 +1187,8 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
       );
     }
 
-    switch (step.kind) {
+    if (relativeOriginIssues.isEmpty && !relativeGeometryInvalid) {
+      switch (step.kind) {
       case CinematicTimelineStepKind.actorFace:
         final direction = cinematicTimelineActorFacingDirectionOf(step);
         if (step.actorId == null || !actorTrackIds.contains(step.actorId)) {
@@ -1276,6 +1331,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
         }
       case CinematicTimelineStepKind.marker:
         break;
+      }
     }
 
     diagnostics.addAll(itemDiagnostics);

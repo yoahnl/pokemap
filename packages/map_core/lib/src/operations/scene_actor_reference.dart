@@ -3,6 +3,27 @@ import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import 'map_entity_collision_footprint.dart';
 
+bool isSceneActorAppearanceReferenceAvailable(ProjectManifest project, String characterId) {
+  final characters = project.characters.where((value) => value.id == characterId).toList();
+  if (characters.length != 1) return false;
+  final character = characters.single;
+  if (character.frameWidth <= 0 || character.frameHeight <= 0 || character.animations.isEmpty) return false;
+  for (final animation in character.animations) {
+    if (animation.frames.isEmpty) return false;
+    if (animation.sourceAssetId?.trim().isNotEmpty != true &&
+        project.tilesets.where((value) => value.id == character.tilesetId).length != 1) {
+      return false;
+    }
+    for (final frame in animation.frames) {
+      if (frame.durationMs <= 0 || frame.source.x < 0 || frame.source.y < 0 ||
+          frame.source.width <= 0 || frame.source.height <= 0) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool isSceneActorInitialCollisionOwnerReferenceAvailable(
   ProjectManifest project,
   MapEntity entity,

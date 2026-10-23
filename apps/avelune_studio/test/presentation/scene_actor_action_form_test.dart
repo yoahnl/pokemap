@@ -223,6 +223,25 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  testWidgets('temporary appearance picker preserves and edits imported route', (tester) async {
+    final project = _project(characters: [
+      for (final id in ['actor-character', 'costume'])
+        ProjectCharacterEntry(id: id, name: id == 'costume' ? 'Costume' : 'Original actor', tilesetId: 'sheet',
+          animations: [CharacterAnimation(state: CharacterAnimationState.idle, direction: EntityFacing.south,
+            frames: const [CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0))])]),
+    ]);
+    final original = _route(steps: [SceneActorRouteStep.appearance(characterId: 'actor-character')]);
+    final applied = <SceneNodePayload>[];
+    await _pump(tester, project: project, current: original, onApply: applied.add);
+    await tester.pumpAndSettle();
+    await _pick(tester, 'Graphisme de l’étape 1', 'Costume');
+    await _submit(tester);
+    final command = (applied.single as SceneActionPayload).interactiveCommand as SceneActorRouteInteractiveCommand;
+    expect(command.steps, [SceneActorRouteStep.appearance(characterId: 'costume')]);
+    expect(command.target, (original.interactiveCommand as SceneActorRouteInteractiveCommand).target);
+    expect(SceneActionPayload.fromJson((applied.single as SceneActionPayload).toJson()), applied.single);
+  });
+
   for (final known in [true, false]) {
     testWidgets('guided actor conditional characters known=$known', (tester) async {
       final applied = <SceneNodePayload>[];
@@ -386,6 +405,7 @@ void main() {
         onApply: applied.add,
       );
       await tester.pumpAndSettle();
+      expect(find.textContaining('le graphisme sont conservés'), findsOneWidget);
       await _pick(tester, 'Direction horizontale de l’étape 1', 'Est');
       await _pick(tester, 'Direction verticale de l’étape 1', 'Sud');
       await _enter(tester, 'actor-step-0-duration', '475');
@@ -402,6 +422,7 @@ void main() {
         'À la fin du trajet',
       );
       await _submit(tester);
+      expect(find.textContaining('le graphisme sont rétablis'), findsOneWidget);
       final first = applied.single as SceneActionPayload;
       expect(first.actionKind, original.actionKind);
       expect(first.parameters, original.parameters);

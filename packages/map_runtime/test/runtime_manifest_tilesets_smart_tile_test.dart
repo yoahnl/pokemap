@@ -3,6 +3,20 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
+  test('reachable route appearances preload their otherwise unused character atlas', () {
+    const map = MapData(id: 'room', name: 'Room', size: GridSize(width: 1, height: 1));
+    final manifest = ProjectManifest(name: 'Appearance demand', maps: [], tilesets: const [
+      ProjectTilesetEntry(id: 'costume', name: 'Costume', relativePath: 'costume.png'),
+    ], characters: const [ProjectCharacterEntry(id: 'coat', name: 'Coat', tilesetId: 'costume')],
+      scenes: [SceneAsset(id: 'route', name: 'Route', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'appearance', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'room'),
+            steps: [SceneActorRouteStep.appearance(characterId: 'coat')]))),
+      ], edges: []))]);
+    expect(collectRuntimeMapCharacterIds(map, manifest), isNot(contains('coat')));
+    expect(collectRuntimeMapCharacterIds(map, manifest, additionalSceneIds: {'route'}), contains('coat'));
+  });
   group('runtime manifest tileset collection', () {
     test('does not load an authoring default with no rendered tile references', () {
       const map = MapData(

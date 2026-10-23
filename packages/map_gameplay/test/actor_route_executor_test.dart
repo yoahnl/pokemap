@@ -6,6 +6,28 @@ import 'package:test/test.dart';
 
 final class _Port implements ActorRouteExecutionPort {
   bool current = true;
+  String appearance = 'base';
+  @override
+  Object captureAppearance(SceneActorTarget target) => appearance;
+  @override
+  void restoreAppearance(SceneActorTarget target, Object snapshot) {
+    appearance = snapshot as String;
+    calls.add('restoreAppearance:$appearance');
+  }
+  @override
+  Future<void> setAppearance(SceneActorTarget target, String characterId) async {
+    await _call('appearance', 'appearance:$characterId');
+    appearance = characterId;
+  }
+  bool visible = true;
+  @override
+  bool get isVisible => visible;
+  @override
+  void restoreVisibility(SceneActorTarget target, {required bool visible}) {
+    this.visible = visible;
+    calls.add('restoreVisibility:$visible');
+  }
+
   final calls = <String>[];
   final targets = <SceneActorTarget>[];
   final gates = <String, Completer<void>>{};
@@ -83,9 +105,11 @@ final class _Port implements ActorRouteExecutionPort {
       _call('sound', 'sound:$mediaAssetId:$gain');
 
   @override
-  Future<void> setVisibility(SceneActorTarget target, {required bool visible}) {
+  Future<void> setVisibility(SceneActorTarget target,
+      {required bool visible}) async {
     targets.add(target);
-    return _call('visibility', 'visibility:$visible');
+    await _call('visibility', 'visibility:$visible');
+    this.visible = visible;
   }
 }
 
@@ -99,6 +123,124 @@ SceneActorRouteInteractiveCommand _route(List<SceneActorRouteStep> steps,
 
 void main() {
   const executor = ActorRouteExecutor();
+
+  for (final blocked in [false, true]) {
+    test('temporary appearance restores after route blocked=$blocked', () async {
+      final port = _Port();
+      if (blocked) port.moveOutcomes.add(ActorRouteMoveOutcome.obstructed);
+      final command = _route([
+        SceneActorRouteStep.fromJson({'kind': 'appearance', 'characterId': 'coat'}),
+        SceneActorRouteStep.move(direction: EntityFacing.north, durationMs: 50),
+      ]);
+      final result = await executor.execute(command, port: port);
+      expect(result, blocked ? ActorRouteExecutionOutcome.blocked : ActorRouteExecutionOutcome.completed);
+      expect(port.calls, contains('appearance:coat'));
+      expect(port.appearance, 'base');
+    });
+  }
+
+  test('scene appearance is retained between routes', () async {
+    final port = _Port();
+    final state = ActorRouteTransientState();
+    final command = SceneActorRouteInteractiveCommand(
+      target: SceneActorTarget.player(mapId: 'centre'),
+      transientScope: ActorRouteTransientScope.scene,
+      steps: [SceneActorRouteStep.fromJson({'kind': 'appearance', 'characterId': 'coat'})],
+    );
+    expect(await executor.execute(command, port: port, sceneState: state),
+        ActorRouteExecutionOutcome.completed);
+    expect(port.appearance, 'coat');
+  });
+
+  test('appearance cancellation restores without applying later commands', () async {
+    final port = _Port()..gates['wait'] = Completer<void>();
+    final running = executor.execute(_route([
+      SceneActorRouteStep.fromJson({'kind': 'appearance', 'characterId': 'coat'}),
+      SceneActorRouteStep.wait(durationMs: 50),
+      SceneActorRouteStep.sound(mediaAssetId: 'late', gain: 1),
+    ]), port: port);
+    await port.waitUntilEntered('wait');
+    expect(port.appearance, 'coat');
+    port.current = false;
+    port.gates['wait']!.complete();
+    expect(await running, ActorRouteExecutionOutcome.interrupted);
+    expect(port.appearance, 'base');
+    expect(port.calls, isNot(contains('sound:late:1.0')));
+  });
+
+  for (final original in [true, false]) {
+    test('route restores original visibility $original after completion',
+        () async {
+      final port = _Port()..visible = original;
+      final result = await executor.execute(
+        _route([SceneActorRouteStep.visibility(visible: !original)]),
+        port: port,
+      );
+      expect(result, ActorRouteExecutionOutcome.completed);
+      expect(port.visible, original);
+    });
+  }
+
+  for (final scope in ActorRouteTransientScope.values) {
+    test('$scope restores visibility on a blocked route', () async {
+      final port = _Port()..moveOutcomes.add(ActorRouteMoveOutcome.obstructed);
+      final command = SceneActorRouteInteractiveCommand(
+        target: SceneActorTarget.player(mapId: 'room'),
+        transientScope: scope,
+        steps: [
+          SceneActorRouteStep.visibility(visible: false),
+          SceneActorRouteStep.move(
+              direction: EntityFacing.east, durationMs: 250),
+        ],
+      );
+      expect(
+          await executor.execute(command,
+              port: port, sceneState: ActorRouteTransientState()),
+          ActorRouteExecutionOutcome.blocked);
+      expect(port.visible, isTrue);
+    });
+  }
+
+  test('scene visibility persists until its owning scene restores it',
+      () async {
+    final port = _Port();
+    final result = await executor.execute(
+        SceneActorRouteInteractiveCommand(
+          target: SceneActorTarget.player(mapId: 'room'),
+          transientScope: ActorRouteTransientScope.scene,
+          steps: [SceneActorRouteStep.visibility(visible: false)],
+        ),
+        port: port,
+        sceneState: ActorRouteTransientState());
+    expect(result, ActorRouteExecutionOutcome.completed);
+    expect(port.visible, isFalse);
+  });
+
+  for (final scope in ActorRouteTransientScope.values) {
+    test('$scope restores visibility after cancellation during a wait',
+        () async {
+      final port = _Port()..gates['wait'] = Completer<void>();
+      final running = executor.execute(
+          SceneActorRouteInteractiveCommand(
+            target: SceneActorTarget.player(mapId: 'room'),
+            transientScope: scope,
+            steps: [
+              SceneActorRouteStep.visibility(visible: false),
+              SceneActorRouteStep.wait(durationMs: 250),
+              SceneActorRouteStep.sound(mediaAssetId: 'late', gain: 1),
+            ],
+          ),
+          port: port,
+          sceneState: ActorRouteTransientState());
+      await port.waitUntilEntered('wait');
+      expect(port.visible, isFalse);
+      port.current = false;
+      port.gates['wait']!.complete();
+      expect(await running, ActorRouteExecutionOutcome.interrupted);
+      expect(port.visible, isTrue);
+      expect(port.calls, isNot(contains('sound:late:1.0')));
+    });
+  }
 
   test(
       'diagonal actor route is one simultaneous operation and restores priority',
@@ -678,36 +820,52 @@ void main() {
             port: port),
         throwsStateError);
   });
-  test('route visibility follows completed movement and explicit restoration', () async {
+  test('route visibility follows completed movement and explicit restoration',
+      () async {
     final port = _Port()..gates['move'] = Completer<void>();
-    final pending = executor.execute(_route([
-      SceneActorRouteStep.move(direction: EntityFacing.north, durationMs: 250),
-      SceneActorRouteStep.visibility(visible: false),
-      SceneActorRouteStep.wait(durationMs: 100),
-      SceneActorRouteStep.visibility(visible: true),
-    ]), port: port);
+    final pending = executor.execute(
+        _route([
+          SceneActorRouteStep.move(
+              direction: EntityFacing.north, durationMs: 250),
+          SceneActorRouteStep.visibility(visible: false),
+          SceneActorRouteStep.wait(durationMs: 100),
+          SceneActorRouteStep.visibility(visible: true),
+        ]),
+        port: port);
     await port.waitUntilEntered('move');
     expect(port.calls, ['move:north:250:false']);
     port.gates['move']!.complete();
     expect(await pending, ActorRouteExecutionOutcome.completed);
-    expect(port.calls, ['move:north:250:false', 'visibility:false', 'wait:100', 'visibility:true']);
+    expect(port.calls, [
+      'move:north:250:false',
+      'visibility:false',
+      'wait:100',
+      'visibility:true'
+    ]);
   });
   for (final cancelled in [false, true]) {
-    test('uncommitted movement cannot hide the actor: cancellation=$cancelled', () async {
+    test('uncommitted movement cannot hide the actor: cancellation=$cancelled',
+        () async {
       final port = _Port()..gates['move'] = Completer<void>();
       if (!cancelled) port.moveOutcomes.add(ActorRouteMoveOutcome.obstructed);
-      final pending = executor.execute(_route([
-        SceneActorRouteStep.move(direction: EntityFacing.north, durationMs: 250),
-        SceneActorRouteStep.visibility(visible: false),
-      ]), port: port);
+      final pending = executor.execute(
+          _route([
+            SceneActorRouteStep.move(
+                direction: EntityFacing.north, durationMs: 250),
+            SceneActorRouteStep.visibility(visible: false),
+          ]),
+          port: port);
       await port.waitUntilEntered('move');
       if (cancelled) port.current = false;
       port.gates['move']!.complete();
-      expect(await pending, cancelled ? ActorRouteExecutionOutcome.interrupted : ActorRouteExecutionOutcome.blocked);
+      expect(
+          await pending,
+          cancelled
+              ? ActorRouteExecutionOutcome.interrupted
+              : ActorRouteExecutionOutcome.blocked);
       expect(port.calls, ['move:north:250:false']);
     });
   }
-
 }
 
 SceneActorFaceStep _yieldingFace({int durationMs = 0}) =>

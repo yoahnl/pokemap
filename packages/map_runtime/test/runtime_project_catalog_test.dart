@@ -9,6 +9,39 @@ import 'package:path/path.dart' as p;
 
 void main() {
   for (final partitioned in [false, true]) {
+    test('route appearance demand excludes inaccessible scene skins partitioned=$partitioned', () async {
+      final root = await Directory.systemTemp.createTemp('route-appearance-catalog-');
+      addTearDown(() => root.delete(recursive: true));
+      final project = ProjectManifest(name: 'Route skin scope', maps: [],
+        tilesets: [for (final id in ['base', 'costume', 'unused'])
+          ProjectTilesetEntry(id: id, name: id, relativePath: '$id.png')],
+        characters: [for (final id in ['base', 'costume', 'unused'])
+          ProjectCharacterEntry(id: id, name: id, tilesetId: id)],
+        eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+          records: [NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(
+            id: 'evt_00000000-0000-7000-8000-000000000026', name: 'Costume route',
+            source: NarrativeEventSourceRef.entityInteract('room', 'actor'), conditions: [],
+            sceneId: 'costume', reusePolicy: NarrativeEventReusePolicy.reusable, priority: 0, order: 0), enabled: true)],
+          legacyClaims: const []),
+        scenes: [for (final id in ['costume', 'unused']) SceneAsset(id: id, name: id,
+          graph: SceneGraph(startNodeId: 'start', nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(id: 'skin', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'room'),
+                steps: [SceneActorRouteStep.appearance(characterId: id)]))),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ], edges: [SceneEdge(id: 'start-skin', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'skin', kind: SceneEdgeKind.defaultFlow),
+            SceneEdge(id: 'skin-end', fromNodeId: 'skin', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted)]))]);
+      final catalog = await RuntimeProjectCatalog.open(await _writeProject(root, project, partitioned: partitioned));
+      addTearDown(catalog.dispose);
+      const map = MapData(id: 'room', name: 'Room', size: GridSize(width: 2, height: 2),
+        entities: [MapEntity(id: 'actor', kind: MapEntityKind.npc, pos: GridPos(x: 0, y: 0), npc: MapEntityNpcData(characterId: 'base'))]);
+      final selected = await catalog.manifestForMap(map);
+      expect(selected.characters.map((value) => value.id).toSet(), {'base', 'costume'});
+      expect(selected.tilesets.map((value) => value.id).toSet(), {'base', 'costume'});
+    });
+  }
+  for (final partitioned in [false, true]) {
     test(
       'identical typed roots reuse one owned projection, partitioned=$partitioned',
       () async {

@@ -80,6 +80,7 @@ enum SceneDiagnosticCode {
   commandUnknownSoundMedia,
   commandInvalidSoundMedia,
   commandInvalidActorTarget,
+  commandInvalidActorAppearance,
   commandInvalidHealingDisplay,
   commandUnsupportedDimension,
   commandPokemonCatalogUnavailable,
@@ -1485,6 +1486,16 @@ void _diagnoseActionConsequenceAgainstProject(
   if (interactiveCommand is SceneActorRouteInteractiveCommand) {
     final map = mapsById[interactiveCommand.target.mapId];
     for (final step in interactiveCommand.steps) {
+      if (step is SceneActorAppearanceStep &&
+          !isSceneActorAppearanceReferenceAvailable(project, step.characterId)) {
+        diagnostics.add(SceneDiagnostic(
+          code: SceneDiagnosticCode.commandInvalidActorAppearance,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Le graphisme temporaire doit référencer un personnage connu unique.',
+          sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un personnage disponible dans le projet.',
+        ));
+      }
       if (step is! SceneActorMoveStep ||
           step.initialCollisionOwnerEntityId == null) {
         continue;

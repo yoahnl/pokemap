@@ -3971,14 +3971,120 @@ final class _ProjectionBuilder {
     return (event.identity, checkCharacterBindings, canonicalJsonOf(arrivalOwners));
   }
 
+  SourceEventCharacterBinding? _routeAppearanceBinding(SourceMoveRouteStep step) {
+    final name = step.characterName, pattern = step.characterPattern, direction = step.characterDirection;
+    if (step.kind != SourceMoveRouteStepKind.appearance || name == null ||
+        pattern == null || direction == null || step.characterHue != 0) {
+      return null;
+    }
+    final binding = characterBindings[sourceEventCharacterBindingKey(
+        characterName: name, pattern: pattern, direction: direction)];
+    final path = 'Graphics/Characters/$name.png';
+    final entries = source.snapshot.entries.where((entry) =>
+        sourcePathCollisionKey(entry.relativePath) == sourcePathCollisionKey(path)).toList();
+    if (binding == null || binding.characterId.trim().isEmpty || binding.fixedDirection ||
+        binding.sourceSnapshotHash != sourceSnapshotHash || binding.sourcePattern != pattern ||
+        binding.sourceDirection != direction || entries.length != 1 ||
+        entries.single.relativePath != path || entries.single.kind != SourceNodeKind.file ||
+        entries.single.sha256 == null || binding.sourceFileId != entries.single.fileId ||
+        binding.sourceFileHash != entries.single.sha256) {
+      return null;
+    }
+    return binding;
+  }
+
+  bool _routeAppearanceBindingsQualified(SourceForcedMoveRouteNode route) =>
+      route.steps.where((step) => step.kind == SourceMoveRouteStepKind.appearance)
+          .every((step) => _routeAppearanceBinding(step) != null);
+
+  String _finiteRouteRefusal(SourceEventDefinition event, SourceEventBlock block,
+      SourceForcedMoveRouteNode route) {
+    if (route.repeat) return 'sourceRouteRepeatingUnsupported';
+    final actor = route.targetSourceCharacterId == 0 ? event :
+        analysis.eventAt(event.sourceMapId, route.targetSourceCharacterId);
+    if (route.targetSourceCharacterId != -1 && (actor == null || actor.pages.isEmpty)) {
+      return 'sourceRouteActorUnavailable';
+    }
+    final appearances = route.steps.where((step) => step.kind == SourceMoveRouteStepKind.appearance).toList();
+    if (appearances.isNotEmpty) {
+      if (route.targetSourceCharacterId == -1) return 'sourceRoutePlayerAppearanceUnsupported';
+      if (appearances.any((step) => step.characterHue != 0)) return 'sourceRouteAppearanceHueUnsupported';
+      final original = actor!.pages.first.graphic;
+      final restored = appearances.last;
+      if (original == null || restored.characterName != original.characterName ||
+          restored.characterHue != original.hue || restored.characterDirection != original.direction ||
+          restored.characterPattern != original.pattern) {
+        return 'sourceRouteAppearanceRestorationUnsupported';
+      }
+    }
+    if (actor?.pages.any((page) => page.graphic?.directionFix == true) == true) {
+      return 'sourceRouteDirectionFixUnsupported';
+    }
+    final moves = route.steps.any((step) => const {
+      SourceMoveRouteStepKind.moveDown, SourceMoveRouteStepKind.moveUp,
+      SourceMoveRouteStepKind.moveLeft, SourceMoveRouteStepKind.moveRight,
+      SourceMoveRouteStepKind.jump,
+    }.contains(step.kind));
+    if (moves && actor?.pages.any((page) => page.graphic?.walkAnime == false) == true) {
+      return 'sourceRouteWalkAnimationUnsupported';
+    }
+    var through = false, hidden = false, above = false, collisionRequired = false;
+    for (final step in route.steps) {
+      switch (step.kind) {
+        case SourceMoveRouteStepKind.throughOn: through = true;
+        case SourceMoveRouteStepKind.throughOff: through = false;
+        case SourceMoveRouteStepKind.hide: hidden = true;
+        case SourceMoveRouteStepKind.show: hidden = false;
+        case SourceMoveRouteStepKind.alwaysOnTopOn: above = true;
+        case SourceMoveRouteStepKind.alwaysOnTopOff: above = false;
+        case SourceMoveRouteStepKind.moveDown:
+        case SourceMoveRouteStepKind.moveUp:
+        case SourceMoveRouteStepKind.moveLeft:
+        case SourceMoveRouteStepKind.moveRight:
+        case SourceMoveRouteStepKind.jump:
+          if (!through) { collisionRequired = true; }
+        default: break;
+      }
+    }
+    if (through || hidden || above) return 'sourceRouteTransientRestorationUnsupported';
+    final index = block.nodes.indexOf(route);
+    var first = index, last = index;
+    while (first > 0 && block.nodes[first - 1] is SourceForcedMoveRouteNode) { first--; }
+    while (last + 1 < block.nodes.length &&
+        block.nodes[last + 1] is SourceForcedMoveRouteNode) { last++; }
+    if (last > first) {
+      final run = block.nodes.sublist(first, last + 1).cast<SourceForcedMoveRouteNode>();
+      final targets = run.map((node) => node.targetSourceCharacterId == 0
+          ? event.sourceEventId : node.targetSourceCharacterId).toSet();
+      if (targets.length != run.length) return 'sourceRouteReplacementUnsupported';
+      if (appearances.isNotEmpty) return 'sourceParallelRouteAppearanceUnsupported';
+      if (collisionRequired) return 'sourceParallelRouteCollisionUnsupported';
+      if (route.steps.any((step) => step.kind == SourceMoveRouteStepKind.jump)) {
+        return 'sourceParallelRouteJumpUnsupported';
+      }
+      if (route.steps.any((step) => step.kind == SourceMoveRouteStepKind.wait &&
+          step.durationTicks! % 5 != 0)) {
+        return 'sourceParallelRouteTimingUnsupported';
+      }
+    }
+    if (route.steps.any((step) => step.kind == SourceMoveRouteStepKind.jump) &&
+        collisionRequired) {
+      return 'sourceRouteJumpCollisionUnsupported';
+    }
+    return 'sourceFiniteRouteProgramUnsupported';
+  }
+
   bool _supportsInteractionRoute(SourceEventDefinition event,
       SourceForcedMoveRouteNode route, {required bool checkCharacterBindings}) {
     final program = interactionPrograms[event.identity];
     if (program == null || !program.permitsRoute(route) ||
-        !_eventExecutionContextQualified(event) || retentionPolicy == null) {
+        !_eventExecutionContextQualified(event) || retentionPolicy == null ||
+        checkCharacterBindings && !_routeAppearanceBindingsQualified(route)) {
       return false;
     }
-    final actor = analysis.eventAt(event.sourceMapId, route.targetSourceCharacterId);
+    if (route.targetSourceCharacterId == -1) return true;
+    final actor = route.targetSourceCharacterId == 0 ? event :
+        analysis.eventAt(event.sourceMapId, route.targetSourceCharacterId);
     final qualification = _selfSwitchQualification;
     if (actor == null || qualification == null ||
         !_selectedEventIdentities.contains(actor.identity)) {
@@ -4965,6 +5071,17 @@ final class _ProjectionBuilder {
         case SourceForcedMoveRouteNode():
         case SourceMoveRouteBarrierNode():
         case SourcePlayerVisibilityNode():
+          if (node is SourceForcedMoveRouteNode && node.steps.any((step) =>
+              step.kind == SourceMoveRouteStepKind.appearance)) {
+            if (interactionPrograms[event.identity]?.permitsRoute(node) != true) {
+              gaps.add(_finiteRouteRefusal(event, block, node));
+              break;
+            }
+            if (checkCharacterBindings && !_routeAppearanceBindingsQualified(node)) {
+              gaps.add('sourceRouteAppearanceBindingMissing');
+              break;
+            }
+          }
           if (node is SourceForcedMoveRouteNode &&
               _supportsInteractionRoute(event, node,
                   checkCharacterBindings: checkCharacterBindings)) {
@@ -4980,7 +5097,9 @@ final class _ProjectionBuilder {
                 interactionPrograms[event.identity]?.permitsNode(node) == true &&
                 _supportsInteractionRoute(event,
                     block.nodes[previous] as SourceForcedMoveRouteNode,
-                    checkCharacterBindings: checkCharacterBindings)) break;
+                    checkCharacterBindings: checkCharacterBindings)) {
+              break;
+            }
             if (_homeRecoveryProgram(event) != null) break;
             final index = block.nodes.indexOf(node);
             if (index > 0 && block.nodes[index - 1] is SourceForcedMoveRouteNode &&
@@ -4990,7 +5109,10 @@ final class _ProjectionBuilder {
             }
           }
           if (!_isSourceTransition(event)) {
-            gaps.add('sourceDoorProgramUnsupported');
+            gaps.add(node is SourceForcedMoveRouteNode
+                ? _finiteRouteRefusal(event, block, node)
+                : node is SourcePlayerVisibilityNode
+                    ? 'sourcePlayerVisibilityProgramUnsupported' : 'sourceRouteBarrierProgramUnsupported');
           } else if (node is SourceForcedMoveRouteNode) {
             final index = block.nodes.indexOf(node);
             final postTransfer = staticDoorPrograms[event.identity]?.permitsPostTransferRoute(node) ?? false;
@@ -5534,6 +5656,130 @@ final class _SceneBuilder {
         kind: kind));
   }
 
+  String _finiteRouteCinematic(List<SourceForcedMoveRouteNode> routes, String next) {
+    final program = projection.interactionPrograms[event.identity]!;
+    if (!program.isBoundTo(source: projection.source, analysis: projection.analysis, event: event)) {
+      throw const NativeWriteException('events.route.binding',
+          'Cinematic routes require their exact source program');
+    }
+    final id = projection._key(event,
+        'finite_routes_${page.originalPageIndex}_${routes.first.span.firstCommandIndex}');
+    final actors = <CinematicActorRef>[];
+    final bindings = <CinematicActorBinding>[];
+    final placements = <CinematicActorInitialPlacement>[];
+    final points = <CinematicStagePoint>[];
+    final targets = <CinematicMovementTargetRef>[];
+    final targetBindings = <CinematicMovementTargetBinding>[];
+    final tracks = <List<SourceMoveRouteStep>>[];
+    for (final route in routes) {
+      final player = route.targetSourceCharacterId == -1;
+      final sourceActor = player ? null : route.targetSourceCharacterId == 0 ? event :
+          projection.analysis.eventAt(event.sourceMapId, route.targetSourceCharacterId)!;
+      final actorId = player ? 'player' : 'actor_${sourceActor!.sourceEventId}';
+      final entityId = player ? null : projection._key(sourceActor!, 'anchor');
+      actors.add(CinematicActorRef(actorId: actorId, entityId: entityId));
+      bindings.add(CinematicActorBinding(actorId: actorId,
+          kind: player ? CinematicActorBindingKind.player : CinematicActorBindingKind.mapEntity,
+          mapEntityId: entityId));
+      placements.add(CinematicActorInitialPlacement(actorId: actorId,
+          kind: CinematicActorInitialPlacementKind.fromMapEntity));
+      tracks.add([
+        for (final step in route.steps)
+          if (step.kind == SourceMoveRouteStepKind.wait)
+            for (var tick = 0; tick < step.durationTicks!; tick += 5) step
+          else if (step.kind != SourceMoveRouteStepKind.throughOn &&
+              step.kind != SourceMoveRouteStepKind.throughOff) step,
+      ]);
+    }
+    final offsets = [for (final _ in routes) (0, 0)];
+    final timeline = <CinematicTimelineStep>[];
+    final length = tracks.fold<int>(0, (longest, track) => track.length > longest ? track.length : longest);
+    for (var slot = 0; slot < length; slot++) {
+      final active = [for (var actor = 0; actor < tracks.length; actor++)
+        if (slot < tracks[actor].length) actor];
+      for (final actor in active) {
+        final step = tracks[actor][slot];
+        final actorId = actors[actor].actorId;
+        final stepId = 'route_${actor}_step_$slot';
+        final group = active.length > 1 ? 'route_slot_$slot' : null;
+        if (step.kind == SourceMoveRouteStepKind.wait) {
+          timeline.add(CinematicTimelineStep(id: stepId,
+              kind: CinematicTimelineStepKind.wait, durationMs: 250, parallelGroupId: group));
+          continue;
+        }
+        final facing = switch (step.kind) {
+          SourceMoveRouteStepKind.turnDown => 'down',
+          SourceMoveRouteStepKind.turnLeft => 'left',
+          SourceMoveRouteStepKind.turnRight => 'right',
+          SourceMoveRouteStepKind.turnUp => 'up',
+          _ => null,
+        };
+        if (facing != null) {
+          timeline.add(CinematicTimelineStep(id: stepId,
+              kind: CinematicTimelineStepKind.actorFace, actorId: actorId,
+              durationMs: 250, parallelGroupId: group,
+              metadata: {cinematicTimelineActorDirectionMetadataKey: facing}));
+          continue;
+        }
+        final delta = switch (step.kind) {
+          SourceMoveRouteStepKind.moveDown => (0, 1),
+          SourceMoveRouteStepKind.moveUp => (0, -1),
+          SourceMoveRouteStepKind.moveLeft => (-1, 0),
+          SourceMoveRouteStepKind.moveRight => (1, 0),
+          SourceMoveRouteStepKind.jump => (step.jumpX!, step.jumpY!),
+          _ => throw const NativeWriteException('events.route.step_unqualified',
+              'Every cinematic source route step must be represented'),
+        };
+        offsets[actor] = (offsets[actor].$1 + delta.$1, offsets[actor].$2 + delta.$2);
+        final pointId = '${stepId}_point';
+        final targetId = '${stepId}_target';
+        points.add(CinematicStagePoint(id: pointId, label: 'Relative source waypoint',
+            x: offsets[actor].$1.toDouble(), y: offsets[actor].$2.toDouble(),
+            relativeToActorId: actorId));
+        targets.add(CinematicMovementTargetRef(targetId: targetId, label: 'Source route destination'));
+        targetBindings.add(CinematicMovementTargetBinding(targetId: targetId,
+            kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: pointId));
+        final jump = step.kind == SourceMoveRouteStepKind.jump;
+        timeline.add(CinematicTimelineStep(id: stepId,
+            kind: jump ? CinematicTimelineStepKind.actorJump : CinematicTimelineStepKind.actorMove,
+            actorId: actorId, targetId: targetId, durationMs: jump ? 500 : 250,
+            parallelGroupId: group, metadata: {
+              cinematicTimelineActorFacingModeMetadataKey: 'followMovement',
+              if (jump) cinematicTimelineActorJumpHeightCellsMetadataKey: '1.0'
+              else ...{
+                cinematicTimelineActorMovementModeMetadataKey: 'walk',
+                cinematicTimelineActorPathModeMetadataKey: 'direct',
+              },
+            }));
+      }
+    }
+    final cinematic = CinematicAsset(id: id, title: 'Source finite actor sequence',
+        mapId: projection.maps[event.sourceMapId]!.id, requiredActors: actors,
+        movementTargets: targets, stageContext: CinematicStageContext(
+          backdropMode: CinematicStageBackdropMode.projectMap, actorBindings: bindings,
+          initialPlacements: placements, movementTargetBindings: targetBindings, stagePoints: points),
+        timeline: CinematicTimeline(steps: timeline),
+        actorCompletionPolicy: CinematicActorCompletionPolicy.keepFinal,
+        metadata: {'converter.sourceProgram': canonicalHashOf(program.toJson()).value,
+          'converter.sourceTemporalParity': 'false',
+          'converter.sourceCollision': 'explicitThroughForEveryMovement',
+          'converter.sourceCoordinates': 'relativeToActorAtPlaybackStart',
+          'converter.sourceTiming': '250msCardinalAndRotation500msJump20HzWait'});
+    if (!buildCinematicTimelineSchedule(cinematic).isValid) {
+      throw const NativeWriteException('events.route.timeline_invalid',
+          'Finite source routes require a valid bounded native schedule');
+    }
+    projection.cinematics.add(cinematic);
+    projection.mutations.add(projection._mutation('cinematic.upsert', id,
+        [event.identity, event.sourceFileId,
+          for (final actorId in program.actorEventIds)
+            projection.analysis.eventAt(event.sourceMapId, actorId)!.identity],
+        [id], {'cinematic': cinematic.toJson()}));
+    final start = _node(SceneCinematicPayload(cinematicId: id));
+    _edge(start, 'completed', next, SceneEdgeKind.cinematicCompleted);
+    return start;
+  }
+
   String _escort(SourceEscortProgram program, String next) {
     final binding = projection.escortBindings[event.identity]!;
     if (!binding.isBoundTo(projection.source, projection.analysis, event)) {
@@ -6043,6 +6289,13 @@ final class _SceneBuilder {
     var next = continuation;
     final escort = projection.escortPrograms[event.identity];
     for (final node in block.nodes.reversed) {
+      if (node is SourceForcedMoveRouteNode) {
+        final group = projection.interactionPrograms[event.identity]?.cinematicRoutesFor(node);
+        if (group != null) {
+          if (identical(node, group.last)) { next = _finiteRouteCinematic(group, next); }
+          continue;
+        }
+      }
       if (escort != null && page.originalPageIndex == 0 && escort.cinematicNodes.contains(node)) {
         if (identical(node, escort.cinematicNodes.last)) next = _escort(escort, next);
         continue;
@@ -6297,8 +6550,22 @@ final class _SceneBuilder {
             if (initialActorRouteThrough) SceneActorRouteStep.through(enabled: true),
           ];
           var through = initialActorRouteThrough;
+          var sourceOriginalDirection = routeActor.pages.first.graphic!.direction;
           for (final step in node.steps) {
             switch (step.kind) {
+              case SourceMoveRouteStepKind.appearance:
+                final appearance = projection._routeAppearanceBinding(step)!;
+                steps.add(SceneActorRouteStep.appearance(characterId: appearance.characterId));
+                if (sourceOriginalDirection != step.characterDirection) {
+                  steps.add(SceneActorRouteStep.face(direction: switch (step.characterDirection) {
+                    2 => EntityFacing.south, 4 => EntityFacing.west,
+                    6 => EntityFacing.east, _ => EntityFacing.north,
+                  }));
+                  sourceOriginalDirection = step.characterDirection!;
+                }
+              case SourceMoveRouteStepKind.jump:
+                throw const NativeWriteException('events.route.jump_unqualified',
+                    'A jump requires an attested relative cinematic route');
               case SourceMoveRouteStepKind.moveForward:
                 throw const NativeWriteException('events.route.forward_unqualified',
                     'A relative step requires its bound post-transfer program');

@@ -13,7 +13,7 @@ class CinematicPathPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final points = {
       for (final p
-          in asset.stageContext?.stagePoints ?? <CinematicStagePoint>[])
+          in model.resolvedStagePoints)
         p.id: p,
     };
     final paint = Paint()

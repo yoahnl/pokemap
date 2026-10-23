@@ -802,10 +802,11 @@ void _diagnoseStageContext(
             ),
           );
         } else if (mapWidth != null && mapHeight != null) {
-          if (point.x < 0 ||
+          if (point.relativeToActorId == null &&
+              (point.x < 0 ||
               point.x >= mapWidth ||
               point.y < 0 ||
-              point.y >= mapHeight) {
+              point.y >= mapHeight)) {
             diagnostics.add(
               CinematicDiagnostic(
                 code: CinematicDiagnosticCode
@@ -931,10 +932,11 @@ void _diagnoseStageContext(
             ),
           );
         } else if (mapWidth != null && mapHeight != null) {
-          if (point.x < 0 ||
+          if (point.relativeToActorId == null &&
+              (point.x < 0 ||
               point.x >= mapWidth ||
               point.y < 0 ||
-              point.y >= mapHeight) {
+              point.y >= mapHeight)) {
             diagnostics.add(
               CinematicDiagnostic(
                 code: CinematicDiagnosticCode
@@ -972,6 +974,23 @@ void _diagnoseStageContext(
 
     final seenPointIds = <String>{};
     for (final point in stageContext.stagePoints) {
+      if (point.relativeToActorId != null &&
+          !stageContext.actorBindings.any(
+            (binding) => binding.actorId == point.relativeToActorId,
+          )) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.stagePointInvalidCoordinate,
+            severity: CinematicDiagnosticSeverity.error,
+            message:
+                'Le repère "${point.id}" référence un acteur d’origine absent.',
+            cinematicId: cinematic.id,
+            referenceId: point.id,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Choisir un acteur lié à la cinématique.',
+          ),
+        );
+      }
       final id = point.id.trim();
       final label = point.label.trim();
       if (id.isEmpty) {
@@ -1033,10 +1052,11 @@ void _diagnoseStageContext(
       }
 
       if (mapWidth != null && mapHeight != null) {
-        if (point.x < 0 ||
+        if (point.relativeToActorId == null &&
+            (point.x < 0 ||
             point.x >= mapWidth ||
             point.y < 0 ||
-            point.y >= mapHeight) {
+            point.y >= mapHeight)) {
           diagnostics.add(
             CinematicDiagnostic(
               code: CinematicDiagnosticCode.stagePointOutOfMap,
@@ -1183,10 +1203,11 @@ void _diagnoseManualPaths(
         );
       } else {
         if (mapWidth != null && mapHeight != null) {
-          if (point.x < 0 ||
+          if (point.relativeToActorId == null &&
+              (point.x < 0 ||
               point.x >= mapWidth ||
               point.y < 0 ||
-              point.y >= mapHeight) {
+              point.y >= mapHeight)) {
             diagnostics.add(
               CinematicDiagnostic(
                 code: CinematicDiagnosticCode.manualPathStagePointOutOfMap,
@@ -1859,10 +1880,11 @@ void _diagnoseCameraStagePointTarget(
       ),
     );
   } else if (mapWidth != null && mapHeight != null) {
-    if (point.x < 0 ||
+    if (point.relativeToActorId == null &&
+        (point.x < 0 ||
         point.x >= mapWidth ||
         point.y < 0 ||
-        point.y >= mapHeight) {
+        point.y >= mapHeight)) {
       diagnostics.add(
         CinematicDiagnostic(
           code: CinematicDiagnosticCode.cameraTargetStagePointOutOfMap,

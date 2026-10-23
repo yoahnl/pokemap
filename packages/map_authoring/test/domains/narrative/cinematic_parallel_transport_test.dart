@@ -9,6 +9,46 @@ import '../../../../map_core/test/fixtures/cinematic_facing_fixture.dart';
 
 void main() {
   for (final jsonl in [false, true]) {
+    test('actor-relative coordinates survive direct and JSONL authoring jsonl=$jsonl', () async {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      final asset = _jumpJson();
+      final context = asset['stageContext'] as Map<String, dynamic>;
+      context['initialPlacements'] = <Object>[];
+      final point = (context['stagePoints'] as List).last as Map<String, dynamic>;
+      point['relativeToActorId'] = 'actor'; point['x'] = -1.0; point['y'] = 2.0;
+      final request = await f.request('cinematic.upsert', {'cinematic': asset});
+      String planId;
+      if (jsonl) {
+        final plan = await f.command('plan', {'projectHandle': f.opened.projectHandle.value, 'request': request.toJson()});
+        expect(plan.status, AuthoringResultStatus.success, reason: jsonEncode(plan.toJson()));
+        planId = plan.data['planId'] as String;
+      } else {
+        planId = (await f.api.planMutation(f.opened.projectHandle, request)).planId;
+      }
+      if (jsonl) {
+        final applied = await f.command('apply', {'projectHandle': f.opened.projectHandle.value, 'planId': planId, 'operationId': 'relative'});
+        expect(applied.status, AuthoringResultStatus.success, reason: jsonEncode(applied.toJson()));
+      } else {
+        await f.api.applyMutation(f.opened.projectHandle, planId: planId, operationId: 'relative');
+      }
+      final persisted = (await f.loader.load(f.opened.projectHandle)).manifest.cinematics.single;
+      expect(persisted.stageContext!.stagePoints.last.relativeToActorId, 'actor');
+      expect(persisted.stageContext!.stagePoints.last.x, -1);
+      expect(jsonEncode((await f.command('describe', {})).toJson()), contains('relativeToActorId'));
+      final before = await f.file.readAsBytes();
+      point['relativeToActorId'] = 'missing';
+      final invalid = await f.request('cinematic.upsert', {'cinematic': asset});
+      if (jsonl) {
+        final rejected = await f.command('plan', {'projectHandle': f.opened.projectHandle.value, 'request': invalid.toJson()});
+        expect(rejected.status, isNot(AuthoringResultStatus.success));
+      } else {
+        await expectLater(f.api.planMutation(f.opened.projectHandle, invalid), throwsA(anything));
+      }
+      expect(await f.file.readAsBytes(), before);
+
+    });
+
     test(
       'parallel group is validated and persisted canonically jsonl=$jsonl',
       () async {

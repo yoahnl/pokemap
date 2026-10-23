@@ -87,7 +87,7 @@ void main() {
             payload: SceneActionPayload.interactive(_actorRoute([
               {'kind': 'move', 'direction': 'west', 'durationMs': 250},
               {'kind': 'visibility', 'visible': false},
-            ])))
+            ], transientScope: ActorRouteTransientScope.scene)))
           else n]));
     PlayableMapGame? active;
     var sawHiddenAfterMove = false;
@@ -125,6 +125,7 @@ void main() {
       expect(game.gameStateSnapshot.currentMapId, 'target');
       final player = game.world.children.whereType<PlayerComponent>().single;
       expect(player.priority, greaterThan(overworldForegroundRenderPriority));
+      expect(player.isVisible, isFalse);
       expect(await game.saveGame(), isFalse);
       if (cancelled) game.onRemove();
       final result = await _finishActorScene(game, execution);
@@ -132,6 +133,7 @@ void main() {
       expect(player.priority, overworldActorRenderPriority(player.footPoint.y));
       expect(game.debugIsGameplayInputLocked, isFalse);
       if (!cancelled) {
+        expect(player.isVisible, isTrue);
         expect(await game.saveGame(), isTrue);
         expect(jsonEncode(game.gameStateSnapshot.toJson()), isNot(contains('renderAboveMap')));
       }
@@ -182,6 +184,7 @@ void main() {
         sourceAbove |= actors.any((actor) => actor.priority > overworldForegroundRenderPriority);
       } else if (actors.isNotEmpty) {
         targetNormal |= actors.every((actor) => actor.priority < overworldForegroundRenderPriority);
+        expect(actors.every((actor) => actor.isVisible), isTrue);
       }
     });
     expect(result, isA<NarrativeSceneExecutionCompleted>());
@@ -222,15 +225,28 @@ void main() {
       final sourceBefore = <String, dynamic>{};
       final fixture = await _fixture(warpArrival: true, narrativeV2: true,
         sourceSize: const GridSize(width: 4, height: 4),
+        solidCharacter: true, playerCharacter: _timingPlayerCharacter(),
+        characters: [_timingPlayerCharacter().copyWith(id: 'costume', name: 'Costume', tilesetId: 'costume')],
+        extraTilesets: const [ProjectTilesetEntry(id: 'costume', name: 'Costume', relativePath: 'assets/costume.png')],
+        sourceEntities: const [MapEntity(id: 'scene-anchor', kind: MapEntityKind.npc,
+          pos: GridPos(x: 0, y: 0), npc: MapEntityNpcData(characterId: 'timing-player'))],
+        eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+          records: [NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(
+            id: 'evt_00000000-0000-7000-8000-000000000016', name: 'Costume route',
+            source: NarrativeEventSourceRef.entityInteract('source', 'scene-anchor'), conditions: [],
+            sceneId: 'native-transient', reusePolicy: NarrativeEventReusePolicy.reusable, priority: 0, order: 0), enabled: true)],
+          legacyClaims: const []),
         targetEntities: const [MapEntity(id: 'solid', kind: MapEntityKind.custom,
           pos: GridPos(x: 1, y: 1), blocksMovement: true)],
-        scenes: [_nativeTransientScene(failingAfterWarp: failingAfterWarp)],
+        scenes: [_nativeTransientScene(failingAfterWarp: failingAfterWarp, appearanceCharacterId: 'costume')],
         dialogues: failingAfterWarp ? [_actorDialogueEntry] : [],
         dialogueSessionLoader: (_) async => throw StateError('Failure after scoped transfer'));
       final game = fixture.game;
       active = game;
       sourceBefore.addAll(game.gameStateSnapshot.toJson());
       var sawSourceAbove = false, sawTargetAbove = false;
+      var sawSourceHidden = false, sawTargetHidden = false;
+      var sawSourceCostume = false, sawTargetCostume = false;
       final saveChecks = <Future<bool>>[];
       final execution = game.debugExecuteNarrativeSceneForTest(NarrativeSceneExecutionRequest(
         eventId: 'native-event', sceneId: 'native-transient', executionId: 'native-scope', gameState: game.gameStateSnapshot));
@@ -239,14 +255,22 @@ void main() {
         if (player.priority > overworldForegroundRenderPriority) {
           if (game.gameStateSnapshot.currentMapId == 'target') {
             sawTargetAbove = true;
+            sawTargetHidden |= !player.isVisible;
+            sawTargetCostume |= player.characterEntry?.id == 'costume';
           } else {
             sawSourceAbove = true;
+            sawSourceHidden |= !player.isVisible;
+            sawSourceCostume |= player.characterEntry?.id == 'costume';
           }
           if (saveChecks.isEmpty) saveChecks.add(game.saveGame());
         }
       });
       expect(sawSourceAbove, isTrue);
       expect(sawTargetAbove, isTrue);
+      expect(sawSourceHidden, isTrue);
+      expect(sawTargetHidden, isTrue);
+      expect(sawSourceCostume, isTrue);
+      expect(sawTargetCostume, isTrue);
       expect(await Future.wait(saveChecks), [false]);
       if (failingAfterWarp) {
         expect(result, isA<NarrativeSceneExecutionFailed>());
@@ -259,6 +283,8 @@ void main() {
       }
       final player = game.world.children.whereType<PlayerComponent>().single;
       expect(player.priority, overworldActorRenderPriority(player.footPoint.y));
+      expect(player.isVisible, isTrue);
+      expect(player.characterEntry?.id, 'timing-player');
       expect(game.debugIsGameplayInputLocked, isFalse);
       expect(jsonEncode(game.gameStateSnapshot.toJson()), isNot(contains('renderAboveMap')));
     });
@@ -4460,6 +4486,7 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
   List<MapEntity> sourceEntities = const [],
   List<MapEntity> targetEntities = const [],
   List<ProjectCharacterEntry> characters = const [],
+  List<ProjectTilesetEntry> extraTilesets = const [],
   ProjectCharacterEntry? playerCharacter,
   bool narrativeV2 = false,
   MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,
@@ -4487,8 +4514,9 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
           (index) => sourceCollisionCells.contains(GridPos(x: index % sourceSize.width, y: index ~/ sourceSize.width))),
       ),
     ],
-    placedElements: [if (solidCharacter) const MapPlacedElement(id: 'visibility-render-witness',
-      elementId: 'original_mask', layerId: 'objects', pos: GridPos(x: 0, y: 4), applyCollision: false)],
+    placedElements: [if (solidCharacter) MapPlacedElement(id: 'visibility-render-witness',
+      elementId: 'original_mask', layerId: 'objects',
+      pos: GridPos(x: 0, y: sourceSize.height > 4 ? 4 : sourceSize.height - 1), applyCollision: false)],
     entities: [
       ...sourceEntities,
       MapEntity(
@@ -4630,12 +4658,13 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       defaultPlayerCharacterId: playerCharacter?.id,
       mapInstanceRetentionPolicy: mapInstanceRetentionPolicy,
     ),
-    tilesets: const [
-      ProjectTilesetEntry(
+    tilesets: [
+      const ProjectTilesetEntry(
         id: 'original',
         name: 'Original',
         relativePath: 'assets/original.png',
       ),
+      ...extraTilesets,
     ],
     elementCategories: const [
       ProjectElementCategory(id: 'original', name: 'Original'),
@@ -4710,6 +4739,19 @@ Future<({PlayableMapGame game, GameplayWorldState targetWorld})> _fixture({
       .writeAsBytes(bytes!.buffer.asUint8List());
   image.dispose();
   picture.dispose();
+  for (final tileset in extraTilesets) {
+    final skinRecorder = ui.PictureRecorder();
+    ui.Canvas(skinRecorder).drawRect(const ui.Rect.fromLTWH(0, 0, 64, 64),
+      ui.Paint()..color = const ui.Color(0xFF3060F0));
+    final skinPicture = skinRecorder.endRecording();
+    final skinImage = await skinPicture.toImage(64, 64);
+    final skinBytes = await skinImage.toByteData(format: ui.ImageByteFormat.png);
+    final skinFile = File(p.join(root.path, tileset.relativePath));
+    await skinFile.parent.create(recursive: true);
+    await skinFile.writeAsBytes(skinBytes!.buffer.asUint8List());
+    skinImage.dispose();
+    skinPicture.dispose();
+  }
   for (final dialogue in dialogues) {
     final file = File(p.join(root.path, dialogue.relativePath));
     await file.parent.create(recursive: true);
@@ -5036,6 +5078,7 @@ SceneInteractiveCommand _actorRoute(
   String? entityId,
   bool skippable = false,
   String mapId = 'source',
+  ActorRouteTransientScope transientScope = ActorRouteTransientScope.route,
 }) => SceneInteractiveCommand.fromJson({
   'kind': 'actorRoute',
   'target': {
@@ -5045,6 +5088,7 @@ SceneInteractiveCommand _actorRoute(
   },
   'steps': steps,
   'skippable': skippable,
+  if (transientScope != ActorRouteTransientScope.route) 'transientScope': transientScope.name,
 });
 
 final _barrierNpc = _routeDoor.copyWith(
@@ -5121,13 +5165,15 @@ Future<List<int>> _nativeWorldPixel(PlayableMapGame game, Vector2 sample) async 
   }
 }
 
-SceneAsset _nativeTransientScene({bool failingAfterWarp = false, bool omitRestoration = false, String? actorId}) {
+SceneAsset _nativeTransientScene({bool failingAfterWarp = false, bool omitRestoration = false, String? actorId, String? appearanceCharacterId}) {
   SceneInteractiveCommand scoped(String mapId, List<Map<String, Object?>> steps, {String? entityId}) =>
     SceneInteractiveCommand.fromJson({'kind': 'actorRoute', 'target': {'kind': entityId == null ? 'player' : 'entity', 'mapId': mapId, 'entityId': ?entityId},
       'steps': steps, 'skippable': false, 'transientScope': 'scene'});
   final commands = <SceneInteractiveCommand>[
     scoped('source', [
+      if (appearanceCharacterId != null) {'kind': 'appearance', 'characterId': appearanceCharacterId},
       {'kind': 'through', 'enabled': true}, {'kind': 'renderAboveMap', 'enabled': true},
+      {'kind': 'visibility', 'visible': false},
       {'kind': 'wait', 'durationMs': 50},
     ], entityId: actorId),
     SceneInteractiveCommand.warp(destinationMapId: 'target', warpId: 'arrival', transition: SceneWarpTransition.none),

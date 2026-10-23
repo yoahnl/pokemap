@@ -18,12 +18,33 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis})> _source({
   String? variant,
 }) async {
   final move = _step(variant == 'outOfBounds' ? 4 : 2);
+  final pause = const LiteralFixtureObject('RPG::MoveCommand', {
+    '@code': 15,
+    '@parameters': [5]
+  });
+  final turn = _step(19);
+  final finite = variant == 'finiteSequence';
+  final plain = variant == 'plainRoute' || finite;
   final route = LiteralFixtureObject('RPG::MoveRoute', {
     '@repeat': variant == 'repeat',
     '@skippable': variant != 'nonSkippable',
-    '@list': [move, _step(0)],
+    '@list': [move,
+      if (finite) ...[pause, turn],
+      _step(0)],
   });
-  final commands = <LiteralFixtureEventCommand>[
+  final commands = plain
+      ? <LiteralFixtureEventCommand>[
+          LiteralFixtureEventCommand(209, [actorId, route]),
+          LiteralFixtureEventCommand(509, [move]),
+          if (finite) ...[
+            LiteralFixtureEventCommand(509, [pause]),
+            LiteralFixtureEventCommand(509, [turn]),
+          ],
+          const LiteralFixtureEventCommand(210, []),
+          const LiteralFixtureEventCommand(101, ['The route has finished.']),
+          const LiteralFixtureEventCommand(0, []),
+        ]
+      : <LiteralFixtureEventCommand>[
     const LiteralFixtureEventCommand(111, [6, -1, 8]),
     const LiteralFixtureEventCommand(101, ['Choose a result.'], indent: 1),
     const LiteralFixtureEventCommand(102, [['Wrong', 'Correct'], 0], indent: 1),
@@ -147,7 +168,37 @@ void main() {
     });
   }
 
-  for (final variant in ['repeat', 'nonSkippable', 'unboundActor',
+  test(
+      'qualifies a bounded non-skippable route without inventing an infinite wait',
+      () async {
+    final input = await _source(variant: 'nonSkippable');
+    final owner = input.analysis.eventAt(17, 41)!;
+    expect(
+        sourceInteractionPrograms(
+            source: input.fixture.source, analysis: input.analysis),
+        contains(owner.identity));
+  });
+
+  test('qualifies a finite route without a choice menu', () async {
+    final input = await _source(variant: 'plainRoute');
+    final owner = input.analysis.eventAt(17, 41)!;
+    final program = sourceInteractionPrograms(
+        source: input.fixture.source, analysis: input.analysis)[owner.identity];
+    expect(program, isNotNull);
+    expect(program!.actorEventIds, {73});
+  });
+
+  test('qualifies rotations and bounded pauses before the explicit barrier',
+      () async {
+    final input = await _source(variant: 'finiteSequence');
+    final owner = input.analysis.eventAt(17, 41)!;
+    expect(
+        sourceInteractionPrograms(
+            source: input.fixture.source, analysis: input.analysis),
+        contains(owner.identity));
+  });
+
+  for (final variant in ['repeat', 'unboundActor',
     'outOfBounds', 'autonomy', 'autorun', 'unknownScript', 'afterRouteEffect',
     'afterChoiceEffect']) {
     test('refuses incomplete or unsupported interaction $variant', () async {

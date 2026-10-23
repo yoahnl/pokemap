@@ -240,6 +240,12 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
     ],
   );
 
+  Map<String, String> get _characters => {
+    for (final character in widget.project.characters)
+      if (isSceneActorAppearanceReferenceAvailable(widget.project, character.id))
+        character.id: character.name,
+  };
+
   Map<String, String> get _sounds {
     final counts = <String, int>{};
     for (final media in widget.project.cinematicMediaAssets) {
@@ -301,6 +307,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
       : SceneActorTarget.entity(mapId: _mapId!, entityId: _entityId!);
 
   SceneActorRouteStep _typedStep(_ActorStepDraft step) => switch (step.kind) {
+    SceneActorRouteStepKind.appearance => SceneActorRouteStep.appearance(characterId: step.characterId!),
     SceneActorRouteStepKind.face => SceneActorRouteStep.face(
       direction: step.direction,
       durationMs: step.duration!,
@@ -335,6 +342,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
   };
 
   bool _stepValid(_ActorStepDraft step) {
+    if (step.kind == SceneActorRouteStepKind.appearance && !_characters.containsKey(step.characterId)) return false;
     if (step.kind == SceneActorRouteStepKind.sound &&
         !_sounds.containsKey(step.soundId)) {
       return false;
@@ -449,8 +457,8 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
         ),
         StudioNotice(
           _transientScope == ActorRouteTransientScope.scene
-              ? 'La traversée et le premier plan restent actifs entre les trajets et les changements de carte de cette scène.'
-              : 'La traversée et le premier plan sont rétablis à la fin de ce trajet.',
+              ? 'La traversée, le premier plan, la visibilité et le graphisme sont conservés entre les trajets, puis rétablis à la fin de la scène. Le joueur conserve ces effets entre les cartes ; un PNJ reste lié à son instance de carte.'
+              : 'La traversée, le premier plan, la visibilité et le graphisme sont rétablis à la fin de ce trajet.',
         ),
         StudioToggleRow(
           label: 'Continuer si un déplacement est bloqué',
@@ -543,6 +551,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             'through': 'Traverser les obstacles',
             'renderAboveMap': 'Afficher au premier plan',
             'visibility': 'Afficher ou masquer',
+            'appearance': 'Changer le graphisme',
             'sound': 'Jouer un son',
           },
           onChanged: (value) => setState(
@@ -635,6 +644,13 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             value: step.enabled,
             onChanged: (value) => setState(() => step.enabled = value),
           ),
+        if (step.kind == SceneActorRouteStepKind.appearance)
+          StudioSelect(
+            label: 'Graphisme de l’étape ${index + 1}',
+            value: step.characterId,
+            options: _characters,
+            onChanged: _characters.isEmpty ? null : (value) => setState(() => step.characterId = value),
+          ),
         if (step.kind == SceneActorRouteStepKind.sound) ...[
           const SizedBox(height: 8),
           StudioSelect(
@@ -674,7 +690,7 @@ class _ActorStepDraft {
   EntityFacing direction = EntityFacing.south;
   EntityFacing horizontal = EntityFacing.west, vertical = EntityFacing.north;
   String durationText = '0', gainText = '1';
-  String? soundId;
+  String? soundId, characterId;
   String? initialCollisionOwnerEntityId, initialCollisionOwnerMapId;
   bool enabled = false, yieldAfter = false;
 
@@ -707,6 +723,8 @@ class _ActorStepDraft {
         draft.enabled = step.enabled;
       case SceneActorRenderAboveMapStep():
         draft.enabled = step.enabled;
+      case SceneActorAppearanceStep():
+        draft.characterId = step.characterId;
       case SceneActorVisibilityStep():
         draft.enabled = step.visible;
       case SceneActorSoundStep():

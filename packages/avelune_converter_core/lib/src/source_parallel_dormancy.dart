@@ -333,6 +333,8 @@ void _auditSourceFactWriteBlock(
             SourceMoveRouteStepKind.moveForward ||
             SourceMoveRouteStepKind.moveUpperLeft ||
             SourceMoveRouteStepKind.moveUpperRight ||
+            SourceMoveRouteStepKind.jump ||
+            SourceMoveRouteStepKind.appearance ||
             SourceMoveRouteStepKind.wait ||
             SourceMoveRouteStepKind.turnDown ||
             SourceMoveRouteStepKind.turnLeft ||

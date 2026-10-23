@@ -742,6 +742,8 @@ enum SourceMoveRouteStepKind {
   moveForward,
   moveUpperLeft,
   moveUpperRight,
+  jump,
+  appearance,
   wait,
   turnDown,
   turnLeft,
@@ -763,17 +765,31 @@ final class SourceMoveRouteStep {
       required this.rawDataRef,
       required this.routeNodeId,
       this.durationTicks,
+      this.jumpX,
+      this.jumpY,
+      this.characterName,
+      this.characterHue,
+      this.characterDirection,
+      this.characterPattern,
       this.soundName,
       this.soundVolume,
       this.soundPitch});
   final SourceMoveRouteStepKind kind;
   final int sourceCode, routeNodeId;
   final SourcePreservedData rawDataRef;
-  final int? durationTicks, soundVolume, soundPitch;
+  final int? durationTicks, jumpX, jumpY, soundVolume, soundPitch;
   final String? soundName;
+  final String? characterName;
+  final int? characterHue, characterDirection, characterPattern;
   Map<String, Object?> toJson() => {
         'kind': kind.name,
         'sourceCode': sourceCode,
+        if (jumpX != null) 'jumpX': jumpX,
+        if (jumpY != null) 'jumpY': jumpY,
+        if (characterName != null) 'appearance': {
+          'characterName': characterName, 'hue': characterHue,
+          'direction': characterDirection, 'pattern': characterPattern,
+        },
         if (durationTicks != null) ...{
           'durationTicks': durationTicks,
           'ticksPerSecond': 20,
@@ -2780,6 +2796,12 @@ final class _SourceEventParser {
           rawDataRef: copy,
           routeNodeId: list[stepIndex],
           durationTicks: sourceValue['ticks'] as int?,
+          jumpX: sourceValue['jumpX'] as int?,
+          jumpY: sourceValue['jumpY'] as int?,
+          characterName: sourceValue['characterName'] as String?,
+          characterHue: sourceValue['characterHue'] as int?,
+          characterDirection: sourceValue['characterDirection'] as int?,
+          characterPattern: sourceValue['characterPattern'] as int?,
           soundName: sourceValue['name'] as String?,
           soundVolume: sourceValue['volume'] as int?,
           soundPitch: sourceValue['pitch'] as int?));
@@ -2816,6 +2838,7 @@ final class _SourceEventParser {
           8 => SourceMoveRouteStepKind.moveUp,
           _ => throw const FormatException(),
         },
+      14 => SourceMoveRouteStepKind.jump,
       15 => SourceMoveRouteStepKind.wait,
       16 => SourceMoveRouteStepKind.turnDown,
       17 => SourceMoveRouteStepKind.turnLeft,
@@ -2825,19 +2848,35 @@ final class _SourceEventParser {
       38 => SourceMoveRouteStepKind.throughOff,
       39 => SourceMoveRouteStepKind.alwaysOnTopOn,
       40 => SourceMoveRouteStepKind.alwaysOnTopOff,
-      41 => throw const FormatException('events.move_route_appearance_unsupported'),
+      41 => SourceMoveRouteStepKind.appearance,
       42 => SourceMoveRouteStepKind.hide,
       44 => SourceMoveRouteStepKind.soundEffect,
       _ => throw const FormatException(),
     };
     final params = _facingArray(doc, _eventField(fields, '@parameters'),
-        [15, 42, 44].contains(code) ? 1 : 0);
+        code == 41 ? 4 : code == 14 ? 2 : [15, 42, 44].contains(code) ? 1 : 0);
     final result = <String, Object?>{'code': code, 'kind': kind.name};
-    if (code == 15) {
+    if (code == 14) {
+      final x = _eventInt(doc, _facingPlain(doc, params[0], MarshalKind.integer));
+      final y = _eventInt(doc, _facingPlain(doc, params[1], MarshalKind.integer));
+      if (x.abs() > 64 || y.abs() > 64) throw const FormatException();
+      result.addAll({'jumpX': x, 'jumpY': y});
+    } else if (code == 15) {
       final ticks =
           _eventInt(doc, _facingPlain(doc, params.single, MarshalKind.integer));
       if (ticks < 0) throw const FormatException();
       result['ticks'] = ticks;
+    } else if (code == 41) {
+      final name = _routeText(doc, params[0]);
+      final hue = _eventInt(doc, _facingPlain(doc, params[1], MarshalKind.integer));
+      final direction = _eventInt(doc, _facingPlain(doc, params[2], MarshalKind.integer));
+      final pattern = _eventInt(doc, _facingPlain(doc, params[3], MarshalKind.integer));
+      if (name.trim().isEmpty || hue < 0 || hue > 360 ||
+          !const {2, 4, 6, 8}.contains(direction) || pattern < 0 || pattern > 3) {
+        throw const FormatException('events.move_route_appearance_unsupported');
+      }
+      result.addAll({'characterName': name, 'characterHue': hue,
+        'characterDirection': direction, 'characterPattern': pattern});
     } else if (code == 42) {
       final opacity = _eventInt(doc,
           _facingPlain(doc, params.single, MarshalKind.integer));

@@ -317,6 +317,7 @@ extension CinematicInspectorStep on CinematicInspector {
             return accepted;
           },
         ),
+      ..._relativePointFields(asset, step),
       if (!jump)
         StudioButton(
           label: 'Ajouter un point de trajet',
@@ -352,6 +353,101 @@ extension CinematicInspectorStep on CinematicInspector {
           targetId: targetId,
           facingMode: facingMode,
         ).cinematic;
+
+  List<Widget> _relativePointFields(
+    CinematicAsset asset,
+    CinematicTimelineStep step,
+  ) {
+    final binding = asset.stageContext?.movementTargetBindings
+        .where(
+          (entry) =>
+              entry.targetId == step.targetId &&
+              entry.kind == CinematicMovementTargetBindingKind.stagePoint,
+        )
+        .firstOrNull;
+    final path = asset.stageContext?.manualPaths
+        .where((entry) => entry.ownerActorMoveStepId == step.id)
+        .firstOrNull;
+    final ids = {
+      if (binding?.sourceId != null) binding!.sourceId!,
+      ...?path?.waypointStagePointIds,
+    };
+    return [
+      for (final point
+          in asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[])
+        if (ids.contains(point.id)) ...[
+          Text(point.label),
+          StudioSelect(
+            key: ValueKey('cinematic-point-origin-${point.id}'),
+            label: 'Origine du repère',
+            value: point.relativeToActorId ?? '',
+            options: {
+              '': 'Carte (position absolue)',
+              for (final actor in asset.stageContext!.actorBindings)
+                if (actor.kind == CinematicActorBindingKind.player || actor.kind == CinematicActorBindingKind.mapEntity)
+                actor.actorId:
+                    'Départ de ${asset.requiredActors.where((entry) => entry.actorId == actor.actorId).firstOrNull?.label ?? actor.actorId}',
+            },
+            onChanged: (value) {
+              if (value.isNotEmpty && model?.map.spatialScene != null) {
+                view.error = 'Les repères relatifs aux acteurs sont disponibles sur les cartes 2D.';
+                changed();
+                return;
+              }
+              final origin = value.isEmpty ? null : model?.actorOrigins[value];
+              final resolved = model?.resolvedStagePoints
+                  .where((entry) => entry.id == point.id)
+                  .firstOrNull;
+              if (resolved == null || (value.isNotEmpty && origin == null)) {
+                view.error =
+                    'L’acteur d’origine doit être présent dans l’aperçu.';
+                changed();
+                return;
+              }
+              final accepted = controller.setStagePoint(
+                CinematicStagePoint(
+                  id: point.id,
+                  label: point.label,
+                  x: resolved.x - (origin?.x ?? 0),
+                  y: resolved.y - (origin?.y ?? 0),
+                  description: point.description,
+                  relativeToActorId: value.isEmpty ? null : value,
+                ),
+              );
+              if (!accepted) view.error = controller.error;
+              changed();
+            },
+          ),
+          for (final axis in ['x', 'y'])
+            StudioCommitField(
+              key: ValueKey('cinematic-point-$axis-${point.id}'),
+              label:
+                  '${point.relativeToActorId == null ? 'Position' : 'Décalage'} $axis (cases)',
+              value: '${axis == 'x' ? point.x : point.y}',
+              tryCommit: (text) {
+                final value = double.tryParse(text);
+                if (value == null || !value.isFinite) return false;
+                final accepted = controller.setStagePoint(
+                  CinematicStagePoint(
+                    id: point.id,
+                    label: point.label,
+                    x: axis == 'x' ? value : point.x,
+                    y: axis == 'y' ? value : point.y,
+                    description: point.description,
+                    relativeToActorId: point.relativeToActorId,
+                  ),
+                );
+                changed();
+                return accepted;
+              },
+            ),
+          if (point.relativeToActorId != null)
+            const Text(
+              'Décalage depuis la position de l’acteur au début de chaque lecture. Disponible sur les cartes 2D.',
+            ),
+        ],
+    ];
+  }
 
   Widget _waypoint(
     CinematicAsset asset,

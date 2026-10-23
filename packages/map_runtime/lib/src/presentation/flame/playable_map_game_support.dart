@@ -756,6 +756,11 @@ final class _FlameSceneActorRouteExecutionPort
     required this.nextUpdateAction,
     required this.soundAction,
     required this.visibilityAction,
+    required this.visibilityValue,
+    required this.visibilityRestoreAction,
+    required this.appearanceCaptureAction,
+    required this.appearanceAction,
+    required this.appearanceRestoreAction,
     required this.aboveMapValue,
     required this.aboveMapAction,
   });
@@ -772,6 +777,11 @@ final class _FlameSceneActorRouteExecutionPort
   })
   moveAction;
   final bool Function() aboveMapValue;
+  final bool Function() visibilityValue;
+  final void Function(bool) visibilityRestoreAction;
+  final Object Function() appearanceCaptureAction;
+  final Future<void> Function(String) appearanceAction;
+  final void Function(Object) appearanceRestoreAction;
   final Future<void> Function(bool) aboveMapAction;
   final Future<void> Function(int) waitAction;
   final Future<void> Function() nextUpdateAction;
@@ -781,6 +791,17 @@ final class _FlameSceneActorRouteExecutionPort
 
   @override
   bool get isCurrent => current();
+  @override
+  bool get isVisible => visibilityValue();
+  @override
+  Object captureAppearance(SceneActorTarget target) => appearanceCaptureAction();
+  @override
+  Future<void> setAppearance(SceneActorTarget target, String characterId) => appearanceAction(characterId);
+  @override
+  void restoreAppearance(SceneActorTarget target, Object snapshot) => appearanceRestoreAction(snapshot);
+  @override
+  void restoreVisibility(SceneActorTarget target, {required bool visible}) =>
+      visibilityRestoreAction(visible);
   @override
   Future<void> face(SceneActorTarget target, EntityFacing direction) =>
       faceAction(target, direction);

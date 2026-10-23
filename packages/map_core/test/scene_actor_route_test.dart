@@ -20,6 +20,35 @@ Map<String, dynamic> _routeWire({bool entity = false}) => {
 };
 
 void main() {
+  test('temporary appearances are indexed as required character references', () {
+    final manifest = ProjectManifest(name: 'Appearance references', maps: [], tilesets: [], scenes: [
+      SceneAsset(id: 'route', name: 'Route', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'skin', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'room'),
+            steps: [SceneActorRouteStep.appearance(characterId: 'coat')]))),
+      ], edges: [])),
+    ]);
+    final references = buildCharacterStudioReferenceIndex(manifest)
+        .referencesTo(CharacterStudioReferenceTargetKind.character, 'coat');
+    expect(references, hasLength(1));
+    expect(references.single.sourceKind, CharacterStudioReferenceSourceKind.sceneActorAppearance);
+    expect(references.single.path, contains('steps[0].characterId'));
+  });
+
+  test('temporary actor appearance is a strict native route step', () {
+    final wire = <String, dynamic>{'kind': 'appearance', 'characterId': 'coat'};
+    final step = SceneActorRouteStep.fromJson(wire);
+    expect(step.toJson(), wire);
+    expect(SceneActorRouteStep.fromJson(step.toJson()), step);
+    for (final id in <Object?>[null, '', ' coat', 4]) {
+      expect(() => SceneActorRouteStep.fromJson({...wire, 'characterId': id}),
+          throwsFormatException);
+    }
+    expect(() => SceneActorRouteStep.fromJson({...wire, 'direction': 'north'}),
+        throwsFormatException);
+  });
+
   test(
     'scene scoped diagonal route preserves native typed priority restoration',
     () {

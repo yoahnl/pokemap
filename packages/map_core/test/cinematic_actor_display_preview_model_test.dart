@@ -5,6 +5,22 @@ import 'package:test/test.dart';
 
 void main() {
   group('CinematicActorDisplayPreviewModel', () {
+    test('player map origin preview resolves only a declared or unique spawn', () {
+      final cinematic = _cinematic(requiredActors: [_actor('player')], stageContext: CinematicStageContext(
+        actorBindings: [CinematicActorBinding(actorId: 'player', kind: CinematicActorBindingKind.player)],
+        initialPlacements: [CinematicActorInitialPlacement(actorId: 'player', kind: CinematicActorInitialPlacementKind.fromMapEntity)],
+      ));
+      final source = _mapData();
+      final spawn = source.entities.firstWhere((entity) => entity.kind == MapEntityKind.spawn);
+      for (final valid in [true, false]) {
+        final map = source.copyWith(entities: valid ? [spawn] : [], mapMetadata: const MapMetadata());
+        final model = buildCinematicActorDisplayPreviewModel(cinematic: cinematic, project: _project(), stageMap: _stageMap(), mapData: map);
+        expect(model.actorById('player')!.position.isResolved, valid);
+      }
+      final ambiguous = source.copyWith(entities: [spawn, spawn.copyWith(id: 'another')], mapMetadata: const MapMetadata());
+      expect(buildCinematicActorDisplayPreviewModel(cinematic: cinematic, project: _project(), stageMap: _stageMap(), mapData: ambiguous).actorById('player')!.position.isResolved, isFalse);
+    });
+
     test(
       'builds actor display preview model for cinematic actors without rendering them',
       () {

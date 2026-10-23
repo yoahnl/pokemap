@@ -161,6 +161,7 @@ Finder _select(String label) => find.byWidgetPredicate(
   (w) => w is PokeMapDropdownField<String> && w.label == label,
 );
 Future<void> _pick(WidgetTester tester, String label, String option) async {
+  expect(_select(label), findsOneWidget, reason: 'Missing guided field: $label');
   final field = find.descendant(
     of: _select(label),
     matching: find.byType(DropdownButton<String>),
@@ -168,6 +169,12 @@ Future<void> _pick(WidgetTester tester, String label, String option) async {
   await tester.ensureVisible(field);
   await tester.tap(field);
   await tester.pumpAndSettle();
+  if (find.text(option).evaluate().isEmpty) {
+    await tester.scrollUntilVisible(find.text(option), 120,
+        scrollable: find.byType(Scrollable).last);
+  }
+  expect(find.text(option), findsWidgets,
+      reason: 'Missing choice "$option" in guided field "$label"');
   final choice = find.text(option).last;
   await tester.ensureVisible(choice);
   await tester.pumpAndSettle();
@@ -216,6 +223,25 @@ Future<void> _tapStep(WidgetTester tester, int id, String action) async {
 }
 
 void main() {
+  testWidgets('temporary appearance picker preserves and edits imported route', (tester) async {
+    final project = _project(characters: [
+      for (final id in ['actor-character', 'costume'])
+        ProjectCharacterEntry(id: id, name: id == 'costume' ? 'Costume' : 'Original actor', tilesetId: 'sheet',
+          animations: [CharacterAnimation(state: CharacterAnimationState.idle, direction: EntityFacing.south,
+            frames: const [CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0))])]),
+    ]);
+    final original = _route(steps: [SceneActorRouteStep.appearance(characterId: 'actor-character')]);
+    final applied = <SceneNodePayload>[];
+    await _pump(tester, project: project, current: original, onApply: applied.add);
+    await tester.pumpAndSettle();
+    await _pick(tester, 'Graphisme de l’étape 1', 'Costume');
+    await _submit(tester);
+    final command = (applied.single as SceneActionPayload).interactiveCommand as SceneActorRouteInteractiveCommand;
+    expect(command.steps, [SceneActorRouteStep.appearance(characterId: 'costume')]);
+    expect(command.target, (original.interactiveCommand as SceneActorRouteInteractiveCommand).target);
+    expect(SceneActionPayload.fromJson((applied.single as SceneActionPayload).toJson()), applied.single);
+  });
+
   testWidgets('route visibility stays guided and round trips in the builder', (tester) async {
     final applied = <SceneNodePayload>[];
     final wire = <String, dynamic>{

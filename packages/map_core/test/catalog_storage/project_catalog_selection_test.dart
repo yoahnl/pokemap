@@ -6,6 +6,29 @@ import '../resource_pack_publication_test.dart'
     show borderFixture, modelFixture, presetFixture;
 
 void main() {
+  test('map catalogue closure includes a skin referenced only by a reachable route', () async {
+    final project = ProjectManifest(name: 'Route appearance closure', maps: [],
+      tilesets: const [ProjectTilesetEntry(id: 'costume', name: 'Costume', relativePath: 'costume.png')],
+      characters: const [ProjectCharacterEntry(id: 'coat', name: 'Coat', tilesetId: 'costume')],
+      newGame: ProjectNewGameConfig(preSessionSceneId: 'route'),
+      scenes: [SceneAsset(id: 'route', name: 'Route', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'skin', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.actorRoute(target: SceneActorTarget.player(mapId: 'room'),
+            steps: [SceneActorRouteStep.appearance(characterId: 'coat')]))),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [SceneEdge(id: 'start-skin', fromNodeId: 'start', fromPortId: 'completed',
+        toNodeId: 'skin', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'skin-end', fromNodeId: 'skin', fromPortId: 'completed',
+          toNodeId: 'end', kind: SceneEdgeKind.actionCompleted)]))]);
+    final build = PortableCatalogPublication.encodeProject(project);
+    final catalog = await PortableProjectCatalog.open(build.descriptor,
+      readObject: (ref) async => build.storage.objects[ref.sha256]!);
+    final selected = await ProjectCatalogSelection(catalog).forMap(
+      const MapData(id: 'room', name: 'Room', size: GridSize(width: 1, height: 1)));
+    expect(selected.characters.map((value) => value.id), ['coat']);
+    expect(selected.tilesets.map((value) => value.id), ['costume']);
+  });
   for (final withGround in [false, true]) {
     test('2D Border selection distinguishes draft and published snapshots '
         '(ground: $withGround)', () async {

@@ -37,8 +37,8 @@ function cinematic(variant: string): JsonRecord {
     movementTargets: [{ targetId: "destination", label: "Destination" }, { targetId: "otherTarget", label: "Other destination" }],
     stageContext: {
       actorBindings: bindings,
-      initialPlacements: [{ actorId: "actor", kind: "stagePoint", stagePointId: "start" }, { actorId: "other", kind: "stagePoint", stagePointId: "otherStart" }],
-      stagePoints: [{ id: "start", label: "Start", x: 4, y: 4 }, { id: "destination", label: "Destination", x: 8, y: 4 }, { id: "otherStart", label: "Other start", x: 4, y: 8 }, { id: "otherEnd", label: "Other end", x: 8, y: 8 }],
+      initialPlacements: variant.startsWith("relative") ? [] : [{ actorId: "actor", kind: "stagePoint", stagePointId: "start" }, { actorId: "other", kind: "stagePoint", stagePointId: "otherStart" }],
+      stagePoints: [{ id: "start", label: "Start", x: 4, y: 4 }, { id: "destination", label: "Destination", x: variant.startsWith("relative") ? -1 : 8, y: 4, ...(variant.startsWith("relative") ? { relativeToActorId: variant === "relativeMissing" ? "missing" : "actor" } : {}) }, { id: "otherStart", label: "Other start", x: 4, y: 8 }, { id: "otherEnd", label: "Other end", x: 8, y: 8 }],
       movementTargetBindings: [{ targetId: "destination", kind: "stagePoint", sourceId: "destination" }, { targetId: "otherTarget", kind: "stagePoint", sourceId: "otherEnd" }],
     },
     timeline: { steps },
@@ -70,6 +70,7 @@ test("MCP authors parallel actor camera groups and refuses conflicts mismatch an
     const described = await call("pokemap_describe", {});
     const descriptor = (described.mutationActions as JsonRecord[]).find(action => action.id === "cinematic.upsert");
     assert.match(String(descriptor?.summary), /parallelGroupId/);
+    assert.match(String(descriptor?.summary), /relativeToActorId/);
     assert.match(String(descriptor?.summary), /actorMove\/actorJump durations/);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
@@ -82,7 +83,7 @@ test("MCP authors parallel actor camera groups and refuses conflicts mismatch an
         idempotencyKey: id, parameters: { cinematic: asset },
       } }, failure);
     }
-    for (const mode of ["grouped", "sequential"]) {
+    for (const mode of ["grouped", "sequential", "relative"]) {
       const before = await readFile(file);
       const planned = await plan(cinematic(mode));
       assert.deepEqual(await readFile(file), before);
@@ -92,12 +93,17 @@ test("MCP authors parallel actor camera groups and refuses conflicts mismatch an
       const item = record((project.cinematics as JsonRecord[]).find(asset => asset.id === "parallel"));
       const steps = record(item.timeline).steps as JsonRecord[];
       assert.equal(item.actorCompletionPolicy, "keepFinal");
-      assert.equal(steps[1]!.parallelGroupId, mode === "grouped" ? "pair" : undefined);
-      assert.equal(steps[2]!.parallelGroupId, mode === "grouped" ? "pair" : undefined);
-      assert.equal(steps[3]!.parallelGroupId, mode === "grouped" ? "pair" : undefined);
+      assert.equal(steps[1]!.parallelGroupId, mode !== "sequential" ? "pair" : undefined);
+      assert.equal(steps[2]!.parallelGroupId, mode !== "sequential" ? "pair" : undefined);
+      assert.equal(steps[3]!.parallelGroupId, mode !== "sequential" ? "pair" : undefined);
       assert.equal(steps[1]!.durationMs, 1000);
       assert.equal(steps[2]!.durationMs, 1000);
       assert.equal(steps[3]!.durationMs, 1500);
+      if (mode === "relative") {
+        const destination = (record(item.stageContext).stagePoints as JsonRecord[]).find(point => point.id === "destination");
+        assert.equal(destination?.relativeToActorId, "actor");
+        assert.equal(destination?.x, -1);
+      }
       const disk = record(JSON.parse(await readFile(file, "utf8")));
       const other = (disk.cinematics as JsonRecord[]).find(asset => asset.id === "untouched");
       assert.equal(record(other).title, untouched.title);
@@ -113,7 +119,7 @@ test("MCP authors parallel actor camera groups and refuses conflicts mismatch an
     const mediaSteps = record(mediaAsset.timeline).steps as JsonRecord[];
     assert.deepEqual(mediaSteps.map(step => [step.kind, step.assetRef, step.parallelGroupId]), [["sound", "sound-a", "audio"], ["sound", "sound-b", "audio"]]);
     assert.deepEqual((mediaProject.cinematicMediaAssets as JsonRecord[]).map(asset => asset.channel), ["channel-a", "channel-b", "channel-a"]);
-    for (const asset of ["mismatch", "alias", "noncontiguous", "cameraConflict", "invalidId", "sharedChannel"].map(cinematic)) {
+    for (const asset of ["mismatch", "alias", "noncontiguous", "cameraConflict", "invalidId", "sharedChannel", "relativeMissing"].map(cinematic)) {
       const before = await readFile(file);
       const rejected = await plan(asset, true);
       assert.equal(rejected.domainCode, "cinematic.invalid");

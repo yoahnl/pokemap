@@ -5,6 +5,7 @@ import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_actor_route.dart';
 import '../runtime/cinematic_character_custom_animation_contract.dart';
 
 enum CharacterStudioReferenceTargetKind {
@@ -24,6 +25,7 @@ enum CharacterStudioReferenceSourceKind {
   cinematicCustomAnimation,
   sceneCustomAnimation,
   scenePlayerAvatar,
+  sceneActorAppearance,
 }
 
 @immutable
@@ -193,6 +195,19 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
         ));
       }
       final command = payload.interactiveCommand;
+      if (command is SceneActorRouteInteractiveCommand) {
+        for (final (stepIndex, step) in command.steps.indexed) {
+          if (step is SceneActorAppearanceStep) {
+            references.add(CharacterStudioReference(
+              targetKind: CharacterStudioReferenceTargetKind.character,
+              targetId: step.characterId,
+              sourceKind: CharacterStudioReferenceSourceKind.sceneActorAppearance,
+              sourceId: '${scene.id}:${node.id}',
+              path: r'$.scenes[' '$sceneIndex].graph.nodes[$nodeIndex].payload.interactiveCommand.steps[$stepIndex].characterId',
+            ));
+          }
+        }
+      }
       if (command is! SceneCharacterCustomAnimationInteractiveCommand) {
         continue;
       }
