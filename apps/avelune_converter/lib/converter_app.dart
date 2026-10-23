@@ -11,6 +11,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path/path.dart' as path;
 
 import 'desktop_services.dart';
+import 'converter_build_identity.dart';
 import 'asset_review_panel.dart';
 import 'map_comparison.dart';
 import 'playable_start_setup.dart';
@@ -1566,6 +1567,12 @@ class _ConverterWindowState extends State<ConverterWindow> {
                 const StudioBadge('Traitement local', icon: Icons.computer),
                 const SizedBox(height: 8),
                 const StudioBadge('Projet d’étude', tone: StudioTone.info),
+                const SizedBox(height: 8),
+                Text(
+                  ConverterBuildIdentity.current.label,
+                  key: const ValueKey('converter-build-identity'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -2553,7 +2560,15 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   Widget _dependenciesPanel() {
     final prepared = _prepared!;
-    final dependencies = prepared.composition.dependencies;
+    bool unresolvedDynamic(LiteralMapDependency dependency) =>
+        dependency.kind == LiteralDependencyKind.dynamicTransfer &&
+        _decisionFor(dependency) == null;
+    final dependencies = [
+      ...prepared.composition.dependencies.where(unresolvedDynamic),
+      ...prepared.composition.dependencies.where(
+        (dependency) => !unresolvedDynamic(dependency),
+      ),
+    ];
     return StudioPanel(
       title: 'Cartes dépendantes',
       radius: 16,
@@ -2568,6 +2583,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
                   dependency.targetSourceMapId != null) ||
               dependency.kind == LiteralDependencyKind.dynamicTransfer)
             StudioSelect(
+              key: ValueKey(
+                'dependency-${canonicalHashOf(dependency.locator.toJson()).value}',
+              ),
               label: dependency.locator.eventId == null
                   ? 'Choix pour cette carte dépendante'
                   : 'Transfert de l’événement ${dependency.locator.eventId}',

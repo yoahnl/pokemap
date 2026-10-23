@@ -849,6 +849,7 @@ final class _ProjectionBuilder {
   final _stationaryRotationSourceMatches = <SourceEventDefinition, bool>{};
   final _fixedDirectionSourceMatches = <SourceEventDefinition, bool>{};
   final _centerProgramMatches = <(SourceEventDefinition, bool), bool>{};
+  final _trainerBindingChecks = Map<SourceEventDefinition, bool>.identity();
   final _healingDisplayFamilies = <SourceEventDefinition, bool>{};
   _SourceSelfSwitchQualification? _selfSwitchQualification;
   final _selfSwitchQualificationProofs = <Map<String, Object?>>[];
@@ -1209,8 +1210,8 @@ final class _ProjectionBuilder {
       _isArrivalCollisionOwnerAt(event, node.targetSourceMapId, node.x, node.y);
 
   bool _isArrivalCollisionOwnerAt(SourceEventDefinition event, int targetMapId, int x, int y) =>
-      (_isSourceTransition(event) || _isSourceArrivalCandidate(event)) && event.sourceMapId == targetMapId &&
-      event.x == x && event.y == y &&
+      event.sourceMapId == targetMapId && event.x == x && event.y == y &&
+      (_isSourceTransition(event) || _isSourceArrivalCandidate(event)) &&
       (!_isExternalWarpFamily(event) || _externalWarpProgram(event) != null) &&
       (event.pages.firstOrNull?.graphic?.characterName.isNotEmpty == true ||
         (sequencePrograms[event.identity]?.finiteAutorun == true &&
@@ -3050,7 +3051,8 @@ final class _ProjectionBuilder {
       {required bool checkCharacterBindings}) {
     final binding = trainerBindings[event.identity];
     if (binding == null) return {'sourceTrainerBindingsMissing'};
-    if (!binding.isBoundToEvent(source: source, analysis: analysis, event: event)) {
+    if (!_trainerBindingChecks.putIfAbsent(event, () => binding.isBoundToEvent(
+        source: source, analysis: analysis, event: event))) {
       return {'sourceTrainerSourceBindingInvalid'};
     }
     final gaps = <String>{};

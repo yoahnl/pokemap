@@ -11,16 +11,25 @@ SourceInterpretationProfile? detectBuiltinSourceInterpretationProfile(
       .toList();
   if (archives.length != 1 ||
       archives.single.relativePath != 'Data/Scripts.rxdata' ||
-      archives.single.kind != SourceNodeKind.file ||
-      archives.single.sha256?.value !=
-          '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d') {
+      archives.single.kind != SourceNodeKind.file) {
     return null;
   }
-  return _essentialsStaticProfile;
+  return _essentialsStaticProfiles[archives.single.sha256?.value];
 }
 
-final _essentialsStaticProfile = SourceInterpretationProfile.fromJson(
-    jsonDecode(_essentialsStaticProfileJson));
+final _essentialsStaticProfiles = {
+  for (final archiveHash in const [
+    '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d',
+    '8b03301e71b12ba8cc84efb128534d0a7f17d02cf56c770e40c16be37b730940',
+  ])
+    archiveHash: SourceInterpretationProfile.fromJson({
+      ...jsonDecode(_essentialsStaticProfileJson) as Map<String, dynamic>,
+      'scriptsArchive': {
+        'relativePath': 'Data/Scripts.rxdata',
+        'sha256': archiveHash,
+      },
+    }),
+};
 
 const _essentialsStaticProfileJson = r'''
 {

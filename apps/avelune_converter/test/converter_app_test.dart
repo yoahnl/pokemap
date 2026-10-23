@@ -1279,6 +1279,121 @@ void main() {
     }
   }, skip: !Platform.isMacOS);
 
+  testWidgets(
+    'unresolved dynamic dependencies precede static choices with stable keys',
+    (tester) async {
+      final source = (await tester.runAsync(
+        () => _OriginalSource.create(
+          maps: [
+            LiteralFixtureMap(
+              id: 1,
+              warpParameters: [
+                [0, 8, 0, 0, 0, 0],
+                [1, 8, 0, 0, 0, 0],
+              ],
+            ),
+            LiteralFixtureMap(id: 8),
+          ],
+        ),
+      ))!;
+      _setWindow(tester, const Size(1600, 1000));
+      Iterable<StudioSelect> choices() => tester
+          .widgetList<StudioSelect>(find.byType(StudioSelect))
+          .where((select) => select.label.startsWith('Transfert'));
+      try {
+        await tester.pumpWidget(
+          ConverterApp(
+            workflow: source.workflow,
+            initialSourcePath: source.sourcePath,
+            initialParentPath: source.output.path,
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('analyse-project')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.snapshot != null &&
+              !source.workflow.state.isBusy,
+        );
+        await tester.ensureVisible(find.byKey(const ValueKey('select-map-1')));
+        await tester.tap(find.byKey(const ValueKey('select-map-1')));
+        await tester.pump();
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('acknowledge-study')),
+        );
+        await tester.tap(find.byKey(const ValueKey('acknowledge-study')));
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('prepare-study')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.prepared != null &&
+              !source.workflow.state.isBusy,
+        );
+        final dependencies =
+            source.workflow.state.prepared!.composition.dependencies;
+        expect(dependencies.map((dependency) => dependency.kind), [
+          LiteralDependencyKind.staticTransfer,
+          LiteralDependencyKind.dynamicTransfer,
+        ]);
+        final staticKey = ValueKey(
+          'dependency-${canonicalHashOf(dependencies.first.locator.toJson()).value}',
+        );
+        final dynamicKey = ValueKey(
+          'dependency-${canonicalHashOf(dependencies.last.locator.toJson()).value}',
+        );
+        await tester.tap(find.text('Vérification'));
+        await tester.pump();
+        expect(choices().map((select) => select.key), [dynamicKey, staticKey]);
+        expect(choices().map((select) => select.key).toSet(), hasLength(2));
+        expect(choices().first.options, isNot(contains('include')));
+        tester.widget<StudioSelect>(find.byKey(staticKey)).onChanged!(
+          'excludeStudy',
+        );
+        await tester.pump();
+        expect(source.workflow.state.prepared, isNull);
+        expect(choices().map((select) => select.key), [dynamicKey, staticKey]);
+        expect(
+          tester.widget<StudioSelect>(find.byKey(staticKey)).value,
+          'excludeStudy',
+        );
+        tester.widget<StudioSelect>(find.byKey(dynamicKey)).onChanged!(
+          'excludeStudy',
+        );
+        await tester.pump();
+        expect(choices().map((select) => select.key), [staticKey, dynamicKey]);
+        expect(choices().map((select) => select.value), [
+          'excludeStudy',
+          'excludeStudy',
+        ]);
+        expect(source.workflow.state.approval, isNull);
+        await tester.tap(find.byKey(const ValueKey('prepare-study')));
+        await _waitFor(
+          tester,
+          () =>
+              source.workflow.state.prepared?.canApprove == true &&
+              !source.workflow.state.isBusy,
+        );
+        expect(
+          source.workflow.state.settings!.dependencyDecisions,
+          hasLength(2),
+        );
+        expect(choices().map((select) => select.key), [staticKey, dynamicKey]);
+        expect(choices().map((select) => select.value), [
+          'excludeStudy',
+          'excludeStudy',
+        ]);
+        expect(source.nativeStages, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.runAsync(source.expectSourceUnchanged);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.runAsync(source.close);
+      }
+    },
+    skip: !Platform.isMacOS,
+  );
+
   for (final dynamicTransfer in [false, true]) {
   testWidgets('dependency choices remain visible until explicit preparation dynamic=$dynamicTransfer', (
     tester,
