@@ -27,6 +27,7 @@ import 'source_event_sound_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_dialogue_text.dart';
 import 'source_sequence_program.dart';
+import 'source_interaction_program.dart';
 import 'source_escort_program.dart';
 import 'source_actor_preparation_program.dart';
 import 'source_intro_binding.dart';
@@ -211,6 +212,7 @@ final class SourceEventStudyComposer {
     });
     final elevatorPrograms = sourceElevatorPrograms(source: source, analysis: analysis, authority: transferAuthority);
     final sequencePrograms = sourceSequencePrograms(source: source, analysis: analysis);
+    final interactionPrograms = sourceInteractionPrograms(source: source, analysis: analysis);
     final escortPrograms = sourceEscortPrograms(source: source, analysis: analysis);
     final actorPreparationPrograms = sourceActorPreparationPrograms(source: source, analysis: analysis);
     final warpTilePrograms = sourceWarpTileNativePrograms(source: source, analysis: analysis, authority: transferAuthority);
@@ -226,7 +228,7 @@ final class SourceEventStudyComposer {
       externalWarpEvidence.add({'status': 'preservedOnly', 'reason': error.reason});
     }
     final externalTransitionIds = {...?externalWarps?.programs.keys};
-    final transitionIds = {...externalTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys, ...sequencePrograms.keys, ...escortPrograms.keys, ...actorPreparationPrograms.keys};
+    final transitionIds = {...externalTransitionIds, ...staticDoorPrograms.keys, ...routedDoorPrograms.keys, ...stairPrograms.keys, ...holePrograms.keys, ...elevatorPrograms.keys, ...warpTilePrograms.programs.keys, ...sequencePrograms.keys, ...interactionPrograms.keys, ...escortPrograms.keys, ...actorPreparationPrograms.keys};
     final witnessPaths = {
       'Data/Scripts.rxdata',
       'Data/System.rxdata',
@@ -353,6 +355,7 @@ final class SourceEventStudyComposer {
         for (final page in event.pages) ..._soundNames(page.body),
     };
     final sounds = <String, SourceEventSoundBinding>{};
+    final missingOptionalSounds = <String, SourceMissingOptionalSoundProof>{};
     final soundEvidence = <Map<String, Object?>>[];
     final trainerVictorySounds = {
       for (final event in selectedEvents.where((event) => !event.isQuarantined))
@@ -386,6 +389,23 @@ final class SourceEventStudyComposer {
         soundEvidence.add({'sourceName': name, 'status': 'imported', ...binding.evidence});
       } on SourceEventSoundBindingUnavailable catch (error) {
         soundEvidence.add({'sourceName': name, 'status': 'preservedOnly', 'reason': error.reason});
+        if (error.reason == 'audio_missing') {
+          try {
+            final proof = await const SourceMissingOptionalSoundResolver().read(
+                source: source, files: recording, name: name,
+                limits: limits, cancellation: cancellation);
+            missingOptionalSounds[name] = proof;
+            soundEvidence.add({'sourceName': name,
+              'status': 'sourceMissingNoOpAttested', 'proof': proof.toJson()});
+          } on NativeWriteException catch (proofError) {
+            if (proofError.code.contains('changed') || proofError.code.contains('quota') ||
+                proofError.code.contains('hash')) {
+              rethrow;
+            }
+            soundEvidence.add({'sourceName': name, 'status': 'preservedOnly',
+              'reason': proofError.code});
+          }
+        }
       }
     }
     final musicEffects = {
@@ -469,11 +489,12 @@ final class SourceEventStudyComposer {
         decorativePokemonEvidence.add({'sourceIdentity': event.identity.value, 'status': 'preservedOnly', 'reason': error.code});
       }
     }
-    SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof;
+    SourceMissingOptionalSoundProof? cardKeyGateMissingAudioProof;
     if (cardKeyGatePrograms.isNotEmpty && !sounds.containsKey('frlg_gateopen')) {
       try {
-        cardKeyGateMissingAudioProof = await const SourceCardKeyGateMissingAudioResolver().read(
-            source: source, files: recording, limits: limits, cancellation: cancellation);
+        cardKeyGateMissingAudioProof = missingOptionalSounds['frlg_gateopen'] ??
+            await const SourceMissingOptionalSoundResolver().read(
+            source: source, files: recording, name: 'frlg_gateopen', limits: limits, cancellation: cancellation);
         soundEvidence.add({'sourceName': 'frlg_gateopen', 'status': 'sourceMissingNoOpAttested',
           'diagnostic': 'sourceAudioMissing', 'proof': cardKeyGateMissingAudioProof.toJson()});
       } on NativeWriteException catch (error) {
@@ -618,10 +639,10 @@ final class SourceEventStudyComposer {
     final programContexts = await const SourceEventExecutionContextResolver().readProgramContexts(
       source: source, base: base, nativeMaps: nativeMaps, files: recording,
       analysis: analysis, eventIdentities: {
-        ...externalTransitionIds, ...sequencePrograms.keys, ...escortPrograms.keys,
+        ...externalTransitionIds, ...sequencePrograms.keys, ...interactionPrograms.keys, ...escortPrograms.keys,
         ...actorPreparationPrograms.keys, ...firstRivals.byEventIdentity.keys,
         ...oakParcelBindings.keys,
-      }, sequencePrograms: sequencePrograms, escortPrograms: escortPrograms,
+      }, sequencePrograms: sequencePrograms, interactionPrograms: interactionPrograms, escortPrograms: escortPrograms,
       actorPreparationPrograms: actorPreparationPrograms,
       firstRivalBindings: firstRivals.byEventIdentity, oakParcelBindings: oakParcelBindings,
       externalWarpBinding: externalWarps, authority: transferAuthority,
@@ -723,6 +744,7 @@ final class SourceEventStudyComposer {
             textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
             cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
+            missingOptionalSounds: missingOptionalSounds,
             healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -823,6 +845,7 @@ final class SourceEventStudyComposer {
             textVariablePrograms: textVariablePrograms,
             decorativePokemonBindings: decorativePokemonBindings,
         cardKeyGateMissingAudioProof: cardKeyGateMissingAudioProof,
+        missingOptionalSounds: missingOptionalSounds,
         healingDisplayBinding: healingDisplay,
             externalWarpBinding: externalWarps,
             fieldObstacleBindings: fieldObstacles?.byEventIdentity ?? const {},
@@ -908,6 +931,9 @@ final class SourceEventStudyComposer {
     }
     if (cardKeyGateMissingAudioProof != null && admittedIdentities.any(cardKeyGatePrograms.containsKey)) {
       preservedFileIds.addAll(cardKeyGateMissingAudioProof.witnesses.map((file) => file.fileId.value));
+    }
+    for (final proof in missingOptionalSounds.values) {
+      preservedFileIds.addAll(proof.witnesses.map((file) => file.fileId.value));
     }
     preservedFileIds.addAll(trainerBindings.byEventIdentity.values
         .map((binding) => binding.sourceRosterFile.fileId.value));

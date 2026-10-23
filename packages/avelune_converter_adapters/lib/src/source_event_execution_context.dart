@@ -16,6 +16,7 @@ import 'source_transfer_program_authority.dart';
 import 'source_grass_rustle_compiler.dart';
 import 'source_inventory_controller_program.dart';
 import 'source_sequence_program.dart';
+import 'source_interaction_program.dart';
 import 'source_actor_preparation_program.dart';
 import 'source_escort_program.dart';
 import 'source_first_rival_binding.dart';
@@ -441,6 +442,7 @@ final class SourceEventExecutionContextResolver {
     required SourceEventAnalysis analysis,
     required Set<ConverterId> eventIdentities,
     Map<ConverterId, SourceSequenceProgram> sequencePrograms = const {},
+    Map<ConverterId, SourceInteractionProgram> interactionPrograms = const {},
     Map<ConverterId, SourceActorPreparationProgram> actorPreparationPrograms = const {},
     Map<ConverterId, SourceEscortProgram> escortPrograms = const {},
     Map<ConverterId, SourceFirstRivalBinding> firstRivalBindings = const {},
@@ -462,6 +464,7 @@ final class SourceEventExecutionContextResolver {
       final supplied = analysis.events.where((event) => event.identity == identity).singleOrNull;
       bool bound(SourceEventDefinition candidate) =>
           sequencePrograms[identity]?.isBoundTo(source: source, analysis: actual, event: candidate) == true ||
+          interactionPrograms[identity]?.isBoundTo(source: source, analysis: actual, event: candidate) == true ||
           actorPreparationPrograms[identity]?.isBoundTo(source, actual, candidate) == true ||
           escortPrograms[identity]?.isBoundTo(source, actual, candidate) == true ||
           firstRivalBindings[identity]?.isBoundTo(source, actual, candidate) == true ||

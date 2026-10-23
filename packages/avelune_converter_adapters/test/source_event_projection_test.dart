@@ -16,6 +16,8 @@ import 'package:avelune_converter_adapters/src/source_event_study_composer.dart'
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/source_static_door_program.dart';
 import 'package:avelune_converter_adapters/src/source_routed_door_program.dart';
+import 'package:avelune_converter_adapters/src/source_event_execution_context.dart';
+import 'package:avelune_converter_adapters/src/source_interaction_program.dart';
 
 final class _RubyObject {
   _RubyObject(this.className, this.fields);
@@ -1092,6 +1094,145 @@ void main() {
       });
     }
   }, skip: scriptsPath == null);
+  group('late source actor dependency propagation', () {
+    for (final dependency in ['interactionRoute', 'foreignSelfSwitch']) {
+      test('$dependency follows a target refused by its exclamation dependency', () async {
+        for (final broken in [false, true]) {
+          final profileJson = dialogueProfile().toJson();
+          final sections = profileJson['sections'] as Map;
+          final profile = SourceInterpretationProfile.fromJson({
+            ...profileJson,
+            'sections': {
+              ...sections,
+              'events.Utilities': sections['events.Interpreter'],
+            },
+          });
+          final step = _RubyObject('RPG::MoveCommand', {
+            '@code': 2,
+            '@parameters': <Object?>[],
+          });
+          final route = _RubyObject('RPG::MoveRoute', {
+            '@repeat': false,
+            '@skippable': true,
+            '@list': [step, _RubyObject('RPG::MoveCommand', {
+              '@code': 0,
+              '@parameters': <Object?>[],
+            })],
+          });
+          final data = _project(maps: {
+            1: _map(width: 4, height: 3, events: {
+              1: _event(1, [_page([
+                if (dependency == 'interactionRoute') ...[
+                  _command(102, [['Move actor', 'Leave actor'], 0]),
+                  _command(402, [0, 'Move actor']),
+                  _command(209, [2, route], indent: 1),
+                  _command(509, [step], indent: 1),
+                  _command(0, [], indent: 1),
+                  _command(402, [1, 'Leave actor']),
+                  _command(123, ['A', 0], indent: 1),
+                  _command(0, [], indent: 1),
+                  _command(404, []),
+                ] else
+                  _command(355, ['pbSetSelfSwitch(2, "A", true)']),
+                _command(0, []),
+              ])], x: 0, y: 0),
+              2: _event(2, [_page([
+                _command(355, ['pbExclaim(get_character(3))']),
+                _command(0, []),
+              ])], x: 2, y: 1),
+              3: _event(3, [_page([
+                if (broken) _command(250, [_RubyObject('RPG::AudioFile', {
+                  '@name': 'Unbound dependency sound',
+                  '@volume': 80,
+                  '@pitch': 100,
+                })]),
+                _command(0, []),
+              ])], x: 3, y: 1),
+            }),
+          });
+          data['Data/Scripts.rxdata'] = syntheticInterpretationArchive;
+          data['Data/map_connections.dat'] = _MarshalFixture().dump([]);
+          data['Graphics/Characters/QualifiedNpc.png'] = _png();
+          final files = _source(data);
+          final source = await const RmxpSourceNormalizer().normalize(
+              snapshot: files.snapshot, files: files, includeEventSystem: true,
+              includeConnections: true, interpretationProfile: profile);
+          final analysis = _analyzer(source, interpretationProfile: profile).analyze();
+          expect(analysis.events.every((event) => !event.isQuarantined), isTrue,
+              reason: jsonEncode(analysis.diagnostics.map((entry) => entry.toJson()).toList()));
+          final owner = analysis.eventAt(1, 1)!;
+          final target = analysis.eventAt(1, 2)!;
+          expect(target.pages.single.body.nodes.whereType<SourceExclamationNode>(), hasLength(1));
+          final programs = sourceInteractionPrograms(source: source, analysis: analysis);
+          if (dependency == 'interactionRoute') {
+            expect(programs.keys, contains(owner.identity));
+          }
+          final maps = _nativeMaps(source);
+          final composition = {'kind': 'lateDependencyFixture'};
+          final base = NativeProjectDraft(
+              source: source, projectName: 'Late dependency fixture',
+              parentPath: '/private/tmp', folderName: 'unused-late-dependency',
+              mapIds: const {1: 'native_map_1'}, artifacts: [],
+              mutations: [
+                NativeMutation(operationId: ConverterId('create-late-map'),
+                    actionId: 'map.create', sourceEntityIds: [source.mapIdentity(1)],
+                    targetEntityIds: [ConverterId('native_map_1')],
+                    parameters: const {'mapId': 'native_map_1', 'name': 'Map 1',
+                      'width': 4, 'height': 3}),
+                NativeMutation(operationId: ConverterId('save-late-map'),
+                    actionId: 'map.save', sourceEntityIds: [source.mapIdentity(1)],
+                    targetEntityIds: [ConverterId('native_map_1')],
+                    parameters: {'map': maps[1]!.toJson()}),
+              ], compositionEvidence: {
+                'kind': 'literalTileComposition', 'version': 2,
+                'composition': composition,
+                'compositionHash': canonicalHashOf(composition).value,
+                'sourceSemantics': {},
+              });
+          final contexts = await const SourceEventExecutionContextResolver()
+              .readProgramContexts(source: source, base: base, nativeMaps: maps,
+                  files: files, analysis: analysis,
+                  eventIdentities: programs.keys.toSet(), interactionPrograms: programs);
+          expect(contexts.values.every((context) => context.refusals.isEmpty), isTrue,
+              reason: jsonEncode(contexts.values.map((context) => context.refusals.toList()).toList()));
+          final image = source.snapshot.entries.singleWhere((entry) =>
+              entry.relativePath == 'Graphics/Characters/QualifiedNpc.png');
+          final result = const SourceEventProjector().project(
+              source: source, analysis: analysis, nativeMaps: maps,
+              programContexts: contexts,
+              retentionPolicy: MapInstanceRetentionPolicy(viewportWidthTiles: 20,
+                  viewportHeightTiles: 15, marginTiles: 1),
+              characterBindings: {
+                sourceEventCharacterBindingKey(characterName: 'QualifiedNpc',
+                    pattern: 0, direction: 2): SourceEventCharacterBinding(
+                    characterId: 'native_qualified_npc',
+                    sourceSnapshotHash: source.snapshot.canonicalHash,
+                    sourceFileId: image.fileId, sourceFileHash: image.sha256!,
+                    sourcePattern: 0, sourceDirection: 2),
+              });
+          final rows = (result.semanticEvidence['events'] as List).cast<Map>();
+          Map row(SourceEventDefinition event) => rows.singleWhere((row) =>
+              row['sourceIdentity'] == event.identity.value);
+          expect(row(target)['gaps'], broken
+              ? contains('sourceExclamationActorUnavailable') : isEmpty,
+              reason: jsonEncode(result.semanticEvidence));
+          expect(row(owner)['gaps'], broken
+              ? contains(dependency == 'interactionRoute'
+                  ? 'sourceInteractionActorUnavailable' : 'sourceSelfSwitchTargetUnavailable')
+              : isEmpty, reason: jsonEncode(result.semanticEvidence));
+          if (broken) {
+            expect(result.registry.records.every((record) => record.definitionOrNull == null), isTrue);
+            expect(result.scenes, isEmpty);
+            expect(result.facts, isEmpty);
+            expect(result.nativeMaps[1]!.entities, isEmpty);
+          } else {
+            expect(result.registry.records.every((record) => record.definitionOrNull != null), isTrue);
+            expect(result.scenes, isNotEmpty);
+          }
+        }
+      });
+    }
+  });
   group('write-only source variable bookkeeping', () {
     for (final operation in [0, 1]) {
       test('literal operation $operation survives an inactive foreign writer while readers stay refused', () async {
@@ -2256,8 +2397,8 @@ void main() {
           expect(row['gaps'], isEmpty);
           expect(result.scenes, hasLength(3));
           final map = result.nativeMaps[1]!;
-          expect(map.entities.single.presentation!.variants, hasLength(1));
-          expect(result.registry.records, hasLength(1));
+          expect(map.entities.single.presentation!.variants, hasLength(3));
+          expect(result.registry.records, hasLength(3));
           final project = ProjectManifest(
             name: 'Dormant actor',
             tilesets: const [],
@@ -2294,7 +2435,8 @@ void main() {
           final selfId = sourceEventFactBindingId(
             _analyzer(source).selfFactId(1, 1, 'A'),
           );
-          expect(present({}).entities, isEmpty);
+          expect(present({}).entities.single.npc, isNull);
+          expect(present({}).entities.single.blocksMovement, isFalse);
           expect(
             present({switchId: NarrativeValue.boolean(true)})
                 .entities
@@ -2306,8 +2448,8 @@ void main() {
             present({
               switchId: NarrativeValue.boolean(true),
               selfId: NarrativeValue.boolean(true),
-            }).entities,
-            isEmpty,
+            }).entities.single.npc,
+            isNull,
           );
         }
       },

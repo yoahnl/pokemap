@@ -1711,26 +1711,31 @@ final class _SourceEventParser {
     final script = lines.join('\n');
     final statement = RegExp(
         r'''pbSetSelfSwitch[ \t]*\([ \t]*([1-9][0-9]*)[ \t]*,[ \t]*(['"])([A-D])\2[ \t]*,[ \t]*(true|false)[ \t]*(?:,[ \t]*(-?(?:0|[1-9][0-9]*))[ \t]*)?\)''');
+    final assignment = RegExp(
+        r'''\$game_self_switches[ \t]*\[[ \t]*\[[ \t]*(@map_id|[1-9][0-9]*)[ \t]*,[ \t]*([1-9][0-9]*)[ \t]*,[ \t]*(['"])([A-D])\3[ \t]*\][ \t]*\][ \t]*=[ \t]*(true|false)''');
     final whitespace = RegExp(r'[ \t\r\n]*');
     final separator = RegExp(r'[ \t]*(?:;|\r?\n)[ \t\r\n]*');
     var offset = whitespace.matchAsPrefix(script)!.end;
     final nodes = <SourceSelfSwitchNode>[];
     while (offset < script.length) {
       final match = statement.matchAsPrefix(script, offset);
-      if (match == null) return null;
-      final targetEvent = int.tryParse(match.group(1)!);
-      final explicitMap = match.group(5) == null ? -1 : int.tryParse(match.group(5)!);
+      final direct = match == null ? assignment.matchAsPrefix(script, offset) : null;
+      if (match == null && direct == null) return null;
+      final targetEvent = int.tryParse(match?.group(1) ?? direct!.group(2)!);
+      final mapLiteral = match != null ? match.group(5) : direct!.group(1);
+      final explicitMap = mapLiteral == null || mapLiteral == '@map_id'
+          ? -1 : int.tryParse(mapLiteral);
       if (targetEvent == null || explicitMap == null) return null;
       final targetMap = explicitMap < 0 ? mapId : explicitMap;
       if (!analyzer.project.maps.any((map) => map.map.sourceMapId == targetMap &&
           map.map.events.any((event) => event.sourceEventId == targetEvent))) {
         return null;
       }
-      final letter = match.group(3)!;
+      final letter = match?.group(3) ?? direct!.group(4)!;
       nodes.add(SourceSelfSwitchNode(_span(first, end - 1), letter: letter,
-          value: match.group(4) == 'true',
+          value: (match?.group(4) ?? direct!.group(5)) == 'true',
           factId: analyzer.selfFactId(targetMap, targetEvent, letter)));
-      offset = match.end;
+      offset = (match ?? direct!).end;
       if (whitespace.matchAsPrefix(script, offset)!.end == script.length) break;
       final delimiter = separator.matchAsPrefix(script, offset);
       if (delimiter == null) return null;

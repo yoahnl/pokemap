@@ -311,7 +311,10 @@ void _auditSourceFactWriteBlock(
             analyzer.selfFactId(event.sourceMapId, event.sourceEventId, 'A')) {
           throw const FormatException();
         }
-        write(defeatedFactId, true);
+        if (node.kind == SourceTrainerProgramKind.encounter) {
+          _auditSourceFactWriteBlock(
+              node.victoryContinuation, event, analyzer, writes);
+        }
       case SourcePortraitProgramNode(:final body):
         _auditSourceFactWriteBlock(body, event, analyzer, writes);
       case SourcePokedexRewardProgramNode(:final rewardFactId):

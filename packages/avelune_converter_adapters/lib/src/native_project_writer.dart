@@ -1452,6 +1452,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
           'campaign.encounter_table.upsert',
           'campaign.trainer.upsert',
           'project.battle_audio.update',
+          'project.battle_transitions.update',
         }.contains(mutation.actionId);
     if (!ordinary && !library && !semantic && !event && !catalogs) {
       throw const NativeWriteException('native.action.unsupported',
@@ -1540,6 +1541,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   var cinematics = <CinematicAsset>[];
   final trainersById = <String, ProjectTrainerEntry>{};
   ProjectBattleAudioConfig? battleAudio;
+  ProjectBattleTransitionConfig? battleTransitions;
   final badges = <BadgeDefinition>[];
   final shops = <ShopDefinition>[];
   String? defaultPlayerCharacterId;
@@ -2291,6 +2293,19 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
               'Battle defaults require their exact regenerated source declarations and imported audio.');
         }
         battleAudio = expected;
+      case 'project.battle_transitions.update':
+        semantics.requireOperation(mutation);
+        _allowParameters(parameters, const {
+          'wildTransitionId', 'trainerTransitionId', 'definitions'});
+        final expected = semantics.catalogs?.draft.mutations.where((entry) =>
+            entry.actionId == 'project.battle_transitions.update').singleOrNull;
+        if (battleTransitions != null || expected == null ||
+            canonicalJsonOf(parameters) != canonicalJsonOf(expected.parameters)) {
+          throw const NativeWriteException('native.catalogs.battle_transitions',
+              'Battle transitions require their exact regenerated native presentation policy.');
+        }
+        battleTransitions = ProjectBattleTransitionConfig.fromJson(
+            Map<String, dynamic>.from(parameters));
       case 'map.audio.update':
         semantics.requireOperation(mutation);
         _allowParameters(
@@ -2573,6 +2588,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       encounterTables: projectedCatalogs?.encounterTables ?? const [],
       trainers: trainersById.values.toList(),
       battleAudio: battleAudio,
+      battleTransitions: battleTransitions,
       defeatRecovery: sourceDefeatRecovery,
       cinematicMediaAssets: mediaAssets,
       facts: [...?projectedEvents?.facts, ...?freshEntry?.facts],

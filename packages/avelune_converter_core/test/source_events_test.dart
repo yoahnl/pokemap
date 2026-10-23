@@ -814,6 +814,9 @@ void main() {
       ("pbSetSelfSwitch(2, 'B', false, -9)", (1, 2), false),
       ('pbSetSelfSwitch(2, "C", true, 1)', (1, 2), true),
       ('pbSetSelfSwitch(1, "D", false, 8)', (8, 1), false),
+      (r'$game_self_switches[[1,2,"A"]]=true', (1, 2), true),
+      (r"$game_self_switches[[8, 1, 'D']] = false", (8, 1), false),
+      (r'$game_self_switches[[@map_id,2,"B"]]=true', (1, 2), true),
     ]) {
       test('resolves $script to the exact target fact', () async {
         final data = _project(maps: {
@@ -856,6 +859,16 @@ void main() {
       'pbSetSelfSwitch(2, "A", true) if ready', 'pbSetSelfSwitch(2, "A", true); unsafe()',
       'if true\npbSetSelfSwitch(2, "A", true)\nend',
       'pbSetSelfSwitch(2, "A", true, 1, 7)', 'pbSetSelfSwitch(02, "A", true)',
+      r'$game_self_switches[[99,2,"A"]]=true',
+      r'$game_self_switches[[1,9,"A"]]=true',
+      r'$game_self_switches[[map,2,"A"]]=true',
+      r'$game_self_switches[[1,id,"A"]]=true',
+      r'$game_self_switches[[1,2,"E"]]=true',
+      r'$game_self_switches[[1,2,"A"]]=flag',
+      r'$game_self_switches[[1,2,"A"]]=true; unsafe()',
+      r'$game_self_switches[[1,2,"A"]]=true if ready',
+      r'$game_self_switches[[01,2,"A"]]=true',
+      r'$game_self_switches[[1,02,"A"]]=true',
     ]) {
       test('quarantines the whole script $script', () async {
         final source = await _events([_page([_command(355, [script]), _command(0, [])])],

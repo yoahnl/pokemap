@@ -195,6 +195,24 @@ void main() {
           .singleWhere((m) => m.actionId == 'project.battle_audio.update');
       expect(action.parameters, catalogs.projection.battleAudio!.toJson());
       expect(action.domain, OperationDomain.project);
+      final transitions = draft.mutations.singleWhere(
+          (mutation) => mutation.actionId == 'project.battle_transitions.update');
+      expect(transitions.domain, OperationDomain.project);
+      expect(transitions.parameters['wildTransitionId'], 'avelune_wild_entry');
+      expect(transitions.parameters['trainerTransitionId'],
+          'avelune_trainer_entry');
+      final definitions = transitions.parameters['definitions'] as List;
+      expect(definitions, hasLength(2));
+      expect(definitions.map((definition) => definition['usages']),
+          [['wild'], ['trainer']]);
+      expect(
+          definitions.expand((definition) => definition['phases'] as List)
+              .map((phase) => phase['kind']),
+          contains('interleavedBands'));
+      final catalogEvidence =
+          catalogs.draft.compositionEvidence['sourceCatalogs'] as Map;
+      expect(catalogEvidence['battlePresentation']['sourceTransitionParity'],
+          isFalse);
       final approval = approveNativeFixtureDraft(draft);
       final receipt = await const NativeProjectWriter()
           .write(approval.plan, approval.context, draft, limits: limits);
@@ -212,6 +230,8 @@ void main() {
             policy: ProjectSnapshotLoadPolicy.strict);
         expect(snapshot.loadDiagnostics, isEmpty);
         expect(snapshot.manifest.battleAudio, catalogs.projection.battleAudio);
+        expect(snapshot.manifest.battleTransitions?.toJson(),
+            transitions.parameters);
         for (final path in action.parameters.values.whereType<String>()) {
           expect(await File('${receipt.projectPath}/$path').readAsBytes(),
               sourceMapMusicFixtureWav());
@@ -244,6 +264,33 @@ void main() {
               limits: limits),
           throwsA(isA<NativeWriteException>()));
       expect(await Directory('${parent.path}/forged').exists(), isFalse);
+      final forgedTransitions = copyNativeFixtureDraft(draft,
+          folderName: 'forged-transitions',
+          mutations: [
+            for (final mutation in draft.mutations)
+              if (mutation.actionId == 'project.battle_transitions.update')
+                NativeMutation(
+                    operationId: mutation.operationId,
+                    actionId: mutation.actionId,
+                    sourceEntityIds: mutation.sourceEntityIds,
+                    targetEntityIds: mutation.targetEntityIds,
+                    parameters: {
+                      ...mutation.parameters,
+                      'wildTransitionId': 'avelune_trainer_entry',
+                    },
+                    limits: limits)
+              else
+                mutation
+          ],
+          limits: limits);
+      final transitionApproval = approveNativeFixtureDraft(forgedTransitions);
+      await expectLater(
+          const NativeProjectWriter().write(transitionApproval.plan,
+              transitionApproval.context, forgedTransitions,
+              limits: limits),
+          throwsA(isA<NativeWriteException>()));
+      expect(await Directory('${parent.path}/forged-transitions').exists(),
+          isFalse);
     } finally {
       await parent.delete(recursive: true);
     }
@@ -505,7 +552,16 @@ void main() {
               humanConfirmed: true,
               reason: 'Controlled synthetic battle music fixture')));
       final prepared = await workflow.prepareStudy();
-      expect(prepared.canApprove, isTrue);
+      expect(prepared.canApprove, isTrue,
+          reason: jsonEncode({
+            'normalization': prepared.normalizedSource.diagnostics
+                .map((diagnostic) => diagnostic.toJson()).toList(),
+            'composition': prepared.composition.diagnostics
+                .map((diagnostic) => diagnostic.toJson()).toList(),
+            'findings': prepared.previewPlan?.findings
+                .where((finding) => finding.blocksStudy)
+                .map((finding) => finding.toJson()).toList(),
+          }));
       final capability = prepared.targetCapabilities.capabilities.singleWhere(
           (c) =>
               c.capabilityId.value ==

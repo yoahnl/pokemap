@@ -87,6 +87,7 @@ Future<
         {String defect = '',
         bool quantityVariant = false,
         bool includeOtherMap = false,
+        bool includeEncounter = false,
         bool explorationItems = false}) async {
   final charset = quantityVariant ? 'OBJ_FRLG_Silph Gate_V' : _charset;
   final profile = SourceInterpretationProfile.fromJson({
@@ -111,6 +112,8 @@ Future<
       interpretationProfile: profile,
       includeEventSystem: true,
       extraFiles: {
+        if (includeEncounter)
+          'PBS/encounters.txt': utf8.encode('[214]\nLand,11\n100,RATTATA,2,3\n'),
         'PBS/pokemon.txt': utf8
             .encode('[RATTATA]\nName = Rattata\n[RATICATE]\nName = Raticate\n'),
         'Data/species.dat': literalFixtureMarshal({
@@ -454,10 +457,11 @@ void main() {
     final input = await _input(defect: 'missingSound');
     input.files.reads.clear();
     await expectLater(
-        const SourceCardKeyGateMissingAudioResolver()
-            .read(source: input.source, files: input.files),
+        const SourceMissingOptionalSoundResolver()
+            .read(source: input.source, files: input.files,
+                name: 'frlg_gateopen'),
         throwsA(isA<NativeWriteException>().having((e) => e.code, 'code',
-            'events.card_key_gate.audio_oracle_unqualified')));
+            'events.optional_sound.audio_oracle_unqualified')));
     expect(input.files.reads, isEmpty);
   });
   _testGateVariants(
@@ -649,7 +653,7 @@ void main() {
   _testGateVariants(
       'gate composer publishes its native scene and reopens all four collision cells strictly',
       (quantityVariant) async {
-    final input = await _input(quantityVariant: quantityVariant);
+    final input = await _input(quantityVariant: quantityVariant, includeEncounter: true);
     final temporary = await Directory.systemTemp.createTemp('card-key-gate-');
     addTearDown(() => temporary.delete(recursive: true));
     final literal = await const LiteralTileComposer().compose(

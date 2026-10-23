@@ -81,6 +81,32 @@ final class SourceCatalogStudyComposition {
 }
 
 final class SourceCatalogStudyComposer {
+  static ProjectBattleTransitionConfig get nativeBattleTransitions =>
+      ProjectBattleTransitionConfig.fromJson({
+        'wildTransitionId': 'avelune_wild_entry',
+        'trainerTransitionId': 'avelune_trainer_entry',
+        'definitions': [
+          {
+            'id': 'avelune_wild_entry',
+            'label': 'Rencontre sauvage',
+            'usages': ['wild'],
+            'phases': [
+              {'kind': 'interleavedBands', 'durationSeconds': 0.35, 'bandHeight': 16},
+              {'kind': 'holdBlack', 'durationSeconds': 0.1},
+            ],
+          },
+          {
+            'id': 'avelune_trainer_entry',
+            'label': 'Défi de dresseur',
+            'usages': ['trainer'],
+            'phases': [
+              {'kind': 'interleavedBands', 'durationSeconds': 0.45, 'bandHeight': 32},
+              {'kind': 'holdBlack', 'durationSeconds': 0.1},
+            ],
+          },
+        ],
+      });
+
   const SourceCatalogStudyComposer(
       {this.nativeTrainerMovePolicy =
           NativeTrainerMovePolicy.nativeAveluneDefaults,
@@ -458,6 +484,9 @@ final class SourceCatalogStudyComposer {
           }.toList(), targetEntityIds: operation.targetEntityIds,
           parameters: operation.parameters, limits: limits));
     }
+    final battleTransitions = nativeBattleTransitions;
+    mutations.add(mutation('project.battle_transitions.update',
+        'native_battle_transitions', battleTransitions.toJson()));
 
     final preservedArtifacts = <String, NativeArtifact>{};
     final preservedFiles = <Map<String, Object?>>[];
@@ -602,6 +631,11 @@ final class SourceCatalogStudyComposer {
       'activeCatalogPolicy': 'nativeBundleOnly',
       'sourceOnlyRuntimeDataPublished': false,
       'battleAuthority': 'aveluneNative',
+      'battlePresentation': {
+        'policy': 'native-asset-free-entry-transitions-v1',
+        'sourceTransitionParity': false,
+        'battleTransitions': battleTransitions.toJson(),
+      },
       'sourceBattleScriptsExecuted': false,
       'playableCertified': false,
       'mutationBatches': grouped.evidence,

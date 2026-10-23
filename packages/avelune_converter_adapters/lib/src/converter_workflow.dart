@@ -2282,7 +2282,7 @@ ConverterWorkflowFailure _workflowFailure(Object error,
 
 Sha256Hash _studyRulesHash() => canonicalHashOf({
       'kind': 'converterStudyRules',
-      'version': 10,
+      'version': 11,
       'sourceDynamicTransferPolicy':
           'qualified-event-quarantine-without-fabricated-destination-v1',
       'sourceTrainerDefeatPolicy':
@@ -2295,7 +2295,12 @@ Sha256Hash _studyRulesHash() => canonicalHashOf({
       'sourceProgramExecutionContexts': 'owner-bound-active-and-retained-map-closure-v1',
       'sourceMissingItemSuggestions': 'qualified-selected-blocked-preparation-v1',
       'sourceVariableWriterPolicy': 'explicit-read-consumers-v1',
+      'sourceLiteralSelfSwitchWrites': 'verified-literal-targets-atomic-script-groups-v1',
+      'sourceOptionalSounds': 'attested-missing-optional-se-noop-v1',
+      'sourceInteractionRoutes': 'closed-finite-choice-interactions-native-awaited-routes-v1',
+    'sourceBlankPagePresentation': 'preserve-conditional-invisible-page-overrides-v1',
       'sourceBattleMusic': 'exact-declarations-with-source-audio-descriptors-v1',
+      'sourceBattleTransitions': 'native-asset-free-entry-transitions-v1',
       'sourceContentPrograms': 'coherent-structural-operand-capture-v1',
       'nativeCatalogPublication': 'project-reference-dependency-closure-v1',
       'sourceArrivalCollisionOwners': 'qualified-presented-owner-conservative-union-v1',
@@ -2437,6 +2442,7 @@ const _nativeStudyActions = [
   'map.save',
   'map.audio.update',
   'project.battle_audio.update',
+  'project.battle_transitions.update',
   'connection.create_bidirectional_apply',
   'border.blueprint.draft.upsert',
   'border.blueprint.publish',
@@ -2623,6 +2629,14 @@ TargetCapabilities _nativeCapabilities() => TargetCapabilities.fromJson({
                   'type': 'test',
                   'summary':
                       'Exact source battle defaults and closed renamed-file adaptations retain SHA-bound audio imports through strict canonical catalogue regeneration and native reopening.',
+                  'reference':
+                      'repo:packages/avelune_converter_adapters/test/source_battle_music_binding_test.dart:battle defaults survive canonical catalogue writer and strict reopening',
+                },
+              if (action == 'project.battle_transitions.update')
+                {
+                  'type': 'test',
+                  'summary':
+                      'Asset-free native wild and trainer entry transitions use typed canonical publication, strict reopening and exact qualified mutation validation.',
                   'reference':
                       'repo:packages/avelune_converter_adapters/test/source_battle_music_binding_test.dart:battle defaults survive canonical catalogue writer and strict reopening',
                 },

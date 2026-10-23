@@ -102,6 +102,8 @@ void main() {
   test('targeted trainer reanalysis accepts source and refuses forged evidence',
       () async {
     const roster = (type: 'FRLG_BUGCATCHER', name: 'Brent', version: 0);
+    final trainer = nativeTrainerFixtureEvent(roster, 1);
+    final encounter = trainer.pages.first;
     final fixture = await LiteralTileFixture.create(
         interpretationProfile: syntheticSourceInterpretationProfile,
         scriptsBytes: syntheticInterpretationArchive,
@@ -124,7 +126,34 @@ void main() {
         maps: [
           LiteralFixtureMap(id: 1, width: 4, height: 3, layers: [
             List.filled(12, 384), List.filled(12, 0), List.filled(12, 0),
-          ], events: [nativeTrainerFixtureEvent(roster, 1)]),
+          ], events: [
+            LiteralFixtureEvent(
+                id: trainer.id, x: trainer.x, y: trainer.y, name: trainer.name,
+                pages: [
+                  LiteralFixtureEventPage(
+                      characterName: encounter.characterName,
+                      trigger: encounter.trigger,
+                      commands: [
+                        ...encounter.commands.take(6),
+                        const LiteralFixtureEventCommand(355,
+                            [r'$game_self_switches[[1,2,"A"]]=true'], indent: 1),
+                        const LiteralFixtureEventCommand(655,
+                            [r'$game_self_switches[[1,3,"A"]]=true'], indent: 1),
+                        ...encounter.commands.skip(6),
+                      ]),
+                  trainer.pages.last,
+                ]),
+            const LiteralFixtureEvent(id: 2, x: 2, y: 1, pages: [
+              LiteralFixtureEventPage(selfSwitch: 'A', trigger: 4, commands: [
+                LiteralFixtureEventCommand(355, ['opaqueController()']),
+                LiteralFixtureEventCommand(0, []),
+              ]),
+              LiteralFixtureEventPage(selfSwitch: 'B', commands: [
+                LiteralFixtureEventCommand(0, []),
+              ]),
+            ]),
+            const LiteralFixtureEvent(id: 3, x: 3, y: 1, pages: []),
+          ]),
         ]);
     final source = fixture.source;
     final analysis = SourceEventAnalyzer.forProject(source,
@@ -133,6 +162,22 @@ void main() {
     final accepted = await resolver.read(
         source: source, analysis: analysis, files: fixture.files);
     final original = analysis.eventAt(1, 1)!;
+    final program = original.pages.first.body.nodes.single as SourceTrainerProgramNode;
+    final switches = program.victoryContinuation.nodes.whereType<SourceSelfSwitchNode>().toList();
+    final analyzer = SourceEventAnalyzer.forProject(source, profile: analysis.profile);
+    expect(switches.map((node) => node.factId), [
+      analyzer.selfFactId(1, 1, 'A'),
+      analyzer.selfFactId(1, 2, 'A'),
+      analyzer.selfFactId(1, 3, 'A'),
+    ]);
+    expect(switches.every((node) => node.value), isTrue);
+    final dormancy = auditSourceParallelDormancy(
+        source: source, profile: analysis.profile).toJson();
+    final writes = (dormancy['nativeWriteSet'] as List).cast<Map>();
+    expect(writes.map((write) => write['factId']), containsAll(
+        switches.map((node) => node.factId)));
+    expect(dormancy['refusals'],
+        contains('sourceDormancyControllerWriterExecutable'));
     expect(accepted.byEventIdentity.keys, [original.identity]);
     expect(accepted.refusals, isEmpty);
     for (final variant in ['raw', 'graphic', 'body']) {

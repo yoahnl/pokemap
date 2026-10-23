@@ -13,6 +13,7 @@ import 'source_event_item_bindings.dart';
 import 'source_event_sound_binding.dart';
 import 'source_decorative_pokemon_binding.dart';
 import 'source_sequence_program.dart';
+import 'source_interaction_program.dart';
 import 'source_escort_program.dart';
 import 'source_actor_preparation_program.dart';
 import 'source_event_execution_context.dart';
@@ -325,7 +326,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEscortBinding> escortBindings = const {},
     Map<int, SourceIntroProgram> textVariablePrograms = const {},
     Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
-    SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
+    SourceMissingOptionalSoundProof? cardKeyGateMissingAudioProof,
+    Map<String, SourceMissingOptionalSoundProof> missingOptionalSounds = const {},
     Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
     MapInstanceRetentionPolicy? retentionPolicy,
@@ -353,7 +355,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     final builder = _ProjectionBuilder(
         source, analysis, nativeMaps, const {}, pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
+        portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, missingOptionalSounds: missingOptionalSounds, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings);
     builder._prepareVariableWriterAudit(checkCharacterBindings: false);
     return List.unmodifiable(analysis.events.where((event) =>
         nativeMaps.containsKey(event.sourceMapId) &&
@@ -386,7 +388,8 @@ final class SourceEventProjector {
     Map<ConverterId, SourceEscortBinding> escortBindings = const {},
     Map<int, SourceIntroProgram> textVariablePrograms = const {},
     Map<ConverterId, SourceDecorativePokemonBinding> decorativePokemonBindings = const {},
-    SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof,
+    SourceMissingOptionalSoundProof? cardKeyGateMissingAudioProof,
+    Map<String, SourceMissingOptionalSoundProof> missingOptionalSounds = const {},
       Map<ConverterId, SourceHealingDisplayBinding> healingDisplayBinding = const {},
     SourceExternalWarpBinding? externalWarpBinding,
       MapInstanceRetentionPolicy? retentionPolicy,
@@ -426,7 +429,7 @@ final class SourceEventProjector {
     final authority = transferAuthority ?? SourceTransferProgramAuthority.forSource(source);
     return _ProjectionBuilder(source, analysis, nativeMaps, characterBindings,
             pickupBindings, soundBindings, retentionPolicy, executionContext, limits, centerRecoveryBinding, trainerBindings, pokedexRewardBinding, townMapBinding, fieldObstacleBindings, fieldObstacleRefusals, partyTradeBinding, healingDisplayBinding, externalWarpBinding, itemBindings, staticDoorPrograms, staticDoorContexts, routedDoorPrograms, routedDoorContexts, stairPrograms, stairContexts, holePrograms, holeContexts, elevatorPrograms, elevatorContexts, pokemonGiftBindings,
-            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
+            portraitBindings, escortBindings, cardKeyGateMissingAudioProof, decorativePokemonBindings, transferAuthority: authority, programContexts: programContexts, missingOptionalSounds: missingOptionalSounds, textVariablePrograms: textVariablePrograms, starterChoiceBindings: starterChoiceBindings, firstRivalBindings: firstRivalBindings, oakParcelBindings: oakParcelBindings)
         .build();
   }
 }
@@ -716,7 +719,7 @@ final class _ProjectionBuilder {
       Map<ConverterId, SourceHoleNativeProgram>? holes, this.holeContexts,
       Map<ConverterId, SourceElevatorProgram>? elevators, this.elevatorContexts, this.pokemonGiftBindings,
       this.portraitBindings, this.escortBindings, this.cardKeyGateMissingAudioProof, this.decorativePokemonBindings,
-      {required SourceTransferProgramAuthority transferAuthority, this.programContexts = const {}, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
+      {required SourceTransferProgramAuthority transferAuthority, this.programContexts = const {}, this.missingOptionalSounds = const {}, this.textVariablePrograms = const {}, this.starterChoiceBindings = const {}, this.firstRivalBindings = const {}, this.oakParcelBindings = const {}})
       : _transferAuthority = transferAuthority,
         maps = Map.of(nativeMaps),
         staticDoorPrograms = staticPrograms ?? sourceStaticDoorPrograms(source: source, analysis: analysis, authority: transferAuthority),
@@ -831,6 +834,7 @@ final class _ProjectionBuilder {
     return Map<ConverterId, SourceSequenceProgram>.unmodifiable(programs);
   }();
   late final actorPreparationPrograms = sourceActorPreparationPrograms(source: source, analysis: analysis);
+  late final interactionPrograms = sourceInteractionPrograms(source: source, analysis: analysis);
   late final Map<ConverterId, SourceEscortProgram> escortPrograms =
       sourceEscortPrograms(source: source, analysis: analysis);
   late final SourceWarpTileNativePrograms warpTilePrograms =
@@ -846,6 +850,8 @@ final class _ProjectionBuilder {
   final _arrivalOwnerChecks = <ConverterId>{};
   final _arrivalOwnerDependencies = <ConverterId, Set<ConverterId>>{};
   final _exclamationActorDependencies = <ConverterId, Set<ConverterId>>{};
+  final _interactionActorDependencies = <ConverterId, Set<ConverterId>>{};
+  final _selfSwitchTargetDependencies = <ConverterId, Set<ConverterId>>{};
   final _stationaryRotationSourceMatches = <SourceEventDefinition, bool>{};
   final _fixedDirectionSourceMatches = <SourceEventDefinition, bool>{};
   final _centerProgramMatches = <(SourceEventDefinition, bool), bool>{};
@@ -923,7 +929,8 @@ final class _ProjectionBuilder {
     return binding != null && binding.isBoundTo(source, analysis, event) &&
         canonicalJsonOf(soundBindings[binding.sound.name]?.evidence) == canonicalJsonOf(binding.sound.evidence) ? binding : null;
   }
-  final SourceCardKeyGateMissingAudioProof? cardKeyGateMissingAudioProof;
+  final SourceMissingOptionalSoundProof? cardKeyGateMissingAudioProof;
+  final Map<String, SourceMissingOptionalSoundProof> missingOptionalSounds;
   final dialogues = <ProjectDialogueEntry>[];
   final dialogueSources = <String, String>{};
   final worldRules = <WorldRuleDefinition>[];
@@ -1113,7 +1120,7 @@ final class _ProjectionBuilder {
 
   bool _isSourceTransition(SourceEventDefinition event) =>
       _hasFirstRivalProgram(event) || _hasOakParcelProgram(event) ||
-      sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity) ||
+      sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity) ||
       warpTilePrograms.programs.containsKey(event.identity) ||
       _isExternalWarpFamily(event) ||
       staticDoorPrograms.containsKey(event.identity) || routedDoorPrograms.containsKey(event.identity) || stairPrograms.containsKey(event.identity) || holePrograms.containsKey(event.identity) || elevatorPrograms.containsKey(event.identity);
@@ -1121,9 +1128,9 @@ final class _ProjectionBuilder {
   bool _eventExecutionContextQualified(SourceEventDefinition event) =>
       (qualifiedProgramContexts.contains(event.identity) &&
         (_hasFirstRivalProgram(event) || _hasOakParcelProgram(event) ||
-          sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) ||
+          sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) ||
           actorPreparationPrograms.containsKey(event.identity) || _isExternalWarpFamily(event))) ||
-      ((_hasFirstRivalProgram(event) || _hasOakParcelProgram(event) || sequencePrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
+      ((_hasFirstRivalProgram(event) || _hasOakParcelProgram(event) || sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity) || escortPrograms.containsKey(event.identity) || actorPreparationPrograms.containsKey(event.identity)) && executionContextQualified &&
         executionContext?.staticDoorIdentity == null && executionContext?.routedDoorIdentity == null &&
         executionContext?.stairIdentity == null && executionContext?.holeIdentity == null &&
         executionContext?.elevatorIdentity == null) ||
@@ -1365,6 +1372,18 @@ final class _ProjectionBuilder {
             (_exclamationActorDependencies[event.identity] ?? const <ConverterId>{})
                 .any((owner) => gapsByEvent[owner]?.isEmpty != true)) {
           gaps.add('sourceExclamationActorUnavailable');
+          changed = true;
+        }
+        if (gaps.isEmpty &&
+            (_interactionActorDependencies[event.identity] ?? const <ConverterId>{})
+                .any((actor) => gapsByEvent[actor]?.isEmpty != true)) {
+          gaps.add('sourceInteractionActorUnavailable');
+          changed = true;
+        }
+        if (gaps.isEmpty &&
+            (_selfSwitchTargetDependencies[event.identity] ?? const <ConverterId>{})
+                .any((target) => gapsByEvent[target]?.isEmpty != true)) {
+          gaps.add('sourceSelfSwitchTargetUnavailable');
           changed = true;
         }
       }
@@ -2034,6 +2053,12 @@ final class _ProjectionBuilder {
         'executionContextQualified': _eventExecutionContextQualified(
           analysis.events.singleWhere((event) => event.identity == program.eventIdentity)),
       }],
+      'interactionPrograms': [for (final entry in interactionPrograms.entries) {
+        ...entry.value.toJson(),
+        'executionContextQualified': _eventExecutionContextQualified(
+            analysis.events.singleWhere((event) => event.identity == entry.key)),
+        'actorTargetsRequireCompleteNativeQualification': true,
+      }],
       if (retentionPolicy != null) 'mapInstanceRetentionPolicy': retentionPolicy!.toJson(),
       'elevatorPrograms': [for (final program in elevatorPrograms.values) {...program.toJson(), 'executionContext': contextEncoding.encodeContext(elevatorContexts[program.eventIdentity]?.toJson()), 'executionContextQualified': qualifiedElevatorContexts.contains(program.eventIdentity)}],
       'doorExecutionQualification': {
@@ -2129,9 +2154,14 @@ final class _ProjectionBuilder {
       'usedExternalWarps': eventEvidence.any((row) => row.containsKey('nativeExternalWarp')),
       'usedHealingDisplay': eventEvidence.any((row) => row.containsKey('nativeHealingDisplay')),
       'usedFieldObstacles': eventEvidence.any((row) => row.containsKey('nativeFieldObstacle')),
-      if (cardKeyGateMissingAudioProof?.isBoundTo(source, analysis.profile) == true &&
+      if (cardKeyGateMissingAudioProof?.isBoundTo(source, analysis.profile, name: 'frlg_gateopen') == true &&
           eventEvidence.any((row) => (row['nativeCardKeyGate'] as Map?)?.containsKey('missingSound') == true))
         'cardKeyGateMissingAudioProof': cardKeyGateMissingAudioProof!.toJson(),
+      'missingOptionalSounds': [
+        for (final entry in missingOptionalSounds.entries)
+          if (entry.value.isBoundTo(source, analysis.profile, name: entry.key))
+            entry.value.toJson(),
+      ],
       'portraitPresentations': [
         for (final entry in portraitBindings.entries)
           if (gapsByEvent[entry.key]?.isEmpty == true) {
@@ -3724,6 +3754,32 @@ final class _ProjectionBuilder {
     return (event.identity, checkCharacterBindings, canonicalJsonOf(arrivalOwners));
   }
 
+  bool _supportsInteractionRoute(SourceEventDefinition event,
+      SourceForcedMoveRouteNode route, {required bool checkCharacterBindings}) {
+    final program = interactionPrograms[event.identity];
+    if (program == null || !program.permitsRoute(route) ||
+        !_eventExecutionContextQualified(event) || retentionPolicy == null) {
+      return false;
+    }
+    final actor = analysis.eventAt(event.sourceMapId, route.targetSourceCharacterId);
+    final qualification = _selfSwitchQualification;
+    if (actor == null || qualification == null ||
+        !_selectedEventIdentities.contains(actor.identity)) {
+      return false;
+    }
+    _interactionActorDependencies.putIfAbsent(event.identity, () => {}).add(actor.identity);
+    qualification.hasForeignTargets = true;
+    final state = _selfSwitchQualificationState(actor, checkCharacterBindings);
+    if (qualification.states.add(state)) {
+      qualification.evaluatedStateCount++;
+      if (_gaps(actor, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+        qualification.refused = true;
+        return false;
+      }
+    }
+    return true;
+  }
+
   Set<String> _gaps(SourceEventDefinition event,
       {bool checkCharacterBindings = true}) {
     if (_selfSwitchQualification != null) {
@@ -3872,7 +3928,10 @@ final class _ProjectionBuilder {
 
   bool _cardKeyGateSoundIsSourceNoOp(SourceEventDefinition event) =>
       _cardKeyGatePrograms[event.identity]?.isBoundTo(source, analysis, event) == true &&
-      cardKeyGateMissingAudioProof?.isBoundTo(source, analysis.profile) == true;
+      cardKeyGateMissingAudioProof?.isBoundTo(source, analysis.profile, name: 'frlg_gateopen') == true;
+
+  bool _soundIsSourceNoOp(String name) =>
+      missingOptionalSounds[name]?.isBoundTo(source, analysis.profile, name: name) == true;
 
   Set<String> _cardKeyGateGaps(SourceEventDefinition event, {required bool checkCharacterBindings}) {
     final program = _cardKeyGatePrograms[event.identity];
@@ -3994,7 +4053,7 @@ final class _ProjectionBuilder {
     if (inventoryController != null && _itemBinding(inventoryController.sourceItemSymbol)?.isKeyItem != true) {
       gaps.add('sourceInventoryControllerKeyItemBindingMissing');
     }
-    if (sequencePrograms.containsKey(event.identity) &&
+    if ((sequencePrograms.containsKey(event.identity) || interactionPrograms.containsKey(event.identity)) &&
         (maps[event.sourceMapId]!.version == ProjectVersion.v9 ||
           maps[event.sourceMapId]!.spatialScene != null)) {
       gaps.add('sourceSequenceSpatialUnsupported');
@@ -4461,11 +4520,14 @@ final class _ProjectionBuilder {
             final state = _selfSwitchQualificationState(selected, checkCharacterBindings);
             if (_qualifiedDoorCompanion(event, selected, checkCharacterBindings: checkCharacterBindings)) {
               qualification.passiveCompanions.add(selected.identity);
-            } else if (qualification.states.add(state)) {
-              qualification.evaluatedStateCount++;
-              if (_gaps(selected, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
-                qualification.refused = true;
-                gaps.add('sourceSelfSwitchTargetUnavailable');
+            } else {
+              _selfSwitchTargetDependencies.putIfAbsent(event.identity, () => {}).add(selected.identity);
+              if (qualification.states.add(state)) {
+                qualification.evaluatedStateCount++;
+                if (_gaps(selected, checkCharacterBindings: checkCharacterBindings).isNotEmpty) {
+                  qualification.refused = true;
+                  gaps.add('sourceSelfSwitchTargetUnavailable');
+                }
               }
             }
           }
@@ -4608,7 +4670,8 @@ final class _ProjectionBuilder {
             gaps.add('sourceDecorativePokemonBindingMissing');
           }
           if (node.pitch != 100) gaps.add('sourceSoundPitchUnsupported');
-          if (_sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
+          if (!_soundIsSourceNoOp(node.name) &&
+              _sound(node.name, allowNativeAdaptation: _isItemGiver(event)) == null) {
             gaps.add('sourceSoundBindingMissing');
           }
           if (_decorativePokemonBinding(event) == null && !_isSourceTransition(event) && !_isItemGiver(event) && !_qualifiedGymStageContains(event, node) &&
@@ -4627,10 +4690,21 @@ final class _ProjectionBuilder {
         case SourceMoveRouteBarrierNode():
         case SourcePlayerVisibilityNode():
           if (node is SourceForcedMoveRouteNode &&
+              _supportsInteractionRoute(event, node,
+                  checkCharacterBindings: checkCharacterBindings)) {
+            break;
+          }
+          if (node is SourceForcedMoveRouteNode &&
               _supportsStationaryNpcRotation(event, node)) {
             break;
           }
           if (node is SourceMoveRouteBarrierNode) {
+            final previous = block.nodes.indexOf(node) - 1;
+            if (previous >= 0 && block.nodes[previous] is SourceForcedMoveRouteNode &&
+                interactionPrograms[event.identity]?.permitsNode(node) == true &&
+                _supportsInteractionRoute(event,
+                    block.nodes[previous] as SourceForcedMoveRouteNode,
+                    checkCharacterBindings: checkCharacterBindings)) break;
             if (_homeRecoveryProgram(event) != null) break;
             final index = block.nodes.indexOf(node);
             if (index > 0 && block.nodes[index - 1] is SourceForcedMoveRouteNode &&
@@ -4916,7 +4990,6 @@ final class _ProjectionBuilder {
     final variants = <MapEntityPresentationVariant>[];
     for (var index = 0; index < projectedPages.length; index++) {
       final page = projectedPages[index];
-      if (_dormantBlankSourceActionPage(page) && _oakTileBinding(event) == null) continue;
       final pageGraphic = page.graphic!;
       final boundCharacter = _oakTileCharacter(event, pageGraphic) ?? (pageGraphic.characterName.isEmpty ? null :
         characterBindings[sourceEventCharacterBindingKey(characterName: pageGraphic.characterName,
@@ -5051,7 +5124,6 @@ final class _ProjectionBuilder {
           [event.identity, event.sourceFileId],
           [scene.id],
           {'scene': scene.toJson()}));
-      if (_dormantBlankSourceActionPage(page)) continue;
       final expression =
           guard.expression ?? NarrativeEventConditionExpression.all(const []);
       records.add(NarrativeEventRecord.configuredStructurallyUnchecked(
@@ -5841,6 +5913,7 @@ final class _SceneBuilder {
               mediaAssetId: audio.mediaId, volume: audio.gainForVolume(node.volume),
               bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 0)), next);
         case SourceSoundEffectNode():
+          if (projection._soundIsSourceNoOp(node.name)) break;
           if (node.name == 'frlg_gateopen' && projection._cardKeyGateSoundIsSourceNoOp(event)) break;
           final sound = projection._sound(node.name,
               allowNativeAdaptation: projection._isItemGiver(event))!;
