@@ -66,6 +66,7 @@ spctl_bin="${SPCTL_BIN:-/usr/sbin/spctl}"
 codesign_bin="${CODESIGN_BIN:-/usr/bin/codesign}"
 jq_bin="${JQ_BIN:-jq}"
 dmg_verify_retry_delay_seconds="${DMG_VERIFY_RETRY_DELAY_SECONDS:-2}"
+stapler_retry_delay_seconds="${STAPLER_RETRY_DELAY_SECONDS:-5}"
 
 for required_tool in \
   "$xcrun_bin" \
@@ -103,6 +104,26 @@ verify_dmg() {
   return 74
 }
 
+retry_stapler() {
+  local operation="$1"
+  local target="$2"
+  local attempt stapler_output stapler_status
+  for attempt in 1 2 3; do
+    if stapler_output="$("$xcrun_bin" stapler "$operation" "$target" 2>&1)"; then
+      printf '%s\n' "$stapler_output"
+      return 0
+    else
+      stapler_status=$?
+    fi
+    printf '%s\n' "$stapler_output" >&2
+    if ((stapler_status != 68 || attempt == 3)) || [[ "$stapler_output" != *'NSURLErrorDomain Code=-1005'* ]]; then
+      return "$stapler_status"
+    fi
+    echo "Apple ticket $operation attempt $attempt lost its network connection; retrying." >&2
+    /bin/sleep "$stapler_retry_delay_seconds"
+  done
+}
+
 temporary_root="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/pokemap-notary.XXXXXX")"
 cleanup() {
   if [[ -n "${temporary_root:-}" && -d "$temporary_root" ]]; then
@@ -132,8 +153,8 @@ fi
 "$xcrun_bin" notarytool log "$app_submission_id" \
   --keychain-profile "$notary_profile" \
   "$app_log"
-"$xcrun_bin" stapler staple "$app_path"
-"$xcrun_bin" stapler validate "$app_path"
+retry_stapler staple "$app_path"
+retry_stapler validate "$app_path"
 "$codesign_bin" --verify --deep --strict --verbose=4 "$app_path"
 "$spctl_bin" --assess --type execute --verbose=4 "$app_path"
 
@@ -173,8 +194,8 @@ fi
 "$xcrun_bin" notarytool log "$dmg_submission_id" \
   --keychain-profile "$notary_profile" \
   "$dmg_log"
-"$xcrun_bin" stapler staple "$dmg_path"
-"$xcrun_bin" stapler validate "$dmg_path"
+retry_stapler staple "$dmg_path"
+retry_stapler validate "$dmg_path"
 verify_dmg
 "$spctl_bin" --assess \
   --type open \
