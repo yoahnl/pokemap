@@ -1,14 +1,23 @@
 import 'package:map_authoring/map_authoring.dart'
-    show AuthoringTransactionFaultInjector;
+    show
+        AuthoringTransactionFaultInjector,
+        StandardEventTemplateSpec,
+        compileStandardEventTemplate;
 import 'package:map_core/map_core_domain.dart';
+
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../map_workspace/domain/map_workspace_port.dart';
+import '../../narrative/data/local_narrative_adapter.dart';
+import '../../narrative/domain/narrative_port.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/event_port.dart';
 import '../domain/event_record_view.dart';
+import '../domain/event_template_port.dart';
 
-class LocalEventAdapter implements EventPort, EventRegistryModePort {
+class LocalEventAdapter
+    implements EventPort, EventRegistryModePort, EventTemplatePort {
   const LocalEventAdapter({
     required this.session,
     required this.mapAdapter,
@@ -17,6 +26,45 @@ class LocalEventAdapter implements EventPort, EventRegistryModePort {
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+
+  @override
+  Future<NarrativePublicationReceipt> publishTemplate({
+    required MapWorkspaceDocument base,
+    required StandardEventTemplateSpec spec,
+    required ProjectManifest project,
+    required List<MapData> maps,
+  }) {
+    final projection = compileStandardEventTemplate(
+      project: project,
+      maps: maps,
+      spec: spec,
+    );
+    return LocalNarrativeAdapter(
+      session: session,
+      mapAdapter: mapAdapter,
+      faultInjector: faultInjector,
+    ).publishStandardEvent(
+      NarrativePublication(
+        base: base,
+        current: projection.map,
+        scenes: projection.scenes,
+        events: projection.events,
+        expectedScenes: {
+          for (final scene in projection.scenes)
+            scene.id: project.scenes
+                .where((value) => value.id == scene.id)
+                .firstOrNull,
+        },
+        expectedEvents: {
+          for (final event in projection.events)
+            event.id: project.eventRegistry?.records
+                .where((value) => value.id == event.id)
+                .firstOrNull,
+        },
+      ),
+      spec,
+    );
+  }
 
   @override
   Future<ResourceMutationReceipt> changeMode({

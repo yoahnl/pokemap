@@ -187,10 +187,26 @@ class NarrativeOverviewLanding extends StatelessWidget {
                                 ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Donnez vie à votre histoire',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                'Donnez vie à votre histoire',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              if (onEvents != null)
+                                StudioButton(
+                                  key: const ValueKey('overview-guided-events'),
+                                  label: 'Événements guidés',
+                                  icon: Icons.auto_fix_high_outlined,
+                                  onPressed: onEvents,
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 8),
                           Text(

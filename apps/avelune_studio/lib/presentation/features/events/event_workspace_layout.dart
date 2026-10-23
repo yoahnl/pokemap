@@ -90,9 +90,7 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                 StudioPageHeader(
                   title: 'Événements et déclencheurs',
                   prominent: !compact,
-                  description: compact
-                      ? 'Histoire > Événements'
-                      : 'Quand ceci arrive, si les conditions sont réunies, jouer cette scène.',
+                  description: compact ? 'Histoire > Événements' : 'Quand ceci arrive, si les conditions sont réunies, jouer cette scène.',
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -133,6 +131,13 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                           ),
                           const SizedBox(width: 8),
                         ],
+                        StudioButton(
+                          key: const ValueKey('event-guided'),
+                          label: 'Événement guidé',
+                          icon: Icons.auto_fix_high_outlined,
+                          onPressed: c.busy ? null : _guided,
+                        ),
+                        const SizedBox(width: 8),
                         StudioButton(
                           label: 'Nouvel événement',
                           icon: Icons.add,

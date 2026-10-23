@@ -247,3 +247,4 @@ export 'src/workspace/catalog_project_materialization.dart';
 export 'src/workspace/native_project_creation.dart';
 
 export 'src/workspace/native_project_creation_transport.dart';
+export 'src/domains/narrative/standard_event_template.dart';

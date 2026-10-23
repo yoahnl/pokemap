@@ -1,13 +1,18 @@
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_authoring/map_authoring.dart';
+
 import '../../map_workspace/application/map_workspace_controller.dart';
+import '../../map_workspace/domain/map_workspace_port.dart';
 import '../../narrative/application/narrative_workspace_controller.dart';
 import '../domain/event_port.dart';
 import '../domain/event_record_view.dart';
+import '../domain/event_template_port.dart';
 
 part 'event_workspace_commands.dart';
 part 'event_workspace_catalog.dart';
 part 'event_workspace_publication.dart';
 part 'event_publication_order.dart';
+part 'event_workspace_templates.dart';
 
 class EventWorkspaceController {
   EventWorkspaceController(

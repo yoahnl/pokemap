@@ -83,6 +83,7 @@ import '../domains/maps/smart_tile_pattern_actions.dart';
 import '../domains/maps/tiled_map_import_actions.dart';
 import '../domains/maps/trigger_zone_actions.dart';
 import '../domains/maps/warp_connection_actions.dart';
+import '../domains/narrative/standard_event_template_actions.dart';
 
 typedef MapMutationDraftBuilder = FutureOr<AuthoringMutationDraft> Function(
   AuthoringPlanningContext context,
@@ -527,6 +528,10 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: events.build,
         ),
+      MapMutationActionRegistration(
+        descriptor: StandardEventTemplateActions.descriptor,
+        build: const StandardEventTemplateActions().prepare,
+      ),
       for (final descriptor in FactRuleActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

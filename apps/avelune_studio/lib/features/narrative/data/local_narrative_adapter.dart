@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show AuthoringTransactionFaultInjector;
+    show AuthoringTransactionFaultInjector, StandardEventTemplateSpec;
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
@@ -79,7 +79,17 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
   @override
   Future<NarrativePublicationReceipt> publish(
     NarrativePublication publication,
-  ) => mapAdapter.withResourceMutation(() async {
+  ) => _publish(publication);
+
+  Future<NarrativePublicationReceipt> publishStandardEvent(
+    NarrativePublication publication,
+    StandardEventTemplateSpec template,
+  ) => _publish(publication, template: template);
+
+  Future<NarrativePublicationReceipt> _publish(
+    NarrativePublication publication, {
+    StandardEventTemplateSpec? template,
+  }) => mapAdapter.withResourceMutation(() async {
     try {
       if (publication.base.mapId != publication.current.id) {
         throw const NarrativeFailure('La carte de publication a changé.');
@@ -122,46 +132,49 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
           opened.projectHandle,
           AuthoringRequest(
             requestId: operation,
-            actionId: 'narrative.publish_document',
+            actionId: template == null
+                ? 'narrative.publish_document'
+                : 'event_v2.template.apply',
             actionVersion: 1,
             workspaceHandle: opened.workspaceHandle.value,
             expectedRevision: snapshot.revision,
             idempotencyKey: operation,
-            parameters:
-                jsonDecode(
-                      jsonEncode({
-                        'map': publication.current.toJson(),
-                        'mapRevision': publication.base.revision,
-                        'dialogues': [
-                          for (final source in publication.dialogues)
-                            {
-                              'entry': source.entry.toJson(),
-                              'source': source.source,
-                              'revision': source.revision,
-                            },
-                        ],
-                        'scenes': [
-                          for (final value in publication.scenes)
-                            value.toJson(),
-                        ],
-                        'cinematics': [
-                          for (final value in publication.cinematics)
-                            value.toJson(),
-                        ],
-                        'facts': [
-                          for (final value in publication.facts) value.toJson(),
-                        ],
-                        'storylines': [
-                          for (final value in publication.storylines)
-                            value.toJson(),
-                        ],
-                        'events': [
-                          for (final value in publication.events)
-                            value.toJson(),
-                        ],
-                      }),
-                    )
-                    as Map<String, dynamic>,
+            parameters: template != null
+                ? {
+                    'spec': template.toJson(),
+                    'mapRevision': publication.base.revision,
+                  }
+                : jsonDecode(
+                    jsonEncode({
+                      'map': publication.current.toJson(),
+                      'mapRevision': publication.base.revision,
+                      'dialogues': [
+                        for (final source in publication.dialogues)
+                          {
+                            'entry': source.entry.toJson(),
+                            'source': source.source,
+                            'revision': source.revision,
+                          },
+                      ],
+                      'scenes': [
+                        for (final value in publication.scenes) value.toJson(),
+                      ],
+                      'cinematics': [
+                        for (final value in publication.cinematics)
+                          value.toJson(),
+                      ],
+                      'facts': [
+                        for (final value in publication.facts) value.toJson(),
+                      ],
+                      'storylines': [
+                        for (final value in publication.storylines)
+                          value.toJson(),
+                      ],
+                      'events': [
+                        for (final value in publication.events) value.toJson(),
+                      ],
+                    }),
+                  ) as Map<String, dynamic>,
           ),
         );
         final changes = planned.plan.changeSet.changes;
@@ -234,7 +247,9 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
         return NarrativePublicationReceipt(
           beforeManifest: baseline.manifest,
           manifest: manifest,
-          savedMap: publication.current,
+          savedMap: MapData.fromJson(
+            jsonDecode(utf8.decode(mapBytes)) as Map<String, dynamic>,
+          ),
           revision: narrativeEventBytesFingerprint(mapBytes),
           sourceRevisions: {
             for (final source in publication.dialogues)

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 
 class EventMapLoader {
@@ -6,6 +7,8 @@ class EventMapLoader {
   final MapWorkspaceController workspace;
   final _maps = <String, MapData>{};
   final _pending = <String, Future<MapData>>{};
+
+  void invalidate(String id) => _maps.remove(id);
 
   Future<MapData> load(String id) async {
     final open = workspace.documents[id]?.current;

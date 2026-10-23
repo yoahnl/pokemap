@@ -522,6 +522,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'event_v2.template.apply') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/narrative/standard_event_template_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/standard_event_template_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/events/standard_event_template_publication_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/standard_event_template_stdio.test.ts',
+    };
+  }
   if (actionId == 'warp.transition.configure') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/warp_transition_transport_test.dart',
@@ -1817,6 +1829,8 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(['event_v2.template.apply'],
+      'test/domains/narrative/standard_event_template_transport_test.dart'),
   _ContractEvidenceRule(['environment.preset.upsert_batch'],
       'test/domains/maps/environment_preset_batch_test.dart'),
   _ContractEvidenceRule(['resource.family.apply_batch'],

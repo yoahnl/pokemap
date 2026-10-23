@@ -5,8 +5,8 @@ import '../cinematics/cinematic_workspace_page.dart';
 import '../cinematics/cinematic_view_state.dart';
 
 import 'package:flutter/material.dart';
-import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../dialogues/dialogue_workspace_page.dart';
@@ -156,6 +156,7 @@ Widget? workspaceSecondaryContent({
   }
   if (space == WorkspaceSpace.events && events != null && visuals != null) {
     return EventWorkspacePage(
+      loadItems: loadSceneItems,
       controller: events,
       view: eventView,
       loader: eventMaps,
