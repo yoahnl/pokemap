@@ -45,6 +45,8 @@ import 'source_card_key_gate_program.dart';
 import 'source_card_key_gate_audio.dart';
 import 'source_inventory_controller_program.dart';
 
+part 'source_event_composition.dart';
+
 part 'source_intro_projection.dart';
 part 'source_first_rival_projection.dart';
 part 'source_oak_parcel_projection.dart';
@@ -711,6 +713,8 @@ final class _SourceSelfSwitchQualification {
 }
 
 final class _ProjectionBuilder {
+  final _compositionQualifications = <SourceEventDefinition, bool>{};
+  final _compositionSourceMatches = <SourceEventDefinition, bool>{};
   _ProjectionBuilder(this.source, this.analysis, Map<int, MapData> nativeMaps,
       this.characterBindings, this.pickupBindings, this.soundBindings, this.retentionPolicy, this.executionContext, this.limits, this.centerRecoveryBinding, this.trainerBindings, this.pokedexRewardBinding, this.townMapBinding, this.fieldObstacleBindings, this.fieldObstacleRefusals, this.partyTradeBinding, this.healingDisplayBinding, this.externalWarpBinding, this.itemBindings,
       Map<ConverterId, SourceStaticDoorProgram>? staticPrograms, this.staticDoorContexts,
@@ -1414,6 +1418,15 @@ final class _ProjectionBuilder {
         if (gaps.isEmpty && _oakParcelBinding(event) != null)
           'nativeOakParcel': _oakParcelBinding(event)!.toJson(),
         'gaps': gaps.toList()..sort(),
+        'refusals': _compositionRefusals(event, gaps,
+          switchWriters: gaps.contains('sourceSwitchWriterUnqualified')
+              ? _compositionSwitchWriterEvidence(event) : const []),
+        if (_usesCompositionPrimitives(event))
+          'compositionQualification': {
+            'contractVersion': 1,
+            'sourceProgramQualified': _isComposableEvent(event),
+            'nativeQualified': _isComposableEvent(event) && gaps.isEmpty,
+          },
         if (_firstRivalBinding(event) case final binding? when gaps.isEmpty)
           'nativeFirstRival': binding.toJson(),
         if (gaps.isEmpty && starterChoiceBindings.containsKey(event.identity))
@@ -2039,6 +2052,7 @@ final class _ProjectionBuilder {
       'normalizationHash': source.canonicalHash.value,
       'sourceProfileHash': analysis.profile.canonicalHash.value,
       'sourceProfile': analysis.profile.toJson(),
+      'compositionContract': _sourceCompositionContract(analysis.profile),
       if (eventEvidence.any((row) => row.containsKey('nativeWarpTile')))
         'warpTileNativePolicy': sourceWarpTileNativePolicyEvidence,
       'eventIdConvention':
@@ -2214,7 +2228,7 @@ final class _ProjectionBuilder {
         staticSemanticsQualified:
             analysis.profile.isQualified && quarantinedCount == 0 && partiallyAdaptedCount == 0,
         allEnabledOriginalEventsHaveExecutionContext:
-            !events.where((event) => _isSourceTransition(event) &&
+            !events.where((event) => _isSourceTransition(event) && !_isComposableEvent(event) &&
               !_eventExecutionContextQualified(event)).any((event) =>
               event.pages.any((page) => enabledRecordIds.contains(
                   _eventId(event, 'page_${page.originalPageIndex}')))),
@@ -3482,6 +3496,9 @@ final class _ProjectionBuilder {
   }
 
   Set<int>? _unqualifiedVariableWriters;
+  Set<int>? _unqualifiedSwitchWriters;
+  bool _dynamicSwitchWriter = false;
+  final _commonSwitchWriterEvidence = <int, Map<String, Object?>>{};
   bool _dynamicVariableWriter = false;
   bool _incompleteVariableRubyCensus = false;
   late final SourceEventAnalyzer _sourceControlAnalyzer = SourceEventAnalyzer.forProject(
@@ -3614,12 +3631,14 @@ final class _ProjectionBuilder {
         }
       }
     }
+    final commonCallsByEvent = <SourceEventDefinition, Set<int>>{};
     for (final event in _sourceControlAnalysis.events) {
       final calls = event.pages.expand((page) => _sourceControlNodes(page.body))
           .whereType<SourceCommonEventCallNode>().map((call) => call.commonEventId).toSet();
       final rawCalls = event.pages.expand((page) => page.sourcePage.commands)
           .where((command) => command.code == 117 && command.parameters.length == 1 && command.parameters.single is int)
           .map((command) => command.parameters.single as int).toSet();
+      commonCallsByEvent[event] = {...calls, ...rawCalls};
       if (maps.containsKey(event.sourceMapId) && _oakParcelBinding(event) == null && _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
         representedCommon.addAll(calls);
         unrepresentedCommon.addAll(rawCalls.difference(calls));
@@ -3642,11 +3661,43 @@ final class _ProjectionBuilder {
       }
     }
     script(switchRuby.texts.join('\n'));
-    for (final observation in observations.entries.where((entry) => !representedCommon.contains(entry.key))) {
-      _dynamicVariableWriter |= observation.value.dynamicVariableWrite;
-      writes.addAll(observation.value.variableWrites);
-      script(observation.value.texts.join('\n'));
+    final switchWrites = <int>{};
+    final collectedCommonWriters = <int>{};
+    void collectCommonWriters(int id) {
+      if (!collectedCommonWriters.add(id)) return;
+      final observation = observations[id];
+      if (observation == null) return;
+      final writtenSwitches = Set<int>.of(observation.switchWrites);
+      final opaqueAutomaticEffects = observation.hasAutomaticEvents && observation.texts.isNotEmpty;
+      var dynamicSwitches = observation.dynamicSwitchWrite || opaqueAutomaticEffects;
+      final switchText = observation.texts.join('\n');
+      for (final reference in RegExp(r'\$game_switches\b').allMatches(switchText)) {
+        final literal = RegExp(r'^\s*\[\s*([1-9][0-9]*)\s*\]').firstMatch(switchText.substring(reference.end));
+        if (literal == null) {
+          dynamicSwitches = true;
+        } else {
+          writtenSwitches.add(int.parse(literal.group(1)!));
+        }
+      }
+      switchWrites.addAll(writtenSwitches);
+      _dynamicSwitchWriter |= dynamicSwitches;
+      if (writtenSwitches.isNotEmpty || dynamicSwitches) {
+        _commonSwitchWriterEvidence[id] = {
+          'commonEventId': id,
+          'sourceFile': 'Data/CommonEvents.rxdata',
+          'writtenSwitchIds': writtenSwitches.toList()..sort(),
+          'dynamicSwitchWrite': dynamicSwitches,
+          'opaqueAutomaticEffects': opaqueAutomaticEffects,
+        };
+      }
+      _dynamicVariableWriter |= observation.dynamicVariableWrite;
+      writes.addAll(observation.variableWrites);
+      script(observation.texts.join('\n'));
     }
+    for (final id in observations.keys.where((id) => !representedCommon.contains(id))) {
+      collectCommonWriters(id);
+    }
+    _unqualifiedSwitchWriters = Set.unmodifiable(switchWrites);
     for (final map in source.maps) {
       for (final event in map.map.events) {
         if (exempt.contains(source.eventIdentity(map.map.sourceMapId, event.sourceEventId))) continue;
@@ -3701,10 +3752,11 @@ final class _ProjectionBuilder {
     final arithmeticEvents = _sourceControlAnalysis.events.where((event) =>
       !exempt.contains(event.identity) && event.pages.any((page) =>
         _sourceControlNodes(page.body).any((node) => node is SourceVariableAdjustNode))).toList();
-    var arithmeticRefusalChanged = true;
-    while (arithmeticRefusalChanged) {
+    var qualificationChanged = true;
+    while (qualificationChanged) {
       _unqualifiedVariableWriters = Set.unmodifiable(writes);
-      arithmeticRefusalChanged = false;
+      _unqualifiedSwitchWriters = Set.unmodifiable(switchWrites);
+      qualificationChanged = false;
       for (final event in arithmeticEvents) {
         final supplied = analysis.eventAt(event.sourceMapId, event.sourceEventId);
         if (maps.containsKey(event.sourceMapId) && supplied != null && _oakParcelBinding(supplied) == null &&
@@ -3714,8 +3766,33 @@ final class _ProjectionBuilder {
         for (final page in event.pages) {
           for (final node in _sourceControlNodes(page.body).whereType<SourceVariableAdjustNode>()) {
             for (var id = node.firstId; id <= node.lastId; id++) {
-              if (writes.add(id)) arithmeticRefusalChanged = true;
+              if (writes.add(id)) qualificationChanged = true;
             }
+          }
+        }
+      }
+      for (final entry in commonCallsByEvent.entries) {
+        if (!entry.value.any(representedCommon.contains)) continue;
+        final event = entry.key;
+        final supplied = analysis.eventAt(event.sourceMapId, event.sourceEventId);
+        if (maps.containsKey(event.sourceMapId) && supplied != null &&
+            _oakParcelBinding(supplied) == null &&
+            _gaps(supplied, checkCharacterBindings: checkCharacterBindings).isEmpty) {
+          continue;
+        }
+        for (final id in entry.value) {
+          if (representedCommon.remove(id)) {
+            collectCommonWriters(id);
+            qualificationChanged = true;
+          }
+        }
+      }
+      for (final observation in observations.entries) {
+        if (representedCommon.contains(observation.key)) continue;
+        for (final target in observation.value.commonEventCalls) {
+          if (representedCommon.remove(target)) {
+            collectCommonWriters(target);
+            qualificationChanged = true;
           }
         }
       }
@@ -4035,11 +4112,19 @@ final class _ProjectionBuilder {
     final gaps = <String>{};
     final commonCalls = event.pages.expand((page) => _sourceControlNodes(page.body))
         .whereType<SourceCommonEventCallNode>().toList();
-    if (commonCalls.isNotEmpty && (source.connections.any((connection) =>
+    final composable = _isComposableEvent(event);
+    if (!composable && commonCalls.isNotEmpty && (source.connections.any((connection) =>
         connection.sourceMapId == event.sourceMapId || connection.targetSourceMapId == event.sourceMapId) ||
         event.pages.expand((page) => _sourceControlNodes(page.body)).any((node) =>
           node is SourceWarpNode || node is SourceForcedMoveRouteNode))) {
       gaps.add('sourceCommonEventMapContextUnsupported');
+    }
+    if (_hasAmbiguousCompositionOwner(event)) {
+      gaps.add(commonCalls.isEmpty ? 'sourceMapLocalContextUnsupported'
+          : 'sourceCommonEventMapContextUnsupported');
+    }
+    if (_usesCompositionPrimitives(event) && !_compositionMatchesSource(event)) {
+      gaps.add('sourceCompositionSourceMismatch');
     }
     if (maps[event.sourceMapId]!.version == ProjectVersion.v9 &&
         _fixedRouteBindings(event) != null) {
@@ -4058,12 +4143,12 @@ final class _ProjectionBuilder {
           maps[event.sourceMapId]!.spatialScene != null)) {
       gaps.add('sourceSequenceSpatialUnsupported');
     }
-    if (_isSourceTransition(event) && !_eventExecutionContextQualified(event)) {
+    if (_isSourceTransition(event) && !composable && !_eventExecutionContextQualified(event)) {
       final context = _eventExecutionContext(event);
       gaps.addAll(context?.refusals.isNotEmpty == true
           ? context!.refusals : ['sourceExecutionContextUnknown']);
     }
-    if ((_isSourceTransition(event) || _eventUsesTempSwitch(event) || _directionUnlockGiver(event) != null) && retentionPolicy == null) {
+    if (((_isSourceTransition(event) && !composable) || _eventUsesTempSwitch(event) || _directionUnlockGiver(event) != null) && retentionPolicy == null) {
       gaps.add('sourceMapInstanceRetentionMissing');
     }
     if (!analysis.profile.isQualified) gaps.add('sourceProfileUnqualified');
@@ -4204,6 +4289,7 @@ final class _ProjectionBuilder {
       }
     }
     gaps.addAll(_sourceControlGaps(event));
+    gaps.addAll(_compositionSwitchGaps(event));
     return gaps;
   }
 
@@ -4681,8 +4767,11 @@ final class _ProjectionBuilder {
                       program.victoryContinuation.nodes.contains(node))) {
             gaps.add('sourcePresentationUnsupported');
           }
-        case SourceToneNode():
         case SourceWaitNode():
+          if (!_isComposableEvent(event) && _homeRecoveryProgram(event) == null && !_isSourceTransition(event) && !_qualifiedGymStageContains(event, node)) {
+            gaps.add('sourcePresentationUnsupported');
+          }
+        case SourceToneNode():
           if (_homeRecoveryProgram(event) == null && !_isSourceTransition(event) && !_qualifiedGymStageContains(event, node)) {
             gaps.add('sourcePresentationUnsupported');
           }

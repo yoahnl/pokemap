@@ -14,7 +14,7 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis, SourceEventPr
     Map<int, int> triggers = const {}, bool helperPin = false,
     bool readVariableOne = false,
     List<String?> switchNames = const [null, 'Original door opened', 'Original reward consumed'],
-    List<LiteralFixtureEventCommand>? sibling}) async {
+    List<LiteralFixtureEventCommand>? sibling, List<int>? commonBytes, int? pageSwitch}) async {
   final profile = helperPin ? SourceInterpretationProfile.fromJson({
     ...syntheticSourceInterpretationProfile.toJson(),
     'sections': {...syntheticSourceInterpretationProfile.sections,
@@ -24,8 +24,9 @@ Future<({LiteralTileFixture fixture, SourceEventAnalysis analysis, SourceEventPr
     interpretationProfile: profile, scriptsBytes: syntheticInterpretationArchive,
     includeEventSystem: true, commonEvents: common, commonEventTriggers: triggers,
     switchNames: switchNames,
+    extraFiles: {if (commonBytes != null) 'Data/CommonEvents.rxdata': commonBytes},
     maps: [LiteralFixtureMap(id: 1, events: [
-      LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [LiteralFixtureEventPage(commands: [
+      LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [LiteralFixtureEventPage(globalSwitch: pageSwitch, commands: [
         ...commands,
         if (readVariableOne) ...const [
           LiteralFixtureEventCommand(111, [1, 1, 0, 9, 0]),
@@ -248,6 +249,225 @@ void main() {
       expect(source.projection.scenes, isEmpty);
     });
   }
+
+  test('STD03 unrelated automatic common does not poison a manual call closure', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      common: const {
+        1: [LiteralFixtureEventCommand(101, ['Manual'])],
+        2: [LiteralFixtureEventCommand(101, ['Unrelated automatic'])],
+      }, triggers: const {2: 1});
+    expect(source.analysis.events.single.isQuarantined, isFalse);
+    expect(source.projection.scenes, hasLength(1), reason: jsonEncode(source.projection.semanticEvidence));
+    expect((await _run(source.projection)).shown, ['Manual']);
+  });
+
+  test('STD03 a reachable automatic callee still refuses its transitive caller', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      common: const {
+        1: [LiteralFixtureEventCommand(117, [2])],
+        2: [LiteralFixtureEventCommand(101, ['Automatic'])],
+      }, triggers: const {2: 1});
+    expect(source.analysis.events.single.isQuarantined, isTrue);
+    expect(source.projection.scenes, isEmpty);
+    expect(source.analysis.diagnostics.map((entry) => entry.code),
+      contains('events.common_event_automatic_or_invalid'));
+  });
+
+  test('STD03 automatic sibling variable writers remain in the global census', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      readVariableOne: true, common: const {
+        1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])],
+        2: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 4])],
+      }, triggers: const {2: 1});
+    expect(source.analysis.events.single.isQuarantined, isFalse);
+    expect(source.projection.scenes, isEmpty);
+    expect(jsonEncode(source.projection.semanticEvidence), contains('sourceVariableWriterUnqualified'));
+  });
+
+  test('STD03 common refusals retain the root cause and full dependency path', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      common: const {
+        1: [LiteralFixtureEventCommand(117, [2])],
+        2: [LiteralFixtureEventCommand(355, ['unknown_plugin()'])],
+      });
+    final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
+    final refusals = (row['refusals'] as List).cast<Map>();
+    final root = refusals.singleWhere((entry) => entry['rootCause'] == 'events.script_group_quarantined');
+    expect(root['owner'], 'outOfScope');
+    expect(root['dependencyPath'], [1, 2]);
+    expect(root['dependents'], containsAll([source.analysis.events.single.identity.value, 'commonEvent:1']));
+    expect((root['locator'] as Map)['file'], 'Data/CommonEvents.rxdata');
+    final quarantine = refusals.singleWhere((entry) => entry['rootCause'] == 'sourceQuarantined');
+    expect(quarantine['causedBy'], contains(root['id']));
+  });
+
+  test('STD03 an untranslated standard opcode belongs to the converter', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(125, [0, 0, 50])]);
+    expect(source.projection.scenes, isEmpty);
+    final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
+    final refusals = (row['refusals'] as List).cast<Map>();
+    expect(refusals.singleWhere((entry) => entry['rootCause'] == 'events.unknown_command')['owner'], 'converter');
+    expect(refusals.singleWhere((entry) => entry['rootCause'] == 'sourceCommandUnqualified')['owner'], 'converter');
+  });
+
+  test('STD03 the table distinguishes qualified static helpers from arbitrary Ruby', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(355, ['pbSet(1, 7)'])], helperPin: true);
+    expect(source.projection.scenes, hasLength(1));
+    final table = source.projection.semanticEvidence['compositionContract'] as Map;
+    final entries = (table['entries'] as List).cast<Map>().where((entry) => (entry['source'] as List).contains(355)).toList();
+    expect(entries, contains(predicate<Map>((entry) => entry['disposition'] == 'adaptation' &&
+      entry['native'] == 'typedStaticHelper')));
+    expect(entries.singleWhere((entry) => entry['disposition'] == 'refusal')['constraint'],
+      'arbitraryRubyOutsideQualifiedStaticHelpers');
+  });
+
+  test('STD03 common parameter quota keeps its owner, callee path and source origin', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      common: {
+        1: const [LiteralFixtureEventCommand(117, [2])],
+        2: List.generate(9000, (_) => const LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9])),
+      });
+    expect(source.analysis.events.single.isQuarantined, isTrue);
+    expect(source.projection.scenes, isEmpty);
+    final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
+    expect(source.analysis.diagnostics.any((entry) =>
+      entry.code == 'events.common_event_parameter_budget_exceeded'), isTrue,
+      reason: jsonEncode(source.analysis.diagnostics.map((entry) => entry.toJson()).toList()));
+    final root = (row['refusals'] as List).cast<Map>().singleWhere((entry) =>
+      entry['rootCause'] == 'events.common_event_parameter_budget_exceeded');
+    expect(root['owner'], 'outOfScope');
+    expect(root['dependencyPath'], [1, 2]);
+    expect((root['locator'] as Map)['file'], 'Data/CommonEvents.rxdata');
+    expect((root['locator'] as Map)['commandIndex'], greaterThan(0));
+    expect((root['span'] as Map)['firstCommandIndex'], (root['locator'] as Map)['commandIndex']);
+  });
+
+  test('STD03 automatic common switch writers revoke composed switch consumers', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      switchNames: const [null, 'Start concurrent process', 'Concurrent result'],
+      common: const {
+        1: [LiteralFixtureEventCommand(121, [1, 1, 0]),
+          LiteralFixtureEventCommand(106, [2]),
+          LiteralFixtureEventCommand(111, [0, 2, 0]),
+          LiteralFixtureEventCommand(101, ['Changed concurrently'], indent: 1),
+          LiteralFixtureEventCommand(412, [])],
+        2: [LiteralFixtureEventCommand(121, [2, 2, 0])],
+      }, triggers: const {2: 2});
+    expect(source.analysis.events.single.isQuarantined, isFalse);
+    expect(source.projection.scenes, isEmpty);
+    final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
+    expect((row['refusals'] as List).cast<Map>(), contains(predicate<Map>((entry) =>
+      entry['rootCause'] == 'sourceSwitchWriterUnqualified' && entry['owner'] == 'converter')));
+  });
+
+  test('STD03 malformed callee parameters retain their own source span and dependency path', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])], common: const {
+      1: [LiteralFixtureEventCommand(117, [2])],
+      2: [LiteralFixtureEventCommand(108, ['Before malformed text']),
+        LiteralFixtureEventCommand(101, [LiteralFixtureObject('UntrustedText', {})])],
+    });
+    expect(source.projection.scenes, isEmpty);
+    final root = source.analysis.diagnostics.firstWhere((entry) => entry.code == 'events.invalid_command_parameters');
+    expect(root.toJson()['commonEventPath'], [1, 2]);
+    expect(root.locator.toJson()['file'], 'Data/CommonEvents.rxdata');
+    expect(root.locator.toJson()['commandIndex'], 1);
+  });
+
+  for (final invalid in ['id', 'switchId']) {
+    test('STD03 invalid common $invalid metadata is owned by the source', () async {
+      LiteralFixtureObject record(int id, List<LiteralFixtureEventCommand> commands) =>
+        LiteralFixtureObject('RPG::CommonEvent', {
+          '@id': id == 2 && invalid == 'id' ? 9 : id, '@name': 'Common $id', '@trigger': 0,
+          '@switch_id': id == 2 && invalid == 'switchId' ? -1 : 1,
+          '@list': [for (final command in [...commands, const LiteralFixtureEventCommand(0, [])])
+            LiteralFixtureObject('RPG::EventCommand', {'@code': command.code,
+              '@indent': command.indent, '@parameters': command.parameters})],
+        });
+      final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+        commonBytes: literalFixtureMarshal([null,
+          record(1, const [LiteralFixtureEventCommand(117, [2])]),
+          record(2, const [LiteralFixtureEventCommand(101, ['Text'])]),
+        ]));
+      expect(source.projection.scenes, isEmpty);
+      expect(source.analysis.diagnostics.map((entry) => entry.code), contains('events.invalid_common_event'));
+      final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
+      expect((row['refusals'] as List).cast<Map>(), contains(predicate<Map>((entry) =>
+        entry['rootCause'] == 'events.invalid_common_event' && entry['owner'] == 'sourceInvalid')));
+    });
+  }
+
+  test('STD03 automatic common switch writers revoke page conditions too', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      pageSwitch: 2, switchNames: const [null, 'Automatic gate', 'Page gate'], common: const {
+        1: [LiteralFixtureEventCommand(106, [2]), LiteralFixtureEventCommand(101, ['Manual'])],
+        2: [LiteralFixtureEventCommand(121, [2, 2, 0])],
+      }, triggers: const {2: 2});
+    expect(source.analysis.events.single.isQuarantined, isFalse);
+    expect(source.projection.scenes, isEmpty);
+    expect(jsonEncode(source.projection.semanticEvidence), contains('sourceSwitchWriterUnqualified'));
+  });
+
+  test('STD03 opaque automatic Ruby cannot certify global switch reads', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      switchNames: const [null, 'Automatic gate', 'Consumed result'], common: const {
+        1: [LiteralFixtureEventCommand(121, [1, 1, 0]), LiteralFixtureEventCommand(106, [2]),
+          LiteralFixtureEventCommand(111, [0, 2, 0]),
+          LiteralFixtureEventCommand(101, ['Result'], indent: 1), LiteralFixtureEventCommand(412, [])],
+        2: [LiteralFixtureEventCommand(355, ['unknown_plugin()'])],
+      }, triggers: const {2: 2});
+    expect(source.analysis.events.single.isQuarantined, isFalse);
+    expect(source.projection.scenes, isEmpty);
+    expect(jsonEncode(source.projection.semanticEvidence), contains('sourceSwitchWriterUnqualified'));
+  });
+
+  test('STD03 switch writer qualification closes rejected callers monotonically', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      switchNames: const [null, 'Automatic gate', 'Automatic result', 'Shared result'],
+      common: const {
+        1: [LiteralFixtureEventCommand(121, [3, 3, 0]), LiteralFixtureEventCommand(106, [2]),
+          LiteralFixtureEventCommand(111, [0, 2, 0]),
+          LiteralFixtureEventCommand(101, ['A reads the automatic result'], indent: 1),
+          LiteralFixtureEventCommand(412, [])],
+        2: [LiteralFixtureEventCommand(121, [2, 2, 0])],
+        3: [LiteralFixtureEventCommand(111, [0, 3, 0]),
+          LiteralFixtureEventCommand(101, ['B reads the shared result'], indent: 1),
+          LiteralFixtureEventCommand(412, [])],
+      }, triggers: const {2: 2},
+      sibling: const [LiteralFixtureEventCommand(117, [3])]);
+    expect(source.analysis.events.every((event) => !event.isQuarantined), isTrue);
+    expect(source.projection.scenes, isEmpty,
+      reason: jsonEncode(source.projection.semanticEvidence['events']));
+    final rows = (source.projection.semanticEvidence['events'] as List).cast<Map>();
+    expect(rows, hasLength(2));
+    expect(rows.every((row) => (row['gaps'] as List).contains('sourceSwitchWriterUnqualified')), isTrue);
+    final dependent = rows.singleWhere((row) => (row['locator'] as Map)['eventId'] == 2);
+    final refusal = (dependent['refusals'] as List).cast<Map>().singleWhere((row) =>
+      row['rootCause'] == 'sourceSwitchWriterUnqualified');
+    expect(refusal['writers'], contains(predicate<Map>((writer) =>
+      writer['commonEventId'] == 1 && (writer['writtenSwitchIds'] as List).contains(3))));
+  });
+
+  test('STD03 switch revocation closes shared integer writers too', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
+      switchNames: const [null, 'Automatic gate', 'Automatic result'],
+      common: const {
+        1: [LiteralFixtureEventCommand(122, [1, 1, 0, 0, 9]), LiteralFixtureEventCommand(106, [2]),
+          LiteralFixtureEventCommand(111, [0, 2, 0]),
+          LiteralFixtureEventCommand(101, ['A reads an unsafe switch'], indent: 1),
+          LiteralFixtureEventCommand(412, [])],
+        2: [LiteralFixtureEventCommand(121, [2, 2, 0])],
+        3: [LiteralFixtureEventCommand(111, [1, 1, 0, 9, 0]),
+          LiteralFixtureEventCommand(101, ['B reads the integer result'], indent: 1),
+          LiteralFixtureEventCommand(412, [])],
+      }, triggers: const {2: 2},
+      sibling: const [LiteralFixtureEventCommand(117, [3])]);
+    expect(source.analysis.events.every((event) => !event.isQuarantined), isTrue);
+    expect(source.projection.scenes, isEmpty,
+      reason: jsonEncode(source.projection.semanticEvidence['events']));
+    final dependent = (source.projection.semanticEvidence['events'] as List).cast<Map>()
+      .singleWhere((row) => (row['locator'] as Map)['eventId'] == 2);
+    expect(dependent['gaps'], contains('sourceVariableWriterUnqualified'));
+  });
 
   test('EV05 qualified common integer writer uses native facts', () async {
     final source = await _source(const [LiteralFixtureEventCommand(117, [1])],
