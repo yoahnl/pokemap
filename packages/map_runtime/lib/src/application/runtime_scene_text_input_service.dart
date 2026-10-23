@@ -32,13 +32,12 @@ Future<SceneInteractionResult> _openSceneTextInteraction(
         request: request,
         stage: RuntimeWorldServiceStage.active,
         content: request.interaction,
-        actions: const [
+        actions: [
           RuntimeWorldServiceActionAvailability.enabled(
             RuntimeWorldServiceAction.confirm,
           ),
-          RuntimeWorldServiceActionAvailability.enabled(
-            RuntimeWorldServiceAction.cancel,
-          ),
+          if (request.interaction is! SceneIntegerInteractionRequest || (request.interaction as SceneIntegerInteractionRequest).allowCancel)
+            const RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.cancel),
         ],
       ),
     );

@@ -17,8 +17,8 @@ class PlayerTextInputOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final request = snapshot.content;
-    if (request is! SceneTextInteractionRequest && request is! SceneConfirmationInteractionRequest && request is! SceneChoiceInteractionRequest) {
-      throw StateError('Text input requires a typed text, choice or confirmation request.');
+    if (request is! SceneIntegerInteractionRequest && request is! SceneTextInteractionRequest && request is! SceneConfirmationInteractionRequest && request is! SceneChoiceInteractionRequest) {
+      throw StateError('Scene input requires a typed numeric, text, choice or confirmation request.');
     }
     return PlayerSceneInteractionSurface(
       request: request as SceneInteractionRequest,

@@ -72,6 +72,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     railJourneyProgress: normalizedSaveData.railJourneyProgress,
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
+    sceneRandomState: normalizedSaveData.sceneRandomState,
     narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
     pauseMenuState: normalizedSaveData.pauseMenuState,
     completedBattleRequestIds:
@@ -119,6 +120,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     progression: normalizedProgression,
     railJourneyProgress: normalizedGameState.railJourneyProgress,
     narrativeFactRuntimeState: normalizedGameState.narrativeFactRuntimeState,
+    sceneRandomState: normalizedGameState.sceneRandomState,
     narrativeEventProgress: normalizedGameState.narrativeEventProgress,
     pauseMenuState: normalizedGameState.pauseMenuState,
     completedBattleRequestIds: normalizedGameState.completedBattleRequestIds,

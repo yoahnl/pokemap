@@ -17,6 +17,7 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_
 import 'scene_actor_action_form.dart';
 import 'scene_npc_pose_action_form.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
+import 'scene_integer_authoring_fields.dart';
 
 part 'scene_action_references.dart';
 
@@ -204,10 +205,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
               : data[parameter.id] ?? presentation[parameter.id]
           : _commandId == NarrativeCommandIds.playMusicEffect && interruption is Map
           ? data[parameter.id] ?? interruption[parameter.id]
-          : data[parameter.id];
+          : isIntegerSceneCommand(_commandId) ? integerSceneStoredParameter(data, parameter.id) : data[parameter.id];
       if (value is String || value is num || value is bool) {
         _values[parameter.id] = '$value';
-      } else if (value is List && (parameter.id == 'moveIds' || parameter.id == 'propIds')) {
+      } else if (value is List && (parameter.id == 'moveIds' || parameter.id == 'propIds' || parameter.id == 'factIds')) {
         _values[parameter.id] = jsonEncode(value);
       }
     }
@@ -227,11 +228,22 @@ class _SceneActionFormState extends State<SceneActionForm> {
   }
 
   SceneNodePayload _buildPayload() {
-    final built = buildScenePayloadForNarrativeCommand(
+    var built = buildScenePayloadForNarrativeCommand(
       commandId: _commandId!,
       parameters: _values,
     );
     final original = widget.current;
+    if (built is SceneActionPayload && original is SceneActionPayload) {
+      final fresh = built.interactiveCommand, previous = original.interactiveCommand;
+      if (fresh is SceneInputIntegerToFactInteractiveCommand && previous is SceneInputIntegerToFactInteractiveCommand) {
+        built = SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({...fresh.toJson(),
+          'prompt': {...previous.prompt.toJson(), 'fallbackText': fresh.prompt.fallbackText}}));
+      }
+      if (fresh is SceneTryPayMoneyInteractiveCommand && previous is SceneTryPayMoneyInteractiveCommand && fresh.confirmationPrompt != null && previous.confirmationPrompt != null) {
+        built = SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({...fresh.toJson(),
+          'confirmationPrompt': {...previous.confirmationPrompt!.toJson(), 'fallbackText': fresh.confirmationPrompt!.fallbackText}}));
+      }
+    }
     if (built is SceneActionPayload && original is SceneActionPayload) {
       final avatar = built.consequence;
       final originalAvatar = original.consequence;
@@ -265,6 +277,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
           parameter.required) {
         _values[parameter.id] = '1';
       }
+    }
+    if (isIntegerSceneCommand(commandId)) {
+      _values.addAll({'operandSource': 'literal', 'operandValue': '0', 'operation': commandId == NarrativeCommandIds.adjustMoney ? 'add' : 'assign',
+        'minimum': '0', 'maximum': '999', 'digits': '3', 'randomMinimum': '0', 'randomMaximum': '4',
+        'factIds': '[]', 'zeroDivisorPolicy': 'reject', 'boundaryPolicy': 'clamp', 'cancellationPolicy': 'leaveUnchanged'});
     }
     _giftMovesValid = true;
     if (commandId == NarrativeCommandIds.receivePokemonFromCatalog) {
@@ -318,7 +335,15 @@ class _SceneActionFormState extends State<SceneActionForm> {
       return false;
     }
     for (final parameter in command.parameters) {
+      if (!_warpFieldVisible(parameter)) continue;
       final value = _values[parameter.id];
+      if (parameter.kind == NarrativeCommandParameterKind.integerFacts) {
+        try {
+          final ids = (jsonDecode(value ?? '[]') as List).cast<String>();
+          if (ids.isEmpty || ids.toSet().length != ids.length || ids.any((id) => !_options(parameter.kind).containsKey(id))) return false;
+        } catch (_) { return false; }
+        continue;
+      }
       if (parameter.kind == NarrativeCommandParameterKind.movingProps) continue;
       if (value == null || value.trim().isEmpty) {
         if (parameter.required) return false;
@@ -344,7 +369,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         return false;
       }
     }
-    if (_isGift ||
+    if (_isGift || isIntegerSceneCommand(command.id) ||
         command.id == NarrativeCommandIds.warp ||
         command.id == NarrativeCommandIds.wait ||
         command.id == NarrativeCommandIds.worldTone ||
@@ -371,6 +396,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
     'fadeOutMs', 'transferDelayMs', 'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'};
 
   bool _warpFieldVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (isIntegerSceneCommand(_commandId)) return integerSceneParameterVisible(parameter.id, _values);
     if (_commandId == NarrativeCommandIds.sceneMusic) {
       return switch (parameter.id) {
         'mediaAssetId' || 'volume' => _values['operation'] == 'play',
@@ -449,7 +475,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
 
   Map<String, String> _options(
     NarrativeCommandParameterKind kind,
-  ) => switch (kind) {
+  ) => integerSceneOptions(kind, project: widget.project, commandId: _commandId) ?? switch (kind) {
     NarrativeCommandParameterKind.character => _playerAvatarOptions(),
     NarrativeCommandParameterKind.species => {
       for (final species in _species) species.id: species.name,
@@ -738,6 +764,18 @@ class _SceneActionFormState extends State<SceneActionForm> {
         },
         onChanged: changed,
       );
+    }
+    if (parameter.kind == NarrativeCommandParameterKind.integerFacts) {
+      final selected = <String>{};
+      try { selected.addAll((jsonDecode(_values[parameter.id] ?? '[]') as List).cast<String>()); } catch (_) {}
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Text(parameter.label),
+        for (final entry in _options(parameter.kind).entries)
+          StudioToggleRow(key: ValueKey('scene-integer-fact-${entry.key}'), label: entry.value,
+            value: selected.contains(entry.key), onChanged: (value) {
+              final next = {...selected}; value ? next.add(entry.key) : next.remove(entry.key);
+              changed(jsonEncode(next.toList()));
+            }),
+      ]);
     }
     if (parameter.kind == NarrativeCommandParameterKind.movingProps) {
       final selected = <String>{};

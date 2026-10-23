@@ -1877,6 +1877,8 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
         throw ArgumentError('Map conditions require a map and boolean operator.');
       }
       return;
+    case SceneConditionSourceKind.integerComparison:
+      return;
     case SceneConditionSourceKind.newGameDraft:
       if (source.operator != SceneConditionOperator.isTrue &&
           source.operator != SceneConditionOperator.isFalse &&

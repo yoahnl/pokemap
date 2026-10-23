@@ -19,6 +19,10 @@ abstract final class SpatialGameplayCapabilities {
   static const commandIds = <String>{
     NarrativeCommandIds.setFact,
     NarrativeCommandIds.adjustIntegerFact,
+    NarrativeCommandIds.calculateIntegerFacts,
+    NarrativeCommandIds.adjustMoney,
+    NarrativeCommandIds.tryPayMoney,
+    NarrativeCommandIds.inputIntegerToFact,
     NarrativeCommandIds.markEventConsumed,
     NarrativeCommandIds.completeStoryStep,
     NarrativeCommandIds.giveItem,
@@ -56,6 +60,7 @@ abstract final class SpatialGameplayCapabilities {
     SceneConditionSourceKind.badge,
     SceneConditionSourceKind.inventoryItem,
     SceneConditionSourceKind.fact,
+    SceneConditionSourceKind.integerComparison,
     SceneConditionSourceKind.factLikeStoryFlag,
     SceneConditionSourceKind.storyStepCompletion,
     SceneConditionSourceKind.consumedEvent,

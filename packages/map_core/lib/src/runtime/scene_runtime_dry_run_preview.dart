@@ -337,6 +337,8 @@ _PreviewConsequenceResult _previewConsequence({
   late final String before;
   late final String after;
   switch (consequence) {
+    case SceneCalculateIntegerFactsConsequence():
+    case SceneAdjustMoneyConsequence():
     case SceneAdjustIntegerFactConsequence():
       return const _PreviewConsequenceResult(
         message:

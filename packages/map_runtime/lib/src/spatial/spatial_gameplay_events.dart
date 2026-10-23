@@ -771,6 +771,12 @@ final class SpatialGameplayEvents {
             _sceneStateProjection = projector,
         hostedBattleOutcomes: outcomes,
         callbacks: SceneRuntimeHostCallbacks(
+          presentTextInput: callbacks.presentTextInput == null ? null : (request) async {
+            if (!current()) throw const _SpatialGameplayCancelled();
+            final response = await callbacks.presentTextInput!(request);
+            if (!current()) throw const _SpatialGameplayCancelled();
+            return response;
+          },
           presentPokemonGift: callbacks.presentPokemonGift == null
               ? null
               : (request) async {

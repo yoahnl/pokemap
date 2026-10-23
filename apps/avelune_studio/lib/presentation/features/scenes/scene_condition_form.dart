@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'scene_integer_condition_form.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
@@ -27,6 +28,7 @@ class SceneConditionForm extends StatefulWidget {
 
 class _SceneConditionFormState extends State<SceneConditionForm> {
   static const families = {
+    'integerComparison': 'Comparer des nombres',
     'partyState': 'Équipe Pokémon',
     'fact': 'État du monde',
     'storyStepCompletion': 'Étape d’histoire',
@@ -600,6 +602,14 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (_family == 'integerComparison') {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        StudioSelect(label: 'Source de la condition', value: _family, options: _availableFamilies, onChanged: _selectFamily),
+        const SizedBox(height: 12),
+        SceneIntegerConditionForm(project: widget.project, current: widget.current.conditionSource?.sourceKind == SceneConditionSourceKind.integerComparison ? widget.current.conditionSource : null,
+          onApply: widget.onApply, loadItems: widget.loadItems),
+      ]);
+    }
     final fact = _family == 'fact' ? _fact : null;
     final references = _references;
     final source = _prepared;

@@ -9,6 +9,26 @@ import 'package:map_editor/src/features/narrative/state/scene_consequence_catalo
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('integer command uses guided Fact selection and preserves typed operands', (tester) async {
+    final project = ProjectManifest(name: 'Numbers', maps: [], tilesets: [], facts: [
+      NarrativeFactDefinition(id: 'counter', label: 'Compteur', initialValue: NarrativeValue.integer(4)),
+      NarrativeFactDefinition(id: 'source', label: 'Source', initialValue: NarrativeValue.integer(7)),
+      NarrativeFactDefinition(id: 'flag', label: 'Drapeau'),
+    ]);
+    SceneNodePayload? applied;
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.calculateIntegerFacts,
+      project: project, initialPayload: SceneActionPayload.consequence(SceneCalculateIntegerFactsConsequence(
+        factIds: ['counter'], operation: SceneIntegerOperation.add, operand: SceneIntegerOperand.integerFact('source'),
+        minimum: -99, maximum: 99)), onSubmit: (value) => applied = value);
+    expect(find.byKey(const ValueKey('scene-integer-fact-counter')), findsOneWidget);
+    expect(find.byKey(const ValueKey('scene-integer-fact-flag')), findsNothing);
+    expect(_submitButton(tester).onPressed, isNotNull);
+    _submitButton(tester).onPressed!();
+    final action = applied as SceneActionPayload;
+    expect((action.consequence as SceneCalculateIntegerFactsConsequence).operand, SceneIntegerOperand.integerFact('source'));
+    expect((action.consequence as SceneCalculateIntegerFactsConsequence).factIds, ['counter']);
+  });
+
   testWidgets(
     'scene music legacy builder keeps operations guided and excludes unused fields',
     (tester) async {

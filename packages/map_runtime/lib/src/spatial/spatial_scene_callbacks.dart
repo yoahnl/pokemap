@@ -9,6 +9,7 @@ import '../application/scene_runtime/scene_fact_condition_runtime_resolver.dart'
 import '../application/scene_runtime/scene_trainer_defeated_condition.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/scene_runtime/scene_interactive_pokemon_gift.dart';
+import '../application/scene_runtime/scene_interactive_text_input.dart';
 
 final class SpatialSceneCallbacks
     implements SceneDialogueRuntimeLauncher, SceneBattleRuntimeLauncher {
@@ -21,11 +22,13 @@ final class SpatialSceneCallbacks
     required this.interactive,
     this.playCinematic,
     this.presentPokemonGift,
+    this.presentTextInput,
     this.presentPlayerAvatar,
     this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
   });
 
   final ScenePokemonGiftPresenter? presentPokemonGift;
+  final SceneTextInputPresenter? presentTextInput;
   final Future<void> Function(String?)? presentPlayerAvatar;
   final ScenePartyConditionContext partyConditionContext;
   final ProjectManifest project;
@@ -40,6 +43,7 @@ final class SpatialSceneCallbacks
 
   SceneRuntimeHostCallbacks build() => SceneRuntimeHostCallbacks(
         presentPokemonGift: presentPokemonGift,
+        presentTextInput: presentTextInput,
         presentPlayerAvatar: presentPlayerAvatar,
         evaluateCondition: evaluateCondition,
         showDialogue: (intent) async {
@@ -91,7 +95,7 @@ final class SpatialSceneCallbacks
           ? 'true'
           : 'false';
     }
-    if (source.sourceKind == SceneConditionSourceKind.fact) {
+    if (source.sourceKind == SceneConditionSourceKind.fact || source.sourceKind == SceneConditionSourceKind.integerComparison) {
       return evaluateCanonicalNarrativeFactSceneCondition(
               source: source,
               gameState: state,

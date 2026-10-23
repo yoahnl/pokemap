@@ -1018,6 +1018,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       final source = payload.conditionSource;
       if (source == null) continue;
       switch (source.sourceKind) {
+        case SceneConditionSourceKind.integerComparison:
         case SceneConditionSourceKind.pokedexCaughtCount:
         case SceneConditionSourceKind.playerFacing:
         case SceneConditionSourceKind.playerAtEntityAnchor:
@@ -1228,6 +1229,11 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           final source = conditionSource;
           if (source == null) continue;
           switch (source.sourceKind) {
+            case SceneConditionSourceKind.integerComparison:
+              for (final operand in [source.integerLeft!, source.integerRight!]) {
+                for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
+              }
+              break;
             case SceneConditionSourceKind.pokedexCaughtCount:
               reads.add('pokedex:caught:${source.sourceId}');
               break;
@@ -1262,6 +1268,11 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           }
         case SceneActionPayload(:final consequence):
           switch (consequence) {
+            case SceneCalculateIntegerFactsConsequence(:final factIds, :final operand):
+              for (final id in factIds) { reads.add('fact:$id'); writes.add('fact:$id'); }
+              for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
+            case SceneAdjustMoneyConsequence():
+              reads.add('money'); writes.add('money');
             case SceneAdjustIntegerFactConsequence(:final factId):
               reads.add('fact:$factId');
               writes.add('fact:$factId');
@@ -1490,6 +1501,13 @@ NarrativeSymbolicState _applyAction({
   final consequence = payload.consequence;
   if (consequence != null) {
     switch (consequence) {
+      case SceneCalculateIntegerFactsConsequence(:final factIds):
+        final values = {...next.factValues};
+        for (final id in factIds) { values.remove(id); }
+        next = next.copyWith(indeterminate: true, factValues: values);
+        addIssue(NarrativeSymbolicIssue(code: NarrativeSymbolicIssueCode.unsupportedCommand,
+          verdict: NarrativeSymbolicVerdict.indeterminate, message: 'Le solveur ne simule pas les calculs entiers.',
+          sceneId: scene.id, nodeId: node.id, eventId: eventId, provenance: next.provenance));
       case SceneAdjustIntegerFactConsequence(:final factId):
         final values = {...next.factValues}..remove(factId);
         next = next.copyWith(indeterminate: true, factValues: values);
@@ -1653,7 +1671,8 @@ bool? _sceneConditionValue(
 ) {
   if (source == null) return null;
   switch (source.sourceKind) {
-    case SceneConditionSourceKind.pokedexCaughtCount:
+    case SceneConditionSourceKind.integerComparison:
+        case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.playerAtEntityAnchor:
     case SceneConditionSourceKind.mapEventInstanceBoolean:

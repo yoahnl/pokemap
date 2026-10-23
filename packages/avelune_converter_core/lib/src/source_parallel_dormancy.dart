@@ -349,6 +349,9 @@ void _auditSourceFactWriteBlock(
           };
           if (!allowed) throw const FormatException();
         }
+      case SourceVariableCalculationNode():
+      case SourceIntegerInputNode():
+      case SourceMoneyAdjustmentNode():
       case SourceVariableSetNode():
       case SourceVariableAdjustNode():
         break;

@@ -479,6 +479,11 @@ final class SpatialExplorationGameSessionRuntime
       await _session!.presentPlayerAvatar(id);
       _ensureGameplayActive();
     },
+    presentTextInput: (request) async {
+      final services = _playerServices;
+      if (services == null) throw StateError('The spatial numeric presenter is unavailable.');
+      return services.openSceneTextInteraction(request: request);
+    },
     presentPokemonGift: (request) async {
       final services = _playerServices;
       if (services == null) {

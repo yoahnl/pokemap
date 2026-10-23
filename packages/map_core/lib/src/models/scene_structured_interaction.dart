@@ -1,7 +1,12 @@
 import 'package:characters/characters.dart';
+import 'scene_integer_operand.dart';
+
 import 'package:meta/meta.dart' show immutable;
 
+part 'scene_integer_interaction.dart';
+
 enum SceneInteractionRequestKind {
+  integer,
   message,
   choice,
   text,
@@ -10,6 +15,7 @@ enum SceneInteractionRequestKind {
 }
 
 enum SceneInteractionResultKind {
+  integerSubmitted,
   acknowledged,
   choiceSelected,
   textSubmitted,
@@ -21,6 +27,8 @@ enum SceneInteractionResultKind {
 enum SceneInteractionCancellationReason { user, timeout, superseded, disposed }
 
 enum SceneInteractionValidationIssueCode {
+  integerOutOfRange,
+  cancellationForbidden,
   requestMismatch,
   resultKindMismatch,
   textTooShort,
@@ -303,6 +311,7 @@ abstract base class SceneInteractionRequest {
     );
     final timeout = _readTimeout(json);
     return switch (kind) {
+      SceneInteractionRequestKind.integer => SceneIntegerInteractionRequest.fromJson(json),
       SceneInteractionRequestKind.message => SceneInteractionRequest.message(
         requestId: requestId,
         revision: revision,
@@ -728,9 +737,14 @@ abstract base class SceneInteractionResult {
       json['kind'],
       'kind',
     );
+    if (kind == SceneInteractionResultKind.integerSubmitted) {
+      sceneIntegerFields(json, {'kind', 'requestId', 'revision', 'value'});
+    }
     final requestId = _readRequiredString(json, 'requestId');
     final revision = _readRequiredNonNegativeInt(json, 'revision');
     return switch (kind) {
+      SceneInteractionResultKind.integerSubmitted => SceneIntegerSubmittedInteractionResult(
+        requestId: requestId, revision: revision, value: sceneIntegerInt(json, 'value')),
       SceneInteractionResultKind.acknowledged =>
         SceneInteractionResult.acknowledged(
           requestId: requestId,

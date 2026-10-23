@@ -11,8 +11,13 @@ import 'dialogue_line_feedback.dart';
 import 'scene_warp_presentation.dart';
 import 'scene_pokemon_gift_moves.dart';
 import 'scene_structured_interaction.dart';
+import 'scene_integer_operand.dart';
+
+part 'scene_integer_commands.dart';
 
 enum SceneInteractiveCommandKind {
+  inputIntegerToFact,
+  tryPayMoney,
   inputTextToFact,
   giveItem,
   receivePokemonFromCatalog,
@@ -58,6 +63,15 @@ enum SceneRailJourneyAdvanceEvent {
 @immutable
 abstract base class SceneInteractiveCommand {
   const SceneInteractiveCommand();
+
+  factory SceneInteractiveCommand.inputIntegerToFact({required String factId,
+    required SceneInteractionPrompt prompt, required int digits, required int minimum, required int maximum,
+    int? initialValue, bool allowCancel, SceneIntegerCancellationPolicy cancellationPolicy,
+  }) = SceneInputIntegerToFactInteractiveCommand;
+
+  factory SceneInteractiveCommand.tryPayMoney({required SceneIntegerOperand amount,
+    SceneInteractionPrompt? confirmationPrompt,
+  }) = SceneTryPayMoneyInteractiveCommand;
 
   factory SceneInteractiveCommand.inputTextToFact({
     required String factId,
@@ -202,6 +216,8 @@ abstract base class SceneInteractiveCommand {
       ),
     );
     return switch (kind) {
+      SceneInteractiveCommandKind.inputIntegerToFact => SceneInputIntegerToFactInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.tryPayMoney => SceneTryPayMoneyInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.inputTextToFact =>
         SceneInputTextToFactInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.receivePokemonFromCatalog =>

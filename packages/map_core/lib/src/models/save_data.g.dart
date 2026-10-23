@@ -349,6 +349,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
           readNarrativeFactRuntimeStateJson(json, 'narrativeFactRuntimeState')
               as Map<String, dynamic>,
         ),
+  sceneRandomState: json['sceneRandomState'] == null
+      ? const SceneRandomState.unseeded()
+      : SceneRandomState.fromJson(
+          json['sceneRandomState'] as Map<String, dynamic>,
+        ),
   narrativeEventProgress:
       readNarrativeEventProgressJson(json, 'narrativeEventProgress') == null
       ? const NarrativeEventProgress.empty()
@@ -399,6 +404,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'progression': instance.progression.toJson(),
   'railJourneyProgress': instance.railJourneyProgress.toJson(),
   'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
+  'sceneRandomState': instance.sceneRandomState.toJson(),
   'narrativeEventProgress': narrativeEventProgressToJson(
     instance.narrativeEventProgress,
   ),

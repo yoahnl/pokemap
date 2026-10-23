@@ -11,6 +11,7 @@ import 'scene_cinematic_picker.dart';
 import 'scene_action_builder.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
 import 'scene_party_condition_editor.dart';
+import 'scene_integer_condition_editor.dart';
 import 'scene_dialogue_choice_policy_dialog.dart';
 import 'scene_pre_session_interaction_dialog.dart';
 
@@ -3019,6 +3020,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                     SceneConditionSourceKind.factLikeStoryFlag,
                   ),
                 ),
+                _conditionButton(key: const ValueKey('scene-condition-source-kind-integerComparison'), label: 'Comparer des nombres',
+                  selected: _sourceKind == SceneConditionSourceKind.integerComparison,
+                  onPressed: () => _selectSourceKind(SceneConditionSourceKind.integerComparison)),
                 _conditionButton(
                   key: const ValueKey(
                     'scene-condition-source-kind-storyStepCompletion',
@@ -3043,9 +3047,14 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                 ),
               ],
             ),
+            if (_sourceKind == SceneConditionSourceKind.integerComparison)
+              SceneIntegerConditionEditor(current: (widget.node.payload as SceneConditionPayload).conditionSource,
+                facts: {for (final option in widget.options) if (option.sourceKind == SceneConditionSourceKind.fact && option.valueKind == NarrativeValueKind.integer) option.sourceId: option.label},
+                items: {for (final option in widget.options) if (option.sourceKind == SceneConditionSourceKind.inventoryItem) option.sourceId: option.label},
+                onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source) ?? false),
             if (_sourceKind == SceneConditionSourceKind.partyState)
               ScenePartyConditionEditor(dimension: widget.dimension, current: (widget.node.payload as SceneConditionPayload).conditionSource, loadMoves: widget.loadMoves, onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source) ?? false),
-            if (_sourceKind != SceneConditionSourceKind.partyState) ...[
+            if (_sourceKind != SceneConditionSourceKind.partyState && _sourceKind != SceneConditionSourceKind.integerComparison) ...[
             const SizedBox(height: 8),
             _ConditionButtonRow(
               label: 'Référence',
@@ -3370,6 +3379,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
 
   bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
     return switch (kind) {
+      SceneConditionSourceKind.integerComparison => true,
       SceneConditionSourceKind.newGameDraft => false,
       SceneConditionSourceKind.badge ||
       SceneConditionSourceKind.factLikeStoryFlag ||
@@ -3788,7 +3798,7 @@ String _sceneFactOperatorLabel(NarrativeFactOperator operator) =>
 
 SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
-    SceneConditionSourceKind.storyStepCompletion =>
+    SceneConditionSourceKind.integerComparison || SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionOperator.equals,
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
@@ -3814,6 +3824,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
 
 String? _defaultValueForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
+    SceneConditionSourceKind.integerComparison => null,
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionValues.completed,
     SceneConditionSourceKind.newGameDraft ||

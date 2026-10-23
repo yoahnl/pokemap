@@ -7,6 +7,7 @@ import 'enums.dart';
 import 'dialogue_line_feedback.dart';
 import 'presentation_interaction_outcome.dart';
 import 'scene_consequence.dart';
+import 'scene_integer_operand.dart';
 import 'scene_interactive_command.dart';
 import 'scene_pre_session_interaction.dart';
 
@@ -62,6 +63,7 @@ enum SceneOutcomePolicy {
 
 enum SceneConditionSourceKind {
   newGameDraft,
+  integerComparison,
   fact,
   factLikeStoryFlag,
   storyStepCompletion,
@@ -120,9 +122,22 @@ final class SceneConditionSource {
     this.debugTechnicalLabel,
     this.factOperator,
     this.expectedFactValue,
+    this.integerLeft,
+    this.integerRight,
+    this.integerComparisonOperator,
     this.mapId,
     this.key,
   }) {
+    if (sourceKind == SceneConditionSourceKind.integerComparison) {
+      if (sourceId != 'integerComparison' || operator != SceneConditionOperator.equals ||
+          integerLeft == null || integerRight == null || integerComparisonOperator == null ||
+          integerLeft!.kind == SceneIntegerOperandKind.random || integerRight!.kind == SceneIntegerOperandKind.random ||
+          field != null || value != null || mapId != null || key != null || factOperator != null || expectedFactValue != null) {
+        throw ArgumentError('Integer comparison requires two deterministic operands and a numeric comparator.');
+      }
+    } else if (integerLeft != null || integerRight != null || integerComparisonOperator != null) {
+      throw ArgumentError('Integer operands require an integer comparison condition.');
+    }
     if (sourceKind == SceneConditionSourceKind.trainerDefeated &&
         (sourceId.isEmpty || sourceId.trim() != sourceId ||
          operator == SceneConditionOperator.equals || field != null ||
@@ -242,6 +257,14 @@ final class SceneConditionSource {
     }
   }
 
+  factory SceneConditionSource.integerComparison({required SceneIntegerOperand left,
+    required NarrativeFactOperator comparison, required SceneIntegerOperand right,
+    String? label, String? debugTechnicalLabel,
+  }) => SceneConditionSource(sourceKind: SceneConditionSourceKind.integerComparison,
+    sourceId: 'integerComparison', operator: SceneConditionOperator.equals,
+    integerLeft: left, integerRight: right, integerComparisonOperator: comparison,
+    label: label, debugTechnicalLabel: debugTechnicalLabel);
+
   factory SceneConditionSource.factValue({
     required String factId,
     required NarrativeFactOperator operator,
@@ -262,6 +285,20 @@ final class SceneConditionSource {
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
     final kind = _readEnum(SceneConditionSourceKind.values,
         json['sourceKind'], 'conditionSource.sourceKind');
+    if (kind == SceneConditionSourceKind.integerComparison) {
+      sceneIntegerFields(json, {'sourceKind', 'sourceId', 'operator', 'left', 'right', 'comparison', 'label', 'debugTechnicalLabel'});
+      if (json['sourceId'] != 'integerComparison' || json['operator'] != 'equals' ||
+          json['left'] is! Map<String, dynamic> || json['right'] is! Map<String, dynamic>) {
+        throw const FormatException('Invalid integer comparison condition.');
+      }
+      try {
+        return SceneConditionSource.integerComparison(
+          left: SceneIntegerOperand.fromJson(json['left'] as Map<String, dynamic>),
+          right: SceneIntegerOperand.fromJson(json['right'] as Map<String, dynamic>),
+          comparison: sceneIntegerEnum(NarrativeFactOperator.values, json['comparison']),
+          label: _readOptionalString(json, 'label'), debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+      } on ArgumentError catch (error) { throw FormatException(error.message.toString()); }
+    }
     if (kind == SceneConditionSourceKind.partyState) {
       final id = json['sourceId'];
       final predicate = ScenePartyConditionKind.values
@@ -604,6 +641,9 @@ final class SceneConditionSource {
         'value': value,
         'label': label,
         'debugTechnicalLabel': debugTechnicalLabel,
+        'left': integerLeft?.toJson(),
+        'right': integerRight?.toJson(),
+        'comparison': integerComparisonOperator?.name,
         'factOperator': factOperator?.name,
         'factValueType': expectedFactValue?.kind.wireName,
         'factValue': expectedFactValue?.toJson(),
@@ -618,6 +658,8 @@ final class SceneConditionSource {
   final String? debugTechnicalLabel;
   final NarrativeFactOperator? factOperator;
   final NarrativeValue? expectedFactValue;
+  final SceneIntegerOperand? integerLeft, integerRight;
+  final NarrativeFactOperator? integerComparisonOperator;
   final String? mapId;
   final String? key;
 
@@ -674,6 +716,8 @@ final class SceneConditionSource {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SceneConditionSource &&
+          other.integerLeft == integerLeft && other.integerRight == integerRight &&
+          other.integerComparisonOperator == integerComparisonOperator &&
           other.sourceKind == sourceKind &&
           other.sourceId == sourceId &&
           other.mapId == mapId &&
@@ -698,7 +742,7 @@ final class SceneConditionSource {
         label,
         debugTechnicalLabel,
         factOperator,
-        expectedFactValue,
+        expectedFactValue, integerLeft, integerRight, integerComparisonOperator,
       );
 }
 

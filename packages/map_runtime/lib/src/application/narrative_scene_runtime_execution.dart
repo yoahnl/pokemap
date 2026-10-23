@@ -1,6 +1,7 @@
 import 'scene_runtime/scene_npc_pose_consequence_buffer.dart';
 import 'package:map_core/map_core.dart';
 import 'scene_runtime/scene_interactive_text_input.dart';
+import 'scene_runtime/scene_interactive_integer.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_runtime/scene_interactive_pokemon_gift.dart';
@@ -80,6 +81,27 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       SceneConsequenceRuntimeWriter(
         project: project,
         mapsById: mapsById);
+  final integerEvaluator = SceneIntegerOperations(NarrativeFactRuntimeResolver.fromFacts(project.facts));
+  final numericalDependencies = <SceneIntegerOperand, int>{};
+  SceneRandomState? randomDependency;
+    String? randomSaveId;
+  void checkNumericalDependencies() {
+    if (numericalDependencies.isEmpty && randomDependency == null) return;
+    final base = currentGameState();
+    for (final entry in numericalDependencies.entries) {
+      if (integerEvaluator.read(base, entry.key) != entry.value) throw StateError('A numeric Scene dependency changed before commit.');
+    }
+    if (randomDependency != null && (base.sceneRandomState != randomDependency || base.saveId != randomSaveId)) throw StateError('The Scene random stream changed before commit.');
+  }
+  void captureOperand(SceneIntegerOperand operand) {
+    checkNumericalDependencies();
+    if (operand.kind == SceneIntegerOperandKind.random) {
+      randomDependency ??= currentGameState().sceneRandomState;
+      randomSaveId ??= currentGameState().saveId;
+    } else if (operand.kind != SceneIntegerOperandKind.literal) {
+      numericalDependencies.putIfAbsent(operand, () => integerEvaluator.read(currentGameState(), operand));
+    }
+  }
   final retiredInstanceScopes = <MapInstanceRef>{};
   var presentationRevision = 0;
   ({GameState source, int revision, GameState projected})? presentationCache;
@@ -89,6 +111,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     String? grantOperationId,
     String? railOperationId,
   }) {
+    checkNumericalDependencies();
     final indices = <int>[
       for (var index = 0; index < pendingConsequences.length; index++)
         if (pendingConsequences[index]
@@ -149,6 +172,12 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       callbacks: SceneRuntimeHostCallbacks(
         evaluateCondition: (intent) {
           final source = intent.conditionSource;
+          if (source?.sourceKind == SceneConditionSourceKind.integerComparison) {
+            captureOperand(source!.integerLeft!); captureOperand(source.integerRight!);
+            final projected = projectPending(currentGameState());
+            if (!projected.success) throw StateError(projected.message ?? 'Integer comparison projection failed.');
+            return integerEvaluator.compare(projected.gameState, source) ? 'true' : 'false';
+          }
           if (source?.sourceKind == SceneConditionSourceKind.partyState) {
             final projected = projectPending(currentGameState());
             if (!projected.success) {
@@ -293,6 +322,29 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
               }
 
 
+              if (command is SceneInputIntegerToFactInteractiveCommand || command is SceneTryPayMoneyInteractiveCommand) {
+                final presenter = callbacks.presentTextInput;
+                if (presenter == null) throw StateError('The Scene numeric presenter is unavailable.');
+                if (command is SceneInputIntegerToFactInteractiveCommand) captureOperand(SceneIntegerOperand.integerFact(command.factId));
+                if (command is SceneTryPayMoneyInteractiveCommand) {
+                  captureOperand(command.amount); captureOperand(SceneIntegerOperand.gameRead(SceneIntegerGameRead.money));
+                }
+                GameState projectedState() {
+                  final result = projectPending(currentGameState());
+                  if (!result.success) throw StateError(result.message ?? 'Numeric Scene projection failed.');
+                  return result.gameState;
+                }
+                final result = command is SceneInputIntegerToFactInteractiveCommand
+                  ? await inputSceneIntegerToFact(command: command, operationId: '${request.sceneId}:${request.executionId}:${intent.sourceNodeId}', project: project, readProjectedState: projectedState, present: presenter)
+                  : await tryScenePayMoney(command: command as SceneTryPayMoneyInteractiveCommand, operationId: '${request.sceneId}:${request.executionId}:${intent.sourceNodeId}', project: project, readProjectedState: projectedState, present: presenter);
+                if (result.consequence case final consequence?) {
+                  final validation = projectPending(currentGameState(), additional: consequence);
+                  if (!validation.success) throw StateError(validation.message ?? 'Numeric Scene write failed.');
+                  pendingConsequences.add(consequence); pendingPokemonGrantOperationIds.add(null);
+                  pendingRailProgressionOperationIds.add(null); presentationRevision++;
+                }
+                return result.outputPortId;
+              }
               if (command is SceneInputTextToFactInteractiveCommand) {
                 final presenter = callbacks.presentTextInput;
                 if (presenter == null) throw StateError('The Scene text presenter is unavailable.');
@@ -380,6 +432,13 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
               );
         },
         applyConsequenceWithNodeId: (nodeId, consequence) async {
+          if (consequence is SceneCalculateIntegerFactsConsequence) {
+            for (final id in consequence.factIds) { captureOperand(SceneIntegerOperand.integerFact(id)); }
+            captureOperand(consequence.operand);
+          }
+          if (consequence is SceneAdjustMoneyConsequence) {
+            captureOperand(consequence.amount); captureOperand(SceneIntegerOperand.gameRead(SceneIntegerGameRead.money));
+          }
           final grantOperationId = scenePokemonGrantOperationId(
             sceneId: request.sceneId,
             executionId: request.executionId,
@@ -434,7 +493,12 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       );
     }
 
-    final writeResult = projectPending(currentGameState());
+    final SceneConsequenceRuntimeWriteResult writeResult;
+    try {
+      writeResult = projectPending(currentGameState());
+    } on Object catch (error) {
+      return NarrativeSceneExecutionResult.failed(error);
+    }
     if (!writeResult.success) {
       return NarrativeSceneExecutionResult.failed(
         StateError(

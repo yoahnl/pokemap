@@ -5,6 +5,25 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('numeric modal uses integer keyboard and touch or Enter submission', (tester) async {
+    final results = <SceneInteractionResult>[];
+    final request = SceneIntegerInteractionRequest(requestId: 'number', revision: 1,
+      prompt: _prompt('Combien ?'), digits: 3, minimum: 0, maximum: 999,
+      initialValue: 7, allowCancel: false);
+    await tester.pumpWidget(_app(request: request, results: results));
+    final field = find.byKey(const ValueKey<String>('scene-interaction-integer-field'));
+    expect(tester.widget<TextField>(field).keyboardType, const TextInputType.numberWithOptions(signed: false));
+    expect(find.byKey(const ValueKey<String>('scene-interaction-cancel')), findsNothing);
+    await tester.enterText(field, '42');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    expect(results.single, isA<SceneIntegerSubmittedInteractionResult>().having((result) => result.value, 'value', 42));
+    results.clear();
+    await tester.pumpWidget(_app(request: SceneIntegerInteractionRequest(requestId: 'number', revision: 2,
+      prompt: _prompt('Combien ?'), digits: 3, minimum: 0, maximum: 999, initialValue: 9), results: results));
+    await tester.tap(find.byKey(const ValueKey<String>('scene-interaction-integer-submit')));
+    expect(results.single, isA<SceneIntegerSubmittedInteractionResult>().having((result) => result.value, 'value', 9));
+  });
+
   testWidgets('text proposes a name and keeps edits until a new request',
       (tester) async {
     final results = <SceneInteractionResult>[];

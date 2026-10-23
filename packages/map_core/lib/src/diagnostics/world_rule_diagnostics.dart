@@ -145,6 +145,9 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
           consequence: SceneAdjustIntegerFactConsequence(:final factId),
         ))
           factId,
+    for (final scene in project.scenes)
+      for (final node in scene.graph.nodes)
+        if (node.payload case SceneActionPayload(consequence: SceneCalculateIntegerFactsConsequence(:final factIds))) ...factIds,
   };
   final producibleStoryStepIds = _producibleStoryStepIds(project);
 

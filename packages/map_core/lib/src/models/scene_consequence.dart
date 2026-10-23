@@ -1,14 +1,20 @@
 import 'package:meta/meta.dart' show immutable;
 
 import 'enums.dart';
+import 'scene_integer_operand.dart';
+
 import 'narrative_value.dart';
 import 'project_presentation_profile.dart';
 import 'scene_finish_game_contract.dart';
 import 'scene_pokemon_gift_moves.dart';
 
+part 'scene_integer_consequences.dart';
+
 enum SceneConsequenceKind {
   setFact,
   adjustIntegerFact,
+  calculateIntegerFacts,
+  adjustMoney,
   setMapEventInstanceBoolean,
   markEventConsumed,
   completeStoryStep,
@@ -48,6 +54,17 @@ abstract base class SceneConsequence {
     String? label,
     String? notes,
   }) = SceneSetFactConsequence.typed;
+
+  factory SceneConsequence.calculateIntegerFacts({
+    required List<String> factIds, required SceneIntegerOperation operation,
+    required SceneIntegerOperand operand, required int minimum, required int maximum,
+    SceneZeroDivisorPolicy zeroDivisorPolicy, SceneIntegerBoundaryPolicy boundaryPolicy,
+  }) = SceneCalculateIntegerFactsConsequence;
+
+  factory SceneConsequence.adjustMoney({required SceneMoneyOperation operation,
+    required SceneIntegerOperand amount, required int minimum, required int maximum,
+    int? expectedBalance,
+  }) = SceneAdjustMoneyConsequence;
 
   factory SceneConsequence.adjustIntegerFact({
     required String factId,
@@ -201,6 +218,8 @@ abstract base class SceneConsequence {
     final kind = _readKind(json['kind']);
     return switch (kind) {
       SceneConsequenceKind.setFact => SceneSetFactConsequence.fromJson(json),
+      SceneConsequenceKind.calculateIntegerFacts => SceneCalculateIntegerFactsConsequence.fromJson(json),
+      SceneConsequenceKind.adjustMoney => SceneAdjustMoneyConsequence.fromJson(json),
       SceneConsequenceKind.adjustIntegerFact =>
         SceneAdjustIntegerFactConsequence.fromJson(json),
       SceneConsequenceKind.setMapEventInstanceBoolean =>
@@ -1591,6 +1610,8 @@ SceneConsequenceKind _readKind(Object? value) {
 String _kindToJson(SceneConsequenceKind kind) {
   return switch (kind) {
     SceneConsequenceKind.setFact => 'setFact',
+    SceneConsequenceKind.calculateIntegerFacts => 'calculateIntegerFacts',
+    SceneConsequenceKind.adjustMoney => 'adjustMoney',
     SceneConsequenceKind.adjustIntegerFact => 'adjustIntegerFact',
     SceneConsequenceKind.setMapEventInstanceBoolean => 'setMapEventInstanceBoolean',
     SceneConsequenceKind.markEventConsumed => 'markEventConsumed',

@@ -18,6 +18,7 @@ import '../models/project_manifest.dart';
 import '../models/rail_journey.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_integer_operand.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/cinematic_media_asset.dart';
@@ -2507,6 +2508,11 @@ final class _NarrativeDependencyIndexBuilder {
     String path,
   ) {
     switch (command) {
+      case SceneInputIntegerToFactInteractiveCommand(:final factId):
+        _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, factId), owner: owner,
+          path: '$path.factId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      case SceneTryPayMoneyInteractiveCommand(:final amount):
+        _collectIntegerOperand(owner, amount, '$path.amount');
       case SceneWaitForActorRoutesInteractiveCommand(:final mapId):
         final candidates = maps.where((map) => map.id == mapId).toList();
         final incompatible =
@@ -2701,11 +2707,27 @@ final class _NarrativeDependencyIndexBuilder {
         resolution: unavailable ? NarrativeDependencyResolution.unavailable : null);
   }
 
+  void _collectIntegerOperand(NarrativeDependencyKey owner, SceneIntegerOperand operand, String path) {
+    if (operand.factId case final id?) {
+      _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, id), owner: owner,
+        path: '$path.factId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+    }
+    if (operand.itemId case final id?) {
+      _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, id), owner: owner,
+        path: '$path.itemId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+    }
+  }
+
   void _collectSceneCondition(
     NarrativeDependencyKey owner,
     SceneConditionSource source,
     String path,
   ) {
+    if (source.sourceKind == SceneConditionSourceKind.integerComparison) {
+      _collectIntegerOperand(owner, source.integerLeft!, '$path.left');
+      _collectIntegerOperand(owner, source.integerRight!, '$path.right');
+      return;
+    }
     if (source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
         source.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) {
       _collectMapInstanceOwner(owner, source.mapId!, source.sourceId, path, 'sourceId',
@@ -2794,7 +2816,15 @@ final class _NarrativeDependencyIndexBuilder {
     SceneConsequence consequence,
     String path,
   ) {
-    if (consequence is SceneSetMapEventInstanceBooleanConsequence) {
+    if (consequence is SceneCalculateIntegerFactsConsequence) {
+      for (final (index, id) in consequence.factIds.indexed) {
+        _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, id), owner: owner,
+          path: '$path.factIds[$index]', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      }
+      _collectIntegerOperand(owner, consequence.operand, '$path.operand');
+    } else if (consequence is SceneAdjustMoneyConsequence) {
+      _collectIntegerOperand(owner, consequence.amount, '$path.amount');
+    } else if (consequence is SceneSetMapEventInstanceBooleanConsequence) {
       _collectMapInstanceOwner(owner, consequence.mapId, consequence.eventId, path, 'eventId');
     } else if (consequence is SceneAdjustIntegerFactConsequence) {
       _usage(

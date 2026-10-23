@@ -507,6 +507,16 @@ NarrativeFactOperator _sourceVariableOperator(SourceEventCondition condition) =>
           _ => throw const NativeWriteException('events.variable.operator', 'Unqualified integer comparison'),
         };
 
+SceneIntegerOperand _integerOperand(SourceIntegerOperand operand) => switch (operand.kind) {
+  SourceIntegerOperandKind.literal => SceneIntegerOperand.literal(operand.value!),
+  SourceIntegerOperandKind.variable => SceneIntegerOperand.integerFact(
+    sourceEventIntegerVariableBindingId(operand.factId!)),
+  SourceIntegerOperandKind.partyCount => SceneIntegerOperand.gameRead(SceneIntegerGameRead.partyCount),
+  SourceIntegerOperandKind.money => SceneIntegerOperand.gameRead(SceneIntegerGameRead.money),
+  SourceIntegerOperandKind.random => SceneIntegerOperand.random(
+    minimum: operand.minimum!, maximum: operand.maximum!),
+};
+
 String _sourceCommonProgramHash(SourceEventBlock block) => canonicalHashOf({
   'span': block.span.toJson(),
   'diagnostics': block.diagnostics.map((diagnostic) => diagnostic.toJson()).toList(),
@@ -519,6 +529,9 @@ Object? _sourceCommonProgramNode(SourceEventNode node) => {
     SourceAnnotationNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
+    SourceVariableCalculationNode() => node.toJson(),
+    SourceIntegerInputNode() => node.toJson(),
+    SourceMoneyAdjustmentNode() => node.toJson(),
     SourceExitEventNode() => node.toJson(),
     SourceCommonEventCallNode() => {'commonEventId': node.commonEventId,
       'ownerMapId': node.sourceMapId, 'ownerEventId': node.sourceEventId,
@@ -581,6 +594,9 @@ Object? _sourceControlNode(SourceEventNode node) => {
     SourceActorPoseSequenceNode() => node.toJson(),
     SourceVariableSetNode() => node.toJson(),
     SourceVariableAdjustNode() => node.toJson(),
+    SourceVariableCalculationNode() => node.toJson(),
+    SourceIntegerInputNode() => node.toJson(),
+    SourceMoneyAdjustmentNode() => node.toJson(),
     SourceRelativeFacingRouteNode() => node.toJson(),
         SourcePortraitProgramNode() => node.toJson(),
         SourcePortraitPresentationNode() => node.toJson(),
@@ -652,6 +668,9 @@ Set<String> _sourceControlVariables(SourceEventDefinition event, String namespac
     {bool includeWrites = true}) {
   final ids = <String>{};
   void condition(SourceEventCondition value) {
+    for (final operand in [value.integerLeft, value.integerRight]) {
+      if (operand?.factId case final id?) ids.add(id);
+    }
     if (value.kind == SourceEventConditionKind.variableAtLeast ||
         value.kind == SourceEventConditionKind.variableComparison) {
       if (value.factId case final id?) ids.add(id);
@@ -662,7 +681,16 @@ Set<String> _sourceControlVariables(SourceEventDefinition event, String namespac
     condition(page.condition);
     for (final node in _sourceControlNodes(page.body)) {
       if (includeWrites && node is SourceVariableSetNode) ids.addAll(node.factIds);
-      if (includeWrites && node is SourceVariableAdjustNode) ids.addAll(node.factIds);
+      if (!includeWrites && node is SourceVariableSetNode && node.sourceValue.abs() > 99999999) ids.addAll(node.factIds);
+      if (node is SourceVariableAdjustNode) ids.addAll(node.factIds);
+      if (node is SourceVariableCalculationNode) {
+        ids.addAll(node.factIds);
+        if (node.operand.factId case final id?) ids.add(id);
+      }
+      if (node is SourceIntegerInputNode) ids.add(node.factId);
+      if (node is SourceMoneyAdjustmentNode && node.operand.factId != null) {
+        ids.add(node.operand.factId!);
+      }
       if (node is SourceConditionalNode) condition(node.condition);
       if (node is SourceTextNode) ids.addAll(sourceDialogueVariableIds(node.text).map((id) => 'source:$namespace:variable:$id'));
       if (node is SourceChoiceNode) {
@@ -680,7 +708,8 @@ bool _hasSourceSelfSwitchScript(SourceEventDefinition event) => event.pages.any(
         command.parameters.any((value) => value is String && RegExp(r'\bpbSetSelfSwitch\b').hasMatch(value))));
 
 bool _requiresSourceControlScriptProfile(SourceEventDefinition event) =>
-    _hasSourceSelfSwitchScript(event) || _sourceControlVariables(event, '').isNotEmpty || event.pages.any((page) =>
+    _hasSourceSelfSwitchScript(event) || _usesCompositionPrimitives(event) || _sourceControlVariables(event, '').isNotEmpty ||
+    _sourceIntegerStateReads(event).isNotEmpty || event.pages.any((page) =>
       _sourceControlNodes(page.body).any((node) =>
         node is SourceAnnotationNode || node is SourceExitEventNode || node is SourceCommonEventCallNode));
 
@@ -694,6 +723,30 @@ bool _hasSourceSelfSwitchControl(SourceEventDefinition event) {
 
 bool _hasSourceControl(SourceEventDefinition event) =>
     _requiresSourceControlScriptProfile(event) || _hasSourceSelfSwitchControl(event);
+
+Set<SourceIntegerOperandKind> _sourceIntegerStateReads(SourceEventDefinition event) {
+  final reads = <SourceIntegerOperandKind>{};
+  void operand(SourceIntegerOperand? value) {
+    if (value != null && const {SourceIntegerOperandKind.money, SourceIntegerOperandKind.partyCount}.contains(value.kind)) reads.add(value.kind);
+  }
+  void condition(SourceEventCondition value) {
+    operand(value.integerLeft);
+    operand(value.integerRight);
+    for (final child in value.children) { condition(child); }
+  }
+  for (final page in event.pages) {
+    condition(page.condition);
+    for (final node in _sourceControlNodes(page.body)) {
+      if (node is SourceConditionalNode) condition(node.condition);
+      if (node is SourceVariableCalculationNode) operand(node.operand);
+      if (node is SourceMoneyAdjustmentNode) {
+        reads.add(SourceIntegerOperandKind.money);
+        operand(node.operand);
+      }
+    }
+  }
+  return reads;
+}
 
 Sha256Hash _sourceControlFingerprint(SourceEventDefinition event) => canonicalHashOf({
   'identity': event.identity.value, 'map': event.sourceMapId, 'event': event.sourceEventId,
@@ -3501,6 +3554,8 @@ final class _ProjectionBuilder {
   final _commonSwitchWriterEvidence = <int, Map<String, Object?>>{};
   bool _dynamicVariableWriter = false;
   bool _incompleteVariableRubyCensus = false;
+  bool _unqualifiedMoneyWriter = false;
+  bool _unqualifiedPartyWriter = false;
   late final SourceEventAnalyzer _sourceControlAnalyzer = SourceEventAnalyzer.forProject(
       source, profile: analysis.profile);
   late final SourceEventAnalysis _sourceControlAnalysis = _sourceControlAnalyzer.analyze();
@@ -3509,15 +3564,23 @@ final class _ProjectionBuilder {
     if (_unqualifiedVariableWriters != null) return;
     final exempt = <ConverterId>{};
     final representedArithmetic = <(int, int, int, int)>{};
+    final representedBalances = <(int, int, int, int)>{};
     for (final event in analysis.events) {
       if (maps.containsKey(event.sourceMapId) && _oakParcelBinding(event) == null &&
           _gaps(event, checkCharacterBindings: checkCharacterBindings).isEmpty) {
         for (final page in event.pages) {
-          for (final node in _sourceControlNodes(page.body).whereType<SourceVariableAdjustNode>()) {
+          for (final node in _sourceControlNodes(page.body).where((node) =>
+              node is SourceVariableSetNode || node is SourceVariableAdjustNode ||
+              node is SourceVariableCalculationNode || node is SourceIntegerInputNode)) {
             if (node.span.locator.file == page.locator.file &&
                 node.span.firstCommandIndex == node.span.lastCommandIndex) {
               representedArithmetic.add((event.sourceMapId, event.sourceEventId,
                 page.originalPageIndex, node.span.firstCommandIndex));
+            }
+          }
+          for (final node in _sourceControlNodes(page.body).whereType<SourceMoneyAdjustmentNode>()) {
+            if (node.span.locator.file == page.locator.file && node.span.firstCommandIndex == node.span.lastCommandIndex) {
+              representedBalances.add((event.sourceMapId, event.sourceEventId, page.originalPageIndex, node.span.firstCommandIndex));
             }
           }
         }
@@ -3532,7 +3595,9 @@ final class _ProjectionBuilder {
     }
     final writes = <int>{};
     final sourceReader = SourceEventAnalyzer.forProject(source, profile: analysis.profile);
-    void script(String text) {
+    void script(String text, {bool auditGameState = true}) {
+      if (auditGameState && RegExp(r'\$(?:player|Trainer)\s*\.\s*money\b|\bpb(?:ReceiveMoney|LoseMoney|PayDay)\b').hasMatch(text)) _unqualifiedMoneyWriter = true;
+      if (auditGameState && RegExp(r'\$(?:player|Trainer)\s*\.\s*party\b|\bpb(?:AddPokemon|RemovePokemon|AddToParty|ChooseTradablePokemon)\b').hasMatch(text)) _unqualifiedPartyWriter = true;
       bool closedCall(String suffix) {
         var depth = 0;
         String? quote;
@@ -3691,6 +3756,8 @@ final class _ProjectionBuilder {
         };
       }
       _dynamicVariableWriter |= observation.dynamicVariableWrite;
+      _unqualifiedMoneyWriter |= observation.moneyWrite;
+      _unqualifiedPartyWriter |= observation.partyWrite;
       writes.addAll(observation.variableWrites);
       script(observation.texts.join('\n'));
     }
@@ -3706,18 +3773,25 @@ final class _ProjectionBuilder {
           if (!observed.complete) _incompleteVariableRubyCensus = true;
           for (final (commandIndex, command) in page.commands.indexed) {
             final params = command.parameters;
-            if (command.code == 122) {
+            if (command.code == 125) {
+              if (!representedBalances.contains((map.map.sourceMapId, event.sourceEventId, page.originalPageIndex, commandIndex))) {
+                _unqualifiedMoneyWriter = true;
+              }
+            } else if (command.code == 129) {
+              _unqualifiedPartyWriter = true;
+            } else if (command.code == 122) {
               final validRange = params.length >= 2 && params[0] is int && params[1] is int &&
                   (params[0] as int) >= 1 && (params[1] as int) >= (params[0] as int) &&
                   (params[1] as int) <= 5000;
               if (!validRange) { _dynamicVariableWriter = true; continue; }
-              final isLiteral = params.length == 5 && params[2] == 0 && params[3] == 0 && params[4] is int;
               final isRepresentedArithmetic = representedArithmetic.contains((
                 map.map.sourceMapId, event.sourceEventId, page.originalPageIndex, commandIndex));
-              if (!isLiteral && !isRepresentedArithmetic) {
+              if (!isRepresentedArithmetic) {
                 for (var id = params[0] as int; id <= (params[1] as int); id++) { writes.add(id); }
               }
             } else if (command.code == 103 || command.code == 105) {
+              if (command.code == 103 && representedArithmetic.contains((
+                  map.map.sourceMapId, event.sourceEventId, page.originalPageIndex, commandIndex))) continue;
               final target = params.isEmpty ? null : params.first;
               if (target is! int || target < 0) {
                 _dynamicVariableWriter = true;
@@ -3745,13 +3819,16 @@ final class _ProjectionBuilder {
               if (parameters.length == 1 && parameters.single is String) texts.remove(parameters.single);
             }
           }
-          script(texts.join('\n'));
+          script(texts.join('\n'), auditGameState: !maps.containsKey(expected.sourceMapId) ||
+            _gaps(expected, checkCharacterBindings: checkCharacterBindings).isNotEmpty);
         }
       }
     }
     final arithmeticEvents = _sourceControlAnalysis.events.where((event) =>
       !exempt.contains(event.identity) && event.pages.any((page) =>
-        _sourceControlNodes(page.body).any((node) => node is SourceVariableAdjustNode))).toList();
+        _sourceControlNodes(page.body).any((node) => node is SourceVariableSetNode ||
+          node is SourceVariableAdjustNode || node is SourceVariableCalculationNode ||
+          node is SourceIntegerInputNode || node is SourceMoneyAdjustmentNode))).toList();
     var qualificationChanged = true;
     while (qualificationChanged) {
       _unqualifiedVariableWriters = Set.unmodifiable(writes);
@@ -3764,9 +3841,21 @@ final class _ProjectionBuilder {
           continue;
         }
         for (final page in event.pages) {
-          for (final node in _sourceControlNodes(page.body).whereType<SourceVariableAdjustNode>()) {
-            for (var id = node.firstId; id <= node.lastId; id++) {
+          for (final node in _sourceControlNodes(page.body)) {
+            final targets = switch (node) {
+              SourceVariableSetNode(:final firstId, :final lastId) ||
+              SourceVariableAdjustNode(:final firstId, :final lastId) ||
+              SourceVariableCalculationNode(:final firstId, :final lastId) =>
+                [for (var id = firstId; id <= lastId; id++) id],
+              SourceIntegerInputNode(:final variableId) => [variableId],
+              _ => const <int>[],
+            };
+            for (final id in targets) {
               if (writes.add(id)) qualificationChanged = true;
+            }
+            if (node is SourceMoneyAdjustmentNode && !_unqualifiedMoneyWriter) {
+              _unqualifiedMoneyWriter = true;
+              qualificationChanged = true;
             }
           }
         }
@@ -3813,6 +3902,10 @@ final class _ProjectionBuilder {
           ? 'sourceSelfSwitchSourceMismatch' : 'sourceNumericControlSourceMismatch'};
     }
     if (_unqualifiedVariableWriters == null) return const {};
+    final gameReads = _sourceIntegerStateReads(event);
+    if (gameReads.isNotEmpty && _incompleteVariableRubyCensus) return {'sourceIntegerGameReadCensusIncomplete'};
+    if (gameReads.contains(SourceIntegerOperandKind.money) && _unqualifiedMoneyWriter) return {'sourceMoneyWriterUnqualified'};
+    if (gameReads.contains(SourceIntegerOperandKind.partyCount) && _unqualifiedPartyWriter) return {'sourcePartyWriterUnqualified'};
     final variables = _sourceControlVariables(event, source.snapshot.logicalProjectNamespace.value,
         includeWrites: false);
     if (variables.isNotEmpty && _incompleteVariableRubyCensus) {
@@ -4532,6 +4625,13 @@ final class _ProjectionBuilder {
           gaps.add('sourceTextVariableUsedAsInteger');
         }
         break;
+      case SourceEventConditionKind.integerComparison:
+        if (!condition.isQualified) gaps.add('sourceConditionUnqualified');
+        for (final operand in [condition.integerLeft, condition.integerRight]) {
+          if (textVariablePrograms.containsKey(operand?.variableId)) {
+            gaps.add('sourceTextVariableUsedAsInteger');
+          }
+        }
       case SourceEventConditionKind.tempSwitch:
         break;
       case SourceEventConditionKind.playerOnEvent:
@@ -4587,6 +4687,26 @@ final class _ProjectionBuilder {
         case SourceVariableSetNode(:final factIds):
         case SourceVariableAdjustNode(:final factIds):
           if (factIds.any(_isTextVariable)) gaps.add('sourceTextVariableUsedAsInteger');
+        case SourceVariableCalculationNode():
+          if (node.factIds.length > 1024) gaps.add('sourceIntegerTargetBudgetExceeded');
+          if (node.factIds.any(_isTextVariable) ||
+              (node.operand.factId != null && _isTextVariable(node.operand.factId!))) {
+            gaps.add('sourceTextVariableUsedAsInteger');
+          }
+          if (!node.operand.isQualified || node.profileHash != analysis.profile.canonicalHash) {
+            gaps.add('sourceIntegerOperationUnqualified');
+          }
+        case SourceIntegerInputNode():
+          if (_isTextVariable(node.factId)) gaps.add('sourceTextVariableUsedAsInteger');
+          if (node.profileHash != analysis.profile.canonicalHash) gaps.add('sourceIntegerOperationUnqualified');
+        case SourceMoneyAdjustmentNode():
+          if (node.operand.factId != null && _isTextVariable(node.operand.factId!)) {
+            gaps.add('sourceTextVariableUsedAsInteger');
+          }
+          if (!node.operand.isQualified || node.profileHash != analysis.profile.canonicalHash ||
+              node.maximum != sourceEventMoneyMaximum(source)) {
+            gaps.add('sourceMoneyOperationUnqualified');
+          }
         case SourceAnnotationNode():
         case SourceExitEventNode():
           break;
@@ -4911,6 +5031,9 @@ final class _ProjectionBuilder {
 
   void _collectFacts(SourceEventCondition condition, Set<String> ids) {
     if (condition.factId != null) ids.add(condition.factId!);
+    for (final operand in [condition.integerLeft, condition.integerRight]) {
+      if (operand?.factId case final id?) ids.add(id);
+    }
     for (final child in condition.children) {
       _collectFacts(child, ids);
     }
@@ -4931,6 +5054,13 @@ final class _ProjectionBuilder {
         case SourceVariableAdjustNode(:final factIds):
         case SourceSwitchNode(:final factIds):
           ids.addAll(factIds);
+        case SourceVariableCalculationNode():
+          ids.addAll(node.factIds);
+          if (node.operand.factId case final id?) ids.add(id);
+        case SourceIntegerInputNode():
+          ids.add(node.factId);
+        case SourceMoneyAdjustmentNode():
+          if (node.operand.factId case final id?) ids.add(id);
         case SourceSelfSwitchNode(:final factId):
           ids.add(factId);
         case SourceCenterServiceProgramNode():
@@ -5964,7 +6094,16 @@ final class _SceneBuilder {
             final action = _node(SceneActionPayload.consequence(SceneConsequence.setFactValue(
               factId: sourceEventIntegerVariableBindingId(id), value: NarrativeValue.integer(value))));
             _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
-            next = action;
+            if (node.sourceValue != value && node.preserveEqual) {
+              final guard = _node(SceneConditionPayload(conditionSource: SceneConditionSource.factValue(
+                factId: sourceEventIntegerVariableBindingId(id), operator: NarrativeFactOperator.equals,
+                expectedValue: NarrativeValue.integer(node.sourceValue))));
+              _edge(guard, 'true', next, SceneEdgeKind.conditionTrue);
+              _edge(guard, 'false', action, SceneEdgeKind.conditionFalse);
+              next = guard;
+            } else {
+              next = action;
+            }
           }
         case SourceVariableAdjustNode(:final factIds, :final delta, :final subtract):
           for (final id in factIds.reversed) {
@@ -5981,6 +6120,30 @@ final class _SceneBuilder {
             _edge(guard, 'false', next, SceneEdgeKind.conditionFalse);
             next = guard;
           }
+        case SourceVariableCalculationNode():
+          final action = _node(SceneActionPayload.consequence(SceneConsequence.calculateIntegerFacts(
+            factIds: node.factIds.map(sourceEventIntegerVariableBindingId).toList(),
+            operation: SceneIntegerOperation.values[node.operation], operand: _integerOperand(node.operand),
+            minimum: -99999999, maximum: 99999999,
+            boundaryPolicy: SceneIntegerBoundaryPolicy.preserveSaturated,
+            zeroDivisorPolicy: SceneZeroDivisorPolicy.keepValueForZeroOrOne)));
+          _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+          next = action;
+        case SourceIntegerInputNode():
+          final action = _node(SceneActionPayload.interactive(SceneInteractiveCommand.inputIntegerToFact(
+            factId: sourceEventIntegerVariableBindingId(node.factId), prompt: SceneInteractionPrompt(
+              localizationKey: 'source.numberInput.prompt', fallbackText: 'Choisissez un nombre.'),
+            digits: node.digits, minimum: 0, maximum: node.maximum, allowCancel: true,
+            cancellationPolicy: SceneIntegerCancellationPolicy.restoreInitialAndComplete)));
+          _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+          _edge(action, 'cancelled', next, SceneEdgeKind.actionCompleted);
+          next = action;
+        case SourceMoneyAdjustmentNode():
+          final action = _node(SceneActionPayload.consequence(SceneConsequence.adjustMoney(
+            operation: node.subtract ? SceneMoneyOperation.subtract : SceneMoneyOperation.add,
+            amount: _integerOperand(node.operand), minimum: 0, maximum: node.maximum)));
+          _edge(action, 'completed', next, SceneEdgeKind.actionCompleted);
+          next = action;
         case SourceMoveRouteBarrierNode():
           next = _interactive(SceneInteractiveCommand.waitForActorRoutes(
             mapId: projection.maps[mapScopes[node]!.single]!.id), next);
@@ -6489,6 +6652,14 @@ final class _SceneBuilder {
           sourceId: binding.definition.id,
           operator: condition.expectedValue ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
           field: 'minimumQuantity', value: '1')));
+      _edge(id, 'true', whenTrue, SceneEdgeKind.conditionTrue);
+      _edge(id, 'false', whenFalse, SceneEdgeKind.conditionFalse);
+      return id;
+    }
+    if (condition.kind == SourceEventConditionKind.integerComparison) {
+      final id = _node(SceneConditionPayload(conditionSource: SceneConditionSource.integerComparison(
+        left: _integerOperand(condition.integerLeft!), comparison: _sourceVariableOperator(condition),
+        right: _integerOperand(condition.integerRight!))));
       _edge(id, 'true', whenTrue, SceneEdgeKind.conditionTrue);
       _edge(id, 'false', whenFalse, SceneEdgeKind.conditionFalse);
       return id;

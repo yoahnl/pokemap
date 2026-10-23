@@ -4,6 +4,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import 'scene_interactive_pokemon_gift.dart';
 import 'scene_interactive_text_input.dart';
+import 'scene_interactive_integer.dart';
 
 import 'scene_consequence_runtime_writer.dart';
 import 'scene_consequence_runtime_write_result.dart';
@@ -94,7 +95,42 @@ final class SceneEventRuntimeHook {
         );
     var validationState = currentGameState?.call() ?? gameState;
     SceneConsequenceRuntimeWriteResult? rejectedConsequenceWrite;
+    final integerEvaluator = SceneIntegerOperations(
+      NarrativeFactRuntimeResolver.fromFacts(project.facts),
+    );
+    final numericalDependencies = <SceneIntegerOperand, int>{};
+    SceneRandomState? randomDependency;
+    String? randomSaveId;
+    GameState readBase() =>
+        currentGameState?.call() ??
+        gameState ??
+        (throw StateError('Numeric Scene requires a GameState.'));
+    void checkNumericalDependencies() {
+      if (numericalDependencies.isEmpty && randomDependency == null) return;
+      final base = readBase();
+      for (final entry in numericalDependencies.entries) {
+        if (integerEvaluator.read(base, entry.key) != entry.value)
+          throw StateError('A numeric Scene dependency changed before commit.');
+      }
+      if (randomDependency != null && (base.sceneRandomState != randomDependency || base.saveId != randomSaveId))
+        throw StateError('The Scene random stream changed before commit.');
+    }
+
+    void captureOperand(SceneIntegerOperand operand) {
+      checkNumericalDependencies();
+      if (operand.kind == SceneIntegerOperandKind.random) {
+        randomDependency ??= readBase().sceneRandomState;
+        randomSaveId ??= readBase().saveId;
+      } else if (operand.kind != SceneIntegerOperandKind.literal) {
+        numericalDependencies.putIfAbsent(
+          operand,
+          () => integerEvaluator.read(readBase(), operand),
+        );
+      }
+    }
+
     GameState projectedState() {
+      checkNumericalDependencies();
       final base = currentGameState?.call() ?? gameState;
       if (base == null) {
         throw StateError('The Scene requires a GameState for its item gift.');
@@ -115,6 +151,13 @@ final class SceneEventRuntimeHook {
     final transactionalCallbacks = SceneRuntimeHostCallbacks(
       evaluateCondition: (intent) {
         final source = intent.conditionSource;
+        if (source?.sourceKind == SceneConditionSourceKind.integerComparison) {
+          captureOperand(source!.integerLeft!);
+          captureOperand(source.integerRight!);
+          return integerEvaluator.compare(projectedState(), source)
+              ? 'true'
+              : 'false';
+        }
         if (source?.sourceKind == SceneConditionSourceKind.partyState) {
           return evaluateScenePartyCondition(
             source: source!,
@@ -167,6 +210,46 @@ final class SceneEventRuntimeHook {
       requestStructuredInteraction: callbacks.requestStructuredInteraction,
       executeInteractiveCommand: (intent) async {
         final command = intent.interactiveCommand;
+        if (command is SceneInputIntegerToFactInteractiveCommand ||
+            command is SceneTryPayMoneyInteractiveCommand) {
+          final presenter = callbacks.presentTextInput;
+          if (presenter == null)
+            throw StateError('The Scene numeric presenter is unavailable.');
+          if (command is SceneInputIntegerToFactInteractiveCommand)
+            captureOperand(SceneIntegerOperand.integerFact(command.factId));
+          if (command is SceneTryPayMoneyInteractiveCommand) {
+            captureOperand(command.amount);
+            captureOperand(
+              SceneIntegerOperand.gameRead(SceneIntegerGameRead.money),
+            );
+          }
+          final result = command is SceneInputIntegerToFactInteractiveCommand
+              ? await inputSceneIntegerToFact(
+                  command: command,
+                  operationId: '$sceneId:$executionId:${intent.sourceNodeId}',
+                  project: project,
+                  readProjectedState: projectedState,
+                  present: presenter,
+                )
+              : await tryScenePayMoney(
+                  command: command as SceneTryPayMoneyInteractiveCommand,
+                  operationId: '$sceneId:$executionId:${intent.sourceNodeId}',
+                  project: project,
+                  readProjectedState: projectedState,
+                  present: presenter,
+                );
+          if (result.consequence case final consequence?) {
+            final validation = writer.applyAll(projectedState(), [consequence]);
+            if (!validation.success)
+              throw StateError(
+                validation.message ?? 'Numeric Scene write failed.',
+              );
+            pendingConsequences.add(consequence);
+            pendingPokemonGrantOperationIds.add(null);
+            pendingRailProgressionOperationIds.add(null);
+          }
+          return result.outputPortId;
+        }
         if (command is SceneInputTextToFactInteractiveCommand) {
           final presenter = callbacks.presentTextInput;
           if (presenter == null) throw StateError('The Scene text presenter is unavailable.');
@@ -241,7 +324,8 @@ final class SceneEventRuntimeHook {
             scope: command is SceneActorRouteInteractiveCommand ? writer.mapInstanceScopes[command.target.mapId] : null,
             before: before, after: (currentGameState?.call() ?? gameState)?.mapInstanceWorldState,
             consequences: pendingConsequences, pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
-            railProgressionOperationIds: pendingRailProgressionOperationIds);
+            railProgressionOperationIds: pendingRailProgressionOperationIds,
+          );
           return port;
         }
         final result = executeSceneItemGift(
@@ -270,7 +354,8 @@ final class SceneEventRuntimeHook {
       final executionResult = await SceneRuntimeExecutor(
         callbacks: transactionalCallbacks.toExecutionCallbacks(
           applyConsequence: (consequence) {
-            throw UnsupportedError('Scene node id is required for consequences.');
+            throw UnsupportedError('Scene node id is required for consequences.',
+            );
           },
           applyConsequenceWithNodeId: (nodeId, consequence) async {
             final grantOperationId = scenePokemonGrantOperationId(
@@ -304,9 +389,22 @@ final class SceneEventRuntimeHook {
             }
             if (consequence is SceneSetPlayerAvatarConsequence) {
               final present = callbacks.presentPlayerAvatar;
-              if (present == null) throw StateError('The player avatar presentation port is unavailable.');
+              if (present == null) throw StateError('The player avatar presentation port is unavailable.',
+                );
               avatarPresented = true;
               await present(consequence.characterId);
+            }
+            if (consequence is SceneCalculateIntegerFactsConsequence) {
+              for (final id in consequence.factIds) {
+                captureOperand(SceneIntegerOperand.integerFact(id));
+              }
+              captureOperand(consequence.operand);
+            }
+            if (consequence is SceneAdjustMoneyConsequence) {
+              captureOperand(consequence.amount);
+              captureOperand(
+                SceneIntegerOperand.gameRead(SceneIntegerGameRead.money),
+              );
             }
             pendingConsequences.add(consequence);
             pendingPokemonGrantOperationIds.add(grantOperationId);
@@ -318,6 +416,13 @@ final class SceneEventRuntimeHook {
       ).execute(planResult.plan!);
 
       if (executionResult.status == SceneRuntimeExecutionStatus.completed) {
+        try {
+          checkNumericalDependencies();
+        } on Object catch (error) {
+          return SceneEventRuntimeHookResult.failed(
+            errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
+            sceneId: sceneId, message: error.toString(), executionResult: executionResult);
+        }
         if (pendingConsequences.isEmpty) {
           return SceneEventRuntimeHookResult.completed(
             sceneId: sceneId,
@@ -389,7 +494,8 @@ final class SceneEventRuntimeHook {
       );
     } finally {
       if (avatarPresented && !completed) {
-        await callbacks.presentPlayerAvatar!((currentGameState?.call() ?? gameState)?.trainerProfile.avatarCharacterId);
+        await callbacks.presentPlayerAvatar!((currentGameState?.call() ?? gameState)?.trainerProfile.avatarCharacterId,
+        );
       }
     }
   }

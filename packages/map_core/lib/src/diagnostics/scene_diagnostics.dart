@@ -14,6 +14,7 @@ import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/project_model3d.dart';
 import '../models/narrative_value.dart';
+import '../models/scene_integer_operand.dart';
 import '../operations/scene_actor_reference.dart';
 import '../operations/scene_player_avatar.dart';
 import '../operations/map_healing_display.dart';
@@ -740,6 +741,9 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
         if (source == null) {
           continue;
         }
+        if (source.sourceKind == SceneConditionSourceKind.integerComparison) {
+          _diagnoseIntegerReferences(scene, node, project, {}, [source.integerLeft!, source.integerRight!], diagnostics, availableItemIds);
+        }
         if (source.sourceKind == SceneConditionSourceKind.inventoryItem) {
           _diagnoseItemReference(
             scene,
@@ -986,6 +990,9 @@ void _diagnoseConsequenceShape(
   List<SceneDiagnostic> diagnostics,
 ) {
   switch (consequence) {
+    case SceneCalculateIntegerFactsConsequence():
+    case SceneAdjustMoneyConsequence():
+      break;
     case SceneAdjustIntegerFactConsequence():
       break;
     case SceneSetMapEventInstanceBooleanConsequence():
@@ -1286,6 +1293,16 @@ void _diagnoseActionConsequenceAgainstProject(
 }) {
   final interactiveCommand = payload.interactiveCommand;
   final catalogConsequence = payload.consequence;
+  final integerIds = <String>{
+    if (interactiveCommand is SceneInputIntegerToFactInteractiveCommand) interactiveCommand.factId,
+    if (catalogConsequence is SceneCalculateIntegerFactsConsequence) ...catalogConsequence.factIds,
+  };
+  final integerOperands = <SceneIntegerOperand>[
+    if (catalogConsequence is SceneCalculateIntegerFactsConsequence) catalogConsequence.operand,
+    if (catalogConsequence is SceneAdjustMoneyConsequence) catalogConsequence.amount,
+    if (interactiveCommand is SceneTryPayMoneyInteractiveCommand) interactiveCommand.amount,
+  ];
+  _diagnoseIntegerReferences(scene, node, project, integerIds, integerOperands, diagnostics, availableItemIds);
   if (interactiveCommand is SceneInputTextToFactInteractiveCommand) {
     final matches = project.facts.where((fact) => fact.id == interactiveCommand.factId).toList();
     if (matches.length != 1 || matches.single.valueKind != NarrativeValueKind.string) {
@@ -2292,6 +2309,7 @@ void _diagnoseConditionNode(
   }
 
   final source = payload.conditionSource;
+
   if (source == null) {
     diagnostics.add(
       SceneDiagnostic(
@@ -2582,6 +2600,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.storyStepCompletion ||
     SceneConditionSourceKind.inventoryItem ||
     SceneConditionSourceKind.badge ||
+    SceneConditionSourceKind.integerComparison ||
     SceneConditionSourceKind.partyState ||
     SceneConditionSourceKind.trainerDefeated ||
     SceneConditionSourceKind.consumedEvent => true,
@@ -2595,6 +2614,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.integerComparison => source.integerLeft != null && source.integerRight != null && source.integerComparisonOperator != null,
     SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.playerFacing ||
     SceneConditionSourceKind.playerAtEntityAnchor ||
@@ -2649,4 +2669,25 @@ bool _nativeEntityReferenceValid(String mapId, String entityId, {
   final pos = entities.single.pos;
   return map.spatialScene == null && pos.x >= 0 && pos.y >= 0 &&
       pos.x < map.size.width && pos.y < map.size.height;
+}
+
+void _diagnoseIntegerReferences(SceneAsset scene, SceneNode node, ProjectManifest project,
+  Set<String> targets, List<SceneIntegerOperand> operands, List<SceneDiagnostic> diagnostics, Set<String>? itemIds) {
+  final ids = {...targets, for (final operand in operands) ...operand.referencedFactIds};
+  for (final id in ids) {
+    final matches = project.facts.where((fact) => fact.id == id).toList();
+    if (matches.length != 1 || matches.single.valueKind != NarrativeValueKind.integer) {
+      diagnostics.add(SceneDiagnostic(code: matches.length != 1 ? SceneDiagnosticCode.consequenceUnknownFact : SceneDiagnosticCode.consequenceFactTypeMismatch,
+        severity: SceneDiagnosticSeverity.error, message: 'Le calcul doit référencer un Fact entier unique existant.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un Fact entier du projet.'));
+    }
+  }
+  for (final operand in operands) {
+    if (operand.itemId case final itemId?) {
+      _diagnoseItemReference(scene, node, itemId: itemId, availableItemIds: itemIds,
+        unavailableCode: SceneDiagnosticCode.commandItemCatalogUnavailable,
+        unknownCode: SceneDiagnosticCode.commandUnknownItem, diagnostics: diagnostics);
+    }
+  }
 }

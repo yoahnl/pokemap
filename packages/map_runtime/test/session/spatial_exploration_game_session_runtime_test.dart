@@ -278,6 +278,68 @@ void main() {
     expect(runtime.gameStateSnapshot.appliedPokemonGrantOperationIds, hasLength(1));
   });
 
+  for (final disposeModal in [false, true]) {
+    test('spatial production host numeric modal ${disposeModal ? 'disposal rolls back RNG' : 'commits typed result and RNG'}', () async {
+      await runtime.dispose();
+      final checkpoints = <GameSessionCheckpointCommit>[];
+      bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(
+        facts: [NarrativeFactDefinition(id: 'number', label: 'Nombre', initialValue: NarrativeValue.integer(0))],
+        eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+          records: [spatialEvent(NarrativeEventSourceRef.mapEnter('field'), 'number-input')], legacyClaims: const []),
+        scenes: [SceneAsset(id: 'number-input', name: 'Nombre', graph: SceneGraph(startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'random', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(
+            SceneConsequence.calculateIntegerFacts(factIds: ['number'], operation: SceneIntegerOperation.assign,
+              operand: SceneIntegerOperand.random(minimum: 1, maximum: 4), minimum: 0, maximum: 999))),
+          SceneNode(id: 'input', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(
+            SceneInteractiveCommand.inputIntegerToFact(factId: 'number', prompt: SceneInteractionPrompt(localizationKey: 'number'),
+              digits: 3, minimum: 0, maximum: 999, cancellationPolicy: SceneIntegerCancellationPolicy.restoreInitialAndComplete))),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ], edges: [
+          SceneEdge(id: 'enter', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'random', kind: SceneEdgeKind.defaultFlow),
+          SceneEdge(id: 'random-input', fromNodeId: 'random', fromPortId: 'completed', toNodeId: 'input', kind: SceneEdgeKind.actionCompleted),
+          for (final port in ['completed', 'cancelled']) SceneEdge(id: port, fromNodeId: 'input', fromPortId: port, toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+        ]))],
+      ));
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        commitCheckpoint: (value) async => checkpoints.add(value),
+        mountSession: (_) async => mounts++, unmountSession: (_) async => unmounts++);
+      final modal = runtime.worldServiceSnapshots.firstWhere((value) => value?.content is SceneIntegerInteractionRequest)
+        .timeout(const Duration(seconds: 5));
+      await runtime.load((_) {});
+      final snapshot = (await Future.any([
+        modal,
+        runtime.gameplayReady.then<RuntimeWorldServiceSnapshot?>((_) => throw StateError(
+          'Numeric scene finished before opening its modal: ${runtime.session?.interactionError.value}')),
+      ]))!;
+      final request = snapshot.content! as SceneIntegerInteractionRequest;
+      expect(request.initialValue, inInclusiveRange(1, 4));
+      expect(runtime.gameStateSnapshot.sceneRandomState, const SceneRandomState.unseeded());
+      expect(runtime.gameStateSnapshot.narrativeFactRuntimeState.valuesByFactId, isEmpty);
+      if (disposeModal) {
+        await runtime.dispose();
+        await runtime.gameplayReady;
+        expect(checkpoints, isEmpty);
+        expect(runtime.session, isNull);
+        expect(runtime.worldServiceSnapshot, isNull);
+      } else {
+        final response = await runtime.dispatchWorldService(RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.confirm, snapshotRevision: snapshot.revision,
+          interactionResult: SceneIntegerSubmittedInteractionResult(requestId: request.requestId, revision: request.revision, value: 23)));
+        expect(response.status, RuntimeWorldServiceCommandStatus.accepted);
+        await runtime.gameplayReady;
+        expect(runtime.gameStateSnapshot.narrativeFactRuntimeState.valueFor('number'), NarrativeValue.integer(23));
+        expect(runtime.gameStateSnapshot.sceneRandomState, isNot(const SceneRandomState.unseeded()));
+        final checkpoint = (await runtime.captureCheckpoint())!;
+        final saved = gameStateFromStrictSaveJson(Map<String, dynamic>.from(checkpoint.state));
+        expect(saved.narrativeFactRuntimeState, runtime.gameStateSnapshot.narrativeFactRuntimeState);
+        expect(saved.sceneRandomState, runtime.gameStateSnapshot.sceneRandomState);
+      }
+    });
+  }
+
   test('native map enter commits its Event V2 scene exactly once', () async {
     bundle = bundle.copyWith(
         manifest: bundle.manifest.copyWith(

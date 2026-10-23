@@ -156,6 +156,7 @@ final class ScenePreSessionInteractionSpec {
     required String requestId,
     required int revision,
   }) => switch (kind) {
+    SceneInteractionRequestKind.integer => throw UnsupportedError('Integer input requires a world Scene transaction.'),
     SceneInteractionRequestKind.message => SceneInteractionRequest.message(
       requestId: requestId,
       revision: revision,
@@ -196,6 +197,7 @@ final class ScenePreSessionInteractionSpec {
       'confirmed',
       'declined',
     ],
+    SceneInteractionRequestKind.integer ||
     SceneInteractionRequestKind.message ||
     SceneInteractionRequestKind.text ||
     SceneInteractionRequestKind.selection => const <String>['completed'],
@@ -213,6 +215,7 @@ final class ScenePreSessionInteractionSpec {
   };
 
   void _validate() {
+    if (kind == SceneInteractionRequestKind.integer) throw ArgumentError('Integer input requires a world Scene transaction.');
     final expectsOptions =
         kind == SceneInteractionRequestKind.choice ||
         kind == SceneInteractionRequestKind.selection;

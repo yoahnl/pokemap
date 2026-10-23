@@ -131,7 +131,7 @@ String _actionCapability(SceneNode node) {
       SceneExecutionCapabilityIds.inputMessage,
     SceneInteractionRequestKind.choice =>
       SceneExecutionCapabilityIds.inputChoice,
-    SceneInteractionRequestKind.text => SceneExecutionCapabilityIds.inputText,
+    SceneInteractionRequestKind.integer || SceneInteractionRequestKind.text => SceneExecutionCapabilityIds.inputText,
     SceneInteractionRequestKind.confirmation =>
       SceneExecutionCapabilityIds.inputConfirmation,
     SceneInteractionRequestKind.selection =>

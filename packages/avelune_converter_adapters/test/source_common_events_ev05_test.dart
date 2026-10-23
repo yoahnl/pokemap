@@ -230,7 +230,8 @@ void main() {
       2: [const LiteralFixtureEventCommand(117, [1])]},
     'opaque': {1: [const LiteralFixtureEventCommand(101, ['Safe prefix']),
       const LiteralFixtureEventCommand(355, ['unknown_plugin()'])]},
-    'label': {1: [const LiteralFixtureEventCommand(118, ['label'])]},
+    'backward label': {1: [const LiteralFixtureEventCommand(118, ['label']),
+      const LiteralFixtureEventCommand(119, ['label'])]},
   }.entries) {
     test('EV05 ${example.key} common call quarantines caller atomically', () async {
       final source = await _source(const [LiteralFixtureEventCommand(101, ['Before']),
@@ -302,12 +303,20 @@ void main() {
   });
 
   test('STD03 an untranslated standard opcode belongs to the converter', () async {
-    final source = await _source(const [LiteralFixtureEventCommand(125, [0, 0, 50])]);
+    final source = await _source(const [LiteralFixtureEventCommand(105, [1])]);
     expect(source.projection.scenes, isEmpty);
     final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
     final refusals = (row['refusals'] as List).cast<Map>();
     expect(refusals.singleWhere((entry) => entry['rootCause'] == 'events.unknown_command')['owner'], 'converter');
     expect(refusals.singleWhere((entry) => entry['rootCause'] == 'sourceCommandUnqualified')['owner'], 'converter');
+  });
+
+  test('STD04 a money mutation without its Settings witness remains refused', () async {
+    final source = await _source(const [LiteralFixtureEventCommand(125, [0, 0, 50])]);
+    expect(source.projection.scenes, isEmpty);
+    final row = (source.projection.semanticEvidence['events'] as List).cast<Map>().single;
+    final refusals = (row['refusals'] as List).cast<Map>();
+    expect(refusals.singleWhere((entry) => entry['rootCause'] == 'events.money_bounds_unqualified')['owner'], 'converter');
   });
 
   test('STD03 the table distinguishes qualified static helpers from arbitrary Ruby', () async {

@@ -45,3 +45,7 @@ export 'src/catalog_storage/catalog_dynamic_dependency.dart';
 export 'src/catalog_storage/portable_catalog_publication.dart';
 
 export 'src/models/project_defeat_recovery_config.dart';
+
+export 'src/models/scene_integer_operand.dart';
+export 'src/models/scene_random_state.dart';
+export 'src/operations/scene_integer_operations.dart';

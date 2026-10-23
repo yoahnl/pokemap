@@ -1979,6 +1979,7 @@ String? _emptyToNull(String raw) {
 }
 
 IconData _interactionIcon(SceneInteractionRequestKind kind) => switch (kind) {
+  SceneInteractionRequestKind.integer => CupertinoIcons.number,
   SceneInteractionRequestKind.message => CupertinoIcons.text_bubble,
   SceneInteractionRequestKind.text => CupertinoIcons.text_cursor,
   SceneInteractionRequestKind.choice => CupertinoIcons.list_bullet,
@@ -2418,7 +2419,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                         : () => onAddNodeDraft(SceneNodeKind.condition),
                   ),
                   if (isPreSession) ...[
-                    for (final kind in SceneInteractionRequestKind.values)
+                    for (final kind in SceneInteractionRequestKind.values.where((kind) => kind != SceneInteractionRequestKind.integer))
                       _NodeDraftButton(
                         buttonKey: ValueKey(
                           'scenes-add-node-interaction-${kind.name}',

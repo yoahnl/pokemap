@@ -10,6 +10,13 @@ import 'scene_action_inspector.dart';
 import 'scene_actor_action_builder.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
 
+bool _isIntegerSceneCommand(String id) => const {
+  NarrativeCommandIds.calculateIntegerFacts,
+  NarrativeCommandIds.adjustMoney,
+  NarrativeCommandIds.inputIntegerToFact,
+  NarrativeCommandIds.tryPayMoney,
+}.contains(id);
+
 final class SceneActionPickerOption {
   const SceneActionPickerOption({
     required this.id,
@@ -236,12 +243,15 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   command.id == NarrativeCommandIds.markPokemonSeen ||
                   command.id == NarrativeCommandIds.setNpcPose ||
                   command.id == NarrativeCommandIds.adjustIntegerFact ||
+                  _isIntegerSceneCommand(command.id) ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? textFact ? textFactValue : command.id == NarrativeCommandIds.warp && presentation is Map
               ? parameter.id == 'presentationMode' ? presentation['mode']
                   : data[parameter.id] ?? presentation[parameter.id]
-              : command.id == NarrativeCommandIds.setNpcPose && parameter.id == 'npcRef'
+                : _isIntegerSceneCommand(command.id)
+                ? _integerStoredParameter(data, parameter.id)
+                : command.id == NarrativeCommandIds.setNpcPose && parameter.id == 'npcRef'
                 ? '${data['mapId']}::${data['entityId']}'
                 : command.id == NarrativeCommandIds.setNpcPose && parameter.id == 'facing' ? data['facing'] ?? '' : data[parameter.id]
           : null;
@@ -254,11 +264,22 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
               : null);
       switch (parameter.kind) {
         case NarrativeCommandParameterKind.boolean:
-          _values[parameter.id] = initial == 'false' ? 'false' : 'true';
+          _values[parameter.id] = (initial == 'false' || storedValue == false)
+              ? 'false' : 'true';
         case NarrativeCommandParameterKind.integer:
           final value =
               initial ??
-              (command.id == NarrativeCommandIds.inputTextToFact && parameter.id == 'maxGraphemes' ? '7' :
+              (_isIntegerSceneCommand(command.id)
+                  ? parameter.id == 'initialValue'
+                        ? ''
+                        : parameter.id == 'digits'
+                        ? '3'
+                        : parameter.id == 'maximum'
+                        ? '999'
+                        : parameter.id == 'randomMaximum'
+                        ? '4'
+                        : '0'
+                  : command.id == NarrativeCommandIds.inputTextToFact && parameter.id == 'maxGraphemes' ? '7' :
               command.id == NarrativeCommandIds.setPropState ? '350' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'minimum' ? '0' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'maximum' ? '100' :
@@ -281,6 +302,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           final value = initial ?? '';
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
+        case NarrativeCommandParameterKind.integerFacts:
         case NarrativeCommandParameterKind.movingProps:
           _values[parameter.id] = initial ?? '[]';
         default:
@@ -375,7 +397,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             }
             _loadedPropOptions = [for (final prop in map.movingProps)
               SceneActionPickerOption(id: prop.id, parentId: map.id,
-                label: '${widget.project?.elements.where((element) => element.id == map.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})')];
+                label: '${widget.project?.elements.where((element) => element.id == map.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})',
+                ),
+            ];
             return;
           }
           if (map == null ||
@@ -478,6 +502,19 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_isIntegerSceneCommand(_command.id)) {
+      return switch (parameter.id) {
+        'operandValue' => _values['operandSource'] == 'literal',
+        'operandFactId' => _values['operandSource'] == 'integerFact',
+        'operandItemId' => _values['operandSource'] == 'itemCount',
+        'randomMinimum' ||
+        'randomMaximum' => _values['operandSource'] == 'random',
+        'zeroDivisorPolicy' =>
+          _values['operation'] == 'floorDivide' ||
+              _values['operation'] == 'modulo',
+        _ => true,
+      };
+    }
     if (_command.id == NarrativeCommandIds.setNpcPose && (parameter.id == 'x' || parameter.id == 'y')) return _npcPosePosition;
     if (_command.id == NarrativeCommandIds.sceneMusic) {
       return switch (parameter.id) {
@@ -491,11 +528,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       final active = mode != null && mode.isNotEmpty;
       if (parameter.id == 'transition') return !active;
       if (const {'presentationMode', 'illustrationElementId', 'fadeOutMs', 'transferDelayMs',
-          'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'}.contains(parameter.id)) {
+          'revealMs', 'illustrationHoldMs', 'illustrationFadeMs',
+      }.contains(parameter.id)) {
         if (widget.project?.settings.dimension != ProjectDimension.twoD) return false;
         if (parameter.id == 'presentationMode') return true;
         if (!active) return false;
-        if (const {'illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs'}.contains(parameter.id)) {
+        if (const {'illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs',
+        }.contains(parameter.id)) {
           return mode == 'illustrated' || mode == 'caveEntrance';
         }
         return true;
@@ -535,13 +574,29 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _hasValidValue(NarrativeCommandParameterDescriptor parameter) {
+    if (parameter.kind == NarrativeCommandParameterKind.integerFacts) {
+      try {
+        final ids = (jsonDecode(_values[parameter.id] ?? '[]') as List)
+            .cast<String>();
+        return ids.isNotEmpty &&
+            ids.toSet().length == ids.length &&
+            ids.every(
+              (id) =>
+                  _optionsFor(parameter.kind).any((option) => option.id == id),
+            );
+      } catch (_) {
+        return false;
+      }
+    }
     final rawValue = _values[parameter.id];
     final value = rawValue?.trim();
     if (parameter.kind == NarrativeCommandParameterKind.movingProps) {
       try {
-        final payload = buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values) as SceneActionPayload;
+        final payload = buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values,
+                ) as SceneActionPayload;
         final command = payload.interactiveCommand! as SceneSetPropStateInteractiveCommand;
-        return command.propIds.every((id) => _optionsFor(parameter.kind).any((option) => option.id == id));
+        return command.propIds.every((id) => _optionsFor(parameter.kind).any((option) => option.id == id),
+        );
       } catch (_) { return false; }
     }
     if (_command.id == NarrativeCommandIds.warp &&
@@ -551,7 +606,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     if (value == null || value.isEmpty) return false;
     if (parameter.kind == NarrativeCommandParameterKind.integer) {
-      if (_command.id == NarrativeCommandIds.adjustIntegerFact) {
+      if (_command.id == NarrativeCommandIds.adjustIntegerFact ||
+          _isIntegerSceneCommand(_command.id)) {
         final parsed = int.tryParse(value);
         if (parsed == null || parsed.toString() != value) return false;
         try {
@@ -630,10 +686,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   bool get _validWarpPresentation {
     if (_command.id != NarrativeCommandIds.warp) return true;
     try {
-      final payload = buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values) as SceneActionPayload;
+      final payload = buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values,
+              ) as SceneActionPayload;
       final command = payload.interactiveCommand! as SceneWarpInteractiveCommand;
       if (command.presentation == null) return true;
-      return widget.project != null && diagnoseInteractiveCommand(command: command, project: widget.project!).isEmpty;
+      return widget.project != null && diagnoseInteractiveCommand(command: command, project: widget.project!,
+          ).isEmpty;
     } catch (_) { return false; }
   }
 
@@ -690,7 +748,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   bool get _validTextFactInput {
     if (_command.id != NarrativeCommandIds.inputTextToFact) return true;
     try {
-      buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values);
+      buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values,
+      );
       return true;
     } on ArgumentError {
       return false;
@@ -700,9 +759,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool get _validIntegerAdjustment {
-    if (_command.id != NarrativeCommandIds.adjustIntegerFact) return true;
+    if (_command.id != NarrativeCommandIds.adjustIntegerFact &&
+        !_isIntegerSceneCommand(_command.id)) return true;
     try {
-      buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values);
+      buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values,
+      );
       return true;
     } on ArgumentError {
       return false;
@@ -736,7 +797,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   key: const ValueKey('scene-action-submit'),
                   onPressed: _canSubmit ? _submit : null,
                   variant: PokeMapButtonVariant.primary,
-                  child: Text(_command.id == NarrativeCommandIds.receivePokemonFromCatalog && widget.initialPayload != null ? 'Appliquer les modifications' : 'Ajouter à la Scene'),
+                  child: Text(_command.id == NarrativeCommandIds.receivePokemonFromCatalog && widget.initialPayload != null ? 'Appliquer les modifications' : 'Ajouter à la Scene',
+                  ),
                 ),
               ),
             ),
@@ -811,8 +873,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             PokeMapDropdownField<String>(label: 'Modification du PNJ',
               value: _npcPosePosition ? 'position' : 'facing',
               items: const [
-                PokeMapDropdownItem(value: 'position', label: 'Position et direction'),
-                PokeMapDropdownItem(value: 'facing', label: 'Direction uniquement'),
+                PokeMapDropdownItem(value: 'position', label: 'Position et direction',
+                ),
+                PokeMapDropdownItem(value: 'facing', label: 'Direction uniquement',
+                ),
               ],
               onChanged: (value) => setState(() {
                 _npcPosePosition = value == 'position';
@@ -824,7 +888,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   _values.remove('y');
                   if (_values['facing']?.isNotEmpty != true) _values['facing'] = 'south';
                 }
-              })),
+              }),
+            ),
           if (!_isActorCommand(_command.id))
             for (final parameter in _command.parameters)
               if (_isParameterVisible(parameter)) ...[
@@ -845,31 +910,66 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   Widget _buildParameter(NarrativeCommandParameterDescriptor parameter) {
+    if (parameter.kind == NarrativeCommandParameterKind.integerFacts) {
+      final selected = <String>{};
+      try {
+        selected.addAll(
+          (jsonDecode(_values[parameter.id] ?? '[]') as List).cast<String>(),
+        );
+      } catch (_) {}
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(parameter.label),
+          for (final option in _optionsFor(parameter.kind))
+            PokeMapToggleTile(
+              key: ValueKey('scene-integer-fact-${option.id}'),
+              label: option.label,
+              value: selected.contains(option.id),
+              onChanged: (value) => setState(() {
+                final next = {...selected};
+                value ? next.add(option.id) : next.remove(option.id);
+                _values[parameter.id] = jsonEncode(next.toList());
+              }),
+            ),
+        ],
+      );
+    }
     if (parameter.kind == NarrativeCommandParameterKind.movingProps) {
       final selected = <String>{};
-      try { selected.addAll((jsonDecode(_values['propIds'] ?? '[]') as List).cast<String>()); } catch (_) {}
+      try { selected.addAll((jsonDecode(_values['propIds'] ?? '[]') as List).cast<String>(),
+        ); } catch (_) {}
       final options = _optionsFor(parameter.kind);
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(parameter.label),
         if (_warpReferenceLoading) const PokeMapDiagnosticCallout(
-          severity: PokeMapDiagnosticSeverity.info, title: 'Chargement des décors mobiles', message: 'Lecture de la carte sélectionnée.'),
+          severity: PokeMapDiagnosticSeverity.info, title: 'Chargement des décors mobiles', message: 'Lecture de la carte sélectionnée.',
+            ),
         if (_warpReferenceError != null) PokeMapDiagnosticCallout(
-          severity: PokeMapDiagnosticSeverity.error, title: 'Décors indisponibles', message: _warpReferenceError!),
+          severity: PokeMapDiagnosticSeverity.error, title: 'Décors indisponibles', message: _warpReferenceError!,
+            ),
         if (!_warpReferenceLoading && _warpReferenceError == null && options.isEmpty)
           const PokeMapDiagnosticCallout(severity: PokeMapDiagnosticSeverity.info,
-            title: 'Aucun décor mobile', message: 'Configurez les décors mobiles dans les propriétés des décors de cette carte.'),
-        for (final missing in selected.difference(options.map((option) => option.id).toSet()))
+            title: 'Aucun décor mobile', message: 'Configurez les décors mobiles dans les propriétés des décors de cette carte.',
+            ),
+        for (final missing in selected.difference(options.map((option) => option.id).toSet(),
+          ))
           PokeMapDiagnosticCallout(severity: PokeMapDiagnosticSeverity.error,
             title: 'Décor supprimé', message: 'Une référence sélectionnée n’existe plus.',
             actionLabel: 'Retirer la référence absente',
-            onAction: () => setState(() => _values['propIds'] = jsonEncode(selected.difference({missing}).toList()))),
+            onAction: () => setState(() => _values['propIds'] = jsonEncode(selected.difference({missing}).toList(),
+                ),
+              ),
+            ),
         for (final option in options)
           PokeMapToggleTile(key: ValueKey('scene-prop-${option.id}'), label: option.label,
             value: selected.contains(option.id), onChanged: (value) => setState(() {
               final next = {...selected}; value ? next.add(option.id) : next.remove(option.id);
               _values['propIds'] = jsonEncode(next.toList());
-            })),
-      ]);
+            }),
+            ),
+        ],
+      );
     }
     if (_isGift && parameter.id == 'moveIds') {
       return ScenePokemonGiftMovesEditor(
@@ -922,7 +1022,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   signed: true,
                 )
               : parameter.kind == NarrativeCommandParameterKind.integer
-              ? TextInputType.numberWithOptions(signed: _command.id == NarrativeCommandIds.adjustIntegerFact)
+              ? TextInputType.numberWithOptions(signed: _command.id == NarrativeCommandIds.adjustIntegerFact,
+                )
               : null,
           errorText:
               _values[parameter.id]?.isNotEmpty == true &&
@@ -976,9 +1077,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   label: parameter.label,
                   value: '',
                   items: [
-                    const PokeMapDropdownItem(value: '', label: 'Choisir la forme principale'),
+                    const PokeMapDropdownItem(value: '', label: 'Choisir la forme principale',
+                    ),
                     for (final option in options)
-                      PokeMapDropdownItem(value: option.id, label: option.label),
+                      PokeMapDropdownItem(value: option.id, label: option.label,
+                      ),
                   ],
                   onChanged: (value) => _setReferenceValue(parameter, value),
                 ),
@@ -1010,7 +1113,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                 items: [
                   PokeMapDropdownItem(value: '', label:
                     _command.id == NarrativeCommandIds.adjustIntegerFact
-                      ? 'Choisir un compteur' : 'Choisir un avatar'),
+                      ? 'Choisir un compteur' : 'Choisir un avatar',
+                  ),
                   for (final option in options)
                     PokeMapDropdownItem(value: option.id, label: option.label),
                 ],
@@ -1047,9 +1151,21 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.integerFacts ||
+        kind == NarrativeCommandParameterKind.fact &&
+            _isIntegerSceneCommand(_command.id)) {
+      final facts = widget.project?.facts ?? const <NarrativeFactDefinition>[];
+      return [
+        for (final fact in facts)
+          if (fact.valueKind == NarrativeValueKind.integer &&
+              facts.where((candidate) => candidate.id == fact.id).length == 1)
+            SceneActionPickerOption(id: fact.id, label: fact.label),
+      ];
+    }
     if (kind == NarrativeCommandParameterKind.movingProps) {
       return _loadedPropOptions ?? [for (final option in widget.pickerOptions[kind] ?? const <SceneActionPickerOption>[])
-        if (option.parentId == _values['mapId']) option];
+        if (option.parentId == _values['mapId']) option,
+          ];
     }
     if (kind == NarrativeCommandParameterKind.fact &&
         _command.id == NarrativeCommandIds.inputTextToFact) {
@@ -1057,7 +1173,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return [for (final fact in facts)
         if (fact.valueKind == NarrativeValueKind.string &&
             facts.where((candidate) => candidate.id == fact.id).length == 1)
-          SceneActionPickerOption(id: fact.id, label: fact.label)];
+          SceneActionPickerOption(id: fact.id, label: fact.label),
+      ];
     }
     if (kind == NarrativeCommandParameterKind.fact &&
         _command.id == NarrativeCommandIds.adjustIntegerFact) {
@@ -1065,7 +1182,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return [for (final fact in facts)
         if (fact.valueKind == NarrativeValueKind.integer &&
             facts.where((candidate) => candidate.id == fact.id).length == 1)
-          SceneActionPickerOption(id: fact.id, label: fact.label)];
+          SceneActionPickerOption(id: fact.id, label: fact.label),
+      ];
     }
     if (kind == NarrativeCommandParameterKind.character) {
       final project = widget.project;
@@ -1074,7 +1192,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       for (final character in project.characters) {
         try {
           resolveScenePlayerAvatarCharacter(project, character.id);
-          options.add(SceneActionPickerOption(id: character.id, label: character.name));
+          options.add(SceneActionPickerOption(id: character.id, label: character.name),
+          );
         } on FormatException {
           continue;
         }
@@ -1098,7 +1217,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       return [for (final entry in entries)
         if (entry.id.isNotEmpty && entry.id.trim() == entry.id &&
             entries.where((candidate) => candidate.id == entry.id).length == 1)
-          SceneActionPickerOption(id: entry.id, label: entry.name)];
+          SceneActionPickerOption(id: entry.id, label: entry.name),
+      ];
     }
     if (kind == NarrativeCommandParameterKind.warp &&
         _command.id == NarrativeCommandIds.warp) {
@@ -1123,24 +1243,86 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       for (final element in project.elements) {
         try {
           resolveSceneWarpPresentationVisual(SceneWarpPresentation(mode: SceneWarpPresentationMode.illustrated,
-            illustrationElementId: element.id), project);
-          options.add(SceneActionPickerOption(id: element.id, label: element.name));
+            illustrationElementId: element.id,
+            ),
+            project,
+          );
+          options.add(SceneActionPickerOption(id: element.id, label: element.name),
+          );
         } catch (_) {}
       }
       return options;
     }
     return switch (kind) {
+      NarrativeCommandParameterKind.integerCancellationPolicy => const [SceneActionPickerOption(id: 'leaveUnchanged', label: 'Conserver le compteur et suivre Annulé'), SceneActionPickerOption(id: 'restoreInitialAndComplete', label: 'Écrire la valeur initiale et continuer')],
+      NarrativeCommandParameterKind.integerOperation => [
+        for (final value in SceneIntegerOperation.values)
+          SceneActionPickerOption(
+            id: value.name,
+            label: switch (value) {
+              SceneIntegerOperation.assign => 'Affecter',
+              SceneIntegerOperation.add => 'Ajouter',
+              SceneIntegerOperation.subtract => 'Soustraire',
+              SceneIntegerOperation.multiply => 'Multiplier',
+              SceneIntegerOperation.floorDivide =>
+                'Diviser (arrondi inférieur)',
+              SceneIntegerOperation.modulo => 'Reste de division',
+            },
+          ),
+      ],
+      NarrativeCommandParameterKind.moneyOperation => const [
+        SceneActionPickerOption(id: 'add', label: 'Ajouter'),
+        SceneActionPickerOption(id: 'subtract', label: 'Retirer'),
+      ],
+      NarrativeCommandParameterKind.integerOperandSource => [
+        const SceneActionPickerOption(id: 'literal', label: 'Nombre fixe'),
+        const SceneActionPickerOption(
+          id: 'integerFact',
+          label: 'Autre compteur',
+        ),
+        const SceneActionPickerOption(id: 'money', label: 'Argent du joueur'),
+        const SceneActionPickerOption(
+          id: 'partyCount',
+          label: 'Taille de l’équipe',
+        ),
+        const SceneActionPickerOption(
+          id: 'itemCount',
+          label: 'Quantité d’un objet',
+        ),
+        if (_command.id == NarrativeCommandIds.calculateIntegerFacts)
+          const SceneActionPickerOption(
+            id: 'random',
+            label: 'Tirage aléatoire sauvegardé',
+          ),
+      ],
+      NarrativeCommandParameterKind.integerZeroPolicy => const [
+        SceneActionPickerOption(id: 'reject', label: 'Refuser si nul'),
+        SceneActionPickerOption(id: 'keepValue', label: 'Conserver si nul'),
+        SceneActionPickerOption(
+          id: 'keepValueForZeroOrOne',
+          label: 'Conserver si nul ou égal à un',
+        ),
+      ],
+      NarrativeCommandParameterKind.integerBoundaryPolicy => const [
+        SceneActionPickerOption(id: 'clamp', label: 'Limiter le résultat'),
+        SceneActionPickerOption(
+          id: 'preserveSaturated',
+          label: 'Conserver un compteur déjà à la limite',
+        ),
+      ],
       NarrativeCommandParameterKind.movingPropState => const [
         SceneActionPickerOption(id: 'open', label: 'Ouvert'),
         SceneActionPickerOption(id: 'closed', label: 'Fermé'),
       ],
       NarrativeCommandParameterKind.pokemonGiftNicknamePolicy => const [
         SceneActionPickerOption(id: 'offer', label: 'Proposer un surnom'),
-        SceneActionPickerOption(id: 'disabled', label: 'Conserver le nom de l’espèce'),
+        SceneActionPickerOption(id: 'disabled', label: 'Conserver le nom de l’espèce',
+        ),
       ],
       NarrativeCommandParameterKind.pokemonGiftPokedexPolicy => const [
         SceneActionPickerOption(id: 'never', label: 'Ne pas ouvrir de fiche'),
-        SceneActionPickerOption(id: 'whenNewAndPokedexVisible', label: 'Nouvelle espèce si le Pokédex est visible'),
+        SceneActionPickerOption(id: 'whenNewAndPokedexVisible', label: 'Nouvelle espèce si le Pokédex est visible',
+        ),
       ],
       NarrativeCommandParameterKind.completionOutcome => const [
         SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
@@ -1183,7 +1365,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       NarrativeCommandParameterKind.warpPresentationMode => const [
         SceneActionPickerOption(id: '', label: 'Transition habituelle'),
         SceneActionPickerOption(id: 'fade', label: 'Fondu noir'),
-        SceneActionPickerOption(id: 'illustrated', label: 'Illustration du lieu'),
+        SceneActionPickerOption(id: 'illustrated', label: 'Illustration du lieu',
+        ),
         SceneActionPickerOption(id: 'caveEntrance', label: 'Entrée de grotte'),
         SceneActionPickerOption(id: 'caveExit', label: 'Sortie de grotte'),
       ],
@@ -1252,7 +1435,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       if (_command.id == NarrativeCommandIds.sceneMusic && parameter.id == 'operation') _syncMusicOperation();
       if (_command.id == NarrativeCommandIds.warp && parameter.id == 'presentationMode') {
         if (value != 'illustrated' && value != 'caveEntrance') {
-          for (final key in ['illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs']) {
+          for (final key in ['illustrationElementId', 'illustrationHoldMs', 'illustrationFadeMs',
+          ]) {
             _values.remove(key); _textControllers[key]?.text = '';
           }
         }
@@ -1314,17 +1498,35 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         parameters: parameters,
       );
       final original = widget.initialPayload?.interactiveCommand;
+      if (original is SceneInputIntegerToFactInteractiveCommand && payload is SceneActionPayload &&
+          payload.interactiveCommand is SceneInputIntegerToFactInteractiveCommand) {
+        final fresh = payload.interactiveCommand! as SceneInputIntegerToFactInteractiveCommand;
+        payload = SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({...fresh.toJson(),
+          'prompt': {...original.prompt.toJson(), 'fallbackText': fresh.prompt.fallbackText}}));
+      }
+      if (original is SceneTryPayMoneyInteractiveCommand && payload is SceneActionPayload &&
+          payload.interactiveCommand is SceneTryPayMoneyInteractiveCommand) {
+        final fresh = payload.interactiveCommand! as SceneTryPayMoneyInteractiveCommand;
+        if (original.confirmationPrompt != null && fresh.confirmationPrompt != null) {
+          payload = SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({...fresh.toJson(),
+            'confirmationPrompt': {...original.confirmationPrompt!.toJson(), 'fallbackText': fresh.confirmationPrompt!.fallbackText}}));
+        }
+      }
       if (original is SceneInputTextToFactInteractiveCommand &&
           payload is SceneActionPayload &&
           payload.interactiveCommand is SceneInputTextToFactInteractiveCommand) {
         final fresh = payload.interactiveCommand! as SceneInputTextToFactInteractiveCommand;
         payload = SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({
           ...fresh.toJson(),
-          'prompt': {...original.prompt.toJson(), 'fallbackText': fresh.prompt.fallbackText},
-          'confirmationPrompt': {...original.confirmationPrompt.toJson(), 'fallbackText': fresh.confirmationPrompt.fallbackText},
+          'prompt': {...original.prompt.toJson(), 'fallbackText': fresh.prompt.fallbackText,
+            },
+          'confirmationPrompt': {...original.confirmationPrompt.toJson(), 'fallbackText': fresh.confirmationPrompt.fallbackText,
+            },
           if (fresh.presetChoicePrompt != null && original.presetChoicePrompt != null)
-            'presetChoicePrompt': {...original.presetChoicePrompt!.toJson(), 'fallbackText': fresh.presetChoicePrompt!.fallbackText},
-        }));
+            'presetChoicePrompt': {...original.presetChoicePrompt!.toJson(), 'fallbackText': fresh.presetChoicePrompt!.fallbackText,
+              },
+          }),
+        );
       }
       widget.onSubmitResult?.call(
         SceneActionBuildResult(
@@ -1338,4 +1540,21 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       setState(() => _submissionError = error.toString());
     }
   }
+}
+
+Object? _integerStoredParameter(Map<String, dynamic> data, String id) {
+  final operand = data['operand'] ?? data['amount'];
+  if (operand is Map) {
+    if (id == 'operandSource')
+      return operand['kind'] == 'gameRead' ? operand['read'] : operand['kind'];
+    if (id == 'operandValue') return operand['value'];
+    if (id == 'operandFactId') return operand['factId'];
+    if (id == 'operandItemId') return operand['itemId'];
+    if (id == 'randomMinimum') return operand['minimum'];
+    if (id == 'randomMaximum') return operand['maximum'];
+  }
+  final value = data[id];
+  if (value is Map && (id == 'prompt' || id == 'confirmationPrompt'))
+    return value['fallbackText'];
+  return value;
 }

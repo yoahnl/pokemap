@@ -357,7 +357,7 @@ void main() {
           ['effect', 'Declined', if (common) 'Caller resumed']);
       final table =
           source.projection.semanticEvidence['compositionContract'] as Map;
-      expect(table['version'], 1);
+      expect(table['version'], 2);
       expect(table['identityPolicy'], 'engineVersionOnly');
       expect(table['entries'], isNotEmpty);
     });

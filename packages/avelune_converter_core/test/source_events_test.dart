@@ -633,6 +633,161 @@ _RubyObject _strengthPage() => _page([
     ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
 
 void main() {
+  group('STD04 typed standard operations', () {
+    for (final parameters in <List<int>>[
+      [1, 3, 0, 1, 2],
+      [1, 3, 1, 1, 2],
+      [1, 3, 2, 1, 2],
+      [1, 3, 3, 0, -2],
+      [1, 3, 4, 0, -2],
+      [1, 3, 5, 0, -2],
+      [1, 3, 0, 2, 2, 5],
+      [1, 3, 0, 7, 1],
+      [1, 3, 0, 7, 2],
+    ]) {
+      test('STD04 preserves a typed calculation $parameters', () async {
+        final source = await _events([
+          _page([_command(122, parameters), _command(0, [])]),
+        ], variables: ['', 'First', 'Second', 'Third']);
+        final event = _analyzer(source).analyze().events.single;
+        expect(event.isQuarantined, isFalse,
+            reason: jsonEncode(event.pages.single.diagnostics.map((d) => d.toJson()).toList()));
+        expect(event.pages.single.body.nodes.single.runtimeType.toString(),
+            'SourceVariableCalculationNode');
+      });
+    }
+
+    test('STD04 number input is an integer operation rather than text', () async {
+      final source = await _events([
+        _page([_command(103, [1, 3]), _command(0, [])]),
+      ]);
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      expect(event.pages.single.body.nodes.single.runtimeType.toString(),
+          'SourceIntegerInputNode');
+    });
+
+    test('STD04 a source calculation larger than the native target budget is refused', () async {
+      final source = await _events([_page([
+        _command(122, [1, 1025, 3, 0, 2]), _command(0, []),
+      ])], variables: List.filled(1026, 'Declared'));
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isTrue);
+      expect(event.pages.single.diagnostics.map((d) => d.code), contains('events.integer_target_budget_exceeded'));
+    });
+
+    test('STD04 finite control and money cannot borrow an unqualified engine profile', () async {
+      final source = await _events([_page([
+        _command(112, []), _command(101, ['Once'], indent: 1),
+        _command(113, [], indent: 1), _command(413, []), _command(0, []),
+      ])]);
+      final event = _analyzer(source, scriptsHash: '0' * 64).analyze().events.single;
+      expect(event.isQuarantined, isTrue);
+    });
+
+    for (final comparison in [
+      [1, 1, 1, 2, 1],
+      [7, 50, 0],
+      [7, 50, 1],
+    ]) {
+      test('STD04 numeric predicate $comparison retains both operands', () async {
+        final source = await _events([
+          _page([
+            _command(111, comparison),
+            _command(101, ['Accepted'], indent: 1),
+            _command(412, []),
+            _command(0, []),
+          ]),
+        ], variables: ['', 'First', 'Second']);
+        final event = _analyzer(source).analyze().events.single;
+        expect(event.isQuarantined, isFalse);
+        final condition = (event.pages.single.body.nodes.single as SourceConditionalNode).condition;
+        expect(condition.kind.name, 'integerComparison');
+        expect(condition.isQualified, isTrue);
+      });
+    }
+
+    test('STD04 an unconditional loop break is compiled as one finite block', () async {
+      final source = await _events([
+        _page([
+          _command(112, []),
+          _command(101, ['Exactly once'], indent: 1),
+          _command(113, [], indent: 1),
+          _command(355, ['unreachable_custom_code()'], indent: 1),
+          _command(413, []),
+          _command(101, ['After']),
+          _command(0, []),
+        ]),
+      ]);
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      final loop = event.pages.single.body.nodes.first as SourceConditionalNode;
+      expect(loop.condition.kind, SourceEventConditionKind.always);
+      expect(loop.whenTrue.nodes.whereType<SourceTextNode>().single.text, 'Exactly once');
+      expect(event.pages.single.body.nodes.whereType<SourceTextNode>().single.text, 'After');
+    });
+
+    test('STD04 forward labels preserve reachable source text', () async {
+      final source = await _events([
+        _page([
+          _command(119, ['Arrival']),
+          _command(355, ['unreachable_custom_code()']),
+          _command(118, ['Arrival']),
+          _command(101, ['Reached']),
+          _command(0, []),
+        ]),
+      ]);
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      expect(event.pages.single.body.nodes.whereType<SourceTextNode>().single.text, 'Reached');
+    });
+
+    test('STD04 distinct forward labels keep one bounded ordered path', () async {
+      final source = await _events([_page([
+        for (var i = 0; i < 256; i++) ...[
+          _command(119, ['Next$i']), _command(118, ['Next$i']),
+        ],
+        _command(101, ['Reached once']), _command(0, []),
+      ])]);
+      final event = _analyzer(source).analyze().events.single;
+      expect(event.isQuarantined, isFalse);
+      expect(event.pages.single.body.nodes.whereType<SourceAnnotationNode>(), hasLength(256));
+      expect(event.pages.single.body.nodes.whereType<SourceTextNode>().single.text, 'Reached once');
+    });
+
+    for (final sample in [
+      (commands: [_command(119, ['Absent'])], reason: 'events.label_missing'),
+      (commands: [_command(119, ['Same']), _command(118, ['Same']), _command(118, ['Same'])], reason: 'events.label_ambiguous'),
+      (commands: [_command(118, ['Back']), _command(119, ['Back'])], reason: 'events.backward_jump_unsupported'),
+      (commands: [_command(119, ['Inside']), _command(118, ['Inside'], indent: 1)], reason: 'events.cross_scope_jump_unsupported'),
+      (commands: [_command(112, []), _command(101, ['Forever'], indent: 1), _command(413, [])], reason: 'events.unproven_loop'),
+      (commands: [_command(112, []), _command(111, [0, 1, 0], indent: 1), _command(113, [], indent: 2),
+        _command(412, [], indent: 1), _command(413, [])], reason: 'events.unproven_loop'),
+    ]) {
+      test('STD04 refuses unsafe control ${sample.reason}', () async {
+        final source = await _events([_page([...sample.commands, _command(0, [])])]);
+        final event = _analyzer(source).analyze().events.single;
+        expect(event.isQuarantined, isTrue);
+        expect(event.pages.single.diagnostics.map((d) => d.code), contains(sample.reason));
+      });
+    }
+
+    for (final command in [
+      (code: 124, parameters: <Object?>[0, 30], reason: 'events.persistent_timer_unsupported'),
+      (code: 122, parameters: <Object?>[1, 1, 0, 6, 0, 0], reason: 'events.character_integer_read_unsupported'),
+      (code: 122, parameters: <Object?>[1, 1, 0, 3, 1], reason: 'events.integer_operand_unsupported'),
+    ]) {
+      test('STD04 refuses ${command.reason} without inventing state', () async {
+        final source = await _events([
+          _page([_command(command.code, command.parameters), _command(0, [])]),
+        ]);
+        final event = _analyzer(source).analyze().events.single;
+        expect(event.isQuarantined, isTrue);
+        expect(event.pages.single.diagnostics.map((d) => d.code), contains(command.reason));
+      });
+    }
+  });
+
   group('authoritative single event analysis', () {
     Map<String, Object?> shape(SourceEventDefinition event) => {
       'identity': event.identity.value, 'map': event.sourceMapId,
@@ -1069,7 +1224,7 @@ void main() {
       }
     });
     for (final parameters in [
-      [1, 7, 1, 1, 0], [1, 7, 0, 1, 6], [1, 7, 0, 'name', 0],
+      [1, 7, 1, 128, 0], [1, 7, 0, 1, 6], [1, 7, 0, 'name', 0],
       [1, 0, 0, 1, 0], [1, 128, 0, 1, 0],
     ]) {
       test('dynamic or invalid integer comparison stays unqualified $parameters', () async {
@@ -1081,8 +1236,8 @@ void main() {
     }
     for (final parameters in [
       [0, 1, 0, 0, 1], [2, 1, 0, 0, 1], [1, 128, 0, 0, 1],
-      [5001, 5001, 0, 0, 1], [1, 1, 3, 0, 1], [1, 1, 0, 1, 2],
-      [1, 1, 1, 1, 2], [1, 1, 2, 1, 2], [1, 1, 6, 0, 1],
+      [5001, 5001, 0, 0, 1], [1, 1, 3, 0, '1'], [1, 1, 0, 1, 128],
+      [1, 1, 1, 1, 128], [1, 1, 2, 1, 128], [1, 1, 6, 0, 1],
       [1, 1, 0, 0, 'name'], [1, 1, 0, 0, [1, 2]],
     ]) {
       test('invalid or dynamic numeric write is quarantined $parameters', () async {

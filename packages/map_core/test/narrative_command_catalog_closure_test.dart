@@ -11,6 +11,10 @@ void main() {
 
   test('every catalog id is a declared command constant', () {
     const declared = <String>{
+      NarrativeCommandIds.calculateIntegerFacts,
+      NarrativeCommandIds.adjustMoney,
+      NarrativeCommandIds.inputIntegerToFact,
+      NarrativeCommandIds.tryPayMoney,
       NarrativeCommandIds.setMapEventInstanceBoolean,
       NarrativeCommandIds.setFact,
       NarrativeCommandIds.inputTextToFact,
@@ -105,6 +109,8 @@ void main() {
     };
 
     expect(published, {
+      NarrativeCommandIds.inputIntegerToFact: 'SceneInteractiveCommand.inputIntegerToFact',
+      NarrativeCommandIds.tryPayMoney: 'SceneInteractiveCommand.tryPayMoney',
       NarrativeCommandIds.inputTextToFact: 'SceneInteractiveCommand.inputTextToFact',
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
       NarrativeCommandIds.receivePokemonFromCatalog:

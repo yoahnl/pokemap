@@ -518,7 +518,7 @@ String sceneExecutionCapabilityForRuntimeIntent(
           SceneExecutionCapabilityIds.inputMessage,
         SceneInteractionRequestKind.choice =>
           SceneExecutionCapabilityIds.inputChoice,
-        SceneInteractionRequestKind.text =>
+        SceneInteractionRequestKind.integer || SceneInteractionRequestKind.text =>
           SceneExecutionCapabilityIds.inputText,
         SceneInteractionRequestKind.confirmation =>
           SceneExecutionCapabilityIds.inputConfirmation,

@@ -152,6 +152,24 @@ void main() {
 }
 
 Map<String, SceneNodePayload Function()> _canonicalSamples() => {
+  NarrativeCommandIds.calculateIntegerFacts: () => SceneActionPayload.consequence(
+    SceneConsequence.calculateIntegerFacts(factIds: ['fact_counter'], operation: SceneIntegerOperation.add,
+      operand: SceneIntegerOperand.integerFact('fact_counter'), minimum: -99, maximum: 99,
+      zeroDivisorPolicy: SceneZeroDivisorPolicy.keepValueForZeroOrOne, boundaryPolicy: SceneIntegerBoundaryPolicy.preserveSaturated),
+  ),
+  NarrativeCommandIds.adjustMoney: () => SceneActionPayload.consequence(
+    SceneConsequence.adjustMoney(operation: SceneMoneyOperation.subtract, amount: SceneIntegerOperand.literal(-2), minimum: 0, maximum: 999999),
+  ),
+  NarrativeCommandIds.inputIntegerToFact: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.inputIntegerToFact(factId: 'fact_counter',
+      prompt: SceneInteractionPrompt(localizationKey: 'parity.integer', fallbackText: 'Combien ?'),
+      digits: 3, minimum: 0, maximum: 999, initialValue: 4, allowCancel: true,
+      cancellationPolicy: SceneIntegerCancellationPolicy.restoreInitialAndComplete),
+  ),
+  NarrativeCommandIds.tryPayMoney: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.tryPayMoney(amount: SceneIntegerOperand.literal(4),
+      confirmationPrompt: SceneInteractionPrompt(localizationKey: 'parity.payment', fallbackText: 'Payer {amount} ?')),
+  ),
   NarrativeCommandIds.inputTextToFact: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.inputTextToFact(
       factId: 'fact_name',

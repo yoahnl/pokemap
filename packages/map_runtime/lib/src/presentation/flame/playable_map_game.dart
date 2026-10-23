@@ -14636,7 +14636,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           : 'false';
     }
 
-    if (source.sourceKind == SceneConditionSourceKind.fact) {
+    if (source.sourceKind == SceneConditionSourceKind.fact || source.sourceKind == SceneConditionSourceKind.integerComparison) {
       return evaluateCanonicalNarrativeFactSceneCondition(
         source: source,
         gameState: gameState,

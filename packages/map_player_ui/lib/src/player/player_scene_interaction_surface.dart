@@ -67,7 +67,10 @@ class _PlayerSceneInteractionSurfaceState
   void _initializeText() {
     final request = widget.request;
     final text =
-        request is SceneTextInteractionRequest ? request.initialValue : '';
+        request is SceneTextInteractionRequest ? request.initialValue
+        : request is SceneIntegerInteractionRequest
+        ? '${request.initialValue}'
+        : '';
     _textController.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
@@ -183,7 +186,10 @@ class _PlayerSceneInteractionSurfaceState
                                     ),
                                   ),
                                 ],
-                                if (widget.allowCancellation) ...<Widget>[
+                                if (widget.allowCancellation &&
+                                    (request
+                                            is! SceneIntegerInteractionRequest ||
+                                        request.allowCancel)) ...<Widget>[
                                   const SizedBox(height: PlayerSpacing.sm),
                                   PlayerActionButton(
                                     key: const ValueKey<String>(
@@ -328,7 +334,8 @@ class _PlayerSceneInteractionSurfaceState
               ],
             ],
           ),
-        SceneTextInteractionRequest() => _textInput(request, strings),
+    SceneIntegerInteractionRequest() => _integerInput(request, strings),
+    SceneTextInteractionRequest() => _textInput(request, strings),
         SceneConfirmationInteractionRequest() => Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -390,8 +397,7 @@ class _PlayerSceneInteractionSurfaceState
               const SizedBox(height: PlayerSpacing.sm),
               PlayerActionButton(
                 key: const ValueKey<String>(
-                  'scene-interaction-selection-submit',
-                ),
+                  'scene-interaction-selection-submit'),
                 label: strings.submit,
                 icon: Icons.check,
                 onPressed: !widget.interactionEnabled || _terminal
@@ -432,6 +438,76 @@ class _PlayerSceneInteractionSurfaceState
                 )
             : null,
       );
+
+  Widget _integerInput(
+    SceneIntegerInteractionRequest request,
+    PlayerSceneInteractionStrings strings,
+  ) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      TextField(
+        key: const ValueKey<String>('scene-interaction-integer-field'),
+        controller: _textController,
+        focusNode: _textFocusNode,
+        autofocus: true,
+        enabled: widget.interactionEnabled && !_terminal,
+        keyboardType: TextInputType.numberWithOptions(
+          signed: request.minimum < 0,
+        ),
+        textInputAction: TextInputAction.done,
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(
+            RegExp(request.minimum < 0 ? r'^-?[0-9]*$' : r'[0-9]'),
+          ),
+          LengthLimitingTextInputFormatter(
+            request.digits + (request.minimum < 0 ? 1 : 0),
+          ),
+        ],
+        decoration: InputDecoration(
+          labelText: strings.textFieldLabel,
+          helperText: '${request.minimum} – ${request.maximum}',
+        ),
+        onChanged: (_) => setState(() => _validationIssue = null),
+        onSubmitted: !widget.interactionEnabled || _terminal
+            ? null
+            : (_) => _submitInteger(request),
+      ),
+      const SizedBox(height: PlayerSpacing.sm),
+      PlayerActionButton(
+        key: const ValueKey<String>('scene-interaction-integer-submit'),
+        label: strings.submit,
+        icon: Icons.check,
+        onPressed: !widget.interactionEnabled || _terminal
+            ? null
+            : () => _submitInteger(request),
+      ),
+    ],
+  );
+
+  void _submitInteger(SceneIntegerInteractionRequest request) {
+    final value = int.tryParse(_textController.text);
+    if (value == null) {
+      setState(
+        () => _validationIssue = SceneInteractionValidationIssue(
+          code: SceneInteractionValidationIssueCode.integerOutOfRange,
+          arguments: {
+            'minimum': '${request.minimum}',
+            'maximum': '${request.maximum}',
+          },
+        ),
+      );
+      return;
+    }
+    _publish(
+      request,
+      SceneIntegerSubmittedInteractionResult(
+        requestId: request.requestId,
+        revision: request.revision,
+        value: value,
+      ),
+    );
+  }
 
   Widget _textInput(
     SceneTextInteractionRequest request,
@@ -522,18 +598,27 @@ class _PlayerSceneInteractionSurfaceState
     switch (intent.action) {
       case PlayerInputAction.up:
         FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.up);
+            ?.focusInDirection(TraversalDirection.up,
+        );
       case PlayerInputAction.down:
         FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.down);
+            ?.focusInDirection(TraversalDirection.down,
+        );
       case PlayerInputAction.left:
         FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.left);
+            ?.focusInDirection(TraversalDirection.left,
+        );
       case PlayerInputAction.right:
         FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.right);
+            ?.focusInDirection(TraversalDirection.right,
+        );
       case PlayerInputAction.confirm:
         final request = widget.request;
+        if (_textFocusNode.hasFocus &&
+            request is SceneIntegerInteractionRequest) {
+          _submitInteger(request);
+          return null;
+        }
         if (_textFocusNode.hasFocus && request is SceneTextInteractionRequest) {
           _submitText(request);
           break;
@@ -598,6 +683,9 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   void _cancel() {
+    if (widget.request is SceneIntegerInteractionRequest &&
+        !(widget.request as SceneIntegerInteractionRequest).allowCancel)
+      return;
     if (!widget.allowCancellation) return;
     final request = widget.request;
     _publish(

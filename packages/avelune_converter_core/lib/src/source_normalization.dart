@@ -960,6 +960,8 @@ final class _SourceNormalizationRun {
         'Data/Tilesets.rxdata',
         if (includeEventSystem) 'Data/System.rxdata',
         if (includeEventSystem) 'Data/CommonEvents.rxdata',
+        if (includeEventSystem && interpretationProfile?.sections.containsKey('events.Settings') == true)
+          'Data/Scripts.rxdata',
         if (includeConnections) 'Data/map_connections.dat'
       ])
         if (byPath[sourcePathCollisionKey(path)] != null)
@@ -987,6 +989,12 @@ final class _SourceNormalizationRun {
       plannedBytes += entry.byteLength;
     }
     if (includeEventSystem) {
+      if (interpretationProfile?.sections.containsKey('events.Settings') == true) {
+        final scriptsEntry = byPath[sourcePathCollisionKey('Data/Scripts.rxdata')];
+        if (scriptsEntry != null) {
+          await load(scriptsEntry);
+        }
+      }
       final systemEntry = byPath[sourcePathCollisionKey('Data/System.rxdata')];
       if (systemEntry == null) {
         diagnostic(

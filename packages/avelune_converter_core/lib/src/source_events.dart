@@ -21,6 +21,8 @@ final class _SourceOpaqueCommandReader {
   final switchWrites = <int>{};
   final commonEventCalls = <int>{};
   bool dynamicVariableWrite = false;
+  bool moneyWrite = false;
+  bool partyWrite = false;
   bool dynamicSwitchWrite = false;
   bool hasAutomaticCommonEvents = false;
   int commandCount = 0;
@@ -86,6 +88,10 @@ final class _SourceOpaqueCommandReader {
           } on FormatException {
             dynamicSwitchWrite = true;
           }
+        case 125:
+          if (collectWriters) moneyWrite = true;
+        case 129:
+          if (collectWriters) partyWrite = true;
         case 209:
           if (parameters.length != 2) throw const FormatException();
           route(parameters[1]);
@@ -180,6 +186,7 @@ enum SourceEventConditionKind {
   selfSwitch,
   variableAtLeast,
   variableComparison,
+  integerComparison,
   pickup,
   itemPresence,
   tempSwitch,
@@ -246,6 +253,8 @@ final class SourceEventCondition {
     this.variableId,
     this.minimum,
     this.comparisonOperator,
+    this.integerLeft,
+    this.integerRight,
     this.reason,
     this.pickup,
     this.sourceItemSymbol,
@@ -260,6 +269,7 @@ final class SourceEventCondition {
   final int? variableId;
   final int? minimum;
   final int? comparisonOperator;
+  final SourceIntegerOperand? integerLeft, integerRight;
   final String? reason;
   final SourcePickupNode? pickup;
   final String? sourceItemSymbol;
@@ -280,6 +290,10 @@ final class SourceEventCondition {
         SourceEventConditionKind.variableComparison =>
           variableId != null && minimum != null && factId != null &&
           comparisonOperator != null && comparisonOperator! >= 0 && comparisonOperator! <= 5,
+        SourceEventConditionKind.integerComparison =>
+          integerLeft?.isQualified == true && integerRight?.isQualified == true &&
+          integerLeft?.kind != SourceIntegerOperandKind.random && integerRight?.kind != SourceIntegerOperandKind.random &&
+          comparisonOperator != null && comparisonOperator! >= 0 && comparisonOperator! <= 5,
         SourceEventConditionKind.pickup => pickup != null,
         SourceEventConditionKind.itemPresence => sourceItemSymbol != null,
         SourceEventConditionKind.tempSwitch => const {'A','B','C','D'}.contains(tempSwitchLetter),
@@ -292,6 +306,8 @@ final class SourceEventCondition {
       {Map<String, bool> facts = const {},
       Map<int, int> variables = const {},
       Map<String, int> itemQuantities = const {},
+      int? money,
+      int? partyCount,
       Map<String, bool>? eventTempSwitches,
       bool? playerOnEvent,
       int? playerFacing}) {
@@ -303,6 +319,8 @@ final class SourceEventCondition {
           facts: facts,
           variables: variables,
           itemQuantities: itemQuantities,
+          money: money,
+          partyCount: partyCount,
           eventTempSwitches: eventTempSwitches,
           playerOnEvent: playerOnEvent,
           playerFacing: playerFacing,
@@ -313,6 +331,15 @@ final class SourceEventCondition {
       return unknown ? null : true;
     }
     if (!isQualified) return null;
+    if (kind == SourceEventConditionKind.integerComparison) {
+      final left = integerLeft!.evaluate(variables: variables, money: money, partyCount: partyCount);
+      final right = integerRight!.evaluate(variables: variables, money: money, partyCount: partyCount);
+      if (left == null || right == null) return null;
+      return switch (comparisonOperator!) {
+        0 => left == right, 1 => left >= right, 2 => left <= right,
+        3 => left > right, 4 => left < right, _ => left != right,
+      };
+    }
     return switch (kind) {
       SourceEventConditionKind.always => true,
       SourceEventConditionKind.globalSwitch ||
@@ -346,8 +373,11 @@ final class SourceEventCondition {
         'expectedValue': expectedValue,
         'variableId': variableId,
         'minimum': minimum,
-        if (kind == SourceEventConditionKind.variableComparison)
+        if (kind == SourceEventConditionKind.variableComparison || kind == SourceEventConditionKind.integerComparison)
           'comparisonOperator': comparisonOperator,
+        if (kind == SourceEventConditionKind.integerComparison) ...{
+          'integerLeft': integerLeft?.toJson(), 'integerRight': integerRight?.toJson(),
+        },
         'reason': reason,
         'pickup': pickup?.toJson(),
         if (kind == SourceEventConditionKind.itemPresence)
@@ -425,15 +455,17 @@ final class SourceAnnotationNode extends SourceEventNode {
 
 final class SourceVariableSetNode extends SourceEventNode {
   SourceVariableSetNode(super.span, {required this.firstId, required this.lastId,
-    required this.sourceValue, required List<String> factIds})
+    required this.sourceValue, required List<String> factIds, this.preserveEqual = false})
       : factIds = List.unmodifiable(factIds);
   final int firstId, lastId, sourceValue;
+  final bool preserveEqual;
   final List<String> factIds;
   int get value => sourceValue.clamp(-99999999, 99999999);
   Map<String, Object?> toJson() => {
     'kind': 'integerVariableSet', 'span': span.toJson(),
     'firstId': firstId, 'lastId': lastId, 'sourceValue': sourceValue,
     'value': value, 'factIds': factIds, 'operator': 'set', 'operand': 'literal',
+    'preserveEqual': preserveEqual,
   };
 }
 
@@ -1203,6 +1235,8 @@ final class SourceEventAnalyzer {
     Set<int> switchWrites,
     Set<int> commonEventCalls,
     bool dynamicVariableWrite,
+    bool moneyWrite,
+    bool partyWrite,
     bool dynamicSwitchWrite,
     bool hasAutomaticEvents,
     bool present,
@@ -1223,6 +1257,8 @@ final class SourceEventAnalyzer {
         switchWrites: const {},
         commonEventCalls: const {},
         dynamicVariableWrite: false,
+        moneyWrite: false,
+        partyWrite: false,
         dynamicSwitchWrite: false,
         hasAutomaticEvents: false,
         present: false,
@@ -1241,6 +1277,8 @@ final class SourceEventAnalyzer {
             switchWrites: Set.unmodifiable(reader.switchWrites),
             commonEventCalls: Set.unmodifiable(reader.commonEventCalls),
             dynamicVariableWrite: reader.dynamicVariableWrite,
+            moneyWrite: reader.moneyWrite,
+            partyWrite: reader.partyWrite,
             dynamicSwitchWrite: reader.dynamicSwitchWrite,
             hasAutomaticEvents: reader.hasAutomaticCommonEvents,
             present: true,
@@ -1253,6 +1291,8 @@ final class SourceEventAnalyzer {
             switchWrites: Set.unmodifiable(reader.switchWrites),
             commonEventCalls: Set.unmodifiable(reader.commonEventCalls),
             dynamicVariableWrite: true,
+            moneyWrite: true,
+            partyWrite: true,
             dynamicSwitchWrite: true,
             hasAutomaticEvents: reader.hasAutomaticCommonEvents,
             present: true,
@@ -1267,6 +1307,8 @@ final class SourceEventAnalyzer {
       switchWrites: const {},
       commonEventCalls: const {},
       dynamicVariableWrite: true,
+      moneyWrite: true,
+      partyWrite: true,
       dynamicSwitchWrite: true,
       hasAutomaticEvents: false,
       present: true,
@@ -1304,6 +1346,7 @@ final class SourceEventAnalyzer {
   }
 
   late final List<String?>? _variableNames = _systemNames('@variables');
+  late final int? _moneyMaximum = sourceEventMoneyMaximum(project);
 
   bool _validVariable(int id) => id >= 1 && id <= 5000 &&
       _variableNames != null && id < _variableNames.length && _variableNames[id] != null;
@@ -1642,6 +1685,7 @@ final class _SourceEventParser {
   final ({SourceSemanticFile file, int nodeId})? rawCommon;
   final List<int> callStack;
   final _SourceCallBudget callBudget;
+  late final Map<String, List<int>> _labelPositions = _indexLabels();
   MarshalDocument get _document => rawCommon?.file.document ??
       analyzer.project.sourceFiles[rawPage!.fileId]!.document;
   final diagnostics = <SourceEventDiagnostic>[];
@@ -1677,7 +1721,7 @@ final class _SourceEventParser {
     return block;
   }
 
-  SourceEventBlock _block(int indent) {
+  SourceEventBlock _block(int indent, {bool stopAtLoopBreak = false}) {
     final first = index;
     final initialDiagnostics = diagnostics.length;
     final nodes = <SourceEventNode>[];
@@ -1695,6 +1739,7 @@ final class _SourceEventParser {
     while (index < commands.length) {
       final command = commands[index];
       if (command.indent < indent) break;
+      if (stopAtLoopBreak && command.indent == indent && command.code == 113) break;
       if (command.indent != indent) {
         nodes.add(_unknown('events.invalid_command_indent'));
         continue;
@@ -2033,6 +2078,38 @@ final class _SourceEventParser {
   SourceEventNode _node(int indent) {
     final command = commands[index];
     switch (command.code) {
+      case 103:
+        final values = _literalIntegerParameters(command, 2);
+        if (!analyzer._validVariable(values[0])) return _unknown('events.invalid_variable_metadata');
+        if (values[1] < 1 || values[1] > 9) return _unknown('events.integer_input_digits_unsupported');
+        if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+        final current = index++;
+        return SourceIntegerInputNode(_span(current, current), variableId: values[0],
+          factId: analyzer.variableFactId(values[0]), digits: values[1], profileHash: analyzer.profile.canonicalHash);
+      case 112:
+        return _finiteLoop(indent);
+      case 118:
+        final label = _label(command);
+        final current = index++;
+        return SourceAnnotationNode(_span(current, current), ['sourceLabel:$label']);
+      case 119:
+        return _forwardJump(indent);
+      case 124:
+        final values = _literalIntegerParameters(command, 2);
+        if (!const {0, 1}.contains(values[0]) || values[1] < 0) throw const FormatException();
+        return _unknown('events.persistent_timer_unsupported');
+      case 125:
+        if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+        final values = _literalIntegerParameters(command, 3);
+        if (!const {0, 1}.contains(values[0]) || !const {0, 1}.contains(values[1])) throw const FormatException();
+        final maximum = analyzer._moneyMaximum;
+        if (maximum == null) return _unknown('events.money_bounds_unqualified');
+        if (values[1] == 1 && !analyzer._validVariable(values[2])) return _unknown('events.invalid_variable_metadata');
+        final operand = values[1] == 0 ? SourceIntegerOperand.literal(values[2])
+          : SourceIntegerOperand.variable(values[2], analyzer.variableFactId(values[2]));
+        final current = index++;
+        return SourceMoneyAdjustmentNode(_span(current, current), subtract: values[0] == 1,
+          operand: operand, maximum: maximum, profileHash: analyzer.profile.canonicalHash);
       case 101:
         final first = index;
         _arity(command.parameters, 1);
@@ -2087,10 +2164,11 @@ final class _SourceEventParser {
       case 117:
         return _commonEvent();
       case 122:
-        final values = _literalIntegerParameters(command, 5);
-        if (!const [0, 1, 2].contains(values[2]) || values[3] != 0) {
-          return _unknown('events.dynamic_variable_assignment');
+        if (command.parameters.length < 4) throw const FormatException();
+        if (!const [0, 1, 2].contains(command.parameters[2]) || command.parameters[3] != 0) {
+          return _variableCalculation();
         }
+        final values = _literalIntegerParameters(command, 5);
         final first = values[0], last = values[1];
         if (last < first || !analyzer._validVariable(first) || !analyzer._validVariable(last)) {
           return _unknown('events.invalid_variable_metadata');
@@ -2106,7 +2184,7 @@ final class _SourceEventParser {
             ]);
         }
         return SourceVariableSetNode(_span(current, current), firstId: first,
-          lastId: last, sourceValue: values[4], factIds: [
+          lastId: last, sourceValue: values[4], preserveEqual: true, factIds: [
             for (var id = first; id <= last; id++) analyzer.variableFactId(id),
           ]);
       case 121:
@@ -2321,6 +2399,107 @@ final class _SourceEventParser {
       default:
         return _unknown('events.unknown_command');
     }
+  }
+
+  SourceEventNode _variableCalculation() {
+    final command = commands[index];
+    final rawKind = _integer(command.parameters[3]);
+    final arity = rawKind == 2 || rawKind == 6 ? 6 : 5;
+    final values = _literalIntegerParameters(command, arity);
+    final first = values[0], last = values[1], operation = values[2];
+    if (first < 1 || last < first || last > 5000 ||
+        Iterable<int>.generate(last - first + 1, (i) => first + i).any((id) => !analyzer._validVariable(id))) {
+      return _unknown('events.invalid_variable_metadata');
+    }
+    if (operation < 0 || operation > 5) return _unknown('events.integer_operation_unsupported');
+    if (last - first + 1 > 1024) return _unknown('events.integer_target_budget_exceeded');
+    if (!analyzer._isQualified) return _unknown('events.unqualified_profile');
+    final SourceIntegerOperand operand;
+    switch (rawKind) {
+      case 0:
+        operand = SourceIntegerOperand.literal(values[4]);
+      case 1:
+        if (!analyzer._validVariable(values[4])) return _unknown('events.invalid_variable_metadata');
+        operand = SourceIntegerOperand.variable(values[4], analyzer.variableFactId(values[4]));
+      case 2:
+        operand = SourceIntegerOperand.random(values[4], values[5]);
+        if (!operand.isQualified) return _unknown('events.integer_random_range_unsupported');
+      case 6:
+        return _unknown('events.character_integer_read_unsupported');
+      case 7:
+        operand = switch (values[4]) {
+          1 => const SourceIntegerOperand.partyCount(),
+          2 => const SourceIntegerOperand.money(),
+          _ => const SourceIntegerOperand.literal(0),
+        };
+        if (!const {1, 2}.contains(values[4])) return _unknown('events.game_integer_read_unsupported');
+      default:
+        return _unknown('events.integer_operand_unsupported');
+    }
+    final current = index++;
+    return SourceVariableCalculationNode(_span(current, current), firstId: first, lastId: last,
+      operation: operation, operand: operand,
+      factIds: [for (var id = first; id <= last; id++) analyzer.variableFactId(id)],
+      profileHash: analyzer.profile.canonicalHash);
+  }
+
+  String _label(SourceCommand command) {
+    _arity(command.parameters, 1);
+    final label = _string(command.parameters.single);
+    final raw = _rawFacingParameters(command, 1);
+    if (_eventLiteralText(_document, raw.single) != label || label.length > 1024) throw const FormatException();
+    return label;
+  }
+
+  Map<String, List<int>> _indexLabels() {
+    final labels = <String, List<int>>{};
+    for (final (position, command) in commands.indexed) {
+      if (command.code == 118) labels.putIfAbsent(_label(command), () => []).add(position);
+    }
+    return labels;
+  }
+
+  SourceEventNode _forwardJump(int indent) {
+    final first = index;
+    final label = _label(commands[first]);
+    final matches = _labelPositions[label] ?? const <int>[];
+    if (matches.isEmpty) return _unknown('events.label_missing');
+    if (matches.length != 1) return _unknown('events.label_ambiguous');
+    final target = matches.single;
+    if (target <= first) return _unknown('events.backward_jump_unsupported');
+    if (commands[target].indent != indent || commands.sublist(first + 1, target).any((c) => c.indent < indent)) {
+      return _unknown('events.cross_scope_jump_unsupported');
+    }
+    index = target + 1;
+    return SourceAnnotationNode(_span(first, target), ['sourceForwardJump:$label']);
+  }
+
+  SourceEventNode _finiteLoop(int indent) {
+    final first = index;
+    _literalIntegerParameters(commands[first], 0);
+    var end = first + 1;
+    while (end < commands.length && !(commands[end].code == 413 && commands[end].indent == indent)) {
+      if (commands[end].indent < indent) return _unknown('events.invalid_loop_structure');
+      end++;
+    }
+    if (end == commands.length) return _unknown('events.invalid_loop_structure');
+    final breaks = [for (var i = first + 1; i < end; i++)
+      if (commands[i].code == 113 && commands[i].indent == indent + 1) i];
+    if (breaks.isEmpty) return _unknown('events.unproven_loop');
+    final breakIndex = breaks.first;
+    if (commands.sublist(first + 1, breakIndex).any((c) => c.code == 112 || c.code == 113 || c.code == 119)) {
+      return _unknown('events.unproven_loop');
+    }
+    _literalIntegerParameters(commands[end], 0);
+    _literalIntegerParameters(commands[breakIndex], 0);
+    index++;
+    final body = _block(indent + 1, stopAtLoopBreak: true);
+    if (index != breakIndex) throw const FormatException();
+    index = end + 1;
+    return SourceConditionalNode(_span(first, end),
+      condition: SourceEventCondition(kind: SourceEventConditionKind.always),
+      whenTrue: body,
+      whenFalse: SourceEventBlock(nodes: [], span: _span(end, end)));
   }
 
   SourceEventNode _wait() {
@@ -2842,15 +3021,28 @@ final class _SourceEventParser {
         return condition;
       case 1:
         final values = _literalIntegerParameters(command, 5);
-        if (values[2] != 0 || values[4] < 0 || values[4] > 5) {
+        if (!const {0, 1}.contains(values[2]) || values[4] < 0 || values[4] > 5) {
           return _unqualifiedEventCondition('events.dynamic_variable_comparison');
         }
-        if (!analyzer._validVariable(values[1])) {
+        if (!analyzer._validVariable(values[1]) || values[2] == 1 && !analyzer._validVariable(values[3])) {
           return _unqualifiedEventCondition('events.invalid_variable_metadata');
+        }
+        if (values[2] == 1) {
+          return SourceEventCondition(kind: SourceEventConditionKind.integerComparison,
+            integerLeft: SourceIntegerOperand.variable(values[1], analyzer.variableFactId(values[1])),
+            integerRight: SourceIntegerOperand.variable(values[3], analyzer.variableFactId(values[3])),
+            comparisonOperator: values[4]);
         }
         return SourceEventCondition(kind: SourceEventConditionKind.variableComparison,
           variableId: values[1], factId: analyzer.variableFactId(values[1]),
           minimum: values[3], comparisonOperator: values[4]);
+      case 7:
+        final values = _literalIntegerParameters(command, 3);
+        if (!const {0, 1}.contains(values[2])) throw const FormatException();
+        return SourceEventCondition(kind: SourceEventConditionKind.integerComparison,
+          integerLeft: const SourceIntegerOperand.money(),
+          integerRight: SourceIntegerOperand.literal(values[1]),
+          comparisonOperator: values[2] == 0 ? 1 : 2);
       case 2:
         _arity(params, 3);
         final letter = _string(params[1]);

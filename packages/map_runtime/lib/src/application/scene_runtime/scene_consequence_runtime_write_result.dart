@@ -5,6 +5,7 @@ enum SceneConsequenceRuntimeWriteStatus {
   failed }
 
 enum SceneConsequenceRuntimeWriteErrorCode {
+  integerOperationRejected,
   unknownFact,
   ambiguousFact,
   invalidFactRuntimeKey,

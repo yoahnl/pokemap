@@ -5,6 +5,9 @@ bool evaluateCanonicalNarrativeFactSceneCondition({
   required GameState gameState,
   required NarrativeFactRuntimeResolver resolver,
 }) {
+  if (source.sourceKind == SceneConditionSourceKind.integerComparison) {
+    return SceneIntegerOperations(resolver).compare(gameState, source);
+  }
   if (source.sourceKind != SceneConditionSourceKind.fact) {
     throw ArgumentError.value(
       source.sourceKind,

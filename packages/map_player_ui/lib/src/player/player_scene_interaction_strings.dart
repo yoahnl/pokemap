@@ -38,6 +38,14 @@ final class PlayerSceneInteractionStrings {
   String validation(SceneInteractionValidationIssue issue) {
     final arguments = issue.arguments;
     return switch (issue.code) {
+      SceneInteractionValidationIssueCode.integerOutOfRange =>
+        _isFrench
+            ? 'Saisissez un entier entre ${arguments['minimum']} et ${arguments['maximum']}.'
+            : 'Enter an integer between ${arguments['minimum']} and ${arguments['maximum']}.',
+      SceneInteractionValidationIssueCode.cancellationForbidden =>
+        _isFrench
+            ? 'Cette saisie doit être validée.'
+            : 'Submit this input to continue.',
       SceneInteractionValidationIssueCode.textTooShort => _isFrench
           ? 'Saisissez au moins ${arguments['minimum']} caractères.'
           : 'Enter at least ${arguments['minimum']} characters.',

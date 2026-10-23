@@ -62,7 +62,15 @@ const _sourceCompositionEntries = <Map<String, Object?>>[
     'source': [122],
     'native': 'integerFact',
     'disposition': 'adaptation',
-    'constraint': 'literalAssignmentOrBoundedAdjustmentAndWriterCensus'
+    'constraint': 'typedSnapshotOperandAndBoundedCalculationAndWriterCensus'
+  },
+  {
+    'kind': 'command', 'source': [103], 'native': 'inputIntegerToFact',
+    'disposition': 'adaptation', 'constraint': 'digits1To9ClampedInitialAndRestoreOnUserCancel'
+  },
+  {
+    'kind': 'command', 'source': [125], 'native': 'adjustMoney',
+    'disposition': 'adaptation', 'constraint': 'signedScalarAndAttestedSettingsLimitClampAndContinue'
   },
   {
     'kind': 'command',
@@ -87,7 +95,8 @@ const _sourceCompositionEntries = <Map<String, Object?>>[
       'globalSwitch',
       'selfSwitch',
       'variableAtLeast',
-      'variableComparison'
+      'variableComparison',
+      'integerComparison'
     ],
     'native': 'typedFactCondition',
     'disposition': 'native',
@@ -109,10 +118,17 @@ const _sourceCompositionEntries = <Map<String, Object?>>[
   },
   {
     'kind': 'command',
-    'source': [112, 113, 118, 119],
+    'source': [112, 113, 413, 118, 119],
+    'native': 'staticallyReducedControlFlow',
+    'disposition': 'adaptation',
+    'constraint': 'provenUnconditionalFirstPassExitOrUniqueForwardLabelInSameBlock'
+  },
+  {
+    'kind': 'command',
+    'source': [124],
     'native': null,
     'disposition': 'refusal',
-    'constraint': 'noUnboundedControlFlowOrArbitraryRuby'
+    'constraint': 'persistentTimerRequiresNativeClockContract'
   },
   {
     'kind': 'command',
@@ -143,7 +159,7 @@ Map<String, Object?> _sourceCompositionContract(SourceEventProfile profile) {
 
   return {
     'contract': 'source-event-composition',
-    'version': 1,
+    'version': 2,
     'identityPolicy': 'engineVersionOnly',
     'qualification':
         profile.isQualified ? 'attestedEngineProfile' : 'unqualified',
@@ -172,6 +188,7 @@ bool _composableCondition(SourceEventCondition condition) =>
       SourceEventConditionKind.variableAtLeast ||
       SourceEventConditionKind.variableComparison =>
         condition.isQualified,
+      SourceEventConditionKind.integerComparison => condition.isQualified,
       SourceEventConditionKind.all =>
         condition.children.every(_composableCondition),
       _ => false,
@@ -179,7 +196,10 @@ bool _composableCondition(SourceEventCondition condition) =>
 
 bool _usesCompositionPrimitives(SourceEventDefinition event) =>
     event.pages.any((page) => _sourceControlNodes(page.body).any(
-        (node) => node is SourceWaitNode || node is SourceCommonEventCallNode));
+        (node) => node is SourceWaitNode || node is SourceCommonEventCallNode ||
+          node is SourceVariableCalculationNode || node is SourceIntegerInputNode ||
+          node is SourceMoneyAdjustmentNode || node is SourceConditionalNode &&
+          const {SourceEventConditionKind.integerComparison, SourceEventConditionKind.always}.contains(node.condition.kind)));
 
 bool _hasAmbiguousCompositionOwner(SourceEventDefinition event) {
   final nodes =
@@ -281,6 +301,15 @@ extension _SourceCompositionQualification on _ProjectionBuilder {
           case SourceVariableAdjustNode():
           case SourceExitEventNode():
             break;
+          case SourceVariableCalculationNode():
+            if (node.profileHash != analysis.profile.canonicalHash || !node.operand.isQualified || node.factIds.length > 1024) return false;
+          case SourceIntegerInputNode():
+            if (node.profileHash != analysis.profile.canonicalHash) {
+              return false;
+            }
+          case SourceMoneyAdjustmentNode():
+            if (node.profileHash != analysis.profile.canonicalHash || !node.operand.isQualified ||
+                node.maximum != sourceEventMoneyMaximum(source)) return false;
           case SourceConditionalNode():
             if (!_composableCondition(node.condition)) return false;
           case SourceCommonEventCallNode():

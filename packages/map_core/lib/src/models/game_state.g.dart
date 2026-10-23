@@ -155,6 +155,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
           readNarrativeFactRuntimeStateJson(json, 'narrativeFactRuntimeState')
               as Map<String, dynamic>,
         ),
+  sceneRandomState: json['sceneRandomState'] == null
+      ? const SceneRandomState.unseeded()
+      : SceneRandomState.fromJson(
+          json['sceneRandomState'] as Map<String, dynamic>,
+        ),
   narrativeEventProgress:
       readNarrativeEventProgressJson(json, 'narrativeEventProgress') == null
       ? const NarrativeEventProgress.empty()
@@ -212,6 +217,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'scriptVariables': instance.scriptVariables.toJson(),
       'storyFlags': instance.storyFlags.toJson(),
       'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
+      'sceneRandomState': instance.sceneRandomState.toJson(),
       'narrativeEventProgress': narrativeEventProgressToJson(
         instance.narrativeEventProgress,
       ),

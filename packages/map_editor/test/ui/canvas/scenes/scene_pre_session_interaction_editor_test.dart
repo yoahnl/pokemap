@@ -12,7 +12,11 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    for (final kind in SceneInteractionRequestKind.values) {
+    for (final kind in const [
+      SceneInteractionRequestKind.message, SceneInteractionRequestKind.text,
+      SceneInteractionRequestKind.choice, SceneInteractionRequestKind.confirmation,
+      SceneInteractionRequestKind.selection,
+    ]) {
       await tester.pumpWidget(
         MaterialApp(
           theme: PokeMapTheme.dark(),
@@ -221,6 +225,7 @@ ScenePreSessionInteractionSpec _interaction(SceneInteractionRequestKind kind) {
     ),
   ];
   return switch (kind) {
+    SceneInteractionRequestKind.integer => throw UnsupportedError('Integer input requires a world Scene transaction.'),
     SceneInteractionRequestKind.message =>
       ScenePreSessionInteractionSpec.message(prompt: prompt),
     SceneInteractionRequestKind.text => ScenePreSessionInteractionSpec.text(

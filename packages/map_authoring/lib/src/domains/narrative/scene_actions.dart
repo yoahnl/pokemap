@@ -30,6 +30,57 @@ final class ScenePreSessionInteractionCueBindingDraft {
 final class SceneActions {
   const SceneActions();
 
+  static const _integerOperandContract = {
+    'kinds': ['literal', 'integerFact', 'gameRead', 'random'],
+    'gameReads': ['money', 'partyCount', 'itemCount'],
+    'integerRange': [-9007199254740991, 9007199254740991],
+    'random': {'allowedOnlyIn': 'calculateIntegerFacts', 'maximumRangeWidth': 4294967296,
+      'state': 'sceneRandomState', 'seed': 'saveIdOnFirstDraw', 'sampling': 'uniformRejectionLcg32',
+      'draw': 'onceBeforeTargetRange', 'replay': 'sameBaseSameDraw', 'saveReload': 'continuesPersistedStream'},
+    'expressions': 'none',
+  };
+  static const _calculateIntegerFactsContract = {
+    'consequenceKind': 'calculateIntegerFacts',
+    'parameters': ['factIds', 'operation', 'operand', 'minimum', 'maximum', 'zeroDivisorPolicy', 'boundaryPolicy'],
+    'factReference': 'oneTo1024KnownUniqueIntegerFacts',
+    'operations': ['assign', 'add', 'subtract', 'multiply', 'floorDivide', 'modulo'],
+    'operand': _integerOperandContract, 'operandSnapshot': 'onceBeforeTargetRange',
+    'zeroDivisorPolicies': ['reject', 'keepValue', 'keepValueForZeroOrOne'],
+    'boundaryPolicies': ['clamp', 'preserveSaturated'], 'intermediates': 'BigInt',
+    'persistentField': 'narrativeFactRuntimeState', 'atomicity': 'sceneTransaction',
+    'projectDimensions': ['twoD', 'threeD'], 'outputPorts': ['completed'],
+  };
+  static const _adjustMoneyContract = {
+    'consequenceKind': 'adjustMoney', 'parameters': ['operation', 'amount', 'minimum', 'maximum', 'expectedBalance'],
+    'operations': ['add', 'subtract'], 'amount': _integerOperandContract,
+    'random': 'forbidden', 'amountValidation': 'signedIntegerVariation', 'bounds': 'nonnegativeExplicitClamped',
+    'expectedBalance': 'optionalExactCommitGuard', 'persistentField': 'trainerProfile.money',
+    'atomicity': 'sceneTransaction', 'projectDimensions': ['twoD', 'threeD'], 'outputPorts': ['completed'],
+  };
+  static const _inputIntegerToFactContract = {
+    'interactiveCommandKind': 'inputIntegerToFact',
+    'parameters': ['factId', 'prompt', 'digits', 'minimum', 'maximum', 'initialValue', 'allowCancel', 'cancellationPolicy'],
+    'factReference': 'knownUniqueIntegerFact', 'digits': [1, 9],
+    'initialValue': 'explicitOrCurrentFactClampedToBounds', 'response': 'typedInteger',
+    'validation': 'integerBoundsDigitsAndRevision', 'cancellationPolicies': ['leaveUnchanged', 'restoreInitialAndComplete'],
+    'persistentField': 'narrativeFactRuntimeState', 'atomicity': 'orderedSceneConsequenceBuffer',
+    'projectDimensions': ['twoD', 'threeD'], 'outputPorts': ['completed', 'cancelled'],
+  };
+  static const _tryPayMoneyContract = {
+    'interactiveCommandKind': 'tryPayMoney', 'parameters': ['amount', 'confirmationPrompt'],
+    'amount': _integerOperandContract, 'random': 'forbidden', 'amountValidation': 'strictlyPositive',
+    'confirmation': 'optional', 'commit': 'exactDebitWithCapturedAmountAndBalanceGuard',
+    'persistentField': 'trainerProfile.money', 'atomicity': 'orderedSceneConsequenceBuffer',
+    'projectDimensions': ['twoD', 'threeD'], 'outputPorts': ['completed', 'insufficientFunds', 'cancelled'],
+  };
+  static const _integerComparisonContract = {
+    'sourceKind': 'integerComparison', 'parameters': ['left', 'comparison', 'right'],
+    'operands': _integerOperandContract, 'random': 'forbidden',
+    'comparisons': ['equals', 'notEquals', 'greaterThan', 'greaterThanOrEqual', 'lessThan', 'lessThanOrEqual'],
+    'state': 'orderedProjectedSceneState', 'commit': 'readDependencyCoherence',
+    'projectDimensions': ['twoD', 'threeD'], 'outputPorts': ['true', 'false'],
+  };
+
   static const _inputTextToFactContract = {
     'interactiveCommandKind': 'inputTextToFact',
     'parameters': ['factId', 'prompt', 'confirmationPrompt', 'constraints', 'presetValues', 'customChoiceLabel', 'presetChoicePrompt'],
@@ -459,7 +510,10 @@ final class SceneActions {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'whiteOut': _whiteOutContract,
+        'calculateIntegerFacts': _calculateIntegerFactsContract,
+        'adjustMoney': _adjustMoneyContract,
         'adjustIntegerFact': _adjustIntegerFactContract,
+        'integerComparison': _integerComparisonContract,
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
@@ -467,6 +521,8 @@ final class SceneActions {
         'markPokemonSeen': _markPokemonSeenContract,
         'setNpcPose': _setNpcPoseContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
+        'inputIntegerToFact': _inputIntegerToFactContract,
+        'tryPayMoney': _tryPayMoneyContract,
         'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'waitForActorRoutes': _waitForActorRoutesContract,
@@ -486,6 +542,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'integerComparison': _integerComparisonContract,
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'pokedexCaughtCount': {
@@ -523,6 +580,8 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'command'],
+        'inputIntegerToFact': _inputIntegerToFactContract,
+        'tryPayMoney': _tryPayMoneyContract,
         'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
@@ -588,6 +647,8 @@ final class SceneActions {
       extensions: const {
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'whiteOut': _whiteOutContract,
+        'calculateIntegerFacts': _calculateIntegerFactsContract,
+        'adjustMoney': _adjustMoneyContract,
         'adjustIntegerFact': _adjustIntegerFactContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
         'setMapEventInstanceBoolean': _setMapEventInstanceBooleanContract,
@@ -595,6 +656,8 @@ final class SceneActions {
         'markPokemonSeen': _markPokemonSeenContract,
         'setNpcPose': _setNpcPoseContract,
         'givePokemonFromCatalog': _givePokemonFromCatalogContract,
+        'inputIntegerToFact': _inputIntegerToFactContract,
+        'tryPayMoney': _tryPayMoneyContract,
         'inputTextToFact': _inputTextToFactContract,
         'receivePokemonFromCatalog': _receivePokemonFromCatalogContract,
         'warp': _warpContract,
@@ -608,6 +671,7 @@ final class SceneActions {
         'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
+        'integerComparison': _integerComparisonContract,
         'partyState': _partyConditionContract,
         'badgeCondition': {
           'sourceKind': 'badge',

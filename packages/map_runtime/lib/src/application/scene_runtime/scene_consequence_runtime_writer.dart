@@ -196,6 +196,10 @@ final class SceneConsequenceRuntimeWriter {
         consequence as SceneSetFactConsequence,
         factWriter,
       ),
+      SceneConsequenceKind.calculateIntegerFacts => _integerWriteResult(
+        SceneIntegerOperations(factWriter.resolver).calculate(gameState, consequence as SceneCalculateIntegerFactsConsequence)),
+      SceneConsequenceKind.adjustMoney => _integerWriteResult(
+        SceneIntegerOperations(factWriter.resolver).adjustMoney(gameState, consequence as SceneAdjustMoneyConsequence)),
       SceneConsequenceKind.adjustIntegerFact => _factWriteResult(
         factWriter.adjustIntegerFact(
           gameState: gameState,
@@ -722,6 +726,16 @@ final class SceneConsequenceRuntimeWriter {
       ),
     );
   }
+
+  _SceneConsequenceRuntimeWriteStep _integerWriteResult(SceneIntegerOperationResult result) =>
+    result.success ? _SceneConsequenceRuntimeWriteStep.applied(result.gameState) :
+      _SceneConsequenceRuntimeWriteStep.failed(switch (result.error!) {
+        SceneIntegerOperationError.unknownFact => SceneConsequenceRuntimeWriteErrorCode.unknownFact,
+        SceneIntegerOperationError.ambiguousFact => SceneConsequenceRuntimeWriteErrorCode.ambiguousFact,
+        SceneIntegerOperationError.invalidRuntimeKey => SceneConsequenceRuntimeWriteErrorCode.invalidFactRuntimeKey,
+        SceneIntegerOperationError.typeMismatch => SceneConsequenceRuntimeWriteErrorCode.factTypeMismatch,
+        _ => SceneConsequenceRuntimeWriteErrorCode.integerOperationRejected,
+      }, 'Integer operation rejected: ${result.error!.name}.');
 
   _SceneConsequenceRuntimeWriteStep _applySetNpcPose(GameState gameState, SceneSetNpcPoseConsequence consequence) {
     final map = mapsById[consequence.mapId];

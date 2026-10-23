@@ -1,3 +1,4 @@
+import '../models/scene_interactive_command.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
 import '../models/enums.dart';
 import '../models/map_data.dart';
@@ -358,6 +359,12 @@ Iterable<FactManagerUsage> _collectFactUsages(ProjectManifest project) sync* {
       final payload = node.payload;
       if (payload is SceneConditionPayload) {
         final source = payload.conditionSource;
+        if (source?.sourceKind == SceneConditionSourceKind.integerComparison) {
+          for (final id in {...source!.integerLeft!.referencedFactIds, ...source.integerRight!.referencedFactIds}) {
+            yield FactManagerUsage(kind: FactManagerUsageKind.sceneCondition, factId: id,
+              ownerId: scene.id, ownerLabel: scene.name, details: 'Comparaison entière ${node.title ?? node.id}');
+          }
+        }
         if (source?.sourceKind == SceneConditionSourceKind.fact) {
           yield FactManagerUsage(
             kind: FactManagerUsageKind.sceneCondition,
@@ -370,6 +377,18 @@ Iterable<FactManagerUsage> _collectFactUsages(ProjectManifest project) sync* {
       }
       if (payload is SceneActionPayload) {
         final consequence = payload.consequence;
+        final integerFactIds = <String>{
+          if (consequence is SceneCalculateIntegerFactsConsequence) ...consequence.factIds,
+          if (consequence is SceneCalculateIntegerFactsConsequence) ...consequence.operand.referencedFactIds,
+          if (consequence is SceneAdjustMoneyConsequence) ...consequence.amount.referencedFactIds,
+          if (payload.interactiveCommand case SceneInputIntegerToFactInteractiveCommand(:final factId)) factId,
+          if (payload.interactiveCommand case SceneTryPayMoneyInteractiveCommand(:final amount)) ...amount.referencedFactIds,
+        };
+        for (final id in integerFactIds) {
+          yield FactManagerUsage(kind: FactManagerUsageKind.sceneConsequence, factId: id,
+            ownerId: scene.id, ownerLabel: scene.name, details: 'Commande entière ${node.title ?? node.id}');
+        }
+
         if (consequence is SceneAdjustIntegerFactConsequence) {
           yield FactManagerUsage(
             kind: FactManagerUsageKind.sceneConsequence,

@@ -98,6 +98,7 @@ Future<ScenePreSessionInteractionDraft?> showScenePreSessionInteractionEditor({
 
 String scenePreSessionInteractionKindLabel(SceneInteractionRequestKind kind) =>
     switch (kind) {
+      SceneInteractionRequestKind.integer => 'Nombre',
       SceneInteractionRequestKind.message => 'Message',
       SceneInteractionRequestKind.text => 'Saisie',
       SceneInteractionRequestKind.choice => 'Choix',
@@ -484,6 +485,7 @@ class _ScenePreSessionInteractionEditorState
           ? _configuredOptions
           : _narrativeOptions();
       return switch (widget.kind) {
+        SceneInteractionRequestKind.integer => throw UnsupportedError('Integer input requires a world Scene.'),
         SceneInteractionRequestKind.message =>
           ScenePreSessionInteractionSpec.message(prompt: prompt),
         SceneInteractionRequestKind.choice =>

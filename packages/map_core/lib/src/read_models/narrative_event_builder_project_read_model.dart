@@ -1546,6 +1546,14 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
                 'Définit « ${label ?? factLabels[factId] ?? 'Fact lié'} » à ${_narrativeValueLabel(narrativeValue)}.',
             debugReference: 'fact:${_debugIdentity(factId)}',
           ),
+        SceneCalculateIntegerFactsConsequence(:final factIds, :final operation) =>
+          NarrativeEventProjectedConsequenceSummary(kind: consequence.kind,
+            humanLabel: 'Calcule ${factIds.length} compteur(s) : ${operation.name}.',
+            debugReference: factIds.map((id) => 'fact:${_debugIdentity(id)}').join(', ')),
+        SceneAdjustMoneyConsequence(:final operation) =>
+          NarrativeEventProjectedConsequenceSummary(kind: consequence.kind,
+            humanLabel: operation.name == 'add' ? 'Ajoute une variation au solde.' : 'Retire une variation du solde.',
+            debugReference: 'trainerProfile.money'),
         SceneAdjustIntegerFactConsequence(
           :final factId,
           :final delta,
@@ -1658,6 +1666,7 @@ String _projectedConsequenceKey(SceneConsequence consequence) {
   return switch (consequence) {
     SceneSetFactConsequence(:final factId, :final narrativeValue) =>
       'setFact|${_debugIdentity(factId)}|${narrativeValue.toJson()}',
+    SceneCalculateIntegerFactsConsequence() || SceneAdjustMoneyConsequence() => consequence.toJson().toString(),
     SceneAdjustIntegerFactConsequence(
       :final factId,
       :final delta,

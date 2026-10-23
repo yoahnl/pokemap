@@ -4,6 +4,7 @@ import 'enums.dart';
 import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
+import 'scene_random_state.dart';
 import 'player_pause_menu_state.dart';
 import 'player_spatial_position.dart';
 import 'spatial_world_state.dart';
@@ -122,6 +123,7 @@ abstract class GameState with _$GameState {
     @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
     @Default(NarrativeFactRuntimeState.empty())
     NarrativeFactRuntimeState narrativeFactRuntimeState,
+    @Default(SceneRandomState.unseeded()) SceneRandomState sceneRandomState,
     @JsonKey(
       readValue: readNarrativeEventProgressJson,
       toJson: narrativeEventProgressToJson,

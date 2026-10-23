@@ -4,6 +4,7 @@ import '../models/scene_warp_presentation.dart';
 import '../models/dialogue_line_feedback.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_integer_operand.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/scene_finish_game_contract.dart';
@@ -24,26 +25,92 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
   int integer(String id, {int fallback = 1}) =>
       int.tryParse(parameters[id] ?? '') ?? fallback;
   return switch (commandId) {
+    NarrativeCommandIds.calculateIntegerFacts => SceneActionPayload.consequence(
+      SceneCalculateIntegerFactsConsequence(
+        factIds: (jsonDecode(parameters['factIds']!) as List).cast<String>(),
+        operation: sceneIntegerEnum(
+          SceneIntegerOperation.values,
+          parameters['operation'],
+        ),
+        operand: _integerOperandFromParameters(parameters),
+        minimum: int.parse(parameters['minimum']!),
+        maximum: int.parse(parameters['maximum']!),
+        zeroDivisorPolicy: sceneIntegerEnum(
+          SceneZeroDivisorPolicy.values,
+          parameters['zeroDivisorPolicy'] ?? 'reject',
+        ),
+        boundaryPolicy: sceneIntegerEnum(
+          SceneIntegerBoundaryPolicy.values,
+          parameters['boundaryPolicy'] ?? 'clamp',
+        ),
+      ),
+    ),
+    NarrativeCommandIds.adjustMoney => SceneActionPayload.consequence(
+      SceneAdjustMoneyConsequence(
+        operation: sceneIntegerEnum(
+          SceneMoneyOperation.values,
+          parameters['operation'],
+        ),
+        amount: _integerOperandFromParameters(parameters),
+        minimum: int.parse(parameters['minimum']!),
+        maximum: int.parse(parameters['maximum']!),
+      ),
+    ),
+    NarrativeCommandIds.inputIntegerToFact => SceneActionPayload.interactive(
+      SceneInputIntegerToFactInteractiveCommand(
+        factId: parameters['factId']!,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'scene.inputIntegerToFact.prompt',
+          fallbackText: parameters['prompt'],
+        ),
+        digits: int.parse(parameters['digits']!),
+        minimum: int.parse(parameters['minimum']!),
+        maximum: int.parse(parameters['maximum']!),
+        initialValue: (parameters['initialValue'] ?? '').isEmpty
+            ? null
+            : int.parse(parameters['initialValue']!),
+        allowCancel: parameters['allowCancel'] != 'false',
+        cancellationPolicy: sceneIntegerEnum(SceneIntegerCancellationPolicy.values, parameters['cancellationPolicy'] ?? 'leaveUnchanged'),
+      ),
+    ),
+    NarrativeCommandIds.tryPayMoney => SceneActionPayload.interactive(
+      SceneTryPayMoneyInteractiveCommand(
+        amount: _integerOperandFromParameters(parameters),
+        confirmationPrompt:
+            (parameters['confirmationPrompt'] ?? '').trim().isEmpty
+            ? null
+            : SceneInteractionPrompt(
+                localizationKey: 'scene.tryPayMoney.confirmation',
+                fallbackText: parameters['confirmationPrompt'],
+              ),
+      ),
+    ),
     NarrativeCommandIds.inputTextToFact => SceneActionPayload.interactive(
       SceneInteractiveCommand.inputTextToFact(
         factId: parameters['factId']!,
-        prompt: SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.prompt', fallbackText: parameters['prompt']),
-        confirmationPrompt: SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.confirmation', fallbackText: parameters['confirmationPrompt']),
-        constraints: SceneTextInputConstraints(minGraphemes: int.parse(parameters['minGraphemes']!), maxGraphemes: int.parse(parameters['maxGraphemes']!)),
+        prompt: SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.prompt', fallbackText: parameters['prompt'],
+        ),
+        confirmationPrompt: SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.confirmation', fallbackText: parameters['confirmationPrompt'],
+        ),
+        constraints: SceneTextInputConstraints(minGraphemes: int.parse(parameters['minGraphemes']!), maxGraphemes: int.parse(parameters['maxGraphemes']!),
+        ),
         presetValues: const LineSplitter().convert(parameters['presetValues'] ?? '').map((value) => value.trim()).where((value) => value.isNotEmpty).toList(),
         customChoiceLabel: (parameters['presetValues'] ?? '').trim().isEmpty ? null : ((parameters['customChoiceLabel'] ?? '').trim().isEmpty ? 'Personnalisé' : parameters['customChoiceLabel']),
-        presetChoicePrompt: (parameters['presetValues'] ?? '').trim().isEmpty ? null : SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.choice', fallbackText: (parameters['presetChoicePrompt'] ?? '').trim().isEmpty ? parameters['prompt'] : parameters['presetChoicePrompt']),
+        presetChoicePrompt: (parameters['presetValues'] ?? '').trim().isEmpty ? null : SceneInteractionPrompt(localizationKey: 'scene.inputTextToFact.choice', fallbackText: (parameters['presetChoicePrompt'] ?? '').trim().isEmpty ? parameters['prompt'] : parameters['presetChoicePrompt'],
+              ),
       ),
     ),
     NarrativeCommandIds.setMapEventInstanceBoolean =>
-      SceneActionPayload.consequence(_mapEventInstanceBooleanConsequence(parameters)),
+      SceneActionPayload.consequence(_mapEventInstanceBooleanConsequence(parameters),
+      ),
     NarrativeCommandIds.setFact => SceneActionPayload.consequence(
       SceneConsequence.setFact(
         factId: parameters['factId']!,
         value: parameters['value'] == 'true',
       ),
     ),
-    NarrativeCommandIds.adjustIntegerFact => _buildIntegerFactAdjustment(parameters),
+    NarrativeCommandIds.adjustIntegerFact => _buildIntegerFactAdjustment(parameters,
+    ),
     NarrativeCommandIds.setPlayerAvatar => SceneActionPayload.consequence(
       SceneConsequence.setPlayerAvatar(
         characterId: parameters['characterId'] ?? '',
@@ -94,7 +161,8 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         _catalogGiftParameters(commandId, parameters),
       ),
     ),
-    NarrativeCommandIds.markPokemonSeen => SceneActionPayload.consequence(SceneConsequence.markPokemonSeen(speciesId: parameters['speciesId']!)),
+    NarrativeCommandIds.markPokemonSeen => SceneActionPayload.consequence(SceneConsequence.markPokemonSeen(speciesId: parameters['speciesId']!),
+    ),
     NarrativeCommandIds.givePokemonFromCatalog => SceneActionPayload.consequence(
       SceneGivePokemonFromCatalogConsequence.fromJson(
         _catalogGiftParameters(commandId, parameters),
@@ -169,7 +237,8 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         ),
       ),
     NarrativeCommandIds.warp => _buildWarpPayload(parameters),
-    NarrativeCommandIds.waitForActorRoutes => _buildWaitForActorRoutesPayload(parameters),
+    NarrativeCommandIds.waitForActorRoutes => _buildWaitForActorRoutesPayload(parameters,
+    ),
     NarrativeCommandIds.wait => _buildWaitPayload(parameters),
     NarrativeCommandIds.worldTone => _buildWorldTonePayload(parameters),
     NarrativeCommandIds.sceneMusic => _buildSceneMusicPayload(parameters),
@@ -200,7 +269,8 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     ),
     NarrativeCommandIds.whiteOut => parameters.isEmpty
         ? SceneActionPayload.interactive(SceneInteractiveCommand.whiteOut())
-        : throw const FormatException('White-out commands do not accept options.'),
+        : throw const FormatException('White-out commands do not accept options.',
+            ),
     NarrativeCommandIds.openPartyTrade =>
       parameters.isEmpty
           ? SceneActionPayload.interactive(
@@ -210,8 +280,10 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
               'Party trade commands do not accept options.',
             ),
     NarrativeCommandIds.openRegionalMap => parameters.isEmpty
-        ? SceneActionPayload.interactive(SceneInteractiveCommand.openRegionalMap())
-        : throw const FormatException('Regional map commands do not accept options.'),
+        ? SceneActionPayload.interactive(SceneInteractiveCommand.openRegionalMap(),
+            )
+        : throw const FormatException('Regional map commands do not accept options.',
+            ),
     NarrativeCommandIds.setPropState => SceneActionPayload.interactive(
       SceneInteractiveCommand.fromJson({
         'kind': 'setPropState',
@@ -287,13 +359,15 @@ SceneActionPayload _buildIntegerFactAdjustment(Map<String, String> parameters) {
   const fields = {'factId', 'delta', 'minimum', 'maximum'};
   if (parameters.length != fields.length ||
       !fields.every(parameters.containsKey)) {
-    throw const FormatException('An integer adjustment requires its Fact and all three numeric fields.');
+    throw const FormatException('An integer adjustment requires its Fact and all three numeric fields.',
+    );
   }
   int value(String key) {
     final raw = parameters[key]!;
     final parsed = int.tryParse(raw);
     if (parsed == null || parsed.toString() != raw) {
-      throw FormatException('Integer adjustment $key must be a canonical integer.');
+      throw FormatException('Integer adjustment $key must be a canonical integer.',
+      );
     }
     return parsed;
   }
@@ -302,14 +376,16 @@ SceneActionPayload _buildIntegerFactAdjustment(Map<String, String> parameters) {
     delta: value('delta'),
     minimum: value('minimum'),
     maximum: value('maximum'),
-  ));
+  ),
+  );
 }
 Map<String, dynamic> _catalogGiftParameters(
   String commandId,
   Map<String, String> parameters,
 ) {
   if (parameters.containsKey('kind')) {
-    throw const FormatException('Gift parameters cannot replace the command kind.');
+    throw const FormatException('Gift parameters cannot replace the command kind.',
+    );
   }
   return {
   'kind': commandId,
@@ -318,22 +394,26 @@ Map<String, dynamic> _catalogGiftParameters(
       'level' || 'nicknameMaxGraphemes' => int.tryParse(entry.value),
       'moveIds' => switch (jsonDecode(entry.value)) {
         final List<dynamic> values => values,
-        _ => throw const FormatException('Imposed gift moves must be a JSON list.'),
+        _ => throw const FormatException('Imposed gift moves must be a JSON list.',
+          ),
       },
       _ => entry.value,
     },
   };
 }
 
-SceneActionPayload _buildWaitForActorRoutesPayload(Map<String, String> parameters) {
+SceneActionPayload _buildWaitForActorRoutesPayload(Map<String, String> parameters,
+) {
   _requirePresentationParameters(parameters, const {'mapId'});
-  return SceneActionPayload.interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: parameters['mapId']!));
+  return SceneActionPayload.interactive(SceneInteractiveCommand.waitForActorRoutes(mapId: parameters['mapId']!),
+  );
 }
 
 SceneActionPayload _buildWaitPayload(Map<String, String> parameters) {
   _requirePresentationParameters(parameters, const {'durationMs'});
   return SceneActionPayload.interactive(
-    SceneInteractiveCommand.wait(durationMs: int.parse(parameters['durationMs']!)),
+    SceneInteractiveCommand.wait(durationMs: int.parse(parameters['durationMs']!),
+    ),
   );
 }
 
@@ -466,16 +546,19 @@ SceneActionPayload buildSceneRailJourneyPayload(
   );
 }
 
-SceneConsequence _mapEventInstanceBooleanConsequence(Map<String, String> parameters) {
+SceneConsequence _mapEventInstanceBooleanConsequence(Map<String, String> parameters,
+) {
   const fields = {'mapId', 'eventId', 'key', 'value'};
   if (parameters.length != fields.length || !parameters.keys.every(fields.contains) ||
       (parameters['value'] != 'true' && parameters['value'] != 'false')) {
     throw ArgumentError.value(parameters, 'parameters',
-        'Instance boolean requires mapId, eventId, key and a literal true/false value.');
+        'Instance boolean requires mapId, eventId, key and a literal true/false value.',
+    );
   }
   return SceneConsequence.setMapEventInstanceBoolean(mapId: parameters['mapId']!,
       eventId: parameters['eventId']!, key: parameters['key']!,
-      value: parameters['value'] == 'true');
+      value: parameters['value'] == 'true',
+  );
 }
 
 SceneActionPayload _buildSceneMusicPayload(Map<String, String> parameters) {
@@ -518,3 +601,25 @@ SceneActionPayload _buildMusicEffectPayload(Map<String, String> parameters) {
     ),
   );
 }
+
+SceneIntegerOperand _integerOperandFromParameters(
+  Map<String, String> parameters,
+) => switch (parameters['operandSource']) {
+  'literal' => SceneIntegerOperand.literal(
+    int.parse(parameters['operandValue']!),
+  ),
+  'integerFact' => SceneIntegerOperand.integerFact(
+    parameters['operandFactId']!,
+  ),
+  'money' => SceneIntegerOperand.gameRead(SceneIntegerGameRead.money),
+  'partyCount' => SceneIntegerOperand.gameRead(SceneIntegerGameRead.partyCount),
+  'itemCount' => SceneIntegerOperand.gameRead(
+    SceneIntegerGameRead.itemCount,
+    itemId: parameters['operandItemId']!,
+  ),
+  'random' => SceneIntegerOperand.random(
+    minimum: int.parse(parameters['randomMinimum']!),
+    maximum: int.parse(parameters['randomMaximum']!),
+  ),
+  _ => throw const FormatException('Unknown integer operand source.'),
+};

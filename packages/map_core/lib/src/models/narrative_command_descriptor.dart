@@ -9,6 +9,13 @@ enum NarrativeCommandBackend {
 enum NarrativeCommandCapabilityStatus { supported, unsupported }
 
 enum NarrativeCommandParameterKind {
+  integerCancellationPolicy,
+  integerFacts,
+  integerOperation,
+  integerOperandSource,
+  integerZeroPolicy,
+  integerBoundaryPolicy,
+  moneyOperation,
   text,
   integer,
   number,
