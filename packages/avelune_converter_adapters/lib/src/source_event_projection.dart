@@ -56,6 +56,7 @@ part 'source_starter_choice_projection.dart';
 
 part 'source_door_companion_projection.dart';
 part 'source_direction_unlock_giver_projection.dart';
+part 'source_standard_initialization.dart';
 
 bool _dormantBlankSourceActionPage(SourceEventPageAnalysis page) =>
     page.triggerCode == 0 &&
@@ -1505,10 +1506,19 @@ final class _ProjectionBuilder {
     }
     _projectStarterPassiveActors();
     _projectDoorCompanions();
+    final initializationPages = <ConverterId, SourceEventPageAnalysis>{};
     for (final event in events) {
       final gaps = gapsByEvent[event.identity]!;
+      final initialization = gaps.isNotEmpty
+          ? _standardInitializationPage(event) : null;
       if (gaps.isNotEmpty) {
-        quarantinedCount++;
+        if (initialization == null) {
+          quarantinedCount++;
+        } else {
+          initializationPages[event.identity] = initialization;
+          partiallyAdaptedCount++;
+          _projectStandardInitialization(event, initialization);
+        }
         records.add(NarrativeEventRecord.draft(NarrativeEventDraft(
             id: _eventId(event, 'quarantine'),
             name: _name(event),
@@ -1524,8 +1534,14 @@ final class _ProjectionBuilder {
         'locator': event.locator.toJson(),
         'sourceFileId': event.sourceFileId.value,
         'status':
-            gaps.isNotEmpty ? 'quarantinedWholeEvent' : _oakParcelBinding(event) != null
+            initialization != null ? 'partiallyAdapted' : gaps.isNotEmpty ? 'quarantinedWholeEvent' : _oakParcelBinding(event) != null
                 ? 'partiallyAdapted' : 'adaptedStaticSemantics',
+        if (initialization != null) ...{
+          'nativeStandardInitializationPages': [initialization.originalPageIndex],
+          'quarantinedSourcePages': [for (final page in event.pages)
+            if (page.originalPageIndex != initialization.originalPageIndex) page.originalPageIndex],
+          'nativeStandardInitializationScope': 'highestInvisibleSelfTerminatingPageOnly',
+        },
         if (gaps.isEmpty && _oakParcelBinding(event) != null)
           'nativeOakParcel': _oakParcelBinding(event)!.toJson(),
         'gaps': gaps.toList()..sort(),
@@ -2054,7 +2070,7 @@ final class _ProjectionBuilder {
       });
     }
     final ownersByFact = <String, Set<ConverterId>>{};
-    for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty)) {
+    for (final event in events.where((e) => gapsByEvent[e.identity]!.isEmpty || initializationPages.containsKey(e.identity))) {
       final ids = <String>{};
       if (_introProgram(event) case final intro?) ids.addAll(_introFactIds(intro));
       if (_oakParcelBinding(event) case final oak?) {
@@ -2062,7 +2078,8 @@ final class _ProjectionBuilder {
       }
       if (elevatorPrograms.containsKey(event.identity)) ids.addAll([_elevatorVariableKey(elevatorPrograms[event.identity]!.currentFloorVariableId), _elevatorVariableKey(elevatorPrograms[event.identity]!.selectionVariableId)]);
       ids.addAll(_warpTileFactIds(event));
-      for (final page in event.pages) {
+      for (final page in initializationPages.containsKey(event.identity)
+          ? [initializationPages[event.identity]!] : event.pages) {
         _collectFacts(page.condition, ids);
         if (_oakParcelBinding(event) == null || page.originalPageIndex < 4) {
           _blockFacts(page.body, ids);
@@ -6095,13 +6112,14 @@ final class _SceneBuilder {
     return start;
   }
 
-  SceneAsset build() {
+  SceneAsset build({bool standardInitialization = false}) {
     final end = eventEnd = _node(SceneEndPayload());
     final hole = projection.holePrograms[event.identity];
     final elevator = projection.elevatorPrograms[event.identity];
     final warpTile = projection.warpTilePrograms.programs[event.identity];
     final intro = projection._introProgram(event);
-    final first = intro != null ? _intro(intro, end)
+    final first = standardInitialization ? _block(page.body, end)
+      : intro != null ? _intro(intro, end)
       : projection.starterChoiceBindings.containsKey(event.identity)
       ? _starterChoice(projection.starterChoiceBindings[event.identity]!, end)
       : hole != null ? _hole(hole, end)

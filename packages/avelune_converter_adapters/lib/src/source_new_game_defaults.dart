@@ -38,10 +38,14 @@ final class SourceNewGameDefaultsReader {
     final cancel = cancellation ?? ScanCancellation();
     cancel.check();
     limits.validate();
-    if (source.snapshot.state != SourceScanState.complete) return null;
+    if (source.snapshot.state != SourceScanState.complete) {
+      return null;
+    }
     final inputs = _DefaultsInputs(source, files, limits, cancel);
     final scriptBytes = await inputs.read('Data/Scripts.rxdata');
-    if (scriptBytes == null) return null;
+    if (scriptBytes == null) {
+      return null;
+    }
     final sections = <({String name, String text})>[];
     final engineCatalog = <String>[];
     try {
@@ -64,7 +68,9 @@ final class SourceNewGameDefaultsReader {
         }
         final text = inputs.inflate(body.bytes!, 'Data/Scripts.rxdata');
         final sectionName = name.text().text;
-        if (sectionName == null) return null;
+        if (sectionName == null) {
+          return null;
+        }
         sections.add((name: sectionName, text: utf8.decode(text)));
         engineCatalog
             .add(jsonEncode([sectionName, sha256.convert(text).toString()]));
@@ -74,7 +80,9 @@ final class SourceNewGameDefaultsReader {
     } on FormatException {
       return null;
     }
-    if (!_sameCatalog(engineCatalog, _knownEngineLibraries)) return null;
+    if (!_sameCatalog(engineCatalog, _knownEngineLibraries)) {
+      return null;
+    }
     final witnesses = <Map<String, Object?>>[];
     for (final witness in _defaultWitnesses) {
       final matching = <Map<String, Object?>>[];
@@ -87,17 +95,23 @@ final class SourceNewGameDefaultsReader {
             for (var i = 0; i < lines.length; i++)
               if (lines[i] == witness.$2) i
           ];
-          if (starts.length <= witness.$3) continue;
+          if (starts.length <= witness.$3) {
+            continue;
+          }
           start = starts[witness.$3];
           final indent = witness.$2!.length - witness.$2!.trimLeft().length;
           final closing = '${' ' * indent}end';
           end = lines.indexOf(closing, start + 1);
-          if (end < 0) continue;
+          if (end < 0) {
+            continue;
+          }
         }
         final hash = sha256
             .convert(utf8.encode(lines.sublist(start, end + 1).join('\n')))
             .toString();
-        if (hash != witness.$4) continue;
+        if (hash != witness.$4) {
+          continue;
+        }
         matching.add({
           'library': witness.$1,
           'declaration': witness.$2,
@@ -107,38 +121,50 @@ final class SourceNewGameDefaultsReader {
           'sha256': hash
         });
       }
-      if (matching.length != 1) return null;
+      if (matching.length != 1) {
+        return null;
+      }
       witnesses.add(matching.single);
     }
     final pluginBytes = await inputs.read('Data/PluginScripts.rxdata');
-    if (pluginBytes == null) return null;
+    if (pluginBytes == null) {
+      return null;
+    }
     final pluginCatalog = <String>[];
     final pluginNames = <String>[];
     final pluginBindings = <(String, String)>[];
     try {
       final document = inputs.decode(pluginBytes, 'Data/PluginScripts.rxdata');
       final root = document.node(document.rootId);
-      if (root.kind != MarshalKind.array || root.elements.length > 256)
+      if (root.kind != MarshalKind.array || root.elements.length > 256) {
         return null;
+      }
       for (final id in root.elements) {
         cancel.check();
         final plugin = document.node(id);
-        if (plugin.kind != MarshalKind.array || plugin.elements.length != 3)
+        if (plugin.kind != MarshalKind.array || plugin.elements.length != 3) {
           return null;
+        }
         final name = document.node(plugin.elements[0]).text().text;
-        if (name == null || pluginNames.contains(name)) return null;
+        if (name == null || pluginNames.contains(name)) {
+          return null;
+        }
         pluginNames.add(name);
         final scripts = document.node(plugin.elements[2]);
-        if (scripts.kind != MarshalKind.array) return null;
+        if (scripts.kind != MarshalKind.array) {
+          return null;
+        }
         for (final scriptId in scripts.elements) {
           cancel.check();
           final row = document.node(scriptId);
-          if (row.kind != MarshalKind.array || row.elements.length != 2)
+          if (row.kind != MarshalKind.array || row.elements.length != 2) {
             return null;
+          }
           final path = document.node(row.elements[0]).text().text;
           final compressed = document.node(row.elements[1]);
-          if (path == null || compressed.kind != MarshalKind.string)
+          if (path == null || compressed.kind != MarshalKind.string) {
             return null;
+          }
           final bytes =
               inputs.inflate(compressed.bytes!, 'Data/PluginScripts.rxdata');
           final hash = sha256.convert(bytes).toString();
@@ -154,7 +180,9 @@ final class SourceNewGameDefaultsReader {
       return null;
     }
     if (!_sameCatalog(pluginNames, _knownPluginNames) ||
-        !_sameCatalog(pluginCatalog, _knownPluginLibraries)) return null;
+        !_sameCatalog(pluginCatalog, _knownPluginLibraries)) {
+      return null;
+    }
     final pluginSources = source.snapshot.entries.where((entry) {
       final path = sourcePathCollisionKey(entry.relativePath);
       return entry.kind == SourceNodeKind.file &&
@@ -172,11 +200,16 @@ final class SourceNewGameDefaultsReader {
                 sourcePathCollisionKey(entry.relativePath).endsWith(suffix) &&
                 entry.sha256?.value == binding.$2)
             .toList();
-        if (matches.length != 1 || !matched.add(matches.single.fileId))
+        if (matches.length != 1 || !matched.add(matches.single.fileId)) {
           return null;
-        if (await inputs.read(matches.single.relativePath) == null) return null;
+        }
+        if (await inputs.read(matches.single.relativePath) == null) {
+          return null;
+        }
       }
-      if (matched.length != pluginSources.length) return null;
+      if (matched.length != pluginSources.length) {
+        return null;
+      }
     }
     final values = <String, Object?>{};
     for (final path in [
@@ -185,7 +218,9 @@ final class SourceNewGameDefaultsReader {
       'Data/trainer_types.dat'
     ]) {
       final bytes = await inputs.read(path);
-      if (bytes == null) return null;
+      if (bytes == null) {
+        return null;
+      }
       try {
         final document = inputs.decode(bytes, path);
         values[path] = _MetadataGraph(document, limits, cancel, path)
@@ -197,14 +232,19 @@ final class SourceNewGameDefaultsReader {
     final metadata =
         _record(values['Data/metadata.dat'], 0, 'GameData::Metadata');
     final players = values['Data/player_metadata.dat'];
-    if (players is! Map || players.containsKey(0)) throw _metadataFailure();
+    if (players is! Map || players.containsKey(0)) {
+      throw _metadataFailure();
+    }
     final player = _record(players, 1, 'GameData::PlayerMetadata');
     final trainerType = player['@trainer_type'];
-    if (trainerType is! String) throw _metadataFailure();
+    if (trainerType is! String) {
+      throw _metadataFailure();
+    }
     final trainerTypes = values['Data/trainer_types.dat'];
     final trainer = _record(trainerTypes, trainerType, 'GameData::TrainerType');
-    if ((trainerTypes as Map).keys.first != trainerType)
+    if ((trainerTypes as Map).keys.first != trainerType) {
       throw _metadataFailure();
+    }
     final money = metadata['@start_money'];
     final items = metadata['@start_item_storage'];
     if (money is! int ||
@@ -215,20 +255,26 @@ final class SourceNewGameDefaultsReader {
       throw _metadataFailure();
     }
     final pbsBytes = await inputs.read('PBS/metadata.txt');
-    if (pbsBytes == null) return null;
+    if (pbsBytes == null) {
+      return null;
+    }
     final pbs = _readPbs(pbsBytes, limits, cancel);
     final globalPbs = pbs[0];
     final playerPbs = pbs[1];
     if (globalPbs == null ||
         playerPbs == null ||
         int.tryParse(globalPbs['StartMoney'] ?? '') != money ||
-        playerPbs['TrainerType'] != trainerType) throw _metadataFailure();
+        playerPbs['TrainerType'] != trainerType) {
+      throw _metadataFailure();
+    }
     final pbsItems = (globalPbs['StartItemStorage'] ?? '')
         .split(',')
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-    if (jsonEncode(pbsItems) != jsonEncode(items)) throw _metadataFailure();
+    if (jsonEncode(pbsItems) != jsonEncode(items)) {
+      throw _metadataFailure();
+    }
     for (final field in const {
       'WalkCharset': '@walk_charset',
       'RunCharset': '@run_charset',
@@ -239,10 +285,14 @@ final class SourceNewGameDefaultsReader {
       'SurfFishCharset': '@surf_fish_charset',
       'SpinCharset': '@spin_charset',
     }.entries) {
-      if (playerPbs[field.key] != player[field.value]) throw _metadataFailure();
+      if (playerPbs[field.key] != player[field.value]) {
+        throw _metadataFailure();
+      }
     }
     if (player['@walk_charset'] is! String ||
-        (player['@walk_charset'] as String).isEmpty) throw _metadataFailure();
+        (player['@walk_charset'] as String).isEmpty) {
+      throw _metadataFailure();
+    }
     cancel.check();
     final evidence = <String, Object?>{
       'kind': 'sourceNewGameDefaults',
@@ -309,11 +359,15 @@ final class SourceNewGameDefaultsReader {
 }
 
 bool _sameCatalog(List<String> actual, List<String> known) {
-  if (actual.length != known.length) return false;
+  if (actual.length != known.length) {
+    return false;
+  }
   final left = actual.toList()..sort();
   final right = known.toList()..sort();
   for (var i = 0; i < left.length; i++) {
-    if (left[i] != right[i]) return false;
+    if (left[i] != right[i]) {
+      return false;
+    }
   }
   return true;
 }
@@ -324,10 +378,13 @@ ContractError _metadataFailure() => ContractError(
     'Compiled and declared source new-game metadata must agree.');
 
 Map _record(Object? root, Object id, String type) {
-  if (root is! Map || root[id] is! Map) throw _metadataFailure();
-  final record = root[id] as Map;
-  if (record['__class__'] != type || record['@id'] != id)
+  if (root is! Map || root[id] is! Map) {
     throw _metadataFailure();
+  }
+  final record = root[id] as Map;
+  if (record['__class__'] != type || record['@id'] != id) {
+    throw _metadataFailure();
+  }
   return record;
 }
 
@@ -366,13 +423,17 @@ final class _MetadataGraph {
       case MarshalKind.boolean:
         return node.booleanValue;
       case MarshalKind.integer:
-        if (node.integerValue!.bitLength > 53) throw _metadataFailure();
+        if (node.integerValue!.bitLength > 53) {
+          throw _metadataFailure();
+        }
         return node.integerValue!.toInt();
       case MarshalKind.symbol:
         return node.name;
       case MarshalKind.string:
         final text = node.text().text;
-        if (text == null) throw _metadataFailure();
+        if (text == null) {
+          throw _metadataFailure();
+        }
         return text;
       case MarshalKind.array:
         return [for (final child in node.elements) read(child)];
@@ -385,7 +446,9 @@ final class _MetadataGraph {
             ? node.pairs
             : node.instanceVariables) {
           final key = read(pair.key);
-          if (result.containsKey(key)) throw _metadataFailure();
+          if (result.containsKey(key)) {
+            throw _metadataFailure();
+          }
           result[key] = read(pair.value);
         }
         return result;
@@ -413,20 +476,30 @@ Map<int, Map<String, String>> _readPbs(
           'Source metadata line exceeds its quota.');
     }
     final line = raw.split('#').first.trim();
-    if (line.isEmpty) continue;
+    if (line.isEmpty) {
+      continue;
+    }
     final header = RegExp(r'^\[([0-9]{1,5})\]$').firstMatch(line);
     if (header != null) {
       final id = int.parse(header.group(1)!);
-      if (result.containsKey(id)) throw _metadataFailure();
+      if (result.containsKey(id)) {
+        throw _metadataFailure();
+      }
       current = result[id] = {};
       continue;
     }
     final separator = line.indexOf('=');
-    if (current == null || separator < 1) throw _metadataFailure();
+    if (current == null || separator < 1) {
+      throw _metadataFailure();
+    }
     final key = line.substring(0, separator).trim();
-    if (current.containsKey(key)) throw _metadataFailure();
+    if (current.containsKey(key)) {
+      throw _metadataFailure();
+    }
     final value = line.substring(separator + 1).trim();
-    if (value.contains('"') || value.contains("'")) throw _metadataFailure();
+    if (value.contains('"') || value.contains("'")) {
+      throw _metadataFailure();
+    }
     current[key] = value;
   }
   return result;
@@ -467,11 +540,15 @@ final class _DefaultsInputs {
   Future<List<int>?> read(String path) async {
     cancellation.check();
     final entries = _entriesByPath[sourcePathCollisionKey(path)] ?? const [];
-    if (entries.length != 1) return null;
+    if (entries.length != 1) {
+      return null;
+    }
     final entry = entries.single;
     if (entry.kind != SourceNodeKind.file ||
         entry.sha256 == null ||
-        source.sourceFiles[entry.fileId]?.isAdapted == true) return null;
+        source.sourceFiles[entry.fileId]?.isAdapted == true) {
+      return null;
+    }
     charge(entry.byteLength, path);
     final bytes = await files.read(entry.fileId);
     cancellation.check();

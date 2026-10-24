@@ -38,14 +38,17 @@ Future<LiteralTileFixture> _fixture(
           in pluginRoot.list(recursive: true, followLinks: false)) {
         if (entry is! File ||
             !entry.path.endsWith('.rb') ||
-            entry.path.contains('/Disabled Plugins/')) continue;
+            entry.path.contains('/Disabled Plugins/')) {
+          continue;
+        }
         final path = entry.path.substring(_oracleRoot!.length + 1);
         files[path] = await entry.readAsBytes();
       }
     }
-    if (unknownPlugin)
+    if (unknownPlugin) {
       files['Plugins/Original Unknown Hook/script.rb'] =
           utf8.encode('ORIGINAL_HOOK = 1');
+    }
     if (reverseScripts ||
         changePlayerMethod ||
         duplicateLibrary ||
@@ -66,12 +69,13 @@ Future<LiteralTileFixture> _fixture(
             [document.node(row[0]).integerValue!.toInt(), name, compressed]);
       }
       if (duplicateLibrary) rows.add(rows.first);
-      if (addLibrary)
+      if (addLibrary) {
         rows.add([
           9999,
           'OriginalUnknownHook',
           zlib.encode(utf8.encode('ORIGINAL_HOOK = 1'))
         ]);
+      }
       files['Data/Scripts.rxdata'] =
           _scriptsMarshal(reverseScripts ? rows.reversed.toList() : rows);
     }

@@ -79,7 +79,9 @@ final class SourceSystemEntryBindingResolver {
         files: files,
         limits: limits,
         cancellation: cancellation);
-    if (defaults == null) return null;
+    if (defaults == null) {
+      return null;
+    }
     final avatar = await const SourcePlayerCharacterImporter().read(
         snapshot: source.snapshot,
         files: files,
@@ -251,25 +253,38 @@ final class SourceSystemEntryBindingResolver {
 bool sourceSystemEntryEventsQualified(NormalizedSourceProject source,
     SourceEventProjection projection, int sourceMapId) {
   final profile = SourceEventProfile.forProject(source);
-  if (!profile.isQualified) return false;
+  if (!profile.isQualified) {
+    return false;
+  }
   final analyzer = SourceEventAnalyzer.forProject(source, profile: profile);
   final maps =
       source.maps.where((entry) => entry.map.sourceMapId == sourceMapId);
-  if (maps.length != 1) return false;
+  if (maps.length != 1) {
+    return false;
+  }
   final rows = projection.semanticEvidence['events'];
-  if (rows is! List) return false;
+  if (rows is! List) {
+    return false;
+  }
   for (final raw in maps.single.map.events) {
     if (!raw.pages.any((page) => const {3, 4}.contains(page.triggerCode))) {
       continue;
     }
     final event = analyzer.analyzeEventAt(sourceMapId, raw.sourceEventId);
-    if (event == null) return false;
+    if (event == null) {
+      return false;
+    }
     SourceEventPageAnalysis? selected;
     for (final page in event.pages.reversed) {
       final active = page.condition.evaluate(eventTempSwitches: const {
-        'A':false,'B':false,'C':false,'D':false,
+        'A': false,
+        'B': false,
+        'C': false,
+        'D': false,
       });
-      if (active == null) return false;
+      if (active == null) {
+        return false;
+      }
       if (active) {
         selected = page;
         break;
@@ -284,13 +299,24 @@ bool sourceSystemEntryEventsQualified(NormalizedSourceProject source,
         .whereType<Map>()
         .where((row) => row['sourceIdentity'] == event.identity.value)
         .toList();
-    if (evidence.length != 1 ||
-        evidence.single['status'] != 'adaptedStaticSemantics' ||
-        evidence.single['gaps'] is! List ||
-        (evidence.single['gaps'] as List).isNotEmpty) {
+    if (evidence.length != 1 || evidence.single['gaps'] is! List) {
       return false;
     }
-    if ((evidence.single['nativeIntroduction'] as Map?)?['requiresNativeFreshEntryFactory'] == true) {
+    final row = evidence.single;
+    final fullyAdapted = row['status'] == 'adaptedStaticSemantics' &&
+        (row['gaps'] as List).isEmpty;
+    final admittedPages = row['nativeStandardInitializationPages'];
+    final partialInitialization = row['status'] == 'partiallyAdapted' &&
+        admittedPages is List &&
+        admittedPages.contains(selected.originalPageIndex) &&
+        sourceStandardInitializationPage(event)?.originalPageIndex ==
+            selected.originalPageIndex;
+    if (!fullyAdapted && !partialInitialization) {
+      return false;
+    }
+    if ((evidence.single['nativeIntroduction']
+            as Map?)?['requiresNativeFreshEntryFactory'] ==
+        true) {
       return false;
     }
   }
@@ -308,7 +334,9 @@ bool _passable(NormalizedSourceProject source, MapData map, int sourceMapId,
           layer.collisions[point.y * map.size.width + point.x]) ||
       map.entities.any((entity) =>
           entity.blocksMovement &&
-          resolveEntityCollisionCells(entity).contains(point))) return false;
+          resolveEntityCollisionCells(entity).contains(point))) {
+    return false;
+  }
   final resolver = SourceSemanticResolver.forProject(source);
   return resolver.profile.isQualified &&
       resolver

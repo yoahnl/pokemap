@@ -39,7 +39,10 @@ void main() {
     expect(start.isBoundTo((await fixture(x: 2)).source), isFalse);
   });
   Future<bool> permits(
-      {int? switchId, int trigger = 3, bool adapted = false, bool introFactory = false}) async {
+      {int? switchId,
+      int trigger = 3,
+      bool adapted = false,
+      bool introFactory = false}) async {
     final f = await LiteralTileFixture.create(
         namespace: 'source-system-auto',
         maps: [
@@ -79,7 +82,9 @@ void main() {
             {
               'sourceIdentity': event.value,
               'status': adapted ? 'adaptedStaticSemantics' : 'quarantined',
-              'gaps': [], if(introFactory) 'nativeIntroduction': {'requiresNativeFreshEntryFactory':true}
+              'gaps': [],
+              if (introFactory)
+                'nativeIntroduction': {'requiresNativeFreshEntryFactory': true}
             }
           ]
         },
@@ -99,8 +104,9 @@ void main() {
   test('active adapted autoruns remain executable', () async {
     expect(await permits(adapted: true), isTrue);
   });
-  test('a closed intro factory cannot be bypassed by a direct System start',() async {
-    expect(await permits(adapted:true,introFactory:true),isFalse);
+  test('a closed intro factory cannot be bypassed by a direct System start',
+      () async {
+    expect(await permits(adapted: true, introFactory: true), isFalse);
   });
   test('a nonautomatic quarantined event does not block a source start',
       () async {

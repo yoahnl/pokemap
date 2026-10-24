@@ -35,14 +35,18 @@ final class SourceSystemStart {
 SourceSystemStart? sourceSystemStart(NormalizedSourceProject source) {
   final analyzer = SourceEventAnalyzer.forProject(source,
       profile: SourceEventProfile.forProject(source));
-  if (!analyzer._isQualified) return null;
+  if (!analyzer._isQualified) {
+    return null;
+  }
   try {
     final systems = source.sourceFiles.values.where((file) =>
         sourcePathCollisionKey(file.entry.relativePath) ==
         'data/system.rxdata');
     if (systems.length != 1 ||
         !analyzer._admitted(systems.single) ||
-        systems.single.isAdapted) return null;
+        systems.single.isAdapted) {
+      return null;
+    }
     final system = systems.single;
     final fields =
         _eventFields(system.document, system.document.rootId, 'RPG::System');
@@ -56,7 +60,9 @@ SourceSystemStart? sourceSystemStart(NormalizedSourceProject source) {
         x < 0 ||
         y < 0 ||
         x >= maps.single.map.width ||
-        y >= maps.single.map.height) return null;
+        y >= maps.single.map.height) {
+      return null;
+    }
     return SourceSystemStart._(source.snapshot.canonicalHash,
         source.canonicalHash, system.fileId, system.contentHash, mapId, x, y);
   } on FormatException {

@@ -31,16 +31,24 @@ final class SourceFreshEntryBinding implements SourceNewGameBinding {
         imports = List.unmodifiable(imports),
         evidence = immutableCanonicalJsonOf(evidence) as Map<String, Object?>;
 
+  @override
   final ProjectNewGameConfig config;
+  @override
   final ProjectDefeatRecoveryConfig defeatRecovery;
   final SceneAsset scene;
   @override
   List<SceneAsset> get scenes => [scene];
+  @override
   final List<NativeArtifact> artifacts;
+  @override
   final List<NativeMutation> importMutations, mutations;
+  @override
   final List<NarrativeFactDefinition> facts;
+  @override
   final Map<int, MapData> nativeMaps;
+  @override
   final List<SourcePlayerCharacterImport> imports;
+  @override
   final Map<String, Object?> evidence;
   MapData get startMap => nativeMaps[1]!;
 }
