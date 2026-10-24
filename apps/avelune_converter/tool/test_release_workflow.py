@@ -23,6 +23,7 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.assertEqual(self.workflow.count('contents: write'), 1)
         self.assertEqual(self.workflow.count('environment: pokemap-release'), 2)
         self.assertIn('flutter test ../avelune_studio/test/release/macos_notarization_script_test.dart --concurrency=1', self.workflow)
+        self.assertIn('flutter test ../avelune_studio/test/release/macos_signing_script_test.dart --concurrency=1', self.workflow)
 
     def test_release_is_verified_before_publication_and_feed_promotion(self):
         stages = ['name: Verify immutable release payload', 'name: Create versioned draft',

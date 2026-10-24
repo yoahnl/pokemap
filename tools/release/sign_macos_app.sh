@@ -90,11 +90,11 @@ codesign_arguments+=(--sign "$identity")
 frameworks_path="$app_path/Contents/Frameworks"
 if [[ -d "$frameworks_path" ]]; then
   while IFS= read -r -d '' binary; do
+    if ! /usr/bin/file -b "$binary" | /usr/bin/grep -q 'Mach-O'; then
+      continue
+    fi
     /usr/bin/codesign "${codesign_arguments[@]}" "$binary"
-  done < <(
-    /usr/bin/find "$frameworks_path" -type f \
-      \( -name '*.dylib' -o -perm -111 \) -print0
-  )
+  done < <(/usr/bin/find "$frameworks_path" -type f -print0)
 
   while IFS= read -r -d '' bundle; do
     /usr/bin/codesign "${codesign_arguments[@]}" "$bundle"

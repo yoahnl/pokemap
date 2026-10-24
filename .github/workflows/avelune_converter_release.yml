@@ -127,6 +127,7 @@ jobs:
           flutter pub get
           flutter test --concurrency=1
           flutter test ../avelune_studio/test/release/macos_notarization_script_test.dart --concurrency=1
+          flutter test ../avelune_studio/test/release/macos_signing_script_test.dart --concurrency=1
           flutter analyze
           flutter test test/converter_build_identity_test.dart --plain-name 'release flags reach the running build identity' \
             --dart-define="AVELUNE_CONVERTER_VERSION=$RELEASE_VERSION" \
