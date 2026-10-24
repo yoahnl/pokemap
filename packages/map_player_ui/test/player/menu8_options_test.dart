@@ -128,8 +128,9 @@ void main() {
                       .byKey(ValueKey(key))
                       .hitTestable()
                       .evaluate()
-                      .isNotEmpty)
+                      .isNotEmpty) {
                     seen.add(key);
+                  }
                 }
                 expect(
                   tester.takeException(),
@@ -142,8 +143,9 @@ void main() {
                   matching: find.byKey(const ValueKey('player-page-next')),
                 );
                 if (next.evaluate().isEmpty ||
-                    tester.widget<IconButton>(next).onPressed == null)
+                    tester.widget<IconButton>(next).onPressed == null) {
                   break;
+                }
                 expect(pages++, lessThan(40), reason: category);
                 await tester.tap(next);
                 await tester.pumpAndSettle();

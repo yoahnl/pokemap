@@ -361,8 +361,8 @@ void main() {
                       LayoutBuilder(
                         builder: (context, constraints) {
                           widths.add(constraints.maxWidth);
-                          return const SizedBox(
-                            height: 128,
+                          return SizedBox(
+                            height: atomHeight,
                             child: Text('Retourner au titre ?'),
                           );
                         },

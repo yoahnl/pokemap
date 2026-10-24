@@ -456,7 +456,10 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                                 Padding(
                                   key: ValueKey(_logicalId(action)),
                                   padding: EdgeInsets.only(
-                                    bottom: gap(PlayerSpacing.xs),
+                                    bottom: math.max(
+                                      8.0,
+                                      gap(PlayerSpacing.xs),
+                                    ),
                                   ),
                                   child: PlayerActionButton(
                                     label: _label(context, action),

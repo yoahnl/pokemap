@@ -2,12 +2,16 @@ import 'save_data.dart';
 
 final class SceneBattleDemonstrationChoice {
   SceneBattleDemonstrationChoice.fight(int index)
-    : kind = 'fight', moveIndex = index, itemId = null {
+    : kind = 'fight',
+      moveIndex = index,
+      itemId = null {
     if (index < 0 || index > 3) throw ArgumentError.value(index, 'moveIndex');
   }
 
   SceneBattleDemonstrationChoice.capture(String id)
-    : kind = 'capture', itemId = id, moveIndex = null {
+    : kind = 'capture',
+      itemId = id,
+      moveIndex = null {
     if (id.trim().isEmpty) throw ArgumentError.value(id, 'itemId');
   }
 
@@ -42,8 +46,11 @@ final class SceneBattleDemonstrationChoice {
   };
 
   @override
-  bool operator ==(Object other) => other is SceneBattleDemonstrationChoice &&
-      other.kind == kind && other.moveIndex == moveIndex && other.itemId == itemId;
+  bool operator ==(Object other) =>
+      other is SceneBattleDemonstrationChoice &&
+      other.kind == kind &&
+      other.moveIndex == moveIndex &&
+      other.itemId == itemId;
 
   @override
   int get hashCode => Object.hash(kind, moveIndex, itemId);
@@ -57,33 +64,52 @@ final class SceneBattleDemonstration {
     required List<SceneBattleDemonstrationChoice> choices,
     this.captureAlwaysSucceeds = false,
     this.stepDelayMs = 500,
-  }) : bagItems = List.unmodifiable(bagItems), choices = List.unmodifiable(choices) {
-    if (playerTrainerId.trim().isEmpty) throw ArgumentError.value(playerTrainerId, 'playerTrainerId');
-    if (choices.isEmpty || choices.length > 100) throw ArgumentError.value(choices.length, 'choices');
-    if (stepDelayMs < 50 || stepDelayMs > 10000) throw ArgumentError.value(stepDelayMs, 'stepDelayMs');
+  }) : bagItems = List.unmodifiable(bagItems),
+       choices = List.unmodifiable(choices) {
+    if (playerTrainerId.trim().isEmpty)
+      throw ArgumentError.value(playerTrainerId, 'playerTrainerId');
+    if (choices.isEmpty || choices.length > 100)
+      throw ArgumentError.value(choices.length, 'choices');
+    if (stepDelayMs < 50 || stepDelayMs > 10000)
+      throw ArgumentError.value(stepDelayMs, 'stepDelayMs');
     final ids = <String>{};
     for (final item in bagItems) {
-      if (item.itemId.trim().isEmpty || item.quantity < 1 || !ids.add(item.itemId)) {
+      if (item.itemId.trim().isEmpty ||
+          item.quantity < 1 ||
+          !ids.add(item.itemId)) {
         throw ArgumentError.value(item.toJson(), 'bagItems');
       }
     }
   }
 
   factory SceneBattleDemonstration.fromJson(Map<String, dynamic> json) {
-    _fields(json, {'playerTrainerId', 'bagItems', 'choices', 'captureAlwaysSucceeds', 'stepDelayMs'});
+    _fields(json, {
+      'playerTrainerId',
+      'bagItems',
+      'choices',
+      'captureAlwaysSucceeds',
+      'stepDelayMs',
+    });
     final trainer = json['playerTrainerId'];
     final items = json['bagItems'];
     final choices = json['choices'];
     final capture = json['captureAlwaysSucceeds'] ?? false;
     final delay = json['stepDelayMs'] ?? 500;
-    if (trainer is! String || items is! List || choices is! List || capture is! bool || delay is! int) {
+    if (trainer is! String ||
+        items is! List ||
+        choices is! List ||
+        capture is! bool ||
+        delay is! int) {
       throw const FormatException('Invalid demonstration configuration.');
     }
     try {
       return SceneBattleDemonstration(
         playerTrainerId: trainer,
         bagItems: [for (final item in items) _bagItem(item)],
-        choices: [for (final choice in choices) SceneBattleDemonstrationChoice.fromJson(_object(choice))],
+        choices: [
+          for (final choice in choices)
+            SceneBattleDemonstrationChoice.fromJson(_object(choice)),
+        ],
         captureAlwaysSucceeds: capture,
         stepDelayMs: delay,
       );
@@ -107,21 +133,33 @@ final class SceneBattleDemonstration {
   };
 
   @override
-  bool operator ==(Object other) => other is SceneBattleDemonstration &&
+  bool operator ==(Object other) =>
+      other is SceneBattleDemonstration &&
       other.playerTrainerId == playerTrainerId &&
-      other.captureAlwaysSucceeds == captureAlwaysSucceeds && other.stepDelayMs == stepDelayMs &&
-      _same(other.bagItems, bagItems) && _same(other.choices, choices);
+      other.captureAlwaysSucceeds == captureAlwaysSucceeds &&
+      other.stepDelayMs == stepDelayMs &&
+      _same(other.bagItems, bagItems) &&
+      _same(other.choices, choices);
 
   @override
-  int get hashCode => Object.hash(playerTrainerId, captureAlwaysSucceeds, stepDelayMs,
-      Object.hashAll(bagItems), Object.hashAll(choices));
+  int get hashCode => Object.hash(
+    playerTrainerId,
+    captureAlwaysSucceeds,
+    stepDelayMs,
+    Object.hashAll(bagItems),
+    Object.hashAll(choices),
+  );
 }
 
-bool _same(List<Object> left, List<Object> right) => left.length == right.length &&
-    Iterable<int>.generate(left.length).every((index) => left[index] == right[index]);
+bool _same(List<Object> left, List<Object> right) =>
+    left.length == right.length &&
+    Iterable<int>.generate(
+      left.length,
+    ).every((index) => left[index] == right[index]);
 
 Map<String, dynamic> _object(Object? value) {
-  if (value is! Map<String, dynamic>) throw const FormatException('Expected a demonstration object.');
+  if (value is! Map<String, dynamic>)
+    throw const FormatException('Expected a demonstration object.');
   return value;
 }
 

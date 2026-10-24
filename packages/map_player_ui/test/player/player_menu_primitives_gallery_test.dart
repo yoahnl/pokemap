@@ -168,6 +168,7 @@ void main() {
           seen,
           containsAll([
             'Choisir, puis agir',
+            'Tous les menus et les états de votre aventure',
             'Sélection conservée',
             'Traitement en cours',
             'Des informations lisibles',

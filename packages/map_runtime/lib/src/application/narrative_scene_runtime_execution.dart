@@ -260,7 +260,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         },
         showDialogue: callbacks.showDialogue,
         startBattle: (intent) async {
-          final uniqueTable = project.encounterTables.any(
+          final uniqueTable = intent.battleDemonstration == null && project.encounterTables.any(
             (table) =>
                 table.id == intent.battleTemplateId &&
                 table.tags.contains('studio:unique'),

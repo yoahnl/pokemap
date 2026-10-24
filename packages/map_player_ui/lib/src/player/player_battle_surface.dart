@@ -1062,7 +1062,41 @@ class _BattleCommandPanel extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final showHeader = constraints.maxHeight >= 260;
-            final height = constraints.maxHeight - (showHeader ? 80 : 0);
+            final titleStyle = context.playerTypography.combatStyle(
+              Theme.of(context).textTheme.titleMedium ?? const TextStyle(),
+            );
+            final promptStyle = context.playerTypography.combatStyle(
+              Theme.of(context).textTheme.bodyMedium ?? const TextStyle(),
+            );
+            double lineHeight(String text, TextStyle style) {
+              final painter =
+                  TextPainter(
+                    text: TextSpan(
+                      text: text,
+                      style: DefaultTextStyle.of(context).style.merge(style),
+                    ),
+                    textDirection: Directionality.of(context),
+                    textScaler: MediaQuery.textScalerOf(context),
+                    maxLines: 1,
+                    ellipsis: '…',
+                  )..layout(
+                    maxWidth: math.max(
+                      1.0,
+                      constraints.maxWidth - (onBack == null ? 0 : 60),
+                    ),
+                  );
+              final height = painter.height;
+              painter.dispose();
+              return height;
+            }
+
+            final headerHeight = math.max(
+              72.0,
+              lineHeight(data.title, titleStyle) +
+                  lineHeight(data.prompt, promptStyle),
+            );
+            final height =
+                constraints.maxHeight - (showHeader ? headerHeight + 12 : 0);
             final radial =
                 panel.layout == ProjectBattleCommandLayout.radial &&
                 !compactPortrait &&
@@ -1108,7 +1142,7 @@ class _BattleCommandPanel extends StatelessWidget {
                 children: [
                   if (showHeader)
                     SizedBox(
-                      height: 72,
+                      height: headerHeight,
                       child: Row(
                         children: [
                           Expanded(
@@ -1122,23 +1156,18 @@ class _BattleCommandPanel extends StatelessWidget {
                                       : data.title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: context.playerTypography.combatStyle(
-                                    Theme.of(context).textTheme.titleMedium ??
-                                        const TextStyle(),
-                                  ),
+                                  style: titleStyle,
                                 ),
                                 Text(
                                   data.prompt,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: context.playerTypography.combatStyle(
-                                    Theme.of(context).textTheme.bodyMedium ??
-                                        const TextStyle(),
-                                  ),
+                                  style: promptStyle,
                                 ),
                               ],
                             ),
                           ),
+                          if (onBack != null) const SizedBox(width: 12),
                           if (onBack != null)
                             IconButton(
                               key: const ValueKey('battle-back'),
@@ -1288,6 +1317,7 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
                             ],
                           ),
                         ),
+                        if (onBack != null) const SizedBox(width: 12),
                         if (onBack != null)
                           IconButton(
                             key: const ValueKey('battle-back'),
@@ -1577,6 +1607,7 @@ class _BattleMoveDetail extends StatelessWidget {
                     ?.copyWith(color: context.playerBattleChrome.dockText),
               ),
             ),
+            if (onBack != null) const SizedBox(width: 12),
             if (onBack != null)
               IconButton(
                 key: const ValueKey('battle-back'),

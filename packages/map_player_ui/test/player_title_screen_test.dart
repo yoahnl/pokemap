@@ -392,6 +392,8 @@ void main() {
     };
     focusController.select('title.continueGame');
     await tester.pump();
+    await tester.pump();
+    await tester.pump();
     for (final entry in actionCenters.entries) {
       expect(
         tester.getCenter(

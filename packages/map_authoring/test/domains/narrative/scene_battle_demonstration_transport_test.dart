@@ -8,17 +8,22 @@ import 'package:test/test.dart';
 import 'scene_graph_patch_test.dart' show fixture;
 
 Map<String, dynamic> configuration() => {
-  'playerTrainerId': 'rival',
-  'bagItems': [{'itemId': 'poke-ball', 'quantity': 20}],
-  'choices': [{'kind': 'capture', 'itemId': 'poke-ball'}],
-  'captureAlwaysSucceeds': true,
-  'stepDelayMs': 500,
-};
+      'playerTrainerId': 'rival',
+      'bagItems': [
+        {'itemId': 'poke-ball', 'quantity': 20}
+      ],
+      'choices': [
+        {'kind': 'capture', 'itemId': 'poke-ball'}
+      ],
+      'captureAlwaysSucceeds': true,
+      'stepDelayMs': 500,
+    };
 
 void main() {
   test('Scene contracts discover the temporary battle demonstration', () {
     for (final id in ['scene.graph.patch', 'scene.upsert']) {
-      final contract = SceneActions.descriptors.singleWhere((entry) => entry.id == id)
+      final contract = SceneActions.descriptors
+          .singleWhere((entry) => entry.id == id)
           .extensions['battleDemonstration'] as Map;
       expect(contract['field'], 'demonstration');
       expect(contract['writeBack'], false);
@@ -27,38 +32,55 @@ void main() {
   });
   for (final jsonl in [false, true]) {
     for (final action in ['scene.graph.patch', 'scene.upsert']) {
-      test('${jsonl ? 'JSONL' : 'API'} $action preserves demonstration through reopen', () async {
+      test(
+          '${jsonl ? 'JSONL' : 'API'} $action preserves demonstration through reopen',
+          () async {
         final f = await _Fixture.create();
         addTearDown(f.dispose);
         for (final value in [configuration(), null]) {
           final before = await f.file.readAsBytes();
           final request = await f.request(action, value);
           final plan = jsonl
-              ? await f.success('plan', {'projectHandle': f.project.value, 'request': request.toJson()})
+              ? await f.success('plan', {
+                  'projectHandle': f.project.value,
+                  'request': request.toJson()
+                })
               : await f.mutations.plan(f.project, request);
           expect(await f.file.readAsBytes(), before);
           expect(plan['applicable'], true);
           if (jsonl) {
-            await f.success('apply', {'projectHandle': f.project.value, 'planId': plan['planId'], 'operationId': 'demo-${f.sequence}'});
+            await f.success('apply', {
+              'projectHandle': f.project.value,
+              'planId': plan['planId'],
+              'operationId': 'demo-${f.sequence}'
+            });
           } else {
-            await f.mutations.apply(f.project, planId: plan['planId']! as String, operationId: 'demo-${f.sequence}');
+            await f.mutations.apply(f.project,
+                planId: plan['planId']! as String,
+                operationId: 'demo-${f.sequence}');
           }
           await f.api.closeWorkspace(f.workspace);
           await f.open();
           final current = (await f.snapshots.load(f.project)).manifest;
-          final payload = current.scenes.first.graph.nodes.singleWhere((node) => node.id == 'action').payload as SceneBattlePayload;
+          final payload = current.scenes.first.graph.nodes
+              .singleWhere((node) => node.id == 'action')
+              .payload as SceneBattlePayload;
           expect(payload.demonstration?.toJson(), value);
-          expect(current.scenes.first.graph.edges, f.initial.scenes.first.graph.edges);
+          expect(current.scenes.first.graph.edges,
+              f.initial.scenes.first.graph.edges);
           expect(current.scenes.first.layout, f.initial.scenes.first.layout);
           expect(current.scenes.last, f.initial.scenes.last);
         }
         final before = await f.file.readAsBytes();
-        final invalid = await f.request(action, {...configuration(), 'stepDelayMs': 0});
+        final invalid =
+            await f.request(action, {...configuration(), 'stepDelayMs': 0});
         if (jsonl) {
-          final result = await f.command('plan', {'projectHandle': f.project.value, 'request': invalid.toJson()});
+          final result = await f.command('plan',
+              {'projectHandle': f.project.value, 'request': invalid.toJson()});
           expect(result.status, isNot(AuthoringResultStatus.success));
         } else {
-          await expectLater(f.mutations.plan(f.project, invalid), throwsA(isA<Exception>()));
+          await expectLater(
+              f.mutations.plan(f.project, invalid), throwsA(isA<Exception>()));
         }
         expect(await f.file.readAsBytes(), before);
       });
@@ -83,13 +105,28 @@ final class _Fixture {
   static Future<_Fixture> create() async {
     final root =
         await Directory.systemTemp.createTemp('scene-recovery-authoring-');
-    final project = fixture().copyWith(version: ProjectVersion.v9, settings: const ProjectSettings(dimension: ProjectDimension.threeD), encounterTables: const [ProjectEncounterTable(id: 'target', name: 'Target', encounterKind: EncounterKind.walk, entries: [ProjectEncounterEntry(speciesId: 'target', minLevel: 2, maxLevel: 2)])], trainers: const [
-      ProjectTrainerEntry(
-          id: 'rival',
-          name: 'Rival',
-          trainerClass: 'Rival',
-          team: [ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 5)]),
-    ]);
+    final project = fixture().copyWith(
+        version: ProjectVersion.v9,
+        settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+        encounterTables: const [
+          ProjectEncounterTable(
+              id: 'target',
+              name: 'Target',
+              encounterKind: EncounterKind.walk,
+              entries: [
+                ProjectEncounterEntry(
+                    speciesId: 'target', minLevel: 2, maxLevel: 2)
+              ])
+        ],
+        trainers: const [
+          ProjectTrainerEntry(
+              id: 'rival',
+              name: 'Rival',
+              trainerClass: 'Rival',
+              team: [
+                ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 5)
+              ]),
+        ]);
     final initial = const SceneActions().patchGraph(project,
         maps: [],
         sceneId: 'test',
@@ -156,7 +193,8 @@ final class _Fixture {
     workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
   }
 
-  Future<AuthoringRequest> request(String action, Map<String, dynamic>? configuration) async {
+  Future<AuthoringRequest> request(
+      String action, Map<String, dynamic>? configuration) async {
     final scene = initial.scenes.first.toJson();
     final graph = Map<String, dynamic>.from(scene['graph'] as Map);
     final node = initial.scenes.first.graph.nodes

@@ -54,6 +54,12 @@ final class SceneBattleRuntimeOutcomeAdapter {
       );
     }
 
+    if (intent.battleDemonstration != null && battleKind != 'wild') {
+      return const SceneBattleRuntimeOutcomeResult.failed(
+        errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
+        message: 'Battle demonstrations require a wild encounter.',
+      );
+    }
     final trainerId = intent.trainerId?.trim();
     if (battleKind != 'wild' && (trainerId == null || trainerId.isEmpty)) {
       return const SceneBattleRuntimeOutcomeResult.failed(

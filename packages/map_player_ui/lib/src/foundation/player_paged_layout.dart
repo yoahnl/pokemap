@@ -173,7 +173,8 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
           '${widget.pageLabel ?? 'Page'} ${_page + 1} / ${pages.length}';
       Widget previous() => IconButton(
         key: const ValueKey('player-page-previous'),
-        tooltip: french ? 'Page précédente' : 'Previous page',
+        tooltip:
+            '${french ? 'Page précédente' : 'Previous page'}${sideNavigation ? ' · $label' : ''}',
         constraints: const BoxConstraints.tightFor(width: 48, height: 48),
         onPressed: allMeasured && _page > 0
             ? () => _changePage(_page - 1, pages.length)
@@ -182,7 +183,8 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
       );
       Widget next() => IconButton(
         key: const ValueKey('player-page-next'),
-        tooltip: french ? 'Page suivante' : 'Next page',
+        tooltip:
+            '${french ? 'Page suivante' : 'Next page'}${sideNavigation ? ' · $label' : ''}',
         constraints: const BoxConstraints.tightFor(width: 48, height: 48),
         onPressed: allMeasured && _page + 1 < pages.length
             ? () => _changePage(_page + 1, pages.length)

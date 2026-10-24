@@ -59,7 +59,11 @@ class _PlayerMenuPrimitivesGalleryState
   Widget _buildGallery(BuildContext context) {
     final tokens = context.playerMenuTheme;
     final viewport = MediaQuery.sizeOf(context);
-    final compact = viewport.width < 700 || viewport.height < 480;
+    final compact =
+        viewport.width < 700 ||
+        viewport.height < 480 ||
+        (viewport.width < 1000 &&
+            MediaQuery.textScalerOf(context).scale(1) > 1.4);
     final background = switch (widget.backdrop) {
       PlayerMenuGalleryBackdrop.dark => tokens.backdrop,
       PlayerMenuGalleryBackdrop.light => tokens.backdropLight,
@@ -107,15 +111,15 @@ class _PlayerMenuPrimitivesGalleryState
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final states = <Widget>[
+          final states = _states(context);
+          final details = <Widget>[
+            ..._details(context, constraints.maxHeight < 220),
             if (compact)
               _heading(
                 context,
                 'Tous les menus et les états de votre aventure',
               ),
-            ..._states(context),
           ];
-          final details = _details(context);
           if (constraints.maxWidth < 1000 || constraints.maxHeight < 400) {
             return PlayerPagedList(
               sideNavigation: true,
@@ -205,7 +209,7 @@ class _PlayerMenuPrimitivesGalleryState
     ),
   );
 
-  List<Widget> _details(BuildContext context) => [
+  List<Widget> _details(BuildContext context, bool short) => [
     _heading(context, 'Des informations lisibles'),
     const PlayerMenuPanel(
       child: Wrap(
@@ -246,26 +250,53 @@ class _PlayerMenuPrimitivesGalleryState
         kind: PlayerMenuGaugeKind.experience,
       ),
     ),
-    const PlayerMenuFeedback(
+    ..._feedbackEntries(
+      context,
+      short: short,
       id: 'gallery-empty',
       title: 'Aucun élément',
       message: 'Le contenu apparaîtra lorsqu’il sera disponible.',
     ),
-    const PlayerMenuFeedback(
+    ..._feedbackEntries(
+      context,
+      short: short,
       id: 'gallery-error',
       title: 'Ressource indisponible',
       message: 'Le nom et les actions restent accessibles.',
       kind: PlayerMenuFeedbackKind.error,
     ),
+    ..._feedbackEntries(
+      context,
+      short: short,
+      id: 'gallery-receipt',
+      title: 'Aperçu sans sauvegarde',
+      message: _receipt,
+      kind: PlayerMenuFeedbackKind.receipt,
+    ),
+  ];
+
+  List<Widget> _feedbackEntries(
+    BuildContext context, {
+    required bool short,
+    required String id,
+    required String title,
+    required String message,
+    PlayerMenuFeedbackKind kind = PlayerMenuFeedbackKind.empty,
+  }) => [
     PlayerMenuDetailTransition(
-      contentKey: ValueKey(_receipt),
+      contentKey: ValueKey((id, message)),
       child: PlayerMenuFeedback(
-        id: 'gallery-receipt',
-        title: 'Aperçu sans sauvegarde',
-        message: _receipt,
-        kind: PlayerMenuFeedbackKind.receipt,
+        id: id,
+        title: title,
+        message: short ? null : message,
+        kind: kind,
       ),
     ),
+    if (short)
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: PlayerSpacing.sm),
+        child: Text(message, style: context.playerMenuTheme.body),
+      ),
   ];
 
   Widget _heading(BuildContext context, String label) => Padding(

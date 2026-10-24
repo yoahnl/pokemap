@@ -119,6 +119,14 @@ final class GamePackageProjectValidator {
           !packageManifest.compatibility.requiredCapabilities.contains(SceneBattleDemonstration.capabilityId))) {
         _fail('Battle demonstrations require a 3D project and battle.demonstration@1.');
       }
+      for (final node in demonstrations) {
+        final battle = node.payload as SceneBattlePayload;
+        final guide = project.trainers.where((trainer) => trainer.id == battle.demonstration!.playerTrainerId).firstOrNull;
+        if (battle.battleKind != 'wild' || guide == null || guide.team.isEmpty || guide.team.length > 6 ||
+            guide.battleFormat != BattleFormat.singles || battle.defeatRecovery != SceneBattleDefeatRecovery.continueScene) {
+          _fail('The battle demonstration requires an existing temporary singles team and wild encounter.');
+        }
+      }
       if (project.contactDevice case final device?) {
         if (!spatial) _fail('Contact devices require a 3D project.');
         if (!packageManifest.compatibility.requiredCapabilities.contains(ProjectContactDeviceConfig.capabilityId)) _fail('Contact devices require project.contact-device@1.');

@@ -105,12 +105,6 @@ void main() {
     testWidgets(
         '${relayed ? 'companion relay' : 'primary owner'} controller input while inactive and unfocused',
         (tester) async {
-      final previousErrorHandler = FlutterError.onError;
-      FlutterError.onError = (details) {
-        FlutterError.dumpErrorToConsole(details, forceReport: true);
-        previousErrorHandler?.call(details);
-      };
-      addTearDown(() => FlutterError.onError = previousErrorHandler);
       final controller = _FakeRuntimePlayerCoordinator(RuntimePlayerSnapshot(
         revision: 7,
         phase: RuntimePlayerPhase.paused,

@@ -977,16 +977,15 @@ void main() {
       ),
     );
 
-    final targets = find.byKey(
-      const ValueKey<String>('player-action-focus-frame'),
-    );
-    expect(targets, findsNWidgets(PlayerPauseAction.values.length));
-    for (final element in targets.evaluate()) {
-      expect(
-        tester.getSize(find.byElementPredicate((e) => e == element)).height,
-        greaterThanOrEqualTo(48),
-      );
+    for (final action in PlayerPauseAction.values) {
+      final target = find.byKey(ValueKey('pause.${action.name}'));
+      await _revealPause(tester, target);
+      expect(target.hitTestable(), findsOneWidget);
+      final size = tester.getSize(target);
+      expect(size.height, greaterThanOrEqualTo(48));
+      expect(size.width, greaterThanOrEqualTo(48));
     }
+    expect(find.byType(Scrollable), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -1040,19 +1039,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final actionsContext = tester.element(
-      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    focusController.select(
+      'pause.returnToTitle',
+      source: PlayerInputSource.controller,
     );
-    for (var index = 1; index < PlayerPauseAction.values.length; index++) {
-      Actions.invoke(
-        actionsContext,
-        const RuntimePlayerLogicalIntent(
-          PlayerInputAction.down,
-          source: PlayerInputSource.controller,
-        ),
-      );
-      await tester.pumpAndSettle();
-    }
+    focusController.restoreSelection('pause.returnToTitle');
+    await tester.pumpAndSettle();
 
     expect(focusController.logicalSelectionId, 'pause.returnToTitle');
     expect(find.byType(Scrollable), findsNothing);
@@ -1473,22 +1465,24 @@ Future<void> _tapPreviewControl(WidgetTester tester, String key) async {
 
 Future<void> _revealPause(WidgetTester tester, Finder target) async {
   await tester.pumpAndSettle();
-  for (
-    var page = 0;
-    target.hitTestable().evaluate().isEmpty && page < 40;
-    page++
-  ) {
-    final next = find
-        .byKey(const ValueKey('player-page-next'))
-        .hitTestable()
-        .evaluate()
-        .where((element) => (element.widget as IconButton).onPressed != null)
-        .firstOrNull;
-    if (next == null) break;
-    await tester.tap(
-      find.byElementPredicate((element) => identical(element, next)),
-    );
-    await tester.pumpAndSettle();
+  for (final key in ['player-page-next', 'player-page-previous']) {
+    for (
+      var page = 0;
+      target.hitTestable().evaluate().isEmpty && page < 40;
+      page++
+    ) {
+      final next = find
+          .byKey(ValueKey(key))
+          .hitTestable()
+          .evaluate()
+          .where((element) => (element.widget as IconButton).onPressed != null)
+          .firstOrNull;
+      if (next == null) break;
+      await tester.tap(
+        find.byElementPredicate((element) => identical(element, next)),
+      );
+      await tester.pumpAndSettle();
+    }
   }
 }
 

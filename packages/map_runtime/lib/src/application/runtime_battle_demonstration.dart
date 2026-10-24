@@ -12,17 +12,26 @@ Future<GameState> prepareRuntimeBattleDemonstration({
 }) async {
   final configuration = request.demonstration;
   if (configuration == null) return state;
+  if (bundle.manifest.settings.dimension != ProjectDimension.threeD) {
+    throw StateError('Battle demonstrations require a 3D runtime.');
+  }
   final trainer = bundle.manifest.trainers
-      .where((entry) => entry.id == configuration.playerTrainerId).firstOrNull;
-  if (trainer == null || trainer.team.isEmpty || trainer.team.length > 6 ||
+      .where((entry) => entry.id == configuration.playerTrainerId)
+      .firstOrNull;
+  if (trainer == null ||
+      trainer.team.isEmpty ||
+      trainer.team.length > 6 ||
       trainer.battleFormat != BattleFormat.singles) {
-    throw StateError('A demonstration requires an existing singles team with one to six Pokemon.');
+    throw StateError(
+      'A demonstration requires an existing singles team with one to six Pokemon.',
+    );
   }
   final mapper = RuntimeBattleSetupMapper();
   final members = <PlayerPokemon>[];
   for (var index = 0; index < trainer.team.length; index++) {
     final member = trainer.team[index];
-    final generated = await mapper.hydrateWildRequest(bundle: bundle,
+    final generated = await mapper.hydrateWildRequest(
+      bundle: bundle,
       request: WildBattleStartRequest(
         requestId: '${request.requestId}:demonstration:$index',
         createdAtEpochMs: request.createdAtEpochMs,
@@ -45,18 +54,23 @@ Future<GameState> prepareRuntimeBattleDemonstration({
           gender: member.gender == 'any' ? null : member.gender,
           ivs: member.ivs,
           knownMoveIds: member.moves,
-          shinyPolicy: member.shiny ? ProjectEncounterShinyPolicy.always : ProjectEncounterShinyPolicy.never,
+          shinyPolicy: member.shiny
+              ? ProjectEncounterShinyPolicy.always
+              : ProjectEncounterShinyPolicy.never,
         ),
-      ));
+      ),
+    );
     final pokemon = generated.generatedPokemon!;
     if (member.formId != null && member.formId != pokemon.formId) {
       throw StateError('The demonstration team form is unavailable.');
     }
-    members.add(pokemon.copyWith(
-      individualId: '${request.requestId}:demonstration:$index',
-      heldItemId: member.heldItemId ?? '',
-      evs: member.evs ?? pokemon.evs,
-    ));
+    members.add(
+      pokemon.copyWith(
+        individualId: '${request.requestId}:demonstration:$index',
+        heldItemId: member.heldItemId ?? '',
+        evs: member.evs ?? pokemon.evs,
+      ),
+    );
   }
   return state.copyWith(
     trainerProfile: state.trainerProfile.copyWith(name: trainer.name),
