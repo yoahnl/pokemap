@@ -11,11 +11,11 @@ class ConverterBuildIdentity {
 
   static final current = ConverterBuildIdentity(
     version: const String.fromEnvironment(
-      'FLUTTER_BUILD_NAME',
+      'AVELUNE_CONVERTER_VERSION',
       defaultValue: '0.1.0',
     ),
     buildNumber: const String.fromEnvironment(
-      'FLUTTER_BUILD_NUMBER',
+      'AVELUNE_CONVERTER_BUILD_NUMBER',
       defaultValue: '1',
     ),
     revision: const String.fromEnvironment('AVELUNE_CONVERTER_REVISION'),

@@ -12,6 +12,23 @@ const _stages = <(String, String)>[
 
 void main() {
   group('notarization script', () {
+    test(
+      'passes an explicit keychain to every notary credential lookup',
+      () async {
+        final run = await _runNotarization(
+          notaryKeychain: '/tmp/Fixture Keychain',
+        );
+        expect(run.execution.exitCode, 0, reason: '${run.execution.stderr}');
+        final lookups = run.commands.where(
+          (line) => line.contains('notarytool '),
+        );
+        expect(lookups, hasLength(4));
+        for (final lookup in lookups) {
+          expect(lookup, contains('--keychain /tmp/Fixture\\ Keychain'));
+        }
+      },
+    );
+
     test('staples the app before creating the final DMG', () async {
       final run = await _runNotarization();
       expect(run.execution.exitCode, 0, reason: '${run.execution.stderr}');
@@ -146,6 +163,44 @@ void main() {
         isNot(contains('notarization_verified=true')),
       );
     });
+
+    for (final target in ['app', 'dmg']) {
+      test(
+        'retains $target rejection result and Apple log before stopping',
+        () async {
+          final run = await _runNotarization(
+            notaryStatus: target == 'app' ? 'Rejected' : 'Accepted',
+            dmgNotaryStatus: 'Rejected',
+          );
+          expect(run.execution.exitCode, 65, reason: '${run.execution.stderr}');
+          final result = target == 'app'
+              ? File('${run.logs.path}/app-notary-result.json')
+              : run.metadata;
+          expect(jsonDecode(await result.readAsString()), <String, Object?>{
+            'id': '$target-submission',
+            'status': 'Rejected',
+          });
+          final log = File('${run.logs.path}/$target-notary-log.json');
+          expect(jsonDecode(await log.readAsString()), <String, Object?>{
+            'issues': <Object?>[],
+          });
+          expect(
+            run.commands.last,
+            contains('notarytool log $target-submission'),
+          );
+          expect(_calls(run.commands, ('staple', target)), isEmpty);
+          expect(_calls(run.commands, ('validate', target)), isEmpty);
+          expect(
+            run.commands.where((line) => line.startsWith('spctl ')),
+            hasLength(target == 'app' ? 0 : 1),
+          );
+          expect(
+            run.execution.stdout,
+            isNot(contains('notarization_verified=true')),
+          );
+        },
+      );
+    }
   }, skip: Platform.isWindows);
 }
 
@@ -177,12 +232,14 @@ class _NotarizationRun {
     this.commands,
     this.dmg,
     this.metadata,
+    this.logs,
   );
 
   final ProcessResult execution;
   final List<String> commands;
   final File dmg;
   final File metadata;
+  final Directory logs;
 }
 
 Future<_NotarizationRun> _runNotarization({
@@ -191,6 +248,8 @@ Future<_NotarizationRun> _runNotarization({
   int failureExit = 68,
   String failureMessage = 'Error Domain=NSURLErrorDomain Code=-1005 "The network connection was lost."',
   String notaryStatus = 'Accepted',
+  String? dmgNotaryStatus,
+  String? notaryKeychain,
 }) async {
   final root = await Directory.systemTemp.createTemp(
     'pokemap-notarization-fixture-',
@@ -202,11 +261,11 @@ Future<_NotarizationRun> _runNotarization({
   final xcrun = await _fakeTool(tools, 'xcrun', r'''
 if [[ "$1 $2" == "notarytool submit" ]]; then
   case "$3" in
-    *.zip) id="app-submission" ;;
-    *.dmg) id="dmg-submission" ;;
+    *.zip) id="app-submission"; status="$NOTARY_STATUS" ;;
+    *.dmg) id="dmg-submission"; status="$DMG_NOTARY_STATUS" ;;
     *) exit 65 ;;
   esac
-  printf '{"id":"%s","status":"%s"}\n' "$id" "$NOTARY_STATUS"
+  printf '{"id":"%s","status":"%s"}\n' "$id" "$status"
 elif [[ "$1 $2" == "notarytool log" ]]; then
   output="${!#}"
   printf '{"issues":[]}\n' > "$output"
@@ -269,6 +328,7 @@ fi
       dmg.path,
       '--notary-profile',
       'fixture-profile',
+      if (notaryKeychain != null) ...['--notary-keychain', notaryKeychain],
       '--result-json',
       result.path,
       '--log-directory',
@@ -292,6 +352,7 @@ fi
       'FAIL_EXIT': '$failureExit',
       'FAIL_MESSAGE': failureMessage,
       'NOTARY_STATUS': notaryStatus,
+      'DMG_NOTARY_STATUS': dmgNotaryStatus ?? notaryStatus,
     },
   );
   return _NotarizationRun(
@@ -299,6 +360,7 @@ fi
     await commandLog.readAsLines(),
     dmg,
     result,
+    logs,
   );
 }
 

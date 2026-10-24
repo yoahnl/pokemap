@@ -17,6 +17,8 @@ import 'map_comparison.dart';
 import 'playable_start_setup.dart';
 import 'vision_desktop_services.dart';
 import 'vision_panel.dart';
+import 'updates/converter_update_catalog.dart';
+import 'updates/converter_update_host.dart';
 
 typedef ConverterPlayableStartInspector =
     Future<ConverterPlayableStartInspection> Function({
@@ -50,6 +52,10 @@ class ConverterApp extends StatelessWidget {
     this.visionClientFactory = openConverterVisionClient,
     this.playableStartInspector,
     this.playableStartApplier,
+    this.updateCatalog,
+    this.updateBuildLoader,
+    this.updatePlatformSupported,
+    this.automaticUpdateCheck,
   });
 
   final ConverterWorkflow? workflow;
@@ -64,6 +70,10 @@ class ConverterApp extends StatelessWidget {
   final ConverterVisionClientFactory visionClientFactory;
   final ConverterPlayableStartInspector? playableStartInspector;
   final ConverterPlayableStartApplier? playableStartApplier;
+  final ConverterUpdateCatalog? updateCatalog;
+  final Future<ConverterInstalledBuild> Function()? updateBuildLoader;
+  final bool? updatePlatformSupported;
+  final bool? automaticUpdateCheck;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +108,10 @@ class ConverterApp extends StatelessWidget {
         visionClientFactory: visionClientFactory,
         playableStartInspector: playableStartInspector,
         playableStartApplier: playableStartApplier,
+        updateCatalog: updateCatalog,
+        updateBuildLoader: updateBuildLoader,
+        updatePlatformSupported: updatePlatformSupported,
+        automaticUpdateCheck: automaticUpdateCheck,
       ),
     );
   }
@@ -118,6 +132,10 @@ class ConverterWindow extends StatefulWidget {
     this.visionClientFactory = openConverterVisionClient,
     this.playableStartInspector,
     this.playableStartApplier,
+    this.updateCatalog,
+    this.updateBuildLoader,
+    this.updatePlatformSupported,
+    this.automaticUpdateCheck,
   });
 
   final ConverterWorkflow? workflow;
@@ -132,6 +150,10 @@ class ConverterWindow extends StatefulWidget {
   final ConverterVisionClientFactory visionClientFactory;
   final ConverterPlayableStartInspector? playableStartInspector;
   final ConverterPlayableStartApplier? playableStartApplier;
+  final ConverterUpdateCatalog? updateCatalog;
+  final Future<ConverterInstalledBuild> Function()? updateBuildLoader;
+  final bool? updatePlatformSupported;
+  final bool? automaticUpdateCheck;
 
   @override
   State<ConverterWindow> createState() => _ConverterWindowState();
@@ -159,6 +181,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
   late final AppLifecycleListener _lifecycle;
   Future<bool>? _exitRequest;
   bool _savingSession = false;
+  bool _updateBarrier = false;
+  bool _disposed = false;
+  int _pendingUiActions = 0;
+  Object? _updateConsent;
   bool _savingPlan = false;
   bool _loadingSession = false;
   bool _loadingPlayableStart = false;
@@ -189,13 +215,21 @@ class _ConverterWindowState extends State<ConverterWindow> {
   late (String, String, String, String, String) _lastFormValues;
 
   ConverterWorkflowState get _state => _workflow.state;
-  bool get _busy =>
+  bool get _actualBusy =>
       _state.isBusy ||
       _savingSession ||
       _savingPlan ||
       _loadingSession ||
       _loadingPlayableStart ||
       _applyingPlayableStart;
+  bool get _busy => _actualBusy || _updateBarrier;
+  Object get _updateSessionState => (
+    _formValues, _state.revision, _reviewSet?.canonicalHash,
+    _unappliedDrafts, _sessionGeneration,
+  );
+  bool get _canRestartForUpdate =>
+      _updateBarrier && !_actualBusy && _pendingUiActions == 0 &&
+      _updateConsent != null && _updateConsent == _updateSessionState;
   PreparedStudy? get _prepared => _state.prepared ?? _reviewPreview;
   AssetReviewSession? get _reviewSession => _reviewSet?.segments[_reviewMapId];
   (String, String, String, String, String) get _formValues => (
@@ -253,7 +287,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
     super.initState();
     _sessionStore = widget.sessionStore;
     _lifecycle = AppLifecycleListener(
-      onExitRequested: () async => await _prepareForSessionChange()
+      onExitRequested: () async => (_updateBarrier
+          ? _canRestartForUpdate
+          : await _prepareForSessionChange())
           ? AppExitResponse.exit
           : AppExitResponse.cancel,
     );
@@ -279,6 +315,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   @override
   void dispose() {
+    _disposed = true;
     _lifecycle.dispose();
     unawaited(_subscription?.cancel());
     for (final controller in [_source, _parent, _name, _folder, _search]) {
@@ -373,12 +410,13 @@ class _ConverterWindowState extends State<ConverterWindow> {
   Future<LocalReviewSessionStore> _getSessionStore() async =>
       _sessionStore ??= await openConverterReviewSessionStore();
 
-  Future<bool> _saveReviewSession() async {
+  Future<bool> _saveReviewSession({bool forUpdate = false}) async {
     final reviewSet = _reviewSet;
     if (reviewSet == null ||
         !_formValid ||
         _unappliedDrafts ||
-        _busy ||
+        _actualBusy ||
+        (_updateBarrier && !forUpdate) ||
         !_reviewSourceVerified) {
       return false;
     }
@@ -427,11 +465,11 @@ class _ConverterWindowState extends State<ConverterWindow> {
     }
   }
 
-  Future<bool> _prepareForSessionChange() => _exitRequest ??=
-      _confirmSessionChange().whenComplete(() => _exitRequest = null);
+  Future<bool> _prepareForSessionChange({bool forUpdate = false}) => _exitRequest ??=
+      _confirmSessionChange(forUpdate: forUpdate).whenComplete(() => _exitRequest = null);
 
-  Future<bool> _confirmSessionChange() async {
-    if (_busy) return false;
+  Future<bool> _confirmSessionChange({bool forUpdate = false}) async {
+    if (_actualBusy || (_updateBarrier && !forUpdate)) return false;
     if (!_sessionUnsaved && !_unappliedDrafts) return true;
     final choice = await showDialog<String>(
       context: context,
@@ -455,10 +493,41 @@ class _ConverterWindowState extends State<ConverterWindow> {
     );
     if (!mounted || choice == 'stay' || choice == null) return false;
     if (choice == 'discard') return true;
-    return _saveReviewSession();
+    return _saveReviewSession(forUpdate: forUpdate);
+  }
+
+  Future<bool> _prepareForUpdate() async {
+    if (_busy || _pendingUiActions != 0 || _exitRequest != null) return false;
+    final consentState = _updateSessionState;
+    setState(() {
+      _updateBarrier = true;
+      _updateConsent = null;
+    });
+    var approved = false;
+    try {
+      approved = await _prepareForSessionChange(forUpdate: true);
+      if (!mounted || _disposed || !approved || _actualBusy ||
+          _pendingUiActions != 0 || consentState != _updateSessionState) {
+        approved = false;
+        return false;
+      }
+      _updateConsent = consentState;
+      return true;
+    } finally {
+      if (!approved) _endUpdateOperation();
+    }
+  }
+
+  void _endUpdateOperation() {
+    if (!mounted || _disposed) return;
+    setState(() {
+      _updateBarrier = false;
+      _updateConsent = null;
+    });
   }
 
   void _setStep(int step) {
+    if (_updateBarrier) return;
     if (_unappliedDrafts && step != _step) {
       setState(
         () => _localError = 'Appliquez ou abandonnez les champs de revue avant de changer d’étape.',
@@ -700,6 +769,8 @@ class _ConverterWindowState extends State<ConverterWindow> {
   });
 
   Future<void> _run(Future<void> Function() action) async {
+    if (_updateBarrier) return;
+    _pendingUiActions++;
     setState(() {
       _localError = null;
       _lastOutcome = null;
@@ -714,7 +785,10 @@ class _ConverterWindowState extends State<ConverterWindow> {
         setState(() => _localError = _failureMessage(error));
       }
     }
-    if (mounted) setState(() {});
+    finally {
+      _pendingUiActions--;
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _pick(ConverterPathKind kind) => _run(() async {
@@ -1446,7 +1520,20 @@ class _ConverterWindowState extends State<ConverterWindow> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: FocusTraversalGroup(
+    body: ConverterUpdateHost(
+      catalog: widget.updateCatalog,
+      installedBuild: widget.updateBuildLoader,
+      platformSupported: widget.updatePlatformSupported,
+      automaticCheck: widget.automaticUpdateCheck,
+      installEnabled: !_actualBusy && _pendingUiActions == 0,
+      onPrepareUpdate: _prepareForUpdate,
+      onRestartRequested: () async => _canRestartForUpdate,
+      onOperationEnded: _endUpdateOperation,
+      child: AbsorbPointer(
+        absorbing: _updateBarrier,
+        child: ExcludeFocus(
+          excluding: _updateBarrier,
+          child: FocusTraversalGroup(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1468,7 +1555,7 @@ class _ConverterWindowState extends State<ConverterWindow> {
                   prominent: _step == 0,
                 ),
                 _sessionActions(),
-                if (_busy) _progress(),
+                if (_actualBusy) _progress(),
                 if (_localError != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -1513,6 +1600,9 @@ class _ConverterWindowState extends State<ConverterWindow> {
             ),
           ),
         ],
+      ),
+          ),
+        ),
       ),
     ),
   );

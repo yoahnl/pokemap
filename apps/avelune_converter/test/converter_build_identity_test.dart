@@ -4,6 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('release flags reach the running build identity', () {
+    expect(
+      ConverterBuildIdentity.current.version,
+      const String.fromEnvironment('TEST_RELEASE_VERSION'),
+    );
+    expect(
+      ConverterBuildIdentity.current.buildNumber,
+      const String.fromEnvironment('TEST_RELEASE_BUILD_NUMBER'),
+    );
+    expect(
+      ConverterBuildIdentity.current.revision,
+      const String.fromEnvironment('TEST_RELEASE_REVISION'),
+    );
+  }, skip: !const bool.hasEnvironment('TEST_RELEASE_VERSION'));
+
   test('build identity retains an exact Git revision and build version', () {
     final identity = ConverterBuildIdentity(
       version: '0.1.1',

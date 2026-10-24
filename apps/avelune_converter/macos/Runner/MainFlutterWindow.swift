@@ -3,6 +3,15 @@ import FlutterMacOS
 import Security
 
 class MainFlutterWindow: NSWindow {
+  override func close() {
+    if ConverterUpdaterBridge.shouldBlockTermination { return }
+    super.close()
+  }
+
+  deinit {
+    ConverterUpdaterBridge.uninstall()
+  }
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
@@ -12,6 +21,7 @@ class MainFlutterWindow: NSWindow {
     self.center()
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    ConverterUpdaterBridge.install(on: flutterViewController)
 
     let secrets = FlutterMethodChannel(
       name: "com.avelune.converter/vision_secret",

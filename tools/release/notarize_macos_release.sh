@@ -5,12 +5,13 @@ set -euo pipefail
 app_path=''
 dmg_path=''
 notary_profile=''
+notary_keychain=''
 result_json=''
 log_directory=''
 volume_name='Avelune Studio'
 
 usage() {
-  echo 'Usage: notarize_macos_release.sh --app <bundle.app> --dmg <output.dmg> --notary-profile <profile> --result-json <file> [--log-directory <directory>] [--volume-name <name>]' >&2
+  echo 'Usage: notarize_macos_release.sh --app <bundle.app> --dmg <output.dmg> --notary-profile <profile> --result-json <file> [--log-directory <directory>] [--volume-name <name>] [--notary-keychain <file>]' >&2
 }
 
 while (($# > 0)); do
@@ -25,6 +26,10 @@ while (($# > 0)); do
       ;;
     --notary-profile)
       notary_profile="${2:-}"
+      shift 2
+      ;;
+    --notary-keychain)
+      notary_keychain="${2:-}"
       shift 2
       ;;
     --result-json)
@@ -64,6 +69,10 @@ hdiutil_bin="${HDIUTIL_BIN:-/usr/bin/hdiutil}"
 ditto_bin="${DITTO_BIN:-/usr/bin/ditto}"
 spctl_bin="${SPCTL_BIN:-/usr/sbin/spctl}"
 codesign_bin="${CODESIGN_BIN:-/usr/bin/codesign}"
+notary_keychain_arguments=()
+if [[ -n "$notary_keychain" ]]; then
+  notary_keychain_arguments=(--keychain "$notary_keychain")
+fi
 jq_bin="${JQ_BIN:-jq}"
 dmg_verify_retry_delay_seconds="${DMG_VERIFY_RETRY_DELAY_SECONDS:-2}"
 stapler_retry_delay_seconds="${STAPLER_RETRY_DELAY_SECONDS:-5}"
@@ -142,17 +151,21 @@ dmg_log="$log_directory/dmg-notary-log.json"
 
 "$xcrun_bin" notarytool submit "$app_archive" \
   --keychain-profile "$notary_profile" \
+  ${notary_keychain_arguments[@]+"${notary_keychain_arguments[@]}"} \
   --wait \
   --output-format json > "$app_result"
 app_status="$("$jq_bin" -r '.status // empty' "$app_result")"
 app_submission_id="$("$jq_bin" -r '.id // empty' "$app_result")"
+if [[ -n "$app_submission_id" ]]; then
+  "$xcrun_bin" notarytool log "$app_submission_id" \
+    --keychain-profile "$notary_profile" \
+    ${notary_keychain_arguments[@]+"${notary_keychain_arguments[@]}"} \
+    "$app_log"
+fi
 if [[ "$app_status" != 'Accepted' || -z "$app_submission_id" ]]; then
   echo 'Apple rejected the app notarization submission.' >&2
   exit 65
 fi
-"$xcrun_bin" notarytool log "$app_submission_id" \
-  --keychain-profile "$notary_profile" \
-  "$app_log"
 retry_stapler staple "$app_path"
 retry_stapler validate "$app_path"
 "$codesign_bin" --verify --deep --strict --verbose=4 "$app_path"
@@ -183,17 +196,21 @@ verify_dmg
 
 "$xcrun_bin" notarytool submit "$dmg_path" \
   --keychain-profile "$notary_profile" \
+  ${notary_keychain_arguments[@]+"${notary_keychain_arguments[@]}"} \
   --wait \
   --output-format json > "$result_json"
 dmg_status="$("$jq_bin" -r '.status // empty' "$result_json")"
 dmg_submission_id="$("$jq_bin" -r '.id // empty' "$result_json")"
+if [[ -n "$dmg_submission_id" ]]; then
+  "$xcrun_bin" notarytool log "$dmg_submission_id" \
+    --keychain-profile "$notary_profile" \
+    ${notary_keychain_arguments[@]+"${notary_keychain_arguments[@]}"} \
+    "$dmg_log"
+fi
 if [[ "$dmg_status" != 'Accepted' || -z "$dmg_submission_id" ]]; then
   echo 'Apple rejected the DMG notarization submission.' >&2
   exit 65
 fi
-"$xcrun_bin" notarytool log "$dmg_submission_id" \
-  --keychain-profile "$notary_profile" \
-  "$dmg_log"
 retry_stapler staple "$dmg_path"
 retry_stapler validate "$dmg_path"
 verify_dmg

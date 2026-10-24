@@ -28,7 +28,7 @@ void main() {
           'Data/items.dat': literalFixtureMarshal(<Object?, Object?>{}),
         },
         maps: [
-          LiteralFixtureMap(id: 1, warpParameters: [[1, 8, 0, 0, 0, 0]],
+          LiteralFixtureMap(id: 1, warpParameters: [[9, 8, 0, 0, 0, 0]],
               events: const [LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
                 LiteralFixtureEventPage(commands: [
                   LiteralFixtureEventCommand(111, [12, 'pbItemBall(:ETHER)']),
@@ -84,6 +84,9 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('prepare-study')));
       await _waitFor(tester, () => source.workflow.state.prepared != null && !source.workflow.state.isBusy);
       expect(source.workflow.state.prepared!.canApprove, isFalse);
+      expect(source.workflow.state.prepared!.composition.diagnostics.where((entry) =>
+          entry.code == 'literal.dependency.invalid' && entry.blocksPlanning),
+          isNotEmpty);
       final picker = find.byKey(const ValueKey('missing-item-binding-ETHER'));
       expect(picker, findsOneWidget);
       final select = tester.widget<StudioSelect>(picker);

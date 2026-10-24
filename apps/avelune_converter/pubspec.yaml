@@ -22,6 +22,8 @@ dependencies:
     path: ../../packages/map_core
   file_picker: 11.0.3
   image: 4.10.1
+  http: ^1.6.0
+  package_info_plus: ^9.0.1
   path: ^1.9.1
   path_provider: 2.1.6
 
