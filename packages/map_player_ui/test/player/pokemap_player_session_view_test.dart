@@ -2311,7 +2311,7 @@ void main() {
       presentationFrame: presentation,
       presentationContentPort: _PresentationContentPort(),
     )));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);

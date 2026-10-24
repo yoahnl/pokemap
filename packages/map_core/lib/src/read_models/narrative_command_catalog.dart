@@ -850,7 +850,7 @@ final class NarrativeCommandCatalog {
           model: NarrativeCommandCapabilityStatus.supported,
           editor: NarrativeCommandCapabilityStatus.supported,
           runtime: NarrativeCommandCapabilityStatus.supported,
-          reason: 'Player 2D uniquement ; propriétaire scène temporaire ou carte jusqu’au transfert. Le combat suspend l’ambiance et garde la priorité musicale. La mémorisation conserve les descripteurs, sans position.',
+          reason: 'Player 2D : canaux musique et ambiance, portée scène ou carte. Player 3D : canal musique, portée scène uniquement. Le combat suspend l’ambiance et garde la priorité musicale. La mémorisation conserve les descripteurs, sans position.',
         ),
         fgLotId: 'FG-093',
         wireId: 'SceneInteractiveCommand.sceneMusic',

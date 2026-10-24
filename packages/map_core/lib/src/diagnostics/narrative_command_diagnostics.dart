@@ -90,8 +90,7 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
   }
   if ((command is SceneWhiteOutInteractiveCommand ||
           command is SceneWaitInteractiveCommand ||
-          command is SceneWorldToneInteractiveCommand ||
-          command is SceneMusicInteractiveCommand) &&
+          command is SceneWorldToneInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
     return const [
       NarrativeCommandDiagnostic(
@@ -99,6 +98,11 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
         message: 'Les commandes de présentation du monde sont disponibles uniquement dans un projet 2D.',
       ),
     ];
+  }
+  if (command is SceneMusicInteractiveCommand && project.settings.dimension == ProjectDimension.threeD &&
+      (command.channel != SceneMusicChannel.music || command.scope != SceneMusicScope.scene)) {
+    return const [NarrativeCommandDiagnostic(code: NarrativeCommandDiagnosticCode.unsupportedCommand,
+      message: 'En 3D, choisir le canal musique et la portée scène.')];
   }
   if (command case SceneWarpInteractiveCommand(:final destinationMapId)) {
     if (!project.maps.any((map) => map.id == destinationMapId)) {

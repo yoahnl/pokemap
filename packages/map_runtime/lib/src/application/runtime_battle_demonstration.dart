@@ -1,9 +1,10 @@
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_setup_mapper.dart';
 import 'runtime_map_bundle.dart';
+
+const guaranteedDemonstrationBallRateNumerator = 3 * 255;
 
 Future<GameState> prepareRuntimeBattleDemonstration({
   required RuntimeMapBundle bundle,
@@ -76,5 +77,6 @@ Future<GameState> prepareRuntimeBattleDemonstration({
     trainerProfile: state.trainerProfile.copyWith(name: trainer.name),
     party: PlayerParty(members: members),
     bag: Bag(entries: configuration.bagItems),
+    pokemonStorage: const PokemonStorage(),
   );
 }

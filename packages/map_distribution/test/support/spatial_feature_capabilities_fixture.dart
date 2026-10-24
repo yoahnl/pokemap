@@ -98,7 +98,7 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
         ],
       ),
     );
-  } else if (feature == 'audio') {
+  } else if (feature == 'audio' || feature == 'sceneMusic') {
     final sound = <int>[
       82,
       73,
@@ -175,12 +175,12 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
         CinematicMediaAsset(
             id: 'cue',
             label: 'Cue',
-            kind: CinematicMediaAssetKind.sound,
+            kind: feature == 'sceneMusic' ? CinematicMediaAssetKind.music : CinematicMediaAssetKind.sound,
             relativePath: 'assets/cue.wav')
       ],
       scenes: [
         featureScene('sound',
-            command: SceneInteractiveCommand.playSoundEffect(
+            command: feature == 'sceneMusic' ? SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.play, mediaAssetId: 'cue', volume: .7) : SceneInteractiveCommand.playSoundEffect(
                 mediaAssetId: 'cue', volume: 1, waitForCompletion: true))
       ],
     );

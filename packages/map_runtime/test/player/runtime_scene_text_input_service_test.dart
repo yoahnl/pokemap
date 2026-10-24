@@ -35,6 +35,41 @@ RuntimeWorldServiceCommand _submit(
 }
 
 void main() {
+  test('native item feedback uses an acknowledged scene message without saving twice', () async {
+    final fixture = TextFactFixture();
+    addTearDown(fixture.controller.dispose);
+    final request = SceneMessageInteractionRequest(
+      requestId: 'item',
+      revision: 0,
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'item.received',
+        fallbackText: 'Obtenu : Ressource !',
+      ),
+    );
+    final pending = fixture.controller.openSceneTextInteraction(
+      request: OpenSceneTextInteractionService(
+        interactionId: 'item',
+        interaction: request,
+      ),
+    );
+    final snapshot = fixture.controller.worldServiceSnapshot!;
+    expect(snapshot.content, request);
+    final reply = SceneInteractionResult.acknowledged(
+      requestId: request.requestId,
+      revision: request.revision,
+    );
+    final result = await fixture.controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.confirm,
+        snapshotRevision: snapshot.revision,
+        interactionResult: reply,
+      ),
+    );
+    expect(result.status, RuntimeWorldServiceCommandStatus.accepted);
+    expect(await pending, reply);
+    expect(fixture.commits, 0);
+    expect(fixture.locks, [true, false]);
+  });
   test('Scene text rejects invalid graphemes and accepts one typed reply without saving', () async {
     final fixture = TextFactFixture();
     addTearDown(fixture.controller.dispose);

@@ -65,10 +65,17 @@ SpatialLightingProfile spatialAuthoredShadowLighting(
   List<SpatialAuthoredShadowCaster> casters, {
   required double receiverMinY,
   required double receiverMaxY,
+  ({double x, double y, double z}) sunDirection = (x: -.45, y: 1, z: -.3),
 }) {
   if (casters.isEmpty) return SpatialLightingProfile.disabled;
-  final sun = Vector3(-.45, 1, -.3)..normalize();
-  final right = Vector3(0, 1, 0).cross(sun)..normalize();
+  final sun = Vector3(sunDirection.x, sunDirection.y, sunDirection.z);
+  if (!sun.length.isFinite || sun.length < .000001 || sun.y <= 0) {
+    throw ArgumentError.value(sunDirection, 'sunDirection');
+  }
+  sun.normalize();
+  final right = (sun.y.abs() > .99 ? Vector3(0, 0, 1) : Vector3(0, 1, 0)).cross(
+    sun,
+  )..normalize();
   final up = sun.cross(right)..normalize();
   final corners = [for (final caster in casters) ...caster.worldCorners];
   final minimumY = math.min(
@@ -102,7 +109,7 @@ SpatialLightingProfile spatialAuthoredShadowLighting(
     ambientColor: const Color(0xffffffff),
     sunColor: const Color(0xffffffff),
     ambientStrength: .78,
-    sunStrength: .22 / sun.y,
+    sunStrength: (.22 / sun.y).clamp(0.0, 2.0),
     sunDirection: (x: sun.x, y: sun.y, z: sun.z),
     surfaceStrength: 0,
     groundStrength: 1,

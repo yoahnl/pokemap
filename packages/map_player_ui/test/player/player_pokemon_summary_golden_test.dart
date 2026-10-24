@@ -55,7 +55,7 @@ void main() {
           home: Scaffold(
             body: RepaintBoundary(
               key: const ValueKey<String>('pokemon-summary-golden'),
-              child: SingleChildScrollView(
+              child: SizedBox.expand(
                 child: PlayerPokemonSummarySheet(
                   summary: _summary(),
                   surfaceRole: entry.value.role,
@@ -65,13 +65,29 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       await expectLater(
         find.byKey(const ValueKey<String>('pokemon-summary-golden')),
         matchesGoldenFile('goldens/pokemon_summary/${entry.key}.png'),
       );
+      expect(find.byType(Scrollable), findsNothing);
+      for (
+        var page = 0;
+        find.text('Poké Ball').evaluate().isEmpty && page < 20;
+        page++
+      ) {
+        final next = find.byKey(const ValueKey('player-page-next'));
+        expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+      final ball = find.text('Poké Ball');
+      expect(ball, findsOneWidget);
+      final bounds = tester.getRect(ball);
+      expect(bounds.bottom, lessThanOrEqualTo(entry.value.size.height));
+      expect(tester.takeException(), isNull);
     });
   }
 }
@@ -91,9 +107,9 @@ Future<void> _loadFixtureFonts() async {
 }
 
 Future<void> _loadFont(String family, Uint8List bytes) async {
-  await (FontLoader(family)
-        ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes))))
-      .load();
+  await (FontLoader(
+    family,
+  )..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)))).load();
 }
 
 Directory _flutterCacheDirectory() {
@@ -109,54 +125,54 @@ Directory _flutterCacheDirectory() {
 }
 
 RuntimePokemonSummarySnapshot _summary() => RuntimePokemonSummarySnapshot(
-      targetId: 'pokemon.indiv-1',
-      individualId: 'indiv-1',
-      speciesLabel: 'Bulbizarre',
-      nickname: 'Bulbi',
-      level: 12,
-      experience: 120,
-      currentHp: 20,
-      maxHp: 48,
-      stats: const RuntimePokemonStatsSummarySnapshot(
-        attack: 49,
-        defense: 49,
-        specialAttack: 65,
-        specialDefense: 65,
-        speed: 45,
-      ),
-      natureLabel: 'Hardy',
-      abilityLabel: 'Engrais',
-      genderLabel: 'Mâle',
-      heldItemLabel: 'Baie Oran',
-      friendship: 70,
-      moves: const <RuntimePokemonMoveSummarySnapshot>[
-        RuntimePokemonMoveSummarySnapshot(
-          moveId: 'tackle',
-          label: 'Charge',
-          typeLabel: 'Normal',
-          currentPp: 30,
-          maxPp: 35,
-        ),
-        RuntimePokemonMoveSummarySnapshot(
-          moveId: 'vine_whip',
-          label: 'Fouet Lianes',
-          typeLabel: 'Plante',
-          currentPp: 24,
-          maxPp: 25,
-        ),
-        RuntimePokemonMoveSummarySnapshot(
-          moveId: 'growl',
-          label: 'Rugissement',
-          typeLabel: 'Normal',
-          currentPp: 40,
-          maxPp: 40,
-        ),
-      ],
-      provenance: const RuntimePokemonProvenanceSummarySnapshot(
-        originLabel: 'Capturé',
-        metMapLabel: 'Route Hanazuki',
-        metSourceLabel: 'Hautes herbes',
-        metLevel: 5,
-        ballLabel: 'Poké Ball',
-      ),
-    );
+  targetId: 'pokemon.indiv-1',
+  individualId: 'indiv-1',
+  speciesLabel: 'Bulbizarre',
+  nickname: 'Bulbi',
+  level: 12,
+  experience: 120,
+  currentHp: 20,
+  maxHp: 48,
+  stats: const RuntimePokemonStatsSummarySnapshot(
+    attack: 49,
+    defense: 49,
+    specialAttack: 65,
+    specialDefense: 65,
+    speed: 45,
+  ),
+  natureLabel: 'Hardy',
+  abilityLabel: 'Engrais',
+  genderLabel: 'Mâle',
+  heldItemLabel: 'Baie Oran',
+  friendship: 70,
+  moves: const <RuntimePokemonMoveSummarySnapshot>[
+    RuntimePokemonMoveSummarySnapshot(
+      moveId: 'tackle',
+      label: 'Charge',
+      typeLabel: 'Normal',
+      currentPp: 30,
+      maxPp: 35,
+    ),
+    RuntimePokemonMoveSummarySnapshot(
+      moveId: 'vine_whip',
+      label: 'Fouet Lianes',
+      typeLabel: 'Plante',
+      currentPp: 24,
+      maxPp: 25,
+    ),
+    RuntimePokemonMoveSummarySnapshot(
+      moveId: 'growl',
+      label: 'Rugissement',
+      typeLabel: 'Normal',
+      currentPp: 40,
+      maxPp: 40,
+    ),
+  ],
+  provenance: const RuntimePokemonProvenanceSummarySnapshot(
+    originLabel: 'Capturé',
+    metMapLabel: 'Route Hanazuki',
+    metSourceLabel: 'Hautes herbes',
+    metLevel: 5,
+    ballLabel: 'Poké Ball',
+  ),
+);

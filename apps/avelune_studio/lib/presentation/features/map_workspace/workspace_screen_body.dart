@@ -197,6 +197,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               : workspaceSecondaryContent(
                                   loadSceneMoves: _loadSceneMoves,
                                   loadSceneItems: _loadSceneItems,
+                                  loadSceneCaptureItems: _loadSceneCaptureItems,
                                   loadSceneSpecies: _loadSceneSpecies,
                                   space: _space,
                                   presentations: _presentations,
@@ -313,7 +314,9 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
     return {for (final move in moves.entries) move.id: move.name};
   }
 
-  Future<Map<String, String>> _loadSceneItems() async {
+  Future<Map<String, String>> _loadSceneCaptureItems() => _loadSceneItems(captureOnly: true);
+
+  Future<Map<String, String>> _loadSceneItems({bool captureOnly = false}) async {
     final owner = _pokemon;
     if (owner == null) throw StateError('Catalogue indisponible.');
     final index = await owner.port.loadIndex();
@@ -333,6 +336,6 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         )) {
       throw StateError('Le catalogue des objets est indisponible ou ambigu.');
     }
-    return {for (final item in catalog.entries) item.id: item.displayName};
+    return {for (final item in catalog.entries) if (!captureOnly || item.capture != null) item.id: item.displayName};
   }
 }

@@ -366,7 +366,8 @@ final class SceneActions {
   };
 
   static const _sceneMusicContract = {
-    'projectDimension': 'twoD',
+    'projectDimensions': ['twoD', 'threeD'],
+    'spatialSupport': {'scopes': ['scene'], 'channels': ['music'], 'capability': 'map3d.scene-music@1'},
     'executionProfile': 'world',
     'parameters': ['operation', 'channel', 'scope', 'mediaAssetId', 'volume', 'durationMs'],
     'operations': {
@@ -560,7 +561,7 @@ final class SceneActions {
     'capability': SceneBattleDemonstration.capabilityId,
     'parameters': ['playerTrainerId', 'bagItems', 'choices', 'captureAlwaysSucceeds', 'stepDelayMs'],
     'choices': {'fight': ['moveIndex'], 'capture': ['itemId']},
-    'temporaryState': ['party', 'bag'],
+    'temporaryState': ['trainerProfile', 'party', 'bag', 'pokemonStorage'],
     'writeBack': false,
     'waitsFor': 'battlePresentationAndExitTransition',
   };

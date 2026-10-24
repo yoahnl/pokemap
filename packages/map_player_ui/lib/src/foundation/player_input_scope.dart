@@ -21,6 +21,17 @@ class PlayerInputScope extends InheritedWidget {
     _ => false,
   };
 
+  static bool usesKeyboard(
+    BuildContext context, {
+    PlayerInputSource? fallback,
+  }) =>
+      (context
+              .dependOnInheritedWidgetOfExactType<PlayerInputScope>()
+              ?.activeInputSource ??
+          fallback ??
+          PlayerInputSource.touch) ==
+      PlayerInputSource.keyboard;
+
   @override
   bool updateShouldNotify(PlayerInputScope oldWidget) =>
       activeInputSource != oldWidget.activeInputSource;

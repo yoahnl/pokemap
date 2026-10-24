@@ -404,3 +404,5 @@ export 'src/narrative_parallel_scheduler.dart';
 
 export 'src/party_readiness.dart';
 export 'src/party_companion_trail.dart';
+
+export 'src/spatial_item_pickup.dart';

@@ -14,6 +14,7 @@ void main() {
     'companion': SpatialGameplayCapabilities.companionCapabilityId,
     'contact': ProjectContactDeviceConfig.capabilityId,
     'audio': SpatialGameplayCapabilities.audioCapabilityId,
+    'sceneMusic': SpatialGameplayCapabilities.sceneMusicCapabilityId,
   };
   for (final entry in features.entries) {
     final base = ['map3d@1', if (entry.key != 'camera') 'map3d.gameplay@1'];

@@ -66,12 +66,15 @@ final class SceneBattleDemonstration {
     this.stepDelayMs = 500,
   }) : bagItems = List.unmodifiable(bagItems),
        choices = List.unmodifiable(choices) {
-    if (playerTrainerId.trim().isEmpty)
+    if (playerTrainerId.trim().isEmpty) {
       throw ArgumentError.value(playerTrainerId, 'playerTrainerId');
-    if (choices.isEmpty || choices.length > 100)
+    }
+    if (choices.isEmpty || choices.length > 100) {
       throw ArgumentError.value(choices.length, 'choices');
-    if (stepDelayMs < 50 || stepDelayMs > 10000)
+    }
+    if (stepDelayMs < 50 || stepDelayMs > 10000) {
       throw ArgumentError.value(stepDelayMs, 'stepDelayMs');
+    }
     final ids = <String>{};
     for (final item in bagItems) {
       if (item.itemId.trim().isEmpty ||
@@ -158,8 +161,9 @@ bool _same(List<Object> left, List<Object> right) =>
     ).every((index) => left[index] == right[index]);
 
 Map<String, dynamic> _object(Object? value) {
-  if (value is! Map<String, dynamic>)
+  if (value is! Map<String, dynamic>) {
     throw const FormatException('Expected a demonstration object.');
+  }
   return value;
 }
 

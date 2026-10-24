@@ -6,8 +6,8 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
   RuntimePlayerFocusController({
     String? logicalSelectionId,
     PlayerInputSource activeInputSource = PlayerInputSource.keyboard,
-  })  : _logicalSelectionId = logicalSelectionId,
-        _activeInputSource = activeInputSource;
+  }) : _logicalSelectionId = logicalSelectionId,
+       _activeInputSource = activeInputSource;
 
   final _nodes = <String, FocusNode>{};
   final _nodeListeners = <String, VoidCallback>{};
@@ -23,15 +23,13 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
       _activeInputSource == PlayerInputSource.keyboard ||
       _activeInputSource == PlayerInputSource.controller;
 
-  FocusNode nodeFor(
-    String logicalId, {
-    required String debugLabel,
-  }) {
+  FocusNode nodeFor(String logicalId, {required String debugLabel}) {
     return _nodes.putIfAbsent(logicalId, () {
       final node = FocusNode(debugLabel: debugLabel);
       void listener() {
         if (!node.hasFocus || _disposed) return;
         if (_logicalSelectionId != logicalId) {
+          _focusRequestGeneration++;
           _logicalSelectionId = logicalId;
           notifyListeners();
         }
@@ -57,6 +55,7 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
     if (_disposed) return;
     if (source != null) _activeInputSource = source;
     final changed = _logicalSelectionId != logicalId;
+    if (changed) _focusRequestGeneration++;
     _logicalSelectionId = logicalId;
     if (changed || source != null) notifyListeners();
     if (requestFocus) _requestFocusAfterLayout(logicalId);

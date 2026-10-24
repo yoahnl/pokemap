@@ -596,9 +596,7 @@ void main() {
       );
 
       await tester.pumpWidget(_app(request: request, results: results));
-      await tester.pump();
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(
         FocusManager.instance.primaryFocus?.debugLabel,
         'Player action: Gauche',
@@ -641,9 +639,7 @@ void main() {
           results: results,
         ),
       );
-      await tester.pump();
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();

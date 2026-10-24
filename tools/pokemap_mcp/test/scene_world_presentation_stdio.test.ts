@@ -101,9 +101,11 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     assert.deepEqual(record(extension.wait).durationMsRange, [0, 2147483647]);
     assert.deepEqual(record(extension.wait).outputPorts, ["completed"]);
     assert.equal(record(extension.wait).completion, "elapsed");
-    for (const id of ["wait", "worldTone", "sceneMusic"]) {
+    for (const id of ["wait", "worldTone"]) {
       assert.equal(record(extension[id]).projectDimension, "twoD");
     }
+    assert.deepEqual(record(extension.sceneMusic).projectDimensions, ["twoD", "threeD"]);
+    assert.deepEqual(record(extension.sceneMusic).spatialSupport, {scopes: ["scene"], channels: ["music"], capability: "map3d.scene-music@1"});
     for (const id of ["playSoundEffect", "playMusicEffect", "stopSoundEffects"]) assert.deepEqual(record(extension[id]).projectDimensions, ["twoD", "threeD"]);
     assert.deepEqual(record(extension.stopSoundEffects).scopes, ["scene", "map"]);
     assert.ok(extension.worldPresentation);
@@ -217,6 +219,8 @@ test("live MCP persists native presentation data and refuses invalid sound refer
       { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8 },
       { kind: "playMusicEffect", mediaAssetId: "door", volume: 0.8, bgmInterruption: { fadeOutMs: 200, fadeInMs: 400 } },
       { kind: "sceneMusic", operation: "restore" },
+      { kind: "sceneMusic", operation: "stop", scope: "map" },
+      { kind: "sceneMusic", operation: "stop", channel: "ambience" },
     ];
     const initialCommands = [
       { kind: "wait", durationMs: 1 },
@@ -239,8 +243,9 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     const spatialMapBefore = await readFile(spatialMapFile);
     for (const command of presentationCommands) {
       const spatialBefore = await readFile(spatialFile);
-      const spatialAudio = ["playSoundEffect", "playMusicEffect"].includes(command.kind);
-      if (spatialAudio) Object.assign(command, { waitForCompletion: true });
+      const sound = ["playSoundEffect", "playMusicEffect"].includes(command.kind);
+      const spatialAudio = sound || command.kind === "sceneMusic" && !command.scope && !command.channel;
+      if (sound) Object.assign(command, { waitForCompletion: true });
       let audioPlan: JsonRecord | undefined;
       const sceneId = `edit-${command.kind}`;
       const invalidScene = scene(sceneId, command);
@@ -263,7 +268,7 @@ test("live MCP persists native presentation data and refuses invalid sound refer
         await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: audioPlan.planId, operationId: `spatial-audio-${++sequence}` });
         const saved = JSON.parse(await readFile(spatialFile, "utf8"));
         const selected = saved.scenes.find((s: JsonRecord) => s.id === sceneId);
-        assert.equal(selected.graph.nodes[1].payload.interactiveCommand.waitForCompletion, true);
+        preserveExplicitFields(selected.graph.nodes[1].payload.interactiveCommand, command);
       }
     }
   } finally {

@@ -298,7 +298,9 @@ void main() {
         final map = tester.getRect(find.byType(RuntimePlayerRegionMap));
         expect(fly.top - close.bottom, greaterThanOrEqualTo(16));
         expect(map.top - fly.bottom, greaterThanOrEqualTo(16));
+        await _revealMapList(tester, find.text('Kanto'));
         expect(find.text('Kanto'), findsWidgets);
+        await _revealMapList(tester, find.text('Route 10'));
         expect(find.text('Route 10'), findsWidgets);
         await tester.tap(
           find.byKey(const ValueKey('regional-map-fly-confirm')),
@@ -318,5 +320,24 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  }
+}
+
+Future<void> _revealMapList(WidgetTester tester, Finder target) async {
+  for (final key in ['player-page-previous', 'player-page-next']) {
+    for (var page = 0; page < 30 && target.evaluate().isEmpty; page++) {
+      final control = find
+          .descendant(
+            of: find.byKey(const PageStorageKey('region-map-list')),
+            matching: find.byKey(ValueKey(key)),
+          )
+          .hitTestable();
+      if (control.evaluate().isEmpty ||
+          tester.widget<IconButton>(control).onPressed == null) {
+        break;
+      }
+      await tester.tap(control);
+      await tester.pumpAndSettle();
+    }
   }
 }

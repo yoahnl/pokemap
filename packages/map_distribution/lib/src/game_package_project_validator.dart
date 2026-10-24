@@ -134,6 +134,7 @@ final class GamePackageProjectValidator {
         if (errors.isNotEmpty) _fail(errors.join('; '));
       }
       if (spatial) {
+        if (SpatialGameplayCapabilities.requiresSceneMusic(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.sceneMusicCapabilityId)) _fail('Spatial scene music requires map3d.scene-music@1.');
         if (SpatialGameplayCapabilities.requiresAudio(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.audioCapabilityId)) _fail('Spatial scene audio requires map3d.scene-audio@1.');
         if (project.partyCompanion.enabled && !packageManifest.compatibility.requiredCapabilities
             .contains(SpatialGameplayCapabilities.companionCapabilityId)) {
@@ -200,6 +201,10 @@ final class GamePackageProjectValidator {
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialTerrainSurfaceSet.capabilityId)) {
           _fail('Continuous 3D terrain requires map3d.terrain-surfaces@1.');
+        }
+        if (maps.any((map) => map.spatialScene!.instances.any((instance) => instance.entityId != null)) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(SpatialModelInstance.entityBindingCapabilityId)) {
+          _fail('Entity-linked 3D models require ${SpatialModelInstance.entityBindingCapabilityId}.');
         }
         if (maps.any((map) => map.spatialScene!.navigation.ledges.isNotEmpty) &&
             !packageManifest.compatibility.requiredCapabilities.contains(SpatialLedge.capabilityId)) {

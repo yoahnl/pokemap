@@ -89,6 +89,43 @@ void main() {
     }
   });
 
+  test('3D accepts only music channel owned by the scene', () {
+    for (final channel in SceneMusicChannel.values) {
+      for (final scope in SceneMusicScope.values) {
+        final command = SceneMusicInteractiveCommand(
+          operation: SceneMusicOperation.memorize,
+          channel: channel,
+          scope: scope,
+        );
+        final scene = musicScene(command);
+        final project = ProjectManifest(
+          name: 'Spatial',
+          maps: [],
+          tilesets: [],
+          scenes: [scene],
+          settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+        );
+        final accepted =
+            channel == SceneMusicChannel.music &&
+            scope == SceneMusicScope.scene;
+        expect(
+          SpatialGameplayCapabilities.supportsSceneNode(
+            SceneExecutionProfile.world,
+            scene.graph.nodes[1],
+          ),
+          accepted,
+        );
+        expect(
+          diagnoseInteractiveCommand(
+            command: command,
+            project: project,
+          ).isEmpty,
+          accepted,
+        );
+      }
+    }
+  });
+
   test(
     'scene music catalog and payload builder expose the closed operations',
     () {
@@ -100,10 +137,12 @@ void main() {
         {'operation': 'restore'},
         {'operation': 'fadeOut', 'durationMs': '1000'},
       ]) {
-        final payload = buildScenePayloadForNarrativeCommand(
-          commandId: 'sceneMusic',
-          parameters: parameters,
-        ) as SceneActionPayload;
+        final payload =
+            buildScenePayloadForNarrativeCommand(
+                  commandId: 'sceneMusic',
+                  parameters: parameters,
+                )
+                as SceneActionPayload;
         expect(
           payload.interactiveCommand!.toJson()['operation'],
           parameters['operation'],
@@ -189,7 +228,7 @@ void main() {
           );
           expect(
             diagnoseInteractiveCommand(command: command, project: spatial),
-            isNotEmpty,
+            isEmpty,
           );
         }
       }

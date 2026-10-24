@@ -27,6 +27,7 @@ void main() {
           .extensions['battleDemonstration'] as Map;
       expect(contract['field'], 'demonstration');
       expect(contract['writeBack'], false);
+      expect(contract['temporaryState'], ['trainerProfile', 'party', 'bag', 'pokemonStorage']);
       expect(contract['capability'], SceneBattleDemonstration.capabilityId);
     }
   });

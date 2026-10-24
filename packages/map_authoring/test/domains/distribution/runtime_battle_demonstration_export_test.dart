@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/battle_demonstration_fixture.dart';
 

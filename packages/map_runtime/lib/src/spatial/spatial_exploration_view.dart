@@ -335,79 +335,80 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       for (final neighbor in neighbors) neighbor.map.id,
     };
     return Focus(
-        autofocus: widget.keyboardInputEnabled,
-        focusNode: focus,
-        onFocusChange: (value) {
-          if (!value) release();
+      autofocus: widget.keyboardInputEnabled,
+      focusNode: focus,
+      onFocusChange: (value) {
+        if (!value) release();
+      },
+      onKeyEvent: onKey,
+      child: Listener(
+        onPointerDown: (_) {
+          if (widget.keyboardInputEnabled) focus.requestFocus();
         },
-        onKeyEvent: onKey,
-        child: Listener(
-            onPointerDown: (_) {
-              if (widget.keyboardInputEnabled) focus.requestFocus();
-            },
-            child: Stack(children: [
-              Positioned.fill(
-                  child: SpatialSceneView(
-                      resourceBudget: widget.session.bundle.resourceBudget,
-                      resourceIdentity: widget.session.bundle.projectCatalog?.identity,
-                      key: ObjectKey(widget.session),
-                      scene: widget.session.bundle.map.spatialScene!,
-                      groundMap: widget.session.bundle.map,
-                      groundProject: widget.session.bundle.manifest,
-                      loadGroundImage: widget.session.groundImageBytes,
-                      sceneOffset: sceneOffset,
-                      neighbors: neighbors,
-                      models: widget.session.bundle.manifest.models3d,
-                      loadModel: loadModel,
-                      controller: camera,
-                      onCell: (_, __) {
-                        if (widget.keyboardInputEnabled) focus.requestFocus();
-                      },
-                      onReady: widget.onReady,
-                      onVisibleMapsChanged: widget.session.setVisibleMaps,
-                      actorFrames: (dt) =>
-                          frames(dt, renderedOrigin, renderedMaps, renderedMapId),
-                      modelRuntimeState: widget.session.modelRuntimeState,
-                      rasterAnimationElapsedMsForCell:
-                          widget.session.rasterAnimationElapsedMsForCell,
-                      presentationPaused: () =>
-                          widget.session.presentationPaused,
-                      presentationElapsedSeconds: () => widget.session.presentationSeconds,
-                      cameraMagnification: () => widget.session.nativeCameraMagnification,
-                      cameraPose: () {
-                        final pose = widget.session.storyCamera?.call();
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: SpatialSceneView(
+                resourceBudget: widget.session.bundle.resourceBudget,
+                resourceIdentity:
+                    widget.session.bundle.projectCatalog?.identity,
+                key: ObjectKey(widget.session),
+                scene: widget.session.bundle.map.spatialScene!,
+                groundMap: widget.session.bundle.map,
+                groundProject: widget.session.bundle.manifest,
+                loadGroundImage: widget.session.groundImageBytes,
+                sceneOffset: sceneOffset,
+                neighbors: neighbors,
+                models: widget.session.bundle.manifest.models3d,
+                loadModel: loadModel,
+                controller: camera,
+                onCell: (_, __) {
+                  if (widget.keyboardInputEnabled) focus.requestFocus();
+                },
+                onReady: widget.onReady,
+                onVisibleMapsChanged: widget.session.setVisibleMaps,
+                actorFrames: (dt) =>
+                    frames(dt, renderedOrigin, renderedMaps, renderedMapId),
+                modelRuntimeState: widget.session.modelRuntimeState,
+                modelPresence: widget.session.modelIsPresent,
+                rasterAnimationElapsedMsForCell:
+                    widget.session.rasterAnimationElapsedMsForCell,
+                presentationPaused: () => widget.session.presentationPaused,
+                presentationElapsedSeconds: () =>
+                    widget.session.presentationSeconds,
+                cameraMagnification: () =>
+                    widget.session.nativeCameraMagnification,
+                cameraPose: () {
+                  final pose = widget.session.storyCamera?.call();
                   if (pose == null &&
                       widget.session.nativeDoorTraversalActive) {
                     final movement = widget.session.movement;
                     final anchor = widget.session.nativeCameraAnchor;
                     return (
                       x: anchor?.x ?? movement.x,
-                      y: anchor == null ? movement.y : movement.scene.worldHeightAt(anchor.x, anchor.z),
+                      y: anchor == null
+                          ? movement.y
+                          : movement.scene.worldHeightAt(anchor.x, anchor.z),
                       z: anchor?.z ?? movement.z,
                       zoom: 1.0,
                     );
                   }
-                        return pose == null
-                            ? null
-                            : (
-                                x: pose.x,
-                                y: pose.y,
-                                z: pose.z,
-                                zoom: pose.zoom
-                              );
-                      },
-                      background: Colors.black,
-                      ground: colors.primaryContainer,
-                      edge: colors.outlineVariant,
-                      errorBuilder: (_, error) {
+                  return pose == null
+                      ? null
+                      : (x: pose.x, y: pose.y, z: pose.z, zoom: pose.zoom);
+                },
+                background: Colors.black,
+                ground: colors.primaryContainer,
+                edge: colors.outlineVariant,
+                errorBuilder: (_, error) {
                   scheduleMicrotask(
                     () => widget.session.reportNativeDoorRenderFailure(
                       renderedMapId,
                       error,
                     ),
                   );
-                        widget.onError?.call(error);
-                        return Center(
+                  widget.onError?.call(error);
+                  return Center(
                     child: Text('Erreur d’exploration 3D : $error'),
                   );
                 },

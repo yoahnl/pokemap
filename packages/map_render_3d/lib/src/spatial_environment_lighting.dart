@@ -8,9 +8,10 @@ import 'spatial_lighting_preview.dart';
 import 'spatial_point_light.dart';
 
 final class SpatialDayNightFrame {
-  const SpatialDayNightFrame(this.tint, this.daylight);
+  const SpatialDayNightFrame(this.tint, this.daylight, {this.solarPhase = 0});
   final Color tint;
   final double daylight;
+  final double solarPhase;
 }
 
 double _smooth(double value) {
@@ -44,7 +45,34 @@ SpatialDayNightFrame spatialDayNightFrame(double minuteOfDay) {
   }
   final daylight =
       _smooth((minute - 300) / 180) * (1 - _smooth((minute - 1020) / 240));
-  return SpatialDayNightFrame(tint, daylight);
+  final solarPhase = minute < 720
+      ? ((minute - 720) / 420).clamp(-1.0, 0.0)
+      : ((minute - 720) / 540).clamp(0.0, 1.0);
+  return SpatialDayNightFrame(tint, daylight, solarPhase: solarPhase);
+}
+
+({double x, double y, double z}) spatialDayNightSunDirection(
+  ({double x, double y, double z}) noon,
+  SpatialDayNightFrame frame,
+) {
+  final length = math.sqrt(noon.x * noon.x + noon.y * noon.y + noon.z * noon.z);
+  final valid = length.isFinite && length >= .000001 && noon.y > 0;
+  if (valid && frame.solarPhase == 0 && (length - 1).abs() < 1e-12) return noon;
+  final x = valid ? noon.x / length : 0.0;
+  final y = valid ? noon.y / length : 1.0;
+  final z = valid ? noon.z / length : 0.0;
+  final horizontalLength = math.sqrt(x * x + z * z);
+  final tangentX = horizontalLength < .000001 ? 1.0 : -z / horizontalLength;
+  final tangentZ = horizontalLength < .000001 ? 0.0 : x / horizontalLength;
+  final minimumY = math.min(.25, y);
+  final limit = math.acos((minimumY / y).clamp(0.0, 1.0));
+  final angle = (frame.solarPhase * math.pi / 2).clamp(-limit, limit);
+  final cosine = math.cos(angle), sine = math.sin(angle);
+  return (
+    x: x * cosine + tangentX * sine,
+    y: y * cosine,
+    z: z * cosine + tangentZ * sine,
+  );
 }
 
 final class SpatialDayNightPreviewClock {
@@ -109,6 +137,7 @@ SpatialLightingProfile spatialEnvironmentLighting(
   SpatialLightingProfile base, {
   SpatialDayNightFrame? frame,
   List<SpatialPointLight> lights = const [],
+  ({double x, double y, double z})? sunDirection,
 }) {
   if (frame == null && lights.isEmpty) return base;
   final daylight = frame?.daylight ?? 1;
@@ -117,7 +146,11 @@ SpatialLightingProfile spatialEnvironmentLighting(
     sunColor: base.sunColor,
     ambientStrength: 1 - (1 - base.ambientStrength) * daylight,
     sunStrength: base.sunStrength * daylight,
-    sunDirection: base.sunDirection,
+    sunDirection:
+        sunDirection ??
+        (frame == null
+            ? base.sunDirection
+            : spatialDayNightSunDirection(base.sunDirection, frame)),
     surfaceStrength: base.enabled ? base.surfaceStrength : 0,
     groundStrength: base.groundStrength,
     actorStrength: base.actorStrength,

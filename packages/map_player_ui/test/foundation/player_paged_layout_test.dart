@@ -3,6 +3,48 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets(
+    'reports measured content including gaps without repeated frames',
+    (tester) async {
+      final heights = <double>[];
+      var spacing = 8.0;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return Center(
+                child: SizedBox(
+                  width: 320,
+                  height: 140,
+                  child: PlayerPagedList(
+                    spacing: spacing,
+                    onContentHeightChanged: heights.add,
+                    children: const [
+                      SizedBox(height: 40, child: Text('Premier contenu')),
+                      SizedBox(height: 50, child: Text('Second contenu')),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      expect(heights, isEmpty);
+      await tester.pumpAndSettle();
+      expect(heights, [98]);
+      await tester.pump();
+      await tester.pump();
+      expect(heights, [98]);
+      update(() => spacing = 16);
+      await tester.pumpAndSettle();
+      expect(heights, [98, 106]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final size in [
     const Size(390, 844),
     const Size(844, 390),
@@ -342,9 +384,103 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-  for (final (height, atomHeight) in [(110.0, 82.0), (156.0, 128.0)]) {
+  testWidgets(
+    'keeps an unanchored page when status content reduces its height',
+    (tester) async {
+      final availableHeight = ValueNotifier(250.0);
+      addTearDown(availableHeight.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: ValueListenableBuilder<double>(
+                valueListenable: availableHeight,
+                builder: (context, height, _) => SizedBox(
+                  width: 320,
+                  height: height,
+                  child: const PlayerPagedList(
+                    children: [
+                      SizedBox(height: 140, child: Text('Première page')),
+                      SizedBox(height: 140, child: Text('Réglage actif')),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('player-page-next')));
+      await tester.pumpAndSettle();
+      availableHeight.value = 220;
+      await tester.pumpAndSettle();
+      expect(find.text('Réglage actif').hitTestable(), findsOneWidget);
+      expect(find.text('Première page'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('keeps the selected atom visible after earlier content grows', (
+    tester,
+  ) async {
+    final leadingHeight = ValueNotifier(40.0);
+    addTearDown(leadingHeight.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 320,
+              height: 220,
+              child: PlayerPagedList(
+                revealChildKey: const ValueKey('selected-action'),
+                children: [
+                  ValueListenableBuilder<double>(
+                    key: const ValueKey('late-image'),
+                    valueListenable: leadingHeight,
+                    builder: (context, height, _) => SizedBox(
+                      height: height,
+                      child: const Text('Illustration'),
+                    ),
+                  ),
+                  const SizedBox(
+                    key: ValueKey('selected-action'),
+                    height: 60,
+                    child: Text('Nouvelle partie'),
+                  ),
+                  const SizedBox(height: 90, child: Text('Options')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Nouvelle partie').hitTestable(), findsOneWidget);
+    leadingHeight.value = 140;
+    await tester.pumpAndSettle();
+    expect(find.text('Nouvelle partie').hitTestable(), findsOneWidget);
+    expect(find.text('Illustration'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('player-page-previous')));
+    await tester.pumpAndSettle();
+    leadingHeight.value = 150;
+    await tester.pumpAndSettle();
+    expect(find.text('Illustration').hitTestable(), findsOneWidget);
+    expect(find.text('Nouvelle partie'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final (width, height, atomHeight) in [
+    (640.0, 110.0, 82.0),
+    (640.0, 156.0, 128.0),
+    (206.0, 124.0, 71.0),
+  ]) {
     testWidgets(
-      'side navigation keeps tall atoms and forty-eight pixel controls at height $height',
+      'side navigation keeps tall atoms and forty-eight pixel controls at $width x $height',
       (tester) async {
         final widths = <double>{};
         await tester.pumpWidget(
@@ -353,7 +489,7 @@ void main() {
               body: Align(
                 alignment: Alignment.topLeft,
                 child: SizedBox(
-                  width: 640,
+                  width: width,
                   height: height,
                   child: PlayerPagedList(
                     sideNavigation: true,
@@ -376,7 +512,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(widths, {584.0});
+        expect(widths, {width - 56});
         expect(find.text('Retourner au titre ?'), findsOneWidget);
         expect(tester.takeException(), isNull);
         final body = tester.getRect(

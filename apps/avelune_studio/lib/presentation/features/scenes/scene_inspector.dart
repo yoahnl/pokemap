@@ -51,6 +51,7 @@ class SceneInspector extends StatelessWidget {
     this.loadMap,
     this.loadMoves,
     this.loadItems,
+    this.loadCaptureItems,
     this.loadSpecies,
     this.loadVisualMedia,
   });
@@ -65,6 +66,7 @@ class SceneInspector extends StatelessWidget {
   final Future<MapData> Function(String)? loadMap;
   final Future<Map<String, String>> Function()? loadMoves;
   final Future<Map<String, String>> Function()? loadItems;
+  final Future<Map<String, String>> Function()? loadCaptureItems;
   final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
   final Future<ProjectMediaCatalog> Function()? loadVisualMedia;
 

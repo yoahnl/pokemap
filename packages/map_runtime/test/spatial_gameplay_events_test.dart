@@ -13,6 +13,145 @@ import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/spatial/spatial_gameplay_events.dart';
 
 void main() {
+  test('collected bound model cannot become a ghost interaction target', () async {
+    final item = MapEntity(id: 'native-item', kind: MapEntityKind.item, pos: const GridPos(x: 2, y: 3), item: const MapEntityItemData(gameItemId: 'resource'));
+    final model = ProjectModel3dEntry(id: 'orb', name: 'Orb', sourceAssetId: 'orb-source', relativePath: 'assets/models3d/orb.glb',
+      inspection: Model3dInspection(bounds: Model3dBounds(min: Model3dVector3(x: -.1, y: 0, z: -.1), max: Model3dVector3(x: .1, y: 1, z: .1)), meshCount: 1, triangleCount: 1));
+    final raw = _map(entities: [item]);
+    final map = raw.copyWith(spatialScene: raw.spatialScene!.copyWith(instances: [SpatialModelInstance(id: 'orb-instance', modelId: model.id, entityId: item.id, position: Model3dVector3(x: 2.5, y: 0, z: 3.5))]));
+    final project = _project(map, records: [_event(999, NarrativeEventSourceRef.modelInteract(map.id, 'orb-instance'), 'ghost')], scenes: [_scene('ghost', [SceneConsequence.giveMoney(amount: 7)])]).copyWith(models3d: [model]);
+    final host = await _Host.create(project, map);
+    await host.events.activateMap(_activation('ghost'));
+    expect(host.events.interactionTarget?.id, item.id);
+    await host.events.interact();
+    expect(host.events.entityIsPresent(map.id, item), isFalse);
+    expect(host.events.interactionTarget, isNull);
+    expect(host.events.modelInteractionTarget, isNull);
+  });
+
+
+  test('native bag-full pickup preserves its model owner and never persists a partial grant', () async {
+    final item = MapEntity(
+      id: 'native-item',
+      kind: MapEntityKind.item,
+      pos: const GridPos(x: 2, y: 3),
+      item: const MapEntityItemData(gameItemId: 'resource'),
+    );
+    final map = _map(entities: [item]);
+    var saves = 0;
+    final host = await _Host.create(
+      _project(map),
+      map,
+      persistItemPickup: (_) async {
+        saves++;
+      },
+      presentItemPickup: (entity, result, label) async {
+        expect(result.outcome, SpatialItemPickupOutcome.bagFull);
+      },
+    );
+    host.state = host.state.copyWith(
+      bag: const Bag(
+        entries: [
+          BagEntry(itemId: 'resource', quantity: maximumBagEntryQuantity),
+        ],
+      ),
+    );
+    await host.events.activateMap(_activation('native-full'));
+    await host.events.interact();
+    expect(saves, 0);
+    expect(host.state.bag.entries.single.quantity, maximumBagEntryQuantity);
+    expect(host.state.consumedEventIds, isEmpty);
+    expect(host.events.entityIsPresent(map.id, item), isTrue);
+  });
+  test(
+    'an authored entity interaction keeps precedence over native pickup',
+    () async {
+      final item = MapEntity(
+        id: 'native-item',
+        kind: MapEntityKind.item,
+        pos: const GridPos(x: 2, y: 3),
+        item: const MapEntityItemData(gameItemId: 'resource'),
+      );
+      final map = _map(entities: [item]);
+      final host = await _Host.create(
+        _project(
+          map,
+          records: [
+            _event(
+              940,
+              NarrativeEventSourceRef.entityInteract(map.id, item.id),
+              'authored',
+            ),
+          ],
+          scenes: [
+            _scene('authored', [SceneConsequence.giveMoney(amount: 7)]),
+          ],
+        ),
+        map,
+      );
+      await host.events.activateMap(_activation('native-priority'));
+      await host.events.interact();
+      expect(host.state.trainerProfile.money, 7);
+      expect(host.state.bag.entries, isEmpty);
+      expect(host.events.entityIsPresent(map.id, item), isTrue);
+    },
+  );
+  test(
+    'native once item pickup persists before commit and never grants twice',
+    () async {
+      final item = MapEntity(
+        id: 'native-item',
+        kind: MapEntityKind.item,
+        pos: const GridPos(x: 2, y: 3),
+        item: const MapEntityItemData(gameItemId: 'resource', quantity: 2),
+      );
+      final map = _map(entities: [item]);
+      var saves = 0, messages = 0;
+      final host = await _Host.create(
+        _project(map),
+        map,
+        persistItemPickup: (candidate) async {
+          saves++;
+          expect(candidate.bag.entries.single.quantity, 2);
+        },
+        presentItemPickup: (entity, result, label) async {
+          messages++;
+          expect(result.outcome, SpatialItemPickupOutcome.received);
+        },
+      );
+      await host.events.activateMap(_activation('native-item'));
+      await host.events.interact();
+      expect(host.state.bag.entries.single.quantity, 2);
+      expect(host.events.entityIsPresent(map.id, item), isFalse);
+      expect(saves, 1);
+      expect(messages, 1);
+      await host.events.interact();
+      await host.events.activateMap(_activation('reentry-native-item'));
+      await host.events.interact();
+      expect(saves, 1);
+      expect(host.state.bag.entries.single.quantity, 2);
+    },
+  );
+  test('item persistence failure keeps bag and object present', () async {
+    final item = MapEntity(
+      id: 'native-item',
+      kind: MapEntityKind.item,
+      pos: const GridPos(x: 2, y: 3),
+      item: const MapEntityItemData(gameItemId: 'resource'),
+    );
+    final map = _map(entities: [item]);
+    final host = await _Host.create(
+      _project(map),
+      map,
+      persistItemPickup: (_) async => throw StateError('disk unavailable'),
+    );
+    await host.events.activateMap(_activation('native-item'));
+    await expectLater(host.events.interact(), throwsStateError);
+    expect(host.state.bag.entries, isEmpty);
+    expect(host.events.entityIsPresent(map.id, item), isTrue);
+    expect(host.state.consumedEventIds, isEmpty);
+  });
+
   test('empty connected activation preserves movement without taking the gameplay gate', () async {
     final map = _map();
     final host = await _Host.create(_project(map), map);
@@ -1000,34 +1139,43 @@ final class _Host {
   bool canInput = true;
   int serial = 10;
 
-  static Future<_Host> create(ProjectManifest project, MapData map,
-      {GameState? state,
-      Future<String> Function()? dialogue,
-      Map<String, MapData>? maps,
-      SpatialSceneCallbackFactory? createSceneCallbacks,
-      SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
-      Future<void> Function(GameState)? afterStateCommitted,
-      DateTime Function()? now}) async {
-    final host = _Host(state ??
-        GameState(
-          saveId: 'save',
-          currentMapId: map.id,
-          playerPosition: const GridPos(x: 2, y: 2),
-          playerSpatialPosition: PlayerSpatialPosition(x: 2.5, z: 2.5),
-        ));
+  static Future<_Host> create(
+    ProjectManifest project,
+    MapData map, {
+    GameState? state,
+    Future<String> Function()? dialogue,
+    Map<String, MapData>? maps,
+    SpatialSceneCallbackFactory? createSceneCallbacks,
+    SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
+    Future<void> Function(GameState)? afterStateCommitted,
+    Future<void> Function(GameState)? persistItemPickup,
+    Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
+    presentItemPickup,
+    DateTime Function()? now,
+  }) async {
+    final host = _Host(
+      state ??
+          GameState(
+            saveId: 'save',
+            currentMapId: map.id,
+            playerPosition: const GridPos(x: 2, y: 2),
+            playerSpatialPosition: PlayerSpatialPosition(x: 2.5, z: 2.5),
+          ),
+    );
     host.events = await SpatialGameplayEvents.create(
       project: project,
       mapsById: maps ?? {map.id: map},
       readGameState: () => host.state,
       commitGameState: (state) => host.state = state,
-      createSceneCallbacks: createSceneCallbacks ??
+      createSceneCallbacks:
+          createSceneCallbacks ??
           (read, commit) => SceneRuntimeHostCallbacks(
-                evaluateCondition: (_) => 'true',
-                showDialogue: (_) async =>
-                    dialogue == null ? 'completed' : await dialogue(),
-                startBattle: (_) => 'victory',
-                playCinematic: (_) => 'completed',
-              ),
+            evaluateCondition: (_) => 'true',
+            showDialogue: (_) async =>
+                dialogue == null ? 'completed' : await dialogue(),
+            startBattle: (_) => 'victory',
+            playCinematic: (_) => 'completed',
+          ),
       showEntityDialogue: (_, __) async {},
       startWildBattle: (request) async => host.battles.add(request),
       activityGate: host.gate,
@@ -1035,6 +1183,8 @@ final class _Host {
       canProcessInput: () => host.canInput,
       runtimeIdFactory: (prefix) => _id(prefix, host.serial++),
       afterStateCommitted: afterStateCommitted,
+      persistItemPickup: persistItemPickup,
+      presentItemPickup: presentItemPickup,
       buildSceneConsequenceWriter: buildSceneConsequenceWriter,
       random: Random(41),
       now: now ?? () => DateTime.fromMillisecondsSinceEpoch(42),

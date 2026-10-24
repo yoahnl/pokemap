@@ -26,6 +26,7 @@ import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_player_host.dart';
 import '../player/runtime_music_service.dart';
+import '../player/runtime_scene_music_controller.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../presentation/flame/battle_music_resolver.dart';
 import '../player/runtime_world_service_models.dart';
@@ -96,6 +97,7 @@ final class SpatialExplorationGameSessionRuntime
   late final RuntimeMusicService _music;
   final FlameCinematicAudioDriver Function()? _sceneAudioDriverFactory;
   SpatialSceneAudioRuntime? _sceneAudio;
+  RuntimeSceneMusicSelection? _battleMusic;
   String? _audioMapId;
   final SessionProjectFilePathLoader _projectFilePath;
   final SpatialExplorationSessionMount _mountSession, _unmountSession;
@@ -325,6 +327,7 @@ final class SpatialExplorationGameSessionRuntime
     final cell = _gameState?.playerPosition;
     if (gameplay != null &&
         cell != null &&
+        !(_session?.movement.isJumping ?? true) &&
         _lastCell != cell &&
         inputAuthority.value.acceptsOverworldInput) {
       final previous = _lastCell;
@@ -421,6 +424,9 @@ final class SpatialExplorationGameSessionRuntime
           _gameState = state;
         },
         createSceneCallbacks: _createSceneCallbacks,
+        itemCatalog: _bagItemCatalog,
+        persistItemPickup: _persistNativeItemPickup,
+        presentItemPickup: _presentNativeItemPickup,
         showEntityDialogue: (entity, ref) async {
           final result = await _session!.showDialogue(ref, entity: entity);
           if (!result.success) throw StateError(result.message!);
@@ -440,6 +446,7 @@ final class SpatialExplorationGameSessionRuntime
             '$prefix${_runtimeIds.generate(existingRecords: const []).substring(3)}',
         narrativeSnapshot: narrativeSnapshot,
         afterStateCommitted: _materializeState,
+        onSceneTerminated: (owner) async => _sceneAudio?.releaseScene(owner),
         buildSceneConsequenceWriter: (state, sceneId) async {
           final scene =
               project.scenes.firstWhere((scene) => scene.id == sceneId);
@@ -565,6 +572,7 @@ final class SpatialExplorationGameSessionRuntime
             read,
             commit,
             () => SceneInteractiveCommandRuntimeExecutor(
+                sceneMusic: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 playModelAnimation: (command) => _story!.playModel(command),
                 playSoundEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 playMusicEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
@@ -650,15 +658,25 @@ final class SpatialExplorationGameSessionRuntime
   Future<String> _startBattle(BattleStartRequest request) async {
     _ensureGameplayActive();
     _sceneBattleOutcome = null;
-    final completed =
-        await _battle!.start(bundle: _session!.bundle, request: request);
-    _ensureGameplayActive();
-    if (!completed || _sceneBattleOutcome == null) {
-      throw StateError('The spatial battle did not complete.');
+    final bundle = _session!.bundle;
+    _battleMusic = (route: RuntimeAudioRoute.battle,
+      path: const BattleMusicResolver().resolve(request: request, bundle: bundle).battleMusicAbsolutePath,
+      volume: .8);
+    try {
+      await _applyMusicSelection();
+      _ensureGameplayActive();
+      final completed = await _battle!.start(bundle: bundle, request: request);
+      _ensureGameplayActive();
+      if (!completed || _sceneBattleOutcome == null) {
+        throw StateError('The spatial battle did not complete.');
+      }
+      final outcome = _sceneBattleOutcome!;
+      await _gameplay!.publishBattleOutcome(request: request, outcomeId: outcome);
+      return outcome;
+    } finally {
+      _battleMusic = null;
+      await _applyMusicSelection();
     }
-    final outcome = _sceneBattleOutcome!;
-    await _gameplay!.publishBattleOutcome(request: request, outcomeId: outcome);
-    return outcome;
   }
 
   void _battleCompleted(BattleOutcome outcome) {
@@ -807,13 +825,21 @@ final class SpatialExplorationGameSessionRuntime
     }));
   }
 
-  void _syncMapMusic() {
-    final session = _session;
-    if (_disposed || _stopped || session == null) return;
-    _observeMusic(_music.update(route: RuntimeAudioRoute.overworld,
-        path: const BattleMusicResolver().resolveMapMusicAbsolutePath(bundle: session.bundle),
-        volume: session.bundle.map.mapMetadata.musicVolume ?? .8));
+  RuntimeSceneMusicSelection _mapMusicSelection() {
+    final bundle = _session!.bundle;
+    return (route: RuntimeAudioRoute.overworld,
+      path: const BattleMusicResolver().resolveMapMusicAbsolutePath(bundle: bundle),
+      volume: bundle.map.mapMetadata.musicVolume ?? .8);
   }
+
+  Future<void> _applyMusicSelection() async {
+    if (_disposed || _stopped || _session == null) return;
+    final selected = _battleMusic ?? _sceneAudio?.musicSelection ?? _mapMusicSelection();
+    await _music.update(route: selected.route, path: selected.path, volume: selected.volume);
+    if (_music.lastFailure case final failure?) throw failure;
+  }
+
+  void _syncMapMusic() => _observeMusic(_applyMusicSelection());
 
   void _syncMusicSuspension() {
     if (_disposed || _stopped) return;
@@ -857,6 +883,7 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       for (final requirement in {
         if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
+        if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresAudio(manifest)) SpatialGameplayCapabilities.audioCapabilityId,
       }) {
         if (!descriptor.grantedCapabilities.contains(requirement)) throw StateError('The project requires $requirement.');
@@ -930,6 +957,8 @@ final class SpatialExplorationGameSessionRuntime
         mediaAssets: manifest.cinematicMediaAssets,
         resolvePath: (asset) => p.join(bundle.projectRootDirectory, asset.relativePath),
         mixer: _audioMixer, music: _music, driverFactory: _sceneAudioDriverFactory,
+        captureMusicBaseline: _mapMusicSelection,
+        onMusicChanged: _applyMusicSelection,
       );
       await _initializeSpatialGameplay(bundle, path,
           generation: generation,
@@ -1258,6 +1287,35 @@ final class SpatialExplorationGameSessionRuntime
     _playerServices = services;
     _playerServiceSnapshots =
         services.worldServiceSnapshots.listen(_publishWorldService);
+  }
+
+  Future<void> _persistNativeItemPickup(GameState state) async {
+    _ensureGameplayActive();
+    if (!(_gameplay?.isBusy ?? false) ||
+        _activityGate.activity != NarrativeRuntimeActivity.dispatching ||
+        _activityGate.checkpointInProgress) {
+      throw StateError('The native item pickup does not own a stable spatial operation.');
+    }
+    ensureRuntimeBagCapacity(state: state, capacity: _session!.bundle.manifest.bagCapacity,
+        itemCatalog: _bagItemCatalog);
+    final commit = _commitCheckpoint;
+    if (commit == null) throw StateError('The host does not provide item pickup persistence.');
+    await commit(GameSessionCheckpointCommit(descriptor: descriptor.publicContext,
+        checkpoint: _checkpointFromState(state), status: SaveStatus.active,
+        trigger: GameSessionCheckpointTrigger.pauseMutation));
+    _ensureGameplayActive();
+  }
+
+  Future<void> _presentNativeItemPickup(MapEntity entity, SpatialItemPickupResult result, String itemLabel) async {
+    final services = _playerServices;
+    if (services == null) throw StateError('The native item presenter is unavailable.');
+    final full = result.outcome == SpatialItemPickupOutcome.bagFull;
+    final id = 'item-${_runtimeIds.generate(existingRecords: const []).substring(3)}';
+    await services.openSceneTextInteraction(request: OpenSceneTextInteractionService(
+      interactionId: id,
+      interaction: SceneMessageInteractionRequest(requestId: id, revision: 0,
+        prompt: SceneInteractionPrompt(localizationKey: full ? 'overworld.item.bagFull' : 'overworld.item.received',
+          fallbackText: full ? 'Le Sac est plein...' : 'Obtenu : $itemLabel × ${entity.item!.quantity} !'))));
   }
 
   Future<void> _commitPlayerServiceState(GameState state) async {

@@ -187,6 +187,50 @@ void main() {
     },
   );
 
+  test('day night comparisons require the actual unmasked assets', () async {
+    final root = await Directory.systemTemp.createTemp('avelune-clean-cycle-');
+    addTearDown(() => root.delete(recursive: true));
+    final path = await root.resolveSymbolicLinks();
+    await Directory('$path/evidence/day-night').create(recursive: true);
+    final file = File(
+      '$path/evidence/day-night/comparison-day-night-plan.json',
+    );
+    final plan = {
+      'testProject': '$path/jeu',
+      'mapId': 'first-map',
+      'dayNightTest': true,
+      'hiddenMaterialsByInstance': <String, dynamic>{},
+      'hiddenInstanceIds': <String>[],
+    };
+    await file.writeAsString(jsonEncode(plan));
+    expect(
+      await loadComparisonPlan(path, 'comparison-day-night-plan.json'),
+      plan,
+    );
+    for (final masking in [
+      {
+        'hiddenMaterialsByInstance': {
+          'house': ['h_kage'],
+        },
+      },
+      {
+        'hiddenInstanceIds': ['turbine'],
+      },
+    ]) {
+      await file.writeAsString(jsonEncode({...plan, ...masking}));
+      await expectLater(
+        loadComparisonPlan(path, 'comparison-day-night-plan.json'),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('unmasked'),
+          ),
+        ),
+      );
+    }
+  });
+
   test('lamp shadow comparison changes only occlusion at a fixed 22h', () {
     final camera = SpatialSceneController();
     final before = SpatialLightingProfile.disabled;

@@ -170,8 +170,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
-      id == NarrativeCommandIds.playSoundEffect ||
-      id == NarrativeCommandIds.sceneMusic;
+      id == NarrativeCommandIds.playSoundEffect;
 
   bool _isActorCommand(String id) =>
       id == NarrativeCommandIds.actorRoute ||
@@ -254,6 +253,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           :
           data['kind'] == command.id &&
               (_is2DPresentationCommand(command.id) ||
+                  command.id == NarrativeCommandIds.sceneMusic ||
                   command.id == NarrativeCommandIds.warp ||
                   command.id == NarrativeCommandIds.setPlayerAvatar ||
                   command.id == NarrativeCommandIds.markPokemonSeen ||
@@ -1191,6 +1191,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (widget.project?.settings.dimension == ProjectDimension.threeD &&
+        (kind == NarrativeCommandParameterKind.sceneMusicChannel || kind == NarrativeCommandParameterKind.sceneMusicScope)) {
+      final supported = kind == NarrativeCommandParameterKind.sceneMusicChannel ? 'music' : 'scene';
+      return [for (final option in widget.pickerOptions[kind] ?? const <SceneActionPickerOption>[]) if (option.id == supported) option];
+    }
     if (kind == NarrativeCommandParameterKind.integerFacts ||
         kind == NarrativeCommandParameterKind.fact &&
             _isIntegerSceneCommand(_command.id)) {

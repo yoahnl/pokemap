@@ -129,6 +129,7 @@ void validateSpatialMapStructure(MapData map) {
       'A v9 map requires a 3D scene, spatial Environment layers, Smart Tile ground/path surfaces and collision layers.',
     );
   }
+  validateSpatialEntityModelBindings(map);
   final instanceIds = scene.instances.map((instance) => instance.id).toSet();
   final ownedIds = <String>{};
   for (final layer in map.layers.whereType<EnvironmentLayer>()) {
@@ -913,4 +914,45 @@ String _buildMigratedPlacedElementBehaviorId({
       ? 'placed_element'
       : Uri.encodeComponent(instanceId);
   return '$base::behavior::$ordinal';
+}
+
+void validateSpatialEntityModelBindings(MapData map) {
+  final bound = <String>{};
+  final generatedIds = <String>{
+    for (final layer in map.layers.whereType<EnvironmentLayer>())
+      for (final area in layer.content.areas) ...area.generatedPlacementIds,
+    for (final layer in map.layers.whereType<BorderLayer>())
+      for (final feature in layer.content.features)
+        ...feature.generatedPlacementIds,
+  };
+  for (final instance
+      in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
+    final id = instance.entityId;
+    if (id == null) continue;
+    if (instance.id.startsWith('smt_') || generatedIds.contains(instance.id)) {
+      throw const FormatException(
+        'A generated terrain or environment instance cannot own a game entity.',
+      );
+    }
+    final entity = map.entities.where((entity) => entity.id == id).firstOrNull;
+    if (entity == null || entity.kind == MapEntityKind.npc || !bound.add(id)) {
+      throw const FormatException(
+        'A 3D entity model requires one existing non-NPC entity and a unique binding.',
+      );
+    }
+    if (entity.pos.x != instance.supportPosition.x.floor() ||
+        entity.pos.y != instance.supportPosition.z.floor()) {
+      throw const FormatException(
+        'A bound entity must follow its 3D model anchor. Move the model instead.',
+      );
+    }
+    final item = entity.item;
+    if (item != null &&
+        (item.pickupMode != ItemPickupMode.once ||
+            item.respawnPolicy != ItemRespawnPolicy.none)) {
+      throw const FormatException(
+        'Native 3D pickups require a once-only item without respawn.',
+      );
+    }
+  }
 }

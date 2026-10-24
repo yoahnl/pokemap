@@ -180,6 +180,7 @@ class SpatialSceneView extends StatefulWidget {
     this.sceneOffset = Offset.zero,
     this.animationPreview,
     this.modelRuntimeState,
+    this.modelPresence,
     this.rasterAnimationElapsedMsForCell,
     this.presentationPaused,
     this.presentationElapsedSeconds,
@@ -192,6 +193,7 @@ class SpatialSceneView extends StatefulWidget {
   final String? resourceIdentity;
   final SpatialModelRuntimeState? Function(String mapId, String instanceId)?
   modelRuntimeState;
+  final bool Function(String mapId, String instanceId)? modelPresence;
   final int Function(
     String mapId,
     String layerId,
@@ -745,9 +747,14 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   SpatialSceneView configuration;
   SpatialLightingProfile? previewLighting;
   SpatialLightingProfile authoredLighting = SpatialLightingProfile.disabled;
-  List<({Model3dPointLight definition, _SceneModelComponent component})> pointLightBindings = [];
+  List<SpatialAuthoredShadowCaster> authoredShadowCasters = const [];
+  double authoredReceiverMinY = 0;
+  double authoredReceiverMaxY = 0;
+  List<({Model3dPointLight definition, _SceneModelComponent component})>
+  pointLightBindings = [];
   void syncLighting() {
-    (context as SpatialRenderContext).pointLightShadowsEnabled = this.configuration.controller.previewPointLightShadowsEnabled;
+    (context as SpatialRenderContext).pointLightShadowsEnabled =
+        this.configuration.controller.previewPointLightShadowsEnabled;
     final preview = previewLighting;
     if (preview != null) {
       (context as SpatialRenderContext).lighting = preview;
@@ -759,22 +766,58 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       (context as SpatialRenderContext).lighting = authoredLighting;
       return;
     }
-    final minute = cycle == null ? null : configuration.controller._dayNightClock.minute(
-      cycle, externalElapsedSeconds: configuration.presentationElapsedSeconds?.call());
+    final minute = cycle == null
+        ? null
+        : configuration.controller._dayNightClock.minute(
+            cycle,
+            externalElapsedSeconds: configuration.presentationElapsedSeconds
+                ?.call(),
+          );
     final frame = minute == null ? null : spatialDayNightFrame(minute);
+    final sunDirection = frame == null
+        ? authoredLighting.sunDirection
+        : spatialDayNightSunDirection(authoredLighting.sunDirection, frame);
+    final solarLighting =
+        frame == null || frame.solarPhase == 0 || frame.daylight <= .001
+        ? authoredLighting
+        : spatialAuthoredShadowLighting(
+            authoredShadowCasters,
+            receiverMinY: authoredReceiverMinY,
+            receiverMaxY: authoredReceiverMaxY,
+            sunDirection: sunDirection,
+          );
     final hero = actorVisual;
     final anchor = hero == null
-        ? Vector3(configuration.scene.width / 2 + configuration.sceneOffset.dx + configuration.controller.pan.dx,
-            0, configuration.scene.depth / 2 + configuration.sceneOffset.dy + configuration.controller.pan.dy)
-        : Vector3(hero.x + configuration.sceneOffset.dx, hero.y, hero.z + configuration.sceneOffset.dy);
+        ? Vector3(
+            configuration.scene.width / 2 +
+                configuration.sceneOffset.dx +
+                configuration.controller.pan.dx,
+            0,
+            configuration.scene.depth / 2 +
+                configuration.sceneOffset.dy +
+                configuration.controller.pan.dy,
+          )
+        : Vector3(
+            hero.x + configuration.sceneOffset.dx,
+            hero.y,
+            hero.z + configuration.sceneOffset.dy,
+          );
     final lights = spatialVisiblePointLights([
       for (final binding in pointLightBindings)
-        spatialPlacedPointLight(binding.definition, binding.component.worldTransformMatrix,
-          daylight: frame?.daylight ?? 1),
+        if (binding.component.presentationVisible) spatialPlacedPointLight(
+          binding.definition,
+          binding.component.worldTransformMatrix,
+          daylight: frame?.daylight ?? 1,
+        ),
     ], anchor);
     (context as SpatialRenderContext).lighting = spatialEnvironmentLighting(
-      authoredLighting, frame: frame, lights: lights);
+      solarLighting,
+      frame: frame,
+      lights: lights,
+      sunDirection: sunDirection,
+    );
   }
+
   final ValueChanged<Object?> onPreviewStatus;
   final VoidCallback onSurfaceChanged;
   SpatialSceneView? renderedConfiguration;
@@ -1363,8 +1406,19 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           runtimeModelIndex = SpatialRuntimeModelIndex(nextRuntimeScenes);
           renderedConfiguration = configuration;
           authoredLighting = nextAuthoredLighting;
-          (context as SpatialRenderContext).pointShadowCasters = nextAnimationModels.values.where((component) =>
-            nextAuthoredLighting.shadow?.casterInstanceIds.contains(component.shadowId) == true).toList();
+          authoredShadowCasters = List.unmodifiable(nextShadowCasters);
+          authoredReceiverMinY = receiverMinimumY;
+          authoredReceiverMaxY = receiverMaximumY;
+          (context as SpatialRenderContext).pointShadowCasters =
+              nextAnimationModels.values
+                  .where(
+                    (component) =>
+                        nextAuthoredLighting.shadow?.casterInstanceIds.contains(
+                          component.shadowId,
+                        ) ==
+                        true,
+                  )
+                  .toList();
           pointLightBindings = nextPointLights;
           syncLighting();
           actorVisual = null;
@@ -1591,10 +1645,15 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   void syncRuntimeModels() {
     final provider = visibleConfiguration.modelRuntimeState;
-    if (provider == null) return;
     for (final entry in animationModels.entries) {
-      final state = provider(entry.key.$1, entry.key.$2);
       final component = entry.value;
+      component.presentationVisible =
+          visibleConfiguration.modelPresence?.call(
+            entry.key.$1,
+            entry.key.$2,
+          ) ??
+          true;
+      final state = provider?.call(entry.key.$1, entry.key.$2);
       final instance = runtimeModelIndex.instance(entry.key.$1, entry.key.$2);
       if (instance == null) continue;
       component.bindRuntimeState(
@@ -2161,8 +2220,10 @@ class _SceneModelComponent extends AnimatedModelComponent {
   final Model3dBounds visibleBounds;
   final String instanceId;
   final String shadowId;
+  bool presentationVisible = true;
   @override
   void draw(RenderContext3D context) {
+    if (!presentationVisible) return;
     if (context is! SpatialRenderContext) {
       super.draw(context);
       return;
@@ -2178,8 +2239,9 @@ class _SceneModelComponent extends AnimatedModelComponent {
       context.sourceShadowId = previousShadow;
     }
   }
+
   @override
-  bool isVisible(CameraComponent3D camera) => true;
+  bool isVisible(CameraComponent3D camera) => presentationVisible;
 }
 
 Iterable<Mesh> terrainMeshes(

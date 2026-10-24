@@ -44,7 +44,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
   }
 
   for (final size in const <Size>[

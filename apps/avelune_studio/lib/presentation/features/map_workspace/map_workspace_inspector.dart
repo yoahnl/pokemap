@@ -18,6 +18,7 @@ import 'map_moving_prop_panel.dart';
 import 'map_catalogue_properties.dart';
 import 'map_camera_panel.dart';
 import 'map_day_night_panel.dart';
+import 'spatial_model_entity_controls.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
@@ -152,6 +153,8 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Text('Cette instance · décor placé sur la carte'),
+          const SizedBox(height: 12),
+          SpatialModelEntityControls(document: document, project: project, instance: instance, onChanged: onChanged),
           const SizedBox(height: 12),
           field(
             'x',

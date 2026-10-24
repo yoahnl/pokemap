@@ -451,6 +451,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
         : region.points.where((point) => _overlap.contains(point.id)).toList();
     return PlayerPagedList(
       key: const PageStorageKey('region-map-list'),
+      sideNavigation: compact,
       initialPage: _navigation.listPage,
       onPageChanged: (value) => _navigation.listPage = value,
       onPageReady: () {

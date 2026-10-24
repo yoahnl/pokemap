@@ -1452,8 +1452,7 @@ void _diagnoseActionConsequenceAgainstProject(
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
-          interactiveCommand is SceneWorldPresentationInteractiveCommand ||
-          interactiveCommand is SceneMusicInteractiveCommand) &&
+          interactiveCommand is SceneWorldPresentationInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
     diagnostics.add(
       SceneDiagnostic(
@@ -1466,6 +1465,15 @@ void _diagnoseActionConsequenceAgainstProject(
         suggestedFixLabel: 'Utiliser cette commande dans un projet 2D.',
       ),
     );
+  }
+  if (interactiveCommand is SceneMusicInteractiveCommand &&
+      project.settings.dimension == ProjectDimension.threeD &&
+      (interactiveCommand.channel != SceneMusicChannel.music || interactiveCommand.scope != SceneMusicScope.scene)) {
+    diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnsupportedDimension,
+      severity: SceneDiagnosticSeverity.error,
+      message: 'En 3D, la musique de scène prend en charge le canal musique et la portée scène uniquement.',
+      sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+      suggestedFixLabel: 'Choisir le canal musique et la portée scène.'));
   }
   if (interactiveCommand is SceneWorldPresentationInteractiveCommand &&
       interactiveCommand.operation == SceneWorldPresentationOperation.showPicture &&

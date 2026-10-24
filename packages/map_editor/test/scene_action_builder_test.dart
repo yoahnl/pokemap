@@ -29,6 +29,24 @@ void main() {
     expect((action.consequence as SceneCalculateIntegerFactsConsequence).factIds, ['counter']);
   });
 
+  testWidgets('3D scene music filters unsupported channels and scopes', (tester) async {
+    SceneNodePayload? applied;
+    final command = SceneMusicInteractiveCommand(operation: SceneMusicOperation.stop);
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.sceneMusic,
+      project: ProjectManifest(name: 'Spatial', maps: [], tilesets: [], settings: const ProjectSettings(dimension: ProjectDimension.threeD)),
+      initialPayload: SceneActionPayload.interactive(command),
+      options: {
+        NarrativeCommandParameterKind.sceneMusicOperation: const [SceneActionPickerOption(id: 'stop', label: 'Arrêter')],
+        NarrativeCommandParameterKind.sceneMusicChannel: const [SceneActionPickerOption(id: 'music', label: 'Musique'), SceneActionPickerOption(id: 'ambience', label: 'Ambiance'), SceneActionPickerOption(id: 'both', label: 'Les deux')],
+        NarrativeCommandParameterKind.sceneMusicScope: const [SceneActionPickerOption(id: 'scene', label: 'Scène'), SceneActionPickerOption(id: 'map', label: 'Carte')],
+      }, onSubmit: (payload) => applied = payload);
+    expect(_picker(tester, 'Canal').items.map((item) => item.value), ['music']);
+    expect(_picker(tester, 'Durée de vie').items.map((item) => item.value), ['scene']);
+    expect(_submitButton(tester).onPressed, isNotNull);
+    _submitButton(tester).onPressed!();
+    expect((applied as SceneActionPayload).interactiveCommand, command);
+  });
+
   testWidgets(
     'scene music builder keeps operations channel and scope guided and excludes unused fields',
     (tester) async {
@@ -90,12 +108,12 @@ void main() {
       expect(_submitButton(tester).onPressed, isNotNull);
       _submitButton(tester).onPressed!();
       expect(
-        (applied as SceneActionPayload).interactiveCommand,
+        (applied as SceneActionPayload).interactiveCommand!.toJson(),
         SceneInteractiveCommand.sceneMusic(
           operation: SceneMusicOperation.play,
           mediaAssetId: 'theme',
           volume: .8,
-        ),
+        ).toJson(),
       );
       _picker(tester, 'Canal').onChanged('both');
       await tester.pump();

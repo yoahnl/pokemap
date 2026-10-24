@@ -10,6 +10,99 @@ import 'package:map_render_3d/src/spatial_authored_shadows.dart';
 
 void main() {
   test(
+    'solar direction crosses the day with an exact noon and bounded horizon',
+    () {
+      final noon = SpatialLightingProfile.stylized().sunDirection;
+      final morning = spatialDayNightSunDirection(
+        noon,
+        spatialDayNightFrame(480),
+      );
+      final afternoon = spatialDayNightSunDirection(
+        noon,
+        spatialDayNightFrame(1020),
+      );
+      expect(
+        spatialDayNightSunDirection(noon, spatialDayNightFrame(720)),
+        noon,
+      );
+      expect(morning, isNot(afternoon));
+      expect(morning.y, lessThan(noon.y));
+      expect(afternoon.y, lessThan(noon.y));
+      for (final minute in [
+        0.0,
+        299.999,
+        300.0,
+        480.0,
+        720.0,
+        1020.0,
+        1260.0,
+        1439.999,
+      ]) {
+        final direction = spatialDayNightSunDirection(
+          noon,
+          spatialDayNightFrame(minute),
+        );
+        expect(direction.y, greaterThanOrEqualTo(.25 - 1e-12));
+        expect(
+          Vector3(direction.x, direction.y, direction.z).length,
+          closeTo(1, 1e-6),
+        );
+      }
+      for (final direction in [
+        (x: 0.0, y: 1.0, z: 0.0),
+        (x: 1.0, y: .01, z: 0.0),
+        (x: 0.0, y: -1.0, z: 0.0),
+        (x: 0.0, y: 0.0, z: 0.0),
+      ]) {
+        for (final minute in [300.0, 720.0, 1260.0]) {
+          final sun = spatialDayNightSunDirection(
+            direction,
+            spatialDayNightFrame(minute),
+          );
+          expect([sun.x, sun.y, sun.z].every((v) => v.isFinite), isTrue);
+          expect(sun.y, greaterThan(0));
+        }
+      }
+      final before = spatialDayNightSunDirection(
+        noon,
+        spatialDayNightFrame(719.999),
+      );
+      final after = spatialDayNightSunDirection(
+        noon,
+        spatialDayNightFrame(720.001),
+      );
+      expect(
+        Vector3(
+          before.x - after.x,
+          before.y - after.y,
+          before.z - after.z,
+        ).length,
+        lessThan(.0001),
+      );
+      final noCycle = spatialEnvironmentLighting(
+        SpatialLightingProfile.stylized(),
+        lights: [SpatialPointLight(position: (x: 0, y: 2, z: 0), radius: 4)],
+      );
+      expect(noCycle.sunDirection.x, closeTo(noon.x, 1e-12));
+      expect(noCycle.sunDirection.y, closeTo(noon.y, 1e-12));
+      expect(noCycle.sunDirection.z, closeTo(noon.z, 1e-12));
+      expect(
+        spatialEnvironmentLighting(
+          SpatialLightingProfile.stylized(),
+          frame: spatialDayNightFrame(480),
+        ).sunDirection.x,
+        closeTo(morning.x, 1e-6),
+      );
+      expect(
+        spatialEnvironmentLighting(
+          SpatialLightingProfile.stylized(),
+          frame: spatialDayNightFrame(1020),
+        ).sunDirection.z,
+        closeTo(afternoon.z, 1e-6),
+      );
+    },
+  );
+  test(
     'solar shadows fade out at night while point lighting stays independent',
     () {
       final base = spatialAuthoredShadowLighting(

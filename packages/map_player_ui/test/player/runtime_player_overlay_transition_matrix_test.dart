@@ -69,7 +69,8 @@ void main() {
         if (touch) {
           gesture = await tester.startGesture(const Offset(100, 400),
               kind: ui.PointerDeviceKind.touch);
-          await gesture.moveBy(const Offset(50, 0));
+          await gesture.moveBy(
+              const Offset(RuntimePlayerFloatingTouchDriver.usefulRadius, 0));
         } else {
           harness.hardware
               .add(const RuntimeInputEvent.press(RuntimeInputControl.right));
@@ -186,7 +187,8 @@ void main() {
         if (touch) {
           final fresh = await tester.startGesture(const Offset(100, 400),
               kind: ui.PointerDeviceKind.touch);
-          await fresh.moveBy(const Offset(50, 0));
+          await fresh.moveBy(
+              const Offset(RuntimePlayerFloatingTouchDriver.usefulRadius, 0));
           await tester.pump();
           expect(
               harness.events.skip(4),

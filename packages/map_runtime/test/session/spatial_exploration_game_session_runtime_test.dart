@@ -117,6 +117,193 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('ledge does not dispatch a trigger on its airborne barrier cell', () async {
+    await runtime.dispose();
+    final scene = SceneAsset(id: 'airborne', name: 'Airborne', graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(id: 'talk', kind: SceneNodeKind.yarnDialogue, payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      SceneEdge(id: 'a', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'talk', kind: SceneEdgeKind.defaultFlow),
+      SceneEdge(id: 'b', fromNodeId: 'talk', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.defaultFlow),
+    ]));
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [], triggers: const [
+      MapTrigger(id: 'barrier', type: TriggerType.event, area: MapRect(pos: GridPos(x: 4, y: 5), size: GridSize(width: 1, height: 1)))
+    ], spatialScene: bundle.map.spatialScene!.copyWith(navigation: SpatialNavigationProfile(
+      spawn: SpatialSpawn(x: 4.5, z: 4.5), ledges: [SpatialLedge(id: 'drop', x: 4, z: 4, direction: SpatialRampDirection.south)]))),
+      manifest: bundle.manifest.copyWith(scenes: [scene], eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+        records: [spatialEvent(NarrativeEventSourceRef.triggerEnter('field', 'barrier'), scene.id)], legacyClaims: const [])));
+    runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: descriptor().initialGameState!.copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 4.5))),
+      projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async {}, unmountSession: (_) async {});
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.down));
+    for (var i = 0; i < 6; i++) {
+      runtime.session!.frame(.05);
+      for (var j = 0; j < 50; j++) { await Future<void>.delayed(Duration.zero); }
+      if (runtime.dialoguePresentationListenable.value != null) break;
+    }
+    expect(runtime.dialoguePresentationListenable.value, isNull, reason: 'Airborne at z=${runtime.session!.movement.z}; jumping=${runtime.session!.movement.isJumping}');
+  });
+
+  test('ledge publishes its landing once after ignoring all airborne cells', () async {
+    await runtime.dispose();
+    final scene = spatialScene('landed', [SceneConsequence.giveMoney(amount: 25)]);
+    final event = NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(
+      id: 'evt_019abcde-0000-7000-8000-000000000002', name: 'Landing',
+      source: NarrativeEventSourceRef.triggerEnter('field', 'landing'), conditions: const [],
+      sceneId: scene.id, reusePolicy: NarrativeEventReusePolicy.reusable, priority: 0, order: 0,
+      resetPolicy: const NarrativeEventResetPolicy.never()), enabled: true);
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [], triggers: const [
+      MapTrigger(id: 'landing', type: TriggerType.event, area: MapRect(pos: GridPos(x: 4, y: 6), size: GridSize(width: 1, height: 1)))
+    ], spatialScene: bundle.map.spatialScene!.copyWith(navigation: SpatialNavigationProfile(
+      spawn: SpatialSpawn(x: 4.5, z: 4.5), ledges: [SpatialLedge(id: 'drop', x: 4, z: 4, direction: SpatialRampDirection.south)]))),
+      manifest: bundle.manifest.copyWith(scenes: [scene], eventRegistry: NarrativeEventRegistry(schemaVersion: 1,
+        mode: EventSystemMode.v2Only, records: [event], legacyClaims: const [])));
+    runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: descriptor().initialGameState!.copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 4.5))),
+      projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async {}, unmountSession: (_) async {});
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.down));
+    for (var frame = 0; frame < 7; frame++) {
+      runtime.session!.frame(.05);
+      runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.down));
+      for (var j = 0; j < 10; j++) { await Future<void>.delayed(Duration.zero); }
+      expect(runtime.session!.movement.isJumping, isTrue);
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    }
+    for (var frame = 0; frame < 12; frame++) {
+      runtime.session!.frame(.05);
+      for (var j = 0; j < 10; j++) { await Future<void>.delayed(Duration.zero); }
+    }
+    expect(runtime.session!.movement.isJumping, isFalse);
+    expect(runtime.session!.movement.z, 6.5);
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+    expect(runtime.session!.interactionError.value, isNull);
+  });
+
+  for (final fail in [false, true]) {
+    test('native item model pickup ${fail ? 'rolls back failed save' : 'persists then opens feedback'} in a real spatial session', () async {
+      await runtime.dispose();
+      final item = MapEntity(id: 'native-orb', kind: MapEntityKind.item, pos: const GridPos(x: 4, y: 3), blocksMovement: false,
+        item: const MapEntityItemData(gameItemId: 'supply'));
+      final instance = SpatialModelInstance(id: 'orb', modelId: 'orb-model', entityId: item.id, blocksMovement: false,
+        position: Model3dVector3(x: 4.5, y: 0, z: 3.5));
+      bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [item], spatialScene: bundle.map.spatialScene!.copyWith(instances: [instance])));
+      final catalog = File('${root.path}/data/pokemon/catalogs/items.json');
+      await catalog.parent.create(recursive: true);
+      await catalog.writeAsString(jsonEncode(const ProjectItemCatalog(schemaVersion: 1, entries: [
+        ProjectItemDefinition(id: 'supply', displayName: 'Ressource', pocketId: 'supplies')]).toJson()));
+      final commits = <GameSessionCheckpointCommit>[];
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: descriptor().initialGameState!.copyWith(playerFacing: EntityFacing.north)),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        commitCheckpoint: (commit) async {
+          if (fail) throw const FileSystemException('disk unavailable');
+          commits.add(commit);
+        }, mountSession: (_) async {}, unmountSession: (_) async {});
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final session = runtime.session!;
+      expect(session.modelIsPresent('field', 'orb'), isTrue);
+      final action = runtime.overworldInteractionSnapshot!.primaryAction;
+      expect(action?.request.targetId, item.id);
+      expect(runtime.dispatchOverworldInteraction(action!.request), isTrue);
+      if (fail) {
+        await waitForValue(session.interactionError, (value) => value != null);
+        expect(session.interactionError.value, isA<StateError>().having((error) => error.message, 'message', contains('disk unavailable')));
+        expect(runtime.gameStateSnapshot.bag.entries, isEmpty);
+        expect(session.modelIsPresent('field', 'orb'), isTrue);
+        expect(runtime.gameStateSnapshot.consumedEventIds, isEmpty);
+      } else {
+        final modal = await runtime.worldServiceSnapshots.firstWhere((value) => value?.content is SceneMessageInteractionRequest).timeout(const Duration(seconds: 3));
+        final message = modal!.content! as SceneMessageInteractionRequest;
+        expect(message.prompt.fallbackText, contains('Ressource'));
+        expect(commits, hasLength(1));
+        expect(session.modelIsPresent('field', 'orb'), isFalse);
+        final saved = gameStateFromStrictSaveJson(Map<String, dynamic>.from(commits.single.checkpoint.state));
+        expect(saved.bag.entries.single.quantity, 1);
+        expect(saved.consumedEventIds, isNotEmpty);
+        await expectLater(runtime.captureCheckpoint(), throwsStateError);
+        await runtime.dispatchWorldService(RuntimeWorldServiceCommand(action: RuntimeWorldServiceAction.confirm,
+          snapshotRevision: modal.revision, interactionResult: SceneInteractionResult.acknowledged(requestId: message.requestId, revision: message.revision)));
+        await waitForValue(runtime.inputAuthority, (value) => value.acceptsOverworldInput);
+        final afterPickup = runtime.overworldInteractionSnapshot!.primaryAction;
+        expect(afterPickup, isNull);
+        expect(commits, hasLength(1));
+        expect(runtime.gameStateSnapshot.bag.entries.single.quantity, 1);
+        await runtime.dispose();
+        runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(continueGame: true),
+          projectFilePath: () async => '${root.path}/project.json', initialSave: () async => spatialSave(saved),
+          preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+          commitCheckpoint: (commit) async => commits.add(commit), mountSession: (_) async {}, unmountSession: (_) async {});
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+        expect(runtime.session!.modelIsPresent('field', 'orb'), isFalse);
+        expect(runtime.overworldInteractionSnapshot!.primaryAction, isNull);
+        expect(runtime.gameStateSnapshot.bag.entries.single.quantity, 1);
+        expect(commits, hasLength(1));
+      }
+    });
+  }
+
+  for (final cancel in [false, true]) {
+    test('3D scene music restores after ${cancel ? 'cancellation' : 'completion'}', () async {
+      await runtime.dispose();
+      final driver = _SceneAudioDriver();
+      late RuntimeMusicService music;
+      final nodes = [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'music', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(
+          SceneMusicInteractiveCommand(operation: SceneMusicOperation.play, mediaAssetId: 'theme', volume: .7))),
+        SceneNode(id: 'dialogue', kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ];
+      final scene = SceneAsset(id: 'music-arrival', name: 'Music arrival', graph: SceneGraph(
+        startNodeId: 'start', nodes: nodes, edges: [
+          for (var i = 0; i < nodes.length - 1; i++) SceneEdge(id: 'edge_$i',
+            fromNodeId: nodes[i].id, fromPortId: 'completed', toNodeId: nodes[i + 1].id,
+            kind: nodes[i].kind == SceneNodeKind.action ? SceneEdgeKind.actionCompleted : SceneEdgeKind.defaultFlow),
+          SceneEdge(id: 'blocked', fromNodeId: 'music', fromPortId: 'blocked', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+        ]));
+      bundle = bundle.copyWith(map: bundle.map.copyWith(mapMetadata: bundle.map.mapMetadata.copyWith(musicPath: 'map.ogg')),
+        manifest: bundle.manifest.copyWith(cinematicMediaAssets: [CinematicMediaAsset(
+          id: 'theme', label: 'Theme', kind: CinematicMediaAssetKind.music, relativePath: 'theme.ogg')],
+          scenes: [scene], eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+            records: [spatialEvent(NarrativeEventSourceRef.mapEnter('field'), scene.id)], legacyClaims: const [])));
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(additionalCapabilities: {
+          SpatialGameplayCapabilities.sceneMusicCapabilityId}), projectFilePath: () async => '${root.path}/project.json',
+        musicServiceFactory: (mixer) => music = RuntimeMusicService(mixer: mixer, driver: driver),
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async {}, unmountSession: (_) async {});
+      await runtime.load((_) {});
+      await waitForValue(runtime.dialoguePresentationListenable, (value) => value != null);
+      expect(music.playingPath, '${root.path}/theme.ogg');
+      await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: true);
+      await Future<void>.delayed(Duration.zero);
+      expect(driver.paused, isNotEmpty);
+      await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: false);
+      await Future<void>.delayed(Duration.zero);
+      expect(driver.resumed, isNotEmpty);
+      expect(music.playingPath, '${root.path}/theme.ogg');
+      if (cancel) {
+        runtime.session!.cancelDialogue();
+      } else {
+        runtime.session!.confirmDialogue();
+        runtime.session!.confirmDialogue();
+      }
+      await runtime.gameplayReady;
+      expect(music.playingPath, '${root.path}/map.ogg');
+      await runtime.dispose();
+      await driver.complete.close();
+    });
+  }
+
   for (final stopBeforeCompletion in [false, true]) {
     test('spatial scene audio ${stopBeforeCompletion ? 'shutdown releases pending sound' : 'waits before applying reward'}', () async {
       await runtime.dispose();
@@ -2857,7 +3044,13 @@ SceneAsset spatialScene(String id, List<SceneConsequence> consequences,
       ]));
 }
 
-final class _SceneAudioDriver implements FlameCinematicAudioDriver, FlameCinematicAudioLoopDriver {
+final class _SceneAudioDriver implements FlameCinematicAudioDriver, FlameCinematicAudioLoopDriver, FlameCinematicAudioPausableDriver {
+  final paused = <Object>[];
+  final resumed = <Object>[];
+  @override
+  Future<void> pause(Object handle) async { paused.add(handle); }
+  @override
+  Future<void> resume(Object handle) async { resumed.add(handle); }
   final complete = StreamController<void>.broadcast(sync:true);
   final started = Completer<void>();
   final handle = Object();

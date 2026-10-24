@@ -638,6 +638,17 @@ final class GamePackageSpatialProjectValidator {
             validateEntityDialogue(sign.dialogue!, entity.id);
             continue;
           }
+          if (gameplay && entity.kind == MapEntityKind.item) {
+            final item = entity.item;
+            if (item == null || item.pickupMode != ItemPickupMode.once ||
+                item.respawnPolicy != ItemRespawnPolicy.none ||
+                entity.properties.isNotEmpty || entity.npc != null ||
+                entity.sign != null || entity.spawn != null ||
+                !map.spatialScene!.instances.any((instance) => instance.entityId == entity.id)) {
+              _unsupported('maps.${map.id}.entities.${entity.id}');
+            }
+            continue;
+          }
           if (gameplay && entity.kind == MapEntityKind.custom) {
             if (entity.properties.isNotEmpty ||
                 entity.npc != null ||

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_pause_summary_card.dart';
 
@@ -20,6 +21,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
     this.showTitle = true,
     this.showGameTitle = false,
     this.showSummary = true,
+    this.summaryInNavigation = false,
     this.extraDetail,
   });
 
@@ -33,6 +35,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
   final bool showTitle;
   final bool showGameTitle;
   final bool showSummary;
+  final bool summaryInNavigation;
   final Widget? extraDetail;
 
   @override
@@ -79,9 +82,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
         portraitImage: portraitImage,
         compact: !expanded,
         mobile: mobile,
-        minimal:
-            mobile && !portrait ||
-            MediaQuery.textScalerOf(context).scale(1) >= 1.5,
+        minimal: mobile && !portrait,
       );
       if (mobile && !portrait) {
         return Stack(
@@ -96,12 +97,11 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 216,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: PlayerPagedList(
                       children: [
                         title,
-                        const SizedBox(height: 8),
-                        if (showSummary) summary,
+                        if (showSummary && !summaryInNavigation)
+                          ...summary.pagedEntries(context),
                         if (hasHint) Text(hint!, style: theme.meta),
                         if (showSummary && extraDetail != null) extraDetail!,
                       ],
@@ -115,7 +115,9 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
           ],
         );
       }
-      if (portrait && size.maxHeight < 400) {
+      if (portrait &&
+          (size.maxHeight < 400 ||
+              MediaQuery.textScalerOf(context).scale(1) >= 1.5)) {
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -126,12 +128,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                  child: Text(
-                    profile?.locationName ?? gameTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.meta,
-                  ),
+                  child: title,
                 ),
                 Expanded(
                   child: Padding(
@@ -164,10 +161,15 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
                       style: theme.body,
                     ),
                   ),
-                if (showSummary)
+                if (showSummary && !summaryInNavigation)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: summary,
+                  ),
+                if (showSummary && extraDetail != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: extraDetail!,
                   ),
                 Expanded(
                   child: Padding(
@@ -257,7 +259,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
                 ),
               ),
             ),
-          if (showSummary || hasHint && !expanded)
+          if (showSummary && !summaryInNavigation || hasHint && !expanded)
             Positioned(
               right: 24,
               bottom: 24,
@@ -282,8 +284,8 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (showSummary) summary,
-                    if (extraDetail != null) extraDetail!,
+                    if (showSummary && !summaryInNavigation) summary,
+                    if (showSummary && extraDetail != null) extraDetail!,
                   ],
                 ),
               ),

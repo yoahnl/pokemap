@@ -28,32 +28,10 @@ class PlayerPauseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
-    final l10n = context.playerL10n;
     final location = profile?.locationName?.trim();
     final heading = location == null || location.isEmpty ? gameTitle : location;
     final playerName = profile?.playerName.trim();
-    final badges = profile?.badgeIds;
-    final badgeTotal = profile?.badgeTotal;
-    final seconds = profile?.playtimeSeconds;
-    final pokedex = profile?.pokedex;
-    final statistics = <({String label, String value})>[
-      if (badges != null && (badges.isNotEmpty || (badgeTotal ?? 0) > 0))
-        (
-          label: l10n.badges,
-          value: badgeTotal == null
-              ? '${badges.length}'
-              : '${badges.length} / $badgeTotal',
-        ),
-      if (seconds != null)
-        (
-          label: l10n.playTime,
-          value:
-              '${seconds ~/ 3600}:'
-              '${(seconds ~/ 60 % 60).toString().padLeft(2, '0')}',
-        ),
-      if (pokedex != null)
-        (label: l10n.pokedex, value: '${pokedex.caught} / ${pokedex.total}'),
-    ];
+    final statistics = _statistics(context);
     if (minimal) {
       return PlayerMenuPanel(
         key: const ValueKey('player-pause-summary-panel'),
@@ -173,6 +151,70 @@ class PlayerPauseSummaryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<({String label, String value})> _statistics(BuildContext context) {
+    final l10n = context.playerL10n;
+    final badges = profile?.badgeIds;
+    final badgeTotal = profile?.badgeTotal;
+    final seconds = profile?.playtimeSeconds;
+    final pokedex = profile?.pokedex;
+    return <({String label, String value})>[
+      if (badges != null && (badges.isNotEmpty || (badgeTotal ?? 0) > 0))
+        (
+          label: l10n.badges,
+          value: badgeTotal == null
+              ? '${badges.length}'
+              : '${badges.length} / $badgeTotal',
+        ),
+      if (seconds != null)
+        (
+          label: l10n.playTime,
+          value:
+              '${seconds ~/ 3600}:'
+              '${(seconds ~/ 60 % 60).toString().padLeft(2, '0')}',
+        ),
+      if (pokedex != null)
+        (label: l10n.pokedex, value: '${pokedex.caught} / ${pokedex.total}'),
+    ];
+  }
+
+  List<Widget> pagedEntries(BuildContext context) {
+    final theme = context.playerMenuTheme;
+    final location = profile?.locationName?.trim();
+    final heading = location == null || location.isEmpty ? gameTitle : location;
+    final playerName = profile?.playerName.trim();
+    return [
+      Semantics(
+        key: const ValueKey('player-pause-summary-heading'),
+        header: true,
+        child: Text(heading, style: theme.subtitle),
+      ),
+      if (playerName != null && playerName.isNotEmpty && playerName != heading)
+        Text(
+          playerName,
+          key: const ValueKey('player-pause-summary-name'),
+          style: theme.body,
+        ),
+      for (final statistic in _statistics(context))
+        Text.rich(
+          key: ValueKey('player-pause-summary-${statistic.label}'),
+          TextSpan(
+            children: [
+              TextSpan(text: '${statistic.label} : '),
+              TextSpan(text: statistic.value, style: theme.numbers),
+            ],
+          ),
+          style: theme.body,
+        ),
+      if (portraitImage != null || profile?.portraitFilePath != null)
+        ExcludeSemantics(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(width: 48, height: 56, child: _portrait(context)),
+          ),
+        ),
+    ];
   }
 
   Widget _portrait(BuildContext context) {

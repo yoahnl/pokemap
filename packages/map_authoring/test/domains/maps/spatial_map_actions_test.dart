@@ -9,6 +9,27 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
+  test('3D entity model binding matches API and JSONL and rejects missing owner', () async {
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      await f.apply(await f.plan());
+      await f.executeAction('entity.create', {'mapId': 'first-map', 'entity': {
+        'id': 'pickup', 'kind': 'item', 'pos': {'x': 1, 'y': 1},
+        'item': {'gameItemId': 'resource', 'quantity': 1}}}, direct: direct);
+      final instance = SpatialModelInstance(id: 'pickup-model', modelId: 'house', position: Model3dVector3(x: 1.5, y: 0, z: 1.5));
+      await f.executeAction('map3d.instance.upsert', {'mapId': 'first-map', 'instance': {...instance.toJson(), 'entityId': 'pickup'}}, direct: direct);
+      final map = (await f.snapshots.load(f.project)).mapById('first-map')!;
+      expect(map.spatialScene!.instances.single.entityId, 'pickup');
+      final before = await File('${f.root.path}/maps/first-map.json').readAsBytes();
+      final rejected = await f.planAction('map3d.instance.upsert', {'mapId': 'first-map', 'instance': {...instance.toJson(), 'entityId': 'missing'}});
+      expect(rejected.status, AuthoringResultStatus.failure);
+      expect(await File('${f.root.path}/maps/first-map.json').readAsBytes(), before);
+      await f.executeAction('map3d.instance.upsert', {'mapId': 'first-map', 'instance': instance.toJson()}, direct: direct);
+      expect((await f.snapshots.load(f.project)).mapById('first-map')!.spatialScene!.instances.single.entityId, isNull);
+    }
+  });
+
   test('directional ledges match direct API and JSONL and reject unsafe landing', () async {
     final results = <Object?>[];
     for (final direct in [true, false]) {

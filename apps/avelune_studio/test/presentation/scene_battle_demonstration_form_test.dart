@@ -1,5 +1,6 @@
 import 'package:avelune_studio/presentation/features/scenes/scene_battle_demonstration_form.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,7 +34,11 @@ void main() {
               builder: (context, setState) => SceneBattleDemonstrationForm(
                 project: project,
                 value: value,
-                loadItems: () async => {'poke-ball': 'Poké Ball'},
+                loadItems: () async => {
+                  'potion': 'Potion',
+                  'poke-ball': 'Poké Ball',
+                },
+                loadCaptureItems: () async => {'poke-ball': 'Poké Ball'},
                 onChanged: (next) => setState(() => value = next),
               ),
             ),
@@ -50,6 +55,35 @@ void main() {
     expect(find.text('Guide de capture'), findsOneWidget);
     expect(find.text('Poké Ball'), findsWidgets);
     expect(find.textContaining('JSON'), findsNothing);
+    final ball = tester.widget<StudioSelect>(
+      find.byWidgetPredicate(
+        (widget) => widget is StudioSelect && widget.label == 'Ball 1',
+      ),
+    );
+    expect(ball.options, {'poke-ball': 'Poké Ball'});
+    final quantity = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.labelText == 'Quantité 1',
+    );
+    await tester.ensureVisible(quantity);
+    await tester.enterText(quantity, '7');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(value?.bagItems.single.quantity, 7);
+    await tester.ensureVisible(find.text('Ajouter un objet'));
+    await tester.tap(find.text('Ajouter un objet'));
+    await tester.pumpAndSettle();
+    expect(value?.bagItems.map((entry) => entry.itemId), [
+      'poke-ball',
+      'potion',
+    ]);
+    final after = tester.widget<StudioSelect>(
+      find.byWidgetPredicate(
+        (widget) => widget is StudioSelect && widget.label == 'Ball 1',
+      ),
+    );
+    expect(after.options, {'poke-ball': 'Poké Ball'});
+    await tester.ensureVisible(find.byType(StudioToggleRow).first);
     await tester.tap(find.byType(StudioToggleRow).first);
     await tester.pumpAndSettle();
     expect(value, isNull);

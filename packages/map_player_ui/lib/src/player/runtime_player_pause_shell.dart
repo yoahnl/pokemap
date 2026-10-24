@@ -17,6 +17,7 @@ import '../theme/pokemap_player_window_theme.dart';
 import 'player_pause_menu.dart';
 import 'player_control_profile.dart';
 import 'player_pause_illustrated_root.dart';
+import 'player_pause_summary_card.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_layout.dart';
@@ -290,6 +291,25 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       final image = presentation.backgroundImage;
       final background = presentation.background;
       final isRoot = widget.pauseSection == RuntimePlayerPauseSection.root;
+      final tightRoot =
+          isRoot && constraints.maxWidth < 600 && constraints.maxHeight < 400;
+      final compactRoot =
+          isRoot &&
+          (constraints.maxWidth < 600 ||
+              constraints.maxHeight < 500 ||
+              MediaQuery.textScalerOf(context).scale(1) >= 1.5);
+      final rootHint = PlayerMenuKeyHint(
+        glyph: (widget.controlProfile ?? PlayerControlProfile.standard)
+            .promptFor(
+              _focusController.activeInputSource == PlayerInputSource.controller
+                  ? PlayerControlDevice.gamepad
+                  : PlayerControlDevice.keyboard,
+              RuntimeInputControl.primary,
+              family: widget.controllerFamily,
+            ),
+        label: context.playerL10n.validate,
+        compact: compactRoot,
+      );
       final resume =
           widget.actions[PlayerPauseAction.resume] ??
           PlayerActionAvailability.disabled(
@@ -415,14 +435,35 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     ),
                   ),
                 PlayerMenuFooter(
-                  actionsBuilder: isRoot ? null : widget.detailFooterBuilder,
+                  actionsBuilder: tightRoot
+                      ? (context, action) => Row(
+                          children: [
+                            Expanded(
+                              child: _focusController.showFocusHighlight
+                                  ? rootHint
+                                  : const SizedBox.shrink(),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 48,
+                              child: Tooltip(
+                                message: returnLabel,
+                                child: action,
+                              ),
+                            ),
+                          ],
+                        )
+                      : isRoot
+                      ? null
+                      : widget.detailFooterBuilder,
                   alignReturnEnd: true,
                   stackActions:
+                      compactRoot ||
                       (widget.pauseSection == RuntimePlayerPauseSection.bag ||
-                          widget.pauseSection ==
-                              RuntimePlayerPauseSection.options) &&
-                      MediaQuery.sizeOf(context).width < 760 &&
-                      MediaQuery.textScalerOf(context).scale(1) >= 1.8,
+                              widget.pauseSection ==
+                                  RuntimePlayerPauseSection.options) &&
+                          MediaQuery.sizeOf(context).width < 760 &&
+                          MediaQuery.textScalerOf(context).scale(1) >= 1.8,
                   hintsFlex: !isRoot && widget.detailActions != null
                       ? (layout == RuntimePlayerLayoutClass.compactPortrait
                             ? 3
@@ -433,25 +474,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                         widget.detailActions != null &&
                         widget.detailFooterBuilder == null)
                       widget.detailActions!,
-                    if (_focusController.showFocusHighlight && isRoot)
-                      PlayerMenuKeyHint(
-                        glyph:
-                            (widget.controlProfile ??
-                                    PlayerControlProfile.standard)
-                                .promptFor(
-                                  _focusController.activeInputSource ==
-                                          PlayerInputSource.controller
-                                      ? PlayerControlDevice.gamepad
-                                      : PlayerControlDevice.keyboard,
-                                  RuntimeInputControl.primary,
-                                  family: widget.controllerFamily,
-                                ),
-                        label: context.playerL10n.validate,
-                      ),
+                    if (_focusController.showFocusHighlight && isRoot) rootHint,
                   ],
                   returnAction: PlayerMenuSelectableRow(
                     id: 'pause-frame-return',
                     label: returnLabel,
+                    iconOnly: tightRoot,
                     leading: const Icon(Icons.arrow_back),
                     integrated: isRoot || widget.detailFooterBuilder == null,
                     contentPadding: const EdgeInsets.symmetric(
@@ -605,12 +633,33 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                           profile: widget.playerProfile,
                           portraitImage: widget.portraitImage,
                           showSummary: composition?.showRootDetailPanel ?? true,
-                          extraDetail: widget.playerProfile == null
+                          summaryInNavigation: _summaryInNavigation(
+                            context,
+                            constraints,
+                          ),
+                          extraDetail:
+                              widget.playerProfile == null &&
+                                  !_summaryInNavigation(context, constraints)
                               ? widget.detail
                               : null,
                           background: illustratedBackground!,
                           navigation: _navigation(
                             layout,
+                            additionalContent:
+                                (composition?.showRootDetailPanel ?? true) &&
+                                    _summaryInNavigation(context, constraints)
+                                ? [
+                                    ...PlayerPauseSummaryCard(
+                                      gameTitle: widget.gameTitle,
+                                      profile: widget.playerProfile,
+                                      portraitImage: widget.portraitImage,
+                                      compact: true,
+                                      mobile: true,
+                                    ).pagedEntries(context),
+                                    if (widget.playerProfile == null)
+                                      widget.detail,
+                                  ]
+                                : const [],
                             resolved: resolved,
                             composition: composition,
                             scrollKey: const ValueKey(
@@ -868,13 +917,27 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     );
   }
 
+  bool _summaryInNavigation(BuildContext context, BoxConstraints constraints) =>
+      MediaQuery.textScalerOf(context).scale(1) >= 1.5 ||
+      constraints.maxWidth < 650 && constraints.maxHeight < 400 ||
+      MediaQuery.sizeOf(context).shortestSide < 600 &&
+          constraints.maxHeight < 300;
+
   Widget _navigation(
     RuntimePlayerLayoutClass layout, {
+    List<Widget> additionalContent = const [],
     Key? scrollKey,
     ProjectResolvedSurfaceLayout? resolved,
     ProjectPauseCompositionVariantProfile? composition,
   }) {
     return PlayerPauseNavigation(
+      additionalContent: additionalContent,
+      sideNavigation:
+          _isIllustrated &&
+          widget.pauseSection == RuntimePlayerPauseSection.root &&
+          (MediaQuery.textScalerOf(context).scale(1) >= 1.5 ||
+              MediaQuery.viewInsetsOf(context).bottom > 0 ||
+              MediaQuery.sizeOf(context).height < 300),
       illustrated: _isIllustrated,
       mobileGrid:
           _isIllustrated && MediaQuery.sizeOf(context).shortestSide < 600,

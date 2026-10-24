@@ -85,6 +85,7 @@ void main() {
           find.byKey(const ValueKey('runtime-night-illustrated-frame')),
           findsOneWidget,
         );
+        await _revealPause(tester, find.text('Voyage'));
         expect(find.text('Voyage'), findsOneWidget);
         expect(find.text('Reprendre'), findsOneWidget);
         expect(find.byType(PlayerEmptyState), findsNothing);

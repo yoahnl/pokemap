@@ -1,4 +1,5 @@
 import '../models/enums.dart';
+import '../models/geometry.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
 import '../models/map_spatial_scene.dart';
@@ -187,7 +188,7 @@ final class SpatialMapOperations {
         }
       }
     }
-    return map.copyWith(
+    final sceneResult = map.copyWith(
       spatialScene: scene.copyWith(
         instances: [
           for (final value in scene.instances) replacements[value.id] ?? value,
@@ -197,6 +198,24 @@ final class SpatialMapOperations {
         navigation: scene.navigation.copyWith(ramps: ramps),
       ),
     );
+    final bindings = {
+      for (final instance in sceneResult.spatialScene!.instances)
+        if (instance.entityId != null)
+          instance.entityId!: instance.supportPosition,
+    };
+    final result = sceneResult.copyWith(
+      entities: [
+        for (final entity in sceneResult.entities)
+          if (bindings[entity.id] case final position?)
+            entity.copyWith(
+              pos: GridPos(x: position.x.floor(), y: position.z.floor()),
+            )
+          else
+            entity,
+      ],
+    );
+    validateSpatialEntityModelBindings(result);
+    return result;
   }
 
   MapData deleteInstance(MapData map, String instanceId) {
@@ -224,7 +243,11 @@ final class SpatialMapOperations {
   }
 
   MapData configureDayNightCycle(MapData map, SpatialDayNightCycle? cycle) =>
-      map.copyWith(spatialScene: _scene(map).copyWith(dayNightCycle: cycle, clearDayNightCycle: cycle == null));
+      map.copyWith(
+        spatialScene: _scene(
+          map,
+        ).copyWith(dayNightCycle: cycle, clearDayNightCycle: cycle == null),
+      );
 
   MapData configureCamera(MapData map, SpatialCameraProfile camera) =>
       map.copyWith(spatialScene: _scene(map).copyWith(camera: camera));
@@ -308,7 +331,9 @@ final class SpatialMapOperations {
       (instance) => attached.contains(instance.id),
     )) {
       final p = instance.position;
-      final previouslyAttached = before.navigation.ramps.any((ramp) => ramp.surfaceInstanceId == instance.id);
+      final previouslyAttached = before.navigation.ramps.any(
+        (ramp) => ramp.surfaceInstanceId == instance.id,
+      );
       final delta = reanchorAttached
           ? after.worldHeightAt(p.x, p.z, excludingRampSurface: instance.id) -
                 before.worldHeightAt(
@@ -316,7 +341,9 @@ final class SpatialMapOperations {
                   p.z,
                   excludingRampSurface: instance.id,
                 )
-          : previouslyAttached ? 0.0 : after.worldHeightAt(p.x, p.z) - before.worldHeightAt(p.x, p.z);
+          : previouslyAttached
+          ? 0.0
+          : after.worldHeightAt(p.x, p.z) - before.worldHeightAt(p.x, p.z);
       owners[instance.id] = delta == 0
           ? instance
           : instance.copyWith(
@@ -352,7 +379,8 @@ final class SpatialMapOperations {
         final p = instance.position;
         final support = instance.supportPosition;
         final delta =
-            positioned.worldHeightAt(support.x, support.z) - before.worldHeightAt(support.x, support.z);
+            positioned.worldHeightAt(support.x, support.z) -
+            before.worldHeightAt(support.x, support.z);
         return delta == 0
             ? instance
             : instance.copyWith(

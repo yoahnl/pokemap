@@ -61,6 +61,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.ok(playbackSchema.animationLoop);
     assert.ok(playbackSchema.animationSpeed);
     assert.deepEqual(record(playbackSchema.castsShadows).type, ["boolean", "null"]);
+    assert.deepEqual(record(playbackSchema.entityId).type, ["string", "null"]);
     const modelConfig = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "model3d.configure")!;
     const modelProperties = record(record(record(modelConfig.extensions).inputSchema).properties);
     assert.equal(record(modelProperties.castsShadowsByDefault).type, "boolean");
@@ -162,6 +163,10 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.deepEqual(map.layers, []);
     await mutate("map.create", { mapId: "second", name: "Second", width: 8, height: 6 });
     await mutate("entity.create", { mapId, entity: { id: "start", kind: "spawn", pos: { x: 4, y: 4 }, size: { width: 1, height: 1 }, blocksMovement: false, spawn: { role: "player_start", facing: "south" } } });
+    await mutate("entity.create", { mapId, entity: { id: "linked-object", kind: "custom", pos: { x: 2, y: 3 }, blocksMovement: false } });
+    await mutate("map3d.instance.upsert", { mapId, instance: { ...animated, entityId: "linked-object" } });
+    const linkedMap = JSON.parse(await readFile(join(projectRoot, String(mapEntry.relativePath)), "utf8")) as JsonRecord;
+    assert.equal(record((record(linkedMap.spatialScene).instances as unknown[])[0]).entityId, "linked-object");
     await mutate("map.apply_operations", { mapId, operations: [{ kind: "layer.add", layerKind: "collision", layerId: "solid", name: "Collisions" }] });
     await mutate("collision_layer.paint", { mapId, layerId: "solid", x: 1, y: 0, width: 2, height: 1 });
     await mutate("warp.create_reciprocal_apply", { mapId, warp: { id: "out", pos: { x: 6, y: 4 }, targetMapId: "second", targetPos: { x: 2, y: 2 } }, reciprocalWarpId: "back" });

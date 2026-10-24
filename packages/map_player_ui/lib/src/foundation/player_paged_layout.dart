@@ -14,6 +14,7 @@ class PlayerPagedList extends StatefulWidget {
     this.onPageChanged,
     this.revealChildKey,
     this.onPageReady,
+    this.onContentHeightChanged,
     this.sideNavigation = false,
   });
 
@@ -24,6 +25,7 @@ class PlayerPagedList extends StatefulWidget {
   final ValueChanged<int>? onPageChanged;
   final Key? revealChildKey;
   final VoidCallback? onPageReady;
+  final ValueChanged<double>? onContentHeightChanged;
   final bool sideNavigation;
 
   @override
@@ -34,9 +36,11 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
   final _heights = <Key, double>{};
   late int _page = widget.initialPage;
   Key? _lastRevealedKey;
+  bool _pageWasChosen = false;
   int _measurementEpoch = 0;
   (double, double, double)? _layoutSignature;
   (int, int)? _readyPage;
+  double? _reportedHeight;
 
   @override
   void didUpdateWidget(PlayerPagedList oldWidget) {
@@ -44,6 +48,7 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
     if (!identical(oldWidget.children, widget.children) ||
         oldWidget.sideNavigation != widget.sideNavigation) {
       _heights.clear();
+      _reportedHeight = null;
       _measurementEpoch++;
     }
   }
@@ -76,7 +81,10 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
   void _changePage(int value, int count) {
     final next = value.clamp(0, count - 1);
     if (next != _page) {
-      setState(() => _page = next);
+      setState(() {
+        _page = next;
+        _pageWasChosen = true;
+      });
       widget.onPageChanged?.call(next);
     }
   }
@@ -98,7 +106,7 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
       }
       final sideNavigation =
           widget.sideNavigation &&
-          constraints.maxWidth >= 400 &&
+          constraints.maxWidth >= 200 &&
           constraints.maxHeight >= 104;
       final signature = (
         constraints.maxWidth - (sideNavigation ? 56 : 0),
@@ -108,7 +116,9 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
       if (_layoutSignature != signature) {
         _layoutSignature = signature;
         _heights.clear();
+        _reportedHeight = null;
         _lastRevealedKey = null;
+        _pageWasChosen = false;
         _measurementEpoch++;
       }
       final allMeasured = widget.children.asMap().keys.every(
@@ -119,12 +129,23 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
         (sum, index) => sum + (_heights[_key(index)] ?? 64),
       );
       final hasPages = total > constraints.maxHeight + .5;
+      if (allMeasured && _reportedHeight != total) {
+        final epoch = _measurementEpoch;
+        _reportedHeight = total;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && epoch == _measurementEpoch) {
+            widget.onContentHeightChanged?.call(total);
+          }
+        });
+      }
       final pageSpace = math.max(
         0.0,
         constraints.maxHeight - (hasPages && !sideNavigation ? 56 : 0),
       );
       final pages = _pages(pageSpace);
-      if (allMeasured && widget.revealChildKey != _lastRevealedKey) {
+      if (allMeasured &&
+          widget.revealChildKey != null &&
+          (!_pageWasChosen || widget.revealChildKey != _lastRevealedKey)) {
         final index = widget.children.indexWhere(
           (child) => child.key == widget.revealChildKey,
         );
@@ -132,6 +153,7 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
           _page = pages.indexWhere((page) => page.contains(index));
         }
         _lastRevealedKey = widget.revealChildKey;
+        _pageWasChosen = false;
       }
       if (allMeasured) _page = _page.clamp(0, pages.length - 1);
       final readyPage = (_measurementEpoch, _page);
@@ -145,28 +167,34 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
       final french = Localizations.maybeLocaleOf(context)?.languageCode != 'en';
       final content = ClipRect(
         key: const ValueKey('player-paged-body'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < widget.children.length; i++)
-              Offstage(
-                key: _key(i),
-                offstage: !allMeasured || !indices.contains(i),
-                child: ExcludeFocus(
-                  excluding: allMeasured && !indices.contains(i),
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      top: indices.indexOf(i) > 0 ? widget.spacing : 0,
-                    ),
-                    child: _PlayerMeasure(
-                      epoch: _measurementEpoch,
-                      onSize: (size) => _measure(_key(i), size),
-                      child: widget.children[i],
+        child: OverflowBox(
+          alignment: Alignment.topCenter,
+          minHeight: 0,
+          maxHeight: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < widget.children.length; i++)
+                Offstage(
+                  key: _key(i),
+                  offstage: !allMeasured || !indices.contains(i),
+                  child: ExcludeFocus(
+                    excluding: allMeasured && !indices.contains(i),
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: indices.indexOf(i) > 0 ? widget.spacing : 0,
+                      ),
+                      child: _PlayerMeasure(
+                        epoch: _measurementEpoch,
+                        onSize: (size) => _measure(_key(i), size),
+                        child: widget.children[i],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       );
       final label =

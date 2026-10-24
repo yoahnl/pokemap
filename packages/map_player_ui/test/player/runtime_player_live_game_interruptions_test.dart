@@ -219,9 +219,13 @@ Future<_LoadedGame> _loadGame(WidgetTester tester,
             name: 'Runner',
             tilesetId: 'runner',
             animations: [
-              for (final direction in EntityFacing.values)
-                CharacterAnimation(
-                    state: CharacterAnimationState.run,
+              for (final state in [
+                CharacterAnimationState.walk,
+                CharacterAnimationState.run,
+              ])
+                for (final direction in EntityFacing.values)
+                  CharacterAnimation(
+                    state: state,
                     direction: direction,
                     frames: const [
                       CharacterAnimationFrame(

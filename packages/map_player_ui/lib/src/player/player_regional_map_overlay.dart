@@ -38,101 +38,107 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
       child: RuntimePlayerInputBindings(
         controlProfile: controlProfile,
         hardwareGamepadEnabled: hardwareGamepadEnabled,
-        child: ColoredBox(
-          color: context.playerColors.scrim,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(PlayerSpacing.sm),
-              child: PlayerPanel(
-                surfaceRole: ProjectPresentationSurfaceRole.map,
-                elevated: true,
+        child: FocusScope(
+          autofocus: true,
+          child: ColoredBox(
+            color: context.playerColors.scrim,
+            child: SafeArea(
+              child: Padding(
                 padding: const EdgeInsets.all(PlayerSpacing.sm),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            detail?.title ?? context.playerL10n.map,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        PlayerActionButton(
-                          key: const ValueKey('regional-map-close'),
-                          label: context.playerL10n.close,
-                          icon: Icons.close,
-                          expandWidth: false,
-                          expandContent: false,
-                          secondary: true,
-                          onPressed:
-                              snapshot.isActionEnabled(
-                                RuntimeWorldServiceAction.close,
-                              )
-                              ? () => _emit(RuntimeWorldServiceAction.close)
-                              : null,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (content is RuntimeRegionalMapServiceContent &&
-                        content.message != null) ...[
+                child: PlayerPanel(
+                  surfaceRole: ProjectPresentationSurfaceRole.map,
+                  elevated: true,
+                  padding: const EdgeInsets.all(PlayerSpacing.sm),
+                  child: Column(
+                    children: [
                       Row(
                         children: [
-                          Expanded(child: Text(content.message!)),
-                          if (content.selectedPointId != null) ...[
-                            const SizedBox(width: 12),
-                            PlayerActionButton(
-                              key: const ValueKey('regional-map-fly-confirm'),
-                              label: 'Voler',
-                              icon: Icons.flight,
-                              expandWidth: false,
-                              expandContent: false,
-                              onPressed:
-                                  snapshot.isActionEnabled(
-                                    RuntimeWorldServiceAction.confirm,
-                                  )
-                                  ? () =>
-                                        _emit(RuntimeWorldServiceAction.confirm)
-                                  : null,
+                          Expanded(
+                            child: Text(
+                              detail?.title ?? context.playerL10n.map,
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
-                          ],
+                          ),
+                          const SizedBox(width: 12),
+                          PlayerActionButton(
+                            key: const ValueKey('regional-map-close'),
+                            label: context.playerL10n.close,
+                            icon: Icons.close,
+                            expandWidth: false,
+                            expandContent: false,
+                            secondary: true,
+                            onPressed:
+                                snapshot.isActionEnabled(
+                                  RuntimeWorldServiceAction.close,
+                                )
+                                ? () => _emit(RuntimeWorldServiceAction.close)
+                                : null,
+                          ),
                         ],
                       ),
-                      if (content.applying) const LinearProgressIndicator(),
                       const SizedBox(height: 16),
-                    ],
-                    Expanded(
-                      child: PlayerMenuThemeScope(
-                        role: ProjectPresentationSurfaceRole.map,
-                        child: detail == null
-                            ? PlayerEmptyState(
-                                icon: Icons.map_outlined,
-                                title: context.playerL10n.map,
-                                message:
-                                    context.playerL10n.noPlayerDetailAvailable,
-                              )
-                            : RuntimePlayerRegionMap(
-                                detail: detail,
-                                onPointSelected:
+                      if (content is RuntimeRegionalMapServiceContent &&
+                          content.message != null) ...[
+                        Row(
+                          children: [
+                            Expanded(child: Text(content.message!)),
+                            if (content.selectedPointId != null) ...[
+                              const SizedBox(width: 12),
+                              PlayerActionButton(
+                                key: const ValueKey('regional-map-fly-confirm'),
+                                label: 'Voler',
+                                icon: Icons.flight,
+                                expandWidth: false,
+                                expandContent: false,
+                                onPressed:
                                     snapshot.isActionEnabled(
-                                      RuntimeWorldServiceAction.select,
+                                      RuntimeWorldServiceAction.confirm,
                                     )
-                                    ? (id) => onCommand(
-                                        RuntimeWorldServiceCommand(
-                                          action:
-                                              RuntimeWorldServiceAction.select,
-                                          snapshotRevision: snapshot.revision,
-                                          targetId: id,
-                                        ),
+                                    ? () => _emit(
+                                        RuntimeWorldServiceAction.confirm,
                                       )
                                     : null,
-                                controlProfile: controlProfile,
-                                hardwareGamepadEnabled: hardwareGamepadEnabled,
                               ),
+                            ],
+                          ],
+                        ),
+                        if (content.applying) const LinearProgressIndicator(),
+                        const SizedBox(height: 16),
+                      ],
+                      Expanded(
+                        child: PlayerMenuThemeScope(
+                          role: ProjectPresentationSurfaceRole.map,
+                          child: detail == null
+                              ? PlayerEmptyState(
+                                  icon: Icons.map_outlined,
+                                  title: context.playerL10n.map,
+                                  message: context
+                                      .playerL10n
+                                      .noPlayerDetailAvailable,
+                                )
+                              : RuntimePlayerRegionMap(
+                                  detail: detail,
+                                  onPointSelected:
+                                      snapshot.isActionEnabled(
+                                        RuntimeWorldServiceAction.select,
+                                      )
+                                      ? (id) => onCommand(
+                                          RuntimeWorldServiceCommand(
+                                            action: RuntimeWorldServiceAction
+                                                .select,
+                                            snapshotRevision: snapshot.revision,
+                                            targetId: id,
+                                          ),
+                                        )
+                                      : null,
+                                  controlProfile: controlProfile,
+                                  hardwareGamepadEnabled:
+                                      hardwareGamepadEnabled,
+                                ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

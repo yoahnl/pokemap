@@ -17,6 +17,12 @@ abstract final class SpatialGameplayCapabilities {
   static const storyCapabilityId = 'map3d.story@1';
   static const companionCapabilityId = 'map3d.party-companion@1';
   static const audioCapabilityId = 'map3d.scene-audio@1';
+  static const sceneMusicCapabilityId = 'map3d.scene-music@1';
+
+  static bool supportsSceneMusic(SceneMusicInteractiveCommand command) =>
+      command.channel == SceneMusicChannel.music && command.scope == SceneMusicScope.scene;
+
+  static bool requiresSceneMusic(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneMusicInteractiveCommand));
 
   static bool requiresAudio(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && switch ((node.payload as SceneActionPayload).interactiveCommand) {
     ScenePlaySoundEffectInteractiveCommand() || ScenePlayMusicEffectInteractiveCommand() || SceneStopSoundEffectsInteractiveCommand() => true,
@@ -56,6 +62,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.playSoundEffect,
     NarrativeCommandIds.playMusicEffect,
     NarrativeCommandIds.stopSoundEffects,
+    NarrativeCommandIds.sceneMusic,
   };
   static const cinematicStepKinds = <CinematicTimelineStepKind>{
     CinematicTimelineStepKind.wait,
@@ -193,6 +200,7 @@ abstract final class SpatialGameplayCapabilities {
             map.entities.any(
               (entity) =>
                   entity.kind == MapEntityKind.custom ||
+                  entity.kind == MapEntityKind.item ||
                   entity.editorVisual != null ||
                   entity.npc?.trainerId != null ||
                   entity.npc?.visibilityRule != null ||
@@ -208,6 +216,7 @@ abstract final class SpatialGameplayCapabilities {
       return false;
     }
     final payload = node.payload;
+    if (payload is SceneActionPayload && payload.interactiveCommand is SceneMusicInteractiveCommand && !supportsSceneMusic(payload.interactiveCommand as SceneMusicInteractiveCommand)) return false;
     return switch (payload) {
       SceneCinematicPayload() => true,
       ScenePresentationCinematicPayload() =>

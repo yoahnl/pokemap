@@ -161,9 +161,18 @@ final class OpenTextInputService extends RuntimeWorldServiceRequest {
 }
 
 final class OpenSceneTextInteractionService extends RuntimeWorldServiceRequest {
-  OpenSceneTextInteractionService({required super.interactionId, required this.interaction}) {
-    if (interaction is! SceneIntegerInteractionRequest && interaction is! SceneTextInteractionRequest && interaction is! SceneConfirmationInteractionRequest && interaction is! SceneChoiceInteractionRequest) {
-      throw ArgumentError('Scene text input requires a text, choice or confirmation request.');
+  OpenSceneTextInteractionService({
+    required super.interactionId,
+    required this.interaction,
+  }) {
+    if (interaction is! SceneIntegerInteractionRequest &&
+        interaction is! SceneTextInteractionRequest &&
+        interaction is! SceneConfirmationInteractionRequest &&
+        interaction is! SceneChoiceInteractionRequest &&
+        interaction is! SceneMessageInteractionRequest) {
+      throw ArgumentError(
+        'Scene text input requires a text, choice, confirmation or message request.',
+      );
     }
   }
 

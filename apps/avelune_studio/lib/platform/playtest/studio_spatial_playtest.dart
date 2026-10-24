@@ -182,6 +182,7 @@ final class StudioSpatialPlaytest {
           SpatialCameraProfile.orthographicCapabilityId,
           ProjectContactDeviceConfig.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
+          SpatialGameplayCapabilities.sceneMusicCapabilityId,
           'map3d.animation@1',
           SpatialModelShadowCapabilities.capabilityId,
           SpatialSceneLightingCapabilities.dayNightCapabilityId,

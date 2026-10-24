@@ -52,6 +52,7 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
 
     expect(find.text('L’Aube de Vermeil'), findsOneWidget);
     expect(

@@ -12,6 +12,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_battle_demonstration.dart';
 import 'package:map_runtime/src/presentation/flame/runtime_input_event.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
@@ -53,7 +54,30 @@ void main() {
     });
   }
 
-  testWidgets('demonstration uses a temporary team and bag and restores the exact player state', (tester) async {
+  test('a full owned PC does not constrain the temporary six-member demonstration team', () async {
+    final fixture = await _fixture();
+    final owned = fixture.state.copyWith(pokemonStorage: PokemonStorage(boxes: [
+      PokemonBox(id: 'full', label: 'Full', capacity: 1, pokemon: [fixture.state.party.members.first]),
+    ]));
+    expect(const PlayerStorageOperations().findFirstAvailableSlot(owned.pokemonStorage), isNull);
+    final before = owned.toJson();
+    final configuration = SceneBattleDemonstration(playerTrainerId: 'guide',
+      bagItems: const [BagEntry(itemId: 'poke-ball', quantity: 20)],
+      choices: [SceneBattleDemonstrationChoice.capture('poke-ball')]);
+    final bundle = fixture.bundle.copyWith(manifest: fixture.bundle.manifest.copyWith(trainers: [
+      ProjectTrainerEntry(id: 'guide', name: 'Guide', trainerClass: 'Demo', team: [
+        for (var i = 0; i < 6; i++) const ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 5),
+      ]),
+    ]));
+    final temporary = await prepareRuntimeBattleDemonstration(bundle: bundle, state: owned,
+      request: _wild('full-pc-demo', demonstration: configuration));
+    expect(temporary.party.members, hasLength(6));
+    expect(const PlayerStorageOperations().findFirstAvailableSlot(temporary.pokemonStorage), isNotNull);
+    expect(owned.toJson(), before);
+  });
+
+  for (final cancelAfterFirstChoice in [false, true]) {
+  testWidgets('demonstration uses a temporary team and bag and restores the exact player state, cancel=$cancelAfterFirstChoice', (tester) async {
     final fixture = (await tester.runAsync(_fixture))!;
     final demonstration = SceneBattleDemonstration(
       playerTrainerId: 'guide',
@@ -85,9 +109,27 @@ void main() {
     expect(runtime.displaySession!.state.player.level, 5);
     await tester.pumpWidget(MaterialApp(home: SpatialBattleView(runtime: runtime)));
     await _mountBattleView(tester, runtime, advanceTime: false);
+    final initialTurn = runtime.engineState!.turnNumber;
+    for (var i = 0; i < 1000 && runtime.engineState?.turnNumber == initialTurn; i++) {
+      await _pumpPresentation(tester);
+    }
+    expect(runtime.engineState!.turnNumber, greaterThan(initialTurn));
+    final frozenTurn = runtime.engineState!.turnNumber;
     runtime.pause();
-    for (var i = 0; i < 20; i++) await _pumpPresentation(tester);
+    for (var i = 0; i < 100; i++) await _pumpPresentation(tester);
+    expect(runtime.engineState!.turnNumber, frozenTurn);
+    expect(runtime.engineState!.isFinished, false);
     expect(state.toJson(), before);
+    if (cancelAfterFirstChoice) {
+      runtime.cancel();
+      runtime.resume();
+      for (var i = 0; i < 100; i++) await _pumpPresentation(tester);
+      expect(await tester.runAsync(() => completion), false);
+      expect(outcome, isNull);
+      expect(commits, 0);
+      expect(state.toJson(), before);
+      return;
+    }
     runtime.resume();
     for (var i = 0; i < 1500 && runtime.isActive; i++) {
       await _pumpPresentation(tester);
@@ -99,6 +141,8 @@ void main() {
     expect(commits, 0);
     expect(state.toJson(), before);
   });
+
+  }
 
   testWidgets(
       'battle entry renders its authored curtain over the overworld before commands',

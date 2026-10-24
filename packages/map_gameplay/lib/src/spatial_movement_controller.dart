@@ -842,6 +842,14 @@ final class SpatialMovementController {
       }
     }
     for (final instance in scene.instances) {
+      if (instance.entityId case final entityId?) {
+        final entity =
+            entities.where((entity) => entity.id == entityId).firstOrNull;
+        if (entity == null) {
+          throw StateError('The bound 3D entity does not exist.');
+        }
+        if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;
+      }
       final blocks = modelStateProvider?.call(instance.id)?.blocksMovement ??
           instance.blocksMovement;
       if (!blocks) continue;

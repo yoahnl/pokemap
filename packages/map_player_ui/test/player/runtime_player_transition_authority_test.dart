@@ -34,7 +34,8 @@ void main() {
       }));
     final first = await tester.startGesture(const Offset(100, 600), pointer: 1,
       kind: ui.PointerDeviceKind.touch);
-    await first.moveBy(const Offset(48, 0));
+    await first.moveBy(
+        const Offset(RuntimePlayerFloatingTouchDriver.usefulRadius, 0));
     expect(events, unorderedEquals(const [
       RuntimeInputEvent.press(RuntimeInputControl.right),
       RuntimeInputEvent.press(RuntimeInputControl.sprint),

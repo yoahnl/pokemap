@@ -233,6 +233,7 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map',
         summary: 'Editable PokeMap map',
         extensions: const {
+          'entityModelBinding': {'field':'spatialScene.instances[].entityId','actions':['map3d.instance.upsert','map3d.instance.upsert_batch'],'capability':'map3d.entity-models@1'},
           'directionalLedges': {'field': 'spatialScene.navigation.ledges', 'action': 'map3d.ledge.configure', 'capability': 'map3d.directional-ledges@1'},
           'dayNightCycle': {
             'field': 'spatialScene.dayNightCycle', 'action': 'map3d.day_night.configure',

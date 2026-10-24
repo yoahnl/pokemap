@@ -504,7 +504,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         if (capture == null) return false;
         final selectedChoice = PlayerBattleChoiceCapture(
           itemId: choice.itemId,
-          rateNumerator: _demonstration?.captureAlwaysSucceeds == true ? 255 : capture.rateNumerator,
+          rateNumerator: _demonstration?.captureAlwaysSucceeds == true ? guaranteedDemonstrationBallRateNumerator : capture.rateNumerator,
           rateDenominator: _demonstration?.captureAlwaysSucceeds == true ? 1 : capture.rateDenominator,
         );
         final submission = submitRuntimeBattleCaptureAttempt(

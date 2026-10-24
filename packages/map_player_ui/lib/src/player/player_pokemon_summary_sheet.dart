@@ -32,7 +32,10 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
   final Widget? actions;
 
   @override
-  Widget build(BuildContext context) => _PlayerPokemonSummaryTabs(sheet: this);
+  Widget build(BuildContext context) => PlayerMenuThemeScope(
+    role: surfaceRole,
+    child: _PlayerPokemonSummaryTabs(sheet: this),
+  );
 
   Widget _hpBar(BuildContext context, PlayerPokemonSummaryStrings strings) {
     return Column(
@@ -257,6 +260,24 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
                       style: TextButton.styleFrom(
                         minimumSize: const Size(48, 48),
                         padding: const EdgeInsets.symmetric(horizontal: 4),
+                        animationDuration:
+                            context.playerMenuTheme.selectionDuration,
+                        backgroundColor: _tab == i
+                            ? context.playerMenuTheme.accent.withValues(
+                                alpha: .14,
+                              )
+                            : context.playerMenuTheme.base.withValues(alpha: 0),
+                        foregroundColor: _tab == i
+                            ? context.playerMenuTheme.text
+                            : context.playerMenuTheme.secondary,
+                        side: BorderSide(
+                          width: 1.5,
+                          color: _tab == i
+                              ? context.playerMenuTheme.focus
+                              : context.playerMenuTheme.border.withValues(
+                                  alpha: .3,
+                                ),
+                        ),
                       ),
                       child: compactTabs
                           ? Tooltip(

@@ -45,14 +45,14 @@ Future<Map<String, dynamic>> loadComparisonPlan(
           plan.containsKey('shadowCasterInstanceIds'))) {
     throw StateError('Comparison plan mixes rendering modes.');
   }
-  if (plan['pointLightShadowTest'] == true &&
+  if ((plan['pointLightShadowTest'] == true || plan['dayNightTest'] == true) &&
       (((plan['hiddenMaterialsByInstance'] as Map<String, dynamic>?)
                   ?.isNotEmpty ??
               false) ||
           ((plan['hiddenInstanceIds'] as List<dynamic>?)?.isNotEmpty ??
               false))) {
     throw StateError(
-      'Point light shadow comparisons require unmasked source assets.',
+      'Authored lighting comparisons require unmasked source assets.',
     );
   }
   return plan;

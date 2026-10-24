@@ -297,7 +297,12 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final bounded = constraints.hasBoundedHeight;
-            final columns = constraints.maxWidth >= 440 ? 2 : 1;
+            final shortLargeText =
+                constraints.maxHeight < 160 &&
+                MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+            final columns = constraints.maxWidth >= 440 && !shortLargeText
+                ? 2
+                : 1;
             final list = _list(true, dense: true) as Column;
             final members = list.children
                 .where(
@@ -344,6 +349,9 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                     actions: _actions(_selected, includeSummary: false),
                   )
                 : PlayerPagedList(
+                    sideNavigation:
+                        constraints.maxHeight < 240 &&
+                        MediaQuery.textScalerOf(context).scale(1) >= 1.5,
                     initialPage: _listPage,
                     onPageReady: _restoreMemberFocus,
                     onPageChanged: (page) => _listPage = page,

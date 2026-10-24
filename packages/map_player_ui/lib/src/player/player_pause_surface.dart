@@ -468,6 +468,8 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.illustrated = false,
     this.mobileGrid = false,
     this.fillViewport = false,
+    this.sideNavigation = false,
+    this.additionalContent = const [],
   });
 
   final String gameTitle;
@@ -486,6 +488,8 @@ class PlayerPauseNavigation extends StatelessWidget {
   final bool illustrated;
   final bool mobileGrid;
   final bool fillViewport;
+  final bool sideNavigation;
+  final List<Widget> additionalContent;
 
   @override
   Widget build(BuildContext context) {
@@ -501,6 +505,7 @@ class PlayerPauseNavigation extends StatelessWidget {
           : scrollKey,
       builder: (context, constraints) {
         final compactRows =
+            sideNavigation ||
             constraints.maxWidth < 450 && constraints.maxHeight < 300;
         final columns = compactRows
             ? 1
@@ -543,7 +548,9 @@ class PlayerPauseNavigation extends StatelessWidget {
               ),
             ),
         ];
+        rows.addAll(additionalContent);
         final entries = PlayerPagedList(
+          sideNavigation: sideNavigation,
           revealChildKey: selectedIndex < 0
               ? null
               : ValueKey(

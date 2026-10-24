@@ -39,6 +39,21 @@ void main() {
     ),
   );
 
+  testWidgets('3D scene music offers only scene-owned music and applies the canonical command', (tester) async {
+    SceneNodePayload? applied;
+    final command = SceneMusicInteractiveCommand(operation: SceneMusicOperation.stop);
+    await pump(tester, current: SceneActionPayload.interactive(command),
+      projectOverride: project.copyWith(settings: const ProjectSettings(dimension: ProjectDimension.threeD)),
+      onApply: (payload) => applied = payload);
+    StudioSelect select(String label) => tester.widget<StudioSelect>(find.byWidgetPredicate((widget) => widget is StudioSelect && widget.label == label));
+    expect(select('Commande').value, 'sceneMusic');
+    expect(select('Canal').options.keys, ['music']);
+    expect(select('Durée de vie').options.keys, ['scene']);
+    await tester.ensureVisible(find.text('Appliquer l’action'));
+    await tester.tap(find.text('Appliquer l’action'));
+    expect((applied as SceneActionPayload).interactiveCommand, command);
+  });
+
   testWidgets('action edits preserve opaque metadata until explicit apply', (
     tester,
   ) async {

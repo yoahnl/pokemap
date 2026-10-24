@@ -91,6 +91,7 @@ Widget? workspaceSecondaryContent({
   required SceneWorkspaceController? scenes,
   Future<Map<String, String>> Function()? loadSceneMoves,
   Future<Map<String, String>> Function()? loadSceneItems,
+  Future<Map<String, String>> Function()? loadSceneCaptureItems,
   Future<List<PokemonSpeciesSummary>> Function()? loadSceneSpecies,
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
@@ -181,6 +182,7 @@ Widget? workspaceSecondaryContent({
     return SceneBuilderPage(
       loadMoves: loadSceneMoves,
       loadItems: loadSceneItems,
+      loadCaptureItems: loadSceneCaptureItems,
       loadSpecies: loadSceneSpecies,
       loadVisualMedia: presentations == null ? null : () async => (await presentations.port.prepare(scenes.project)).mediaCatalog,
       onPresentation: onScenePresentation,

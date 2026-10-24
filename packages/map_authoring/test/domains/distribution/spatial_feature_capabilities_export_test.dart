@@ -150,6 +150,7 @@ void main() {
     'companion': SpatialGameplayCapabilities.companionCapabilityId,
     'contact': ProjectContactDeviceConfig.capabilityId,
     'audio': SpatialGameplayCapabilities.audioCapabilityId,
+    'sceneMusic': SpatialGameplayCapabilities.sceneMusicCapabilityId,
   };
   for (final entry in features.entries) {
     test(

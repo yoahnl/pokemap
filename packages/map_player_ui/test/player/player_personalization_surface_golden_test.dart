@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -60,8 +61,33 @@ void main() {
             ),
           ),
         );
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump();
         await tester.pump();
 
+        if (surface == _PlayerSurface.title ||
+            surface == _PlayerSurface.pause) {
+          await tester.pumpAndSettle();
+        }
+        if (surface == _PlayerSurface.title ||
+            surface == _PlayerSurface.pause) {
+          final actions = find.byWidgetPredicate(
+            (widget) =>
+                widget is PlayerActionButton ||
+                widget is PlayerMenuSelectableRow,
+          );
+          expect(
+            actions.hitTestable().evaluate().length,
+            greaterThanOrEqualTo(2),
+          );
+          final opacity = find.descendant(
+            of: find.byType(PlayerMenuTransition),
+            matching: find.byType(Opacity),
+          );
+          if (opacity.evaluate().isNotEmpty) {
+            expect(tester.widget<Opacity>(opacity.first).opacity, 1);
+          }
+        }
         expect(tester.takeException(), isNull);
         await expectLater(
           find.byKey(const ValueKey<String>('player-personalization-golden')),
@@ -111,6 +137,8 @@ void main() {
           ),
         ),
       );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
       await tester.pump();
 
       expect(tester.takeException(), isNull);
@@ -130,135 +158,121 @@ Widget _variant(
   _PlayerVariant variant,
   RuntimePlayerPresentation presentation,
   ({ProjectPresentationProfile profile, String projectName}) fixture,
-) =>
-    switch (variant) {
-      _PlayerVariant.dialogueText2x => _surface(
-          _PlayerSurface.dialogue,
-          presentation,
-          fixture,
-        ),
-      _PlayerVariant.dialogueChoices => PlayerDialogueSurface(
-          data: _dialogueChoices,
-          portraitBuilder: (_) => Image(
-            image: _fixtureImage('assets/characters/leo-happy.png'),
-            fit: BoxFit.contain,
-          ),
-          onAction: (_) {},
-        ),
-      _PlayerVariant.battleCommands => PlayerBattleSurface(
-          data: _battle(
-            fixture.profile,
-            panelKind: PlayerBattlePanelKind.commands,
-          ),
-          onAction: (_) {},
-        ),
-      _PlayerVariant.battleMoves => PlayerBattleSurface(
-          data: _battle(
-            fixture.profile,
-            panelKind: PlayerBattlePanelKind.moves,
-          ),
-          onAction: (_) {},
-        ),
-      _PlayerVariant.battleTarget => PlayerBattleSurface(
-          data: _battle(
-            fixture.profile,
-            panelKind: PlayerBattlePanelKind.target,
-          ),
-          onAction: (_) {},
-        ),
-      _PlayerVariant.battleMessage => PlayerBattleSurface(
-          data: _battle(
-            fixture.profile,
-            panelKind: PlayerBattlePanelKind.message,
-          ),
-          onAction: (_) {},
-        ),
-    };
+) => switch (variant) {
+  _PlayerVariant.dialogueText2x => _surface(
+    _PlayerSurface.dialogue,
+    presentation,
+    fixture,
+  ),
+  _PlayerVariant.dialogueChoices => PlayerDialogueSurface(
+    data: _dialogueChoices,
+    portraitBuilder: (_) => Image(
+      image: _fixtureImage('assets/characters/leo-happy.png'),
+      fit: BoxFit.contain,
+    ),
+    onAction: (_) {},
+  ),
+  _PlayerVariant.battleCommands => PlayerBattleSurface(
+    data: _battle(fixture.profile, panelKind: PlayerBattlePanelKind.commands),
+    onAction: (_) {},
+  ),
+  _PlayerVariant.battleMoves => PlayerBattleSurface(
+    data: _battle(fixture.profile, panelKind: PlayerBattlePanelKind.moves),
+    onAction: (_) {},
+  ),
+  _PlayerVariant.battleTarget => PlayerBattleSurface(
+    data: _battle(fixture.profile, panelKind: PlayerBattlePanelKind.target),
+    onAction: (_) {},
+  ),
+  _PlayerVariant.battleMessage => PlayerBattleSurface(
+    data: _battle(fixture.profile, panelKind: PlayerBattlePanelKind.message),
+    onAction: (_) {},
+  ),
+};
 
 Widget _surface(
   _PlayerSurface surface,
   RuntimePlayerPresentation presentation,
   ({ProjectPresentationProfile profile, String projectName}) fixture,
-) =>
-    switch (surface) {
-      _PlayerSurface.globalStyle => PlayerSurfacePaletteScope(
-          role: ProjectPresentationSurfaceRole.pauseMenu,
-          paintBackground: true,
-          child: PlayerSurface(
-            child: Center(
-              child: Builder(
-                builder: (context) => PlayerPanel(
-                  surfaceRole: ProjectPresentationSurfaceRole.pauseMenu,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        fixture.projectName,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Couleurs, fenêtres et typographie du projet'),
-                    ],
-                  ),
+) => switch (surface) {
+  _PlayerSurface.globalStyle => PlayerSurfacePaletteScope(
+    role: ProjectPresentationSurfaceRole.pauseMenu,
+    paintBackground: true,
+    child: PlayerSurface(
+      child: Center(
+        child: Builder(
+          builder: (context) => PlayerPanel(
+            surfaceRole: ProjectPresentationSurfaceRole.pauseMenu,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  fixture.projectName,
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
-              ),
+                const SizedBox(height: 16),
+                const Text('Couleurs, fenêtres et typographie du projet'),
+              ],
             ),
           ),
         ),
-      _PlayerSurface.title => PlayerTitleSurface(
-          data: PlayerTitleSurfaceData(
-            gameTitle: presentation.title.resolveTitle(fixture.projectName),
-            author: 'PokeMap',
-            description: 'Projet d’acceptation visuelle',
-            background: _fixtureImage('assets/presentation/hero.png'),
-            logo: _fixtureImage('assets/presentation/icon.png'),
-            accentColor: presentation.title.accentColor,
-            layoutVariant: presentation.title.layoutVariant,
-            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
-              for (final action in PlayerTitleMenuAction.values)
-                action: PlayerActionAvailability.enabled,
-            },
-            actionLabels: presentation.title.actionLabels,
-            actionIcons: presentation.title.actionIcons,
-            initialSelection: PlayerTitleMenuAction.newGame,
-          ),
-          onSelected: (_) {},
-        ),
-      _PlayerSurface.intro => PlayerIntroVideoSurface(
-          media: Image(
-            image: _fixtureImage('assets/presentation/intro/poster.png'),
-            fit: BoxFit.cover,
-          ),
-          isPoster: true,
-          caption: 'Bienvenue à Vermeil.',
-          onSkip: () {},
-          onReplay: () {},
-          onContinue: () {},
-        ),
-      _PlayerSurface.pause => RuntimePlayerPauseShell.root(
-          gameTitle: fixture.projectName,
-          labels: presentation.pauseMenuLabels,
-          actions: <PlayerPauseAction, PlayerActionAvailability>{
-            for (final action in PlayerPauseAction.values)
-              action: PlayerActionAvailability.enabled,
-          },
-          presentation: presentation.pausePresentation,
-          onSelected: (_) {},
-          detail: const Center(child: Text('Sélectionnez une section')),
-        ),
-      _PlayerSurface.dialogue => PlayerDialogueSurface(
-          data: _dialogue,
-          portraitBuilder: (_) => Image(
-            image: _fixtureImage('assets/characters/leo-happy.png'),
-            fit: BoxFit.contain,
-          ),
-          onAction: (_) {},
-        ),
-      _PlayerSurface.battle => PlayerBattleSurface(
-          data: _battle(fixture.profile),
-          onAction: (_) {},
-        ),
-    };
+      ),
+    ),
+  ),
+  _PlayerSurface.title => PlayerTitleSurface(
+    data: PlayerTitleSurfaceData(
+      gameTitle: presentation.title.resolveTitle(fixture.projectName),
+      author: 'PokeMap',
+      description: 'Projet d’acceptation visuelle',
+      background: _fixtureImage('assets/presentation/hero.png'),
+      logo: _fixtureImage('assets/presentation/icon.png'),
+      accentColor: presentation.title.accentColor,
+      layoutVariant: presentation.title.layoutVariant,
+      actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+        for (final action in PlayerTitleMenuAction.values)
+          action: PlayerActionAvailability.enabled,
+      },
+      actionLabels: presentation.title.actionLabels,
+      actionIcons: presentation.title.actionIcons,
+      initialSelection: PlayerTitleMenuAction.newGame,
+    ),
+    onSelected: (_) {},
+  ),
+  _PlayerSurface.intro => PlayerIntroVideoSurface(
+    media: Image(
+      image: _fixtureImage('assets/presentation/intro/poster.png'),
+      fit: BoxFit.cover,
+    ),
+    isPoster: true,
+    caption: 'Bienvenue à Vermeil.',
+    onSkip: () {},
+    onReplay: () {},
+    onContinue: () {},
+  ),
+  _PlayerSurface.pause => RuntimePlayerPauseShell.root(
+    gameTitle: fixture.projectName,
+    labels: presentation.pauseMenuLabels,
+    actions: <PlayerPauseAction, PlayerActionAvailability>{
+      for (final action in PlayerPauseAction.values)
+        action: PlayerActionAvailability.enabled,
+    },
+    presentation: presentation.pausePresentation,
+    onSelected: (_) {},
+    detail: const Center(child: Text('Sélectionnez une section')),
+  ),
+  _PlayerSurface.dialogue => PlayerDialogueSurface(
+    data: _dialogue,
+    portraitBuilder: (_) => Image(
+      image: _fixtureImage('assets/characters/leo-happy.png'),
+      fit: BoxFit.contain,
+    ),
+    onAction: (_) {},
+  ),
+  _PlayerSurface.battle => PlayerBattleSurface(
+    data: _battle(fixture.profile),
+    onAction: (_) {},
+  ),
+};
 
 const _dialogue = PlayerDialogueViewData(
   revision: 1,
@@ -296,114 +310,116 @@ const _dialogueChoices = PlayerDialogueViewData(
 PlayerBattleViewData _battle(
   ProjectPresentationProfile profile, {
   PlayerBattlePanelKind panelKind = PlayerBattlePanelKind.commands,
-}) =>
-    PlayerBattleViewData(
-      revision: 1,
-      enemy: const PlayerBattleHudViewData(
-        ownerLabel: 'SAUVAGE',
-        speciesLabel: 'Roucool',
-        genderSymbol: '♀',
-        level: 7,
-        currentHp: 31,
-        maxHp: 31,
-        statusLabel: 'PAR',
-      ),
-      player: const PlayerBattleHudViewData(
-        ownerLabel: 'JOUEUR',
-        speciesLabel: 'Brindibou',
-        genderSymbol: '♂',
-        level: 8,
-        currentHp: 24,
-        maxHp: 24,
-        experienceProgress: 0.64,
-      ),
-      battleLabel: 'Herbes de Vermeil',
-      title: switch (panelKind) {
-        PlayerBattlePanelKind.commands => 'Que doit faire Brindibou ?',
-        PlayerBattlePanelKind.moves => 'Choisissez une capacité',
-        PlayerBattlePanelKind.target => 'Choisissez une cible',
-        PlayerBattlePanelKind.message => 'Le combat continue',
-      },
-      prompt: switch (panelKind) {
-        PlayerBattlePanelKind.commands => 'Choisissez une action.',
-        PlayerBattlePanelKind.moves => 'Choisissez une capacité.',
-        PlayerBattlePanelKind.target => 'Sélectionnez la cible.',
-        PlayerBattlePanelKind.message => 'Appuyez pour continuer.',
-      },
-      narrationLines: panelKind == PlayerBattlePanelKind.message
-          ? const <String>['Brindibou utilise Feuillage !']
-          : const <String>[],
-      commands: _battleEntries(profile, panelKind),
-      interactionsEnabled: panelKind != PlayerBattlePanelKind.message,
-      canGoBack: panelKind != PlayerBattlePanelKind.commands,
-      panelKind: panelKind,
-    );
+}) => PlayerBattleViewData(
+  revision: 1,
+  enemy: const PlayerBattleHudViewData(
+    ownerLabel: 'SAUVAGE',
+    speciesLabel: 'Roucool',
+    genderSymbol: '♀',
+    level: 7,
+    currentHp: 31,
+    maxHp: 31,
+    statusLabel: 'PAR',
+  ),
+  player: const PlayerBattleHudViewData(
+    ownerLabel: 'JOUEUR',
+    speciesLabel: 'Brindibou',
+    genderSymbol: '♂',
+    level: 8,
+    currentHp: 24,
+    maxHp: 24,
+    experienceProgress: 0.64,
+  ),
+  battleLabel: 'Herbes de Vermeil',
+  title: switch (panelKind) {
+    PlayerBattlePanelKind.commands => 'Que doit faire Brindibou ?',
+    PlayerBattlePanelKind.moves => 'Choisissez une capacité',
+    PlayerBattlePanelKind.target => 'Choisissez une cible',
+    PlayerBattlePanelKind.message => 'Le combat continue',
+  },
+  prompt: switch (panelKind) {
+    PlayerBattlePanelKind.commands => 'Choisissez une action.',
+    PlayerBattlePanelKind.moves => 'Choisissez une capacité.',
+    PlayerBattlePanelKind.target => 'Sélectionnez la cible.',
+    PlayerBattlePanelKind.message => 'Appuyez pour continuer.',
+  },
+  narrationLines: panelKind == PlayerBattlePanelKind.message
+      ? const <String>['Brindibou utilise Feuillage !']
+      : const <String>[],
+  commands: _battleEntries(profile, panelKind),
+  interactionsEnabled: panelKind != PlayerBattlePanelKind.message,
+  canGoBack: panelKind != PlayerBattlePanelKind.commands,
+  panelKind: panelKind,
+);
 
 List<PlayerBattleCommandViewData> _battleEntries(
   ProjectPresentationProfile profile,
   PlayerBattlePanelKind panelKind,
-) =>
-    switch (panelKind) {
-      PlayerBattlePanelKind.commands => <PlayerBattleCommandViewData>[
-          for (var index = 0;
-              index < profile.battle!.effectiveCommands.length;
-              index++)
-            PlayerBattleCommandViewData(
-              index: index,
-              primaryLabel: profile.battle!.effectiveCommands[index].label ??
-                  profile.battle!.effectiveCommands[index].id.name
-                      .toUpperCase(),
-              secondaryLabel: 'Commande du projet',
-              enabled: true,
-              selected: index == 0,
-              tone: PlayerBattleEntryTone.attack,
-              commandId: profile.battle!.effectiveCommands[index].id,
-              commandIcon: profile.battle!.effectiveCommands[index].icon,
-            ),
-        ],
-      PlayerBattlePanelKind.moves => const <PlayerBattleCommandViewData>[
-          PlayerBattleCommandViewData(
-            index: 0,
-            primaryLabel: 'Feuillage',
-            secondaryLabel: 'grass',
-            trailingLabel: 'PP 40/40',
-            moveTypeId: 'grass',
-            enabled: true,
-            selected: true,
-            tone: PlayerBattleEntryTone.attack,
-          ),
-          PlayerBattleCommandViewData(
-            index: 1,
-            primaryLabel: 'Picpic',
-            secondaryLabel: 'flying',
-            trailingLabel: 'PP 35/35',
-            moveTypeId: 'flying',
-            enabled: true,
-            selected: false,
-            tone: PlayerBattleEntryTone.special,
-          ),
-        ],
-      PlayerBattlePanelKind.target => const <PlayerBattleCommandViewData>[
-          PlayerBattleCommandViewData(
-            index: 0,
-            primaryLabel: 'Roucool sauvage',
-            secondaryLabel: 'PV 31/31',
-            enabled: true,
-            selected: true,
-            tone: PlayerBattleEntryTone.neutral,
-          ),
-        ],
-      PlayerBattlePanelKind.message => const <PlayerBattleCommandViewData>[],
-    };
+) => switch (panelKind) {
+  PlayerBattlePanelKind.commands => <PlayerBattleCommandViewData>[
+    for (
+      var index = 0;
+      index < profile.battle!.effectiveCommands.length;
+      index++
+    )
+      PlayerBattleCommandViewData(
+        index: index,
+        primaryLabel:
+            profile.battle!.effectiveCommands[index].label ??
+            profile.battle!.effectiveCommands[index].id.name.toUpperCase(),
+        secondaryLabel: 'Commande du projet',
+        enabled: true,
+        selected: index == 0,
+        tone: PlayerBattleEntryTone.attack,
+        commandId: profile.battle!.effectiveCommands[index].id,
+        commandIcon: profile.battle!.effectiveCommands[index].icon,
+      ),
+  ],
+  PlayerBattlePanelKind.moves => const <PlayerBattleCommandViewData>[
+    PlayerBattleCommandViewData(
+      index: 0,
+      primaryLabel: 'Feuillage',
+      secondaryLabel: 'grass',
+      trailingLabel: 'PP 40/40',
+      moveTypeId: 'grass',
+      enabled: true,
+      selected: true,
+      tone: PlayerBattleEntryTone.attack,
+    ),
+    PlayerBattleCommandViewData(
+      index: 1,
+      primaryLabel: 'Picpic',
+      secondaryLabel: 'flying',
+      trailingLabel: 'PP 35/35',
+      moveTypeId: 'flying',
+      enabled: true,
+      selected: false,
+      tone: PlayerBattleEntryTone.special,
+    ),
+  ],
+  PlayerBattlePanelKind.target => const <PlayerBattleCommandViewData>[
+    PlayerBattleCommandViewData(
+      index: 0,
+      primaryLabel: 'Roucool sauvage',
+      secondaryLabel: 'PV 31/31',
+      enabled: true,
+      selected: true,
+      tone: PlayerBattleEntryTone.neutral,
+    ),
+  ],
+  PlayerBattlePanelKind.message => const <PlayerBattleCommandViewData>[],
+};
 
 final _fixtureProviders = <String, MemoryImage>{};
 
 MemoryImage _fixtureImage(String relativePath) => _fixtureProviders.putIfAbsent(
   relativePath,
-  () => MemoryImage(File(
-    '${Directory.current.path}/../../examples/playable_runtime_host/'
-    'golden_personalization_v3/$relativePath',
-  ).readAsBytesSync()),
+  () => MemoryImage(
+    File(
+      '${Directory.current.path}/../../examples/playable_runtime_host/'
+      'golden_personalization_v3/$relativePath',
+    ).readAsBytesSync(),
+  ),
 );
 
 Future<void> _seedFixtureImages() async {
@@ -414,9 +430,7 @@ Future<void> _seedFixtureImages() async {
     'assets/characters/leo-happy.png',
   ]) {
     final provider = _fixtureImage(relativePath);
-    final codec = await ui.instantiateImageCodec(
-      provider.bytes,
-    );
+    final codec = await ui.instantiateImageCodec(provider.bytes);
     final frame = await codec.getNextFrame();
     PaintingBinding.instance.imageCache.putIfAbsent(
       provider,
@@ -429,7 +443,7 @@ Future<void> _seedFixtureImages() async {
 }
 
 Future<({ProjectPresentationProfile profile, String projectName})>
-    _readGoldenFixture() async {
+_readGoldenFixture() async {
   final file = File(
     '${Directory.current.path}/../../examples/playable_runtime_host/'
     'golden_personalization_v3/project.json',
@@ -450,6 +464,10 @@ Future<void> _loadFixtureFont() async {
   ).readAsBytes();
   await _loadFont('Aube Display', bytes);
   await _loadFont('Avenir Next', bytes);
+  await _loadFont(
+    'packages/map_player_ui/PokeMapSplashDMSans',
+    await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+  );
   final flutterCache = _flutterCacheDirectory();
   final iconBytes = await File(
     '${flutterCache.path}/artifacts/material_fonts/MaterialIcons-Regular.otf',
@@ -458,9 +476,9 @@ Future<void> _loadFixtureFont() async {
 }
 
 Future<void> _loadFont(String family, Uint8List bytes) async {
-  await (FontLoader(family)
-        ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes))))
-      .load();
+  await (FontLoader(
+    family,
+  )..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)))).load();
 }
 
 Directory _flutterCacheDirectory() {

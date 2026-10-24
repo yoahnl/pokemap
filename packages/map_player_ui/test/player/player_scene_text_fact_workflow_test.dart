@@ -27,6 +27,7 @@ void main() {
             ),
           ),
         );
+        await tester.pumpAndSettle();
       }
 
       await show();
@@ -98,6 +99,7 @@ void main() {
             ),
           ),
         );
+        await tester.pumpAndSettle();
       }
 
       await show();

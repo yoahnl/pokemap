@@ -6,8 +6,9 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  testWidgets('Space remapped to Back closes a choice without saving',
-      (tester) async {
+  testWidgets('Space remapped to Back closes a choice without saving', (
+    tester,
+  ) async {
     final changes = <PlayerPreferencesSnapshot>[];
     final profile = PlayerControlProfile.standard
         .rebind(
@@ -17,7 +18,23 @@ void main() {
         )
         .profile;
     await _pumpOptions(tester, profile: profile, onChanged: changes.add);
-    await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
+    await tester.tap(find.byKey(const ValueKey('options-category-controls')));
+    await tester.pumpAndSettle();
+    final choice = find.byKey(const ValueKey('options-binding-primary-choice'));
+    for (
+      var page = 0;
+      choice.hitTestable().evaluate().isEmpty && page < 20;
+      page++
+    ) {
+      final next = find.descendant(
+        of: find.byKey(const ValueKey('options-settings')),
+        matching: find.byKey(const ValueKey('player-page-next')),
+      );
+      expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(choice);
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pumpAndSettle();
@@ -25,19 +42,24 @@ void main() {
     expect(changes, isEmpty);
     expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
     expect(
-        find.byKey(const ValueKey('runtime-player-options')), findsOneWidget);
+      find.byKey(const ValueKey('runtime-player-options')),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Down leaves an audio slider without changing its value',
-      (tester) async {
+  testWidgets('Down leaves an audio slider without changing its value', (
+    tester,
+  ) async {
     final changes = <PlayerPreferencesSnapshot>[];
     await _pumpOptions(tester, onChanged: changes.add);
     await tester.tap(find.byKey(const ValueKey('options-category-audio')));
     await tester.pumpAndSettle();
-    final master = tester
-        .widget<Slider>(find.byKey(const ValueKey('options-master-slider')));
-    final music = tester
-        .widget<Slider>(find.byKey(const ValueKey('options-music-slider')));
+    final master = tester.widget<Slider>(
+      find.byKey(const ValueKey('options-master-slider')),
+    );
+    final music = tester.widget<Slider>(
+      find.byKey(const ValueKey('options-music-slider')),
+    );
     master.focusNode!.requestFocus();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -51,8 +73,9 @@ void main() {
     expect(master.focusNode!.hasFocus, isTrue);
   });
 
-  testWidgets('a remapped slider direction invokes Back instead of adjusting',
-      (tester) async {
+  testWidgets('a remapped slider direction invokes Back instead of adjusting', (
+    tester,
+  ) async {
     final changes = <PlayerPreferencesSnapshot>[];
     var backs = 0;
     final profile = PlayerControlProfile.standard
@@ -68,8 +91,12 @@ void main() {
           inputId: 'arrowLeft',
         )
         .profile;
-    await _pumpOptions(tester,
-        profile: profile, onChanged: changes.add, onBack: () => backs++);
+    await _pumpOptions(
+      tester,
+      profile: profile,
+      onChanged: changes.add,
+      onBack: () => backs++,
+    );
     await tester.tap(find.byKey(const ValueKey('options-category-audio')));
     await tester.pumpAndSettle();
     tester
@@ -94,31 +121,33 @@ Future<void> _pumpOptions(
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1440, 900);
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(MaterialApp(
-    locale: const Locale('fr'),
-    localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-    supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-    theme: PokeMapPlayerTheme.dark(),
-    home: Scaffold(
-      body: RuntimePlayerActions(
-        onBack: onBack ?? () {},
-        onMenu: () {},
-        onInputSourceChanged: (_) {},
-        child: PlayerMenuThemeScope(
-          child: RuntimePlayerInputBindings(
-            controlProfile: profile,
-            child: RuntimePlayerOptions(
-              preferences: const PlayerPreferencesSnapshot(
-                locale: 'fr',
-                accessibility: GameSessionAccessibilityOptions(),
-              ),
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('fr'),
+      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+      theme: PokeMapPlayerTheme.dark(),
+      home: Scaffold(
+        body: RuntimePlayerActions(
+          onBack: onBack ?? () {},
+          onMenu: () {},
+          onInputSourceChanged: (_) {},
+          child: PlayerMenuThemeScope(
+            child: RuntimePlayerInputBindings(
               controlProfile: profile,
-              onChanged: onChanged,
+              child: RuntimePlayerOptions(
+                preferences: const PlayerPreferencesSnapshot(
+                  locale: 'fr',
+                  accessibility: GameSessionAccessibilityOptions(),
+                ),
+                controlProfile: profile,
+                onChanged: onChanged,
+              ),
             ),
           ),
         ),
       ),
     ),
-  ));
+  );
   await tester.pumpAndSettle();
 }

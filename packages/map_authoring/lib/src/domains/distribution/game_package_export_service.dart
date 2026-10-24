@@ -196,6 +196,7 @@ final class CanonicalGamePackageExportService {
       var continuousTerrain = false;
       var fractionalRamps = false;
       var directionalLedges = false;
+      var entityModels = false;
       var modelClips = SpatialModelClipCapabilities.requiresCapability(projection.project);
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
@@ -223,6 +224,7 @@ final class CanonicalGamePackageExportService {
           customTerrainAppearance |= map.spatialScene?.generateCliffs == false;
           continuousTerrain |=
               map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
+          entityModels |= map.spatialScene!.instances.any((instance) => instance.entityId != null);
           directionalLedges |= map.spatialScene!.navigation.ledges.isNotEmpty;
           fractionalRamps |= map.spatialScene!.navigation.ramps
               .any((ramp) => ramp.hasFractionalLevels);
@@ -254,11 +256,13 @@ final class CanonicalGamePackageExportService {
         if (continuousTerrain) SpatialTerrainSurfaceSet.capabilityId,
         if (fractionalRamps) SpatialRamp.fractionalLevelsCapabilityId,
         if (directionalLedges) SpatialLedge.capabilityId,
+        if (entityModels) SpatialModelInstance.entityBindingCapabilityId,
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
+        if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
         if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,
         if (projection.project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneBattlePayload && (node.payload as SceneBattlePayload).demonstration != null))) SceneBattleDemonstration.capabilityId,
@@ -458,6 +462,7 @@ final class CanonicalGamePackageExportService {
             SpatialTerrainSurfaceSet.capabilityId,
             SpatialRamp.fractionalLevelsCapabilityId,
             SpatialLedge.capabilityId,
+            SpatialModelInstance.entityBindingCapabilityId,
             SpatialModelClipCapabilities.capabilityId,
             SpatialGameplayCapabilities.capabilityId,
             SpatialGameplayCapabilities.storyCapabilityId,
@@ -465,6 +470,7 @@ final class CanonicalGamePackageExportService {
             SpatialCameraProfile.orthographicCapabilityId,
             ProjectContactDeviceConfig.capabilityId,
             SpatialGameplayCapabilities.audioCapabilityId,
+            SpatialGameplayCapabilities.sceneMusicCapabilityId,
             SceneBattleDemonstration.capabilityId,
             'overworld.menu@1',
             'world.shop@1',

@@ -317,7 +317,11 @@ class PlayerMenuFooter extends StatelessWidget {
           ? Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [...hints, returnAction!],
+              children: [
+                ...hints,
+                if (hints.isNotEmpty) const SizedBox(height: 8),
+                returnAction!,
+              ],
             )
           : Row(
               mainAxisAlignment: alignReturnEnd
@@ -421,42 +425,45 @@ class PlayerMenuKeyHint extends StatelessWidget {
     super.key,
     required this.glyph,
     required this.label,
+    this.compact = false,
   });
   final String glyph;
   final String label;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
+    final symbol = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.recessed,
+        borderRadius: BorderRadius.circular(PokeMapPlayerMenuTheme.badgeRadius),
+        border: Border.all(color: theme.border),
+      ),
+      child: Text(glyph, style: theme.meta),
+    );
     return Semantics(
       label: '$glyph, $label',
       excludeSemantics: true,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.recessed,
-                borderRadius: BorderRadius.circular(
-                  PokeMapPlayerMenuTheme.badgeRadius,
+      child: compact
+          ? Tooltip(
+              message: '$glyph · $label',
+              child: Align(alignment: Alignment.centerLeft, child: symbol),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(flex: 2, child: symbol),
+                const SizedBox(width: PlayerSpacing.xs),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: theme.meta.copyWith(color: theme.secondary),
+                  ),
                 ),
-                border: Border.all(color: theme.border),
-              ),
-              child: Text(glyph, style: theme.meta),
+              ],
             ),
-          ),
-          const SizedBox(width: PlayerSpacing.xs),
-          Flexible(
-            child: Text(
-              label,
-              style: theme.meta.copyWith(color: theme.secondary),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

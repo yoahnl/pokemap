@@ -256,6 +256,22 @@ final class SpatialExplorationSession {
         : SpatialActorRuntimeState(x: pose.x, z: pose.z, facing: pose.facing);
   }
 
+  bool modelIsPresent(String mapId, String instanceId) {
+    final source = mapId == bundle.map.id
+        ? bundle
+        : _preparedMaps[mapId]?.bundle;
+    if (source == null) return false;
+    final instance = source.map.spatialScene!.instances
+        .where((value) => value.id == instanceId)
+        .firstOrNull;
+    final entityId = instance?.entityId;
+    if (entityId == null) return true;
+    final entity = source.map.entities
+        .where((value) => value.id == entityId)
+        .firstOrNull;
+    return entity != null && (entityIsPresent?.call(mapId, entity) ?? true);
+  }
+
   SpatialModelRuntimeState? modelRuntimeState(
     String mapId,
     String instanceId,

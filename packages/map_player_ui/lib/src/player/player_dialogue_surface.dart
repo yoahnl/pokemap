@@ -201,6 +201,9 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                   ProjectDialoguePlacement.center => Alignment.center,
                   ProjectDialoguePlacement.bottom => Alignment.bottomCenter,
                 };
+          final contentPadding =
+              dialogue?.contentPadding ??
+              PlayerSpacing.md * (resolved?.spacingScale ?? 1);
           return Padding(
             padding: EdgeInsets.all(margin),
             child: Align(
@@ -222,7 +225,8 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                       : dialogue == null
                       ? constraints.maxWidth * resolved.maxWidthFactor
                       : constraints.maxWidth * dialogue.maxWidthFactor,
-                  maxHeight: resolved == null
+                  maxHeight:
+                      resolved == null && data.mode != PlayerDialogueMode.line
                       ? constraints.maxHeight * 0.58
                       : constraints.maxHeight - margin * 2,
                 ),
@@ -230,10 +234,7 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                   elevated: true,
                   role: PlayerPanelRole.dialogue,
                   surfaceRole: ProjectPresentationSurfaceRole.dialogue,
-                  padding: EdgeInsets.all(
-                    dialogue?.contentPadding ??
-                        PlayerSpacing.md * (resolved?.spacingScale ?? 1),
-                  ),
+                  padding: EdgeInsets.all(contentPadding),
                   windowStyleOverride: dialogue == null
                       ? null
                       : ProjectWindowStyleProfile(
@@ -272,6 +273,13 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                           behavior: HitTestBehavior.opaque,
                           onTap: data.isAdvanceAvailable ? _advance : null,
                           child: _DialogueLineContent(
+                            preferredMaxHeight: resolved == null
+                                ? math.max(
+                                    0,
+                                    constraints.maxHeight * .58 -
+                                        contentPadding * 2,
+                                  )
+                                : null,
                             pageKey: _pages,
                             data: data,
                             dialogue: dialogue,
@@ -309,6 +317,7 @@ class _DialogueLineContent extends StatelessWidget {
     required this.resolvedPortrait,
     required this.showSpeakerName,
     required this.pageKey,
+    this.preferredMaxHeight,
   });
   final PlayerDialogueViewData data;
   final ProjectDialoguePresentationProfile? dialogue;
@@ -316,6 +325,7 @@ class _DialogueLineContent extends StatelessWidget {
   final Widget? resolvedPortrait;
   final bool showSpeakerName;
   final GlobalKey<_DialogueTextPagesState> pageKey;
+  final double? preferredMaxHeight;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -331,7 +341,11 @@ class _DialogueLineContent extends StatelessWidget {
             : constraints.maxWidth < 320
             ? profile.portraitSize.clamp(48.0, 72.0)
             : profile.portraitSize,
-        constraints.maxHeight * .48,
+        math.min(
+              constraints.maxHeight,
+              preferredMaxHeight ?? constraints.maxHeight,
+            ) *
+            .48,
       );
       final textWidth = math.max(
         1.0,
@@ -361,7 +375,7 @@ class _DialogueLineContent extends StatelessWidget {
                   context.playerTypography.dialogueStyle(
                     Theme.of(context).textTheme.titleLarge ?? const TextStyle(),
                   ),
-                  maxLines: 2,
+                  maxLines: profile == null ? null : 2,
                 ) +
                 PlayerSpacing.sm +
                 (profile != null &&
@@ -370,19 +384,20 @@ class _DialogueLineContent extends StatelessWidget {
                     ? 10
                     : 0)
           : 0.0;
+      final bodyStyle = context.playerTypography.dialogueStyle(
+        Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
+      );
+      final footerHeight = math.max(28.0, scaler.scale(14) * 1.5);
+      final minimumHeight =
+          speakerHeight + measure('M', bodyStyle) + 12 + footerHeight;
       final naturalHeight =
-          speakerHeight +
-          measure(
-            data.fullText,
-            context.playerTypography.dialogueStyle(
-              Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
-            ),
-          ) +
-          12 +
-          math.max(28.0, scaler.scale(14) * 1.5);
+          speakerHeight + measure(data.fullText, bodyStyle) + 12 + footerHeight;
       final height = math.min(
         constraints.maxHeight,
-        math.max(portrait == null ? 0.0 : dimension, naturalHeight),
+        math.max(
+          math.max(portrait == null ? 0.0 : dimension, minimumHeight),
+          math.min(preferredMaxHeight ?? constraints.maxHeight, naturalHeight),
+        ),
       );
       Widget text() => ExcludeSemantics(
         child: Column(
@@ -411,12 +426,18 @@ class _DialogueLineContent extends StatelessWidget {
       if (portrait == null) return SizedBox(height: height, child: text());
       Widget framed = profile == null
           ? PlayerPortraitFrame(
-              key: portrait.key,
+              key: ValueKey((
+                'dialogue-portrait-frame',
+                portrait.key ?? speaker,
+              )),
               dimension: dimension,
               child: portrait,
             )
           : _DialoguePortraitFrame(
-              key: portrait.key,
+              key: ValueKey((
+                'dialogue-portrait-frame',
+                portrait.key ?? speaker,
+              )),
               dimension: dimension,
               shape: profile.portraitShape,
               borderWidth: profile.portraitFrameWidth,

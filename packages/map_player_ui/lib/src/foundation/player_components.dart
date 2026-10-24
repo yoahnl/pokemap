@@ -543,7 +543,7 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               color: _focused && widget.showFocusHighlight
                   ? colors.focus
                   : colors.focus.withValues(alpha: 0),
-              width: _focused && widget.showFocusHighlight ? 3 : 1,
+              width: 3,
             ),
           ),
           child: !enabled && widget.disabledOpacity < 1

@@ -74,16 +74,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 18));
 
     final texts = tester
-        .widgetList<Text>(
-          find.descendant(
-            of: find.byKey(
-              const ValueKey<String>('scene-interaction-message-dialogue'),
-            ),
-            matching: find.byType(Text),
-          ),
-        )
-        .map((text) => text.data)
-        .whereType<String>()
+        .widgetList<Text>(find.byKey(const ValueKey('dialogue-page-text')))
+        .map((text) => text.data ?? text.textSpan!.toPlainText())
         .toList();
     const wholePrefixes = <String>['', 'A', 'A🐉‍🔥', 'A🐉‍🔥B'];
     for (final text in texts) {
@@ -177,19 +169,21 @@ void main() {
   ]) {
     testWidgets('long text at 200% scale stays readable in $label',
         (tester) async {
+      final results = <SceneInteractionResult>[];
+      const text = 'Il était une fois, dans la région de Hanazuki, une '
+          'aventure ferroviaire qui commençait par un très long '
+          'paragraphe de présentation destiné à éprouver la mise en '
+          'page de la boîte de dialogue sur un téléphone étroit.';
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         app(
           request: message(
-            text: 'Il était une fois, dans la région de Hanazuki, une '
-                'aventure ferroviaire qui commençait par un très long '
-                'paragraphe de présentation destiné à éprouver la mise en '
-                'page de la boîte de dialogue sur un téléphone étroit.',
+            text: text,
             speakerName: 'Narrateur des trains de dix-sept heures '
                 'quarante-deux',
           ),
-          results: <SceneInteractionResult>[],
+          results: results,
           reduceMotion: true,
           textScale: 2,
         ),
@@ -201,6 +195,18 @@ void main() {
         reason: 'no overflow: portrait-less layout, long locale, long text '
             'and 200% scale must all stay readable',
       );
+      final pages = <String>[];
+      for (var page = 0; page < 64 && results.isEmpty; page++) {
+        final content = find.byKey(const ValueKey('dialogue-page-text'));
+        final rendered = tester.widget<Text>(content);
+        pages.add(rendered.data ?? rendered.textSpan!.toPlainText());
+        expect(tester.getSize(content).height, greaterThan(0));
+        await tester.tap(tapZone());
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      }
+      expect(pages.join(), text);
+      expect(results.single, isA<SceneAcknowledgedInteractionResult>());
     });
   }
 

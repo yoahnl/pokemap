@@ -6,6 +6,32 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('pending restoration cannot replace newer physical focus',
+      (tester) async {
+    final focus = RuntimePlayerFocusController(logicalSelectionId: 'first');
+    addTearDown(focus.dispose);
+    final first = focus.nodeFor('first', debugLabel: 'First');
+    final second = focus.nodeFor('second', debugLabel: 'Second');
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Row(children: [
+          TextButton(focusNode: first, onPressed: () {}, child: const Text('First')),
+          TextButton(focusNode: second, onPressed: () {}, child: const Text('Second')),
+        ]),
+      ),
+    ));
+    first.requestFocus();
+    await tester.pumpAndSettle();
+    focus.restoreSelection('first');
+    second.requestFocus();
+    await tester.idle();
+    expect(focus.logicalSelectionId, 'second');
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus, second);
+    expect(focus.logicalSelectionId, 'second');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('illustrated detail accepts Escape immediately after opening',
       (tester) async {
     _setSurface(tester, const Size(1440, 900));
@@ -148,40 +174,51 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('root navigation scroll and selection survive a pause remount',
-      (tester) async {
-    _setSurface(tester, const Size(844, 240));
-    final focus = RuntimePlayerFocusController(
-      logicalSelectionId: 'pause.bag',
-      activeInputSource: PlayerInputSource.touch,
-    );
-    addTearDown(focus.dispose);
-    Widget root() => _app(_shell(focus: focus));
-    await tester.pumpWidget(root());
-    await tester.pumpAndSettle();
-    final before = tester
-        .widget<Scrollbar>(
-          find.byKey(const ValueKey('runtime-pause-navigation-scrollbar')),
-        )
-        .controller!;
-    expect(before.position.maxScrollExtent, greaterThan(96));
-    before.jumpTo(96);
-    await tester.pumpAndSettle();
+  testWidgets(
+    'root navigation reveals the selected page after a pause remount',
+    (tester) async {
+      _setSurface(tester, const Size(844, 240));
+      final focus = RuntimePlayerFocusController(
+        logicalSelectionId: 'pause.bag',
+        activeInputSource: PlayerInputSource.touch,
+      );
+      addTearDown(focus.dispose);
+      Widget root() => _app(_shell(focus: focus));
+      await tester.pumpWidget(root());
+      await tester.pumpAndSettle();
+      final options = find.byKey(const ValueKey('pause.options'));
+      for (
+        var page = 0;
+        page < 20 && options.hitTestable().evaluate().isEmpty;
+        page++
+      ) {
+        final next = find.descendant(
+          of: find.byType(PlayerPauseNavigation),
+          matching: find.byKey(const ValueKey('player-page-next')),
+        ).hitTestable();
+        expect(next, findsOneWidget);
+        expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+      expect(options.hitTestable(), findsOneWidget);
+      await tester.tap(options);
+      await tester.pumpAndSettle();
+      final before = tester.getRect(options);
+      expect(focus.logicalSelectionId, 'pause.options');
+      expect(find.byType(Scrollable), findsNothing);
 
-    await tester.pumpWidget(_app(const SizedBox.shrink()));
-    await tester.pumpAndSettle();
-    await tester.pumpWidget(root());
-    await tester.pumpAndSettle();
-    final after = tester
-        .widget<Scrollbar>(
-          find.byKey(const ValueKey('runtime-pause-navigation-scrollbar')),
-        )
-        .controller!;
-
-    expect(after.offset, closeTo(96, .01));
-    expect(focus.logicalSelectionId, 'pause.bag');
-    expect(tester.takeException(), isNull);
-  });
+      await tester.pumpWidget(_app(const SizedBox.shrink()));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(root());
+      await tester.pumpAndSettle();
+      expect(options.hitTestable(), findsOneWidget);
+      expect(tester.getRect(options), before);
+      expect(focus.logicalSelectionId, 'pause.options');
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 RuntimePlayerPauseShell _shell({

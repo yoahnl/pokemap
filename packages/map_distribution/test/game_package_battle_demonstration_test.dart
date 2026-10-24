@@ -8,7 +8,7 @@ void main() {
   for (final enabled in [false, true]) {
     test('demonstration packages require their explicit capability: $enabled',
         () {
-      final operation = () => const GamePackageBuilder().build(
+      GamePackageBuildResult operation() => const GamePackageBuilder().build(
           manifest: spatialManifest(capabilities: [
             'map3d@1',
             'map3d.gameplay@1',

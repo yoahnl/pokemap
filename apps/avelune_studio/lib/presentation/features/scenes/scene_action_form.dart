@@ -142,8 +142,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
       id == NarrativeCommandIds.worldPresentation ||
       id == NarrativeCommandIds.playSoundEffect ||
       id == NarrativeCommandIds.stopSoundEffects ||
-      id == NarrativeCommandIds.playMusicEffect ||
-      id == NarrativeCommandIds.sceneMusic;
+      id == NarrativeCommandIds.playMusicEffect;
 
   bool _isActorCommand(String? id) =>
       id == NarrativeCommandIds.actorRoute ||
@@ -583,11 +582,13 @@ class _SceneActionFormState extends State<SceneActionForm> {
       'restoreMemorized': 'Restaurer la mémorisation',
     },
     NarrativeCommandParameterKind.sceneMusicChannel => {
-      'music': 'Musique', 'ambience': 'Ambiance sonore',
-      if (_values['operation'] == 'memorize' || _values['operation'] == 'restoreMemorized') 'both': 'Les deux canaux',
+      'music': 'Musique',
+      if (widget.project.settings.dimension != ProjectDimension.threeD) 'ambience': 'Ambiance sonore',
+      if (widget.project.settings.dimension != ProjectDimension.threeD && (_values['operation'] == 'memorize' || _values['operation'] == 'restoreMemorized')) 'both': 'Les deux canaux',
     },
-    NarrativeCommandParameterKind.sceneMusicScope => const {
-      'scene': 'Pendant la scène', 'map': 'Jusqu’au prochain transfert',
+    NarrativeCommandParameterKind.sceneMusicScope => {
+      'scene': 'Pendant la scène',
+      if (widget.project.settings.dimension != ProjectDimension.threeD) 'map': 'Jusqu’au prochain transfert',
     },
     NarrativeCommandParameterKind.shop => {
       for (final shop in widget.project.shops) shop.id: shop.label,

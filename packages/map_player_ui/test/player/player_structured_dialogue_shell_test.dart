@@ -92,12 +92,18 @@ void main() {
       await tester.pumpWidget(
         app(request: request, results: <SceneInteractionResult>[]),
       );
+      await tester.pumpAndSettle();
       final panel = find.byKey(
         const ValueKey<String>('scene-interaction-panel'),
       );
       expect(panel, findsOneWidget, reason: '${request.kind.name} panel');
       final surfaceSize = tester.getSize(find.byType(MaterialApp));
       final panelBottom = tester.getBottomLeft(panel).dy;
+      expect(
+        tester.getSize(panel).height,
+        lessThan(surfaceSize.height * .6),
+        reason: 'a short interaction keeps the scene visible above its content',
+      );
       expect(
         panelBottom,
         greaterThanOrEqualTo(surfaceSize.height - 80),
@@ -198,6 +204,8 @@ void main() {
         results: results,
       ),
     );
+    await tester.pump();
+    await tester.pump();
     final option = find.text('Nord');
     await tester.tap(option);
     await tester.tap(option, warnIfMissed: false);
@@ -247,7 +255,7 @@ void main() {
 
     Future<void> pumpStep(int index) async {
       await tester.pumpWidget(app(request: flow[index], results: results));
-      await tester.pump();
+      await tester.pumpAndSettle();
     }
 
     await pumpStep(0);
@@ -364,7 +372,7 @@ void main() {
             ),
           ),
         );
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         await expectLater(
           find.byKey(const ValueKey<String>('structured-shell-golden')),

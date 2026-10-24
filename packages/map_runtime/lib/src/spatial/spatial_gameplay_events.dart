@@ -60,6 +60,11 @@ final class SpatialGameplayEvents {
     SpatialLegacyEventFallback? legacyFallback,
     SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
     Future<void> Function(GameState)? afterStateCommitted,
+    Future<void> Function(Object)? onSceneTerminated,
+    Future<void> Function(GameState)? persistItemPickup,
+    Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
+    presentItemPickup,
+    ItemCatalogSnapshot? itemCatalog,
   }) : _snapshot = narrativeSnapshot,
        _readGameState = readGameState,
        _commitGameState = commitGameState,
@@ -74,6 +79,10 @@ final class SpatialGameplayEvents {
        _legacyFallback = legacyFallback,
        _buildSceneConsequenceWriter = buildSceneConsequenceWriter,
        _afterStateCommitted = afterStateCommitted,
+       _onSceneTerminated = onSceneTerminated,
+       _persistItemPickup = persistItemPickup,
+       _presentItemPickup = presentItemPickup,
+       _itemCatalog = itemCatalog,
        _transactions = NarrativeEventStateTransactions(readGameState()),
        _chapterIndex = buildGlobalStoryChapterStepIndex(project.scenarios),
        _battleContracts = buildBattlePublicContracts(project),
@@ -134,6 +143,11 @@ final class SpatialGameplayEvents {
     SpatialLegacyEventFallback? legacyFallback,
     SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
     Future<void> Function(GameState)? afterStateCommitted,
+    Future<void> Function(Object)? onSceneTerminated,
+    Future<void> Function(GameState)? persistItemPickup,
+    Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
+    presentItemPickup,
+    ItemCatalogSnapshot? itemCatalog,
     NarrativeEventRuntimeSnapshot? narrativeSnapshot,
     Random? random,
     DateTime Function()? now,
@@ -176,6 +190,10 @@ final class SpatialGameplayEvents {
       legacyFallback: legacyFallback,
       buildSceneConsequenceWriter: buildSceneConsequenceWriter,
       afterStateCommitted: afterStateCommitted,
+      onSceneTerminated: onSceneTerminated,
+      persistItemPickup: persistItemPickup,
+      presentItemPickup: presentItemPickup,
+      itemCatalog: itemCatalog,
       random: random ?? Random(),
       now: now ?? DateTime.now,
     );
@@ -202,6 +220,11 @@ final class SpatialGameplayEvents {
   final SpatialLegacyEventFallback? _legacyFallback;
   final SpatialSceneConsequenceWriterFactory? _buildSceneConsequenceWriter;
   final Future<void> Function(GameState)? _afterStateCommitted;
+  final Future<void> Function(Object)? _onSceneTerminated;
+  final Future<void> Function(GameState)? _persistItemPickup;
+  final Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
+  _presentItemPickup;
+  final ItemCatalogSnapshot? _itemCatalog;
   final NarrativeEventStateTransactions _transactions;
   final GlobalStoryChapterStepIndex _chapterIndex;
   final List<BattlePublicContract> _battleContracts;
@@ -381,6 +404,10 @@ final class SpatialGameplayEvents {
     final map = mapsById[mapId];
     if (map == null) return false;
     final state = gameStateOverride ?? _readGameState();
+    if (entity.item != null &&
+        spatialItemIsCollected(gameState: state, mapId: mapId, entity: entity)) {
+      return false;
+    }
     final present = isNpcRuntimePresentOnMap(
       gameState: state,
       manifest: project,
@@ -436,9 +463,13 @@ final class SpatialGameplayEvents {
       scene: map.spatialScene!,
       models: currentModelDefinitions?.call() ?? project.models3d,
       modelStateProvider: (id) => state.spatialWorldState.modelState(map.id, id),
-      instances: map.spatialScene!.instances.where(
-        (instance) => ids.contains(instance.id),
-      ),
+      instances: map.spatialScene!.instances.where((instance) {
+        if (!ids.contains(instance.id)) return false;
+        final ownerId = instance.entityId;
+        if (ownerId == null) return true;
+        final owner = map.entities.where((entity) => entity.id == ownerId).firstOrNull;
+        return owner != null && entityIsPresent(map.id, owner, gameStateOverride: state);
+      }),
       x: position.x,
       z: position.z,
       facing: state.playerFacing,
@@ -458,6 +489,17 @@ final class SpatialGameplayEvents {
               : NarrativeEventSourceRef.modelInteract(mapId, model!.id),
         ),
       );
+      if (entity?.kind == MapEntityKind.item &&
+          result is NarrativeSpatialProductionDispatchNoFallback &&
+          result.reason is NarrativeEventExecutionNoMatch) {
+        final pickup = await _pickupItem(entity!, _readGameState());
+        await _settle();
+        return NarrativeSpatialProductionDispatchNativeItemHandled(
+          result.occurrenceId,
+          result.occurrence,
+          pickup.outcome,
+        );
+      }
       await _settle();
       return result;
     });
@@ -793,8 +835,9 @@ final class SpatialGameplayEvents {
     final attempts = _sceneBattleAttempts = <String, NarrativeOutcomeRef>{};
     final outcomes = _sceneBattleOutcomes = <NarrativeOutcomeRef>[];
     final previousProjection = _sceneStateProjection;
+    final readWorkingState = () => workingState;
     try {
-      final callbacks = _createSceneCallbacks(() => workingState, (state) {
+      final callbacks = _createSceneCallbacks(readWorkingState, (state) {
         if (current()) workingState = state;
       });
       SceneRuntimeIntentCallback guard(SceneRuntimeIntentCallback callback) =>
@@ -878,12 +921,47 @@ final class SpatialGameplayEvents {
       }
       return result;
     } finally {
-      _sceneStateProjection = previousProjection;
-      if (identical(_sceneBattleAttempts, attempts)) {
-        _sceneBattleAttempts = null;
-        _sceneBattleOutcomes = null;
+      try {
+        await _onSceneTerminated?.call(readWorkingState);
+      } finally {
+        _sceneStateProjection = previousProjection;
+        if (identical(_sceneBattleAttempts, attempts)) {
+          _sceneBattleAttempts = null;
+          _sceneBattleOutcomes = null;
+        }
       }
     }
+  }
+
+  Future<SpatialItemPickupResult> _pickupItem(
+    MapEntity entity,
+    GameState state,
+  ) async {
+    final result = executeSpatialItemPickup(
+      gameState: state,
+      mapId: _map.id,
+      entity: entity,
+      bagCapacity: project.bagCapacity,
+      itemCatalog: _itemCatalog,
+    );
+    if (result.outcome == SpatialItemPickupOutcome.alreadyCollected) {
+      return result;
+    }
+    if (result.outcome == SpatialItemPickupOutcome.received) {
+      await _persistItemPickup?.call(result.gameState);
+      _ensureCurrent();
+      await _transactions.transact<void>(
+        (_) => NarrativeEventStateTransaction.commit(result.gameState, null),
+      );
+      _ensureCurrent();
+      _commit(result.gameState);
+    }
+    final label =
+        _itemCatalog?.definitionFor(entity.item!.gameItemId)?.displayName ??
+        entity.item!.gameItemId;
+    await _presentItemPickup?.call(entity, result, label);
+    _ensureCurrent();
+    return result;
   }
 
   Future<void> _fallback(
@@ -919,6 +997,10 @@ final class SpatialGameplayEvents {
     final entity = map.entities
         .where((entity) => entity.id == source.entityId)
         .single;
+    if (entity.kind == MapEntityKind.item) {
+      await _pickupItem(entity, state);
+      return;
+    }
     final projection = const RuntimeWorldRuleProjectionHook().resolve(
       project: project,
       gameState: state,

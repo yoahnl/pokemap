@@ -66,6 +66,8 @@ final class SpatialMapActions {
             'orthographicCapability': SpatialCameraProfile.orthographicCapabilityId,
           },
           if (entry.value == 'instance' || entry.value == 'instances')
+            'entityBinding': {'field':'entityId','capability':SpatialModelInstance.entityBindingCapabilityId,'scope':'same_map_non_npc','unique':true,'empty':null},
+          if (entry.value == 'instance' || entry.value == 'instances')
             'shadowCasting': {'field': 'castsShadows', 'default': null,
               'inherits': 'model3d.castsShadowsByDefault', 'replacementSemantics': true},
           if (entry.value == 'instance' || entry.value == 'instances')
@@ -241,6 +243,7 @@ MapData _upsertInstance(SemanticMapActionContext context) {
     'animationSpeed',
     'blocksMovement',
     'castsShadows',
+    'entityId',
     'clip',
   }));
   _requireAuthoredInstance(context.map, instance.id,
@@ -392,6 +395,7 @@ MapData _upsertInstances(SemanticMapActionContext context) {
       'animationSpeed',
       'blocksMovement',
       'castsShadows',
+      'entityId',
       'clip',
     }));
     _requireAuthoredInstance(context.map, instance.id,
@@ -656,6 +660,7 @@ Map<String, Object?> _schema(String field) => switch (field) {
               'maximum': 16
             },
             'blocksMovement': {'type': 'boolean'},
+            'entityId': {'type':['string','null'],'pattern':r'^[a-zA-Z0-9_-]{1,128}$'},
             'castsShadows': {
               'type': ['boolean', 'null'],
               'description': 'Overrides the model shadow default; null or omission inherits it.',

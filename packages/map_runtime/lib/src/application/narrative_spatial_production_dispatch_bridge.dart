@@ -11,6 +11,16 @@ sealed class NarrativeSpatialProductionDispatchResult {
   final NarrativeEventOccurrence occurrence;
 }
 
+final class NarrativeSpatialProductionDispatchNativeItemHandled
+    extends NarrativeSpatialProductionDispatchResult {
+  const NarrativeSpatialProductionDispatchNativeItemHandled(
+    super.occurrenceId,
+    super.occurrence,
+    this.outcome,
+  );
+  final SpatialItemPickupOutcome outcome;
+}
+
 final class NarrativeSpatialProductionDispatchLegacyFallback
     extends NarrativeSpatialProductionDispatchResult {
   const NarrativeSpatialProductionDispatchLegacyFallback(

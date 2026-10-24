@@ -63,6 +63,8 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
+      await tester.pump();
       expect(find.text('Native world'), findsOneWidget);
       expect(
         find.text('Native heal'),
@@ -74,6 +76,16 @@ void main() {
             ? findsOneWidget
             : findsNothing,
       );
+      expect(
+        find.text('Applying'),
+        mode == 'display' ? findsNothing : findsOneWidget,
+      );
+      expect(find.byType(Scrollable), findsNothing);
+      if (snapshot.stage == RuntimeWorldServiceStage.applying) {
+        expect(find.byKey(const ValueKey('heal-confirm')), findsNothing);
+        expect(find.byKey(const ValueKey('heal-cancel')), findsNothing);
+        expect(find.byKey(const ValueKey('heal-close')), findsNothing);
+      }
       expect(commands, isEmpty);
     });
   }

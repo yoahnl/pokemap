@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_runtime/map_runtime.dart' show PlayerInputSource;
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
@@ -379,8 +378,8 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                           child: PlayerPagedList(
                             onPageReady: () => _pageReady(firstEnabledAction),
                             spacing: 0,
-                            revealChildKey: ValueKey(
-                              _pageSelectionId(firstEnabledAction),
+                            revealChildKey: ValueKey<String>(
+                              _pageSelectionId(firstEnabledAction) ?? '',
                             ),
                             children: <Widget>[
                               if (showLogo && data.logo != null)
@@ -692,8 +691,8 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                   child: PlayerPagedList(
                     onPageReady: () => _pageReady(firstEnabledAction),
                     spacing: 8,
-                    revealChildKey: ValueKey(
-                      _pageSelectionId(firstEnabledAction),
+                    revealChildKey: ValueKey<String>(
+                      _pageSelectionId(firstEnabledAction) ?? '',
                     ),
                     children: [
                       for (final action in data.actions.keys)
@@ -711,13 +710,10 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                     ],
                   ),
                 ),
-                if ((context
-                            .dependOnInheritedWidgetOfExactType<
-                              PlayerInputScope
-                            >()
-                            ?.activeInputSource ??
-                        focusController.activeInputSource) ==
-                    PlayerInputSource.keyboard)
+                if (PlayerInputScope.usesKeyboard(
+                  context,
+                  fallback: focusController.activeInputSource,
+                ))
                   _startupPremiumControls(context),
                 const SizedBox(height: 16),
               ],
@@ -982,7 +978,9 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
           child: PlayerPagedList(
             onPageReady: () => _pageReady(firstEnabledAction),
             spacing: 0,
-            revealChildKey: ValueKey(_pageSelectionId(firstEnabledAction)),
+            revealChildKey: ValueKey<String>(
+              _pageSelectionId(firstEnabledAction) ?? '',
+            ),
             children: <Widget>[
               if (data.logo != null)
                 Align(

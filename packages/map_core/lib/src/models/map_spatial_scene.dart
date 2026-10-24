@@ -186,6 +186,7 @@ final class SpatialModelClip {
 }
 
 final class SpatialModelInstance {
+  static const entityBindingCapabilityId = 'map3d.entity-models@1';
   SpatialModelInstance({
     required this.id,
     required this.modelId,
@@ -197,10 +198,13 @@ final class SpatialModelInstance {
     this.animationSpeed = 1,
     this.blocksMovement = true,
     this.castsShadows,
+    this.entityId,
     this.clip,
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
         modelId.isEmpty ||
+        (entityId != null &&
+            !RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(entityId!)) ||
         !rotationDegrees.isFinite ||
         !scale.isFinite ||
         scale <= 0 ||
@@ -214,6 +218,7 @@ final class SpatialModelInstance {
     }
   }
   final String id, modelId;
+  final String? entityId;
   final Model3dVector3 position;
   final double rotationDegrees, scale;
   final int? animationIndex;
@@ -243,6 +248,8 @@ final class SpatialModelInstance {
     double? rotationDegrees,
     double? scale,
     bool? blocksMovement,
+    String? entityId,
+    bool clearEntityBinding = false,
     bool? castsShadows,
     bool clearCastsShadows = false,
     int? animationIndex,
@@ -264,6 +271,7 @@ final class SpatialModelInstance {
     animationSpeed: animationSpeed ?? this.animationSpeed,
     blocksMovement: blocksMovement ?? this.blocksMovement,
     castsShadows: clearCastsShadows ? null : castsShadows ?? this.castsShadows,
+    entityId: clearEntityBinding ? null : entityId ?? this.entityId,
     clip: clearClip ? null : clip ?? this.clip,
   );
   @override
@@ -272,6 +280,7 @@ final class SpatialModelInstance {
       other is SpatialModelInstance &&
           other.id == id &&
           other.modelId == modelId &&
+          other.entityId == entityId &&
           other.position == position &&
           other.rotationDegrees == rotationDegrees &&
           other.scale == scale &&
@@ -285,6 +294,7 @@ final class SpatialModelInstance {
   int get hashCode => Object.hash(
     id,
     modelId,
+    entityId,
     position,
     rotationDegrees,
     scale,
@@ -315,6 +325,7 @@ final class SpatialModelInstance {
       animationSpeed: (json['animationSpeed'] as num?)?.toDouble() ?? 1,
       blocksMovement: json['blocksMovement'] as bool,
       castsShadows: json['castsShadows'] as bool?,
+      entityId: json['entityId'] as String?,
       clip: switch (json['clip']) {
         null => null,
         Map<String, dynamic> value => SpatialModelClip.fromJson(value),
@@ -327,6 +338,7 @@ final class SpatialModelInstance {
   Map<String, dynamic> toJson() => {
     'id': id,
     'modelId': modelId,
+    if (entityId != null) 'entityId': entityId,
     'position': position.toJson(),
     'rotationDegrees': rotationDegrees,
     'scale': scale,

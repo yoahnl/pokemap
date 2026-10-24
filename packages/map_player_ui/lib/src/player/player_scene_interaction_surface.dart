@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart'
@@ -53,6 +54,7 @@ class _PlayerSceneInteractionSurfaceState
   static const _typewriterInterval = Duration(milliseconds: 18);
 
   final _textController = TextEditingController();
+  final _inputFieldKey = GlobalKey();
   final _dialoguePagination = PlayerDialoguePaginationController();
   final _textFocusNode = FocusNode(debugLabel: 'Scene interaction text');
   final _selectedOptionIds = <String>{};
@@ -67,6 +69,36 @@ class _PlayerSceneInteractionSurfaceState
   var _terminal = false;
   Timer? _revealTimer;
   var _revealedGraphemes = 0;
+  final _naturalHeights = <String, double>{};
+  (double, double)? _naturalLayoutSignature;
+
+  void _rememberHeight(String id, double height) {
+    if (!mounted || _naturalHeights[id] == height) return;
+    setState(() => _naturalHeights[id] = height);
+  }
+
+  Widget _measure(String id, Widget child) => _SceneContentMeasure(
+    epoch: (
+      widget.request.requestId,
+      widget.request.revision,
+      _naturalLayoutSignature,
+    ),
+    onHeight: (height) => _rememberHeight(id, height),
+    child: child,
+  );
+
+  double? _requestHeight(SceneInteractionRequest request) => switch (request) {
+    SceneChoiceInteractionRequest() => _naturalHeights['options'],
+    SceneSelectionInteractionRequest() =>
+      _naturalHeights['options'] == null ||
+              _naturalHeights['selection-footer'] == null
+          ? null
+          : _naturalHeights['options']! +
+                PlayerSpacing.sm +
+                _naturalHeights['selection-footer']!,
+    SceneConfirmationInteractionRequest() => _naturalHeights['confirmation'],
+    _ => _naturalHeights['form'],
+  };
 
   @override
   void initState() {
@@ -107,6 +139,7 @@ class _PlayerSceneInteractionSurfaceState
       _revealTimer?.cancel();
       _revealTimer = null;
       _revealedGraphemes = 0;
+      _naturalHeights.clear();
     }
   }
 
@@ -144,6 +177,14 @@ class _PlayerSceneInteractionSurfaceState
           ) -
           32,
     );
+    final signature = (
+      _contentWidth,
+      MediaQuery.textScalerOf(context).scale(1),
+    );
+    if (_naturalLayoutSignature != signature) {
+      _naturalLayoutSignature = signature;
+      _naturalHeights.clear();
+    }
     final prompt = _resolvePrompt(request.prompt);
     final reviewing = _reviewingOption;
     if (reviewing != null) {
@@ -181,6 +222,21 @@ class _PlayerSceneInteractionSurfaceState
     final validationMessage = _validationIssue == null
         ? widget.errorMessage
         : strings.validation(_validationIssue!);
+    final headerId = 'header-$prompt';
+    final errorId = 'error-$validationMessage';
+    final headerHeight = _naturalHeights[headerId];
+    final requestHeight = _requestHeight(request);
+    final errorHeight = validationMessage == null
+        ? 0.0
+        : _naturalHeights[errorId];
+    final naturalHeight =
+        headerHeight == null || requestHeight == null || errorHeight == null
+        ? null
+        : PlayerSpacing.md * 2 +
+              headerHeight +
+              PlayerSpacing.sm +
+              requestHeight +
+              (validationMessage == null ? 0 : PlayerSpacing.sm + errorHeight);
     return Actions(
       key: const ValueKey<String>('scene-interaction-actions'),
       actions: <Type, Action<Intent>>{
@@ -209,7 +265,7 @@ class _PlayerSceneInteractionSurfaceState
                     height: math.max(
                       0,
                       math.min(
-                        620,
+                        math.min(620, naturalHeight ?? 620),
                         constraints.maxHeight - PlayerSpacing.md * 2,
                       ),
                     ),
@@ -232,42 +288,45 @@ class _PlayerSceneInteractionSurfaceState
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        prompt,
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      ),
-                                    ),
-                                    if (widget.allowCancellation &&
-                                        (request
-                                                is! SceneIntegerInteractionRequest ||
-                                            request.allowCancel))
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: PlayerSpacing.xs,
+                                _measure(
+                                  headerId,
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          prompt,
+                                          maxLines: 3,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium,
                                         ),
-                                        child: SizedBox(
-                                          width: 120,
-                                          child: PlayerActionButton(
-                                            key: const ValueKey(
-                                              'scene-interaction-cancel',
+                                      ),
+                                      if (widget.allowCancellation &&
+                                          (request
+                                                  is! SceneIntegerInteractionRequest ||
+                                              request.allowCancel))
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: PlayerSpacing.xs,
+                                          ),
+                                          child: SizedBox(
+                                            width: 120,
+                                            child: PlayerActionButton(
+                                              key: const ValueKey(
+                                                'scene-interaction-cancel',
+                                              ),
+                                              label: strings.cancel,
+                                              icon: Icons.close,
+                                              secondary: true,
+                                              onPressed: _terminal
+                                                  ? null
+                                                  : _cancel,
                                             ),
-                                            label: strings.cancel,
-                                            icon: Icons.close,
-                                            secondary: true,
-                                            onPressed: _terminal
-                                                ? null
-                                                : _cancel,
                                           ),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                                 const SizedBox(height: PlayerSpacing.sm),
                                 Expanded(
@@ -282,15 +341,18 @@ class _PlayerSceneInteractionSurfaceState
                                     padding: const EdgeInsets.only(
                                       top: PlayerSpacing.sm,
                                     ),
-                                    child: Semantics(
-                                      key: const ValueKey(
-                                        'scene-interaction-error',
-                                      ),
-                                      liveRegion: true,
-                                      child: Text(
-                                        message,
-                                        style: TextStyle(
-                                          color: context.playerColors.danger,
+                                    child: _measure(
+                                      errorId,
+                                      Semantics(
+                                        key: const ValueKey(
+                                          'scene-interaction-error',
+                                        ),
+                                        liveRegion: true,
+                                        child: Text(
+                                          message,
+                                          style: TextStyle(
+                                            color: context.playerColors.danger,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -516,6 +578,7 @@ class _PlayerSceneInteractionSurfaceState
       'Messages render through the dialogue box, never the panel.',
     ),
     SceneChoiceInteractionRequest(:final options) => PlayerPagedList(
+      onContentHeightChanged: (height) => _rememberHeight('options', height),
       revealChildKey: _firstOptionKey(options),
       onPageReady: () => _focusOptions(request, options),
       children: [
@@ -525,52 +588,60 @@ class _PlayerSceneInteractionSurfaceState
     ),
     SceneIntegerInteractionRequest() => _integerInput(request, strings),
     SceneTextInteractionRequest() => _textInput(request, strings),
-    SceneConfirmationInteractionRequest() => Row(
-      children: <Widget>[
-        Expanded(
-          child: PlayerActionButton(
-            key: const ValueKey<String>('scene-interaction-confirm-yes'),
-            label: strings.yes,
-            icon: Icons.check,
-            autofocus: true,
-            onPressed: !widget.interactionEnabled || _terminal
-                ? null
-                : () => _publish(
-                    request,
-                    SceneInteractionResult.confirmed(
-                      requestId: request.requestId,
-                      revision: request.revision,
-                      value: true,
-                    ),
-                  ),
-          ),
+    SceneConfirmationInteractionRequest() => Align(
+      alignment: Alignment.topCenter,
+      child: _measure(
+        'confirmation',
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: PlayerActionButton(
+                key: const ValueKey<String>('scene-interaction-confirm-yes'),
+                label: strings.yes,
+                icon: Icons.check,
+                autofocus: true,
+                onPressed: !widget.interactionEnabled || _terminal
+                    ? null
+                    : () => _publish(
+                        request,
+                        SceneInteractionResult.confirmed(
+                          requestId: request.requestId,
+                          revision: request.revision,
+                          value: true,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: PlayerSpacing.xs),
+            Expanded(
+              child: PlayerActionButton(
+                key: const ValueKey<String>('scene-interaction-confirm-no'),
+                label: strings.no,
+                icon: Icons.close,
+                secondary: true,
+                onPressed: !widget.interactionEnabled || _terminal
+                    ? null
+                    : () => _publish(
+                        request,
+                        SceneInteractionResult.confirmed(
+                          requestId: request.requestId,
+                          revision: request.revision,
+                          value: false,
+                        ),
+                      ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: PlayerSpacing.xs),
-        Expanded(
-          child: PlayerActionButton(
-            key: const ValueKey<String>('scene-interaction-confirm-no'),
-            label: strings.no,
-            icon: Icons.close,
-            secondary: true,
-            onPressed: !widget.interactionEnabled || _terminal
-                ? null
-                : () => _publish(
-                    request,
-                    SceneInteractionResult.confirmed(
-                      requestId: request.requestId,
-                      revision: request.revision,
-                      value: false,
-                    ),
-                  ),
-          ),
-        ),
-      ],
+      ),
     ),
     SceneSelectionInteractionRequest(:final options) => Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Expanded(
           child: PlayerPagedList(
+            onContentHeightChanged: (height) =>
+                _rememberHeight('options', height),
             revealChildKey: _firstOptionKey(options),
             onPageReady: () => _focusOptions(request, options),
             children: [
@@ -580,25 +651,35 @@ class _PlayerSceneInteractionSurfaceState
           ),
         ),
         const SizedBox(height: PlayerSpacing.sm),
-        Semantics(
-          liveRegion: true,
-          child: Text(
-            strings.selectionCount(
-              _selectedOptionIds.length,
-              request.constraints.minSelections,
-              request.constraints.maxSelections,
-            ),
-            textAlign: TextAlign.center,
+        _measure(
+          'selection-footer',
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  strings.selectionCount(
+                    _selectedOptionIds.length,
+                    request.constraints.minSelections,
+                    request.constraints.maxSelections,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: PlayerSpacing.sm),
+              PlayerActionButton(
+                key: const ValueKey<String>(
+                  'scene-interaction-selection-submit',
+                ),
+                label: strings.submit,
+                icon: Icons.check,
+                onPressed: !widget.interactionEnabled || _terminal
+                    ? null
+                    : () => _submitSelection(request),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: PlayerSpacing.sm),
-        PlayerActionButton(
-          key: const ValueKey<String>('scene-interaction-selection-submit'),
-          label: strings.submit,
-          icon: Icons.check,
-          onPressed: !widget.interactionEnabled || _terminal
-              ? null
-              : () => _submitSelection(request),
         ),
       ],
     ),
@@ -676,6 +757,13 @@ class _PlayerSceneInteractionSurfaceState
     SceneIntegerInteractionRequest request,
     PlayerSceneInteractionStrings strings,
   ) => _SceneInteractionInputForm(
+    fieldKey: _inputFieldKey,
+    measureEpoch: (
+      request.requestId,
+      request.revision,
+      _naturalLayoutSignature,
+    ),
+    onHeight: (height) => _rememberHeight('form', height),
     field: TextField(
       key: const ValueKey<String>('scene-interaction-integer-field'),
       controller: _textController,
@@ -744,6 +832,13 @@ class _PlayerSceneInteractionSurfaceState
     final maximum = request.constraints.maxGraphemes;
     final length = _textController.text.characters.length;
     return _SceneInteractionInputForm(
+      fieldKey: _inputFieldKey,
+      measureEpoch: (
+        request.requestId,
+        request.revision,
+        _naturalLayoutSignature,
+      ),
+      onHeight: (height) => _rememberHeight('form', height),
       field: TextField(
         key: const ValueKey<String>('scene-interaction-text-field'),
         controller: _textController,
@@ -987,13 +1082,30 @@ class _PlayerSceneInteractionSurfaceState
 
 class _SceneInteractionInputForm extends StatelessWidget {
   const _SceneInteractionInputForm({
+    required this.fieldKey,
+    required this.measureEpoch,
+    required this.onHeight,
     required this.field,
     required this.submit,
     this.counter,
   });
   final Widget field;
+  final GlobalKey fieldKey;
   final Widget submit;
   final Widget? counter;
+  final Object measureEpoch;
+  final ValueChanged<double> onHeight;
+
+  Widget _natural(Widget child) => Align(
+    alignment: Alignment.topCenter,
+    child: _SceneContentMeasure(
+      epoch: measureEpoch,
+      onHeight: onHeight,
+      child: child,
+    ),
+  );
+
+  Widget _field() => KeyedSubtree(key: fieldKey, child: field);
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -1001,43 +1113,93 @@ class _SceneInteractionInputForm extends StatelessWidget {
       if (constraints.hasBoundedHeight &&
           constraints.maxHeight < 160 &&
           constraints.maxWidth >= 400) {
-        return Column(
+        return _natural(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: _field()),
+                  const SizedBox(width: PlayerSpacing.sm),
+                  SizedBox(width: 144, child: submit),
+                ],
+              ),
+              if (counter case final content?)
+                Padding(
+                  padding: const EdgeInsets.only(top: PlayerSpacing.xs),
+                  child: content,
+                ),
+            ],
+          ),
+        );
+      }
+      return _natural(
+        Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(child: field),
-                const SizedBox(width: PlayerSpacing.sm),
-                SizedBox(width: 144, child: submit),
-              ],
-            ),
+            _field(),
             if (counter case final content?)
               Padding(
                 padding: const EdgeInsets.only(top: PlayerSpacing.xs),
                 child: content,
               ),
+            const SizedBox(height: PlayerSpacing.sm),
+            submit,
           ],
-        );
-      }
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          field,
-          if (counter case final content?)
-            Padding(
-              padding: const EdgeInsets.only(top: PlayerSpacing.xs),
-              child: content,
-            ),
-          const SizedBox(height: PlayerSpacing.sm),
-          submit,
-        ],
+        ),
       );
     },
   );
+}
+
+class _SceneContentMeasure extends SingleChildRenderObjectWidget {
+  const _SceneContentMeasure({
+    required this.epoch,
+    required this.onHeight,
+    required super.child,
+  });
+
+  final Object epoch;
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _SceneContentMeasureBox(epoch, onHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, _SceneContentMeasureBox box) {
+    box.onHeight = onHeight;
+    if (box.epoch != epoch) {
+      box.epoch = epoch;
+      box.lastHeight = null;
+      box.markNeedsLayout();
+    }
+  }
+}
+
+class _SceneContentMeasureBox extends RenderProxyBox {
+  _SceneContentMeasureBox(this.epoch, this.onHeight);
+
+  Object epoch;
+  ValueChanged<double> onHeight;
+  double? lastHeight;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    if (lastHeight == size.height) return;
+    lastHeight = size.height;
+    final measured = size.height;
+    final measuredEpoch = epoch;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached && measuredEpoch == epoch) onHeight(measured);
+    });
+  }
 }
 
 final class _CommittedGraphemeLimitFormatter extends TextInputFormatter {

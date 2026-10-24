@@ -142,7 +142,8 @@ void main() {
         final contract = SceneActions.descriptors
             .singleWhere((d) => d.id == id)
             .extensions['sceneMusic'] as Map;
-        expect(contract['projectDimension'], 'twoD');
+        expect(contract['projectDimensions'], ['twoD', 'threeD']);
+        expect(contract['spatialSupport'], {'scopes': ['scene'], 'channels': ['music'], 'capability': 'map3d.scene-music@1'});
         expect(contract['executionProfile'], 'world');
         expect(contract['forcedLoop'], isTrue);
         expect(contract['battlePriority'], 'higher');
@@ -303,7 +304,6 @@ void main() {
             'door',
             'fx',
             'loop',
-            if (spatial) 'music',
           ]) {
             for (final action in [
               'scene.interactive_command.set',
@@ -602,6 +602,32 @@ void main() {
       for(final command in [
         SceneInteractiveCommand.playSoundEffect(mediaAssetId:'door',volume:.5,waitForCompletion:true),
         SceneInteractiveCommand.playMusicEffect(mediaAssetId:'door',volume:.5,bgmInterruption:DialogueBgmInterruption(fadeOutMs:0,fadeInMs:100),waitForCompletion:true),
+      ]) {
+        final request = await fixture.request(command.toJson());
+        if(jsonl) {
+          final planned = await fixture.success('plan',{'projectHandle':fixture.project.value,'request':request.toJson()});
+          await fixture.success('apply',{'projectHandle':fixture.project.value,'planId':planned['planId'],'operationId':'apply-${fixture.sequence}'});
+        } else {
+          final planned = await fixture.mutations.plan(fixture.project,request);
+          await fixture.mutations.apply(fixture.project,planId:planned['planId']! as String,operationId:'apply-${fixture.sequence}');
+        }
+        await fixture.success('close',{'workspaceHandle':fixture.workspace.value});
+        await fixture.open();
+        final scene = (await fixture.snapshot()).manifest.scenes.singleWhere((s)=>s.id=='edit');
+        expect((scene.graph.nodes[1].payload as SceneActionPayload).interactiveCommand,command);
+      }
+    });
+
+    test('${jsonl ? 'JSONL' : 'direct API'} persists scoped 3D music and cold reopens', () async {
+      final fixture = await _Fixture.create(spatial:true, initialCommand:SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.stop));
+      addTearDown(fixture.dispose);
+      for(final command in [
+        SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.play,mediaAssetId:'music',volume:.6),
+        SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.memorize),
+        SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.stop),
+        SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.restoreMemorized),
+        SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.fadeOut,durationMs:100),
+        SceneInteractiveCommand.sceneMusic(operation:SceneMusicOperation.restore),
       ]) {
         final request = await fixture.request(command.toJson());
         if(jsonl) {

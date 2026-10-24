@@ -68,6 +68,7 @@ void main() {
       const ValueKey('runtime-pause-navigation-scroll'),
     );
     final options = find.byKey(const ValueKey('pause.options'));
+    await _reveal(tester, options);
     expect(
       tester.getRect(options).bottom,
       lessThanOrEqualTo(tester.getRect(navigation).bottom),
