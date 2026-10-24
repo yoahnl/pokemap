@@ -378,6 +378,7 @@ String _label(ProjectPauseActionId id) => switch (id) {
   ProjectPauseActionId.pokedex => 'Pokédex',
   ProjectPauseActionId.map => 'Carte',
   ProjectPauseActionId.quests => 'Quêtes',
+  ProjectPauseActionId.contacts => 'Contacts',
   ProjectPauseActionId.profile => 'Profil',
   ProjectPauseActionId.save => 'Sauvegarder',
   ProjectPauseActionId.options => 'Options',

@@ -169,6 +169,7 @@ void main() {
       'party',
       'bag',
       'pokedex',
+      'contacts',
       'map',
       'save',
       'options',
@@ -183,6 +184,13 @@ void main() {
         findsOneWidget,
       );
     }
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('pause-action-contacts')),
+        matching: find.text('Contacts'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey<String>('pause-action-visible-resume')),
       findsNothing,
