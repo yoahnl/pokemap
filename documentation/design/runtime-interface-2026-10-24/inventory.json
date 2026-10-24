@@ -145,7 +145,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "startup.prepare",
+        "rule": "Préparation → signature → introduction → titre, progression automatique. Passer l’introduction mène au titre.",
+        "guard": "Aucune validation intermédiaire pour un travail passif. Erreur : réessayer ou sortir."
+      }
     },
     {
       "id": "startup.splash",
@@ -179,7 +185,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "startup.splash",
+        "rule": "Préparation → signature → introduction → titre, progression automatique. Passer l’introduction mène au titre.",
+        "guard": "Aucune validation intermédiaire pour un travail passif. Erreur : réessayer ou sortir."
+      }
     },
     {
       "id": "startup.intro",
@@ -217,7 +229,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "startup.intro",
+        "rule": "Préparation → signature → introduction → titre, progression automatique. Passer l’introduction mène au titre.",
+        "guard": "Aucune validation intermédiaire pour un travail passif. Erreur : réessayer ou sortir."
+      }
     },
     {
       "id": "startup.title-prompt",
@@ -251,7 +269,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "startup.title-prompt",
+        "rule": "Préparation → signature → introduction → titre, progression automatique. Passer l’introduction mène au titre.",
+        "guard": "Aucune validation intermédiaire pour un travail passif. Erreur : réessayer ou sortir."
+      }
     },
     {
       "id": "title.menu",
@@ -294,7 +318,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "title.menu",
+        "rule": "Continuer charge directement la sauvegarde unique. Le choix de sauvegarde reste réservé au cas de plusieurs emplacements.",
+        "guard": "Nouvelle partie protège une sauvegarde existante. Options revient au titre."
+      }
     },
     {
       "id": "title.load-slot",
@@ -328,7 +358,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "title.load-slot",
+        "rule": "Continuer charge directement la sauvegarde unique. Le choix de sauvegarde reste réservé au cas de plusieurs emplacements.",
+        "guard": "Nouvelle partie protège une sauvegarde existante. Options revient au titre."
+      }
     },
     {
       "id": "newgame.overwrite",
@@ -362,7 +398,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "newgame.overwrite",
+        "rule": "Nom → personnage → premier compagnon → exploration. Sélection et confirmation restent distinctes pour ces choix engageants.",
+        "guard": "Retour au choix précédent, nom et sélection conservés. Confirmation de remplacement existant maintenue."
+      }
     },
     {
       "id": "newgame.name",
@@ -400,7 +442,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "newgame.name",
+        "rule": "Nom → personnage → premier compagnon → exploration. Sélection et confirmation restent distinctes pour ces choix engageants.",
+        "guard": "Retour au choix précédent, nom et sélection conservés. Confirmation de remplacement existant maintenue."
+      }
     },
     {
       "id": "newgame.avatar",
@@ -436,7 +484,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "newgame.avatar",
+        "rule": "Nom → personnage → premier compagnon → exploration. Sélection et confirmation restent distinctes pour ces choix engageants.",
+        "guard": "Retour au choix précédent, nom et sélection conservés. Confirmation de remplacement existant maintenue."
+      }
     },
     {
       "id": "newgame.starter",
@@ -472,7 +526,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "newgame.starter",
+        "rule": "Nom → personnage → premier compagnon → exploration. Sélection et confirmation restent distinctes pour ces choix engageants.",
+        "guard": "Retour au choix précédent, nom et sélection conservés. Confirmation de remplacement existant maintenue."
+      }
     },
     {
       "id": "session.loading",
@@ -511,7 +571,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.loading",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "session.lifecycle-paused",
@@ -540,7 +606,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.lifecycle-paused",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "session.completing",
@@ -570,7 +642,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.completing",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "session.result",
@@ -603,7 +681,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.result",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "session.credits",
@@ -636,7 +720,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.credits",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "session.closing",
@@ -665,7 +755,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.closing",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "session.error",
@@ -704,7 +800,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "session.error",
+        "rule": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      }
     },
     {
       "id": "startup.error",
@@ -736,7 +838,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "startup.error",
+        "rule": "Préparation → signature → introduction → titre, progression automatique. Passer l’introduction mène au titre.",
+        "guard": "Aucune validation intermédiaire pour un travail passif. Erreur : réessayer ou sortir."
+      }
     },
     {
       "id": "world.explore",
@@ -779,7 +887,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "world.explore",
+        "rule": "Menu depuis la scène ; notification informative non bloquante. Passer une cinématique de jeu revient à la même session.",
+        "guard": "Aucune cinématique de terrain ne renvoie au titre. Pause de cycle de vie protège les commandes."
+      }
     },
     {
       "id": "world.notification",
@@ -812,7 +926,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "world.notification",
+        "rule": "Menu depuis la scène ; notification informative non bloquante. Passer une cinématique de jeu revient à la même session.",
+        "guard": "Aucune cinématique de terrain ne renvoie au titre. Pause de cycle de vie protège les commandes."
+      }
     },
     {
       "id": "world.cinematic",
@@ -851,7 +971,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "world.cinematic",
+        "rule": "Menu depuis la scène ; notification informative non bloquante. Passer une cinématique de jeu revient à la même session.",
+        "guard": "Aucune cinématique de terrain ne renvoie au titre. Pause de cycle de vie protège les commandes."
+      }
     },
     {
       "id": "dialogue.line",
@@ -891,7 +1017,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "dialogue.line",
+        "rule": "Lecture → révéler le texte → continuer ; un choix narratif mène à la réponse correspondante.",
+        "guard": "Les véritables décisions narratives restent explicites."
+      }
     },
     {
       "id": "dialogue.choices",
@@ -927,7 +1059,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "dialogue.choices",
+        "rule": "Lecture → révéler le texte → continuer ; un choix narratif mène à la réponse correspondante.",
+        "guard": "Les véritables décisions narratives restent explicites."
+      }
     },
     {
       "id": "interaction.message",
@@ -959,7 +1097,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "interaction.message",
+        "rule": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      }
     },
     {
       "id": "interaction.choice",
@@ -994,7 +1138,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "interaction.choice",
+        "rule": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      }
     },
     {
       "id": "interaction.confirmation",
@@ -1028,7 +1178,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "interaction.confirmation",
+        "rule": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      }
     },
     {
       "id": "interaction.text",
@@ -1067,7 +1223,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "interaction.text",
+        "rule": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      }
     },
     {
       "id": "interaction.selection",
@@ -1105,7 +1267,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "interaction.selection",
+        "rule": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      }
     },
     {
       "id": "interaction.integer",
@@ -1144,7 +1312,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "interaction.integer",
+        "rule": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      }
     },
     {
       "id": "pause.root",
@@ -1190,7 +1364,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pause.root",
+        "rule": "Ouvrir une section directement. Reprendre rend la scène. Sauvegarder lance l’écriture de démonstration.",
+        "guard": "Le retour depuis une section rejoint la pause. Le reçu de sauvegarde utilise le sous-titre sans ajouter de page."
+      }
     },
     {
       "id": "pause.unavailable",
@@ -1223,7 +1403,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pause.unavailable",
+        "rule": "Ouvrir une section directement. Reprendre rend la scène. Sauvegarder lance l’écriture de démonstration.",
+        "guard": "Le retour depuis une section rejoint la pause. Le reçu de sauvegarde utilise le sous-titre sans ajouter de page."
+      }
     },
     {
       "id": "party.list",
@@ -1269,7 +1455,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "party.list",
+        "rule": "Choisir un membre ouvre directement sa fiche commune, sans détail puis menu puis deuxième fiche.",
+        "guard": "Six membres visibles. Réorganisation, objet tenu et dépôt conservent le membre choisi."
+      }
     },
     {
       "id": "party.detail",
@@ -1314,7 +1506,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "pokemon.summary",
+        "rule": "Fiche commune",
+        "guard": "Six membres visibles. Réorganisation, objet tenu et dépôt conservent le membre choisi."
+      }
     },
     {
       "id": "party.action-menu",
@@ -1348,7 +1546,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "pokemon.summary",
+        "rule": "Onglet Actions",
+        "guard": "Six membres visibles. Réorganisation, objet tenu et dépôt conservent le membre choisi."
+      }
     },
     {
       "id": "party.reorder",
@@ -1384,7 +1588,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "party.reorder",
+        "rule": "Choisir un membre ouvre directement sa fiche commune, sans détail puis menu puis deuxième fiche.",
+        "guard": "Six membres visibles. Réorganisation, objet tenu et dépôt conservent le membre choisi."
+      }
     },
     {
       "id": "party.held-item",
@@ -1423,7 +1633,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "party.held-item",
+        "rule": "Choisir un membre ouvre directement sa fiche commune, sans détail puis menu puis deuxième fiche.",
+        "guard": "Six membres visibles. Réorganisation, objet tenu et dépôt conservent le membre choisi."
+      }
     },
     {
       "id": "pokemon.summary",
@@ -1474,7 +1690,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pokemon.summary",
+        "rule": "Quatre onglets : Résumé, Capacités, Stats, Actions. Choisir une capacité actualise le détail sur place.",
+        "guard": "Identité et onglet conservés ; retour vers équipe ou stockage selon l’origine."
+      }
     },
     {
       "id": "bag.list",
@@ -1516,7 +1738,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "bag.list",
+        "rule": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "bag.detail",
@@ -1560,7 +1788,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "bag.detail",
+        "rule": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "bag.world-confirm",
@@ -1594,7 +1828,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "world.explore",
+        "rule": "Usage terrain direct",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "bag.target-party",
@@ -1629,7 +1869,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "bag.target-party",
+        "rule": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "bag.target-move",
@@ -1664,7 +1910,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "bag.target-move",
+        "rule": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "bag.teach-replace",
@@ -1701,7 +1953,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "bag.teach-replace",
+        "rule": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "bag.confirm",
@@ -1738,7 +1996,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "bag.confirm",
+        "rule": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      }
     },
     {
       "id": "dex.list",
@@ -1782,7 +2046,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "dex.list",
+        "rule": "Recherche et filtres dans la liste. Entrée choisie → détail → liste avec recherche conservée.",
+        "guard": "Entrée inconnue réellement inconnue ; aucune capacité d’action sur des informations absentes."
+      }
     },
     {
       "id": "dex.detail",
@@ -1821,7 +2091,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "dex.detail",
+        "rule": "Recherche et filtres dans la liste. Entrée choisie → détail → liste avec recherche conservée.",
+        "guard": "Entrée inconnue réellement inconnue ; aucune capacité d’action sur des informations absentes."
+      }
     },
     {
       "id": "map.view",
@@ -1867,7 +2143,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "map.view",
+        "rule": "Choisir un repère affiche ses informations dans la carte. Zoom, région et sélection agissent sur le même contexte.",
+        "guard": "Pas d’écran Informations identique en plus. Choix de région seulement s’il y en a plusieurs ; voyage explicite."
+      }
     },
     {
       "id": "map.regions",
@@ -1899,7 +2181,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "map.regions",
+        "rule": "Choisir un repère affiche ses informations dans la carte. Zoom, région et sélection agissent sur le même contexte.",
+        "guard": "Pas d’écran Informations identique en plus. Choix de région seulement s’il y en a plusieurs ; voyage explicite."
+      }
     },
     {
       "id": "map.overlap",
@@ -1930,7 +2218,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "map.overlap",
+        "rule": "Choisir un repère affiche ses informations dans la carte. Zoom, région et sélection agissent sur le même contexte.",
+        "guard": "Pas d’écran Informations identique en plus. Choix de région seulement s’il y en a plusieurs ; voyage explicite."
+      }
     },
     {
       "id": "map.location",
@@ -1965,7 +2259,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "map.view",
+        "rule": "Détail intégré à la carte",
+        "guard": "Pas d’écran Informations identique en plus. Choix de région seulement s’il y en a plusieurs ; voyage explicite."
+      }
     },
     {
       "id": "map.travel-service",
@@ -2002,7 +2302,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "map.travel-service",
+        "rule": "Choisir un repère affiche ses informations dans la carte. Zoom, région et sélection agissent sur le même contexte.",
+        "guard": "Pas d’écran Informations identique en plus. Choix de région seulement s’il y en a plusieurs ; voyage explicite."
+      }
     },
     {
       "id": "profile.card",
@@ -2044,7 +2350,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "profile.card",
+        "rule": "Informations en consultation directe, retour à la pause.",
+        "guard": "Argent aligné sur les achats et ventes de la maquette ; aucun bouton de confirmation pour lire."
+      }
     },
     {
       "id": "quests.list",
@@ -2079,7 +2391,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "quests.list",
+        "rule": "Choisir une quête actualise son détail dans la même composition.",
+        "guard": "État sélectionné et lecture seule ; aucune fausse validation de progression."
+      }
     },
     {
       "id": "contacts.list",
@@ -2114,7 +2432,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "contacts.list",
+        "rule": "Contact choisi → appel du bon interlocuteur → raccrocher → contacts.",
+        "guard": "Pas de retour arbitraire au monde entre deux contacts."
+      }
     },
     {
       "id": "contacts.call",
@@ -2146,7 +2470,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "contacts.call",
+        "rule": "Contact choisi → appel du bon interlocuteur → raccrocher → contacts.",
+        "guard": "Pas de retour arbitraire au monde entre deux contacts."
+      }
     },
     {
       "id": "options.general",
@@ -2181,7 +2511,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.general",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.display",
@@ -2216,7 +2552,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.display",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.audio",
@@ -2254,7 +2596,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.audio",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.controls",
@@ -2293,7 +2641,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.controls",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.language",
@@ -2330,7 +2684,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.language",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.accessibility",
@@ -2368,7 +2728,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.accessibility",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.categories",
@@ -2406,7 +2772,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.categories",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.choice",
@@ -2442,7 +2814,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "options.categories",
+        "rule": "Valeur modifiée dans sa catégorie",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.reset",
@@ -2479,7 +2857,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.reset",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "options.bindings",
@@ -2519,7 +2903,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "options.bindings",
+        "rule": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      }
     },
     {
       "id": "save.confirm",
@@ -2555,7 +2945,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "save.progress",
+        "rule": "Sauvegarde immédiate",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "save.progress",
@@ -2585,7 +2981,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "save.progress",
+        "rule": "Sauvegarder → écriture → reçu dans le contexte précédent. Sauvegarder et quitter → écriture → fermeture → titre.",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "save.success",
@@ -2616,7 +3018,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "pause.root",
+        "rule": "Reçu dans le contexte d’origine",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "save.failure",
@@ -2650,7 +3058,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "save.failure",
+        "rule": "Sauvegarder → écriture → reçu dans le contexte précédent. Sauvegarder et quitter → écriture → fermeture → titre.",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "save.exit",
@@ -2687,7 +3101,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "save.exit",
+        "rule": "Sauvegarder → écriture → reçu dans le contexte précédent. Sauvegarder et quitter → écriture → fermeture → titre.",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "save.recovery",
@@ -2723,7 +3143,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "save.recovery",
+        "rule": "Sauvegarder → écriture → reçu dans le contexte précédent. Sauvegarder et quitter → écriture → fermeture → titre.",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "save.delete-confirm",
@@ -2754,7 +3180,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "save.delete-confirm",
+        "rule": "Sauvegarder → écriture → reçu dans le contexte précédent. Sauvegarder et quitter → écriture → fermeture → titre.",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      }
     },
     {
       "id": "shop.buy",
@@ -2794,7 +3226,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "shop.buy",
+        "rule": "Objet → quantité avec prix total et solde après transaction → acheter/vendre → liste et reçu.",
+        "guard": "Une confirmation de transaction, pas une seconde fenêtre identique. Argent, stock et capacité limitent la quantité."
+      }
     },
     {
       "id": "shop.sell",
@@ -2831,7 +3269,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "shop.sell",
+        "rule": "Objet → quantité avec prix total et solde après transaction → acheter/vendre → liste et reçu.",
+        "guard": "Une confirmation de transaction, pas une seconde fenêtre identique. Argent, stock et capacité limitent la quantité."
+      }
     },
     {
       "id": "shop.quantity",
@@ -2874,7 +3318,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "shop.quantity",
+        "rule": "Objet → quantité avec prix total et solde après transaction → acheter/vendre → liste et reçu.",
+        "guard": "Une confirmation de transaction, pas une seconde fenêtre identique. Argent, stock et capacité limitent la quantité."
+      }
     },
     {
       "id": "heal.confirm",
@@ -2912,7 +3362,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "heal.confirm",
+        "rule": "Proposition de soin → application → retour en jeu avec reçu des PV, PP et statuts restaurés.",
+        "guard": "L’accord initial reste pertinent dans une interaction PNJ. Équipe vide ou déjà soignée expliquée sans relancer."
+      }
     },
     {
       "id": "heal.applying",
@@ -2942,7 +3398,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "heal.applying",
+        "rule": "Proposition de soin → application → retour en jeu avec reçu des PV, PP et statuts restaurés.",
+        "guard": "L’accord initial reste pertinent dans une interaction PNJ. Équipe vide ou déjà soignée expliquée sans relancer."
+      }
     },
     {
       "id": "heal.result",
@@ -2976,7 +3438,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "world.explore",
+        "rule": "Reçu de soin",
+        "guard": "L’accord initial reste pertinent dans une interaction PNJ. Équipe vide ou déjà soignée expliquée sans relancer."
+      }
     },
     {
       "id": "pc.box",
@@ -3022,7 +3490,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pc.box",
+        "rule": "Sélectionner une case, voir la fiche ou transférer. Déposer choisit le membre puis revient au stockage mis à jour.",
+        "guard": "Case vide sans fiche fictive. Boîte pleine, équipe de six et dernier combattant protégés. Grille de 30 places, navigation des boîtes ancrée."
+      }
     },
     {
       "id": "pc.swap",
@@ -3055,7 +3529,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pc.swap",
+        "rule": "Sélectionner une case, voir la fiche ou transférer. Déposer choisit le membre puis revient au stockage mis à jour.",
+        "guard": "Case vide sans fiche fictive. Boîte pleine, équipe de six et dernier combattant protégés. Grille de 30 places, navigation des boîtes ancrée."
+      }
     },
     {
       "id": "pc.summary",
@@ -3087,7 +3567,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pc.summary",
+        "rule": "Sélectionner une case, voir la fiche ou transférer. Déposer choisit le membre puis revient au stockage mis à jour.",
+        "guard": "Case vide sans fiche fictive. Boîte pleine, équipe de six et dernier combattant protégés. Grille de 30 places, navigation des boîtes ancrée."
+      }
     },
     {
       "id": "pc.move-box",
@@ -3124,7 +3610,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "pc.move-box",
+        "rule": "Sélectionner une case, voir la fiche ou transférer. Déposer choisit le membre puis revient au stockage mis à jour.",
+        "guard": "Case vide sans fiche fictive. Boîte pleine, équipe de six et dernier combattant protégés. Grille de 30 places, navigation des boîtes ancrée."
+      }
     },
     {
       "id": "gift.received",
@@ -3157,7 +3649,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "gift.received",
+        "rule": "Un seul reçu regroupe acquisition, nouvelle entrée et destination. Surnom facultatif depuis ce reçu.",
+        "guard": "Annuler le surnom conserve le dernier nom validé. Destination selon place disponible. Échec ne présente pas un don réussi."
+      }
     },
     {
       "id": "gift.pokedex",
@@ -3189,7 +3687,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "gift.received",
+        "rule": "Information intégrée au reçu",
+        "guard": "Annuler le surnom conserve le dernier nom validé. Destination selon place disponible. Échec ne présente pas un don réussi."
+      }
     },
     {
       "id": "gift.nickname-confirm",
@@ -3222,7 +3726,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "gift.received",
+        "rule": "Surnom facultatif",
+        "guard": "Annuler le surnom conserve le dernier nom validé. Destination selon place disponible. Échec ne présente pas un don réussi."
+      }
     },
     {
       "id": "gift.nickname",
@@ -3257,7 +3767,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "gift.nickname",
+        "rule": "Un seul reçu regroupe acquisition, nouvelle entrée et destination. Surnom facultatif depuis ce reçu.",
+        "guard": "Annuler le surnom conserve le dernier nom validé. Destination selon place disponible. Échec ne présente pas un don réussi."
+      }
     },
     {
       "id": "gift.destination",
@@ -3290,7 +3806,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "gift.received",
+        "rule": "Destination intégrée au reçu",
+        "guard": "Annuler le surnom conserve le dernier nom validé. Destination selon place disponible. Échec ne présente pas un don réussi."
+      }
     },
     {
       "id": "trade.select-first",
@@ -3323,7 +3845,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "trade.select-first",
+        "rule": "Premier compagnon → second compagnon → revue des deux identités → confirmation → résultat.",
+        "guard": "Le partenaire connu ne demande plus une page de choix factice. Les échanges restent une simulation de parcours."
+      }
     },
     {
       "id": "trade.choose-partner",
@@ -3357,7 +3885,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "trade.select-partner",
+        "rule": "Partenaire déjà connu",
+        "guard": "Le partenaire connu ne demande plus une page de choix factice. Les échanges restent une simulation de parcours."
+      }
     },
     {
       "id": "trade.select-partner",
@@ -3390,7 +3924,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "trade.select-partner",
+        "rule": "Premier compagnon → second compagnon → revue des deux identités → confirmation → résultat.",
+        "guard": "Le partenaire connu ne demande plus une page de choix factice. Les échanges restent une simulation de parcours."
+      }
     },
     {
       "id": "trade.review",
@@ -3423,7 +3963,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "trade.review",
+        "rule": "Premier compagnon → second compagnon → revue des deux identités → confirmation → résultat.",
+        "guard": "Le partenaire connu ne demande plus une page de choix factice. Les échanges restent une simulation de parcours."
+      }
     },
     {
       "id": "trade.result",
@@ -3455,7 +4001,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "trade.result",
+        "rule": "Premier compagnon → second compagnon → revue des deux identités → confirmation → résultat.",
+        "guard": "Le partenaire connu ne demande plus une page de choix factice. Les échanges restent une simulation de parcours."
+      }
     },
     {
       "id": "battle.intro",
@@ -3491,7 +4043,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.intro",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.root",
@@ -3531,7 +4089,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.root",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.fight",
@@ -3573,7 +4137,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.fight",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.target",
@@ -3610,7 +4180,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.target",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.bag",
@@ -3651,7 +4227,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.bag",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.medicine-target",
@@ -3691,7 +4273,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.medicine-target",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.medicine-move",
@@ -3728,7 +4316,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.medicine-move",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.party",
@@ -3767,7 +4361,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.party",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.forced-replacement",
@@ -3804,7 +4404,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.forced-replacement",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.turn",
@@ -3842,7 +4448,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.turn",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.continue",
@@ -3876,7 +4488,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.continue",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "battle.decision",
@@ -3912,7 +4530,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "battle.decision",
+        "rule": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      }
     },
     {
       "id": "postbattle.victory",
@@ -3946,7 +4570,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.victory",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.defeat",
@@ -3980,7 +4610,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.defeat",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.fled",
@@ -4014,7 +4650,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.fled",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.captured",
@@ -4048,7 +4690,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.captured",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.experience",
@@ -4082,7 +4730,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.levelUp",
@@ -4116,7 +4770,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.moveAutomaticallyLearned",
@@ -4150,7 +4810,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.moveAutomaticallyLearned",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.moveLearningPrompt",
@@ -4184,7 +4850,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.moveLearningPrompt",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.moveReplacementPrompt",
@@ -4218,7 +4890,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.moveReplacementPrompt",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.moveLearned",
@@ -4252,7 +4930,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.moveLearned",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.moveReplaced",
@@ -4286,7 +4970,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.moveReplaced",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.moveDeclined",
@@ -4320,7 +5010,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.moveDeclined",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.evolutionPrompt",
@@ -4354,7 +5050,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.evolutionPrompt",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.evolutionAccepted",
@@ -4388,7 +5090,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.evolutionAccepted",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.evolutionRefused",
@@ -4422,7 +5130,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.evolutionRefused",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.money",
@@ -4456,7 +5170,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.item",
@@ -4490,7 +5210,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.flag",
@@ -4524,7 +5250,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.badge",
@@ -4558,7 +5290,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.fieldAbility",
@@ -4592,7 +5330,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.trainerDefeated",
@@ -4626,7 +5370,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "référence fusionnée",
+        "canonical": "postbattle.victory",
+        "rule": "Information intégrée au bilan",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.captureDestination",
@@ -4660,7 +5410,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.captureDestination",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "postbattle.error",
@@ -4695,7 +5451,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "postbattle.error",
+        "rule": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      }
     },
     {
       "id": "companion.waiting",
@@ -4725,7 +5487,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "companion.waiting",
+        "rule": "Scène et contexte sur le principal ; choix et focus sur le compagnon. Les deux restent visibles ensemble.",
+        "guard": "Indisponibilité expliquée. Aucun double focus ni commande concurrente sur les deux surfaces."
+      }
     },
     {
       "id": "companion.blocked",
@@ -4755,7 +5523,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "companion.blocked",
+        "rule": "Scène et contexte sur le principal ; choix et focus sur le compagnon. Les deux restent visibles ensemble.",
+        "guard": "Indisponibilité expliquée. Aucun double focus ni commande concurrente sur les deux surfaces."
+      }
     },
     {
       "id": "companion.menu",
@@ -4792,7 +5566,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "companion.menu",
+        "rule": "Scène et contexte sur le principal ; choix et focus sur le compagnon. Les deux restent visibles ensemble.",
+        "guard": "Indisponibilité expliquée. Aucun double focus ni commande concurrente sur les deux surfaces."
+      }
     },
     {
       "id": "companion.battle",
@@ -4825,7 +5605,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "companion.battle",
+        "rule": "Scène et contexte sur le principal ; choix et focus sur le compagnon. Les deux restent visibles ensemble.",
+        "guard": "Indisponibilité expliquée. Aucun double focus ni commande concurrente sur les deux surfaces."
+      }
     },
     {
       "id": "host.project-loader",
@@ -4863,7 +5649,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "host.project-loader",
+        "rule": "Choisir le projet puis lancer le jeu. Menu de secours distinct des menus du joueur.",
+        "guard": "Sélecteur local figuré : aucune fenêtre système ou import réel prétendu. Retour hôte reste une frontière du prototype."
+      }
     },
     {
       "id": "host.legacy-menu",
@@ -4897,7 +5689,13 @@
         "portrait-touch",
         "portrait-controller",
         "thor-dual"
-      ]
+      ],
+      "journey": {
+        "role": "composition du parcours",
+        "canonical": "host.legacy-menu",
+        "rule": "Choisir le projet puis lancer le jeu. Menu de secours distinct des menus du joueur.",
+        "guard": "Sélecteur local figuré : aucune fenêtre système ou import réel prétendu. Retour hôte reste une frontière du prototype."
+      }
     }
   ],
   "assets": [
@@ -5515,7 +6313,7 @@
     "exit-after-save": "La fermeture doit suivre une sauvegarde confirmée. La planche fixe ne prouve pas cet enchaînement.",
     "saved": "Afficher cet état après confirmation de la sauvegarde; son dessin seul ne prouve pas l’écriture."
   },
-  "coverageNote": "133 compositions ou étapes, états réels inventoriés et états nominaux ajoutés pour la revue. Les animations temporelles partagent une géométrie statique explicitement documentée.",
+  "coverageNote": "133 compositions de référence et 446 états conservés pour la revue ; ce nombre ne correspond pas à 133 écrans obligatoires dans une partie. Les étapes fusionnées et leurs destinations sont documentées dans journeyRevision.",
   "combatRevision": {
     "version": 2,
     "date": "2026-10-24",
@@ -5565,5 +6363,266 @@
     "multipleValidChoices": "Capacité → choix de cible → résolution",
     "noValidChoice": "Refus explicite, aucune résolution",
     "scope": "Maquettes uniquement, objets et choix de membre conservés"
+  },
+  "journeyRevision": {
+    "date": "2026-10-24",
+    "status": "TO REVIEW · maquettes",
+    "scope": "Revue des 27 familles, 133 compositions de référence et 446 états dans cinq dispositions. Les compositions fusionnées restent consultables dans le catalogue mais ne sont plus des passages obligatoires.",
+    "rules": [
+      "Décision réelle avant toute étape de choix",
+      "Une cible valide : résolution automatique ; plusieurs : choix ; aucune : refus",
+      "Travail passif sans clic Continuer",
+      "Retour au contexte et à la sélection d’origine",
+      "Résultat cohérent et annulation sans mutation",
+      "Confirmation pour les actions engageantes",
+      "Pas de défilement dans la surface de jeu ; recomposition avant pagination explicite"
+    ],
+    "families": [
+      {
+        "id": "startup",
+        "name": "Démarrage",
+        "flow": "Préparation → signature → introduction → titre, progression automatique. Passer l’introduction mène au titre.",
+        "guard": "Aucune validation intermédiaire pour un travail passif. Erreur : réessayer ou sortir."
+      },
+      {
+        "id": "title",
+        "name": "Titre",
+        "flow": "Continuer charge directement la sauvegarde unique. Le choix de sauvegarde reste réservé au cas de plusieurs emplacements.",
+        "guard": "Nouvelle partie protège une sauvegarde existante. Options revient au titre."
+      },
+      {
+        "id": "newgame",
+        "name": "Nouvelle partie",
+        "flow": "Nom → personnage → premier compagnon → exploration. Sélection et confirmation restent distinctes pour ces choix engageants.",
+        "guard": "Retour au choix précédent, nom et sélection conservés. Confirmation de remplacement existant maintenue."
+      },
+      {
+        "id": "session",
+        "name": "Session et fin",
+        "flow": "Chargement et fermeture progressent seuls. La validation de fin mène au résultat, puis crédits facultatifs.",
+        "guard": "Une erreur ne déclare pas la fin validée ; réessayer la validation ou revenir en jeu."
+      },
+      {
+        "id": "world",
+        "name": "Exploration",
+        "flow": "Menu depuis la scène ; notification informative non bloquante. Passer une cinématique de jeu revient à la même session.",
+        "guard": "Aucune cinématique de terrain ne renvoie au titre. Pause de cycle de vie protège les commandes."
+      },
+      {
+        "id": "dialogue",
+        "name": "Dialogues",
+        "flow": "Lecture → révéler le texte → continuer ; un choix narratif mène à la réponse correspondante.",
+        "guard": "Les véritables décisions narratives restent explicites."
+      },
+      {
+        "id": "interaction",
+        "name": "Interactions",
+        "flow": "Message, choix, saisie, quantité et sélection conservent leur fonction distincte. Résultat cohérent avec la saisie.",
+        "guard": "Annuler reste accessible sauf contrat explicite ; sélection vide et envoi en cours non validables."
+      },
+      {
+        "id": "pause",
+        "name": "Pause",
+        "flow": "Ouvrir une section directement. Reprendre rend la scène. Sauvegarder lance l’écriture de démonstration.",
+        "guard": "Le retour depuis une section rejoint la pause. Le reçu de sauvegarde utilise le sous-titre sans ajouter de page."
+      },
+      {
+        "id": "party",
+        "name": "Équipe",
+        "flow": "Choisir un membre ouvre directement sa fiche commune, sans détail puis menu puis deuxième fiche.",
+        "guard": "Six membres visibles. Réorganisation, objet tenu et dépôt conservent le membre choisi."
+      },
+      {
+        "id": "pokemon",
+        "name": "Fiche du compagnon",
+        "flow": "Quatre onglets : Résumé, Capacités, Stats, Actions. Choisir une capacité actualise le détail sur place.",
+        "guard": "Identité et onglet conservés ; retour vers équipe ou stockage selon l’origine."
+      },
+      {
+        "id": "bag",
+        "name": "Sac",
+        "flow": "Toucher un objet l’utilise ; le bouton Informations est séparé. Soin → cible → effet et retour au Sac. Une seule cible admissible est automatique.",
+        "guard": "Zéro cible : message, aucun stock consommé. Oubli de capacité et évolution gardent leur confirmation."
+      },
+      {
+        "id": "dex",
+        "name": "Pokédex",
+        "flow": "Recherche et filtres dans la liste. Entrée choisie → détail → liste avec recherche conservée.",
+        "guard": "Entrée inconnue réellement inconnue ; aucune capacité d’action sur des informations absentes."
+      },
+      {
+        "id": "map",
+        "name": "Carte",
+        "flow": "Choisir un repère affiche ses informations dans la carte. Zoom, région et sélection agissent sur le même contexte.",
+        "guard": "Pas d’écran Informations identique en plus. Choix de région seulement s’il y en a plusieurs ; voyage explicite."
+      },
+      {
+        "id": "profile",
+        "name": "Profil",
+        "flow": "Informations en consultation directe, retour à la pause.",
+        "guard": "Argent aligné sur les achats et ventes de la maquette ; aucun bouton de confirmation pour lire."
+      },
+      {
+        "id": "quests",
+        "name": "Journal",
+        "flow": "Choisir une quête actualise son détail dans la même composition.",
+        "guard": "État sélectionné et lecture seule ; aucune fausse validation de progression."
+      },
+      {
+        "id": "contacts",
+        "name": "Contacts",
+        "flow": "Contact choisi → appel du bon interlocuteur → raccrocher → contacts.",
+        "guard": "Pas de retour arbitraire au monde entre deux contacts."
+      },
+      {
+        "id": "options",
+        "name": "Options",
+        "flow": "Catégorie → modification sur place → retour. Curseurs et interrupteurs conservent leurs valeurs.",
+        "guard": "Retour au titre ou à la pause selon l’origine. Réinitialisation ciblée seulement si personnalisée. Réaffectation annulable, conflits refusés."
+      },
+      {
+        "id": "save",
+        "name": "Sauvegarde",
+        "flow": "Sauvegarder → écriture → reçu dans le contexte précédent. Sauvegarder et quitter → écriture → fermeture → titre.",
+        "guard": "Suppression, remplacement et abandon sans sauvegarde restent des décisions explicites. Échec : aucun succès annoncé."
+      },
+      {
+        "id": "shop",
+        "name": "Boutique",
+        "flow": "Objet → quantité avec prix total et solde après transaction → acheter/vendre → liste et reçu.",
+        "guard": "Une confirmation de transaction, pas une seconde fenêtre identique. Argent, stock et capacité limitent la quantité."
+      },
+      {
+        "id": "heal",
+        "name": "Soin collectif",
+        "flow": "Proposition de soin → application → retour en jeu avec reçu des PV, PP et statuts restaurés.",
+        "guard": "L’accord initial reste pertinent dans une interaction PNJ. Équipe vide ou déjà soignée expliquée sans relancer."
+      },
+      {
+        "id": "pc",
+        "name": "Stockage",
+        "flow": "Sélectionner une case, voir la fiche ou transférer. Déposer choisit le membre puis revient au stockage mis à jour.",
+        "guard": "Case vide sans fiche fictive. Boîte pleine, équipe de six et dernier combattant protégés. Grille de 30 places, navigation des boîtes ancrée."
+      },
+      {
+        "id": "gift",
+        "name": "Don de compagnon",
+        "flow": "Un seul reçu regroupe acquisition, nouvelle entrée et destination. Surnom facultatif depuis ce reçu.",
+        "guard": "Annuler le surnom conserve le dernier nom validé. Destination selon place disponible. Échec ne présente pas un don réussi."
+      },
+      {
+        "id": "trade",
+        "name": "Échange",
+        "flow": "Premier compagnon → second compagnon → revue des deux identités → confirmation → résultat.",
+        "guard": "Le partenaire connu ne demande plus une page de choix factice. Les échanges restent une simulation de parcours."
+      },
+      {
+        "id": "battle",
+        "name": "Combat",
+        "flow": "Attaquer → capacité → résolution en duel. Choix de cible seulement pour plusieurs cibles valides. Résolution rend automatiquement les commandes.",
+        "guard": "Soins et changements gardent leur cible utile. Zéro PP, remplacement forcé et fuite interdite protégés. Contexte multiple conservé après Retour."
+      },
+      {
+        "id": "postbattle",
+        "name": "Après-combat",
+        "flow": "Un bilan rassemble expérience, niveau, statistiques et argent ; reprendre directement ou traiter une vraie décision de progression.",
+        "guard": "Oubli de capacité confirmé une fois. Refuser apprentissage ou évolution rejoint le même bilan. Capture rejoint le reçu commun."
+      },
+      {
+        "id": "companion",
+        "name": "Deux écrans",
+        "flow": "Scène et contexte sur le principal ; choix et focus sur le compagnon. Les deux restent visibles ensemble.",
+        "guard": "Indisponibilité expliquée. Aucun double focus ni commande concurrente sur les deux surfaces."
+      },
+      {
+        "id": "host",
+        "name": "Outils de développement",
+        "flow": "Choisir le projet puis lancer le jeu. Menu de secours distinct des menus du joueur.",
+        "guard": "Sélecteur local figuré : aucune fenêtre système ou import réel prétendu. Retour hôte reste une frontière du prototype."
+      }
+    ],
+    "aliases": {
+      "party.detail": [
+        "pokemon.summary",
+        "Fiche commune"
+      ],
+      "party.action-menu": [
+        "pokemon.summary",
+        "Onglet Actions"
+      ],
+      "options.choice": [
+        "options.categories",
+        "Valeur modifiée dans sa catégorie"
+      ],
+      "save.confirm": [
+        "save.progress",
+        "Sauvegarde immédiate"
+      ],
+      "save.success": [
+        "pause.root",
+        "Reçu dans le contexte d’origine"
+      ],
+      "bag.world-confirm": [
+        "world.explore",
+        "Usage terrain direct"
+      ],
+      "gift.pokedex": [
+        "gift.received",
+        "Information intégrée au reçu"
+      ],
+      "gift.nickname-confirm": [
+        "gift.received",
+        "Surnom facultatif"
+      ],
+      "gift.destination": [
+        "gift.received",
+        "Destination intégrée au reçu"
+      ],
+      "trade.choose-partner": [
+        "trade.select-partner",
+        "Partenaire déjà connu"
+      ],
+      "map.location": [
+        "map.view",
+        "Détail intégré à la carte"
+      ],
+      "heal.result": [
+        "world.explore",
+        "Reçu de soin"
+      ],
+      "postbattle.experience": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.levelUp": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.money": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.item": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.flag": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.badge": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.fieldAbility": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ],
+      "postbattle.trainerDefeated": [
+        "postbattle.victory",
+        "Information intégrée au bilan"
+      ]
+    },
+    "report": "parcours.html"
   }
 }

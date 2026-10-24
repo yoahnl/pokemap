@@ -9,12 +9,12 @@
   function controlKey(screen,el,index){const field=el.getAttribute('aria-label')||(el.dataset.nameInput!==undefined?'name':el.dataset.toggleCheck!==undefined?'check-'+index:el.tagName+'-'+index);return screen.dataset.composition+'|'+screen.dataset.state+'|'+field;}
   function capture(root) {
     root.querySelectorAll('.screen').forEach(screen=>screen.querySelectorAll('input,select,[data-toggle-setting],[data-toggle-check]').forEach((el,i)=>{
-      const key=controlKey(screen,el,i);controlMemory.set(key,{value:el.value,checked:el.getAttribute('aria-checked'),pressed:el.getAttribute('aria-pressed'),selected:el.classList.contains('selected')});
+      if(el.hasAttribute('data-option'))return;const key=controlKey(screen,el,i);controlMemory.set(key,{value:el.value,checked:el.getAttribute('aria-checked'),pressed:el.getAttribute('aria-pressed'),selected:el.classList.contains('selected')});
     }));
   }
   function restoreControls(screen) {
     screen.querySelectorAll('input,select,[data-toggle-setting],[data-toggle-check]').forEach((el,i)=>{
-      const data=controlMemory.get(controlKey(screen,el,i));if(!data)return;
+      if(el.hasAttribute('data-option'))return;const data=controlMemory.get(controlKey(screen,el,i));if(!data)return;
       if(data.value!==undefined)el.value=data.value;
       if(data.checked!==null){el.setAttribute('aria-checked',data.checked);el.classList.toggle('off',data.checked!=='true');}
       if(el.dataset.toggleCheck!==undefined){el.classList.toggle('selected',data.selected);if(data.pressed!==null)el.setAttribute('aria-pressed',data.pressed);}
