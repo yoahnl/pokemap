@@ -75,9 +75,8 @@ void main() {
             _expectGift(snapshot, destination);
             expect(first.requests.map((request) => request.stage), [
               PokemonGiftInteractionStage.received,
-              PokemonGiftInteractionStage.nicknameConfirmation,
               PokemonGiftInteractionStage.nickname,
-              PokemonGiftInteractionStage.destination,
+              PokemonGiftInteractionStage.received,
             ]);
             expect(
               snapshot.trainerProfile.money,
@@ -193,11 +192,13 @@ _start(
       requests.add(request);
       final interaction = request.interaction;
       final response = switch (interaction) {
-        SceneConfirmationInteractionRequest() =>
-          SceneInteractionResult.confirmed(
+        SceneChoiceInteractionRequest() =>
+          SceneInteractionResult.choiceSelected(
             requestId: interaction.requestId,
             revision: interaction.revision,
-            value: true,
+            selectedOptionId: interaction.revision == 0
+                ? 'nickname'
+                : 'continue',
           ),
         SceneTextInteractionRequest() => SceneInteractionResult.textSubmitted(
           requestId: interaction.requestId,

@@ -205,6 +205,23 @@ final class SpatialMovementController {
   SpatialActorRuntimeState? Function(String entityId)? actorStateProvider;
   static const pixelsPerCell = 16;
   late PixelPosition _position;
+  _SpatialLedgeJump? _ledgeJump;
+  bool get isJumping => _ledgeJump != null;
+  double get jumpSpeed => _ledgeJump == null
+      ? 5
+      : _ledgeJump!.ledge.distance * 1000 / _ledgeJump!.ledge.durationMs;
+  PlayerSpatialPosition? get reservedLanding => _ledgeJump == null
+      ? null
+      : PlayerSpatialPosition(
+          x: _ledgeJump!.ledge.landingX + .5,
+          z: _ledgeJump!.ledge.landingZ + .5);
+  double get jumpLift => _ledgeJump == null
+      ? 0
+      : math.sin(math.pi * _ledgeJump!.progress) * _ledgeJump!.ledge.height;
+  double get groundY => _ledgeJump == null
+      ? scene.worldHeightAt(x, z)
+      : _ledgeJump!.sourceY +
+          (_ledgeJump!.landingY - _ledgeJump!.sourceY) * _ledgeJump!.progress;
   double _remainderX = 0, _remainderZ = 0;
   int _inputX = 0, _inputZ = 0;
   ({int x, int z}) get inputDirection => (x: _inputX, z: _inputZ);
@@ -218,8 +235,9 @@ final class SpatialMovementController {
   double get z => (_position.topPx + 31) / pixelsPerCell;
   PlayerSpatialPosition get spatialPosition =>
       PlayerSpatialPosition(x: x, z: z);
-  double get y => scene.worldHeightAt(x, z);
+  double get y => groundY + jumpLift;
   bool get isPositionTraversable =>
+      !isJumping &&
       x >= 0 &&
       z >= 0 &&
       x < scene.width &&
@@ -367,6 +385,7 @@ final class SpatialMovementController {
   }
 
   void setInput({required int x, required int z, bool run = false}) {
+    if (isJumping) return;
     if (_run != run) {
       animationSeconds = 0;
     }
@@ -453,6 +472,7 @@ final class SpatialMovementController {
   void reset() => _reset(validateSpawn: true);
 
   void _reset({required bool validateSpawn}) {
+    _ledgeJump = null;
     final candidate = PixelPosition(
       leftPx: (_spawn.x * pixelsPerCell).round() - 16,
       topPx: (_spawn.z * pixelsPerCell).round() - 31,
@@ -488,6 +508,10 @@ final class SpatialMovementController {
     connectionArrival = null;
     if (!dt.isFinite || dt <= 0 || paused) return;
     final elapsed = dt.clamp(0.0, .05);
+    if (_ledgeJump != null) {
+      _updateLedgeJump(elapsed);
+      return;
+    }
     var dx = _inputX, dz = _inputZ;
     if (!allowDiagonalMovement && dx != 0 && dz != 0) dx = 0;
     if (dx == 0 && dz == 0) {
@@ -504,6 +528,7 @@ final class SpatialMovementController {
                 : EntityFacing.east;
     if (nextFacing != facing) animationSeconds = 0;
     facing = nextFacing;
+    if ((dx == 0 || dz == 0) && _beginLedgeJump(dx, dz)) return;
     final speed = (_run ? 6.0 : 3.0) *
         pixelsPerCell *
         elapsed /
@@ -610,6 +635,63 @@ final class SpatialMovementController {
         edgeExitDirection = direction;
       }
       _position = before;
+    }
+  }
+
+  bool _beginLedgeJump(int dx, int dz) {
+    for (final ledge in scene.navigation.ledges) {
+      if (ledge.dx != dx ||
+          ledge.dz != dz ||
+          (x - ledge.x - .5).abs() > .1875 ||
+          (z - ledge.z - .5).abs() > .1875) {
+        continue;
+      }
+      final sourceX = ledge.x + .5, sourceZ = ledge.z + .5;
+      if (!canTraverseActor(x, z, sourceX, sourceZ) ||
+          !_ledgeLandingFree(ledge)) {
+        return false;
+      }
+      final source = PixelPosition(
+          leftPx: (sourceX * pixelsPerCell).round() - 16,
+          topPx: (sourceZ * pixelsPerCell).round() - 31);
+      releaseInput();
+      _position = source;
+      _ledgeJump = _SpatialLedgeJump(
+          ledge,
+          source,
+          scene.worldHeightAt(sourceX, sourceZ),
+          scene.worldHeightAt(ledge.landingX + .5, ledge.landingZ + .5));
+      moving = true;
+      return true;
+    }
+    return false;
+  }
+
+  bool _ledgeLandingFree(SpatialLedge ledge) {
+    final target = _actorFootprint(ledge.landingX + .5, ledge.landingZ + .5);
+    return !_collides(target.rect,
+        offsetX: target.offsetX, offsetZ: target.offsetZ);
+  }
+
+  void _updateLedgeJump(double elapsed) {
+    final jump = _ledgeJump!;
+    jump.elapsed = math.min(
+        jump.elapsed + elapsed * 1000, jump.ledge.durationMs.toDouble());
+    final t = jump.progress;
+    _position = PixelPosition(
+        leftPx: ((jump.ledge.x + .5 + jump.ledge.dx * jump.ledge.distance * t) *
+                    pixelsPerCell)
+                .round() -
+            16,
+        topPx: ((jump.ledge.z + .5 + jump.ledge.dz * jump.ledge.distance * t) *
+                    pixelsPerCell)
+                .round() -
+            31);
+    moving = true;
+    if (t >= 1) {
+      if (!_ledgeLandingFree(jump.ledge)) _position = jump.source;
+      _ledgeJump = null;
+      moving = false;
     }
   }
 
@@ -816,6 +898,22 @@ final class SpatialMovementController {
       {required double offsetX,
       required double offsetZ,
       PlayerSpatialPosition? playerPosition}) {
+    final landing = reservedLanding;
+    if (landing != null) {
+      final reserved = _actorFootprint(landing.x, landing.z);
+      if (rect.leftPx / pixelsPerCell + offsetX <
+              (reserved.rect.leftPx + reserved.rect.widthPx) / pixelsPerCell +
+                  reserved.offsetX &&
+          (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX >
+              reserved.rect.leftPx / pixelsPerCell + reserved.offsetX &&
+          rect.topPx / pixelsPerCell + offsetZ <
+              (reserved.rect.topPx + reserved.rect.heightPx) / pixelsPerCell +
+                  reserved.offsetZ &&
+          (rect.topPx + rect.heightPx) / pixelsPerCell + offsetZ >
+              reserved.rect.topPx / pixelsPerCell + reserved.offsetZ) {
+        return true;
+      }
+    }
     final playerFootprint = playerPosition == null
         ? (rect: _hitbox(_position), offsetX: 0.0, offsetZ: 0.0)
         : _actorFootprint(playerPosition.x, playerPosition.z);
@@ -859,4 +957,13 @@ final class SpatialMovementController {
     }
     return false;
   }
+}
+
+final class _SpatialLedgeJump {
+  _SpatialLedgeJump(this.ledge, this.source, this.sourceY, this.landingY);
+  final SpatialLedge ledge;
+  final PixelPosition source;
+  final double sourceY, landingY;
+  double elapsed = 0;
+  double get progress => (elapsed / ledge.durationMs).clamp(0.0, 1.0);
 }

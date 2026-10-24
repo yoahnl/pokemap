@@ -18,6 +18,8 @@ import 'package:avelune_studio/presentation/features/scenes/scene_dialogue_choic
 import 'package:avelune_studio/presentation/features/scenes/scene_dialogue_line_policy_form.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 
+import 'scene_battle_demonstration_form.dart';
+
 part 'scene_inspector_fields.dart';
 
 SceneAsset replaceSceneNode(SceneAsset scene, SceneNode node) =>

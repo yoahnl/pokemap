@@ -380,7 +380,7 @@ class PlayerActionButton extends StatefulWidget {
         assert(disabledOpacity >= 0 && disabledOpacity <= 1);
 
   final String label;
-  final IconData icon;
+  final IconData? icon;
   final VoidCallback? onPressed;
   final String? disabledReason;
   final bool autofocus;
@@ -450,8 +450,10 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
           mainAxisSize:
               widget.expandContent ? MainAxisSize.max : MainAxisSize.min,
           children: <Widget>[
-            Icon(widget.icon),
-            const SizedBox(width: PlayerSpacing.sm),
+            if (widget.icon != null) ...[
+              Icon(widget.icon),
+              const SizedBox(width: PlayerSpacing.sm),
+            ],
             if (widget.expandContent)
               Expanded(
                 child: Text(

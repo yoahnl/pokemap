@@ -5,8 +5,33 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/src/spatial_shadow_map.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
+import 'package:map_render_3d/src/spatial_point_light.dart';
 
 void main() {
+  test('point maps render all six faces per light into one reused GPU atlas without ending caller frame', () {
+    final backend = _Backend();
+    final map = SpatialShadowMap(backend, ownsFrame: false);
+    final lights = [
+      SpatialPointLight(position: (x: 2, y: 3, z: 4), radius: 5),
+      SpatialPointLight(position: (x: 8, y: 3, z: 4), radius: 5),
+    ];
+    var draws = 0;
+    final first = map.renderPointLights(lights, (context, material, light) {
+      draws++;
+    });
+    expect(draws, 12);
+    expect(first!.lightCount, 2);
+    expect(first.texture.width, 768);
+    expect(first.texture.height, 1024);
+    expect(backend.events.where((event) => event == 'submit'), hasLength(1));
+    expect(backend.events, isNot(contains('end')));
+    final second = map.renderPointLights(lights, (_, _, _) {});
+    expect(second!.texture, same(first.texture));
+    expect(map.pointTargetAllocations, 1);
+    final before = backend.events.length;
+    expect(map.renderPointLights([], (_, _, _) {}), isNull);
+    expect(backend.events, hasLength(before));
+  });
   test('shadow passes reuse their sampled GPU target and submit before the main draw', () {
     final backend = _Backend();
     final map = SpatialShadowMap(backend);
@@ -61,7 +86,6 @@ final class _Backend extends GpuBackend {
     required Color clearValue,
   }) {
     events.add('allocate');
-    expect(width, height);
     expect(clearValue, const Color(0xffffffff));
     final target = _Target();
     targets.add(target);

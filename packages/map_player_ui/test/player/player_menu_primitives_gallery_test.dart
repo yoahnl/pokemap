@@ -10,9 +10,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')
-          ..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf')))
-        .load();
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
     var cache = File(Platform.resolvedExecutable).parent;
     while (!cache.path.endsWith('${Platform.pathSeparator}cache')) {
       if (cache.parent.path == cache.path) {
@@ -23,9 +23,9 @@ void main() {
     final bytes = await File(
       '${cache.path}/artifacts/material_fonts/MaterialIcons-Regular.otf',
     ).readAsBytes();
-    await (FontLoader('MaterialIcons')
-          ..addFont(Future.value(ByteData.sublistView(bytes))))
-        .load();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(Future.value(ByteData.sublistView(bytes)))).load();
   });
 
   const sizes = [
@@ -39,15 +39,20 @@ void main() {
 
   for (final size in sizes) {
     for (final scale in [1.0, 1.5, 2.0]) {
-      testWidgets('keeps Return reachable at $size and text $scale',
-          (tester) async {
+      testWidgets('keeps Return reachable at $size and text $scale', (
+        tester,
+      ) async {
         await _pump(
-            tester, size, PlayerMenuPrimitivesGallery(textScale: scale));
-        expect(tester.takeException(), isNull);
-        final titleBounds = tester.getRect(
-          find.text('Tous les menus et les états de votre aventure'),
+          tester,
+          size,
+          PlayerMenuPrimitivesGallery(textScale: scale),
         );
-        final bodyBounds = tester.getRect(find.text('Choisir, puis agir'));
+        expect(tester.takeException(), isNull);
+        expect(find.byType(Scrollable), findsNothing);
+        final titleBounds = tester.getRect(
+          find.byKey(const ValueKey('gallery-header')),
+        );
+        final bodyBounds = tester.getRect(find.byType(PlayerPagedList).first);
         expect(titleBounds.bottom, lessThanOrEqualTo(bodyBounds.top));
         final back = _row('gallery-return');
         expect(back, findsOneWidget);
@@ -75,46 +80,108 @@ void main() {
     expect(tester.takeException(), isNull);
     final back = tester.getRect(_row('gallery-return'));
     expect(back.bottom, lessThanOrEqualTo(810));
-    final title = tester.getRect(
-      find.text('Tous les menus et les états de votre aventure'),
-    );
+    final title = tester.getRect(find.byKey(const ValueKey('gallery-header')));
     expect(title.top, greaterThanOrEqualTo(44));
-    expect(title.bottom,
-        lessThanOrEqualTo(tester.getRect(find.text('Choisir, puis agir')).top));
+    expect(
+      title.bottom,
+      lessThanOrEqualTo(tester.getRect(find.byType(PlayerPagedList).first).top),
+    );
     expect(_row('gallery-return').hitTestable(), findsOneWidget);
   });
 
-  testWidgets('gallery selection is local and unavailable actions do nothing',
-      (tester) async {
-    await _pump(tester, const Size(1440, 900),
-        const PlayerMenuPrimitivesGallery(reducedMotion: true));
+  testWidgets('gallery selection is local and unavailable actions do nothing', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      const Size(1440, 900),
+      const PlayerMenuPrimitivesGallery(reducedMotion: true),
+    );
     await tester.tap(_row('gallery-normal'));
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pump();
     expect(
-        tester.widget<PlayerMenuSelectableRow>(_row('gallery-normal')).selected,
-        isTrue);
-    await tester.ensureVisible(_row('gallery-disabled'));
+      tester.widget<PlayerMenuSelectableRow>(_row('gallery-normal')).selected,
+      isTrue,
+    );
+    await _reveal(tester, _row('gallery-disabled'));
     await tester.tap(_row('gallery-disabled'));
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pump();
     expect(
-        tester.widget<PlayerMenuSelectableRow>(_row('gallery-normal')).selected,
-        isTrue);
+      tester.widget<PlayerMenuSelectableRow>(_row('gallery-normal')).selected,
+      isTrue,
+    );
     expect(find.text('Une cible compatible est nécessaire.'), findsOneWidget);
-    await tester.ensureVisible(_row('gallery-busy'));
+    await _reveal(tester, _row('gallery-busy'));
     await tester.tap(_row('gallery-busy'));
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pump();
     expect(
-        tester.widget<PlayerMenuSelectableRow>(_row('gallery-normal')).selected,
-        isTrue);
+      tester.widget<PlayerMenuSelectableRow>(_row('gallery-normal')).selected,
+      isTrue,
+    );
     await tester.tap(_row('gallery-return'));
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
+    await tester.pump();
     expect(
-        tester
-            .widget<PlayerMenuSelectableRow>(_row('gallery-selected'))
-            .selected,
-        isTrue);
+      tester.widget<PlayerMenuSelectableRow>(_row('gallery-selected')).selected,
+      isTrue,
+    );
     expect(tester.takeException(), isNull);
   });
+
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets(
+      'all gallery content is reachable on real pages at $size with text 2',
+      (tester) async {
+        await _pump(
+          tester,
+          size,
+          const PlayerMenuPrimitivesGallery(textScale: 2, reducedMotion: true),
+        );
+        final seen = <String>{};
+        for (var step = 0; step < 50; step++) {
+          for (final widget in tester.widgetList<Text>(find.byType(Text))) {
+            if (widget.data != null) seen.add(widget.data!);
+          }
+          final error = tester.takeException();
+          expect(
+            error,
+            isNull,
+            reason:
+                'Page $step: ${tester.widgetList<Text>(find.byType(Text)).map((text) => text.data).toList()} : ${error is FlutterError ? error.toStringDeep() : error}',
+          );
+          final next = find.byKey(const ValueKey('player-page-next'));
+          if (next.evaluate().isEmpty ||
+              tester.widget<IconButton>(next).onPressed == null) {
+            break;
+          }
+          await tester.tap(next);
+          await tester.pumpAndSettle();
+        }
+        expect(
+          seen,
+          containsAll([
+            'Choisir, puis agir',
+            'Sélection conservée',
+            'Traitement en cours',
+            'Des informations lisibles',
+            'Aucun élément',
+            'Ressource indisponible',
+            'Aperçu sans sauvegarde',
+          ]),
+        );
+        expect(find.byType(Scrollable), findsNothing);
+        expect(_row('gallery-return').hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   const captures = [
     (
@@ -166,14 +233,26 @@ void main() {
     });
   }
 
-  testWidgets('renders every feedback state after scrolling', (tester) async {
-    await _pump(tester, const Size(1440, 900),
-        const PlayerMenuPrimitivesGallery(reducedMotion: true));
-    await tester.ensureVisible(find.text('Aperçu sans sauvegarde'));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Aucun élément').hitTestable(), findsOneWidget);
-    expect(find.text('Ressource indisponible').hitTestable(), findsOneWidget);
-    expect(find.text('Aperçu sans sauvegarde').hitTestable(), findsOneWidget);
+  testWidgets('renders every feedback state through real content pages', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      const Size(1440, 900),
+      const PlayerMenuPrimitivesGallery(reducedMotion: true),
+    );
+    for (final title in [
+      'Aucun élément',
+      'Ressource indisponible',
+      'Aperçu sans sauvegarde',
+    ]) {
+      await _reveal(
+        tester,
+        find.text(title),
+        scope: find.byKey(const ValueKey('gallery-details')),
+      );
+      expect(find.text(title).hitTestable(), findsOneWidget);
+    }
     expect(tester.takeException(), isNull);
     await expectLater(
       find.byKey(const ValueKey('menu-gallery-capture')),
@@ -183,8 +262,8 @@ void main() {
 }
 
 Finder _row(String id) => find.byWidgetPredicate(
-      (widget) => widget is PlayerMenuSelectableRow && widget.id == id,
-    );
+  (widget) => widget is PlayerMenuSelectableRow && widget.id == id,
+);
 
 Future<void> _pump(
   WidgetTester tester,
@@ -194,15 +273,44 @@ Future<void> _pump(
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: RepaintBoundary(
-      key: const ValueKey('menu-gallery-capture'),
-      child: MediaQuery(
-        data: MediaQueryData(size: size, padding: insets),
-        child: scene,
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: RepaintBoundary(
+        key: const ValueKey('menu-gallery-capture'),
+        child: MediaQuery(
+          data: MediaQueryData(size: size, padding: insets),
+          child: scene,
+        ),
       ),
     ),
-  ));
+  );
   await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump();
+  await tester.pump();
+}
+
+Future<void> _reveal(
+  WidgetTester tester,
+  Finder target, {
+  Finder? scope,
+}) async {
+  for (var step = 0; step < 40 && target.evaluate().isEmpty; step++) {
+    final next = scope == null
+        ? find.byKey(const ValueKey('player-page-next'))
+        : find.descendant(
+            of: scope,
+            matching: find.byKey(const ValueKey('player-page-next')),
+          );
+    final enabled = next.evaluate().where(
+      (element) => (element.widget as IconButton).onPressed != null,
+    );
+    expect(enabled, isNotEmpty);
+    final element = enabled.last;
+    await tester.tap(
+      find.byElementPredicate((candidate) => identical(candidate, element)),
+    );
+    await tester.pumpAndSettle();
+  }
+  expect(target, findsOneWidget);
 }

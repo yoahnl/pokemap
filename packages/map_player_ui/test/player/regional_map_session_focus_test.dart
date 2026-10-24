@@ -62,7 +62,12 @@ void main() {
     session.preparation.complete();
     await tester.pumpAndSettle();
 
-    for (final key in ['region-map-info', 'region-map-region']) {
+    expect(find.byKey(const ValueKey('region-map-info')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('region-detail-clairbois')),
+      findsOneWidget,
+    );
+    for (final key in ['region-map-region']) {
       await tester.tap(find.byKey(ValueKey(key)));
       await tester.pumpAndSettle();
       final commandsBeforeBack = session.worldCommands.length;

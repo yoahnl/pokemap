@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
+import 'spatial_point_shadow.dart';
 
 enum SpatialPixelLightingRole { surface, actor, ground }
 
@@ -36,6 +37,8 @@ class SpatialPixelMaterial extends UnlitMaterial {
       _uniformsBound = false;
       _lightingUniformsBound = false;
       _shadowUniformsBound = false;
+      _environmentUniformsBound = false;
+      _pointShadowUniformsBound = false;
     });
   }
 
@@ -74,6 +77,20 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final _shadowSample = Vector4.zero();
   final _boundShadowSample = Vector3.zero();
   bool _boundUsesShadowSample = false;
+  bool _environmentUniformsBound = false;
+  SpatialLightingProfile? _boundEnvironmentLighting;
+  Shader? _environmentShader;
+  GpuShader? _environmentResource;
+  final _environmentTint = Vector4.zero(), _environmentOptions = Vector4.zero();
+  final _environmentSample = Vector4.zero();
+  final _boundEnvironmentSample = Vector4.zero();
+  final _pointPositionRadius = List.generate(4, (_) => Vector4.zero());
+  final _pointColorIntensity = List.generate(4, (_) => Vector4.zero());
+  bool _pointShadowUniformsBound = false;
+  SpatialPointShadowFrame? _boundPointShadowFrame;
+  Shader? _pointShadowShader;
+  GpuShader? _pointShadowResource;
+  final _pointShadowOptions = Vector4.zero();
   int _activeWrapS, _activeWrapT;
   int get activeWrapS => _activeWrapS;
   int get activeWrapT => _activeWrapT;
@@ -124,6 +141,12 @@ class SpatialPixelMaterial extends UnlitMaterial {
     prepareLighting(lighting);
     super.apply(context);
     _applyLighting(lighting, enabled: enabled, normalLighting: normalLighting);
+    _applyEnvironment(lighting);
+    _applyPointShadow(
+      context is SpatialLightingContext
+          ? (context as SpatialLightingContext).pointShadowFrame
+          : null,
+    );
     final frame = context is SpatialLightingContext
         ? (context as SpatialLightingContext).shadowFrame
         : null;
@@ -265,6 +288,92 @@ class SpatialPixelMaterial extends UnlitMaterial {
 
   static final _identityJoint = Matrix4.identity();
 
+  void _applyPointShadow(SpatialPointShadowFrame? frame) {
+    final shader = fragmentShader, resource = shader.resource;
+    if (_pointShadowUniformsBound &&
+        identical(_boundPointShadowFrame, frame) &&
+        identical(_pointShadowShader, shader) &&
+        identical(_pointShadowResource, resource))
+      return;
+    _pointShadowOptions.setValues(
+      frame == null ? 0 : 1,
+      frame?.faceResolution.toDouble() ?? 1,
+      frame?.lightCount.toDouble() ?? 1,
+      .02,
+    );
+    shader
+      ..setTexture('pointShadowTexture', frame?.texture ?? Texture.standard)
+      ..setVector4('PointShadows.options', _pointShadowOptions);
+    _boundPointShadowFrame = frame;
+    _pointShadowShader = shader;
+    _pointShadowResource = resource;
+    _pointShadowUniformsBound = true;
+  }
+
+  void _applyEnvironment(SpatialLightingProfile lighting) {
+    final shader = fragmentShader, resource = shader.resource;
+    final sample = lightingRole == SpatialPixelLightingRole.actor
+        ? shadowSamplePosition
+        : null;
+    _environmentSample.setValues(
+      sample?.x ?? 0,
+      sample?.y ?? 0,
+      sample?.z ?? 0,
+      sample == null ? 0 : 1,
+    );
+    if (_environmentUniformsBound &&
+        identical(_boundEnvironmentLighting, lighting) &&
+        _boundEnvironmentSample == _environmentSample &&
+        identical(_environmentShader, shader) &&
+        identical(_environmentResource, resource))
+      return;
+    final tint = lighting.sceneTint;
+    _environmentTint.setValues(tint.r, tint.g, tint.b, 1);
+    _environmentOptions.setValues(
+      lighting.enabled ? 1 : 0,
+      lighting.pointLights.length.toDouble(),
+      0,
+      0,
+    );
+    shader
+      ..setVector4('Environment.tint', _environmentTint)
+      ..setVector4('Environment.options', _environmentOptions)
+      ..setVector4('Environment.samplePosition', _environmentSample);
+    for (var index = 0; index < 4; index++) {
+      final light = index < lighting.pointLights.length
+          ? lighting.pointLights[index]
+          : null;
+      final position = light?.position;
+      _pointPositionRadius[index].setValues(
+        position?.x ?? 0,
+        position?.y ?? 0,
+        position?.z ?? 0,
+        light?.radius ?? 1,
+      );
+      final color = light?.color;
+      _pointColorIntensity[index].setValues(
+        color?.r ?? 0,
+        color?.g ?? 0,
+        color?.b ?? 0,
+        light?.intensity ?? 0,
+      );
+      shader
+        ..setVector4(
+          'Environment.pointPositionRadius[$index]',
+          _pointPositionRadius[index],
+        )
+        ..setVector4(
+          'Environment.pointColorIntensity[$index]',
+          _pointColorIntensity[index],
+        );
+    }
+    _boundEnvironmentLighting = lighting;
+    _boundEnvironmentSample.setFrom(_environmentSample);
+    _environmentShader = shader;
+    _environmentResource = resource;
+    _environmentUniformsBound = true;
+  }
+
   void _applyShadow(SpatialShadowFrame? frame) {
     final shader = fragmentShader, resource = fragmentShader.resource;
     final sample =
@@ -341,7 +450,15 @@ class _PixelFragmentShader extends FragmentShader {
   _PixelFragmentShader(this._onCreate)
     : super.fromAsset(
         'packages/map_render_3d/assets/shaders/pixel_material.shaderbundle',
-        slots: ['albedoTexture', 'Material', 'shadowTexture', 'Shadow'],
+        slots: [
+          'albedoTexture',
+          'Material',
+          'shadowTexture',
+          'Shadow',
+          'Environment',
+          'pointShadowTexture',
+          'PointShadows',
+        ],
       );
 
   final void Function() _onCreate;

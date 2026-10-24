@@ -552,6 +552,19 @@ final class SceneActions {
     'saveResume': 'committedRecoveredState',
   };
 
+  static const _battleDemonstrationContract = {
+    'payloadKind': 'battle',
+    'field': 'demonstration',
+    'projectDimensions': ['threeD'],
+    'battleKinds': ['wild'],
+    'capability': SceneBattleDemonstration.capabilityId,
+    'parameters': ['playerTrainerId', 'bagItems', 'choices', 'captureAlwaysSucceeds', 'stepDelayMs'],
+    'choices': {'fight': ['moveIndex'], 'capture': ['itemId']},
+    'temporaryState': ['party', 'bag'],
+    'writeBack': false,
+    'waitsFor': 'battlePresentationAndExitTransition',
+  };
+
   static const _whiteOutContract = {
     'interactiveCommandKind': 'whiteOut',
     'parameters': [],
@@ -571,6 +584,7 @@ final class SceneActions {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
         'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
+        'battleDemonstration': _battleDemonstrationContract,
         'whiteOut': _whiteOutContract,
         'calculateIntegerFacts': _calculateIntegerFactsContract,
         'adjustMoney': _adjustMoneyContract,
@@ -713,6 +727,7 @@ final class SceneActions {
       extensions: const {
         'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
+        'battleDemonstration': _battleDemonstrationContract,
         'whiteOut': _whiteOutContract,
         'calculateIntegerFacts': _calculateIntegerFactsContract,
         'adjustMoney': _adjustMoneyContract,

@@ -5,6 +5,54 @@ import 'package:map_runtime/map_runtime.dart';
 import 'scene_interactive_pokemon_gift_test.dart' show giftCatalog;
 
 void main() {
+  test('gift Back cancels nickname as a user while disposal stays technical',
+      () async {
+    const state = GameState(saveId: 'back');
+    final pokemon = giftCatalog().generate(
+      consequence: SceneGivePokemonFromCatalogConsequence(
+        speciesId: 'clockbird', formId: 'bronze', level: 7,
+      ),
+      state: state,
+      operationId: 'back',
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    );
+    for (final dispose in [false, true]) {
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (_) async => fail('Nickname must not commit'),
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async =>
+            const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
+      );
+      addTearDown(controller.dispose);
+      final pending = controller.openPokemonGiftInteraction(
+        request: OpenPokemonGiftInteractionService(
+          interactionId: 'back:nickname',
+          interaction: SceneTextInteractionRequest(
+            requestId: 'back:nickname', revision: 0,
+            prompt: SceneInteractionPrompt(localizationKey: 'nickname'),
+          ),
+          stage: PokemonGiftInteractionStage.nickname,
+          pokemon: pokemon,
+          projectedState: state,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      if (dispose) {
+        await controller.dispose();
+      } else {
+        await controller.dispatchWorldService(RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.cancel,
+          snapshotRevision: controller.worldServiceSnapshot!.revision,
+        ));
+      }
+      final result = await pending as SceneCancelledInteractionResult;
+      expect(result.reason, dispose
+          ? SceneInteractionCancellationReason.disposed
+          : SceneInteractionCancellationReason.user);
+    }
+  });
+
   test(
     'gift modal validates replies without saving or writing variables',
     () async {

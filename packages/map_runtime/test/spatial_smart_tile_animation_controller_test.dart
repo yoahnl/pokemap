@@ -40,6 +40,31 @@ void main() {
     expect(elapsed(-1, 5), 0);
   });
 
+  test('actor entries replay authored model grass and keep new maps at rest', () {
+    final fixture = spatialGrassFixture();
+    final projection = resolveSpatialSmartTileModelProjection(
+      map: fixture.map, catalog: fixture.project.smartTileCatalog);
+    final first = projection.instances.first;
+    final neighbor = projection.instances.last;
+    final controller = SpatialSmartTileAnimationController(
+      map: fixture.map, project: fixture.project);
+    controller.onPlayerEnteredCell(const GridPos(x: 4, y: 5));
+    controller.update(.5);
+    expect(controller.stateFor(first.id)!.normalizedTime, 0);
+    controller.onActorEnteredCell(const GridPos(x: 4, y: 5));
+    controller.update(.1);
+    expect(controller.stateFor(first.id)!.normalizedTime, closeTo(.25, 1e-9));
+    expect(controller.stateFor(neighbor.id)!.normalizedTime, 0);
+    final otherMap = fixture.map.copyWith(id: 'other');
+    final replacement = SpatialSmartTileAnimationController(
+      map: otherMap, project: fixture.project);
+    final otherId = resolveSpatialSmartTileModelProjection(
+      map: otherMap, catalog: fixture.project.smartTileCatalog).instances.first.id;
+    expect(replacement.stateFor(otherId)!.normalizedTime, 0);
+    controller.update(.301);
+    expect(controller.stateFor(first.id)!.normalizedTime, 0);
+  });
+
   test('raster always layers retain the supplied global clock', () {
     final fixture = spatialRasterGrassFixture(
       activation: SmartTileAnimationActivation.always,

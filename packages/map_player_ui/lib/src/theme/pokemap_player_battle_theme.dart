@@ -15,6 +15,13 @@ final class PokeMapPlayerBattleChrome
     required this.focus,
     required this.water,
     required this.normal,
+    required this.hudSurface,
+    required this.hudText,
+    required this.moveSurface,
+    required this.moveSelected,
+    required this.moveText,
+    required this.dockSurface,
+    required this.dockText,
   });
 
   static const darkFieldManual = PokeMapPlayerBattleChrome(
@@ -28,6 +35,13 @@ final class PokeMapPlayerBattleChrome
     focus: Color(0xFFE86445),
     water: Color(0xFF3E9FE8),
     normal: Color(0xFFA99F8E),
+    hudSurface: Color(0xFFF6F3E9),
+    hudText: Color(0xFF19323B),
+    moveSurface: Color(0xFFF6F3E9),
+    moveSelected: Color(0xFFF5DCA1),
+    moveText: Color(0xFF19323B),
+    dockSurface: Color(0xFF142B36),
+    dockText: Color(0xFFF6F3E9),
   );
 
   final Color surface;
@@ -40,6 +54,13 @@ final class PokeMapPlayerBattleChrome
   final Color focus;
   final Color water;
   final Color normal;
+  final Color hudSurface;
+  final Color hudText;
+  final Color moveSurface;
+  final Color moveSelected;
+  final Color moveText;
+  final Color dockSurface;
+  final Color dockText;
 
   @override
   PokeMapPlayerBattleChrome copyWith({
@@ -53,19 +74,32 @@ final class PokeMapPlayerBattleChrome
     Color? focus,
     Color? water,
     Color? normal,
-  }) =>
-      PokeMapPlayerBattleChrome(
-        surface: surface ?? this.surface,
-        surfaceRaised: surfaceRaised ?? this.surfaceRaised,
-        surfaceSelected: surfaceSelected ?? this.surfaceSelected,
-        underplate: underplate ?? this.underplate,
-        textPrimary: textPrimary ?? this.textPrimary,
-        textSecondary: textSecondary ?? this.textSecondary,
-        outline: outline ?? this.outline,
-        focus: focus ?? this.focus,
-        water: water ?? this.water,
-        normal: normal ?? this.normal,
-      );
+    Color? hudSurface,
+    Color? hudText,
+    Color? moveSurface,
+    Color? moveSelected,
+    Color? moveText,
+    Color? dockSurface,
+    Color? dockText,
+  }) => PokeMapPlayerBattleChrome(
+    surface: surface ?? this.surface,
+    surfaceRaised: surfaceRaised ?? this.surfaceRaised,
+    surfaceSelected: surfaceSelected ?? this.surfaceSelected,
+    underplate: underplate ?? this.underplate,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    outline: outline ?? this.outline,
+    focus: focus ?? this.focus,
+    water: water ?? this.water,
+    normal: normal ?? this.normal,
+    hudSurface: hudSurface ?? this.hudSurface,
+    hudText: hudText ?? this.hudText,
+    moveSurface: moveSurface ?? this.moveSurface,
+    moveSelected: moveSelected ?? this.moveSelected,
+    moveText: moveText ?? this.moveText,
+    dockSurface: dockSurface ?? this.dockSurface,
+    dockText: dockText ?? this.dockText,
+  );
 
   @override
   PokeMapPlayerBattleChrome lerp(
@@ -84,6 +118,13 @@ final class PokeMapPlayerBattleChrome
       focus: Color.lerp(focus, other.focus, t)!,
       water: Color.lerp(water, other.water, t)!,
       normal: Color.lerp(normal, other.normal, t)!,
+      hudSurface: Color.lerp(hudSurface, other.hudSurface, t)!,
+      hudText: Color.lerp(hudText, other.hudText, t)!,
+      moveSurface: Color.lerp(moveSurface, other.moveSurface, t)!,
+      moveSelected: Color.lerp(moveSelected, other.moveSelected, t)!,
+      moveText: Color.lerp(moveText, other.moveText, t)!,
+      dockSurface: Color.lerp(dockSurface, other.dockSurface, t)!,
+      dockText: Color.lerp(dockText, other.dockText, t)!,
     );
   }
 }
@@ -98,15 +139,13 @@ final class PokeMapPlayerBattleTheme
   @override
   PokeMapPlayerBattleTheme copyWith({
     ProjectBattlePresentationProfile? profile,
-  }) =>
-      PokeMapPlayerBattleTheme(profile ?? this.profile);
+  }) => PokeMapPlayerBattleTheme(profile ?? this.profile);
 
   @override
   PokeMapPlayerBattleTheme lerp(
     covariant ThemeExtension<PokeMapPlayerBattleTheme>? other,
     double t,
-  ) =>
-      t < .5 || other is! PokeMapPlayerBattleTheme ? this : other;
+  ) => t < .5 || other is! PokeMapPlayerBattleTheme ? this : other;
 }
 
 extension PokeMapPlayerBattleContext on BuildContext {

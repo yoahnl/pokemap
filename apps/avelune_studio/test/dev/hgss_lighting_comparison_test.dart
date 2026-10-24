@@ -1,9 +1,309 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/map_render_3d.dart';
 
 import '../../dev/hgss_lighting_comparison.dart';
 
 void main() {
+  test('comparison plans retain both modes and bound the day/night folder', () {
+    expect(
+      comparisonPlanRelativePath('comparison-plan.json'),
+      'evidence/comparison-plan.json',
+    );
+    expect(
+      comparisonPlanRelativePath('comparison-shadows-plan.json'),
+      'evidence/comparison-shadows-plan.json',
+    );
+    expect(
+      comparisonPlanRelativePath('comparison-day-night-plan.json'),
+      'evidence/day-night/comparison-day-night-plan.json',
+    );
+    expect(
+      comparisonPlanRelativePath('comparison-lamp-shadows-plan.json'),
+      'evidence/lamp-shadows/comparison-lamp-shadows-plan.json',
+    );
+    expect(
+      () => comparisonPlanRelativePath('../comparison-day-night-plan.json'),
+      throwsStateError,
+    );
+    expect(() => comparisonPlanRelativePath('other.json'), throwsStateError);
+  });
+
+  test(
+    'loads the owned day/night plan and rejects a foreign copy or mixed mode',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'avelune-comparison-plan-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final path = await root.resolveSymbolicLinks();
+      await Directory('$path/evidence/day-night').create(recursive: true);
+      final file = File(
+        '$path/evidence/day-night/comparison-day-night-plan.json',
+      );
+      final plan = {
+        'testProject': '$path/jeu',
+        'mapId': 'first-map',
+        'dayNightTest': true,
+      };
+      await file.writeAsString(jsonEncode(plan));
+      expect(
+        await loadComparisonPlan(path, 'comparison-day-night-plan.json'),
+        plan,
+      );
+      await file.writeAsString(
+        jsonEncode({...plan, 'testProject': '/other/jeu'}),
+      );
+      await expectLater(
+        loadComparisonPlan(path, 'comparison-day-night-plan.json'),
+        throwsStateError,
+      );
+      await file.writeAsString(
+        jsonEncode({
+          ...plan,
+          'shadowCasterInstanceIds': ['house'],
+        }),
+      );
+      await expectLater(
+        loadComparisonPlan(path, 'comparison-day-night-plan.json'),
+        throwsStateError,
+      );
+      await file.writeAsString(jsonEncode({...plan, 'dayNightTest': false}));
+      await expectLater(
+        loadComparisonPlan(path, 'comparison-day-night-plan.json'),
+        throwsStateError,
+      );
+    },
+  );
+
+  test(
+    'lamp shadow plans stay in their folder and reject other lighting modes',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'avelune-lamp-shadow-plan-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final path = await root.resolveSymbolicLinks();
+      await Directory('$path/evidence/lamp-shadows').create(recursive: true);
+      final file = File(
+        '$path/evidence/lamp-shadows/comparison-lamp-shadows-plan.json',
+      );
+      final plan = {
+        'testProject': '$path/jeu',
+        'mapId': 'first-map',
+        'pointLightShadowTest': true,
+      };
+      await file.writeAsString(jsonEncode(plan));
+      expect(
+        await loadComparisonPlan(path, 'comparison-lamp-shadows-plan.json'),
+        plan,
+      );
+      for (final extra in [
+        {'dayNightTest': true},
+        {
+          'shadowCasterInstanceIds': ['house'],
+        },
+        {'pointLightShadowTest': false},
+      ]) {
+        await file.writeAsString(jsonEncode({...plan, ...extra}));
+        await expectLater(
+          loadComparisonPlan(path, 'comparison-lamp-shadows-plan.json'),
+          throwsStateError,
+        );
+      }
+      expect(
+        () =>
+            comparisonPlanRelativePath('../comparison-lamp-shadows-plan.json'),
+        throwsStateError,
+      );
+    },
+  );
+
+  test(
+    'lamp shadow comparison rejects masking without changing older modes',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'avelune-unmasked-lamp-plan-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final path = await root.resolveSymbolicLinks();
+      await Directory('$path/evidence/lamp-shadows').create(recursive: true);
+      final file = File(
+        '$path/evidence/lamp-shadows/comparison-lamp-shadows-plan.json',
+      );
+      final plan = {
+        'testProject': '$path/jeu',
+        'mapId': 'first-map',
+        'pointLightShadowTest': true,
+        'hiddenMaterialsByInstance': <String, dynamic>{},
+        'hiddenInstanceIds': <String>[],
+      };
+      await file.writeAsString(jsonEncode(plan));
+      expect(
+        await loadComparisonPlan(path, 'comparison-lamp-shadows-plan.json'),
+        plan,
+      );
+      for (final masking in [
+        {
+          'hiddenMaterialsByInstance': {
+            'house': ['h_kage'],
+          },
+        },
+        {
+          'hiddenInstanceIds': ['turbine'],
+        },
+      ]) {
+        await file.writeAsString(jsonEncode({...plan, ...masking}));
+        await expectLater(
+          loadComparisonPlan(path, 'comparison-lamp-shadows-plan.json'),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              contains('unmasked'),
+            ),
+          ),
+        );
+      }
+      final olderPlan = {
+        'testProject': '$path/jeu',
+        'mapId': 'first-map',
+        'shadowCasterInstanceIds': ['house'],
+        'hiddenMaterialsByInstance': {
+          'house': ['h_kage'],
+        },
+        'hiddenInstanceIds': ['turbine'],
+      };
+      await File('$path/evidence/comparison-shadows-plan.json')
+          .writeAsString(jsonEncode(olderPlan));
+      expect(
+        await loadComparisonPlan(path, 'comparison-shadows-plan.json'),
+        olderPlan,
+      );
+    },
+  );
+
+  test('lamp shadow comparison changes only occlusion at a fixed 22h', () {
+    final camera = SpatialSceneController();
+    final before = SpatialLightingProfile.disabled;
+    final after = SpatialLightingProfile.stylized();
+    final lighting = ValueNotifier(before);
+    addTearDown(camera.dispose);
+    addTearDown(lighting.dispose);
+    expect(camera.previewPointLightShadowsEnabled, isTrue);
+    void phase(bool enabled, int frame) => setComparisonLightingPhase(
+      dayNightTest: false,
+      pointLightShadowTest: true,
+      after: enabled,
+      probeOnly: false,
+      frameIndex: frame,
+      frameCount: 240,
+      camera: camera,
+      lighting: lighting,
+      beforeProfile: before,
+      afterProfile: after,
+    );
+    phase(false, 0);
+    expect(camera.previewMinuteOfDay, 1320);
+    expect(camera.previewPointLightShadowsEnabled, isFalse);
+    phase(true, 120);
+    expect(camera.previewMinuteOfDay, 1320);
+    expect(camera.previewPointLightShadowsEnabled, isTrue);
+    phase(false, 239);
+    expect(camera.previewMinuteOfDay, 1320);
+    expect(camera.previewPointLightShadowsEnabled, isFalse);
+    expect(lighting.value, same(before));
+    const child = SizedBox();
+    expect(
+      comparisonLightingSurface(
+        dayNightTest: false,
+        pointLightShadowTest: true,
+        lighting: lighting,
+        child: child,
+      ),
+      same(child),
+    );
+  });
+
+  test(
+    'day/night samples noon before, a full day after, and 22h for the probe',
+    () {
+      double minute({
+        required bool after,
+        bool probe = false,
+        int index = 0,
+        int count = 240,
+      }) => comparisonMinuteOfDay(
+        after: after,
+        probeOnly: probe,
+        frameIndex: index,
+        frameCount: count,
+      );
+      expect(minute(after: false, index: 100), 720);
+      expect(minute(after: true, probe: true), 1320);
+      expect(minute(after: true), 720);
+      expect(minute(after: true, index: 239), 720);
+      expect(minute(after: true, index: 1, count: 5), 1080);
+      expect(minute(after: true, index: 2, count: 5), 0);
+      expect(minute(after: true, index: 3, count: 5), 360);
+      expect(() => minute(after: true, count: 1), throwsStateError);
+      expect(() => minute(after: true, index: 240), throwsStateError);
+    },
+  );
+
+  test('day/night uses authored lighting and restores noon without changing the profile', () {
+    final camera = SpatialSceneController();
+    final before = SpatialLightingProfile.disabled;
+    final after = SpatialLightingProfile.stylized();
+    final lighting = ValueNotifier(before);
+    addTearDown(camera.dispose);
+    addTearDown(lighting.dispose);
+    void phase(bool enabled, {bool dayNight = true}) =>
+        setComparisonLightingPhase(
+          dayNightTest: dayNight,
+          after: enabled,
+          probeOnly: true,
+          frameIndex: 0,
+          frameCount: 240,
+          camera: camera,
+          lighting: lighting,
+          beforeProfile: before,
+          afterProfile: after,
+        );
+    phase(false);
+    expect(camera.previewMinuteOfDay, 720);
+    phase(true);
+    expect(camera.previewMinuteOfDay, 1320);
+    expect(lighting.value, same(before));
+    phase(false);
+    expect(camera.previewMinuteOfDay, 720);
+    const child = SizedBox();
+    expect(
+      comparisonLightingSurface(
+        dayNightTest: true,
+        lighting: lighting,
+        child: child,
+      ),
+      same(child),
+    );
+    expect(
+      comparisonLightingSurface(
+        dayNightTest: false,
+        lighting: lighting,
+        child: child,
+      ),
+      isA<SpatialLightingPreview>(),
+    );
+    phase(true, dayNight: false);
+    expect(lighting.value, same(after));
+    phase(false, dayNight: false);
+    expect(lighting.value, same(before));
+  });
+
   final house = SpatialModelInstance(
     id: 'house',
     modelId: 'house-model',

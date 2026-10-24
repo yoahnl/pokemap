@@ -82,6 +82,7 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
   }
 
   for (final size in [const Size(1000, 700), const Size(360, 640)]) {
@@ -98,6 +99,7 @@ void main() {
           snapshot(RuntimePartyTradePhase.selectFirst),
           commands,
         );
+        expect(find.byType(Scrollable), findsNothing);
         expect(find.text('Machoke · Niv. 28'), findsOneWidget);
         expect(find.text('Onix · Niv. 25'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('party-trade-pokemon-a')));

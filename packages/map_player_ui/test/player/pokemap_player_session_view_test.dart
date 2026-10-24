@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:ui' as ui
-    show KeyEventDeviceType, PointerDeviceKind, ViewFocusEvent, ViewFocusState, ViewFocusDirection;
+    show KeyData, KeyEventType, KeyEventDeviceType, PointerDeviceKind, ViewFocusEvent, ViewFocusState, ViewFocusDirection;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +13,61 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final source in [PlayerInputSource.keyboard, PlayerInputSource.controller]) {
+    testWidgets('dialogue pages consume ${source.name} before the final runtime advance', (tester) async {
+      tester.view.physicalSize = const Size(640, 360);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+        context: RuntimeInputContext.dialogue));
+      final text = List.filled(22, 'Chaque ligne du récit reste accessible avant de continuer.').join('\n');
+      final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(DialoguePresentationSnapshot(
+        revision: 17, mode: DialoguePresentationMode.line, nodeTitle: 'story',
+        speaker: 'Guide', text: text, fullText: text,
+        isCurrentLineFullyRevealed: true, isLastContent: true, choices: const []));
+      final inputs = StreamController<RuntimeInputEvent>.broadcast();
+      final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+        revision: 26, phase: RuntimePlayerPhase.playing));
+      final routed = <RuntimeInputEvent>[];
+      final commands = <DialoguePresentationCommand>[];
+      addTearDown(authority.dispose);
+      addTearDown(dialogue.dispose);
+      addTearDown(inputs.close);
+      addTearDown(controller.dispose);
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
+        gameplayInputAuthority: authority, dialoguePresentation: dialogue,
+        onDialogueCommand: commands.add, controllerInputEvents: inputs.stream,
+        gameplayInputRoute: (event) { routed.add(event); return true; },
+        hapticFeedback: () async {})));
+      await tester.pumpAndSettle();
+      Future<void> confirm() async {
+        if (source == PlayerInputSource.keyboard) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        } else {
+          inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+          await tester.pump();
+          inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+        }
+        await tester.pumpAndSettle();
+      }
+      final count = find.byKey(const ValueKey('dialogue-page-count'));
+      final first = tester.widget<Text>(count).data;
+      await confirm();
+      expect(tester.widget<Text>(count).data, isNot(first));
+      expect(routed, isEmpty);
+      final pages = <String>[first!];
+      for (var step = 0; step < 100 && routed.isEmpty; step++) {
+        pages.add(tester.widget<Text>(count).data!);
+        await confirm();
+      }
+      expect(pages.length, greaterThan(2));
+      expect(routed.where((event) => event.isPress && event.control == RuntimeInputControl.primary), hasLength(1));
+      expect(routed.where((event) => !event.isPress && event.control == RuntimeInputControl.primary), hasLength(1));
+      expect(commands, isEmpty);
+      expect(tester.takeException(), isNull);
+      await _pumpMeasuredSessionWidget(tester, const SizedBox.shrink());
+    });
+  }
   testWidgets('fishing keeps cancel reachable while the world is locked and blocks menus', (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1,
       phase: RuntimePlayerPhase.playing, actions: const [
@@ -23,7 +78,7 @@ void main() {
     final events = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
-    await tester.pumpWidget(_app(_view(controller, gameplayInputAuthority: authority,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, gameplayInputAuthority: authority,
       gameplayInputRoute: (event) { events.add(event); return true; },
       hapticFeedback: () async {})));
     await tester.pump();
@@ -43,13 +98,19 @@ void main() {
     authority.value = const RuntimeInputAuthoritySnapshot(context: RuntimeInputContext.overworld);
     await tester.pump();
     expect(cancel, findsNothing);
-    await tester.pumpWidget(const SizedBox.shrink());
+    await _pumpMeasuredSessionWidget(tester, const SizedBox.shrink());
     expect(tester.takeException(), isNull);
   });
   for (final relayed in [false, true]) {
     testWidgets(
         '${relayed ? 'companion relay' : 'primary owner'} controller input while inactive and unfocused',
         (tester) async {
+      final previousErrorHandler = FlutterError.onError;
+      FlutterError.onError = (details) {
+        FlutterError.dumpErrorToConsole(details, forceReport: true);
+        previousErrorHandler?.call(details);
+      };
+      addTearDown(() => FlutterError.onError = previousErrorHandler);
       final controller = _FakeRuntimePlayerCoordinator(RuntimePlayerSnapshot(
         revision: 7,
         phase: RuntimePlayerPhase.paused,
@@ -73,7 +134,7 @@ void main() {
           direction: ui.ViewFocusDirection.undefined,
         ));
       });
-      await tester.pumpWidget(_app(_view(
+      await _pumpMeasuredSessionWidget(tester, _app(_view(
         controller,
         controllerInputEvents: inputs.stream,
         relayedControllerInput: relayed,
@@ -117,7 +178,7 @@ void main() {
       } else {
         expect(controller.commands, isEmpty);
       }
-      await tester.pumpWidget(const SizedBox.shrink());
+      await _pumpMeasuredSessionWidget(tester, const SizedBox.shrink());
     });
   }
 
@@ -129,7 +190,7 @@ void main() {
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
     addTearDown(blocked.dispose);
-    await tester.pumpWidget(_app(_view(controller, commandController: commands, gameplayInputAuthority: authority, menuInteractionBlocked: blocked, hapticFeedback: () async {})));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, commandController: commands, gameplayInputAuthority: authority, menuInteractionBlocked: blocked, hapticFeedback: () async {})));
     final rejected = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
     expect(rejected.status, RuntimePlayerCommandStatus.unavailable);
     expect(controller.commands, isEmpty);
@@ -144,7 +205,7 @@ void main() {
     final accepted = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
     expect(accepted.status, RuntimePlayerCommandStatus.accepted);
     expect(controller.commands.single.action, RuntimePlayerAction.openMenu);
-    await tester.pumpWidget(const SizedBox.shrink());
+    await _pumpMeasuredSessionWidget(tester, const SizedBox.shrink());
     final detached = await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
     expect(detached.status, RuntimePlayerCommandStatus.unavailable);
   });
@@ -154,10 +215,10 @@ void main() {
     final lifecycle = _SceneLifecycle();
     final viewportKey = GlobalKey();
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle, gameplayViewportKey: viewportKey, companionMenusAttached: true)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, lifecycle: lifecycle, gameplayViewportKey: viewportKey, companionMenusAttached: true)));
     expect(tester.widget<RuntimePlayerSurfaceRouter>(find.byType(RuntimePlayerSurfaceRouter)).showPlayerOverlay, isFalse);
     expect(lifecycle.mounts, 1);
-    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle, gameplayViewportKey: viewportKey)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, lifecycle: lifecycle, gameplayViewportKey: viewportKey)));
     expect(tester.widget<RuntimePlayerSurfaceRouter>(find.byType(RuntimePlayerSurfaceRouter)).showPlayerOverlay, isTrue);
     expect(lifecycle.mounts, 1);
     expect(lifecycle.disposals, 0);
@@ -170,7 +231,7 @@ void main() {
     final gameplay = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
     addTearDown(inputs.close);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       controllerInputEvents: inputs.stream, companionMenusAttached: true,
       onCompanionInput: (event) { forwarded.add(event); return true; },
       gameplayInputRoute: (event) { gameplay.add(event); return true; },
@@ -200,7 +261,7 @@ void main() {
     final viewportKey = GlobalKey();
     addTearDown(controller.dispose);
     addTearDown(interactions.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
         gameplayViewportKey: viewportKey,
         gameSceneBuilder: (_) => SizedBox.expand(key: viewportKey),
         touchControlsAvailable: true,
@@ -241,7 +302,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(interactions.dispose);
       addTearDown(authority.dispose);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           gameplayViewportKey: viewportKey,
           gameSceneBuilder: (_) => SizedBox.expand(key: viewportKey),
           touchControlsAvailable: true,
@@ -303,7 +364,7 @@ void main() {
     final viewportKey = GlobalKey();
     addTearDown(controller.dispose);
     addTearDown(interactions.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       gameplayViewportKey: viewportKey,
       gameSceneBuilder: (_) => Stack(children: [Positioned(left: 100, top: 40,
         child: Transform.scale(scale: .5, alignment: Alignment.topLeft,
@@ -336,7 +397,7 @@ void main() {
     final requests = <RuntimeOverworldInteractionRequest>[];
     addTearDown(controller.dispose);
     addTearDown(interactions.dispose);
-    await tester.pumpWidget(_app(_view(controller, touchControlsAvailable: true,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, touchControlsAvailable: true,
       gameplayInputRoute: (_) => true, overworldInteractions: interactions,
       onOverworldInteraction: (request) { requests.add(request); return true; })));
     final tap = await tester.startGesture(tester.getCenter(find.byType(PlayerOverworldActionCapsule)), kind: ui.PointerDeviceKind.touch);
@@ -361,7 +422,7 @@ void main() {
         context: RuntimeInputContext.overworld, sprintAllowed: true));
       addTearDown(controller.dispose);
       addTearDown(authority.dispose);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
         touchControlsAvailable: true, gameplayInputAuthority: authority,
         gameplayInputRoute: (_) => true,
         hapticFeedback: () async { haptics++; throw MissingPluginException(); },
@@ -392,7 +453,7 @@ void main() {
     final events = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       touchControlsAvailable: true, gameplayInputAuthority: authority,
       gameplayInputRoute: (event) { events.add(event); return true; })));
     final pointer = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
@@ -416,7 +477,7 @@ void main() {
     var haptics = 0;
     addTearDown(controller.dispose);
     addTearDown(input.close);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       controllerInputEvents: input.stream,
       gameplayInputRoute: (event) { events.add(event); return true; },
       hapticFeedback: () async => haptics++)));
@@ -437,7 +498,7 @@ void main() {
     final interactions = ValueNotifier(_overworldSnapshot());
     addTearDown(controller.dispose);
     addTearDown(interactions.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       overworldInteractions: interactions, onOverworldInteraction: (_) => true)));
     var capsule = tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule));
     expect(capsule.label, 'Talk');
@@ -463,7 +524,7 @@ void main() {
     final viewportKey = GlobalKey();
     final events = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       gameplayViewportKey: viewportKey,
       gameSceneBuilder: (_) => Stack(children: [Positioned(left: 100, top: 40,
         child: Transform.scale(scale: .5, alignment: Alignment.topLeft,
@@ -491,7 +552,7 @@ void main() {
     var offset = 0.0;
     late StateSetter moveViewport;
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       gameplayViewportKey: viewportKey,
       gameSceneBuilder: (_) => StatefulBuilder(builder: (context, setState) {
         moveViewport = setState;
@@ -519,7 +580,7 @@ void main() {
     final events = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       touchControlsAvailable: true, gameplayInputAuthority: authority,
       gameplayInputRoute: (event) { events.add(event); return true; },
     )));
@@ -539,7 +600,7 @@ void main() {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
     final events = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       touchControlsAvailable: true,
       gameplayInputRoute: (event) { events.add(event); return true; },
     )));
@@ -568,7 +629,7 @@ void main() {
     final viewportKey = GlobalKey();
     final events = <RuntimeInputEvent>[];
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       gameplayViewportKey: viewportKey,
       gameSceneBuilder: (_) => SizedBox.expand(key: viewportKey),
       touchControlsAvailable: true,
@@ -603,7 +664,7 @@ void main() {
       addTearDown(newController.dispose);
       addTearDown(oldAuthority.dispose);
       addTearDown(newAuthority.dispose);
-      await tester.pumpWidget(_app(_view(oldController,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(oldController,
         gameplayViewportKey: viewportKey, gameplayInputAuthority: oldAuthority,
         touchControlsAvailable: true,
         gameplayInputRoute: (event) { oldEvents.add(event); return true; },
@@ -611,7 +672,7 @@ void main() {
       final held = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
       await held.moveBy(const Offset(50, 0));
       expect(oldEvents.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
-      await tester.pumpWidget(_app(_view(replaceController ? newController : oldController,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(replaceController ? newController : oldController,
         gameplayViewportKey: viewportKey,
         gameplayInputAuthority: replaceController ? oldAuthority : newAuthority,
         touchControlsAvailable: true,
@@ -641,10 +702,10 @@ void main() {
       gameplayViewportKey: viewportKey, touchControlsAvailable: true,
       gameplayInputRoute: (event) { events.add(event); return true; },
     ));
-    await tester.pumpWidget(view());
+    await _pumpMeasuredSessionWidget(tester, view());
     final held = await tester.startGesture(const Offset(100, 400), kind: ui.PointerDeviceKind.touch);
     await held.moveBy(const Offset(50, 0));
-    await tester.pumpWidget(view());
+    await _pumpMeasuredSessionWidget(tester, view());
     expect(events.single, const RuntimeInputEvent.press(RuntimeInputControl.right));
     await held.moveBy(const Offset(20, 0));
     expect(events, hasLength(1));
@@ -665,7 +726,7 @@ void main() {
         addTearDown(controller.dispose);
         addTearDown(connected.dispose);
         addTearDown(events.close);
-        await tester.pumpWidget(_app(_view(controller,
+        await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
             touchControlsAvailable: true,
             connectedControllerIds: connected,
             normalizedControllerInputEvents: events.stream,
@@ -688,7 +749,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
@@ -740,7 +801,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
@@ -780,7 +841,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
@@ -820,7 +881,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
@@ -882,7 +943,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (_) => true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
@@ -940,7 +1001,7 @@ void main() {
           _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
       final routed = <RuntimeInputEvent>[];
       addTearDown(controller.dispose);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true, gameplayInputRoute: (event) {
         routed.add(event);
         return true;
@@ -982,7 +1043,7 @@ void main() {
       addTearDown(text.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(PokeMapPlayerSessionView(
+      await _pumpMeasuredSessionWidget(tester, _app(PokeMapPlayerSessionView(
           controller: controller,
           titlePresentation: const RuntimePlayerTitlePresentation(
               author: 'Studio Test', description: 'Une aventure de test.'),
@@ -1021,7 +1082,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true,
           connectedControllerIds: connected,
           normalizedControllerInputEvents: events.stream,
@@ -1065,7 +1126,7 @@ void main() {
           _snapshot(revision: 1, phase: RuntimePlayerPhase.playing));
       final routed = <RuntimeInputEvent>[];
       addTearDown(controller.dispose);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           touchControlsAvailable: true, gameplayInputRoute: (event) {
         routed.add(event);
         return true;
@@ -1110,7 +1171,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(connected.dispose);
       addTearDown(events.close);
-      await tester.pumpWidget(_app(_view(controller,
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (_) => true,
         touchControlsAvailable: true,
         connectedControllerIds: connected,
@@ -1176,14 +1237,11 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a popup touch action takes over from keyboard navigation',
+    testWidgets('a direct choice touch action takes over from keyboard navigation',
         (tester) async {
       final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
       addTearDown(controller.dispose);
-      await tester.pumpWidget(_app(_view(controller)));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')),
-          kind: ui.PointerDeviceKind.touch);
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
       await tester.pumpAndSettle();
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pumpAndSettle();
@@ -1193,7 +1251,7 @@ void main() {
                   find.byType(RuntimePlayerOptions, skipOffstage: false))
               .activeInputSource,
           PlayerInputSource.keyboard);
-      await tester.tap(find.byKey(const ValueKey('options-choice-fast')),
+      await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')),
           kind: ui.PointerDeviceKind.touch);
       await tester.pumpAndSettle();
       expect(
@@ -1225,7 +1283,7 @@ void main() {
     ));
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
     expect(_surfaceFinder(RuntimePlayerPhase.title), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('test-game-scene')), findsNothing);
 
@@ -1284,7 +1342,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(presentation.dispose);
 
-      await tester.pumpWidget(
+      await _pumpMeasuredSessionWidget(tester,
         _app(
           _view(
             controller,
@@ -1358,7 +1416,8 @@ void main() {
     ));
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
+    await _revealPagedTarget(tester, find.text('Continuer'));
     await tester.tap(find.text('Continuer'));
 
     expect(controller.commands, hasLength(1));
@@ -1412,7 +1471,7 @@ void main() {
       );
       addTearDown(controller.dispose);
 
-      await tester.pumpWidget(_app(_view(controller)));
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
 
       final options = tester.widget<RuntimePlayerOptions>(
         find.byType(RuntimePlayerOptions),
@@ -1450,7 +1509,7 @@ void main() {
     addTearDown(events.close);
     final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
     addTearDown(controller.dispose);
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
         _app(_view(controller, controllerInputEvents: events.stream)));
     await _selectOptionsCategory(tester, 'audio');
     final slider = find.byKey(const ValueKey('options-master-slider'));
@@ -1496,7 +1555,7 @@ void main() {
     addTearDown(events.close);
     final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
     addTearDown(controller.dispose);
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
         _app(_view(controller, controllerInputEvents: events.stream)));
     await _selectOptionsCategory(tester, 'controls');
     events.add(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
@@ -1506,7 +1565,7 @@ void main() {
             .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
             .activeInputSource,
         PlayerInputSource.controller);
-    expect(find.text('Manette'), findsOneWidget);
+    expect(find.text('Manette', skipOffstage: false), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pumpAndSettle();
     expect(
@@ -1514,7 +1573,7 @@ void main() {
             .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
             .activeInputSource,
         PlayerInputSource.keyboard);
-    expect(find.text('Clavier'), findsOneWidget);
+    expect(find.text('Clavier', skipOffstage: false), findsOneWidget);
     await tester.tapAt(
         tester.getTopLeft(find.byKey(const ValueKey('options-settings'))) +
             const Offset(8, 8),
@@ -1537,59 +1596,60 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('title option popups consume duplicate hardware gamepad events',
-      (tester) async {
+  testWidgets('title binding popups consume duplicate hardware gamepad events', (tester) async {
     final events = StreamController<RuntimeInputEvent>.broadcast();
     addTearDown(events.close);
     final controller = _FakeRuntimePlayerCoordinator(_titleOptionsSnapshot());
+    final profiles = <PlayerControlProfile>[];
     addTearDown(controller.dispose);
-    await tester.pumpWidget(
-        _app(_view(controller, controllerInputEvents: events.stream)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
+      controllerInputEvents: events.stream, onControlProfileChanged: profiles.add)));
+    await tester.sendKeyEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
+    await _selectOptionsCategory(tester, 'controls', mouse: true);
+    final binding = find.byKey(const ValueKey('options-binding-primary-choice'));
+    await _revealPagedTarget(tester, binding,
+      scope: find.byKey(const ValueKey('options-settings')), mouse: true);
+    await tester.tap(binding, kind: ui.PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
-    await _hardwareGamepadPress(
-        tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
+    final choice = find.byKey(const ValueKey('options-choice-keyW'));
+    await _revealPagedTarget(tester, choice, scope: find.byType(Dialog), mouse: true);
+    Focus.of(tester.element(find.descendant(of: choice, matching: find.byType(GestureDetector)).first)).requestFocus();
+    await tester.pump();
+    await _hardwareGamepadPress(tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('options-choice-back')), findsOneWidget);
+    expect(profiles, isEmpty);
     expect(controller.commands, isEmpty);
     events.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
-    expect(controller.commands, hasLength(1));
-    expect(controller.commands.single.action,
-        RuntimePlayerAction.updatePreferences);
-    Focus.of(tester.element(find
-            .descendant(
-              of: find.byKey(const ValueKey('options-text-speed-choice')),
-              matching: find.byType(GestureDetector),
-            )
-            .first))
-        .requestFocus();
-    await tester.pump();
-    await _hardwareGamepadPress(
-        tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
+    events.add(const RuntimeInputEvent.release(RuntimeInputControl.primary));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
-    expect(controller.commands, hasLength(1));
-    await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
+    expect(profiles, hasLength(1));
+    expect(profiles.single.bindingFor(PlayerControlDevice.keyboard, RuntimeInputControl.primary), 'keyW');
+    expect(controller.commands, isEmpty);
+    await _revealPagedTarget(tester, binding, scope: find.byKey(const ValueKey('options-settings')), mouse: true);
+    Focus.of(tester.element(find.descendant(of: binding, matching: find.byType(GestureDetector)).first)).requestFocus();
+    await tester.pump();
+    await _hardwareGamepadPress(tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
+    expect(profiles, hasLength(1));
+    await tester.tap(binding, kind: ui.PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
     events.add(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
-    expect(controller.commands, hasLength(1));
-    Focus.of(tester.element(find
-            .descendant(
-              of: find.byKey(const ValueKey('options-text-speed-choice')),
-              matching: find.byType(GestureDetector),
-            )
-            .first))
-        .requestFocus();
-    await tester.pump();
-    await _hardwareGamepadPress(
-        tester, LogicalKeyboardKey.escape, PhysicalKeyboardKey.gameButtonB);
+    events.add(const RuntimeInputEvent.release(RuntimeInputControl.secondary));
     await tester.pumpAndSettle();
-    expect(controller.commands, hasLength(1));
+    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
+    expect(profiles, hasLength(1));
+    Focus.of(tester.element(find.descendant(of: binding, matching: find.byType(GestureDetector)).first)).requestFocus();
+    await tester.pump();
+    await _hardwareGamepadPress(tester, LogicalKeyboardKey.escape, PhysicalKeyboardKey.gameButtonB);
+    await tester.pumpAndSettle();
+    expect(profiles, hasLength(1));
+    expect(controller.commands, isEmpty);
     expect(controller.backRequests, isEmpty);
   });
 
@@ -1614,7 +1674,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         MediaQuery(
           data: const MediaQueryData(
@@ -1692,7 +1752,7 @@ void main() {
     final interactions = ValueNotifier(_overworldSnapshot());
       addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (_) => true,)));
     await tester.pumpAndSettle();
     final capsule = find.byType(PlayerOverworldActionCapsule);
@@ -1730,7 +1790,7 @@ void main() {
       addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (_) => acceptsAction,
@@ -1788,7 +1848,7 @@ void main() {
       );
       addTearDown(controller.dispose);
 
-      await tester.pumpWidget(_app(_view(controller), platform: platform));
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller), platform: platform));
       await _selectOptionsCategory(tester, 'accessibility');
 
       expect(
@@ -1863,7 +1923,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
 
     expect(find.text('Studio Test'), findsOneWidget);
     expect(find.text('Une aventure de test.'), findsOneWidget);
@@ -1892,7 +1952,7 @@ void main() {
       );
       addTearDown(controller.dispose);
 
-      await tester.pumpWidget(
+      await _pumpMeasuredSessionWidget(tester,
         _app(
           MediaQuery(
             data: const MediaQueryData(
@@ -1909,7 +1969,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Nouveau jeu'));
+      await _revealPagedTarget(tester, find.text('Nouveau jeu'));
+    await tester.tap(find.text('Nouveau jeu'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(
@@ -1945,7 +2006,7 @@ void main() {
     ));
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
 
     expect(find.text('catalogues'), findsOneWidget);
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
@@ -1978,7 +2039,7 @@ void main() {
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
 
-    await tester.pumpWidget(_app(_view(
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
       controller,
       gameplayInputAuthority: authority,
       loadingLogo: logo,
@@ -2034,7 +2095,7 @@ void main() {
     ));
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
 
     expect(find.text('Construction de la scène'), findsOneWidget);
     expect(find.text('43%'), findsOneWidget);
@@ -2098,7 +2159,7 @@ void main() {
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
 
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
         gameplayInputAuthority: authority)));
     controller.publish(_snapshot(revision: 2, phase: RuntimePlayerPhase.playing));
     await tester.pump();
@@ -2139,7 +2200,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
     final tapZone =
         find.byKey(const ValueKey<String>('dialogue-tap-zone')).first;
     await tester.tap(tapZone);
@@ -2200,7 +2261,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(presentation.dispose);
 
-      await tester.pumpWidget(
+      await _pumpMeasuredSessionWidget(tester,
         _app(
           _view(
             controller,
@@ -2252,7 +2313,7 @@ void main() {
     );
     addTearDown(controller.dispose);
     addTearDown(presentation.dispose);
-    await tester.pumpWidget(_app(_view(controller,
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
       presentationFrame: presentation,
       presentationContentPort: _PresentationContentPort(),
     )));
@@ -2276,7 +2337,7 @@ void main() {
     ));
     await tester.pump();
     await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
@@ -2313,7 +2374,7 @@ void main() {
       addTearDown(controller.dispose);
       addTearDown(presentation.dispose);
 
-      await tester.pumpWidget(
+      await _pumpMeasuredSessionWidget(tester,
         _app(
           _view(
             controller,
@@ -2367,7 +2428,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
     await tester.tap(
       find.byKey(const ValueKey<String>('scene-interaction-text-field')),
     );
@@ -2415,7 +2476,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, lifecycle: lifecycle)));
     expect(lifecycle.mounts, 1);
     expect(lifecycle.disposals, 0);
 
@@ -2483,7 +2544,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, lifecycle: lifecycle)));
 
     expect(
         find.byKey(const ValueKey<String>('test-game-scene')), findsOneWidget);
@@ -2535,7 +2596,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, lifecycle: lifecycle)));
 
     expect(
         find.byKey(const ValueKey<String>('test-game-scene')), findsOneWidget);
@@ -2588,7 +2649,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(controller, lifecycle: lifecycle)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, lifecycle: lifecycle)));
 
     expect(
         find.byKey(const ValueKey<String>('test-game-scene')), findsOneWidget);
@@ -2621,7 +2682,7 @@ void main() {
       ],
     ));
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(controller)));
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
     await tester.pump(const Duration(seconds: 30));
     expect(find.textContaining('changé'), findsOneWidget);
     expect(find.text('new_game.seed_commit_stale_project'), findsOneWidget);
@@ -2653,7 +2714,7 @@ void main() {
     ));
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_app(_view(
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
       controller,
       onShowDiagnostics: () => diagnosticCalls++,
     )));
@@ -2690,7 +2751,7 @@ void main() {
       addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (request) { interactionsDispatched.add(request); return true; },
@@ -2764,7 +2825,7 @@ void main() {
       addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (_) => true,
@@ -2870,7 +2931,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -2975,7 +3036,7 @@ void main() {
       addTearDown(interactions.dispose);
       addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(controller,
           overworldInteractions: interactions, onOverworldInteraction: (_) => true,
@@ -3038,7 +3099,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3093,7 +3154,7 @@ void main() {
     addTearDown(authority.dispose);
     addTearDown(controllerEvents.close);
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
       controller,
       touchControlsAvailable: true,
       gameplayInputAuthority: authority,
@@ -3158,7 +3219,7 @@ void main() {
     );
     addTearDown(authority.dispose);
     addTearDown(controller.dispose);
-    await tester.pumpWidget(_app(_view(
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
       controller,
       gameplayInputAuthority: authority,
     )));
@@ -3185,7 +3246,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3240,7 +3301,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3285,7 +3346,7 @@ void main() {
         )
         .profile;
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3327,7 +3388,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3376,7 +3437,7 @@ void main() {
     expect(gameplayEvents, isEmpty);
     expect(controller.commands, isEmpty);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3434,7 +3495,7 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredSessionWidget(tester,
       _app(
         _view(
           controller,
@@ -3564,6 +3625,7 @@ PokeMapPlayerSessionView _view(
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
   PlayerControlProfile? controlProfile,
+  FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged,
   ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame,
   PresentationFrameContentPort? presentationContentPort,
   Future<void> Function()? onPresentationSkip,
@@ -3612,6 +3674,7 @@ PokeMapPlayerSessionView _view(
     onShowDiagnostics: onShowDiagnostics,
     hapticFeedback: hapticFeedback,
     controlProfile: controlProfile,
+    onControlProfileChanged: onControlProfileChanged,
     presentationFrame: presentationFrame,
     presentationContentPort: presentationContentPort,
     onPresentationSkip: onPresentationSkip,
@@ -3680,23 +3743,21 @@ Finder _allCanonicalSurfaces() => find.byWidgetPredicate(
 
 Future<void> _hardwareGamepadPress(WidgetTester tester,
     LogicalKeyboardKey logical, PhysicalKeyboardKey physical) async {
-  Future<bool> send(bool isDown) async {
+  Future<bool> send(bool down) async {
+    tester.binding.platformDispatcher.onKeyData!(ui.KeyData(
+      timeStamp: Duration.zero, type: down ? ui.KeyEventType.down : ui.KeyEventType.up,
+      physical: physical.usbHidUsage, logical: logical.keyId,
+      character: null, synthesized: false, deviceType: ui.KeyEventDeviceType.gamepad));
     final response = Completer<bool>();
     final data = KeyEventSimulator.getKeyData(logical,
-        platform: 'android', isDown: isDown, physicalKey: physical)
-      ..['source'] = 0x00000401;
+      platform: 'android', isDown: down, physicalKey: physical)..['source'] = 0x00000401;
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      SystemChannels.keyEvent.name,
-      SystemChannels.keyEvent.codec.encodeMessage(data),
-      (reply) {
-        final value = SystemChannels.keyEvent.codec.decodeMessage(reply)
-            as Map<Object?, Object?>?;
+      SystemChannels.keyEvent.name, SystemChannels.keyEvent.codec.encodeMessage(data), (reply) {
+        final value = SystemChannels.keyEvent.codec.decodeMessage(reply) as Map<Object?, Object?>?;
         response.complete(value?['handled'] == true);
-      },
-    );
+      });
     return response.future;
   }
-
   try {
     expect(await send(true), isTrue);
   } finally {
@@ -3721,15 +3782,15 @@ RuntimePlayerSnapshot _titleOptionsSnapshot() => RuntimePlayerSnapshot(
       ],
     );
 
-Future<void> _selectOptionsCategory(
-    WidgetTester tester, String category) async {
+Future<void> _selectOptionsCategory(WidgetTester tester, String category, {bool mouse = false}) async {
   final target = find.byKey(ValueKey('options-category-$category'));
-  if (target.evaluate().isEmpty) {
-    await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+  final picker = find.byKey(const ValueKey('options-category-picker'));
+  if (target.evaluate().isEmpty && picker.evaluate().isNotEmpty) {
+    await tester.tap(picker);
     await tester.pumpAndSettle();
   }
-  await tester.ensureVisible(target);
-  await tester.tap(target);
+  await _revealPagedTarget(tester, target, scope: find.byKey(const ValueKey('options-categories')), mouse: mouse);
+  await tester.tap(target, kind: mouse ? ui.PointerDeviceKind.mouse : ui.PointerDeviceKind.touch);
   await tester.pumpAndSettle();
 }
 
@@ -3877,3 +3938,28 @@ PresentationFrame _presentationFrame() => PresentationFrame(
         ),
       ],
     );
+
+Future<void> _pumpMeasuredSessionWidget(WidgetTester tester, Widget widget) async {
+  await tester.pumpWidget(widget);
+  await tester.pump();
+  await tester.pump();
+}
+
+Future<void> _revealPagedTarget(WidgetTester tester, Finder target, {Finder? scope, bool mouse = false}) async {
+  await tester.pump();
+  await tester.pump();
+  Finder buttons(String key) => scope == null
+      ? find.byKey(ValueKey(key)).hitTestable()
+      : find.descendant(of: scope, matching: find.byKey(ValueKey(key))).hitTestable();
+  for (final direction in ['player-page-previous', 'player-page-next']) {
+    for (var step = 0; step < 40 && target.evaluate().isEmpty; step++) {
+      final candidates = buttons(direction);
+      final enabled = [for (final element in candidates.evaluate())
+        if ((element.widget as IconButton).onPressed != null) element];
+      if (enabled.isEmpty) break;
+      await tester.tap(find.byElementPredicate((element) => identical(element, enabled.last)), kind: mouse ? ui.PointerDeviceKind.mouse : ui.PointerDeviceKind.touch);
+      await tester.pumpAndSettle();
+    }
+  }
+  expect(target, findsOneWidget);
+}

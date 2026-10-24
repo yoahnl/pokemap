@@ -145,6 +145,7 @@ export 'src/models/pokemon_nature.dart';
 export 'src/operations/trainer_pokemon_stats.dart';
 export 'src/models/scenario_asset.dart';
 export 'src/models/scene_asset.dart';
+export 'src/models/scene_battle_demonstration.dart';
 export 'src/models/dialogue_line_feedback.dart';
 export 'src/dialogue/scene_dialogue_line_policy_validation.dart';
 export 'src/dialogue/scene_dialogue_choice_policy_validation.dart';
@@ -445,3 +446,6 @@ export 'src/models/scene_random_state.dart';
 export 'src/operations/scene_integer_operations.dart';
 
 export 'src/operations/narrative_parallel_program.dart';
+
+export 'src/models/spatial_day_night_cycle.dart';
+export 'src/operations/spatial_scene_lighting_capabilities.dart';

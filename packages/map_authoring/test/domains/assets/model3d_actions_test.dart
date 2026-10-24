@@ -12,14 +12,17 @@ void main() {
     await f.apply(await f.plan());
     await f.apply(await f.planAction('model3d.configure', {
       'modelId': 'house', 'castsShadowsByDefault': true,
+      'light': {'localPosition': {'x': 0, 'y': 2.25, 'z': 0}},
     }));
     await f.apply(await f.planReplacement(animatedGlb()));
     expect((await f.snapshots.load(f.project)).manifest.models3d.single.toJson()['castsShadowsByDefault'], true);
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.light?.localPosition.y, 2.25);
     final staged = await f.request('stage_artifact', {'sourcePath': '${f.root.path}/input.glb'});
     await f.apply(await f.planAction('model3d.source.replace_batch', {
       'models': [{'modelId': 'house', 'artifactHandle': staged.data['artifactHandle']}],
     }));
     expect((await f.snapshots.load(f.project)).manifest.models3d.single.toJson()['castsShadowsByDefault'], true);
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.light?.localPosition.y, 2.25);
     final before = await f.projectFile.readAsBytes();
     for (final invalid in [null, 1, 'true']) {
       final rejected = await f.planAction('model3d.configure', {

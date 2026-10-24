@@ -372,6 +372,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                           widget.session.rasterAnimationElapsedMsForCell,
                       presentationPaused: () =>
                           widget.session.presentationPaused,
+                      presentationElapsedSeconds: () => widget.session.presentationSeconds,
                       cameraMagnification: () => widget.session.nativeCameraMagnification,
                       cameraPose: () {
                         final pose = widget.session.storyCamera?.call();

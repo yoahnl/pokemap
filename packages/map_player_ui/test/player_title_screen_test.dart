@@ -34,6 +34,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     final buttons = tester
         .widgetList<PlayerActionButton>(find.byType(PlayerActionButton))
@@ -51,8 +53,9 @@ void main() {
     expect(selected, hasLength(1));
   });
 
-  testWidgets('title exposes the product actions and availability',
-      (tester) async {
+  testWidgets('title exposes the product actions and availability', (
+    tester,
+  ) async {
     var selected = <PlayerTitleMenuAction>[];
     await tester.pumpWidget(
       _app(
@@ -66,41 +69,45 @@ void main() {
                 action: PlayerActionAvailability.enabled,
               PlayerTitleMenuAction.continueGame:
                   const PlayerActionAvailability.disabled(
-                'Aucune sauvegarde disponible',
-              ),
+                    'Aucune sauvegarde disponible',
+                  ),
             },
           ),
           onSelected: selected.add,
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(find.byType(PlayerTitleSurface), findsOneWidget);
     expect(find.text('Aube'), findsOneWidget);
     expect(find.text('Studio Brume'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
     expect(find.text('Nouveau jeu'), findsOneWidget);
-    expect(find.text('Charger'), findsOneWidget);
-    expect(find.text('Options'), findsOneWidget);
-    expect(find.text('Crédits / À propos'), findsOneWidget);
-    expect(find.text('Retour au Hub'), findsOneWidget);
+    expect(find.text('Charger', skipOffstage: false), findsOneWidget);
+    expect(find.text('Options', skipOffstage: false), findsOneWidget);
+    expect(
+      find.text('Crédits / À propos', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.text('Retour au Hub', skipOffstage: false), findsOneWidget);
     expect(
       FocusManager.instance.primaryFocus?.debugLabel,
-      'Player action: Nouveau jeu',
+      'Title newGame',
       reason: 'Focus starts on the first enabled action.',
     );
 
     await tester.tap(find.text('Nouveau jeu'));
-    expect(selected, <PlayerTitleMenuAction>[
-      PlayerTitleMenuAction.newGame,
-    ]);
+    expect(selected, <PlayerTitleMenuAction>[PlayerTitleMenuAction.newGame]);
 
     await tester.tap(find.text('Continuer'));
     expect(selected, hasLength(1), reason: 'Disabled actions cannot dispatch.');
   });
 
-  testWidgets('title keeps every long action reachable at 200 percent text',
-      (tester) async {
+  testWidgets('title keeps every long action reachable at 200 percent text', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -135,26 +142,26 @@ void main() {
         textScaler: const TextScaler.linear(2),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(
-      find.byKey(const ValueKey<String>('player-title-scrollbar')),
-      findsOneWidget,
-    );
-    final scroll = tester.widget<SingleChildScrollView>(
-      find.byKey(const ValueKey<String>('player-title-scroll')),
-    );
-    expect(scroll.controller, isNotNull);
-    expect(scroll.controller!.position.maxScrollExtent, greaterThan(0));
-
-    for (var index = 1; index < PlayerTitleMenuAction.values.length; index++) {
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    for (
+      var attempt = 0;
+      attempt < 12 &&
+          find
+              .text('Quitter cette aventure et retourner au Hub')
+              .evaluate()
+              .isEmpty;
+      attempt++
+    ) {
+      await tester.tap(find.byKey(const ValueKey('player-page-next')));
       await tester.pumpAndSettle();
     }
-
     expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      contains('Quitter cette aventure'),
+      find.text('Quitter cette aventure et retourner au Hub'),
+      findsOneWidget,
     );
     final lastAction = tester.getRect(
       find.text('Quitter cette aventure et retourner au Hub'),
@@ -163,8 +170,9 @@ void main() {
     expect(lastAction.bottom, lessThanOrEqualTo(640));
   });
 
-  testWidgets('cinematic branding selects the authored title layout',
-      (tester) async {
+  testWidgets('cinematic branding selects the authored title layout', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
         PlayerTitleScreen(
@@ -181,11 +189,11 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(
-      find.byKey(
-        const ValueKey<String>('player-title-layout-cinematic'),
-      ),
+      find.byKey(const ValueKey<String>('player-title-layout-cinematic')),
       findsOneWidget,
     );
     final alignment = tester.widget<Align>(
@@ -202,12 +210,9 @@ void main() {
     addTearDown(tester.view.reset);
     final layouts = suggestedProjectPresentationLayouts('standard').copyWith(
       title: suggestedProjectPresentationLayouts('standard').title.copyWith(
-            regular: suggestedProjectPresentationLayouts(
-              'standard',
-            ).title.regular.copyWith(
-                  slot: ProjectPresentationLayoutSlot.leftPane,
-                ),
-          ),
+        regular: suggestedProjectPresentationLayouts('standard').title.regular
+            .copyWith(slot: ProjectPresentationLayoutSlot.leftPane),
+      ),
     );
     final theme = PokeMapPlayerTheme.withLayoutProfile(
       PokeMapPlayerTheme.light(),
@@ -230,6 +235,8 @@ void main() {
         theme: theme,
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(
       find.byKey(const ValueKey<String>('player-title-responsive-regular')),
@@ -241,8 +248,9 @@ void main() {
     expect(alignment.alignment, Alignment.centerLeft);
   });
 
-  testWidgets('title and menu consume their semantic typography roles',
-      (tester) async {
+  testWidgets('title and menu consume their semantic typography roles', (
+    tester,
+  ) async {
     final theme = PokeMapPlayerTheme.withTypography(
       PokeMapPlayerTheme.light(),
       const PokeMapPlayerTypography(
@@ -266,17 +274,22 @@ void main() {
         theme: theme,
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
-    expect(tester.widget<Text>(find.text('Aube')).style?.fontFamily,
-        'Aube Display');
+    expect(
+      tester.widget<Text>(find.text('Aube')).style?.fontFamily,
+      'Aube Display',
+    );
     expect(
       tester.widget<Text>(find.text('Nouveau jeu')).style?.fontFamily,
       'Aube Body',
     );
   });
 
-  testWidgets('premium startup menu matches the authored compact composition',
-      (tester) async {
+  testWidgets('premium startup menu matches the authored compact composition', (
+    tester,
+  ) async {
     final focusController = RuntimePlayerFocusController(
       logicalSelectionId: 'title.newGame',
     );
@@ -317,6 +330,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(
       tester.getSize(
@@ -324,10 +339,14 @@ void main() {
       ),
       const Size(392, 996),
     );
-    expect(find.byKey(const ValueKey<String>('player-cinematic-stage')),
-        findsNothing);
-    expect(find.byKey(const ValueKey<String>('player-title-startup-visual')),
-        findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('player-cinematic-stage')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('player-title-startup-visual')),
+      findsNothing,
+    );
     expect(find.text('PokeMap'), findsNothing);
     expect(find.text('Le Train\nde 17h42'), findsOneWidget);
     expect(find.text('01:46 · Vallée d’Hisui'), findsOneWidget);
@@ -341,7 +360,7 @@ void main() {
       tester.getTopLeft(
         find.byKey(const ValueKey<String>('player-title-premium-title')),
       ),
-      const Offset(46, 74),
+      const Offset(46, 48),
     );
     expect(
       tester.getRect(
@@ -349,13 +368,13 @@ void main() {
           const ValueKey<String>('player-title-premium-action-newGame'),
         ),
       ),
-      const Rect.fromLTWH(46, 243, 302, 58),
+      const Rect.fromLTWH(46, 202, 302, 58),
     );
     expect(
       tester.getTopLeft(
         find.byKey(const ValueKey<String>('player-title-premium-controls')),
       ),
-      const Offset(46, 930),
+      const Offset(46, 954),
     );
 
     final actionCenters = <PlayerTitleMenuAction, Offset>{
@@ -377,9 +396,7 @@ void main() {
       expect(
         tester.getCenter(
           find.byKey(
-            ValueKey<String>(
-              'player-title-premium-action-${entry.key.name}',
-            ),
+            ValueKey<String>('player-title-premium-action-${entry.key.name}'),
           ),
         ),
         entry.value,
@@ -388,8 +405,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('premium startup menu activates Continue with Enter',
-      (tester) async {
+  testWidgets('premium startup menu activates Continue with Enter', (
+    tester,
+  ) async {
     final selected = <PlayerTitleMenuAction>[];
     final focusController = RuntimePlayerFocusController(
       logicalSelectionId: 'title.continueGame',
@@ -419,6 +437,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
@@ -429,8 +449,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('premium startup menu keeps a 392 pixel rail on desktop',
-      (tester) async {
+  testWidgets('premium startup menu keeps a 392 pixel rail on desktop', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(995, 690);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -452,6 +473,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(
       tester.getSize(
@@ -459,59 +482,58 @@ void main() {
       ),
       const Size(392, 690),
     );
-    expect(find.byKey(const ValueKey<String>('player-title-startup-visual')),
-        findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('player-title-startup-visual')),
+      findsOneWidget,
+    );
     expect(find.text('PokeMap'), findsNothing);
   });
 
-  testWidgets('premium startup menu scrolls every authored title action', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(995, 600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      _app(
-        PlayerTitleScreen(
-          data: PlayerTitleViewData(
-            gameTitle: 'Le Train de 17h42',
-            author: 'PokeMap',
-            layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
-            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
-              for (final action in PlayerTitleMenuAction.values)
-                action: PlayerActionAvailability.enabled,
-            },
+  testWidgets(
+    'premium startup menu exposes every authored title action without scrolling',
+    (tester) async {
+      tester.view.physicalSize = const Size(995, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _app(
+          PlayerTitleScreen(
+            data: PlayerTitleViewData(
+              gameTitle: 'Le Train de 17h42',
+              author: 'PokeMap',
+              layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
+              actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+                for (final action in PlayerTitleMenuAction.values)
+                  action: PlayerActionAvailability.enabled,
+              },
+            ),
+            onSelected: (_) {},
           ),
-          onSelected: (_) {},
         ),
-      ),
-    );
+      );
+      await tester.pump();
+      await tester.pump();
 
-    expect(
-      find.byKey(
-        const ValueKey<String>('player-title-premium-actions-scroll'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Crédits / À propos'), findsOneWidget);
-    expect(find.text('Retour au Hub'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(find.text('Crédits / À propos'), findsOneWidget);
+      expect(find.text('Retour au Hub'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Widget _app(
   Widget child, {
   ThemeData? theme,
   TextScaler textScaler = TextScaler.noScaling,
-}) =>
-    MaterialApp(
-      locale: const Locale('fr'),
-      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: theme ?? PokeMapPlayerTheme.light(),
-      builder: (context, appChild) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
-        child: appChild!,
-      ),
-      home: child,
-    );
+}) => MaterialApp(
+  locale: const Locale('fr'),
+  supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+  localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+  theme: theme ?? PokeMapPlayerTheme.light(),
+  builder: (context, appChild) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+    child: appChild!,
+  ),
+  home: child,
+);

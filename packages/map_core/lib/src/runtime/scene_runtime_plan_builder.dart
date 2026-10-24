@@ -285,6 +285,7 @@ SceneRuntimePlanIntent _battleIntent(SceneBattlePayload payload) {
     battleTemplateId: payload.battleTemplateId,
     npcEntityId: payload.npcEntityId,
     defeatRecovery: payload.defeatRecovery,
+    demonstration: payload.demonstration,
     declaredOutcomes: payload.declaredOutcomes,
   );
 }

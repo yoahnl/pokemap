@@ -9,11 +9,11 @@ void main() {
   for (final section in <RuntimePlayerPauseSection>[
     RuntimePlayerPauseSection.party,
     RuntimePlayerPauseSection.bag,
-    RuntimePlayerPauseSection.map,
     RuntimePlayerPauseSection.quests,
   ]) {
-    testWidgets('${section.name} renders runtime-provided detail data',
-        (tester) async {
+    testWidgets('${section.name} renders runtime-provided detail data', (
+      tester,
+    ) async {
       final snapshot = _detailSnapshot(
         section,
         detail: RuntimePlayerPauseDetailSnapshot(
@@ -31,14 +31,13 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(_app(
-        RuntimePlayerDetailRouter(snapshot: snapshot),
-      ));
+      await tester.pumpWidget(
+        _app(RuntimePlayerDetailRouter(snapshot: snapshot)),
+      );
+      await tester.pumpAndSettle();
 
       expect(
-        find.byKey(
-          ValueKey<String>('runtime-player-detail-${section.name}'),
-        ),
+        find.byKey(ValueKey<String>('runtime-player-detail-${section.name}')),
         findsOneWidget,
       );
       expect(
@@ -51,28 +50,35 @@ void main() {
     });
   }
 
-  testWidgets('profile renders its typed projection without generic rows',
-      (tester) async {
-    await tester.pumpWidget(_app(RuntimePlayerDetailRouter(
-      snapshot: _detailSnapshot(
-        RuntimePlayerPauseSection.profile,
-        detail: RuntimePlayerPauseDetailSnapshot(
-          section: RuntimePlayerPauseSection.profile,
-          title: 'Profil',
-          profile: RuntimePlayerProfileSnapshot(
-            playerName: 'Camille',
-            currentMapId: 'map.internal.port',
-            locationName: 'Port des Brumes',
-            money: 4321,
-            playtimeSeconds: 25 * 3600 + 7 * 60,
+  testWidgets('profile renders its typed projection without generic rows', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: _detailSnapshot(
+            RuntimePlayerPauseSection.profile,
+            detail: RuntimePlayerPauseDetailSnapshot(
+              section: RuntimePlayerPauseSection.profile,
+              title: 'Profil',
+              profile: RuntimePlayerProfileSnapshot(
+                playerName: 'Camille',
+                currentMapId: 'map.internal.port',
+                locationName: 'Port des Brumes',
+                money: 4321,
+                playtimeSeconds: 25 * 3600 + 7 * 60,
+              ),
+              entries: [
+                RuntimePlayerDetailEntrySnapshot(
+                  id: 'profile.internal.row',
+                  title: 'Ancienne carte générique',
+                ),
+              ],
+            ),
           ),
-          entries: [
-            RuntimePlayerDetailEntrySnapshot(
-                id: 'profile.internal.row', title: 'Ancienne carte générique'),
-          ],
         ),
       ),
-    )));
+    );
     await tester.pumpAndSettle();
     expect(find.text('Camille'), findsOneWidget);
     expect(find.text('Port des Brumes'), findsOneWidget);
@@ -83,126 +89,169 @@ void main() {
 
   group('BETA-SYS-001 pokedex search filters the projected entries', () {
     RuntimePlayerSnapshot dexSnapshot() => _detailSnapshot(
-          RuntimePlayerPauseSection.pokedex,
-          detail: RuntimePlayerPauseDetailSnapshot(
-            section: RuntimePlayerPauseSection.pokedex,
-            title: 'Pokédex',
-            entries: <RuntimePlayerDetailEntrySnapshot>[
-              RuntimePlayerDetailEntrySnapshot(
-                id: 'bulbasaur',
-                title: 'Bulbizarre',
-                subtitle: '#001 · Capturé · Grass / Poison',
-                trailingLabel: '●',
-                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
-                  knowledge: RuntimePlayerPokedexKnowledge.caught,
-                  nationalDex: 1,
-                  typeIds: ['grass', 'poison'],
-                ),
-              ),
-              RuntimePlayerDetailEntrySnapshot(
-                id: 'ivysaur',
-                title: 'Herbizarre',
-                subtitle: '#002 · Vu · Grass / Poison',
-                trailingLabel: '○',
-                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
-                  knowledge: RuntimePlayerPokedexKnowledge.seen,
-                  nationalDex: 2,
-                  typeIds: ['grass', 'poison'],
-                ),
-              ),
-              RuntimePlayerDetailEntrySnapshot(
-                id: 'charmander',
-                title: '???',
-                subtitle: '#004 · Inconnu',
-                pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
-                  knowledge: RuntimePlayerPokedexKnowledge.unknown,
-                  nationalDex: 4,
-                ),
-              ),
-            ],
+      RuntimePlayerPauseSection.pokedex,
+      detail: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.pokedex,
+        title: 'Pokédex',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'bulbasaur',
+            title: 'Bulbizarre',
+            subtitle: '#001 · Capturé · Grass / Poison',
+            trailingLabel: '●',
+            pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+              knowledge: RuntimePlayerPokedexKnowledge.caught,
+              nationalDex: 1,
+              typeIds: ['grass', 'poison'],
+            ),
           ),
-        );
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'ivysaur',
+            title: 'Herbizarre',
+            subtitle: '#002 · Vu · Grass / Poison',
+            trailingLabel: '○',
+            pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+              knowledge: RuntimePlayerPokedexKnowledge.seen,
+              nationalDex: 2,
+              typeIds: ['grass', 'poison'],
+            ),
+          ),
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'charmander',
+            title: '???',
+            subtitle: '#004 · Inconnu',
+            pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+              knowledge: RuntimePlayerPokedexKnowledge.unknown,
+              nationalDex: 4,
+            ),
+          ),
+        ],
+      ),
+    );
 
-    testWidgets('typing a name keeps only the matching species',
-        (tester) async {
-      await tester.pumpWidget(_app(
-        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
-      ));
-      expect(find.text('Bulbizarre'), findsOneWidget);
-      expect(find.text('Herbizarre'), findsOneWidget);
+    testWidgets('typing a name keeps only the matching species', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(RuntimePlayerDetailRouter(snapshot: dexSnapshot())),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-bulbasaur')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-ivysaur')),
+        findsOneWidget,
+      );
 
       await tester.enterText(
         find.byKey(const ValueKey<String>('pokedex-search')),
         'herbi',
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('Herbizarre'), findsOneWidget);
-      expect(find.text('Bulbizarre'), findsNothing);
-      expect(find.text('???'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-ivysaur')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-bulbasaur')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-charmander')),
+        findsNothing,
+      );
     });
 
-    testWidgets('an unknown species stays findable by number, not by name',
-        (tester) async {
+    testWidgets('an unknown species stays findable by number, not by name', (
+      tester,
+    ) async {
       // On ne peut pas chercher le nom de ce qu'on n'a pas vu — mais le
       // numéro du Pokédex reste une donnée affichée, donc cherchable.
-      await tester.pumpWidget(_app(
-        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
-      ));
+      await tester.pumpWidget(
+        _app(RuntimePlayerDetailRouter(snapshot: dexSnapshot())),
+      );
+      await tester.pumpAndSettle();
       final search = find.byKey(const ValueKey<String>('pokedex-search'));
 
       await tester.enterText(search, '#004');
-      await tester.pump();
-      expect(find.text('???'), findsOneWidget);
-      expect(find.text('Bulbizarre'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-charmander')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-bulbasaur')),
+        findsNothing,
+      );
 
       await tester.enterText(search, 'charmander');
-      await tester.pump();
-      expect(find.text('???'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-charmander')),
+        findsNothing,
+      );
     });
 
-    testWidgets('the caught state is searchable and case-insensitive',
-        (tester) async {
-      await tester.pumpWidget(_app(
-        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
-      ));
+    testWidgets('the caught state is searchable and case-insensitive', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(RuntimePlayerDetailRouter(snapshot: dexSnapshot())),
+      );
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const ValueKey<String>('pokedex-search')),
         'CAPTURÉ',
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('Bulbizarre'), findsOneWidget);
-      expect(find.text('Herbizarre'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-bulbasaur')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('pokedex-entry-ivysaur')), findsNothing);
     });
 
-    testWidgets('no match shows a dedicated empty state, then recovers',
-        (tester) async {
-      await tester.pumpWidget(_app(
-        RuntimePlayerDetailRouter(snapshot: dexSnapshot()),
-      ));
+    testWidgets('no match shows a dedicated empty state, then recovers', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(RuntimePlayerDetailRouter(snapshot: dexSnapshot())),
+      );
+      await tester.pumpAndSettle();
       final search = find.byKey(const ValueKey<String>('pokedex-search'));
 
       await tester.enterText(search, 'zzz-aucune-espece');
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(
-        find.byKey(
-          const ValueKey<String>('pokedex-no-results'),
-        ),
+        find.byKey(const ValueKey<String>('pokedex-no-results')),
         findsOneWidget,
       );
 
       await tester.enterText(search, '');
-      await tester.pump();
-      expect(find.text('Bulbizarre'), findsOneWidget);
-      expect(find.text('Herbizarre'), findsOneWidget);
-      expect(find.text('???'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-bulbasaur')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-ivysaur')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-charmander')),
+        findsOneWidget,
+      );
     });
   });
 
-  testWidgets('options expose a persisted touch-control opacity slider',
-      (tester) async {
+  testWidgets('options expose a persisted touch-control opacity slider', (
+    tester,
+  ) async {
     PlayerPreferencesSnapshot? changed;
     final snapshot = RuntimePlayerSnapshot(
       revision: 3,
@@ -229,14 +278,18 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(_app(
-      RuntimePlayerDetailRouter(
-        snapshot: snapshot,
-        onPreferencesChanged: (preferences) => changed = preferences,
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: snapshot,
+          onPreferencesChanged: (preferences) => changed = preferences,
+        ),
       ),
-    ));
+    );
+    await tester.pumpAndSettle();
     expect(
-      tester.widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+      tester
+          .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
           .defaultPreferences,
       same(snapshot.defaultPreferences),
     );
@@ -245,15 +298,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('options-category-picker')));
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(controls);
-    await tester.tap(controls);
-    await tester.pumpAndSettle();
+    await _tapBagControl(tester, 'options-category-controls');
 
     final slider = find.byKey(
       const ValueKey<String>('touch-controls-opacity-slider'),
     );
+    await _revealControl(tester, slider);
     expect(slider, findsOneWidget);
-    await tester.ensureVisible(slider);
     await tester.drag(slider, const Offset(-120, 0));
     await tester.pump();
 
@@ -261,108 +312,94 @@ void main() {
     expect(changed!.touchControlsOpacity, lessThan(0.82));
   });
 
-  testWidgets('bag selects a party target and keeps key items unavailable',
-      (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
-    addTearDown(tester.view.reset);
-    addTearDown(
-      tester.platformDispatcher.clearTextScaleFactorTestValue,
-    );
-    RuntimePlayerPauseCommand? command;
-    final detail = RuntimePlayerPauseDetailSnapshot(
-      section: RuntimePlayerPauseSection.bag,
-      title: 'Sac',
-      entries: <RuntimePlayerDetailEntrySnapshot>[
-        RuntimePlayerDetailEntrySnapshot(
-          id: 'bag.medicine.potion',
-          title: 'Potion',
-          trailingLabel: '×2',
-          bagAction: RuntimePlayerBagItemActionSnapshot(
-            itemTargetId: 'potion',
-            targetKind: RuntimePlayerBagUseTargetKind.partyMember,
-            usability: ItemUsabilityState.usable,
-            isEnabled: true,
+  testWidgets(
+    'bag automatically uses its sole target and keeps key items unavailable',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      RuntimePlayerPauseCommand? command;
+      final detail = RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.bag,
+        title: 'Sac',
+        entries: <RuntimePlayerDetailEntrySnapshot>[
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'bag.medicine.potion',
+            title: 'Potion',
+            trailingLabel: '×2',
+            bagAction: RuntimePlayerBagItemActionSnapshot(
+              itemTargetId: 'potion',
+              targetKind: RuntimePlayerBagUseTargetKind.partyMember,
+              usability: ItemUsabilityState.usable,
+              isEnabled: true,
+            ),
+          ),
+          RuntimePlayerDetailEntrySnapshot(
+            id: 'bag.key-items.harbor-pass',
+            title: 'Passe du port',
+            trailingLabel: '×1',
+            bagAction: RuntimePlayerBagItemActionSnapshot(
+              itemTargetId: 'harbor-pass',
+              targetKind: RuntimePlayerBagUseTargetKind.partyMember,
+              usability: ItemUsabilityState.passive,
+              isEnabled: false,
+              unavailableReason: 'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
+            ),
+          ),
+        ],
+        bagTargets: <RuntimePlayerBagPartyTargetSnapshot>[
+          RuntimePlayerBagPartyTargetSnapshot(
+            targetId: 'party.0',
+            label: 'Salamèche',
+            subtitle: 'PV 12/39',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _app(
+          RuntimePlayerDetailRouter(
+            snapshot: _detailSnapshot(
+              RuntimePlayerPauseSection.bag,
+              detail: detail,
+            ),
+            onPauseCommand: (value) => command = value,
           ),
         ),
-        RuntimePlayerDetailEntrySnapshot(
-          id: 'bag.key-items.harbor-pass',
-          title: 'Passe du port',
-          trailingLabel: '×1',
-          bagAction: RuntimePlayerBagItemActionSnapshot(
-            itemTargetId: 'harbor-pass',
-            targetKind: RuntimePlayerBagUseTargetKind.partyMember,
-            usability: ItemUsabilityState.passive,
-            isEnabled: false,
-            unavailableReason:
-                'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
-          ),
+      );
+
+      expect(tester.takeException(), isNull);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('runtime-player-bag-use-potion')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('runtime-player-bag-use-potion')),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(command?.itemTargetId, 'potion');
+      expect(command?.partyTargetId, 'party.0');
+      await _tapBagControl(tester, 'bag-item-bag.key-items.harbor-pass');
+      expect(
+        find.byKey(
+          const ValueKey<String>('runtime-player-bag-use-harbor-pass'),
         ),
-      ],
-      bagTargets: <RuntimePlayerBagPartyTargetSnapshot>[
-        RuntimePlayerBagPartyTargetSnapshot(
-          targetId: 'party.0',
-          label: 'Salamèche',
-          subtitle: 'PV 12/39',
-        ),
-      ],
-    );
+        findsNothing,
+      );
+      final reason = find.text(
+        'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
+      );
+      await tester.ensureVisible(reason);
+      expect(reason, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    await tester.pumpWidget(
-      _app(
-        RuntimePlayerDetailRouter(
-          snapshot: _detailSnapshot(
-            RuntimePlayerPauseSection.bag,
-            detail: detail,
-          ),
-          onPauseCommand: (value) => command = value,
-        ),
-      ),
-    );
-
-    expect(tester.takeException(), isNull);
-    await tester.ensureVisible(
-      find.byKey(
-        const ValueKey<String>('runtime-player-bag-use-potion'),
-      ),
-    );
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-bag-use-potion'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-bag-target-party.0'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(command, isNull);
-    await _tapBagControl(tester, 'bag-use-confirm');
-
-    expect(command?.itemTargetId, 'potion');
-    expect(command?.partyTargetId, 'party.0');
-    await _tapBagControl(tester, 'bag-item-bag.key-items.harbor-pass');
-    expect(
-      find.byKey(
-        const ValueKey<String>('runtime-player-bag-use-harbor-pass'),
-      ),
-      findsNothing,
-    );
-    final reason = find.text(
-      'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
-    );
-    await tester.ensureVisible(reason);
-    expect(reason, findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('TM replacement requires a compatible target and confirmation',
-      (tester) async {
+  testWidgets('TM replacement requires a compatible target and confirmation', (
+    tester,
+  ) async {
     RuntimePlayerPauseCommand? command;
     final detail = RuntimePlayerPauseDetailSnapshot(
       section: RuntimePlayerPauseSection.bag,
@@ -374,6 +411,7 @@ void main() {
           bagAction: RuntimePlayerBagItemActionSnapshot(
             itemTargetId: 'tm-protect',
             targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+            requiresConfirmation: true,
             usability: ItemUsabilityState.usable,
             isEnabled: true,
             eligiblePartyTargetIds: const <String>{'party.0'},
@@ -433,21 +471,14 @@ void main() {
       ),
     );
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-bag-use-tm-protect'),
-      ),
+      find.byKey(const ValueKey<String>('runtime-player-bag-use-tm-protect')),
     );
     await tester.pumpAndSettle();
 
-    final incompatible = tester.widget<PlayerMenuSelectableRow>(
+    expect(
       find.byKey(const ValueKey('runtime-player-bag-target-party.1')),
+      findsNothing,
     );
-    expect(incompatible.disabledReason,
-        'Cette espèce ne peut pas apprendre Abri.');
-    await _tapBagControl(tester, 'runtime-player-bag-target-party.1');
-    expect(find.byKey(const ValueKey('bag-use-confirm')), findsNothing);
-    expect(command, isNull);
-    await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
     await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
     expect(find.text('Apprendre Abri — oublier Rugissement'), findsOneWidget);
     expect(command, isNull);
@@ -458,8 +489,9 @@ void main() {
     expect(command?.moveTargetId, 'growl');
   });
 
-  testWidgets('HM target picker emits a compatible replacement command',
-      (tester) async {
+  testWidgets('HM target picker emits a compatible replacement command', (
+    tester,
+  ) async {
     RuntimePlayerPauseCommand? command;
     final detail = RuntimePlayerPauseDetailSnapshot(
       section: RuntimePlayerPauseSection.bag,
@@ -471,6 +503,7 @@ void main() {
           bagAction: RuntimePlayerBagItemActionSnapshot(
             itemTargetId: 'hm-surf',
             targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+            requiresConfirmation: true,
             usability: ItemUsabilityState.usable,
             isEnabled: true,
             eligiblePartyTargetIds: const <String>{'party.0'},
@@ -520,18 +553,14 @@ void main() {
       ),
     );
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-bag-use-hm-surf'),
-      ),
+      find.byKey(const ValueKey<String>('runtime-player-bag-use-hm-surf')),
     );
     await tester.pumpAndSettle();
 
-    final incompatible = tester.widget<PlayerMenuSelectableRow>(
+    expect(
       find.byKey(const ValueKey('runtime-player-bag-target-party.1')),
+      findsNothing,
     );
-    expect(incompatible.disabledReason, isNotEmpty);
-    expect(find.textContaining('hm-surf'), findsNothing);
-    await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
     await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
     expect(command, isNull);
     await _tapBagControl(tester, 'bag-use-confirm');
@@ -545,82 +574,85 @@ void main() {
     RuntimePlayerBagUseTargetKind.partyMove,
     RuntimePlayerBagUseTargetKind.partyMoveReplacement,
   ]) {
-    testWidgets('${targetKind.name} cancels without effect then confirms once',
-        (tester) async {
-      final commands = <RuntimePlayerPauseCommand>[];
-      final restoresPp = targetKind == RuntimePlayerBagUseTargetKind.partyMove;
-      final itemId = restoresPp ? 'ether' : 'tm-protect';
-      final detail = RuntimePlayerPauseDetailSnapshot(
-        section: RuntimePlayerPauseSection.bag,
-        title: 'Sac',
-        entries: [
-          RuntimePlayerDetailEntrySnapshot(
-            id: 'bag.$itemId',
-            title: restoresPp ? 'Éther' : 'CT Abri',
-            bagAction: RuntimePlayerBagItemActionSnapshot(
-              itemTargetId: itemId,
-              targetKind: targetKind,
-              usability: ItemUsabilityState.usable,
-              isEnabled: true,
-              learnedMoveLabel: restoresPp ? null : 'Abri',
+    testWidgets(
+      '${targetKind.name} cancels without effect then resolves its decision',
+      (tester) async {
+        final commands = <RuntimePlayerPauseCommand>[];
+        final restoresPp =
+            targetKind == RuntimePlayerBagUseTargetKind.partyMove;
+        final itemId = restoresPp ? 'ether' : 'tm-protect';
+        final detail = RuntimePlayerPauseDetailSnapshot(
+          section: RuntimePlayerPauseSection.bag,
+          title: 'Sac',
+          entries: [
+            RuntimePlayerDetailEntrySnapshot(
+              id: 'bag.$itemId',
+              title: restoresPp ? 'Éther' : 'CT Abri',
+              bagAction: RuntimePlayerBagItemActionSnapshot(
+                itemTargetId: itemId,
+                targetKind: targetKind,
+                requiresConfirmation: !restoresPp,
+                usability: ItemUsabilityState.usable,
+                isEnabled: true,
+                learnedMoveLabel: restoresPp ? null : 'Abri',
+              ),
+            ),
+          ],
+          bagTargets: [
+            RuntimePlayerBagPartyTargetSnapshot(
+              targetId: 'party.0',
+              label: 'Bulbizarre',
+              moves: const [
+                RuntimePlayerBagMoveTargetSnapshot(
+                  targetId: 'growl',
+                  label: 'Rugissement',
+                  subtitle: 'PP actuels : 0',
+                ),
+              ],
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          _app(
+            RuntimePlayerDetailRouter(
+              snapshot: _detailSnapshot(
+                RuntimePlayerPauseSection.bag,
+                detail: detail,
+              ),
+              onPauseCommand: commands.add,
             ),
           ),
-        ],
-        bagTargets: [
-          RuntimePlayerBagPartyTargetSnapshot(
-            targetId: 'party.0',
-            label: 'Bulbizarre',
-            moves: const [
-              RuntimePlayerBagMoveTargetSnapshot(
-                targetId: 'growl',
-                label: 'Rugissement',
-                subtitle: 'PP actuels : 0',
-              ),
-            ],
-          ),
-        ],
-      );
-      await tester.pumpWidget(_app(RuntimePlayerDetailRouter(
-        snapshot:
-            _detailSnapshot(RuntimePlayerPauseSection.bag, detail: detail),
-        onPauseCommand: commands.add,
-      )));
-      await _tapBagControl(tester, 'bag-item-bag.$itemId');
-      await _tapBagControl(tester, 'runtime-player-bag-use-$itemId');
-      await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
-      if (restoresPp) {
-        expect(find.text('PP actuels : 0'), findsOneWidget);
-        await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
-      } else {
-        expect(find.text('Apprendre Abri'), findsOneWidget);
-      }
-      expect(commands, isEmpty);
-      expect(find.byKey(const ValueKey('bag-use-confirm')), findsOneWidget);
-      await _tapBagControl(tester, 'runtime-player-bag-target-close');
-      if (restoresPp) {
+        );
+        await _tapBagControl(tester, 'runtime-player-bag-use-$itemId');
         await _tapBagControl(tester, 'runtime-player-bag-target-close');
-      }
-      await _tapBagControl(tester, 'runtime-player-bag-target-close');
-      expect(find.byType(Dialog), findsNothing);
-      expect(commands, isEmpty);
+        await _tapBagControl(tester, 'runtime-player-bag-target-close');
+        expect(find.byType(Dialog), findsNothing);
+        expect(commands, isEmpty);
 
-      await _tapBagControl(tester, 'runtime-player-bag-use-$itemId');
-      await _tapBagControl(tester, 'runtime-player-bag-target-party.0');
-      if (restoresPp) {
-        await _tapBagControl(tester, 'runtime-player-bag-target-party.0-growl');
-      }
-      expect(commands, isEmpty);
-      await _tapBagControl(tester, 'bag-use-confirm');
-      expect(commands, hasLength(1));
-      expect(commands.single.itemTargetId, itemId);
-      expect(commands.single.partyTargetId, 'party.0');
-      expect(commands.single.moveTargetId, restoresPp ? 'growl' : null);
-      expect(tester.takeException(), isNull);
-    });
+        await _tapBagControl(tester, 'runtime-player-bag-use-$itemId');
+        if (restoresPp) {
+          expect(find.text('PP actuels : 0'), findsOneWidget);
+          await _tapBagControl(
+            tester,
+            'runtime-player-bag-target-party.0-growl',
+          );
+        } else {
+          expect(find.text('Apprendre Abri'), findsOneWidget);
+          expect(commands, isEmpty);
+          await _tapBagControl(tester, 'bag-use-confirm');
+        }
+        expect(commands, hasLength(1));
+        expect(commands.single.itemTargetId, itemId);
+        expect(commands.single.partyTargetId, 'party.0');
+        expect(commands.single.moveTargetId, restoresPp ? 'growl' : null);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
-  testWidgets('party gives, swaps and takes held items with guided labels',
-      (tester) async {
+  testWidgets('party gives, swaps and takes held items with guided labels', (
+    tester,
+  ) async {
     final commands = <RuntimePlayerPauseCommand>[];
     final detail = RuntimePlayerPauseDetailSnapshot(
       section: RuntimePlayerPauseSection.party,
@@ -629,6 +661,18 @@ void main() {
         RuntimePlayerDetailEntrySnapshot(
           id: 'party.0',
           title: 'Bulbizarre',
+          pokemonSummary: RuntimePokemonSummarySnapshot(
+            targetId: 'party.0',
+            individualId: 'first',
+            natureLabel: 'Modeste',
+            abilityLabel: 'Engrais',
+            friendship: 70,
+            speciesLabel: 'Bulbizarre',
+            nickname: '',
+            level: 12,
+            currentHp: 20,
+            maxHp: 48,
+          ),
           heldItemAction: RuntimePlayerHeldItemActionSnapshot(
             partyTargetId: 'party.0',
             currentItemLabel: 'Baie Oran',
@@ -655,12 +699,11 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-held-manage-party.0'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    if (find.byType(PlayerPokemonSummarySheet).evaluate().isEmpty) {
+      await _tapBagControl(tester, 'party-member-first');
+      await _tapBagControl(tester, 'pokemon-summary-tab-actions');
+    }
+    await _tapBagControl(tester, 'runtime-player-held-manage-party.0');
 
     expect(find.text('Objet tenu : Baie Oran'), findsOneWidget);
     expect(find.text('Remplacer par Restes'), findsOneWidget);
@@ -673,12 +716,11 @@ void main() {
     expect(commands.single.itemTargetId, 'leftovers-charm');
     expect(commands.single.partyTargetId, 'party.0');
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-held-manage-party.0'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    if (find.byType(PlayerPokemonSummarySheet).evaluate().isEmpty) {
+      await _tapBagControl(tester, 'party-member-first');
+      await _tapBagControl(tester, 'pokemon-summary-tab-actions');
+    }
+    await _tapBagControl(tester, 'runtime-player-held-manage-party.0');
     await tester.tap(find.text('Retirer Baie Oran'));
     await tester.pumpAndSettle();
 
@@ -695,6 +737,18 @@ void main() {
         RuntimePlayerDetailEntrySnapshot(
           id: 'party.0',
           title: 'Bulbizarre',
+          pokemonSummary: RuntimePokemonSummarySnapshot(
+            targetId: 'party.0',
+            individualId: 'first',
+            natureLabel: 'Modeste',
+            abilityLabel: 'Engrais',
+            friendship: 70,
+            speciesLabel: 'Bulbizarre',
+            nickname: '',
+            level: 12,
+            currentHp: 20,
+            maxHp: 48,
+          ),
           heldItemAction: RuntimePlayerHeldItemActionSnapshot(
             partyTargetId: 'party.0',
             options: const <RuntimePlayerHeldItemOptionSnapshot>[
@@ -720,12 +774,11 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('runtime-player-held-manage-party.0'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    if (find.byType(PlayerPokemonSummarySheet).evaluate().isEmpty) {
+      await _tapBagControl(tester, 'party-member-first');
+      await _tapBagControl(tester, 'pokemon-summary-tab-actions');
+    }
+    await _tapBagControl(tester, 'runtime-player-held-manage-party.0');
     await tester.tap(
       find.byKey(const ValueKey<String>('runtime-player-held-close')),
     );
@@ -734,61 +787,65 @@ void main() {
     expect(commands, isEmpty);
   });
 
-  testWidgets('map identifies the current area and explains travel limits',
-      (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.textScaleFactorTestValue = 2;
-    addTearDown(tester.view.reset);
-    addTearDown(
-      tester.platformDispatcher.clearTextScaleFactorTestValue,
-    );
-    final detail = RuntimePlayerPauseDetailSnapshot(
-      section: RuntimePlayerPauseSection.map,
-      title: 'Carte',
-      message:
-          'Carte consultable uniquement : le voyage rapide sera ajouté plus tard.',
-      entries: <RuntimePlayerDetailEntrySnapshot>[
-        RuntimePlayerDetailEntrySnapshot(
-          id: 'map.route',
-          title: 'Route des Brumes',
-          subtitle: 'Position actuelle',
-          trailingLabel: 'Ici',
+  testWidgets(
+    'map renders current and unknown locations from its typed projection',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final detail = RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.map,
+        title: 'Carte',
+        regionalMap: RuntimePlayerRegionMapSnapshot(
+          regions: [
+            RuntimePlayerRegionSnapshot(
+              id: 'region',
+              label: 'Région des Brumes',
+              points: const [
+                RuntimePlayerMapPointSnapshot(
+                  id: 'route',
+                  label: 'Route des Brumes',
+                  status: RuntimePlayerMapPointStatus.current,
+                ),
+                RuntimePlayerMapPointSnapshot(
+                  id: 'cave',
+                  label: 'Nom secret',
+                  status: RuntimePlayerMapPointStatus.unknown,
+                ),
+              ],
+            ),
+          ],
         ),
-        RuntimePlayerDetailEntrySnapshot(
-          id: 'map.cave',
-          title: '???',
-          subtitle: 'Zone non découverte',
-          trailingLabel: 'Inconnue',
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      _app(
-        SingleChildScrollView(
-          child: RuntimePlayerDetailRouter(
+      );
+      await tester.pumpWidget(
+        _app(
+          RuntimePlayerDetailRouter(
             snapshot: _detailSnapshot(
               RuntimePlayerPauseSection.map,
               detail: detail,
             ),
           ),
         ),
-      ),
-    );
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(Scrollable), findsNothing);
+      final row = tester.widget<PlayerMenuSelectableRow>(
+        find.byKey(const ValueKey('region-row-route')),
+      );
+      expect(row.label, 'Route des Brumes');
+      expect(row.semanticValue, 'Vous êtes ici');
+      await _tapBagControl(tester, 'region-row-cave');
+      expect(find.text('Nom secret'), findsNothing);
+      expect(find.text('???'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    expect(tester.takeException(), isNull);
-    expect(
-      find.byKey(const ValueKey<String>('runtime-player-map-message')),
-      findsOneWidget,
-    );
-    expect(find.text('Position actuelle'), findsOneWidget);
-    expect(find.text('Ici'), findsOneWidget);
-    expect(find.text('???'), findsOneWidget);
-  });
-
-  testWidgets('missing or empty detail gives a guided empty state',
-      (tester) async {
+  testWidgets('missing or empty detail gives a guided empty state', (
+    tester,
+  ) async {
     final snapshot = _detailSnapshot(
       RuntimePlayerPauseSection.party,
       detail: RuntimePlayerPauseDetailSnapshot(
@@ -798,9 +855,9 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(_app(
-      RuntimePlayerDetailRouter(snapshot: snapshot),
-    ));
+    await tester.pumpWidget(
+      _app(RuntimePlayerDetailRouter(snapshot: snapshot)),
+    );
 
     expect(
       find.byKey(const ValueKey<String>('runtime-player-detail-empty')),
@@ -809,8 +866,9 @@ void main() {
     expect(find.text('Aucun Pokémon dans votre équipe.'), findsOneWidget);
   });
 
-  testWidgets('disabled detail shows the runtime-provided reason',
-      (tester) async {
+  testWidgets('disabled detail shows the runtime-provided reason', (
+    tester,
+  ) async {
     final snapshot = RuntimePlayerSnapshot(
       revision: 4,
       phase: RuntimePlayerPhase.paused,
@@ -824,9 +882,9 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(_app(
-      RuntimePlayerDetailRouter(snapshot: snapshot),
-    ));
+    await tester.pumpWidget(
+      _app(RuntimePlayerDetailRouter(snapshot: snapshot)),
+    );
 
     expect(
       find.byKey(const ValueKey<String>('runtime-player-detail-unavailable')),
@@ -843,9 +901,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.view.reset);
-    addTearDown(
-      tester.platformDispatcher.clearTextScaleFactorTestValue,
-    );
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final actions = <RuntimePlayerAction>[];
     final snapshot = RuntimePlayerSnapshot(
       revision: 12,
@@ -863,57 +919,6 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(_app(RuntimePlayerSurfaceRouter(
-      snapshot: snapshot,
-      titlePresentation: const RuntimePlayerTitlePresentation(
-        author: 'Studio Test',
-      ),
-      gameSceneBuilder: (_) => const SizedBox.expand(),
-      onAction: (action) async {
-        actions.add(action);
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.accepted,
-        );
-      },
-    )));
-
-    await tester.tap(find.text('Sauvegarder'));
-    await tester.pumpAndSettle();
-    expect(actions, isEmpty);
-    expect(
-      find.text('Profil « karim », slot « slot-2 ».'),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('runtime-save-confirm')),
-    );
-    await tester.pumpAndSettle();
-    expect(actions, <RuntimePlayerAction>[RuntimePlayerAction.save]);
-  });
-
-  testWidgets('manual Save receipt names the persisted profile and slot',
-      (tester) async {
-    const address = RuntimePlayerSaveAddress(
-      gameId: 'com.example.aube',
-      profileId: 'karim',
-      slotId: 'slot-2',
-    );
-    final snapshot = RuntimePlayerSnapshot(
-      revision: 13,
-      phase: RuntimePlayerPhase.paused,
-      gameTitle: 'Aube',
-      pauseSection: RuntimePlayerPauseSection.root,
-      activeSaveAddress: address,
-      saveReceipt: const RuntimePlayerSaveReceipt(
-        address: address,
-        trigger: GameSessionCheckpointTrigger.manual,
-      ),
-      actions: const <RuntimePlayerActionAvailability>[
-        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
-        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.save),
-      ],
-    );
-
     await tester.pumpWidget(
       _app(
         RuntimePlayerSurfaceRouter(
@@ -922,24 +927,89 @@ void main() {
             author: 'Studio Test',
           ),
           gameSceneBuilder: (_) => const SizedBox.expand(),
-          onAction: (_) async => const RuntimePlayerCommandResult(
-            status: RuntimePlayerCommandStatus.accepted,
-          ),
+          onAction: (action) async {
+            actions.add(action);
+            return const RuntimePlayerCommandResult(
+              status: RuntimePlayerCommandStatus.accepted,
+            );
+          },
         ),
       ),
     );
 
-    expect(
-      find.byKey(const ValueKey<String>('runtime-save-receipt')),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'Partie sauvegardée — profil « karim », slot « slot-2 ».',
-      ),
-      findsOneWidget,
-    );
+    await tester.pumpAndSettle();
+    await _revealControl(tester, find.text('Sauvegarder'));
+    await tester.tap(find.text('Sauvegarder'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialog), findsNothing);
+    expect(find.byKey(const ValueKey('runtime-save-confirm')), findsNothing);
+    expect(actions, <RuntimePlayerAction>[RuntimePlayerAction.save]);
   });
+
+  testWidgets(
+    'manual Save receipt names the freshly persisted profile and slot',
+    (tester) async {
+      const address = RuntimePlayerSaveAddress(
+        gameId: 'com.example.aube',
+        profileId: 'karim',
+        slotId: 'slot-2',
+      );
+      final snapshot = ValueNotifier(
+        RuntimePlayerSnapshot(
+          revision: 13,
+          phase: RuntimePlayerPhase.paused,
+          gameTitle: 'Aube',
+          pauseSection: RuntimePlayerPauseSection.root,
+          activeSaveAddress: address,
+          actions: const [
+            RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
+            RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.save),
+          ],
+        ),
+      );
+      addTearDown(snapshot.dispose);
+      await tester.pumpWidget(
+        _app(
+          ValueListenableBuilder<RuntimePlayerSnapshot>(
+            valueListenable: snapshot,
+            builder: (context, value, _) => RuntimePlayerSurfaceRouter(
+              snapshot: value,
+              titlePresentation: const RuntimePlayerTitlePresentation(
+                author: 'Studio Test',
+              ),
+              gameSceneBuilder: (_) => const SizedBox.expand(),
+              onAction: (action) async {
+                expect(action, RuntimePlayerAction.save);
+                final receipt = RuntimePlayerSaveReceipt(
+                  address: address,
+                  trigger: GameSessionCheckpointTrigger.manual,
+                );
+                snapshot.value = snapshot.value.next(saveReceipt: receipt);
+                return RuntimePlayerCommandResult(
+                  status: RuntimePlayerCommandStatus.accepted,
+                  saveReceipt: receipt,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('runtime-save-receipt')), findsNothing);
+      await _revealControl(tester, find.text('Sauvegarder'));
+      await tester.tap(find.text('Sauvegarder'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      expect(
+        find.byKey(const ValueKey('runtime-save-receipt')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Partie sauvegardée — profil « karim », slot « slot-2 ».'),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 RuntimePlayerSnapshot _detailSnapshot(
@@ -970,22 +1040,44 @@ RuntimePlayerAction _actionFor(RuntimePlayerPauseSection section) =>
       RuntimePlayerPauseSection.pokedex => RuntimePlayerAction.openPokedex,
       RuntimePlayerPauseSection.map => RuntimePlayerAction.openMap,
       RuntimePlayerPauseSection.quests => RuntimePlayerAction.openQuests,
+      RuntimePlayerPauseSection.contacts => RuntimePlayerAction.openContacts,
       RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
       RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
       RuntimePlayerPauseSection.root => throw ArgumentError('root'),
     };
 
 Widget _app(Widget child) => MaterialApp(
-      locale: const Locale('fr'),
-      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
-      home: Material(child: child),
-    );
+  locale: const Locale('fr'),
+  supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+  localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+  theme: PokeMapPlayerTheme.dark(),
+  home: Material(child: child),
+);
 
 Future<void> _tapBagControl(WidgetTester tester, String key) async {
   final control = find.byKey(ValueKey<String>(key));
-  await tester.ensureVisible(control);
+  await _revealControl(tester, control);
   await tester.tap(control);
   await tester.pumpAndSettle();
+}
+
+Future<void> _revealControl(WidgetTester tester, Finder control) async {
+  await tester.pumpAndSettle();
+  for (
+    var page = 0;
+    control.hitTestable().evaluate().isEmpty && page < 24;
+    page++
+  ) {
+    final next = find
+        .byKey(const ValueKey('player-page-next'))
+        .hitTestable()
+        .evaluate()
+        .where((element) => (element.widget as IconButton).onPressed != null)
+        .firstOrNull;
+    if (next == null) break;
+    await tester.tap(
+      find.byElementPredicate((element) => identical(element, next)),
+    );
+    await tester.pumpAndSettle();
+  }
 }

@@ -600,6 +600,7 @@ final class OpenPokemonGiftInteractionService
     required this.projectedState,
     this.pokedexDetail,
     this.speciesName,
+    this.isNewPokedexEntry = false,
   });
   final SceneInteractionRequest interaction;
   final PokemonGiftInteractionStage stage;
@@ -607,6 +608,7 @@ final class OpenPokemonGiftInteractionService
   final GameState projectedState;
   final RuntimePlayerPauseDetailSnapshot? pokedexDetail;
   final String? speciesName;
+  final bool isNewPokedexEntry;
   @override
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.pokemonGift;
 }

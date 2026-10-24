@@ -15,6 +15,7 @@ class PlayerPauseSummaryCard extends StatelessWidget {
     this.portraitImage,
     this.compact = false,
     this.mobile = false,
+    this.minimal = false,
   });
 
   final String gameTitle;
@@ -22,6 +23,7 @@ class PlayerPauseSummaryCard extends StatelessWidget {
   final ImageProvider? portraitImage;
   final bool compact;
   final bool mobile;
+  final bool minimal;
 
   @override
   Widget build(BuildContext context) {
@@ -45,19 +47,49 @@ class PlayerPauseSummaryCard extends StatelessWidget {
       if (seconds != null)
         (
           label: l10n.playTime,
-          value: '${seconds ~/ 3600}:'
+          value:
+              '${seconds ~/ 3600}:'
               '${(seconds ~/ 60 % 60).toString().padLeft(2, '0')}',
         ),
       if (pokedex != null)
         (label: l10n.pokedex, value: '${pokedex.caught} / ${pokedex.total}'),
     ];
+    if (minimal) {
+      return PlayerMenuPanel(
+        key: const ValueKey('player-pause-summary-panel'),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              heading,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.subtitle,
+            ),
+            if (playerName != null &&
+                playerName.isNotEmpty &&
+                playerName != heading)
+              Text(
+                playerName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.body,
+              ),
+          ],
+        ),
+      );
+    }
     final statisticLabels = [
       for (final statistic in statistics)
         Text.rich(
-          TextSpan(children: [
-            TextSpan(text: '${statistic.label} : '),
-            TextSpan(text: statistic.value, style: theme.numbers),
-          ]),
+          TextSpan(
+            children: [
+              TextSpan(text: '${statistic.label} : '),
+              TextSpan(text: statistic.value, style: theme.numbers),
+            ],
+          ),
           style: mobile ? theme.meta : theme.body,
         ),
     ];
@@ -65,10 +97,7 @@ class PlayerPauseSummaryCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          header: true,
-          child: Text(heading, style: theme.subtitle),
-        ),
+        Semantics(header: true, child: Text(heading, style: theme.subtitle)),
         if (playerName != null &&
             playerName.isNotEmpty &&
             playerName != heading) ...[
@@ -81,8 +110,9 @@ class PlayerPauseSummaryCard extends StatelessWidget {
             Wrap(spacing: 12, runSpacing: 4, children: statisticLabels)
           else
             Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: statisticLabels),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: statisticLabels,
+            ),
         ],
       ],
     );
@@ -91,13 +121,13 @@ class PlayerPauseSummaryCard extends StatelessWidget {
         width: mobile
             ? 48
             : compact
-                ? 72
-                : 160,
+            ? 72
+            : 160,
         height: mobile
             ? 56
             : compact
-                ? 84
-                : 184,
+            ? 84
+            : 184,
         child: Align(
           alignment: Alignment.bottomRight,
           child: _portrait(context),
@@ -109,34 +139,38 @@ class PlayerPauseSummaryCard extends StatelessWidget {
       child: PlayerMenuPanel(
         key: const ValueKey('player-pause-summary-panel'),
         padding: const EdgeInsets.all(12),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final stacked = constraints.maxWidth <
-                  (mobile
-                      ? 180
-                      : compact
-                          ? 280
-                          : 480) ||
-              MediaQuery.textScalerOf(context).scale(18) > 27;
-          if (stacked) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked =
+                !mobile &&
+                (constraints.maxWidth <
+                        (mobile
+                            ? 180
+                            : compact
+                            ? 280
+                            : 480) ||
+                    MediaQuery.textScalerOf(context).scale(18) > 27);
+            if (stacked) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  details,
+                  const SizedBox(height: PlayerSpacing.sm),
+                  Align(alignment: Alignment.bottomRight, child: portrait),
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                details,
-                const SizedBox(height: PlayerSpacing.sm),
-                Align(alignment: Alignment.bottomRight, child: portrait),
+                Expanded(child: details),
+                SizedBox(width: compact ? PlayerSpacing.sm : PlayerSpacing.md),
+                portrait,
               ],
             );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(child: details),
-              SizedBox(width: compact ? PlayerSpacing.sm : PlayerSpacing.md),
-              portrait,
-            ],
-          );
-        }),
+          },
+        ),
       ),
     );
   }
@@ -148,8 +182,8 @@ class PlayerPauseSummaryCard extends StatelessWidget {
       size: mobile
           ? 40
           : compact
-              ? 72
-              : 144,
+          ? 72
+          : 144,
       color: context.playerMenuTheme.secondary,
     );
     final path = profile?.portraitFilePath;
@@ -165,8 +199,12 @@ class PlayerPauseSummaryCard extends StatelessWidget {
     if (image == null) return fallback;
     return Image(
       key: const ValueKey('player-pause-summary-portrait'),
-      image: ResizeImage(image,
-          width: 320, height: 368, policy: ResizeImagePolicy.fit),
+      image: ResizeImage(
+        image,
+        width: 320,
+        height: 368,
+        policy: ResizeImagePolicy.fit,
+      ),
       fit: BoxFit.contain,
       alignment: Alignment.bottomRight,
       filterQuality: FilterQuality.medium,

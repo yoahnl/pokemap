@@ -12,6 +12,9 @@ import '../player/runtime_pokemon_summary.dart';
 import '../player/runtime_regional_map.dart';
 import '../presentation/flutter/battle_command_overlay_snapshot.dart';
 import '../session/game_session_contract.dart';
+import 'runtime_world_service_models.dart';
+
+part 'runtime_world_service_companion_codec.dart';
 
 abstract final class RuntimeCompanionPresentationCodec {
   static Map<String, dynamic> _map(Object? value) =>
@@ -32,6 +35,7 @@ abstract final class RuntimeCompanionPresentationCodec {
 
   static Map<String, Object?> encodePlayer(RuntimePlayerSnapshot value) => {
         'revision': value.revision,
+        'worldService': value.worldService == null ? null : encodeWorldService(value.worldService!),
         'phase': value.phase.name,
         'gameTitle': value.gameTitle,
         'pauseSection': value.pauseSection?.name,
@@ -66,6 +70,7 @@ abstract final class RuntimeCompanionPresentationCodec {
   static RuntimePlayerSnapshot decodePlayer(Map<String, dynamic> data) =>
       RuntimePlayerSnapshot(
         revision: data['revision'] as int,
+        worldService: data['worldService'] == null ? null : decodeWorldService(_map(data['worldService'])),
         phase: RuntimePlayerPhase.values.byName(data['phase'] as String),
         gameTitle: data['gameTitle'] as String,
         pauseSection: data['pauseSection'] == null
@@ -109,6 +114,52 @@ abstract final class RuntimeCompanionPresentationCodec {
                 decodeRuntimePlayerPauseDetailSnapshot(_map(raw)),
         },
       );
+
+  static bool supportsWorldService(RuntimeWorldServiceSnapshot value) =>
+      const {RuntimeWorldServiceKind.shop, RuntimeWorldServiceKind.heal,
+        RuntimeWorldServiceKind.pc, RuntimeWorldServiceKind.partyTrade,
+        RuntimeWorldServiceKind.pokemonGift}.contains(value.request.kind);
+
+  static Map<String, Object?> encodeWorldService(RuntimeWorldServiceSnapshot value) =>
+      _RuntimeWorldServiceCompanionCodec.encode(value);
+
+  static RuntimeWorldServiceSnapshot decodeWorldService(Map<String, dynamic> data) =>
+      _RuntimeWorldServiceCompanionCodec.decode(data);
+
+  static Map<String, Object?> encodeWorldServiceCommand(RuntimeWorldServiceCommand command) => {
+    'action': command.action.name, 'snapshotRevision': command.snapshotRevision,
+    'targetId': command.targetId, 'secondaryTargetId': command.secondaryTargetId,
+    'quantity': command.quantity, 'interactionResult': command.interactionResult?.toJson(),
+  };
+
+  static RuntimeWorldServiceCommand decodeWorldServiceCommand(Map<String, dynamic> data) {
+    final revision = data['snapshotRevision'];
+    final quantity = data['quantity'];
+    if (revision is! int || revision < 0 || quantity != null && (quantity is! int || quantity <= 0)) {
+      throw const FormatException('Invalid companion world-service command.');
+    }
+    return RuntimeWorldServiceCommand(
+      action: RuntimeWorldServiceAction.values.byName(data['action'] as String),
+      snapshotRevision: revision, targetId: data['targetId'] as String?,
+      secondaryTargetId: data['secondaryTargetId'] as String?, quantity: quantity as int?,
+      interactionResult: data['interactionResult'] == null ? null : SceneInteractionResult.fromJson(_map(data['interactionResult'])),
+    );
+  }
+
+  static RuntimeWorldServiceCommandResult validateWorldServiceCommand({
+    required RuntimeWorldServiceSnapshot snapshot,
+    required RuntimeWorldServiceCommand command,
+    required String interactionId,
+  }) {
+    if (snapshot.revision != command.snapshotRevision || snapshot.request.interactionId != interactionId) {
+      return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.stale);
+    }
+    if (!snapshot.isActionEnabled(command.action)) {
+      return RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.unavailable,
+        safeMessage: snapshot.unavailableReasonFor(command.action));
+    }
+    return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.accepted);
+  }
 
   static Map<String, Object?> encodePlayerCommand(
           RuntimePlayerCommand command) =>
@@ -641,6 +692,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         'targetKind': value.targetKind.name,
         'usability': value.usability.name,
         'isEnabled': value.isEnabled,
+        'requiresConfirmation': value.requiresConfirmation,
         'unavailableReason':
             value.unavailableReason,
         'eligiblePartyTargetIds': value.eligiblePartyTargetIds?.map((value) => value).toList(),
@@ -658,6 +710,7 @@ abstract final class RuntimeCompanionPresentationCodec {
             usability:
                 ItemUsabilityState.values.byName(data['usability'] as String),
             isEnabled: data['isEnabled'] as bool,
+            requiresConfirmation: data['requiresConfirmation'] as bool,
             unavailableReason: data['unavailableReason'] == null
                 ? null
                 : data['unavailableReason'] as String,

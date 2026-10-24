@@ -279,6 +279,7 @@ void main() {
       final potion = bag.entries.firstWhere((entry) => entry.title == 'Potion');
       expect(potion.trailingLabel, '×3');
       expect(potion.bagAction?.isEnabled, isTrue);
+      expect(potion.bagAction?.requiresConfirmation, isFalse);
       expect(
         potion.bagAction?.targetKind,
         RuntimePlayerBagUseTargetKind.partyMember,
@@ -652,6 +653,7 @@ void main() {
           'pokemon.starter-1',
         });
         expect(action.learnedMoveLabel, 'Protect');
+        expect(action.requiresConfirmation, isTrue);
         final target = details[RuntimePlayerPauseSection.bag]!.bagTargets.first;
         expect(target.moves.map((move) => move.targetId), knownMoves);
         expect(target.requiresMoveReplacement, knownMoves.length == 4);

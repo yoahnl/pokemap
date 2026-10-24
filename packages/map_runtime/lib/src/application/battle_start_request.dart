@@ -64,6 +64,7 @@ class WildBattleStartRequest extends BattleStartRequest {
     required super.requestId,
     required super.createdAtEpochMs,
     required super.returnContext,
+    this.demonstration,
     required this.mapId,
     required this.encounterSourceId,
     required this.encounterSourceKind,
@@ -87,6 +88,7 @@ class WildBattleStartRequest extends BattleStartRequest {
           source: RuntimeBattleSourceKind.wildEncounter,
         );
 
+  final SceneBattleDemonstration? demonstration;
   final String mapId;
   final String encounterSourceId;
   final EncounterSourceKind encounterSourceKind;
@@ -115,6 +117,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       requestId: requestId,
       createdAtEpochMs: createdAtEpochMs,
       returnContext: returnContext,
+      demonstration: demonstration,
       mapId: mapId,
       encounterSourceId: encounterSourceId,
       encounterSourceKind: encounterSourceKind,
@@ -144,6 +147,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       'kind': kind.name,
       'source': source.name,
       'returnContext': returnContext.toJson(),
+      if (demonstration != null) 'demonstration': demonstration!.toJson(),
       'mapId': mapId,
       'encounterSourceId': encounterSourceId,
       'encounterSourceKind': encounterSourceKind.name,

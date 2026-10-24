@@ -3,6 +3,93 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('point shadow capability combines used lights and effective casters across maps', () {
+    final lamp = ProjectModel3dEntry.fromJson({..._model().toJson(), 'id': 'lamp', 'relativePath': 'assets/models3d/lamp.glb'}).copyWith(light: Model3dPointLight(localPosition: Model3dVector3.zero));
+    final house = ProjectModel3dEntry.fromJson({..._model().toJson(), 'id': 'house', 'relativePath': 'assets/models3d/house.glb'}).copyWith(castsShadowsByDefault: true);
+    final project = ProjectManifest(name: 'Lighting', maps: [], tilesets: [], models3d: [lamp, house]);
+    MapData map(String id, String modelId, {bool? castsShadows}) => MapData(
+      id: id, name: id, size: const GridSize(width: 4, height: 4),
+      spatialScene: MapSpatialScene(width: 4, depth: 4, instances: [SpatialModelInstance(
+        id: 'placement', modelId: modelId, position: Model3dVector3.zero, castsShadows: castsShadows)]));
+    final lit = map('lit', 'lamp');
+    final casting = map('casting', 'house');
+    expect(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId, 'map3d.point-light-shadows@1');
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project), false);
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project, maps: [lit]), false);
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project, maps: [casting]), false);
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project, maps: [lit, casting]), true);
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project, maps: [lit, map('off', 'house', castsShadows: false)]), false);
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project.copyWith(models3d: [lamp, house.copyWith(castsShadowsByDefault: false)]), maps: [lit, map('on', 'house', castsShadows: true)]), true);
+    expect(SpatialSceneLightingCapabilities.requiresPointLightShadows(project.copyWith(models3d: [lamp.copyWith(light: lamp.light!.copyWith(intensity: 0)), house]), maps: [lit, casting]), false);
+  });
+  test('attached point light survives resource JSON and rejects invalid values', () {
+    final light = <String, dynamic>{
+      'localPosition': {'x': 0.0, 'y': 2.25, 'z': 0.0},
+      'radius': 4.0, 'intensity': 1.0, 'colorRgb': 0xffd59a, 'nightOnly': true,
+    };
+    final attached = ProjectModel3dEntry.fromJson({..._model().toJson(), 'light': light});
+    expect(attached.toJson()['light'], light);
+    expect(attached.copyWith(name: 'Lamp').toJson()['light'], light);
+    expect(ProjectModel3dEntry.fromJson(attached.toJson()), attached);
+    for (final invalid in [0, 64.1, '4']) {
+      expect(() => ProjectModel3dEntry.fromJson({..._model().toJson(),
+        'light': {...light, 'radius': invalid}}), throwsFormatException);
+    }
+    expect(ProjectModel3dEntry.fromJson({..._model().toJson(), 'light': null}), _model());
+  });
+  test('day night cycle survives scene JSON and rejects invalid timing', () {
+    final scene = MapSpatialScene(width: 4, depth: 4);
+    final cycle = <String, dynamic>{'durationSeconds': 600.0, 'startMinuteOfDay': 720};
+    final configured = MapSpatialScene.fromJson({...scene.toJson(), 'dayNightCycle': cycle});
+    expect(configured.toJson()['dayNightCycle'], cycle);
+    expect(configured.copyWith(generateCliffs: false).toJson()['dayNightCycle'], cycle);
+    for (final duration in [0, 9, 86401, '600']) {
+      expect(() => MapSpatialScene.fromJson({...scene.toJson(),
+        'dayNightCycle': {...cycle, 'durationSeconds': duration}}), throwsFormatException);
+    }
+  });
+  test('visual cycle evaluator wraps deterministically and preserves scene edits', () {
+    final cycle = SpatialDayNightCycle();
+    expect(cycle.minuteAtElapsed(0), 720);
+    expect(cycle.minuteAtElapsed(150), 1080);
+    expect(cycle.minuteAtElapsed(300), 0);
+    expect(cycle.minuteAtElapsed(600), 720);
+    expect(cycle.minuteAtElapsed(1200), 720);
+    for (final elapsed in [-1.0, double.nan, double.infinity]) {
+      expect(() => cycle.minuteAtElapsed(elapsed), throwsFormatException);
+    }
+    for (final minute in [-1, 1440]) {
+      expect(() => SpatialDayNightCycle(startMinuteOfDay: minute), throwsFormatException);
+    }
+    final map = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9, size: const GridSize(width: 4, height: 4),
+      spatialScene: MapSpatialScene(width: 4, depth: 4));
+    const operations = SpatialMapOperations();
+    final configured = operations.configureDayNightCycle(map, cycle);
+    expect(operations.configureLevelHeight(configured, .5).spatialScene!.dayNightCycle, cycle);
+    expect(operations.configureDayNightCycle(configured, null), map);
+    expect(configured.spatialScene!.copyWith(clearDayNightCycle: true), map.spatialScene);
+  });
+  test('point light limits and capability derivation ignore unused resources', () {
+    final light = Model3dPointLight(localPosition: Model3dVector3(x: 0, y: 2.25, z: 0));
+    for (final invalid in [-1.0, 4.01, double.nan]) {
+      expect(() => light.copyWith(intensity: invalid), throwsFormatException);
+    }
+    for (final rgb in [-1, 0x1000000]) {
+      expect(() => light.copyWith(colorRgb: rgb), throwsFormatException);
+    }
+    expect(Model3dPointLight.fromJson(light.toJson()), light);
+    final model = _model().copyWith(light: light);
+    expect(model.copyWith(clearLight: true), _model());
+    final project = ProjectManifest(name: 'Light', maps: [], tilesets: [], models3d: [model]);
+    final map = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9, size: const GridSize(width: 4, height: 4),
+      spatialScene: MapSpatialScene(width: 4, depth: 4, instances: [SpatialModelInstance(
+        id: 'lamp', modelId: model.id, position: Model3dVector3(x: 1, y: 0, z: 1))]));
+    expect(SpatialSceneLightingCapabilities.requiresPointLights(project), false);
+    expect(SpatialSceneLightingCapabilities.requiresPointLights(project, maps: [map]), true);
+    expect(SpatialSceneLightingCapabilities.requiresPointLights(project.copyWith(models3d: [model.copyWith(light: light.copyWith(intensity: 0))]), maps: [map]), false);
+    expect(SpatialSceneLightingCapabilities.requiresDayNight(project, maps: [map]), false);
+    expect(SpatialSceneLightingCapabilities.requiresDayNight(project, maps: [const SpatialMapOperations().configureDayNightCycle(map, SpatialDayNightCycle())]), true);
+  });
   test('shadow casting defaults off and roundtrips explicit resource settings', () {
     final original = _model();
     expect(original.toJson(), isNot(contains('castsShadowsByDefault')));

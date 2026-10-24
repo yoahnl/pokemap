@@ -8,6 +8,48 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('3D gameplay retains pre-session presentation cinematics', () {
+    final files = _payload();
+    final project = _project(files).copyWith(
+      presentationCinematics: [
+        PresentationCinematicAsset(
+            id: 'welcome', title: 'Welcome', durationUs: 1000000),
+      ],
+      scenes: [
+        SceneAsset(
+          id: 'opening',
+          name: 'Opening',
+          executionProfile: SceneExecutionProfile.preSession,
+          graph: SceneGraph(startNodeId: 'start', nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'welcome',
+              kind: SceneNodeKind.presentationCinematic,
+              payload: ScenePresentationCinematicPayload(
+                  presentationCinematicId: 'welcome'),
+            ),
+          ], edges: []),
+        ),
+      ],
+    );
+    expect(
+        () => const GamePackageSpatialProjectValidator(gameplay: true)
+            .validate(project, (path) => files[path]),
+        returnsNormally);
+    expect(
+        () => const GamePackageSpatialProjectValidator()
+            .validate(project, (path) => files[path]),
+        throwsA(isA<GamePackageFormatException>()));
+    expect(
+        () => const GamePackageSpatialProjectValidator(gameplay: true)
+            .validate(project.copyWith(presentationCinematics: []),
+                (path) => files[path]),
+        throwsA(isA<GamePackageFormatException>().having(
+            (error) => error.code,
+            'code',
+            'runtime3d.presentation_cinematic_missing')));
+  });
+
   test('gameplay packages preserve typed facts and scenes through inspection',
       () {
     final files = _payload();

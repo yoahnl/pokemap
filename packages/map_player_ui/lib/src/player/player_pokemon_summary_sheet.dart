@@ -1,8 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_components.dart';
+import '../foundation/player_paged_layout.dart';
+import 'player_pokemon_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -19,86 +24,15 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
     super.key,
     required this.summary,
     this.surfaceRole = ProjectPresentationSurfaceRole.party,
+    this.actions,
   });
 
   final RuntimePokemonSummarySnapshot summary;
   final ProjectPresentationSurfaceRole surfaceRole;
+  final Widget? actions;
 
   @override
-  Widget build(BuildContext context) {
-    final strings = PlayerPokemonSummaryStrings.of(context);
-    return PlayerPanel(
-      surfaceRole: surfaceRole,
-      child: Semantics(
-        container: true,
-        label: summary.displayLabel,
-        value: strings.hpValue(summary.currentHp, summary.maxHp),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            _header(context, strings),
-            const SizedBox(height: PlayerSpacing.sm),
-            _hpBar(context, strings),
-            const SizedBox(height: PlayerSpacing.md),
-            _identity(context, strings),
-            if (summary.stats case final stats?) ...<Widget>[
-              const SizedBox(height: PlayerSpacing.md),
-              _sectionTitle(context, strings.stats),
-              _statsGrid(context, strings, stats),
-            ],
-            const SizedBox(height: PlayerSpacing.md),
-            _sectionTitle(context, strings.moves),
-            _moves(context, strings),
-            if (summary.provenance case final provenance?) ...<Widget>[
-              const SizedBox(height: PlayerSpacing.md),
-              _sectionTitle(context, strings.provenance),
-              _provenance(context, strings, provenance),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _header(BuildContext context, PlayerPokemonSummaryStrings strings) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                summary.displayLabel,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              if (summary.nickname.isNotEmpty)
-                Text(
-                  summary.speciesLabel,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: PlayerSpacing.xs),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: <Widget>[
-            Text(
-              strings.levelValue(summary.level),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (summary.isShiny)
-              PlayerBadge(
-                label: strings.shiny,
-                icon: Icons.auto_awesome,
-                tone: PlayerBadgeTone.warning,
-              ),
-          ],
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => _PlayerPokemonSummaryTabs(sheet: this);
 
   Widget _hpBar(BuildContext context, PlayerPokemonSummaryStrings strings) {
     return Column(
@@ -193,10 +127,7 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
 
   Widget _moves(BuildContext context, PlayerPokemonSummaryStrings strings) {
     if (summary.moves.isEmpty) {
-      return Text(
-        strings.none,
-        style: Theme.of(context).textTheme.bodyMedium,
-      );
+      return Text(strings.none, style: Theme.of(context).textTheme.bodyMedium);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -238,11 +169,178 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _sectionTitle(BuildContext context, String title) => Padding(
-        padding: const EdgeInsets.only(bottom: PlayerSpacing.xs),
-        child: Text(title, style: Theme.of(context).textTheme.titleSmall),
-      );
+class _PlayerPokemonSummaryTabs extends StatefulWidget {
+  const _PlayerPokemonSummaryTabs({required this.sheet});
+  final PlayerPokemonSummarySheet sheet;
+
+  @override
+  State<_PlayerPokemonSummaryTabs> createState() =>
+      _PlayerPokemonSummaryTabsState();
+}
+
+class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
+  var _tab = 0;
+
+  List<Widget> _rows(Widget child) => child is Column
+      ? child.children
+      : child is Wrap
+      ? child.children
+      : [child];
+
+  @override
+  Widget build(BuildContext context) {
+    final sheet = widget.sheet;
+    final summary = sheet.summary;
+    final strings = PlayerPokemonSummaryStrings.of(context);
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    final tabs = french
+        ? ['Résumé', 'Capacités', 'Stats', 'Actions']
+        : ['Summary', 'Moves', 'Stats', 'Actions'];
+    final ids = ['summary', 'moves', 'stats', 'actions'];
+    final rows = switch (_tab) {
+      1 => _rows(sheet._moves(context, strings)),
+      2 =>
+        summary.stats == null
+            ? <Widget>[Text(strings.none)]
+            : _rows(sheet._statsGrid(context, strings, summary.stats!)),
+      3 =>
+        sheet.actions == null
+            ? <Widget>[
+                Text(
+                  '${strings.heldItem} : ${summary.heldItemLabel ?? strings.none}',
+                ),
+              ]
+            : _rows(sheet.actions!),
+      _ => <Widget>[
+        _SummaryLine(
+          label: french ? 'Nom' : 'Name',
+          value: summary.displayLabel,
+        ),
+        if (summary.isShiny) Text(strings.shiny),
+        sheet._hpBar(context, strings),
+        ..._rows(sheet._identity(context, strings)),
+        if (summary.provenance case final provenance?)
+          ..._rows(sheet._provenance(context, strings, provenance)),
+      ],
+    };
+    return PlayerPanel(
+      surfaceRole: sheet.surfaceRole,
+      padding: const EdgeInsets.all(8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bounded = constraints.hasBoundedHeight;
+          final body = PlayerMenuDetailTransition(
+            contentKey: ValueKey('pokemon-summary-content-$_tab'),
+            child: PlayerPagedList(
+              key: ValueKey('pokemon-summary-content-$_tab'),
+              sideNavigation: bounded && constraints.maxHeight < 300,
+              children: rows,
+            ),
+          );
+          final compactTabs =
+              constraints.maxHeight < 320 ||
+              constraints.maxWidth < 500 &&
+                  MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+          final tabsBar = Row(
+            children: [
+              for (var i = 0; i < tabs.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: Semantics(
+                    selected: _tab == i,
+                    child: TextButton(
+                      key: ValueKey('pokemon-summary-tab-${ids[i]}'),
+                      autofocus: i == 0,
+                      onPressed: () => setState(() => _tab = i),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(48, 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      child: compactTabs
+                          ? Tooltip(
+                              message: tabs[i],
+                              child: Icon(
+                                [
+                                  Icons.info_outline,
+                                  Icons.bolt,
+                                  Icons.bar_chart,
+                                  Icons.more_horiz,
+                                ][i],
+                                semanticLabel: tabs[i],
+                              ),
+                            )
+                          : Text(tabs[i], textAlign: TextAlign.center),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+          final header = Row(
+            children: [
+              PlayerPokemonImage(
+                summary: summary,
+                thumbnail: true,
+                width: 48,
+                height: 48,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      summary.displayLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      strings.levelValue(summary.level),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          final content = Column(
+            mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              tabsBar,
+              const SizedBox(height: 8),
+              if (bounded) Expanded(child: body) else body,
+            ],
+          );
+          if (bounded &&
+              constraints.maxHeight < 300 &&
+              constraints.maxWidth >= 600) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: constraints.maxWidth * .28, child: header),
+                const SizedBox(width: 16),
+                Expanded(child: content),
+              ],
+            );
+          }
+          return Column(
+            mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              const SizedBox(height: 8),
+              if (bounded) Expanded(child: content) else content,
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _SummaryLine extends StatelessWidget {
@@ -252,28 +350,33 @@ class _SummaryLine extends StatelessWidget {
   final String value;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: PlayerSpacing.xs / 2),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final style = Theme.of(context).textTheme.bodyMedium;
+      final labelSize = TextPainter(
+        text: TextSpan(text: label, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final labelWidth = math.min(labelSize.width, constraints.maxWidth * .8);
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+          children: [
+            SizedBox(
+              width: labelWidth,
+              child: Text(label, style: style),
             ),
-            const SizedBox(width: PlayerSpacing.xs),
-            Flexible(
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(value, textAlign: TextAlign.end, style: style),
             ),
           ],
         ),
       );
+    },
+  );
 }
 
 /// Ouvre la fiche partagée dans le même cadre depuis l'Équipe et le PC.
@@ -286,7 +389,8 @@ Future<void> showPlayerPokemonSummaryDialog(
   final strings = PlayerPokemonSummaryStrings.of(context);
   final locale = Localizations.localeOf(context);
   final mediaQuery = MediaQuery.of(context);
-  final opaque = context
+  final opaque =
+      context
           .dependOnInheritedWidgetOfExactType<PlayerMenuThemeScope>()
           ?.opaque ??
       false;
@@ -295,47 +399,47 @@ Future<void> showPlayerPokemonSummaryDialog(
     builder: (context) {
       final availableHeight = mediaQuery.size.height - 32;
       return Localizations.override(
-          context: context,
-          locale: locale,
-          delegates: PokeMapPlayerLocalizations.localizationsDelegates,
-          child: MediaQuery(
-              data: mediaQuery,
-              child: PlayerMenuThemeScope(
-                  role: surfaceRole,
-                  opaque: opaque,
-                  child: Dialog(
-                    insetPadding: const EdgeInsets.all(PlayerSpacing.md),
-                    child: SizedBox(
-                      width: 520,
-                      height: availableHeight.clamp(240, 640).toDouble(),
-                      child: PlayerPanel(
-                        elevated: true,
-                        padding: const EdgeInsets.all(PlayerSpacing.lg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            Expanded(
-                              child: SingleChildScrollView(
-                                child: PlayerPokemonSummarySheet(
-                                  summary: summary,
-                                  surfaceRole: surfaceRole,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: PlayerSpacing.md),
-                            PlayerActionButton(
-                              key: const ValueKey<String>(
-                                  'pokemon-summary-close'),
-                              label: strings.close,
-                              icon: Icons.close,
-                              autofocus: true,
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
+        context: context,
+        locale: locale,
+        delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+        child: MediaQuery(
+          data: mediaQuery,
+          child: PlayerMenuThemeScope(
+            role: surfaceRole,
+            opaque: opaque,
+            child: Dialog(
+              insetPadding: const EdgeInsets.all(PlayerSpacing.md),
+              child: SizedBox(
+                width: 520,
+                height: availableHeight.clamp(240, 640).toDouble(),
+                child: PlayerPanel(
+                  elevated: true,
+                  padding: const EdgeInsets.all(PlayerSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Expanded(
+                        child: PlayerPokemonSummarySheet(
+                          summary: summary,
+                          surfaceRole: surfaceRole,
                         ),
                       ),
-                    ),
-                  ))));
+                      const SizedBox(height: PlayerSpacing.md),
+                      PlayerActionButton(
+                        key: const ValueKey<String>('pokemon-summary-close'),
+                        label: strings.close,
+                        icon: Icons.close,
+                        autofocus: true,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     },
   );
 }

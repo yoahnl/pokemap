@@ -277,6 +277,12 @@ extension _SceneInspectorFields on SceneInspector {
               ).updatedScene,
             ),
           ),
+        if (value.battleKind == 'wild' || value.demonstration != null)
+          SceneBattleDemonstrationForm(project: project, value: value.demonstration,
+            loadItems: loadItems,
+            onChanged: (configuration) => payload(node, SceneBattlePayload.fromJson({
+              ...value.toJson(), 'demonstration': configuration?.toJson(),
+            }))),
         Text(
           'Résultats : ${authorableSceneOutputPortsForNodeInGraph(node, session.current.graph).map((p) => p.id).join(', ')}',
         ),

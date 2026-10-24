@@ -10,7 +10,8 @@ void main() {
   for (final v2 in [false, true]) {
     for (final dismissStage in <PokemonGiftInteractionStage?>[
       null,
-      ...PokemonGiftInteractionStage.values,
+      PokemonGiftInteractionStage.received,
+      PokemonGiftInteractionStage.nickname,
     ]) {
       final dismiss = dismissStage != null;
       test(
@@ -105,11 +106,13 @@ void main() {
                       reason: SceneInteractionCancellationReason.disposed,
                     )
                   : switch (interaction) {
-                      SceneConfirmationInteractionRequest() =>
-                        SceneInteractionResult.confirmed(
+                      SceneChoiceInteractionRequest() =>
+                        SceneInteractionResult.choiceSelected(
                           requestId: interaction.requestId,
                           revision: interaction.revision,
-                          value: true,
+                          selectedOptionId: interaction.revision == 0
+                              ? 'nickname'
+                              : 'continue',
                         ),
                       SceneTextInteractionRequest() =>
                         SceneInteractionResult.textSubmitted(

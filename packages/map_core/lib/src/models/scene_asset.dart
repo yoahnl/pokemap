@@ -7,6 +7,7 @@ import 'enums.dart';
 import 'dialogue_line_feedback.dart';
 import 'presentation_interaction_outcome.dart';
 import 'scene_consequence.dart';
+import 'scene_battle_demonstration.dart';
 import 'scene_integer_operand.dart';
 import 'scene_interactive_command.dart';
 import 'scene_pre_session_interaction.dart';
@@ -1811,6 +1812,7 @@ final class SceneBattlePayload extends SceneNodePayload {
     this.trainerId,
     this.battleTemplateId,
     this.npcEntityId,
+    this.demonstration,
     this.defeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> declaredOutcomes = const <String>[],
   }) : declaredOutcomes = _immutableNonBlankUniqueStrings(
@@ -1832,6 +1834,8 @@ final class SceneBattlePayload extends SceneNodePayload {
       trainerId: _readOptionalString(json, 'trainerId'),
       battleTemplateId: _readOptionalString(json, 'battleTemplateId'),
       npcEntityId: _readOptionalString(json, 'npcEntityId'),
+      demonstration: json['demonstration'] == null ? null :
+          SceneBattleDemonstration.fromJson(_readRequiredObject(json, 'demonstration')),
       defeatRecovery: json.containsKey('defeatRecovery')
           ? _readEnum(
               SceneBattleDefeatRecovery.values,
@@ -1850,6 +1854,7 @@ final class SceneBattlePayload extends SceneNodePayload {
   final String? trainerId;
   final String? battleTemplateId;
   final String? npcEntityId;
+  final SceneBattleDemonstration? demonstration;
   final SceneBattleDefeatRecovery defeatRecovery;
   final List<String> declaredOutcomes;
 
@@ -1860,6 +1865,7 @@ final class SceneBattlePayload extends SceneNodePayload {
         'trainerId': trainerId,
         'battleTemplateId': battleTemplateId,
         'npcEntityId': npcEntityId,
+        'demonstration': demonstration?.toJson(),
         if (defeatRecovery != SceneBattleDefeatRecovery.continueScene)
           'defeatRecovery': defeatRecovery.name,
         'declaredOutcomes': declaredOutcomes,
@@ -1873,6 +1879,7 @@ final class SceneBattlePayload extends SceneNodePayload {
           other.trainerId == trainerId &&
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
+          other.demonstration == demonstration &&
           other.defeatRecovery == defeatRecovery &&
           _listEquals(other.declaredOutcomes, declaredOutcomes);
 
@@ -1881,7 +1888,7 @@ final class SceneBattlePayload extends SceneNodePayload {
         battleKind,
         trainerId,
         battleTemplateId,
-        npcEntityId,
+        Object.hash(npcEntityId, demonstration),
         defeatRecovery,
         Object.hashAll(declaredOutcomes),
       );

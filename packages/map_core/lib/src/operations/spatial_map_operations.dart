@@ -2,6 +2,7 @@ import '../models/enums.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
 import '../models/map_spatial_scene.dart';
+import '../models/spatial_day_night_cycle.dart';
 import '../models/spatial_navigation.dart';
 import '../models/spatial_terrain_surface.dart';
 import '../models/project_model3d.dart';
@@ -222,6 +223,9 @@ final class SpatialMapOperations {
     );
   }
 
+  MapData configureDayNightCycle(MapData map, SpatialDayNightCycle? cycle) =>
+      map.copyWith(spatialScene: _scene(map).copyWith(dayNightCycle: cycle, clearDayNightCycle: cycle == null));
+
   MapData configureCamera(MapData map, SpatialCameraProfile camera) =>
       map.copyWith(spatialScene: _scene(map).copyWith(camera: camera));
 
@@ -284,6 +288,7 @@ final class SpatialMapOperations {
       generateCliffs: scene.generateCliffs,
       instances: scene.instances,
       camera: scene.camera,
+      dayNightCycle: scene.dayNightCycle,
       navigation: scene.navigation,
     );
     return map.copyWith(spatialScene: _reanchor(scene, after));

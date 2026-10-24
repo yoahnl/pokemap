@@ -281,6 +281,8 @@ void main() {
             fail('A spatial project must mount the 3D runtime'),
         unmountGame: (_) async {},
         mountSpatial: (runtime) async {
+          expect(runtime.descriptor.grantedCapabilities,
+              contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
           mounted = runtime;
           mounts++;
         },

@@ -116,6 +116,7 @@ void main() {
         await buildBag(const [BagEntry(itemId: 'leaf-stone', quantity: 1)]);
     expect(bag.entries.single.bagItem!.itemId, 'leaf-stone');
     expect(bag.entries.single.bagAction!.isEnabled, isTrue);
+    expect(bag.entries.single.bagAction!.requiresConfirmation, isTrue);
     expect(bag.entries.single.bagAction!.usability, ItemUsabilityState.usable);
     expect(speciesDirectory.listCount, 2);
   });
@@ -156,6 +157,7 @@ void main() {
     final bag =
         await buildBag(const [BagEntry(itemId: 'water-stone', quantity: 1)]);
     expect(bag.entries.single.bagAction!.isEnabled, isFalse);
+    expect(bag.entries.single.bagAction!.requiresConfirmation, isFalse);
   });
 }
 

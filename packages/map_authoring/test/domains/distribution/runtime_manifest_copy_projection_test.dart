@@ -16,6 +16,20 @@ void main() {
       addTearDown(() => root.delete(recursive: true));
       final project = ProjectManifest(
         name: 'Fixture',
+        presentation: const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(
+            iconPath: 'characters/npc.png',
+            coverPath: 'characters/npc.png',
+            heroPath: 'characters/npc.png',
+            titleMusicPath: 'audio/cry.ogg',
+          ),
+          title: ProjectTitlePresentationProfile(title: 'characters/npc.png'),
+          pause: ProjectPausePresentationProfile(
+            background: ProjectPauseBackgroundProfile(
+              imagePath: 'characters/npc.png',
+            ),
+          ),
+        ),
         maps: const [
           ProjectMapEntry(
               id: 'start', name: 'Start', relativePath: 'maps/project 2.json')
@@ -121,6 +135,25 @@ void main() {
             'assets/runtime-media/characters/npc.png');
         expect(projection.project.cinematicMediaAssets.single.relativePath,
             'assets/runtime-media/audio/cry.ogg');
+        final presentation = projection.project.presentation!;
+        expect(presentation.branding.iconPath,
+            'assets/runtime-media/characters/npc.png');
+        expect(presentation.branding.coverPath,
+            'assets/runtime-media/characters/npc.png');
+        expect(presentation.branding.heroPath,
+            'assets/runtime-media/characters/npc.png');
+        expect(presentation.branding.titleMusicPath,
+            'assets/runtime-media/audio/cry.ogg');
+        expect(presentation.pause!.background!.imagePath,
+            'assets/runtime-media/characters/npc.png');
+        expect(presentation.title!.title, 'characters/npc.png');
+        expect(projection.iconPackagePath, 'presentation/icon.png');
+        expect(projection.payloadFiles[projection.iconPackagePath], pixels);
+        expect(projection.titleMusicPackagePath,
+            'project/assets/runtime-media/audio/cry.ogg');
+        final exportedProject = ProjectManifest.fromJson(jsonDecode(
+            utf8.decode(projection.payloadFiles['project/project.json']!)));
+        expect(exportedProject.presentation, presentation);
         final exportedCatalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
             projection.payloadFiles['project/$assetCatalogStorageKey']!)));
         expect(exportedCatalog.records.single.id, 'npc-source');

@@ -154,6 +154,7 @@ final class RuntimePlayerBagItemActionSnapshot {
     required this.usability,
     required this.isEnabled,
     this.unavailableReason,
+    this.requiresConfirmation = false,
     this.learnedMoveLabel,
     Map<String, String> unavailablePartyTargetReasons = const {},
     Set<String>? eligiblePartyTargetIds,
@@ -184,6 +185,7 @@ final class RuntimePlayerBagItemActionSnapshot {
   final String? unavailableReason;
   final Set<String>? eligiblePartyTargetIds;
   final String? learnedMoveLabel;
+  final bool requiresConfirmation;
   final Map<String, String> unavailablePartyTargetReasons;
 
   bool allowsPartyTarget(String targetId) =>

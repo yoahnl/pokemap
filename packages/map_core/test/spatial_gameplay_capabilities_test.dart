@@ -2,6 +2,20 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('presentation cinematics use the pre-session profile in 3D', () {
+    final node = SceneNode(
+      id: 'opening',
+      kind: SceneNodeKind.presentationCinematic,
+      payload: ScenePresentationCinematicPayload(
+        presentationCinematicId: 'welcome',
+      ),
+    );
+    expect(SpatialGameplayCapabilities.supportsSceneNode(
+        SceneExecutionProfile.preSession, node), isTrue);
+    expect(SpatialGameplayCapabilities.supportsSceneNode(
+        SceneExecutionProfile.world, node), isFalse);
+  });
+
   test('spatial profile accepts existing facing and emote contracts', () {
     expect(
       SpatialGameplayCapabilities.cinematicStepKinds,

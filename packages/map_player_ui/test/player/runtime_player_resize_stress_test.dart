@@ -5,14 +5,14 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   testWidgets(
-      'portrait landscape expanded portrait keeps scene focus and scroll',
+      'portrait landscape expanded portrait keeps scene focus and selected page',
       (tester) async {
     await _setSurface(tester, const Size(390, 500));
     final sceneMounts = ValueNotifier<int>(0);
     addTearDown(sceneMounts.dispose);
     final snapshot = _pausedSnapshot(
       section: RuntimePlayerPauseSection.root,
-      logicalSelectionId: 'pause.bag',
+      logicalSelectionId: 'pause.options',
     );
 
     await tester.pumpWidget(_app(
@@ -27,47 +27,36 @@ void main() {
         ),
       ),
     ));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(sceneMounts.value, 1);
     expect(
       FocusManager.instance.primaryFocus?.debugLabel,
-      'Player action: Sac',
+      'Player action: Options',
     );
-    final portraitList = find.byKey(
-      const ValueKey<String>('player-pause-list'),
-    );
-    await tester.drag(portraitList, const Offset(0, -180));
-    await tester.pump();
-    final portraitOffset = _scrollOffset(tester, portraitList);
-    expect(portraitOffset, greaterThan(0));
-
+    expect(find.byKey(const ValueKey('pause.options')).hitTestable(), findsOneWidget);
+    expect(find.byType(Scrollable), findsNothing);
     for (final size in <Size>[
       const Size(844, 390),
       const Size(1280, 800),
       const Size(390, 500),
     ]) {
       tester.view.physicalSize = size;
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '$size');
       expect(sceneMounts.value, 1, reason: '$size');
     }
 
     expect(
       FocusManager.instance.primaryFocus?.debugLabel,
-      'Player action: Sac',
+      'Player action: Options',
     );
-    expect(
-      _scrollOffset(
-        tester,
-        find.byKey(const ValueKey<String>('player-pause-list')),
-      ),
-      closeTo(portraitOffset, .1),
-    );
+    expect(find.byKey(const ValueKey('pause.options')).hitTestable(), findsOneWidget);
+    expect(find.byType(Scrollable), findsNothing);
   });
 
-  testWidgets('detail section and portrait scroll survive the same sequence',
+  testWidgets('detail section and explicit page survive the same sequence',
       (tester) async {
     await _setSurface(tester, const Size(390, 500));
     final focus = RuntimePlayerFocusController(
@@ -97,36 +86,27 @@ void main() {
     ));
 
     expect(find.text('Équipe'), findsOneWidget);
-    final detailScroll = find.byKey(
-      const ValueKey<String>('runtime-pause-detail-scroll'),
-    );
-    await tester.drag(detailScroll, const Offset(0, -240));
-    await tester.pump();
-    final portraitOffset = _scrollOffset(tester, detailScroll);
-    expect(portraitOffset, greaterThan(0));
-
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('player-page-next')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Page 2 /'), findsOneWidget);
+    expect(find.byType(Scrollable), findsNothing);
     for (final size in <Size>[
       const Size(844, 390),
       const Size(1280, 800),
       const Size(390, 500),
     ]) {
       tester.view.physicalSize = size;
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: '$size');
       expect(focus.logicalSelectionId, 'pause.party');
-      expect(find.text('Membre 29'), findsOneWidget);
+      expect(find.text('Membre 29', skipOffstage: false), findsOneWidget);
     }
 
-    expect(
-      _scrollOffset(
-        tester,
-        find.byKey(
-          const ValueKey<String>('runtime-pause-detail-scroll'),
-        ),
-      ),
-      closeTo(portraitOffset, .1),
-    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Page 2 /'), findsOneWidget);
+    expect(find.byType(Scrollable), findsNothing);
   });
 
   for (final scale in <double>[1, 1.5, 2]) {
@@ -150,24 +130,14 @@ void main() {
         reducedMotion: true,
         keyboardInset: 180,
       ));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(
-        tester
-            .widget<AnimatedOpacity>(
-              find.byKey(
-                const ValueKey<String>(
-                  'runtime-pause-touch-menu-opacity',
-                ),
-              ),
-            )
-            .duration,
-        Duration.zero,
-      );
-      final targets = find.byKey(
-        const ValueKey<String>('player-action-focus-frame'),
-      );
+      final opening = tester.widget<Transform>(find.byKey(
+          const ValueKey('player-menu-opening-transform')));
+      expect(opening.transform.getTranslation().y, 0);
+      expect(find.byType(Scrollable), findsNothing);
+      final targets = find.byType(PlayerMenuSelectableRow);
       expect(targets, findsWidgets);
       for (final element in targets.evaluate()) {
         expect(
@@ -204,14 +174,6 @@ Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>
       for (final action in PlayerPauseAction.values)
         action: PlayerActionAvailability.enabled,
     };
-
-double _scrollOffset(WidgetTester tester, Finder scrollView) {
-  final scrollable = find.descendant(
-    of: scrollView,
-    matching: find.byType(Scrollable),
-  );
-  return tester.state<ScrollableState>(scrollable).position.pixels;
-}
 
 Future<void> _setSurface(WidgetTester tester, Size size) async {
   tester.view.physicalSize = size;

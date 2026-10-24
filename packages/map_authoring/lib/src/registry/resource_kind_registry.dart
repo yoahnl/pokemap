@@ -233,6 +233,11 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map',
         summary: 'Editable PokeMap map',
         extensions: const {
+          'directionalLedges': {'field': 'spatialScene.navigation.ledges', 'action': 'map3d.ledge.configure', 'capability': 'map3d.directional-ledges@1'},
+          'dayNightCycle': {
+            'field': 'spatialScene.dayNightCycle', 'action': 'map3d.day_night.configure',
+            'default': null, 'gameplayClockIndependent': true, 'capability': 'map3d.day-night@1',
+          },
           'modelShadowCasting': {
             'field': 'spatialScene.instances[].castsShadows',
             'type': ['boolean', 'null'],
@@ -856,6 +861,12 @@ final class AuthoringResourceKindRegistry {
           displayName: '3D model',
           summary: 'Inspected project-owned GLB model, authoring transform and default movement blocking for new instances',
           extensions: const {
+            'light': {
+              'type': ['object', 'null'], 'default': null,
+              'positionSpace': 'source_model_before_pivot_scale_rotation_translation',
+              'radiusUnits': 'world_cells', 'capability': 'map3d.point-light@1',
+              'configureActions': ['model3d.configure', 'model3d.configure_batch'],
+            },
             'castsShadowsByDefault': {
               'type': 'boolean',
               'default': false,

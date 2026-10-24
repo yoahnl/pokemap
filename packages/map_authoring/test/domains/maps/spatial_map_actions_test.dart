@@ -9,6 +9,62 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
+  test('directional ledges match direct API and JSONL and reject unsafe landing', () async {
+    final results = <Object?>[];
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      final ledge = {'id': 'drop', 'x': 1, 'z': 0, 'direction': 'south',
+        'distance': 2, 'durationMs': 400, 'height': .65};
+      await f.executeAction('map3d.ledge.configure', {'mapId': 'first-map', 'ledges': [ledge]}, direct: direct);
+      final map = (await f.snapshots.load(f.project)).mapById('first-map')!;
+      expect(map.spatialScene!.navigation.ledges.single.toJson(), ledge);
+      results.add(map.spatialScene!.navigation.toJson());
+      final file = File('${f.root.path}/maps/first-map.json');
+      final before = await file.readAsBytes();
+      for (final bad in [{'z': 255}, {'durationMs': 0}, {'direction': 'diagonal'}]) {
+        final result = await f.planAction('map3d.ledge.configure', {'mapId': 'first-map', 'ledges': [{...ledge, ...bad}]});
+        expect(result.status, AuthoringResultStatus.failure);
+        expect(await file.readAsBytes(), before);
+      }
+      await f.executeAction('map3d.ledge.configure', {'mapId': 'first-map', 'ledges': []}, direct: direct);
+      expect((await f.snapshots.load(f.project)).mapById('first-map')!.spatialScene!.navigation.ledges, isEmpty);
+    }
+    expect(results[0], results[1]);
+  });
+
+  test('visual cycle and attached light match direct API and JSONL with safe clear', () async {
+    final outputs = <Object?>[];
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      await f.apply(await f.plan());
+      final cycle = {'durationSeconds': 120.0, 'startMinuteOfDay': 1080};
+      final light = {'localPosition': {'x': 0.0, 'y': 2.25, 'z': 0.0},
+        'radius': 4.0, 'intensity': 1.0, 'colorRgb': 0xffd59a, 'nightOnly': true};
+      await f.executeAction('model3d.configure', {'modelId': 'house', 'light': light}, direct: direct);
+      await f.executeAction('map3d.day_night.configure', {'mapId': 'first-map', 'cycle': cycle}, direct: direct);
+      final snapshot = await f.snapshots.load(f.project);
+      expect(snapshot.manifest.models3d.single.toJson()['light'], light);
+      expect(snapshot.mapById('first-map')!.spatialScene!.toJson()['dayNightCycle'], cycle);
+      outputs.add(snapshot.mapById('first-map')!.spatialScene!.toJson());
+      final mapFile = File('${f.root.path}/maps/first-map.json');
+      final before = await mapFile.readAsBytes();
+      for (final bad in [null, 0, 86401, '120']) {
+        final rejected = await f.planAction('map3d.day_night.configure', {
+          'mapId': 'first-map', 'cycle': {...cycle, 'durationSeconds': bad},
+        });
+        expect(rejected.status, AuthoringResultStatus.failure);
+        expect(await mapFile.readAsBytes(), before);
+      }
+      await f.executeAction('map3d.day_night.configure', {'mapId': 'first-map', 'cycle': null}, direct: direct);
+      await f.executeAction('model3d.configure_batch', {'models': [{'modelId': 'house', 'light': null}]}, direct: direct);
+      final cleared = await f.snapshots.load(f.project);
+      expect(cleared.manifest.models3d.single.toJson(), isNot(contains('light')));
+      expect(cleared.mapById('first-map')!.spatialScene!.toJson(), isNot(contains('dayNightCycle')));
+    }
+    expect(outputs[0], outputs[1]);
+  });
   test('shadow defaults and nullable placement overrides match direct API and JSONL', () async {
     final outputs = <Object?>[];
     for (final direct in [true, false]) {

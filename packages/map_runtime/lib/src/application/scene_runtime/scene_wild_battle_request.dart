@@ -21,6 +21,7 @@ WildBattleStartRequest buildSceneWildBattleRequest({
   }
   return WildBattleStartRequest(
     requestId: request.requestId,
+    demonstration: request.demonstration,
     createdAtEpochMs: request.createdAtEpochMs,
     returnContext: returnContext,
     mapId: returnContext.mapId,

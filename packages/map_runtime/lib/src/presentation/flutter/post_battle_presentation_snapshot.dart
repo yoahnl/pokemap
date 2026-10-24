@@ -22,6 +22,7 @@ class PostBattlePresentationSnapshot {
     required this.choices,
     required this.completed,
     required this.hasFailure,
+    this.summaryMessages = const [],
   });
 
   final int revision;
@@ -32,6 +33,7 @@ class PostBattlePresentationSnapshot {
   final List<PostBattlePresentationChoice> choices;
   final bool completed;
   final bool hasFailure;
+  final List<RuntimePostBattleMessage> summaryMessages;
 
   double get progress =>
       messageCount <= 0 ? 0 : ((messageIndex + 1) / messageCount).clamp(0, 1);

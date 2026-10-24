@@ -23,6 +23,8 @@ final class GamePackageSpatialProjectValidator {
 
   void _validateGameplay(ProjectManifest project) {
     final cinematicIds = project.cinematics.map((asset) => asset.id).toSet();
+    final presentationIds =
+        project.presentationCinematics.map((asset) => asset.id).toSet();
     for (final scene in project.scenes) {
       for (final node in scene.graph.nodes) {
         if (!SpatialGameplayCapabilities.supportsSceneNode(
@@ -30,6 +32,13 @@ final class GamePackageSpatialProjectValidator {
           _unsupported('scenes.${scene.id}.nodes.${node.id}');
         }
         final payload = node.payload;
+        if (payload is ScenePresentationCinematicPayload &&
+            !presentationIds.contains(payload.presentationCinematicId)) {
+          _fail(
+              'runtime3d.presentation_cinematic_missing',
+              'scenes.${scene.id}.nodes.${node.id}.presentationCinematicId',
+              'The scene references a missing presentation cinematic.');
+        }
         if (payload is SceneCinematicPayload &&
             !cinematicIds.contains(payload.cinematicId)) {
           _fail(
@@ -405,7 +414,6 @@ final class GamePackageSpatialProjectValidator {
       final json = project.toJson();
       for (final field in const [
         'scripts',
-        'presentationCinematics',
       ]) {
         final value = json[field];
         if (value is List && value.isNotEmpty ||
@@ -414,6 +422,7 @@ final class GamePackageSpatialProjectValidator {
         }
       }
       for (final field in const [
+        'presentationCinematics',
         'cinematics',
         'cinematicMediaAssets',
         'scenarios',
@@ -650,7 +659,13 @@ final class GamePackageSpatialProjectValidator {
               entity.item != null ||
               entity.spawn != null ||
               npc.visualElementId.isNotEmpty ||
-              npc.movement != const MapEntityNpcMovementConfig() ||
+              (gameplay
+                  ? !const {
+                      MapEntityNpcMovementMode.idle,
+                      MapEntityNpcMovementMode.scriptedOnly,
+                      MapEntityNpcMovementMode.fixedRoute,
+                    }.contains(npc.movement.mode)
+                  : npc.movement != const MapEntityNpcMovementConfig()) ||
               npc.lineOfSightRange != 0 ||
               !gameplay &&
                   (npc.trainerId != null ||

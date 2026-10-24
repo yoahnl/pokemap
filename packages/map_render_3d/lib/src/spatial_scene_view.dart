@@ -39,6 +39,7 @@ import 'spatial_scene_preparation.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_authored_shadows.dart';
+import 'spatial_environment_lighting.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -69,6 +70,47 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  bool _previewPointLightShadowsEnabled = true;
+  bool get previewPointLightShadowsEnabled => _previewPointLightShadowsEnabled;
+  set previewPointLightShadowsEnabled(bool value) {
+    if (_previewPointLightShadowsEnabled == value) return;
+    _previewPointLightShadowsEnabled = value;
+    notifyListeners();
+  }
+  final _dayNightClock = SpatialDayNightPreviewClock();
+  double? _dayNightMinute;
+  double _dayNightNotificationElapsed = 0;
+  bool _dayNightNotificationPending = false;
+  double? get previewMinuteOfDay => _dayNightClock.minuteOverride;
+  set previewMinuteOfDay(double? value) {
+    _dayNightClock.seek(value);
+    _dayNightMinute = value;
+    notifyListeners();
+  }
+  bool get previewDayNightRunning => _dayNightClock.running;
+  set previewDayNightRunning(bool value) {
+    if (_dayNightClock.running == value) return;
+    _dayNightClock.running = value;
+    notifyListeners();
+  }
+  double? get dayNightMinuteOfDay => _dayNightMinute;
+
+  void _advanceDayNight(double dt, SpatialDayNightCycle? cycle, double? externalElapsed) {
+    _dayNightClock.advance(dt);
+    final minute = cycle == null ? null : _dayNightClock.minute(cycle, externalElapsedSeconds: externalElapsed);
+    final before = _dayNightMinute;
+    if (minute != before) {
+      _dayNightMinute = minute;
+      _dayNightNotificationPending = true;
+    }
+    if (!_dayNightNotificationPending) return;
+    _dayNightNotificationElapsed += dt;
+    if (before == null || minute == null || _dayNightNotificationElapsed >= 1) {
+      _dayNightNotificationElapsed = 0;
+      _dayNightNotificationPending = false;
+      notifyListeners();
+    }
+  }
   Future<bool> Function(SpatialScenePreparation)? _prepareDestination;
   SpatialShadowStats Function()? _readShadowStats;
   SpatialShadowStats get shadowStats => _readShadowStats?.call() ?? const SpatialShadowStats();
@@ -140,6 +182,7 @@ class SpatialSceneView extends StatefulWidget {
     this.modelRuntimeState,
     this.rasterAnimationElapsedMsForCell,
     this.presentationPaused,
+    this.presentationElapsedSeconds,
     this.cameraPose,
     this.cameraMagnification,
     this.resourceBudget,
@@ -158,6 +201,7 @@ class SpatialSceneView extends StatefulWidget {
   )?
   rasterAnimationElapsedMsForCell;
   final bool Function()? presentationPaused;
+  final double Function()? presentationElapsedSeconds;
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
   final double Function()? cameraMagnification;
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
@@ -199,11 +243,12 @@ class SpatialSceneView extends StatefulWidget {
           loadModel == other.loadModel &&
           _sameModelSources(models, other.models);
 
-  bool shadowDefaultsMatch(SpatialSceneView other) =>
+  bool lightingDefaultsMatch(SpatialSceneView other) =>
       models.length == other.models.length &&
       models.indexed.every((entry) =>
         entry.$2.id == other.models[entry.$1].id &&
-        entry.$2.castsShadowsByDefault == other.models[entry.$1].castsShadowsByDefault);
+        entry.$2.castsShadowsByDefault == other.models[entry.$1].castsShadowsByDefault &&
+        entry.$2.light == other.models[entry.$1].light);
 
   bool immutableResourcesMatch(SpatialSceneView other) =>
       resourceIdentity != null &&
@@ -477,7 +522,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
         !identical(oldWidget.groundMap, widget.groundMap) ||
         !identical(oldWidget.groundProject, widget.groundProject) ||
         modelSourcesChanged ||
-        !widget.shadowDefaultsMatch(oldWidget) ||
+        !widget.lightingDefaultsMatch(oldWidget) ||
         !_sameNeighbors(oldWidget.neighbors, widget.neighbors) ||
         oldWidget.sceneOffset != widget.sceneOffset ||
         oldWidget.selectedCell != widget.selectedCell ||
@@ -700,8 +745,36 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   SpatialSceneView configuration;
   SpatialLightingProfile? previewLighting;
   SpatialLightingProfile authoredLighting = SpatialLightingProfile.disabled;
-  void syncLighting() => (context as SpatialRenderContext).lighting =
-      previewLighting ?? authoredLighting;
+  List<({Model3dPointLight definition, _SceneModelComponent component})> pointLightBindings = [];
+  void syncLighting() {
+    (context as SpatialRenderContext).pointLightShadowsEnabled = this.configuration.controller.previewPointLightShadowsEnabled;
+    final preview = previewLighting;
+    if (preview != null) {
+      (context as SpatialRenderContext).lighting = preview;
+      return;
+    }
+    final configuration = visibleConfiguration;
+    final cycle = configuration.scene.dayNightCycle;
+    if (cycle == null && pointLightBindings.isEmpty) {
+      (context as SpatialRenderContext).lighting = authoredLighting;
+      return;
+    }
+    final minute = cycle == null ? null : configuration.controller._dayNightClock.minute(
+      cycle, externalElapsedSeconds: configuration.presentationElapsedSeconds?.call());
+    final frame = minute == null ? null : spatialDayNightFrame(minute);
+    final hero = actorVisual;
+    final anchor = hero == null
+        ? Vector3(configuration.scene.width / 2 + configuration.sceneOffset.dx + configuration.controller.pan.dx,
+            0, configuration.scene.depth / 2 + configuration.sceneOffset.dy + configuration.controller.pan.dy)
+        : Vector3(hero.x + configuration.sceneOffset.dx, hero.y, hero.z + configuration.sceneOffset.dy);
+    final lights = spatialVisiblePointLights([
+      for (final binding in pointLightBindings)
+        spatialPlacedPointLight(binding.definition, binding.component.worldTransformMatrix,
+          daylight: frame?.daylight ?? 1),
+    ], anchor);
+    (context as SpatialRenderContext).lighting = spatialEnvironmentLighting(
+      authoredLighting, frame: frame, lights: lights);
+  }
   final ValueChanged<Object?> onPreviewStatus;
   final VoidCallback onSurfaceChanged;
   SpatialSceneView? renderedConfiguration;
@@ -914,6 +987,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final nextAnimationModels = <(String, String), _SceneModelComponent>{};
     final nextRuntimeScenes = <String, Iterable<SpatialModelInstance>>{};
     final nextShadowCasters = <SpatialAuthoredShadowCaster>[];
+    final nextPointLights = <({Model3dPointLight definition, _SceneModelComponent component})>[];
     var receiverMaximumY = snapshot.scene.maximumWorldHeight;
     var receiverMinimumY = spatialShadowReceiverMinimumHeight(snapshot.scene);
     final nextModelComponents =
@@ -952,13 +1026,13 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             active: false,
           ),
     ];
-    final receiveShadows = placements.any((placement) {
+    final receiveShadows = snapshot.scene.dayNightCycle != null || placements.any((placement) {
       final map = placement.map == null
           ? null
           : projectedSmartTileMap(placement.map!, placement.project);
       return (map?.spatialScene ?? placement.scene).instances.any((instance) {
         final definition = placement.definitions[instance.modelId];
-        return definition != null && instance.effectiveCastsShadows(definition);
+        return definition != null && (instance.effectiveCastsShadows(definition) || definition.light != null);
       });
     });
     try {
@@ -1008,6 +1082,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             nextAnimationModels[(mapId, entry.key)] = entry.value.component;
             final instance = instancesById[entry.key]!;
             final definition = placementDefinitions[instance.modelId]!;
+            if (definition.light case final light?) {
+              nextPointLights.add((definition: light, component: entry.value.component));
+            }
             final caster = spatialAuthoredShadowCaster(
               mapId: mapId,
               instance: instance,
@@ -1206,6 +1283,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             worldTransform: component.worldTransformMatrix,
           );
           if (caster != null) nextShadowCasters.add(caster);
+          if (definition.light case final light?) {
+            nextPointLights.add((definition: light, component: component));
+          }
           component.bindAnimation(
             instance.animationIndex,
             loop: instance.animationLoop,
@@ -1283,6 +1363,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           runtimeModelIndex = SpatialRuntimeModelIndex(nextRuntimeScenes);
           renderedConfiguration = configuration;
           authoredLighting = nextAuthoredLighting;
+          (context as SpatialRenderContext).pointShadowCasters = nextAnimationModels.values.where((component) =>
+            nextAuthoredLighting.shadow?.casterInstanceIds.contains(component.shadowId) == true).toList();
+          pointLightBindings = nextPointLights;
           syncLighting();
           actorVisual = null;
           cellOverlayComponents = nextCellOverlays;
@@ -1497,6 +1580,13 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
     syncActors(dt);
     syncRuntimeModels();
+    final configuration = visibleConfiguration;
+    configuration.controller._advanceDayNight(
+      configuration.presentationPaused?.call() == true ? 0 : dt,
+      configuration.scene.dayNightCycle,
+      configuration.presentationElapsedSeconds?.call(),
+    );
+    syncLighting();
   }
 
   void syncRuntimeModels() {
@@ -1582,7 +1672,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       );
       (actor.material.shadowSamplePosition ??= Vector3.zero()).setValues(
         (position?.x ?? frame.x) + configuration.sceneOffset.dx,
-        position?.y ?? frame.y,
+        position?.y ?? frame.groundY ?? frame.y,
         (position?.z ?? frame.z) + configuration.sceneOffset.dy,
       );
       final transform = spatialActorTransform(
@@ -1908,7 +1998,8 @@ bool _sameModelSources(
   for (var index = 0; index < before.length; index++) {
     final a = before[index], b = after[index];
     if (a != b &&
-        a.copyWith(castsShadowsByDefault: b.castsShadowsByDefault) != b) {
+        a.copyWith(castsShadowsByDefault: b.castsShadowsByDefault,
+          light: b.light, clearLight: b.light == null) != b) {
       return false;
     }
   }

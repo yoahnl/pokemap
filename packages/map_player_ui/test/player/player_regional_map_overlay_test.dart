@@ -136,7 +136,7 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('region-map-region')));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('region-choice-second')));
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(find.text('Région B'), findsWidgets);
         final oldConfirm = await controller.dispatchWorldService(
           RuntimeWorldServiceCommand(
@@ -197,97 +197,126 @@ void main() {
       },
     );
   }
-  for (final size in [const Size(1000, 700), const Size(360, 640)]) {
-    testWidgets('contextual map reuses regional view and closes at $size', (
-      tester,
-    ) async {
-      tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final commands = <RuntimeWorldServiceCommand>[];
-      final snapshot = RuntimeWorldServiceSnapshot(
-        revision: 7,
-        request: const OpenRegionalMapService(interactionId: 'wall.map'),
-        stage: RuntimeWorldServiceStage.active,
-        content: RuntimeRegionalMapServiceContent(
-          selectedPointId: 'route10',
-          message: 'Voler vers ce lieu ?',
-          detail: RuntimePlayerPauseDetailSnapshot(
-            section: RuntimePlayerPauseSection.map,
-            title: 'Carte',
-            regionalMap: RuntimePlayerRegionMapSnapshot(
-              regions: [
-                RuntimePlayerRegionSnapshot(
-                  id: 'kanto',
-                  label: 'Kanto',
-                  points: const [
-                    RuntimePlayerMapPointSnapshot(
-                      id: 'route10',
-                      label: 'Route 10',
-                      status: RuntimePlayerMapPointStatus.current,
-                      u: .6,
-                      v: .2,
-                    ),
-                  ],
-                ),
-              ],
+  for (final scenario in [
+    for (final size in [
+      const Size(1440, 900),
+      const Size(1024, 768),
+      const Size(768, 1024),
+      const Size(844, 390),
+      const Size(390, 844),
+    ])
+      for (final scale in [1.0, 2.0]) (size, scale),
+  ]) {
+    final size = scenario.$1;
+    final scale = scenario.$2;
+    testWidgets(
+      'contextual map reuses regional view and closes at $size text $scale',
+      (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final commands = <RuntimeWorldServiceCommand>[];
+        final snapshot = RuntimeWorldServiceSnapshot(
+          revision: 7,
+          request: const OpenRegionalMapService(interactionId: 'wall.map'),
+          stage: RuntimeWorldServiceStage.active,
+          content: RuntimeRegionalMapServiceContent(
+            selectedPointId: 'route10',
+            message: 'Voler vers ce lieu ?',
+            detail: RuntimePlayerPauseDetailSnapshot(
+              section: RuntimePlayerPauseSection.map,
+              title: 'Carte',
+              regionalMap: RuntimePlayerRegionMapSnapshot(
+                regions: [
+                  RuntimePlayerRegionSnapshot(
+                    id: 'kanto',
+                    label: 'Kanto',
+                    points: const [
+                      RuntimePlayerMapPointSnapshot(
+                        id: 'route10',
+                        label: 'Route 10',
+                        status: RuntimePlayerMapPointStatus.current,
+                        u: .6,
+                        v: .2,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: const [
-          RuntimeWorldServiceActionAvailability.enabled(
-            RuntimeWorldServiceAction.select,
+          actions: const [
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.select,
+            ),
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.confirm,
+            ),
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.close,
+            ),
+            RuntimeWorldServiceActionAvailability.enabled(
+              RuntimeWorldServiceAction.cancel,
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('fr'),
+            supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+            localizationsDelegates:
+                PokeMapPlayerLocalizations.localizationsDelegates,
+            theme: PokeMapPlayerTheme.dark(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: PlayerRegionalMapOverlay(
+              snapshot: snapshot,
+              onCommand: commands.add,
+              controlProfile: PlayerControlProfile.standard
+                  .rebind(
+                    device: PlayerControlDevice.keyboard,
+                    control: RuntimeInputControl.secondary,
+                    inputId: 'keyQ',
+                  )
+                  .profile,
+            ),
           ),
-          RuntimeWorldServiceActionAvailability.enabled(
-            RuntimeWorldServiceAction.confirm,
-          ),
-          RuntimeWorldServiceActionAvailability.enabled(
-            RuntimeWorldServiceAction.close,
-          ),
-          RuntimeWorldServiceActionAvailability.enabled(
-            RuntimeWorldServiceAction.cancel,
-          ),
-        ],
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('fr'),
-          supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-          localizationsDelegates:
-              PokeMapPlayerLocalizations.localizationsDelegates,
-          theme: PokeMapPlayerTheme.dark(),
-          home: PlayerRegionalMapOverlay(
-            snapshot: snapshot,
-            onCommand: commands.add,
-            controlProfile: PlayerControlProfile.standard
-                .rebind(
-                  device: PlayerControlDevice.keyboard,
-                  control: RuntimeInputControl.secondary,
-                  inputId: 'keyQ',
-                )
-                .profile,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(RuntimePlayerRegionMap), findsOneWidget);
-      expect(find.text('Kanto'), findsWidgets);
-      expect(find.text('Route 10'), findsWidgets);
-      await tester.tap(find.byKey(const ValueKey('regional-map-fly-confirm')));
-      expect(commands.single.action, RuntimeWorldServiceAction.confirm);
-      expect(commands.single.snapshotRevision, 7);
-      commands.clear();
-      await tester.tap(find.byKey(const ValueKey('regional-map-close')));
-      expect(commands.single.action, RuntimeWorldServiceAction.close);
-      expect(commands.single.snapshotRevision, 7);
-      commands.clear();
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      expect(commands, isEmpty);
-      await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
-      expect(commands.single.action, RuntimeWorldServiceAction.cancel);
-      expect(commands.single.snapshotRevision, 7);
-      expect(tester.takeException(), isNull);
-    });
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(RuntimePlayerRegionMap), findsOneWidget);
+        expect(find.byType(Scrollable), findsNothing);
+        final fly = tester.getRect(
+          find.byKey(const ValueKey('regional-map-fly-confirm')),
+        );
+        final close = tester.getRect(
+          find.byKey(const ValueKey('regional-map-close')),
+        );
+        final map = tester.getRect(find.byType(RuntimePlayerRegionMap));
+        expect(fly.top - close.bottom, greaterThanOrEqualTo(16));
+        expect(map.top - fly.bottom, greaterThanOrEqualTo(16));
+        expect(find.text('Kanto'), findsWidgets);
+        expect(find.text('Route 10'), findsWidgets);
+        await tester.tap(
+          find.byKey(const ValueKey('regional-map-fly-confirm')),
+        );
+        expect(commands.single.action, RuntimeWorldServiceAction.confirm);
+        expect(commands.single.snapshotRevision, 7);
+        commands.clear();
+        await tester.tap(find.byKey(const ValueKey('regional-map-close')));
+        expect(commands.single.action, RuntimeWorldServiceAction.close);
+        expect(commands.single.snapshotRevision, 7);
+        commands.clear();
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        expect(commands, isEmpty);
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
+        expect(commands.single.action, RuntimeWorldServiceAction.cancel);
+        expect(commands.single.snapshotRevision, 7);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 }

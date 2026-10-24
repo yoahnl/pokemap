@@ -347,16 +347,12 @@ void main() {
     game.update(0.1);
     expect(game.debugPlayerGridPosition, lockedPosition);
 
-    for (var index = 0; index < 3; index++) {
-      expect(
-        game.handleRuntimeInputEvent(
-          const RuntimeInputEvent.press(RuntimeInputControl.primary),
-        ),
-        isTrue,
-      );
-    }
-    expect(game.debugPostBattleDecisionLabels,
-        <String>['Apprendre', 'Ne pas apprendre']);
+    expect(game.debugPostBattleDecisionLabels, <String>[
+      'Apprendre',
+      'Ne pas apprendre',
+    ]);
+    final decisionRevision =
+        game.postBattlePresentationListenable.value!.revision;
     expect(
       game.handleRuntimeInputEvent(
         const RuntimeInputEvent.press(RuntimeInputControl.down),
@@ -370,24 +366,48 @@ void main() {
       isTrue,
     );
 
-    expect(game.gameStateSnapshot.trainerProfile.money, 0,
-        reason: 'No intermediate post-battle state may be published.');
-    for (var index = 0; index < 3; index++) {
+    expect(
+      game.gameStateSnapshot.trainerProfile.money,
+      0,
+      reason: 'No intermediate post-battle state may be published.',
+    );
+    expect(game.debugPostBattleDecisionLabels, isEmpty);
+    expect(
+      game.postBattlePresentationListenable.value!.summaryMessages.map(
+        (message) => message.kind,
+      ),
+      contains(RuntimePostBattleMessageKind.moveDeclined),
+    );
+    expect(
+      game.dispatchPostBattlePresentationCommand(
+        PostBattleAdvanceCommand(snapshotRevision: decisionRevision),
+      ),
+      isFalse,
+    );
+    expect(game.gameStateSnapshot.trainerProfile.money, 0);
+    expect(
       game.handleRuntimeInputEvent(
         const RuntimeInputEvent.press(RuntimeInputControl.primary),
-      );
-    }
+      ),
+      isTrue,
+    );
     await game.debugWaitForPostBattleCompletion();
     await _waitForNarrativeOutcomeIdle(game);
 
     final committed = game.gameStateSnapshot;
     expect(committed.party.members.single.currentHp, 9);
     expect(committed.party.members.single.experience, 335);
-    expect(committed.party.members.single.knownMoveIds,
-        <String>['tackle', 'growl', 'tail_whip', 'focus_energy']);
+    expect(committed.party.members.single.knownMoveIds, <String>[
+      'tackle',
+      'growl',
+      'tail_whip',
+      'focus_energy',
+    ]);
     expect(committed.trainerProfile.money, 100);
-    expect(committed.storyFlags.activeFlags,
-        contains('trainer_defeated:trainer_iris'));
+    expect(
+      committed.storyFlags.activeFlags,
+      contains('trainer_defeated:trainer_iris'),
+    );
     expect(game.debugPostBattleOverlayMounted, isFalse);
     expect(game.debugFlowPhaseName, 'overworld');
     expect(game.debugIsBattleResolving, isFalse);

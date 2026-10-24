@@ -46,6 +46,10 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.descendant(of: find.byType(PlayerHealConfirmation), matching: find.byType(Scrollable)), findsNothing);
 
     expect(find.text('Centre Pokémon'), findsOneWidget);
     expect(find.text('Sproutle'), findsOneWidget);
@@ -87,6 +91,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Votre équipe est entièrement soignée.'), findsWidgets);
     expect(find.byKey(const ValueKey<String>('heal-confirm')), findsNothing);
@@ -131,6 +137,8 @@ void main() {
         locale: const Locale('en'),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('HP 3 / 24'), findsOneWidget);
     expect(find.text('Status needs healing'), findsOneWidget);

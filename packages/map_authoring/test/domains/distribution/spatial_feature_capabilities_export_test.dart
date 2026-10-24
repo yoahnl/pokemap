@@ -9,6 +9,105 @@ import '../../../../map_distribution/test/support/spatial_feature_capabilities_f
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('point shadow export combines a lamp and caster placed in separate maps', () async {
+    final root = await Directory.systemTemp.createTemp('cross-map-point-shadow-export-');
+    addTearDown(() => root.delete(recursive: true));
+    final files = spatialPayload();
+    final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(files['project/project.json']!)));
+    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+    final lamp = ProjectModel3dEntry.fromJson({...project.models3d.single.toJson(),
+      'id': 'lamp', 'sourceAssetId': 'lamp-source', 'relativePath': 'assets/models3d/lamp.glb'})
+      .copyWith(light: Model3dPointLight(localPosition: Model3dVector3.zero));
+    files['project/assets/models3d/lamp.glb'] = files['project/assets/models3d/model.glb']!;
+    final catalog = jsonDecode(utf8.decode(files['project/assets/.pokemap-assets.json']!)) as Map<String, dynamic>;
+    final records = catalog['records'] as List;
+    records.add({...records.first as Map<String, dynamic>, 'id': 'lamp-source', 'logicalPath': lamp.relativePath});
+    files['project/assets/.pokemap-assets.json'] = utf8.encode(jsonEncode(catalog));
+    files['project/project.json'] = utf8.encode(jsonEncode(project.copyWith(models3d: [
+      project.models3d.single.copyWith(castsShadowsByDefault: true), lamp], maps: [
+      ...project.maps, const ProjectMapEntry(id: 'lamp-map', name: 'Lamp', relativePath: 'maps/lamp-map.json'),
+    ]).toJson()));
+    files['project/maps/lamp-map.json'] = utf8.encode(jsonEncode(MapData.fromJson({
+      ...map.toJson(), 'id': 'lamp-map',
+    }).copyWith(spatialScene: map.spatialScene!.copyWith(instances: [
+      SpatialModelInstance(id: 'lamp-placement', modelId: lamp.id, position: Model3dVector3.zero),
+    ])).toJson()));
+    for (final entry in files.entries) {
+      final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(entry.value);
+    }
+    final result = await const CanonicalGamePackageExportService().build(projectRoot: root,
+      profile: GamePackageExportProfile(gameId: 'games.example.crossmapshadows', gameVersion: '0.1.0',
+        title: 'Cross map shadows', authorName: 'Yoahn', defaultLocale: 'fr', supportedLocales: ['fr']),
+      mode: GamePackageExportMode.localTest);
+    expect(result.manifest.compatibility.requiredCapabilities, contains('map3d.point-light-shadows@1'));
+    for (final path in ['project/project.json', 'project/maps/map.json', 'project/maps/lamp-map.json']) {
+      expect(await File('${root.path}/${path.substring('project/'.length)}').readAsBytes(), files[path]);
+    }
+  });
+  for (final (assetDefault, override, required) in [
+    (false, null, false), (true, null, true), (true, false, false), (false, true, true),
+  ]) {
+    test('point shadow export resolves casting $assetDefault/$override without source mutation', () async {
+      final root = await Directory.systemTemp.createTemp('point-shadow-export-');
+      addTearDown(() => root.delete(recursive: true));
+      final files = spatialPayload();
+      final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(files['project/project.json']!)));
+      final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+      files['project/project.json'] = utf8.encode(jsonEncode(project.copyWith(models3d: [
+        for (final model in project.models3d) model.copyWith(castsShadowsByDefault: assetDefault,
+          light: Model3dPointLight(localPosition: Model3dVector3.zero)),
+      ]).toJson()));
+      files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(spatialScene:
+        map.spatialScene!.copyWith(instances: [for (final instance in map.spatialScene!.instances)
+          instance.copyWith(castsShadows: override, clearCastsShadows: override == null)])).toJson()));
+      for (final entry in files.entries) {
+        final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final result = await const CanonicalGamePackageExportService().build(projectRoot: root,
+        profile: GamePackageExportProfile(gameId: 'games.example.pointshadows', gameVersion: '0.1.0',
+          title: 'Point shadows', authorName: 'Yoahn', defaultLocale: 'fr', supportedLocales: ['fr']),
+        mode: GamePackageExportMode.localTest);
+      expect(result.manifest.compatibility.requiredCapabilities.contains('map3d.point-light-shadows@1'), required);
+      for (final path in ['project/project.json', 'project/maps/map.json']) {
+        expect(await File('${root.path}/${path.substring('project/'.length)}').readAsBytes(), files[path]);
+      }
+    });
+  }
+  for (final (cycleEnabled, lampEnabled) in [(false, false), (true, false), (false, true), (true, true)]) {
+    test('lighting export derives cycle $cycleEnabled and placed lamp $lampEnabled without source mutation', () async {
+      final root = await Directory.systemTemp.createTemp('lighting-feature-export-');
+      addTearDown(() => root.delete(recursive: true));
+      final files = spatialPayload();
+      final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(files['project/project.json']!)));
+      final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+      files['project/project.json'] = utf8.encode(jsonEncode(project.copyWith(models3d: [
+        for (final model in project.models3d) model.copyWith(light: lampEnabled
+          ? Model3dPointLight(localPosition: Model3dVector3(x: 0, y: 2.25, z: 0)) : null),
+      ]).toJson()));
+      files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(spatialScene:
+        map.spatialScene!.copyWith(dayNightCycle: cycleEnabled ? SpatialDayNightCycle() : null)).toJson()));
+      for (final entry in files.entries) {
+        final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final beforeProject = await File('${root.path}/project.json').readAsBytes();
+      final beforeMap = await File('${root.path}/maps/map.json').readAsBytes();
+      final result = await const CanonicalGamePackageExportService().build(projectRoot: root,
+        profile: GamePackageExportProfile(gameId: 'games.example.lighting', gameVersion: '0.1.0',
+          title: 'Lighting', authorName: 'Yoahn', defaultLocale: 'fr', supportedLocales: ['fr']),
+        mode: GamePackageExportMode.localTest);
+      final capabilities = result.manifest.compatibility.requiredCapabilities;
+      expect(capabilities.contains(SpatialSceneLightingCapabilities.dayNightCapabilityId), cycleEnabled);
+      expect(capabilities.contains(SpatialSceneLightingCapabilities.pointLightCapabilityId), lampEnabled);
+      expect(await File('${root.path}/project.json').readAsBytes(), beforeProject);
+      expect(await File('${root.path}/maps/map.json').readAsBytes(), beforeMap);
+    });
+  }
   for (final (assetDefault, override, required) in [
     (false, null, false), (true, null, true), (true, false, false), (false, true, true),
   ]) {

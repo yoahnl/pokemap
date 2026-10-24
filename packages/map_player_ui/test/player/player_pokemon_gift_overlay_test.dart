@@ -2,10 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
-import 'package:map_player_ui/src/player/runtime_player_pokedex.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('one gift receipt groups destination and optional nickname',
+      (tester) async {
+    final interaction = SceneChoiceInteractionRequest(
+      requestId: 'receipt', revision: 4,
+      prompt: SceneInteractionPrompt(localizationKey: 'pokemonGift.received'),
+      options: [for (final id in ['continue', 'nickname']) SceneInteractionOption(
+        id: id, label: SceneInteractionPrompt(localizationKey: 'pokemonGift.$id'),
+      )],
+    );
+    final commands = <RuntimeWorldServiceCommand>[];
+    await tester.pumpWidget(MaterialApp(theme: PokeMapPlayerTheme.dark(),
+      home: Scaffold(body: PlayerPokemonGiftOverlay(
+        snapshot: giftSnapshot(interaction, PokemonGiftInteractionStage.received,
+          isNew: true), onCommand: commands.add,
+      )),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('gift-continue')), findsOneWidget);
+    expect(find.byKey(const ValueKey('gift-nickname')), findsOneWidget);
+    expect(find.textContaining('Pokédex'), findsOneWidget);
+    expect(find.textContaining('PC'), findsOneWidget);
+    expect(find.byType(Scrollable), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('gift-nickname')));
+    expect(commands.single.snapshotRevision, 10);
+    expect((commands.single.interactionResult as SceneChoiceSelectedInteractionResult).selectedOptionId, 'nickname');
+  });
   testWidgets(
     'gift nickname uses text overlay and sends typed bounded response',
     (tester) async {
@@ -53,53 +79,22 @@ void main() {
       );
     },
   );
-  testWidgets('gift Pokedex renders the native one-entry surface', (
-    tester,
-  ) async {
-    final interaction = SceneMessageInteractionRequest(
-      requestId: 'dex',
-      revision: 2,
-      prompt: SceneInteractionPrompt(
-        localizationKey: 'dex',
-        fallbackText: 'Pokédex',
-      ),
-    );
-    final detail = RuntimePlayerPauseDetailSnapshot(
-      section: RuntimePlayerPauseSection.pokedex,
-      title: 'Pokédex',
-      entries: [
-        RuntimePlayerDetailEntrySnapshot(
-          id: 'clockbird',
-          title: 'Clockbird',
-          subtitle: 'Capturé',
-        ),
-      ],
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: PokeMapPlayerTheme.dark(),
-        home: Scaffold(
-          body: PlayerPokemonGiftOverlay(
-            snapshot: giftSnapshot(
-              interaction,
-              PokemonGiftInteractionStage.pokedex,
-              detail: detail,
-            ),
-            onCommand: (_) {},
-          ),
-        ),
-      ),
-    );
-    expect(find.byType(RuntimePlayerPokedex), findsOneWidget);
-    expect(
-      tester
-          .widget<RuntimePlayerPokedex>(find.byType(RuntimePlayerPokedex))
-          .detail
-          .entries
-          .single
-          .id,
-      'clockbird',
-    );
+  testWidgets('gift without nickname offers one acknowledgement and no extra dex step', (tester) async {
+    final interaction = SceneMessageInteractionRequest(requestId: 'receipt', revision: 2,
+      prompt: SceneInteractionPrompt(localizationKey: 'pokemonGift.received'));
+    final commands = <RuntimeWorldServiceCommand>[];
+    await tester.pumpWidget(MaterialApp(theme: PokeMapPlayerTheme.dark(),
+      home: Scaffold(body: PlayerPokemonGiftOverlay(
+        snapshot: giftSnapshot(interaction, PokemonGiftInteractionStage.received),
+        onCommand: commands.add,
+      )),
+    ));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('gift-nickname')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('gift-continue')));
+    expect(commands.single.interactionResult, isA<SceneAcknowledgedInteractionResult>());
+    expect(commands.single.snapshotRevision, 10);
   });
 }
 
@@ -107,6 +102,7 @@ RuntimeWorldServiceSnapshot giftSnapshot(
   SceneInteractionRequest interaction,
   PokemonGiftInteractionStage stage, {
   RuntimePlayerPauseDetailSnapshot? detail,
+  bool isNew = false,
 }) => RuntimeWorldServiceSnapshot(
   revision: 10,
   stage: RuntimeWorldServiceStage.active,
@@ -122,6 +118,7 @@ RuntimeWorldServiceSnapshot giftSnapshot(
     ),
     projectedState: const GameState(saveId: 'gift'),
     pokedexDetail: detail,
+    isNewPokedexEntry: isNew,
   ),
   content: interaction,
   actions: const [

@@ -76,107 +76,104 @@ void main() {
 
   for (final scenario in scenarios) {
     for (final textScale in scenario.textScales) {
-      testWidgets(
-        '${scenario.name} at ${textScale}x keeps every scene safe',
-        (tester) async {
-          tester.view.physicalSize = scenario.size;
-          tester.view.devicePixelRatio = 1;
-          addTearDown(tester.view.reset);
-          final layouts = suggestedProjectPresentationLayouts('cinematic');
-          final breakpoint = scenario.breakpoint.name;
+      testWidgets('${scenario.name} at ${textScale}x keeps every scene safe', (
+        tester,
+      ) async {
+        tester.view.physicalSize = scenario.size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final layouts = suggestedProjectPresentationLayouts('cinematic');
+        final breakpoint = scenario.breakpoint.name;
 
-          await tester.pumpWidget(
-            _app(
-              scenario: scenario,
-              textScale: textScale,
-              layouts: layouts,
-              child: PlayerTitleScreen(
-                data: _titleData(),
-                onSelected: (_) {},
-              ),
-            ),
-          );
-          expect(
-            find.byKey(ValueKey<String>('player-title-responsive-$breakpoint')),
-            findsOneWidget,
-          );
-          expect(tester.takeException(), isNull);
+        await tester.pumpWidget(
+          _app(
+            scenario: scenario,
+            textScale: textScale,
+            layouts: layouts,
+            child: PlayerTitleScreen(data: _titleData(), onSelected: (_) {}),
+          ),
+        );
+        expect(
+          find.byKey(ValueKey<String>('player-title-responsive-$breakpoint')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
 
-          await tester.pumpWidget(
-            _app(
-              scenario: scenario,
-              textScale: textScale,
-              layouts: layouts,
-              child: RuntimePlayerPauseShell(
-                gameTitle: 'Le Train de 17h42',
-                pauseSection: RuntimePlayerPauseSection.root,
-                actions: _pauseActions(),
-                onSelected: (_) {},
-                onBackToRoot: () {},
-                detail: const SizedBox.shrink(),
-              ),
+        await tester.pumpWidget(
+          _app(
+            scenario: scenario,
+            textScale: textScale,
+            layouts: layouts,
+            child: RuntimePlayerPauseShell(
+              gameTitle: 'Le Train de 17h42',
+              pauseSection: RuntimePlayerPauseSection.root,
+              actions: _pauseActions(),
+              onSelected: (_) {},
+              onBackToRoot: () {},
+              detail: const SizedBox.shrink(),
             ),
-          );
+          ),
+        );
+        expect(
+          find.byKey(const ValueKey<String>('runtime-night-illustrated-frame')),
+          findsOneWidget,
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(Scrollable), findsNothing);
+        for (final element
+            in find
+                .byKey(const ValueKey<String>('player-action-focus-frame'))
+                .evaluate()) {
           expect(
-            find.byKey(
-                ValueKey<String>('runtime-pause-responsive-$breakpoint')),
-            findsOneWidget,
+            tester
+                .getSize(find.byElementPredicate((value) => value == element))
+                .height,
+            greaterThanOrEqualTo(48),
           );
-          for (final element in find
-              .byKey(const ValueKey<String>('player-action-focus-frame'))
-              .evaluate()) {
-            expect(
-              tester
-                  .getSize(find.byElementPredicate((value) => value == element))
-                  .height,
-              greaterThanOrEqualTo(48),
-            );
-          }
-          expect(tester.takeException(), isNull);
+        }
+        expect(tester.takeException(), isNull);
 
-          await tester.pumpWidget(
-            _app(
-              scenario: scenario,
-              textScale: textScale,
-              layouts: layouts,
-              child: PlayerDialogueOverlay(
-                snapshot: _dialogueSnapshot(),
-                onCommand: (_) {},
-                portraitBuilder: (_) => const SizedBox.square(dimension: 64),
-              ),
+        await tester.pumpWidget(
+          _app(
+            scenario: scenario,
+            textScale: textScale,
+            layouts: layouts,
+            child: PlayerDialogueOverlay(
+              snapshot: _dialogueSnapshot(),
+              onCommand: (_) {},
+              portraitBuilder: (_) => const SizedBox.square(dimension: 64),
             ),
-          );
-          expect(
-            find.byKey(
-                ValueKey<String>('player-dialogue-responsive-$breakpoint')),
-            findsOneWidget,
-          );
-          expect(tester.takeException(), isNull);
+          ),
+        );
+        expect(
+          find.byKey(
+            ValueKey<String>('player-dialogue-responsive-$breakpoint'),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
 
-          await tester.pumpWidget(
-            _app(
-              scenario: scenario,
-              textScale: textScale,
-              layouts: layouts,
-              child: PlayerBattleSurface(
-                data: PersonalizationStudioV2Fixture.battle,
-                onAction: (_) {},
-              ),
+        await tester.pumpWidget(
+          _app(
+            scenario: scenario,
+            textScale: textScale,
+            layouts: layouts,
+            child: PlayerBattleSurface(
+              data: PersonalizationStudioV2Fixture.battle,
+              onAction: (_) {},
             ),
-          );
-          expect(
-            find.byKey(
-              ValueKey<String>('player-battle-responsive-$breakpoint'),
-            ),
-            findsOneWidget,
-          );
-          expect(find.text('ROUCOOL'), findsOneWidget);
-          expect(find.text('BRINDIBOU'), findsOneWidget);
-          expect(find.text('ATTAQUER'), findsOneWidget);
-          expect(find.text('ÉQUIPE'), findsOneWidget);
-          expect(tester.takeException(), isNull);
-        },
-      );
+          ),
+        );
+        expect(
+          find.byKey(ValueKey<String>('player-battle-responsive-$breakpoint')),
+          findsOneWidget,
+        );
+        expect(find.text('ROUCOOL'), findsOneWidget);
+        expect(find.text('BRINDIBOU'), findsOneWidget);
+        expect(find.text('ATTAQUER'), findsOneWidget);
+        expect(find.text('ÉQUIPE'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
     }
   }
 
@@ -213,7 +210,7 @@ void main() {
       ),
     );
     focusController.select('pause.pokedex');
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     tester.view.physicalSize = expanded.size;
     await tester.pumpWidget(
@@ -224,13 +221,11 @@ void main() {
         child: _pauseShell(focusController),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(focusController.logicalSelectionId, 'pause.pokedex');
     expect(
-      find.byKey(
-        const ValueKey<String>('runtime-pause-responsive-expanded'),
-      ),
+      find.byKey(const ValueKey<String>('runtime-night-illustrated-frame')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -357,14 +352,14 @@ Widget _app({
 }
 
 PlayerTitleViewData _titleData() => PlayerTitleViewData(
-      gameTitle: 'Le Train de 17h42',
-      author: 'Avelune Studio',
-      description: 'Une aventure ferroviaire entre mémoire et mystère.',
-      actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
-        for (final action in PlayerTitleMenuAction.values)
-          action: PlayerActionAvailability.enabled,
-      },
-    );
+  gameTitle: 'Le Train de 17h42',
+  author: 'Avelune Studio',
+  description: 'Une aventure ferroviaire entre mémoire et mystère.',
+  actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+    for (final action in PlayerTitleMenuAction.values)
+      action: PlayerActionAvailability.enabled,
+  },
+);
 
 Map<PlayerPauseAction, PlayerActionAvailability> _pauseActions() =>
     <PlayerPauseAction, PlayerActionAvailability>{

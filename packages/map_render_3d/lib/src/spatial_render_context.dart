@@ -1,6 +1,7 @@
 import 'dart:ui' show Color;
 
 import 'package:flame_3d/core.dart';
+import 'package:flame_3d/components.dart' show Object3D;
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
@@ -9,6 +10,7 @@ import 'spatial_pixel_material.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_shadow_map.dart';
+import 'spatial_point_shadow.dart';
 
 class SpatialRenderContext extends RenderContext3D
     implements SpatialLightingContext {
@@ -18,6 +20,10 @@ class SpatialRenderContext extends RenderContext3D
   SpatialLightingProfile lighting = SpatialLightingProfile.disabled;
   @override
   SpatialShadowFrame? shadowFrame;
+  @override
+  SpatialPointShadowFrame? pointShadowFrame;
+  bool pointLightShadowsEnabled = true;
+  Iterable<Object3D> pointShadowCasters = const [];
   String? sourceInstanceId;
   String? sourceShadowId;
   SpatialShadowStats shadowStats = const SpatialShadowStats();
@@ -25,6 +31,8 @@ class SpatialRenderContext extends RenderContext3D
   bool _collecting = false;
   int _hiddenDrawCount = 0;
   final _captured = <_TransparentSurface>[];
+  final _pointCaptured = <_TransparentSurface>[];
+  bool _capturingPointCasters = false;
 
   final _transparent = <_TransparentSurface>[];
 
@@ -42,7 +50,11 @@ class SpatialRenderContext extends RenderContext3D
             material.sourceMaterialName,
           ) ==
           true) {
-        _hiddenDrawCount++;
+        if (!_capturingPointCasters) _hiddenDrawCount++;
+        return;
+      }
+      if (_capturingPointCasters) {
+        _pointCaptured.add(_snapshot(surface, material, _pointCaptured.length));
         return;
       }
       if (_collecting) {
@@ -76,19 +88,27 @@ class SpatialRenderContext extends RenderContext3D
       sequence: sequence,
       instanceId: sourceInstanceId,
       shadowId: sourceShadowId,
+      worldBounds: Aabb3.copy(surface.aabb)..transform(model),
     );
   }
 
   @override
   void flush() {
     final shadow = lighting.enabled ? lighting.shadow : null;
+    final hasPointShadows =
+        lighting.enabled &&
+        pointLightShadowsEnabled &&
+        lighting.pointShadowCasterInstanceIds.isNotEmpty &&
+        lighting.pointLights.any((light) => light.intensity > 0);
     shadowFrame = null;
+    pointShadowFrame = null;
     _hiddenDrawCount = 0;
     try {
-      _collecting = shadow != null;
+      _collecting = shadow != null || hasPointShadows;
       super.flush();
       _collecting = false;
       var casterDrawCount = 0;
+      var pointCasterDrawCount = 0;
       if (shadow != null) {
         final map = _shadowMap ??= SpatialShadowMap(
           device.backend,
@@ -116,9 +136,68 @@ class SpatialRenderContext extends RenderContext3D
             });
           }
         });
-        for (final entry in _captured) {
-          _withPose(entry, () => drawSurface(entry.surface));
+      }
+      if (hasPointShadows) {
+        final previousModel = model.clone();
+        final previousJoints = jointsInfo.jointTransforms;
+        try {
+          _capturingPointCasters = true;
+          for (final caster in pointShadowCasters) {
+            caster.draw(this);
+          }
+        } finally {
+          _capturingPointCasters = false;
+          model.setFrom(previousModel);
+          jointsInfo.jointTransforms = previousJoints;
         }
+        final candidates =
+            (pointShadowCasters.isEmpty ? _captured : _pointCaptured)
+                .where(
+                  (entry) =>
+                      (lighting.pointShadowCasterInstanceIds.contains(
+                            entry.instanceId,
+                          ) ||
+                          lighting.pointShadowCasterInstanceIds.contains(
+                            entry.shadowId,
+                          )) &&
+                      entry.material.alphaMode != Model3dAlphaMode.blend &&
+                      entry.material.lightingRole ==
+                          SpatialPixelLightingRole.surface,
+                )
+                .toList();
+        if (candidates.any(
+          (entry) => lighting.pointLights.any(
+            (light) => spatialPointShadowIntersects(light, entry.worldBounds),
+          ),
+        )) {
+          final map = _shadowMap ??= SpatialShadowMap(
+            device.backend,
+            ownsFrame: false,
+          );
+          pointShadowFrame = map.renderPointLights(lighting.pointLights, (
+            context,
+            depthMaterial,
+            light,
+          ) {
+            for (final entry in candidates) {
+              if (!spatialPointShadowIntersects(light, entry.worldBounds))
+                continue;
+              _withPose(entry, () {
+                context.model.setFrom(entry.model);
+                context.jointsInfo.jointTransforms = entry.joints;
+                final material = depthMaterial(entry.material)
+                  ..cullMode = entry.pose.cullMode;
+                context.device.clearBindings();
+                context.applyMaterial(material);
+                context.device.bindGeometry(entry.surface);
+                pointCasterDrawCount++;
+              });
+            }
+          });
+        }
+      }
+      for (final entry in _captured) {
+        _withPose(entry, () => drawSurface(entry.surface));
       }
       shadowStats = SpatialShadowStats(
         casterDrawCount: casterDrawCount,
@@ -137,6 +216,10 @@ class SpatialRenderContext extends RenderContext3D
                   .length,
         targetAllocations: _shadowMap?.targetAllocations ?? 0,
         hiddenDrawCount: _hiddenDrawCount,
+        pointCasterDrawCount: pointCasterDrawCount,
+        pointReceiverDrawCount: pointShadowFrame == null ? 0 : _captured.length,
+        pointTargetAllocations: _shadowMap?.pointTargetAllocations ?? 0,
+        pointShadowLightCount: pointShadowFrame?.lightCount ?? 0,
       );
       if (_transparent.isEmpty) return;
       final previousModel = model.clone();
@@ -166,7 +249,9 @@ class SpatialRenderContext extends RenderContext3D
       }
     } finally {
       _collecting = false;
+      _capturingPointCasters = false;
       _captured.clear();
+      _pointCaptured.clear();
       _transparent.clear();
     }
   }
@@ -208,6 +293,7 @@ final class _TransparentSurface {
     required this.sequence,
     required this.instanceId,
     required this.shadowId,
+    required this.worldBounds,
   });
 
   final Surface surface;
@@ -219,6 +305,7 @@ final class _TransparentSurface {
   final int sequence;
   final String? instanceId;
   final String? shadowId;
+  final Aabb3 worldBounds;
 }
 
 final class _MaterialPose {

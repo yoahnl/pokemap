@@ -94,9 +94,17 @@ final class SpatialShadowStats {
     this.receiverDrawCount = 0,
     this.targetAllocations = 0,
     this.hiddenDrawCount = 0,
+    this.pointCasterDrawCount = 0,
+    this.pointReceiverDrawCount = 0,
+    this.pointTargetAllocations = 0,
+    this.pointShadowLightCount = 0,
   });
   final int casterDrawCount,
       receiverDrawCount,
       targetAllocations,
       hiddenDrawCount;
+  final int pointCasterDrawCount,
+      pointReceiverDrawCount,
+      pointTargetAllocations,
+      pointShadowLightCount;
 }

@@ -16,6 +16,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
     this.portraitBuilder,
     this.resolvedPortraitBuilder,
     this.showSpeakerName = true,
+    this.paginationController,
   });
 
   final DialoguePresentationSnapshot snapshot;
@@ -24,11 +25,13 @@ class PlayerDialogueOverlay extends StatelessWidget {
   final Widget Function(ResolvedDialoguePortrait portrait)?
   resolvedPortraitBuilder;
   final bool showSpeakerName;
+  final PlayerDialoguePaginationController? paginationController;
 
   @override
   Widget build(BuildContext context) {
     final portrait = snapshot.portrait;
     return PlayerDialogueSurface(
+      paginationController: paginationController,
       data: PlayerDialogueViewData(
         revision: snapshot.revision,
         mode: switch (snapshot.mode) {

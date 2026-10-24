@@ -18,6 +18,7 @@ import 'model_animation_controls.dart';
 import 'model_collision_controls.dart';
 import 'model_ramp_controls.dart';
 import 'model_shadow_controls.dart';
+import 'model_light_controls.dart';
 
 String modelDiagnosticLabel(String code) => switch (code) {
   'renderer.missing_material_magenta' => 'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
@@ -377,6 +378,18 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                     'Origine : ${model.pivot.x.toStringAsFixed(2)}, ${model.pivot.y.toStringAsFixed(2)}, ${model.pivot.z.toStringAsFixed(2)}',
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              ModelLightControls(
+                key: ValueKey('model-light-${model.id}'),
+                model: model,
+                busy: n.busy,
+                onSave: (light) async {
+                  await n.mutate('model3d.configure', {
+                    'modelId': model.id,
+                    'light': light?.toJson(),
+                  });
+                },
               ),
               const SizedBox(height: 16),
               ModelRampControls(

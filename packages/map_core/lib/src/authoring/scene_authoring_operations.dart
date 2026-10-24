@@ -990,6 +990,7 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
         : null,
     npcEntityId: currentPayload.npcEntityId,
     defeatRecovery: defeatRecovery ?? currentPayload.defeatRecovery,
+    demonstration: currentPayload.demonstration,
     declaredOutcomes: normalizedBattleKind == 'wild'
         ? const ['victory', 'captured', 'defeat', 'runaway']
         : const ['victory', 'defeat'],

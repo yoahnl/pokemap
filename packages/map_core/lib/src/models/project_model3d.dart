@@ -260,6 +260,89 @@ final class Model3dInspection {
   };
 }
 
+final class Model3dPointLight {
+  Model3dPointLight({
+    required this.localPosition,
+    this.radius = 4,
+    this.intensity = 1,
+    this.colorRgb = 0xffd59a,
+    this.nightOnly = true,
+  }) {
+    if (!radius.isFinite ||
+        radius < .25 ||
+        radius > 64 ||
+        !intensity.isFinite ||
+        intensity < 0 ||
+        intensity > 4 ||
+        colorRgb < 0 ||
+        colorRgb > 0xffffff) {
+      throw const FormatException('Invalid model point light.');
+    }
+  }
+
+  final Model3dVector3 localPosition;
+  final double radius, intensity;
+  final int colorRgb;
+  final bool nightOnly;
+
+  Model3dPointLight copyWith({
+    Model3dVector3? localPosition,
+    double? radius,
+    double? intensity,
+    int? colorRgb,
+    bool? nightOnly,
+  }) => Model3dPointLight(
+    localPosition: localPosition ?? this.localPosition,
+    radius: radius ?? this.radius,
+    intensity: intensity ?? this.intensity,
+    colorRgb: colorRgb ?? this.colorRgb,
+    nightOnly: nightOnly ?? this.nightOnly,
+  );
+
+  factory Model3dPointLight.fromJson(Map<String, dynamic> json) {
+    _keys(json, {
+      'localPosition',
+      for (final field in ['radius', 'intensity', 'colorRgb', 'nightOnly'])
+        if (json.containsKey(field)) field,
+    });
+    if (json.containsKey('nightOnly') && json['nightOnly'] is! bool) {
+      throw const FormatException('Point light nightOnly must be boolean.');
+    }
+    return Model3dPointLight(
+      localPosition: Model3dVector3.fromJson(_object(json['localPosition'])),
+      radius: json.containsKey('radius')
+          ? _number(json['radius']).toDouble()
+          : 4,
+      intensity: json.containsKey('intensity')
+          ? _number(json['intensity']).toDouble()
+          : 1,
+      colorRgb: json.containsKey('colorRgb')
+          ? _integer(json['colorRgb'])
+          : 0xffd59a,
+      nightOnly: json['nightOnly'] as bool? ?? true,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'localPosition': localPosition.toJson(),
+    'radius': radius,
+    'intensity': intensity,
+    'colorRgb': colorRgb,
+    'nightOnly': nightOnly,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is Model3dPointLight &&
+      localPosition == other.localPosition &&
+      radius == other.radius &&
+      intensity == other.intensity &&
+      colorRgb == other.colorRgb &&
+      nightOnly == other.nightOnly;
+  @override
+  int get hashCode =>
+      Object.hash(localPosition, radius, intensity, colorRgb, nightOnly);
+}
+
 final class ProjectModel3dEntry {
   ProjectModel3dEntry({
     required String id,
@@ -273,6 +356,7 @@ final class ProjectModel3dEntry {
     this.rampProfile,
     this.blocksMovementByDefault = true,
     this.castsShadowsByDefault = false,
+    this.light,
   }) : id = _id(id),
        name = _name(name),
        sourceAssetId = _id(sourceAssetId, maximumLength: 160),
@@ -307,6 +391,7 @@ final class ProjectModel3dEntry {
   final Model3dRampProfile? rampProfile;
   final bool blocksMovementByDefault;
   final bool castsShadowsByDefault;
+  final Model3dPointLight? light;
 
   ProjectModel3dEntry copyWith({
     String? name,
@@ -318,6 +403,8 @@ final class ProjectModel3dEntry {
     bool clearRampProfile = false,
     bool? blocksMovementByDefault,
     bool? castsShadowsByDefault,
+    Model3dPointLight? light,
+    bool clearLight = false,
   }) => ProjectModel3dEntry(
     id: id,
     name: name ?? this.name,
@@ -333,6 +420,7 @@ final class ProjectModel3dEntry {
     blocksMovementByDefault:
         blocksMovementByDefault ?? this.blocksMovementByDefault,
     castsShadowsByDefault: castsShadowsByDefault ?? this.castsShadowsByDefault,
+    light: clearLight ? null : light ?? this.light,
   );
 
   @override
@@ -349,7 +437,8 @@ final class ProjectModel3dEntry {
           other.collisionBounds == collisionBounds &&
           other.rampProfile == rampProfile &&
           other.blocksMovementByDefault == blocksMovementByDefault &&
-          other.castsShadowsByDefault == castsShadowsByDefault;
+          other.castsShadowsByDefault == castsShadowsByDefault &&
+          other.light == light;
   @override
   int get hashCode => Object.hash(
     id,
@@ -363,6 +452,7 @@ final class ProjectModel3dEntry {
     rampProfile,
     blocksMovementByDefault,
     castsShadowsByDefault,
+    light,
   );
 
   factory ProjectModel3dEntry.fromJson(Map<String, dynamic> json) {
@@ -376,8 +466,10 @@ final class ProjectModel3dEntry {
       'pivot',
       if (json.containsKey('collisionBounds')) 'collisionBounds',
       if (json.containsKey('rampProfile')) 'rampProfile',
-      if (json.containsKey('blocksMovementByDefault')) 'blocksMovementByDefault',
+      if (json.containsKey('blocksMovementByDefault'))
+        'blocksMovementByDefault',
       if (json.containsKey('castsShadowsByDefault')) 'castsShadowsByDefault',
+      if (json.containsKey('light')) 'light',
     });
     if (json.containsKey('blocksMovementByDefault') &&
         json['blocksMovementByDefault'] is! bool) {
@@ -403,6 +495,9 @@ final class ProjectModel3dEntry {
           : Model3dRampProfile.fromJson(_object(json['rampProfile'])),
       blocksMovementByDefault: json['blocksMovementByDefault'] as bool? ?? true,
       castsShadowsByDefault: json['castsShadowsByDefault'] as bool? ?? false,
+      light: json['light'] == null
+          ? null
+          : Model3dPointLight.fromJson(_object(json['light'])),
     );
   }
   Map<String, dynamic> toJson() => {
@@ -417,6 +512,7 @@ final class ProjectModel3dEntry {
     if (rampProfile != null) 'rampProfile': rampProfile!.toJson(),
     if (!blocksMovementByDefault) 'blocksMovementByDefault': false,
     if (castsShadowsByDefault) 'castsShadowsByDefault': true,
+    if (light != null) 'light': light!.toJson(),
   };
 }
 

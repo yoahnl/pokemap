@@ -126,6 +126,8 @@ void main() {
       restore: restore,
     );
     hosts.add(host);
+    expect(host.runtime.descriptor.grantedCapabilities,
+        contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
     return host;
   }
 

@@ -65,6 +65,15 @@ void main() {
     final before =
         tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
     expect(before.background, Colors.black);
+    expect(before.presentationElapsedSeconds?.call(), 0);
+    session.frames(.5);
+    expect(before.presentationElapsedSeconds?.call(), .5);
+    session.setLifecyclePaused(true);
+    session.frames(.5);
+    expect(before.presentationElapsedSeconds?.call(), .5);
+    session.setLifecyclePaused(false);
+    session.frames(.5);
+    expect(before.presentationElapsedSeconds?.call(), 1);
     await tester.pumpWidget(app(Brightness.dark));
     final after =
         tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));

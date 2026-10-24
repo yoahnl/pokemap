@@ -26,11 +26,8 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
     this.onPresentationSnapshotChanged,
   })  : _transaction = initialResult.transaction,
         _failure = initialResult.failure,
-        super(
-          size: viewportSize,
-          anchor: Anchor.topLeft,
-          priority: 99,
-        ) {
+        super(size: viewportSize, anchor: Anchor.topLeft, priority: 99) {
+    _messageIndex = _messages.length - 1;
     _publishPresentationSnapshot();
   }
 
@@ -174,8 +171,10 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
   bool _moveSelection(int delta) {
     final labels = decisionLabels;
     if (labels.isEmpty) return false;
-    _selectedDecisionIndex =
-        (_selectedDecisionIndex + delta).clamp(0, labels.length - 1);
+    _selectedDecisionIndex = (_selectedDecisionIndex + delta).clamp(
+      0,
+      labels.length - 1,
+    );
     _syncText();
     return true;
   }
@@ -185,12 +184,6 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
     final labels = decisionLabels;
     if (labels.isNotEmpty) {
       return _submitDecision();
-    }
-    if (_messageIndex < _messages.length - 1) {
-      _messageIndex += 1;
-      _selectedDecisionIndex = 0;
-      _syncText();
-      return true;
     }
     if (_failure != null || (_transaction?.isReadyToCommit ?? false)) {
       _completeOnce();
@@ -202,7 +195,6 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
   bool _submitDecision() {
     final transaction = _transaction;
     if (transaction == null) return false;
-    final previousMessageCount = _messages.length;
     try {
       final pendingMove = _visiblePendingMove;
       late final RuntimePostBattleCoordinatorResult result;
@@ -266,7 +258,7 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
       } else {
         return false;
       }
-      _applyResult(result, previousMessageCount: previousMessageCount);
+      _applyResult(result);
     } catch (error) {
       _applyResult(
         RuntimePostBattleCoordinatorResult.failure(
@@ -278,21 +270,15 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
           ),
           transaction: transaction,
         ),
-        previousMessageCount: previousMessageCount,
       );
     }
     return true;
   }
 
-  void _applyResult(
-    RuntimePostBattleCoordinatorResult result, {
-    required int previousMessageCount,
-  }) {
+  void _applyResult(RuntimePostBattleCoordinatorResult result) {
     _transaction = result.transaction;
     _failure = result.failure;
-    _messageIndex = result.failure != null
-        ? 0
-        : previousMessageCount.clamp(0, _messages.length - 1);
+    _messageIndex = _messages.length - 1;
     _selectedDecisionIndex = 0;
     _syncText();
   }
@@ -334,6 +320,17 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
       ),
       completed: _isCompleted,
       hasFailure: _failure != null,
+      summaryMessages: List<RuntimePostBattleMessage>.unmodifiable(
+        _messages.where(
+          (message) => switch (message.kind) {
+            RuntimePostBattleMessageKind.moveLearningPrompt ||
+            RuntimePostBattleMessageKind.moveReplacementPrompt ||
+            RuntimePostBattleMessageKind.evolutionPrompt =>
+              false,
+            _ => true,
+          },
+        ),
+      ),
     );
     _currentPresentationSnapshot = snapshot;
     onPresentationSnapshotChanged?.call(snapshot);

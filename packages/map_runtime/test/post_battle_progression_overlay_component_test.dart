@@ -7,7 +7,83 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('PostBattleProgressionOverlayComponent', () {
-    test('presents every ordered message then completes exactly once',
+    test('groups passive rewards into one acknowledgement before completion',
+        () async {
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _automaticResolution,
+      );
+      var completions = 0;
+      final overlay = PostBattleProgressionOverlayComponent(
+        initialResult: await _begin(coordinator),
+        viewportSize: Vector2(800, 600),
+        onMoveLearningDecision: (_) => throw StateError('not expected'),
+        onEvolutionDecision: (_) => throw StateError('not expected'),
+        onCompleted: () => completions += 1,
+      );
+
+      expect(completions, 0);
+      expect(overlay.currentTransaction!.messages.length, greaterThan(1));
+      expect(
+        overlay.currentPresentationSnapshot!.summaryMessages,
+        orderedEquals(overlay.currentTransaction!.messages),
+      );
+      expect(
+        () => overlay.currentPresentationSnapshot!.summaryMessages.clear(),
+        throwsUnsupportedError,
+      );
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(completions, 1);
+      expect(overlay.validateSelectedChoice(), isFalse);
+    });
+
+    test('exposes a real decision immediately without acknowledging rewards',
+        () async {
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _pendingMoveResolution,
+      );
+      var decisions = 0;
+      var completions = 0;
+      final overlay = PostBattleProgressionOverlayComponent(
+        initialResult: await _begin(
+          coordinator,
+          knownMoves: const ['tackle', 'growl', 'tail_whip', 'focus_energy'],
+        ),
+        viewportSize: Vector2(800, 600),
+        onMoveLearningDecision: (_) {
+          decisions += 1;
+          throw StateError('not selected');
+        },
+        onEvolutionDecision: (_) => throw StateError('not expected'),
+        onCompleted: () => completions += 1,
+      );
+
+      expect(overlay.decisionLabels, ['Apprendre', 'Ne pas apprendre']);
+      expect(
+        overlay.currentPresentationSnapshot!.summaryMessages.map(
+          (message) => message.kind,
+        ),
+        isNot(contains(RuntimePostBattleMessageKind.moveLearningPrompt)),
+      );
+      expect(
+        overlay.currentPresentationSnapshot!.summaryMessages.map(
+          (message) => message.kind,
+        ),
+        isNot(contains(RuntimePostBattleMessageKind.money)),
+      );
+      expect(decisions, 0);
+      expect(completions, 0);
+      expect(
+        validatePostBattlePresentationCommand(
+          overlay.currentPresentationSnapshot!,
+          PostBattleAdvanceCommand(
+            snapshotRevision: overlay.currentPresentationSnapshot!.revision,
+          ),
+        ).rejection,
+        PostBattlePresentationCommandRejection.decisionRequired,
+      );
+    });
+
+    test('presents all known reward facts then completes exactly once',
         () async {
       final coordinator = RuntimePostBattleDecisionCoordinator(
         resolveReward: _automaticResolution,
@@ -26,11 +102,17 @@ void main() {
       await game.ready();
 
       expect(overlay.messageSemanticKey, 'post-battle-message');
-      expect(overlay.currentMessageText, 'Victoire !');
-      expect(overlay.decisionLabels, isEmpty);
-      expect(overlay.currentPresentationSnapshot?.message, 'Victoire !');
       expect(
-        overlay.currentPresentationSnapshot?.messageKind,
+        overlay.currentMessageText,
+        overlay.currentTransaction!.messages.last.text,
+      );
+      expect(overlay.decisionLabels, isEmpty);
+      expect(
+        overlay.currentPresentationSnapshot?.summaryMessages.first.text,
+        'Victoire !',
+      );
+      expect(
+        overlay.currentPresentationSnapshot?.summaryMessages.first.kind,
         RuntimePostBattleMessageKind.victory,
       );
 
@@ -59,7 +141,10 @@ void main() {
       game.add(overlay);
       await game.ready();
 
-      expect(overlay.currentPresentationSnapshot?.message, 'Victoire !');
+      expect(
+        overlay.currentPresentationSnapshot?.summaryMessages.first.text,
+        'Victoire !',
+      );
       expect(overlay.children, isEmpty);
     });
 
@@ -99,33 +184,64 @@ void main() {
       while (overlay.decisionLabels.isEmpty) {
         expect(overlay.validateSelectedChoice(), isTrue);
       }
-      expect(overlay.decisionSemanticKeys,
-          <String>['post-battle-choice-learn', 'post-battle-choice-decline']);
-      expect(overlay.decisionLabels, <String>['Apprendre', 'Ne pas apprendre']);
+      expect(overlay.decisionSemanticKeys, <String>[
+        'post-battle-choice-learn',
+        'post-battle-choice-decline',
+      ]);
+      expect(overlay.decisionLabels, <String>[
+        'Apprendre',
+        'Ne pas apprendre',
+      ]);
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(submitted, isA<LearnBattleMoveLearningDecision>());
 
-      expect(
-        overlay.decisionLabels,
-        <String>[
-          'Tackle',
-          'Growl',
-          'Tail whip',
-          'Focus energy',
-          'Ne pas apprendre',
-        ],
-      );
+      expect(overlay.decisionLabels, <String>[
+        'Tackle',
+        'Growl',
+        'Tail whip',
+        'Focus energy',
+        'Ne pas apprendre',
+      ]);
       expect(overlay.selectDecision(1), isTrue);
+      final replacementRevision =
+          overlay.currentPresentationSnapshot!.revision;
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(submitted, isA<ReplaceBattleMoveLearningDecision>());
       final replacement = submitted! as ReplaceBattleMoveLearningDecision;
       expect(replacement.replaceMoveIndex, 1);
       expect(replacement.expectedReplacedMoveId, 'growl');
       expect(
-        overlay
-            .currentTransaction!.finalState!.party.members.single.knownMoveIds,
+        overlay.currentTransaction!.finalState!.party.members.single
+            .knownMoveIds,
         <String>['tackle', 'quick_attack', 'tail_whip', 'focus_energy'],
       );
+      expect(overlay.isCompleted, isFalse);
+      expect(overlay.decisionLabels, isEmpty);
+      final summary = overlay.currentPresentationSnapshot!.summaryMessages;
+      expect(
+        summary.map((message) => message.kind),
+        contains(RuntimePostBattleMessageKind.moveReplaced),
+      );
+      expect(
+        summary.map((message) => message.kind),
+        contains(RuntimePostBattleMessageKind.money),
+      );
+      expect(
+        summary.map((message) => message.kind),
+        isNot(contains(RuntimePostBattleMessageKind.moveReplacementPrompt)),
+      );
+      expect(
+        validatePostBattlePresentationCommand(
+          overlay.currentPresentationSnapshot!,
+          PostBattleSelectDecisionCommand(
+            snapshotRevision: replacementRevision,
+            decisionIndex: 1,
+          ),
+        ).rejection,
+        PostBattlePresentationCommandRejection.staleSnapshot,
+      );
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.isCompleted, isTrue);
     });
 
     test('offers exact accept and refusal decisions for evolution', () async {

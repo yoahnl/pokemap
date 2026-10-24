@@ -113,6 +113,12 @@ final class GamePackageProjectValidator {
                   .contains('map@1')) {
         _fail('Project dimension and map capability do not match.');
       }
+      final demonstrations = project.scenes.expand((scene) => scene.graph.nodes).where((node) =>
+          node.payload is SceneBattlePayload && (node.payload as SceneBattlePayload).demonstration != null);
+      if (demonstrations.isNotEmpty && (!spatial ||
+          !packageManifest.compatibility.requiredCapabilities.contains(SceneBattleDemonstration.capabilityId))) {
+        _fail('Battle demonstrations require a 3D project and battle.demonstration@1.');
+      }
       if (project.contactDevice case final device?) {
         if (!spatial) _fail('Contact devices require a 3D project.');
         if (!packageManifest.compatibility.requiredCapabilities.contains(ProjectContactDeviceConfig.capabilityId)) _fail('Contact devices require project.contact-device@1.');
@@ -156,6 +162,24 @@ final class GamePackageProjectValidator {
                 .contains(SpatialModelShadowCapabilities.capabilityId)) {
           _fail('Shadow-casting 3D models require map3d.shadows@1.');
         }
+        if (SpatialSceneLightingCapabilities.requiresDayNight(project,
+                maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialSceneLightingCapabilities.dayNightCapabilityId)) {
+          _fail('Visual 3D day/night cycles require map3d.day-night@1.');
+        }
+        if (SpatialSceneLightingCapabilities.requiresPointLights(project,
+                maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialSceneLightingCapabilities.pointLightCapabilityId)) {
+          _fail('Illuminated 3D models require map3d.point-light@1.');
+        }
+        if (SpatialSceneLightingCapabilities.requiresPointLightShadows(project,
+                maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(
+                SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId)) {
+          _fail('Occluded 3D point lights require map3d.point-light-shadows@1.');
+        }
         if (maps.any((map) => map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) _fail('Orthographic cameras require map3d.camera-orthographic@1.');
         if (maps.any((map) => !map.spatialScene!.generateCliffs) &&
             !packageManifest.compatibility.requiredCapabilities
@@ -168,6 +192,10 @@ final class GamePackageProjectValidator {
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialTerrainSurfaceSet.capabilityId)) {
           _fail('Continuous 3D terrain requires map3d.terrain-surfaces@1.');
+        }
+        if (maps.any((map) => map.spatialScene!.navigation.ledges.isNotEmpty) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(SpatialLedge.capabilityId)) {
+          _fail('Directional ledges require ${SpatialLedge.capabilityId}.');
         }
         if (maps.any((map) => map.spatialScene!.navigation.ramps
                 .any((ramp) => ramp.hasFractionalLevels)) &&

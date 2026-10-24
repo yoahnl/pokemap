@@ -5,27 +5,200 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
-  testWidgets('numeric modal uses integer keyboard and touch or Enter submission', (tester) async {
-    final results = <SceneInteractionResult>[];
-    final request = SceneIntegerInteractionRequest(requestId: 'number', revision: 1,
-      prompt: _prompt('Combien ?'), digits: 3, minimum: 0, maximum: 999,
-      initialValue: 7, allowCancel: false);
-    await tester.pumpWidget(_app(request: request, results: results));
-    final field = find.byKey(const ValueKey<String>('scene-interaction-integer-field'));
-    expect(tester.widget<TextField>(field).keyboardType, const TextInputType.numberWithOptions(signed: false));
-    expect(find.byKey(const ValueKey<String>('scene-interaction-cancel')), findsNothing);
-    await tester.enterText(field, '42');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    expect(results.single, isA<SceneIntegerSubmittedInteractionResult>().having((result) => result.value, 'value', 42));
-    results.clear();
-    await tester.pumpWidget(_app(request: SceneIntegerInteractionRequest(requestId: 'number', revision: 2,
-      prompt: _prompt('Combien ?'), digits: 3, minimum: 0, maximum: 999, initialValue: 9), results: results));
-    await tester.tap(find.byKey(const ValueKey<String>('scene-interaction-integer-submit')));
-    expect(results.single, isA<SceneIntegerSubmittedInteractionResult>().having((result) => result.value, 'value', 9));
-  });
+  testWidgets(
+    'long authored prompts are fully read before a decision can dispatch',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(640, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final text = List.filled(
+        18,
+        'Cette question comporte des conditions à lire avant de choisir.',
+      ).join('\n');
+      final results = <SceneInteractionResult>[];
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.choice(
+            requestId: 'long-prompt',
+            revision: 19,
+            prompt: _prompt(text),
+            options: [_option('accept', 'Accepter')],
+          ),
+          results: results,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scene-interaction-option-accept')),
+        findsNothing,
+      );
+      final parts = <String>[];
+      for (
+        var page = 0;
+        page < 100 &&
+            find
+                .byKey(const ValueKey('dialogue-page-text'))
+                .evaluate()
+                .isNotEmpty;
+        page++
+      ) {
+        parts.add(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('dialogue-page-text')))
+              .textSpan!
+              .toPlainText(),
+        );
+        await tester.tap(find.byKey(const ValueKey('dialogue-tap-zone')));
+        await tester.pumpAndSettle();
+      }
+      expect(parts.join(), text);
+      expect(results, isEmpty);
+      await tester.tap(
+        find.byKey(const ValueKey('scene-interaction-option-accept')),
+      );
+      expect(
+        results.single,
+        isA<SceneChoiceSelectedInteractionResult>().having(
+          (result) => result.selectedOptionId,
+          'option',
+          'accept',
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('text proposes a name and keeps edits until a new request',
-      (tester) async {
+  testWidgets(
+    'a long response opens complete prose before its real selection',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(640, 360));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final text = List.filled(
+        18,
+        'Cette réponse précise une conséquence importante.',
+      ).join('\n');
+      final results = <SceneInteractionResult>[];
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.choice(
+            requestId: 'long-option',
+            revision: 20,
+            prompt: _prompt('Quelle réponse ?'),
+            options: [_option('long', text)],
+          ),
+          results: results,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final choice = find.byKey(
+        const ValueKey('scene-interaction-option-long'),
+      );
+      await tester.tap(choice);
+      await tester.pumpAndSettle();
+      final parts = <String>[];
+      for (
+        var page = 0;
+        page < 100 &&
+            find
+                .byKey(const ValueKey('dialogue-page-text'))
+                .evaluate()
+                .isNotEmpty;
+        page++
+      ) {
+        parts.add(
+          tester
+              .widget<Text>(find.byKey(const ValueKey('dialogue-page-text')))
+              .textSpan!
+              .toPlainText(),
+        );
+        await tester.tap(find.byKey(const ValueKey('dialogue-tap-zone')));
+        await tester.pumpAndSettle();
+      }
+      expect(parts.join(), text);
+      expect(results, isEmpty);
+      await tester.tap(choice);
+      expect(
+        results.single,
+        isA<SceneChoiceSelectedInteractionResult>().having(
+          (result) => result.revision,
+          'revision',
+          20,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'numeric modal uses integer keyboard and touch or Enter submission',
+    (tester) async {
+      final results = <SceneInteractionResult>[];
+      final request = SceneIntegerInteractionRequest(
+        requestId: 'number',
+        revision: 1,
+        prompt: _prompt('Combien ?'),
+        digits: 3,
+        minimum: 0,
+        maximum: 999,
+        initialValue: 7,
+        allowCancel: false,
+      );
+      await tester.pumpWidget(_app(request: request, results: results));
+      await tester.pump();
+      await tester.pump();
+      final field = find.byKey(
+        const ValueKey<String>('scene-interaction-integer-field'),
+      );
+      expect(
+        tester.widget<TextField>(field).keyboardType,
+        const TextInputType.numberWithOptions(signed: false),
+      );
+      expect(
+        find.byKey(const ValueKey<String>('scene-interaction-cancel')),
+        findsNothing,
+      );
+      await tester.enterText(field, '42');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(
+        results.single,
+        isA<SceneIntegerSubmittedInteractionResult>().having(
+          (result) => result.value,
+          'value',
+          42,
+        ),
+      );
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneIntegerInteractionRequest(
+            requestId: 'number',
+            revision: 2,
+            prompt: _prompt('Combien ?'),
+            digits: 3,
+            minimum: 0,
+            maximum: 999,
+            initialValue: 9,
+          ),
+          results: results,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('scene-interaction-integer-submit')),
+      );
+      expect(
+        results.single,
+        isA<SceneIntegerSubmittedInteractionResult>().having(
+          (result) => result.value,
+          'value',
+          9,
+        ),
+      );
+    },
+  );
+
+  testWidgets('text proposes a name and keeps edits until a new request', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     SceneInteractionRequest request(int revision, String name) =>
         SceneInteractionRequest.text(
@@ -39,17 +212,29 @@ void main() {
           ),
         );
 
-    await tester.pumpWidget(_app(request: request(1, 'Silver'), results: results));
+    await tester.pumpWidget(
+      _app(request: request(1, 'Silver'), results: results),
+    );
+    await tester.pump();
+    await tester.pump();
     final field = find.byKey(
       const ValueKey<String>('scene-interaction-text-field'),
     );
     expect(tester.widget<TextField>(field).controller!.text, 'Silver');
 
     await tester.enterText(field, 'Yoahn');
-    await tester.pumpWidget(_app(request: request(1, 'Silver'), results: results));
+    await tester.pumpWidget(
+      _app(request: request(1, 'Silver'), results: results),
+    );
+    await tester.pump();
+    await tester.pump();
     expect(tester.widget<TextField>(field).controller!.text, 'Yoahn');
 
-    await tester.pumpWidget(_app(request: request(2, 'Gold'), results: results));
+    await tester.pumpWidget(
+      _app(request: request(2, 'Gold'), results: results),
+    );
+    await tester.pump();
+    await tester.pump();
     expect(tester.widget<TextField>(field).controller!.text, 'Gold');
     expect(results, isEmpty);
     await tester.tap(
@@ -64,140 +249,155 @@ void main() {
   });
 
   testWidgets(
-      'message, choice, confirmation and selection publish typed results',
-      (tester) async {
-    final results = <SceneInteractionResult>[];
+    'message, choice, confirmation and selection publish typed results',
+    (tester) async {
+      final results = <SceneInteractionResult>[];
 
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.message(
-          requestId: 'message',
-          revision: 1,
-          prompt: _prompt('Bienvenue'),
-        ),
-        results: results,
-      ),
-    );
-    final dialogueBox = find.byKey(
-      const ValueKey<String>('scene-interaction-message-dialogue'),
-    );
-    expect(dialogueBox, findsOneWidget);
-    final tapTarget = find
-        .descendant(
-          of: dialogueBox,
-          matching: find.byKey(const ValueKey<String>('dialogue-tap-zone')),
-        )
-        .first;
-    await tester.tap(tapTarget);
-    await tester.pump();
-    expect(
-      results,
-      isEmpty,
-      reason: 'the first press completes the typewriter, never validates',
-    );
-    await tester.tap(tapTarget);
-    await tester.pump();
-    expect(results.single, isA<SceneAcknowledgedInteractionResult>());
-
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.choice(
-          requestId: 'choice',
-          revision: 2,
-          prompt: _prompt('Choisissez une voie'),
-          options: <SceneInteractionOption>[
-            _option('north', 'Nord'),
-            _option('south', 'Sud'),
-          ],
-        ),
-        results: results,
-      ),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-option-south')),
-    );
-    expect(
-      results.single,
-      isA<SceneChoiceSelectedInteractionResult>()
-          .having((result) => result.selectedOptionId, 'option', 'south'),
-    );
-
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.confirmation(
-          requestId: 'confirmation',
-          revision: 3,
-          prompt: _prompt('Continuer ?'),
-        ),
-        results: results,
-      ),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-confirm-no')),
-    );
-    expect(
-      results.single,
-      isA<SceneConfirmedInteractionResult>()
-          .having((result) => result.value, 'value', isFalse),
-    );
-
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.selection(
-          requestId: 'selection',
-          revision: 4,
-          prompt: _prompt('Choisissez deux compagnons'),
-          options: <SceneInteractionOption>[
-            _option('a', 'Aube'),
-            _option('b', 'Brume'),
-            _option('c', 'Cendre'),
-          ],
-          constraints: SceneSelectionConstraints(
-            minSelections: 2,
-            maxSelections: 2,
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.message(
+            requestId: 'message',
+            revision: 1,
+            prompt: _prompt('Bienvenue'),
           ),
+          results: results,
         ),
-        results: results,
-      ),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-option-a')),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-option-c')),
-    );
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('scene-interaction-selection-submit'),
-      ),
-    );
-    expect(
-      results.single,
-      isA<SceneSelectionSubmittedInteractionResult>().having(
-        (result) => result.selectedOptionIds,
-        'options',
-        <String>['a', 'c'],
-      ),
-    );
-  });
+      );
+      await tester.pump();
+      await tester.pump();
+      final dialogueBox = find.byKey(
+        const ValueKey<String>('scene-interaction-message-dialogue'),
+      );
+      expect(dialogueBox, findsOneWidget);
+      final tapTarget = find
+          .descendant(
+            of: dialogueBox,
+            matching: find.byKey(const ValueKey<String>('dialogue-tap-zone')),
+          )
+          .first;
+      await tester.tap(tapTarget);
+      await tester.pump();
+      expect(
+        results,
+        isEmpty,
+        reason: 'the first press completes the typewriter, never validates',
+      );
+      await tester.tap(tapTarget);
+      await tester.pump();
+      expect(results.single, isA<SceneAcknowledgedInteractionResult>());
 
-  testWidgets('text keeps IME composition and limits committed graphemes',
-      (tester) async {
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.choice(
+            requestId: 'choice',
+            revision: 2,
+            prompt: _prompt('Choisissez une voie'),
+            options: <SceneInteractionOption>[
+              _option('north', 'Nord'),
+              _option('south', 'Sud'),
+            ],
+          ),
+          results: results,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('scene-interaction-option-south')),
+      );
+      expect(
+        results.single,
+        isA<SceneChoiceSelectedInteractionResult>().having(
+          (result) => result.selectedOptionId,
+          'option',
+          'south',
+        ),
+      );
+
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.confirmation(
+            requestId: 'confirmation',
+            revision: 3,
+            prompt: _prompt('Continuer ?'),
+          ),
+          results: results,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('scene-interaction-confirm-no')),
+      );
+      expect(
+        results.single,
+        isA<SceneConfirmedInteractionResult>().having(
+          (result) => result.value,
+          'value',
+          isFalse,
+        ),
+      );
+
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.selection(
+            requestId: 'selection',
+            revision: 4,
+            prompt: _prompt('Choisissez deux compagnons'),
+            options: <SceneInteractionOption>[
+              _option('a', 'Aube'),
+              _option('b', 'Brume'),
+              _option('c', 'Cendre'),
+            ],
+            constraints: SceneSelectionConstraints(
+              minSelections: 2,
+              maxSelections: 2,
+            ),
+          ),
+          results: results,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('scene-interaction-option-a')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('scene-interaction-option-c')),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('scene-interaction-selection-submit'),
+        ),
+      );
+      expect(
+        results.single,
+        isA<SceneSelectionSubmittedInteractionResult>().having(
+          (result) => result.selectedOptionIds,
+          'options',
+          <String>['a', 'c'],
+        ),
+      );
+    },
+  );
+
+  testWidgets('text keeps IME composition and limits committed graphemes', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     final request = SceneInteractionRequest.text(
       requestId: 'name',
       revision: 5,
       prompt: _prompt('Votre nom'),
-      constraints: SceneTextInputConstraints(
-        minGraphemes: 2,
-        maxGraphemes: 2,
-      ),
+      constraints: SceneTextInputConstraints(minGraphemes: 2, maxGraphemes: 2),
     );
 
     await tester.pumpWidget(_app(request: request, results: results));
+    await tester.pump();
+    await tester.pump();
     final field = find.byKey(
       const ValueKey<String>('scene-interaction-text-field'),
     );
@@ -244,8 +444,9 @@ void main() {
     );
   });
 
-  testWidgets('invalid text stays open and exposes an accessible error',
-      (tester) async {
+  testWidgets('invalid text stays open and exposes an accessible error', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     final request = SceneInteractionRequest.text(
       requestId: 'name',
@@ -255,6 +456,8 @@ void main() {
     );
 
     await tester.pumpWidget(_app(request: request, results: results));
+    await tester.pump();
+    await tester.pump();
     await tester.enterText(
       find.byKey(const ValueKey<String>('scene-interaction-text-field')),
       'A',
@@ -272,8 +475,9 @@ void main() {
     expect(semantics.flagsCollection.isLiveRegion, isTrue);
   });
 
-  testWidgets('cancel emits a typed user cancellation exactly once',
-      (tester) async {
+  testWidgets('cancel emits a typed user cancellation exactly once', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     await tester.pumpWidget(
       _app(
@@ -285,6 +489,8 @@ void main() {
         results: results,
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
@@ -303,8 +509,9 @@ void main() {
     );
   });
 
-  testWidgets('a destructive confirmation shows why the save is unusable',
-      (tester) async {
+  testWidgets('a destructive confirmation shows why the save is unusable', (
+    tester,
+  ) async {
     const reason = 'This save was written by a newer version of the game.';
     await tester.pumpWidget(
       _app(
@@ -322,24 +529,29 @@ void main() {
         results: <SceneInteractionResult>[],
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(find.textContaining(reason), findsOneWidget);
     expect(find.textContaining('{reason}'), findsNothing);
   });
 
-  testWidgets('stale controls cannot publish into a newer request revision',
-      (tester) async {
+  testWidgets('stale controls cannot publish into a newer request revision', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     Widget app(int revision) => _app(
-          request: SceneInteractionRequest.message(
-            requestId: 'same-request',
-            revision: revision,
-            prompt: _prompt('Révision $revision'),
-          ),
-          results: results,
-        );
+      request: SceneInteractionRequest.message(
+        requestId: 'same-request',
+        revision: revision,
+        prompt: _prompt('Révision $revision'),
+      ),
+      results: results,
+    );
 
     await tester.pumpWidget(app(1));
+    await tester.pump();
+    await tester.pump();
     final tapTarget = find
         .descendant(
           of: find.byKey(
@@ -352,12 +564,15 @@ void main() {
     await tester.pump();
 
     await tester.pumpWidget(app(2));
+    await tester.pump();
+    await tester.pump();
     await tester.tap(tapTarget);
     await tester.pump();
     expect(
       results,
       isEmpty,
-      reason: 'the revision change reset the page: this press completed the '
+      reason:
+          'the revision change reset the page: this press completed the '
           'new typewriter instead of validating with a stale gesture',
     );
 
@@ -367,176 +582,200 @@ void main() {
   });
 
   testWidgets(
-      'keyboard and controller logical intents activate focused choices',
-      (tester) async {
-    final results = <SceneInteractionResult>[];
-    final request = SceneInteractionRequest.choice(
-      requestId: 'input',
-      revision: 8,
-      prompt: _prompt('Direction'),
-      options: <SceneInteractionOption>[
-        _option('left', 'Gauche'),
-        _option('right', 'Droite'),
-      ],
-    );
+    'keyboard and controller logical intents activate focused choices',
+    (tester) async {
+      final results = <SceneInteractionResult>[];
+      final request = SceneInteractionRequest.choice(
+        requestId: 'input',
+        revision: 8,
+        prompt: _prompt('Direction'),
+        options: <SceneInteractionOption>[
+          _option('left', 'Gauche'),
+          _option('right', 'Droite'),
+        ],
+      );
 
-    await tester.pumpWidget(_app(request: request, results: results));
-    await tester.pump();
-    expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      'Player action: Gauche',
-    );
+      await tester.pumpWidget(_app(request: request, results: results));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        'Player action: Gauche',
+      );
 
-    Actions.invoke(
-      FocusManager.instance.primaryFocus!.context!,
-      const RuntimePlayerLogicalIntent(
-        PlayerInputAction.down,
-        source: PlayerInputSource.controller,
-      ),
-    );
-    await tester.pump();
-    Actions.invoke(
-      FocusManager.instance.primaryFocus!.context!,
-      const RuntimePlayerLogicalIntent(
-        PlayerInputAction.confirm,
-        source: PlayerInputSource.controller,
-      ),
-    );
-    await tester.pump();
-    expect(
-      (results.single as SceneChoiceSelectedInteractionResult).selectedOptionId,
-      'right',
-    );
-
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.choice(
-          requestId: 'keyboard',
-          revision: 9,
-          prompt: _prompt('Direction'),
-          options: <SceneInteractionOption>[
-            _option('left', 'Gauche'),
-            _option('right', 'Droite'),
-          ],
-        ),
-        results: results,
-      ),
-    );
-    await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
-    expect(
-      (results.single as SceneChoiceSelectedInteractionResult).selectedOptionId,
-      'right',
-    );
-  });
-
-  testWidgets('controller completes message, text, confirmation and selection',
-      (tester) async {
-    final results = <SceneInteractionResult>[];
-
-    void invoke(PlayerInputAction action) {
       Actions.invoke(
         FocusManager.instance.primaryFocus!.context!,
-        RuntimePlayerLogicalIntent(
-          action,
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.down,
           source: PlayerInputSource.controller,
         ),
       );
-    }
-
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.message(
-          requestId: 'controller-message',
-          revision: 11,
-          prompt: _prompt('Message'),
+      await tester.pump();
+      Actions.invoke(
+        FocusManager.instance.primaryFocus!.context!,
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.confirm,
+          source: PlayerInputSource.controller,
         ),
-        results: results,
-      ),
-    );
-    await tester.pump();
-    invoke(PlayerInputAction.confirm);
-    await tester.pump();
-    expect(results, isEmpty);
-    invoke(PlayerInputAction.confirm);
-    await tester.pump();
-    expect(results.single, isA<SceneAcknowledgedInteractionResult>());
+      );
+      await tester.pump();
+      expect(
+        (results.single as SceneChoiceSelectedInteractionResult)
+            .selectedOptionId,
+        'right',
+      );
 
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.text(
-          requestId: 'controller-text',
-          revision: 12,
-          prompt: _prompt('Nom'),
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.choice(
+            requestId: 'keyboard',
+            revision: 9,
+            prompt: _prompt('Direction'),
+            options: <SceneInteractionOption>[
+              _option('left', 'Gauche'),
+              _option('right', 'Droite'),
+            ],
+          ),
+          results: results,
         ),
-        results: results,
-      ),
-    );
-    await tester.pump();
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('scene-interaction-text-field')),
-      'Avelune',
-    );
-    invoke(PlayerInputAction.confirm);
-    expect(
-      results.single,
-      isA<SceneTextSubmittedInteractionResult>()
-          .having((result) => result.value, 'value', 'Avelune'),
-    );
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(
+        (results.single as SceneChoiceSelectedInteractionResult)
+            .selectedOptionId,
+        'right',
+      );
+    },
+  );
 
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.confirmation(
-          requestId: 'controller-confirmation',
-          revision: 13,
-          prompt: _prompt('Continuer ?'),
+  testWidgets(
+    'controller completes message, text, confirmation and selection',
+    (tester) async {
+      final results = <SceneInteractionResult>[];
+
+      void invoke(PlayerInputAction action) {
+        Actions.invoke(
+          FocusManager.instance.primaryFocus!.context!,
+          RuntimePlayerLogicalIntent(
+            action,
+            source: PlayerInputSource.controller,
+          ),
+        );
+      }
+
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.message(
+            requestId: 'controller-message',
+            revision: 11,
+            prompt: _prompt('Message'),
+          ),
+          results: results,
         ),
-        results: results,
-      ),
-    );
-    await tester.pump();
-    invoke(PlayerInputAction.confirm);
-    expect(
-      results.single,
-      isA<SceneConfirmedInteractionResult>()
-          .having((result) => result.value, 'value', isTrue),
-    );
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      invoke(PlayerInputAction.confirm);
+      await tester.pump();
+      expect(results, isEmpty);
+      invoke(PlayerInputAction.confirm);
+      await tester.pump();
+      expect(results.single, isA<SceneAcknowledgedInteractionResult>());
 
-    results.clear();
-    await tester.pumpWidget(
-      _app(
-        request: SceneInteractionRequest.selection(
-          requestId: 'controller-selection',
-          revision: 14,
-          prompt: _prompt('Sélection'),
-          options: <SceneInteractionOption>[_option('only', 'Unique')],
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.text(
+            requestId: 'controller-text',
+            revision: 12,
+            prompt: _prompt('Nom'),
+          ),
+          results: results,
         ),
-        results: results,
-      ),
-    );
-    await tester.pump();
-    invoke(PlayerInputAction.confirm);
-    await tester.pump();
-    invoke(PlayerInputAction.down);
-    await tester.pump();
-    invoke(PlayerInputAction.confirm);
-    expect(
-      results.single,
-      isA<SceneSelectionSubmittedInteractionResult>().having(
-        (result) => result.selectedOptionIds,
-        'options',
-        <String>['only'],
-      ),
-    );
-  });
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('scene-interaction-text-field')),
+        'Avelune',
+      );
+      invoke(PlayerInputAction.confirm);
+      expect(
+        results.single,
+        isA<SceneTextSubmittedInteractionResult>().having(
+          (result) => result.value,
+          'value',
+          'Avelune',
+        ),
+      );
 
-  testWidgets('keyboard completes message, text, confirmation and selection',
-      (tester) async {
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.confirmation(
+            requestId: 'controller-confirmation',
+            revision: 13,
+            prompt: _prompt('Continuer ?'),
+          ),
+          results: results,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      invoke(PlayerInputAction.confirm);
+      expect(
+        results.single,
+        isA<SceneConfirmedInteractionResult>().having(
+          (result) => result.value,
+          'value',
+          isTrue,
+        ),
+      );
+
+      results.clear();
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.selection(
+            requestId: 'controller-selection',
+            revision: 14,
+            prompt: _prompt('Sélection'),
+            options: <SceneInteractionOption>[_option('only', 'Unique')],
+          ),
+          results: results,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      invoke(PlayerInputAction.confirm);
+      await tester.pump();
+      invoke(PlayerInputAction.down);
+      await tester.pump();
+      invoke(PlayerInputAction.confirm);
+      expect(
+        results.single,
+        isA<SceneSelectionSubmittedInteractionResult>().having(
+          (result) => result.selectedOptionIds,
+          'options',
+          <String>['only'],
+        ),
+      );
+    },
+  );
+
+  testWidgets('keyboard completes message, text, confirmation and selection', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
 
     await tester.pumpWidget(
@@ -549,6 +788,8 @@ void main() {
         results: results,
       ),
     );
+    await tester.pump();
+    await tester.pump();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
@@ -569,6 +810,8 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
+    await tester.pump();
     await tester.enterText(
       find.byKey(const ValueKey<String>('scene-interaction-text-field')),
       'Avelune',
@@ -588,11 +831,16 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
+    await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     expect(
       results.single,
-      isA<SceneConfirmedInteractionResult>()
-          .having((result) => result.value, 'value', isTrue),
+      isA<SceneConfirmedInteractionResult>().having(
+        (result) => result.value,
+        'value',
+        isTrue,
+      ),
     );
 
     results.clear();
@@ -608,18 +856,18 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
+    await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    expect(
-      results.single,
-      isA<SceneSelectionSubmittedInteractionResult>(),
-    );
+    expect(results.single, isA<SceneSelectionSubmittedInteractionResult>());
   });
 
-  testWidgets('compact portrait and scaled text remain overflow-free',
-      (tester) async {
+  testWidgets('compact portrait and scaled text remain overflow-free', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -644,8 +892,19 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
     await tester.pumpAndSettle();
 
+    for (
+      var page = 0;
+      page < 100 &&
+          find.byKey(const ValueKey('dialogue-tap-zone')).evaluate().isNotEmpty;
+      page++
+    ) {
+      await tester.tap(find.byKey(const ValueKey('dialogue-tap-zone')));
+      await tester.pumpAndSettle();
+    }
     expect(tester.takeException(), isNull);
     expect(
       tester
@@ -657,10 +916,11 @@ void main() {
     );
   });
 
-  testWidgets('project semantic colors replace every host text color',
-      (tester) async {
-    final semantic =
-        PokeMapPlayerTheme.light().extension<PokeMapPlayerSemanticTheme>()!;
+  testWidgets('project semantic colors replace every host text color', (
+    tester,
+  ) async {
+    final semantic = PokeMapPlayerTheme.light()
+        .extension<PokeMapPlayerSemanticTheme>()!;
     final theme = PokeMapPlayerTheme.withSemanticTheme(
       PokeMapPlayerTheme.dark(),
       semantic,
@@ -683,13 +943,13 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     final prompt = tester.widget<Text>(find.text('Quel est ton prénom ?'));
     final cancel = tester.widget<Text>(
       find.descendant(
-        of: find.byKey(
-          const ValueKey<String>('scene-interaction-cancel'),
-        ),
+        of: find.byKey(const ValueKey<String>('scene-interaction-cancel')),
         matching: find.text('Annuler'),
       ),
     );
@@ -709,22 +969,16 @@ void main() {
 Widget _app({
   required SceneInteractionRequest request,
   required List<SceneInteractionResult> results,
-}) =>
-    MaterialApp(
-      locale: const Locale('fr'),
-      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
-      home: PlayerSceneInteractionSurface(
-        request: request,
-        onResult: results.add,
-      ),
-    );
+}) => MaterialApp(
+  locale: const Locale('fr'),
+  supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+  localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+  theme: PokeMapPlayerTheme.dark(),
+  home: PlayerSceneInteractionSurface(request: request, onResult: results.add),
+);
 
-SceneInteractionPrompt _prompt(String text) => SceneInteractionPrompt(
-      localizationKey: 'test.prompt',
-      fallbackText: text,
-    );
+SceneInteractionPrompt _prompt(String text) =>
+    SceneInteractionPrompt(localizationKey: 'test.prompt', fallbackText: text);
 
 SceneInteractionOption _option(String id, String label) =>
     SceneInteractionOption(id: id, label: _prompt(label));

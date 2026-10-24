@@ -98,6 +98,10 @@ final class ProjectCatalogSelection {
         for (final node in scene.graph.nodes)
           if (node.payload case SceneBattlePayload(:final trainerId))
             ?trainerId,
+      for (final scene in scenes)
+        for (final node in scene.graph.nodes)
+          if (node.payload case SceneBattlePayload(:final demonstration))
+            ?demonstration?.playerTrainerId,
     };
     for (final trainer in metadata.trainers.where(
       (trainer) => trainerIds.contains(trainer.id),

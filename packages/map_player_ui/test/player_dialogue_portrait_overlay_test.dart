@@ -47,9 +47,7 @@ void main() {
   testWidgets('long portrait dialogue remains usable on a narrow safe area', (
     tester,
   ) async {
-    final portrait = (await tester.runAsync(
-      () => _portrait('elia-narrow'),
-    ))!;
+    final portrait = (await tester.runAsync(() => _portrait('elia-narrow')))!;
     addTearDown(
       () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
     );
@@ -72,22 +70,19 @@ void main() {
 
     expect(
       tester.getSize(
-        find.byKey(
-          const ValueKey<String>('dialogue-portrait-shape-rounded'),
-        ),
+        find.byKey(const ValueKey<String>('dialogue-portrait-shape-rounded')),
       ),
       const Size.square(72),
     );
-    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.byKey(const ValueKey('dialogue-page-count')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('choice mode never retains the previous line portrait', (
     tester,
   ) async {
-    final portrait = (await tester.runAsync(
-      () => _portrait('elia-choice'),
-    ))!;
+    final portrait = (await tester.runAsync(() => _portrait('elia-choice')))!;
     addTearDown(
       () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
     );
@@ -129,9 +124,7 @@ void main() {
     expect(row.textDirection, TextDirection.rtl);
     expect(
       tester.getSize(
-        find.byKey(
-          const ValueKey<String>('dialogue-portrait-shape-rounded'),
-        ),
+        find.byKey(const ValueKey<String>('dialogue-portrait-shape-rounded')),
       ),
       const Size.square(120),
     );
@@ -174,16 +167,12 @@ void main() {
       };
       expect(side.width, 4);
       expect(side.color, const Color(0xFFFFAA00));
-      expect(
-        material.shape,
-        switch (shape) {
-          ProjectDialoguePortraitShape.circle => isA<CircleBorder>(),
-          ProjectDialoguePortraitShape.rounded => isA<RoundedRectangleBorder>(),
-          ProjectDialoguePortraitShape.square => isA<RoundedRectangleBorder>(),
-          ProjectDialoguePortraitShape.cutCorner =>
-            isA<BeveledRectangleBorder>(),
-        },
-      );
+      expect(material.shape, switch (shape) {
+        ProjectDialoguePortraitShape.circle => isA<CircleBorder>(),
+        ProjectDialoguePortraitShape.rounded => isA<RoundedRectangleBorder>(),
+        ProjectDialoguePortraitShape.square => isA<RoundedRectangleBorder>(),
+        ProjectDialoguePortraitShape.cutCorner => isA<BeveledRectangleBorder>(),
+      });
     });
   }
 
@@ -271,9 +260,7 @@ void main() {
     );
 
     final reduced = tester.widget<AnimatedSwitcher>(
-      find.byKey(
-        const ValueKey<String>('dialogue-portrait-transition-none'),
-      ),
+      find.byKey(const ValueKey<String>('dialogue-portrait-transition-none')),
     );
     expect(reduced.duration, Duration.zero);
 
@@ -359,21 +346,27 @@ Future<void> _pump(
 }) async {
   final portrait = snapshot.portrait;
   Object? loadError;
-  final lease = portrait == null ? null : await tester.runAsync(
-    () async {
-      try {
-        return await loadRuntimeUiImageFromFilePath(portrait.absoluteFilePath);
-      } on Object catch (error) {
-        loadError = error;
-        return null;
-      }
-    },
-  );
+  final lease = portrait == null
+      ? null
+      : await tester.runAsync(() async {
+          try {
+            return await loadRuntimeUiImageFromFilePath(
+              portrait.absoluteFilePath,
+            );
+          } on Object catch (error) {
+            loadError = error;
+            return null;
+          }
+        });
   if (lease != null) addTearDown(lease.dispose);
-  Future<PlayerImageLease> loader(String path, {required bool Function() isCurrent}) async {
+  Future<PlayerImageLease> loader(
+    String path, {
+    required bool Function() isCurrent,
+  }) async {
     if (lease == null) throw loadError ?? StateError('Missing portrait.');
     return PlayerImageLease(image: lease.image, onDispose: lease.dispose);
   }
+
   var resolvedTheme = theme ?? PokeMapPlayerTheme.dark();
   if (dialogue != null) {
     resolvedTheme = PokeMapPlayerTheme.withDialogueProfile(
@@ -397,9 +390,9 @@ Future<void> _pump(
               identity: _imageScopeIdentity,
               loader: loader,
               child: PlayerDialogueOverlay(
-              snapshot: snapshot,
-              onCommand: (_) {},
-              showSpeakerName: showSpeakerName,
+                snapshot: snapshot,
+                onCommand: (_) {},
+                showSpeakerName: showSpeakerName,
               ),
             ),
           ),

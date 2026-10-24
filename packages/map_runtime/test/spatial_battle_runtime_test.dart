@@ -23,6 +23,83 @@ import 'support/load_flame_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  for (final missingGuide in [false, true]) {
+    test('demonstration ${missingGuide ? 'invalid profile' : 'cancellation'} leaves owned state untouched', () async {
+      final fixture = await _fixture();
+      final configuration = SceneBattleDemonstration(
+        playerTrainerId: 'guide', bagItems: const [BagEntry(itemId: 'poke-ball', quantity: 20)],
+        choices: [SceneBattleDemonstrationChoice.capture('poke-ball')],
+      );
+      final bundle = fixture.bundle.copyWith(manifest: fixture.bundle.manifest.copyWith(
+        trainers: [if (!missingGuide) const ProjectTrainerEntry(id: 'guide', name: 'Guide', trainerClass: 'Guide',
+          team: [ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 5)])],
+      ));
+      var commits = 0;
+      var completions = 0;
+      final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
+        commitGameState: (_, __) { commits++; return true; }, onCompleted: (_) => completions++);
+      addTearDown(runtime.dispose);
+      final before = fixture.state.toJson();
+      final completion = runtime.start(bundle: bundle, request: _wild('demo-cancel', demonstration: configuration));
+      if (!missingGuide) {
+        await _ready(runtime);
+        runtime.cancel();
+      }
+      expect(await completion, false);
+      expect(commits, 0);
+      expect(completions, 0);
+      expect(fixture.state.toJson(), before);
+      expect(runtime.error, missingGuide ? isA<StateError>() : isNull);
+    });
+  }
+
+  testWidgets('demonstration uses a temporary team and bag and restores the exact player state', (tester) async {
+    final fixture = (await tester.runAsync(_fixture))!;
+    final demonstration = SceneBattleDemonstration(
+      playerTrainerId: 'guide',
+      bagItems: const [BagEntry(itemId: 'poke-ball', quantity: 20)],
+      choices: [SceneBattleDemonstrationChoice.fight(0), SceneBattleDemonstrationChoice.capture('poke-ball')],
+      captureAlwaysSucceeds: true,
+      stepDelayMs: 50,
+    );
+    final bundle = fixture.bundle.copyWith(manifest: fixture.bundle.manifest.copyWith(
+      trainers: [...fixture.bundle.manifest.trainers,
+        const ProjectTrainerEntry(id: 'guide', name: 'Guide', trainerClass: 'Demo',
+          team: [ProjectTrainerPokemonEntry(speciesId: 'sproutle', level: 5, moves: ['tackle'])]),
+      ],
+    ));
+    var state = fixture.state;
+    final before = state.toJson();
+    var commits = 0;
+    BattleOutcome? outcome;
+    final runtime = SpatialBattleRuntime(readGameState: () => state,
+      commitGameState: (expected, next) { commits++; state = next; return true; },
+      onCompleted: (value) => outcome = value);
+    addTearDown(runtime.dispose);
+    late Future<bool> completion;
+    await tester.runAsync(() async {
+      completion = runtime.start(bundle: bundle, request: _wild('demo', demonstration: demonstration));
+      await _ready(runtime);
+    });
+    expect(runtime.displaySession!.state.player.speciesId, 'sproutle');
+    expect(runtime.displaySession!.state.player.level, 5);
+    await tester.pumpWidget(MaterialApp(home: SpatialBattleView(runtime: runtime)));
+    await _mountBattleView(tester, runtime, advanceTime: false);
+    runtime.pause();
+    for (var i = 0; i < 20; i++) await _pumpPresentation(tester);
+    expect(state.toJson(), before);
+    runtime.resume();
+    for (var i = 0; i < 1500 && runtime.isActive; i++) {
+      await _pumpPresentation(tester);
+    }
+    expect(runtime.error, isNull);
+    expect(runtime.isActive, false, reason: '${runtime.phase}: ${runtime.battlePresentationListenable.value?.mode}, ${runtime.engineState?.isFinished}');
+    expect(await tester.runAsync(() => completion), true);
+    expect(outcome?.type, BattleOutcomeType.captured);
+    expect(commits, 0);
+    expect(state.toJson(), before);
+  });
+
   testWidgets(
       'battle entry renders its authored curtain over the overworld before commands',
       (tester) async {
@@ -1053,9 +1130,10 @@ Future<void> _acknowledge(WidgetTester tester, SpatialBattleRuntime runtime,
   expect(runtime.isActive, false, reason: '${runtime.error}');
 }
 
-WildBattleStartRequest _wild(String id, {int level = 2}) =>
+WildBattleStartRequest _wild(String id, {int level = 2, SceneBattleDemonstration? demonstration}) =>
     WildBattleStartRequest(
         requestId: id,
+        demonstration: demonstration,
         createdAtEpochMs: 1,
         returnContext: const OverworldReturnContext(
             mapId: 'golden_field',

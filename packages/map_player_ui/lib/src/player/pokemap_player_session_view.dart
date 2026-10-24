@@ -10,6 +10,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_overworld_components.dart';
 import '../foundation/player_text_scaler.dart';
@@ -298,6 +299,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
 
   PlayerControlProfile get _controlProfile =>
       widget.controlProfile ?? PlayerControlProfile.standard;
+
+  final _dialoguePagination = PlayerDialoguePaginationController();
+  bool _dialoguePagePressConsumed = false;
 
   @override
   void initState() {
@@ -805,8 +809,23 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     if (!relayed && (!_lifecycleActive || !_viewFocused) && event.isPress) {
       return;
     }
+    if (event.control == RuntimeInputControl.primary) {
+      if (!event.isPress && _dialoguePagePressConsumed) {
+        _dialoguePagePressConsumed = false;
+        return;
+      }
+      if (event.isRepeat && _dialoguePagePressConsumed) return;
+      if (event.isPress && !event.isRepeat &&
+          _latestSnapshot.phase == RuntimePlayerPhase.playing &&
+          widget.presentationFrame?.value == null &&
+          widget.dialoguePresentation?.value != null &&
+          _dialoguePagination.advancePage()) {
+        _dialoguePagePressConsumed = true;
+        return;
+      }
+    }
     if (widget.companionMenusAttached &&
-        _latestSnapshot.phase == RuntimePlayerPhase.paused &&
+        (_latestSnapshot.phase == RuntimePlayerPhase.paused || _latestSnapshot.worldService != null) &&
         (widget.onCompanionInput?.call(event) ?? false)) {
       return;
     }
@@ -920,9 +939,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     if (!command.isPress) return;
     final snapshot = _latestSnapshot;
     if (snapshot.phase == RuntimePlayerPhase.preSession ||
-        snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap ||
-        snapshot.worldService?.request.kind ==
-            RuntimeWorldServiceKind.partyTrade ||
+        snapshot.worldService != null ||
         snapshot.phase == RuntimePlayerPhase.paused ||
         snapshot.phase == RuntimePlayerPhase.title &&
             snapshot.pauseSection == RuntimePlayerPauseSection.options) {
@@ -1357,6 +1374,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
                 return const SizedBox.shrink();
               }
               return PlayerDialogueOverlay(
+                paginationController: _dialoguePagination,
                 snapshot: presentation,
                 onCommand: onCommand,
               );
@@ -1379,7 +1397,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
               );
             },
           ),
-        if (snapshot.worldService case final service?)
+        if (snapshot.worldService case final service? when !widget.companionMenusAttached)
           _RuntimeWorldServiceOverlay(
             snapshot: service,
             onCommand: widget.controller.dispatchWorldService,
@@ -1415,7 +1433,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       child: PlayerImageScope(
         loader: widget.imageLoader,
         identity: widget.imageScopeIdentity ?? widget.controller,
-        child: stack,
+        child: PlayerInputScope(activeInputSource: _activeInputSource, child: stack),
       ),
     );
   }
@@ -1433,6 +1451,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
 
   @override
   void dispose() {
+    _dialoguePagination.dispose();
     widget.commandController?._unbind(this);
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_snapshotSubscription?.cancel());

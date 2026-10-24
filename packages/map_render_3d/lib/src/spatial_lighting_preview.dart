@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import 'spatial_shadow_profile.dart';
+import 'spatial_point_light.dart';
+import 'spatial_point_shadow.dart';
 
 @immutable
 final class SpatialLightingProfile {
@@ -19,6 +21,9 @@ final class SpatialLightingProfile {
     required this.unlitMaterialNames,
     required this.hiddenMaterialsByInstance,
     required this.shadow,
+    required this.sceneTint,
+    required this.pointLights,
+    required this.pointShadowCasterInstanceIds,
   });
 
   static const disabled = SpatialLightingProfile._(
@@ -34,6 +39,9 @@ final class SpatialLightingProfile {
     unlitMaterialNames: {},
     hiddenMaterialsByInstance: {},
     shadow: null,
+    sceneTint: Color(0xffffffff),
+    pointLights: [],
+    pointShadowCasterInstanceIds: {},
   );
 
   factory SpatialLightingProfile.stylized({
@@ -48,9 +56,14 @@ final class SpatialLightingProfile {
     Set<String> unlitMaterialNames = const {},
     Map<String, Set<String>> hiddenMaterialsByInstance = const {},
     SpatialShadowProfile? shadow,
+    Color sceneTint = const Color(0xffffffff),
+    List<SpatialPointLight> pointLights = const [],
+    Set<String> pointShadowCasterInstanceIds = const {},
   }) {
     final (x: x, y: y, z: z) = sunDirection;
     final length = math.sqrt(x * x + y * y + z * z);
+    if (pointLights.length > 4)
+      throw ArgumentError('At most four spatial point lights are supported.');
     if (!length.isFinite ||
         length < .000001 ||
         !ambientStrength.isFinite ||
@@ -88,6 +101,11 @@ final class SpatialLightingProfile {
           entry.key: Set<String>.unmodifiable(entry.value),
       }),
       shadow: shadow,
+      sceneTint: sceneTint,
+      pointLights: List.unmodifiable(pointLights),
+      pointShadowCasterInstanceIds: Set.unmodifiable(
+        pointShadowCasterInstanceIds,
+      ),
     );
   }
 
@@ -102,11 +120,15 @@ final class SpatialLightingProfile {
   final Set<String> unlitMaterialNames;
   final Map<String, Set<String>> hiddenMaterialsByInstance;
   final SpatialShadowProfile? shadow;
+  final Color sceneTint;
+  final List<SpatialPointLight> pointLights;
+  final Set<String> pointShadowCasterInstanceIds;
 }
 
 abstract interface class SpatialLightingContext {
   SpatialLightingProfile get lighting;
   SpatialShadowFrame? get shadowFrame;
+  SpatialPointShadowFrame? get pointShadowFrame;
 }
 
 class SpatialLightingPreview

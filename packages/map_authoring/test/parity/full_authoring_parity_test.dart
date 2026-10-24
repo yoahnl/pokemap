@@ -7,6 +7,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('visual day night cycle names its real transport proofs', () {
+      final evidence = AuthoringFullParityCatalog.canonical().requireMutationAction('map3d.day_night.configure');
+      expect(evidence.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
+      expect(evidence.endToEndEvidence[AuthoringTransport.editor],
+        '../../apps/avelune_studio/test/presentation/day_night_controls_test.dart');
+      expect(evidence.contractTestPath, 'test/domains/maps/spatial_map_actions_test.dart');
+    });
     test('project rename cites four dedicated transport proofs', () {
       final evidence = AuthoringFullParityCatalog.canonical()
           .requireMutationAction('project.rename');

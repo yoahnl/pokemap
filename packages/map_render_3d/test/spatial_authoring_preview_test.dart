@@ -84,7 +84,12 @@ void main() {
           models3d: [definition('tree').copyWith(castsShadowsByDefault: true)],
         );
         expect(view(shadowProject).modelSourcesMatch(before), isTrue);
-        expect(view(shadowProject).shadowDefaultsMatch(before), isFalse);
+        expect(view(shadowProject).lightingDefaultsMatch(before), isFalse);
+        final litProject = project.copyWith(models3d: [definition('tree').copyWith(
+          light: Model3dPointLight(localPosition: Model3dVector3(x: 0, y: 2, z: 0)),
+        )]);
+        expect(view(litProject).modelSourcesMatch(before), isTrue);
+        expect(view(litProject).lightingDefaultsMatch(before), isFalse);
         expect(
           view(
             project.copyWith(name: 'Another project'),

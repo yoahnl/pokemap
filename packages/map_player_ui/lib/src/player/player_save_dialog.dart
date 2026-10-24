@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_paged_layout.dart';
 import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -42,7 +43,7 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
   late final _initialSnapshot = widget.snapshot.value;
   late final _offersSave =
       _initialSnapshot.isActionEnabled(RuntimePlayerAction.save) &&
-          _initialSnapshot.activeSaveAddress != null;
+      _initialSnapshot.activeSaveAddress != null;
   var _pending = false;
   var _lastOperationSaves = true;
   String? _failure;
@@ -97,7 +98,8 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
       return;
     }
     final receipt = widget.snapshot.value.saveReceipt;
-    final saved = result.status == RuntimePlayerCommandStatus.accepted &&
+    final saved =
+        result.status == RuntimePlayerCommandStatus.accepted &&
         receipt != null &&
         identical(result.saveReceipt, receipt) &&
         receipt.trigger == GameSessionCheckpointTrigger.manual &&
@@ -108,7 +110,8 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
       if (saved) {
         _receipt = receipt;
       } else {
-        _failure = result.safeMessage ??
+        _failure =
+            result.safeMessage ??
             widget.snapshot.value.failure?.safeMessage ??
             (result.status == RuntimePlayerCommandStatus.accepted
                 ? strings.missingReceipt
@@ -126,6 +129,7 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
     final strings = PlayerSaveStrings.of(context);
     final tokens = context.playerMenuTheme;
     final hasResult = _receipt != null || _failure != null;
+    final summary = _summary(context, strings) as Column;
     return PopScope(
       canPop: !_pending,
       child: RuntimePlayerActions(
@@ -135,144 +139,98 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
         child: RuntimePlayerInputBindings(
           controlProfile: widget.controlProfile,
           hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
-          child: Actions(
-            actions: {
-              ActivateIntent:
-                  CallbackAction<ActivateIntent>(onInvoke: (_) => null),
-            },
-            child: Focus(
-              focusNode: _pendingFocus,
-              child: Dialog(
-                key: ValueKey(widget.returnToTitle
+          child: Focus(
+            focusNode: _pendingFocus,
+            child: Dialog(
+              key: ValueKey(
+                widget.returnToTitle
                     ? 'runtime-exit-dialog'
-                    : 'runtime-save-dialog'),
-                insetPadding: const EdgeInsets.all(PlayerSpacing.lg),
-                constraints: const BoxConstraints(maxWidth: 640),
-                backgroundColor: tokens.base.withValues(alpha: 0),
-                elevation: 0,
-                child: SizedBox(
-                  width: 640,
-                  child: PlayerMenuPanel(
-                    key: const ValueKey('runtime-save-panel'),
-                    primary: true,
-                    child: LayoutBuilder(
-                        builder: (context, constraints) => Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Flexible(
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        if (hasResult)
-                                          Semantics(
-                                            key: const ValueKey(
-                                                'runtime-save-result'),
-                                            container: true,
-                                            liveRegion: true,
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
-                                              children: [
-                                                Text(
-                                                  _receipt != null
-                                                      ? strings.success
-                                                      : _lastOperationSaves
-                                                          ? strings.failure
-                                                          : strings.exitFailure,
-                                                  style: tokens.title,
-                                                ),
-                                                if (_failure
-                                                    case final failure?) ...[
-                                                  const SizedBox(
-                                                      height: PlayerSpacing.md),
-                                                  Text(failure,
-                                                      style: tokens.body),
-                                                ],
-                                                if (_receipt
-                                                    case final receipt?) ...[
-                                                  const SizedBox(
-                                                      height: PlayerSpacing.md),
-                                                  Text(
-                                                      strings.target(
-                                                          receipt.address),
-                                                      style: tokens.body),
-                                                ],
-                                              ],
-                                            ),
-                                          )
-                                        else ...[
-                                          Text(
-                                            widget.returnToTitle
-                                                ? strings.exitTitle
-                                                : strings.title,
-                                            style: tokens.title,
-                                          ),
-                                          const SizedBox(
-                                              height: PlayerSpacing.lg),
-                                          _summary(context, strings),
-                                          if (widget.returnToTitle) ...[
-                                            const SizedBox(
-                                                height: PlayerSpacing.md),
-                                            Text(strings.exitWarning,
-                                                style: tokens.body),
-                                          ],
-                                        ],
-                                        if (_pending) ...[
-                                          const SizedBox(
-                                              height: PlayerSpacing.lg),
-                                          Semantics(
-                                            liveRegion: true,
-                                            label: _lastOperationSaves
-                                                ? strings.saving
-                                                : strings.exiting,
-                                            excludeSemantics: true,
-                                            child: Row(
-                                              children: [
-                                                SizedBox.square(
-                                                  dimension: PlayerSpacing.lg,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    color: tokens.accent,
-                                                  ),
-                                                ),
-                                                const SizedBox(
-                                                    width: PlayerSpacing.sm),
-                                                Expanded(
-                                                  child: Text(
-                                                    _lastOperationSaves
-                                                        ? strings.saving
-                                                        : strings.exiting,
-                                                    style: tokens.body,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: PlayerSpacing.lg),
-                                ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                      maxHeight: constraints.maxHeight / 2),
-                                  child: SingleChildScrollView(
-                                    child: ValueListenableBuilder<
-                                        RuntimePlayerSnapshot>(
-                                      valueListenable: widget.snapshot,
-                                      builder: (context, snapshot, _) =>
-                                          _actions(context, strings),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )),
-                  ),
+                    : 'runtime-save-dialog',
+              ),
+              insetPadding: const EdgeInsets.all(16),
+              constraints: const BoxConstraints(maxWidth: 640, maxHeight: 600),
+              backgroundColor: tokens.base,
+              child: PlayerMenuPanel(
+                key: const ValueKey('runtime-save-panel'),
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: PlayerPagedList(
+                        sideNavigation: MediaQuery.sizeOf(context).height < 480,
+                        children: [
+                          if (hasResult) ...[
+                            Semantics(
+                              key: const ValueKey('runtime-save-result'),
+                              liveRegion: true,
+                              child: Text(
+                                _receipt != null
+                                    ? strings.success
+                                    : _lastOperationSaves
+                                    ? strings.failure
+                                    : strings.exitFailure,
+                                style: tokens.title,
+                              ),
+                            ),
+                            if (_failure case final failure?)
+                              Text(failure, style: tokens.body),
+                            if (_receipt case final receipt?)
+                              Text(
+                                strings.target(receipt.address),
+                                style: tokens.body,
+                              ),
+                          ] else ...[
+                            Text(
+                              widget.returnToTitle
+                                  ? strings.exitTitle
+                                  : strings.title,
+                              style: tokens.title,
+                            ),
+                            if (widget.returnToTitle)
+                              Text(strings.exitWarning, style: tokens.body),
+                            ...summary.children.where(
+                              (child) => child is! SizedBox,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (_pending)
+                      Semantics(
+                        container: true,
+                        label: _lastOperationSaves
+                            ? strings.saving
+                            : strings.exiting,
+                        excludeSemantics: true,
+                        liveRegion: true,
+                        child: Row(
+                          children: [
+                            SizedBox.square(
+                              dimension: 24,
+                              child: CircularProgressIndicator(
+                                color: tokens.accent,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _lastOperationSaves
+                                    ? strings.saving
+                                    : strings.exiting,
+                                style: tokens.body,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    ValueListenableBuilder<RuntimePlayerSnapshot>(
+                      valueListenable: widget.snapshot,
+                      builder: (context, snapshot, _) =>
+                          _actions(context, strings),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -287,7 +245,8 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
     final address = _initialSnapshot.activeSaveAddress;
     final previous = _initialSnapshot.continueSave;
     final localizations = MaterialLocalizations.of(context);
-    final previousMatches = previous != null &&
+    final previousMatches =
+        previous != null &&
         address != null &&
         previous.address.gameId == address.gameId &&
         previous.address.profileId == address.profileId &&
@@ -320,22 +279,26 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
   Widget _actions(BuildContext context, PlayerSaveStrings strings) {
     final canSubmit = _failure != null && !_lastOperationSaves
         ? widget.onDiscard != null &&
-            widget.snapshot.value
-                .isActionEnabled(RuntimePlayerAction.returnToTitle)
+              widget.snapshot.value.isActionEnabled(
+                RuntimePlayerAction.returnToTitle,
+              )
         : _canSave;
+    final compact = MediaQuery.sizeOf(context).height < 480;
     final buttons = <Widget>[
       PlayerActionButton(
-        key: ValueKey(_receipt != null || _failure != null
-            ? 'runtime-save-return'
-            : widget.returnToTitle
-                ? 'runtime-exit-stay'
-                : 'runtime-save-cancel'),
+        key: ValueKey(
+          _receipt != null || _failure != null
+              ? 'runtime-save-return'
+              : widget.returnToTitle
+              ? 'runtime-exit-stay'
+              : 'runtime-save-cancel',
+        ),
         label: _receipt != null || _failure != null
             ? strings.back
             : widget.returnToTitle
-                ? strings.stay
-                : strings.cancel,
-        icon: Icons.arrow_back_rounded,
+            ? strings.stay
+            : strings.cancel,
+        icon: compact ? null : Icons.arrow_back_rounded,
         onPressed: _pending ? null : () => Navigator.of(context).pop(),
         autofocus: true,
         focusNode: _returnFocus,
@@ -346,12 +309,13 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
         PlayerActionButton(
           key: const ValueKey('runtime-exit-discard'),
           label: strings.discard,
-          icon: Icons.logout_rounded,
+          icon: compact ? null : Icons.logout_rounded,
           onPressed: _pending || !_canDiscard
               ? null
               : () => unawaited(_run(save: false)),
-          disabledReason:
-              widget.onDiscard == null ? strings.discardUnavailable : null,
+          disabledReason: widget.onDiscard == null
+              ? strings.discardUnavailable
+              : null,
           secondary: true,
           labelMaxLines: 3,
         ),
@@ -359,48 +323,59 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
           (!widget.returnToTitle || _offersSave || _failure != null))
         PlayerActionButton(
           key: ValueKey(
-              _failure != null ? 'runtime-save-retry' : 'runtime-save-confirm'),
+            _failure != null ? 'runtime-save-retry' : 'runtime-save-confirm',
+          ),
           label: _failure != null
               ? strings.retry
               : widget.returnToTitle
-                  ? strings.saveAndExit
-                  : strings.confirm,
-          icon: _failure != null ? Icons.refresh_rounded : Icons.save_outlined,
+              ? strings.saveAndExit
+              : strings.confirm,
+          icon: compact
+              ? null
+              : _failure != null
+              ? Icons.refresh_rounded
+              : Icons.save_outlined,
           onPressed: _pending || !canSubmit
               ? null
               : () => unawaited(
-                  _run(save: _failure == null || _lastOperationSaves)),
+                  _run(save: _failure == null || _lastOperationSaves),
+                ),
           disabledReason: widget.returnToTitle && widget.onSave == null
               ? strings.saveAndExitUnavailable
               : _canSave
-                  ? null
-                  : widget.snapshot.value
-                          .unavailableReasonFor(RuntimePlayerAction.save) ??
-                      strings.saveUnavailable,
+              ? null
+              : widget.snapshot.value.unavailableReasonFor(
+                      RuntimePlayerAction.save,
+                    ) ??
+                    strings.saveUnavailable,
           labelMaxLines: 3,
         ),
     ];
-    return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth < 480 ||
-          MediaQuery.textScalerOf(context).scale(1) > 1.3) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (MediaQuery.sizeOf(context).width <
+                MediaQuery.sizeOf(context).height &&
+            (constraints.maxWidth < 480 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < buttons.length; index++) ...[
+                if (index > 0) const SizedBox(height: PlayerSpacing.sm),
+                buttons[index],
+              ],
+            ],
+          );
+        }
+        return Row(
           children: [
             for (var index = 0; index < buttons.length; index++) ...[
-              if (index > 0) const SizedBox(height: PlayerSpacing.sm),
-              buttons[index],
+              if (index > 0) const SizedBox(width: PlayerSpacing.sm),
+              Expanded(child: buttons[index]),
             ],
           ],
         );
-      }
-      return Row(
-        children: [
-          for (var index = 0; index < buttons.length; index++) ...[
-            if (index > 0) const SizedBox(width: PlayerSpacing.sm),
-            Expanded(child: buttons[index]),
-          ],
-        ],
-      );
-    });
+      },
+    );
   }
 }

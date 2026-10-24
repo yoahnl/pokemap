@@ -4,8 +4,10 @@ import 'package:map_core/map_core.dart';
 
 bool canTraverseSpatialTerrainStep(
         MapSpatialScene scene, double ax, double az, double bx, double bz) =>
-    (scene.worldHeightAt(bx, bz) - scene.worldHeightAt(ax, az)).abs() <= .25 ||
-    _rampAllowsTransition(scene, ax, az, bx, bz);
+    !scene.navigation.ledges.any((ledge) =>
+        ledge.containsBarrier(ax, az) || ledge.containsBarrier(bx, bz)) &&
+    ((scene.worldHeightAt(bx, bz) - scene.worldHeightAt(ax, az)).abs() <= .25 ||
+        _rampAllowsTransition(scene, ax, az, bx, bz));
 
 bool _rampAllowsTransition(
     MapSpatialScene scene, double ax, double az, double bx, double bz) {

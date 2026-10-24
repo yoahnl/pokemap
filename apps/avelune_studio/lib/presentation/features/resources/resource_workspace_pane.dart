@@ -144,6 +144,14 @@ class ResourceWorkspacePane extends StatelessWidget {
               modelLibrary: (items) =>
                   ModelResourceLibrary(navigation: n, items: items),
               onImportModel: n.busy ? null : () => importStudioModel(n),
+              onModelLightChanged: n.busy
+                  ? null
+                  : (model, light) async {
+                      await n.mutate('model3d.configure', {
+                        'modelId': model.id,
+                        'light': light?.toJson(),
+                      });
+                    },
               onModelShadowsChanged: n.busy
                   ? null
                   : (model, enabled) => n.mutate('model3d.configure', {

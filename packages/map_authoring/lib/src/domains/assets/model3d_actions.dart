@@ -207,6 +207,7 @@ final class Model3dActions {
           'rampProfile',
           'blocksMovementByDefault',
           'castsShadowsByDefault',
+          'light',
         },
       'model3d.delete' => {'modelId'},
       _ => throw const FormatException('Unknown model action.'),
@@ -379,6 +380,7 @@ final class Model3dActions {
           collisionBounds: current.collisionBounds,
           blocksMovementByDefault: current.blocksMovementByDefault,
           castsShadowsByDefault: current.castsShadowsByDefault,
+          light: current.light,
           rampProfile: current.rampProfile);
       final sameContent = source.artifact.digest == actual.digest &&
           source.artifact.byteLength == actual.byteLength;
@@ -534,6 +536,7 @@ final class Model3dActions {
             collisionBounds: current.collisionBounds,
             blocksMovementByDefault: current.blocksMovementByDefault,
             castsShadowsByDefault: current.castsShadowsByDefault,
+            light: current.light,
             rampProfile: current.rampProfile);
         final sameContent = source.artifact.digest == actual.digest &&
             source.artifact.byteLength == actual.byteLength;
@@ -859,7 +862,8 @@ void _requireNativeDoorSource(AuthoringPlanningContext context,
               collisionBounds: candidate.collisionBounds,
               rampProfile: candidate.rampProfile,
               blocksMovementByDefault: candidate.blocksMovementByDefault,
-              castsShadowsByDefault: candidate.castsShadowsByDefault)
+              castsShadowsByDefault: candidate.castsShadowsByDefault,
+              light: candidate.light)
           : candidate,
   ];
   for (final map in context.snapshot.maps) {
@@ -894,6 +898,20 @@ void _requireClippedSource(
 Map<String, Object?> _configurationProperties() => {
       'modelId': {'type': 'string', 'pattern': r'^[a-zA-Z0-9_-]{1,128}$'},
       'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
+      'light': {
+        'type': ['object', 'null'], 'additionalProperties': false,
+        'required': ['localPosition'],
+        'properties': {
+          'localPosition': {'type': 'object', 'additionalProperties': false,
+            'required': ['x', 'y', 'z'], 'properties': {
+              for (final axis in ['x', 'y', 'z']) axis: {'type': 'number'},
+            }},
+          'radius': {'type': 'number', 'minimum': .25, 'maximum': 64, 'default': 4},
+          'intensity': {'type': 'number', 'minimum': 0, 'maximum': 4, 'default': 1},
+          'colorRgb': {'type': 'integer', 'minimum': 0, 'maximum': 16777215, 'default': 16766362},
+          'nightOnly': {'type': 'boolean', 'default': true},
+        },
+      },
       'castsShadowsByDefault': {
         'type': 'boolean',
         'description': 'Shadow casting default inherited by instances without an override.',
@@ -971,6 +989,8 @@ ProjectModel3dEntry _configuredModel(
     throw const FormatException('Default shadow casting must be boolean.');
   }
   return current.copyWith(
+      light: fields['light'] == null ? null : Model3dPointLight.fromJson(parameters.object('light')),
+      clearLight: fields.containsKey('light') && fields['light'] == null,
       castsShadowsByDefault: fields['castsShadowsByDefault'] as bool?,
       blocksMovementByDefault: fields['blocksMovementByDefault'] as bool?,
       name: fields.containsKey('name') ? parameters.string('name') : null,
@@ -1027,6 +1047,7 @@ Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
       'pivot': model.pivot.toJson(),
       'blocksMovementByDefault': model.blocksMovementByDefault,
       'castsShadowsByDefault': model.castsShadowsByDefault,
+      if (model.light != null) 'light': model.light!.toJson(),
       if (model.collisionBounds != null)
         'collisionBounds': model.collisionBounds!.toJson(),
       if (model.rampProfile != null) 'rampProfile': model.rampProfile!.toJson(),

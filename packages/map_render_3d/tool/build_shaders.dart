@@ -43,6 +43,14 @@ Future<void> main() async {
       'type': 'fragment',
       'file': '${package.path}/shaders/shadow_depth.frag',
     },
+    'PointShadowVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/point_shadow.vert',
+    },
+    'PointShadowDepthFragment': {
+      'type': 'fragment',
+      'file': '${package.path}/shaders/point_shadow_depth.frag',
+    },
   };
   final result = await Process.run(compiler.path, [
     '--sl=${package.path}/assets/shaders/pixel_material.shaderbundle',

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../theme/pokemap_player_layout_theme.dart';
+import 'player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 
@@ -62,102 +63,112 @@ class PlayerMenuFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
-    return LayoutBuilder(builder: (context, constraints) {
-      final breakpoint = const ProjectPresentationLayoutResolver().classify(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-      );
-      final compact = breakpoint == ProjectPresentationBreakpoint.compact;
-      final authored = context.playerLayoutTheme?.tryResolve(role, constraints);
-      final margin = authored?.additionalSafeAreaPadding ??
-          (compact
-              ? 12.0
-              : breakpoint == ProjectPresentationBreakpoint.expanded
-                  ? 48.0
-                  : 24.0);
-      final safePadding = MediaQuery.paddingOf(context);
-      final availableWidth = math.max(
-          0.0, constraints.maxWidth - margin * 2 - safePadding.horizontal);
-      final availableHeight = math.max(
-          0.0, constraints.maxHeight - margin * 2 - safePadding.vertical);
-      final headerBudget =
-          math.max(0.0, availableHeight - 48 - availableHeight * .3);
-      final width = math.min(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final breakpoint = const ProjectPresentationLayoutResolver().classify(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+        );
+        final compact =
+            breakpoint == ProjectPresentationBreakpoint.compact ||
+            constraints.maxHeight < 500;
+        final authored = context.playerLayoutTheme?.tryResolve(
+          role,
+          constraints,
+        );
+        final margin =
+            authored?.additionalSafeAreaPadding ??
+            (compact
+                ? 12.0
+                : breakpoint == ProjectPresentationBreakpoint.expanded
+                ? 48.0
+                : 24.0);
+        final safePadding = MediaQuery.paddingOf(context);
+        final availableWidth = math.max(
+          0.0,
+          constraints.maxWidth - margin * 2 - safePadding.horizontal,
+        );
+        final width = math.min(
           1600.0,
           authored == null
               ? availableWidth
-              : availableWidth * authored.maxWidthFactor);
-      final frame = PlayerMenuPanel(
-        key: const ValueKey('player-menu-frame-panel'),
-        primary: true,
-        padding: EdgeInsets.zero,
-        child: ClipRRect(
-          borderRadius:
-              BorderRadius.circular(PokeMapPlayerMenuTheme.frameRadius),
-          child: Column(children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: headerBudget),
-              child: SingleChildScrollView(child: header),
+              : availableWidth * authored.maxWidthFactor,
+        );
+        final frame = PlayerMenuPanel(
+          key: const ValueKey('player-menu-frame-panel'),
+          primary: true,
+          padding: EdgeInsets.zero,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(
+              PokeMapPlayerMenuTheme.frameRadius,
             ),
-            Expanded(
-              child: scrollable
-                  ? SingleChildScrollView(
-                      padding: contentPadding ??
-                          EdgeInsets.all(
-                              compact ? PlayerSpacing.sm : PlayerSpacing.lg),
-                      child: child,
-                    )
-                  : Padding(
-                      padding: contentPadding ??
-                          EdgeInsets.all(
-                              compact ? PlayerSpacing.sm : PlayerSpacing.lg),
-                      child: child,
-                    ),
+            child: Column(
+              children: [
+                header,
+                Expanded(
+                  child: Padding(
+                    padding:
+                        contentPadding ??
+                        EdgeInsets.all(compact ? 12 : PlayerSpacing.lg),
+                    child: scrollable && child is Column
+                        ? PlayerPagedList(children: (child as Column).children)
+                        : child,
+                  ),
+                ),
+                footer,
+              ],
             ),
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: availableHeight * .3),
-              child: SingleChildScrollView(child: footer),
-            ),
-          ]),
-        ),
-      );
-      return PlayerMenuTransition(
+          ),
+        );
+        return PlayerMenuTransition(
           visible: visible,
           child: ClipRect(
-            child: Stack(fit: StackFit.expand, children: [
-              ColoredBox(color: theme.backdrop),
-              if (backdrop != null) ExcludeSemantics(child: backdrop!),
-              if (!theme.opaque)
-                BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: ColoredBox(
-                      color: theme.backdrop
-                          .withValues(alpha: theme.backdropOpacity)),
-                )
-              else
-                ColoredBox(
-                    color: theme.backdrop
-                        .withValues(alpha: theme.backdropOpacity)),
-              SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.all(margin),
-                  child: Center(child: SizedBox(width: width, child: frame)),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: theme.backdrop),
+                if (backdrop != null) ExcludeSemantics(child: backdrop!),
+                if (!theme.opaque)
+                  BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: ColoredBox(
+                      color: theme.backdrop.withValues(
+                        alpha: theme.backdropOpacity,
+                      ),
+                    ),
+                  )
+                else
+                  ColoredBox(
+                    color: theme.backdrop.withValues(
+                      alpha: theme.backdropOpacity,
+                    ),
+                  ),
+                SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.all(margin),
+                    child: Center(
+                      child: SizedBox(width: width, child: frame),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
-          ));
-    });
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
 class PlayerMenuHeader extends StatelessWidget {
-  const PlayerMenuHeader(
-      {super.key,
-      required this.icon,
-      required this.title,
-      this.iconColor,
-      this.secondary,
-      this.alignSecondaryEnd = false});
+  const PlayerMenuHeader({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.iconColor,
+    this.secondary,
+    this.alignSecondaryEnd = false,
+  });
 
   final IconData icon;
   final Color? iconColor;
@@ -168,80 +179,114 @@ class PlayerMenuHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
-    return LayoutBuilder(builder: (context, constraints) {
-      final narrow = constraints.maxWidth < projectPresentationCompactWidth;
-      final compact = narrow ||
-          MediaQuery.sizeOf(context).height < projectPresentationCompactHeight;
-      final heading = narrow && MediaQuery.textScalerOf(context).scale(18) > 27
-          ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(icon, size: 32, color: iconColor ?? theme.accent),
-              const SizedBox(height: PlayerSpacing.xs),
-              Text(title, style: theme.title),
-            ])
-          : Row(children: [
-              Icon(icon, size: 32, color: iconColor ?? theme.accent),
-              const SizedBox(width: PlayerSpacing.sm),
-              Expanded(child: Text(title, style: theme.title)),
-            ]);
-      return Container(
-        width: alignSecondaryEnd ? double.infinity : null,
-        constraints: BoxConstraints(minHeight: compact ? 44 : 64),
-        padding: EdgeInsets.symmetric(
-            horizontal: compact ? 12 : 24, vertical: compact ? 4 : 15.5),
-        decoration: BoxDecoration(
-          color: theme.header.withValues(alpha: theme.panelOpacity),
-          border: Border(
-              bottom: BorderSide(color: theme.border.withValues(alpha: .22))),
-        ),
-        child: narrow || MediaQuery.textScalerOf(context).scale(18) > 27
-            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                heading,
-                if (secondary != null) ...[
-                  const SizedBox(height: PlayerSpacing.xs),
-                  DefaultTextStyle(
-                      style: theme.meta.copyWith(color: theme.secondary),
-                      child: secondary!),
-                ],
-              ])
-            : Row(children: [
-                Expanded(child: heading),
-                if (secondary != null) ...[
-                  const SizedBox(width: PlayerSpacing.lg),
-                  Flexible(
-                      child: alignSecondaryEnd
-                          ? Align(
-                              alignment: Alignment.centerRight,
-                              child: DefaultTextStyle(
-                                  style: theme.meta
-                                      .copyWith(color: theme.secondary),
-                                  child: secondary!))
-                          : DefaultTextStyle(
-                              style:
-                                  theme.meta.copyWith(color: theme.secondary),
-                              child: secondary!)),
-                ],
-              ]),
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < projectPresentationCompactWidth;
+        final compact =
+            narrow ||
+            MediaQuery.sizeOf(context).height <
+                projectPresentationCompactHeight;
+        final shortLandscape =
+            MediaQuery.sizeOf(context).height < 500 &&
+            MediaQuery.sizeOf(context).width >
+                MediaQuery.sizeOf(context).height;
+        final titleMeasure = TextPainter(
+          text: TextSpan(text: title, style: theme.title),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 1,
+        )..layout(maxWidth: math.max(0, constraints.maxWidth / 2 - 56));
+        final stackSecondary =
+            !shortLandscape || titleMeasure.didExceedMaxLines;
+        final heading = Row(
+          children: [
+            Icon(
+              icon,
+              size: compact ? 24 : 32,
+              color: iconColor ?? theme.accent,
+            ),
+            const SizedBox(width: PlayerSpacing.sm),
+            Expanded(child: Text(title, style: theme.title)),
+          ],
+        );
+        return Container(
+          width: alignSecondaryEnd ? double.infinity : null,
+          constraints: BoxConstraints(minHeight: compact ? 44 : 64),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 24,
+            vertical: compact ? 4 : 15.5,
+          ),
+          decoration: BoxDecoration(
+            color: theme.header.withValues(alpha: theme.panelOpacity),
+            border: Border(
+              bottom: BorderSide(color: theme.border.withValues(alpha: .22)),
+            ),
+          ),
+          child:
+              stackSecondary &&
+                  (narrow || MediaQuery.textScalerOf(context).scale(18) > 27)
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    heading,
+                    if (secondary != null) ...[
+                      const SizedBox(height: PlayerSpacing.xs),
+                      DefaultTextStyle(
+                        style: theme.meta.copyWith(color: theme.secondary),
+                        child: secondary!,
+                      ),
+                    ],
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: heading),
+                    if (secondary != null) ...[
+                      const SizedBox(width: PlayerSpacing.lg),
+                      Flexible(
+                        child: alignSecondaryEnd
+                            ? Align(
+                                alignment: Alignment.centerRight,
+                                child: DefaultTextStyle(
+                                  style: theme.meta.copyWith(
+                                    color: theme.secondary,
+                                  ),
+                                  child: secondary!,
+                                ),
+                              )
+                            : DefaultTextStyle(
+                                style: theme.meta.copyWith(
+                                  color: theme.secondary,
+                                ),
+                                child: secondary!,
+                              ),
+                      ),
+                    ],
+                  ],
+                ),
+        );
+      },
+    );
   }
 }
 
 class PlayerMenuFooter extends StatelessWidget {
-  const PlayerMenuFooter(
-      {super.key,
-      required this.hints,
-      this.returnAction,
-      this.hintsFlex = 1,
-      this.stackActions = false,
-      this.alignReturnEnd = false,
-      this.actionsBuilder});
+  const PlayerMenuFooter({
+    super.key,
+    required this.hints,
+    this.returnAction,
+    this.hintsFlex = 1,
+    this.stackActions = false,
+    this.alignReturnEnd = false,
+    this.actionsBuilder,
+  });
   final List<Widget> hints;
   final Widget? returnAction;
   final int hintsFlex;
   final bool stackActions;
   final bool alignReturnEnd;
   final Widget Function(BuildContext context, Widget returnAction)?
-      actionsBuilder;
+  actionsBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -250,56 +295,54 @@ class PlayerMenuFooter extends StatelessWidget {
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 48),
       padding: EdgeInsets.symmetric(
-          horizontal: actionsBuilder == null ? 24 : 16,
-          vertical: returnAction == null ? 8 : 0),
+        horizontal: actionsBuilder == null ? 24 : 16,
+        vertical: 8,
+      ),
       foregroundDecoration: BoxDecoration(
-          border: Border(
-              top: BorderSide(color: theme.border.withValues(alpha: .22)))),
+        border: Border(
+          top: BorderSide(color: theme.border.withValues(alpha: .22)),
+        ),
+      ),
       child: returnAction != null && actionsBuilder != null
           ? actionsBuilder!(context, returnAction!)
           : returnAction != null && hints.isEmpty
-              ? PlayerMenuActionGroup(children: [returnAction!])
-              : returnAction == null
-                  ? Wrap(
-                      spacing: PlayerSpacing.lg,
-                      runSpacing: PlayerSpacing.xs,
-                      children: hints,
-                    )
-                  : stackActions
-                      ? Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [...hints, returnAction!],
-                        )
-                      : Row(
-                          mainAxisAlignment: alignReturnEnd
-                              ? MainAxisAlignment.spaceBetween
-                              : MainAxisAlignment.start,
-                          children: [
-                              Expanded(
-                                  flex: hintsFlex,
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(children: [
-                                      for (var index = 0;
-                                          index < hints.length;
-                                          index++) ...[
-                                        if (index > 0)
-                                          const SizedBox(
-                                              width: PlayerSpacing.lg),
-                                        hints[index],
-                                      ]
-                                    ]),
-                                  )),
-                              const SizedBox(width: PlayerSpacing.lg),
-                              Flexible(
-                                  flex: 3,
-                                  child: ConstrainedBox(
-                                    constraints:
-                                        const BoxConstraints(maxWidth: 280),
-                                    child: returnAction!,
-                                  )),
-                            ]),
+          ? PlayerMenuActionGroup(children: [returnAction!])
+          : returnAction == null
+          ? Wrap(
+              spacing: PlayerSpacing.lg,
+              runSpacing: PlayerSpacing.xs,
+              children: hints,
+            )
+          : stackActions
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [...hints, returnAction!],
+            )
+          : Row(
+              mainAxisAlignment: alignReturnEnd
+                  ? MainAxisAlignment.spaceBetween
+                  : MainAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: hintsFlex,
+                  child: Wrap(
+                    spacing: PlayerSpacing.lg,
+                    runSpacing: PlayerSpacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: hints,
+                  ),
+                ),
+                const SizedBox(width: PlayerSpacing.lg),
+                Flexible(
+                  flex: 3,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    child: returnAction!,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -312,46 +355,54 @@ class PlayerMenuActionGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (children.isEmpty) return const SizedBox.shrink();
-    return LayoutBuilder(builder: (context, constraints) {
-      final scale = MediaQuery.textScalerOf(context).scale(1);
-      final compact = constraints.maxWidth < 600 && children.length > 1;
-      final minimumWidth = compact
-          ? 72 + math.max(0, scale - 1) * 48
-          : 132 + math.max(0, scale - 1) * 70;
-      var columns = ((constraints.maxWidth + 8) / (minimumWidth + 8))
-          .floor()
-          .clamp(1, children.length);
-      if (children.length == 4 && columns == 3) columns = 2;
-      final availableWidth =
-          (constraints.maxWidth - (columns - 1) * 8) / columns;
-      final width = math.min(availableWidth, (compact ? 112 : 168) * scale);
-      return _PlayerMenuActionScope(
-        compact: compact,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            for (var start = 0; start < children.length; start += columns) ...[
-              if (start > 0) const SizedBox(height: 8),
-              IntrinsicHeight(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var index = start;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final compact = constraints.maxWidth < 600 && children.length > 1;
+        final minimumWidth = compact
+            ? 72 + math.max(0, scale - 1) * 48
+            : 132 + math.max(0, scale - 1) * 70;
+        var columns = ((constraints.maxWidth + 8) / (minimumWidth + 8))
+            .floor()
+            .clamp(1, children.length);
+        if (children.length == 4 && columns == 3) columns = 2;
+        final availableWidth =
+            (constraints.maxWidth - (columns - 1) * 8) / columns;
+        final width = math.min(availableWidth, (compact ? 112 : 168) * scale);
+        return _PlayerMenuActionScope(
+          compact: compact,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              for (
+                var start = 0;
+                start < children.length;
+                start += columns
+              ) ...[
+                if (start > 0) const SizedBox(height: 8),
+                IntrinsicHeight(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (
+                        var index = start;
                         index < math.min(start + columns, children.length);
-                        index++) ...[
-                      if (index > start) const SizedBox(width: 8),
-                      SizedBox(width: width, child: children[index]),
+                        index++
+                      ) ...[
+                        if (index > start) const SizedBox(width: 8),
+                        SizedBox(width: width, child: children[index]),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-      );
-    });
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -366,8 +417,11 @@ class _PlayerMenuActionScope extends InheritedWidget {
 }
 
 class PlayerMenuKeyHint extends StatelessWidget {
-  const PlayerMenuKeyHint(
-      {super.key, required this.glyph, required this.label});
+  const PlayerMenuKeyHint({
+    super.key,
+    required this.glyph,
+    required this.label,
+  });
   final String glyph;
   final String label;
 
@@ -377,22 +431,32 @@ class PlayerMenuKeyHint extends StatelessWidget {
     return Semantics(
       label: '$glyph, $label',
       excludeSemantics: true,
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: theme.recessed,
-            borderRadius:
-                BorderRadius.circular(PokeMapPlayerMenuTheme.badgeRadius),
-            border: Border.all(color: theme.border),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.recessed,
+                borderRadius: BorderRadius.circular(
+                  PokeMapPlayerMenuTheme.badgeRadius,
+                ),
+                border: Border.all(color: theme.border),
+              ),
+              child: Text(glyph, style: theme.meta),
+            ),
           ),
-          child: Text(glyph, style: theme.meta),
-        ),
-        const SizedBox(width: PlayerSpacing.xs),
-        Flexible(
-            child: Text(label,
-                style: theme.meta.copyWith(color: theme.secondary))),
-      ]),
+          const SizedBox(width: PlayerSpacing.xs),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.meta.copyWith(color: theme.secondary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -423,8 +487,10 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.tile = false,
     this.fitTileContent = false,
     this.minimumHeight = 48,
-    this.contentPadding =
-        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    this.contentPadding = const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 10,
+    ),
     this.showFocusHighlight = true,
   });
 
@@ -474,8 +540,8 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
-    final actionScope =
-        context.dependOnInheritedWidgetOfExactType<_PlayerMenuActionScope>();
+    final actionScope = context
+        .dependOnInheritedWidgetOfExactType<_PlayerMenuActionScope>();
     final integrated = widget.integrated || actionScope != null;
     final focused = widget.showFocusHighlight && (widget.focused || _focused);
     final hovered = widget.hovered || _hovered;
@@ -483,10 +549,10 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
     final unselected = pressed && _enabled
         ? Color.alphaBlend(theme.shadow.withValues(alpha: .24), theme.recessed)
         : hovered && _enabled
-            ? theme.accent.withValues(alpha: .09)
-            : integrated
-                ? theme.base.withValues(alpha: 0)
-                : theme.recessed.withValues(alpha: .4);
+        ? theme.accent.withValues(alpha: .09)
+        : integrated
+        ? theme.base.withValues(alpha: 0)
+        : theme.recessed.withValues(alpha: .4);
     final decoration = BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
@@ -496,12 +562,16 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                 shade: pressed && _enabled
                     ? .10
                     : hovered && _enabled
-                        ? .04
-                        : 0)
+                    ? .04
+                    : 0,
+              )
             : List.filled(
                 2,
-                Color.alphaBlend(unselected,
-                    integrated || theme.opaque ? theme.base : theme.panel)),
+                Color.alphaBlend(
+                  unselected,
+                  integrated || theme.opaque ? theme.base : theme.panel,
+                ),
+              ),
       ),
       borderRadius: BorderRadius.circular(PokeMapPlayerMenuTheme.rowRadius),
       border: Border.all(
@@ -512,13 +582,16 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                 alpha: hovered
                     ? .7
                     : integrated
-                        ? 0
-                        : .22),
+                    ? 0
+                    : .22,
+              ),
       ),
       boxShadow: widget.selected && !theme.opaque
           ? [
               BoxShadow(
-                  color: theme.accent.withValues(alpha: .28), blurRadius: 14)
+                color: theme.accent.withValues(alpha: .28),
+                blurRadius: 14,
+              ),
             ]
           : null,
     );
@@ -528,45 +601,55 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
       duration: pressed
           ? theme.pressDuration
           : hovered
-              ? theme.hoverDuration
-              : theme.selectionDuration,
+          ? theme.hoverDuration
+          : theme.selectionDuration,
       builder: (context, animated, _) {
         final painted = animated as BoxDecoration;
         final gradient = painted.gradient! as LinearGradient;
-        final presentation = theme.rowPresentation(gradient.colors,
-            preferredForeground: widget.selected
-                ? theme.selectionText
-                : !_enabled && !widget.busy
-                    ? theme.disabled
-                    : theme.text);
+        final presentation = theme.rowPresentation(
+          gradient.colors,
+          preferredForeground: widget.selected
+              ? theme.selectionText
+              : !_enabled && !widget.busy
+              ? theme.disabled
+              : theme.text,
+        );
         final foreground = presentation.foreground;
         final secondary = theme
-            .rowPresentation(presentation.backgrounds,
-                preferredForeground:
-                    widget.selected ? foreground : theme.secondary)
+            .rowPresentation(
+              presentation.backgrounds,
+              preferredForeground: widget.selected
+                  ? foreground
+                  : theme.secondary,
+            )
             .foreground;
         final focusColor = theme
-            .rowPresentation(presentation.backgrounds,
-                preferredForeground:
-                    widget.selected ? theme.selectionText : theme.focus)
+            .rowPresentation(
+              presentation.backgrounds,
+              preferredForeground: widget.selected
+                  ? theme.selectionText
+                  : theme.focus,
+            )
             .foreground;
         return Container(
           key: ValueKey('${widget.id}-surface'),
           constraints: BoxConstraints(
-              minHeight: actionScope?.compact == true
-                  ? math.max(64, widget.minimumHeight)
-                  : widget.minimumHeight),
+            minHeight: actionScope?.compact == true
+                ? math.max(64, widget.minimumHeight)
+                : widget.minimumHeight,
+          ),
           padding: actionScope == null
               ? widget.contentPadding
               : const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           decoration: painted.copyWith(
-              gradient: LinearGradient(
-            begin: gradient.begin,
-            end: gradient.end,
-            colors: integrated && !widget.selected && !hovered && !pressed
-                ? List.filled(2, theme.base.withValues(alpha: 0))
-                : presentation.backgrounds,
-          )),
+            gradient: LinearGradient(
+              begin: gradient.begin,
+              end: gradient.end,
+              colors: integrated && !widget.selected && !hovered && !pressed
+                  ? List.filled(2, theme.base.withValues(alpha: 0))
+                  : presentation.backgrounds,
+            ),
+          ),
           child: IconTheme(
             data: IconThemeData(color: foreground, size: 24),
             child: DefaultTextStyle(
@@ -575,85 +658,94 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
               child: actionScope != null
                   ? _actionContent(actionScope.compact)
                   : widget.tile
-                      ? Tooltip(
-                          message: widget.disabledReason ?? widget.label,
-                          child: widget.fitTileContent
-                              ? FittedBox(
-                                  fit: BoxFit.scaleDown, child: _tileContent())
-                              : _tileContent(),
-                        )
-                      : widget.iconOnly
-                          ? Stack(alignment: Alignment.center, children: [
-                              Center(child: widget.leading),
-                              if (focused)
-                                Positioned(
-                                  left: 0,
-                                  child: Container(
-                                    key: ValueKey('${widget.id}-focus-marker'),
-                                    width: 4,
-                                    height: 20,
-                                    decoration: BoxDecoration(
-                                      color: focusColor,
-                                      borderRadius: BorderRadius.circular(3),
-                                    ),
-                                  ),
-                                ),
-                            ])
-                          : Row(children: [
-                              SizedBox(
-                                width: 6,
-                                height: 20,
-                                child: focused
-                                    ? DecoratedBox(
-                                        key: ValueKey(
-                                            '${widget.id}-focus-marker'),
-                                        decoration: BoxDecoration(
-                                            color: focusColor,
-                                            borderRadius:
-                                                BorderRadius.circular(3)),
-                                      )
-                                    : null,
+                  ? Tooltip(
+                      message: widget.disabledReason ?? widget.label,
+                      child: widget.fitTileContent
+                          ? FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: _tileContent(),
+                            )
+                          : _tileContent(),
+                    )
+                  : widget.iconOnly
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Center(child: widget.leading),
+                        if (focused)
+                          Positioned(
+                            left: 0,
+                            child: Container(
+                              key: ValueKey('${widget.id}-focus-marker'),
+                              width: 4,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: focusColor,
+                                borderRadius: BorderRadius.circular(3),
                               ),
-                              const SizedBox(width: PlayerSpacing.sm),
-                              if (widget.leading != null) ...[
-                                widget.leading!,
-                                const SizedBox(width: PlayerSpacing.sm)
-                              ],
-                              Expanded(
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                    if (widget.label.isNotEmpty)
-                                      Text(widget.label,
-                                          maxLines: widget.labelMaxLines,
-                                          overflow: widget.labelMaxLines == null
-                                              ? null
-                                              : TextOverflow.ellipsis),
-                                    if (widget.subtitle != null)
-                                      Text(widget.subtitle!,
-                                          style: theme.meta
-                                              .copyWith(color: secondary)),
-                                    if (widget.supportingContent != null)
-                                      widget.supportingContent!,
-                                    if (widget.disabledReason != null)
-                                      Text(widget.disabledReason!,
-                                          style: theme.meta
-                                              .copyWith(color: foreground)),
-                                  ])),
-                              if (widget.busy) ...[
-                                const SizedBox(width: PlayerSpacing.sm),
-                                Icon(Icons.hourglass_top_rounded,
-                                    color: foreground),
-                              ] else if (widget.trailing != null) ...[
-                                const SizedBox(width: PlayerSpacing.sm),
-                                if (widget.trailingWidth case final width?)
-                                  SizedBox(
-                                      width: width, child: widget.trailing!)
-                                else
-                                  Flexible(child: widget.trailing!),
-                              ],
-                            ]),
+                            ),
+                          ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        SizedBox(
+                          width: 6,
+                          height: 20,
+                          child: focused
+                              ? DecoratedBox(
+                                  key: ValueKey('${widget.id}-focus-marker'),
+                                  decoration: BoxDecoration(
+                                    color: focusColor,
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: PlayerSpacing.sm),
+                        if (widget.leading != null) ...[
+                          widget.leading!,
+                          const SizedBox(width: PlayerSpacing.sm),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.label.isNotEmpty)
+                                Text(
+                                  widget.label,
+                                  maxLines: widget.labelMaxLines,
+                                  overflow: widget.labelMaxLines == null
+                                      ? null
+                                      : TextOverflow.ellipsis,
+                                ),
+                              if (widget.subtitle != null)
+                                Text(
+                                  widget.subtitle!,
+                                  style: theme.meta.copyWith(color: secondary),
+                                ),
+                              if (widget.supportingContent != null)
+                                widget.supportingContent!,
+                              if (widget.disabledReason != null)
+                                Text(
+                                  widget.disabledReason!,
+                                  style: theme.meta.copyWith(color: foreground),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (widget.busy) ...[
+                          const SizedBox(width: PlayerSpacing.sm),
+                          Icon(Icons.hourglass_top_rounded, color: foreground),
+                        ] else if (widget.trailing != null) ...[
+                          const SizedBox(width: PlayerSpacing.sm),
+                          if (widget.trailingWidth case final width?)
+                            SizedBox(width: width, child: widget.trailing!)
+                          else
+                            Flexible(child: widget.trailing!),
+                        ],
+                      ],
+                    ),
             ),
           ),
         );
@@ -665,7 +757,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
       value: [
         if (widget.semanticValue != null) widget.semanticValue!,
         if (widget.subtitle != null) widget.subtitle!,
-        if (widget.busy) 'Chargement'
+        if (widget.busy) 'Chargement',
       ].join(', '),
       hint: widget.disabledReason,
       button: true,
@@ -683,8 +775,9 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
           widget.onFocusChanged?.call(value);
         },
         onShowHoverHighlight: (value) => setState(() => _hovered = value),
-        mouseCursor:
-            _enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+        mouseCursor: _enabled
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
         shortcuts: const {
           SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
               ActivateIntent(),
@@ -696,10 +789,12 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
               DoNothingAndStopPropagationIntent(),
         },
         actions: {
-          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
-            _activate();
-            return null;
-          }),
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              _activate();
+              return null;
+            },
+          ),
         },
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -707,27 +802,33 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
           onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
           onTapUp: _enabled ? (_) => setState(() => _pressed = false) : null,
           onTapCancel: () => setState(() => _pressed = false),
-          child: row,
+          child: AnimatedScale(
+            scale: pressed && _enabled && !theme.reducedMotion ? .985 : 1,
+            duration: theme.pressDuration,
+            curve: Curves.easeOutCubic,
+            child: row,
+          ),
         ),
       ),
     );
   }
 
   Widget _tileContent() => Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (widget.leading != null) ...[
-            widget.leading!,
-            const SizedBox(height: 6),
-          ],
-          Text(widget.label, textAlign: TextAlign.center),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      if (widget.leading != null) ...[
+        widget.leading!,
+        const SizedBox(height: 6),
+      ],
+      Text(widget.label, textAlign: TextAlign.center),
+    ],
+  );
 
   Widget _actionContent(bool compact) {
-    final icon =
-        widget.busy ? const Icon(Icons.hourglass_top_rounded) : widget.leading;
+    final icon = widget.busy
+        ? const Icon(Icons.hourglass_top_rounded)
+        : widget.leading;
     final label = Text(widget.label, textAlign: TextAlign.center);
     return compact
         ? Column(
@@ -749,12 +850,13 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
 }
 
 class PlayerMenuPortrait extends StatelessWidget {
-  const PlayerMenuPortrait(
-      {super.key,
-      required this.child,
-      this.circular = false,
-      this.size = 64,
-      this.semanticLabel});
+  const PlayerMenuPortrait({
+    super.key,
+    required this.child,
+    this.circular = false,
+    this.size = 64,
+    this.semanticLabel,
+  });
   final Widget child;
   final bool circular;
   final double size;
@@ -778,9 +880,10 @@ class PlayerMenuPortrait extends StatelessWidget {
       child: FittedBox(fit: BoxFit.contain, child: child),
     );
     return Semantics(
-        label: semanticLabel,
-        image: true,
-        child: circular ? ClipOval(child: viewport) : viewport);
+      label: semanticLabel,
+      image: true,
+      child: circular ? ClipOval(child: viewport) : viewport,
+    );
   }
 }
 
@@ -789,15 +892,16 @@ enum PlayerMenuGaugeKind { health, experience }
 enum PlayerMenuGaugeTone { normal, warning, danger }
 
 class PlayerMenuGauge extends StatelessWidget {
-  const PlayerMenuGauge(
-      {super.key,
-      required this.value,
-      required this.maximum,
-      required this.label,
-      this.status,
-      this.showLabel = true,
-      this.kind = PlayerMenuGaugeKind.health,
-      this.tone = PlayerMenuGaugeTone.normal});
+  const PlayerMenuGauge({
+    super.key,
+    required this.value,
+    required this.maximum,
+    required this.label,
+    this.status,
+    this.showLabel = true,
+    this.kind = PlayerMenuGaugeKind.health,
+    this.tone = PlayerMenuGaugeTone.normal,
+  });
   final double value;
   final double maximum;
   final String label;
@@ -811,8 +915,8 @@ class PlayerMenuGauge extends StatelessWidget {
       : 0;
   String _number(double number) =>
       number.isFinite && number == number.roundToDouble()
-          ? number.toInt().toString()
-          : number.toString();
+      ? number.toInt().toString()
+      : number.toString();
 
   @override
   Widget build(BuildContext context) {
@@ -828,36 +932,44 @@ class PlayerMenuGauge extends StatelessWidget {
       label: label,
       value: [amount, if (status != null) status!].join(', '),
       excludeSemantics: true,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (showLabel)
-          Wrap(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showLabel)
+            Wrap(
               alignment: WrapAlignment.spaceBetween,
               spacing: 12,
               runSpacing: 4,
               children: [
                 Text(label, style: theme.meta.copyWith(color: theme.secondary)),
                 Text(amount, style: theme.numbers, textAlign: TextAlign.right),
-              ]),
-        if (showLabel) const SizedBox(height: 4),
-        Container(
-          height: kind == PlayerMenuGaugeKind.health ? 10 : 8,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
+              ],
+            ),
+          if (showLabel) const SizedBox(height: 4),
+          Container(
+            height: kind == PlayerMenuGaugeKind.health ? 10 : 8,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
               color: theme.recessed,
               borderRadius: BorderRadius.circular(
-                  kind == PlayerMenuGaugeKind.health ? 5 : 4)),
-          child: Align(
+                kind == PlayerMenuGaugeKind.health ? 5 : 4,
+              ),
+            ),
+            child: Align(
               alignment: Alignment.centerLeft,
               child: FractionallySizedBox(
-                  widthFactor: fraction,
-                  heightFactor: 1,
-                  child: ColoredBox(color: color))),
-        ),
-        if (status != null) ...[
-          const SizedBox(height: 4),
-          Text(status!, style: theme.meta.copyWith(color: theme.secondary))
+                widthFactor: fraction,
+                heightFactor: 1,
+                child: ColoredBox(color: color),
+              ),
+            ),
+          ),
+          if (status != null) ...[
+            const SizedBox(height: 4),
+            Text(status!, style: theme.meta.copyWith(color: theme.secondary)),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }
@@ -865,10 +977,11 @@ class PlayerMenuGauge extends StatelessWidget {
 enum PlayerMenuBadgeKind { neutral, type, status }
 
 class PlayerMenuBadge extends StatelessWidget {
-  const PlayerMenuBadge(
-      {super.key,
-      required this.label,
-      this.kind = PlayerMenuBadgeKind.neutral});
+  const PlayerMenuBadge({
+    super.key,
+    required this.label,
+    this.kind = PlayerMenuBadgeKind.neutral,
+  });
   final String label;
   final PlayerMenuBadgeKind kind;
 
@@ -890,10 +1003,12 @@ class PlayerMenuBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-            color: theme.recessed,
-            border: Border.all(color: color.withValues(alpha: .7)),
-            borderRadius:
-                BorderRadius.circular(PokeMapPlayerMenuTheme.badgeRadius)),
+          color: theme.recessed,
+          border: Border.all(color: color.withValues(alpha: .7)),
+          borderRadius: BorderRadius.circular(
+            PokeMapPlayerMenuTheme.badgeRadius,
+          ),
+        ),
         child: Text(label, style: theme.meta.copyWith(color: color)),
       ),
     );
@@ -903,13 +1018,14 @@ class PlayerMenuBadge extends StatelessWidget {
 enum PlayerMenuFeedbackKind { empty, error, receipt }
 
 class PlayerMenuFeedback extends StatelessWidget {
-  const PlayerMenuFeedback(
-      {super.key,
-      required this.id,
-      required this.title,
-      this.message,
-      this.kind = PlayerMenuFeedbackKind.empty,
-      this.action});
+  const PlayerMenuFeedback({
+    super.key,
+    required this.id,
+    required this.title,
+    this.message,
+    this.kind = PlayerMenuFeedbackKind.empty,
+    this.action,
+  });
   final String id;
   final String title;
   final String? message;
@@ -920,51 +1036,66 @@ class PlayerMenuFeedback extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
     return PlayerMenuPanel(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Semantics(
-          identifier: id,
-          container: true,
-          liveRegion: kind != PlayerMenuFeedbackKind.empty,
-          label: [title, if (message != null) message!].join('. '),
-          excludeSemantics: true,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(
-                switch (kind) {
-                  PlayerMenuFeedbackKind.empty => Icons.inbox_outlined,
-                  PlayerMenuFeedbackKind.error => Icons.error_outline,
-                  PlayerMenuFeedbackKind.receipt => Icons.check_circle_outline,
-                },
-                color: switch (kind) {
-                  PlayerMenuFeedbackKind.empty => theme.secondary,
-                  PlayerMenuFeedbackKind.error => theme.danger,
-                  PlayerMenuFeedbackKind.receipt => theme.health,
-                }),
-            const SizedBox(width: PlayerSpacing.sm),
-            Expanded(
-                child: Column(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            identifier: id,
+            container: true,
+            liveRegion: kind != PlayerMenuFeedbackKind.empty,
+            label: [title, if (message != null) message!].join('. '),
+            excludeSemantics: true,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  switch (kind) {
+                    PlayerMenuFeedbackKind.empty => Icons.inbox_outlined,
+                    PlayerMenuFeedbackKind.error => Icons.error_outline,
+                    PlayerMenuFeedbackKind.receipt =>
+                      Icons.check_circle_outline,
+                  },
+                  color: switch (kind) {
+                    PlayerMenuFeedbackKind.empty => theme.secondary,
+                    PlayerMenuFeedbackKind.error => theme.danger,
+                    PlayerMenuFeedbackKind.receipt => theme.health,
+                  },
+                ),
+                const SizedBox(width: PlayerSpacing.sm),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                  Text(title, style: theme.subtitle),
-                  if (message != null) ...[
-                    const SizedBox(height: PlayerSpacing.xs),
-                    Text(message!,
-                        style: theme.body.copyWith(color: theme.secondary))
-                  ],
-                ])),
-          ]),
-        ),
-        if (action != null) ...[
-          const SizedBox(height: PlayerSpacing.md),
-          action!
+                      Text(title, style: theme.subtitle),
+                      if (message != null) ...[
+                        const SizedBox(height: PlayerSpacing.xs),
+                        Text(
+                          message!,
+                          style: theme.body.copyWith(color: theme.secondary),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (action != null) ...[
+            const SizedBox(height: PlayerSpacing.md),
+            action!,
+          ],
         ],
-      ]),
+      ),
     );
   }
 }
 
 class PlayerMenuTransition extends StatefulWidget {
-  const PlayerMenuTransition(
-      {super.key, required this.child, this.visible = true});
+  const PlayerMenuTransition({
+    super.key,
+    required this.child,
+    this.visible = true,
+  });
   final Widget child;
   final bool visible;
 
@@ -1015,56 +1146,78 @@ class _PlayerMenuTransitionState extends State<PlayerMenuTransition>
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
     return ExcludeFocus(
-        excluding: !widget.visible,
-        child: IgnorePointer(
-          ignoring: !widget.visible,
-          child: ExcludeSemantics(
-            excluding: !widget.visible,
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) => Opacity(
-                opacity: Curves.easeOutCubic.transform(_controller.value),
-                child: Transform.translate(
-                    offset: Offset(
-                        0,
-                        (1 - Curves.easeOutCubic.transform(_controller.value)) *
-                            theme.openTranslation),
-                    child: child),
+      excluding: !widget.visible,
+      child: IgnorePointer(
+        ignoring: !widget.visible,
+        child: ExcludeSemantics(
+          excluding: !widget.visible,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) => Opacity(
+              opacity: Curves.easeOutCubic.transform(_controller.value),
+              child: Transform.translate(
+                key: const ValueKey('player-menu-opening-transform'),
+                offset: Offset(
+                  0,
+                  (1 - Curves.easeOutCubic.transform(_controller.value)) *
+                      theme.openTranslation,
+                ),
+                child: child,
               ),
-              child: widget.child,
             ),
+            child: widget.child,
           ),
-        ));
+        ),
+      ),
+    );
   }
 }
 
 class PlayerMenuDetailTransition extends StatelessWidget {
-  const PlayerMenuDetailTransition(
-      {super.key, required this.contentKey, required this.child});
+  const PlayerMenuDetailTransition({
+    super.key,
+    required this.contentKey,
+    required this.child,
+  });
   final Key contentKey;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => AnimatedSwitcher(
-        duration: context.playerMenuTheme.detailDuration,
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        layoutBuilder: (currentChild, previousChildren) => Stack(
-          alignment: Alignment.center,
-          children: [
-            for (final previous in previousChildren)
-              _entry(previous, active: false),
-            if (currentChild != null) _entry(currentChild, active: true),
-          ],
+    duration: context.playerMenuTheme.detailDuration,
+    switchInCurve: Curves.easeOutCubic,
+    switchOutCurve: Curves.easeInCubic,
+    transitionBuilder: (child, animation) => FadeTransition(
+      opacity: animation,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) => Transform.translate(
+          key: const ValueKey('player-menu-detail-transform'),
+          offset: Offset(
+            (1 - animation.value) * context.playerMenuTheme.openTranslation,
+            0,
+          ),
+          child: child,
         ),
-        child: KeyedSubtree(key: contentKey, child: child),
-      );
+        child: child,
+      ),
+    ),
+    layoutBuilder: (currentChild, previousChildren) => Stack(
+      alignment: Alignment.center,
+      children: [
+        for (final previous in previousChildren)
+          _entry(previous, active: false),
+        if (currentChild != null) _entry(currentChild, active: true),
+      ],
+    ),
+    child: KeyedSubtree(key: contentKey, child: child),
+  );
   Widget _entry(Widget child, {required bool active}) => ExcludeFocus(
-        key: child.key,
-        excluding: !active,
-        child: IgnorePointer(
-          ignoring: !active,
-          child: ExcludeSemantics(excluding: !active, child: child),
-        ),
-      );
+    key: child.key,
+    excluding: !active,
+    child: IgnorePointer(
+      ignoring: !active,
+      child: ExcludeSemantics(excluding: !active, child: child),
+    ),
+  );
 }

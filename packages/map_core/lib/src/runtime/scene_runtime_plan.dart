@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_battle_demonstration.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
@@ -131,6 +132,7 @@ final class SceneRuntimePlanIntent {
     this.trainerId,
     this.battleTemplateId,
     this.npcEntityId,
+    this.battleDemonstration,
     this.battleDefeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
@@ -217,6 +219,7 @@ final class SceneRuntimePlanIntent {
     String? trainerId,
     String? battleTemplateId,
     String? npcEntityId,
+    SceneBattleDemonstration? demonstration,
     SceneBattleDefeatRecovery defeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> declaredOutcomes = const <String>[],
   }) {
@@ -226,6 +229,7 @@ final class SceneRuntimePlanIntent {
       trainerId: trainerId,
       battleTemplateId: battleTemplateId,
       npcEntityId: npcEntityId,
+      battleDemonstration: demonstration,
       battleDefeatRecovery: defeatRecovery,
       battleDeclaredOutcomes: declaredOutcomes,
     );
@@ -298,6 +302,7 @@ final class SceneRuntimePlanIntent {
   final String? trainerId;
   final String? battleTemplateId;
   final String? npcEntityId;
+  final SceneBattleDemonstration? battleDemonstration;
   final SceneBattleDefeatRecovery battleDefeatRecovery;
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
@@ -360,6 +365,7 @@ final class SceneRuntimePlanIntent {
           other.trainerId == trainerId &&
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
+          other.battleDemonstration == battleDemonstration &&
           other.battleDefeatRecovery == battleDefeatRecovery &&
           _listEquals(other.battleDeclaredOutcomes, battleDeclaredOutcomes) &&
           other.cinematicId == cinematicId &&
@@ -388,7 +394,7 @@ final class SceneRuntimePlanIntent {
         battleKind,
         trainerId,
         battleTemplateId,
-        Object.hash(npcEntityId, battleDefeatRecovery),
+        Object.hash(npcEntityId, battleDefeatRecovery, battleDemonstration),
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
         Object.hash(

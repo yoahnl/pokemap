@@ -3,6 +3,7 @@ import '../models/narrative_event_definition.dart';
 import '../operations/narrative_parallel_program.dart';
 import '../operations/scene_warp_presentation_visual.dart';
 import '../models/project_manifest.dart';
+import '../models/project_trainer.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
@@ -57,6 +58,7 @@ enum SceneDiagnosticCode {
   conditionWorldRuleRefUnknown,
   conditionUnsupportedDimension,
   battleRecoveryUnsupportedDimension,
+  battleDemonstrationInvalid,
   consequenceUnknownFact,
   consequenceFactTypeMismatch,
   consequenceUnknownEvent,
@@ -683,6 +685,22 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
             target: SceneDiagnosticTarget.node,
             suggestedFixLabel: 'Choisir de continuer la scène après la défaite.',
           ));
+        }
+        final demonstration = payload.demonstration;
+        if (demonstration != null) {
+          final guide = project.trainers.where((trainer) => trainer.id == demonstration.playerTrainerId).firstOrNull;
+          if (project.settings.dimension != ProjectDimension.threeD ||
+              payload.battleKind != 'wild' || guide == null || guide.team.isEmpty ||
+              guide.team.length > 6 || guide.battleFormat != BattleFormat.singles ||
+              payload.defeatRecovery != SceneBattleDefeatRecovery.continueScene) {
+            diagnostics.add(SceneDiagnostic(
+              code: SceneDiagnosticCode.battleDemonstrationInvalid,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'La démonstration exige une rencontre sauvage 3D, une équipe temporaire solo existante et la reprise de scène.',
+              sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir une équipe de démonstration solo existante.',
+            ));
+          }
         }
         final isTrainer = payload.battleKind == 'trainer';
         final isStatic = payload.battleKind == 'static';

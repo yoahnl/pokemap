@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
 import 'project_model3d.dart';
+import 'spatial_day_night_cycle.dart';
 import 'spatial_navigation.dart';
 import 'smart_tile.dart';
 import 'spatial_terrain_surface.dart';
@@ -297,29 +298,31 @@ final class SpatialModelInstance {
 
   factory SpatialModelInstance.fromJson(Map<String, dynamic> json) {
     if (json['castsShadows'] != null && json['castsShadows'] is! bool) {
-      throw const FormatException('Shadow casting override must be boolean or null.');
+      throw const FormatException(
+        'Shadow casting override must be boolean or null.',
+      );
     }
     return SpatialModelInstance(
-        id: json['id'] as String,
-        modelId: json['modelId'] as String,
-        position: Model3dVector3.fromJson(
-          Map<String, dynamic>.from(json['position'] as Map),
+      id: json['id'] as String,
+      modelId: json['modelId'] as String,
+      position: Model3dVector3.fromJson(
+        Map<String, dynamic>.from(json['position'] as Map),
+      ),
+      rotationDegrees: (json['rotationDegrees'] as num).toDouble(),
+      scale: (json['scale'] as num).toDouble(),
+      animationIndex: json['animationIndex'] as int?,
+      animationLoop: json['animationLoop'] as bool? ?? true,
+      animationSpeed: (json['animationSpeed'] as num?)?.toDouble() ?? 1,
+      blocksMovement: json['blocksMovement'] as bool,
+      castsShadows: json['castsShadows'] as bool?,
+      clip: switch (json['clip']) {
+        null => null,
+        Map<String, dynamic> value => SpatialModelClip.fromJson(value),
+        _ => throw const FormatException(
+          'Model clips require a rectangle object.',
         ),
-        rotationDegrees: (json['rotationDegrees'] as num).toDouble(),
-        scale: (json['scale'] as num).toDouble(),
-        animationIndex: json['animationIndex'] as int?,
-        animationLoop: json['animationLoop'] as bool? ?? true,
-        animationSpeed: (json['animationSpeed'] as num?)?.toDouble() ?? 1,
-        blocksMovement: json['blocksMovement'] as bool,
-        castsShadows: json['castsShadows'] as bool?,
-        clip: switch (json['clip']) {
-          null => null,
-          Map<String, dynamic> value => SpatialModelClip.fromJson(value),
-          _ => throw const FormatException(
-            'Model clips require a rectangle object.',
-          ),
-        },
-      );
+      },
+    );
   }
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -348,6 +351,7 @@ final class MapSpatialScene {
     this.generateCliffs = true,
     Iterable<SpatialModelInstance> instances = const [],
     SpatialCameraProfile? camera,
+    this.dayNightCycle,
     SpatialNavigationProfile? navigation,
     this.terrainSurfaces = const SpatialTerrainSurfaceSet.empty(),
   }) : heightLevels = List.unmodifiable(heightLevels ?? _flat(width, depth)),
@@ -385,6 +389,20 @@ final class MapSpatialScene {
         'Continuous terrain surfaces must remain inside the spatial map.',
       );
     }
+    for (final ledge in this.navigation.ledges) {
+      if (ledge.x >= width ||
+          ledge.z >= depth ||
+          ledge.landingX < 0 ||
+          ledge.landingZ < 0 ||
+          ledge.landingX >= width ||
+          ledge.landingZ >= depth ||
+          worldHeightAt(ledge.landingX + .5, ledge.landingZ + .5) >
+              worldHeightAt(ledge.x + .5, ledge.z + .5)) {
+        throw const FormatException(
+          'Ledge source and landing must be inside the map and descend.',
+        );
+      }
+    }
     _validateRampContacts();
     final instancesById = {
       for (final instance in this.instances) instance.id: instance,
@@ -419,6 +437,7 @@ final class MapSpatialScene {
   final bool generateCliffs;
   final List<SpatialModelInstance> instances;
   final SpatialCameraProfile camera;
+  final SpatialDayNightCycle? dayNightCycle;
   final SpatialNavigationProfile navigation;
   final SpatialTerrainSurfaceSet terrainSurfaces;
   late final double maximumWorldHeight = _maximumWorldHeight();
@@ -509,6 +528,8 @@ final class MapSpatialScene {
     Iterable<int>? heightLevels,
     Iterable<SpatialModelInstance>? instances,
     SpatialCameraProfile? camera,
+    SpatialDayNightCycle? dayNightCycle,
+    bool clearDayNightCycle = false,
     SpatialNavigationProfile? navigation,
     Object? cliffFrame = _unsetCliffFrame,
     bool? generateCliffs,
@@ -524,6 +545,9 @@ final class MapSpatialScene {
     generateCliffs: generateCliffs ?? this.generateCliffs,
     instances: instances ?? this.instances,
     camera: camera ?? this.camera,
+    dayNightCycle: clearDayNightCycle
+        ? null
+        : dayNightCycle ?? this.dayNightCycle,
     navigation: navigation ?? this.navigation,
     terrainSurfaces: terrainSurfaces ?? this.terrainSurfaces,
   );
@@ -537,6 +561,7 @@ final class MapSpatialScene {
           other.cliffFrame == cliffFrame &&
           other.generateCliffs == generateCliffs &&
           other.camera == camera &&
+          other.dayNightCycle == dayNightCycle &&
           other.navigation == navigation &&
           other.terrainSurfaces == terrainSurfaces &&
           const DeepCollectionEquality().equals(
@@ -552,6 +577,7 @@ final class MapSpatialScene {
     cliffFrame,
     generateCliffs,
     camera,
+    dayNightCycle,
     navigation,
     terrainSurfaces,
     const DeepCollectionEquality().hash(heightLevels),
@@ -604,6 +630,11 @@ final class MapSpatialScene {
           : SpatialNavigationProfile.fromJson(
               Map<String, dynamic>.from(json['navigation'] as Map),
             ),
+      dayNightCycle: switch (json['dayNightCycle']) {
+        null => null,
+        Map<String, dynamic> value => SpatialDayNightCycle.fromJson(value),
+        _ => throw const FormatException('Day/night cycle requires an object.'),
+      },
       camera: SpatialCameraProfile.fromJson(
         Map<String, dynamic>.from(json['camera'] as Map),
       ),
@@ -621,6 +652,7 @@ final class MapSpatialScene {
     if (!generateCliffs) 'generateCliffs': false,
     'instances': instances.map((v) => v.toJson()).toList(),
     'camera': camera.toJson(),
+    if (dayNightCycle != null) 'dayNightCycle': dayNightCycle!.toJson(),
     'navigation': navigation.toJson(),
   };
   static List<int> _flat(int width, int depth) {

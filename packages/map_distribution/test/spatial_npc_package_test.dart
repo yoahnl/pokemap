@@ -33,6 +33,34 @@ Map<String, List<int>> npcPayload() {
 }
 
 void main() {
+  for (final movement in [
+    const MapEntityNpcMovementConfig(
+        mode: MapEntityNpcMovementMode.scriptedOnly),
+    const MapEntityNpcMovementConfig(
+        mode: MapEntityNpcMovementMode.fixedRoute,
+        routeSteps: [MapEntityNpcRouteStep.randomFacing()]),
+  ]) {
+    test('gameplay packages retain ${movement.mode.name} NPC movement', () {
+      final files = npcPayload();
+      final map = MapData.fromJson(
+          jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+      final npc = map.entities.single;
+      files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(
+          entities: [npc.copyWith(npc: npc.npc!.copyWith(movement: movement))])
+          .toJson()));
+      expect(
+          () => const GamePackageBuilder().build(
+              manifest: spatialManifest(
+                  capabilities: ['map3d@1', 'map3d.gameplay@1']),
+              payloadFiles: files),
+          returnsNormally);
+      expect(
+          () => const GamePackageBuilder().build(
+              manifest: spatialManifest(), payloadFiles: files),
+          throwsA(isA<GamePackageFormatException>()));
+    });
+  }
+
   test(
       'packages static character NPC and text dialogue in autonomous exploration',
       () {

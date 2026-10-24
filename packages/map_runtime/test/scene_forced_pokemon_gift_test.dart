@@ -117,11 +117,13 @@ void main() {
           expect(request.pokemon.knownMoveIds, ['swift-gift', 'echo-gift']);
           final interaction = request.interaction;
           return switch (interaction) {
-            SceneConfirmationInteractionRequest() =>
-              SceneInteractionResult.confirmed(
+            SceneChoiceInteractionRequest() =>
+              SceneInteractionResult.choiceSelected(
                 requestId: interaction.requestId,
                 revision: interaction.revision,
-                value: true,
+                selectedOptionId: interaction.revision == 0
+                    ? 'nickname'
+                    : 'continue',
               ),
             SceneTextInteractionRequest() =>
               SceneInteractionResult.textSubmitted(

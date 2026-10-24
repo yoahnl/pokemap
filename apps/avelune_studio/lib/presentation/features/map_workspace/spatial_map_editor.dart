@@ -202,6 +202,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   @override
   void initState() {
     super.initState();
+    widget.view.spatialSceneController = camera;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(widget.view.spatialSceneController, camera)) {
+        widget.onChanged();
+      }
+    });
     widget.view.transform.addListener(syncZoom);
     widget.view.recenter = recenter;
     syncZoom();
@@ -267,6 +273,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   @override
   void didUpdateWidget(SpatialMapEditor old) {
     super.didUpdateWidget(old);
+    if (!identical(old.view, widget.view)) {
+      if (identical(old.view.spatialSceneController, camera)) {
+        old.view.spatialSceneController = null;
+      }
+      widget.view.spatialSceneController = camera;
+    }
     if (old.document.base.mapId != widget.document.base.mapId) {
       widget.view.spatialAnimations.clear();
     }
@@ -942,6 +954,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     widget.view.recenter = null;
     focus.dispose();
     camera.dispose();
+    if (identical(widget.view.spatialSceneController, camera)) {
+      widget.view.spatialSceneController = null;
+    }
     super.dispose();
   }
 

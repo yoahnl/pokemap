@@ -51,6 +51,7 @@ final class SpatialActorVisual {
     required this.x,
     required this.y,
     required this.z,
+    this.groundY,
     required this.texture,
     required this.frame,
     this.width,
@@ -59,6 +60,7 @@ final class SpatialActorVisual {
   }) : assert(width == null || width > 0),
        assert(height > 0);
   final double x, y, z;
+  final double? groundY;
   final SpatialActorTexture texture;
   final ui.Rect frame;
   final double? width;

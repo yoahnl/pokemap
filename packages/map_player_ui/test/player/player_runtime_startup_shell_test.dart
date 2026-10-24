@@ -31,7 +31,7 @@ void main() {
           onIntroPlaybackFailed: (_, __) {},
         ));
 
-    await tester.pumpWidget(shell(false));
+    await _pumpMeasuredStartupWidget(tester, shell(false));
     await tester.pump(const Duration(milliseconds: 350));
     expect(
         tester
@@ -39,7 +39,7 @@ void main() {
             .progress,
         0);
 
-    await tester.pumpWidget(shell(true));
+    await _pumpMeasuredStartupWidget(tester, shell(true));
     await tester.pump(const Duration(milliseconds: 350));
     expect(
         tester
@@ -57,7 +57,7 @@ void main() {
         accessibility: GameSessionAccessibilityOptions(),
       ),
     );
-    await tester.pumpWidget(_app(
+    await _pumpMeasuredStartupWidget(tester, _app(
       StatefulBuilder(builder: (context, setState) {
         return PlayerRuntimeStartupShell(
           branding: branding,
@@ -85,23 +85,20 @@ void main() {
     expect(Localizations.localeOf(tester.element(options)).languageCode, 'fr');
     expect(find.text('Général'), findsWidgets);
     final language = find.byKey(const ValueKey('options-category-language'));
-    if (language.evaluate().isEmpty) {
-      await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+    final picker = find.byKey(const ValueKey('options-category-picker'));
+    if (language.evaluate().isEmpty && picker.evaluate().isNotEmpty) {
+      await tester.tap(picker);
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(language);
+    await _revealPagedTarget(tester, language, scope: find.byKey(const ValueKey('options-categories')));
     await tester.tap(language);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('options-locale-choice')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('options-choice-en')));
     await tester.pumpAndSettle();
     expect(player.preferences!.locale, 'en');
     expect(Localizations.localeOf(tester.element(options)).languageCode, 'en');
     expect(find.text('Language'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('options-locale-choice')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('options-choice-fr')));
     await tester.pumpAndSettle();
     expect(player.preferences!.locale, 'fr');
     expect(Localizations.localeOf(tester.element(options)).languageCode, 'fr');
@@ -122,7 +119,7 @@ void main() {
       menuEffects: RuntimePlayerMenuEffects.opaque,
     );
     Future<void> pump(PlayerPreferencesSnapshot value) async {
-      await tester.pumpWidget(_app(
+      await _pumpMeasuredStartupWidget(tester, _app(
         PlayerRuntimeStartupShell(
           branding: branding,
           snapshot: _startup(
@@ -190,7 +187,7 @@ void main() {
       return completion.future;
     }
 
-    await tester.pumpWidget(_app(PlayerRuntimeStartupShell(
+    await _pumpMeasuredStartupWidget(tester, _app(PlayerRuntimeStartupShell(
       branding: branding,
       snapshot: _startup(RuntimeStartupPhase.titleMenu, player: player),
       titlePresentation: presentation,
@@ -201,11 +198,12 @@ void main() {
     )));
     await tester.pumpAndSettle();
     final audio = find.byKey(const ValueKey('options-category-audio'));
-    if (audio.evaluate().isEmpty) {
-      await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+    final picker = find.byKey(const ValueKey('options-category-picker'));
+    if (audio.evaluate().isEmpty && picker.evaluate().isNotEmpty) {
+      await tester.tap(picker);
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(audio);
+    await _revealPagedTarget(tester, audio, scope: find.byKey(const ValueKey('options-categories')));
     await tester.tap(audio);
     await tester.pumpAndSettle();
     final sliderFinder = find.byKey(const ValueKey('options-master-slider'));
@@ -216,6 +214,8 @@ void main() {
     expect(commands, hasLength(1));
     expect(commands.single.action, RuntimePlayerAction.updatePreferences);
     expect(find.byKey(const ValueKey('options-saving')), findsOneWidget);
+    await tester.pump();
+    await tester.pump();
     expect(tester.widget<Slider>(sliderFinder).onChanged, isNull);
     expect(player.preferences, same(confirmed));
     completion.complete(const RuntimePlayerCommandResult(
@@ -236,7 +236,7 @@ void main() {
 
   testWidgets('keeps host loading progress monotonic during bootstrap handoff',
       (tester) async {
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           branding: branding,
@@ -269,7 +269,7 @@ void main() {
       (tester) async {
     final controller = PlayerRuntimeStartupShellController();
     final commands = <RuntimeStartupCommand>[];
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -307,7 +307,7 @@ void main() {
   testWidgets('system Back is routed to the runtime startup policy',
       (tester) async {
     final commands = <RuntimeStartupCommand>[];
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           branding: branding,
@@ -367,7 +367,7 @@ void main() {
           onIntroPlaybackFailed: (_, __) {},
         );
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(shell(snapshot(progress: .62, ready: false, minimumElapsed: false))),
     );
     await tester.pump(const Duration(milliseconds: 5904));
@@ -385,7 +385,7 @@ void main() {
     expect(surface.animationProgress, closeTo(kPlayerSplashHoldProgress, .001));
     expect(surface.ambientProgress, ambientAtHold);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         shell(
           snapshot(
@@ -449,7 +449,7 @@ void main() {
           onIntroPlaybackFailed: (_, __) {},
         );
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         shell(
           snapshot(phase: RuntimeStartupPhase.splash, active: true),
@@ -463,7 +463,7 @@ void main() {
         )
         .animationProgress;
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         shell(
           snapshot(
@@ -483,7 +483,7 @@ void main() {
         .animationProgress;
     expect(whilePaused, beforePause);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         shell(
           snapshot(
@@ -508,7 +508,7 @@ void main() {
     final controller = PlayerRuntimeStartupShellController();
     final commands = <RuntimeStartupCommand>[];
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -551,7 +551,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       final player = _titlePlayer();
 
-      await tester.pumpWidget(
+      await _pumpMeasuredStartupWidget(tester,
         _app(
           PlayerRuntimeStartupShell(
             branding: branding,
@@ -568,12 +568,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Continuer'), findsOneWidget);
-      expect(find.text('Nouveau jeu'), findsOneWidget);
-      expect(find.text('Options'), findsOneWidget);
-      expect(find.text('Retour au Hub'), findsOneWidget);
-      expect(find.text('Charger'), findsOneWidget);
-      expect(find.text('Crédits / À propos'), findsOneWidget);
+      expect(find.text('Continuer', skipOffstage: false), findsOneWidget);
+      expect(find.text('Nouveau jeu', skipOffstage: false), findsOneWidget);
+      expect(find.text('Options', skipOffstage: false), findsOneWidget);
+      expect(find.text('Retour au Hub', skipOffstage: false), findsOneWidget);
+      expect(find.text('Charger', skipOffstage: false), findsOneWidget);
+      expect(find.text('Crédits / À propos', skipOffstage: false), findsOneWidget);
       expect(
         find.byKey(
           ValueKey<String>(
@@ -597,7 +597,7 @@ void main() {
     addTearDown(tester.view.reset);
     final commands = <RuntimePlayerCommand>[];
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           branding: branding,
@@ -624,6 +624,7 @@ void main() {
       find.byKey(const ValueKey<String>('player-title-startup-menu')),
       findsOneWidget,
     );
+    await _revealPagedTarget(tester, find.text('Retour au Hub'));
     await tester.tap(find.text('Retour au Hub'));
 
     expect(commands, hasLength(1));
@@ -636,7 +637,7 @@ void main() {
     final controller = PlayerRuntimeStartupShellController();
     final commands = <RuntimePlayerCommand>[];
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -686,7 +687,7 @@ void main() {
 
   testWidgets('title prompt hides replay even when the runtime allows it',
       (tester) async {
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           branding: branding,
@@ -719,7 +720,7 @@ void main() {
 
   testWidgets('title prompt uses authored title copy without host branding',
       (tester) async {
-    await tester.pumpWidget(_app(PlayerRuntimeStartupShell(
+    await _pumpMeasuredStartupWidget(tester, _app(PlayerRuntimeStartupShell(
       branding: branding,
       snapshot: _startup(RuntimeStartupPhase.titlePrompt, player: _titlePlayer()),
       titlePresentation: const RuntimePlayerTitlePresentation(
@@ -741,7 +742,7 @@ void main() {
 
   testWidgets('preserves authored cinematic layout in the startup menu',
       (tester) async {
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           branding: branding,
@@ -774,7 +775,7 @@ void main() {
       (tester) async {
     final commands = <RuntimePlayerCommand>[];
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           branding: branding,
@@ -794,6 +795,7 @@ void main() {
       ),
     );
 
+    await _revealPagedTarget(tester, find.text('Nouveau jeu'));
     await tester.tap(find.text('Nouveau jeu'));
     await tester.pumpAndSettle();
     expect(find.text('Remplacer la partie actuelle ?'), findsNothing);
@@ -810,7 +812,7 @@ void main() {
       player: _titlePlayer(),
     );
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -827,10 +829,11 @@ void main() {
         ),
       ),
     );
+    await _revealPagedTarget(tester, find.text('Options'));
     await tester.tap(find.text('Options'));
     expect(commands.last.action, RuntimePlayerAction.openOptions);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -858,7 +861,7 @@ void main() {
     );
     expect(commands.last.action, RuntimePlayerAction.returnToTitle);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -895,7 +898,7 @@ void main() {
       for (final scale in <double>[1, 1.3, 2]) {
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
-        await tester.pumpWidget(
+        await _pumpMeasuredStartupWidget(tester,
           _app(
             PlayerRuntimeStartupShell(
               branding: branding,
@@ -924,7 +927,7 @@ void main() {
     final controller = PlayerRuntimeStartupShellController();
     final commands = <RuntimeStartupCommand>[];
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -992,11 +995,11 @@ void main() {
         ),
       ),
     );
-    await tester.pumpWidget(host(intro: false));
+    await _pumpMeasuredStartupWidget(tester, host(intro: false));
     await tester.pump();
     final before = FocusManager.instance.primaryFocus?.context;
     expect(before?.findAncestorWidgetOfExactType<OutlinedButton>(), isNotNull);
-    await tester.pumpWidget(host(intro: true));
+    await _pumpMeasuredStartupWidget(tester, host(intro: true));
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
@@ -1026,7 +1029,7 @@ void main() {
     final pauseGate = Completer<void>();
     final playback = _GatePlaybackDriver(pauseGate);
 
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -1070,7 +1073,7 @@ void main() {
   ) async {
     final controller = PlayerRuntimeStartupShellController();
     final commands = <RuntimeStartupCommand>[];
-    await tester.pumpWidget(
+    await _pumpMeasuredStartupWidget(tester,
       _app(
         PlayerRuntimeStartupShell(
           controller: controller,
@@ -1140,7 +1143,7 @@ void main() {
           onIntroPlaybackFailed: (_, __) {},
         );
 
-    await tester.pumpWidget(_app(shell(RuntimeStartupPhase.titlePrompt)));
+    await _pumpMeasuredStartupWidget(tester, _app(shell(RuntimeStartupPhase.titlePrompt)));
     await tester.pump();
     expect(
       find.byKey(const ValueKey<String>('player-title-motion-video')),
@@ -1149,7 +1152,7 @@ void main() {
     expect(drivers, hasLength(1));
     expect(drivers.single.playCalls, 1);
 
-    await tester.pumpWidget(_app(shell(RuntimeStartupPhase.titleMenu)));
+    await _pumpMeasuredStartupWidget(tester, _app(shell(RuntimeStartupPhase.titleMenu)));
     await tester.pump();
     expect(drivers, hasLength(2));
     expect(drivers.last.playCalls, 1);
@@ -1177,13 +1180,13 @@ void main() {
           onIntroPlaybackFailed: (_, __) {},
         );
 
-    await tester.pumpWidget(_app(shell()));
+    await _pumpMeasuredStartupWidget(tester, _app(shell()));
     expect(orientations, <RuntimePresentationOrientation>[
       RuntimePresentationOrientation.portrait,
     ]);
 
     tester.view.physicalSize = const Size(844, 390);
-    await tester.pumpWidget(_app(shell()));
+    await _pumpMeasuredStartupWidget(tester, _app(shell()));
     expect(orientations.last, RuntimePresentationOrientation.landscape);
   });
 }
@@ -1336,4 +1339,29 @@ final class _GatePlaybackDriver implements PlayerIntroPlaybackDriver {
     disposeCalls++;
     _snapshots.dispose();
   }
+}
+
+Future<void> _pumpMeasuredStartupWidget(WidgetTester tester, Widget widget) async {
+  await tester.pumpWidget(widget);
+  await tester.pump();
+  await tester.pump();
+}
+
+Future<void> _revealPagedTarget(WidgetTester tester, Finder target, {Finder? scope}) async {
+  await tester.pump();
+  await tester.pump();
+  Finder buttons(String key) => scope == null
+      ? find.byKey(ValueKey(key)).hitTestable()
+      : find.descendant(of: scope, matching: find.byKey(ValueKey(key))).hitTestable();
+  for (final direction in ['player-page-previous', 'player-page-next']) {
+    for (var step = 0; step < 40 && target.evaluate().isEmpty; step++) {
+      final candidates = buttons(direction);
+      final enabled = [for (final element in candidates.evaluate())
+        if ((element.widget as IconButton).onPressed != null) element];
+      if (enabled.isEmpty) break;
+      await tester.tap(find.byElementPredicate((element) => identical(element, enabled.last)));
+      await tester.pumpAndSettle();
+    }
+  }
+  expect(target, findsOneWidget);
 }

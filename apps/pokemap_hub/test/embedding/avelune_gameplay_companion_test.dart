@@ -12,6 +12,148 @@ import 'package:pokemap_hub/embedding/avelune_gameplay_companion_app.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('native companion nickname keeps typed result revisions', (
+    tester,
+  ) async {
+    final interaction = SceneTextInteractionRequest(
+      requestId: 'gift:nickname',
+      revision: 4,
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'nickname',
+        fallbackText: 'Surnom',
+      ),
+      initialValue: 'Horloge',
+      constraints: SceneTextInputConstraints(maxGraphemes: 10),
+    );
+    final calls = await _mountMenu(
+      tester,
+      worldService: RuntimeWorldServiceSnapshot(
+        revision: 12,
+        request: OpenPokemonGiftInteractionService(
+          interactionId: 'gift:nickname',
+          interaction: interaction,
+          stage: PokemonGiftInteractionStage.nickname,
+          pokemon: const PlayerPokemon(
+            individualId: 'one',
+            speciesId: 'bird',
+            natureId: 'hardy',
+            abilityId: 'clockwork',
+            currentHp: 5,
+          ),
+          projectedState: const GameState(saveId: 'gift'),
+        ),
+        content: interaction,
+        stage: RuntimeWorldServiceStage.active,
+        actions: const [
+          RuntimeWorldServiceActionAvailability.enabled(
+            RuntimeWorldServiceAction.confirm,
+          ),
+          RuntimeWorldServiceActionAvailability.enabled(
+            RuntimeWorldServiceAction.cancel,
+          ),
+        ],
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('scene-interaction-text-field')),
+      'Pendule',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('scene-interaction-text-submit')),
+    );
+    await tester.pumpAndSettle();
+    expect(calls, hasLength(1));
+    expect(calls.single['kind'], 'worldService');
+    final payload = Map<String, dynamic>.from(calls.single['payload'] as Map);
+    expect(payload['interactionId'], 'gift:nickname');
+    final command = RuntimeCompanionPresentationCodec.decodeWorldServiceCommand(
+      payload,
+    );
+    expect(command.snapshotRevision, 12);
+    final result =
+        command.interactionResult as SceneTextSubmittedInteractionResult;
+    expect(result.requestId, 'gift:nickname');
+    expect(result.revision, 4);
+    expect(result.value, 'Pendule');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
+
+  testWidgets(
+    'native companion PC sends typed transfer to its current service',
+    (tester) async {
+      final calls = await _mountMenu(tester, worldService: _pcService());
+      expect(find.byType(PlayerPcOverlay), findsOneWidget);
+      expect(find.byKey(const ValueKey('pc-grid-6x5')), findsOneWidget);
+      expect(find.byType(Scrollable), findsNothing);
+      await tester.tap(
+        find.byKey(const ValueKey('pc-withdraw-opaque-pokemon')),
+      );
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+      expect(calls.single['kind'], 'worldService');
+      final payload = calls.single['payload'] as Map;
+      expect(payload['interactionId'], 'terminal');
+      expect(payload['snapshotRevision'], 9);
+      expect(payload['action'], 'withdraw');
+      expect(payload['targetId'], 'opaque-pokemon');
+      calls.clear();
+      await tester.tap(find.byKey(const ValueKey('pc-party-toggle')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('pc-party-slot-0')), findsOneWidget);
+      const channel = MethodChannel('com.avelune.runtime/companion');
+      for (final phase in ['press', 'release']) {
+        await _nativeCall(channel, 'input', {
+          'sessionId': 'session-grid',
+          'revision': 8,
+          'control': 'secondary',
+          'phase': phase,
+          'isRepeat': false,
+        });
+        await tester.pumpAndSettle();
+      }
+      expect(find.byKey(const ValueKey('pc-grid-6x5')), findsOneWidget);
+      expect(calls, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.iOS}),
+  );
+
+  test('world-service companion rejects stale owner revisions and deduplicates replay', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port()..service = _pcService();
+    owner.start('session-a');
+    owner.bind(port);
+    await owner.refresh();
+    owner.setCompanionAttached('session-a', true);
+    final intent = {
+      ..._intent(owner.value!),
+      'kind': 'worldService',
+      'payload': {
+        ...RuntimeCompanionPresentationCodec.encodeWorldServiceCommand(
+          const RuntimeWorldServiceCommand(
+            action: RuntimeWorldServiceAction.withdraw,
+            snapshotRevision: 9,
+            targetId: 'opaque-pokemon',
+          ),
+        ),
+        'interactionId': 'terminal',
+      },
+    };
+    await owner.applyIntent(intent);
+    await owner.applyIntent(intent);
+    expect(port.executed, hasLength(1));
+    port.service = port.service!.next(stage: RuntimeWorldServiceStage.applying);
+    await owner.refresh();
+    await expectLater(
+      owner.applyIntent({...intent, 'sequence': 2}),
+      _error('staleRevision'),
+    );
+    expect(port.executed, hasLength(1));
+  });
+
   for (final control in ['secondary', 'menu']) {
     testWidgets('companion root resumes via $control', (tester) async {
       final calls = await _mountMenu(tester);
@@ -41,41 +183,96 @@ void main() {
     (const Size(844, 390), 1.0),
     (const Size(538, 468), 1.6),
   ]) {
-    testWidgets('companion root keeps all large actions visible without scrolling $size/$textScale', (tester) async {
-      final calls = await _mountMenu(tester, size: size, textScale: textScale);
-      expect(find.byType(Scrollable), findsNothing);
-      expect(find.byType(PlayerPauseSummaryCard), findsNothing);
-      expect(find.byType(PlayerMenuHeader), findsNothing);
-      expect(find.byType(PlayerMenuFooter), findsNothing);
-      expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
-      final viewport = Offset.zero & size;
-      for (final action in PlayerPauseAction.values
-          .where((action) => action != PlayerPauseAction.resume)) {
-        final button = find.byKey(ValueKey('pause.${action.name}'));
-        expect(button, findsOneWidget);
-        final rect = tester.getRect(button);
-        expect(rect.width, greaterThanOrEqualTo(120));
-        expect(rect.height, greaterThanOrEqualTo(68));
-        expect(viewport.contains(rect.topLeft), isTrue);
-        expect(viewport.contains(rect.bottomRight), isTrue);
-      }
-      final bag = find.byKey(const ValueKey('pause.bag'));
-      final before = tester.getRect(bag);
-      await tester.drag(bag, const Offset(0, -160));
-      await tester.pumpAndSettle();
-      expect(tester.getRect(bag), before);
-      expect(calls, isEmpty);
-      await tester.tap(bag);
-      await tester.pumpAndSettle();
-      expect(calls.map((call) => call['kind']), ['pause', 'player']);
-      expect((calls.last['payload'] as Map)['action'], 'openBag');
-      expect((calls.last['payload'] as Map)['snapshotRevision'], 7);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
+    testWidgets(
+      'companion root keeps all large actions accessible without scrolling $size/$textScale',
+      (tester) async {
+        final calls = await _mountMenu(
+          tester,
+          size: size,
+          textScale: textScale,
+        );
+        expect(find.byType(Scrollable), findsNothing);
+        expect(find.byType(PlayerPauseSummaryCard), findsNothing);
+        expect(find.byType(PlayerMenuHeader), findsNothing);
+        expect(find.byType(PlayerMenuFooter), findsNothing);
+        expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
+        final viewport = Offset.zero & size;
+        final expected = PlayerPauseAction.values
+            .where((action) => action != PlayerPauseAction.resume)
+            .toSet();
+        final seen = <PlayerPauseAction>{};
+        for (var page = 0; page < expected.length; page++) {
+          for (final action in expected) {
+            final button = find.byKey(ValueKey('pause.${action.name}'));
+            if (button.evaluate().isEmpty) continue;
+            seen.add(action);
+            final rect = tester.getRect(button);
+            expect(rect.width, greaterThanOrEqualTo(120));
+            expect(rect.height, greaterThanOrEqualTo(68));
+            expect(viewport.contains(rect.topLeft), isTrue);
+            expect(viewport.contains(rect.bottomRight), isTrue);
+          }
+          final next = find.byKey(const ValueKey('player-page-next'));
+          if (next.evaluate().isEmpty ||
+              tester.widget<IconButton>(next).onPressed == null) {
+            break;
+          }
+          expect(textScale, greaterThan(1));
+          await tester.tap(next);
+          await tester.pumpAndSettle();
+        }
+        expect(seen, expected);
+        final bag = find.byKey(const ValueKey('pause.bag'));
+        while (bag.evaluate().isEmpty) {
+          await tester.tap(find.byKey(const ValueKey('player-page-previous')));
+          await tester.pumpAndSettle();
+        }
+        final before = tester.getRect(bag);
+        await tester.drag(bag, const Offset(0, -160));
+        await tester.pumpAndSettle();
+        expect(tester.getRect(bag), before);
+        expect(calls, isEmpty);
+        await tester.tap(bag);
+        await tester.pumpAndSettle();
+        expect(calls.map((call) => call['kind']), ['pause', 'player']);
+        expect((calls.last['payload'] as Map)['action'], 'openBag');
+        expect((calls.last['payload'] as Map)['snapshotRevision'], 7);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+      variant: const TargetPlatformVariant({TargetPlatform.iOS}),
+    );
   }
 
-  testWidgets('companion action grid repairs an obsolete resume selection', (tester) async {
+  testWidgets('companion paged root backs out once without a local action', (
+    tester,
+  ) async {
+    final calls = await _mountMenu(tester, textScale: 1.6);
+    await tester.tap(find.byKey(const ValueKey('player-page-next')));
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty);
+    const channel = MethodChannel('com.avelune.runtime/companion');
+    for (final phase in ['press', 'release']) {
+      await _nativeCall(channel, 'input', {
+        'sessionId': 'session-grid',
+        'revision': 8,
+        'control': 'secondary',
+        'phase': phase,
+        'isRepeat': false,
+      });
+      await tester.pumpAndSettle();
+    }
+    expect(calls, hasLength(1));
+    expect(calls.single['kind'], 'player');
+    expect((calls.single['payload'] as Map)['action'], 'resume');
+    expect((calls.single['payload'] as Map)['snapshotRevision'], 7);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
+
+  testWidgets('companion action grid repairs an obsolete resume selection', (
+    tester,
+  ) async {
     final calls = await _mountMenu(tester, logicalSelectionId: 'pause.resume');
     expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
     final party = tester.widget<PlayerMenuSelectableRow>(
@@ -87,30 +284,40 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('companion action grid retains physical direction and confirmation', (tester) async {
-    final calls = await _mountMenu(tester);
-    const channel = MethodChannel('com.avelune.runtime/companion');
-    for (final control in ['right', 'primary']) {
-      for (final phase in ['press', 'release']) {
-        await _nativeCall(channel, 'input', {
-          'sessionId': 'session-grid', 'revision': 8,
-          'control': control, 'phase': phase, 'isRepeat': false,
-        });
-        await tester.pumpAndSettle();
+  testWidgets(
+    'companion action grid retains physical direction and confirmation',
+    (tester) async {
+      final calls = await _mountMenu(tester);
+      const channel = MethodChannel('com.avelune.runtime/companion');
+      for (final control in ['right', 'primary']) {
+        for (final phase in ['press', 'release']) {
+          await _nativeCall(channel, 'input', {
+            'sessionId': 'session-grid',
+            'revision': 8,
+            'control': control,
+            'phase': phase,
+            'isRepeat': false,
+          });
+          await tester.pumpAndSettle();
+        }
+        if (control == 'right') {
+          final row = tester.widget<PlayerMenuSelectableRow>(
+            find.byKey(const ValueKey('pause.bag')),
+          );
+          expect(row.selected, isTrue);
+          expect(calls, isEmpty);
+        }
       }
-      if (control == 'right') {
-        final row = tester.widget<PlayerMenuSelectableRow>(find.byKey(const ValueKey('pause.bag')));
-        expect(row.selected, isTrue);
-        expect(calls, isEmpty);
-      }
-    }
-    expect(calls.map((call) => call['kind']), ['pause', 'player']);
-    expect((calls.last['payload'] as Map)['action'], 'openBag');
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+      expect(calls.map((call) => call['kind']), ['pause', 'player']);
+      expect((calls.last['payload'] as Map)['action'], 'openBag');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
-  testWidgets('companion action grid preserves hidden and disabled actions', (tester) async {
+  testWidgets('companion action grid preserves hidden and disabled actions', (
+    tester,
+  ) async {
     final calls = await _mountMenu(tester, hiddenPokedex: true);
     expect(find.byKey(const ValueKey('pause.pokedex')), findsNothing);
     final map = find.byKey(const ValueKey('pause.map'));
@@ -123,14 +330,17 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  test('transport starts without opening a menu or creating a player', () async {
-    final owner = AveluneGameplayCompanionOwner();
-    addTearDown(owner.dispose);
-    owner.start('session-a');
-    expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
-    expect(owner.value!.player, isNull);
-    expect(owner.value!.companionAttached, isFalse);
-  });
+  test(
+    'transport starts without opening a menu or creating a player',
+    () async {
+      final owner = AveluneGameplayCompanionOwner();
+      addTearDown(owner.dispose);
+      owner.start('session-a');
+      expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
+      expect(owner.value!.player, isNull);
+      expect(owner.value!.companionAttached, isFalse);
+    },
+  );
 
   test('menu projection preserves the canonical runtime revision', () async {
     final owner = AveluneGameplayCompanionOwner();
@@ -143,23 +353,46 @@ void main() {
     expect(state.mode, AveluneGameplayCompanionMode.menu);
     expect(state.player!.revision, 7);
     expect(port.executed, isEmpty);
-    expect(AveluneGameplayCompanionSnapshot.fromPayload(state.toPayload()).player!.revision, 7);
+    expect(
+      AveluneGameplayCompanionSnapshot.fromPayload(state.toPayload())
+          .player!
+          .revision,
+      7,
+    );
   });
 
-  test('intent rejects stale session revision mode and detached surfaces', () async {
-    final owner = AveluneGameplayCompanionOwner();
-    addTearDown(owner.dispose);
-    owner.start('session-a');
-    owner.bind(_Port());
-    await owner.refresh();
-    final state = owner.value!;
-    await expectLater(owner.applyIntent(_intent(state)), _error('companionDetached'));
-    owner.setCompanionAttached('session-a', true);
-    final attached = owner.value!;
-    await expectLater(owner.applyIntent({..._intent(attached), 'sessionId': 'old'}), _error('staleSession'));
-    await expectLater(owner.applyIntent({..._intent(attached), 'revision': attached.revision - 1}), _error('staleRevision'));
-    await expectLater(owner.applyIntent({..._intent(attached), 'mode': 'battle'}), _error('staleMode'));
-  });
+  test(
+    'intent rejects stale session revision mode and detached surfaces',
+    () async {
+      final owner = AveluneGameplayCompanionOwner();
+      addTearDown(owner.dispose);
+      owner.start('session-a');
+      owner.bind(_Port());
+      await owner.refresh();
+      final state = owner.value!;
+      await expectLater(
+        owner.applyIntent(_intent(state)),
+        _error('companionDetached'),
+      );
+      owner.setCompanionAttached('session-a', true);
+      final attached = owner.value!;
+      await expectLater(
+        owner.applyIntent({..._intent(attached), 'sessionId': 'old'}),
+        _error('staleSession'),
+      );
+      await expectLater(
+        owner.applyIntent({
+          ..._intent(attached),
+          'revision': attached.revision - 1,
+        }),
+        _error('staleRevision'),
+      );
+      await expectLater(
+        owner.applyIntent({..._intent(attached), 'mode': 'battle'}),
+        _error('staleMode'),
+      );
+    },
+  );
 
   test('duplicates and concurrent intentions never dispatch twice', () async {
     final owner = AveluneGameplayCompanionOwner();
@@ -172,7 +405,10 @@ void main() {
     final intent = _intent(owner.value!);
     final first = owner.applyIntent(intent);
     await Future<void>.delayed(Duration.zero);
-    await expectLater(owner.applyIntent({...intent, 'sequence': 2}), _error('runtimeBusy'));
+    await expectLater(
+      owner.applyIntent({...intent, 'sequence': 2}),
+      _error('runtimeBusy'),
+    );
     port.gate!.complete();
     await first;
     await owner.applyIntent(_intent(owner.value!, sequence: 1));
@@ -198,23 +434,38 @@ void main() {
     expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
   });
 
-  test('input forwards only the paused current owner to the attached companion', () async {
-    final owner = AveluneGameplayCompanionOwner();
-    addTearDown(owner.dispose);
-    final port = _Port();
-    owner.start('session-a');
-    owner.bind(port);
-    await owner.refresh();
-    owner.setCompanionAttached('session-a', true);
-    expect(owner.inputPayload(const RuntimeInputEvent.press(RuntimeInputControl.primary)), isNull);
-    port.paused = true;
-    final input = owner.inputPayload(const RuntimeInputEvent.press(RuntimeInputControl.primary));
-    expect(input!['sessionId'], 'session-a');
-    expect(input['control'], 'primary');
-    expect(input['phase'], 'press');
-    owner.setCompanionAttached('session-a', false);
-    expect(owner.inputPayload(const RuntimeInputEvent.press(RuntimeInputControl.primary)), isNull);
-  });
+  test(
+    'input forwards only the paused current owner to the attached companion',
+    () async {
+      final owner = AveluneGameplayCompanionOwner();
+      addTearDown(owner.dispose);
+      final port = _Port();
+      owner.start('session-a');
+      owner.bind(port);
+      await owner.refresh();
+      owner.setCompanionAttached('session-a', true);
+      expect(
+        owner.inputPayload(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isNull,
+      );
+      port.paused = true;
+      final input = owner.inputPayload(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      );
+      expect(input!['sessionId'], 'session-a');
+      expect(input['control'], 'primary');
+      expect(input['phase'], 'press');
+      owner.setCompanionAttached('session-a', false);
+      expect(
+        owner.inputPayload(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isNull,
+      );
+    },
+  );
 
   test('notifications coalesce reads and discard the obsolete in-flight projection', () async {
     final owner = AveluneGameplayCompanionOwner();
@@ -234,24 +485,28 @@ void main() {
     expect(owner.value!.player!.revision, 7);
   });
 
-  test('stopping invalidates an asynchronous read without resurrecting the menu', () async {
-    final owner = AveluneGameplayCompanionOwner();
-    addTearDown(owner.dispose);
-    final port = _Port()..readGate = Completer<void>();
-    owner.start('session-a');
-    owner.bind(port);
-    final completed = owner.refresh();
-    owner.stop('session-a');
-    owner.start('session-b');
-    port.readGate!.complete();
-    await completed;
-    expect(owner.value!.sessionId, 'session-b');
-    expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
-  });
+  test(
+    'stopping invalidates an asynchronous read without resurrecting the menu',
+    () async {
+      final owner = AveluneGameplayCompanionOwner();
+      addTearDown(owner.dispose);
+      final port = _Port()..readGate = Completer<void>();
+      owner.start('session-a');
+      owner.bind(port);
+      final completed = owner.refresh();
+      owner.stop('session-a');
+      owner.start('session-b');
+      port.readGate!.complete();
+      await completed;
+      expect(owner.value!.sessionId, 'session-b');
+      expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
+    },
+  );
 
   test('duplicate native notifications and replies preserve the save receipt instance', () async {
     const channel = MethodChannel('avelune.gameplay.test.receipt');
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final state = _savedSnapshot();
     messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
     final remote = AveluneGameplayCompanionRemote(channel: channel);
@@ -268,7 +523,8 @@ void main() {
 
   test('a canonical null state prevents a late intent reply from restoring the menu', () async {
     const channel = MethodChannel('avelune.gameplay.test.late-reply');
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final state = _savedSnapshot();
     final reply = Completer<Object?>();
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -281,64 +537,87 @@ void main() {
       messenger.setMockMethodCallHandler(channel, null);
     });
     await remote.attach();
-    final action = remote.send('back', {'snapshotRevision': state.player!.revision});
+    final action = remote.send('back', {
+      'snapshotRevision': state.player!.revision,
+    });
     await _nativeCall(channel, 'stateChanged', null);
     reply.complete(state.toPayload());
     await action;
     expect(remote.value, isNull);
   });
 
-  test('menu revision releases held input without accepting stale releases', () async {
-    const channel = MethodChannel('avelune.gameplay.test.revision-input');
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    final state = _savedSnapshot();
-    messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
-    final remote = AveluneGameplayCompanionRemote(channel: channel);
-    final policy = PlayerInputSourcePolicy(touchAvailable: false);
-    const owner = PlayerInputOwner(PlayerInputSource.controller, deviceId: 'owner-input-relay');
-    final accepted = <RuntimeInputEvent>[];
-    final subscription = remote.inputs.listen((event) {
-      accepted.addAll(policy.route(event, owner: owner));
-    });
-    addTearDown(() async {
-      await subscription.cancel();
-      remote.dispose();
-      messenger.setMockMethodCallHandler(channel, null);
-    });
-    await remote.attach();
-    final input = {
-      'sessionId': state.sessionId,
-      'revision': state.revision,
-      'control': 'down',
-      'phase': 'press',
-      'isRepeat': false,
-    };
-    await _nativeCall(channel, 'input', input);
-    await _nativeCall(channel, 'stateChanged', {...state.toPayload(), 'revision': 9});
-    await _nativeCall(channel, 'input', {...input, 'revision': 9});
-    await _nativeCall(channel, 'input', {...input, 'phase': 'release'});
-    expect(accepted, [
-      const RuntimeInputEvent.press(RuntimeInputControl.down),
-      const RuntimeInputEvent.release(RuntimeInputControl.down),
-      const RuntimeInputEvent.press(RuntimeInputControl.down),
-    ]);
-    await _nativeCall(channel, 'input', {...input, 'revision': 9, 'phase': 'release'});
-    await _nativeCall(channel, 'input', {...input, 'revision': 9});
-    expect(accepted, [
-      const RuntimeInputEvent.press(RuntimeInputControl.down),
-      const RuntimeInputEvent.release(RuntimeInputControl.down),
-      const RuntimeInputEvent.press(RuntimeInputControl.down),
-      const RuntimeInputEvent.release(RuntimeInputControl.down),
-      const RuntimeInputEvent.press(RuntimeInputControl.down),
-    ]);
-  });
+  test(
+    'menu revision releases held input without accepting stale releases',
+    () async {
+      const channel = MethodChannel('avelune.gameplay.test.revision-input');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final state = _savedSnapshot();
+      messenger.setMockMethodCallHandler(
+        channel,
+        (_) async => state.toPayload(),
+      );
+      final remote = AveluneGameplayCompanionRemote(channel: channel);
+      final policy = PlayerInputSourcePolicy(touchAvailable: false);
+      const owner = PlayerInputOwner(
+        PlayerInputSource.controller,
+        deviceId: 'owner-input-relay',
+      );
+      final accepted = <RuntimeInputEvent>[];
+      final subscription = remote.inputs.listen((event) {
+        accepted.addAll(policy.route(event, owner: owner));
+      });
+      addTearDown(() async {
+        await subscription.cancel();
+        remote.dispose();
+        messenger.setMockMethodCallHandler(channel, null);
+      });
+      await remote.attach();
+      final input = {
+        'sessionId': state.sessionId,
+        'revision': state.revision,
+        'control': 'down',
+        'phase': 'press',
+        'isRepeat': false,
+      };
+      await _nativeCall(channel, 'input', input);
+      await _nativeCall(channel, 'stateChanged', {
+        ...state.toPayload(),
+        'revision': 9,
+      });
+      await _nativeCall(channel, 'input', {...input, 'revision': 9});
+      await _nativeCall(channel, 'input', {...input, 'phase': 'release'});
+      expect(accepted, [
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+        const RuntimeInputEvent.release(RuntimeInputControl.down),
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+      ]);
+      await _nativeCall(channel, 'input', {
+        ...input,
+        'revision': 9,
+        'phase': 'release',
+      });
+      await _nativeCall(channel, 'input', {...input, 'revision': 9});
+      expect(accepted, [
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+        const RuntimeInputEvent.release(RuntimeInputControl.down),
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+        const RuntimeInputEvent.release(RuntimeInputControl.down),
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+      ]);
+    },
+  );
 
   for (final disconnect in ['detach', 'stop', 'surface']) {
     test('menu $disconnect releases held input', () async {
       final channel = MethodChannel('avelune.gameplay.test.$disconnect-input');
-      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       final state = _savedSnapshot();
-      messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
+      messenger.setMockMethodCallHandler(
+        channel,
+        (_) async => state.toPayload(),
+      );
       final remote = AveluneGameplayCompanionRemote(channel: channel);
       final inputs = <RuntimeInputEvent>[];
       final subscription = remote.inputs.listen(inputs.add);
@@ -376,7 +655,8 @@ void main() {
 
   test('remote input accepts only the active menu envelope', () async {
     const channel = MethodChannel('avelune.gameplay.test.input');
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     final state = _savedSnapshot();
     messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
     final remote = AveluneGameplayCompanionRemote(channel: channel);
@@ -388,12 +668,28 @@ void main() {
       messenger.setMockMethodCallHandler(channel, null);
     });
     await remote.attach();
-    final input = {'sessionId': state.sessionId, 'revision': state.revision, 'control': 'down', 'phase': 'press', 'isRepeat': false};
-    await _nativeCall(channel, 'input', {...input, 'revision': state.revision - 1});
+    final input = {
+      'sessionId': state.sessionId,
+      'revision': state.revision,
+      'control': 'down',
+      'phase': 'press',
+      'isRepeat': false,
+    };
+    await _nativeCall(channel, 'input', {
+      ...input,
+      'revision': state.revision - 1,
+    });
     await _nativeCall(channel, 'input', {...input, 'sessionId': 'old-session'});
     await _nativeCall(channel, 'input', input);
-    await _nativeCall(channel, 'stateChanged', {...state.toPayload(), 'revision': state.revision - 1});
-    await _nativeCall(channel, 'stateChanged', {...state.toPayload(), 'sessionId': 'old-session', 'revision': state.revision + 1});
+    await _nativeCall(channel, 'stateChanged', {
+      ...state.toPayload(),
+      'revision': state.revision - 1,
+    });
+    await _nativeCall(channel, 'stateChanged', {
+      ...state.toPayload(),
+      'sessionId': 'old-session',
+      'revision': state.revision + 1,
+    });
     await _nativeCall(channel, 'input', {...input, 'isRepeat': true});
     expect(inputs, [
       const RuntimeInputEvent.press(RuntimeInputControl.down),
@@ -409,6 +705,7 @@ Future<List<Map<String, dynamic>>> _mountMenu(
   double textScale = 1,
   bool hiddenPokedex = false,
   String logicalSelectionId = 'pause.party',
+  RuntimeWorldServiceSnapshot? worldService,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -416,28 +713,43 @@ Future<List<Map<String, dynamic>>> _mountMenu(
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   const channel = MethodChannel('com.avelune.runtime/companion');
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   final state = AveluneGameplayCompanionSnapshot(
-    sessionId: 'session-grid', revision: 8,
-    companionAttached: true, mode: AveluneGameplayCompanionMode.menu,
+    sessionId: 'session-grid',
+    revision: 8,
+    companionAttached: true,
+    mode: AveluneGameplayCompanionMode.menu,
     player: RuntimePlayerSnapshot(
-      revision: 7, phase: RuntimePlayerPhase.paused,
-      gameTitle: 'Avelune test', pauseSection: RuntimePlayerPauseSection.root,
+      revision: 7,
+      phase: worldService == null
+          ? RuntimePlayerPhase.paused
+          : RuntimePlayerPhase.playing,
+      worldService: worldService,
+      gameTitle: 'Avelune test',
+      pauseSection: RuntimePlayerPauseSection.root,
       logicalSelectionId: logicalSelectionId,
-      pauseMenuState: PlayerPauseMenuState(visibilityOverrides: {
-        if (hiddenPokedex) ProjectPauseActionId.pokedex: false,
-      }),
+      pauseMenuState: PlayerPauseMenuState(
+        visibilityOverrides: {
+          if (hiddenPokedex) ProjectPauseActionId.pokedex: false,
+        },
+      ),
       actions: [
         for (final action in RuntimePlayerAction.values)
           action == RuntimePlayerAction.openMap
-              ? RuntimePlayerActionAvailability.disabled(action, reason: 'Carte verrouillée')
+              ? RuntimePlayerActionAvailability.disabled(
+                  action,
+                  reason: 'Carte verrouillée',
+                )
               : RuntimePlayerActionAvailability.enabled(action),
       ],
     ),
   );
   final calls = <Map<String, dynamic>>[];
   messenger.setMockMethodCallHandler(channel, (call) async {
-    if (call.method == 'intent') calls.add(Map<String, dynamic>.from(call.arguments as Map));
+    if (call.method == 'intent') {
+      calls.add(Map<String, dynamic>.from(call.arguments as Map));
+    }
     return state.toPayload();
   });
   addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -447,33 +759,56 @@ Future<List<Map<String, dynamic>>> _mountMenu(
 }
 
 AveluneGameplayCompanionSnapshot _savedSnapshot() {
-  const address = RuntimePlayerSaveAddress(gameId: 'test-game', profileId: 'test-profile', slotId: 'test-slot');
+  const address = RuntimePlayerSaveAddress(
+    gameId: 'test-game',
+    profileId: 'test-profile',
+    slotId: 'test-slot',
+  );
   return AveluneGameplayCompanionSnapshot(
-    sessionId: 'session-a', revision: 8, companionAttached: true, mode: AveluneGameplayCompanionMode.menu,
+    sessionId: 'session-a',
+    revision: 8,
+    companionAttached: true,
+    mode: AveluneGameplayCompanionMode.menu,
     player: RuntimePlayerSnapshot(
-      revision: 7, phase: RuntimePlayerPhase.paused, gameTitle: 'Avelune test', activeSaveAddress: address,
-      saveReceipt: const RuntimePlayerSaveReceipt(address: address, trigger: GameSessionCheckpointTrigger.manual),
+      revision: 7,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Avelune test',
+      activeSaveAddress: address,
+      saveReceipt: const RuntimePlayerSaveReceipt(
+        address: address,
+        trigger: GameSessionCheckpointTrigger.manual,
+      ),
     ),
   );
 }
 
-Future<Object?> _nativeCall(MethodChannel channel, String method, Object? arguments) {
+Future<Object?> _nativeCall(
+  MethodChannel channel,
+  String method,
+  Object? arguments,
+) {
   const codec = StandardMethodCodec();
   final complete = Completer<Object?>();
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
-    channel.name, codec.encodeMethodCall(MethodCall(method, arguments)), (reply) {
-      try {
-        if (reply == null) throw MissingPluginException();
-        complete.complete(codec.decodeEnvelope(reply));
-      } on Object catch (error) {
-        complete.completeError(error);
-      }
-    },
-  );
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .handlePlatformMessage(
+        channel.name,
+        codec.encodeMethodCall(MethodCall(method, arguments)),
+        (reply) {
+          try {
+            if (reply == null) throw MissingPluginException();
+            complete.complete(codec.decodeEnvelope(reply));
+          } on Object catch (error) {
+            complete.completeError(error);
+          }
+        },
+      );
   return complete.future;
 }
 
-Map<String, Object?> _intent(AveluneGameplayCompanionSnapshot state, {int sequence = 1}) => {
+Map<String, Object?> _intent(
+  AveluneGameplayCompanionSnapshot state, {
+  int sequence = 1,
+}) => {
   'sessionId': state.sessionId,
   'revision': state.revision,
   'mode': state.mode.name,
@@ -481,11 +816,16 @@ Map<String, Object?> _intent(AveluneGameplayCompanionSnapshot state, {int sequen
   'sequence': sequence,
   'kind': 'player',
   'payload': RuntimeCompanionPresentationCodec.encodePlayerCommand(
-    RuntimePlayerCommand(action: RuntimePlayerAction.openParty, snapshotRevision: state.player!.revision),
+    RuntimePlayerCommand(
+      action: RuntimePlayerAction.openParty,
+      snapshotRevision: state.player!.revision,
+    ),
   ),
 };
 
-Matcher _error(String code) => throwsA(isA<PlatformException>().having((error) => error.code, 'code', code));
+Matcher _error(String code) => throwsA(
+  isA<PlatformException>().having((error) => error.code, 'code', code),
+);
 
 class _Port implements AveluneGameplayCompanionOwnerPort {
   final executed = <Map<String, Object?>>[];
@@ -495,6 +835,7 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
   int concurrentReads = 0;
   int maximumConcurrentReads = 0;
   bool paused = false;
+  RuntimeWorldServiceSnapshot? service;
 
   @override
   bool get isPaused => paused;
@@ -503,23 +844,68 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
   Future<AveluneGameplayCompanionData> read() async {
     reads++;
     concurrentReads++;
-    if (concurrentReads > maximumConcurrentReads) maximumConcurrentReads = concurrentReads;
+    if (concurrentReads > maximumConcurrentReads) {
+      maximumConcurrentReads = concurrentReads;
+    }
     await readGate?.future;
     concurrentReads--;
     return AveluneGameplayCompanionData(
-    mode: AveluneGameplayCompanionMode.menu,
-    player: RuntimePlayerSnapshot(
-      revision: 7,
-      phase: RuntimePlayerPhase.paused,
-      gameTitle: 'Avelune test',
-      actions: const [RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openParty)],
-    ),
+      mode: AveluneGameplayCompanionMode.menu,
+      player: RuntimePlayerSnapshot(
+        revision: 7,
+        phase: RuntimePlayerPhase.paused,
+        worldService: service,
+        gameTitle: 'Avelune test',
+        actions: const [
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openParty,
+          ),
+        ],
+      ),
     );
   }
 
   @override
-  Future<void> execute(String kind, Map<String, Object?> payload, AveluneGameplayCompanionSnapshot expected) async {
+  Future<void> execute(
+    String kind,
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
+  ) async {
     executed.add(payload);
     await gate?.future;
   }
 }
+
+RuntimeWorldServiceSnapshot _pcService() => RuntimeWorldServiceSnapshot(
+  revision: 9,
+  request: const OpenPcService(interactionId: 'terminal'),
+  stage: RuntimeWorldServiceStage.active,
+  content: RuntimePcServiceContent(
+    title: 'PC companion',
+    message: '',
+    selectedBoxId: 'box',
+    boxes: const [
+      RuntimePcBoxSnapshot(boxId: 'box', label: 'Box', count: 1, capacity: 30),
+    ],
+    stored: [
+      RuntimePcPokemonSnapshot(
+        targetId: 'opaque-pokemon',
+        label: 'Bird',
+        speciesId: 'bird',
+        level: 7,
+        natureId: 'hardy',
+        abilityId: 'clockwork',
+        currentHp: 5,
+        canTransfer: true,
+      ),
+    ],
+  ),
+  actions: const [
+    RuntimeWorldServiceActionAvailability.enabled(
+      RuntimeWorldServiceAction.withdraw,
+    ),
+    RuntimeWorldServiceActionAvailability.enabled(
+      RuntimeWorldServiceAction.close,
+    ),
+  ],
+);

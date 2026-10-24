@@ -57,7 +57,9 @@ final class SpatialSmartTileAnimationController {
     );
   }
 
-  void onPlayerEnteredCell(GridPos cell) {
+  void onPlayerEnteredCell(GridPos cell) => onActorEnteredCell(cell);
+
+  void onActorEnteredCell(GridPos cell) {
     _rasterAnimations.onPlayerEnteredCell(cell);
     for (final id in _instancesByCell[cell] ?? const <String>[]) {
       _startedAt[id] = _elapsed;

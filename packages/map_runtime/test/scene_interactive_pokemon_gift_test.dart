@@ -55,7 +55,150 @@ void main() {
   const project = ProjectManifest(name: 'Gift', maps: [], tilesets: []);
   const initial = GameState(saveId: 'gift', currentMapId: 'lab');
 
-  for (final nickname in [null, '', '   ', ' Horloge ', 'Horloge', '👩‍🚀' * 10]) {
+  test(
+    'one prepared receipt offers nickname and cancellation preserves gift',
+    () async {
+      final stages = <PokemonGiftInteractionStage>[];
+      final names = <String>[];
+      var receipts = 0;
+      final catalog = giftCatalog();
+      final result = await receiveScenePokemonFromCatalog(
+        command: giftCommand(dex: true),
+        operationId: 'receipt',
+        project: project,
+        readProjectedState: () => initial,
+        catalog: catalog,
+        present: (request) async {
+          stages.add(request.stage);
+          names.add(request.pokemon.nickname);
+          expect(initial.party.members, isEmpty);
+          final interaction = request.interaction;
+          if (request.stage == PokemonGiftInteractionStage.received) {
+            expect(interaction, isA<SceneChoiceInteractionRequest>());
+            receipts += 1;
+            return SceneInteractionResult.choiceSelected(
+              requestId: interaction.requestId,
+              revision: interaction.revision,
+              selectedOptionId: receipts == 1 ? 'nickname' : 'continue',
+            );
+          }
+          expect(request.stage, PokemonGiftInteractionStage.nickname);
+          return SceneInteractionResult.cancelled(
+            requestId: interaction.requestId,
+            revision: interaction.revision,
+            reason: SceneInteractionCancellationReason.user,
+          );
+        },
+      );
+
+      expect(stages, [
+        PokemonGiftInteractionStage.received,
+        PokemonGiftInteractionStage.nickname,
+        PokemonGiftInteractionStage.received,
+      ]);
+      expect(names, ['', '', '']);
+      final committed = result.prepared!.commit(
+        initial,
+        catalog: catalog,
+        project: project,
+      );
+      expect(committed.party.members.single.nickname, '');
+      expect(committed.progression.caughtSpeciesIds, contains('clockbird'));
+      expect(committed.appliedPokemonGrantOperationIds, {'receipt'});
+    },
+  );
+
+  test(
+    'cancelling another nickname keeps the last validated name and identity',
+    () async {
+      var receipts = 0;
+      var nicknameEntries = 0;
+      String? individualId;
+      final revisions = <int>[];
+      final result = await receiveScenePokemonFromCatalog(
+        command: giftCommand(),
+        operationId: 'rename-again',
+        project: project,
+        readProjectedState: () => initial,
+        catalog: giftCatalog(),
+        present: (request) async {
+          individualId ??= request.pokemon.individualId;
+          expect(request.pokemon.individualId, individualId);
+          expect(request.projectedState.party.members.single, request.pokemon);
+          final interaction = request.interaction;
+          revisions.add(interaction.revision);
+          if (interaction is SceneChoiceInteractionRequest) {
+            receipts += 1;
+            if (receipts > 1) expect(request.pokemon.nickname, 'Pendule');
+            return SceneInteractionResult.choiceSelected(
+              requestId: interaction.requestId,
+              revision: interaction.revision,
+              selectedOptionId: receipts < 3 ? 'nickname' : 'continue',
+            );
+          }
+          final text = interaction as SceneTextInteractionRequest;
+          nicknameEntries += 1;
+          if (nicknameEntries == 1) {
+            expect(text.initialValue, '');
+            return SceneInteractionResult.textSubmitted(
+              requestId: text.requestId,
+              revision: text.revision,
+              value: 'Pendule',
+            );
+          }
+          expect(text.initialValue, 'Pendule');
+          return SceneInteractionResult.cancelled(
+            requestId: text.requestId,
+            revision: text.revision,
+            reason: SceneInteractionCancellationReason.user,
+          );
+        },
+      );
+      expect(revisions, [0, 1, 2, 3, 4]);
+      expect(initial.party.members, isEmpty);
+      expect(result.prepared!.pokemon.nickname, 'Pendule');
+      expect(result.prepared!.pokemon.individualId, individualId);
+    },
+  );
+
+  test('stale nickname cancellation cannot preserve a prepared gift', () async {
+    await expectLater(
+      receiveScenePokemonFromCatalog(
+        command: giftCommand(),
+        operationId: 'stale-nickname',
+        project: project,
+        readProjectedState: () => initial,
+        catalog: giftCatalog(),
+        present: (request) async {
+          final interaction = request.interaction;
+          if (interaction is SceneChoiceInteractionRequest) {
+            return SceneInteractionResult.choiceSelected(
+              requestId: interaction.requestId,
+              revision: interaction.revision,
+              selectedOptionId: 'nickname',
+            );
+          }
+          return SceneInteractionResult.cancelled(
+            requestId: interaction.requestId,
+            revision: interaction.revision - 1,
+            reason: SceneInteractionCancellationReason.user,
+          );
+        },
+      ),
+      throwsStateError,
+    );
+    expect(initial.party.members, isEmpty);
+    expect(initial.appliedPokemonGrantOperationIds, isEmpty);
+  });
+
+  for (final nickname in [
+    null,
+    '',
+    '   ',
+    ' Horloge ',
+    'Horloge',
+    '👩‍🚀' * 10,
+  ]) {
     test(
       'stages nickname=$nickname without state write and commits exact native Pokemon',
       () async {
@@ -70,16 +213,19 @@ void main() {
           catalog: catalog,
           present: (request) async {
             stages.add(request.stage.name);
-            if (request.stage == PokemonGiftInteractionStage.destination) {
+            if (request.stage == PokemonGiftInteractionStage.received) {
               destinationPokemon = request.pokemon;
             }
             final interaction = request.interaction;
             return switch (interaction) {
-              SceneConfirmationInteractionRequest() =>
-                SceneInteractionResult.confirmed(
+              SceneChoiceInteractionRequest() =>
+                SceneInteractionResult.choiceSelected(
                   requestId: interaction.requestId,
                   revision: interaction.revision,
-                  value: nickname != null,
+                  selectedOptionId:
+                      nickname != null && interaction.revision == 0
+                      ? 'nickname'
+                      : 'continue',
                 ),
               SceneTextInteractionRequest() =>
                 SceneInteractionResult.textSubmitted(
@@ -98,9 +244,7 @@ void main() {
         expect(result.outputPortId, 'party');
         expect(stages, [
           'received',
-          'nicknameConfirmation',
-          if (nickname != null) 'nickname',
-          'destination',
+          if (nickname != null) ...['nickname', 'received'],
         ]);
         final prepared = result.prepared!;
         final applied = prepared.commit(
@@ -142,7 +286,7 @@ void main() {
     'overrideVisible',
   ]) {
     test('Pokedex presentation obeys native availability mode=$mode', () async {
-      final stages = <PokemonGiftInteractionStage>[];
+      final newEntries = <bool>[];
       final manifest = project.copyWith(
         presentation: ProjectPresentationProfile(
           pause: ProjectPausePresentationProfile(
@@ -173,17 +317,15 @@ void main() {
         readProjectedState: () => state,
         catalog: giftCatalog(),
         present: (request) async {
-          stages.add(request.stage);
+          newEntries.add(request.isNewPokedexEntry);
+          expect(request.stage, PokemonGiftInteractionStage.received);
           return SceneInteractionResult.acknowledged(
             requestId: request.interaction.requestId,
             revision: request.interaction.revision,
           );
         },
       );
-      expect(
-        stages.contains(PokemonGiftInteractionStage.pokedex),
-        ['visible', 'overrideVisible'].contains(mode),
-      );
+      expect(newEntries.single, ['visible', 'overrideVisible'].contains(mode));
       expect(result.prepared, isNotNull);
       expect(state.party.members, isEmpty);
     });
@@ -322,11 +464,11 @@ void main() {
           catalog: giftCatalog(),
           present: (request) async {
             final i = request.interaction;
-            if (i is SceneConfirmationInteractionRequest) {
-              return SceneInteractionResult.confirmed(
+            if (i is SceneChoiceInteractionRequest) {
+              return SceneInteractionResult.choiceSelected(
                 requestId: i.requestId,
                 revision: i.revision,
-                value: true,
+                selectedOptionId: 'nickname',
               );
             }
             if (i is SceneTextInteractionRequest) {

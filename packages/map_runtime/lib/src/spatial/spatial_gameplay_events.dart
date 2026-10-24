@@ -196,6 +196,9 @@ final class SpatialGameplayEvents {
   final String Function(String) _runtimeIdFactory;
   final Random _random;
   final DateTime Function() _now;
+  late final _encounterConditionContext = ScriptEvaluationContext(
+    narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts),
+  );
   final SpatialLegacyEventFallback? _legacyFallback;
   final SpatialSceneConsequenceWriterFactory? _buildSceneConsequenceWriter;
   final Future<void> Function(GameState)? _afterStateCommitted;
@@ -502,12 +505,15 @@ final class SpatialGameplayEvents {
         return null;
       }
       final world = projectWorld();
+      final now = _now();
       final check = checkEncounterAtPlayerPosition(
         world: world,
         project: project,
         encounterKind: encounterKind,
         gameState: _readGameState(),
         random: _random,
+        conditionContext: _encounterConditionContext,
+        encounterContext: EncounterEvaluationContext.fromLocalTime(now),
       );
       final encounter = check.encounter;
       if (check.triggered && encounter != null) {
@@ -515,7 +521,7 @@ final class SpatialGameplayEvents {
           buildBattleStartRequestFromEncounter(
             encounter: encounter,
             world: world,
-            createdAtEpochMs: _now().millisecondsSinceEpoch,
+            createdAtEpochMs: now.millisecondsSinceEpoch,
           ),
         );
         _ensureCurrent();

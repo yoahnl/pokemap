@@ -17,7 +17,9 @@ final class SpatialMapActions {
     'map3d.instance.delete': 'instanceId',
     'map3d.instance.delete_batch': 'instanceIds',
     'map3d.camera.configure': 'camera',
+    'map3d.day_night.configure': 'cycle',
     'map3d.navigation.configure': 'navigation',
+    'map3d.ledge.configure': 'ledges',
   };
   static final descriptors = [
     for (final entry in _fields.entries)
@@ -36,6 +38,8 @@ final class SpatialMapActions {
           'instanceId' => 'Delete a 3D model instance',
           'instanceIds' => 'Delete bounded 3D instances atomically on one map',
           'navigation' => 'Configure spawn, ramps and exploration movement',
+          'ledges' => 'Configure one-way native ledge jumps and their landing cells',
+          'cycle' => 'Configure or disable a visual day/night cycle without changing gameplay time',
           _ => 'Configure a fixed 3D map camera',
         },
         inputSchemaId: 'schema.${entry.key}.input.v1',
@@ -51,6 +55,11 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (entry.value == 'ledges') 'directionalTraversal': {'capability': SpatialLedge.capabilityId, 'coordinateOrigin': 'source_cell', 'landing': 'source_plus_direction_times_distance', 'blockedReverse': true},
+          if (entry.value == 'cycle') 'visualClock': {
+            'gameplayClockIndependent': true, 'capability': 'map3d.day-night@1',
+            'disabled': null, 'durationUnits': 'seconds_per_full_day',
+          },
           if (entry.value == 'camera') ...{
             'projections': ['perspective', 'orthographic'],
             'orthographicHeightUnits': 'world_cells_full_vertical_extent',
@@ -159,6 +168,10 @@ final class SpatialMapActions {
             }).toList()),
         'instance' => _upsertInstance(context),
         'navigation' => _configureNavigation(context),
+        'ledges' => operations.configureNavigation(context.map, context.map.spatialScene!.navigation.copyWith(ledges: context.parameters.list('ledges').map((value) => SpatialLedge.fromJson(_object(value, {'id','x','z','direction','distance','durationMs','height'})))), models: context.manifest.models3d),
+        'cycle' => operations.configureDayNightCycle(context.map,
+          context.parameters.value(field) == null ? null : SpatialDayNightCycle.fromJson(
+            _object(context.parameters.value(field), {'durationSeconds', 'startMinuteOfDay'}))),
         'instanceId' => operations.deleteInstance(
             context.map, context.parameters.string(field)),
         _ => operations.configureCamera(
@@ -241,7 +254,7 @@ MapData _upsertInstance(SemanticMapActionContext context) {
 MapData _configureNavigation(SemanticMapActionContext context) {
   final navigation = SpatialNavigationProfile.fromJson(_object(
     context.parameters.object('navigation'),
-    {'spawn', 'allowDiagonalMovement', 'ramps', 'blockedAreas'},
+    {'spawn', 'allowDiagonalMovement', 'ramps', 'blockedAreas', 'ledges'},
   ));
   for (final ramp in navigation.ramps) {
     final surfaceId = ramp.surfaceInstanceId;
@@ -463,6 +476,13 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'cycle' => {
+        'type': ['object', 'null'], 'additionalProperties': false,
+        'properties': {
+          'durationSeconds': {'type': 'number', 'minimum': 10, 'maximum': 86400, 'default': 600},
+          'startMinuteOfDay': {'type': 'integer', 'minimum': 0, 'maximum': 1439, 'default': 720},
+        },
+      },
       'instanceIds' => {
           'type': 'array',
           'minItems': 1,
@@ -493,6 +513,18 @@ Map<String, Object?> _schema(String field) => switch (field) {
             'rowSpan': {'type': 'integer', 'minimum': 1},
           },
         },
+      'ledges' => {
+        'type': 'array', 'maxItems': 4096,
+        'items': {'type':'object', 'additionalProperties':false,
+          'required':['id','x','z','direction'], 'properties': {
+            'id': {'type':'string', 'pattern':r'^[a-zA-Z0-9_-]{1,128}$'},
+            'x': {'type':'integer','minimum':0,'maximum':255},
+            'z': {'type':'integer','minimum':0,'maximum':255},
+            'direction': {'enum':['north','south','east','west']},
+            'distance': {'type':'integer','minimum':2,'maximum':4},
+            'durationMs': {'type':'integer','minimum':100,'maximum':2000},
+            'height': {'type':'number','exclusiveMinimum':0,'maximum':4},
+          }}},
       'navigation' => {
           'type': 'object',
           'additionalProperties': false,
@@ -512,6 +544,7 @@ Map<String, Object?> _schema(String field) => switch (field) {
                 'z': {'type': 'number', 'minimum': 0, 'exclusiveMaximum': 256}
               }
             },
+            'ledges': _schema('ledges'),
             'allowDiagonalMovement': {'type': 'boolean'},
             'ramps': {
               'type': 'array',

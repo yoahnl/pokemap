@@ -239,7 +239,7 @@ final class RuntimeProjectProjectionBuilder {
           path: diagnostic.path,
           message: diagnostic.message);
     }
-    final presentation = authorProject.presentation ??
+    var presentation = authorProject.presentation ??
         ProjectPresentationProfile(
           branding: ProjectBrandingProfile(
             iconPath: profile.iconPath,
@@ -507,10 +507,20 @@ final class RuntimeProjectProjectionBuilder {
       authorProject,
       authorFiles,
       budget,
-      retainedSourceAssetIds: authorFiles.catalog.records
-          .where((record) => regionalImagePaths.contains(record.logicalPath))
-          .map((record) => record.id)
-          .toSet(),
+      retainedSourceAssetIds: {
+        for (final record in authorFiles.catalog.records)
+          if (regionalImagePaths.contains(record.logicalPath)) record.id,
+        for (final character in projectedProject.characters) ...[
+          for (final clip in character.animations)
+            if (clip.sourceAssetId != null) clip.sourceAssetId!,
+          for (final clip in character.customAnimations) clip.sourceAssetId,
+          for (final portrait in character.portraits) portrait.assetId,
+        ],
+        for (final tileset in projectedProject.tilesets)
+          if (tileset.source case ProjectRegularAtlasTilesetSource source)
+            source.assetId,
+        for (final model in projectedProject.models3d) model.sourceAssetId,
+      },
     );
 
     final mediaPaths = <String>{
@@ -549,7 +559,12 @@ final class RuntimeProjectProjectionBuilder {
       aliasedMedia[target] = await authorFiles.read(relative, budget);
     }
     if (mediaAliases.isNotEmpty) {
+      presentation = ProjectPresentationProfile.fromJson(
+        _rewritePresentationMediaPaths(presentation.toJson(), mediaAliases)
+            as Map<String, dynamic>,
+      );
       projectedProject = projectedProject.copyWith(
+        presentation: presentation,
         tilesets: [
           for (final entry in projectedProject.tilesets)
             entry.copyWith(
@@ -1354,6 +1369,36 @@ final class RuntimeProjectProjectionBuilder {
       return _JsonScrubResult(result, removed);
     }
     return _JsonScrubResult(value, 0);
+  }
+
+  Object? _rewritePresentationMediaPaths(
+      Object? value, Map<String, String> aliases) {
+    if (value is List) {
+      return value
+          .map((child) => _rewritePresentationMediaPaths(child, aliases))
+          .toList(growable: false);
+    }
+    if (value is Map<String, dynamic>) {
+      const pathKeys = {
+        'iconPath',
+        'coverPath',
+        'heroPath',
+        'titleMusicPath',
+        'imagePath',
+        'videoPath',
+        'posterPath',
+        'captionsPath',
+        'fontPath',
+        'licensePath',
+      };
+      return <String, dynamic>{
+        for (final entry in value.entries)
+          entry.key: pathKeys.contains(entry.key) && entry.value is String
+              ? aliases[entry.value] ?? entry.value
+              : _rewritePresentationMediaPaths(entry.value, aliases),
+      };
+    }
+    return value;
   }
 
   Object? _rewriteLegacyDialogueReferences(Object? value) {

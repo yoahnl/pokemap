@@ -3,6 +3,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_components.dart';
+import '../foundation/player_paged_layout.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_control_profile.dart';
@@ -77,141 +80,211 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
       child: RuntimePlayerInputBindings(
         controlProfile: controlProfile,
         hardwareGamepadEnabled: hardwareGamepadEnabled,
-        child: ColoredBox(
-          color: context.playerColors.scrim,
-          child: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(PlayerSpacing.md),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 640),
-                  child: PlayerPanel(
-                    surfaceRole: ProjectPresentationSurfaceRole.confirmation,
-                    elevated: true,
-                    padding: const EdgeInsets.all(PlayerSpacing.md),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          text('Échange de l’équipe', 'Party trade'),
-                          style: Theme.of(context).textTheme.headlineSmall,
+        child: Focus(
+          autofocus: true,
+          child: PlayerMenuThemeScope(
+            role: ProjectPresentationSurfaceRole.confirmation,
+            child: Builder(
+              builder: (context) => ColoredBox(
+                color: context.playerColors.scrim,
+                child: SafeArea(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 800,
+                          maxHeight: 760,
                         ),
-                        const SizedBox(height: PlayerSpacing.sm),
-                        Text(message),
-                        const SizedBox(height: PlayerSpacing.md),
-                        if (applying)
-                          const LinearProgressIndicator()
-                        else if (!failed && !completed && content != null) ...[
-                          if (phase == RuntimePartyTradePhase.selectFirst ||
-                              phase == RuntimePartyTradePhase.selectPartner)
-                            for (final member in content.members)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: PlayerSpacing.xs,
+                        child: PlayerMenuPanel(
+                          primary: true,
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                text('Échange de l’équipe', 'Party trade'),
+                                style: context.playerMenuTheme.title,
+                              ),
+                              const SizedBox(height: 8),
+                              Expanded(
+                                child: PlayerPagedList(
+                                  key: ValueKey('trade-${phase?.name}'),
+                                  children: [
+                                    Text(message),
+                                    if (applying)
+                                      const LinearProgressIndicator(),
+                                    if (!failed &&
+                                        !completed &&
+                                        content != null) ...[
+                                      if (phase ==
+                                              RuntimePartyTradePhase
+                                                  .selectFirst ||
+                                          phase ==
+                                              RuntimePartyTradePhase
+                                                  .selectPartner)
+                                        for (final member in content.members)
+                                          PlayerActionButton(
+                                            key: ValueKey(
+                                              'party-trade-pokemon-${member.individualId}',
+                                            ),
+                                            label:
+                                                '${member.label} · ${text('Niv.', 'Lv.')} ${member.level}',
+                                            icon: Icons.catching_pokemon,
+                                            autofocus:
+                                                member == content.members.first,
+                                            onPressed:
+                                                snapshot.isActionEnabled(
+                                                  RuntimeWorldServiceAction
+                                                      .select,
+                                                )
+                                                ? () => _emit(
+                                                    RuntimeWorldServiceAction
+                                                        .select,
+                                                    targetId:
+                                                        member.individualId,
+                                                  )
+                                                : null,
+                                          ),
+                                      if (phase ==
+                                          RuntimePartyTradePhase
+                                              .choosePartner) ...[
+                                        PlayerActionButton(
+                                          key: const ValueKey(
+                                            'party-trade-other-partner',
+                                          ),
+                                          label: text(
+                                            'Choisir un partenaire',
+                                            'Choose a partner',
+                                          ),
+                                          icon: Icons.people_outline,
+                                          autofocus: true,
+                                          onPressed:
+                                              snapshot.isActionEnabled(
+                                                RuntimeWorldServiceAction
+                                                    .select,
+                                              )
+                                              ? () => _emit(
+                                                  RuntimeWorldServiceAction
+                                                      .select,
+                                                  targetId:
+                                                      RuntimePartyTradeServiceContent
+                                                          .otherPartnerTarget,
+                                                )
+                                              : null,
+                                        ),
+                                        PlayerActionButton(
+                                          key: const ValueKey(
+                                            'party-trade-same-partner',
+                                          ),
+                                          label: text(
+                                            'Avec lui-même',
+                                            'With itself',
+                                          ),
+                                          icon: Icons.person_outline,
+                                          secondary: true,
+                                          onPressed:
+                                              snapshot.isActionEnabled(
+                                                RuntimeWorldServiceAction
+                                                    .select,
+                                              )
+                                              ? () => _emit(
+                                                  RuntimeWorldServiceAction
+                                                      .select,
+                                                  targetId:
+                                                      RuntimePartyTradeServiceContent
+                                                          .samePartnerTarget,
+                                                )
+                                              : null,
+                                        ),
+                                      ],
+                                      if (phase ==
+                                          RuntimePartyTradePhase.review) ...[
+                                        Text(
+                                          '${text('Pokémon :', 'Pokémon:')} ${label(content.firstIndividualId)}',
+                                        ),
+                                        Text(
+                                          '${text('Partenaire :', 'Partner:')} ${label(content.partnerIndividualId)}',
+                                        ),
+                                      ],
+                                    ],
+                                    if (snapshot.safeMessage case final safe?
+                                        when safe.isNotEmpty)
+                                      Semantics(
+                                        liveRegion: true,
+                                        child: Text(safe),
+                                      ),
+                                  ],
                                 ),
-                                child: PlayerActionButton(
-                                  key: ValueKey(
-                                    'party-trade-pokemon-${member.individualId}',
-                                  ),
-                                  label:
-                                      '${member.label} · ${text('Niv.', 'Lv.')} ${member.level}',
-                                  icon: Icons.catching_pokemon,
-                                  autofocus: member == content.members.first,
-                                  onPressed:
-                                      snapshot.isActionEnabled(
-                                        RuntimeWorldServiceAction.select,
-                                      )
-                                      ? () => _emit(
-                                          RuntimeWorldServiceAction.select,
-                                          targetId: member.individualId,
-                                        )
-                                      : null,
+                              ),
+                              if (!applying) const SizedBox(height: 12),
+                              if (!applying)
+                                Row(
+                                  children: [
+                                    if (phase ==
+                                            RuntimePartyTradePhase.review &&
+                                        !failed &&
+                                        !completed) ...[
+                                      Expanded(
+                                        child: PlayerActionButton(
+                                          key: const ValueKey(
+                                            'party-trade-confirm',
+                                          ),
+                                          label: text(
+                                            'Confirmer l’échange',
+                                            'Confirm trade',
+                                          ),
+                                          icon: Icons.check,
+                                          autofocus: true,
+                                          onPressed:
+                                              snapshot.isActionEnabled(
+                                                RuntimeWorldServiceAction
+                                                    .confirm,
+                                              )
+                                              ? () => _emit(
+                                                  RuntimeWorldServiceAction
+                                                      .confirm,
+                                                )
+                                              : null,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Expanded(
+                                      child: PlayerActionButton(
+                                        key: ValueKey(
+                                          completed || failed
+                                              ? 'party-trade-close'
+                                              : 'party-trade-cancel',
+                                        ),
+                                        label: completed || failed
+                                            ? context.playerL10n.close
+                                            : text('Annuler', 'Cancel'),
+                                        icon: Icons.close,
+                                        secondary: true,
+                                        onPressed:
+                                            snapshot.isActionEnabled(
+                                              RuntimeWorldServiceAction.cancel,
+                                            )
+                                            ? () => _emit(
+                                                RuntimeWorldServiceAction
+                                                    .cancel,
+                                              )
+                                            : snapshot.isActionEnabled(
+                                                RuntimeWorldServiceAction.close,
+                                              )
+                                            ? () => _emit(
+                                                RuntimeWorldServiceAction.close,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                          if (phase ==
-                              RuntimePartyTradePhase.choosePartner) ...[
-                            PlayerActionButton(
-                              key: const ValueKey('party-trade-other-partner'),
-                              label: text(
-                                'Choisir un partenaire',
-                                'Choose a partner',
-                              ),
-                              icon: Icons.people_outline,
-                              autofocus: true,
-                              onPressed: () => _emit(
-                                RuntimeWorldServiceAction.select,
-                                targetId: RuntimePartyTradeServiceContent
-                                    .otherPartnerTarget,
-                              ),
-                            ),
-                            const SizedBox(height: PlayerSpacing.xs),
-                            PlayerActionButton(
-                              key: const ValueKey('party-trade-same-partner'),
-                              label: text('Avec lui-même', 'With itself'),
-                              icon: Icons.person_outline,
-                              secondary: true,
-                              onPressed: () => _emit(
-                                RuntimeWorldServiceAction.select,
-                                targetId: RuntimePartyTradeServiceContent
-                                    .samePartnerTarget,
-                              ),
-                            ),
-                          ],
-                          if (phase == RuntimePartyTradePhase.review) ...[
-                            Text(
-                              '${text('Pokémon :', 'Pokémon:')} ${label(content.firstIndividualId)}',
-                            ),
-                            Text(
-                              '${text('Partenaire :', 'Partner:')} ${label(content.partnerIndividualId)}',
-                            ),
-                            const SizedBox(height: PlayerSpacing.sm),
-                            PlayerActionButton(
-                              key: const ValueKey('party-trade-confirm'),
-                              label: text(
-                                'Confirmer l’échange',
-                                'Confirm trade',
-                              ),
-                              icon: Icons.check,
-                              autofocus: true,
-                              onPressed:
-                                  snapshot.isActionEnabled(
-                                    RuntimeWorldServiceAction.confirm,
-                                  )
-                                  ? () =>
-                                        _emit(RuntimeWorldServiceAction.confirm)
-                                  : null,
-                            ),
-                          ],
-                        ],
-                        if (snapshot.safeMessage case final safe?
-                            when safe.isNotEmpty) ...[
-                          const SizedBox(height: PlayerSpacing.sm),
-                          Text(safe),
-                        ],
-                        if (!applying) ...[
-                          const SizedBox(height: PlayerSpacing.sm),
-                          PlayerActionButton(
-                            key: ValueKey(
-                              completed || failed
-                                  ? 'party-trade-close'
-                                  : 'party-trade-cancel',
-                            ),
-                            label: completed || failed
-                                ? context.playerL10n.close
-                                : text('Annuler', 'Cancel'),
-                            icon: Icons.close,
-                            secondary: true,
-                            onPressed: () => _emit(
-                              snapshot.isActionEnabled(
-                                    RuntimeWorldServiceAction.cancel,
-                                  )
-                                  ? RuntimeWorldServiceAction.cancel
-                                  : RuntimeWorldServiceAction.close,
-                            ),
+                            ],
                           ),
-                        ],
-                      ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

@@ -182,16 +182,30 @@ final class SpatialExplorationSession {
     _companionCharacter = bundle.manifest.characters
         .where((actor) => actor.id == visual.characterId)
         .firstOrNull;
+    final previousCompanion = _companionTrail.position;
     _companionTrail.observe(
       mapId: bundle.map.id,
       individualId: lead!.individualId,
       x: movement.x,
       z: movement.z,
+      y: movement.y,
+      groundY: movement.groundY,
+      airborne: movement.isJumping,
+      traversalSpeed: movement.jumpSpeed,
       dt: dt,
       paused: presentationPaused || interactionActive.value,
       canTraverse: (fromX, fromZ, toX, toZ) =>
           movement.canTraverseActor(fromX, fromZ, toX, toZ),
     );
+    final currentCompanion = _companionTrail.position;
+    if (!presentationPaused && !interactionActive.value &&
+        _companionTrail.moving && previousCompanion != null && currentCompanion != null &&
+        !currentCompanion.airborne &&
+        (previousCompanion.x.floor() != currentCompanion.x.floor() ||
+         previousCompanion.z.floor() != currentCompanion.z.floor())) {
+      _smartTileAnimations.onActorEnteredCell(GridPos(
+          x: currentCompanion.x.floor(), y: currentCompanion.z.floor()));
+    }
   }
 
   SpatialActorVisual? _companionFrame() {
@@ -228,7 +242,8 @@ final class SpatialExplorationSession {
     return SpatialActorVisual(
       x: position.x,
       z: position.z,
-      y: bundle.map.spatialScene!.worldHeightAt(position.x, position.z),
+      y: position.y,
+      groundY: position.groundY,
       texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
     );
@@ -309,6 +324,7 @@ final class SpatialExplorationSession {
   bool get lifecyclePaused => _lifecyclePaused;
   void Function(bool paused)? onLifecyclePausedChanged;
   double _presentationSeconds = 0;
+  double get presentationSeconds => _presentationSeconds;
   bool get presentationPaused => dialoguePaused || _lifecyclePaused;
   void setLifecyclePaused(bool paused) {
     if (_disposed) return;
@@ -856,10 +872,12 @@ final class SpatialExplorationSession {
         );
         if (door != null) unawaited(enterWarp(door));
       }
+      final wasJumping = movement.isJumping;
       movement.update(dt);
       _updateCompanion(dt);
       if (!presentationPaused &&
           !storyInputLocked &&
+          !movement.isJumping &&
           !interactionActive.value &&
           !transitioning.value) {
         final warp = _warps.update(
@@ -882,7 +900,8 @@ final class SpatialExplorationSession {
       if (!presentationPaused &&
           !storyInputLocked &&
           !transitioning.value &&
-          movement.moving &&
+          !movement.isJumping &&
+          (movement.moving || wasJumping) &&
           (previousMapId != bundle.map.id || previousCell != cell)) {
         _smartTileAnimations.onPlayerEnteredCell(cell);
       }
@@ -932,6 +951,7 @@ final class SpatialExplorationSession {
     final resolved = _resolve(animation, selected);
     return SpatialActorVisual(
         x: story?.x ?? movement.x,
+        groundY: story == null ? movement.groundY : null,
         y: story == null
             ? movement.y
             : bundle.map.spatialScene!.worldHeightAt(story.x, story.z) + story.liftCells,

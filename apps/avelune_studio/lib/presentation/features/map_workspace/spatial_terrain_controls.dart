@@ -9,6 +9,7 @@ import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'spatial_ramp_editor.dart';
+import 'spatial_ledge_editor.dart';
 import 'spatial_terrain_surface_editor.dart';
 
 class SpatialTerrainControls extends StatelessWidget {
@@ -176,6 +177,8 @@ class SpatialTerrainControls extends StatelessWidget {
           const StudioNotice(
             'Le sol et les chemins suivent le relief et les pentes. Leur peinture ne change pas la hauteur.',
           ),
+        const SizedBox(height: 16),
+        SpatialLedgeEditor(document: document, project: project, onChanged: onChanged),
         const SizedBox(height: 16),
         StudioSelect(
           label: 'Parois du relief',

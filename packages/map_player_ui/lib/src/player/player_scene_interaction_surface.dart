@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:map_runtime/map_runtime.dart'
 
 import 'player_dialogue_surface.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../localization/player_localizations.dart';
@@ -51,8 +53,16 @@ class _PlayerSceneInteractionSurfaceState
   static const _typewriterInterval = Duration(milliseconds: 18);
 
   final _textController = TextEditingController();
+  final _dialoguePagination = PlayerDialoguePaginationController();
   final _textFocusNode = FocusNode(debugLabel: 'Scene interaction text');
   final _selectedOptionIds = <String>{};
+  final _optionFocusNodes = <String, FocusNode>{};
+  var _focusedInitialOptions = false;
+  var _promptRead = false;
+  var _contentWidth = 1.0;
+  final _reviewedOptions = <String>{};
+  SceneInteractionOption? _reviewingOption;
+  String? _returnOptionId;
   SceneInteractionValidationIssue? _validationIssue;
   var _terminal = false;
   Timer? _revealTimer;
@@ -66,8 +76,8 @@ class _PlayerSceneInteractionSurfaceState
 
   void _initializeText() {
     final request = widget.request;
-    final text =
-        request is SceneTextInteractionRequest ? request.initialValue
+    final text = request is SceneTextInteractionRequest
+        ? request.initialValue
         : request is SceneIntegerInteractionRequest
         ? '${request.initialValue}'
         : '';
@@ -82,6 +92,15 @@ class _PlayerSceneInteractionSurfaceState
     super.didUpdateWidget(oldWidget);
     if (!_sameRequest(oldWidget.request, widget.request)) {
       _initializeText();
+      for (final node in _optionFocusNodes.values) {
+        node.dispose();
+      }
+      _optionFocusNodes.clear();
+      _focusedInitialOptions = false;
+      _promptRead = false;
+      _reviewingOption = null;
+      _reviewedOptions.clear();
+      _returnOptionId = null;
       _selectedOptionIds.clear();
       _validationIssue = null;
       _terminal = false;
@@ -96,26 +115,72 @@ class _PlayerSceneInteractionSurfaceState
     _revealTimer?.cancel();
     _textController.dispose();
     _textFocusNode.dispose();
+    _dialoguePagination.dispose();
+    for (final node in _optionFocusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => FocusScope(
-        key: ValueKey((widget.request.requestId, widget.request.revision)),
-        autofocus: true,
-        child: _buildContent(context),
-      );
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => FocusScope(
+      key: ValueKey((widget.request.requestId, widget.request.revision)),
+      autofocus: true,
+      child: _buildContent(context, constraints),
+    ),
+  );
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, BoxConstraints constraints) {
     final request = widget.request;
     if (request is SceneMessageInteractionRequest) {
       return _buildMessageDialogue(context, request);
+    }
+    _contentWidth = math.max(
+      1.0,
+      math.min(
+            constraints.maxWidth - 32,
+            constraints.maxWidth < 600 ? 520.0 : 680.0,
+          ) -
+          32,
+    );
+    final prompt = _resolvePrompt(request.prompt);
+    final reviewing = _reviewingOption;
+    if (reviewing != null) {
+      return _buildReading(
+        context,
+        request,
+        _resolvePrompt(reviewing.label),
+        () => setState(() {
+          _reviewedOptions.add(reviewing.id);
+          _returnOptionId = reviewing.id;
+          _reviewingOption = null;
+          _focusedInitialOptions = false;
+        }),
+      );
+    }
+    final canCancel =
+        widget.allowCancellation &&
+        (request is! SceneIntegerInteractionRequest || request.allowCancel);
+    if (!_promptRead &&
+        _requiresReading(
+          context,
+          prompt,
+          _contentWidth - (canCancel ? 128 : 0),
+          3,
+          Theme.of(context).textTheme.titleMedium,
+        )) {
+      return _buildReading(
+        context,
+        request,
+        prompt,
+        () => setState(() => _promptRead = true),
+      );
     }
     final strings = PlayerSceneInteractionStrings.of(context);
     final validationMessage = _validationIssue == null
         ? widget.errorMessage
         : strings.validation(_validationIssue!);
-    final prompt = _resolvePrompt(request.prompt);
     return Actions(
       key: const ValueKey<String>('scene-interaction-actions'),
       actions: <Type, Action<Intent>>{
@@ -128,7 +193,7 @@ class _PlayerSceneInteractionSurfaceState
           const SingleActivator(LogicalKeyboardKey.escape): _cancel,
         },
         child: AnimatedPadding(
-          duration: const Duration(milliseconds: 120),
+          duration: context.playerMotion.fast,
           padding: EdgeInsets.only(
             bottom: MediaQuery.maybeOf(context)?.viewInsets.bottom ?? 0,
           ),
@@ -136,19 +201,24 @@ class _PlayerSceneInteractionSurfaceState
             child: LayoutBuilder(
               builder: (context, constraints) => Align(
                 alignment: Alignment.bottomCenter,
-                child: SingleChildScrollView(
-                  reverse: true,
+                child: Padding(
                   padding: const EdgeInsets.all(PlayerSpacing.md),
-                  child: ConstrainedBox(
+                  child: SizedBox(
                     key: const ValueKey<String>('scene-interaction-panel'),
-                    constraints: BoxConstraints(
-                      maxWidth: constraints.maxWidth < 600 ? 520 : 680,
+                    width: constraints.maxWidth < 600 ? 520 : 680,
+                    height: math.max(
+                      0,
+                      math.min(
+                        620,
+                        constraints.maxHeight - PlayerSpacing.md * 2,
+                      ),
                     ),
                     child: PlayerSurfacePaletteScope(
                       role: ProjectPresentationSurfaceRole.dialogue,
                       child: PlayerPanel(
                         role: PlayerPanelRole.dialogue,
                         elevated: true,
+                        padding: const EdgeInsets.all(PlayerSpacing.md),
                         child: Semantics(
                           scopesRoute: true,
                           namesRoute: true,
@@ -160,47 +230,71 @@ class _PlayerSceneInteractionSurfaceState
                             ),
                             policy: OrderedTraversalPolicy(),
                             child: Column(
-                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: <Widget>[
-                                Text(
-                                  prompt,
-                                  style:
-                                      Theme.of(context).textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: PlayerSpacing.md),
-                                _buildRequest(context, request, strings),
-                                if (validationMessage
-                                    case final message?) ...<Widget>[
-                                  const SizedBox(height: PlayerSpacing.sm),
-                                  Semantics(
-                                    key: const ValueKey<String>(
-                                      'scene-interaction-error',
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        prompt,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
+                                      ),
                                     ),
-                                    liveRegion: true,
-                                    child: Text(
-                                      message,
-                                      style: TextStyle(
-                                        color: context.playerColors.danger,
+                                    if (widget.allowCancellation &&
+                                        (request
+                                                is! SceneIntegerInteractionRequest ||
+                                            request.allowCancel))
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: PlayerSpacing.xs,
+                                        ),
+                                        child: SizedBox(
+                                          width: 120,
+                                          child: PlayerActionButton(
+                                            key: const ValueKey(
+                                              'scene-interaction-cancel',
+                                            ),
+                                            label: strings.cancel,
+                                            icon: Icons.close,
+                                            secondary: true,
+                                            onPressed: _terminal
+                                                ? null
+                                                : _cancel,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: PlayerSpacing.sm),
+                                Expanded(
+                                  child: _buildRequest(
+                                    context,
+                                    request,
+                                    strings,
+                                  ),
+                                ),
+                                if (validationMessage case final message?)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: PlayerSpacing.sm,
+                                    ),
+                                    child: Semantics(
+                                      key: const ValueKey(
+                                        'scene-interaction-error',
+                                      ),
+                                      liveRegion: true,
+                                      child: Text(
+                                        message,
+                                        style: TextStyle(
+                                          color: context.playerColors.danger,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ],
-                                if (widget.allowCancellation &&
-                                    (request
-                                            is! SceneIntegerInteractionRequest ||
-                                        request.allowCancel)) ...<Widget>[
-                                  const SizedBox(height: PlayerSpacing.sm),
-                                  PlayerActionButton(
-                                    key: const ValueKey<String>(
-                                      'scene-interaction-cancel',
-                                    ),
-                                    label: strings.cancel,
-                                    icon: Icons.close,
-                                    secondary: true,
-                                    onPressed: _terminal ? null : _cancel,
-                                  ),
-                                ],
                               ],
                             ),
                           ),
@@ -211,6 +305,102 @@ class _PlayerSceneInteractionSurfaceState
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _requiresReading(
+    BuildContext context,
+    String text,
+    double width,
+    int lines,
+    TextStyle? style,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: lines,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: math.max(1.0, width));
+    final result = painter.didExceedMaxLines;
+    painter.dispose();
+    return result;
+  }
+
+  bool _reviewOption(BuildContext context, SceneInteractionOption option) {
+    if (_reviewedOptions.contains(option.id) ||
+        !_requiresReading(
+          context,
+          _resolvePrompt(option.label),
+          _contentWidth - 96,
+          2,
+          context.playerTypography.bodyStyle(
+            Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
+          ),
+        )) {
+      return false;
+    }
+    setState(() => _reviewingOption = option);
+    return true;
+  }
+
+  Widget _buildReading(
+    BuildContext context,
+    SceneInteractionRequest request,
+    String text,
+    VoidCallback onRead,
+  ) {
+    void advance() {
+      if (_terminal ||
+          !widget.interactionEnabled ||
+          _dialoguePagination.advancePage()) {
+        return;
+      }
+      onRead();
+    }
+
+    return Actions(
+      key: const ValueKey('scene-interaction-actions'),
+      actions: <Type, Action<Intent>>{
+        RuntimePlayerLogicalIntent: CallbackAction<RuntimePlayerLogicalIntent>(
+          onInvoke: (intent) {
+            widget.onInputSourceChanged?.call(intent.source);
+            if (intent.action == PlayerInputAction.confirm) advance();
+            if (intent.action == PlayerInputAction.back) _cancel();
+            return null;
+          },
+        ),
+      },
+      child: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.enter): advance,
+          const SingleActivator(LogicalKeyboardKey.space): advance,
+          const SingleActivator(LogicalKeyboardKey.escape): _cancel,
+        },
+        child: Focus(
+          autofocus: true,
+          child: PlayerDialogueSurface(
+            key: ValueKey((
+              'scene-interaction-reading',
+              request.requestId,
+              request.revision,
+              _reviewingOption?.id,
+            )),
+            paginationController: _dialoguePagination,
+            data: PlayerDialogueViewData(
+              revision: request.revision,
+              mode: PlayerDialogueMode.line,
+              speaker: null,
+              text: text,
+              fullText: text,
+              isCurrentLineFullyRevealed: true,
+              isLastContent: _reviewingOption != null,
+              choices: const [],
+              isAdvanceAvailable: widget.interactionEnabled && !_terminal,
+            ),
+            onAction: (_) => advance(),
           ),
         ),
       ),
@@ -272,6 +462,7 @@ class _PlayerSceneInteractionSurfaceState
           autofocus: true,
           child: PlayerDialogueSurface(
             key: const ValueKey<String>('scene-interaction-message-dialogue'),
+            paginationController: _dialoguePagination,
             data: PlayerDialogueViewData(
               revision: request.revision,
               mode: PlayerDialogueMode.line,
@@ -298,6 +489,7 @@ class _PlayerSceneInteractionSurfaceState
     required bool fullyRevealed,
   }) {
     if (_terminal || !widget.interactionEnabled) return;
+    if (fullyRevealed && _dialoguePagination.advancePage()) return;
     if (!fullyRevealed) {
       setState(() {
         _revealTimer?.cancel();
@@ -319,170 +511,206 @@ class _PlayerSceneInteractionSurfaceState
     BuildContext context,
     SceneInteractionRequest request,
     PlayerSceneInteractionStrings strings,
-  ) =>
-      switch (request) {
-        SceneMessageInteractionRequest() => throw StateError(
-            'Messages render through the dialogue box, never the panel.',
-          ),
-        SceneChoiceInteractionRequest(:final options) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              for (var index = 0; index < options.length; index++) ...<Widget>[
-                _choiceButton(request, options[index], index, strings),
-                if (index < options.length - 1)
-                  const SizedBox(height: PlayerSpacing.xs),
-              ],
-            ],
-          ),
+  ) => switch (request) {
+    SceneMessageInteractionRequest() => throw StateError(
+      'Messages render through the dialogue box, never the panel.',
+    ),
+    SceneChoiceInteractionRequest(:final options) => PlayerPagedList(
+      revealChildKey: _firstOptionKey(options),
+      onPageReady: () => _focusOptions(request, options),
+      children: [
+        for (var index = 0; index < options.length; index++)
+          _choiceButton(request, options[index], index, strings),
+      ],
+    ),
     SceneIntegerInteractionRequest() => _integerInput(request, strings),
     SceneTextInteractionRequest() => _textInput(request, strings),
-        SceneConfirmationInteractionRequest() => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              PlayerActionButton(
-                key: const ValueKey<String>('scene-interaction-confirm-yes'),
-                label: strings.yes,
-                icon: Icons.check,
-                autofocus: true,
-                onPressed: !widget.interactionEnabled || _terminal
-                    ? null
-                    : () => _publish(
-                          request,
-                          SceneInteractionResult.confirmed(
-                            requestId: request.requestId,
-                            revision: request.revision,
-                            value: true,
-                          ),
-                        ),
-              ),
-              const SizedBox(height: PlayerSpacing.xs),
-              PlayerActionButton(
-                key: const ValueKey<String>('scene-interaction-confirm-no'),
-                label: strings.no,
-                icon: Icons.close,
-                secondary: true,
-                onPressed: !widget.interactionEnabled || _terminal
-                    ? null
-                    : () => _publish(
-                          request,
-                          SceneInteractionResult.confirmed(
-                            requestId: request.requestId,
-                            revision: request.revision,
-                            value: false,
-                          ),
-                        ),
-              ),
-            ],
-          ),
-        SceneSelectionInteractionRequest(:final options) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              for (var index = 0; index < options.length; index++) ...<Widget>[
-                _selectionButton(request, options[index], index, strings),
-                if (index < options.length - 1)
-                  const SizedBox(height: PlayerSpacing.xs),
-              ],
-              const SizedBox(height: PlayerSpacing.sm),
-              Semantics(
-                liveRegion: true,
-                child: Text(
-                  strings.selectionCount(
-                    _selectedOptionIds.length,
-                    request.constraints.minSelections,
-                    request.constraints.maxSelections,
+    SceneConfirmationInteractionRequest() => Row(
+      children: <Widget>[
+        Expanded(
+          child: PlayerActionButton(
+            key: const ValueKey<String>('scene-interaction-confirm-yes'),
+            label: strings.yes,
+            icon: Icons.check,
+            autofocus: true,
+            onPressed: !widget.interactionEnabled || _terminal
+                ? null
+                : () => _publish(
+                    request,
+                    SceneInteractionResult.confirmed(
+                      requestId: request.requestId,
+                      revision: request.revision,
+                      value: true,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: PlayerSpacing.sm),
-              PlayerActionButton(
-                key: const ValueKey<String>(
-                  'scene-interaction-selection-submit'),
-                label: strings.submit,
-                icon: Icons.check,
-                onPressed: !widget.interactionEnabled || _terminal
-                    ? null
-                    : () => _submitSelection(request),
-              ),
+          ),
+        ),
+        const SizedBox(width: PlayerSpacing.xs),
+        Expanded(
+          child: PlayerActionButton(
+            key: const ValueKey<String>('scene-interaction-confirm-no'),
+            label: strings.no,
+            icon: Icons.close,
+            secondary: true,
+            onPressed: !widget.interactionEnabled || _terminal
+                ? null
+                : () => _publish(
+                    request,
+                    SceneInteractionResult.confirmed(
+                      requestId: request.requestId,
+                      revision: request.revision,
+                      value: false,
+                    ),
+                  ),
+          ),
+        ),
+      ],
+    ),
+    SceneSelectionInteractionRequest(:final options) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Expanded(
+          child: PlayerPagedList(
+            revealChildKey: _firstOptionKey(options),
+            onPageReady: () => _focusOptions(request, options),
+            children: [
+              for (var index = 0; index < options.length; index++)
+                _selectionButton(request, options[index], index, strings),
             ],
           ),
-        SceneInteractionRequest() => const SizedBox.shrink(),
-      };
+        ),
+        const SizedBox(height: PlayerSpacing.sm),
+        Semantics(
+          liveRegion: true,
+          child: Text(
+            strings.selectionCount(
+              _selectedOptionIds.length,
+              request.constraints.minSelections,
+              request.constraints.maxSelections,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: PlayerSpacing.sm),
+        PlayerActionButton(
+          key: const ValueKey<String>('scene-interaction-selection-submit'),
+          label: strings.submit,
+          icon: Icons.check,
+          onPressed: !widget.interactionEnabled || _terminal
+              ? null
+              : () => _submitSelection(request),
+        ),
+      ],
+    ),
+    SceneInteractionRequest() => const SizedBox.shrink(),
+  };
+
+  Key? _firstOptionKey(List<SceneInteractionOption> options) {
+    final first =
+        options
+            .where((option) => option.enabled && option.id == _returnOptionId)
+            .firstOrNull ??
+        options.where((option) => option.enabled).firstOrNull;
+    return first == null
+        ? null
+        : ValueKey('scene-interaction-option-${first.id}');
+  }
+
+  void _focusOptions(
+    SceneInteractionRequest expected,
+    List<SceneInteractionOption> options,
+  ) {
+    if (!mounted ||
+        !_sameRequest(expected, widget.request) ||
+        _focusedInitialOptions) {
+      return;
+    }
+    final first =
+        options
+            .where((option) => option.enabled && option.id == _returnOptionId)
+            .firstOrNull ??
+        options.where((option) => option.enabled).firstOrNull;
+    final node = first == null ? null : _optionFocusNodes[first.id];
+    if (node != null && node.canRequestFocus) {
+      _focusedInitialOptions = true;
+      node.requestFocus();
+    }
+  }
 
   Widget _choiceButton(
     SceneChoiceInteractionRequest request,
     SceneInteractionOption option,
     int index,
     PlayerSceneInteractionStrings strings,
-  ) =>
-      PlayerActionButton(
-        key: ValueKey<String>('scene-interaction-option-${option.id}'),
-        label: _resolvePrompt(option.label),
-        // An option is prose, not a command word: it must stay readable rather
-        // than ellipsize, or the player is choosing blind.
-        labelMaxLines: 2,
-        icon: Icons.chevron_right,
-        autofocus: option.enabled &&
-            request.options
-                .take(index)
-                .every((candidate) => !candidate.enabled),
-        disabledReason: option.enabled ? null : strings.optionUnavailable,
-        onPressed: widget.interactionEnabled && !_terminal && option.enabled
-            ? () => _publish(
-                  request,
-                  SceneInteractionResult.choiceSelected(
-                    requestId: request.requestId,
-                    revision: request.revision,
-                    selectedOptionId: option.id,
-                  ),
-                )
-            : null,
-      );
+  ) => PlayerActionButton(
+    key: ValueKey<String>('scene-interaction-option-${option.id}'),
+    focusNode: _optionFocusNodes.putIfAbsent(
+      option.id,
+      () => FocusNode(
+        debugLabel: 'Player action: ${_resolvePrompt(option.label)}',
+      ),
+    ),
+    label: _resolvePrompt(option.label),
+    labelMaxLines: 2,
+    icon: Icons.chevron_right,
+    autofocus:
+        option.enabled &&
+        request.options.take(index).every((candidate) => !candidate.enabled),
+    disabledReason: option.enabled ? null : strings.optionUnavailable,
+    onPressed: widget.interactionEnabled && !_terminal && option.enabled
+        ? () {
+            if (_reviewOption(context, option)) return;
+            _publish(
+              request,
+              SceneInteractionResult.choiceSelected(
+                requestId: request.requestId,
+                revision: request.revision,
+                selectedOptionId: option.id,
+              ),
+            );
+          }
+        : null,
+  );
 
   Widget _integerInput(
     SceneIntegerInteractionRequest request,
     PlayerSceneInteractionStrings strings,
-  ) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      TextField(
-        key: const ValueKey<String>('scene-interaction-integer-field'),
-        controller: _textController,
-        focusNode: _textFocusNode,
-        autofocus: true,
-        enabled: widget.interactionEnabled && !_terminal,
-        keyboardType: TextInputType.numberWithOptions(
-          signed: request.minimum < 0,
-        ),
-        textInputAction: TextInputAction.done,
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(
-            RegExp(request.minimum < 0 ? r'^-?[0-9]*$' : r'[0-9]'),
-          ),
-          LengthLimitingTextInputFormatter(
-            request.digits + (request.minimum < 0 ? 1 : 0),
-          ),
-        ],
-        decoration: InputDecoration(
-          labelText: strings.textFieldLabel,
-          helperText: '${request.minimum} – ${request.maximum}',
-        ),
-        onChanged: (_) => setState(() => _validationIssue = null),
-        onSubmitted: !widget.interactionEnabled || _terminal
-            ? null
-            : (_) => _submitInteger(request),
+  ) => _SceneInteractionInputForm(
+    field: TextField(
+      key: const ValueKey<String>('scene-interaction-integer-field'),
+      controller: _textController,
+      focusNode: _textFocusNode,
+      autofocus: true,
+      enabled: widget.interactionEnabled && !_terminal,
+      keyboardType: TextInputType.numberWithOptions(
+        signed: request.minimum < 0,
       ),
-      const SizedBox(height: PlayerSpacing.sm),
-      PlayerActionButton(
-        key: const ValueKey<String>('scene-interaction-integer-submit'),
-        label: strings.submit,
-        icon: Icons.check,
-        onPressed: !widget.interactionEnabled || _terminal
-            ? null
-            : () => _submitInteger(request),
+      textInputAction: TextInputAction.done,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+          RegExp(request.minimum < 0 ? r'^-?[0-9]*$' : r'[0-9]'),
+        ),
+        LengthLimitingTextInputFormatter(
+          request.digits + (request.minimum < 0 ? 1 : 0),
+        ),
+      ],
+      decoration: InputDecoration(
+        labelText: strings.textFieldLabel,
+        helperText: '${request.minimum} – ${request.maximum}',
       ),
-    ],
+      onChanged: (_) => setState(() => _validationIssue = null),
+      onSubmitted: !widget.interactionEnabled || _terminal
+          ? null
+          : (_) => _submitInteger(request),
+    ),
+    submit: PlayerActionButton(
+      key: const ValueKey<String>('scene-interaction-integer-submit'),
+      label: strings.submit,
+      icon: Icons.check,
+      onPressed: !widget.interactionEnabled || _terminal
+          ? null
+          : () => _submitInteger(request),
+    ),
   );
 
   void _submitInteger(SceneIntegerInteractionRequest request) {
@@ -515,47 +743,41 @@ class _PlayerSceneInteractionSurfaceState
   ) {
     final maximum = request.constraints.maxGraphemes;
     final length = _textController.text.characters.length;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        TextField(
-          key: const ValueKey<String>('scene-interaction-text-field'),
-          controller: _textController,
-          focusNode: _textFocusNode,
-          autofocus: true,
-          enabled: widget.interactionEnabled && !_terminal,
-          textInputAction: TextInputAction.done,
-          inputFormatters: <TextInputFormatter>[
-            if (maximum != null) _CommittedGraphemeLimitFormatter(maximum),
-          ],
-          decoration: InputDecoration(
-            labelText: strings.textFieldLabel,
-            counterText: '',
-          ),
-          onChanged: (_) => setState(() => _validationIssue = null),
-          onSubmitted: !widget.interactionEnabled || _terminal
-              ? null
-              : (_) => _submitText(request),
+    return _SceneInteractionInputForm(
+      field: TextField(
+        key: const ValueKey<String>('scene-interaction-text-field'),
+        controller: _textController,
+        focusNode: _textFocusNode,
+        autofocus: true,
+        enabled: widget.interactionEnabled && !_terminal,
+        textInputAction: TextInputAction.done,
+        inputFormatters: <TextInputFormatter>[
+          if (maximum != null) _CommittedGraphemeLimitFormatter(maximum),
+        ],
+        decoration: InputDecoration(
+          labelText: strings.textFieldLabel,
+          counterText: '',
         ),
-        const SizedBox(height: PlayerSpacing.xs),
-        Semantics(
-          liveRegion: true,
-          child: Text(
-            strings.characterCount(length, maximum),
-            textAlign: TextAlign.end,
-          ),
+        onChanged: (_) => setState(() => _validationIssue = null),
+        onSubmitted: !widget.interactionEnabled || _terminal
+            ? null
+            : (_) => _submitText(request),
+      ),
+      counter: Semantics(
+        liveRegion: true,
+        child: Text(
+          strings.characterCount(length, maximum),
+          textAlign: TextAlign.end,
         ),
-        const SizedBox(height: PlayerSpacing.sm),
-        PlayerActionButton(
-          key: const ValueKey<String>('scene-interaction-text-submit'),
-          label: strings.submit,
-          icon: Icons.check,
-          onPressed: !widget.interactionEnabled || _terminal
-              ? null
-              : () => _submitText(request),
-        ),
-      ],
+      ),
+      submit: PlayerActionButton(
+        key: const ValueKey<String>('scene-interaction-text-submit'),
+        label: strings.submit,
+        icon: Icons.check,
+        onPressed: !widget.interactionEnabled || _terminal
+            ? null
+            : () => _submitText(request),
+      ),
     );
   }
 
@@ -568,7 +790,8 @@ class _PlayerSceneInteractionSurfaceState
     final selected = _selectedOptionIds.contains(option.id);
     final maximumReached =
         _selectedOptionIds.length >= request.constraints.maxSelections;
-    final enabled = widget.interactionEnabled &&
+    final enabled =
+        widget.interactionEnabled &&
         option.enabled &&
         (!_terminal &&
             (selected ||
@@ -576,10 +799,17 @@ class _PlayerSceneInteractionSurfaceState
                 request.constraints.maxSelections == 1));
     return PlayerActionButton(
       key: ValueKey<String>('scene-interaction-option-${option.id}'),
+      focusNode: _optionFocusNodes.putIfAbsent(
+        option.id,
+        () => FocusNode(
+          debugLabel: 'Player action: ${_resolvePrompt(option.label)}',
+        ),
+      ),
       label: _resolvePrompt(option.label),
       labelMaxLines: 2,
       icon: selected ? Icons.check_box : Icons.check_box_outline_blank,
-      autofocus: option.enabled &&
+      autofocus:
+          option.enabled &&
           request.options.take(index).every((candidate) => !candidate.enabled),
       selected: selected,
       secondary: !selected,
@@ -587,9 +817,14 @@ class _PlayerSceneInteractionSurfaceState
       disabledReason: !option.enabled
           ? strings.optionUnavailable
           : maximumReached && !selected
-              ? strings.maximumReached
-              : null,
-      onPressed: enabled ? () => _toggleSelection(request, option.id) : null,
+          ? strings.maximumReached
+          : null,
+      onPressed: enabled
+          ? () {
+              if (_reviewOption(context, option)) return;
+              _toggleSelection(request, option.id);
+            }
+          : null,
     );
   }
 
@@ -597,20 +832,20 @@ class _PlayerSceneInteractionSurfaceState
     widget.onInputSourceChanged?.call(intent.source);
     switch (intent.action) {
       case PlayerInputAction.up:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.up,
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.up,
         );
       case PlayerInputAction.down:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.down,
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.down,
         );
       case PlayerInputAction.left:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.left,
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.left,
         );
       case PlayerInputAction.right:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.right,
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.right,
         );
       case PlayerInputAction.confirm:
         final request = widget.request;
@@ -684,8 +919,9 @@ class _PlayerSceneInteractionSurfaceState
 
   void _cancel() {
     if (widget.request is SceneIntegerInteractionRequest &&
-        !(widget.request as SceneIntegerInteractionRequest).allowCancel)
+        !(widget.request as SceneIntegerInteractionRequest).allowCancel) {
       return;
+    }
     if (!widget.allowCancellation) return;
     final request = widget.request;
     _publish(
@@ -729,7 +965,8 @@ class _PlayerSceneInteractionSurfaceState
   /// dernier mot (le Studio prévisualise autrement), puis les clés que le
   /// produit possède, puis le texte authoré.
   String _resolvePrompt(SceneInteractionPrompt prompt) {
-    var value = widget.promptResolver?.call(prompt) ??
+    var value =
+        widget.promptResolver?.call(prompt) ??
         localizeRuntimePrompt(prompt, context.playerL10n) ??
         prompt.fallbackText ??
         prompt.localizationKey;
@@ -746,6 +983,61 @@ class _PlayerSceneInteractionSurfaceState
       left.requestId == right.requestId &&
       left.revision == right.revision &&
       left.kind == right.kind;
+}
+
+class _SceneInteractionInputForm extends StatelessWidget {
+  const _SceneInteractionInputForm({
+    required this.field,
+    required this.submit,
+    this.counter,
+  });
+  final Widget field;
+  final Widget submit;
+  final Widget? counter;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.hasBoundedHeight &&
+          constraints.maxHeight < 160 &&
+          constraints.maxWidth >= 400) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: field),
+                const SizedBox(width: PlayerSpacing.sm),
+                SizedBox(width: 144, child: submit),
+              ],
+            ),
+            if (counter case final content?)
+              Padding(
+                padding: const EdgeInsets.only(top: PlayerSpacing.xs),
+                child: content,
+              ),
+          ],
+        );
+      }
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          field,
+          if (counter case final content?)
+            Padding(
+              padding: const EdgeInsets.only(top: PlayerSpacing.xs),
+              child: content,
+            ),
+          const SizedBox(height: PlayerSpacing.sm),
+          submit,
+        ],
+      );
+    },
+  );
 }
 
 final class _CommittedGraphemeLimitFormatter extends TextInputFormatter {

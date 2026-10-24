@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
-import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -16,6 +15,7 @@ import 'runtime_player_bag.dart';
 import 'runtime_player_pokedex.dart';
 import 'runtime_player_region_map.dart';
 import 'runtime_player_profile.dart';
+import 'runtime_player_contacts.dart';
 import 'player_session_surfaces.dart';
 
 /// Maps runtime-owned pause detail snapshots to simple player surfaces.
@@ -40,7 +40,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
 
   final RuntimePlayerSnapshot snapshot;
   final FutureOr<void> Function(PlayerPreferencesSnapshot)?
-      onPreferencesChanged;
+  onPreferencesChanged;
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onPauseCommand;
   final RuntimePlayerPartyNavigation? partyNavigation;
   final RuntimePlayerBagNavigation? bagNavigation;
@@ -63,8 +63,9 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       );
     }
 
-    final unavailableReason =
-        snapshot.unavailableReasonFor(_actionFor(section));
+    final unavailableReason = snapshot.unavailableReasonFor(
+      _actionFor(section),
+    );
     if (unavailableReason != null ||
         snapshot.phase == RuntimePlayerPhase.paused &&
             !snapshot.isActionEnabled(_actionFor(section))) {
@@ -79,60 +80,62 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     final preferences = snapshot.preferences;
     if (section == RuntimePlayerPauseSection.options && preferences != null) {
       return PlayerMenuThemeScope(
-          role: ProjectPresentationSurfaceRole.options,
-          child: RuntimePlayerOptions(
-            navigation: optionsNavigation,
-            preferences: preferences,
-            defaultPreferences: snapshot.defaultPreferences,
-            onReturnToTitle: onReturnToTitle,
-            controlProfile: controlProfile,
-            hardwareGamepadEnabled: hardwareGamepadEnabled,
-            onControlProfileChanged: onControlProfileChanged,
-            activeInputSource: activeInputSource ??
-                snapshot.activeInputSource ??
-                PlayerInputSource.keyboard,
-            onChanged:
-                snapshot.isActionEnabled(RuntimePlayerAction.updatePreferences)
-                    ? onPreferencesChanged
-                    : null,
-          ));
+        role: ProjectPresentationSurfaceRole.options,
+        child: RuntimePlayerOptions(
+          navigation: optionsNavigation,
+          preferences: preferences,
+          defaultPreferences: snapshot.defaultPreferences,
+          onReturnToTitle: onReturnToTitle,
+          controlProfile: controlProfile,
+          hardwareGamepadEnabled: hardwareGamepadEnabled,
+          onControlProfileChanged: onControlProfileChanged,
+          activeInputSource:
+              activeInputSource ??
+              snapshot.activeInputSource ??
+              PlayerInputSource.keyboard,
+          onChanged:
+              snapshot.isActionEnabled(RuntimePlayerAction.updatePreferences)
+              ? onPreferencesChanged
+              : null,
+        ),
+      );
     }
 
     final detail = snapshot.pauseDetailFor(section);
-    if (section == RuntimePlayerPauseSection.contacts && detail != null && detail.entries.isNotEmpty) {
-      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        for (final contact in detail.entries)
-          Padding(padding: const EdgeInsets.only(bottom: PlayerSpacing.sm), child: PlayerActionButton(
-            key: ValueKey('contact.${contact.id}'),
-            label: contact.title,
-            icon: Icons.contact_phone_outlined,
-            trailing: contact.portraitFilePath == null ? null : PlayerImageBuilder(path: contact.portraitFilePath!, builder: (context, image) => RawImage(image: image, width: 48, height: 48, fit: BoxFit.contain)),
-            onPressed: onPauseCommand != null && snapshot.isActionEnabled(RuntimePlayerAction.callContact)
-              ? () => onPauseCommand!(RuntimePlayerPauseCommand.callContact(contactId: contact.id)) : null,
-          )),
-      ]);
+    if (section == RuntimePlayerPauseSection.contacts &&
+        detail != null &&
+        detail.entries.isNotEmpty) {
+      return RuntimePlayerContacts(
+        snapshot: snapshot,
+        onPauseCommand: onPauseCommand,
+      );
     }
     if (section == RuntimePlayerPauseSection.party && detail != null) {
       return PlayerMenuThemeScope(
-          role: ProjectPresentationSurfaceRole.party,
-          child: RuntimePlayerParty(
-            navigation: partyNavigation,
-            detail: detail,
-            onCommand: onPauseCommand,
-            canReorder:
-                snapshot.isActionEnabled(RuntimePlayerAction.reorderParty),
-          ));
+        role: ProjectPresentationSurfaceRole.party,
+        child: RuntimePlayerParty(
+          navigation: partyNavigation,
+          detail: detail,
+          onCommand: onPauseCommand,
+          canReorder: snapshot.isActionEnabled(
+            RuntimePlayerAction.reorderParty,
+          ),
+        ),
+      );
     }
     if (section == RuntimePlayerPauseSection.bag && detail != null) {
       return PlayerMenuThemeScope(
-          role: ProjectPresentationSurfaceRole.bag,
-          child: RuntimePlayerBag(
-              detail: detail,
-              onCommand: onPauseCommand,
-              navigation: bagNavigation,
-              favoriteItemIds: snapshot.favoriteItemIds,
-              onFavoriteChanged:
-                  snapshot.bagFavoritesAvailable ? onFavoriteChanged : null));
+        role: ProjectPresentationSurfaceRole.bag,
+        child: RuntimePlayerBag(
+          detail: detail,
+          onCommand: onPauseCommand,
+          navigation: bagNavigation,
+          favoriteItemIds: snapshot.favoriteItemIds,
+          onFavoriteChanged: snapshot.bagFavoritesAvailable
+              ? onFavoriteChanged
+              : null,
+        ),
+      );
     }
     if (section == RuntimePlayerPauseSection.pokedex && detail != null) {
       return PlayerMenuThemeScope(
@@ -154,10 +157,11 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       return PlayerMenuThemeScope(
         role: ProjectPresentationSurfaceRole.map,
         child: RuntimePlayerRegionMap(
-            detail: detail,
-            navigation: regionMapNavigation,
-            controlProfile: controlProfile,
-            hardwareGamepadEnabled: hardwareGamepadEnabled),
+          detail: detail,
+          navigation: regionMapNavigation,
+          controlProfile: controlProfile,
+          hardwareGamepadEnabled: hardwareGamepadEnabled,
+        ),
       );
     }
     if (detail == null || detail.entries.isEmpty) {
@@ -197,14 +201,11 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
         RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
         RuntimePlayerPauseSection.root => throw StateError(
-            'The pause root has no detail action.',
-          ),
+          'The pause root has no detail action.',
+        ),
       };
 
-  String _label(
-    BuildContext context,
-    RuntimePlayerPauseSection section,
-  ) {
+  String _label(BuildContext context, RuntimePlayerPauseSection section) {
     final l10n = context.playerL10n;
     return switch (section) {
       RuntimePlayerPauseSection.root => l10n.pause,
@@ -213,41 +214,40 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       RuntimePlayerPauseSection.pokedex => l10n.pokedex,
       RuntimePlayerPauseSection.map => l10n.map,
       RuntimePlayerPauseSection.quests => l10n.quests,
-      RuntimePlayerPauseSection.contacts => snapshot.pauseDetailFor(section)?.title ?? 'Contacts',
+      RuntimePlayerPauseSection.contacts =>
+        snapshot.pauseDetailFor(section)?.title ??
+            (l10n.locale.languageCode == 'fr' ? 'Téléphone' : 'Phone'),
       RuntimePlayerPauseSection.profile => l10n.profile,
       RuntimePlayerPauseSection.options => l10n.options,
     };
   }
 
   IconData _icon(RuntimePlayerPauseSection section) => switch (section) {
-        RuntimePlayerPauseSection.root => Icons.gamepad_rounded,
-        RuntimePlayerPauseSection.party => Icons.groups_rounded,
-        RuntimePlayerPauseSection.bag => Icons.backpack_rounded,
-        RuntimePlayerPauseSection.pokedex => Icons.menu_book_rounded,
-        RuntimePlayerPauseSection.map => Icons.map_rounded,
-        RuntimePlayerPauseSection.quests => Icons.menu_book_rounded,
-        RuntimePlayerPauseSection.contacts => Icons.contact_phone_outlined,
-        RuntimePlayerPauseSection.profile => Icons.person_rounded,
-        RuntimePlayerPauseSection.options => Icons.tune_rounded,
-      };
+    RuntimePlayerPauseSection.root => Icons.gamepad_rounded,
+    RuntimePlayerPauseSection.party => Icons.groups_rounded,
+    RuntimePlayerPauseSection.bag => Icons.backpack_rounded,
+    RuntimePlayerPauseSection.pokedex => Icons.menu_book_rounded,
+    RuntimePlayerPauseSection.map => Icons.map_rounded,
+    RuntimePlayerPauseSection.quests => Icons.menu_book_rounded,
+    RuntimePlayerPauseSection.contacts => Icons.contact_phone_outlined,
+    RuntimePlayerPauseSection.profile => Icons.person_rounded,
+    RuntimePlayerPauseSection.options => Icons.tune_rounded,
+  };
 
   ProjectPresentationSurfaceRole _surfaceRoleFor(
     RuntimePlayerPauseSection section,
-  ) =>
-      switch (section) {
-        RuntimePlayerPauseSection.party => ProjectPresentationSurfaceRole.party,
-        RuntimePlayerPauseSection.bag => ProjectPresentationSurfaceRole.bag,
-        RuntimePlayerPauseSection.pokedex =>
-          ProjectPresentationSurfaceRole.pokedex,
-        RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
-        RuntimePlayerPauseSection.quests =>
-          ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.contacts => ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.profile =>
-          ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.options =>
-          ProjectPresentationSurfaceRole.options,
-        RuntimePlayerPauseSection.root =>
-          ProjectPresentationSurfaceRole.pauseMenu,
-      };
+  ) => switch (section) {
+    RuntimePlayerPauseSection.party => ProjectPresentationSurfaceRole.party,
+    RuntimePlayerPauseSection.bag => ProjectPresentationSurfaceRole.bag,
+    RuntimePlayerPauseSection.pokedex => ProjectPresentationSurfaceRole.pokedex,
+    RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
+    RuntimePlayerPauseSection.quests =>
+      ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.contacts =>
+      ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.profile =>
+      ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.options => ProjectPresentationSurfaceRole.options,
+    RuntimePlayerPauseSection.root => ProjectPresentationSurfaceRole.pauseMenu,
+  };
 }

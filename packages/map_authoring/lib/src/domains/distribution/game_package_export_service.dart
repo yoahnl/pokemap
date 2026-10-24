@@ -187,12 +187,15 @@ final class CanonicalGamePackageExportService {
       }
       var animatedDecor = false;
       var modelShadows = false;
+      var dayNight = false;
+      var pointLights = false;
       var orthographicCamera = false;
       var spatialGameplay = false;
       var spatialStory = false;
       var customTerrainAppearance = false;
       var continuousTerrain = false;
       var fractionalRamps = false;
+      var directionalLedges = false;
       var modelClips = SpatialModelClipCapabilities.requiresCapability(projection.project);
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
@@ -213,11 +216,14 @@ final class CanonicalGamePackageExportService {
               relativePath: entry.relativePath);
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+          dayNight |= SpatialSceneLightingCapabilities.requiresDayNight(projection.project, maps: [map]);
+          pointLights |= SpatialSceneLightingCapabilities.requiresPointLights(projection.project, maps: [map]);
           modelShadows |= SpatialModelShadowCapabilities.requiresCapability(
               projection.project, maps: [map]);
           customTerrainAppearance |= map.spatialScene?.generateCliffs == false;
           continuousTerrain |=
               map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
+          directionalLedges |= map.spatialScene!.navigation.ledges.isNotEmpty;
           fractionalRamps |= map.spatialScene!.navigation.ramps
               .any((ramp) => ramp.hasFractionalLevels);
           modelClips |= map.spatialScene!.instances.any((instance) => instance.clip != null);
@@ -240,9 +246,14 @@ final class CanonicalGamePackageExportService {
               : 'map@1',
         if (animatedDecor) 'map3d.animation@1',
         if (modelShadows) SpatialModelShadowCapabilities.capabilityId,
+        if (dayNight) SpatialSceneLightingCapabilities.dayNightCapabilityId,
+        if (pointLights) SpatialSceneLightingCapabilities.pointLightCapabilityId,
+        if (pointLights && modelShadows)
+          SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId,
         if (customTerrainAppearance) 'map3d.terrain-appearance@1',
         if (continuousTerrain) SpatialTerrainSurfaceSet.capabilityId,
         if (fractionalRamps) SpatialRamp.fractionalLevelsCapabilityId,
+        if (directionalLedges) SpatialLedge.capabilityId,
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
@@ -250,6 +261,7 @@ final class CanonicalGamePackageExportService {
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
         if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,
+        if (projection.project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneBattlePayload && (node.payload as SceneBattlePayload).demonstration != null))) SceneBattleDemonstration.capabilityId,
       }.toList(growable: false)
         ..sort();
       final emptyContent = GamePackageContent(
@@ -439,9 +451,13 @@ final class CanonicalGamePackageExportService {
             'map3d@1',
             'map3d.animation@1',
             SpatialModelShadowCapabilities.capabilityId,
+            SpatialSceneLightingCapabilities.dayNightCapabilityId,
+            SpatialSceneLightingCapabilities.pointLightCapabilityId,
+            SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId,
             'map3d.terrain-appearance@1',
             SpatialTerrainSurfaceSet.capabilityId,
             SpatialRamp.fractionalLevelsCapabilityId,
+            SpatialLedge.capabilityId,
             SpatialModelClipCapabilities.capabilityId,
             SpatialGameplayCapabilities.capabilityId,
             SpatialGameplayCapabilities.storyCapabilityId,
@@ -449,6 +465,7 @@ final class CanonicalGamePackageExportService {
             SpatialCameraProfile.orthographicCapabilityId,
             ProjectContactDeviceConfig.capabilityId,
             SpatialGameplayCapabilities.audioCapabilityId,
+            SceneBattleDemonstration.capabilityId,
             'overworld.menu@1',
             'world.shop@1',
           },

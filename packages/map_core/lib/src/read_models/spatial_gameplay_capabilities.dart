@@ -210,7 +210,8 @@ abstract final class SpatialGameplayCapabilities {
     final payload = node.payload;
     return switch (payload) {
       SceneCinematicPayload() => true,
-      ScenePresentationCinematicPayload() => false,
+      ScenePresentationCinematicPayload() =>
+        profile == SceneExecutionProfile.preSession,
       SceneConditionPayload() =>
         payload.conditionSource != null &&
             (conditionSources.contains(payload.conditionSource!.sourceKind) ||

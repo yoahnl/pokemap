@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
+import 'package:map_core/map_core.dart'
+    show ProjectModel3dEntry, Model3dPointLight;
 
 import '../../../features/decors/application/decor_source_support.dart';
 import '../../../features/terrains/domain/terrain_draft_compatibility.dart';
@@ -12,6 +13,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_catalog.dart';
 import 'resource_item_actions.dart';
 import 'model_shadow_controls.dart';
+import 'model_light_controls.dart';
 
 class ResourceDetailPanel extends StatelessWidget {
   const ResourceDetailPanel({
@@ -35,6 +37,7 @@ class ResourceDetailPanel extends StatelessWidget {
     this.onClassify,
     this.activeMapId,
     this.onModelShadowsChanged,
+    this.onModelLightChanged,
   });
   final ResourceItem? item;
   final int openUsage;
@@ -51,6 +54,8 @@ class ResourceDetailPanel extends StatelessWidget {
   final ValueChanged<ResourceItem>? onClassify;
   final String? activeMapId;
   final Future<void> Function(ProjectModel3dEntry, bool)? onModelShadowsChanged;
+  final Future<void> Function(ProjectModel3dEntry, Model3dPointLight?)?
+  onModelLightChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +118,21 @@ class ResourceDetailPanel extends StatelessWidget {
                     busy: onModelShadowsChanged == null,
                     onChanged: (value) =>
                         onModelShadowsChanged?.call(model, value),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (entry.model3d case final model?) ...[
+                  ModelLightControls(
+                    key: ValueKey('resource-model-light-${model.id}'),
+                    model:
+                        project.models3d
+                            .where((entry) => entry.id == model.id)
+                            .firstOrNull ??
+                        model,
+                    busy: onModelLightChanged == null,
+                    onSave: (light) async {
+                      await onModelLightChanged?.call(model, light);
+                    },
                   ),
                   const SizedBox(height: 16),
                 ],

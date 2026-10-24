@@ -53,6 +53,7 @@ enum StudioMapTool {
 }
 
 class MapWorkspaceViewState {
+  SpatialSceneController? spatialSceneController;
   final spatialAnimations = SpatialAnimationPreviewController();
   final transform = TransformationController();
   double get scale => transform.value.entry(0, 0).abs();

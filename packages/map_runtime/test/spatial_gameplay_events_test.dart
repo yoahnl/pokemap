@@ -267,6 +267,81 @@ void main() {
     expect(host.battles, hasLength(1));
   });
 
+  test('spatial encounters sample the current clock again on every real step', () async {
+    final map = _map(zones: const [MapGameplayZone(
+      id: 'grass', name: 'Grass', kind: GameplayZoneKind.encounter,
+      area: MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 4, height: 4)),
+      encounter: EncounterZonePayload(encounterTableId: 'timed'),
+    )]);
+    final project = _project(map).copyWith(encounterTables: [
+      ProjectEncounterTable(id: 'timed', name: 'Timed', encounterKind: EncounterKind.walk,
+        chancePerStep: 1, variants: [
+          for (final window in [('early', 0, 600), ('late', 600, 0)])
+            ProjectEncounterVariant(id: window.$1, name: window.$1,
+              timeWindows: [LocalTimeWindow(startMinute: window.$2, endMinute: window.$3)],
+              entries: [ProjectEncounterEntry(speciesId: window.$1, minLevel: 3, maxLevel: 3)]),
+        ]),
+    ]);
+    var clock = DateTime(2026, 10, 24, 9, 59);
+    final host = await _Host.create(project, map, now: () => clock);
+    await host.events.activateMap(_activation('clock'));
+    host.moveTo(3.5, 2.5);
+    await host.events.playerEnteredCell(previousPosition: const GridPos(x: 2, y: 2), currentPosition: const GridPos(x: 3, y: 2));
+    expect(host.battles.single.speciesId, 'early');
+    expect(host.battles.single.createdAtEpochMs, clock.millisecondsSinceEpoch);
+    clock = DateTime(2026, 10, 24, 10);
+    host.moveTo(4.5, 2.5);
+    await host.events.playerEnteredCell(previousPosition: const GridPos(x: 3, y: 2), currentPosition: const GridPos(x: 4, y: 2));
+    expect(host.battles, hasLength(2));
+    expect(host.battles.last.speciesId, 'late');
+    expect(host.battles.last.createdAtEpochMs, clock.millisecondsSinceEpoch);
+    host.events.dispose();
+  });
+
+  for (final edition in ['amber', 'violet']) {
+    for (final (minute, period) in [
+      (0, 'night'), (239, 'night'), (240, 'morning'), (599, 'morning'),
+      (600, 'day'), (1199, 'day'), (1200, 'night'), (1439, 'night'),
+    ]) {
+      test('spatial encounters resolve $edition $period at minute $minute', () async {
+        final map = _map(zones: const [MapGameplayZone(
+          id: 'grass', name: 'Grass', kind: GameplayZoneKind.encounter,
+          area: MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 4, height: 4)),
+          encounter: EncounterZonePayload(encounterTableId: 'timed'),
+        )]);
+        final project = _project(map).copyWith(
+          facts: [NarrativeFactDefinition(id: 'edition', label: 'Edition',
+            initialValue: NarrativeValue.string('amber'))],
+          encounterTables: [ProjectEncounterTable(id: 'timed', name: 'Timed',
+            encounterKind: EncounterKind.walk, chancePerStep: 1, variants: [
+              for (final version in ['amber', 'violet'])
+                for (final window in [
+                  ('morning', 240, 600), ('day', 600, 1200), ('night', 1200, 240),
+                ]) ProjectEncounterVariant(id: '$version-${window.$1}', name: window.$1,
+                  conditions: [ScriptConditionFactory.factEquals('edition', NarrativeValue.string(version))],
+                  timeWindows: [LocalTimeWindow(startMinute: window.$2, endMinute: window.$3)],
+                  entries: [ProjectEncounterEntry(speciesId: '$version-${window.$1}', minLevel: 3, maxLevel: 3)]),
+            ])],
+        );
+        final host = await _Host.create(project, map,
+          now: () => DateTime(2026, 10, 24, minute ~/ 60, minute % 60));
+        host.state = GameState.fromJson(host.state.copyWith(
+          narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(valuesByFactId: {
+            'edition': NarrativeValue.string(edition),
+          }),
+        ).toJson());
+        await host.events.activateMap(_activation('timed'));
+        host.moveTo(3.5, 2.5);
+        final result = await host.events.playerEnteredCell(
+          previousPosition: const GridPos(x: 2, y: 2), currentPosition: const GridPos(x: 3, y: 2));
+        expect(result?.status, GameplayEncounterCheckStatus.triggered);
+        expect(result?.encounter?.variantId, '$edition-$period');
+        expect(host.battles.single.speciesId, '$edition-$period');
+        host.events.dispose();
+      });
+    }
+  }
+
   for (final coverage in ['painted', 'erased', 'hidden']) {
     test('native grass path encounters follow $coverage material coverage',
         () async {
@@ -931,7 +1006,8 @@ final class _Host {
       Map<String, MapData>? maps,
       SpatialSceneCallbackFactory? createSceneCallbacks,
       SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
-      Future<void> Function(GameState)? afterStateCommitted}) async {
+      Future<void> Function(GameState)? afterStateCommitted,
+      DateTime Function()? now}) async {
     final host = _Host(state ??
         GameState(
           saveId: 'save',
@@ -961,7 +1037,7 @@ final class _Host {
       afterStateCommitted: afterStateCommitted,
       buildSceneConsequenceWriter: buildSceneConsequenceWriter,
       random: Random(41),
-      now: () => DateTime.fromMillisecondsSinceEpoch(42),
+      now: now ?? () => DateTime.fromMillisecondsSinceEpoch(42),
     );
     return host;
   }

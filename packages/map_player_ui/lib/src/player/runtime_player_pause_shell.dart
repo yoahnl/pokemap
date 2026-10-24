@@ -7,6 +7,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -73,8 +74,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.detailFooterBuilder,
     this.detailHeaderSecondary,
     this.rootActionsOnly = false,
-  })  : pauseSection = RuntimePlayerPauseSection.root,
-        onBackToRoot = _noop;
+  }) : pauseSection = RuntimePlayerPauseSection.root,
+       onBackToRoot = _noop;
 
   final String gameTitle;
   final RuntimePlayerPauseSection pauseSection;
@@ -98,7 +99,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final bool detailOwnsScroll;
   final Widget? detailActions;
   final Widget Function(BuildContext context, Widget returnAction)?
-      detailFooterBuilder;
+  detailFooterBuilder;
   final Widget? detailHeaderSecondary;
   final bool rootActionsOnly;
 
@@ -112,19 +113,10 @@ class RuntimePlayerPauseShell extends StatefulWidget {
 class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   late RuntimePlayerFocusController _focusController;
   late bool _ownsFocusController;
-  final Map<RuntimePlayerLayoutClass, ScrollController>
-      _navigationScrollControllers =
-      <RuntimePlayerLayoutClass, ScrollController>{};
-  final Map<RuntimePlayerLayoutClass, ScrollController>
-      _detailScrollControllers = <RuntimePlayerLayoutClass, ScrollController>{};
-  final Map<RuntimePlayerLayoutClass, double> _navigationScrollOffsets =
-      <RuntimePlayerLayoutClass, double>{};
-  final Map<RuntimePlayerLayoutClass, double> _detailScrollOffsets =
-      <RuntimePlayerLayoutClass, double>{};
   RuntimePlayerLayoutClass? _lastLayout;
-  int _scrollRestoreGeneration = 0;
   ImageProvider? _failedBackgroundImage;
   final _detailReturnFocus = FocusNode(debugLabel: 'Pause detail return');
+  final _detailPages = <RuntimePlayerPauseSection, int>{};
 
   @override
   void initState() {
@@ -161,8 +153,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     if (_ownsFocusController) _focusController.dispose();
   }
 
-  void _applyExternalFocusState(
-      {bool preferExternal = false, bool focusDetail = true}) {
+  void _applyExternalFocusState({
+    bool preferExternal = false,
+    bool focusDetail = true,
+  }) {
     if (widget.activeInputSource case final source?) {
       _focusController.noteInputSource(source);
     }
@@ -178,26 +172,32 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       return;
     }
     _focusController.restoreSelection(
-      _availableSelectionId(preferExternal
-          ? widget.logicalSelectionId
-          : _focusController.logicalSelectionId ?? widget.logicalSelectionId),
+      _availableSelectionId(
+        preferExternal
+            ? widget.logicalSelectionId
+            : _focusController.logicalSelectionId ?? widget.logicalSelectionId,
+      ),
     );
   }
 
   String? _availableSelectionId(String? preferred) {
     final visible = _presentation.visibleActions;
-    final availableSelectionIds = [
-      ...visible.where((action) =>
-          !_isIllustrated ||
-          _isActionsOnlyRoot ||
-          action != PlayerPauseAction.resume &&
-              (action != PlayerPauseAction.returnToTitle ||
-                  !_returnToTitleInOptions)),
-      if (_isIllustrated && !_isActionsOnlyRoot) PlayerPauseAction.resume,
-    ]
-        .where((action) => widget.actions[action]?.isEnabled == true)
-        .map((action) => 'pause.${action.name}')
-        .toList(growable: false);
+    final availableSelectionIds =
+        [
+              ...visible.where(
+                (action) =>
+                    !_isIllustrated ||
+                    _isActionsOnlyRoot ||
+                    action != PlayerPauseAction.resume &&
+                        (action != PlayerPauseAction.returnToTitle ||
+                            !_returnToTitleInOptions),
+              ),
+              if (_isIllustrated && !_isActionsOnlyRoot)
+                PlayerPauseAction.resume,
+            ]
+            .where((action) => widget.actions[action]?.isEnabled == true)
+            .map((action) => 'pause.${action.name}')
+            .toList(growable: false);
     if (availableSelectionIds.contains(preferred)) return preferred;
     final current = _focusController.logicalSelectionId;
     if (availableSelectionIds.contains(current)) return current;
@@ -215,44 +215,36 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
 
   @override
   void dispose() {
-    _rememberScrollOffsets(_lastLayout);
     _detailReturnFocus.dispose();
     _detachFocusController();
-    for (final controller in _navigationScrollControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in _detailScrollControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => PlayerSurfacePaletteScope(
-        role: ProjectPresentationSurfaceRole.pauseMenu,
-        child: Listener(
-          onPointerDown: _notePointerDown,
-          child: Builder(
-            builder: (context) => _isActionsOnlyRoot
-                ? PlayerMenuThemeScope(child: Builder(builder: _buildSurface))
-                : _isIllustrated
-                    ? PlayerMenuThemeScope(
-                        child: Builder(builder: _buildIllustratedFrame))
-                    : PlayerPauseSurface.composed(child: _buildSurface(context)),
-          ),
-        ),
-      );
+    role: ProjectPresentationSurfaceRole.pauseMenu,
+    child: Listener(
+      onPointerDown: _notePointerDown,
+      child: Builder(
+        builder: (context) => _isActionsOnlyRoot
+            ? PlayerMenuThemeScope(child: Builder(builder: _buildSurface))
+            : _isIllustrated
+            ? PlayerMenuThemeScope(
+                child: Builder(builder: _buildIllustratedFrame),
+              )
+            : PlayerPauseSurface.composed(child: _buildSurface(context)),
+      ),
+    ),
+  );
 
   void _notePointerDown(PointerDownEvent event) {
     final source = switch (event.kind) {
       PointerDeviceKind.mouse => PlayerInputSource.mouse,
       PointerDeviceKind.touch ||
-      PointerDeviceKind.stylus =>
-        PlayerInputSource.touch,
+      PointerDeviceKind.stylus => PlayerInputSource.touch,
       PointerDeviceKind.invertedStylus ||
       PointerDeviceKind.trackpad ||
-      PointerDeviceKind.unknown =>
-        _focusController.activeInputSource,
+      PointerDeviceKind.unknown => _focusController.activeInputSource,
     };
     _focusController.noteInputSource(source);
   }
@@ -273,218 +265,263 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   RuntimePlayerLayoutClass _layoutClass(
     BoxConstraints constraints,
     ProjectResolvedSurfaceLayout? resolved,
-  ) =>
-      resolved == null
-          ? classifyRuntimePlayerLayout(constraints)
-          : switch (resolved.breakpoint) {
-              ProjectPresentationBreakpoint.compact =>
-                constraints.maxHeight > constraints.maxWidth
-                    ? RuntimePlayerLayoutClass.compactPortrait
-                    : RuntimePlayerLayoutClass.compactLandscape,
-              ProjectPresentationBreakpoint.regular =>
-                RuntimePlayerLayoutClass.compactLandscape,
-              ProjectPresentationBreakpoint.expanded =>
-                RuntimePlayerLayoutClass.expanded,
-            };
+  ) => resolved == null
+      ? classifyRuntimePlayerLayout(constraints)
+      : switch (resolved.breakpoint) {
+          ProjectPresentationBreakpoint.compact =>
+            constraints.maxHeight > constraints.maxWidth
+                ? RuntimePlayerLayoutClass.compactPortrait
+                : RuntimePlayerLayoutClass.compactLandscape,
+          ProjectPresentationBreakpoint.regular =>
+            RuntimePlayerLayoutClass.compactLandscape,
+          ProjectPresentationBreakpoint.expanded =>
+            RuntimePlayerLayoutClass.expanded,
+        };
 
   Widget _buildIllustratedFrame(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final resolved = context.playerLayoutTheme?.resolve(
-            ProjectPresentationSurfaceRole.pauseMenu,
-            constraints,
+    builder: (context, constraints) {
+      final resolved = context.playerLayoutTheme?.resolve(
+        ProjectPresentationSurfaceRole.pauseMenu,
+        constraints,
+      );
+      final layout = _layoutClass(constraints, resolved);
+      final tokens = context.playerMenuTheme;
+      final presentation = _presentation;
+      final image = presentation.backgroundImage;
+      final background = presentation.background;
+      final isRoot = widget.pauseSection == RuntimePlayerPauseSection.root;
+      final resume =
+          widget.actions[PlayerPauseAction.resume] ??
+          PlayerActionAvailability.disabled(
+            context.playerL10n.actionUnavailable,
           );
-          final layout = _layoutClass(constraints, resolved);
-          final tokens = context.playerMenuTheme;
-          final presentation = _presentation;
-          final image = presentation.backgroundImage;
-          final background = presentation.background;
-          final isRoot = widget.pauseSection == RuntimePlayerPauseSection.root;
-          final resume = widget.actions[PlayerPauseAction.resume] ??
-              PlayerActionAvailability.disabled(
-                  context.playerL10n.actionUnavailable);
-          final returnLabel = isRoot
-              ? presentation.actionLabels[PlayerPauseAction.resume] ??
-                  widget.labels.resume ??
-                  context.playerL10n.resume
-              : context.playerL10n.back;
-          final unavailable = background != null &&
-              (image == null || _failedBackgroundImage == image);
-          final fallback = DecoratedBox(
-            key: const ValueKey('runtime-menu-background-fallback'),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [tokens.backdrop, tokens.base],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          );
-          final pixelRatio = MediaQuery.devicePixelRatioOf(context);
-          final decodeWidth =
-              (constraints.maxWidth * pixelRatio).ceil().clamp(1, 1920);
-          final decodeHeight =
-              (constraints.maxHeight * pixelRatio).ceil().clamp(1, 1080);
-          final artwork = image == null
-              ? fallback
-              : KeyedSubtree(
-                  key: ValueKey(image),
-                  child: PlayerProvidedImage(
-                    key: const ValueKey('runtime-menu-background'),
-                    image: ResizeImage(image,
-                        width: decodeWidth,
-                        height: decodeHeight,
-                        policy: ResizeImagePolicy.fit),
-                    fit: BoxFit.cover,
-                    alignment: Alignment((background?.focalX ?? .5) * 2 - 1,
-                        (background?.focalY ?? .5) * 2 - 1),
-                    filterQuality: background?.sampling ==
-                            ProjectMenuImageSampling.pixelArt
-                        ? FilterQuality.none
-                        : FilterQuality.medium,
-                    errorBuilder: (_, error, stack) {
-                      if (_failedBackgroundImage != image) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted &&
-                              widget.presentation?.backgroundImage == image &&
-                              _failedBackgroundImage != image) {
-                            setState(() => _failedBackgroundImage = image);
-                          }
-                        });
+      final returnLabel = isRoot
+          ? presentation.actionLabels[PlayerPauseAction.resume] ??
+                widget.labels.resume ??
+                context.playerL10n.resume
+          : context.playerL10n.back;
+      final unavailable =
+          background != null &&
+          (image == null || _failedBackgroundImage == image);
+      final fallback = DecoratedBox(
+        key: const ValueKey('runtime-menu-background-fallback'),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [tokens.backdrop, tokens.base],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      );
+      final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+      final decodeWidth = (constraints.maxWidth * pixelRatio).ceil().clamp(
+        1,
+        1920,
+      );
+      final decodeHeight = (constraints.maxHeight * pixelRatio).ceil().clamp(
+        1,
+        1080,
+      );
+      final artwork = image == null
+          ? fallback
+          : KeyedSubtree(
+              key: ValueKey(image),
+              child: PlayerProvidedImage(
+                key: const ValueKey('runtime-menu-background'),
+                image: ResizeImage(
+                  image,
+                  width: decodeWidth,
+                  height: decodeHeight,
+                  policy: ResizeImagePolicy.fit,
+                ),
+                fit: BoxFit.cover,
+                alignment: Alignment(
+                  (background?.focalX ?? .5) * 2 - 1,
+                  (background?.focalY ?? .5) * 2 - 1,
+                ),
+                filterQuality:
+                    background?.sampling == ProjectMenuImageSampling.pixelArt
+                    ? FilterQuality.none
+                    : FilterQuality.medium,
+                errorBuilder: (_, error, stack) {
+                  if (_failedBackgroundImage != image) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted &&
+                          widget.presentation?.backgroundImage == image &&
+                          _failedBackgroundImage != image) {
+                        setState(() => _failedBackgroundImage = image);
                       }
-                      return fallback;
+                    });
+                  }
+                  return fallback;
+                },
+              ),
+            );
+      return RuntimePlayerActions(
+        onBack: widget.onBackToRoot,
+        onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
+        onInputSourceChanged: _focusController.noteInputSource,
+        child: FocusScope(
+          autofocus: true,
+          child: PlayerMenuFrame(
+            key: const ValueKey('runtime-night-illustrated-frame'),
+            scrollable: false,
+            backdrop: isRoot ? null : artwork,
+            contentPadding: isRoot ? EdgeInsets.zero : null,
+            header: isRoot || _composition(layout)?.showTitle == false
+                ? const SizedBox.shrink()
+                : PlayerMenuHeader(
+                    alignSecondaryEnd:
+                        widget.pauseSection == RuntimePlayerPauseSection.bag ||
+                        widget.pauseSection ==
+                            RuntimePlayerPauseSection.pokedex,
+                    icon: switch (widget.pauseSection) {
+                      RuntimePlayerPauseSection.party => Icons.catching_pokemon,
+                      RuntimePlayerPauseSection.bag => Icons.backpack_outlined,
+                      RuntimePlayerPauseSection.pokedex =>
+                        Icons.menu_book_outlined,
+                      RuntimePlayerPauseSection.profile => Icons.person_outline,
+                      RuntimePlayerPauseSection.map => Icons.map_rounded,
+                      RuntimePlayerPauseSection.options =>
+                        Icons.settings_rounded,
+                      RuntimePlayerPauseSection.quests =>
+                        Icons.auto_stories_rounded,
+                      _ => Icons.menu,
                     },
+                    iconColor: switch (widget.pauseSection) {
+                      RuntimePlayerPauseSection.party => tokens.danger,
+                      RuntimePlayerPauseSection.bag => tokens.warning,
+                      RuntimePlayerPauseSection.quests => tokens.health,
+                      RuntimePlayerPauseSection.options ||
+                      RuntimePlayerPauseSection.profile => tokens.secondary,
+                      _ => tokens.accent,
+                    },
+                    secondary: widget.detailHeaderSecondary,
+                    title: isRoot
+                        ? presentation.title ?? widget.gameTitle
+                        : widget.detailTitle ??
+                              _sectionLabel(context, widget.pauseSection),
                   ),
-                );
-          return RuntimePlayerActions(
-            onBack: widget.onBackToRoot,
-            onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
-            onInputSourceChanged: _focusController.noteInputSource,
-            child: FocusScope(
-              autofocus: true,
-              child: PlayerMenuFrame(
-              key: const ValueKey('runtime-night-illustrated-frame'),
-              scrollable: false,
-              backdrop: isRoot ? null : artwork,
-              contentPadding: isRoot ? EdgeInsets.zero : null,
-              header: isRoot || _composition(layout)?.showTitle == false
-                  ? const SizedBox.shrink()
-                  : PlayerMenuHeader(
-                      alignSecondaryEnd: widget.pauseSection ==
-                              RuntimePlayerPauseSection.bag ||
-                          widget.pauseSection ==
-                              RuntimePlayerPauseSection.pokedex,
-                      icon: switch (widget.pauseSection) {
-                        RuntimePlayerPauseSection.party =>
-                          Icons.catching_pokemon,
-                        RuntimePlayerPauseSection.bag =>
-                          Icons.backpack_outlined,
-                        RuntimePlayerPauseSection.pokedex =>
-                          Icons.menu_book_outlined,
-                        RuntimePlayerPauseSection.profile =>
-                          Icons.person_outline,
-                        RuntimePlayerPauseSection.map => Icons.map_rounded,
-                        RuntimePlayerPauseSection.options =>
-                          Icons.settings_rounded,
-                        RuntimePlayerPauseSection.quests =>
-                          Icons.auto_stories_rounded,
-                        _ => Icons.menu,
-                      },
-                      iconColor: switch (widget.pauseSection) {
-                        RuntimePlayerPauseSection.party => tokens.danger,
-                        RuntimePlayerPauseSection.bag => tokens.warning,
-                        RuntimePlayerPauseSection.quests => tokens.health,
-                        RuntimePlayerPauseSection.options ||
-                        RuntimePlayerPauseSection.profile =>
-                          tokens.secondary,
-                        _ => tokens.accent,
-                      },
-                      secondary: widget.detailHeaderSecondary,
-                      title: isRoot
-                          ? presentation.title ?? widget.gameTitle
-                          : widget.detailTitle ??
-                              _sectionLabel(context, widget.pauseSection)),
-              footer: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (unavailable)
-                    Semantics(
-                      key:
-                          const ValueKey('runtime-menu-background-unavailable'),
-                      liveRegion: true,
-                      child: Text(context.playerL10n.menuBackgroundUnavailable,
-                          style: tokens.meta),
+            footer: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (unavailable)
+                  Semantics(
+                    key: const ValueKey('runtime-menu-background-unavailable'),
+                    liveRegion: true,
+                    child: Text(
+                      context.playerL10n.menuBackgroundUnavailable,
+                      style: tokens.meta,
                     ),
-                  PlayerMenuFooter(
-                    actionsBuilder: isRoot ? null : widget.detailFooterBuilder,
-                    alignReturnEnd: true,
-                    stackActions:
-                        (widget.pauseSection == RuntimePlayerPauseSection.bag ||
-                                widget.pauseSection ==
-                                    RuntimePlayerPauseSection.options) &&
-                            MediaQuery.sizeOf(context).width < 760 &&
-                            MediaQuery.textScalerOf(context).scale(1) >= 1.8,
-                    hintsFlex: !isRoot && widget.detailActions != null
-                        ? (layout == RuntimePlayerLayoutClass.compactPortrait
+                  ),
+                PlayerMenuFooter(
+                  actionsBuilder: isRoot ? null : widget.detailFooterBuilder,
+                  alignReturnEnd: true,
+                  stackActions:
+                      (widget.pauseSection == RuntimePlayerPauseSection.bag ||
+                          widget.pauseSection ==
+                              RuntimePlayerPauseSection.options) &&
+                      MediaQuery.sizeOf(context).width < 760 &&
+                      MediaQuery.textScalerOf(context).scale(1) >= 1.8,
+                  hintsFlex: !isRoot && widget.detailActions != null
+                      ? (layout == RuntimePlayerLayoutClass.compactPortrait
                             ? 3
                             : 4)
-                        : 1,
-                    hints: [
-                      if (!isRoot &&
-                          widget.detailActions != null &&
-                          widget.detailFooterBuilder == null)
-                        widget.detailActions!,
-                      if (_focusController.showFocusHighlight && isRoot)
-                        PlayerMenuKeyHint(
-                            glyph: (widget.controlProfile ?? PlayerControlProfile.standard)
+                      : 1,
+                  hints: [
+                    if (!isRoot &&
+                        widget.detailActions != null &&
+                        widget.detailFooterBuilder == null)
+                      widget.detailActions!,
+                    if (_focusController.showFocusHighlight && isRoot)
+                      PlayerMenuKeyHint(
+                        glyph:
+                            (widget.controlProfile ??
+                                    PlayerControlProfile.standard)
                                 .promptFor(
-                                  _focusController.activeInputSource == PlayerInputSource.controller
+                                  _focusController.activeInputSource ==
+                                          PlayerInputSource.controller
                                       ? PlayerControlDevice.gamepad
                                       : PlayerControlDevice.keyboard,
                                   RuntimeInputControl.primary,
                                   family: widget.controllerFamily,
                                 ),
-                            label: context.playerL10n.validate),
-                    ],
-                    returnAction: PlayerMenuSelectableRow(
-                      id: 'pause-frame-return',
-                      label: returnLabel,
-                      leading: const Icon(Icons.arrow_back),
-                      integrated: isRoot || widget.detailFooterBuilder == null,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 10),
-                      showFocusHighlight: _focusController.showFocusHighlight,
-                      focusNode: isRoot
-                          ? _focusController.nodeFor('pause.resume',
-                              debugLabel: 'Player action: $returnLabel')
-                          : _detailReturnFocus,
-                      selected: isRoot &&
-                          _focusController.logicalSelectionId == 'pause.resume',
-                      disabledReason: isRoot ? resume.disabledReason : null,
-                      onPressed: isRoot && !resume.isEnabled
-                          ? null
-                          : () {
-                              if (isRoot) {
-                                _focusController.select('pause.resume');
-                                widget.onSelected(PlayerPauseAction.resume);
-                              } else {
-                                widget.onBackToRoot();
-                              }
-                            },
+                        label: context.playerL10n.validate,
+                      ),
+                  ],
+                  returnAction: PlayerMenuSelectableRow(
+                    id: 'pause-frame-return',
+                    label: returnLabel,
+                    leading: const Icon(Icons.arrow_back),
+                    integrated: isRoot || widget.detailFooterBuilder == null,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
                     ),
+                    showFocusHighlight: _focusController.showFocusHighlight,
+                    focusNode: isRoot
+                        ? _focusController.nodeFor(
+                            'pause.resume',
+                            debugLabel: 'Player action: $returnLabel',
+                          )
+                        : _detailReturnFocus,
+                    selected:
+                        isRoot &&
+                        _focusController.logicalSelectionId == 'pause.resume',
+                    disabledReason: isRoot ? resume.disabledReason : null,
+                    onPressed: isRoot && !resume.isEnabled
+                        ? null
+                        : () {
+                            if (isRoot) {
+                              _focusController.select('pause.resume');
+                              widget.onSelected(PlayerPauseAction.resume);
+                            } else {
+                              widget.onBackToRoot();
+                            }
+                          },
                   ),
-                ],
-              ),
-              child: _buildSurface(context,
-                  layoutOverride: layout,
-                  resolvedOverride: resolved,
-                  illustratedBackground: isRoot ? artwork : null),
-              ),
+                ),
+              ],
             ),
-          );
-        },
+            child: _buildSurface(
+              context,
+              layoutOverride: layout,
+              resolvedOverride: resolved,
+              illustratedBackground: isRoot ? artwork : null,
+            ),
+          ),
+        ),
       );
+    },
+  );
 
   Widget _buildSurface(
+    BuildContext context, {
+    RuntimePlayerLayoutClass? layoutOverride,
+    ProjectResolvedSurfaceLayout? resolvedOverride,
+    Widget? illustratedBackground,
+  }) => _isIllustrated
+      ? _buildScopedSurface(
+          context,
+          layoutOverride: layoutOverride,
+          resolvedOverride: resolvedOverride,
+          illustratedBackground: illustratedBackground,
+        )
+      : PlayerMenuThemeScope(
+          role:
+              widget.detailSurfaceRole ??
+              ProjectPresentationSurfaceRole.pauseMenu,
+          child: Builder(
+            builder: (context) => _buildScopedSurface(
+              context,
+              layoutOverride: layoutOverride,
+              resolvedOverride: resolvedOverride,
+              illustratedBackground: illustratedBackground,
+            ),
+          ),
+        );
+
+  Widget _buildScopedSurface(
     BuildContext context, {
     RuntimePlayerLayoutClass? layoutOverride,
     ProjectResolvedSurfaceLayout? resolvedOverride,
@@ -494,197 +531,199 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       child: MouseRegion(
         onHover: (_) =>
             _focusController.noteInputSource(PlayerInputSource.mouse),
-          child: Material(
-            key: const ValueKey<String>('runtime-pause-backdrop'),
-            color: _isIllustrated
-                ? context.playerMenuTheme.base.withValues(alpha: 0)
-                : context.playerPauseBackdropColor,
-            child: SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (_isActionsOnlyRoot) {
-                    return Padding(
-                      padding: const EdgeInsets.all(PlayerSpacing.md),
-                      child: PlayerPauseNavigation(
-                        gameTitle: widget.gameTitle,
-                        actions: widget.actions,
-                        onSelected: widget.onSelected,
-                        focusController: _focusController,
-                        labels: widget.labels,
-                        presentation: _presentation,
-                        fillViewport: true,
+        child: Material(
+          key: const ValueKey<String>('runtime-pause-backdrop'),
+          color: _isIllustrated
+              ? context.playerMenuTheme.base.withValues(alpha: 0)
+              : context.playerPauseBackdropColor,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (_isActionsOnlyRoot) {
+                  return Padding(
+                    padding: const EdgeInsets.all(PlayerSpacing.md),
+                    child: PlayerPauseNavigation(
+                      gameTitle: widget.gameTitle,
+                      actions: widget.actions,
+                      onSelected: widget.onSelected,
+                      focusController: _focusController,
+                      labels: widget.labels,
+                      presentation: _presentation,
+                      fillViewport: true,
+                    ),
+                  );
+                }
+                final resolved = layoutOverride == null
+                    ? context.playerLayoutTheme?.resolve(
+                        ProjectPresentationSurfaceRole.pauseMenu,
+                        constraints,
+                      )
+                    : resolvedOverride;
+                final layout =
+                    layoutOverride ?? _layoutClass(constraints, resolved);
+                if (_lastLayout != layout) {
+                  _lastLayout = layout;
+                  if (!_isIllustrated ||
+                      widget.pauseSection == RuntimePlayerPauseSection.root) {
+                    _focusController.restoreSelection(
+                      _availableSelectionId(
+                        _focusController.logicalSelectionId ??
+                            widget.logicalSelectionId,
                       ),
                     );
                   }
-                  final resolved = layoutOverride == null
-                      ? context.playerLayoutTheme?.resolve(
-                          ProjectPresentationSurfaceRole.pauseMenu, constraints)
-                      : resolvedOverride;
-                  final layout =
-                      layoutOverride ?? _layoutClass(constraints, resolved);
-                  if (_lastLayout != layout) {
-                    _rememberScrollOffsets(_lastLayout);
-                    _lastLayout = layout;
-                    if (!_isIllustrated ||
-                        widget.pauseSection == RuntimePlayerPauseSection.root) {
-                      _focusController.restoreSelection(
-                        _availableSelectionId(
-                          _focusController.logicalSelectionId ??
-                              widget.logicalSelectionId,
-                        ),
-                      );
-                    }
-                    _restoreScrollOffsetsAfterLayout(layout);
-                  }
-                  final composition = _composition(layout);
-                  return Stack(
-                    key: ValueKey<String>(_isIllustrated
+                }
+                final composition = _composition(layout);
+                return Stack(
+                  key: ValueKey<String>(
+                    _isIllustrated
                         ? 'runtime-pause-illustrated-layout'
                         : resolved == null
-                            ? 'runtime-pause-layout-${layout.name}'
-                            : 'runtime-pause-responsive-'
-                                '${resolved.breakpoint.name}'),
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      if (_isIllustrated)
-                        if (widget.pauseSection ==
-                            RuntimePlayerPauseSection.root)
-                          PlayerPauseIllustratedRoot(
-                            gameTitle: widget.gameTitle,
-                            menuTitle:
-                                _presentation.title ?? context.playerL10n.menu,
-                            showTitle: composition?.showTitle ?? true,
-                            showGameTitle: resolved
-                                    ?.variant.visibleSecondaryElements
-                                    .contains(
-                                        ProjectPresentationSecondaryElement
-                                            .pauseGameTitle) ??
-                                false,
-                            hint: composition?.showHint == false
-                                ? null
-                                : _presentation.hint,
-                            profile: widget.playerProfile,
-                            portraitImage: widget.portraitImage,
-                            showSummary:
-                                composition?.showRootDetailPanel ?? true,
-                            extraDetail: widget.playerProfile == null
-                                ? widget.detail
-                                : null,
-                            background: illustratedBackground!,
-                            navigation: _navigation(layout,
-                                resolved: resolved,
-                                composition: composition,
-                                scrollKey: const ValueKey(
-                                    'runtime-pause-navigation-scroll')),
-                          )
-                        else
-                          _detailPane(context, layout)
-                      else
-                        switch (layout) {
-                          RuntimePlayerLayoutClass.compactPortrait =>
-                            _compactPortrait(
-                              context,
-                              layout,
-                              resolved,
-                              composition,
-                            ),
-                          RuntimePlayerLayoutClass.compactLandscape =>
-                            _twoColumn(
-                              context,
-                              layout: layout,
-                              widthFactor: .78,
-                              navigationWidth: 220,
-                              resolved: resolved,
-                              composition: composition,
-                            ),
-                          RuntimePlayerLayoutClass.expanded => _twoColumn(
-                              context,
-                              layout: layout,
-                              widthFactor: null,
-                              navigationWidth: 280,
-                              resolved: resolved,
-                              composition: composition,
-                            ),
-                        },
-                      if (!_isIllustrated &&
-                          layout != RuntimePlayerLayoutClass.expanded &&
-                          widget.onTouchMenu != null)
-                        Positioned(
-                          top: PlayerSpacing.sm,
-                          right: PlayerSpacing.sm,
-                          child: AnimatedOpacity(
-                            key: const ValueKey<String>(
-                              'runtime-pause-touch-menu-opacity',
-                            ),
-                            opacity: _focusController.activeInputSource ==
-                                    PlayerInputSource.controller
-                                ? .42
-                                : 1,
-                            duration: context.playerMotion.fast,
-                            child: IconButton.filled(
-                              key: const ValueKey<String>(
-                                'runtime-pause-touch-menu',
-                              ),
-                              tooltip: context.playerL10n.resume,
-                              onPressed: widget.onTouchMenu,
-                              constraints: const BoxConstraints.tightFor(
-                                width: 56,
-                                height: 56,
-                              ),
-                              icon: const Icon(Icons.pause_rounded),
+                        ? 'runtime-pause-layout-${layout.name}'
+                        : 'runtime-pause-responsive-'
+                              '${resolved.breakpoint.name}',
+                  ),
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    if (_isIllustrated)
+                      if (widget.pauseSection == RuntimePlayerPauseSection.root)
+                        PlayerPauseIllustratedRoot(
+                          gameTitle: widget.gameTitle,
+                          menuTitle:
+                              _presentation.title ?? context.playerL10n.menu,
+                          showTitle: composition?.showTitle ?? true,
+                          showGameTitle:
+                              resolved?.variant.visibleSecondaryElements
+                                  .contains(
+                                    ProjectPresentationSecondaryElement
+                                        .pauseGameTitle,
+                                  ) ??
+                              false,
+                          hint: composition?.showHint == false
+                              ? null
+                              : _presentation.hint,
+                          profile: widget.playerProfile,
+                          portraitImage: widget.portraitImage,
+                          showSummary: composition?.showRootDetailPanel ?? true,
+                          extraDetail: widget.playerProfile == null
+                              ? widget.detail
+                              : null,
+                          background: illustratedBackground!,
+                          navigation: _navigation(
+                            layout,
+                            resolved: resolved,
+                            composition: composition,
+                            scrollKey: const ValueKey(
+                              'runtime-pause-navigation-scroll',
                             ),
                           ),
+                        )
+                      else
+                        _detailPane(context, layout)
+                    else
+                      switch (layout) {
+                        RuntimePlayerLayoutClass.compactPortrait =>
+                          _compactPortrait(
+                            context,
+                            layout,
+                            resolved,
+                            composition,
+                          ),
+                        RuntimePlayerLayoutClass.compactLandscape => _twoColumn(
+                          context,
+                          layout: layout,
+                          widthFactor: .78,
+                          navigationWidth: 220,
+                          resolved: resolved,
+                          composition: composition,
                         ),
-                      if (widget.saveMessage case final message?
-                          when message.trim().isNotEmpty)
-                        Positioned(
-                          left: PlayerSpacing.md,
-                          right: PlayerSpacing.md,
-                          bottom: PlayerSpacing.md,
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 560),
-                              child: Semantics(
-                                liveRegion: true,
-                                child: PlayerPanel(
-                                  key: const ValueKey<String>(
-                                    'runtime-save-receipt',
-                                  ),
-                                  elevated: true,
-                                  surfaceRole:
-                                      ProjectPresentationSurfaceRole.save,
-                                  padding: const EdgeInsets.all(
-                                    PlayerSpacing.sm,
-                                  ),
-                                  child: Text(
-                                    message,
-                                    textAlign: TextAlign.center,
-                                  ),
+                        RuntimePlayerLayoutClass.expanded => _twoColumn(
+                          context,
+                          layout: layout,
+                          widthFactor: null,
+                          navigationWidth: 280,
+                          resolved: resolved,
+                          composition: composition,
+                        ),
+                      },
+                    if (!_isIllustrated &&
+                        layout != RuntimePlayerLayoutClass.expanded &&
+                        widget.onTouchMenu != null)
+                      Positioned(
+                        top: PlayerSpacing.sm,
+                        right: PlayerSpacing.sm,
+                        child: AnimatedOpacity(
+                          key: const ValueKey<String>(
+                            'runtime-pause-touch-menu-opacity',
+                          ),
+                          opacity:
+                              _focusController.activeInputSource ==
+                                  PlayerInputSource.controller
+                              ? .42
+                              : 1,
+                          duration: context.playerMotion.fast,
+                          child: IconButton.filled(
+                            key: const ValueKey<String>(
+                              'runtime-pause-touch-menu',
+                            ),
+                            tooltip: context.playerL10n.resume,
+                            onPressed: widget.onTouchMenu,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 56,
+                              height: 56,
+                            ),
+                            icon: const Icon(Icons.pause_rounded),
+                          ),
+                        ),
+                      ),
+                    if (widget.saveMessage case final message?
+                        when message.trim().isNotEmpty)
+                      Positioned(
+                        left: PlayerSpacing.md,
+                        right: PlayerSpacing.md,
+                        bottom: PlayerSpacing.md,
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 560),
+                            child: Semantics(
+                              liveRegion: true,
+                              child: PlayerPanel(
+                                key: const ValueKey<String>(
+                                  'runtime-save-receipt',
+                                ),
+                                elevated: true,
+                                surfaceRole:
+                                    ProjectPresentationSurfaceRole.save,
+                                padding: const EdgeInsets.all(PlayerSpacing.sm),
+                                child: Text(
+                                  message,
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
                           ),
                         ),
-                    ],
-                  );
-                },
-              ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
+        ),
       ),
     );
   }
 
   Widget _surfaceActions({required Widget child}) =>
       _isIllustrated && !_isActionsOnlyRoot
-          ? child
-          : RuntimePlayerActions(
-              onBack: widget.onBackToRoot,
-              onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
-              onInputSourceChanged: _focusController.noteInputSource,
-              child: child,
-            );
+      ? child
+      : RuntimePlayerActions(
+          onBack: widget.onBackToRoot,
+          onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
+          onInputSourceChanged: _focusController.noteInputSource,
+          child: child,
+        );
 
   Widget _compactPortrait(
     BuildContext context,
@@ -706,8 +745,9 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     }
     final fullScreen =
         resolved?.variant.slot == ProjectPresentationLayoutSlot.fullScreen;
-    final margin =
-        _isIllustrated ? 0.0 : resolved?.additionalSafeAreaPadding ?? 0;
+    final margin = _isIllustrated
+        ? 0.0
+        : resolved?.additionalSafeAreaPadding ?? 0;
     return Align(
       alignment: fullScreen ? Alignment.center : Alignment.bottomCenter,
       child: FractionallySizedBox(
@@ -756,15 +796,15 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     required ProjectResolvedSurfaceLayout? resolved,
     required ProjectPauseCompositionVariantProfile? composition,
   }) {
-    final effectiveWidthFactor =
-        _isIllustrated ? null : resolved?.maxWidthFactor ?? widthFactor;
+    final effectiveWidthFactor = _isIllustrated
+        ? null
+        : resolved?.maxWidthFactor ?? widthFactor;
     final margin = _isIllustrated
         ? 0.0
         : resolved?.additionalSafeAreaPadding ?? PlayerSpacing.md;
     final alignment = switch (resolved?.variant.slot) {
       ProjectPresentationLayoutSlot.left ||
-      ProjectPresentationLayoutSlot.leftPane =>
-        Alignment.centerLeft,
+      ProjectPresentationLayoutSlot.leftPane => Alignment.centerLeft,
       ProjectPresentationLayoutSlot.center => Alignment.center,
       ProjectPresentationLayoutSlot.right => Alignment.centerRight,
       _ => Alignment.centerRight,
@@ -785,7 +825,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           PlayerSpacing.md * (resolved?.spacingScale ?? 1),
         ),
         elevated: true,
-        child: widget.pauseSection == RuntimePlayerPauseSection.root &&
+        child:
+            widget.pauseSection == RuntimePlayerPauseSection.root &&
                 composition?.showRootDetailPanel == false
             ? _navigation(
                 layout,
@@ -823,10 +864,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     }
     return Padding(
       padding: EdgeInsets.all(margin),
-      child: Align(
-        alignment: alignment,
-        child: panel,
-      ),
+      child: Align(alignment: alignment, child: panel),
     );
   }
 
@@ -836,76 +874,54 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     ProjectResolvedSurfaceLayout? resolved,
     ProjectPauseCompositionVariantProfile? composition,
   }) {
-    final controller = _navigationScrollControllers.putIfAbsent(
-      layout,
-      () {
-        final controller = ScrollController(
-          debugLabel: 'Runtime pause navigation ${layout.name}',
-          initialScrollOffset:
-              _focusController.navigationScrollOffsets[layout.name] ?? 0,
-        );
-        controller.addListener(() {
-          if (!controller.hasClients) return;
-          _navigationScrollOffsets[layout] = controller.offset;
-          _focusController.navigationScrollOffsets[layout.name] =
-              controller.offset;
-        });
-        return controller;
-      },
-    );
-    return Scrollbar(
-      key: const ValueKey<String>('runtime-pause-navigation-scrollbar'),
-      controller: controller,
-      thumbVisibility: true,
-      child: PlayerPauseNavigation(
-        illustrated: _isIllustrated,
-        mobileGrid:
-            _isIllustrated && MediaQuery.sizeOf(context).shortestSide < 600,
-        gameTitle: widget.gameTitle,
-        actions: widget.actions,
-        onSelected: widget.onSelected,
-        scrollKey: scrollKey,
-        scrollController: controller,
-        focusController: _focusController,
-        confirmShortcut: (widget.controlProfile ?? PlayerControlProfile.standard)
-            .promptFor(
-          switch (_focusController.activeInputSource) {
-            PlayerInputSource.controller => PlayerControlDevice.gamepad,
-            PlayerInputSource.touch => PlayerControlDevice.touch,
-            _ => PlayerControlDevice.keyboard,
-          },
-          RuntimeInputControl.primary,
-          family: widget.controllerFamily,
-        ),
-        labels: widget.labels,
-        presentation: _isIllustrated
-            ? PlayerPausePresentation(
-                title: _presentation.title,
-                hint: _presentation.hint,
-                actionOrder: _presentation.actionOrder,
-                actionLabels: {
-                  PlayerPauseAction.party: context.playerL10n.pokemon,
-                  ..._presentation.actionLabels,
-                },
-                actionIcons: _presentation.actionIcons,
-                hiddenActions: {
-                  ..._presentation.hiddenActions,
-                  PlayerPauseAction.resume,
-                  if (_returnToTitleInOptions) PlayerPauseAction.returnToTitle
-                },
-              )
-            : _presentation,
-        showGameTitle: !_isIllustrated &&
-            (resolved == null ||
-                resolved.variant.visibleSecondaryElements.contains(
-                  ProjectPresentationSecondaryElement.pauseGameTitle,
-                )),
-        composition: _isIllustrated
-            ? (composition ?? const ProjectPauseCompositionVariantProfile())
+    return PlayerPauseNavigation(
+      illustrated: _isIllustrated,
+      mobileGrid:
+          _isIllustrated && MediaQuery.sizeOf(context).shortestSide < 600,
+      gameTitle: widget.gameTitle,
+      actions: widget.actions,
+      onSelected: widget.onSelected,
+      scrollKey: scrollKey,
+      focusController: _focusController,
+      confirmShortcut: (widget.controlProfile ?? PlayerControlProfile.standard)
+          .promptFor(
+            switch (_focusController.activeInputSource) {
+              PlayerInputSource.controller => PlayerControlDevice.gamepad,
+              PlayerInputSource.touch => PlayerControlDevice.touch,
+              _ => PlayerControlDevice.keyboard,
+            },
+            RuntimeInputControl.primary,
+            family: widget.controllerFamily,
+          ),
+      labels: widget.labels,
+      presentation: _isIllustrated
+          ? PlayerPausePresentation(
+              title: _presentation.title,
+              hint: _presentation.hint,
+              actionOrder: _presentation.actionOrder,
+              actionLabels: {
+                PlayerPauseAction.party: context.playerL10n.pokemon,
+                ..._presentation.actionLabels,
+              },
+              actionIcons: _presentation.actionIcons,
+              hiddenActions: {
+                ..._presentation.hiddenActions,
+                PlayerPauseAction.resume,
+                if (_returnToTitleInOptions) PlayerPauseAction.returnToTitle,
+              },
+            )
+          : _presentation,
+      showGameTitle:
+          !_isIllustrated &&
+          (resolved == null ||
+              resolved.variant.visibleSecondaryElements.contains(
+                ProjectPresentationSecondaryElement.pauseGameTitle,
+              )),
+      composition: _isIllustrated
+          ? (composition ?? const ProjectPauseCompositionVariantProfile())
                 .copyWith(showTitle: false, showHint: false)
-            : composition,
-        compositionLayoutName: layout.name,
-      ),
+          : composition,
+      compositionLayoutName: layout.name,
     );
   }
 
@@ -925,62 +941,33 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     };
   }
 
-  Widget _detailPane(
-    BuildContext context,
-    RuntimePlayerLayoutClass layout,
-  ) {
+  Widget _detailPane(BuildContext context, RuntimePlayerLayoutClass layout) {
     final hasDetail = widget.pauseSection != RuntimePlayerPauseSection.root;
-    if (widget.detailOwnsScroll) {
-      if (!_isIllustrated && widget.detailActions != null) {
-        return LayoutBuilder(builder: (context, constraints) {
-          final actions = Padding(
-            padding: const EdgeInsets.only(top: PlayerSpacing.xs),
-            child: widget.detailActions!,
-          );
-          if (!constraints.hasBoundedHeight) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (widget.detailHeaderSecondary case final secondary?)
-                  Align(alignment: Alignment.centerRight, child: secondary),
-                widget.detail,
-                actions,
-              ],
-            );
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.detailHeaderSecondary case final secondary?)
-                Align(alignment: Alignment.centerRight, child: secondary),
-              Expanded(child: widget.detail),
-              ConstrainedBox(
-                constraints:
-                    BoxConstraints(maxHeight: constraints.maxHeight * .3),
-                child: SingleChildScrollView(child: actions),
-              ),
-            ],
-          );
-        });
-      }
-      return widget.detail;
-    }
-    final controller = _detailScrollControllers.putIfAbsent(
-      layout,
-      () => ScrollController(
-        debugLabel: 'Runtime pause detail ${layout.name}',
-      ),
-    );
+    final content = widget.detailOwnsScroll
+        ? widget.detail
+        : widget.detail is Column
+        ? PlayerPagedList(
+            initialPage: _detailPages[widget.pauseSection] ?? 0,
+            onPageChanged: (page) => _detailPages[widget.pauseSection] = page,
+            children: (widget.detail as Column).children,
+          )
+        : widget.detail;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
+      children: [
         if (!_isIllustrated)
           Row(
-            children: <Widget>[
-              if (hasDetail)
+            children: [
+              if (hasDetail &&
+                  !(widget.detailActions != null &&
+                      (widget.pauseSection ==
+                              RuntimePlayerPauseSection.pokedex ||
+                          widget.pauseSection ==
+                              RuntimePlayerPauseSection.profile ||
+                          widget.pauseSection ==
+                              RuntimePlayerPauseSection.options)))
                 IconButton(
-                  key: const ValueKey<String>('runtime-pause-back-to-root'),
+                  key: const ValueKey('runtime-pause-back-to-root'),
                   tooltip: context.playerL10n.back,
                   onPressed: widget.onBackToRoot,
                   constraints: const BoxConstraints.tightFor(
@@ -993,106 +980,26 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 child: Text(
                   hasDetail
                       ? widget.detailTitle ??
-                          _sectionLabel(context, widget.pauseSection)
+                            _sectionLabel(context, widget.pauseSection)
                       : _presentation.resolvedTitle(context.playerL10n),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
+              if (widget.detailHeaderSecondary case final secondary?) ...[
+                const SizedBox(width: 12),
+                Flexible(child: secondary),
+              ],
             ],
           ),
-        if (!_isIllustrated) const SizedBox(height: PlayerSpacing.sm),
         Expanded(
-          child: Scrollbar(
-            key: const ValueKey<String>('runtime-pause-detail-scrollbar'),
-            controller: controller,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              key: const ValueKey<String>('runtime-pause-detail-scroll'),
-              controller: controller,
-              child: hasDetail || _isIllustrated
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        widget.detail,
-                        if (_isIllustrated &&
-                            widget.pauseSection ==
-                                RuntimePlayerPauseSection.options &&
-                            !_presentation.hiddenActions
-                                .contains(PlayerPauseAction.returnToTitle))
-                          PlayerMenuSelectableRow(
-                            id: 'pause-options-return-to-title',
-                            label: _presentation.label(
-                                PlayerPauseAction.returnToTitle,
-                                context.playerL10n),
-                            leading: const Icon(Icons.exit_to_app_rounded),
-                            disabledReason: widget
-                                .actions[PlayerPauseAction.returnToTitle]
-                                ?.disabledReason,
-                            onPressed:
-                                widget.actions[PlayerPauseAction.returnToTitle]
-                                            ?.isEnabled ==
-                                        true
-                                    ? () => widget.onSelected(
-                                        PlayerPauseAction.returnToTitle)
-                                    : null,
-                          ),
-                      ],
-                    )
-                  : PlayerEmptyState(
-                      icon: Icons.gamepad_rounded,
-                      title: _presentation.resolvedTitle(context.playerL10n),
-                      message: context.playerL10n.actionUnavailable,
-                    ),
-            ),
+          child: PlayerMenuDetailTransition(
+            contentKey: ValueKey(widget.pauseSection),
+            child: content,
           ),
         ),
+        if (!_isIllustrated && widget.detailActions != null)
+          widget.detailActions!,
       ],
-    );
-  }
-
-  void _rememberScrollOffsets(RuntimePlayerLayoutClass? layout) {
-    if (layout == null) return;
-    final navigation = _navigationScrollControllers[layout];
-    if (navigation != null && navigation.hasClients) {
-      _navigationScrollOffsets[layout] = navigation.offset;
-      _focusController.navigationScrollOffsets[layout.name] = navigation.offset;
-    }
-    final detail = _detailScrollControllers[layout];
-    if (detail != null && detail.hasClients) {
-      _detailScrollOffsets[layout] = detail.offset;
-    }
-  }
-
-  void _restoreScrollOffsetsAfterLayout(RuntimePlayerLayoutClass layout) {
-    final generation = ++_scrollRestoreGeneration;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || generation != _scrollRestoreGeneration) return;
-      _restoreScrollOffset(
-        _navigationScrollControllers[layout],
-        _navigationScrollOffsets[layout],
-      );
-      _restoreScrollOffset(
-        _detailScrollControllers[layout],
-        _detailScrollOffsets[layout],
-      );
-    });
-  }
-
-  void _restoreScrollOffset(
-    ScrollController? controller,
-    double? offset,
-  ) {
-    if (controller == null ||
-        offset == null ||
-        !controller.hasClients ||
-        !controller.position.hasContentDimensions) {
-      return;
-    }
-    controller.jumpTo(
-      offset.clamp(
-        controller.position.minScrollExtent,
-        controller.position.maxScrollExtent,
-      ),
     );
   }
 
@@ -1103,27 +1010,44 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     final l10n = context.playerL10n;
     return switch (section) {
       RuntimePlayerPauseSection.root => _presentation.resolvedTitle(l10n),
-      RuntimePlayerPauseSection.party =>
-        _presentation.label(PlayerPauseAction.party, l10n),
-      RuntimePlayerPauseSection.bag =>
-        _presentation.label(PlayerPauseAction.bag, l10n),
-      RuntimePlayerPauseSection.pokedex =>
-        _presentation.label(PlayerPauseAction.pokedex, l10n),
-      RuntimePlayerPauseSection.map =>
-        _presentation.label(PlayerPauseAction.map, l10n),
-      RuntimePlayerPauseSection.quests =>
-        _presentation.label(PlayerPauseAction.quests, l10n),
-      RuntimePlayerPauseSection.contacts => widget.detailTitle ?? 'Contacts',
-      RuntimePlayerPauseSection.profile =>
-        _presentation.label(PlayerPauseAction.profile, l10n),
-      RuntimePlayerPauseSection.options =>
-        _presentation.label(PlayerPauseAction.options, l10n),
+      RuntimePlayerPauseSection.party => _presentation.label(
+        PlayerPauseAction.party,
+        l10n,
+      ),
+      RuntimePlayerPauseSection.bag => _presentation.label(
+        PlayerPauseAction.bag,
+        l10n,
+      ),
+      RuntimePlayerPauseSection.pokedex => _presentation.label(
+        PlayerPauseAction.pokedex,
+        l10n,
+      ),
+      RuntimePlayerPauseSection.map => _presentation.label(
+        PlayerPauseAction.map,
+        l10n,
+      ),
+      RuntimePlayerPauseSection.quests => _presentation.label(
+        PlayerPauseAction.quests,
+        l10n,
+      ),
+      RuntimePlayerPauseSection.contacts =>
+        widget.detailTitle ??
+            (l10n.locale.languageCode == 'fr' ? 'Téléphone' : 'Phone'),
+      RuntimePlayerPauseSection.profile => _presentation.label(
+        PlayerPauseAction.profile,
+        l10n,
+      ),
+      RuntimePlayerPauseSection.options => _presentation.label(
+        PlayerPauseAction.options,
+        l10n,
+      ),
     };
   }
 
   PlayerPausePresentation get _presentation {
     final presentation =
-        widget.presentation ?? PlayerPausePresentation.fromLabels(widget.labels);
+        widget.presentation ??
+        PlayerPausePresentation.fromLabels(widget.labels);
     return PlayerPausePresentation(
       style: presentation.style,
       background: presentation.background,
@@ -1136,7 +1060,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       hiddenActions: {
         ...presentation.hiddenActions,
         if (_isActionsOnlyRoot) PlayerPauseAction.resume,
-        if (!widget.actions.containsKey(PlayerPauseAction.contacts)) PlayerPauseAction.contacts,
+        if (!widget.actions.containsKey(PlayerPauseAction.contacts))
+          PlayerPauseAction.contacts,
       },
       composition: presentation.composition,
     );
@@ -1144,21 +1069,18 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
 
   ProjectPresentationSurfaceRole _surfaceRoleFor(
     RuntimePlayerPauseSection section,
-  ) =>
-      switch (section) {
-        RuntimePlayerPauseSection.root =>
-          ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.party => ProjectPresentationSurfaceRole.party,
-        RuntimePlayerPauseSection.bag => ProjectPresentationSurfaceRole.bag,
-        RuntimePlayerPauseSection.pokedex =>
-          ProjectPresentationSurfaceRole.pokedex,
-        RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
-        RuntimePlayerPauseSection.quests =>
-          ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.contacts => ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.profile =>
-          ProjectPresentationSurfaceRole.pauseMenu,
-        RuntimePlayerPauseSection.options =>
-          ProjectPresentationSurfaceRole.options,
-      };
+  ) => switch (section) {
+    RuntimePlayerPauseSection.root => ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.party => ProjectPresentationSurfaceRole.party,
+    RuntimePlayerPauseSection.bag => ProjectPresentationSurfaceRole.bag,
+    RuntimePlayerPauseSection.pokedex => ProjectPresentationSurfaceRole.pokedex,
+    RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
+    RuntimePlayerPauseSection.quests =>
+      ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.contacts =>
+      ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.profile =>
+      ProjectPresentationSurfaceRole.pauseMenu,
+    RuntimePlayerPauseSection.options => ProjectPresentationSurfaceRole.options,
+  };
 }

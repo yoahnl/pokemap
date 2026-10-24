@@ -186,16 +186,111 @@ final class SpatialRamp extends SpatialBlockedArea {
   );
 }
 
+final class SpatialLedge {
+  static const capabilityId = 'map3d.directional-ledges@1';
+
+  SpatialLedge({
+    required this.id,
+    required this.x,
+    required this.z,
+    required this.direction,
+    this.distance = 2,
+    this.durationMs = 400,
+    this.height = .65,
+  }) {
+    if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
+        x < 0 ||
+        z < 0 ||
+        x > 255 ||
+        z > 255 ||
+        distance < 2 ||
+        distance > 4 ||
+        durationMs < 100 ||
+        durationMs > 2000 ||
+        !height.isFinite ||
+        height <= 0 ||
+        height > 4) {
+      throw const FormatException('Invalid directional ledge.');
+    }
+  }
+
+  final String id;
+  final int x, z, distance, durationMs;
+  final double height;
+  final SpatialRampDirection direction;
+  int get dx => switch (direction) {
+    SpatialRampDirection.east => 1,
+    SpatialRampDirection.west => -1,
+    _ => 0,
+  };
+  int get dz => switch (direction) {
+    SpatialRampDirection.south => 1,
+    SpatialRampDirection.north => -1,
+    _ => 0,
+  };
+  int get landingX => x + dx * distance;
+  int get landingZ => z + dz * distance;
+  bool containsBarrier(double px, double pz) {
+    for (var step = 1; step < distance; step++) {
+      final bx = x + dx * step, bz = z + dz * step;
+      if (px >= bx && px < bx + 1 && pz >= bz && pz < bz + 1) return true;
+    }
+    return false;
+  }
+
+  factory SpatialLedge.fromJson(Map<String, dynamic> json) => SpatialLedge(
+    id: json['id'] as String,
+    x: json['x'] as int,
+    z: json['z'] as int,
+    direction: SpatialRampDirection.values.byName(json['direction'] as String),
+    distance: json['distance'] as int? ?? 2,
+    durationMs: json['durationMs'] as int? ?? 400,
+    height: (json['height'] as num?)?.toDouble() ?? .65,
+  );
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'x': x,
+    'z': z,
+    'direction': direction.name,
+    'distance': distance,
+    'durationMs': durationMs,
+    'height': height,
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SpatialLedge &&
+      id == other.id &&
+      x == other.x &&
+      z == other.z &&
+      direction == other.direction &&
+      distance == other.distance &&
+      durationMs == other.durationMs &&
+      height == other.height;
+  @override
+  int get hashCode =>
+      Object.hash(id, x, z, direction, distance, durationMs, height);
+}
+
 final class SpatialNavigationProfile {
   SpatialNavigationProfile({
     SpatialSpawn? spawn,
     this.allowDiagonalMovement = false,
     Iterable<SpatialRamp> ramps = const [],
+    Iterable<SpatialLedge> ledges = const [],
     Iterable<SpatialBlockedArea> blockedAreas = const [],
   }) : spawn = spawn ?? SpatialSpawn(x: .5, z: .5),
        ramps = List.unmodifiable(ramps),
+       ledges = List.unmodifiable(ledges),
        blockedAreas = List.unmodifiable(blockedAreas) {
-    if (this.ramps.length > 256 ||
+    if (this.ledges.length > 4096 ||
+        this.ledges.map((ledge) => ledge.id).toSet().length !=
+            this.ledges.length ||
+        this.ledges
+                .map((ledge) => (ledge.x, ledge.z, ledge.direction))
+                .toSet()
+                .length !=
+            this.ledges.length ||
+        this.ramps.length > 256 ||
         this.blockedAreas.length > 4096 ||
         this.ramps.map((r) => r.id).toSet().length != this.ramps.length) {
       throw const FormatException(
@@ -216,16 +311,19 @@ final class SpatialNavigationProfile {
   final SpatialSpawn spawn;
   final bool allowDiagonalMovement;
   final List<SpatialRamp> ramps;
+  final List<SpatialLedge> ledges;
   final List<SpatialBlockedArea> blockedAreas;
   SpatialNavigationProfile copyWith({
     SpatialSpawn? spawn,
     bool? allowDiagonalMovement,
     Iterable<SpatialRamp>? ramps,
+    Iterable<SpatialLedge>? ledges,
     Iterable<SpatialBlockedArea>? blockedAreas,
   }) => SpatialNavigationProfile(
     spawn: spawn ?? this.spawn,
     allowDiagonalMovement: allowDiagonalMovement ?? this.allowDiagonalMovement,
     ramps: ramps ?? this.ramps,
+    ledges: ledges ?? this.ledges,
     blockedAreas: blockedAreas ?? this.blockedAreas,
   );
   factory SpatialNavigationProfile.fromJson(Map<String, dynamic> json) =>
@@ -237,6 +335,10 @@ final class SpatialNavigationProfile {
         ramps: (json['ramps'] as List).map(
           (v) => SpatialRamp.fromJson(Map<String, dynamic>.from(v as Map)),
         ),
+        ledges: (json['ledges'] as List? ?? const []).map(
+          (value) =>
+              SpatialLedge.fromJson(Map<String, dynamic>.from(value as Map)),
+        ),
         blockedAreas: (json['blockedAreas'] as List).map(
           (v) =>
               SpatialBlockedArea.fromJson(Map<String, dynamic>.from(v as Map)),
@@ -246,6 +348,7 @@ final class SpatialNavigationProfile {
     'spawn': spawn.toJson(),
     'allowDiagonalMovement': allowDiagonalMovement,
     'ramps': ramps.map((v) => v.toJson()).toList(),
+    if (ledges.isNotEmpty) 'ledges': ledges.map((v) => v.toJson()).toList(),
     'blockedAreas': blockedAreas.map((v) => v.toJson()).toList(),
   };
   @override
@@ -254,12 +357,14 @@ final class SpatialNavigationProfile {
       spawn == other.spawn &&
       allowDiagonalMovement == other.allowDiagonalMovement &&
       const DeepCollectionEquality().equals(ramps, other.ramps) &&
+      const DeepCollectionEquality().equals(ledges, other.ledges) &&
       const DeepCollectionEquality().equals(blockedAreas, other.blockedAreas);
   @override
   int get hashCode => Object.hash(
     spawn,
     allowDiagonalMovement,
     const DeepCollectionEquality().hash(ramps),
+    const DeepCollectionEquality().hash(ledges),
     const DeepCollectionEquality().hash(blockedAreas),
   );
 }

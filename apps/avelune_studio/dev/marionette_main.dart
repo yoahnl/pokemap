@@ -371,6 +371,14 @@ Future<void> main() async {
     if (current == null || scene == null) {
       return developer.ServiceExtensionResponse.result('{"available":false}');
     }
+    if (params['clearSelection'] == 'true') {
+      if (session.state.project?.directoryPath != root) {
+        throw StateError('The active Studio project changed.');
+      }
+      current.view.clearSelection(current.document);
+      current.onChanged();
+      await WidgetsBinding.instance.endOfFrame;
+    }
     if (params['selectInstanceId'] case final id?) {
       if (session.state.project?.directoryPath != root ||
           !current.document.current.spatialScene!.instances.any(
@@ -397,6 +405,9 @@ Future<void> main() async {
         'undoCount': current.document.undoCount,
         'dirty': current.document.dirty,
         'selectedId': current.document.selectedId,
+        'dayNightCycle': current.document.current.spatialScene!.dayNightCycle?.toJson(),
+        'lightingMinuteOfDay': scene.controller.dayNightMinuteOfDay,
+        'lightingPreviewRunning': scene.controller.previewDayNightRunning,
         'shadowStats': {
           'casterDrawCount': scene.controller.shadowStats.casterDrawCount,
           'receiverDrawCount': scene.controller.shadowStats.receiverDrawCount,

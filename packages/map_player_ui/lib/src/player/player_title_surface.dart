@@ -2,9 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart' show PlayerInputSource;
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_paged_layout.dart';
+import '../foundation/player_input_scope.dart';
+
 import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -38,24 +42,20 @@ class _PlayerTitleBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: backgroundColor,
-            ),
-          ),
-          if (background != null)
-            PlayerProvidedImage(
-              image: background!,
-              fit: BoxFit.cover,
-              color: scrimColor.withValues(alpha: 0.45),
-              colorBlendMode: BlendMode.srcOver,
-            ),
-          if (backgroundContent case final content?) content,
-          child,
-        ],
-      );
+    fit: StackFit.expand,
+    children: <Widget>[
+      DecoratedBox(decoration: BoxDecoration(color: backgroundColor)),
+      if (background != null)
+        PlayerProvidedImage(
+          image: background!,
+          fit: BoxFit.cover,
+          color: scrimColor.withValues(alpha: 0.45),
+          colorBlendMode: BlendMode.srcOver,
+        ),
+      if (backgroundContent case final content?) content,
+      child,
+    ],
+  );
 }
 
 enum PlayerTitleLayoutVariant {
@@ -107,9 +107,9 @@ final class RuntimePlayerTitlePresentation {
         if (action.visible)
           _playerTitleAction(action.id):
               availability[_playerTitleAction(action.id)] ??
-                  PlayerActionAvailability.disabled(
-                    'This action is unavailable for this game.',
-                  ),
+              PlayerActionAvailability.disabled(
+                'This action is unavailable for this game.',
+              ),
     };
   }
 
@@ -176,9 +176,9 @@ final class PlayerTitleSurfaceData {
     Map<PlayerTitleMenuAction, ProjectTitleActionIcon> actionIcons = const {},
     this.initialSelection,
     this.continueSave,
-  })  : actions = Map.unmodifiable(actions),
-        actionLabels = Map.unmodifiable(actionLabels),
-        actionIcons = Map.unmodifiable(actionIcons);
+  }) : actions = Map.unmodifiable(actions),
+       actionLabels = Map.unmodifiable(actionLabels),
+       actionIcons = Map.unmodifiable(actionIcons);
 
   final String gameTitle;
   final String author;
@@ -195,7 +195,7 @@ final class PlayerTitleSurfaceData {
   final PlayerTitleContinueSaveData? continueSave;
 }
 
-class PlayerTitleSurface extends StatelessWidget {
+class PlayerTitleSurface extends StatefulWidget {
   const PlayerTitleSurface({
     super.key,
     required this.data,
@@ -208,11 +208,70 @@ class PlayerTitleSurface extends StatelessWidget {
   final RuntimePlayerFocusController? focusController;
 
   @override
-  Widget build(BuildContext context) => PlayerSurfacePaletteScope(
-        role: ProjectPresentationSurfaceRole.title,
-        paintBackground: true,
-        child: Builder(builder: _build),
+  State<PlayerTitleSurface> createState() => _PlayerTitleSurfaceState();
+}
+
+class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
+  final _localFocusController = RuntimePlayerFocusController();
+  String? _lastPagedFocusId;
+  PlayerTitleSurfaceData get data => widget.data;
+  ValueChanged<PlayerTitleMenuAction> get onSelected => widget.onSelected;
+  RuntimePlayerFocusController get focusController =>
+      widget.focusController ?? _localFocusController;
+
+  @override
+  void initState() {
+    super.initState();
+    focusController.addListener(_focusChanged);
+  }
+
+  @override
+  void didUpdateWidget(PlayerTitleSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusController != widget.focusController) {
+      (oldWidget.focusController ?? _localFocusController).removeListener(
+        _focusChanged,
       );
+      focusController.addListener(_focusChanged);
+      _lastPagedFocusId = null;
+    }
+  }
+
+  void _focusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  String? _pageSelectionId(PlayerTitleMenuAction? fallback) {
+    final action = data.actions.keys.where(_isSelected).firstOrNull ?? fallback;
+    return action == null ? null : _logicalId(action);
+  }
+
+  void _pageReady(PlayerTitleMenuAction? fallback) {
+    final id = _pageSelectionId(fallback);
+    if (!mounted || id == null || id == _lastPagedFocusId) return;
+    final action = data.actions.keys
+        .where((action) => _logicalId(action) == id)
+        .firstOrNull;
+    final node = action == null ? null : _focusNode(action);
+    if (node != null && node.canRequestFocus) {
+      _lastPagedFocusId = id;
+      node.requestFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    focusController.removeListener(_focusChanged);
+    _localFocusController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => PlayerSurfacePaletteScope(
+    role: ProjectPresentationSurfaceRole.title,
+    paintBackground: true,
+    child: Builder(builder: _build),
+  );
 
   Widget _build(BuildContext context) {
     if (data.layoutVariant == PlayerTitleLayoutVariant.runtimeStartup ||
@@ -220,7 +279,8 @@ class PlayerTitleSurface extends StatelessWidget {
             PlayerTitleLayoutVariant.runtimeStartupCinematic) {
       return _buildRuntimeStartup(
         context,
-        cinematic: data.layoutVariant ==
+        cinematic:
+            data.layoutVariant ==
             PlayerTitleLayoutVariant.runtimeStartupCinematic,
       );
     }
@@ -230,8 +290,9 @@ class PlayerTitleSurface extends StatelessWidget {
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
     final cinematic = data.layoutVariant == PlayerTitleLayoutVariant.cinematic;
-    final contentAlignment =
-        cinematic ? Alignment.bottomLeft : Alignment.center;
+    final contentAlignment = cinematic
+        ? Alignment.bottomLeft
+        : Alignment.center;
     return Scaffold(
       body: _PlayerTitleBackground(
         background: data.background,
@@ -264,144 +325,161 @@ class PlayerTitleSurface extends StatelessWidget {
               };
               final spacingScale = resolved?.spacingScale ?? 1;
               final secondary = variant?.visibleSecondaryElements;
-              final showLogo = secondary == null ||
+              final showLogo =
+                  secondary == null ||
                   secondary.contains(
                     ProjectPresentationSecondaryElement.titleLogo,
                   );
-              final showAuthor = secondary == null ||
+              final showAuthor =
+                  secondary == null ||
                   secondary.contains(
                     ProjectPresentationSecondaryElement.titleAuthor,
                   );
-              final showDescription = secondary == null ||
+              final showDescription =
+                  secondary == null ||
                   secondary.contains(
                     ProjectPresentationSecondaryElement.titleDescription,
                   );
               double gap(double value) => value * spacingScale;
-              return _PlayerTitleScrollView(
-                padding: EdgeInsets.all(
-                  PlayerSpacing.lg + (resolved?.additionalSafeAreaPadding ?? 0),
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight > PlayerSpacing.xxl
-                        ? constraints.maxHeight - PlayerSpacing.xxl
-                        : 0,
-                  ),
-                  child: Align(
-                    key: const ValueKey<String>(
-                      'player-title-content-alignment',
+              final padding =
+                  PlayerSpacing.lg + (resolved?.additionalSafeAreaPadding ?? 0);
+              return Padding(
+                padding: EdgeInsets.all(padding),
+                child: Align(
+                  key: const ValueKey('player-title-content-alignment'),
+                  alignment: authoredAlignment,
+                  child: ConstrainedBox(
+                    key: ValueKey(
+                      'player-title-layout-${data.layoutVariant.name}',
                     ),
-                    alignment: authoredAlignment,
+                    constraints: BoxConstraints(
+                      maxWidth: resolved == null
+                          ? (cinematic ? 680 : 560)
+                          : math.min(
+                              840,
+                              constraints.maxWidth * resolved.maxWidthFactor,
+                            ),
+                      maxHeight: math.max(
+                        0,
+                        constraints.maxHeight - padding * 2,
+                      ),
+                    ),
                     child: KeyedSubtree(
                       key: resolved == null
                           ? null
-                          : ValueKey<String>(
-                              'player-title-responsive-'
-                              '${resolved.breakpoint.name}',
+                          : ValueKey(
+                              'player-title-responsive-${resolved.breakpoint.name}',
                             ),
-                      child: ConstrainedBox(
-                        key: ValueKey<String>(
-                          'player-title-layout-${data.layoutVariant.name}',
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: resolved == null
-                              ? (cinematic ? 680 : 560)
-                              : math.min(
-                                  840,
-                                  constraints.maxWidth *
-                                      resolved.maxWidthFactor,
-                                ),
-                        ),
-                        child: PlayerPanel(
-                          elevated: true,
-                          role: PlayerPanelRole.title,
-                          surfaceRole:
-                              ProjectPresentationSurfaceRole.titlePrompt,
-                          child: FocusTraversalGroup(
-                            policy: OrderedTraversalPolicy(),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: cinematic ||
-                                      authoredTextAlignment == TextAlign.start
-                                  ? CrossAxisAlignment.stretch
-                                  : CrossAxisAlignment.center,
-                              children: <Widget>[
-                                if (showLogo && data.logo != null)
-                                  ConstrainedBox(
-                                    constraints:
-                                        const BoxConstraints(maxHeight: 150),
-                                    child: PlayerProvidedImage(
-                                      image: data.logo!,
-                                      fit: BoxFit.contain,
-                                      semanticLabel: data.gameTitle,
-                                    ),
-                                  )
-                                else if (showLogo)
-                                  Icon(
-                                    Icons.explore_rounded,
-                                    size: 64,
-                                    color: accent,
+                      child: PlayerPanel(
+                        elevated: true,
+                        role: PlayerPanelRole.title,
+                        surfaceRole: ProjectPresentationSurfaceRole.titlePrompt,
+                        child: FocusTraversalGroup(
+                          policy: OrderedTraversalPolicy(),
+                          child: PlayerPagedList(
+                            onPageReady: () => _pageReady(firstEnabledAction),
+                            spacing: 0,
+                            revealChildKey: ValueKey(
+                              _pageSelectionId(firstEnabledAction),
+                            ),
+                            children: <Widget>[
+                              if (showLogo && data.logo != null)
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 150,
                                   ),
-                                SizedBox(height: gap(PlayerSpacing.md)),
-                                Text(
-                                  data.gameTitle,
-                                  textAlign: authoredTextAlignment,
-                                  style: context.playerTypography.displayStyle(
-                                    Theme.of(context).textTheme.displaySmall ??
-                                        const TextStyle(),
+                                  child: PlayerProvidedImage(
+                                    image: data.logo!,
+                                    fit: BoxFit.contain,
+                                    semanticLabel: data.gameTitle,
                                   ),
+                                )
+                              else if (showLogo)
+                                Icon(
+                                  Icons.explore_rounded,
+                                  size: 64,
+                                  color: accent,
                                 ),
-                                if (showAuthor &&
-                                    data.author.isNotEmpty) ...<Widget>[
-                                  SizedBox(height: gap(PlayerSpacing.xs)),
-                                  Text(
-                                    data.author,
+                              SizedBox(height: gap(PlayerSpacing.md)),
+                              SizedBox(
+                                height: math.min(
+                                  112,
+                                  constraints.maxHeight * .24,
+                                ),
+                                width: double.infinity,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment:
+                                      authoredTextAlignment == TextAlign.center
+                                      ? Alignment.center
+                                      : Alignment.centerLeft,
+                                  child: Text(
+                                    data.gameTitle,
+                                    softWrap: false,
                                     textAlign: authoredTextAlignment,
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
+                                    style: context.playerTypography
+                                        .displayStyle(
+                                          Theme.of(context)
+                                                  .textTheme
+                                                  .displaySmall ??
+                                              const TextStyle(),
+                                        ),
+                                  ),
+                                ),
+                              ),
+                              if (showAuthor &&
+                                  data.author.isNotEmpty) ...<Widget>[
+                                SizedBox(height: gap(PlayerSpacing.xs)),
+                                Text(
+                                  data.author,
+                                  textAlign: authoredTextAlignment,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium,
+                                ),
+                              ],
+                              if (showDescription)
+                                if (data.description
+                                    case final description?) ...[
+                                  SizedBox(height: gap(PlayerSpacing.md)),
+                                  Text(
+                                    description,
+                                    textAlign: authoredTextAlignment,
+                                    style: context.playerTypography.bodyStyle(
+                                      Theme.of(context).textTheme.bodyLarge ??
+                                          const TextStyle(),
+                                    ),
                                   ),
                                 ],
-                                if (showDescription)
-                                  if (data.description
-                                      case final description?) ...[
-                                    SizedBox(height: gap(PlayerSpacing.md)),
-                                    Text(
-                                      description,
-                                      textAlign: authoredTextAlignment,
-                                      style: context.playerTypography.bodyStyle(
-                                        Theme.of(context).textTheme.bodyLarge ??
-                                            const TextStyle(),
-                                      ),
-                                    ),
-                                  ],
-                                SizedBox(height: gap(PlayerSpacing.xl)),
-                                for (final action in data.actions.keys)
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: gap(PlayerSpacing.xs),
-                                    ),
-                                    child: PlayerActionButton(
-                                      label: _label(context, action),
-                                      icon: _icon(action),
-                                      autofocus: action == firstEnabledAction,
-                                      secondary: action ==
-                                          PlayerTitleMenuAction.returnToHub,
-                                      disabledReason:
-                                          _availability(context, action)
-                                              .disabledReason,
-                                      focusNode: _focusNode(action),
-                                      showFocusHighlight:
-                                          focusController?.showFocusHighlight ??
-                                              true,
-                                      selected: _isSelected(action),
-                                      onPressed: _availability(context, action)
-                                              .isEnabled
-                                          ? () => _select(action)
-                                          : null,
-                                    ),
+                              SizedBox(height: gap(PlayerSpacing.xl)),
+                              for (final action in data.actions.keys)
+                                Padding(
+                                  key: ValueKey(_logicalId(action)),
+                                  padding: EdgeInsets.only(
+                                    bottom: gap(PlayerSpacing.xs),
                                   ),
-                              ],
-                            ),
+                                  child: PlayerActionButton(
+                                    label: _label(context, action),
+                                    icon: _icon(action),
+                                    autofocus: action == firstEnabledAction,
+                                    secondary:
+                                        action ==
+                                        PlayerTitleMenuAction.returnToHub,
+                                    disabledReason: _availability(
+                                      context,
+                                      action,
+                                    ).disabledReason,
+                                    focusNode: _focusNode(action),
+                                    showFocusHighlight:
+                                        focusController.showFocusHighlight,
+                                    selected: _isSelected(action),
+                                    onPressed:
+                                        _availability(context, action).isEnabled
+                                        ? () => _select(action)
+                                        : null,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -416,10 +494,7 @@ class PlayerTitleSurface extends StatelessWidget {
     );
   }
 
-  Widget _buildRuntimeStartup(
-    BuildContext context, {
-    required bool cinematic,
-  }) {
+  Widget _buildRuntimeStartup(BuildContext context, {required bool cinematic}) {
     final content = SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -488,7 +563,9 @@ class PlayerTitleSurface extends StatelessWidget {
   Widget _startupPremiumMenu(BuildContext context) {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
-    final firstEnabledAction = data.initialSelection ??
+    final compactHeight = MediaQuery.sizeOf(context).height < 560;
+    final firstEnabledAction =
+        data.initialSelection ??
         data.actions.keys
             .where((action) => _availability(context, action).isEnabled)
             .firstOrNull;
@@ -579,7 +656,7 @@ class PlayerTitleSurface extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                const SizedBox(height: 74),
+                SizedBox(height: compactHeight ? 16 : 48),
                 SizedBox(
                   key: const ValueKey<String>('player-title-premium-title'),
                   height: 64,
@@ -594,31 +671,32 @@ class PlayerTitleSurface extends StatelessWidget {
                         (Theme.of(context).textTheme.headlineLarge ??
                                 const TextStyle())
                             .copyWith(
-                          color: colors.textPrimary,
-                          fontSize: 40,
-                          fontWeight: FontWeight.w500,
-                          height: .82,
-                          letterSpacing: -1.25,
-                          fontFeatures: const <FontFeature>[
-                            FontFeature.liningFigures(),
-                          ],
-                        ),
+                              color: colors.textPrimary,
+                              fontSize: 40,
+                              fontWeight: FontWeight.w500,
+                              height: .82,
+                              letterSpacing: -1.25,
+                              fontFeatures: const <FontFeature>[
+                                FontFeature.liningFigures(),
+                              ],
+                            ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 42),
+                SizedBox(height: compactHeight ? 12 : 24),
                 Expanded(
-                  child: SingleChildScrollView(
-                    key: const ValueKey<String>(
-                      'player-title-premium-actions-scroll',
+                  child: PlayerPagedList(
+                    onPageReady: () => _pageReady(firstEnabledAction),
+                    spacing: 8,
+                    revealChildKey: ValueKey(
+                      _pageSelectionId(firstEnabledAction),
                     ),
-                    child: Column(
-                      children: <Widget>[
-                        for (final (index, action)
-                            in data.actions.keys.indexed) ...[
-                          if (index > 0) const SizedBox(height: 5),
-                          _startupPremiumAction(
+                    children: [
+                      for (final action in data.actions.keys)
+                        KeyedSubtree(
+                          key: ValueKey(_logicalId(action)),
+                          child: _startupPremiumAction(
                             context,
                             action: action,
                             selected: _isStartupHighlighted(
@@ -626,13 +704,19 @@ class PlayerTitleSurface extends StatelessWidget {
                               firstEnabledAction,
                             ),
                           ),
-                        ],
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                 ),
-                _startupPremiumControls(context),
-                const SizedBox(height: 40),
+                if ((context
+                            .dependOnInheritedWidgetOfExactType<
+                              PlayerInputScope
+                            >()
+                            ?.activeInputSource ??
+                        focusController.activeInputSource) ==
+                    PlayerInputSource.keyboard)
+                  _startupPremiumControls(context),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -651,7 +735,8 @@ class PlayerTitleSurface extends StatelessWidget {
     final enabled = availability.isEnabled;
     final foreground = selected ? colors.onPrimary : colors.textSecondary;
     final focusNode = _focusNode(action);
-    final firstEnabledAction = data.initialSelection ??
+    final firstEnabledAction =
+        data.initialSelection ??
         data.actions.keys
             .where((candidate) => _availability(context, candidate).isEnabled)
             .firstOrNull;
@@ -673,7 +758,7 @@ class PlayerTitleSurface extends StatelessWidget {
             },
             child: Focus(
               focusNode: focusNode,
-              autofocus: focusController?.logicalSelectionId == null
+              autofocus: focusController.logicalSelectionId == null
                   ? action == firstEnabledAction
                   : _isSelected(action),
               child: DecoratedBox(
@@ -712,7 +797,7 @@ class PlayerTitleSurface extends StatelessWidget {
                                   size: selected ? 18 : 7,
                                   color: selected
                                       ? (data.accentColor ?? colors.warning)
-                                          .withValues(alpha: .22)
+                                            .withValues(alpha: .22)
                                       : colors.outline.withValues(
                                           alpha: enabled ? .48 : .28,
                                         ),
@@ -736,15 +821,15 @@ class PlayerTitleSurface extends StatelessWidget {
                                 (Theme.of(context).textTheme.labelLarge ??
                                         const TextStyle())
                                     .copyWith(
-                                  color: enabled
-                                      ? foreground
-                                      : foreground.withValues(alpha: .45),
-                                  fontSize: 16,
-                                  fontWeight: selected
-                                      ? FontWeight.w700
-                                      : FontWeight.w600,
-                                  letterSpacing: .05,
-                                ),
+                                      color: enabled
+                                          ? foreground
+                                          : foreground.withValues(alpha: .45),
+                                      fontSize: 16,
+                                      fontWeight: selected
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      letterSpacing: .05,
+                                    ),
                               ),
                             ),
                           ),
@@ -824,17 +909,16 @@ class PlayerTitleSurface extends StatelessWidget {
     BuildContext context, {
     required double width,
     required Widget child,
-  }) =>
-      Container(
-        width: width,
-        height: 24,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: context.playerColors.surfaceElevated.withValues(alpha: .72),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: child,
-      );
+  }) => Container(
+    width: width,
+    height: 24,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: context.playerColors.surfaceElevated.withValues(alpha: .72),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: child,
+  );
 
   String get _premiumTitle {
     final words = data.gameTitle.trim().split(RegExp(r'\s+'));
@@ -847,9 +931,7 @@ class PlayerTitleSurface extends StatelessWidget {
     final colors = context.playerColors;
     final fallback = DecoratedBox(
       key: const ValueKey<String>('player-title-startup-visual'),
-      decoration: BoxDecoration(
-        color: colors.background,
-      ),
+      decoration: BoxDecoration(color: colors.background),
       child: data.background == null
           ? Center(
               child: Icon(
@@ -871,7 +953,8 @@ class PlayerTitleSurface extends StatelessWidget {
 
   Widget _startupMenu(BuildContext context, {required bool compact}) {
     final colors = context.playerColors;
-    final firstEnabledAction = data.initialSelection ??
+    final firstEnabledAction =
+        data.initialSelection ??
         data.actions.keys
             .where((action) => _availability(context, action).isEnabled)
             .firstOrNull;
@@ -883,8 +966,8 @@ class PlayerTitleSurface extends StatelessWidget {
       borderRadius: compact
           ? const BorderRadius.vertical(top: Radius.circular(PlayerRadii.xl))
           : BorderRadius.zero,
-      child: SingleChildScrollView(
-        key: const ValueKey<String>('player-title-startup-menu-scroll'),
+      child: Padding(
+        key: const ValueKey<String>('player-title-startup-menu-content'),
         padding: EdgeInsets.fromLTRB(
           horizontal,
           compact ? PlayerSpacing.lg : PlayerSpacing.xl,
@@ -893,8 +976,10 @@ class PlayerTitleSurface extends StatelessWidget {
         ),
         child: FocusTraversalGroup(
           policy: OrderedTraversalPolicy(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: PlayerPagedList(
+            onPageReady: () => _pageReady(firstEnabledAction),
+            spacing: 0,
+            revealChildKey: ValueKey(_pageSelectionId(firstEnabledAction)),
             children: <Widget>[
               if (data.logo != null)
                 Align(
@@ -905,61 +990,65 @@ class PlayerTitleSurface extends StatelessWidget {
                       image: data.logo!,
                       fit: BoxFit.contain,
                       semanticLabel: data.gameTitle,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
                   ),
                 )
               else
-                Text(
-                  data.gameTitle,
-                  style: context.playerTypography.displayStyle(
-                    Theme.of(context).textTheme.headlineLarge ??
-                        const TextStyle(),
+                SizedBox(
+                  height: 80,
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      data.gameTitle,
+                      softWrap: false,
+                      style: context.playerTypography.displayStyle(
+                        Theme.of(context).textTheme.headlineLarge ??
+                            const TextStyle(),
+                      ),
+                    ),
                   ),
                 ),
               const SizedBox(height: PlayerSpacing.xs),
               Text(
                 data.author,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelLarge
+                style: Theme.of(context).textTheme.labelLarge
                     ?.copyWith(color: colors.textSecondary),
               ),
               if (!compact && data.description != null) ...[
                 const SizedBox(height: PlayerSpacing.sm),
                 Text(
                   data.description!,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
+                  style: Theme.of(context).textTheme.bodyMedium
                       ?.copyWith(color: colors.textSecondary),
                 ),
               ],
               const SizedBox(height: PlayerSpacing.lg),
               for (final action in data.actions.keys)
                 Padding(
+                  key: ValueKey(_logicalId(action)),
                   padding: const EdgeInsets.only(bottom: PlayerSpacing.xs),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(minHeight: 56),
                     child: PlayerActionButton(
                       label: _label(context, action),
                       icon: _icon(action),
-                      quiet: !_isStartupHighlighted(
-                        action,
-                        firstEnabledAction,
-                      ),
+                      quiet: !_isStartupHighlighted(action, firstEnabledAction),
                       expandContent: true,
-                      autofocus: focusController?.logicalSelectionId == null
+                      autofocus: focusController.logicalSelectionId == null
                           ? action == firstEnabledAction
                           : _isSelected(action),
-                      disabledReason:
-                          _availability(context, action).disabledReason,
+                      disabledReason: _availability(
+                        context,
+                        action,
+                      ).disabledReason,
                       trailing: action == PlayerTitleMenuAction.continueGame
                           ? _continueSaveMetadata(context)
                           : null,
                       focusNode: _focusNode(action),
-                      showFocusHighlight:
-                          focusController?.showFocusHighlight ?? true,
+                      showFocusHighlight: focusController.showFocusHighlight,
                       selected: _isStartupHighlighted(
                         action,
                         firstEnabledAction,
@@ -978,13 +1067,13 @@ class PlayerTitleSurface extends StatelessWidget {
   }
 
   String _logicalId(PlayerTitleMenuAction action) => switch (action) {
-        PlayerTitleMenuAction.continueGame => 'title.continueGame',
-        PlayerTitleMenuAction.newGame => 'title.newGame',
-        PlayerTitleMenuAction.load => 'title.load',
-        PlayerTitleMenuAction.options => 'title.openOptions',
-        PlayerTitleMenuAction.creditsAbout => 'title.showCredits',
-        PlayerTitleMenuAction.returnToHub => 'title.returnToHost',
-      };
+    PlayerTitleMenuAction.continueGame => 'title.continueGame',
+    PlayerTitleMenuAction.newGame => 'title.newGame',
+    PlayerTitleMenuAction.load => 'title.load',
+    PlayerTitleMenuAction.options => 'title.openOptions',
+    PlayerTitleMenuAction.creditsAbout => 'title.showCredits',
+    PlayerTitleMenuAction.returnToHub => 'title.returnToHost',
+  };
 
   Widget? _continueSaveMetadata(
     BuildContext context, {
@@ -998,7 +1087,8 @@ class PlayerTitleSurface extends StatelessWidget {
     final minutes = (totalMinutes % 60).toString().padLeft(2, '0');
     final location = save.locationLabel;
     final updatedAt = save.updatedAt.toLocal();
-    final savedOn = '${updatedAt.day.toString().padLeft(2, '0')}/'
+    final savedOn =
+        '${updatedAt.day.toString().padLeft(2, '0')}/'
         '${updatedAt.month.toString().padLeft(2, '0')}/'
         '${updatedAt.year}';
     final secondary = location ?? savedOn;
@@ -1007,33 +1097,30 @@ class PlayerTitleSurface extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: color ?? context.playerColors.textSecondary,
-            fontSize: fontSize,
-          ),
+        color: color ?? context.playerColors.textSecondary,
+        fontSize: fontSize,
+      ),
     );
   }
 
-  FocusNode? _focusNode(PlayerTitleMenuAction action) =>
-      focusController?.nodeFor(
-        _logicalId(action),
-        debugLabel: 'Title ${action.name}',
-      );
+  FocusNode? _focusNode(PlayerTitleMenuAction action) => focusController
+      .nodeFor(_logicalId(action), debugLabel: 'Title ${action.name}');
 
   bool _isSelected(PlayerTitleMenuAction action) =>
-      focusController?.logicalSelectionId == _logicalId(action);
+      focusController.logicalSelectionId == _logicalId(action);
 
   bool _isStartupHighlighted(
     PlayerTitleMenuAction action,
     PlayerTitleMenuAction? fallback,
   ) {
-    final selection = focusController?.logicalSelectionId;
+    final selection = focusController.logicalSelectionId;
     return selection == null
         ? action == fallback
         : selection == _logicalId(action);
   }
 
   void _select(PlayerTitleMenuAction action) {
-    focusController?.selectFromTouch(_logicalId(action));
+    focusController.selectFromTouch(_logicalId(action));
     onSelected(action);
   }
 
@@ -1076,44 +1163,11 @@ class PlayerTitleSurface extends StatelessWidget {
   }
 
   IconData _authoredIcon(ProjectTitleActionIcon icon) => switch (icon) {
-        ProjectTitleActionIcon.play => Icons.play_circle_fill_rounded,
-        ProjectTitleActionIcon.sparkles => Icons.auto_awesome_rounded,
-        ProjectTitleActionIcon.folder => Icons.folder_open_rounded,
-        ProjectTitleActionIcon.settings => Icons.tune_rounded,
-        ProjectTitleActionIcon.info => Icons.info_outline_rounded,
-        ProjectTitleActionIcon.home => Icons.home_rounded,
-      };
-}
-
-class _PlayerTitleScrollView extends StatefulWidget {
-  const _PlayerTitleScrollView({required this.padding, required this.child});
-
-  final EdgeInsetsGeometry padding;
-  final Widget child;
-
-  @override
-  State<_PlayerTitleScrollView> createState() => _PlayerTitleScrollViewState();
-}
-
-class _PlayerTitleScrollViewState extends State<_PlayerTitleScrollView> {
-  final ScrollController _controller = ScrollController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scrollbar(
-        key: const ValueKey<String>('player-title-scrollbar'),
-        controller: _controller,
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          key: const ValueKey<String>('player-title-scroll'),
-          controller: _controller,
-          padding: widget.padding,
-          child: widget.child,
-        ),
-      );
+    ProjectTitleActionIcon.play => Icons.play_circle_fill_rounded,
+    ProjectTitleActionIcon.sparkles => Icons.auto_awesome_rounded,
+    ProjectTitleActionIcon.folder => Icons.folder_open_rounded,
+    ProjectTitleActionIcon.settings => Icons.tune_rounded,
+    ProjectTitleActionIcon.info => Icons.info_outline_rounded,
+    ProjectTitleActionIcon.home => Icons.home_rounded,
+  };
 }

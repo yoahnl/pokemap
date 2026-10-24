@@ -1,6 +1,8 @@
 import 'dart:typed_data';
+import 'dart:ui' show Color;
 
 import 'package:flame_3d/game.dart';
+import 'package:flame_3d/components.dart' show Object3D;
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +10,9 @@ import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
+import 'package:map_render_3d/src/spatial_point_light.dart';
+import 'package:map_render_3d/src/spatial_point_shadow.dart';
+import 'package:map_core/map_core.dart';
 
 void main() {
   late _ShaderBackend backend;
@@ -22,6 +27,126 @@ void main() {
     material = SpatialPixelMaterial(Texture(ByteData(4), width: 1, height: 1));
     material.vertexShader.resource;
     material.fragmentShader.resource;
+  });
+
+  test('an offscreen opted-in masked caster produces six point depth draws and OFF ON reuses its atlas', () {
+    final mask = SpatialPixelMaterial(
+      material.albedoTexture,
+      alphaMode: Model3dAlphaMode.mask,
+      alphaCutoff: .5,
+    )..uvRect.setValues(.1, .2, .3, .4);
+    final spatial = SpatialRenderContext(device)
+      ..pointShadowCasters = [_OffscreenPointCaster(mask)];
+    final light = SpatialPointLight(position: (x: 0, y: 2, z: 0), radius: 5);
+    spatial.lighting = SpatialLightingProfile.stylized(
+      surfaceStrength: 0,
+      pointLights: [light],
+    );
+    spatial.flush();
+    expect(backend.pointPasses, 0);
+    spatial.lighting = SpatialLightingProfile.stylized(
+      surfaceStrength: 0,
+      pointLights: [light],
+      pointShadowCasterInstanceIds: {'town:wall'},
+    );
+    spatial.flush();
+    expect(spatial.shadowStats.pointCasterDrawCount, 6);
+    expect(spatial.shadowStats.pointTargetAllocations, 1);
+    expect(spatial.shadowStats.pointShadowLightCount, 1);
+    expect(backend.pointPasses, 1);
+    expect(backend.pointFrameEnds, 0);
+    expect(backend.pointMaterialSnapshots, hasLength(6));
+    for (final snapshot in backend.pointMaterialSnapshots) {
+      expect(snapshot[20], 2);
+      expect(snapshot[21], .5);
+      expect(snapshot[4], closeTo(.1, 1e-6));
+      expect(snapshot[7], closeTo(.4, 1e-6));
+    }
+    spatial.pointLightShadowsEnabled = false;
+    spatial.flush();
+    expect(spatial.shadowStats.pointCasterDrawCount, 0);
+    expect(spatial.pointShadowFrame, isNull);
+    expect(backend.pointPasses, 1);
+    spatial.pointLightShadowsEnabled = true;
+    spatial.flush();
+    expect(spatial.shadowStats.pointCasterDrawCount, 6);
+    expect(spatial.shadowStats.pointTargetAllocations, 1);
+    expect(backend.pointPasses, 2);
+    expect(spatial.sourceShadowId, isNull);
+    expect(
+      mask.uvRect.storage,
+      [.1, .2, .3, .4].map((value) => closeTo(value, 1e-6)),
+    );
+  });
+
+  test('point shadow bindings apply to model receivers without relighting normals and clear on OFF', () {
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(surfaceStrength: 0)
+      ..pointShadowFrame = SpatialPointShadowFrame(material.albedoTexture, 2);
+    final shader = material.vertexShader;
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    expect(material.vertexShader, same(shader));
+    expect(device.uniforms['PointShadows']!.sublist(0, 3), [1, 256, 2]);
+    expect(device.textures['pointShadowTexture'], same(material.albedoTexture));
+    spatial.pointShadowFrame = null;
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    expect(device.uniforms['PointShadows']!.first, 0);
+    expect(device.textures['pointShadowTexture'], same(Texture.standard));
+  });
+
+  test('environment uniforms tint prelit artwork and restore all point slots after disabling', () {
+    final spatial = SpatialRenderContext(device);
+    final unlitShader = material.vertexShader;
+    spatial.lighting = SpatialLightingProfile.stylized(
+      surfaceStrength: 0,
+      sceneTint: const Color(0xff4d5e94),
+      pointLights: [
+        SpatialPointLight(
+          position: (x: 3, y: 4, z: 5),
+          radius: 6,
+          intensity: .75,
+        ),
+      ],
+    );
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    expect(material.vertexShader, same(unlitShader));
+    var environment = device.uniforms['Environment']!;
+    expect(environment.sublist(4, 8), [1, 1, 0, 0]);
+    expect(environment.sublist(12, 16), [3, 4, 5, 6]);
+    expect(environment[31], .75);
+    spatial.lighting = SpatialLightingProfile.disabled;
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    environment = device.uniforms['Environment']!;
+    expect(environment.sublist(0, 8), [1, 1, 1, 1, 0, 0, 0, 0]);
+    expect(environment.skip(28), everyElement(0));
+  });
+
+  test('actor point illumination follows a uniform foot anchor without a shadow map', () {
+    final actor = SpatialPixelMaterial(
+      material.albedoTexture,
+      lightingRole: SpatialPixelLightingRole.actor,
+    )..shadowSamplePosition = Vector3(4, 1, 7);
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(
+        surfaceStrength: 0,
+        pointLights: [
+          SpatialPointLight(position: (x: 4, y: 3, z: 7), radius: 5),
+        ],
+      );
+    actor.vertexShader.resource;
+    actor.fragmentShader.resource;
+    actor.apply(spatial);
+    actor.fragmentShader.bind(device);
+    expect(device.uniforms['Environment']!.sublist(8, 12), [4, 1, 7, 1]);
+    actor.shadowSamplePosition!.x = 8;
+    actor.apply(spatial);
+    actor.fragmentShader.bind(device);
+    expect(device.uniforms['Environment']!.sublist(8, 12), [8, 1, 7, 1]);
+    expect(device.uniforms['Shadow']![16], 0);
   });
 
   test('static surfaces bind the required joint matrix buffer', () {
@@ -456,14 +581,23 @@ final class _CountingFragmentShader extends FragmentShader {
   _CountingFragmentShader()
     : super.fromAsset(
         'pixel-test',
-        slots: ['albedoTexture', 'Material', 'shadowTexture', 'Shadow'],
+        slots: [
+          'albedoTexture',
+          'Material',
+          'shadowTexture',
+          'Shadow',
+          'Environment',
+          'PointShadows',
+          'pointShadowTexture',
+        ],
       );
 
   int pixelWrites = 0;
 
   @override
   void setVector4(String key, Vector4 value) {
-    pixelWrites++;
+    if (!key.startsWith('Environment.') && !key.startsWith('PointShadows.'))
+      pixelWrites++;
     super.setVector4(key, value);
   }
 
@@ -482,6 +616,29 @@ final class _CountingFragmentShader extends FragmentShader {
 
 final class _ShaderBackend extends GpuBackend {
   final _shaders = <String, GpuShader>{};
+  int pointPasses = 0, pointFrameEnds = 0;
+  final pointMaterialSnapshots = <List<double>>[];
+
+  @override
+  GpuRenderTarget createRenderTarget({
+    required int width,
+    required int height,
+    required Color clearValue,
+  }) => _PointTarget();
+  @override
+  GpuFrame beginFrame() => _PointFrame(this);
+  @override
+  GpuBuffer createBuffer({
+    required GpuStorageMode storageMode,
+    required int sizeInBytes,
+  }) => _PointBuffer();
+  @override
+  GpuTexture createTexture({
+    required GpuStorageMode storageMode,
+    required int width,
+    required int height,
+    required GpuPixelFormat format,
+  }) => _PointTexture();
 
   @override
   GpuShaderLibrary loadShaderLibrary(String assetName) =>
@@ -542,9 +699,100 @@ final class _Shader implements GpuShader {
       'receiverHeight': 80,
       'samplePosition': 96,
     }),
-    'albedoTexture' || 'shadowTexture' => _UniformSlot(slot, null, {}),
+    'Environment' => _UniformSlot(slot, 176, {
+      'tint': 0,
+      'options': 16,
+      'samplePosition': 32,
+      'pointPositionRadius': 48,
+      'pointColorIntensity': 112,
+    }),
+    'PointShadows' => _UniformSlot(slot, 16, {'options': 0}),
+    'PointDepth' => _UniformSlot(slot, 32, {'positionRadius': 0, 'tile': 16}),
+    'albedoTexture' ||
+    'shadowTexture' ||
+    'pointShadowTexture' => _UniformSlot(slot, null, {}),
     _ => throw StateError('Unexpected shader slot: $slot'),
   };
+}
+
+final class _OffscreenPointCaster extends Object3D {
+  _OffscreenPointCaster(SpatialPixelMaterial material)
+    : surface = Surface(
+        vertices: [
+          Vertex(position: Vector3(-1, 0, -1), texCoord: Vector2(0, 0)),
+          Vertex(position: Vector3(1, 0, -1), texCoord: Vector2(1, 0)),
+          Vertex(position: Vector3(0, 3, -1), texCoord: Vector2(0, 1)),
+        ],
+        indices: [0, 1, 2],
+        material: material,
+      );
+  final Surface surface;
+  @override
+  void draw(covariant RenderContext3D context) {
+    final spatial = context as SpatialRenderContext;
+    final previous = spatial.sourceShadowId;
+    try {
+      spatial.sourceShadowId = 'town:wall';
+      context.model.setIdentity();
+      context.drawSurface(surface);
+    } finally {
+      spatial.sourceShadowId = previous;
+    }
+  }
+}
+
+final class _PointTarget implements GpuRenderTarget {
+  @override
+  final colorTexture = _PointTexture();
+}
+
+final class _PointTexture implements GpuTexture {
+  @override
+  void write(ByteData data) {}
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw StateError('Point maps stay on the GPU.');
+}
+
+final class _PointBuffer implements GpuBuffer {
+  @override
+  void write(ByteData data, {int destinationOffsetInBytes = 0}) {}
+}
+
+final class _PointFrame implements GpuFrame {
+  _PointFrame(this.backend);
+  final _ShaderBackend backend;
+  @override
+  GpuRenderPass beginRenderPass(
+    GpuRenderTarget target, {
+    required BlendState blend,
+    required DepthStencilState depthStencil,
+  }) {
+    backend.pointPasses++;
+    return _PointPass(backend);
+  }
+
+  @override
+  void end() {
+    backend.pointFrameEnds++;
+  }
+}
+
+final class _PointPass implements GpuRenderPass {
+  _PointPass(this.backend);
+  final _ShaderBackend backend;
+  @override
+  void bindUniform(GpuUniformSlot slot, ByteData data) {
+    if ((slot as _UniformSlot).name == 'Material')
+      backend.pointMaterialSnapshots.add(
+        data.buffer
+            .asFloat32List(data.offsetInBytes, data.lengthInBytes ~/ 4)
+            .toList(),
+      );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 final class _UniformSlot implements GpuUniformSlot {

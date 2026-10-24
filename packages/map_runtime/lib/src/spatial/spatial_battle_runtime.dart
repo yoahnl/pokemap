@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flame/components.dart';
+import 'package:flame/components.dart' hide Timer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter/scheduler.dart';
@@ -11,6 +11,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../application/battle_start_request.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_battle_bag_hp_heal_item_apply.dart';
+import '../application/runtime_battle_demonstration.dart';
 import '../application/runtime_battle_outcome_apply.dart';
 import '../application/runtime_battle_experience_progress.dart';
 import '../application/runtime_battle_setup_mapper.dart';
@@ -79,6 +80,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   BattleFxBundleCache? _effects;
   Completer<bool>? _completion;
   Completer<void>? _resumed;
+  Timer? _demonstrationTimer;
+  int _demonstrationChoiceIndex = 0;
+  bool _demonstrationTickActive = false;
   bool _resolving = false;
   bool _committing = false;
   bool _disposed = false;
@@ -151,7 +155,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   bool dispatchBattlePresentationCommand(BattlePresentationCommand command) {
     final snapshot = _battleSnapshot;
     final overlay = battleOverlay;
-    if (_disposed ||
+    if (_demonstration != null || _disposed ||
         isPaused ||
         _committing ||
         (_resolving && phase != SpatialBattlePhase.postBattle) ||
@@ -222,6 +226,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         }
         entryTransition = null;
         phase = SpatialBattlePhase.battle;
+        _startDemonstration(generation);
         _setBattleSnapshot(_entrySnapshot);
         _entrySnapshot = null;
         notifyListeners();
@@ -253,7 +258,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     int generation,
   ) async {
     try {
-      final hydrated = await _hydrate(_base!, bundle);
+      final temporary = request is WildBattleStartRequest && request.demonstration != null
+          ? await prepareRuntimeBattleDemonstration(bundle: bundle, state: _base!, request: request)
+          : _base!;
+      final hydrated = await _hydrate(temporary, bundle);
       if (!_current(generation)) return;
       final mapper = RuntimeBattleSetupMapper();
       if (request is WildBattleStartRequest) {
@@ -496,8 +504,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         if (capture == null) return false;
         final selectedChoice = PlayerBattleChoiceCapture(
           itemId: choice.itemId,
-          rateNumerator: capture.rateNumerator,
-          rateDenominator: capture.rateDenominator,
+          rateNumerator: _demonstration?.captureAlwaysSucceeds == true ? 255 : capture.rateNumerator,
+          rateDenominator: _demonstration?.captureAlwaysSucceeds == true ? 1 : capture.rateDenominator,
         );
         final submission = submitRuntimeBattleCaptureAttempt(
           gameState: _working!,
@@ -593,6 +601,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     }
     await _waitUntilResumed(generation);
     if (!_current(generation) || !_engine!.state.isFinished) return;
+    if (_demonstration != null) {
+      await _finishDemonstration(generation);
+      return;
+    }
     final result = await _coordinator!.begin(
       transactionBaseState: _working!,
       bundle: _bundle!,
@@ -799,8 +811,79 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     }
   }
 
+  SceneBattleDemonstration? get _demonstration {
+    final request = context?.request;
+    return request is WildBattleStartRequest ? request.demonstration : null;
+  }
+
+  void _startDemonstration(int generation) {
+    final configuration = _demonstration;
+    if (configuration == null) return;
+    _demonstrationTimer = Timer.periodic(Duration(milliseconds: configuration.stepDelayMs), (_) {
+      if (!_current(generation) || isPaused) return;
+      final overlay = battleOverlay;
+      if (phase != SpatialBattlePhase.battle || overlay?.isMounted != true) return;
+      if (overlay!.isTurnPresentationActive) {
+        overlay.validateSelectedChoice();
+        return;
+      }
+      if (_demonstrationTickActive || _resolving || _engine!.state.isFinished) return;
+      if (_demonstrationChoiceIndex >= configuration.choices.length) {
+        _fail(StateError('The demonstration ended its choices before the battle finished.'));
+        return;
+      }
+      final action = configuration.choices[_demonstrationChoiceIndex++];
+      final choice = action.kind == 'fight'
+          ? PlayerBattleChoiceFight(action.moveIndex!)
+          : PlayerBattleChoiceCapture(itemId: action.itemId!);
+      _demonstrationTickActive = true;
+      unawaited(submitChoice(choice).then((accepted) {
+        if (_current(generation) && !accepted && phase == SpatialBattlePhase.battle) {
+          _fail(StateError('The demonstration choice is not allowed by the battle.'));
+        }
+      }).whenComplete(() {
+        if (_current(generation)) _demonstrationTickActive = false;
+      }));
+    });
+  }
+
+  Future<void> _finishDemonstration(int generation) async {
+    final outcome = displaySession!.state.outcome!;
+    final overlay = battleOverlay;
+    _demonstrationTimer?.cancel();
+    _demonstrationTimer = null;
+    if (overlay?.isMounted != true) {
+      await onCompleted?.call(outcome);
+      if (_current(generation)) _end(true);
+      return;
+    }
+    final blackHeld = Completer<void>();
+    late final BattleTransitionOverlayComponent curtain;
+    curtain = BattleTransitionOverlayComponent(
+      spec: battleExitFade,
+      resourceBudget: _bundle!.resourceBudget,
+      viewportSize: overlay!.size.clone(),
+      onBlackHeld: () { if (!blackHeld.isCompleted) blackHeld.complete(); },
+      onDismissed: () { if (_current(generation) && identical(exitTransition, curtain)) _end(true); },
+    );
+    exitTransition = curtain;
+    notifyListeners();
+    await Future.any([blackHeld.future, _completion!.future.then((_) {})]);
+    await _waitUntilResumed(generation);
+    if (!_current(generation)) return;
+    if (!identical(readGameState(), _base)) {
+      throw StateError('Game state changed during demonstration.');
+    }
+    _setBattleSnapshot(null);
+    battleOverlay = null;
+    overlay.removeFromParent();
+    await onCompleted?.call(outcome);
+    if (_current(generation)) curtain.revealAndDismiss();
+  }
+
   bool handleInput(RuntimeInputEvent event) {
     if (!isActive) return false;
+    if (_demonstration != null) return true;
     if (isPaused ||
         _committing ||
         entryTransition != null ||
@@ -888,6 +971,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     displaySession = null;
     context = null;
     _captureReceipt = null;
+    _demonstrationTimer?.cancel();
+    _demonstrationTimer = null;
+    _demonstrationChoiceIndex = 0;
+    _demonstrationTickActive = false;
     _base = null;
     _working = null;
     _bundle = null;

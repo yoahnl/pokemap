@@ -339,7 +339,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           pokemonConfig: config,
           speciesId: request.pokemon.speciesId,
         );
-        final detail = request.stage == PokemonGiftInteractionStage.pokedex
+        final detail = request.isNewPokedexEntry ||
+                request.stage == PokemonGiftInteractionStage.pokedex
             ? await const RuntimePlayerPauseDataBuilder()
                   .buildPokemonGiftPokedexEntry(
                     gameState: request.projectedState,
@@ -357,8 +358,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           projectedState: request.projectedState,
           pokedexDetail: detail,
           speciesName: species.displayName(_locale),
+          isNewPokedexEntry: request.isNewPokedexEntry,
         );
-      } else if (request.stage == PokemonGiftInteractionStage.pokedex &&
+      } else if ((request.isNewPokedexEntry ||
+              request.stage == PokemonGiftInteractionStage.pokedex) &&
           request.pokedexDetail == null) {
         throw StateError(
           'The native Pokedex gift entry requires the project catalog.',
@@ -415,7 +418,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             ? SceneInteractionResult.cancelled(
                 requestId: request.requestId,
                 revision: request.revision,
-                reason: SceneInteractionCancellationReason.disposed,
+                reason: SceneInteractionCancellationReason.user,
               )
             : null);
     if (result == null || request.validateResult(result).isNotEmpty) {

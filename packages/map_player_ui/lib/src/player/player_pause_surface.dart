@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -57,10 +58,7 @@ final class PlayerPauseMenuLabels {
 
   String title(PokeMapPlayerLocalizations l10n) => pauseTitle ?? l10n.pause;
 
-  String action(
-    PlayerPauseAction action,
-    PokeMapPlayerLocalizations l10n,
-  ) =>
+  String action(PlayerPauseAction action, PokeMapPlayerLocalizations l10n) =>
       switch (action) {
         PlayerPauseAction.resume => resume ?? l10n.resume,
         PlayerPauseAction.party => party ?? l10n.party,
@@ -68,7 +66,8 @@ final class PlayerPauseMenuLabels {
         PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
         PlayerPauseAction.map => map ?? l10n.map,
         PlayerPauseAction.quests => quests ?? l10n.quests,
-        PlayerPauseAction.contacts => 'Contacts',
+        PlayerPauseAction.contacts =>
+          l10n.locale.languageCode == 'fr' ? 'Téléphone' : 'Phone',
         PlayerPauseAction.profile => profile ?? l10n.profile,
         PlayerPauseAction.save => save ?? l10n.save,
         PlayerPauseAction.options => options ?? l10n.options,
@@ -124,26 +123,24 @@ final class PlayerPausePresentation {
     );
   }
 
-  factory PlayerPausePresentation.fromLabels(PlayerPauseMenuLabels labels) =>
-      PlayerPausePresentation(
-        title: labels.pauseTitle,
-        actionLabels: <PlayerPauseAction, String>{
-          if (labels.resume case final value?) PlayerPauseAction.resume: value,
-          if (labels.party case final value?) PlayerPauseAction.party: value,
-          if (labels.bag case final value?) PlayerPauseAction.bag: value,
-          if (labels.pokedex case final value?)
-            PlayerPauseAction.pokedex: value,
-          if (labels.map case final value?) PlayerPauseAction.map: value,
-          if (labels.quests case final value?) PlayerPauseAction.quests: value,
-          if (labels.profile case final value?)
-            PlayerPauseAction.profile: value,
-          if (labels.save case final value?) PlayerPauseAction.save: value,
-          if (labels.options case final value?)
-            PlayerPauseAction.options: value,
-          if (labels.returnToTitle case final value?)
-            PlayerPauseAction.returnToTitle: value,
-        },
-      );
+  factory PlayerPausePresentation.fromLabels(
+    PlayerPauseMenuLabels labels,
+  ) => PlayerPausePresentation(
+    title: labels.pauseTitle,
+    actionLabels: <PlayerPauseAction, String>{
+      if (labels.resume case final value?) PlayerPauseAction.resume: value,
+      if (labels.party case final value?) PlayerPauseAction.party: value,
+      if (labels.bag case final value?) PlayerPauseAction.bag: value,
+      if (labels.pokedex case final value?) PlayerPauseAction.pokedex: value,
+      if (labels.map case final value?) PlayerPauseAction.map: value,
+      if (labels.quests case final value?) PlayerPauseAction.quests: value,
+      if (labels.profile case final value?) PlayerPauseAction.profile: value,
+      if (labels.save case final value?) PlayerPauseAction.save: value,
+      if (labels.options case final value?) PlayerPauseAction.options: value,
+      if (labels.returnToTitle case final value?)
+        PlayerPauseAction.returnToTitle: value,
+    },
+  );
 
   final ProjectPauseMenuStyle style;
   final ProjectPauseBackgroundProfile? background;
@@ -156,7 +153,10 @@ final class PlayerPausePresentation {
   final Set<PlayerPauseAction> hiddenActions;
   final ProjectResponsivePauseCompositionProfile? composition;
 
-  PlayerPausePresentation resolveVisibility(PlayerPauseMenuState state) {
+  PlayerPausePresentation resolveVisibility(
+    PlayerPauseMenuState state, {
+    bool contactsAvailable = true,
+  }) {
     return PlayerPausePresentation(
       style: style,
       background: background,
@@ -168,11 +168,13 @@ final class PlayerPausePresentation {
       actionIcons: actionIcons,
       hiddenActions: <PlayerPauseAction>{
         for (final action in PlayerPauseAction.values)
-          if (!state.isActionVisible(
-            _projectPauseAction(action),
-            projectDefaultVisibility: !hiddenActions.contains(action) &&
-                (actionOrder == null || actionOrder!.contains(action)),
-          ))
+          if (action == PlayerPauseAction.contacts && !contactsAvailable ||
+              !state.isActionVisible(
+                _projectPauseAction(action),
+                projectDefaultVisibility:
+                    !hiddenActions.contains(action) &&
+                    (actionOrder == null || actionOrder!.contains(action)),
+              ))
             action,
       },
       composition: composition,
@@ -192,33 +194,37 @@ final class PlayerPausePresentation {
       actionLabels[action] ??
       const PlayerPauseMenuLabels().action(action, l10n);
 
-  IconData icon(PlayerPauseAction action) =>
-      switch (actionIcons[action] ?? _defaultPauseActionIcon(action)) {
-        ProjectPauseActionIcon.play => Icons.play_arrow_rounded,
-        ProjectPauseActionIcon.party => Icons.catching_pokemon,
-        ProjectPauseActionIcon.bag => Icons.backpack_rounded,
-        ProjectPauseActionIcon.book => Icons.menu_book_rounded,
-        ProjectPauseActionIcon.map => Icons.map_rounded,
-        ProjectPauseActionIcon.person => Icons.person_rounded,
-        ProjectPauseActionIcon.save => Icons.save_rounded,
-        ProjectPauseActionIcon.settings => Icons.settings_rounded,
-        ProjectPauseActionIcon.exit => Icons.logout_rounded,
-      };
+  IconData icon(PlayerPauseAction action) {
+    if (action == PlayerPauseAction.contacts &&
+        !actionIcons.containsKey(action))
+      return Icons.call_outlined;
+    return switch (actionIcons[action] ?? _defaultPauseActionIcon(action)) {
+      ProjectPauseActionIcon.play => Icons.play_arrow_rounded,
+      ProjectPauseActionIcon.party => Icons.catching_pokemon,
+      ProjectPauseActionIcon.bag => Icons.backpack_rounded,
+      ProjectPauseActionIcon.book => Icons.menu_book_rounded,
+      ProjectPauseActionIcon.map => Icons.map_rounded,
+      ProjectPauseActionIcon.person => Icons.person_rounded,
+      ProjectPauseActionIcon.save => Icons.save_rounded,
+      ProjectPauseActionIcon.settings => Icons.settings_rounded,
+      ProjectPauseActionIcon.exit => Icons.logout_rounded,
+    };
+  }
 }
 
 PlayerPauseAction _pauseAction(ProjectPauseActionId id) => switch (id) {
-      ProjectPauseActionId.resume => PlayerPauseAction.resume,
-      ProjectPauseActionId.party => PlayerPauseAction.party,
-      ProjectPauseActionId.bag => PlayerPauseAction.bag,
-      ProjectPauseActionId.pokedex => PlayerPauseAction.pokedex,
-      ProjectPauseActionId.map => PlayerPauseAction.map,
-      ProjectPauseActionId.quests => PlayerPauseAction.quests,
-      ProjectPauseActionId.contacts => PlayerPauseAction.contacts,
-      ProjectPauseActionId.profile => PlayerPauseAction.profile,
-      ProjectPauseActionId.save => PlayerPauseAction.save,
-      ProjectPauseActionId.options => PlayerPauseAction.options,
-      ProjectPauseActionId.returnToTitle => PlayerPauseAction.returnToTitle,
-    };
+  ProjectPauseActionId.resume => PlayerPauseAction.resume,
+  ProjectPauseActionId.party => PlayerPauseAction.party,
+  ProjectPauseActionId.bag => PlayerPauseAction.bag,
+  ProjectPauseActionId.pokedex => PlayerPauseAction.pokedex,
+  ProjectPauseActionId.map => PlayerPauseAction.map,
+  ProjectPauseActionId.quests => PlayerPauseAction.quests,
+  ProjectPauseActionId.contacts => PlayerPauseAction.contacts,
+  ProjectPauseActionId.profile => PlayerPauseAction.profile,
+  ProjectPauseActionId.save => PlayerPauseAction.save,
+  ProjectPauseActionId.options => PlayerPauseAction.options,
+  ProjectPauseActionId.returnToTitle => PlayerPauseAction.returnToTitle,
+};
 
 ProjectPauseActionId _projectPauseAction(PlayerPauseAction action) =>
     switch (action) {
@@ -261,11 +267,11 @@ class PlayerPauseSurface extends StatelessWidget {
   }) : child = null;
 
   const PlayerPauseSurface.composed({super.key, required this.child})
-      : gameTitle = '',
-        actions = const <PlayerPauseAction, PlayerActionAvailability>{},
-        onSelected = null,
-        labels = const PlayerPauseMenuLabels(),
-        presentation = null;
+    : gameTitle = '',
+      actions = const <PlayerPauseAction, PlayerActionAvailability>{},
+      onSelected = null,
+      labels = const PlayerPauseMenuLabels(),
+      presentation = null;
 
   final String gameTitle;
   final Map<PlayerPauseAction, PlayerActionAvailability> actions;
@@ -303,7 +309,8 @@ class PlayerPauseSurface extends StatelessWidget {
             final wide = resolved == null
                 ? constraints.maxWidth >= 720
                 : resolved.breakpoint != ProjectPresentationBreakpoint.compact;
-            final showGameTitle = resolved == null ||
+            final showGameTitle =
+                resolved == null ||
                 resolved.variant.visibleSecondaryElements.contains(
                   ProjectPresentationSecondaryElement.pauseGameTitle,
                 );
@@ -317,42 +324,49 @@ class PlayerPauseSurface extends StatelessWidget {
               ),
               const SizedBox(height: PlayerSpacing.xs),
               if (showGameTitle)
-                Text(
-                  gameTitle,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: PlayerSpacing.lg),
               Expanded(
-                child: wide
-                    ? GridView.builder(
-                        key: const ValueKey<String>('player-pause-grid'),
-                        itemCount: visibleActions.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisExtent: 68,
-                          crossAxisSpacing: PlayerSpacing.sm,
-                          mainAxisSpacing: PlayerSpacing.sm,
-                        ),
-                        itemBuilder: (context, index) => _action(
-                          context,
-                          visibleActions[index],
-                          firstEnabledAction,
-                          pausePresentation,
-                        ),
-                      )
-                    : ListView.separated(
-                        key: const ValueKey<String>('player-pause-list'),
-                        itemCount: visibleActions.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: PlayerSpacing.xs),
-                        itemBuilder: (context, index) => _action(
-                          context,
-                          visibleActions[index],
-                          firstEnabledAction,
-                          pausePresentation,
+                child: PlayerPagedList(
+                  key: ValueKey(
+                    wide ? 'player-pause-grid' : 'player-pause-list',
+                  ),
+                  children: [
+                    for (
+                      var i = 0;
+                      i < visibleActions.length;
+                      i += wide ? 2 : 1
+                    )
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: _action(
+                                context,
+                                visibleActions[i],
+                                firstEnabledAction,
+                                pausePresentation,
+                              ),
+                            ),
+                            if (wide) ...[
+                              const SizedBox(width: PlayerSpacing.sm),
+                              Expanded(
+                                child: i + 1 < visibleActions.length
+                                    ? _action(
+                                        context,
+                                        visibleActions[i + 1],
+                                        firstEnabledAction,
+                                        pausePresentation,
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
+                  ],
+                ),
               ),
             ];
             final alignment = resolved == null
@@ -431,9 +445,7 @@ class PlayerPauseSurface extends StatelessWidget {
     PlayerPauseAction action,
   ) =>
       actions[action] ??
-      PlayerActionAvailability.disabled(
-        context.playerL10n.actionUnavailable,
-      );
+      PlayerActionAvailability.disabled(context.playerL10n.actionUnavailable);
 }
 
 /// Root navigation reused inside the responsive runtime-owned pause shell.
@@ -483,72 +495,72 @@ class PlayerPauseNavigation extends StatelessWidget {
     final firstEnabledAction = visibleActions
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
-    if (fillViewport) {
-      return LayoutBuilder(
-        key: const ValueKey('runtime-pause-action-grid'),
-        builder: (context, constraints) {
-          if (visibleActions.isEmpty || constraints.biggest.isEmpty) {
-            return const SizedBox.expand();
-          }
-          final columns = MediaQuery.textScalerOf(context).scale(1) >= 1.5
-              ? math.min(2, visibleActions.length)
-              : math
-                  .sqrt(visibleActions.length *
-                      constraints.maxWidth /
-                      constraints.maxHeight)
-                  .round()
-                  .clamp(1, math.min(4, visibleActions.length))
-                  .toInt();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var index = 0;
-                  index < visibleActions.length;
-                  index += columns) ...[
-                if (index > 0) const SizedBox(height: PlayerSpacing.sm),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (var column = 0;
-                          column < columns &&
-                              index + column < visibleActions.length;
-                          column++) ...[
-                        if (column > 0) const SizedBox(width: PlayerSpacing.sm),
-                        Expanded(
-                          child: _action(
+    return LayoutBuilder(
+      key: fillViewport
+          ? const ValueKey('runtime-pause-action-grid')
+          : scrollKey,
+      builder: (context, constraints) {
+        final compactRows =
+            constraints.maxWidth < 450 && constraints.maxHeight < 300;
+        final columns = compactRows
+            ? 1
+            : fillViewport
+            ? ((constraints.maxWidth + 8) / (120 + 8))
+                  .floor()
+                  .clamp(1, math.max(1, math.min(4, visibleActions.length)))
+                  .toInt()
+            : mobileGrid && constraints.maxWidth >= 300
+            ? (constraints.maxWidth >= 420 ? 3 : 2)
+            : useGrid
+            ? 2
+            : 1;
+        final selectedIndex = visibleActions.indexWhere(
+          (action) => _logicalId(action) == focusController?.logicalSelectionId,
+        );
+        final rows = <Widget>[
+          for (var index = 0; index < visibleActions.length; index += columns)
+            IntrinsicHeight(
+              key: ValueKey('pause-row-${visibleActions[index].name}'),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var column = 0; column < columns; column++) ...[
+                    if (column > 0)
+                      SizedBox(width: fillViewport ? 8 : PlayerSpacing.sm),
+                    Expanded(
+                      child: index + column < visibleActions.length
+                          ? _action(
                               context,
                               visibleActions[index + column],
                               firstEnabledAction,
-                              pausePresentation),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          );
-        },
-      );
-    }
-    return SingleChildScrollView(
-      key: scrollKey ??
-          ValueKey<String>(
-            useGrid ? 'player-pause-grid' : 'player-pause-list',
-          ),
-      controller: scrollController,
-      child: Column(
-        key: composition == null
-            ? const ValueKey<String>('runtime-pause-navigation')
-            : ValueKey<String>(
-                'runtime-pause-composition-'
-                '${compositionLayoutName ?? 'custom'}-'
-                '${_compositionName(composition!)}',
+                              pausePresentation,
+                              compactRows: compactRows,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
               ),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (composition?.showTitle ?? true) ...<Widget>[
+            ),
+        ];
+        final entries = PlayerPagedList(
+          revealChildKey: selectedIndex < 0
+              ? null
+              : ValueKey(
+                  'pause-row-${visibleActions[selectedIndex ~/ columns * columns].name}',
+                ),
+          spacing: fillViewport
+              ? 8
+              : composition == null
+              ? PlayerSpacing.sm
+              : _entrySpacing(composition!),
+          onPageReady: () => focusController?.restoreSelection(
+            focusController?.logicalSelectionId,
+          ),
+          children: rows,
+        );
+        final heading = <Widget>[
+          if (!fillViewport && (composition?.showTitle ?? true))
             Semantics(
               header: true,
               child: Text(
@@ -556,102 +568,36 @@ class PlayerPauseNavigation extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
             ),
-            const SizedBox(height: PlayerSpacing.xs),
-          ],
-          if (showGameTitle)
+          if (!fillViewport && showGameTitle)
             Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
-          if (composition?.showHint ?? true)
-            if (pausePresentation.hint case final hint?) ...<Widget>[
-              const SizedBox(height: PlayerSpacing.xs),
-              Text(hint, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          SizedBox(
-            height: illustrated
-                ? 0
-                : composition == null
-                    ? PlayerSpacing.lg
-                    : _entrySpacing(composition!),
-          ),
-          if (mobileGrid)
-            LayoutBuilder(builder: (context, constraints) {
-              final columns = constraints.maxWidth >= 300 &&
-                      MediaQuery.textScalerOf(context).scale(1) < 1.5
-                  ? constraints.maxWidth >= 420
-                      ? 3
-                      : 2
-                  : 1;
-              return Column(children: [
-                for (var index = 0;
-                    index < visibleActions.length;
-                    index += columns)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (var column = 0; column < columns; column++) ...[
-                            if (column > 0) const SizedBox(width: 8),
-                            Expanded(
-                              child: index + column < visibleActions.length
-                                  ? _action(
-                                      context,
-                                      visibleActions[index + column],
-                                      firstEnabledAction,
-                                      pausePresentation)
-                                  : const SizedBox.shrink(),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-              ]);
-            })
-          else if (useGrid)
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: visibleActions.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisExtent: 68,
-                crossAxisSpacing: PlayerSpacing.sm,
-                mainAxisSpacing: PlayerSpacing.sm,
-              ),
-              itemBuilder: (context, index) => _action(
-                context,
-                visibleActions[index],
-                firstEnabledAction,
-                pausePresentation,
-              ),
-            )
-          else
-            for (var index = 0;
-                index < visibleActions.length;
-                index++) ...<Widget>[
-              _action(
-                context,
-                visibleActions[index],
-                firstEnabledAction,
-                pausePresentation,
-              ),
-              if (index != visibleActions.length - 1)
-                SizedBox(
-                  height: illustrated &&
-                          (composition == null ||
-                              composition!.entrySpacing ==
-                                  ProjectPauseEntrySpacing.regular)
-                      ? 8
-                      : composition == null
-                          ? illustrated
-                              ? 8
-                              : PlayerSpacing.xs
-                          : _entrySpacing(composition!),
+          if (!fillViewport &&
+              (composition?.showHint ?? true) &&
+              pausePresentation.hint != null)
+            Text(
+              pausePresentation.hint!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+        ];
+        return Column(
+          key: composition == null
+              ? const ValueKey('runtime-pause-navigation')
+              : ValueKey(
+                  'runtime-pause-composition-${compositionLayoutName ?? 'custom'}-${_compositionName(composition!)}',
                 ),
-            ],
-        ],
-      ),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: constraints.hasBoundedHeight
+              ? MainAxisSize.max
+              : MainAxisSize.min,
+          children: [
+            ...heading,
+            if (heading.isNotEmpty) const SizedBox(height: PlayerSpacing.sm),
+            if (constraints.hasBoundedHeight)
+              Expanded(child: entries)
+            else
+              entries,
+          ],
+        );
+      },
     );
   }
 
@@ -659,8 +605,10 @@ class PlayerPauseNavigation extends StatelessWidget {
     BuildContext context,
     PlayerPauseAction action,
     PlayerPauseAction? firstEnabledAction,
-    PlayerPausePresentation presentation,
-  ) {
+    PlayerPausePresentation presentation, {
+    bool compactRows = false,
+  }) {
+    final mobileTiles = mobileGrid && !compactRows;
     final availability = _availability(context, action);
     final logicalId = _logicalId(action);
     final controller = focusController;
@@ -676,8 +624,7 @@ class PlayerPauseNavigation extends StatelessWidget {
               PlayerPauseAction.contacts => theme.health,
               PlayerPauseAction.map ||
               PlayerPauseAction.pokedex ||
-              PlayerPauseAction.save =>
-                theme.accent,
+              PlayerPauseAction.save => theme.accent,
               _ => theme.secondary,
             };
       return PlayerMenuSelectableRow(
@@ -685,36 +632,46 @@ class PlayerPauseNavigation extends StatelessWidget {
         id: logicalId,
         label: presentation.label(action, context.playerL10n),
         leading: SizedBox(
-            width: fillViewport
-                ? 32
-                : mobileGrid
-                    ? 24
-                    : 48,
-            child: Icon(presentation.icon(action),
-                size: mobileGrid ? 24 : 32, color: color)),
-        integrated: !mobileGrid && !fillViewport,
-        tile: mobileGrid || fillViewport,
-        fitTileContent: fillViewport,
+          width: fillViewport
+              ? 32
+              : mobileTiles
+              ? 24
+              : 48,
+          child: Icon(
+            presentation.icon(action),
+            size: mobileTiles ? 24 : 32,
+            color: color,
+          ),
+        ),
+        integrated: !mobileTiles && !fillViewport,
+        tile: mobileTiles || fillViewport,
+        fitTileContent: false,
         contentPadding: EdgeInsets.symmetric(
-            horizontal: mobileGrid ? 4 : 12, vertical: mobileGrid ? 6 : 10),
+          horizontal: mobileTiles ? 4 : 12,
+          vertical: mobileTiles ? 6 : 10,
+        ),
         minimumHeight: fillViewport
-            ? 0
-            : mobileGrid
-                ? 72
-                : composition == null ||
-                        composition!.entrySize == ProjectPauseEntrySize.regular
-                    ? 64
-                    : _entryHeight(composition!.entrySize),
+            ? 68
+            : mobileTiles
+            ? 72
+            : composition == null ||
+                  composition!.entrySize == ProjectPauseEntrySize.regular
+            ? 64
+            : _entryHeight(composition!.entrySize),
         selected: selected,
         showFocusHighlight: controller?.showFocusHighlight ?? false,
-        focusNode: controller?.nodeFor(logicalId,
-            debugLabel:
-                'Player action: ${presentation.label(action, context.playerL10n)}'),
+        focusNode: controller?.nodeFor(
+          logicalId,
+          debugLabel:
+              'Player action: ${presentation.label(action, context.playerL10n)}',
+        ),
         disabledReason: availability.disabledReason,
         onPressed: availability.isEnabled
             ? () {
-                controller?.select(logicalId,
-                    source: controller.activeInputSource);
+                controller?.select(
+                  logicalId,
+                  source: controller.activeInputSource,
+                );
                 onSelected(action);
               }
             : null,
@@ -732,9 +689,11 @@ class PlayerPauseNavigation extends StatelessWidget {
       showFocusHighlight: controller?.showFocusHighlight ?? true,
       selected: controller?.logicalSelectionId == logicalId,
       shortcutLabel: confirmShortcut ?? context.playerL10n.confirmShortcut,
-      minimumHeight:
-          composition == null ? 48 : _entryHeight(composition!.entrySize),
-      autofocus: controller?.logicalSelectionId == null &&
+      minimumHeight: composition == null
+          ? 48
+          : _entryHeight(composition!.entrySize),
+      autofocus:
+          controller?.logicalSelectionId == null &&
           action == firstEnabledAction,
       secondary: action == PlayerPauseAction.returnToTitle,
       disabledReason: availability.disabledReason,
@@ -755,18 +714,16 @@ class PlayerPauseNavigation extends StatelessWidget {
     PlayerPauseAction action,
   ) =>
       actions[action] ??
-      PlayerActionAvailability.disabled(
-        context.playerL10n.actionUnavailable,
-      );
+      PlayerActionAvailability.disabled(context.playerL10n.actionUnavailable);
 
   String _logicalId(PlayerPauseAction action) => 'pause.${action.name}';
 }
 
 double _entryHeight(ProjectPauseEntrySize size) => switch (size) {
-      ProjectPauseEntrySize.compact => 48,
-      ProjectPauseEntrySize.regular => 56,
-      ProjectPauseEntrySize.large => 68,
-    };
+  ProjectPauseEntrySize.compact => 48,
+  ProjectPauseEntrySize.regular => 56,
+  ProjectPauseEntrySize.large => 68,
+};
 
 double _entrySpacing(ProjectPauseCompositionVariantProfile composition) =>
     switch (composition.entrySpacing) {

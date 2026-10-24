@@ -6,21 +6,32 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('BETA-PTY-001 Party and PC render one shared sheet', () {
-    testWidgets('the same summary renders identical text on both surfaces',
-        (tester) async {
+    testWidgets('the same summary renders identical text on both surfaces', (
+      tester,
+    ) async {
       final summary = _summary();
 
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: summary,
-        surfaceRole: ProjectPresentationSurfaceRole.party,
-      )));
-      final fromParty = _visibleText(tester);
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(
+            summary: summary,
+            surfaceRole: ProjectPresentationSurfaceRole.party,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final fromParty = await _allTabText(tester);
 
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: summary,
-        surfaceRole: ProjectPresentationSurfaceRole.pokedex,
-      )));
-      final fromPc = _visibleText(tester);
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(
+            summary: summary,
+            surfaceRole: ProjectPresentationSurfaceRole.pokedex,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final fromPc = await _allTabText(tester);
 
       expect(
         fromParty,
@@ -29,11 +40,13 @@ void main() {
       );
     });
 
-    testWidgets('the sheet shows the localized species, never the raw id',
-        (tester) async {
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(),
-      )));
+    testWidgets('the sheet shows the localized species, never the raw id', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(PlayerPokemonSummarySheet(summary: _summary())),
+      );
+      await tester.pumpAndSettle();
 
       expect(find.text('Bulbizarre'), findsWidgets);
       expect(find.text('bulbasaur'), findsNothing);
@@ -41,33 +54,43 @@ void main() {
     });
 
     testWidgets('every canonical field reaches the screen', (tester) async {
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(),
-      )));
+      await tester.pumpWidget(
+        _host(PlayerPokemonSummarySheet(summary: _summary())),
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.text('Niv. 12'), findsOneWidget);
-      expect(find.text('20/48'), findsWidgets);
-      expect(find.text('Hardy'), findsOneWidget);
-      expect(find.text('Overgrow'), findsOneWidget);
-      expect(find.text('Mâle'), findsOneWidget);
-      expect(find.text('120'), findsOneWidget);
-      expect(find.text('Baie Oran'), findsOneWidget);
-      expect(find.text('70/255'), findsOneWidget);
-      // The move type used to be carried by the snapshot and dropped on the
-      // floor while this very test claimed every canonical field reached the
-      // screen, so the type now travels with the move label.
-      expect(find.text('Charge · Normal'), findsOneWidget);
-      expect(find.text('PP 30/35'), findsOneWidget);
-      expect(find.text('Capturé'), findsOneWidget);
-      expect(find.text('Route Hanazuki'), findsOneWidget);
-      expect(find.text('Tall Grass'), findsOneWidget);
-      expect(find.text('5'), findsWidgets);
-      expect(find.text('Poke Ball'), findsOneWidget);
-      expect(find.text('49'), findsWidgets);
+      final content = await _allTabText(tester);
+      for (final value in [
+        'Niv. 12',
+        '20/48',
+        'Hardy',
+        'Overgrow',
+        'Mâle',
+        '120',
+        'Baie Oran',
+        '70/255',
+        'Charge · Normal',
+        'PP 30/35',
+        'Capturé',
+        'Route Hanazuki',
+        'Tall Grass',
+        '5',
+        'Poke Ball',
+        '49',
+      ]) {
+        expect(
+          content,
+          contains(value),
+          reason:
+              'The authored field $value must remain reachable through the real tabs and pages.',
+        );
+      }
+      expect(find.byType(Scrollable), findsNothing);
     });
 
-    testWidgets('the HP gauge carries the same threshold as the battle HUD',
-        (tester) async {
+    testWidgets('the HP gauge carries the same threshold as the battle HUD', (
+      tester,
+    ) async {
       Color gaugeColorFor({required int currentHp, required int maxHp}) {
         return tester
                 .widget<LinearProgressIndicator>(
@@ -77,25 +100,39 @@ void main() {
             const Color(0x00000000);
       }
 
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(currentHp: 44, maxHp: 48),
-      )));
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(
+            summary: _summary(currentHp: 44, maxHp: 48),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
       final healthy = gaugeColorFor(currentHp: 44, maxHp: 48);
 
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(currentHp: 20, maxHp: 48),
-      )));
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(
+            summary: _summary(currentHp: 20, maxHp: 48),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
       final warning = gaugeColorFor(currentHp: 20, maxHp: 48);
 
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(currentHp: 4, maxHp: 48),
-      )));
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(summary: _summary(currentHp: 4, maxHp: 48)),
+        ),
+      );
+      await tester.pumpAndSettle();
       final danger = gaugeColorFor(currentHp: 4, maxHp: 48);
 
       expect(
         <Color>{healthy, warning, danger},
         hasLength(3),
-        reason: 'a Pokémon at 20/48 must not look as healthy as one at 44/48, '
+        reason:
+            'a Pokémon at 20/48 must not look as healthy as one at 44/48, '
             'and one at 4/48 must not look like either',
       );
       expect(playerHpToneFor(44 / 48), PlayerHpTone.healthy);
@@ -104,58 +141,79 @@ void main() {
     });
 
     testWidgets('the gauge track never reads as a full bar', (tester) async {
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(currentHp: 20, maxHp: 48),
-      )));
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(
+            summary: _summary(currentHp: 20, maxHp: 48),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
       final gauge = tester.widget<LinearProgressIndicator>(
         find.byType(LinearProgressIndicator),
       );
       expect(
         gauge.backgroundColor,
         isNotNull,
-        reason: 'without an explicit neutral track the theme painted a '
+        reason:
+            'without an explicit neutral track the theme painted a '
             'saturated green behind the fill, so a damaged Pokémon looked '
             'untouched',
       );
       expect(gauge.value, closeTo(20 / 48, 0.0001));
     });
 
-    testWidgets('a move without PP tracking shows a dash, never zero',
-        (tester) async {
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(
-          moves: <RuntimePokemonMoveSummarySnapshot>[
-            const RuntimePokemonMoveSummarySnapshot(
-              moveId: 'tackle',
-              label: 'Charge',
+    testWidgets('a move without PP tracking shows a dash, never zero', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          PlayerPokemonSummarySheet(
+            summary: _summary(
+              moves: <RuntimePokemonMoveSummarySnapshot>[
+                const RuntimePokemonMoveSummarySnapshot(
+                  moveId: 'tackle',
+                  label: 'Charge',
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      )));
+      );
+      await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('pokemon-summary-tab-moves')));
+      await tester.pumpAndSettle();
       expect(find.text('—'), findsOneWidget);
       expect(find.text('PP 0/0'), findsNothing);
     });
 
-    testWidgets('a summary without stats hides the stats block entirely',
-        (tester) async {
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(stats: null),
-      )));
+    testWidgets('a summary without stats hides the stats block entirely', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(PlayerPokemonSummarySheet(summary: _summary(stats: null))),
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.text('Statistiques'), findsNothing);
-      expect(find.text('Capacités'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('pokemon-summary-tab-stats')));
+      await tester.pumpAndSettle();
+      expect(find.text('Attaque'), findsNothing);
+      expect(find.text('Défense'), findsNothing);
+      expect(find.text('Aucun'), findsOneWidget);
     });
 
-    testWidgets('the sheet survives a narrow portrait viewport',
-        (tester) async {
+    testWidgets('the sheet survives a narrow portrait viewport', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(360, 640);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(_host(PlayerPokemonSummarySheet(
-        summary: _summary(),
-      )));
+      await tester.pumpWidget(
+        _host(PlayerPokemonSummarySheet(summary: _summary())),
+      );
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       expect(find.text('Bulbizarre'), findsWidgets);
@@ -164,12 +222,15 @@ void main() {
 }
 
 Widget _host(Widget child) => MaterialApp(
-      locale: const Locale('fr'),
-      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
-      home: Scaffold(body: SingleChildScrollView(child: child)),
-    );
+  locale: const Locale('fr'),
+  supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+  localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+  theme: PokeMapPlayerTheme.dark(),
+  home: PlayerMenuThemeScope(
+    role: ProjectPresentationSurfaceRole.party,
+    child: Scaffold(body: child),
+  ),
+);
 
 Set<String> _visibleText(WidgetTester tester) => tester
     .widgetList<Text>(find.byType(Text))
@@ -177,27 +238,47 @@ Set<String> _visibleText(WidgetTester tester) => tester
     .where((value) => value.isNotEmpty)
     .toSet();
 
+Future<Set<String>> _allTabText(WidgetTester tester) async {
+  final content = <String>{};
+  for (final tab in ['summary', 'moves', 'stats', 'actions']) {
+    await tester.tap(find.byKey(ValueKey('pokemon-summary-tab-$tab')));
+    await tester.pumpAndSettle();
+    for (var page = 0; page < 40; page++) {
+      content.addAll(_visibleText(tester));
+      final next = find.byKey(const ValueKey('player-page-next'));
+      if (next.evaluate().isEmpty ||
+          tester.widget<IconButton>(next).onPressed == null) {
+        break;
+      }
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+  }
+  return content;
+}
+
 RuntimePokemonSummarySnapshot _summary({
   int currentHp = 20,
   int maxHp = 48,
   RuntimePokemonStatsSummarySnapshot? stats =
       const RuntimePokemonStatsSummarySnapshot(
-    attack: 49,
-    defense: 49,
-    specialAttack: 65,
-    specialDefense: 65,
-    speed: 45,
-  ),
+        attack: 49,
+        defense: 49,
+        specialAttack: 65,
+        specialDefense: 65,
+        speed: 45,
+      ),
   List<RuntimePokemonMoveSummarySnapshot> moves =
       const <RuntimePokemonMoveSummarySnapshot>[
-    RuntimePokemonMoveSummarySnapshot(
-      moveId: 'tackle',
-      label: 'Charge',
-      typeLabel: 'Normal',
-      currentPp: 30,
-      maxPp: 35,
-    ),
-  ],
+        RuntimePokemonMoveSummarySnapshot(
+          moveId: 'tackle',
+          label: 'Charge',
+          typeLabel: 'Normal',
+          currentPp: 30,
+          maxPp: 35,
+        ),
+      ],
 }) {
   return RuntimePokemonSummarySnapshot(
     targetId: 'pokemon.indiv-1',

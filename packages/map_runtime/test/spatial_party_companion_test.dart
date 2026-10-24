@@ -5,6 +5,8 @@ import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import 'support/spatial_smart_tile_fixture.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -49,6 +51,7 @@ void main() {
           ],
         ),
     ];
+    final grass = spatialRasterGrassFixture();
     final project = ProjectManifest(
       name: 'Generic companions',
       version: ProjectVersion.v9,
@@ -57,7 +60,8 @@ void main() {
         defaultPlayerCharacterId: 'hero',
       ),
       maps: const [],
-      tilesets: const [],
+      tilesets: const [ProjectTilesetEntry(id: 'raster-tiles', name: 'Grass', relativePath: 'actors.png')],
+      smartTileCatalog: grass.project.smartTileCatalog,
       characters: characters,
       partyCompanion: const ProjectPartyCompanionConfig(
         enabled: true,
@@ -87,6 +91,11 @@ void main() {
         name: id,
         version: ProjectVersion.v9,
         size: const GridSize(width: 12, height: 12),
+        layers: [(grass.map.layers.single as SmartTileLayer).copyWith(
+          field: SmartTileField.cell(semanticCells: [
+            for (var i = 0; i < 144; i++) i ~/ 12 == 4 ? 1 : 0,
+          ]),
+        )],
         spatialScene: MapSpatialScene(
           width: 12,
           depth: 12,
@@ -94,7 +103,7 @@ void main() {
         ),
       ),
       projectRootDirectory: root.path,
-      tilesetAbsolutePathsById: const {},
+      tilesetAbsolutePathsById: {'raster-tiles': path},
       characterAnimationAbsolutePathsByAssetId: {'actors': path},
     );
     PlayerPokemon member(
@@ -131,8 +140,13 @@ void main() {
     expect(frame.x, closeTo(session.movement.x - 1, .000001));
     expect(frame.z, session.movement.z);
     expect(session.companionCharacterId, 'bird');
+    final companionCellX = session.companionPosition!.x.floor();
+    final reaction = session.rasterAnimationElapsedMsForCell('room', 'grass', companionCellX, 4, 5000);
+    expect(reaction, greaterThan(0), reason: 'The companion must replay grass after the hero reaction has ended.');
+    expect(reaction, lessThan(200));
     session.setLifecyclePaused(true);
     expect(session.frames(1)['party-companion']!.x, frame.x);
+    expect(session.rasterAnimationElapsedMsForCell('room', 'grass', companionCellX, 4, 5000), reaction);
     session.setLifecyclePaused(false);
     session.movement.releaseInput();
     session.storyActive.value = true;

@@ -136,61 +136,6 @@ Future<ScenePokemonGiftPreparation> receiveScenePokemonFromCatalog({
       ? acquisition.state.party.members[acquisition.partyIndex!]
       : acquisition.state.pokemonStorage.storedPokemon[acquisition
             .storageIndex!];
-  var revision = 0;
-  Future<SceneInteractionResult> ask(
-    PokemonGiftInteractionStage stage,
-    String message, {
-    bool confirmation = false,
-    bool text = false,
-  }) async {
-    final prompt = SceneInteractionPrompt(
-      localizationKey: 'pokemonGift.${stage.name}',
-      fallbackText: message,
-      arguments: {'speciesId': pokemon.speciesId},
-    );
-    final id = '$operationId:${stage.name}';
-    final SceneInteractionRequest interaction = text
-        ? SceneTextInteractionRequest(
-            requestId: id,
-            revision: revision++,
-            prompt: prompt,
-            constraints: SceneTextInputConstraints(
-              maxGraphemes: command.nicknameMaxGraphemes,
-            ),
-          )
-        : confirmation
-        ? SceneConfirmationInteractionRequest(
-            requestId: id,
-            revision: revision++,
-            prompt: prompt,
-          )
-        : SceneMessageInteractionRequest(
-            requestId: id,
-            revision: revision++,
-            prompt: prompt,
-          );
-    final result = await present(
-      OpenPokemonGiftInteractionService(
-        interactionId: id,
-        interaction: interaction,
-        stage: stage,
-        pokemon: pokemon,
-        projectedState: acquisition.state,
-      ),
-    );
-    if (result is SceneCancelledInteractionResult ||
-        interaction.validateResult(result).isNotEmpty) {
-      throw StateError(
-        'The Pokemon gift interaction was dismissed or became stale.',
-      );
-    }
-    if (_giftFingerprint(readProjectedState()) != _giftFingerprint(state)) {
-      throw StateError('The Pokemon gift state changed during interaction.');
-    }
-    return result;
-  }
-
-  await ask(PokemonGiftInteractionStage.received, 'Vous recevez un Pokémon !');
   final defaults =
       project.presentation?.pause?.effectiveActions ??
       defaultProjectPauseActions;
@@ -206,40 +151,100 @@ Future<ScenePokemonGiftPreparation> receiveScenePokemonFromCatalog({
       state.pokemonStorage.storedPokemon.any(
         (p) => p.speciesId == pokemon.speciesId,
       );
-  if (command.pokedexPresentationPolicy ==
+  final isNewPokedexEntry =
+      command.pokedexPresentationPolicy ==
           ScenePokemonGiftPokedexPresentationPolicy.whenNewAndPokedexVisible &&
       dexVisible &&
-      !alreadyCaught) {
-    await ask(
-      PokemonGiftInteractionStage.pokedex,
-      'Une nouvelle fiche Pokédex a été ajoutée.',
+      !alreadyCaught;
+  final offerNickname =
+      command.nicknamePolicy == ScenePokemonGiftNicknamePolicy.offer;
+  var revision = 0;
+  Future<SceneInteractionResult> ask({required bool nickname}) async {
+    final stage = nickname
+        ? PokemonGiftInteractionStage.nickname
+        : PokemonGiftInteractionStage.received;
+    final prompt = SceneInteractionPrompt(
+      localizationKey: 'pokemonGift.${stage.name}',
+      fallbackText: nickname
+          ? 'Choisissez un surnom.'
+          : 'Vous recevez un Pokémon !',
+      arguments: {'speciesId': pokemon.speciesId},
     );
-  }
-  if (command.nicknamePolicy == ScenePokemonGiftNicknamePolicy.offer) {
-    final answer = await ask(
-      PokemonGiftInteractionStage.nicknameConfirmation,
-      'Donner un surnom à ce Pokémon ?',
-      confirmation: true,
-    );
-    if ((answer as SceneConfirmedInteractionResult).value) {
-      final answer = await ask(
-        PokemonGiftInteractionStage.nickname,
-        'Choisissez un surnom.',
-        text: true,
-      );
-      pokemon = pokemon
-          .copyWith(
-            nickname: (answer as SceneTextSubmittedInteractionResult).value,
+    final id = '$operationId:${stage.name}';
+    final SceneInteractionRequest interaction = nickname
+        ? SceneTextInteractionRequest(
+            requestId: id,
+            revision: revision++,
+            prompt: prompt,
+            initialValue: pokemon.nickname,
+            constraints: SceneTextInputConstraints(
+              maxGraphemes: command.nicknameMaxGraphemes,
+            ),
           )
-          .normalized();
+        : offerNickname
+        ? SceneChoiceInteractionRequest(
+            requestId: id,
+            revision: revision++,
+            prompt: prompt,
+            options: [
+              SceneInteractionOption(
+                id: 'continue',
+                label: SceneInteractionPrompt(
+                  localizationKey: 'pokemonGift.continue',
+                  fallbackText: 'Continuer',
+                ),
+              ),
+              SceneInteractionOption(
+                id: 'nickname',
+                label: SceneInteractionPrompt(
+                  localizationKey: 'pokemonGift.nickname',
+                  fallbackText: 'Donner un surnom',
+                ),
+              ),
+            ],
+          )
+        : SceneMessageInteractionRequest(
+            requestId: id,
+            revision: revision++,
+            prompt: prompt,
+          );
+    final result = await present(
+      OpenPokemonGiftInteractionService(
+        interactionId: id,
+        interaction: interaction,
+        stage: stage,
+        pokemon: pokemon,
+        projectedState: const GameStateMutations()
+            .acquirePokemon(state, pokemon: pokemon)
+            .state,
+        isNewPokedexEntry: isNewPokedexEntry,
+      ),
+    );
+    if (interaction.validateResult(result).isNotEmpty ||
+        result is SceneCancelledInteractionResult &&
+            !(nickname &&
+                result.reason == SceneInteractionCancellationReason.user)) {
+      throw StateError(
+        'The Pokemon gift interaction was dismissed or became stale.',
+      );
+    }
+    if (_giftFingerprint(readProjectedState()) != _giftFingerprint(state)) {
+      throw StateError('The Pokemon gift state changed during interaction.');
+    }
+    return result;
+  }
+
+  while (true) {
+    final receipt = await ask(nickname: false);
+    if (receipt is! SceneChoiceSelectedInteractionResult ||
+        receipt.selectedOptionId == 'continue') {
+      break;
+    }
+    final answer = await ask(nickname: true);
+    if (answer is SceneTextSubmittedInteractionResult) {
+      pokemon = pokemon.copyWith(nickname: answer.value).normalized();
     }
   }
-  await ask(
-    PokemonGiftInteractionStage.destination,
-    outputPortId == 'party'
-        ? 'Le Pokémon rejoint votre équipe.'
-        : 'Le Pokémon est envoyé au PC.',
-  );
   return ScenePokemonGiftPreparation(
     outputPortId: outputPortId,
     prepared: PreparedScenePokemonGift(

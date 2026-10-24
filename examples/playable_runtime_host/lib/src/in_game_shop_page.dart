@@ -438,6 +438,7 @@ String _failureLabel(ShopPurchaseFailure failure) => switch (failure) {
       ShopPurchaseFailure.unknownItem => 'Objet inconnu dans cette boutique.',
       ShopPurchaseFailure.insufficientFunds => 'Fonds insuffisants.',
       ShopPurchaseFailure.outOfStock => 'Stock épuisé.',
+      ShopPurchaseFailure.bagFull => 'Le sac est plein.',
       ShopPurchaseFailure.ownershipLimit =>
         'Cet achat dépasserait la quantité maximale autorisée pour cet objet.',
       ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',

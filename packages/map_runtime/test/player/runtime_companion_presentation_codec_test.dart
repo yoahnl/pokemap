@@ -8,6 +8,77 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('world-service transport rejects mismatched typed content', () {
+    final services = _worldServices().toList();
+    final pc = RuntimeCompanionPresentationCodec.encodeWorldService(services[2]);
+    final shop = RuntimeCompanionPresentationCodec.encodeWorldService(services[0]);
+    expect(() => RuntimeCompanionPresentationCodec.decodeWorldService(_crossTransport({
+      ...pc, 'content': shop['content'],
+    })), throwsFormatException);
+  });
+  test('world-service commands reject stale revisions identities and disabled actions', () {
+    final service = RuntimeWorldServiceSnapshot(
+      revision: 9, request: const OpenPcService(interactionId: 'terminal'),
+      stage: RuntimeWorldServiceStage.active,
+      actions: const [RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.withdraw)],
+    );
+    for (final (revision, interaction, action, status) in [
+      (8, 'terminal', RuntimeWorldServiceAction.withdraw, RuntimeWorldServiceCommandStatus.stale),
+      (9, 'other', RuntimeWorldServiceAction.withdraw, RuntimeWorldServiceCommandStatus.stale),
+      (9, 'terminal', RuntimeWorldServiceAction.deposit, RuntimeWorldServiceCommandStatus.unavailable),
+      (9, 'terminal', RuntimeWorldServiceAction.withdraw, RuntimeWorldServiceCommandStatus.accepted),
+    ]) {
+      final command = RuntimeWorldServiceCommand(action: action, snapshotRevision: revision, targetId: 'opaque');
+      final decoded = RuntimeCompanionPresentationCodec.decodeWorldServiceCommand(_crossTransport(
+        RuntimeCompanionPresentationCodec.encodeWorldServiceCommand(command)));
+      expect(decoded.targetId, 'opaque');
+      expect(RuntimeCompanionPresentationCodec.validateWorldServiceCommand(
+        snapshot: service, command: decoded, interactionId: interaction).status, status);
+    }
+    for (final invalid in [-1, 0]) {
+      expect(() => RuntimeCompanionPresentationCodec.decodeWorldServiceCommand({
+        'action': 'confirm', 'snapshotRevision': 9, 'quantity': invalid,
+      }), throwsFormatException);
+    }
+  });
+
+  test('world-service nickname keeps its typed request identity across transport', () {
+    final result = SceneInteractionResult.textSubmitted(requestId: 'gift:nickname', revision: 3, value: 'Pendule');
+    final command = RuntimeCompanionPresentationCodec.decodeWorldServiceCommand(_crossTransport(
+      RuntimeCompanionPresentationCodec.encodeWorldServiceCommand(RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.confirm, snapshotRevision: 12, interactionResult: result))));
+    expect(command.interactionResult, result);
+  });
+
+  for (final service in _worldServices()) {
+    test('native ${service.request.kind.name} world service crosses companion transport losslessly', () {
+      final encoded = RuntimeCompanionPresentationCodec.encodeWorldService(service);
+      final decoded = RuntimeCompanionPresentationCodec.decodeWorldService(_crossTransport(encoded));
+      expect(RuntimeCompanionPresentationCodec.encodeWorldService(decoded), encoded);
+      expect(decoded.runtimeType, RuntimeWorldServiceSnapshot);
+      expect(decoded.request.runtimeType, service.request.runtimeType);
+      expect(decoded.content.runtimeType, service.content.runtimeType);
+    });
+  }
+  test('companion player carries its typed world service and canonical revision', () {
+    final snapshot = RuntimePlayerSnapshot(
+      revision: 31, phase: RuntimePlayerPhase.playing, gameTitle: 'Companion',
+      actions: const [], worldService: RuntimeWorldServiceSnapshot(
+        revision: 9, request: const OpenShopService(interactionId: 'mart', shopId: 'mart'),
+        stage: RuntimeWorldServiceStage.active,
+        content: RuntimeShopServiceContent(title: 'Mart', message: '', money: 500,
+          entries: const [RuntimeShopEntrySnapshot(itemId: 'potion', label: 'Potion', unitPrice: 60)],
+          selectedItemId: 'potion', quantity: 2, totalPrice: 120),
+        actions: const [RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.confirm)],
+      ),
+    );
+    final encoded = RuntimeCompanionPresentationCodec.encodePlayer(snapshot);
+    expect(encoded['worldService'], isNotNull);
+    final decoded = RuntimeCompanionPresentationCodec.decodePlayer(_crossTransport(encoded));
+    expect(decoded.worldService!.revision, 9);
+    expect((decoded.worldService!.content as RuntimeShopServiceContent).totalPrice, 120);
+    expect(decoded.worldService!.isActionEnabled(RuntimeWorldServiceAction.confirm), isTrue);
+  });
   test('doubles companion transport retains four slots and the current actor', () {
     BattleCommandOverlayHudSnapshot hud(BattleSideId side, int index) =>
         BattleCommandOverlayHudSnapshot(
@@ -130,6 +201,7 @@ void main() {
           ),
           bagAction: RuntimePlayerBagItemActionSnapshot(
             itemTargetId: 'bag:tm-thunder',
+            requiresConfirmation: true,
             targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
             usability: ItemUsabilityState.usable,
             isEnabled: true,
@@ -186,6 +258,8 @@ void main() {
     expect(
         action.targetKind, RuntimePlayerBagUseTargetKind.partyMoveReplacement);
     expect(action.learnedMoveLabel, 'Tonnerre');
+    expect(action.requiresConfirmation, isTrue);
+    expect(bag.entries.last.bagAction!.requiresConfirmation, isFalse);
     expect(bag.bagTargets.single.requiresMoveReplacement, isTrue);
     expect(bag.bagTargets.single.moves.single.targetId, 'tackle');
     expect(bag.bagTargets.single.pokemonSummary!.individualId, 'one');
@@ -673,4 +747,39 @@ BattleCommandOverlaySnapshot _battle(BattlePresentationPhase phase) {
     interactionsEnabled: phase != BattlePresentationPhase.presentingTurn,
     canGoBack: phase == BattlePresentationPhase.choosingCommand,
   );
+}
+
+Iterable<RuntimeWorldServiceSnapshot> _worldServices() sync* {
+  final interaction = SceneTextInteractionRequest(requestId: 'gift:nickname', revision: 4,
+    prompt: SceneInteractionPrompt(localizationKey: 'nickname'), initialValue: 'Pendule',
+    constraints: SceneTextInputConstraints(maxGraphemes: 10));
+  for (final (request, content) in <(RuntimeWorldServiceRequest, Object)>[
+    (const OpenShopService(interactionId: 'shop', shopId: 'mart'),
+      RuntimeShopServiceContent(title: 'Mart', message: 'Hello', money: 120, mode: RuntimeShopMode.sell,
+        selectedItemId: 'potion', quantity: 2, totalPrice: 60,
+        entries: const [RuntimeShopEntrySnapshot(itemId: 'potion', label: 'Potion', unitPrice: 30, ownedQuantity: 3)])),
+    (const OpenHealService(interactionId: 'heal', requiresConfirmation: false, displayEntityId: 'machine'),
+      RuntimeHealServiceContent(title: 'Heal', message: 'Healing', wasHealed: true,
+        display: RuntimeHealingDisplaySnapshot(mapId: 'lab', entityId: 'machine', memberCount: 1),
+        members: const [RuntimeHealPartyMemberSnapshot(partyIndex: 0, label: 'Partner', currentHp: 4,
+          maxHp: 20, hasStatus: true, depletedMoveCount: 2)])),
+    (const OpenPcService(interactionId: 'pc', storageId: 'box'), RuntimePcServiceContent(
+      title: 'PC', message: '', selectedBoxId: 'box',
+      boxes: const [RuntimePcBoxSnapshot(boxId: 'box', label: 'Box', count: 1, capacity: 30)],
+      stored: [RuntimePcPokemonSnapshot(targetId: 'opaque', label: 'Partner', speciesId: 'bird',
+        level: 7, natureId: 'hardy', abilityId: 'clockwork', currentHp: 5, canTransfer: true,
+        knownMoveIds: ['tick'], metLevel: 5, friendship: 90, nickname: 'Pendule')])),
+    (const OpenPartyTradeService(interactionId: 'trade'), RuntimePartyTradeServiceContent(
+      phase: RuntimePartyTradePhase.review, firstIndividualId: 'a', partnerIndividualId: 'b',
+      members: const [RuntimePartyTradePokemonSnapshot(individualId: 'a', speciesId: 'bird', label: 'Bird', level: 7)])),
+    (OpenPokemonGiftInteractionService(interactionId: 'gift', interaction: interaction,
+      stage: PokemonGiftInteractionStage.nickname, speciesName: 'Bird', isNewPokedexEntry: true,
+      pokemon: const PlayerPokemon(speciesId: 'bird', individualId: 'one', natureId: 'hardy', abilityId: 'clockwork', currentHp: 5),
+      projectedState: const GameState(saveId: 'gift')), interaction),
+  ]) {
+    yield RuntimeWorldServiceSnapshot(revision: 7, request: request, content: content,
+      stage: RuntimeWorldServiceStage.active, safeMessage: 'Native receipt', logicalSelectionId: 'selection',
+      actions: [const RuntimeWorldServiceActionAvailability.enabled(RuntimeWorldServiceAction.cancel),
+        RuntimeWorldServiceActionAvailability.disabled(RuntimeWorldServiceAction.confirm, reason: 'Not ready')]);
+  }
 }

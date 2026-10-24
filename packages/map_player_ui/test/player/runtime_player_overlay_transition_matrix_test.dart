@@ -8,6 +8,29 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('delegated world service leaves the primary scene and relays input once', (tester) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+    harness.enter(_OverlayOwner.shop);
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerShopOverlay), findsOneWidget);
+    harness.companionAttached = true;
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerShopOverlay), findsNothing);
+    expect(find.byKey(harness.viewportKey), findsOneWidget);
+    harness.hardware.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    await tester.idle();
+    await tester.pump();
+    expect(harness.relayed, [const RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+    expect(harness.events, isEmpty);
+    harness.companionAttached = false;
+    await tester.pumpWidget(harness.app);
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerShopOverlay), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('OW007 updating one service preserves its navigation owner', (tester) async {
     final harness = _OverlayHarness();
     addTearDown(harness.dispose);
@@ -212,6 +235,8 @@ void main() {
 enum _OverlayOwner { dialogue, choices, battle, cinematic, shop, healing, pc }
 
 final class _OverlayHarness {
+  bool companionAttached = false;
+  final relayed = <RuntimeInputEvent>[];
   final controller = _MatrixController();
   final hardware = StreamController<RuntimeInputEvent>.broadcast();
   final controllers = ValueNotifier<Set<String>>({'matrix-pad'});
@@ -246,6 +271,8 @@ final class _OverlayHarness {
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
       home: PokeMapPlayerSessionView(
+          companionMenusAttached: companionAttached,
+          onCompanionInput: (event) { relayed.add(event); return true; },
           controller: controller,
           titlePresentation: const RuntimePlayerTitlePresentation(
               author: 'Test', description: 'Matrice des transitions'),

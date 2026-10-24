@@ -54,6 +54,10 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.descendant(of: find.byType(PlayerShopOverlay), matching: find.byType(Scrollable)), findsNothing);
 
     expect(find.text('Boutique du Port'), findsOneWidget);
     expect(find.text('500 ₽'), findsOneWidget);
@@ -111,6 +115,8 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Cette boutique est vide.'), findsOneWidget);
     expect(find.text('Revenez plus tard.'), findsOneWidget);
@@ -189,6 +195,8 @@ void main() {
         locale: const Locale('en'),
       ),
     );
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Buy'), findsOneWidget);
     expect(find.text('Sell'), findsWidgets);

@@ -580,6 +580,7 @@ final class RuntimePlayerPauseDataBuilder {
         bagAction: RuntimePlayerBagItemActionSnapshot(
           itemTargetId: entry.itemId,
           targetKind: targetKind,
+          requiresConfirmation: isEvolutionItem || isMoveMachine,
           usability: usability,
           isEnabled: usability == ItemUsabilityState.usable,
           unavailableReason: unavailableReason,

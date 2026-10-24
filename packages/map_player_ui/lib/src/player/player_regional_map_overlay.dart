@@ -57,6 +57,7 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                         ),
+                        const SizedBox(width: 12),
                         PlayerActionButton(
                           key: const ValueKey('regional-map-close'),
                           label: context.playerL10n.close,
@@ -73,18 +74,33 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: PlayerSpacing.sm),
-                    if (content is RuntimeRegionalMapServiceContent && content.message != null) ...[
-                      Text(content.message!, textAlign: TextAlign.center),
-                      if (content.selectedPointId != null)
-                        PlayerActionButton(
-                          key: const ValueKey('regional-map-fly-confirm'),
-                          label: 'Voler', icon: Icons.flight,
-                          onPressed: snapshot.isActionEnabled(RuntimeWorldServiceAction.confirm)
-                            ? () => _emit(RuntimeWorldServiceAction.confirm) : null,
-                        ),
+                    const SizedBox(height: 16),
+                    if (content is RuntimeRegionalMapServiceContent &&
+                        content.message != null) ...[
+                      Row(
+                        children: [
+                          Expanded(child: Text(content.message!)),
+                          if (content.selectedPointId != null) ...[
+                            const SizedBox(width: 12),
+                            PlayerActionButton(
+                              key: const ValueKey('regional-map-fly-confirm'),
+                              label: 'Voler',
+                              icon: Icons.flight,
+                              expandWidth: false,
+                              expandContent: false,
+                              onPressed:
+                                  snapshot.isActionEnabled(
+                                    RuntimeWorldServiceAction.confirm,
+                                  )
+                                  ? () =>
+                                        _emit(RuntimeWorldServiceAction.confirm)
+                                  : null,
+                            ),
+                          ],
+                        ],
+                      ),
                       if (content.applying) const LinearProgressIndicator(),
-                      const SizedBox(height: PlayerSpacing.sm),
+                      const SizedBox(height: 16),
                     ],
                     Expanded(
                       child: PlayerMenuThemeScope(
@@ -98,9 +114,19 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
                               )
                             : RuntimePlayerRegionMap(
                                 detail: detail,
-                                onPointSelected: snapshot.isActionEnabled(RuntimeWorldServiceAction.select)
-                                  ? (id) => onCommand(RuntimeWorldServiceCommand(action: RuntimeWorldServiceAction.select,
-                                      snapshotRevision: snapshot.revision, targetId: id)) : null,
+                                onPointSelected:
+                                    snapshot.isActionEnabled(
+                                      RuntimeWorldServiceAction.select,
+                                    )
+                                    ? (id) => onCommand(
+                                        RuntimeWorldServiceCommand(
+                                          action:
+                                              RuntimeWorldServiceAction.select,
+                                          snapshotRevision: snapshot.revision,
+                                          targetId: id,
+                                        ),
+                                      )
+                                    : null,
                                 controlProfile: controlProfile,
                                 hardwareGamepadEnabled: hardwareGamepadEnabled,
                               ),

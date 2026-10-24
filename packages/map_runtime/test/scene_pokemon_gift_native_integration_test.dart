@@ -123,11 +123,13 @@ void main() {
               requests.add(request);
               final interaction = request.interaction;
               final result = switch (interaction) {
-                SceneConfirmationInteractionRequest() =>
-                  SceneInteractionResult.confirmed(
+                SceneChoiceInteractionRequest() =>
+                  SceneInteractionResult.choiceSelected(
                     requestId: interaction.requestId,
                     revision: interaction.revision,
-                    value: true,
+                    selectedOptionId: interaction.revision == 0
+                        ? 'nickname'
+                        : 'continue',
                   ),
                 SceneTextInteractionRequest() =>
                   SceneInteractionResult.textSubmitted(
@@ -208,11 +210,11 @@ void main() {
                 startBattle: (_) => 'victory',
                 playCinematic: (_) => 'completed',
                 presentPokemonGift: (r) async => switch (r.interaction) {
-                  SceneConfirmationInteractionRequest() =>
-                    SceneInteractionResult.confirmed(
+                  SceneChoiceInteractionRequest() =>
+                    SceneInteractionResult.choiceSelected(
                       requestId: r.interaction.requestId,
                       revision: r.interaction.revision,
-                      value: false,
+                      selectedOptionId: 'continue',
                     ),
                   _ => SceneInteractionResult.acknowledged(
                     requestId: r.interaction.requestId,
@@ -233,16 +235,11 @@ void main() {
           } else {
             expect(requests.map((r) => r.stage), [
               PokemonGiftInteractionStage.received,
-              PokemonGiftInteractionStage.pokedex,
-              PokemonGiftInteractionStage.nicknameConfirmation,
               PokemonGiftInteractionStage.nickname,
-              PokemonGiftInteractionStage.destination,
+              PokemonGiftInteractionStage.received,
             ]);
-            final dex = requests
-                .singleWhere(
-                  (r) => r.stage == PokemonGiftInteractionStage.pokedex,
-                )
-                .pokedexDetail!;
+            final dex = requests.first.pokedexDetail!;
+            expect(requests.first.isNewPokedexEntry, isTrue);
             expect(dex.entries, hasLength(1));
             expect(
               dex.entries.single.pokedexEntry!.knowledge,

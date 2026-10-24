@@ -8,6 +8,8 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
 import 'spatial_shadow_profile.dart';
+import 'spatial_point_light.dart';
+import 'spatial_point_shadow.dart';
 
 final class SpatialShadowMap {
   SpatialShadowMap(GpuBackend backend, {bool ownsFrame = true})
@@ -19,6 +21,63 @@ final class SpatialShadowMap {
   Texture? _texture;
   int _resolution = 0;
   int targetAllocations = 0;
+  final _pointMaterials = Expando<_PointShadowDepthMaterial>();
+  GpuRenderTarget? _pointTarget;
+  Texture? _pointTexture;
+  int _pointLightCount = 0;
+  int pointTargetAllocations = 0;
+
+  SpatialPointShadowFrame? renderPointLights(
+    List<SpatialPointLight> lights,
+    void Function(
+      RenderContext3D context,
+      Material Function(SpatialPixelMaterial) depthMaterial,
+      SpatialPointLight light,
+    )
+    draw,
+  ) {
+    if (lights.isEmpty) return null;
+    if (lights.length > 4)
+      throw ArgumentError('At most four point shadow lights are supported.');
+    if (_pointTarget == null || _pointLightCount != lights.length) {
+      _pointLightCount = lights.length;
+      _pointTarget = _device.backend.createRenderTarget(
+        width: spatialPointShadowFaceResolution * 3,
+        height: spatialPointShadowFaceResolution * 2 * lights.length,
+        clearValue: const Color(0xffffffff),
+      );
+      _pointTexture = _ShadowTexture(
+        _pointTarget!.colorTexture,
+        spatialPointShadowFaceResolution * 3,
+        height: spatialPointShadowFaceResolution * 2 * lights.length,
+      );
+      pointTargetAllocations++;
+    }
+    final context = RenderContext3D(_device);
+    _device.beginShadow(_pointTarget!);
+    try {
+      for (var lightIndex = 0; lightIndex < lights.length; lightIndex++) {
+        final light = lights[lightIndex];
+        for (var face = 0; face < 6; face++) {
+          final projection = spatialPointShadowProjection(light, face);
+          context.setCamera(projection.view, projection.projection);
+          draw(context, (source) {
+            final material = _pointMaterials[source] ??=
+                _PointShadowDepthMaterial(source);
+            material
+              ..light = light
+              ..face = face
+              ..lightIndex = lightIndex
+              ..lightCount = lights.length;
+            return material;
+          }, light);
+        }
+      }
+    } finally {
+      _device.endShadow();
+    }
+    return SpatialPointShadowFrame(_pointTexture!, lights.length);
+  }
 
   SpatialShadowFrame render(
     SpatialShadowProfile profile,
@@ -56,8 +115,8 @@ final class SpatialShadowMap {
 }
 
 final class _ShadowTexture extends Texture {
-  _ShadowTexture(this.handle, int size)
-    : super(ByteData(0), width: size, height: size);
+  _ShadowTexture(this.handle, int size, {int? height})
+    : super(ByteData(0), width: size, height: height ?? size);
   final GpuTexture handle;
   @override
   GpuTexture createResource() => handle;
@@ -168,5 +227,44 @@ final class _ShadowDepthMaterial extends UnlitMaterial {
         Model3dAlphaMode.blend => 3,
       })
       ..setFloat('Material.alphaCutoff', source.alphaCutoff);
+  }
+}
+
+final class _PointShadowDepthMaterial extends _ShadowDepthMaterial {
+  _PointShadowDepthMaterial(super.source) {
+    vertexShader = VertexShader.fromAsset(
+      _ShadowDepthMaterial._bundle,
+      entryPoint: 'PointShadowVertex',
+      slots: ['VertexInfo', 'JointMatrices', 'PointDepth'],
+    );
+    fragmentShader = FragmentShader.fromAsset(
+      _ShadowDepthMaterial._bundle,
+      entryPoint: 'PointShadowDepthFragment',
+      slots: ['albedoTexture', 'Material', 'PointDepth'],
+    );
+  }
+  late SpatialPointLight light;
+  int face = 0, lightIndex = 0, lightCount = 1;
+  final _positionRadius = Vector4.zero(), _tile = Vector4.zero();
+
+  @override
+  void apply(covariant RenderContext3D context) {
+    super.apply(context);
+    _positionRadius.setValues(
+      light.position.x,
+      light.position.y,
+      light.position.z,
+      light.radius,
+    );
+    _tile.setValues(
+      (face % 3).toDouble(),
+      (face ~/ 3 + lightIndex * 2).toDouble(),
+      face.toDouble(),
+      (lightCount * 2).toDouble(),
+    );
+    vertexShader.setVector4('PointDepth.tile', _tile);
+    fragmentShader
+      ..setVector4('PointDepth.positionRadius', _positionRadius)
+      ..setVector4('PointDepth.tile', _tile);
   }
 }

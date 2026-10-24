@@ -1008,6 +1008,22 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/model3d_batch_stdio.test.ts',
     };
   }
+  if (actionId == 'map3d.ledge.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentation/spatial_ledge_editor_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+    };
+  }
+  if (actionId == 'map3d.day_night.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentation/day_night_controls_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
+    };
+  }
   if (const {
     'model3d.import',
     'model3d.configure',

@@ -64,11 +64,15 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     const modelConfig = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "model3d.configure")!;
     const modelProperties = record(record(record(modelConfig.extensions).inputSchema).properties);
     assert.equal(record(modelProperties.castsShadowsByDefault).type, "boolean");
+    assert.deepEqual(record(modelProperties.light).type, ["object", "null"]);
+    const cycleDescriptor = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "map3d.day_night.configure")!;
+    const cycleSchema = record(record(record(cycleDescriptor.extensions).inputSchema).properties);
+    assert.deepEqual(record(cycleSchema.cycle).type, ["object", "null"]);
     const cameraSchema = record(record((catalog.mutationActions as JsonRecord[]).find((item) => item.id === "map3d.camera.configure")!.extensions).inputSchema);
     const cameraProperties = record(record(record(cameraSchema.properties).camera).properties);
     assert.deepEqual(record(cameraProperties.projection).enum, ["perspective", "orthographic"]);
     assert.equal(record(cameraProperties.orthographicHeight).exclusiveMinimum, 0);
-    for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.terrain.configure_appearance", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure", "connection.create_bidirectional_apply", "connection.delete_bidirectional_apply"]) assert.ok(ids.includes(id), id);
+    for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.terrain.configure_appearance", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure", "map3d.ledge.configure", "connection.create_bidirectional_apply", "connection.delete_bidirectional_apply"]) assert.ok(ids.includes(id), id);
     const eventDescriptor = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "event_v2.create_draft")!;
     const modelSource = (record(eventDescriptor.extensions).sourceVariants as JsonRecord[])
       .find((item) => item.kind === "modelInteract")!;
@@ -100,11 +104,15 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await writeFile(path, triangleGlb());
     const staged = await call("pokemap_artifact_stage", { sourcePath: path, declaredMediaType: "model/gltf-binary" });
     await mutate("model3d.import", { modelId: "rock", name: "Rock", artifactHandle: staged.artifactHandle });
-    await mutate("model3d.configure", { modelId: "rock", scale: 2, castsShadowsByDefault: true });
+    await mutate("model3d.configure", { modelId: "rock", scale: 2, castsShadowsByDefault: true, light: { localPosition: { x: 0, y: 2.25, z: 0 } } });
     const manifest = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")) as JsonRecord;
     assert.equal(record((manifest.models3d as unknown[])[0]).castsShadowsByDefault, true);
+    assert.deepEqual(record((manifest.models3d as unknown[])[0]).light,
+      { localPosition: { x: 0, y: 2.25, z: 0 }, radius: 4, intensity: 1, colorRgb: 0xffd59a, nightOnly: true });
     const mapEntry = record((manifest.maps as unknown[])[0]);
     const mapId = String(mapEntry.id);
+    const cycle = { durationSeconds: 120, startMinuteOfDay: 1080 };
+    await mutate("map3d.day_night.configure", { mapId, cycle });
     const cliffPath = join(root, "cliff.png");
     await writeFile(cliffPath, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"));
     const cliffArtifact = await call("pokemap_artifact_stage", { sourcePath: cliffPath, declaredMediaType: "image/png" });
@@ -119,12 +127,15 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 4, z: 2, level: 1 }] });
     const navigation = { spawn: { x: 4, z: 4 }, allowDiagonalMovement: false, ramps: [{ id: "stairs", x: 4, z: 3, width: 1, depth: 1, lowLevel: 0, highLevel: 1, direction: "north" }], blockedAreas: [{ x: 0, z: 0, width: 1, depth: 1 }] };
     await mutate("map3d.navigation.configure", { mapId, navigation });
+    const ledges = [{ id: "native-drop", x: 6, z: 1, direction: "south", distance: 2, durationMs: 400, height: .65 }];
+    await mutate("map3d.ledge.configure", { mapId, ledges });
     const map = JSON.parse(await readFile(join(projectRoot, String(mapEntry.relativePath)), "utf8")) as JsonRecord;
     const scene = record(map.spatialScene);
     assert.equal((scene.heightLevels as number[])[3 * 8 + 2], 2);
     assert.equal(record(scene.camera).pitchDegrees, 60);
     assert.deepEqual(scene.camera, orthographicCamera);
-    assert.deepEqual(scene.navigation, navigation);
+    assert.deepEqual(scene.dayNightCycle, cycle);
+    assert.deepEqual(scene.navigation, { ...navigation, ledges });
     assert.deepEqual(scene.cliffFrame, cliffFrame);
     assert.equal(scene.generateCliffs, false);
     assert.equal((scene.instances as unknown[]).length, 1);
@@ -196,6 +207,9 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await mutate("event_v2.delete", { eventId: "evt_019a6190-0000-7000-8000-000000000001" }, true);
     await mutate("scene.delete", { sceneId: "open-rock" }, true);
     await mutate("map3d.instance.delete", { mapId, instanceId: "rock-1" }, true);
+    await mutate("model3d.configure", { modelId: "rock", light: null });
+    const clearedLightProject = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")) as JsonRecord;
+    assert.equal(record((clearedLightProject.models3d as unknown[])[0]).light, undefined);
     await mutate("model3d.delete", { modelId: "rock" }, true);
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
     const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
@@ -203,13 +217,16 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     for (const item of queried.items as JsonRecord[]) assert.equal((item.connections as unknown[]).length, 1);
     const reopenedMap = (queried.items as JsonRecord[]).find((item) => item.id === mapId)!;
     assert.deepEqual(record(reopenedMap.spatialScene).camera, orthographicCamera);
+    assert.deepEqual(record(reopenedMap.spatialScene).dayNightCycle, cycle);
     assert.deepEqual(record(reopenedMap.spatialScene).cliffFrame, cliffFrame);
     assert.equal(record(reopenedMap.spatialScene).generateCliffs, false);
     projectHandle = String(reopened.projectHandle);
     workspaceHandle = String(reopened.workspaceHandle);
+    await mutate("map3d.day_night.configure", { mapId, cycle: null });
     await mutate("map3d.terrain.configure_appearance", { mapId, cliffFrame: null });
     const cleared = await call("pokemap_query", { projectHandle, resourceKind: "map", operation: "get", ids: [mapId], view: "detail" });
     assert.equal(record(record((cleared.items as unknown[])[0]).spatialScene).cliffFrame, undefined);
+    assert.equal(record(record((cleared.items as unknown[])[0]).spatialScene).dayNightCycle, undefined);
     await mutate("connection.delete_bidirectional_apply", { mapId, direction: "east" });
     const disconnected = await call("pokemap_query", { projectHandle: reopened.projectHandle, resourceKind: "map", operation: "list", view: "detail" });
     for (const item of disconnected.items as JsonRecord[]) assert.deepEqual(item.connections, []);

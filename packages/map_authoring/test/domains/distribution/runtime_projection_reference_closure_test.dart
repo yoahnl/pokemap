@@ -10,6 +10,71 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('unused presentation media cannot remove a distinct character portrait',
+      () async {
+    final root = await _fixture();
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(
+        jsonDecode(await catalogFile.readAsString()));
+    final portrait = AssetRecord(
+        id: 'portrait-source',
+        logicalPath: 'assets/portrait.png',
+        artifact: catalog.require('hero-source').artifact);
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, portrait]).toJson());
+    await _write(root, portrait.logicalPath,
+        await File('${root.path}/assets/hero.png').readAsBytes());
+    final projectFile = File('${root.path}/project.json');
+    final project = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()));
+    await _write(root, 'project.json', project.copyWith(
+        characterStudioCatalog: project.characterStudioCatalog.copyWith(
+            portraitStates: [
+              const CharacterPortraitStateDefinition(
+                  id: 'neutral', displayName: 'Neutral'),
+            ]),
+        characters: [
+      for (final character in project.characters)
+        character.copyWith(portraits: [
+          const CharacterPortraitVariant(
+              portraitStateId: 'neutral', assetId: 'portrait-source'),
+        ]),
+    ]).toJson());
+    await _write(root, projectMediaCatalogStorageKey,
+        encodeProjectMediaCatalogBytes(ProjectMediaCatalog(entries: [
+          ProjectMediaAsset(id: 'unused-portrait', label: 'Unused portrait',
+              kind: ProjectMediaKind.image, sourceAssetId: portrait.id),
+        ])));
+    final projection = await _build(root);
+    final retained = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+        projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(retained.find(portrait.id), isNotNull);
+    expect(projection.payloadFiles,
+        contains('project/${portrait.logicalPath}'));
+  });
+
+  test('unused presentation media cannot remove a character source', () async {
+    final root = await _fixture();
+    await _write(
+        root,
+        projectMediaCatalogStorageKey,
+        encodeProjectMediaCatalogBytes(ProjectMediaCatalog(entries: [
+          ProjectMediaAsset(
+              id: 'unused-portrait',
+              label: 'Unused portrait',
+              kind: ProjectMediaKind.image,
+              sourceAssetId: 'hero-source'),
+        ])));
+    final projection = await _build(root);
+    final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+        projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(catalog.find('hero-source'), isNotNull);
+    expect(projection.payloadFiles, contains('project/assets/hero.png'));
+    final media = decodeProjectMediaCatalogBytes(
+        projection.payloadFiles['project/$projectMediaCatalogStorageKey']!);
+    expect(media.entries, isEmpty);
+  });
+
   test('runtime JSON closure excludes orphan and nested project documents',
       () async {
     final root = await _fixture();

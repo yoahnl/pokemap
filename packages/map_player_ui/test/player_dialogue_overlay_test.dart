@@ -6,34 +6,68 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  testWidgets('EV04 ten choices keep the keyboard selection visible in a small viewport', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(320, 568));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    DialoguePresentationSnapshot snapshot(int selected) => DialoguePresentationSnapshot(
-        revision: selected + 1, mode: DialoguePresentationMode.choices, nodeTitle: 'Start', speaker: null,
-        text: '', fullText: '', isCurrentLineFullyRevealed: true, isLastContent: false,
-        choices: [for (var i = 0; i < 10; i++) DialoguePresentationChoice(index: i, label: 'Destination $i', selected: i == selected)]);
-    DialoguePresentationCommand? command;
-    await _pump(tester, snapshot: snapshot(0), onCommand: (value) => command = value);
-    await tester.pumpAndSettle();
-    await _pump(tester, snapshot: snapshot(9), onCommand: (value) => command = value);
-    await tester.pumpAndSettle();
-    final last = find.byKey(const ValueKey<String>('dialogue-choice-9'));
-    expect(tester.getRect(last).top, greaterThanOrEqualTo(0));
-    expect(tester.getRect(last).bottom, lessThanOrEqualTo(568));
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
-    expect(command, isA<DialogueSelectChoiceCommand>().having((value) => value.choiceIndex, 'choice', 9));
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'EV04 ten choices keep the keyboard selection visible in a small viewport',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      DialoguePresentationSnapshot snapshot(int selected) =>
+          DialoguePresentationSnapshot(
+            revision: selected + 1,
+            mode: DialoguePresentationMode.choices,
+            nodeTitle: 'Start',
+            speaker: null,
+            text: '',
+            fullText: '',
+            isCurrentLineFullyRevealed: true,
+            isLastContent: false,
+            choices: [
+              for (var i = 0; i < 10; i++)
+                DialoguePresentationChoice(
+                  index: i,
+                  label: 'Destination $i',
+                  selected: i == selected,
+                ),
+            ],
+          );
+      DialoguePresentationCommand? command;
+      await _pump(
+        tester,
+        snapshot: snapshot(0),
+        onCommand: (value) => command = value,
+      );
+      await tester.pumpAndSettle();
+      await _pump(
+        tester,
+        snapshot: snapshot(9),
+        onCommand: (value) => command = value,
+      );
+      await tester.pumpAndSettle();
+      final last = find.byKey(const ValueKey<String>('dialogue-choice-9'));
+      expect(tester.getRect(last).top, greaterThanOrEqualTo(0));
+      expect(tester.getRect(last).bottom, lessThanOrEqualTo(568));
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(
+        command,
+        isA<DialogueSelectChoiceCommand>().having(
+          (value) => value.choiceIndex,
+          'choice',
+          9,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
-      'revealing letters keeps the dialogue opaque and commands current',
-      (tester) async {
-    DialoguePresentationCommand? command;
-    for (var revision = 1; revision <= 8; revision++) {
-      final text = 'Bonjour !'.substring(0, revision);
-      await _pump(tester,
+    'revealing letters keeps the dialogue opaque and commands current',
+    (tester) async {
+      DialoguePresentationCommand? command;
+      for (var revision = 1; revision <= 8; revision++) {
+        final text = 'Bonjour !'.substring(0, revision);
+        await _pump(
+          tester,
           snapshot: DialoguePresentationSnapshot(
             revision: revision,
             mode: DialoguePresentationMode.line,
@@ -45,23 +79,34 @@ void main() {
             isLastContent: false,
             choices: const [],
           ),
-          onCommand: (value) => command = value);
-      await tester.pump(const Duration(milliseconds: 30));
-      expect(find.text('Lysa'), findsOneWidget);
-      for (final fade in tester.widgetList<FadeTransition>(find.ancestor(
-          of: find.text(text), matching: find.byType(FadeTransition)))) {
-        expect(fade.opacity.value, 1.0);
+          onCommand: (value) => command = value,
+        );
+        await tester.pump(const Duration(milliseconds: 30));
+        expect(find.text('Lysa'), findsOneWidget);
+        for (final fade in tester.widgetList<FadeTransition>(
+          find.ancestor(
+            of: find.text(text),
+            matching: find.byType(FadeTransition),
+          ),
+        )) {
+          expect(fade.opacity.value, 1.0);
+        }
       }
-    }
-    await tester.tap(find.byKey(const ValueKey<String>('dialogue-tap-zone')));
-    expect(
+      await tester.tap(find.byKey(const ValueKey<String>('dialogue-tap-zone')));
+      expect(
         command,
-        isA<DialogueAdvanceCommand>()
-            .having((value) => value.snapshotRevision, 'revision', 8));
-  });
+        isA<DialogueAdvanceCommand>().having(
+          (value) => value.snapshotRevision,
+          'revision',
+          8,
+        ),
+      );
+    },
+  );
 
-  testWidgets('renders speaker and advances the current revision',
-      (tester) async {
+  testWidgets('renders speaker and advances the current revision', (
+    tester,
+  ) async {
     DialoguePresentationCommand? command;
     await _pump(
       tester,
@@ -82,8 +127,9 @@ void main() {
     );
   });
 
-  testWidgets('choices are direct, focusable commands and scale safely',
-      (tester) async {
+  testWidgets('choices are direct, focusable commands and scale safely', (
+    tester,
+  ) async {
     DialoguePresentationCommand? command;
     await tester.binding.setSurfaceSize(const Size(320, 568));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -94,6 +140,10 @@ void main() {
       onCommand: (value) => command = value,
     );
 
+    while (find.text('Prendre Bulbizarre').evaluate().isEmpty) {
+      await tester.tap(find.byKey(const ValueKey('player-page-next')));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.text('Prendre Bulbizarre'));
     expect(
       command,
@@ -104,8 +154,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('dialogue text consumes the semantic dialogue role',
-      (tester) async {
+  testWidgets('dialogue text consumes the semantic dialogue role', (
+    tester,
+  ) async {
     await _pump(
       tester,
       snapshot: _lineSnapshot(),
@@ -168,7 +219,8 @@ void main() {
       dialogue: base.dialogue.copyWith(
         regular: base.dialogue.regular.copyWith(
           slot: ProjectPresentationLayoutSlot.topCenter,
-          visibleSecondaryElements: const <ProjectPresentationSecondaryElement>[],
+          visibleSecondaryElements:
+              const <ProjectPresentationSecondaryElement>[],
         ),
       ),
     );
@@ -178,9 +230,8 @@ void main() {
       tester,
       snapshot: _lineSnapshot(),
       layouts: layouts,
-      portraitBuilder: (_) => const SizedBox(
-        key: ValueKey<String>('dialogue-portrait'),
-      ),
+      portraitBuilder: (_) =>
+          const SizedBox(key: ValueKey<String>('dialogue-portrait')),
       onCommand: (_) {},
     );
 
@@ -189,7 +240,9 @@ void main() {
       findsOneWidget,
     );
     expect(
-        find.byKey(const ValueKey<String>('dialogue-portrait')), findsNothing);
+      find.byKey(const ValueKey<String>('dialogue-portrait')),
+      findsNothing,
+    );
   });
 
   testWidgets('V9 dialogue geometry overrides every legacy surface measure', (
@@ -246,14 +299,8 @@ void main() {
 
     expect(align.alignment, Alignment.topCenter);
     expect(constrained.constraints.maxWidth, 640);
-    expect(
-      material.color,
-      const Color(0xFF102030).withValues(alpha: .82),
-    );
-    expect(
-      material.shape?.dimensions.resolve(TextDirection.ltr).bottom,
-      13,
-    );
+    expect(material.color, const Color(0xFF102030).withValues(alpha: .82));
+    expect(material.shape?.dimensions.resolve(TextDirection.ltr).bottom, 13);
     expect(padding.padding, const EdgeInsets.all(24));
     expect(
       tester.widget<Text>(find.text('Bienvenue à PokeMap.')).style?.color,
@@ -281,12 +328,18 @@ void main() {
         onCommand: (_) {},
       );
 
-      expect(find.byType(PlayerActionButton), findsNWidgets(count));
+      expect(
+        find.byType(PlayerActionButton, skipOffstage: false),
+        findsNWidgets(count),
+      );
       final selected = tester.widget<PlayerActionButton>(
         find.byKey(const ValueKey<String>('dialogue-choice-0')),
       );
       final disabled = tester.widget<PlayerActionButton>(
-        find.byKey(const ValueKey<String>('dialogue-choice-1')),
+        find.byKey(
+          const ValueKey<String>('dialogue-choice-1'),
+          skipOffstage: false,
+        ),
       );
       expect(selected.selected, isTrue);
       expect(selected.shape, isA<BeveledRectangleBorder>());
@@ -294,11 +347,7 @@ void main() {
       expect(disabled.onPressed, isNull);
       expect(disabled.disabledOpacity, .35);
       expect(
-        tester
-            .getSize(
-              find.byKey(const ValueKey<String>('dialogue-choice-spacing-0')),
-            )
-            .height,
+        tester.widget<PlayerPagedList>(find.byType(PlayerPagedList)).spacing,
         14,
       );
       expect(tester.takeException(), isNull);
@@ -372,23 +421,25 @@ Future<void> _pump(
   }
   return tester
       .pumpWidget(
-    MaterialApp(
-      theme: theme,
-      home: MediaQuery(
-        data: MediaQueryData(textScaler: textScaler),
-        child: Scaffold(
-          body: PlayerDialogueOverlay(
-            snapshot: snapshot,
-            onCommand: onCommand,
-            portraitBuilder: portraitBuilder,
+        MaterialApp(
+          theme: theme,
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: textScaler),
+            child: Scaffold(
+              body: PlayerDialogueOverlay(
+                snapshot: snapshot,
+                onCommand: onCommand,
+                portraitBuilder: portraitBuilder,
+              ),
+            ),
           ),
         ),
-      ),
-    ),
-  )
-      .then((_) {
-    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
-  });
+      )
+      .then((_) async {
+        await tester.pump();
+        await tester.pump();
+        expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+      });
 }
 
 DialoguePresentationSnapshot _lineSnapshot() {
