@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -201,15 +202,27 @@ void main() {
     expect(result.error, isNotEmpty);
   });
 
-  test('a linked source root is refused without changing the target', () async {
+  test('an explicitly selected linked source root is canonicalized without changing the target', () async {
     final before = await sourceFingerprint(source);
     final linked = Link('${temporary.path}/linked-source');
     await linked.create(source.path);
     final result = await invoke(scanArguments(path: linked.path));
+    final physical = await invoke(scanArguments());
 
-    expect(result.exitCode, 3);
-    expect(result.error, isNotEmpty);
+    expect(result.exitCode, Platform.isMacOS ? 0 : 6);
+    expect(physical.exitCode, Platform.isMacOS ? 0 : 6);
     expect(await sourceFingerprint(source), before);
+    expect(await linked.target(), source.path);
+    if (!Platform.isMacOS) {
+      return;
+    }
+    expect(result.error, isEmpty);
+    expect(physical.error, isEmpty);
+    final linkedSnapshot = jsonDecode(result.output) as Map;
+    final physicalSnapshot = jsonDecode(physical.output) as Map;
+    expect(linkedSnapshot['state'], 'complete');
+    expect(linkedSnapshot['canonicalHash'], physicalSnapshot['canonicalHash']);
+    expect(linkedSnapshot['entries'], physicalSnapshot['entries']);
   },
       skip: Platform.isWindows
           ? 'Symlink setup requires Windows privileges.'
@@ -279,11 +292,37 @@ void main() {
 
   test('the executable forwards scan exit code and JSON stdout', () async {
     final before = await sourceFingerprint(source);
-    final result = await Process.run(
+    final process = await Process.start(
       'dart',
       ['run', 'bin/avelune_converter.dart', ...scanArguments()],
       workingDirectory: Directory.current.path,
-    ).timeout(const Duration(seconds: 20));
+    );
+    var exited = false;
+    final exit = process.exitCode.then((code) {
+      exited = true;
+      return code;
+    });
+    final output = process.stdout.transform(utf8.decoder).join();
+    final error = process.stderr.transform(utf8.decoder).join();
+    late ProcessResult result;
+    try {
+      final values = await Future.wait<Object>([exit, output, error])
+          .timeout(const Duration(seconds: 90));
+      result = ProcessResult(process.pid, values[0] as int,
+          values[1] as String, values[2] as String);
+    } finally {
+      if (!exited) {
+        process.kill(ProcessSignal.sigterm);
+        try {
+          await exit.timeout(const Duration(seconds: 5));
+        } on TimeoutException {
+          if (!exited) {
+            process.kill(ProcessSignal.sigkill);
+            await exit.timeout(const Duration(seconds: 5));
+          }
+        }
+      }
+    }
 
     expect(result.exitCode, Platform.isMacOS ? 0 : 6);
     expect(await sourceFingerprint(source), before);
@@ -294,5 +333,5 @@ void main() {
     }
     expect(result.stderr, isEmpty);
     expect((jsonDecode(result.stdout as String) as Map)['state'], 'complete');
-  });
+  }, timeout: const Timeout(Duration(seconds: 110)));
 }

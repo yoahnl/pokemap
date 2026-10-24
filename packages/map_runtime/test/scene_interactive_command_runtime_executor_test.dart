@@ -41,6 +41,8 @@ void main() {
       playModelAnimation: handler,
       railJourney: handler,
       worldTone: handler,
+      worldPresentation: handler,
+      stopSoundEffects: handler,
       playSoundEffect: handler,
       playMusicEffect: handler,
       sceneMusic: handler,
@@ -56,7 +58,11 @@ void main() {
       SceneInteractiveCommand.wait(durationMs: 400),
       SceneInteractiveCommand.waitForActorRoutes(mapId: 'map.port'),
       SceneInteractiveCommand.worldTone(red: -255, green: -255, blue: -255, gray: 0, durationMs: 300),
+      SceneInteractiveCommand.worldPresentation(
+          operation: SceneWorldPresentationOperation.flash,
+          red: 255, green: 255, blue: 255, alpha: 128, durationMs: 100),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+      SceneInteractiveCommand.stopSoundEffects(),
       SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
         bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
       SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore),
@@ -105,8 +111,64 @@ void main() {
       expect(result, command.outputPortIds.first);
     }
 
-    expect(calls, SceneInteractiveCommandKind.values.where((kind) => kind != SceneInteractiveCommandKind.inputTextToFact && kind != SceneInteractiveCommandKind.receivePokemonFromCatalog));
+    expect(calls, SceneInteractiveCommandKind.values.where((kind) => !const {SceneInteractiveCommandKind.inputIntegerToFact, SceneInteractiveCommandKind.tryPayMoney, SceneInteractiveCommandKind.inputTextToFact, SceneInteractiveCommandKind.receivePokemonFromCatalog}.contains(kind)));
   });
+
+  test(
+    'transactional commands refuse the generic dispatcher before host effects',
+    () async {
+      var calls = 0;
+      final executor = SceneInteractiveCommandRuntimeExecutor(
+        warp: (_) async {
+          calls++;
+          return 'completed';
+        },
+      );
+      for (final command in [
+        SceneInteractiveCommand.inputIntegerToFact(
+          factId: 'number',
+          prompt: SceneInteractionPrompt(localizationKey: 'number'),
+          digits: 2,
+          minimum: 0,
+          maximum: 99,
+        ),
+        SceneInteractiveCommand.tryPayMoney(
+          amount: SceneIntegerOperand.literal(10),
+        ),
+        SceneInteractiveCommand.inputTextToFact(
+          factId: 'name',
+          prompt: SceneInteractionPrompt(localizationKey: 'name'),
+          confirmationPrompt: SceneInteractionPrompt(
+            localizationKey: 'confirm',
+          ),
+          constraints: SceneTextInputConstraints(minGraphemes: 1, maxGraphemes: 10),
+        ),
+        SceneInteractiveCommand.receivePokemonFromCatalog(
+          speciesId: 'bird',
+          formId: 'base',
+          level: 5,
+          nicknamePolicy: ScenePokemonGiftNicknamePolicy.disabled,
+          nicknameMaxGraphemes: 10,
+          pokedexPresentationPolicy:
+              ScenePokemonGiftPokedexPresentationPolicy.never,
+        ),
+      ]) {
+        await expectLater(
+          executor.execute(
+            SceneRuntimePlanIntent.executeInteractiveCommand(command: command),
+          ),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              contains('Scene transaction host'),
+            ),
+          ),
+        );
+      }
+      expect(calls, 0);
+    },
+  );
 
   test('presentation commands require their dedicated consumer', () async {
     final executor = SceneInteractiveCommandRuntimeExecutor(warp: (_) async => 'completed');
@@ -116,7 +178,11 @@ void main() {
       SceneInteractiveCommand.setPropState(mapId: 'map.port', propIds: const ['gate'], state: MovingPropState.open),
       SceneInteractiveCommand.waitForActorRoutes(mapId: 'map.port'),
       SceneInteractiveCommand.worldTone(red: 0, green: 0, blue: 0, gray: 0, durationMs: 300),
+      SceneInteractiveCommand.worldPresentation(
+          operation: SceneWorldPresentationOperation.flash,
+          red: 255, green: 255, blue: 255, alpha: 128, durationMs: 100),
       SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
+      SceneInteractiveCommand.stopSoundEffects(),
       SceneInteractiveCommand.playMusicEffect(mediaAssetId: 'door', volume: .8,
         bgmInterruption: DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
       SceneInteractiveCommand.sceneMusic(operation: SceneMusicOperation.restore),

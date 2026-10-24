@@ -233,11 +233,12 @@ void main() {
                 mapInstanceWorldState: instances.setEventBoolean(
                     instances.instanceRef(map.id)!, owner.id, 'A', completed)),
             map: map, entity: owner);
-        if (completed && !terminalGraphic) {
-          expect(presented, isNull);
-          continue;
-        }
-        expect(presented!.npc?.characterId,
+        expect(presented, isNotNull);
+        expect(presented!.id, owner.id);
+        expect(presented.properties[mapEntityPresentationVariantIdProperty],
+            completed ? 'page_1' : 'page_0');
+        expect(presented.editorVisual, isNull);
+        expect(presented.npc?.characterId,
             completed && terminalGraphic ? 'wall-character' : isNull);
         expect(presented.blocksMovement, completed && terminalGraphic);
       }

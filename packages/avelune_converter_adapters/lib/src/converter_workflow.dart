@@ -2478,6 +2478,7 @@ const _nativeStudyActions = [
   'event_v2.record_upsert',
   'event_v2.record_upsert_batch',
   'scene.dialogue.audioMedia.import',
+  'presentationMedia.import',
   'pokemon.catalog.write',
   'pokemon.configuration.set_enabled',
   'item.create',

@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_interactive_integer.dart';
+import 'package:map_runtime/src/application/scene_runtime/scene_interactive_text_input.dart';
 
 void main() {
   test('capability truth promotes exactly the runtime parity samples', () {
@@ -15,6 +17,7 @@ void main() {
     final sampledIds = <String>{
       ..._consequenceSamples().keys,
       ..._interactiveSamples().keys,
+      ..._transactionalSamples().keys,
       ..._dedicatedSamples().keys,
     };
 
@@ -77,6 +80,24 @@ void main() {
     );
   });
 
+  test('transactional inputs attest their actual runtime consumers', () {
+    final attestation = buildMapRuntimeNarrativeCommandConsumerAttestation();
+    for (final entry in {
+      NarrativeCommandIds.inputIntegerToFact:
+          'scene_interactive_integer.dart#inputSceneIntegerToFact',
+      NarrativeCommandIds.tryPayMoney:
+          'scene_interactive_integer.dart#tryScenePayMoney',
+      NarrativeCommandIds.inputTextToFact:
+          'scene_interactive_text_input.dart#inputSceneTextToFact',
+    }.entries) {
+      expect(
+        attestation.referenceFor(entry.key),
+        endsWith(entry.value),
+        reason: entry.key,
+      );
+    }
+  });
+
   test('player-surface attestation resolves to the playable game host', () {
     final catalog = NarrativeCommandCatalog.canonical();
     final consumers =
@@ -113,25 +134,14 @@ void main() {
     final writer = SceneConsequenceRuntimeWriter(
       project: _project(),
       mapsById: {'map_test': _map()},
+      mapInstanceScopes: {'map_test': MapInstanceRef(mapId: 'map_test', instanceId: 'parity')},
       maxHpByPartyIndex: const {0: 20},
-      pokemonCatalog: RuntimeScenePokemonCatalog(entries: {
-        'sproutle': RuntimeScenePokemonCatalogEntry(
-          species: const WildPokemonGenerationSpecies(
-            id: 'sproutle', formId: 'base',
-            baseStats: PokemonBaseStats(hp: 45, attack: 49, defense: 49, specialAttack: 65, specialDefense: 65, speed: 45),
-            primaryAbilityId: 'overgrow', standardAbilityIds: ['overgrow'], allowedAbilityIds: ['overgrow'],
-            genderRatio: {'male': 1}, growthRateId: 'medium_fast', baseFriendship: 70,
-          ),
-          learnset: const WildPokemonGenerationLearnset(startingMoves: ['tackle']),
-          maxPpByMoveId: {'tackle': 35},
-        ),
-      }),
+      pokemonCatalog: _pokemonCatalog(),
       maxPpByPartyIndex: const {
         0: {'tackle': 35},
       },
     );
 
-    // Adding a supported descriptor without a real writer sample must fail.
     expect(samples.keys, unorderedEquals(declaredIds));
     for (final entry in samples.entries) {
       final consequence = entry.value();
@@ -154,6 +164,7 @@ void main() {
       () async {
     final catalog = NarrativeCommandCatalog.canonical();
     final samples = _interactiveSamples();
+    final transactionalSamples = _transactionalSamples();
     final declaredIds = {
       for (final command in catalog.publishable)
         if (command.backend ==
@@ -171,6 +182,9 @@ void main() {
       wait: handler,
       waitForActorRoutes: handler,
       worldTone: handler,
+      worldPresentation: handler,
+      stopSoundEffects: handler,
+      sceneMusic: handler,
       playSoundEffect: handler,
       playMusicEffect: handler,
       actorRoute: handler,
@@ -188,11 +202,32 @@ void main() {
       openShop: handler,
       openHeal: handler,
       openPc: handler,
+      whiteOut: handler,
+      setPropState: (command) async {
+        calls.add(command.kind);
+        return 'moved';
+      },
+      openWorldService: (request) async {
+        calls.add(switch (request) {
+          OpenShopService() => SceneInteractiveCommandKind.openShop,
+          OpenHealService() => SceneInteractiveCommandKind.openHeal,
+          OpenPcService() => SceneInteractiveCommandKind.openPc,
+          OpenRegionalMapService() =>
+            SceneInteractiveCommandKind.openRegionalMap,
+          OpenPartyTradeService() =>
+            SceneInteractiveCommandKind.openPartyTrade,
+          _ => throw StateError('Unexpected service ${request.kind}'),
+        });
+        return 'completed';
+      },
       playCharacterAnimation: handler,
       railJourney: handler,
     );
 
-    expect(samples.keys, unorderedEquals(declaredIds));
+    expect({
+        ...samples.keys,
+        ...transactionalSamples.keys,
+      }, unorderedEquals(declaredIds));
     for (final entry in samples.entries) {
       final command = entry.value();
       final output = await executor.execute(
@@ -205,6 +240,125 @@ void main() {
       samples.values.map((sample) => sample().kind),
     );
   });
+
+  test(
+    'transactional interactive commands use their real state consumers',
+    () async {
+      final samples = _transactionalSamples();
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(),
+        pokemonCatalog: _pokemonCatalog(),
+      );
+      for (final entry in samples.entries) {
+        final before = _gameState();
+        final command = entry.value();
+        final String output;
+        final GameState after;
+        if (command is SceneReceivePokemonFromCatalogInteractiveCommand) {
+          final result = await receiveScenePokemonFromCatalog(
+            command: command,
+            operationId: 'parity:${entry.key}',
+            project: _project(),
+            readProjectedState: () => before,
+            catalog: _pokemonCatalog(),
+            present: (request) async => SceneInteractionResult.acknowledged(
+              requestId: request.interaction.requestId,
+              revision: request.interaction.revision,
+            ),
+          );
+          output = result.outputPortId;
+          after = result.prepared!.commit(
+            before,
+            catalog: _pokemonCatalog(),
+            project: _project(),
+          );
+          expect(
+            after.party.members,
+            hasLength(before.party.members.length + 1),
+          );
+          expect(
+            after.appliedPokemonGrantOperationIds,
+            contains('parity:${entry.key}'),
+    );
+  } else {
+          Future<SceneInteractionResult> present(
+            OpenSceneTextInteractionService request,
+          ) async {
+            final interaction = request.interaction;
+            return switch (interaction) {
+              SceneIntegerInteractionRequest() =>
+                SceneIntegerSubmittedInteractionResult(
+                  requestId: interaction.requestId,
+                  revision: interaction.revision,
+                  value: 7,
+                ),
+              SceneTextInteractionRequest() =>
+                SceneInteractionResult.textSubmitted(
+                  requestId: interaction.requestId,
+                  revision: interaction.revision,
+                  value: 'Blue',
+                ),
+              SceneConfirmationInteractionRequest() =>
+                SceneInteractionResult.confirmed(
+                  requestId: interaction.requestId,
+                  revision: interaction.revision,
+                  value: true,
+                ),
+              _ => throw StateError('Unexpected interaction'),
+            };
+          }
+
+          final ({String outputPortId, SceneConsequence? consequence}) result =
+              switch (command) {
+                SceneInputIntegerToFactInteractiveCommand() =>
+                  await inputSceneIntegerToFact(
+                    command: command,
+                    operationId: 'parity:${entry.key}',
+                    project: _project(),
+                    readProjectedState: () => before,
+                    present: present,
+                  ),
+                SceneTryPayMoneyInteractiveCommand() => await tryScenePayMoney(
+                  command: command,
+                  operationId: 'parity:${entry.key}',
+                  project: _project(),
+                  readProjectedState: () => before,
+                  present: present,
+                ),
+                SceneInputTextToFactInteractiveCommand() =>
+                  await inputSceneTextToFact(
+                    command: command,
+                    operationId: 'parity:${entry.key}',
+                    project: _project(),
+                    readProjectedState: () => before,
+                    present: present,
+                  ),
+                _ => throw StateError('Unexpected transaction ${entry.key}'),
+              };
+          output = result.outputPortId;
+          final applied = writer.applyOne(before, result.consequence!);
+          expect(applied.success, isTrue, reason: entry.key);
+          after = applied.gameState;
+          if (command is SceneInputIntegerToFactInteractiveCommand) {
+            expect(
+              after.narrativeFactRuntimeState.valueFor('fact_counter'),
+              NarrativeValue.integer(7),
+            );
+          } else if (command is SceneInputTextToFactInteractiveCommand) {
+            expect(
+              after.narrativeFactRuntimeState.valueFor('fact_name'),
+              NarrativeValue.string('Blue'),
+            );
+          } else {
+            expect(after.trainerProfile.money, 90);
+          }
+        }
+        expect(command.outputPortIds, contains(output), reason: entry.key);
+        expect(after, isNot(before), reason: entry.key);
+        expect(before, _gameState(), reason: entry.key);
+      }
+    },
+  );
 
   test('RailJourney execution fails closed when its handler is missing',
       () async {
@@ -323,7 +477,7 @@ List<ProjectCapabilityTruthRecord> _truthMatrix(
       for (final command in catalog.publishable)
         command.id: 'packages/map_runtime/test/'
             'narrative_command_runtime_parity_test.dart#'
-            '${_positiveProofName(command.backend)}',
+            '${_positiveProofName(command)}',
     },
   );
   final negativeTests = ProjectCapabilityTruthAttestation(
@@ -347,7 +501,11 @@ List<ProjectCapabilityTruthRecord> _truthMatrix(
   );
 }
 
-String _positiveProofName(NarrativeCommandBackend backend) => switch (backend) {
+String _positiveProofName(NarrativeCommandDescriptor command) {
+  if (_transactionalSamples().containsKey(command.id)) {
+    return 'transactional interactive commands use their real state consumers';
+  }
+  return switch (command.backend) {
       NarrativeCommandBackend.sceneConsequence =>
         'every supported consequence reaches an atomic runtime writer',
       NarrativeCommandBackend.interactiveRuntimeCommand =>
@@ -355,8 +513,33 @@ String _positiveProofName(NarrativeCommandBackend backend) => switch (backend) {
       NarrativeCommandBackend.dedicatedSceneNode =>
         'every supported dedicated node reaches a runtime host callback',
     };
+}
 
 Map<String, SceneConsequence Function()> _consequenceSamples() => {
+      NarrativeCommandIds.calculateIntegerFacts: () =>
+          SceneConsequence.calculateIntegerFacts(
+            factIds: ['fact_counter'], operation: SceneIntegerOperation.add,
+            operand: SceneIntegerOperand.literal(2), minimum: 0, maximum: 100,
+          ),
+      NarrativeCommandIds.adjustIntegerFact: () =>
+          SceneConsequence.adjustIntegerFact(
+            factId: 'fact_counter', delta: 1, minimum: 0, maximum: 100,
+          ),
+      NarrativeCommandIds.adjustMoney: () => SceneConsequence.adjustMoney(
+            operation: SceneMoneyOperation.subtract,
+            amount: SceneIntegerOperand.literal(10), minimum: 0, maximum: 1000,
+          ),
+      NarrativeCommandIds.setMapEventInstanceBoolean: () =>
+          SceneConsequence.setMapEventInstanceBoolean(
+            mapId: 'map_test', eventId: 'npc_guide', key: 'A', value: true,
+          ),
+      NarrativeCommandIds.markPokemonSeen: () =>
+          SceneConsequence.markPokemonSeen(speciesId: 'sproutle'),
+      NarrativeCommandIds.setNpcPose: () => SceneConsequence.setNpcPose(
+            mapId: 'map_test', entityId: 'npc_guide', facing: EntityFacing.east,
+          ),
+      NarrativeCommandIds.setPlayerAvatar: () =>
+          SceneConsequence.setPlayerAvatar(characterId: 'hero'),
       NarrativeCommandIds.setFact: () =>
           SceneConsequence.setFact(factId: 'fact_gate', value: true),
       NarrativeCommandIds.markEventConsumed: () =>
@@ -412,6 +595,22 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
     };
 
 Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
+      NarrativeCommandIds.worldPresentation: () =>
+          SceneInteractiveCommand.worldPresentation(
+            operation: SceneWorldPresentationOperation.flash,
+            red: 255, green: 255, blue: 255, alpha: 128, durationMs: 100,
+          ),
+      NarrativeCommandIds.stopSoundEffects:
+          SceneInteractiveCommand.stopSoundEffects,
+      NarrativeCommandIds.sceneMusic: () => SceneInteractiveCommand.sceneMusic(
+            operation: SceneMusicOperation.restore,
+          ),
+      NarrativeCommandIds.whiteOut: SceneInteractiveCommand.whiteOut,
+      NarrativeCommandIds.openRegionalMap: SceneInteractiveCommand.openRegionalMap,
+      NarrativeCommandIds.openPartyTrade: SceneInteractiveCommand.openPartyTrade,
+      NarrativeCommandIds.setPropState: () => SceneInteractiveCommand.setPropState(
+            mapId: 'map_test', propIds: ['gate'], state: MovingPropState.open,
+          ),
       NarrativeCommandIds.giveItemGift: () =>
           SceneInteractiveCommand.giveItem(itemId: 'item_potion', quantity: 1),
       NarrativeCommandIds.warp: () => SceneInteractiveCommand.warp(
@@ -470,6 +669,67 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
           ),
     };
 
+Map<String, SceneInteractiveCommand Function()> _transactionalSamples() => {
+  NarrativeCommandIds.inputIntegerToFact: () =>
+      SceneInteractiveCommand.inputIntegerToFact(
+        factId: 'fact_counter',
+        prompt: SceneInteractionPrompt(localizationKey: 'counter'),
+        digits: 2,
+        minimum: 0,
+        maximum: 99,
+      ),
+  NarrativeCommandIds.tryPayMoney: () => SceneInteractiveCommand.tryPayMoney(
+    amount: SceneIntegerOperand.literal(10),
+  ),
+  NarrativeCommandIds.inputTextToFact: () =>
+      SceneInteractiveCommand.inputTextToFact(
+        factId: 'fact_name',
+        prompt: SceneInteractionPrompt(localizationKey: 'name'),
+        confirmationPrompt: SceneInteractionPrompt(localizationKey: 'confirm'),
+        constraints: SceneTextInputConstraints(
+          minGraphemes: 1,
+          maxGraphemes: 10,
+        ),
+      ),
+  NarrativeCommandIds.receivePokemonFromCatalog: () =>
+      SceneInteractiveCommand.receivePokemonFromCatalog(
+        speciesId: 'sproutle',
+        formId: 'base',
+        level: 5,
+        nicknamePolicy: ScenePokemonGiftNicknamePolicy.disabled,
+        nicknameMaxGraphemes: 10,
+        pokedexPresentationPolicy:
+            ScenePokemonGiftPokedexPresentationPolicy.never,
+      ),
+};
+
+RuntimeScenePokemonCatalog _pokemonCatalog() => RuntimeScenePokemonCatalog(
+  entries: {
+    'sproutle': RuntimeScenePokemonCatalogEntry(
+      species: const WildPokemonGenerationSpecies(
+        id: 'sproutle',
+        formId: 'base',
+        baseStats: PokemonBaseStats(
+          hp: 45,
+          attack: 49,
+          defense: 49,
+          specialAttack: 65,
+          specialDefense: 65,
+          speed: 45,
+        ),
+        primaryAbilityId: 'overgrow',
+        standardAbilityIds: ['overgrow'],
+        allowedAbilityIds: ['overgrow'],
+        genderRatio: {'male': 1},
+        growthRateId: 'medium_fast',
+        baseFriendship: 70,
+      ),
+      learnset: const WildPokemonGenerationLearnset(startingMoves: ['tackle']),
+      maxPpByMoveId: {'tackle': 35},
+    ),
+  },
+);
+
 Map<String, SceneNodePayload Function()> _dedicatedSamples() => {
       NarrativeCommandIds.dialogue: () => SceneYarnDialoguePayload(
             dialogueId: 'dialogue_port',
@@ -500,8 +760,28 @@ ProjectManifest _project() => ProjectManifest(
         ),
       ],
       tilesets: const [],
+      characters: [
+        ProjectCharacterEntry(
+          id: 'hero', name: 'Hero', tilesetId: 'actors',
+          animations: [
+            for (final direction in EntityFacing.values)
+              CharacterAnimation(
+                state: CharacterAnimationState.walk, direction: direction,
+                sourceAssetId: 'hero', frames: const [
+                  CharacterAnimationFrame(source: TilesetSourceRect(
+                    x: 0, y: 0, width: 32, height: 32,
+                  )),
+                ],
+              ),
+          ],
+        ),
+      ],
       facts: [
         NarrativeFactDefinition(id: 'fact_gate', label: 'Gate'),
+        NarrativeFactDefinition(id: 'fact_counter', label: 'Counter',
+            initialValue: NarrativeValue.integer(0)),
+        NarrativeFactDefinition(id: 'fact_name', label: 'Name',
+            initialValue: NarrativeValue.string('Old')),
       ],
       storylines: [
         StorylineAsset(
@@ -540,8 +820,12 @@ ProjectManifest _project() => ProjectManifest(
       ),
     );
 
-GameState _gameState() => const GameState(
+GameState _gameState() => GameState(
       saveId: 'runtime_parity',
+      currentMapId: 'map_test',
+      mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+        'map_test': MapInstanceRuntimeState(instanceId: 'parity'),
+      }),
       trainerProfile: TrainerProfile(name: 'Leaf', money: 100),
       bag: Bag(
         entries: [
@@ -562,18 +846,18 @@ GameState _gameState() => const GameState(
       ),
     );
 
-MapData _map() => const MapData(
+MapData _map() => MapData(
       id: 'map_test',
       name: 'Map Test',
-      size: GridSize(width: 4, height: 4),
-      events: [
+      size: const GridSize(width: 4, height: 4),
+      events: const [
         MapEventDefinition(
           id: 'event_gate',
           position: EventPosition(layerId: 'base', x: 1, y: 1),
           pages: [MapEventPage(pageNumber: 0)],
         ),
       ],
-      warps: [
+      warps: const [
         MapWarp(
           id: 'warp_arrival',
           pos: GridPos(x: 2, y: 2),
@@ -585,8 +869,13 @@ MapData _map() => const MapData(
         MapEntity(
           id: 'npc_guide',
           kind: MapEntityKind.npc,
-          pos: GridPos(x: 1, y: 2),
-          npc: MapEntityNpcData(),
+          pos: const GridPos(x: 1, y: 2),
+          npc: const MapEntityNpcData(),
+          presentation: MapEntityPresentation(variants: [
+            MapEntityPresentationVariant(id: 'visible',
+                condition: NarrativeEventConditionExpression.all([]),
+                characterId: 'hero', blocksMovement: true),
+          ]),
         ),
       ],
     );

@@ -1696,7 +1696,11 @@ final class _Run {
         symbol = e.identity!.sourceSymbol!,
         native = id(SourcePbsFamily.items, symbol);
     final pocket = _number(f, 'Pocket', 1, e, minimum: 1, maximum: 8),
-        price = _number(f, 'Price', 0, e);
+        price = _number(f, 'Price', 0, e),
+        sellPrice = _number(f, 'SellPrice', price ~/ 2, e);
+    final isKey =
+        f['Flags']?.values.any((flag) => flag.toLowerCase() == 'keyitem') ??
+            false;
     const pockets = [
       'items',
       'medicine',
@@ -1712,9 +1716,9 @@ final class _Run {
         displayName: _text(f, 'Name', 'Unnamed', e),
         pocketId: pockets[pocket - 1],
         buyPrice: price,
-        sellPrice: _number(f, 'SellPrice', price ~/ 2, e),
+        sellPrice: isKey ? null : sellPrice,
         description: f['Description']?.rawValue,
-        tags: {'source-imported'}).normalized();
+        tags: {'source-imported', if (isKey) 'key-item'}).normalized();
     final previous = itemDefinitions[native];
     if (previous != null &&
         (previous.displayName != candidate.displayName ||

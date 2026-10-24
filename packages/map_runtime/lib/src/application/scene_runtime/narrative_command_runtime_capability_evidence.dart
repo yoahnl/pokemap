@@ -22,6 +22,19 @@ ProjectCapabilityTruthAttestation
 }
 
 String _runtimeReference(NarrativeCommandDescriptor command) {
+  final transactionalReference = switch (command.id) {
+    NarrativeCommandIds.inputIntegerToFact =>
+      'scene_interactive_integer.dart#inputSceneIntegerToFact',
+    NarrativeCommandIds.tryPayMoney =>
+      'scene_interactive_integer.dart#tryScenePayMoney',
+    NarrativeCommandIds.inputTextToFact =>
+      'scene_interactive_text_input.dart#inputSceneTextToFact',
+    _ => null,
+  };
+  if (transactionalReference != null) {
+    return 'packages/map_runtime/lib/src/application/scene_runtime/'
+        '$transactionalReference';
+  }
   if (command.id == NarrativeCommandIds.receivePokemonFromCatalog) {
     const Type runtimeType = PreparedScenePokemonGift;
     return 'packages/map_runtime/lib/src/application/scene_runtime/scene_interactive_pokemon_gift.dart#${runtimeType.toString()}';
