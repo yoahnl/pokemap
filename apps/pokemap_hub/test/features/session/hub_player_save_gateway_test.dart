@@ -266,12 +266,21 @@ void main() {
   test(
     'releases a failed coalesced checkpoint so the player can retry',
     () async {
+      final previous = _envelope(identity);
+      await store.write(previous);
+      final currentFile = File(
+        '${root.path}/saves/${identity.gameId}/player-1/slot-1/save.json',
+      );
+      final previousBytes = await currentFile.readAsBytes();
       var failNextWrite = true;
+      var verifiedWrites = 0;
       store = HubSaveStore(
         supportRoot: root,
         identity: identity,
         faultHook: (stage) async {
-          if (failNextWrite && stage == SaveWriteStage.afterTemporaryVerified) {
+          if (stage != SaveWriteStage.afterTemporaryVerified) return;
+          verifiedWrites++;
+          if (failNextWrite) {
             failNextWrite = false;
             throw StateError('injected first failure');
           }
@@ -284,16 +293,94 @@ void main() {
         status: SaveStatus.active,
       );
 
-      await expectLater(
-        gateway.commit(request),
-        throwsA(isA<HubSessionCheckpointException>()),
+      final first = gateway.commit(request);
+      final coalesced = gateway.commit(request);
+      expect(identical(first, coalesced), isTrue);
+      final writeFailed = isA<HubSessionCheckpointException>().having(
+        (error) => error.code,
+        'code',
+        HubSessionCheckpointErrorCode.writeFailed,
       );
-      await gateway.commit(request);
+      await Future.wait([
+        expectLater(first, throwsA(writeFailed)),
+        expectLater(coalesced, throwsA(writeFailed)),
+      ]);
+
+      expect(verifiedWrites, 1);
+      expect(await currentFile.readAsBytes(), previousBytes);
+      expect((await store.read(activeAddress(identity))).envelope, previous);
+
+      final retry = gateway.commit(request);
+      final coalescedRetry = gateway.commit(request);
+      expect(identical(retry, coalescedRetry), isTrue);
+      await Future.wait([retry, coalescedRetry]);
 
       final stored = await store.read(activeAddress(identity));
+      expect(verifiedWrites, 2);
+      expect(stored.status, SaveSlotReadStatus.valid);
+      expect(stored.envelope?.saveId, request.checkpoint.saveId);
       expect(stored.envelope?.state['revision'], 3);
+      expect(
+        await File('${currentFile.parent.path}/save.backup.json').readAsBytes(),
+        previousBytes,
+      );
     },
   );
+
+  test('acknowledges a first checkpoint recovered from its verified temporary file', () async {
+    var verifiedWrites = 0;
+    store = HubSaveStore(
+      supportRoot: root,
+      identity: identity,
+      faultHook: (stage) async {
+        if (stage != SaveWriteStage.afterTemporaryVerified) return;
+        verifiedWrites++;
+        throw StateError('injected first-ever write interruption');
+      },
+    );
+    gateway = HubPlayerSaveGateway(store: store);
+    final request = GameSessionCheckpointCommit(
+      descriptor: _descriptor(identity).publicContext,
+      checkpoint: _checkpoint(revision: 4),
+      status: SaveStatus.active,
+    );
+
+    final first = gateway.commit(request);
+    final coalesced = gateway.commit(request);
+    expect(identical(first, coalesced), isTrue);
+    await Future.wait([first, coalesced]);
+
+    const codec = SaveEnvelopeCodec();
+    final expected = codec.create(
+      identity: identity,
+      profileId: request.descriptor.profileId,
+      slotId: request.descriptor.slotId,
+      saveId: request.checkpoint.saveId,
+      createdAt: request.checkpoint.createdAt,
+      updatedAt: request.checkpoint.updatedAt,
+      status: request.status,
+      playTimeSeconds: request.checkpoint.playTimeSeconds,
+      state: request.checkpoint.state,
+    );
+    final stored = await store.read(activeAddress(identity));
+    final currentFile = File(
+      '${root.path}/saves/${identity.gameId}/player-1/slot-1/save.json',
+    );
+    expect(verifiedWrites, 1);
+    expect(stored.status, SaveSlotReadStatus.valid);
+    expect(stored.source, SaveSlotSource.current);
+    expect(stored.envelope, expected);
+    expect(codec.verifyChecksum(stored.envelope!), isTrue);
+    expect(await currentFile.readAsBytes(), codec.encodeUtf8(expected));
+    expect(
+      await File('${currentFile.parent.path}/save.backup.json').exists(),
+      isFalse,
+    );
+    expect(
+      (await gateway.readSummary(activeAddress(identity)))?.canContinue,
+      isTrue,
+    );
+  });
 }
 
 SaveEnvelope _envelope(

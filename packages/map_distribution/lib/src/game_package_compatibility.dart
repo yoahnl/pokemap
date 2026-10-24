@@ -9,17 +9,32 @@ final class GamePackageHostCompatibility {
   GamePackageHostCompatibility({
     required this.hubVersion,
     required this.runtimeApiVersion,
+    Set<Version>? supportedRuntimeApiVersions,
     required Set<String> capabilities,
     required Set<String> supportedProjectFormats,
     required this.currentProjectFormat,
     Set<String>? currentProjectFormats,
     required Set<int> supportedSaveFormats,
-  })  : capabilities = Set.unmodifiable(capabilities),
+  })  : supportedRuntimeApiVersions = Set.unmodifiable(
+          supportedRuntimeApiVersions ?? <Version>{runtimeApiVersion},
+        ),
+        capabilities = Set.unmodifiable(capabilities),
         supportedProjectFormats = Set.unmodifiable(supportedProjectFormats),
         currentProjectFormats = Set.unmodifiable(
           currentProjectFormats ?? <String>{currentProjectFormat},
         ),
         supportedSaveFormats = Set.unmodifiable(supportedSaveFormats) {
+    if (!this.supportedRuntimeApiVersions.contains(runtimeApiVersion) ||
+        this.supportedRuntimeApiVersions.any(
+              (version) =>
+                  compareSemverPrecedence(version, runtimeApiVersion) > 0,
+            )) {
+      throw ArgumentError.value(
+        supportedRuntimeApiVersions,
+        'supportedRuntimeApiVersions',
+        'Supported APIs must include the current API and cannot be newer.',
+      );
+    }
     if (currentProjectFormats != null &&
         (currentProjectFormats.isEmpty ||
             !currentProjectFormats.contains(currentProjectFormat) ||
@@ -34,6 +49,7 @@ final class GamePackageHostCompatibility {
 
   final Version hubVersion;
   final Version runtimeApiVersion;
+  final Set<Version> supportedRuntimeApiVersions;
   final Set<String> capabilities;
   final Set<String> supportedProjectFormats;
   final String currentProjectFormat;
@@ -109,9 +125,8 @@ final class GamePackageCompatibilityEvaluator {
         0) {
       blockers.add('hubTooOld');
     }
-    if (!semverConstraintAllows(
-      compatibility.runtimeApi,
-      host.runtimeApiVersion,
+    if (!host.supportedRuntimeApiVersions.any(
+      (version) => semverConstraintAllows(compatibility.runtimeApi, version),
     )) {
       blockers.add('runtimeApiUnsupported');
     }

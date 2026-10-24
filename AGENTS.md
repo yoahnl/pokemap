@@ -138,21 +138,54 @@ Do not broaden access to the home directory or filesystem root as a convenience 
 
 ## 5. Product and Architecture Rules
 
-### Pre-1.0.0 compatibility policy
+### Avelune game and save compatibility policy
 
-Until PokeMap reaches version `1.0.0`, legacy behavior and backward compatibility
-are not product requirements.
+Yoahn established the compatibility baseline on **2026-10-24**, at Avelune
+Studio **0.3.31+331** (`apps/avelune_studio/pubspec.yaml`). This is a product
+obligation; this rule alone does not certify implementation.
 
-- Do not preserve obsolete APIs, data schemas, serialized formats, fixtures, or
-  behavior solely for compatibility with a pre-`1.0.0` version.
-- Do not add migrations, dual readers/writers, fallbacks, adapters, aliases, or
-  deprecation bridges solely to support pre-`1.0.0` legacy data or code.
-- Prefer the clean current target design and remove obsolete paths when they are
-  in scope.
-- Only preserve or convert legacy behavior when the direct user request or the
-  current ticket explicitly requires it.
-- When old data is unsupported, reject it clearly and safely rather than
-  silently accepting, mutating, or corrupting it.
+- Every valid native project and game package exported by Studio at this
+  baseline or later must remain readable and playable by all subsequent
+  Avelune Player/runtime releases on the platforms supporting that game's
+  execution profile. The guarantee is cumulative: later exports acquire the
+  same protection. Do not impose a rolling expiry or require a game update or
+  re-export merely because the Player application was updated.
+- Backward compatibility is mandatory even before `1.0.0`. A Player update
+  must preserve protected games and the valid saves created for them, including
+  player progression and persisted identities. A newer game may require a newer
+  Player when its format or required capabilities are genuinely unknown to an
+  older Player; future-format support is not promised.
+- Keep application/build versions, game content versions, project/package/save
+  formats and required runtime capabilities distinct. Never use release age,
+  an exact application version match or a bare numeric format comparison as
+  proof of incompatibility. Preserve previously supported capability semantics.
+- Any format or persisted-behavior change affecting protected games or saves
+  must retain a tested reader or provide an explicit, deterministic conversion
+  into the current canonical model. This includes nested schemas and changed
+  defaults within an unchanged top-level format. Keep compatibility handling at
+  data boundaries rather than scattering legacy branches through gameplay.
+- Never silently drop required fields, commands, resources or progression to
+  make a game load. Optional presentation degradation is allowed only when the
+  contract explicitly defines it and gameplay/save semantics remain intact.
+- Validate packages before conversion, preserve original package integrity
+  evidence and perform conversions on copies. Save migrations must preserve a
+  recoverable original, validate the result and activate it transactionally.
+  A failed load, conversion or update must not overwrite, delete or reset a
+  game or save, or silently start a new game in place of the existing playthrough.
+- For invalid, corrupted, unsafe or genuinely unsupported data, display a clear,
+  actionable error identifying the cause and preserve recoverable originals.
+  An error message does not satisfy the compatibility obligation for an otherwise
+  valid protected game; such a failure is a regression to fix.
+- Before shipping a relevant change, verify representative baseline and later
+  exports plus existing saves through install/load/Continue, and verify that
+  failures and unknown future formats leave original bytes intact. Record the
+  exact fixtures, producer versions, commands, results and limits; do not claim
+  all historical games are certified from a current-format fixture alone.
+- Projects predating this baseline and obsolete internal APIs have no blanket
+  compatibility guarantee. Preserve or convert them when explicitly requested
+  or already covered by a protected contract; otherwise reject safely. Clean
+  internal architecture remains the target, with protected data converted at
+  the boundary when needed.
 
 No-code first:
 
@@ -188,9 +221,10 @@ Package boundaries:
 - runtime integration: `map_runtime`;
 - authoring UI and editor use cases: `map_editor`;
 - gameplay rules must not hide inside Flame components;
-- schema changes usually require tests, fixtures, editor/runtime updates, and an
-  explicit schema-version break where applicable; pre-`1.0.0` migrations are not
-  required unless the current ticket explicitly requests one.
+- schema changes usually require tests, fixtures, editor/runtime updates and an
+  explicit schema-version change where applicable; changes affecting games or
+  saves protected by the compatibility baseline require a tested compatibility
+  path even before `1.0.0`.
 
 ---
 

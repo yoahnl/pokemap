@@ -145,7 +145,6 @@ final class SaveEnvelopeCodec {
     Set<int> acceptedSaveFormats = const <int>{currentSaveFormat},
     bool verifyChecksum = true,
   }) {
-    _checkKeys(json, _rootKeys, r'$');
     final schemaVersion = _requiredInt(json, 'schemaVersion');
     if (schemaVersion != currentSchemaVersion) {
       throw SaveContractException(
@@ -154,6 +153,15 @@ final class SaveEnvelopeCodec {
         path: r'$.schemaVersion',
       );
     }
+    final saveFormat = _requiredInt(json, 'saveFormat');
+    if (!acceptedSaveFormats.contains(saveFormat)) {
+      throw SaveContractException(
+        SaveContractErrorCode.unsupportedSaveFormat,
+        'Unsupported save format $saveFormat.',
+        path: r'$.saveFormat',
+      );
+    }
+    _checkKeys(json, _rootKeys, r'$');
 
     final gameId = _requiredString(json, 'gameId');
     final profileId = _requiredString(json, 'profileId');
@@ -190,14 +198,6 @@ final class SaveEnvelopeCodec {
     GameIdentity.validateSemver(gameVersion, path: r'$.gameVersion');
     final projectFormat =
         ProjectFormat.parse(_requiredString(json, 'projectFormat'));
-    final saveFormat = _requiredInt(json, 'saveFormat');
-    if (!acceptedSaveFormats.contains(saveFormat)) {
-      throw SaveContractException(
-        SaveContractErrorCode.unsupportedSaveFormat,
-        'Unsupported save format $saveFormat.',
-        path: r'$.saveFormat',
-      );
-    }
     final compatibilityId = _requiredString(json, 'compatibilityId');
     GameIdentity.validateCompatibilityId(compatibilityId);
     final statusName = _requiredString(json, 'status');

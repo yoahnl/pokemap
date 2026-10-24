@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -244,12 +245,12 @@ void main() {
 
     test('builds a deterministic STORE-only data package', () {
       final firstPayload = <String, List<int>>{
-        'project/project.json': _validProjectBytes(),
+        ..._frozenPublicationPayload(),
         'presentation/icon.png': _onePixelPngHeader(),
       };
       final secondPayload = <String, List<int>>{
-        'presentation/icon.png': _onePixelPngHeader(),
-        'project/project.json': _validProjectBytes(),
+        for (final entry in firstPayload.entries.toList().reversed)
+          entry.key: entry.value,
       };
 
       final first = builder.build(
@@ -264,37 +265,28 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        '81bf827a37d6e6005234de0254c8c7eff5d6a39ecdfc8ed1406ea19eeb6ad7bb',
+        'de5f6febef0a8189f64f538f8c3c69c9c4c669367a9051dd49f1bdbec8a0491e',
       );
       expect(
         first.packageSha256,
-        '81bf827a37d6e6005234de0254c8c7eff5d6a39ecdfc8ed1406ea19eeb6ad7bb',
+        'de5f6febef0a8189f64f538f8c3c69c9c4c669367a9051dd49f1bdbec8a0491e',
       );
       expect(first.archiveBytes, first.packageBytes.length);
-      expect(
-          first.manifest.content.fileCount,
-          2 +
-              PortableCatalogPublication.encodeProject(ProjectManifest.fromJson(
-                      jsonDecode(utf8.decode(_validProjectBytes()))
-                          as Map<String, dynamic>))
-                  .storage
-                  .objects
-                  .length);
+      expect(first.manifest.content.fileCount, firstPayload.length);
       expect(
         first.manifest.content.treeSha256,
         second.manifest.content.treeSha256,
       );
 
       final archive = ZipDecoder().decodeBytes(first.packageBytes);
+      for (final entry in firstPayload.entries) {
+        expect(archive.findFile(entry.key)?.content, entry.value);
+      }
       expect(
         archive.files.map((file) => file.name),
         <String>[
           'game-manifest.json',
-          'presentation/icon.png',
-          ...first.manifest.content.files
-              .where((file) => file.path.startsWith('project/catalog/objects/'))
-              .map((file) => file.path),
-          'project/project.json',
+          ...(firstPayload.keys.toList()..sort()),
         ],
       );
       expect(
@@ -667,6 +659,18 @@ List<int> _onePixelPngHeader() {
     ..setUint32(16, 1)
     ..setUint32(20, 1);
   return bytes;
+}
+
+Map<String, List<int>> _frozenPublicationPayload() {
+  final encoded = File(
+    'test/fixtures/compatibility/avelune_studio_0_3_31_331/'
+    'overworld.avelunegame.base64',
+  ).readAsStringSync().replaceAll(RegExp(r'\s'), '');
+  final archive = ZipDecoder().decodeBytes(base64Decode(encoded));
+  return {
+    for (final file in archive.files)
+      if (file.name != 'game-manifest.json') file.name: file.content,
+  };
 }
 
 List<int> _validProjectBytes({

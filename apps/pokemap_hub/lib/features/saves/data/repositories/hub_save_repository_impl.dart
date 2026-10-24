@@ -584,7 +584,15 @@ final class HubSaveStore
           }
         } on SaveStorageException {
           rethrow;
-        } catch (_) {
+        } catch (error) {
+          if (SaveSlotIntegrity.isUnsupportedContract(error)) {
+            throw SaveStorageException(
+              SaveStorageErrorCode.invalidEnvelope,
+              'Refusing to overwrite an unsupported save contract. '
+              'Update Avelune to read this save.',
+              cause: error,
+            );
+          }
           await _integrity.quarantine(slot, current);
         }
       }
@@ -650,6 +658,22 @@ final class HubSaveStore
       try {
         envelope = await _integrity.decodeCandidate(file, address);
       } catch (error) {
+        if (SaveSlotIntegrity.isUnsupportedContract(error)) {
+          return SaveSlotRead(
+            address: address,
+            status: SaveSlotReadStatus.incompatible,
+            source: candidate.$2,
+            diagnostics: [
+              SaveStorageDiagnostic(
+                SaveStorageDiagnosticCode.saveFormatFuture,
+                'This Player cannot read the save contract: $error. '
+                'Update Avelune to read this save. The original is preserved.',
+                expectedSaveFormat: identity.saveFormat,
+                recommendedActions: const [SaveRecoveryAction.returnToTitle],
+              ),
+            ],
+          );
+        }
         if (candidate.$2 == SaveSlotSource.current) {
           primaryCorrupt = true;
         }

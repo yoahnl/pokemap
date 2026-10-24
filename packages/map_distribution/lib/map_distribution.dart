@@ -1,5 +1,6 @@
 library map_distribution;
 
+export 'src/avelune_runtime_compatibility.dart';
 export 'src/audio_media_format.dart';
 export 'src/canonical_json.dart';
 export 'src/catalog_budget_report.dart';

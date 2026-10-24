@@ -23,6 +23,10 @@ final class SaveSlotIntegrity {
   final SaveEnvelopeCodec codec;
   final SaveCompatibilityEvaluator compatibilityEvaluator;
 
+  static bool isUnsupportedContract(Object error) =>
+      error is SaveContractException &&
+      (error.code == SaveContractErrorCode.unsupportedSchema ||
+          error.code == SaveContractErrorCode.unsupportedSaveFormat);
 
   Future<SaveEnvelope> decodeCandidate(
     File file,
@@ -30,13 +34,15 @@ final class SaveSlotIntegrity {
   ) async {
     final content = await file.readAsString();
     final decoded = jsonDecode(content);
-    if (decoded is! Map<String, dynamic> || decoded['saveFormat'] is! int) {
+    if (decoded is! Map<String, dynamic>) {
       throw const FormatException('Invalid save candidate.');
     }
-    final format = decoded['saveFormat']! as int;
+    final format = decoded['saveFormat'];
     final envelope = codec.decodeJson(
       decoded,
-      acceptedSaveFormats: <int>{format},
+      acceptedSaveFormats: {
+        if (format is int && format <= identity.saveFormat) format,
+      },
     );
     if (envelope.profileId != address.profileId ||
         envelope.slotId != address.slotId) {
@@ -54,7 +60,14 @@ final class SaveSlotIntegrity {
     required File temporary,
   }) async {
     final current = File(p.join(slot.path, 'save.json'));
-    if (await isValid(current, address)) return;
+    if (await current.exists()) {
+      try {
+        await decodeCandidate(current, address);
+        return;
+      } catch (error) {
+        if (isUnsupportedContract(error)) return;
+      }
+    }
     for (final source in <File>[
       File(p.join(slot.path, 'save.backup.json.next')),
       File(p.join(slot.path, 'save.backup.json')),

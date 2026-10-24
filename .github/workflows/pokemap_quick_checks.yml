@@ -7,6 +7,9 @@ on:
       - "apps/avelune_android/**"
       - "apps/avelune_version.xcconfig"
       - "apps/pokemap_hub/lib/**"
+      - "apps/pokemap_hub/test/features/saves/avelune_compatibility_baseline_continue_test.dart"
+      - "apps/pokemap_hub/test/platform/avelune_host_compatibility_test.dart"
+      - "apps/pokemap_hub/test/features/session/hub_player_save_gateway_test.dart"
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
@@ -20,6 +23,9 @@ on:
       - "apps/avelune_android/**"
       - "apps/avelune_version.xcconfig"
       - "apps/pokemap_hub/lib/**"
+      - "apps/pokemap_hub/test/features/saves/avelune_compatibility_baseline_continue_test.dart"
+      - "apps/pokemap_hub/test/platform/avelune_host_compatibility_test.dart"
+      - "apps/pokemap_hub/test/features/session/hub_player_save_gateway_test.dart"
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
@@ -63,15 +69,36 @@ jobs:
         run: |
           dart pub get
           dart test \
+            test/save/avelune_compatibility_baseline_save_test.dart \
             test/gameplay_roadmap_dashboard_test.dart \
             test/gameplay_roadmap_dashboard_cli_test.dart \
             test/gameplay_roadmap_repository_consistency_test.dart
           dart analyze \
+            test/save/avelune_compatibility_baseline_save_test.dart \
             lib/src/tooling/gameplay_roadmap_dashboard.dart \
             tool/generate_gameplay_roadmap_dashboard.dart \
             test/gameplay_roadmap_dashboard_test.dart \
             test/gameplay_roadmap_dashboard_cli_test.dart \
             test/gameplay_roadmap_repository_consistency_test.dart
+      - name: Avelune package compatibility baseline
+        working-directory: packages/map_distribution
+        timeout-minutes: 2
+        run: |
+          dart pub get
+          dart test \
+            test/avelune_runtime_compatibility_test.dart \
+            test/avelune_compatibility_baseline_package_test.dart \
+            test/game_package_compatibility_test.dart \
+            test/game_package_builder_test.dart
+      - name: Avelune save compatibility baseline
+        working-directory: apps/pokemap_hub
+        timeout-minutes: 2
+        run: |
+          flutter pub get
+          flutter test --no-pub --no-test-assets --timeout 2m \
+            test/platform/avelune_host_compatibility_test.dart \
+            test/features/saves/avelune_compatibility_baseline_continue_test.dart \
+            test/features/session/hub_player_save_gateway_test.dart
       - name: Editor smoke and static checks
         working-directory: packages/map_editor
         run: |

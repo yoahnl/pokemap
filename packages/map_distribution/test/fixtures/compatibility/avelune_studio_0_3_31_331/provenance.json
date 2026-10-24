@@ -1,0 +1,29 @@
+{
+  "studioVersion": "0.3.31+331",
+  "establishedOn": "2026-10-24",
+  "sourceRevision": "6ff2a573a686ff39f7f11cd59c6d6d1a166c8519",
+  "sourceWorkingTree": "isolated index snapshot of the compatibility changes on sourceRevision; concurrent actor contact shadow changes excluded",
+  "producer": "CanonicalGamePackageExportService.build",
+  "mode": "localTest",
+  "sourceFixtures": {
+    "overworld": "apps/pokemap_hub/test/support/runtime_owned_player_package_fixture.dart; explicit current non-Pokemon ruleset applied before export",
+    "spatial": "packages/map_distribution/test/support/spatial_package_fixture.dart"
+  },
+  "scope": "Representative canonical exports, not a Studio UI session or a store/device certification. Never regenerate existing baseline archives to accommodate reader changes; add a new versioned corpus.",
+  "packages": {
+    "overworld": {
+      "file": "overworld.avelunegame.base64",
+      "sha256": "889914c913424b9225afba1ce26593f9141d140be6e35938a95164a9788bd9ea",
+      "archiveBytes": 21368,
+      "projectFormat": "v8",
+      "saveFormat": 2
+    },
+    "spatial": {
+      "file": "spatial.avelunegame.base64",
+      "sha256": "6e239501d583ad4732bbe0902eb274d69b3a000f55f96abd9c231d501acd7d7a",
+      "archiveBytes": 15839,
+      "projectFormat": "v9",
+      "saveFormat": 2
+    }
+  }
+}

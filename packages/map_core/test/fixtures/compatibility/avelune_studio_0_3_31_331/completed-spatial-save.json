@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "gameId": "games.example.baseline-spatial",
+  "profileId": "player-1",
+  "slotId": "slot-1",
+  "saveId": "65edb580-8467-4ee5-9ad3-03a9f266dd95",
+  "createdAt": "2026-10-24T10:00:00Z",
+  "updatedAt": "2026-10-24T12:00:00Z",
+  "gameVersion": "1.2.0",
+  "projectFormat": "v9",
+  "saveFormat": 2,
+  "compatibilityId": "baseline-campaign",
+  "status": "completed",
+  "completedAt": "2026-10-24T12:00:00Z",
+  "playTimeSeconds": 7265,
+  "state": {
+    "itemSystemSchemaVersion": 1,
+    "saveId": "65edb580-8467-4ee5-9ad3-03a9f266dd95",
+    "currentMapId": "victory-hall-3d",
+    "playerPosition": {
+      "x": 4,
+      "y": 7
+    },
+    "playerPixelPosition": null,
+    "playerSpatialPosition": {
+      "schemaVersion": 1,
+      "x": 4.25,
+      "z": 7.75
+    },
+    "spatialWorldState": {
+      "schemaVersion": 1,
+      "modelsByMap": {
+        "victory-hall-3d": {
+          "gate-1": {
+            "modelId": "harbor-gate",
+            "animationIndex": 1,
+            "normalizedTime": 0.75,
+            "blocksMovement": false
+          }
+        }
+      },
+      "actorsByMap": {
+        "victory-hall-3d": {
+          "guide": {
+            "x": 6.5,
+            "z": 8.25,
+            "facing": "west"
+          }
+        }
+      }
+    },
+    "movingPlatformWorldState": {
+      "schemaVersion": 1,
+      "platformsByMap": {}
+    },
+    "movingPropWorldState": {
+      "schemaVersion": 1,
+      "propsByMap": {}
+    },
+    "mapInstanceWorldState": {
+      "schemaVersion": 6,
+      "instancesByMapId": {}
+    },
+    "playerFacing": "east",
+    "playerMovementMode": "walk",
+    "party": {
+      "members": [
+        {
+          "individualId": "baseline-starter-001",
+          "speciesId": "pikachu",
+          "formId": "",
+          "natureId": "hardy",
+          "abilityId": "static",
+          "gender": null,
+          "level": 18,
+          "ivs": {
+            "hp": 17,
+            "attack": 22,
+            "defense": 13,
+            "specialAttack": 29,
+            "specialDefense": 21,
+            "speed": 31
+          },
+          "evs": {
+            "hp": 4,
+            "attack": 16,
+            "defense": 0,
+            "specialAttack": 12,
+            "specialDefense": 0,
+            "speed": 28
+          },
+          "knownMoveIds": [
+            "thunder-shock",
+            "quick-attack"
+          ],
+          "experience": 5832,
+          "currentPpByMoveId": {
+            "quick-attack": 12,
+            "thunder-shock": 19
+          },
+          "currentHp": 27,
+          "statusId": "paralysis",
+          "isShiny": true,
+          "heldItemId": "oran-berry",
+          "nickname": "Étincelle",
+          "friendship": 120,
+          "provenance": null
+        }
+      ]
+    },
+    "completionPartyJournal": {
+      "schemaVersion": 1,
+      "records": [
+        {
+          "endingId": "harbor-victory",
+          "completedAtEpochMs": 1792843200000,
+          "mapId": "victory-hall-3d",
+          "trainerName": "Alice",
+          "party": {
+            "members": [
+              {
+                "individualId": "baseline-starter-001",
+                "speciesId": "pikachu",
+                "formId": "",
+                "natureId": "hardy",
+                "abilityId": "static",
+                "gender": null,
+                "level": 18,
+                "ivs": {
+                  "hp": 17,
+                  "attack": 22,
+                  "defense": 13,
+                  "specialAttack": 29,
+                  "specialDefense": 21,
+                  "speed": 31
+                },
+                "evs": {
+                  "hp": 4,
+                  "attack": 16,
+                  "defense": 0,
+                  "specialAttack": 12,
+                  "specialDefense": 0,
+                  "speed": 28
+                },
+                "knownMoveIds": [
+                  "thunder-shock",
+                  "quick-attack"
+                ],
+                "experience": 5832,
+                "currentPpByMoveId": {
+                  "thunder-shock": 19,
+                  "quick-attack": 12
+                },
+                "currentHp": 27,
+                "statusId": "paralysis",
+                "isShiny": true,
+                "heldItemId": "oran-berry",
+                "nickname": "Étincelle",
+                "friendship": 120,
+                "provenance": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "pokemonStorage": {
+      "boxes": [
+        {
+          "id": "box-1",
+          "label": "Équipe de réserve",
+          "capacity": 30,
+          "pokemon": [
+            {
+              "individualId": "baseline-boxed-001",
+              "speciesId": "eevee",
+              "formId": "",
+              "natureId": "calm",
+              "abilityId": "run-away",
+              "gender": null,
+              "level": 12,
+              "ivs": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 0
+              },
+              "evs": {
+                "hp": 0,
+                "attack": 0,
+                "defense": 0,
+                "specialAttack": 0,
+                "specialDefense": 0,
+                "speed": 0
+              },
+              "knownMoveIds": [
+                "tackle"
+              ],
+              "experience": 1728,
+              "currentPpByMoveId": {
+                "tackle": 21
+              },
+              "currentHp": 34,
+              "statusId": "",
+              "isShiny": false,
+              "heldItemId": "",
+              "nickname": "Nuage",
+              "friendship": 80,
+              "provenance": null
+            }
+          ]
+        }
+      ]
+    },
+    "trainerProfile": {
+      "name": "Alice",
+      "avatarCharacterId": "trainer-alice",
+      "pronounSet": "neutral",
+      "badgeIds": [
+        "harbor-badge"
+      ],
+      "money": 4321,
+      "playtimeSeconds": 7265
+    },
+    "bag": {
+      "entries": [
+        {
+          "itemId": "potion",
+          "quantity": 7
+        },
+        {
+          "itemId": "poke-ball",
+          "quantity": 3
+        },
+        {
+          "itemId": "harbor-key",
+          "quantity": 1
+        }
+      ]
+    },
+    "repelState": {
+      "remainingSteps": 0,
+      "itemId": "",
+      "expirationPending": false
+    },
+    "escapeReturnPoint": null,
+    "progression": {
+      "unlockedFieldAbilities": [],
+      "storyFlags": [
+        "starter-received"
+      ],
+      "shopPurchaseCounts": {
+        "harbor-shop:potion": 4
+      },
+      "completedStepIds": [
+        "meet-professor",
+        "win-harbor-gym"
+      ],
+      "completedCutsceneIds": [
+        "harbor-opening"
+      ],
+      "seenSpeciesIds": [
+        "eevee",
+        "pidgey",
+        "pikachu"
+      ],
+      "caughtSpeciesIds": [
+        "eevee",
+        "pikachu"
+      ]
+    },
+    "railJourneyProgress": {
+      "activeJourneyId": null,
+      "direction": null,
+      "lifecycle": "idle_at_origin",
+      "unlockedJourneyIds": [],
+      "firstUnlockPaidJourneyIds": [],
+      "unlockedStationMapIds": [],
+      "earnedStampIds": [],
+      "semanticCurrencyBalances": {},
+      "appliedOperations": {},
+      "appliedProgressionOperations": {}
+    },
+    "scriptVariables": {
+      "values": {
+        "rival-battles": {
+          "value": 2,
+          "runtimeType": "int"
+        },
+        "ferry-ticket": {
+          "value": true,
+          "runtimeType": "bool"
+        },
+        "chosen-starter": {
+          "value": "pikachu",
+          "runtimeType": "string"
+        }
+      }
+    },
+    "storyFlags": {
+      "activeFlags": [
+        "intro-complete",
+        "harbor-gate-open"
+      ]
+    },
+    "narrativeFactRuntimeState": {
+      "schemaVersion": 2,
+      "valuesByFactId": {
+        "story.badge.count": 1,
+        "story.ferry.destination": "island",
+        "story.harbor.open": true
+      }
+    },
+    "sceneRandomState": {
+      "state": null
+    },
+    "narrativeEventProgress": {
+      "consumedNarrativeEventIds": [],
+      "pendingNarrativeOutcomeDeliveries": [],
+      "deliveredNarrativeOutcomeDeliveryIds": []
+    },
+    "pauseMenuState": {
+      "visibilityOverrides": {}
+    },
+    "completedBattleRequestIds": [
+      "battle-harbor-leader-001"
+    ],
+    "appliedPokemonGrantOperationIds": [
+      "starter-grant-001"
+    ],
+    "consumedEventIds": [
+      "harbor-hidden-potion"
+    ],
+    "metadata": {
+      "compatibilityBaseline": "avelune-studio-0.3.31+331",
+      "producerVersion": "0.3.31+331"
+    }
+  },
+  "checksum": {
+    "algorithm": "sha256",
+    "value": "d7552e3d9973f5a8955522f3ca0c1f30bef1a0ea23b18302f998ff8c0c720d8c"
+  }
+}

@@ -291,8 +291,9 @@ final class CanonicalGamePackageExportService {
                 url: _uri(profile.publisherUrl),
               ),
         compatibility: GamePackageCompatibility(
-          minHubVersion: Version.parse('0.1.0'),
-          runtimeApiExpression: '>=1.0.0 <2.0.0',
+          minHubVersion:
+              Version.parse(AveluneRuntimeCompatibility.minimumHubVersion),
+          runtimeApiExpression: AveluneRuntimeCompatibility.runtimeApiExpression,
           projectFormat: projection.project.version.name,
           saveFormat: SaveEnvelopeCodec.currentSaveFormat,
           compatibilityId: 'main',
@@ -444,41 +445,7 @@ final class CanonicalGamePackageExportService {
                 payloadFiles: payloadFiles,
               ))(manifest: manifest, payloadFiles: projection.payloadFiles);
       final inspector = GamePackageInspector(
-        hostCompatibility: GamePackageHostCompatibility(
-          hubVersion: Version.parse('1.2.0'),
-          runtimeApiVersion: Version.parse('1.4.0'),
-          capabilities: const <String>{
-            GameCompletionPartyCapabilities.capabilityId,
-            'catalog.partitioned@2',
-            'dialogue.choices@1',
-            'map@1',
-            'map3d@1',
-            'map3d.animation@1',
-            SpatialModelShadowCapabilities.capabilityId,
-            SpatialSceneLightingCapabilities.dayNightCapabilityId,
-            SpatialSceneLightingCapabilities.pointLightCapabilityId,
-            SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId,
-            'map3d.terrain-appearance@1',
-            SpatialTerrainSurfaceSet.capabilityId,
-            SpatialRamp.fractionalLevelsCapabilityId,
-            SpatialLedge.capabilityId,
-            SpatialModelInstance.entityBindingCapabilityId,
-            SpatialModelClipCapabilities.capabilityId,
-            SpatialGameplayCapabilities.capabilityId,
-            SpatialGameplayCapabilities.storyCapabilityId,
-            SpatialGameplayCapabilities.companionCapabilityId,
-            SpatialCameraProfile.orthographicCapabilityId,
-            ProjectContactDeviceConfig.capabilityId,
-            SpatialGameplayCapabilities.audioCapabilityId,
-            SpatialGameplayCapabilities.sceneMusicCapabilityId,
-            SceneBattleDemonstration.capabilityId,
-            'overworld.menu@1',
-            'world.shop@1',
-          },
-          supportedProjectFormats: <String>{projection.project.version.name},
-          currentProjectFormat: projection.project.version.name,
-          supportedSaveFormats: const <int>{SaveEnvelopeCodec.currentSaveFormat},
-        ),
+        hostCompatibility: AveluneRuntimeCompatibility.host(),
       );
       final inspection = inspector.inspect(built.packageBytes);
       final personalizationPreflight =

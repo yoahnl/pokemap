@@ -35,7 +35,21 @@ void main() {
     expect('"apps/avelune_android/**"'.allMatches(source), hasLength(2));
     expect('"apps/pokemap_hub/lib/**"'.allMatches(source), hasLength(2));
     expect(source, isNot(contains('"apps/pokemap_hub/**"')));
-    expect(source, isNot(contains('working-directory: apps/pokemap_hub')));
+    expect('working-directory: apps/pokemap_hub'.allMatches(source), hasLength(1));
+    expect(source, contains('name: Avelune save compatibility baseline'));
+    expect(source, contains('flutter test --no-pub --no-test-assets --timeout 2m'));
+    expect(
+      source,
+      contains('test/features/saves/avelune_compatibility_baseline_continue_test.dart'),
+    );
+    expect(
+      source,
+      contains('test/save/avelune_compatibility_baseline_save_test.dart'),
+    );
+    expect(
+      source,
+      contains('test/avelune_compatibility_baseline_package_test.dart'),
+    );
     expect(source, contains('test_native_host_contracts.py'));
     expect(source, contains('working-directory: apps/avelune_studio'));
     expect(source, contains('test/app/studio_bootstrap_test.dart'));
