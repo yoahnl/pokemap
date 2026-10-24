@@ -151,8 +151,9 @@ class _SceneBattleDemonstrationFormState
                 value: '${value.bagItems[index].quantity}',
                 tryCommit: (text) {
                   final quantity = int.tryParse(text);
-                  if (quantity == null || quantity < 1 || quantity > 999)
+                  if (quantity == null || quantity < 1 || quantity > 999) {
                     return false;
+                  }
                   _patch({
                     'bagItems': [
                       for (var i = 0; i < value.bagItems.length; i++)

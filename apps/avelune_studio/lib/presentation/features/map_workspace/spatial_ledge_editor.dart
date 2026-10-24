@@ -100,8 +100,9 @@ class _SpatialLedgeEditorState extends State<SpatialLedgeEditor> {
                   if (_commit([
                     ...ledges,
                     SpatialLedge(id: id, x: x, z: z, direction: direction),
-                  ]))
+                  ])) {
                     _selectedId = id;
+                  }
                 },
         ),
         if (selected != null) ...[
