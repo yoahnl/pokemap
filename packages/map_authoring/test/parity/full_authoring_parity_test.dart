@@ -129,6 +129,8 @@ void main() {
               'test/domains/maps/spatial_map_actions_test.dart',
           AuthoringTransport.cli:
               'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
         },
@@ -1036,6 +1038,8 @@ final Set<String> _approvedResourceKinds = {
   'projectSettings',
   'projectPokemonConfig',
   'projectNewGameConfig',
+  'partyCompanionConfiguration',
+  'contactDeviceConfiguration',
   'projectPresentationProfile',
   'projectPresentationPreset',
   'presentationPreviewContext',

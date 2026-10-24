@@ -5,6 +5,8 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
+import 'package:map_render_3d/src/spatial_lighting_preview.dart';
+import 'package:map_render_3d/src/spatial_render_context.dart';
 
 void main() {
   late _ShaderBackend backend;
@@ -89,16 +91,16 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 7);
+    expect(shader.pixelWrites, 11);
 
     for (var frame = 0; frame < 120; frame++) {
       material.apply(context);
     }
 
-    expect(shader.pixelWrites, 7);
+    expect(shader.pixelWrites, 11);
     material.uvRect.x = .25;
     material.apply(context);
-    expect(shader.pixelWrites, 14);
+    expect(shader.pixelWrites, 18);
     material.fragmentShader.bind(device);
     expect(device.uniforms['Material']!.sublist(4, 8), [.25, 0, 1, 1]);
   });
@@ -172,9 +174,9 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 7);
+    expect(shader.pixelWrites, 11);
     material.apply(context);
-    expect(shader.pixelWrites, 7);
+    expect(shader.pixelWrites, 11);
   });
 
   test('skeletal surfaces retain their actual joint transforms', () {
@@ -208,6 +210,138 @@ void main() {
       Matrix4.identity().storage,
     );
   });
+
+  test('the default material keeps the original shader and alpha state', () {
+    final originalVertex = material.vertexShader;
+    material.apply(context);
+    material.fragmentShader.bind(device);
+    expect(material.vertexShader, same(originalVertex));
+    expect(device.uniforms['Material']!.sublist(36, 40), [0, 0, 1, 0]);
+    expect(device.uniforms['Material']!.sublist(20, 22), [
+      0,
+      closeTo(.1, 1e-6),
+    ]);
+  });
+
+  test(
+    'lighting toggles the normal shader and leaves UV alpha and joints intact',
+    () {
+      final litContext = SpatialRenderContext(device);
+      final originalVertex = material.vertexShader;
+      material.apply(litContext);
+      material.fragmentShader.bind(device);
+      final before = device.uniforms['Material']!.take(24).toList();
+      litContext.lighting = SpatialLightingProfile.stylized();
+      material.apply(litContext);
+      material.fragmentShader.bind(device);
+      expect(material.vertexShader, isNot(same(originalVertex)));
+      expect(device.uniforms['Material']!.sublist(36, 40), [1, 1, 1, 0]);
+      expect(device.uniforms['Material']!.take(24).toList(), before);
+      material.vertexShader.bind(device);
+      expect(
+        device.uniforms['JointMatrices']!.take(16),
+        Matrix4.identity().storage,
+      );
+      litContext.lighting = SpatialLightingProfile.disabled;
+      material.apply(litContext);
+      material.fragmentShader.bind(device);
+      expect(material.vertexShader, same(originalVertex));
+      expect(device.uniforms['Material']!.sublist(36, 40), [0, 0, 1, 0]);
+      expect(device.uniforms['Material']!.take(24).toList(), before);
+    },
+  );
+
+  test('nominated source materials remain unlit inside the preview', () {
+    final litContext = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(
+        unlitMaterialNames: {'shadow'},
+      );
+    final excluded = SpatialPixelMaterial(
+      material.albedoTexture,
+      sourceMaterialName: 'shadow',
+    );
+    excluded.vertexShader.resource;
+    excluded.fragmentShader.resource;
+    final originalVertex = excluded.vertexShader;
+    excluded.apply(litContext);
+    excluded.fragmentShader.bind(device);
+    expect(excluded.vertexShader, same(originalVertex));
+    expect(device.uniforms['Material']!.sublist(36, 40), [0, 0, 1, 0]);
+  });
+
+  test(
+    'actors and ground retain their original vertex paths and uniform tint',
+    () {
+      final litContext = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized(
+          actorStrength: .2,
+          groundStrength: .6,
+        );
+      for (final role in [
+        SpatialPixelLightingRole.actor,
+        SpatialPixelLightingRole.ground,
+      ]) {
+        final uniform = SpatialPixelMaterial(
+          material.albedoTexture,
+          lightingRole: role,
+          groundDepthOnly: role == SpatialPixelLightingRole.ground,
+        );
+        uniform.vertexShader.resource;
+        uniform.fragmentShader.resource;
+        final originalVertex = uniform.vertexShader;
+        uniform.apply(litContext);
+        uniform.fragmentShader.bind(device);
+        expect(uniform.vertexShader, same(originalVertex));
+        final options = device.uniforms['Material']!.sublist(36, 40);
+        expect(options[0], 1);
+        expect(options[1], 0);
+        expect(
+          options[2],
+          closeTo(role == SpatialPixelLightingRole.actor ? .2 : .6, 1e-6),
+        );
+      }
+    },
+  );
+
+  test(
+    'a new profile updates GPU lighting without rebinding pixel uniforms',
+    () {
+      final shader = _CountingFragmentShader();
+      shader.resource;
+      material.fragmentShader = shader;
+      final litContext = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized(sunStrength: .2);
+      material.apply(litContext);
+      expect(shader.pixelWrites, 11);
+      material.apply(litContext);
+      expect(shader.pixelWrites, 11);
+      litContext.lighting = SpatialLightingProfile.stylized(sunStrength: .5);
+      material.apply(litContext);
+      expect(shader.pixelWrites, 15);
+      material.fragmentShader.bind(device);
+      expect(device.uniforms['Material']![28], closeTo(.5, 1e-6));
+    },
+  );
+  test(
+    'the context selects the lit pipeline before binding shader uniforms',
+    () {
+      final litContext = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized();
+      litContext.applyMaterial(material);
+      expect(
+        device.pipeline!.vertexShader,
+        same(backend._shaders['LitTextureVertex']),
+      );
+      expect(device.uniforms['Material']!.sublist(36, 40), [1, 1, 1, 0]);
+      litContext.lighting = SpatialLightingProfile.disabled;
+      litContext.applyMaterial(material);
+      expect(
+        device.pipeline!.vertexShader,
+        same(backend._shaders['TextureVertex']),
+      );
+      expect(device.uniforms['Material']!.sublist(36, 40), [0, 0, 1, 0]);
+    },
+  );
 }
 
 final class _CountingVertexShader extends VertexShader {
@@ -256,8 +390,19 @@ final class _ShaderBackend extends GpuBackend {
       _ShaderLibrary(_shaders);
 
   @override
+  GpuPipeline createPipeline({
+    required GpuShader vertexShader,
+    required GpuShader fragmentShader,
+  }) => _Pipeline(vertexShader);
+
+  @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError(invocation.memberName.toString());
+}
+
+final class _Pipeline implements GpuPipeline {
+  _Pipeline(this.vertexShader);
+  final GpuShader vertexShader;
 }
 
 final class _ShaderLibrary implements GpuShaderLibrary {
@@ -279,7 +424,7 @@ final class _Shader implements GpuShader {
       'projection': 128,
     }),
     'JointMatrices' => _UniformSlot(slot, 1024, {'joints': 0}),
-    'Material' => _UniformSlot(slot, 96, {
+    'Material' => _UniformSlot(slot, 160, {
       'albedoColor': 0,
       'uvRect': 16,
       'uvTransformU': 32,
@@ -288,6 +433,10 @@ final class _Shader implements GpuShader {
       'wrapModes': 72,
       'alphaMode': 80,
       'alphaCutoff': 84,
+      'lightingAmbient': 96,
+      'lightingSun': 112,
+      'lightingDirection': 128,
+      'lightingOptions': 144,
     }),
     'albedoTexture' => _UniformSlot(slot, null, {}),
     _ => throw StateError('Unexpected shader slot: $slot'),
@@ -311,6 +460,12 @@ final class _RecordingDevice extends GraphicsDevice {
 
   final uniforms = <String, List<double>>{};
   final textures = <String, Texture>{};
+  _Pipeline? pipeline;
+
+  @override
+  void bindPipeline(GpuPipeline pipeline, CullMode cullMode) {
+    this.pipeline = pipeline as _Pipeline;
+  }
 
   @override
   void bindTexture(GpuUniformSlot slot, Texture texture) {

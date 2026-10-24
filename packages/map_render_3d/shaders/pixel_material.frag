@@ -17,6 +17,10 @@ uniform Material {
     vec2 wrapModes;
     float alphaMode;
     float alphaCutoff;
+    vec4 lightingAmbient;
+    vec4 lightingSun;
+    vec4 lightingDirection;
+    vec4 lightingOptions;
 } material;
 
 float wrapCoordinate(float uv, float mode) {
@@ -32,6 +36,15 @@ void main() {
     vec2 pixel = clamp(floor(uv * material.textureDimensions), vec2(0.0), material.textureDimensions - 1.0);
     vec4 color = texture(albedoTexture, (pixel + 0.5) / material.textureDimensions);
     outColor = color * material.albedoColor * fragColor;
+    if (material.lightingOptions.x > 0.5) {
+        vec3 normal = vec3(0.0, 1.0, 0.0);
+        if (material.lightingOptions.y > 0.5 && dot(fragNormal, fragNormal) > 0.000001) {
+            normal = normalize(fragNormal);
+        }
+        float diffuse = max(dot(normal, material.lightingDirection.xyz), 0.0);
+        vec3 lighting = material.lightingAmbient.rgb + material.lightingSun.rgb * diffuse;
+        outColor.rgb *= mix(vec3(1.0), lighting, material.lightingOptions.z);
+    }
     if (material.alphaMode == 0.0) {
         if (color.a < material.alphaCutoff) discard;
         outColor.rgb *= material.albedoColor.a * fragColor.a;

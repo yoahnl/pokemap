@@ -149,6 +149,7 @@ void main() {
       expect(material.cullMode, CullMode.backFace);
       expect(material.alphaCutoff, .5);
       expect(material.alphaMode, Model3dAlphaMode.mask);
+      expect(material.sourceMaterialName, 'BW2 cutout');
     },
   );
   test(

@@ -6,11 +6,22 @@ import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
+import 'spatial_lighting_preview.dart';
 
-class SpatialRenderContext extends RenderContext3D {
+class SpatialRenderContext extends RenderContext3D
+    implements SpatialLightingContext {
   SpatialRenderContext(super.device);
 
+  @override
+  SpatialLightingProfile lighting = SpatialLightingProfile.disabled;
+
   final _transparent = <_TransparentSurface>[];
+
+  @override
+  void applyMaterial(Material material) {
+    if (material is SpatialPixelMaterial) material.prepareLighting(lighting);
+    super.applyMaterial(material);
+  }
 
   @override
   void drawSurface(Surface surface) {

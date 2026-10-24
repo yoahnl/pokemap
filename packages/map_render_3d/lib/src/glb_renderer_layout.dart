@@ -88,6 +88,7 @@ final class GlbRendererLayout {
                 alphaCutoff: profile?.alphaCutoff ?? .5,
                 wrapS: sampler?['wrapS'] as int? ?? 10497,
                 wrapT: sampler?['wrapT'] as int? ?? 10497,
+                sourceMaterialName: profile?.name,
               )
               ..albedoColor = colorFactor == null
                   ? source.albedoColor

@@ -674,8 +674,11 @@ Iterable<Mesh> spatialGroundMeshes(
     if (key != previous) {
       flushSurface();
       previous = key;
-      material = SpatialPixelMaterial(texture, groundDepthOnly: scene != null)
-        ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
+      material = SpatialPixelMaterial(
+        texture,
+        groundDepthOnly: scene != null,
+        lightingRole: SpatialPixelLightingRole.ground,
+      )..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
     }
     final quads = _spatialGroundVertices(
       visual.geometry,
@@ -711,8 +714,11 @@ Iterable<Mesh> spatialGroundMeshes(
         mesh = Mesh();
         vertexCount = 0;
         previous = key;
-        material = SpatialPixelMaterial(texture, groundDepthOnly: scene != null)
-          ..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
+        material = SpatialPixelMaterial(
+          texture,
+          groundDepthOnly: scene != null,
+          lightingRole: SpatialPixelLightingRole.ground,
+        )..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
       }
     }
   }

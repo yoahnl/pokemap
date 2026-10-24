@@ -35,6 +35,10 @@ Future<void> main() async {
       'type': 'vertex',
       'file': '${package.path}/shaders/pixel_ground.vert',
     },
+    'LitTextureVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/pixel_lit_material.vert',
+    },
   };
   final result = await Process.run(compiler.path, [
     '--sl=${package.path}/assets/shaders/pixel_material.shaderbundle',

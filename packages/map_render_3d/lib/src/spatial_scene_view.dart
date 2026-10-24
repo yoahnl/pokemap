@@ -36,6 +36,7 @@ import 'spatial_runtime_model_index.dart';
 import 'spatial_clipped_model_cache.dart';
 import 'spatial_model_source_clip.dart';
 import 'spatial_scene_preparation.dart';
+import 'spatial_lighting_preview.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -490,6 +491,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   @override
   Widget build(BuildContext context) {
     final game = this.game;
+    final lighting = SpatialLightingPreview.of(context);
+    if (game != null)
+      (game.context as SpatialRenderContext).lighting = lighting;
     return MouseRegion(
       cursor: navigationPointer == null
           ? MouseCursor.defer
@@ -1455,7 +1459,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       final frame = entry.value;
       var actor = actors[entry.key];
       if (actor == null) {
-        final actorMaterial = SpatialPixelMaterial(frame.texture.texture);
+        final actorMaterial = SpatialPixelMaterial(
+          frame.texture.texture,
+          lightingRole: SpatialPixelLightingRole.actor,
+        );
         const width = 1.92;
         final mesh = Mesh()
           ..addSurface(
