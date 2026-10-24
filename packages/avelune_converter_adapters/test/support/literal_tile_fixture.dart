@@ -220,6 +220,7 @@ final class LiteralTileFixture {
         interpretationProfileForSnapshot,
     Map<String, List<int>> extraFiles = const {},
     bool includeEventSystem = false,
+    Map<String, Object?> systemFields = const {},
     List<String?> switchNames = const [null, 'Original door opened', 'Original reward consumed'],
     List<String?> variableNames = const [null, 'Original count'],
     Map<int, List<LiteralFixtureEventCommand>> commonEvents = const {},
@@ -251,6 +252,7 @@ final class LiteralTileFixture {
         'Data/System.rxdata': _Marshal().dump(_Object('RPG::System', {
           '@switches': switchNames,
           '@variables': variableNames,
+          ...systemFields,
         })),
       'README.md':
           utf8.encode('Original controlled Pokemon Essentials v21.1 fixture\n'),

@@ -2477,9 +2477,9 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
         semantics.requireOperation(mutation);
         _allowParameters(parameters, const {'defeatRecovery'});
         final fresh = semantics.events?.freshEntry;
-        if (fresh == null || sourceDefeatRecovery != null ||
+        if (fresh?.defeatRecovery == null || sourceDefeatRecovery != null ||
             canonicalJsonOf(parameters['defeatRecovery'], limits: limits.jsonLimits) !=
-                canonicalJsonOf(fresh.defeatRecovery.toJson(), limits: limits.jsonLimits)) {
+                canonicalJsonOf(fresh!.defeatRecovery!.toJson(), limits: limits.jsonLimits)) {
           throw const NativeWriteException('native.events.defeat_recovery',
               'Defeat recovery requires its exact regenerated source marker.');
         }
@@ -2587,7 +2587,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
   }
   final freshEntry = semantics.events?.freshEntry;
   if ((freshEntry == null) != (sourceNewGame == null) ||
-      (freshEntry == null) != (sourceDefeatRecovery == null)) {
+      (freshEntry?.defeatRecovery == null) != (sourceDefeatRecovery == null)) {
     throw const NativeWriteException('native.events.new_game_incomplete',
         'The regenerated source entry and its final new game action must agree.');
   }
@@ -2636,7 +2636,7 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
       worldRules: projectedEvents?.worldRules ?? const [],
       eventRegistry: projectedEvents?.registry,
       dialogues: projectedEvents?.dialogues ?? const [],
-      scenes: [...?projectedEvents?.scenes, if (freshEntry != null) freshEntry.scene],
+      scenes: [...?projectedEvents?.scenes, ...?freshEntry?.scenes],
       regionalMap: regionalMap,
       settings: bootstrap.settings
           .copyWith(defaultPlayerCharacterId: defaultPlayerCharacterId));

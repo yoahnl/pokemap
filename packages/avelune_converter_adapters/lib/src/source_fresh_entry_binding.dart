@@ -9,8 +9,9 @@ import 'native_project_writer.dart';
 import 'source_event_projection.dart';
 import 'source_home_recovery_program.dart';
 import 'source_player_character_import.dart';
+import 'source_new_game_binding.dart';
 
-final class SourceFreshEntryBinding {
+final class SourceFreshEntryBinding implements SourceNewGameBinding {
   SourceFreshEntryBinding._({
     required this.config,
     required this.defeatRecovery,
@@ -33,6 +34,8 @@ final class SourceFreshEntryBinding {
   final ProjectNewGameConfig config;
   final ProjectDefeatRecoveryConfig defeatRecovery;
   final SceneAsset scene;
+  @override
+  List<SceneAsset> get scenes => [scene];
   final List<NativeArtifact> artifacts;
   final List<NativeMutation> importMutations, mutations;
   final List<NarrativeFactDefinition> facts;

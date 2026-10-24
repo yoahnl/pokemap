@@ -32,7 +32,7 @@ import 'source_interaction_program.dart';
 import 'source_escort_program.dart';
 import 'source_actor_preparation_program.dart';
 import 'source_intro_binding.dart';
-import 'source_fresh_entry_binding.dart';
+import 'source_new_game_binding.dart';
 import 'source_event_character_import.dart';
 import 'source_character_presentation_binding.dart';
 import 'source_event_item_bindings.dart';
@@ -68,7 +68,7 @@ final class SourceEventStudyComposition {
   final Map<int, SourceMapMusicBinding> musicBindings;
   final NativeTrainerCatalogQualification? trainerQualification;
   final NativePsdkCatalog? pokemonGiftCatalog;
-  final SourceFreshEntryBinding? freshEntry;
+  final SourceNewGameBinding? freshEntry;
 }
 
 final class SourceEventStudyComposer {
@@ -980,7 +980,7 @@ final class SourceEventStudyComposer {
     final admittedIdentities = (projection.semanticEvidence['events'] as List).cast<Map>()
         .where((row) => const ['adaptedStaticSemantics', 'partiallyAdapted'].contains(row['status']))
         .map((row) => ConverterId(row['sourceIdentity'] as String)).toSet();
-    final freshEntry = await const SourceFreshEntryBindingResolver().read(
+    final freshEntry = await const SourceNewGameBindingResolver().read(
         source: source, projection: projection, files: recording,
         limits: limits, cancellation: cancellation);
     final usedPortraits = portraitBindings.entries

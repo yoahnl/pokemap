@@ -33,6 +33,7 @@ part 'src/source_presentation_nodes.dart';
 part 'src/source_integer_events.dart';
 part 'src/source_intro_program.dart';
 part 'src/source_fresh_entry_program.dart';
+part 'src/source_system_start.dart';
 part 'src/source_pokemon_gift.dart';
 part 'src/source_starter_choice_program.dart';
 part 'src/source_first_rival_program.dart';

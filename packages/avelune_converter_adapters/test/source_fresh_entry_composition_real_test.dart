@@ -75,7 +75,7 @@ void main() {
         base: semantic,
         files: fixture.files,
         limits: limits))!;
-    final fresh = events.freshEntry!;
+    final fresh = events.freshEntry! as SourceFreshEntryBinding;
     expect(fresh.config.initialParty, isEmpty);
     expect(fresh.config.starterOptions, isEmpty);
     expect(fresh.config.initialBag, isEmpty);
