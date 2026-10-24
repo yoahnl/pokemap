@@ -788,7 +788,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 
   bool get _validIntegerAdjustment {
     if (_command.id != NarrativeCommandIds.adjustIntegerFact &&
-        !_isIntegerSceneCommand(_command.id)) return true;
+        !_isIntegerSceneCommand(_command.id)) {
+      return true;
+    }
     try {
       buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values,
       );
@@ -1597,8 +1599,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
 Object? _integerStoredParameter(Map<String, dynamic> data, String id) {
   final operand = data['operand'] ?? data['amount'];
   if (operand is Map) {
-    if (id == 'operandSource')
+    if (id == 'operandSource') {
       return operand['kind'] == 'gameRead' ? operand['read'] : operand['kind'];
+    }
     if (id == 'operandValue') return operand['value'];
     if (id == 'operandFactId') return operand['factId'];
     if (id == 'operandItemId') return operand['itemId'];
@@ -1606,7 +1609,8 @@ Object? _integerStoredParameter(Map<String, dynamic> data, String id) {
     if (id == 'randomMaximum') return operand['maximum'];
   }
   final value = data[id];
-  if (value is Map && (id == 'prompt' || id == 'confirmationPrompt'))
+  if (value is Map && (id == 'prompt' || id == 'confirmationPrompt')) {
     return value['fallbackText'];
+  }
   return value;
 }

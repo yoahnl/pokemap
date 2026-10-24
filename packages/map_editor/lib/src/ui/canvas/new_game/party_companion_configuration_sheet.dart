@@ -122,12 +122,13 @@ class _PartyCompanionConfigurationFormState
           ],
         ),
       );
-      if (mounted)
+      if (mounted) {
         setState(
           () => message = accepted
               ? 'Compagnon sauvegardé.'
               : 'La configuration n’a pas été enregistrée.',
         );
+      }
     } on Object catch (error) {
       if (mounted) setState(() => message = error.toString());
     } finally {

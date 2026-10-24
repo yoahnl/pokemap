@@ -526,6 +526,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     PlayerPauseAction.pokedex => 'Pokédex',
     PlayerPauseAction.map => 'Carte',
     PlayerPauseAction.quests => 'Quêtes',
+    PlayerPauseAction.contacts => 'Contacts',
     PlayerPauseAction.profile => 'Profil',
     PlayerPauseAction.save => 'Sauvegarder',
     PlayerPauseAction.options => 'Options',

@@ -38,6 +38,14 @@ void main() {
     }
   });
 
+  testWidgets('pause preview labels the existing Contacts action', (tester) async {
+    await tester.pumpWidget(_app(_adapter(PersonalizationStudioScene.pause)));
+    final preview = tester.widget<PlayerPausePreviewShell>(
+      find.byType(PlayerPausePreviewShell),
+    );
+    expect(preview.details[PlayerPauseAction.contacts]?.title, 'Contacts');
+  });
+
   testWidgets('targets title intro and dialogue elements semantically', (
     tester,
   ) async {
