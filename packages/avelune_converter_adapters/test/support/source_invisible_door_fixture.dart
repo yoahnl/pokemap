@@ -14,6 +14,10 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
   int gateThreshold = 7,
   bool mismatchedArrivalThreshold = false,
   bool trailingSwitch = false,
+  List<LiteralFixtureEventCommand> departurePrefix = const [],
+  List<LiteralFixtureEventCommand> departureSuffix = const [],
+  List<LiteralFixtureEventCommand> arrivalSuffix = const [],
+  List<String?> variableNames = const [null, 'Badge count'],
 }) {
   final animated = variant == 'animated' || variant == 'emptyAnimated';
   LiteralFixtureObject step(int code) =>
@@ -67,7 +71,7 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
         'Graphics/Characters/VisibleDoor.png': literalFixtureAtlas(),
     },
     switchNames: [null, 's:tsOff?("A")', 'Visited gate'],
-    variableNames: [null, 'Badge count'],
+    variableNames: variableNames,
     maps: [
       LiteralFixtureMap(
         id: 7,
@@ -96,6 +100,7 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
               commands: [
                 if (annotated)
                   const LiteralFixtureEventCommand(108, ['Departure']),
+                ...departurePrefix,
                 if (animated) ...[
                   ...route(0, [44, 15, 17, 15, 18, 15, 19, 15], indent: 0),
                   ...route(-1, [37, 4, 38], indent: 0),
@@ -117,6 +122,7 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
                 LiteralFixtureEventCommand(223, [tone(0), 6]),
                 if (trailingSwitch)
                   const LiteralFixtureEventCommand(121, [2, 2, 0]),
+                ...departureSuffix,
                 const LiteralFixtureEventCommand(0, []),
               ],
             ),
@@ -159,6 +165,7 @@ Future<LiteralTileFixture> sourceInvisibleDoorFixture({
                 ],
                 ...route(-1, [arrivalStep]),
                 if (!shortArrival) ...route(0, [18, 15, 17, 15, 16, 15]),
+                ...arrivalSuffix,
                 const LiteralFixtureEventCommand(412, []),
                 const LiteralFixtureEventCommand(355, ['setTempSwitchOn("A")']),
                 const LiteralFixtureEventCommand(0, []),

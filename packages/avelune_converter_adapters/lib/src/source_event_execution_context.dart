@@ -22,6 +22,7 @@ import 'source_escort_program.dart';
 import 'source_first_rival_binding.dart';
 import 'source_oak_parcel_binding.dart';
 import 'source_external_warp_binding.dart';
+import 'source_routed_door_loading_scope.dart';
 
 String _mapSourcePath(int id) =>
     'Data/Map${id.toString().padLeft(3, '0')}.rxdata';
@@ -458,10 +459,16 @@ final class SourceEventExecutionContextResolver {
     final actual = ownedAuthority.analysisFor(source: source, analysis: analysis);
     final owned = ownedAuthority.executionContextFor(source);
     final scopes = <ConverterId, Set<int>>{};
+    final doorLoadingEligibility = <ConverterId, bool>{};
     for (final identity in eventIdentities) {
       cancellation?.check();
       final event = actual.events.where((event) => event.identity == identity).singleOrNull;
       final supplied = analysis.events.where((event) => event.identity == identity).singleOrNull;
+      final externalChecks = <SourceEventDefinition, bool>{};
+      bool externallyBound(SourceEventDefinition candidate) =>
+          externalChecks.putIfAbsent(candidate, () =>
+            externalWarpBinding?.programs.containsKey(identity) == true &&
+            externalWarpBinding?.isBoundToEvent(source: source, analysis: actual, event: candidate) == true);
       bool bound(SourceEventDefinition candidate) =>
           sequencePrograms[identity]?.isBoundTo(source: source, analysis: actual, event: candidate) == true ||
           interactionPrograms[identity]?.isBoundTo(source: source, analysis: actual, event: candidate) == true ||
@@ -469,8 +476,7 @@ final class SourceEventExecutionContextResolver {
           escortPrograms[identity]?.isBoundTo(source, actual, candidate) == true ||
           firstRivalBindings[identity]?.isBoundTo(source, actual, candidate) == true ||
           oakParcelBindings[identity]?.isBoundTo(source, actual, candidate) == true ||
-          (externalWarpBinding?.programs.containsKey(identity) == true &&
-            externalWarpBinding?.isBoundToEvent(source: source, analysis: actual, event: candidate) == true);
+          externallyBound(candidate);
       if (event == null || supplied == null || !bound(event) || !bound(supplied)) {
         throw const NativeWriteException('events.program.binding',
           'Execution contexts require exact authoritative closed source programs');
@@ -492,6 +498,9 @@ final class SourceEventExecutionContextResolver {
           'Closed program execution maps must be represented');
       }
       scopes[identity] = Set.unmodifiable(scope);
+      doorLoadingEligibility[identity] =
+          externalWarpBinding?.programs[identity]?.presentation == SourceExternalWarpPresentation.fade &&
+          externallyBound(event) && externallyBound(supplied);
     }
     base.validateResourceBudget(limits: limits);
     final hashes = Map<int, Sha256Hash>.unmodifiable({for (final entry in nativeMaps.entries)
@@ -510,10 +519,12 @@ final class SourceEventExecutionContextResolver {
     final retained = <String, Future<NormalizedSourceProject>>{};
     final retainedAnalyses = <String, SourceEventAnalysis>{};
     final scopeContexts = <String, SourceEventExecutionContext>{};
+    final loadingEngines = <Sha256Hash, Future<SourceRoutedDoorLoadingEngine?>>{};
     final result = <ConverterId, SourceEventExecutionContext>{};
     for (final entry in scopes.entries) {
       cancellation?.check();
-      final key = (entry.value.toList()..sort()).join(',');
+      final doorLoadingEligible = doorLoadingEligibility[entry.key] == true;
+      final key = '${(entry.value.toList()..sort()).join(',')}/$doorLoadingEligible';
       final context = scopeContexts[key] ??= await _read(source: source, base: base,
         nativeMaps: nativeMaps, files: files, limits: limits, authority: ownedAuthority,
         cancellation: cancellation, authoritativeSourceAnalysis: actual,
@@ -522,7 +533,8 @@ final class SourceEventExecutionContextResolver {
         nativeMapHashes: hashes, baseCompositionHash: compositionHash,
         baseMutations: mutations, witnessCache: witnesses, snapshotIndex: inventory,
         retainedCache: retained, retainedAnalysisCache: retainedAnalyses,
-        programSourceMapIds: entry.value, inventoryControllerPrograms: inventoryControllers);
+        programSourceMapIds: entry.value, inventoryControllerPrograms: inventoryControllers,
+        closedFadeDoor: doorLoadingEligible, loadingEngineCache: loadingEngines);
       result[entry.key] = context._forProgram(entry.key, entry.value);
     }
     return Map.unmodifiable(result);
@@ -660,6 +672,7 @@ final class SourceEventExecutionContextResolver {
     final retained = <String, Future<NormalizedSourceProject>>{};
     final retainedAnalyses = <String, SourceEventAnalysis>{};
     final snapshotIndex = _SourceExecutionSnapshotIndex(source.snapshot, cancellation);
+    final loadingEngines = <Sha256Hash, Future<SourceRoutedDoorLoadingEngine?>>{};
     for (final identity in {
       ...programs.keys,
       ...routedPrograms.keys,
@@ -709,7 +722,7 @@ final class SourceEventExecutionContextResolver {
           witnessCache: witnesses,
           snapshotIndex: snapshotIndex,
           retainedCache: retained,
-          retainedAnalysisCache: retainedAnalyses);
+          retainedAnalysisCache: retainedAnalyses, loadingEngineCache: loadingEngines);
     }
     return Map.unmodifiable(result);
   }
@@ -738,6 +751,8 @@ final class SourceEventExecutionContextResolver {
     Map<String, Map<String, Object?>>? witnessCache,
     Map<String, Future<NormalizedSourceProject>>? retainedCache,
     Map<String, SourceEventAnalysis>? retainedAnalysisCache,
+    Map<Sha256Hash, Future<SourceRoutedDoorLoadingEngine?>>? loadingEngineCache,
+    bool closedFadeDoor = false,
     _SourceExecutionSnapshotIndex? snapshotIndex,
     Set<int>? programSourceMapIds,
     Map<ConverterId, SourceInventoryControllerProgram>? inventoryControllerPrograms,
@@ -1141,6 +1156,27 @@ final class SourceEventExecutionContextResolver {
     } else if (unrepresentedRetainedMapIds.isNotEmpty) {
       refusals.add('sourceRetainedMapContextUnsupported');
     }
+    var executionMapIds = attestedMapIds;
+    Map<String, Object?>? retainedMapLoading;
+    if ((routedDoorProgram != null || staticDoorProgram != null || closedFadeDoor) &&
+        retainedMapIds.isNotEmpty &&
+        (unrepresentedRetainedMapIds.isEmpty || retainedSource?.canPlan == true) &&
+        excludesCustomBehavior) {
+      final pending = loadingEngineCache?[snapshotHash] ??
+          SourceRoutedDoorLoadingEngine.read(source: source, files: files,
+              limits: limits, cancellation: cancellation);
+      loadingEngineCache?[snapshotHash] = pending;
+      final engine = await pending;
+      cancellation?.check();
+      if (engine != null && engine.hasBoundedCamera(source: source,
+          retainedSource: retainedSource, attestedMapIds: attestedMapIds,
+          cancellation: cancellation)) {
+        final loading = engine.scope(source: source, retainedSource: retainedSource,
+            activeMapIds: activeMapIds, retainedMapIds: retainedMapIds);
+        executionMapIds = loading.executionMapIds;
+        retainedMapLoading = loading.evidence;
+      }
+    }
     freshAnalysis ??= SourceEventAnalyzer.forProject(source, profile: profile).analyze();
     final inventoryControllers = inventoryControllerPrograms ?? sourceInventoryControllerPrograms(
         source: source, analysis: freshAnalysis,
@@ -1151,7 +1187,7 @@ final class SourceEventExecutionContextResolver {
           if (program.isBoundTo(source: source, analysis: freshAnalysis, event: event))
             event.pages.first.rawDataRef!.id.value,
     };
-    final dormancyScope = attestedMapIds.intersection(representedMapIds);
+    final dormancyScope = executionMapIds.intersection(representedMapIds);
     final dormancy = dormancyScope.isEmpty ? null : (parallelDormancyAuditor ??
         SourceParallelDormancyAuditor.forProject(source, profile: profile))
         .audit(activeSourceMapIds: dormancyScope, executablePageReferences: {
@@ -1170,7 +1206,7 @@ final class SourceEventExecutionContextResolver {
     }
     final pages = [
       for (final map in [...source.maps, ...?retainedSource?.maps]
-          .where((map) => attestedMapIds.contains(map.map.sourceMapId)))
+          .where((map) => executionMapIds.contains(map.map.sourceMapId)))
         for (final event in map.map.events)
           for (final page in event.pages)
             (map.map.sourceMapId, event.sourceEventId, page),
@@ -1207,7 +1243,7 @@ final class SourceEventExecutionContextResolver {
           retainedAnalysisCache?[cacheKey] = analysis;
         }
         for (final event in analysis.events
-            .where((event) => attestedMapIds.contains(event.sourceMapId))) {
+            .where((event) => executionMapIds.contains(event.sourceMapId))) {
           for (final page in event.pages) {
             final graphic = page.graphic;
             final archive = project.sourceFiles[event.sourceFileId];
@@ -1338,6 +1374,7 @@ final class SourceEventExecutionContextResolver {
           'attestedSourceMapIds': attestedMapIds.toList()..sort(),
           'retention': 'directNeighboursOfActiveMapsFromFreshSourceHistory',
         },
+        if (retainedMapLoading != null) 'retainedMapLoading': retainedMapLoading,
         'mapAutonomyAudit': {
           'profile': 'declared-fresh-local-autonomy-v1',
           'pages': autonomy,

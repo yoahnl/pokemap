@@ -59,9 +59,22 @@ void main() {
         final spawn = GridPos.fromJson(
           reference['spawn'] as Map<String, dynamic>,
         );
+        final legs = (reference['legs'] as List).cast<Map<String, dynamic>>();
+        final finalLeg = legs.last;
         final arrival = GridPos.fromJson(
-          reference['arrival'] as Map<String, dynamic>,
+          finalLeg['arrival'] as Map<String, dynamic>,
         );
+        void verifyFacts(PlayableMapGame active, Map<String, dynamic> leg) {
+          for (final entry in (leg['expectedFacts'] as Map).entries) {
+            expect(
+              active.gameStateSnapshot.narrativeFactRuntimeState
+                  .valueFor(entry.key as String)
+                  ?.intValue,
+              entry.value,
+            );
+          }
+        }
+
         final temporary = await Directory.systemTemp.createTemp(
           'std06-door-save-',
         );
@@ -80,11 +93,13 @@ void main() {
             ),
           );
           final active = game;
-          Future<void> crossDoor(String destination) async {
+          Future<void> crossDoor(Map<String, dynamic> leg) async {
+            final destination = leg['destinationMapId'] as String;
+            final control = RuntimeInputControl.values.byName(
+              leg['control'] as String,
+            );
             expect(
-              active.handleRuntimeInputEvent(
-                const RuntimeInputEvent.press(RuntimeInputControl.up),
-              ),
+              active.handleRuntimeInputEvent(RuntimeInputEvent.press(control)),
               isTrue,
             );
             try {
@@ -96,21 +111,27 @@ void main() {
               }
             } finally {
               active.handleRuntimeInputEvent(
-                const RuntimeInputEvent.release(RuntimeInputControl.up),
+                RuntimeInputEvent.release(control),
               );
             }
             await waitConvertedQaIdle(active);
             expect(active.gameStateSnapshot.currentMapId, destination);
-            expect(active.debugPlayerGridPosition, arrival);
+            expect(
+              active.debugPlayerGridPosition,
+              GridPos.fromJson(leg['arrival'] as Map<String, dynamic>),
+            );
             expect(active.debugIsPlayerVisible, isTrue);
             expect(active.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+            verifyFacts(active, leg);
           }
 
-          await crossDoor(secondMap);
-          await crossDoor(firstMap);
+          expect(legs.first['destinationMapId'], secondMap);
+          for (final leg in legs) {
+            await crossDoor(leg);
+          }
           expect(await active.saveGame(), isTrue);
           final saved = (await saves.load())!;
-          expect(saved.currentMapId, firstMap);
+          expect(saved.currentMapId, finalLeg['destinationMapId']);
           expect(saved.playerPosition, arrival);
           active.onRemove();
           await tester.pumpWidget(const SizedBox.shrink());
@@ -124,10 +145,14 @@ void main() {
           );
           game = reopened;
           await waitConvertedQaIdle(reopened);
-          expect(reopened.gameStateSnapshot.currentMapId, firstMap);
+          expect(
+            reopened.gameStateSnapshot.currentMapId,
+            finalLeg['destinationMapId'],
+          );
           expect(reopened.debugPlayerGridPosition, arrival);
           expect(reopened.debugIsPlayerVisible, isTrue);
           expect(reopened.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+          verifyFacts(reopened, finalLeg);
         } finally {
           game?.onRemove();
           await tester.pumpWidget(const SizedBox.shrink());

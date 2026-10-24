@@ -30,10 +30,12 @@ LiteralFixtureEvent _door(int id, int destination) {
   });
   return LiteralFixtureEvent(id: id, x: 2, y: 2, pages: [
     LiteralFixtureEventPage(trigger: 1, commands: [
+      const LiteralFixtureEventCommand(122, [4, 4, 0, 0, 17]),
       LiteralFixtureEventCommand(223, [_tone(-255), 4]),
       const LiteralFixtureEventCommand(106, [4]),
       LiteralFixtureEventCommand(201, [0, destination, 2, 2, 2, 1]),
       LiteralFixtureEventCommand(223, [_tone(0), 4]),
+      const LiteralFixtureEventCommand(106, [6]),
       const LiteralFixtureEventCommand(0, []),
     ]),
     const LiteralFixtureEventPage(trigger: 3, globalSwitch: 1, commands: [
@@ -51,6 +53,7 @@ LiteralFixtureEvent _door(int id, int destination) {
           indent: 1),
       LiteralFixtureEventCommand(509, [step], indent: 1),
       LiteralFixtureEventCommand(210, [], indent: 1),
+      LiteralFixtureEventCommand(122, [9, 9, 0, 0, 23], indent: 1),
       LiteralFixtureEventCommand(412, []),
       LiteralFixtureEventCommand(355, ['setTempSwitchOn("A")']),
       LiteralFixtureEventCommand(0, []),
@@ -75,6 +78,10 @@ void main() {
       interpretationProfile: syntheticSourceInterpretationProfile,
       includeEventSystem: true,
       switchNames: [null, 's:tsOff?("A")'],
+      variableNames: [
+        null,
+        for (var id = 1; id <= 9; id++) 'Declared integer $id',
+      ],
       extraFiles: {
         'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = Player\n'),
         'Graphics/Characters/Player.png': literalFixtureAtlas(),
@@ -154,6 +161,13 @@ void main() {
       for (final id in [41, 83]) {
         expect(loaded.mapById(events.draft.mapIds[id]!)!.triggers, isNotEmpty);
       }
+      final sourceAnalyzer = SourceEventAnalyzer.forProject(source,
+          profile: SourceEventProfile.forProject(source));
+      String variableId(int sourceId) => loaded.manifest.facts
+          .singleWhere((fact) =>
+              fact.description ==
+              'Persistent source integer: ${sourceAnalyzer.variableFactId(sourceId)}')
+          .id;
       final reference = {
         'kind': 'std06ConvertedDoorFixture',
         'projectFilePath': receipt.projectPath,
@@ -170,6 +184,15 @@ void main() {
         'aiCalls': 0,
         'nativeWriterVerified': receipt.verified,
         'strictReopenVerified': true,
+        'legs': [
+          for (final destination in [83, 41])
+            {
+              'destinationMapId': events.draft.mapIds[destination],
+              'control': 'up',
+              'arrival': {'x': 2, 'y': 3},
+              'expectedFacts': {variableId(4): 17, variableId(9): 23},
+            },
+        ],
         'doorPresentation': 'invisibleSourceDoor',
         'destinationRoles': ['exterior', 'interior'],
       };

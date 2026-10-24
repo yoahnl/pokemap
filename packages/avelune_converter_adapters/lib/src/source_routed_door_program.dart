@@ -149,6 +149,64 @@ bool _hasFixedLockedPage(SourceEventDefinition event) =>
     event.pages.length == 3 && event.pages.first.graphic?.directionFix == true &&
     event.pages.skip(1).every((page) => page.graphic?.directionFix == false);
 
+List<SourceEventNode>? _routedDoorCore(List<SourceEventNode> nodes,
+    SourceEventDefinition event, NormalizedSourceProject source,
+    {bool arrival = false}) {
+  final departure = event.pages[event.pages.length - 2];
+  final guardedVariables = <int>{};
+  void collect(SourceEventCondition condition) {
+    if (condition.variableId case final id?) guardedVariables.add(id);
+    for (final operand in [condition.integerLeft, condition.integerRight]) {
+      if (operand?.variableId case final id?) guardedVariables.add(id);
+    }
+    for (final child in condition.children) {
+      collect(child);
+    }
+  }
+
+  collect(departure.condition);
+  collect(event.pages.last.condition);
+  final analyzer = SourceEventAnalyzer.forProject(source,
+      profile: SourceEventProfile.forProject(source));
+  final targets = <int>{};
+  bool accept(SourceVariableSetNode assignment) =>
+        assignment.firstId == assignment.lastId &&
+        analyzer.isIntegerVariableDeclared(assignment.firstId) &&
+        targets.add(assignment.firstId) &&
+        !guardedVariables.contains(assignment.firstId) &&
+        assignment.sourceValue >= -99999999 &&
+        assignment.sourceValue <= 99999999 &&
+        assignment.factIds.length == 1 &&
+        assignment.factIds.single == analyzer.variableFactId(assignment.firstId);
+  var first = 0;
+  var last = nodes.length;
+  if (arrival) {
+    while (last > first && nodes[last - 1] is SourceVariableSetNode) {
+      if (nodes.length - last >= 4 || !accept(nodes[last - 1] as SourceVariableSetNode)) {
+        return null;
+      }
+      last--;
+    }
+  } else {
+    while (first < last && nodes[first] is SourceVariableSetNode) {
+      if (first >= 4 || !accept(nodes[first] as SourceVariableSetNode)) {
+        return null;
+      }
+      first++;
+    }
+  }
+  if (!arrival && last > first && nodes[last - 1] is SourceWaitNode) {
+    final wait = nodes[last - 1] as SourceWaitNode;
+    if (wait.durationTicks < 0 ||
+        wait.durationTicks > 1200 ||
+        wait.profileHash != analyzer.profile.canonicalHash) {
+      return null;
+    }
+    last--;
+  }
+  return nodes.sublist(first, last);
+}
+
 bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) {
   if (event.isQuarantined || !const {2, 3}.contains(event.pages.length)) {
     return false;
@@ -238,9 +296,11 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
   final routeNodes = foreignCompanions == null ? departureNodes : [
     ...departureNodes.sublist(2, 12), ...departureNodes.sublist(13),
   ];
-  final body = routeNodes.lastOrNull is SourceSwitchNode
-      ? routeNodes.take(routeNodes.length - 1).toList()
-      : routeNodes;
+  final core = _routedDoorCore(routeNodes, event, source);
+  if (core == null) return false;
+  final body = core.lastOrNull is SourceSwitchNode
+      ? core.take(core.length - 1).toList()
+      : core;
   final animated = departure.graphic!.characterName.isNotEmpty &&
       body.length == 12 &&
       _route(body[0], 0, [44, 15, 17, 15, 18, 15, 19, 15]) &&
@@ -277,7 +337,7 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
           body[2] is SourceWarpNode &&
           body[3] is SourceToneNode));
   if (!animated && !invisible ||
-      animated && body.length != routeNodes.length) {
+      animated && body.length != core.length) {
     return false;
   }
   final warp = body.whereType<SourceWarpNode>().single;
@@ -295,7 +355,9 @@ bool _isRoutedDoor(SourceEventDefinition event, NormalizedSourceProject source) 
       branch.whenFalse.nodes.isNotEmpty) {
     return false;
   }
-  final route = _runtimeNodes(branch.whenTrue);
+  final route = _routedDoorCore(_runtimeNodes(branch.whenTrue), event, source,
+      arrival: true);
+  if (route == null) return false;
   return animated
       ? route.length == 8 &&
           route[0] is SourcePlayerVisibilityNode &&
@@ -408,6 +470,7 @@ bool _usesStableDepartureDoorSkin(SourceEventDefinition event, NormalizedSourceP
 
 Object? _node(SourceEventNode node) => switch (node) {
       SourceAnnotationNode() => node.toJson(),
+      SourceVariableSetNode() => node.toJson(),
       SourceSwitchNode() => {
           'kind': 'switch',
           'span': node.span.toJson(),
