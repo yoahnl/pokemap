@@ -45,6 +45,7 @@ final class SourceSystemEntryBindingResolver {
     required NormalizedSourceProject source,
     required SourceEventProjection projection,
     required SourceFilePort files,
+    Map<String, Object?>? semanticPlayerEvidence,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -85,6 +86,9 @@ final class SourceSystemEntryBindingResolver {
         selectedHeaderId: defaults.avatarHeaderId,
         selectedOutfit: defaults.outfit,
         cancellation: cancellation);
+    final reusePlayer = semanticPlayerEvidence != null &&
+        canonicalJsonOf(semanticPlayerEvidence, limits: limits.jsonLimits) ==
+            canonicalJsonOf(avatar.evidence, limits: limits.jsonLimits);
     final identity = canonicalHashOf({
       'kind': 'sourceSystemEntryBinding',
       'systemContentHash': start.systemContentHash.value,
@@ -202,8 +206,8 @@ final class SourceSystemEntryBindingResolver {
     cancellation?.check();
     return SourceSystemEntryBinding._(
         config: config,
-        artifacts: List.unmodifiable(artifacts),
-        importMutations: List.unmodifiable(imports),
+        artifacts: reusePlayer ? const [] : List.unmodifiable(artifacts),
+        importMutations: reusePlayer ? const [] : List.unmodifiable(imports),
         mutations: List.unmodifiable(mutations),
         nativeMaps: Map.unmodifiable({
           start.sourceMapId: candidates.isEmpty
@@ -219,6 +223,7 @@ final class SourceSystemEntryBindingResolver {
           'program': start.toJson(),
           'defaults': defaults.evidence,
           'avatars': [avatar.evidence],
+          'semanticPlayerImportReused': reusePlayer,
           'nativeStartSpawnId': spawn.id,
           'nativeStartMapId': map.id,
           'initialPartyCount': 0,
@@ -261,7 +266,9 @@ bool sourceSystemEntryEventsQualified(NormalizedSourceProject source,
     if (event == null) return false;
     SourceEventPageAnalysis? selected;
     for (final page in event.pages.reversed) {
-      final active = page.condition.evaluate();
+      final active = page.condition.evaluate(eventTempSwitches: const {
+        'A':false,'B':false,'C':false,'D':false,
+      });
       if (active == null) return false;
       if (active) {
         selected = page;
@@ -281,6 +288,9 @@ bool sourceSystemEntryEventsQualified(NormalizedSourceProject source,
         evidence.single['status'] != 'adaptedStaticSemantics' ||
         evidence.single['gaps'] is! List ||
         (evidence.single['gaps'] as List).isNotEmpty) {
+      return false;
+    }
+    if ((evidence.single['nativeIntroduction'] as Map?)?['requiresNativeFreshEntryFactory'] == true) {
       return false;
     }
   }

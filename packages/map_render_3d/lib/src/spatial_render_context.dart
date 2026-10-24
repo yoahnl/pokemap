@@ -7,6 +7,8 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
 import 'spatial_lighting_preview.dart';
+import 'spatial_shadow_profile.dart';
+import 'spatial_shadow_map.dart';
 
 class SpatialRenderContext extends RenderContext3D
     implements SpatialLightingContext {
@@ -14,6 +16,14 @@ class SpatialRenderContext extends RenderContext3D
 
   @override
   SpatialLightingProfile lighting = SpatialLightingProfile.disabled;
+  @override
+  SpatialShadowFrame? shadowFrame;
+  String? sourceInstanceId;
+  SpatialShadowStats shadowStats = const SpatialShadowStats();
+  SpatialShadowMap? _shadowMap;
+  bool _collecting = false;
+  int _hiddenDrawCount = 0;
+  final _captured = <_TransparentSurface>[];
 
   final _transparent = <_TransparentSurface>[];
 
@@ -26,31 +36,98 @@ class SpatialRenderContext extends RenderContext3D
   @override
   void drawSurface(Surface surface) {
     final material = surface.material;
+    if (material is SpatialPixelMaterial) {
+      if (lighting.hiddenMaterialsByInstance[sourceInstanceId]?.contains(
+            material.sourceMaterialName,
+          ) ==
+          true) {
+        _hiddenDrawCount++;
+        return;
+      }
+      if (_collecting) {
+        _captured.add(_snapshot(surface, material, _captured.length));
+        return;
+      }
+    }
     if (material is! SpatialPixelMaterial ||
         material.alphaMode != Model3dAlphaMode.blend) {
       super.drawSurface(surface);
       return;
     }
+    _transparent.add(_snapshot(surface, material, _transparent.length));
+  }
+
+  _TransparentSurface _snapshot(
+    Surface surface,
+    SpatialPixelMaterial material,
+    int sequence,
+  ) {
     final center = surface.aabb.center.clone();
     model.transform3(center);
     view.transform3(center);
-    _transparent.add(
-      _TransparentSurface(
-        surface: surface,
-        material: material,
-        pose: _MaterialPose(material),
-        model: model.clone(),
-        joints: [for (final joint in jointsInfo.jointTransforms) joint.clone()],
-        depth: -center.z,
-        sequence: _transparent.length,
-      ),
+    return _TransparentSurface(
+      surface: surface,
+      material: material,
+      pose: _MaterialPose(material),
+      model: model.clone(),
+      joints: [for (final joint in jointsInfo.jointTransforms) joint.clone()],
+      depth: -center.z,
+      sequence: sequence,
+      instanceId: sourceInstanceId,
     );
   }
 
   @override
   void flush() {
+    final shadow = lighting.enabled ? lighting.shadow : null;
+    shadowFrame = null;
+    _hiddenDrawCount = 0;
     try {
+      _collecting = shadow != null;
       super.flush();
+      _collecting = false;
+      var casterDrawCount = 0;
+      if (shadow != null) {
+        final map = _shadowMap ??= SpatialShadowMap(device.backend);
+        shadowFrame = map.render(shadow, lighting.sunDirection, (
+          context,
+          depthMaterial,
+        ) {
+          for (final entry in _captured) {
+            if (!shadow.casterInstanceIds.contains(entry.instanceId) ||
+                entry.material.alphaMode == Model3dAlphaMode.blend ||
+                entry.material.lightingRole != SpatialPixelLightingRole.surface)
+              continue;
+            _withPose(entry, () {
+              context.model.setFrom(entry.model);
+              context.jointsInfo.jointTransforms = entry.joints;
+              final material = depthMaterial(entry.material)
+                ..cullMode = entry.pose.cullMode;
+              context.device.clearBindings();
+              context.applyMaterial(material);
+              context.device.bindGeometry(entry.surface);
+              casterDrawCount++;
+            });
+          }
+        });
+        for (final entry in _captured) {
+          _withPose(entry, () => drawSurface(entry.surface));
+        }
+      }
+      shadowStats = SpatialShadowStats(
+        casterDrawCount: casterDrawCount,
+        receiverDrawCount: shadow == null
+            ? 0
+            : _captured
+                  .where(
+                    (entry) =>
+                        entry.material.lightingRole ==
+                        SpatialPixelLightingRole.ground,
+                  )
+                  .length,
+        targetAllocations: _shadowMap?.targetAllocations ?? 0,
+        hiddenDrawCount: _hiddenDrawCount,
+      );
       if (_transparent.isEmpty) return;
       final previousModel = model.clone();
       final previousJoints = jointsInfo.jointTransforms;
@@ -78,7 +155,31 @@ class SpatialRenderContext extends RenderContext3D
         jointsInfo.jointTransforms = previousJoints;
       }
     } finally {
+      _collecting = false;
+      _captured.clear();
       _transparent.clear();
+    }
+  }
+
+  void _withPose(_TransparentSurface entry, void Function() draw) {
+    final previousPose = _MaterialPose(entry.material);
+    final previousMaterial = entry.surface.material;
+    final previousModel = model.clone();
+    final previousJoints = jointsInfo.jointTransforms;
+    final previousInstance = sourceInstanceId;
+    try {
+      entry.pose.apply(entry.material);
+      entry.surface.material = entry.material;
+      model.setFrom(entry.model);
+      jointsInfo.jointTransforms = entry.joints;
+      sourceInstanceId = entry.instanceId;
+      draw();
+    } finally {
+      previousPose.apply(entry.material);
+      entry.surface.material = previousMaterial;
+      model.setFrom(previousModel);
+      jointsInfo.jointTransforms = previousJoints;
+      sourceInstanceId = previousInstance;
     }
   }
 }
@@ -92,6 +193,7 @@ final class _TransparentSurface {
     required this.joints,
     required this.depth,
     required this.sequence,
+    required this.instanceId,
   });
 
   final Surface surface;
@@ -101,6 +203,7 @@ final class _TransparentSurface {
   final List<Matrix4> joints;
   final double depth;
   final int sequence;
+  final String? instanceId;
 }
 
 final class _MaterialPose {

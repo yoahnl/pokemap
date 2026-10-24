@@ -7,34 +7,39 @@ in vec3 fragNormal;
 
 out vec4 outColor;
 
-uniform sampler2D albedoTexture;
-uniform Material {
-    vec4 albedoColor;
-    vec4 uvRect;
-    vec4 uvTransformU;
-    vec4 uvTransformV;
-    vec2 textureDimensions;
-    vec2 wrapModes;
-    float alphaMode;
-    float alphaCutoff;
-    vec4 lightingAmbient;
-    vec4 lightingSun;
-    vec4 lightingDirection;
-    vec4 lightingOptions;
-} material;
+#include "pixel_sampling.glsl"
 
-float wrapCoordinate(float uv, float mode) {
-    if (mode == 33071.0) return clamp(uv, 0.0, 1.0);
-    if (mode == 33648.0) return 1.0 - abs(mod(uv, 2.0) - 1.0);
-    return fract(uv);
+uniform sampler2D shadowTexture;
+uniform Shadow {
+    mat4 worldToLight;
+    vec4 options;
+    vec4 receiverHeight;
+} shadow;
+
+float shadowVisibility() {
+    vec4 projected = shadow.worldToLight * vec4(fragPosition, 1.0);
+    vec3 coord = projected.xyz / projected.w;
+    vec2 uv = vec2(coord.x * 0.5 + 0.5, 0.5 - coord.y * 0.5);
+    if (coord.z < 0.0 || coord.z > 1.0 || any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 1.0;
+    float visibility = 0.0;
+    float resolution = shadow.options.z;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 sampleUv = (floor(uv * resolution) + vec2(x, y) + 0.5) / resolution;
+            if (any(lessThan(sampleUv, vec2(0.0))) || any(greaterThan(sampleUv, vec2(1.0)))) {
+                visibility += 1.0;
+            } else {
+                vec4 packed = texture(shadowTexture, sampleUv);
+                float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
+                visibility += coord.z - shadow.options.y <= stored ? 1.0 : 0.0;
+            }
+        }
+    }
+    return visibility / 9.0;
 }
 
 void main() {
-    vec2 uv = material.uvRect.xy + fragTexCoord * material.uvRect.zw;
-    uv = vec2(dot(material.uvTransformU.xyz, vec3(uv, 1.0)), dot(material.uvTransformV.xyz, vec3(uv, 1.0)));
-    uv = vec2(wrapCoordinate(uv.x, material.wrapModes.x), wrapCoordinate(uv.y, material.wrapModes.y));
-    vec2 pixel = clamp(floor(uv * material.textureDimensions), vec2(0.0), material.textureDimensions - 1.0);
-    vec4 color = texture(albedoTexture, (pixel + 0.5) / material.textureDimensions);
+    vec4 color = samplePixelColor();
     outColor = color * material.albedoColor * fragColor;
     if (material.lightingOptions.x > 0.5) {
         vec3 normal = vec3(0.0, 1.0, 0.0);
@@ -44,6 +49,9 @@ void main() {
         float diffuse = max(dot(normal, material.lightingDirection.xyz), 0.0);
         vec3 lighting = material.lightingAmbient.rgb + material.lightingSun.rgb * diffuse;
         outColor.rgb *= mix(vec3(1.0), lighting, material.lightingOptions.z);
+    }
+    if (shadow.options.x > 0.5 && fragPosition.y >= shadow.receiverHeight.x && fragPosition.y <= shadow.receiverHeight.y) {
+        outColor.rgb *= 1.0 - shadow.options.w * (1.0 - shadowVisibility());
     }
     if (material.alphaMode == 0.0) {
         if (color.a < material.alphaCutoff) discard;

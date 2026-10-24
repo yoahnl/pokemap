@@ -4,6 +4,7 @@ import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
 import 'spatial_lighting_preview.dart';
+import 'spatial_shadow_profile.dart';
 
 enum SpatialPixelLightingRole { surface, actor, ground }
 
@@ -33,6 +34,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     fragmentShader = _PixelFragmentShader(() {
       _uniformsBound = false;
       _lightingUniformsBound = false;
+      _shadowUniformsBound = false;
     });
   }
 
@@ -61,6 +63,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final _lightingSun = Vector4.zero();
   final _lightingDirection = Vector4.zero();
   final _lightingOptions = Vector4.zero();
+  bool _shadowUniformsBound = false;
+  SpatialShadowFrame? _boundShadowFrame;
+  Shader? _shadowShader;
+  GpuShader? _shadowResource;
+  final _shadowOptions = Vector4.zero(), _shadowHeight = Vector4.zero();
   int _activeWrapS, _activeWrapT;
   int get activeWrapS => _activeWrapS;
   int get activeWrapT => _activeWrapT;
@@ -110,6 +117,12 @@ class SpatialPixelMaterial extends UnlitMaterial {
     prepareLighting(lighting);
     super.apply(context);
     _applyLighting(lighting, enabled: enabled, normalLighting: normalLighting);
+    final frame = context is SpatialLightingContext
+        ? (context as SpatialLightingContext).shadowFrame
+        : null;
+    _applyShadow(
+      enabled && lightingRole == SpatialPixelLightingRole.ground ? frame : null,
+    );
     if (context.jointsInfo.jointTransforms.isEmpty) {
       final shader = vertexShader;
       final resource = shader.resource;
@@ -232,6 +245,37 @@ class SpatialPixelMaterial extends UnlitMaterial {
   }
 
   static final _identityJoint = Matrix4.identity();
+
+  void _applyShadow(SpatialShadowFrame? frame) {
+    final shader = fragmentShader, resource = fragmentShader.resource;
+    if (_shadowUniformsBound &&
+        identical(_boundShadowFrame, frame) &&
+        identical(_shadowShader, shader) &&
+        identical(_shadowResource, resource))
+      return;
+    final profile = frame?.profile;
+    _shadowOptions.setValues(
+      frame == null ? 0 : 1,
+      profile?.bias ?? 0,
+      profile?.resolution.toDouble() ?? 1,
+      profile?.opacity ?? 0,
+    );
+    _shadowHeight.setValues(
+      profile?.receiverMinY ?? 0,
+      profile?.receiverMaxY ?? 0,
+      0,
+      0,
+    );
+    shader
+      ..setTexture('shadowTexture', frame?.texture ?? Texture.standard)
+      ..setMatrix4('Shadow.worldToLight', frame?.worldToLight ?? _identityJoint)
+      ..setVector4('Shadow.options', _shadowOptions)
+      ..setVector4('Shadow.receiverHeight', _shadowHeight);
+    _boundShadowFrame = frame;
+    _shadowShader = shader;
+    _shadowResource = resource;
+    _shadowUniformsBound = true;
+  }
 }
 
 class _PixelVertexShader extends VertexShader {
@@ -262,7 +306,7 @@ class _PixelFragmentShader extends FragmentShader {
   _PixelFragmentShader(this._onCreate)
     : super.fromAsset(
         'packages/map_render_3d/assets/shaders/pixel_material.shaderbundle',
-        slots: ['albedoTexture', 'Material'],
+        slots: ['albedoTexture', 'Material', 'shadowTexture', 'Shadow'],
       );
 
   final void Function() _onCreate;

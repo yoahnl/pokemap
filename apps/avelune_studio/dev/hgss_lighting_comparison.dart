@@ -13,12 +13,38 @@ import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'marionette_main.dart' show applyStudioCaptureLifecycle;
 
+MapSpatialScene prepareComparisonScene(
+  MapSpatialScene source,
+  Set<String> hiddenInstanceIds,
+) {
+  if (hiddenInstanceIds.isEmpty) return source;
+  final sourceIds = source.instances.map((instance) => instance.id).toSet();
+  if (!sourceIds.containsAll(hiddenInstanceIds)) {
+    throw StateError('The comparison requests unknown model instances.');
+  }
+  return source.copyWith(
+    instances: source.instances.where(
+      (instance) => !hiddenInstanceIds.contains(instance.id),
+    ),
+  );
+}
+
 Future<void> main() async {
   if (!kDebugMode || !Platform.isMacOS) {
     throw StateError('This comparison requires a native macOS debug build.');
   }
   MarionetteBinding.ensureInitialized();
   const configuredRoot = String.fromEnvironment('LIGHTING_COMPARISON_ROOT');
+  const planFilename = String.fromEnvironment(
+    'LIGHTING_COMPARISON_PLAN',
+    defaultValue: 'comparison-plan.json',
+  );
+  if (!{
+    'comparison-plan.json',
+    'comparison-shadows-plan.json',
+  }.contains(planFilename)) {
+    throw StateError('Unsupported comparison plan.');
+  }
   final root = await Directory(configuredRoot).resolveSymbolicLinks();
   final marker = File('$root/.avelune-lighting-comparison-owner');
   if ((await marker.readAsString()).trim() != 'avelune-lighting-comparison@1') {
@@ -27,7 +53,7 @@ Future<void> main() async {
   final project = await Directory('$root/jeu').resolveSymbolicLinks();
   if (project != '$root/jeu') throw StateError('Project copy must be local.');
   final plan = jsonDecode(
-    await File('$root/evidence/comparison-plan.json').readAsString(),
+    await File('$root/evidence/$planFilename').readAsString(),
   ) as Map<String, dynamic>;
   if (plan['testProject'] != project || plan['mapId'] != 'first-map') {
     throw StateError('Comparison plan does not identify this copy.');
@@ -47,11 +73,18 @@ Future<void> main() async {
     description: 'Captures synchronized native GPU lighting comparisons.',
     callback: (parameters) async {
       final action = parameters['action'] ?? 'status';
-      if (action == 'start' && !comparison.running && !comparison.completed) {
-        unawaited(comparison.record());
-      } else if (action != 'status' && action != 'start') {
+      if ((action == 'start' || action == 'probe') &&
+          !comparison.running &&
+          !comparison.completed) {
+        if (comparison.failure != null) {
+          return const MarionetteExtensionResult.invalidParams(
+            'A failed take requires a fresh comparison process.',
+          );
+        }
+        unawaited(comparison.record(probeOnly: action == 'probe'));
+      } else if (action != 'status' && action != 'start' && action != 'probe') {
         return const MarionetteExtensionResult.invalidParams(
-          'Use start or status.',
+          'Use start, probe or status.',
         );
       }
       return MarionetteExtensionResult.success(comparison.status);
@@ -69,26 +102,75 @@ Future<void> main() async {
 final class LightingComparison {
   LightingComparison(this.root, this.plan, this.session)
     : actors = session.frames(0),
+      scene = prepareComparisonScene(
+        session.bundle.map.spatialScene!,
+        ((plan['hiddenInstanceIds'] as List<dynamic>?) ?? [])
+            .cast<String>()
+            .toSet(),
+      ),
       camera = SpatialSceneController()..setView(SpatialEditorView.game);
 
   final String root;
   final Map<String, dynamic> plan;
   final SpatialExplorationSession session;
   final SpatialSceneController camera;
+  final MapSpatialScene scene;
   final captureKey = GlobalKey();
-  final lighting = ValueNotifier(SpatialLightingProfile.disabled);
-  final stylized = SpatialLightingProfile.stylized(
-    unlitMaterialNames: {'h_kage'},
-  );
+  late final bool shadowTest = plan.containsKey('shadowCasterInstanceIds');
+  late final before = shadowTest
+      ? profile(shadows: false)
+      : SpatialLightingProfile.disabled;
+  late final after = profile(shadows: shadowTest);
+  late final lighting = ValueNotifier(before);
   Map<String, SpatialActorVisual> actors;
   int tick = 0;
   int captured = 0;
   bool ready = false;
   bool running = false;
   bool completed = false;
+  bool probeCompleted = false;
+  String? probeOutput;
   String? failure;
   String? output;
   bool? baselineRoundTripIdentical;
+
+  SpatialLightingProfile profile({required bool shadows}) {
+    final sun = plan['sunDirection'] as Map<String, dynamic>?;
+    return SpatialLightingProfile.stylized(
+      ambientStrength: shadowTest ? .72 : .82,
+      sunStrength: shadowTest ? .6 : .4,
+      groundStrength: shadowTest ? 1 : .7,
+      sunDirection: (
+        x: (sun?['x'] as num?)?.toDouble() ?? -.65,
+        y: (sun?['y'] as num?)?.toDouble() ?? .8,
+        z: (sun?['z'] as num?)?.toDouble() ?? .45,
+      ),
+      unlitMaterialNames: {'h_kage'},
+      hiddenMaterialsByInstance: {
+        for (final entry
+            in ((plan['hiddenMaterialsByInstance'] as Map<String, dynamic>?) ??
+                    {})
+                .entries)
+          entry.key: (entry.value as List<dynamic>).cast<String>().toSet(),
+      },
+      shadow: shadows
+          ? SpatialShadowProfile(
+              casterInstanceIds:
+                  (plan['shadowCasterInstanceIds'] as List<dynamic>)
+                      .cast<String>()
+                      .toSet(),
+              center: (x: 26.5, y: 2.5, z: 13),
+              extent: 16,
+              depth: 32,
+              resolution: 1024,
+              bias: .0015,
+              opacity: .8,
+              receiverMinY: .9,
+              receiverMaxY: 1.2,
+            )
+          : null,
+    );
+  }
 
   Map<String, Object?> get status => {
     'pid': pid,
@@ -97,6 +179,15 @@ final class LightingComparison {
     'ready': ready,
     'running': running,
     'completed': completed,
+    'probeCompleted': probeCompleted,
+    'probeOutput': probeOutput,
+    'experimentId': plan['experimentId'],
+    'sourceInstanceCount': session.bundle.map.spatialScene!.instances.length,
+    'renderedInstanceCount': scene.instances.length,
+    'hiddenInstanceIds': plan['hiddenInstanceIds'] ?? [],
+    'hiddenMaterialsByInstance': plan['hiddenMaterialsByInstance'] ?? {},
+    'shadowCasterInstanceIds': plan['shadowCasterInstanceIds'] ?? [],
+    'shadowStats': shadowStats,
     'failure': failure,
     'tick': tick,
     'capturedPairs': captured,
@@ -109,6 +200,16 @@ final class LightingComparison {
     'method': plan['captureMethod'],
     'performanceBenchmark': false,
   };
+
+  Map<String, int> get shadowStats {
+    final stats = camera.shadowStats;
+    return {
+      'casterDrawCount': stats.casterDrawCount,
+      'receiverDrawCount': stats.receiverDrawCount,
+      'targetAllocations': stats.targetAllocations,
+      'hiddenDrawCount': stats.hiddenDrawCount,
+    };
+  }
 
   SpatialModelRuntimeState? modelState(String mapId, String instanceId) {
     final explicit = session.modelRuntimeState(mapId, instanceId);
@@ -164,6 +265,15 @@ final class LightingComparison {
 
   Future<Uint8List> pixels() async {
     await settle();
+    if (shadowTest && identical(lighting.value, after)) {
+      final stats = camera.shadowStats;
+      if (stats.casterDrawCount == 0 ||
+          stats.receiverDrawCount == 0 ||
+          stats.hiddenDrawCount != 1 ||
+          stats.targetAllocations != 1) {
+        throw StateError('The shadow render pass is not valid: $shadowStats');
+      }
+    }
     final boundary =
         captureKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     if (boundary.debugNeedsPaint) throw StateError('Capture is not painted.');
@@ -182,28 +292,42 @@ final class LightingComparison {
     }
   }
 
-  Future<void> record() async {
+  Future<void> record({bool probeOnly = false}) async {
     running = true;
+    captured = 0;
     final previousLifecycle = WidgetsBinding.instance.lifecycleState;
     final frames = <Map<String, Object?>>[];
     try {
       if (!ready) throw StateError('Native scene is not ready.');
       verifySession();
       final take = Directory(
-        '$root/evidence/native/take-${DateTime.now().microsecondsSinceEpoch}',
+        '$root/evidence/${shadowTest ? 'shadow-test/native' : 'native'}/${probeOnly ? 'probe' : 'take'}-${DateTime.now().microsecondsSinceEpoch}',
       );
       await take.create(recursive: true);
       output = take.path;
       await Directory('${take.path}/before').create();
       await Directory('${take.path}/after').create();
-      lighting.value = SpatialLightingProfile.disabled;
+      lighting.value = before;
       final baseline = await pixels();
-      lighting.value = stylized;
-      await pixels();
-      lighting.value = SpatialLightingProfile.disabled;
+      lighting.value = after;
+      final changed = await pixels();
+      lighting.value = before;
       baselineRoundTripIdentical = listEquals(baseline, await pixels());
       if (!baselineRoundTripIdentical!) {
         throw StateError('Lighting toggle changed the frozen baseline.');
+      }
+      if (listEquals(baseline, changed)) {
+        throw StateError(
+          'The requested rendering effect produced no pixel change.',
+        );
+      }
+      if (probeOnly) {
+        await File('${take.path}/before/00000.png').writeAsBytes(baseline);
+        await File('${take.path}/after/00000.png').writeAsBytes(changed);
+        captured = 1;
+        probeCompleted = true;
+        probeOutput = take.path;
+        return;
       }
       for (final phase in plan['phases'] as List<dynamic>) {
         session.movement.setInput(x: phase['x'] as int, z: phase['z'] as int);
@@ -214,10 +338,10 @@ final class LightingComparison {
             verifySession();
           }
           final filename = captured.toString().padLeft(5, '0');
-          lighting.value = SpatialLightingProfile.disabled;
+          lighting.value = before;
           await File('${take.path}/before/$filename.png')
               .writeAsBytes(await pixels());
-          lighting.value = stylized;
+          lighting.value = after;
           await File('${take.path}/after/$filename.png')
               .writeAsBytes(await pixels());
           frames.add({
@@ -227,6 +351,7 @@ final class LightingComparison {
             'x': session.movement.x,
             'z': session.movement.z,
             'facing': session.movement.facing.name,
+            'shadowStats': shadowStats,
             'actors': {
               for (final entry in actors.entries)
                 entry.key: {
@@ -259,14 +384,21 @@ final class LightingComparison {
     } finally {
       session.movement.setInput(x: 0, z: 0);
       running = false;
-      if (output != null) {
-        await File('$output/receipt.json').writeAsString(
-          const JsonEncoder.withIndent('  ')
-              .convert({'status': status, 'plan': plan, 'frames': frames}),
-        );
-      }
-      if (previousLifecycle != null) {
-        applyStudioCaptureLifecycle(previousLifecycle);
+      try {
+        if (output != null) {
+          await File('$output/receipt.json').writeAsString(
+            const JsonEncoder.withIndent('  ').convert({
+              'status': status,
+              'plan': plan,
+              'probeOnly': probeOnly,
+              'frames': frames,
+            }),
+          );
+        }
+      } finally {
+        if (previousLifecycle != null) {
+          applyStudioCaptureLifecycle(previousLifecycle);
+        }
       }
     }
   }
@@ -293,7 +425,7 @@ class ComparisonSurface extends StatelessWidget {
               child: SpatialLightingPreview(
                 controller: capture.lighting,
                 child: SpatialSceneView(
-                  scene: bundle.map.spatialScene!,
+                  scene: capture.scene,
                   models: bundle.manifest.models3d,
                   loadModel: capture.session.modelBytes,
                   controller: capture.camera,

@@ -37,6 +37,7 @@ import 'spatial_clipped_model_cache.dart';
 import 'spatial_model_source_clip.dart';
 import 'spatial_scene_preparation.dart';
 import 'spatial_lighting_preview.dart';
+import 'spatial_shadow_profile.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -68,6 +69,8 @@ final class SpatialSceneContentPreview {
 
 class SpatialSceneController extends ModelPreviewController {
   Future<bool> Function(SpatialScenePreparation)? _prepareDestination;
+  SpatialShadowStats Function()? _readShadowStats;
+  SpatialShadowStats get shadowStats => _readShadowStats?.call() ?? const SpatialShadowStats();
 
   Future<bool> prepareDestination(SpatialScenePreparation request) =>
       _prepareDestination?.call(request) ?? Future.value(false);
@@ -253,11 +256,15 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     super.initState();
     widget.controller.addListener(scheduleHoverRefresh);
     widget.controller._prepareDestination = prepareDestination;
+    widget.controller._readShadowStats = readShadowStats;
     initialize();
   }
 
   Future<bool> prepareDestination(SpatialScenePreparation request) async =>
       mounted ? await game?.prepareDestination(request) ?? false : false;
+
+  SpatialShadowStats readShadowStats() => game == null ? const SpatialShadowStats()
+      : (game!.context as SpatialRenderContext).shadowStats;
 
   void scheduleHoverRefresh() {
     if (!mounted ||
@@ -424,6 +431,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       }
       widget.controller.addListener(scheduleHoverRefresh);
       widget.controller._prepareDestination = prepareDestination;
+      oldWidget.controller._readShadowStats = null;
+      widget.controller._readShadowStats = readShadowStats;
     }
     if (widget.onHover == null) hoverPosition = null;
     final game = this.game;
@@ -485,6 +494,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       widget.controller._prepareDestination = null;
     }
     game?.placementRenderer.dispose();
+    if (widget.controller._readShadowStats == readShadowStats) {
+      widget.controller._readShadowStats = null;
+    }
     super.dispose();
   }
 
@@ -1099,6 +1111,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           final animationKey = (placement.map?.id ?? '__scene__', instance.id);
           final previous = animationModels[animationKey];
           final component = _SceneModelComponent(
+            instanceId: instance.id,
             model: model,
             visibleBounds: visibleBounds,
             playback: identical(previous?.model, model)
@@ -1950,6 +1963,7 @@ final class _SceneGround {
 
 class _SceneModelComponent extends AnimatedModelComponent {
   _SceneModelComponent({
+    required this.instanceId,
     required super.model,
     required this.visibleBounds,
     super.position,
@@ -1960,6 +1974,21 @@ class _SceneModelComponent extends AnimatedModelComponent {
     super.runtimePoseBefore,
   });
   final Model3dBounds visibleBounds;
+  final String instanceId;
+  @override
+  void draw(RenderContext3D context) {
+    if (context is! SpatialRenderContext) {
+      super.draw(context);
+      return;
+    }
+    final previous = context.sourceInstanceId;
+    context.sourceInstanceId = instanceId;
+    try {
+      super.draw(context);
+    } finally {
+      context.sourceInstanceId = previous;
+    }
+  }
   @override
   bool isVisible(CameraComponent3D camera) => true;
 }

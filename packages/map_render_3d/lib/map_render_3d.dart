@@ -15,3 +15,5 @@ export 'src/spatial_model_placement_preview.dart'
     show SpatialModelPlacementPreview;
 export 'src/spatial_lighting_preview.dart'
     show SpatialLightingProfile, SpatialLightingPreview;
+export 'src/spatial_shadow_profile.dart'
+    show SpatialShadowProfile, SpatialShadowStats;

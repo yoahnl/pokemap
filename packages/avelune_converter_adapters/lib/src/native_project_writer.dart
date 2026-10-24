@@ -2598,7 +2598,19 @@ Future<_PreparedNativeDraft> _prepareNativeDraft(
             'The fresh source entry must retain its exact selected native map.');
       }
       if (entry.value.id == freshEntry.config.startMapId) {
-        maps[entry.value.id] = entry.value;
+        final projected = projectedEvents!.nativeMaps[entry.key]!;
+        final spawns = entry.value.entities.where((entity) =>
+            entity.id == freshEntry.config.startSpawnId &&
+            entity.kind == MapEntityKind.spawn).toList();
+        if (spawns.length != 1 || entry.value !=
+            (projected.entities.any((entity) => entity.id == spawns.single.id)
+              ? projected : projected.copyWith(entities: [...projected.entities, spawns.single]))) {
+          throw const NativeWriteException('native.events.new_game_map',
+              'The source entry may only add its declared start spawn.');
+        }
+        final complete = maps[entry.value.id]!;
+        maps[entry.value.id] = complete.entities.any((entity) => entity.id == spawns.single.id)
+            ? complete : complete.copyWith(entities: [...complete.entities, spawns.single]);
       } else if (entry.value != projectedEvents!.nativeMaps[entry.key]) {
         throw const NativeWriteException('native.events.new_game_map',
             'The fresh source entry may only add its declared start spawn.');

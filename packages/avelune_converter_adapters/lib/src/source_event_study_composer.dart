@@ -693,7 +693,11 @@ final class SourceEventStudyComposer {
         directionUnlockGiverIds.add(event.identity);
       }
     }
-    final retentionBinding = transitionIds.isNotEmpty || oakParcelBindings.isNotEmpty || firstRivals.byEventIdentity.isNotEmpty || directionUnlockGiverIds.isNotEmpty
+    bool usesTempCondition(SourceEventCondition condition) =>
+        condition.kind == SourceEventConditionKind.tempSwitch ||
+        condition.children.any(usesTempCondition);
+    final retentionBinding = transitionIds.isNotEmpty || oakParcelBindings.isNotEmpty || firstRivals.byEventIdentity.isNotEmpty || directionUnlockGiverIds.isNotEmpty ||
+        selectedEvents.any((event) => event.pages.any((page) => usesTempCondition(page.condition)))
       ? await _sourceEventMapRetentionBinding(source: source, files: recording,
           nativeMapIds: base.mapIds, cancellation: cancellation) : null;
     final retentionPolicy = retentionBinding?.policy;
@@ -982,6 +986,7 @@ final class SourceEventStudyComposer {
         .map((row) => ConverterId(row['sourceIdentity'] as String)).toSet();
     final freshEntry = await const SourceNewGameBindingResolver().read(
         source: source, projection: projection, files: recording,
+        semanticPlayerEvidence: Map<String,Object?>.from((base.compositionEvidence['sourceSemantics'] as Map)['player'] as Map),
         limits: limits, cancellation: cancellation);
     final usedPortraits = portraitBindings.entries
         .where((entry) => admittedIdentities.contains(entry.key))

@@ -50,6 +50,22 @@ void main() {
         source: source, base: base, files: fixture.files, limits: limits))!;
     final events = (await const SourceEventStudyComposer().compose(
         source: source, base: semantic, files: fixture.files, limits: limits))!;
+    final diagnosticsPath=Platform.environment['AVELUNE_SYSTEM_START_EVIDENCE'];
+    if(diagnosticsPath!=null) { await File('$diagnosticsPath.projection.json').writeAsString(jsonEncode(events.projection.semanticEvidence)); }
+    final oracle=SourceSemanticResolver.forProject(source);
+    final native=events.projection.nativeMaps[start.sourceMapId]!;
+    expect(events.freshEntry,isNotNull,reason:jsonEncode({
+      'evidence':{for(final k in ['sourceSnapshotHash','normalizationHash','sourceProfileHash']) k:events.projection.semanticEvidence[k]},
+      'profile':SourceEventProfile.forProject(source).canonicalHash.value,
+      'qualifiedEvents':sourceSystemEntryEventsQualified(source,events.projection,start.sourceMapId),
+      'passage':oracle.resolveConnectionEntryTile(oracle.cellAt(start.sourceMapId,start.x,start.y)).status.name,
+      'automatic':[for(final e in SourceEventAnalyzer.forProject(source,profile:SourceEventProfile.forProject(source)).analyze().events)
+        if(e.pages.any((p)=>const{3,4}.contains(p.triggerCode))) {
+          'id':e.sourceEventId,'pages':[for(final p in e.pages) {'index':p.originalPageIndex,'trigger':p.triggerCode,
+            'active':p.condition.evaluate(),'condition':p.condition.toJson(),'empty':p.isEmpty}]}],
+      'collisionLayers':[for(final l in native.layers.whereType<CollisionLayer>()) l.collisions[start.y*native.size.width+start.x]],
+      'blocking':[for(final e in native.entities) if(e.blocksMovement && resolveEntityCollisionCells(e).contains(GridPos(x:start.x,y:start.y))) e.toJson()],
+    }));
     final binding = events.freshEntry!;
     expect(binding, isA<SourceSystemEntryBinding>());
     expect(binding.config.initialParty, isEmpty);

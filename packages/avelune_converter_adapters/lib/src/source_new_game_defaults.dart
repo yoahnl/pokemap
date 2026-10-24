@@ -58,14 +58,16 @@ final class SourceNewGameDefaultsReader {
         }
         final name = document.node(row.elements[1]);
         final body = document.node(row.elements[2]);
-        if (name.kind != MarshalKind.string || body.kind != MarshalKind.string) {
+        if (name.kind != MarshalKind.string ||
+            body.kind != MarshalKind.string) {
           return null;
         }
         final text = inputs.inflate(body.bytes!, 'Data/Scripts.rxdata');
         final sectionName = name.text().text;
         if (sectionName == null) return null;
         sections.add((name: sectionName, text: utf8.decode(text)));
-        engineCatalog.add(jsonEncode([sectionName, sha256.convert(text).toString()]));
+        engineCatalog
+            .add(jsonEncode([sectionName, sha256.convert(text).toString()]));
       }
     } on BinaryDecodeError {
       return null;
@@ -81,8 +83,10 @@ final class SourceNewGameDefaultsReader {
         var start = 0;
         var end = lines.length - 1;
         if (witness.$2 != null) {
-          final starts = [for (var i = 0; i < lines.length; i++)
-            if (lines[i] == witness.$2) i];
+          final starts = [
+            for (var i = 0; i < lines.length; i++)
+              if (lines[i] == witness.$2) i
+          ];
           if (starts.length <= witness.$3) continue;
           start = starts[witness.$3];
           final indent = witness.$2!.length - witness.$2!.trimLeft().length;
@@ -90,11 +94,18 @@ final class SourceNewGameDefaultsReader {
           end = lines.indexOf(closing, start + 1);
           if (end < 0) continue;
         }
-        final hash = sha256.convert(utf8.encode(lines.sublist(start, end + 1).join('\n'))).toString();
+        final hash = sha256
+            .convert(utf8.encode(lines.sublist(start, end + 1).join('\n')))
+            .toString();
         if (hash != witness.$4) continue;
-        matching.add({'library': witness.$1, 'declaration': witness.$2,
-          'occurrence': witness.$3, 'line': start + 1, 'endLine': end + 1,
-          'sha256': hash});
+        matching.add({
+          'library': witness.$1,
+          'declaration': witness.$2,
+          'occurrence': witness.$3,
+          'line': start + 1,
+          'endLine': end + 1,
+          'sha256': hash
+        });
       }
       if (matching.length != 1) return null;
       witnesses.add(matching.single);
@@ -103,14 +114,17 @@ final class SourceNewGameDefaultsReader {
     if (pluginBytes == null) return null;
     final pluginCatalog = <String>[];
     final pluginNames = <String>[];
+    final pluginBindings = <(String, String)>[];
     try {
       final document = inputs.decode(pluginBytes, 'Data/PluginScripts.rxdata');
       final root = document.node(document.rootId);
-      if (root.kind != MarshalKind.array || root.elements.length > 256) return null;
+      if (root.kind != MarshalKind.array || root.elements.length > 256)
+        return null;
       for (final id in root.elements) {
         cancel.check();
         final plugin = document.node(id);
-        if (plugin.kind != MarshalKind.array || plugin.elements.length != 3) return null;
+        if (plugin.kind != MarshalKind.array || plugin.elements.length != 3)
+          return null;
         final name = document.node(plugin.elements[0]).text().text;
         if (name == null || pluginNames.contains(name)) return null;
         pluginNames.add(name);
@@ -119,12 +133,17 @@ final class SourceNewGameDefaultsReader {
         for (final scriptId in scripts.elements) {
           cancel.check();
           final row = document.node(scriptId);
-          if (row.kind != MarshalKind.array || row.elements.length != 2) return null;
+          if (row.kind != MarshalKind.array || row.elements.length != 2)
+            return null;
           final path = document.node(row.elements[0]).text().text;
           final compressed = document.node(row.elements[1]);
-          if (path == null || compressed.kind != MarshalKind.string) return null;
-          final bytes = inputs.inflate(compressed.bytes!, 'Data/PluginScripts.rxdata');
-          pluginCatalog.add(jsonEncode([name, path, sha256.convert(bytes).toString()]));
+          if (path == null || compressed.kind != MarshalKind.string)
+            return null;
+          final bytes =
+              inputs.inflate(compressed.bytes!, 'Data/PluginScripts.rxdata');
+          final hash = sha256.convert(bytes).toString();
+          pluginCatalog.add(jsonEncode([name, path, hash]));
+          pluginBindings.add((path, hash));
         }
       }
     } on BinaryDecodeError {
@@ -136,29 +155,63 @@ final class SourceNewGameDefaultsReader {
     }
     if (!_sameCatalog(pluginNames, _knownPluginNames) ||
         !_sameCatalog(pluginCatalog, _knownPluginLibraries)) return null;
+    final pluginSources = source.snapshot.entries.where((entry) {
+      final path = sourcePathCollisionKey(entry.relativePath);
+      return entry.kind == SourceNodeKind.file &&
+          path.startsWith('plugins/') &&
+          path.endsWith('.rb') &&
+          !path.startsWith('plugins/disabled plugins/');
+    }).toList();
+    if (pluginSources.isNotEmpty) {
+      final matched = <ConverterId>{};
+      for (final binding in pluginBindings) {
+        cancel.check();
+        final suffix = '/${sourcePathCollisionKey(binding.$1)}';
+        final matches = pluginSources
+            .where((entry) =>
+                sourcePathCollisionKey(entry.relativePath).endsWith(suffix) &&
+                entry.sha256?.value == binding.$2)
+            .toList();
+        if (matches.length != 1 || !matched.add(matches.single.fileId))
+          return null;
+        if (await inputs.read(matches.single.relativePath) == null) return null;
+      }
+      if (matched.length != pluginSources.length) return null;
+    }
     final values = <String, Object?>{};
-    for (final path in ['Data/metadata.dat', 'Data/player_metadata.dat',
-      'Data/trainer_types.dat']) {
+    for (final path in [
+      'Data/metadata.dat',
+      'Data/player_metadata.dat',
+      'Data/trainer_types.dat'
+    ]) {
       final bytes = await inputs.read(path);
       if (bytes == null) return null;
       try {
         final document = inputs.decode(bytes, path);
-        values[path] = _marshalValue(document, document.rootId);
+        values[path] = _MetadataGraph(document, limits, cancel, path)
+            .read(document.rootId);
       } on BinaryDecodeError {
         throw _metadataFailure();
       }
     }
-    final metadata = _record(values['Data/metadata.dat'], 0, 'GameData::Metadata');
+    final metadata =
+        _record(values['Data/metadata.dat'], 0, 'GameData::Metadata');
     final players = values['Data/player_metadata.dat'];
     if (players is! Map || players.containsKey(0)) throw _metadataFailure();
     final player = _record(players, 1, 'GameData::PlayerMetadata');
     final trainerType = player['@trainer_type'];
     if (trainerType is! String) throw _metadataFailure();
-    _record(values['Data/trainer_types.dat'], trainerType, 'GameData::TrainerType');
+    final trainerTypes = values['Data/trainer_types.dat'];
+    final trainer = _record(trainerTypes, trainerType, 'GameData::TrainerType');
+    if ((trainerTypes as Map).keys.first != trainerType)
+      throw _metadataFailure();
     final money = metadata['@start_money'];
     final items = metadata['@start_item_storage'];
-    if (money is! int || money < 0 || items is! List ||
-        items.any((item) => item is! String || !RegExp(r'^[A-Z][A-Z0-9_]*$').hasMatch(item))) {
+    if (money is! int ||
+        money < 0 ||
+        items is! List ||
+        items.any((item) =>
+            item is! String || !RegExp(r'^[A-Z][A-Z0-9_]*$').hasMatch(item))) {
       throw _metadataFailure();
     }
     final pbsBytes = await inputs.read('PBS/metadata.txt');
@@ -166,17 +219,25 @@ final class SourceNewGameDefaultsReader {
     final pbs = _readPbs(pbsBytes, limits, cancel);
     final globalPbs = pbs[0];
     final playerPbs = pbs[1];
-    if (globalPbs == null || playerPbs == null ||
+    if (globalPbs == null ||
+        playerPbs == null ||
         int.tryParse(globalPbs['StartMoney'] ?? '') != money ||
         playerPbs['TrainerType'] != trainerType) throw _metadataFailure();
-    final pbsItems = (globalPbs['StartItemStorage'] ?? '').split(',')
-        .map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final pbsItems = (globalPbs['StartItemStorage'] ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (jsonEncode(pbsItems) != jsonEncode(items)) throw _metadataFailure();
     for (final field in const {
-      'WalkCharset': '@walk_charset', 'RunCharset': '@run_charset',
-      'CycleCharset': '@cycle_charset', 'SurfCharset': '@surf_charset',
-      'DiveCharset': '@dive_charset', 'FishCharset': '@fish_charset',
-      'SurfFishCharset': '@surf_fish_charset', 'SpinCharset': '@spin_charset',
+      'WalkCharset': '@walk_charset',
+      'RunCharset': '@run_charset',
+      'CycleCharset': '@cycle_charset',
+      'SurfCharset': '@surf_charset',
+      'DiveCharset': '@dive_charset',
+      'FishCharset': '@fish_charset',
+      'SurfFishCharset': '@surf_fish_charset',
+      'SpinCharset': '@spin_charset',
     }.entries) {
       if (playerPbs[field.key] != player[field.value]) throw _metadataFailure();
     }
@@ -184,34 +245,64 @@ final class SourceNewGameDefaultsReader {
         (player['@walk_charset'] as String).isEmpty) throw _metadataFailure();
     cancel.check();
     final evidence = <String, Object?>{
-      'kind': 'sourceNewGameDefaults', 'version': 1,
+      'kind': 'sourceNewGameDefaults',
+      'version': 1,
       'sourceSnapshotHash': source.snapshot.canonicalHash.value,
       'engineLibraryProfile': 'closedEssentialsLibraryDefaultsV1',
       'engineLibraryCount': engineCatalog.length,
       'pluginLibraryCount': pluginCatalog.length,
-      'engineLibraryInventoryHash': sha256.convert(utf8.encode(jsonEncode(engineCatalog..sort()))).toString(),
-      'pluginLibraryInventoryHash': sha256.convert(utf8.encode(jsonEncode(pluginCatalog..sort()))).toString(),
+      'pluginSourceFileCount': pluginSources.length,
+      'pluginSourcePolicy': pluginSources.isEmpty
+          ? 'compiledCacheOnly'
+          : 'exactCompiledAndSourceLibraries',
+      'engineLibraryInventoryHash': sha256
+          .convert(utf8.encode(jsonEncode(engineCatalog..sort())))
+          .toString(),
+      'pluginLibraryInventoryHash': sha256
+          .convert(utf8.encode(jsonEncode(pluginCatalog..sort())))
+          .toString(),
       'libraryWitnesses': witnesses,
       'files': inputs.witnesses,
-      'playerName': 'Unnamed', 'money': money, 'avatarHeaderId': 1,
-      'sourceCharacterId': 0, 'avatarSelection': 'knownPlayerMetadataGetFallback',
-      'outfit': 0, 'facing': 'south', 'party': 'empty', 'bag': 'empty',
-      'pokemonStorage': 'empty', 'sourceSwitchesDefault': false,
-      'sourceVariablesDefault': 0, 'sourceSelfSwitchesDefault': false,
-      'recoveryPointInferred': false, 'sourceStartupHooksQualified': true,
-      'freshColdStartOnly': true, 'sourceScriptsExecuted': 0,
-      'pcItems': items, 'pcItemsMaterialization': 'lazyPcItemStorageConstructor',
+      'playerName': 'Unnamed',
+      'money': money,
+      'avatarHeaderId': 1,
+      'sourceCharacterId': 0,
+      'avatarSelection': 'knownPlayerMetadataGetFallback',
+      'trainerType': trainerType,
+      'sourceGender': trainer['@gender'],
+      'outfit': 0,
+      'facing': 'south',
+      'party': 'empty',
+      'bag': 'empty',
+      'pokemonStorage': 'empty',
+      'sourceSwitchesDefault': false,
+      'sourceVariablesDefault': 0,
+      'sourceSelfSwitchesDefault': false,
+      'recoveryPointInferred': false,
+      'sourceStartupHooksQualified': true,
+      'freshColdStartOnly': true,
+      'sourceScriptsExecuted': 0,
+      'pcItems': items,
+      'pcItemsMaterialization': 'lazyPcItemStorageConstructor',
       'pcItemsImportedIntoBag': false,
-      'diagnostics': [if (items.isNotEmpty) {
-        'code': 'source.new_game.pc_items_not_bag',
-        'message': 'Source item storage defaults belong to lazy PC storage and do not grant bag items.',
-        'sourceSymbols': items,
-      }],
+      'diagnostics': [
+        if (items.isNotEmpty)
+          {
+            'code': 'source.new_game.pc_items_not_bag',
+            'message':
+                'Source item storage defaults belong to lazy PC storage and do not grant bag items.',
+            'sourceSymbols': items,
+          }
+      ],
     };
     canonicalJsonOf(evidence, limits: limits.jsonLimits);
     return SourceNewGameDefaults._(
-      playerName: 'Unnamed', money: money, avatarHeaderId: 1, outfit: 0,
-      facing: EntityFacing.south, pcItems: List<String>.unmodifiable(items),
+      playerName: 'Unnamed',
+      money: money,
+      avatarHeaderId: 1,
+      outfit: 0,
+      facing: EntityFacing.south,
+      pcItems: List<String>.unmodifiable(items),
       evidence: _freeze(evidence) as Map<String, Object?>,
     );
   }
@@ -221,61 +312,105 @@ bool _sameCatalog(List<String> actual, List<String> known) {
   if (actual.length != known.length) return false;
   final left = actual.toList()..sort();
   final right = known.toList()..sort();
-  for (var i = 0; i < left.length; i++) { if (left[i] != right[i]) return false; }
+  for (var i = 0; i < left.length; i++) {
+    if (left[i] != right[i]) return false;
+  }
   return true;
 }
 
 ContractError _metadataFailure() => ContractError(
-    'source.new_game.metadata_mismatch', r'$',
+    'source.new_game.metadata_mismatch',
+    r'$',
     'Compiled and declared source new-game metadata must agree.');
 
 Map _record(Object? root, Object id, String type) {
   if (root is! Map || root[id] is! Map) throw _metadataFailure();
   final record = root[id] as Map;
-  if (record['__class__'] != type || record['@id'] != id) throw _metadataFailure();
+  if (record['__class__'] != type || record['@id'] != id)
+    throw _metadataFailure();
   return record;
 }
 
-Object? _marshalValue(MarshalDocument doc, int id) {
-  final node = doc.node(id);
-  switch (node.kind) {
-    case MarshalKind.nil: return null;
-    case MarshalKind.boolean: return node.booleanValue;
-    case MarshalKind.integer:
-      if (node.integerValue!.bitLength > 53) throw _metadataFailure();
-      return node.integerValue!.toInt();
-    case MarshalKind.symbol: return node.name;
-    case MarshalKind.string:
-      final text = node.text().text;
-      if (text == null) throw _metadataFailure();
-      return text;
-    case MarshalKind.array: return [for (final child in node.elements) _marshalValue(doc, child)];
-    case MarshalKind.hash:
-    case MarshalKind.object:
-      final result = <Object?, Object?>{
-        if (node.kind == MarshalKind.object) '__class__': node.className,
-      };
-      for (final pair in node.kind == MarshalKind.hash ? node.pairs : node.instanceVariables) {
-        final key = _marshalValue(doc, pair.key);
-        if (result.containsKey(key)) throw _metadataFailure();
-        result[key] = _marshalValue(doc, pair.value);
-      }
-      return result;
-    default: throw _metadataFailure();
+final class _MetadataGraph {
+  _MetadataGraph(this.document, this.limits, this.cancellation, this.path);
+  final MarshalDocument document;
+  final NativeWriteLimits limits;
+  final ScanCancellation cancellation;
+  final String path;
+  final _active = <int>{};
+  final _memo = <int, Object?>{};
+  var _visits = 0;
+
+  Object? read(int id) {
+    cancellation.check();
+    if (++_visits > limits.jsonLimits.maxNodes) {
+      throw ContractError('source.new_game.quota', path,
+          'Compiled metadata exceeds its bounded traversal quota.');
+    }
+    if (_memo.containsKey(id)) return _memo[id];
+    if (_active.length >= limits.jsonLimits.maxDepth || !_active.add(id)) {
+      throw _metadataFailure();
+    }
+    try {
+      return _memo[id] = _value(id);
+    } finally {
+      _active.remove(id);
+    }
+  }
+
+  Object? _value(int id) {
+    final node = document.node(id);
+    switch (node.kind) {
+      case MarshalKind.nil:
+        return null;
+      case MarshalKind.boolean:
+        return node.booleanValue;
+      case MarshalKind.integer:
+        if (node.integerValue!.bitLength > 53) throw _metadataFailure();
+        return node.integerValue!.toInt();
+      case MarshalKind.symbol:
+        return node.name;
+      case MarshalKind.string:
+        final text = node.text().text;
+        if (text == null) throw _metadataFailure();
+        return text;
+      case MarshalKind.array:
+        return [for (final child in node.elements) read(child)];
+      case MarshalKind.hash:
+      case MarshalKind.object:
+        final result = <Object?, Object?>{
+          if (node.kind == MarshalKind.object) '__class__': node.className,
+        };
+        for (final pair in node.kind == MarshalKind.hash
+            ? node.pairs
+            : node.instanceVariables) {
+          final key = read(pair.key);
+          if (result.containsKey(key)) throw _metadataFailure();
+          result[key] = read(pair.value);
+        }
+        return result;
+      default:
+        throw _metadataFailure();
+    }
   }
 }
 
-Map<int, Map<String, String>> _readPbs(List<int> bytes, NativeWriteLimits limits,
-    ScanCancellation cancellation) {
+Map<int, Map<String, String>> _readPbs(
+    List<int> bytes, NativeWriteLimits limits, ScanCancellation cancellation) {
   late String text;
-  try { text = utf8.decode(bytes); } on FormatException { throw _metadataFailure(); }
+  try {
+    text = utf8.decode(bytes);
+  } on FormatException {
+    throw _metadataFailure();
+  }
   if (text.startsWith('\uFEFF')) text = text.substring(1);
   final result = <int, Map<String, String>>{};
   Map<String, String>? current;
   for (final raw in const LineSplitter().convert(text)) {
     cancellation.check();
     if (raw.length > limits.jsonLimits.maxStringCodeUnits) {
-      throw ContractError('source.new_game.quota', 'PBS/metadata.txt', 'Source metadata line exceeds its quota.');
+      throw ContractError('source.new_game.quota', 'PBS/metadata.txt',
+          'Source metadata line exceeds its quota.');
     }
     final line = raw.split('#').first.trim();
     if (line.isEmpty) continue;
@@ -298,22 +433,30 @@ Map<int, Map<String, String>> _readPbs(List<int> bytes, NativeWriteLimits limits
 }
 
 Object? _freeze(Object? value) => switch (value) {
-  Map value => Map<String, Object?>.unmodifiable(value.map((key, value) => MapEntry(key as String, _freeze(value)))),
-  List value => List<Object?>.unmodifiable(value.map(_freeze)),
-  _ => value,
-};
+      Map value => Map<String, Object?>.unmodifiable(
+          value.map((key, value) => MapEntry(key as String, _freeze(value)))),
+      List value => List<Object?>.unmodifiable(value.map(_freeze)),
+      _ => value,
+    };
 
 final class _DefaultsInputs {
-  _DefaultsInputs(this.source, this.files, this.limits, this.cancellation);
+  _DefaultsInputs(this.source, this.files, this.limits, this.cancellation) {
+    for (final entry in source.snapshot.entries) {
+      final key = sourcePathCollisionKey(entry.relativePath);
+      (_entriesByPath[key] ??= []).add(entry);
+    }
+  }
   final NormalizedSourceProject source;
   final SourceFilePort files;
   final NativeWriteLimits limits;
   final ScanCancellation cancellation;
+  final _entriesByPath = <String, List<SourceFileEntry>>{};
   final witnesses = <Map<String, Object?>>[];
   var _bytes = 0;
 
   void charge(int count, String path) {
-    if (count > limits.maxArtifactBytes || count < 0 ||
+    if (count > limits.maxArtifactBytes ||
+        count < 0 ||
         _bytes + count > limits.maxTotalArtifactBytes) {
       throw ContractError('source.new_game.quota', path,
           'Source new-game defaults exceed the bounded read quota.');
@@ -323,11 +466,11 @@ final class _DefaultsInputs {
 
   Future<List<int>?> read(String path) async {
     cancellation.check();
-    final entries = source.snapshot.entries.where((entry) =>
-        sourcePathCollisionKey(entry.relativePath) == sourcePathCollisionKey(path)).toList();
+    final entries = _entriesByPath[sourcePathCollisionKey(path)] ?? const [];
     if (entries.length != 1) return null;
     final entry = entries.single;
-    if (entry.kind != SourceNodeKind.file || entry.sha256 == null ||
+    if (entry.kind != SourceNodeKind.file ||
+        entry.sha256 == null ||
         source.sourceFiles[entry.fileId]?.isAdapted == true) return null;
     charge(entry.byteLength, path);
     final bytes = await files.read(entry.fileId);
@@ -342,43 +485,143 @@ final class _DefaultsInputs {
     return List<int>.unmodifiable(bytes);
   }
 
-  MarshalDocument decode(List<int> bytes, String path) => const MarshalDecoder().decode(
-      bytes, sourcePath: path, limits: MarshalDecodeLimits(
-        maxInputBytes: limits.maxArtifactBytes,
-        maxStringBytes: limits.maxArtifactBytes,
-        maxTotalStringBytes: limits.maxTotalArtifactBytes,
-      ));
+  MarshalDocument decode(List<int> bytes, String path) =>
+      const MarshalDecoder().decode(bytes,
+          sourcePath: path,
+          limits: MarshalDecodeLimits(
+            maxInputBytes: limits.maxArtifactBytes,
+            maxStringBytes: limits.maxArtifactBytes,
+            maxTotalStringBytes:
+                limits.maxTotalArtifactBytes.clamp(1, 268435456),
+          ));
 
   List<int> inflate(List<int> bytes, String path) {
     cancellation.check();
-    final result = const BoundedZlibDecoder().decode(bytes, sourcePath: path,
-        limits: ZlibDecodeLimits(maxInputBytes: limits.maxArtifactBytes,
-          maxOutputBytes: limits.maxArtifactBytes));
+    final result = const BoundedZlibDecoder().decode(bytes,
+        sourcePath: path,
+        limits: ZlibDecodeLimits(
+            maxInputBytes: limits.maxArtifactBytes,
+            maxOutputBytes: limits.maxArtifactBytes));
     charge(result.length, path);
     return result;
   }
 }
 
 const _defaultWitnesses = <(String, String?, int, String)>[
-  ("Game_SaveValues", null, 0, "cf4c8ba5e4ec3a6008164bb037f07b46af93c3a9f24c30e19e6c2353678665af"),
-  ("StartGame", "  def self.start_new", 0, "abf6310bb3347fe9d275d0ac080f94b7f5a94daae2ad7ae9654650a39a73f795"),
-  ("SaveData_Value", "  def self.load_new_game_values", 0, "4dbe65b601ee8dcd0b4d2f399d4e04e6a740108b9418af31b7b7102c9a8cc8ac"),
-  ("Trainer", "  def initialize(name, trainer_type)", 0, "ac3b516bdb095e94ed53a6a7d1a30a96560e967f3d234e0352183d7c559ba1cd"),
-  ("Player", "  def initialize(name, trainer_type)", 0, "1254725833a0c231886cb8ea5d511c4c145c79ccc17d925e521b06deae45fd1f"),
-  ("Player", "  def trainer_type", 0, "f4af1f4c080662f6f94d9773525eba0c22fda250a4a6076b69a662645e1f8bcc"),
-  ("PlayerMetadata", "    def self.get(player_id = 1)", 0, "1b84e248c233cf65eb0d4d5fbfb201f9bfcf020bb1619e7f2e2a2b5b38507cd3"),
-  ("Game_Character", "  def initialize(map = nil)", 0, "a3e6867017e9a2d2757c54878228972e70a872ba487fdcc37b2bb13d88ca9ea0"),
-  ("Game_Character", "  def moveto(x, y)", 0, "466c9464cee29b6cceb8b8c26caa27cc9d5c46aaa44396d22810fedc41618260"),
-  ("Game_Player", "  def initialize(*arg)", 0, "0ca42cb638dc7c81c0d8bd402fa0546742ef27a0cf470d94efd36f80e708910d"),
-  ("Game_Switches", null, 0, "c1817bd2a382135418b35196f9ad04b5f9092027951fc18a9c2fbd763bf16303"),
-  ("Game_Variables", null, 0, "246f359519104e20ac6b824934bfb2286b7d14db1d6d134ae7b2c71fe43377f3"),
-  ("Game_SelfSwitches", null, 0, "bb4a493c6ce5ee4b896b5bfa4d44a898f78b539ccb9b1e851001f1d6d859cd58"),
-  ("PokemonBag", "  def initialize", 0, "750c070a0bcab8e5c5e8848bdd7988596fdcd7f451e9cd9b698cea2188d4000b"),
-  ("PokemonBag", "  def initialize", 1, "4ba4e172507c06b6a9d2f54ecc39b7cb1f5dbece8ee0eea6c00a27415a346032"),
-  ("PokemonStorage", "  def initialize(maxBoxes = Settings::NUM_STORAGE_BOXES, maxPokemon = PokemonBox::BOX_SIZE)", 0, "c92ff1ddab9a9ba46fbc59efe9f0a79da2be57c79524f02a558a82739c5f3bd5"),
-  ("PokemonStorage", "  def initialize(name, maxPokemon = BOX_SIZE)", 0, "cb0fcce5270b1f94bb7a3b078a5ca8fea93be315902769450108fe2aa7a1da65"),
-  ("Overworld_Metadata", "  def initialize", 0, "3c152b0ce6c47fb9753e33a6cfea62a7fb0a70eee19a290002ffd858eef61c36"),
-  ("UI_PurifyChamber", "  def initialize(name, trainer_type)", 0, "a81f49be1fcded101f54a53ba2bc912db4cf6dd934280a720bd29b1ec4581a7e"),
+  (
+    "Game_SaveValues",
+    null,
+    0,
+    "cf4c8ba5e4ec3a6008164bb037f07b46af93c3a9f24c30e19e6c2353678665af"
+  ),
+  (
+    "StartGame",
+    "  def self.start_new",
+    0,
+    "abf6310bb3347fe9d275d0ac080f94b7f5a94daae2ad7ae9654650a39a73f795"
+  ),
+  (
+    "SaveData_Value",
+    "  def self.load_new_game_values",
+    0,
+    "4dbe65b601ee8dcd0b4d2f399d4e04e6a740108b9418af31b7b7102c9a8cc8ac"
+  ),
+  (
+    "Trainer",
+    "  def initialize(name, trainer_type)",
+    0,
+    "ac3b516bdb095e94ed53a6a7d1a30a96560e967f3d234e0352183d7c559ba1cd"
+  ),
+  (
+    "Player",
+    "  def initialize(name, trainer_type)",
+    0,
+    "1254725833a0c231886cb8ea5d511c4c145c79ccc17d925e521b06deae45fd1f"
+  ),
+  (
+    "Player",
+    "  def trainer_type",
+    0,
+    "f4af1f4c080662f6f94d9773525eba0c22fda250a4a6076b69a662645e1f8bcc"
+  ),
+  (
+    "PlayerMetadata",
+    "    def self.get(player_id = 1)",
+    0,
+    "1b84e248c233cf65eb0d4d5fbfb201f9bfcf020bb1619e7f2e2a2b5b38507cd3"
+  ),
+  (
+    "Game_Character",
+    "  def initialize(map = nil)",
+    0,
+    "a3e6867017e9a2d2757c54878228972e70a872ba487fdcc37b2bb13d88ca9ea0"
+  ),
+  (
+    "Game_Character",
+    "  def moveto(x, y)",
+    0,
+    "466c9464cee29b6cceb8b8c26caa27cc9d5c46aaa44396d22810fedc41618260"
+  ),
+  (
+    "Game_Player",
+    "  def initialize(*arg)",
+    0,
+    "0ca42cb638dc7c81c0d8bd402fa0546742ef27a0cf470d94efd36f80e708910d"
+  ),
+  (
+    "Game_Switches",
+    null,
+    0,
+    "c1817bd2a382135418b35196f9ad04b5f9092027951fc18a9c2fbd763bf16303"
+  ),
+  (
+    "Game_Variables",
+    null,
+    0,
+    "246f359519104e20ac6b824934bfb2286b7d14db1d6d134ae7b2c71fe43377f3"
+  ),
+  (
+    "Game_SelfSwitches",
+    null,
+    0,
+    "bb4a493c6ce5ee4b896b5bfa4d44a898f78b539ccb9b1e851001f1d6d859cd58"
+  ),
+  (
+    "PokemonBag",
+    "  def initialize",
+    0,
+    "750c070a0bcab8e5c5e8848bdd7988596fdcd7f451e9cd9b698cea2188d4000b"
+  ),
+  (
+    "PokemonBag",
+    "  def initialize",
+    1,
+    "4ba4e172507c06b6a9d2f54ecc39b7cb1f5dbece8ee0eea6c00a27415a346032"
+  ),
+  (
+    "PokemonStorage",
+    "  def initialize(maxBoxes = Settings::NUM_STORAGE_BOXES, maxPokemon = PokemonBox::BOX_SIZE)",
+    0,
+    "c92ff1ddab9a9ba46fbc59efe9f0a79da2be57c79524f02a558a82739c5f3bd5"
+  ),
+  (
+    "PokemonStorage",
+    "  def initialize(name, maxPokemon = BOX_SIZE)",
+    0,
+    "cb0fcce5270b1f94bb7a3b078a5ca8fea93be315902769450108fe2aa7a1da65"
+  ),
+  (
+    "Overworld_Metadata",
+    "  def initialize",
+    0,
+    "3c152b0ce6c47fb9753e33a6cfea62a7fb0a70eee19a290002ffd858eef61c36"
+  ),
+  (
+    "UI_PurifyChamber",
+    "  def initialize(name, trainer_type)",
+    0,
+    "a81f49be1fcded101f54a53ba2bc912db4cf6dd934280a720bd29b1ec4581a7e"
+  ),
 ];
 
 const _knownEngineLibraries = <String>[

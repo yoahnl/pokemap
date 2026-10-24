@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import 'spatial_shadow_profile.dart';
+
 @immutable
 final class SpatialLightingProfile {
   const SpatialLightingProfile._({
@@ -14,6 +16,8 @@ final class SpatialLightingProfile {
     required this.actorStrength,
     required this.groundStrength,
     required this.unlitMaterialNames,
+    required this.hiddenMaterialsByInstance,
+    required this.shadow,
   });
 
   static const disabled = SpatialLightingProfile._(
@@ -26,6 +30,8 @@ final class SpatialLightingProfile {
     actorStrength: 0,
     groundStrength: 0,
     unlitMaterialNames: {},
+    hiddenMaterialsByInstance: {},
+    shadow: null,
   );
 
   factory SpatialLightingProfile.stylized({
@@ -37,6 +43,8 @@ final class SpatialLightingProfile {
     double actorStrength = .25,
     double groundStrength = .7,
     Set<String> unlitMaterialNames = const {},
+    Map<String, Set<String>> hiddenMaterialsByInstance = const {},
+    SpatialShadowProfile? shadow,
   }) {
     final (x: x, y: y, z: z) = sunDirection;
     final length = math.sqrt(x * x + y * y + z * z);
@@ -66,6 +74,11 @@ final class SpatialLightingProfile {
       actorStrength: actorStrength,
       groundStrength: groundStrength,
       unlitMaterialNames: Set.unmodifiable(unlitMaterialNames),
+      hiddenMaterialsByInstance: Map.unmodifiable({
+        for (final entry in hiddenMaterialsByInstance.entries)
+          entry.key: Set<String>.unmodifiable(entry.value),
+      }),
+      shadow: shadow,
     );
   }
 
@@ -74,10 +87,13 @@ final class SpatialLightingProfile {
   final double ambientStrength, sunStrength, actorStrength, groundStrength;
   final ({double x, double y, double z}) sunDirection;
   final Set<String> unlitMaterialNames;
+  final Map<String, Set<String>> hiddenMaterialsByInstance;
+  final SpatialShadowProfile? shadow;
 }
 
 abstract interface class SpatialLightingContext {
   SpatialLightingProfile get lighting;
+  SpatialShadowFrame? get shadowFrame;
 }
 
 class SpatialLightingPreview

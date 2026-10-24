@@ -27,6 +27,7 @@ final class SourceNewGameBindingResolver {
     required NormalizedSourceProject source,
     required SourceEventProjection projection,
     required SourceFilePort files,
+    Map<String, Object?>? semanticPlayerEvidence,
     NativeWriteLimits limits = const NativeWriteLimits(),
     ScanCancellation? cancellation,
   }) async {
@@ -42,6 +43,7 @@ final class SourceNewGameBindingResolver {
         source: source,
         projection: projection,
         files: files,
+        semanticPlayerEvidence: semanticPlayerEvidence,
         limits: limits,
         cancellation: cancellation);
   }
