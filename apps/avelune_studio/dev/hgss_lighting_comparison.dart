@@ -29,6 +29,15 @@ MapSpatialScene prepareComparisonScene(
   );
 }
 
+MapData prepareComparisonMap(MapData source, Set<String> hiddenInstanceIds) {
+  final scene = source.spatialScene;
+  if (scene == null) throw StateError('The comparison requires a spatial map.');
+  final prepared = prepareComparisonScene(scene, hiddenInstanceIds);
+  return identical(prepared, scene)
+      ? source
+      : source.copyWith(spatialScene: prepared);
+}
+
 Future<void> main() async {
   if (!kDebugMode || !Platform.isMacOS) {
     throw StateError('This comparison requires a native macOS debug build.');
@@ -102,8 +111,8 @@ Future<void> main() async {
 final class LightingComparison {
   LightingComparison(this.root, this.plan, this.session)
     : actors = session.frames(0),
-      scene = prepareComparisonScene(
-        session.bundle.map.spatialScene!,
+      renderMap = prepareComparisonMap(
+        session.bundle.map,
         ((plan['hiddenInstanceIds'] as List<dynamic>?) ?? [])
             .cast<String>()
             .toSet(),
@@ -114,7 +123,8 @@ final class LightingComparison {
   final Map<String, dynamic> plan;
   final SpatialExplorationSession session;
   final SpatialSceneController camera;
-  final MapSpatialScene scene;
+  final MapData renderMap;
+  MapSpatialScene get scene => renderMap.spatialScene!;
   final captureKey = GlobalKey();
   late final bool shadowTest = plan.containsKey('shadowCasterInstanceIds');
   late final before = shadowTest
@@ -133,13 +143,20 @@ final class LightingComparison {
   String? failure;
   String? output;
   bool? baselineRoundTripIdentical;
+  Map<String, int>? lastVerifiedShadowStats;
 
   SpatialLightingProfile profile({required bool shadows}) {
     final sun = plan['sunDirection'] as Map<String, dynamic>?;
+    final target = plan['shadowLightTarget'] as Map<String, dynamic>?;
+    double setting(String name, double fallback) =>
+        (plan[name] as num?)?.toDouble() ?? fallback;
     return SpatialLightingProfile.stylized(
-      ambientStrength: shadowTest ? .72 : .82,
-      sunStrength: shadowTest ? .6 : .4,
-      groundStrength: shadowTest ? 1 : .7,
+      ambientColor: Color(plan['ambientColorArgb'] as int? ?? 0xffd3e1ff),
+      ambientStrength: setting('ambientStrength', .82),
+      sunStrength: setting('sunStrength', .4),
+      surfaceStrength: setting('surfaceStrength', 1),
+      groundStrength: setting('groundStrength', .7),
+      actorStrength: setting('actorStrength', .25),
       sunDirection: (
         x: (sun?['x'] as num?)?.toDouble() ?? -.65,
         y: (sun?['y'] as num?)?.toDouble() ?? .8,
@@ -159,14 +176,20 @@ final class LightingComparison {
                   (plan['shadowCasterInstanceIds'] as List<dynamic>)
                       .cast<String>()
                       .toSet(),
-              center: (x: 26.5, y: 2.5, z: 13),
-              extent: 16,
-              depth: 32,
-              resolution: 1024,
-              bias: .0015,
-              opacity: .8,
-              receiverMinY: .9,
-              receiverMaxY: 1.2,
+              center: (
+                x: (target!['x'] as num).toDouble(),
+                y: (target['y'] as num).toDouble(),
+                z: (target['z'] as num).toDouble(),
+              ),
+              extent: setting('shadowExtent', 16),
+              depth: setting('shadowDepth', 32),
+              resolution: plan['shadowMapResolution'] as int? ?? 1024,
+              bias: setting('shadowBias', .0015),
+              opacity: setting('shadowOpacity', .8),
+              receiverMinY: setting('shadowReceiverMinY', .9),
+              receiverMaxY: setting('shadowReceiverMaxY', 1.2),
+              filterRadius: setting('shadowFilterRadius', 1),
+              actorReceivers: plan['shadowActorReceivers'] as bool? ?? false,
             )
           : null,
     );
@@ -182,12 +205,14 @@ final class LightingComparison {
     'probeCompleted': probeCompleted,
     'probeOutput': probeOutput,
     'experimentId': plan['experimentId'],
-    'sourceInstanceCount': session.bundle.map.spatialScene!.instances.length,
-    'renderedInstanceCount': scene.instances.length,
+    'authoredInstanceCount': plan['authoredInstanceCount'],
+    'runtimeInstanceCount': session.bundle.map.spatialScene!.instances.length,
+    'renderedRuntimeInstanceCount': scene.instances.length,
     'hiddenInstanceIds': plan['hiddenInstanceIds'] ?? [],
     'hiddenMaterialsByInstance': plan['hiddenMaterialsByInstance'] ?? {},
     'shadowCasterInstanceIds': plan['shadowCasterInstanceIds'] ?? [],
     'shadowStats': shadowStats,
+    'lastVerifiedShadowStats': lastVerifiedShadowStats,
     'failure': failure,
     'tick': tick,
     'capturedPairs': captured,
@@ -273,6 +298,7 @@ final class LightingComparison {
           stats.targetAllocations != 1) {
         throw StateError('The shadow render pass is not valid: $shadowStats');
       }
+      lastVerifiedShadowStats = shadowStats;
     }
     final boundary =
         captureKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
@@ -433,7 +459,7 @@ class ComparisonSurface extends StatelessWidget {
                   background: colors.shadow,
                   ground: colors.primaryContainer,
                   edge: colors.outlineVariant,
-                  groundMap: bundle.map,
+                  groundMap: capture.renderMap,
                   groundProject: bundle.manifest,
                   loadGroundImage: capture.session.groundImageBytes,
                   resourceBudget: bundle.resourceBudget,

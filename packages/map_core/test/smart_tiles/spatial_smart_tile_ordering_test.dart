@@ -2,6 +2,24 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('shadow capability resolves visible generated model instances only', () {
+    final project = ProjectManifest(name: 'Shore', maps: [], tilesets: [],
+      smartTileCatalog: _catalog(), models3d: [
+        for (final id in ['bank', 'foam', 'cap']) ProjectModel3dEntry(
+          id: id, name: id, sourceAssetId: id, relativePath: 'assets/models3d/$id.glb',
+          castsShadowsByDefault: id == 'foam',
+          inspection: Model3dInspection(bounds: Model3dBounds(min: Model3dVector3.zero,
+            max: Model3dVector3(x: 1, y: 1, z: 1)), meshCount: 1, triangleCount: 1)),
+      ]);
+    final layer = _layer([const SmartTilePatternStroke(id: 'edge', patternId: 'edge',
+      cells: [GridPos(x: 0, y: 0)])]);
+    expect(SpatialModelShadowCapabilities.requiresCapability(project, maps: [_map([layer])]), true);
+    expect(SpatialModelShadowCapabilities.requiresCapability(project,
+      maps: [_map([layer.copyWith(isVisible: false)])]), false);
+    expect(SpatialModelShadowCapabilities.requiresCapability(project.copyWith(models3d: [
+      for (final model in project.models3d) model.copyWith(castsShadowsByDefault: false),
+    ]), maps: [_map([layer])]), false);
+  });
   test('ordering fixtures use a valid native model catalog', () {
     expect(
       validateProjectSmartTileCatalog(

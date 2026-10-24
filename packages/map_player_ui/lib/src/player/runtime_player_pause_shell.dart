@@ -230,15 +230,32 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   @override
   Widget build(BuildContext context) => PlayerSurfacePaletteScope(
         role: ProjectPresentationSurfaceRole.pauseMenu,
-        child: Builder(
-          builder: (context) => _isActionsOnlyRoot
-              ? PlayerMenuThemeScope(child: Builder(builder: _buildSurface))
-              : _isIllustrated
-                  ? PlayerMenuThemeScope(
-                      child: Builder(builder: _buildIllustratedFrame))
-                  : PlayerPauseSurface.composed(child: _buildSurface(context)),
+        child: Listener(
+          onPointerDown: _notePointerDown,
+          child: Builder(
+            builder: (context) => _isActionsOnlyRoot
+                ? PlayerMenuThemeScope(child: Builder(builder: _buildSurface))
+                : _isIllustrated
+                    ? PlayerMenuThemeScope(
+                        child: Builder(builder: _buildIllustratedFrame))
+                    : PlayerPauseSurface.composed(child: _buildSurface(context)),
+          ),
         ),
       );
+
+  void _notePointerDown(PointerDownEvent event) {
+    final source = switch (event.kind) {
+      PointerDeviceKind.mouse => PlayerInputSource.mouse,
+      PointerDeviceKind.touch ||
+      PointerDeviceKind.stylus =>
+        PlayerInputSource.touch,
+      PointerDeviceKind.invertedStylus ||
+      PointerDeviceKind.trackpad ||
+      PointerDeviceKind.unknown =>
+        _focusController.activeInputSource,
+    };
+    _focusController.noteInputSource(source);
+  }
 
   bool get _isIllustrated =>
       _presentation.style == ProjectPauseMenuStyle.nightIllustrated;
@@ -342,7 +359,9 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             onBack: widget.onBackToRoot,
             onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
             onInputSourceChanged: _focusController.noteInputSource,
-            child: PlayerMenuFrame(
+            child: FocusScope(
+              autofocus: true,
+              child: PlayerMenuFrame(
               key: const ValueKey('runtime-night-illustrated-frame'),
               scrollable: false,
               backdrop: isRoot ? null : artwork,
@@ -459,6 +478,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                   layoutOverride: layout,
                   resolvedOverride: resolved,
                   illustratedBackground: isRoot ? artwork : null),
+              ),
             ),
           );
         },
@@ -474,20 +494,6 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       child: MouseRegion(
         onHover: (_) =>
             _focusController.noteInputSource(PlayerInputSource.mouse),
-        child: Listener(
-          onPointerDown: (event) {
-            final source = switch (event.kind) {
-              PointerDeviceKind.mouse => PlayerInputSource.mouse,
-              PointerDeviceKind.touch ||
-              PointerDeviceKind.stylus =>
-                PlayerInputSource.touch,
-              PointerDeviceKind.invertedStylus ||
-              PointerDeviceKind.trackpad ||
-              PointerDeviceKind.unknown =>
-                _focusController.activeInputSource,
-            };
-            _focusController.noteInputSource(source);
-          },
           child: Material(
             key: const ValueKey<String>('runtime-pause-backdrop'),
             color: _isIllustrated
@@ -666,7 +672,6 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               ),
             ),
           ),
-        ),
       ),
     );
   }

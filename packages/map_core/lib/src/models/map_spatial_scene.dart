@@ -195,6 +195,7 @@ final class SpatialModelInstance {
     this.animationLoop = true,
     this.animationSpeed = 1,
     this.blocksMovement = true,
+    this.castsShadows,
     this.clip,
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
@@ -218,7 +219,11 @@ final class SpatialModelInstance {
   final bool animationLoop;
   final double animationSpeed;
   final bool blocksMovement;
+  final bool? castsShadows;
   final SpatialModelClip? clip;
+
+  bool effectiveCastsShadows(ProjectModel3dEntry model) =>
+      castsShadows ?? model.castsShadowsByDefault;
   Model3dVector3 get supportPosition {
     final clip = this.clip;
     if (clip == null) return position;
@@ -237,6 +242,8 @@ final class SpatialModelInstance {
     double? rotationDegrees,
     double? scale,
     bool? blocksMovement,
+    bool? castsShadows,
+    bool clearCastsShadows = false,
     int? animationIndex,
     bool clearAnimation = false,
     bool? animationLoop,
@@ -255,6 +262,7 @@ final class SpatialModelInstance {
     animationLoop: animationLoop ?? this.animationLoop,
     animationSpeed: animationSpeed ?? this.animationSpeed,
     blocksMovement: blocksMovement ?? this.blocksMovement,
+    castsShadows: clearCastsShadows ? null : castsShadows ?? this.castsShadows,
     clip: clearClip ? null : clip ?? this.clip,
   );
   @override
@@ -270,6 +278,7 @@ final class SpatialModelInstance {
           other.animationLoop == animationLoop &&
           other.animationSpeed == animationSpeed &&
           other.blocksMovement == blocksMovement &&
+          other.castsShadows == castsShadows &&
           other.clip == clip;
   @override
   int get hashCode => Object.hash(
@@ -282,11 +291,15 @@ final class SpatialModelInstance {
     animationLoop,
     animationSpeed,
     blocksMovement,
+    castsShadows,
     clip,
   );
 
-  factory SpatialModelInstance.fromJson(Map<String, dynamic> json) =>
-      SpatialModelInstance(
+  factory SpatialModelInstance.fromJson(Map<String, dynamic> json) {
+    if (json['castsShadows'] != null && json['castsShadows'] is! bool) {
+      throw const FormatException('Shadow casting override must be boolean or null.');
+    }
+    return SpatialModelInstance(
         id: json['id'] as String,
         modelId: json['modelId'] as String,
         position: Model3dVector3.fromJson(
@@ -298,6 +311,7 @@ final class SpatialModelInstance {
         animationLoop: json['animationLoop'] as bool? ?? true,
         animationSpeed: (json['animationSpeed'] as num?)?.toDouble() ?? 1,
         blocksMovement: json['blocksMovement'] as bool,
+        castsShadows: json['castsShadows'] as bool?,
         clip: switch (json['clip']) {
           null => null,
           Map<String, dynamic> value => SpatialModelClip.fromJson(value),
@@ -306,6 +320,7 @@ final class SpatialModelInstance {
           ),
         },
       );
+  }
   Map<String, dynamic> toJson() => {
     'id': id,
     'modelId': modelId,
@@ -316,6 +331,7 @@ final class SpatialModelInstance {
     'animationLoop': animationLoop,
     'animationSpeed': animationSpeed,
     'blocksMovement': blocksMovement,
+    if (castsShadows != null) 'castsShadows': castsShadows,
     if (clip != null) 'clip': clip!.toJson(),
   };
 }

@@ -21,6 +21,7 @@ import '../../../features/map_workspace/application/spatial_model_editing_comman
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import '../resources/model_animation_controls.dart';
+import '../resources/model_shadow_controls.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 
@@ -234,6 +235,18 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                 () => commands.update(instance.id, blocksMovement: value),
               ),
             ),
+          const SizedBox(height: 12),
+          ModelInstanceShadowControls(
+            instance: instance,
+            model: model,
+            onChanged: (value) => change(
+              () => commands.update(
+                instance.id,
+                castsShadows: value,
+                clearCastsShadows: value == null,
+              ),
+            ),
+          ),
           if (model != null && model.inspection.animations.isNotEmpty) ...[
             const SizedBox(height: 12),
             ListenableBuilder(
@@ -434,8 +447,13 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   ),
                   if (entry != null) ...[
                     const SizedBox(height: 12),
-                    MapMovingPropPanel(key: ValueKey('moving-prop-${selected.id}'),
-                      document: document, project: project, placement: selected, onChanged: onChanged),
+                    MapMovingPropPanel(
+                      key: ValueKey('moving-prop-${selected.id}'),
+                      document: document,
+                      project: project,
+                      placement: selected,
+                      onChanged: onChanged,
+                    ),
                     const SizedBox(height: 12),
                     MapDecorGeometryPanel(
                       key: ValueKey('decor-geometry-${selected.id}'),

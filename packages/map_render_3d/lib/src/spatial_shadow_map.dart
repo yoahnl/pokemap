@@ -10,8 +10,8 @@ import 'spatial_pixel_material.dart';
 import 'spatial_shadow_profile.dart';
 
 final class SpatialShadowMap {
-  SpatialShadowMap(GpuBackend backend)
-    : _device = _ShadowGraphicsDevice(backend);
+  SpatialShadowMap(GpuBackend backend, {bool ownsFrame = true})
+    : _device = _ShadowGraphicsDevice(backend, ownsFrame: ownsFrame);
 
   final _ShadowGraphicsDevice _device;
   final _materials = Expando<_ShadowDepthMaterial>();
@@ -64,7 +64,9 @@ final class _ShadowTexture extends Texture {
 }
 
 final class _ShadowGraphicsDevice extends GraphicsDevice {
-  _ShadowGraphicsDevice(GpuBackend backend) : super(backend: backend);
+  _ShadowGraphicsDevice(GpuBackend backend, {required this.ownsFrame})
+    : super(backend: backend);
+  final bool ownsFrame;
   late GpuFrame _frame;
   late GpuRenderPass _pass;
 
@@ -79,7 +81,7 @@ final class _ShadowGraphicsDevice extends GraphicsDevice {
 
   void endShadow() {
     _pass.submit();
-    _frame.end();
+    if (ownsFrame) _frame.end();
   }
 
   @override

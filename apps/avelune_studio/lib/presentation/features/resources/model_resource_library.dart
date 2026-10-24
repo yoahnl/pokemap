@@ -17,6 +17,7 @@ import 'resource_catalog.dart';
 import 'model_animation_controls.dart';
 import 'model_collision_controls.dart';
 import 'model_ramp_controls.dart';
+import 'model_shadow_controls.dart';
 
 String modelDiagnosticLabel(String code) => switch (code) {
   'renderer.missing_material_magenta' => 'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
@@ -339,6 +340,18 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                   const SizedBox(height: 12),
                   Text(
                     'Dimensions : ${(model.inspection.bounds.size.x * model.scale).toStringAsFixed(2)} × ${(model.inspection.bounds.size.y * model.scale).toStringAsFixed(2)} × ${(model.inspection.bounds.size.z * model.scale).toStringAsFixed(2)} cases (largeur, hauteur, profondeur)',
+                  ),
+                  const SizedBox(height: 12),
+                  ModelShadowControls(
+                    key: ValueKey('model-shadows-${model.id}'),
+                    model: model,
+                    busy: n.busy,
+                    onChanged: (value) async {
+                      await n.mutate('model3d.configure', {
+                        'modelId': model.id,
+                        'castsShadowsByDefault': value,
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   StudioButton(

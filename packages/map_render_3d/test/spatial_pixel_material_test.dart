@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
+import 'package:map_render_3d/src/spatial_shadow_profile.dart';
 
 void main() {
   late _ShaderBackend backend;
@@ -91,16 +92,16 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 11);
+    expect(shader.pixelWrites, 14);
 
     for (var frame = 0; frame < 120; frame++) {
       material.apply(context);
     }
 
-    expect(shader.pixelWrites, 11);
+    expect(shader.pixelWrites, 14);
     material.uvRect.x = .25;
     material.apply(context);
-    expect(shader.pixelWrites, 18);
+    expect(shader.pixelWrites, 21);
     material.fragmentShader.bind(device);
     expect(device.uniforms['Material']!.sublist(4, 8), [.25, 0, 1, 1]);
   });
@@ -174,9 +175,9 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 11);
+    expect(shader.pixelWrites, 14);
     material.apply(context);
-    expect(shader.pixelWrites, 11);
+    expect(shader.pixelWrites, 14);
   });
 
   test('skeletal surfaces retain their actual joint transforms', () {
@@ -312,12 +313,12 @@ void main() {
       final litContext = SpatialRenderContext(device)
         ..lighting = SpatialLightingProfile.stylized(sunStrength: .2);
       material.apply(litContext);
-      expect(shader.pixelWrites, 11);
+      expect(shader.pixelWrites, 14);
       material.apply(litContext);
-      expect(shader.pixelWrites, 11);
+      expect(shader.pixelWrites, 14);
       litContext.lighting = SpatialLightingProfile.stylized(sunStrength: .5);
       material.apply(litContext);
-      expect(shader.pixelWrites, 15);
+      expect(shader.pixelWrites, 18);
       material.fragmentShader.bind(device);
       expect(device.uniforms['Material']![28], closeTo(.5, 1e-6));
     },
@@ -342,6 +343,100 @@ void main() {
       expect(device.uniforms['Material']!.sublist(36, 40), [0, 0, 1, 0]);
     },
   );
+  test('only enabled ground materials bind the shadow visibility and receiver heights', () {
+    final shadow = SpatialShadowProfile(
+      casterInstanceIds: {'house'},
+      receiverMinY: .9,
+      receiverMaxY: 1.2,
+    );
+    final litContext = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(shadow: shadow)
+      ..shadowFrame = SpatialShadowFrame(
+        material.albedoTexture,
+        Matrix4.identity(),
+        shadow,
+      );
+    for (final role in SpatialPixelLightingRole.values) {
+      final surface = SpatialPixelMaterial(
+        material.albedoTexture,
+        lightingRole: role,
+      );
+      surface.vertexShader.resource;
+      surface.fragmentShader.resource;
+      surface.apply(litContext);
+      surface.fragmentShader.bind(device);
+      final options = device.uniforms['Shadow']!.sublist(16, 20);
+      expect(options[0], role == SpatialPixelLightingRole.ground ? 1 : 0);
+      if (role == SpatialPixelLightingRole.ground) {
+        expect(options[1], closeTo(shadow.bias, 1e-6));
+        expect(options[2], shadow.resolution);
+        expect(device.uniforms['Shadow']![20], closeTo(.9, 1e-6));
+        expect(device.uniforms['Shadow']![21], closeTo(1.2, 1e-6));
+        litContext.lighting = SpatialLightingProfile.disabled;
+        surface.apply(litContext);
+        surface.fragmentShader.bind(device);
+        expect(device.uniforms['Shadow']![16], 0);
+      }
+    }
+  });
+  test(
+    'prelit model surfaces bypass normal shading independently of ground',
+    () {
+      final originalVertex = material.vertexShader;
+      final litContext = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized(
+          surfaceStrength: 0,
+          groundStrength: .8,
+        );
+      material.apply(litContext);
+      material.fragmentShader.bind(device);
+      expect(material.vertexShader, same(originalVertex));
+      expect(device.uniforms['Material']!.sublist(36, 40), [1, 0, 0, 0]);
+    },
+  );
+
+  test('actors opt into uniform foot-point shadow sampling and update moving anchors', () {
+    final shadow = SpatialShadowProfile(
+      casterInstanceIds: {'house'},
+      actorReceivers: true,
+      filterRadius: 2.5,
+      receiverMinY: .9,
+      receiverMaxY: 1.2,
+    );
+    final litContext = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(
+        shadow: shadow,
+        actorStrength: 1,
+      )
+      ..shadowFrame = SpatialShadowFrame(
+        material.albedoTexture,
+        Matrix4.identity(),
+        shadow,
+      );
+    final actor = SpatialPixelMaterial(
+      material.albedoTexture,
+      lightingRole: SpatialPixelLightingRole.actor,
+    )..shadowSamplePosition = Vector3(28, 1, 15);
+    actor.vertexShader.resource;
+    actor.fragmentShader.resource;
+    final originalVertex = actor.vertexShader;
+    actor.apply(litContext);
+    actor.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']![16], 1);
+    expect(device.uniforms['Shadow']![22], 2.5);
+    expect(device.uniforms['Shadow']!.sublist(24, 28), [28, 1, 15, 1]);
+    expect(device.uniforms['Material']!.sublist(36, 40), [1, 0, 1, 0]);
+    expect(actor.vertexShader, same(originalVertex));
+    actor.shadowSamplePosition!.x = 29;
+    actor.apply(litContext);
+    actor.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']!.sublist(24, 28), [29, 1, 15, 1]);
+    actor.shadowSamplePosition = null;
+    actor.apply(litContext);
+    actor.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']![16], 0);
+    expect(device.uniforms['Shadow']![27], 0);
+  });
 }
 
 final class _CountingVertexShader extends VertexShader {
@@ -359,7 +454,10 @@ final class _CountingVertexShader extends VertexShader {
 
 final class _CountingFragmentShader extends FragmentShader {
   _CountingFragmentShader()
-    : super.fromAsset('pixel-test', slots: ['albedoTexture', 'Material']);
+    : super.fromAsset(
+        'pixel-test',
+        slots: ['albedoTexture', 'Material', 'shadowTexture', 'Shadow'],
+      );
 
   int pixelWrites = 0;
 
@@ -438,7 +536,13 @@ final class _Shader implements GpuShader {
       'lightingDirection': 128,
       'lightingOptions': 144,
     }),
-    'albedoTexture' => _UniformSlot(slot, null, {}),
+    'Shadow' => _UniformSlot(slot, 112, {
+      'worldToLight': 0,
+      'options': 64,
+      'receiverHeight': 80,
+      'samplePosition': 96,
+    }),
+    'albedoTexture' || 'shadowTexture' => _UniformSlot(slot, null, {}),
     _ => throw StateError('Unexpected shader slot: $slot'),
   };
 }

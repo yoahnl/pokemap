@@ -52,4 +52,23 @@ void main() {
   test('an unfiltered comparison preserves the original scene identity', () {
     expect(prepareComparisonScene(source, {}), same(source));
   });
+
+  test(
+    'the renderer map carries the same filtered scene as its scene argument',
+    () {
+      final map = MapData(
+        id: 'comparison',
+        name: 'Comparison',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 4, height: 4),
+        spatialScene: source,
+      );
+      final prepared = prepareComparisonMap(map, {'turbine'});
+      expect(prepared.spatialScene!.instances, [house, door]);
+      expect(map.spatialScene!.instances, [house, door, turbine]);
+      expect(prepared.spatialScene!.camera, same(source.camera));
+      expect(prepared.entities, map.entities);
+      expect(prepared.layers, map.layers);
+    },
+  );
 }

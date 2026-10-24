@@ -97,7 +97,11 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-pause-composition')),
       findsOneWidget,
     );
-    expect(find.byType(PlayerPauseSurface), findsOneWidget);
+    expect(find.byType(PlayerPausePreviewShell), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+      findsOneWidget,
+    );
     expect(find.text('Interlude'), findsWidgets);
     final pause = tester.widget<RuntimePlayerPauseShell>(
       find.byType(RuntimePlayerPauseShell),
@@ -107,7 +111,7 @@ void main() {
       pause.presentation?.actionLabels[PlayerPauseAction.pokedex],
       'Carnet',
     );
-    final pauseContext = tester.element(find.byType(PlayerPauseSurface));
+    final pauseContext = tester.element(find.byType(RuntimePlayerPauseShell));
     expect(pauseContext.playerTypography.bodyFamily, 'Aurore Body');
   });
 
@@ -142,7 +146,7 @@ void main() {
     );
     expect(find.byType(PlayerTitleSurface), findsOneWidget);
     expect(find.byType(PlayerDialogueSurface), findsOneWidget);
-    expect(find.byType(PlayerPauseSurface), findsOneWidget);
+    expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
     expect(find.byType(PlayerBattleSurface), findsOneWidget);
 
     await tester.tap(
@@ -233,7 +237,7 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-preview-pause')),
     );
     await tester.pumpAndSettle();
-    final pauseContext = tester.element(find.byType(PlayerPauseSurface));
+    final pauseContext = tester.element(find.byType(RuntimePlayerPauseShell));
     final pauseStyle = pauseContext.playerWindowTheme!.style(
       ProjectWindowRole.pauseMenu,
     );

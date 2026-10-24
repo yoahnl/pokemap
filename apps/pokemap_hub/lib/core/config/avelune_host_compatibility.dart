@@ -13,6 +13,7 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
         'map@1',
         'map3d@1',
         'map3d.animation@1',
+        SpatialModelShadowCapabilities.capabilityId,
         SpatialModelClipCapabilities.capabilityId,
         'map3d.terrain-appearance@1',
         SpatialTerrainSurfaceSet.capabilityId,

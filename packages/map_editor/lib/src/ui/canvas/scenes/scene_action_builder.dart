@@ -224,6 +224,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     _textControllers.clear();
     _values.clear();
+    final previousSound = widget.initialPayload?.interactiveCommand;
     final previousFinish = widget.initialPayload?.consequence;
     final finishParameters = command.id == NarrativeCommandIds.finishGame &&
             previousFinish is SceneFinishGameConsequence
@@ -243,6 +244,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           ? (data['presetValues'] as List? ?? const []).join('\n')
           : nestedText is Map ? nestedText['fallbackText'] : nestedText;
       final storedValue =
+          command.id == NarrativeCommandIds.playSoundEffect &&
+              parameter.id == 'waitForCompletion' &&
+              previousSound is ScenePlaySoundEffectInteractiveCommand
+          ? previousSound.waitForCompletion
+          :
           finishParameters.containsKey(parameter.id)
           ? finishParameters[parameter.id]
           :

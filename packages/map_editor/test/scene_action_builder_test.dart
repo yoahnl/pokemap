@@ -30,7 +30,7 @@ void main() {
   });
 
   testWidgets(
-    'scene music legacy builder keeps operations guided and excludes unused fields',
+    'scene music builder keeps operations channel and scope guided and excludes unused fields',
     (tester) async {
       final project = ProjectManifest(
         name: 'Musique',
@@ -49,6 +49,7 @@ void main() {
       await _pumpBuilder(
         tester,
         initialCommandId: NarrativeCommandIds.sceneMusic,
+        commandCatalog: NarrativeCommandCatalog.canonical(),
         project: project,
         initialPayload: SceneActionPayload.interactive(
           SceneInteractiveCommand.sceneMusic(
@@ -71,11 +72,36 @@ void main() {
           ],
           NarrativeCommandParameterKind.musicMediaReference:
               buildSceneMusicMediaPickerOptions(project),
+          NarrativeCommandParameterKind.sceneMusicChannel: const [
+            SceneActionPickerOption(id: 'music', label: 'Musique'),
+            SceneActionPickerOption(id: 'ambience', label: 'Ambiance'),
+            SceneActionPickerOption(id: 'both', label: 'Les deux canaux'),
+          ],
+          NarrativeCommandParameterKind.sceneMusicScope: const [
+            SceneActionPickerOption(id: 'scene', label: 'Cette scène'),
+            SceneActionPickerOption(id: 'map', label: 'Cette carte'),
+          ],
         },
         onSubmit: (value) => applied = value,
       );
       expect(_picker(tester, 'Musique en boucle').value, 'theme');
+      expect(_picker(tester, 'Canal').value, 'music');
+      expect(_picker(tester, 'Durée de vie').value, 'scene');
       expect(_submitButton(tester).onPressed, isNotNull);
+      _submitButton(tester).onPressed!();
+      expect(
+        (applied as SceneActionPayload).interactiveCommand,
+        SceneInteractiveCommand.sceneMusic(
+          operation: SceneMusicOperation.play,
+          mediaAssetId: 'theme',
+          volume: .8,
+        ),
+      );
+      _picker(tester, 'Canal').onChanged('both');
+      await tester.pump();
+      expect(_submitButton(tester).onPressed, isNull);
+      _picker(tester, 'Canal').onChanged('ambience');
+      _picker(tester, 'Durée de vie').onChanged('map');
       _picker(tester, 'Action musicale').onChanged('restore');
       await tester.pump();
       expect(find.text('Musique en boucle'), findsNothing);
@@ -84,6 +110,8 @@ void main() {
       expect((applied as SceneActionPayload).interactiveCommand!.toJson(), {
         'kind': 'sceneMusic',
         'operation': 'restore',
+        'channel': 'ambience',
+        'scope': 'map',
       });
       _picker(tester, 'Action musicale').onChanged('fadeOut');
       await tester.pump();
@@ -103,6 +131,8 @@ void main() {
       expect((applied as SceneActionPayload).interactiveCommand!.toJson(), {
         'kind': 'sceneMusic',
         'operation': 'fadeOut',
+        'channel': 'ambience',
+        'scope': 'map',
         'durationMs': 0,
       });
     },
@@ -497,7 +527,7 @@ void main() {
     await _pumpBuilder(
       tester,
       initialCommandId: NarrativeCommandIds.playSoundEffect,
-      commandCatalog: _presentationCommandCatalog(),
+      commandCatalog: NarrativeCommandCatalog.canonical(),
       options: _soundOptions,
       initialParameters: const {'mediaAssetId': 'bell', 'volume': '0.35'},
       onSubmitResult: (value) => result = value,
@@ -511,15 +541,62 @@ void main() {
     expect(_submitButton(tester).onPressed, isNotNull);
     _submitButton(tester).onPressed!();
     await tester.pump();
-    expect(result!.parameters, {'mediaAssetId': 'bell', 'volume': '0.35'});
+    expect(result!.parameters, {
+      'mediaAssetId': 'bell',
+      'volume': '0.35',
+      'waitForCompletion': 'true',
+    });
     expect(
       (result!.payload as SceneActionPayload).interactiveCommand,
       SceneInteractiveCommand.playSoundEffect(
         mediaAssetId: 'bell',
         volume: 0.35,
+        waitForCompletion: true,
       ),
     );
   });
+
+  for (final waitForCompletion in [false, true]) {
+    testWidgets(
+      'sound waitForCompletion=$waitForCompletion reopens and can be changed',
+      (tester) async {
+        final command = SceneInteractiveCommand.playSoundEffect(
+          mediaAssetId: 'bell',
+          volume: .35,
+          waitForCompletion: waitForCompletion,
+        );
+        SceneActionBuildResult? result;
+        await _pumpBuilder(
+          tester,
+          initialCommandId: NarrativeCommandIds.playSoundEffect,
+          commandCatalog: NarrativeCommandCatalog.canonical(),
+          options: _soundOptions,
+          initialPayload: SceneActionPayload.interactive(command),
+          onSubmitResult: (value) => result = value,
+        );
+        expect(_picker(tester, 'Attendre la fin').value, '$waitForCompletion');
+        expect(_submitButton(tester).onPressed, isNotNull);
+        _submitButton(tester).onPressed!();
+        expect((result!.payload as SceneActionPayload).interactiveCommand, command);
+        _picker(tester, 'Attendre la fin').onChanged('${!waitForCompletion}');
+        await tester.pump();
+        _submitButton(tester).onPressed!();
+        expect(result!.parameters, {
+          'mediaAssetId': 'bell',
+          'volume': '0.35',
+          'waitForCompletion': '${!waitForCompletion}',
+        });
+        expect(
+          (result!.payload as SceneActionPayload).interactiveCommand,
+          SceneInteractiveCommand.playSoundEffect(
+            mediaAssetId: 'bell',
+            volume: .35,
+            waitForCompletion: !waitForCompletion,
+          ),
+        );
+      },
+    );
+  }
 
   testWidgets('sound volume is finite and bounded with zero allowed', (
     tester,
@@ -590,7 +667,7 @@ void main() {
         await _pumpBuilder(
           tester,
           initialCommandId: NarrativeCommandIds.playSoundEffect,
-          commandCatalog: _presentationCommandCatalog(),
+          commandCatalog: NarrativeCommandCatalog.canonical(),
           options: _soundOptions,
           initialParameters: const {'mediaAssetId': 'door', 'volume': '0.8'},
         );
@@ -598,7 +675,7 @@ void main() {
         await _pumpBuilder(
           tester,
           initialCommandId: NarrativeCommandIds.playSoundEffect,
-          commandCatalog: _presentationCommandCatalog(),
+          commandCatalog: NarrativeCommandCatalog.canonical(),
           options: {NarrativeCommandParameterKind.soundMediaReference: options},
           initialParameters: const {'mediaAssetId': 'door', 'volume': '0.8'},
           onSubmit: (_) => fail('Ambiguous sound must not submit'),
@@ -611,7 +688,7 @@ void main() {
         await _pumpBuilder(
           tester,
           initialCommandId: NarrativeCommandIds.playSoundEffect,
-          commandCatalog: _presentationCommandCatalog(),
+          commandCatalog: NarrativeCommandCatalog.canonical(),
           options: {NarrativeCommandParameterKind.soundMediaReference: options},
           initialParameters: const {'mediaAssetId': 'bell', 'volume': '0.8'},
           onSubmitResult: (value) => valid = value,
@@ -624,6 +701,7 @@ void main() {
           SceneInteractiveCommand.playSoundEffect(
             mediaAssetId: 'bell',
             volume: 0.8,
+            waitForCompletion: true,
           ),
         );
       },

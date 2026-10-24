@@ -6,8 +6,46 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_feature_capabilities_fixture.dart';
+import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  for (final (assetDefault, override, required) in [
+    (false, null, false), (true, null, true), (true, false, false), (false, true, true),
+  ]) {
+    test('shadow export derives effective casting $assetDefault/$override without source mutation', () async {
+      final root = await Directory.systemTemp.createTemp('shadow-feature-export-');
+      addTearDown(() => root.delete(recursive: true));
+      final files = spatialPayload();
+      final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(files['project/project.json']!)));
+      final configured = project.copyWith(models3d: [
+        for (final model in project.models3d) model.copyWith(castsShadowsByDefault: assetDefault),
+      ]);
+      final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+      files['project/project.json'] = utf8.encode(jsonEncode(configured.toJson()));
+      files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(
+        spatialScene: map.spatialScene!.copyWith(instances: [
+          for (final instance in map.spatialScene!.instances)
+            instance.copyWith(castsShadows: override, clearCastsShadows: override == null),
+        ]),
+      ).toJson()));
+      for (final entry in files.entries) {
+        final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final beforeProject = await File('${root.path}/project.json').readAsBytes();
+      final beforeMap = await File('${root.path}/maps/map.json').readAsBytes();
+      final result = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: GamePackageExportProfile(gameId: 'games.example.shadows', gameVersion: '0.1.0',
+          title: 'Shadows', authorName: 'Yoahn', defaultLocale: 'fr', supportedLocales: ['fr']),
+        mode: GamePackageExportMode.localTest,
+      );
+      expect(result.manifest.compatibility.requiredCapabilities.contains(SpatialModelShadowCapabilities.capabilityId), required);
+      expect(await File('${root.path}/project.json').readAsBytes(), beforeProject);
+      expect(await File('${root.path}/maps/map.json').readAsBytes(), beforeMap);
+    });
+  }
   final features = {
     'camera': SpatialCameraProfile.orthographicCapabilityId,
     'companion': SpatialGameplayCapabilities.companionCapabilityId,

@@ -174,6 +174,13 @@ class _PlayerPausePreviewShellState extends State<PlayerPausePreviewShell> {
               onTouchControlsOpacityChanged: (value) {
                 setState(() => _touchControlsOpacity = value);
               },
+              onReturnToTitle: widget.presentation.visibleActions
+                          .contains(PlayerPauseAction.returnToTitle) &&
+                      widget.actions[PlayerPauseAction.returnToTitle]
+                              ?.isEnabled ==
+                          true
+                  ? () => _openDetail(PlayerPauseAction.returnToTitle)
+                  : null,
             )
           : const SizedBox.shrink(),
     );
@@ -217,6 +224,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
     required this.regionMapNavigation,
     required this.touchControlsOpacity,
     required this.onTouchControlsOpacityChanged,
+    this.onReturnToTitle,
   });
 
   final String gameTitle;
@@ -225,6 +233,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
   final RuntimePlayerRegionMapNavigation regionMapNavigation;
   final double touchControlsOpacity;
   final ValueChanged<double> onTouchControlsOpacityChanged;
+  final VoidCallback? onReturnToTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +246,7 @@ class _PlayerPausePreviewDetail extends StatelessWidget {
       ),
       pokedexNavigation: pokedexNavigation,
       regionMapNavigation: regionMapNavigation,
+      onReturnToTitle: onReturnToTitle,
       onPreferencesChanged: (preferences) => onTouchControlsOpacityChanged(
         preferences.touchControlsOpacity,
       ),

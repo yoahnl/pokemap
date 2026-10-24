@@ -19,6 +19,7 @@ class SpatialRenderContext extends RenderContext3D
   @override
   SpatialShadowFrame? shadowFrame;
   String? sourceInstanceId;
+  String? sourceShadowId;
   SpatialShadowStats shadowStats = const SpatialShadowStats();
   SpatialShadowMap? _shadowMap;
   bool _collecting = false;
@@ -74,6 +75,7 @@ class SpatialRenderContext extends RenderContext3D
       depth: -center.z,
       sequence: sequence,
       instanceId: sourceInstanceId,
+      shadowId: sourceShadowId,
     );
   }
 
@@ -88,13 +90,17 @@ class SpatialRenderContext extends RenderContext3D
       _collecting = false;
       var casterDrawCount = 0;
       if (shadow != null) {
-        final map = _shadowMap ??= SpatialShadowMap(device.backend);
+        final map = _shadowMap ??= SpatialShadowMap(
+          device.backend,
+          ownsFrame: false,
+        );
         shadowFrame = map.render(shadow, lighting.sunDirection, (
           context,
           depthMaterial,
         ) {
           for (final entry in _captured) {
-            if (!shadow.casterInstanceIds.contains(entry.instanceId) ||
+            if (!(shadow.casterInstanceIds.contains(entry.instanceId) ||
+                    shadow.casterInstanceIds.contains(entry.shadowId)) ||
                 entry.material.alphaMode == Model3dAlphaMode.blend ||
                 entry.material.lightingRole != SpatialPixelLightingRole.surface)
               continue;
@@ -122,7 +128,11 @@ class SpatialRenderContext extends RenderContext3D
                   .where(
                     (entry) =>
                         entry.material.lightingRole ==
-                        SpatialPixelLightingRole.ground,
+                            SpatialPixelLightingRole.ground ||
+                        shadow.actorReceivers &&
+                            entry.material.lightingRole ==
+                                SpatialPixelLightingRole.actor &&
+                            entry.pose.shadowSamplePosition != null,
                   )
                   .length,
         targetAllocations: _shadowMap?.targetAllocations ?? 0,
@@ -167,12 +177,14 @@ class SpatialRenderContext extends RenderContext3D
     final previousModel = model.clone();
     final previousJoints = jointsInfo.jointTransforms;
     final previousInstance = sourceInstanceId;
+    final previousShadow = sourceShadowId;
     try {
       entry.pose.apply(entry.material);
       entry.surface.material = entry.material;
       model.setFrom(entry.model);
       jointsInfo.jointTransforms = entry.joints;
       sourceInstanceId = entry.instanceId;
+      sourceShadowId = entry.shadowId;
       draw();
     } finally {
       previousPose.apply(entry.material);
@@ -180,6 +192,7 @@ class SpatialRenderContext extends RenderContext3D
       model.setFrom(previousModel);
       jointsInfo.jointTransforms = previousJoints;
       sourceInstanceId = previousInstance;
+      sourceShadowId = previousShadow;
     }
   }
 }
@@ -194,6 +207,7 @@ final class _TransparentSurface {
     required this.depth,
     required this.sequence,
     required this.instanceId,
+    required this.shadowId,
   });
 
   final Surface surface;
@@ -204,6 +218,7 @@ final class _TransparentSurface {
   final double depth;
   final int sequence;
   final String? instanceId;
+  final String? shadowId;
 }
 
 final class _MaterialPose {
@@ -215,6 +230,7 @@ final class _MaterialPose {
       v = material.uvTransformV.clone(),
       wrapS = material.activeWrapS,
       wrapT = material.activeWrapT,
+      shadowSamplePosition = material.shadowSamplePosition?.clone(),
       cullMode = material.cullMode;
 
   final Texture texture;
@@ -222,8 +238,15 @@ final class _MaterialPose {
   final Vector4 rect, u, v;
   final int wrapS, wrapT;
   final CullMode cullMode;
+  final Vector3? shadowSamplePosition;
 
   void apply(SpatialPixelMaterial material) {
+    final sample = shadowSamplePosition;
+    if (sample == null) {
+      material.shadowSamplePosition = null;
+    } else {
+      (material.shadowSamplePosition ??= Vector3.zero()).setFrom(sample);
+    }
     material
       ..albedoColor = color
       ..cullMode = cullMode

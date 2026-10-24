@@ -272,6 +272,7 @@ final class ProjectModel3dEntry {
     this.collisionBounds,
     this.rampProfile,
     this.blocksMovementByDefault = true,
+    this.castsShadowsByDefault = false,
   }) : id = _id(id),
        name = _name(name),
        sourceAssetId = _id(sourceAssetId, maximumLength: 160),
@@ -305,6 +306,7 @@ final class ProjectModel3dEntry {
   final Model3dBounds? collisionBounds;
   final Model3dRampProfile? rampProfile;
   final bool blocksMovementByDefault;
+  final bool castsShadowsByDefault;
 
   ProjectModel3dEntry copyWith({
     String? name,
@@ -315,6 +317,7 @@ final class ProjectModel3dEntry {
     Model3dRampProfile? rampProfile,
     bool clearRampProfile = false,
     bool? blocksMovementByDefault,
+    bool? castsShadowsByDefault,
   }) => ProjectModel3dEntry(
     id: id,
     name: name ?? this.name,
@@ -329,6 +332,7 @@ final class ProjectModel3dEntry {
     rampProfile: clearRampProfile ? null : rampProfile ?? this.rampProfile,
     blocksMovementByDefault:
         blocksMovementByDefault ?? this.blocksMovementByDefault,
+    castsShadowsByDefault: castsShadowsByDefault ?? this.castsShadowsByDefault,
   );
 
   @override
@@ -344,7 +348,8 @@ final class ProjectModel3dEntry {
           other.pivot == pivot &&
           other.collisionBounds == collisionBounds &&
           other.rampProfile == rampProfile &&
-          other.blocksMovementByDefault == blocksMovementByDefault;
+          other.blocksMovementByDefault == blocksMovementByDefault &&
+          other.castsShadowsByDefault == castsShadowsByDefault;
   @override
   int get hashCode => Object.hash(
     id,
@@ -357,6 +362,7 @@ final class ProjectModel3dEntry {
     collisionBounds,
     rampProfile,
     blocksMovementByDefault,
+    castsShadowsByDefault,
   );
 
   factory ProjectModel3dEntry.fromJson(Map<String, dynamic> json) {
@@ -371,10 +377,15 @@ final class ProjectModel3dEntry {
       if (json.containsKey('collisionBounds')) 'collisionBounds',
       if (json.containsKey('rampProfile')) 'rampProfile',
       if (json.containsKey('blocksMovementByDefault')) 'blocksMovementByDefault',
+      if (json.containsKey('castsShadowsByDefault')) 'castsShadowsByDefault',
     });
     if (json.containsKey('blocksMovementByDefault') &&
         json['blocksMovementByDefault'] is! bool) {
       throw const FormatException('Default movement blocking must be boolean.');
+    }
+    if (json.containsKey('castsShadowsByDefault') &&
+        json['castsShadowsByDefault'] is! bool) {
+      throw const FormatException('Default shadow casting must be boolean.');
     }
     return ProjectModel3dEntry(
       id: json['id'] as String,
@@ -391,6 +402,7 @@ final class ProjectModel3dEntry {
           ? null
           : Model3dRampProfile.fromJson(_object(json['rampProfile'])),
       blocksMovementByDefault: json['blocksMovementByDefault'] as bool? ?? true,
+      castsShadowsByDefault: json['castsShadowsByDefault'] as bool? ?? false,
     );
   }
   Map<String, dynamic> toJson() => {
@@ -404,6 +416,7 @@ final class ProjectModel3dEntry {
     if (collisionBounds != null) 'collisionBounds': collisionBounds!.toJson(),
     if (rampProfile != null) 'rampProfile': rampProfile!.toJson(),
     if (!blocksMovementByDefault) 'blocksMovementByDefault': false,
+    if (castsShadowsByDefault) 'castsShadowsByDefault': true,
   };
 }
 

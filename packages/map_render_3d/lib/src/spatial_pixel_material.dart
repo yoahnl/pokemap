@@ -18,6 +18,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     this.groundDepthOnly = false,
     this.lightingRole = SpatialPixelLightingRole.surface,
     this.sourceMaterialName,
+    this.preserveUnlitColor = false,
   }) : _defaultAlbedoTexture = texture,
        _activeWrapS = wrapS,
        _activeWrapT = wrapT,
@@ -48,6 +49,8 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final bool groundDepthOnly;
   final SpatialPixelLightingRole lightingRole;
   final String? sourceMaterialName;
+  final bool preserveUnlitColor;
+  Vector3? shadowSamplePosition;
   late final VertexShader _unlitVertexShader;
   late final VertexShader _litVertexShader = _PixelVertexShader(
     () => _identityJointBound = false,
@@ -68,6 +71,9 @@ class SpatialPixelMaterial extends UnlitMaterial {
   Shader? _shadowShader;
   GpuShader? _shadowResource;
   final _shadowOptions = Vector4.zero(), _shadowHeight = Vector4.zero();
+  final _shadowSample = Vector4.zero();
+  final _boundShadowSample = Vector3.zero();
+  bool _boundUsesShadowSample = false;
   int _activeWrapS, _activeWrapT;
   int get activeWrapS => _activeWrapS;
   int get activeWrapT => _activeWrapT;
@@ -112,6 +118,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
         !lighting.unlitMaterialNames.contains(sourceMaterialName);
     final normalLighting =
         enabled &&
+        lighting.surfaceStrength > 0 &&
         !groundDepthOnly &&
         lightingRole == SpatialPixelLightingRole.surface;
     prepareLighting(lighting);
@@ -121,7 +128,13 @@ class SpatialPixelMaterial extends UnlitMaterial {
         ? (context as SpatialLightingContext).shadowFrame
         : null;
     _applyShadow(
-      enabled && lightingRole == SpatialPixelLightingRole.ground ? frame : null,
+      enabled &&
+              (lightingRole == SpatialPixelLightingRole.ground ||
+                  lightingRole == SpatialPixelLightingRole.actor &&
+                      frame?.profile.actorReceivers == true &&
+                      shadowSamplePosition != null)
+          ? frame
+          : null,
     );
     if (context.jointsInfo.jointTransforms.isEmpty) {
       final shader = vertexShader;
@@ -162,12 +175,17 @@ class SpatialPixelMaterial extends UnlitMaterial {
       'Material.wrapModes',
       Vector2(_activeWrapS.toDouble(), _activeWrapT.toDouble()),
     );
-    fragmentShader.setFloat('Material.alphaMode', switch (alphaMode) {
-      null => 0,
-      Model3dAlphaMode.opaque => 1,
-      Model3dAlphaMode.mask => 2,
-      Model3dAlphaMode.blend => 3,
-    });
+    fragmentShader.setFloat(
+      'Material.alphaMode',
+      preserveUnlitColor
+          ? 4
+          : switch (alphaMode) {
+              null => 0,
+              Model3dAlphaMode.opaque => 1,
+              Model3dAlphaMode.mask => 2,
+              Model3dAlphaMode.blend => 3,
+            },
+    );
     fragmentShader.setFloat('Material.alphaCutoff', alphaCutoff);
     _boundShader = shader;
     _boundResource = resource;
@@ -184,6 +202,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
   void prepareLighting(SpatialLightingProfile lighting) {
     final normalLighting =
         lighting.enabled &&
+        lighting.surfaceStrength > 0 &&
         !lighting.unlitMaterialNames.contains(sourceMaterialName) &&
         !groundDepthOnly &&
         lightingRole == SpatialPixelLightingRole.surface;
@@ -226,7 +245,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
         ? lighting.groundStrength
         : lightingRole == SpatialPixelLightingRole.actor
         ? lighting.actorStrength
-        : 1.0;
+        : lighting.surfaceStrength;
     _lightingOptions.setValues(
       enabled ? 1 : 0,
       normalLighting ? 1 : 0,
@@ -248,8 +267,15 @@ class SpatialPixelMaterial extends UnlitMaterial {
 
   void _applyShadow(SpatialShadowFrame? frame) {
     final shader = fragmentShader, resource = fragmentShader.resource;
+    final sample =
+        frame != null && lightingRole == SpatialPixelLightingRole.actor
+        ? shadowSamplePosition
+        : null;
+    final usesSample = sample != null;
     if (_shadowUniformsBound &&
         identical(_boundShadowFrame, frame) &&
+        _boundUsesShadowSample == usesSample &&
+        (sample == null || _boundShadowSample == sample) &&
         identical(_shadowShader, shader) &&
         identical(_shadowResource, resource))
       return;
@@ -263,17 +289,26 @@ class SpatialPixelMaterial extends UnlitMaterial {
     _shadowHeight.setValues(
       profile?.receiverMinY ?? 0,
       profile?.receiverMaxY ?? 0,
+      profile?.filterRadius ?? 1,
       0,
-      0,
+    );
+    _shadowSample.setValues(
+      sample?.x ?? 0,
+      sample?.y ?? 0,
+      sample?.z ?? 0,
+      usesSample ? 1 : 0,
     );
     shader
       ..setTexture('shadowTexture', frame?.texture ?? Texture.standard)
       ..setMatrix4('Shadow.worldToLight', frame?.worldToLight ?? _identityJoint)
       ..setVector4('Shadow.options', _shadowOptions)
-      ..setVector4('Shadow.receiverHeight', _shadowHeight);
+      ..setVector4('Shadow.receiverHeight', _shadowHeight)
+      ..setVector4('Shadow.samplePosition', _shadowSample);
     _boundShadowFrame = frame;
     _shadowShader = shader;
     _shadowResource = resource;
+    _boundUsesShadowSample = usesSample;
+    if (sample != null) _boundShadowSample.setFrom(sample);
     _shadowUniformsBound = true;
   }
 }

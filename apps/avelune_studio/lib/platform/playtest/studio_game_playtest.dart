@@ -367,6 +367,7 @@ final class _StudioGameSource implements RuntimeGameSource {
           ProjectContactDeviceConfig.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           'map3d.animation@1',
+          SpatialModelShadowCapabilities.capabilityId,
           SpatialModelClipCapabilities.capabilityId,
           'map3d.terrain-appearance@1',
           SpatialTerrainSurfaceSet.capabilityId,

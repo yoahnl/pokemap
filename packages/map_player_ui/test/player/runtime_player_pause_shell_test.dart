@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -369,6 +370,54 @@ void main() {
             const ValueKey<String>('player-pause-preview-detail-quests')),
         findsNothing);
   });
+
+  for (final hidden in [false, true]) {
+    testWidgets(
+        'pause preview excludes ${hidden ? 'hidden' : 'unavailable'} return to title from options',
+        (tester) async {
+      await _setSurface(tester, const Size(1440, 900));
+      final selected = <PlayerPauseAction>[];
+      await tester.pumpWidget(_app(PlayerPausePreviewShell(
+        gameTitle: 'Aube',
+        actions: {
+          ..._actions(),
+          if (!hidden)
+            PlayerPauseAction.returnToTitle:
+                const PlayerActionAvailability.disabled('Indisponible'),
+        },
+        presentation: PlayerPausePresentation(
+          style: ProjectPauseMenuStyle.nightIllustrated,
+          hiddenActions: {
+            if (hidden) PlayerPauseAction.returnToTitle,
+          },
+        ),
+        details: const {
+          PlayerPauseAction.options: PlayerPausePreviewDetailData(
+            action: PlayerPauseAction.options,
+            title: 'Options',
+            message: 'Aperçu des options',
+          ),
+          PlayerPauseAction.returnToTitle: PlayerPausePreviewDetailData(
+            action: PlayerPauseAction.returnToTitle,
+            title: 'Retour au titre',
+            message: 'Aperçu du retour au titre',
+          ),
+        },
+        onSelected: selected.add,
+      )));
+      await _tapPreviewControl(tester, 'pause.options');
+      expect(
+          tester.widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
+              .onReturnToTitle,
+          isNull);
+      expect(find.byKey(const ValueKey('options-return-title')), findsNothing);
+      expect(selected, [PlayerPauseAction.options]);
+      expect(
+          find.byKey(const ValueKey('player-pause-preview-detail-returnToTitle')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   for (final size in [const Size(1440, 900), const Size(390, 844)]) {
     testWidgets('pause preview renders typed Pokédex and profile at $size',

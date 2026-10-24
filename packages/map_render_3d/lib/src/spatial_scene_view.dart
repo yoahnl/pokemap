@@ -38,6 +38,7 @@ import 'spatial_model_source_clip.dart';
 import 'spatial_scene_preparation.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
+import 'spatial_authored_shadows.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -194,9 +195,15 @@ class SpatialSceneView extends StatefulWidget {
 
   bool modelSourcesMatch(SpatialSceneView other) =>
       immutableResourcesMatch(other) ||
-      identical(groundProject, other.groundProject) &&
+      _sameModelSourceProjects(groundProject, other.groundProject) &&
           loadModel == other.loadModel &&
-          listEquals(models, other.models);
+          _sameModelSources(models, other.models);
+
+  bool shadowDefaultsMatch(SpatialSceneView other) =>
+      models.length == other.models.length &&
+      models.indexed.every((entry) =>
+        entry.$2.id == other.models[entry.$1].id &&
+        entry.$2.castsShadowsByDefault == other.models[entry.$1].castsShadowsByDefault);
 
   bool immutableResourcesMatch(SpatialSceneView other) =>
       resourceIdentity != null &&
@@ -470,6 +477,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
         !identical(oldWidget.groundMap, widget.groundMap) ||
         !identical(oldWidget.groundProject, widget.groundProject) ||
         modelSourcesChanged ||
+        !widget.shadowDefaultsMatch(oldWidget) ||
         !_sameNeighbors(oldWidget.neighbors, widget.neighbors) ||
         oldWidget.sceneOffset != widget.sceneOffset ||
         oldWidget.selectedCell != widget.selectedCell ||
@@ -503,9 +511,11 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   @override
   Widget build(BuildContext context) {
     final game = this.game;
-    final lighting = SpatialLightingPreview.of(context);
-    if (game != null)
-      (game.context as SpatialRenderContext).lighting = lighting;
+    final lighting = SpatialLightingPreview.maybeOf(context);
+    if (game != null) {
+      game.previewLighting = lighting;
+      game.syncLighting();
+    }
     return MouseRegion(
       cursor: navigationPointer == null
           ? MouseCursor.defer
@@ -688,6 +698,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     required this.onSurfaceChanged,
   }) : super(world: World3D(), camera: AdaptiveCamera3D(fovY: 40));
   SpatialSceneView configuration;
+  SpatialLightingProfile? previewLighting;
+  SpatialLightingProfile authoredLighting = SpatialLightingProfile.disabled;
+  void syncLighting() => (context as SpatialRenderContext).lighting =
+      previewLighting ?? authoredLighting;
   final ValueChanged<Object?> onPreviewStatus;
   final VoidCallback onSurfaceChanged;
   SpatialSceneView? renderedConfiguration;
@@ -899,6 +913,9 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final nextGrounds = <_SceneGround>[];
     final nextAnimationModels = <(String, String), _SceneModelComponent>{};
     final nextRuntimeScenes = <String, Iterable<SpatialModelInstance>>{};
+    final nextShadowCasters = <SpatialAuthoredShadowCaster>[];
+    var receiverMaximumY = snapshot.scene.maximumWorldHeight;
+    var receiverMinimumY = spatialShadowReceiverMinimumHeight(snapshot.scene);
     final nextModelComponents =
         <
           String,
@@ -935,6 +952,15 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             active: false,
           ),
     ];
+    final receiveShadows = placements.any((placement) {
+      final map = placement.map == null
+          ? null
+          : projectedSmartTileMap(placement.map!, placement.project);
+      return (map?.spatialScene ?? placement.scene).instances.any((instance) {
+        final definition = placement.definitions[instance.modelId];
+        return definition != null && instance.effectiveCastsShadows(definition);
+      });
+    });
     try {
       for (final placement in placements) {
         final project = placement.project;
@@ -943,6 +969,14 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             ? null
             : projectedSmartTileMap(placement.map!, project);
         final scene = map?.spatialScene ?? placement.scene;
+        final instancesById = {
+          for (final instance in scene.instances) instance.id: instance,
+        };
+        receiverMaximumY = math.max(receiverMaximumY, scene.maximumWorldHeight);
+        receiverMinimumY = math.min(
+          receiverMinimumY,
+          spatialShadowReceiverMinimumHeight(scene),
+        );
         for (final instance in scene.instances) {
           final sourceAssetId =
               placementDefinitions[instance.modelId]?.sourceAssetId;
@@ -962,6 +996,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           placement.active ? snapshot.selectedContent?.kind : null,
           placement.active ? snapshot.selectedContent?.id : null,
           snapshot.selectionColor,
+          receiveShadows,
         );
         final previousChunk = sceneChunks[mapId];
         if (previousChunk?.signature == signature) {
@@ -971,6 +1006,16 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           if (chunk.ground case final ground?) nextGrounds.add(ground);
           for (final entry in chunk.models.entries) {
             nextAnimationModels[(mapId, entry.key)] = entry.value.component;
+            final instance = instancesById[entry.key]!;
+            final definition = placementDefinitions[instance.modelId]!;
+            final caster = spatialAuthoredShadowCaster(
+              mapId: mapId,
+              instance: instance,
+              definition: definition,
+              bounds: entry.value.component.visibleBounds,
+              worldTransform: entry.value.component.worldTransformMatrix,
+            );
+            if (caster != null) nextShadowCasters.add(caster);
           }
           if (placement.active) nextModelComponents.addAll(chunk.models);
           continue;
@@ -1023,6 +1068,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             ground: snapshot.ground,
             edge: snapshot.edge,
             selectedCell: placement.active ? snapshot.selectedCell : null,
+            receiveShadows: receiveShadows,
           );
           sceneGround = ground;
           ground.resolve(
@@ -1038,6 +1084,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           snapshot.edge,
           selectedCell: placement.active ? snapshot.selectedCell : null,
           includeGround: groundPlan == null,
+          receiveShadows: receiveShadows,
           replacedGroundCells: groundPlan?.groundReplacementCells ?? const {},
           borderGroundReplacements:
               groundPlan?.borderGroundReplacements ?? const {},
@@ -1112,6 +1159,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           final previous = animationModels[animationKey];
           final component = _SceneModelComponent(
             instanceId: instance.id,
+            shadowId: spatialShadowInstanceId(mapId, instance.id),
             model: model,
             visibleBounds: visibleBounds,
             playback: identical(previous?.model, model)
@@ -1150,6 +1198,14 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
                   )
                 : const [],
           );
+          final caster = spatialAuthoredShadowCaster(
+            mapId: mapId,
+            instance: instance,
+            definition: definition,
+            bounds: visibleBounds,
+            worldTransform: component.worldTransformMatrix,
+          );
+          if (caster != null) nextShadowCasters.add(caster);
           component.bindAnimation(
             instance.animationIndex,
             loop: instance.animationLoop,
@@ -1177,6 +1233,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       if (ticket != generation || closed) return false;
       final nextCellOverlays = buildCellOverlays(snapshot);
       groups[(#overlays,)] = nextCellOverlays;
+      final nextAuthoredLighting = spatialAuthoredShadowLighting(
+        nextShadowCasters,
+        receiverMinY: receiverMinimumY,
+        receiverMaxY: receiverMaximumY,
+      );
       return await sceneComponents.replaceGroups(
         groups,
         isCurrent: () => ticket == generation && !closed,
@@ -1221,6 +1282,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           animationModels = nextAnimationModels;
           runtimeModelIndex = SpatialRuntimeModelIndex(nextRuntimeScenes);
           renderedConfiguration = configuration;
+          authoredLighting = nextAuthoredLighting;
+          syncLighting();
           actorVisual = null;
           cellOverlayComponents = nextCellOverlays;
           refreshing = false;
@@ -1515,6 +1578,11 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       actor.mesh.position.setValues(
         (position?.x ?? frame.x) + configuration.sceneOffset.dx,
         (position?.y ?? frame.y) + .02,
+        (position?.z ?? frame.z) + configuration.sceneOffset.dy,
+      );
+      (actor.material.shadowSamplePosition ??= Vector3.zero()).setValues(
+        (position?.x ?? frame.x) + configuration.sceneOffset.dx,
+        position?.y ?? frame.y,
         (position?.z ?? frame.z) + configuration.sceneOffset.dy,
       );
       final transform = spatialActorTransform(
@@ -1832,6 +1900,28 @@ bool _sameNeighbors(
   return true;
 }
 
+bool _sameModelSources(
+  List<ProjectModel3dEntry> before,
+  List<ProjectModel3dEntry> after,
+) {
+  if (before.length != after.length) return false;
+  for (var index = 0; index < before.length; index++) {
+    final a = before[index], b = after[index];
+    if (a != b &&
+        a.copyWith(castsShadowsByDefault: b.castsShadowsByDefault) != b) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _sameModelSourceProjects(ProjectManifest? before, ProjectManifest? after) =>
+    identical(before, after) ||
+    before != null &&
+        after != null &&
+        _sameModelSources(before.models3d, after.models3d) &&
+        before.copyWith(models3d: after.models3d) == after;
+
 typedef _ScenePlacedModel = ({
   _SceneModelComponent component,
   Vector3 position,
@@ -1861,6 +1951,7 @@ final class _SceneGround {
     required this.ground,
     required this.edge,
     required this.selectedCell,
+    required this.receiveShadows,
   });
 
   final SpatialGroundPlan plan;
@@ -1869,6 +1960,7 @@ final class _SceneGround {
   final String mapId;
   final Color ground, edge;
   final (int, int)? selectedCell;
+  final bool receiveShadows;
   List<SpatialGroundVisual> visuals = [];
   List<MeshComponent> components = [];
   List<MeshComponent> underlays = [];
@@ -1951,6 +2043,7 @@ final class _SceneGround {
               ? null
               : plan.underlaySupportsFor(visuals),
           includeCliffs: false,
+          receiveShadows: receiveShadows,
         ))
           MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
       ];
@@ -1964,6 +2057,7 @@ final class _SceneGround {
 class _SceneModelComponent extends AnimatedModelComponent {
   _SceneModelComponent({
     required this.instanceId,
+    required this.shadowId,
     required super.model,
     required this.visibleBounds,
     super.position,
@@ -1975,6 +2069,7 @@ class _SceneModelComponent extends AnimatedModelComponent {
   });
   final Model3dBounds visibleBounds;
   final String instanceId;
+  final String shadowId;
   @override
   void draw(RenderContext3D context) {
     if (context is! SpatialRenderContext) {
@@ -1982,11 +2077,14 @@ class _SceneModelComponent extends AnimatedModelComponent {
       return;
     }
     final previous = context.sourceInstanceId;
+    final previousShadow = context.sourceShadowId;
     context.sourceInstanceId = instanceId;
+    context.sourceShadowId = shadowId;
     try {
       super.draw(context);
     } finally {
       context.sourceInstanceId = previous;
+      context.sourceShadowId = previousShadow;
     }
   }
   @override
@@ -2005,6 +2103,7 @@ Iterable<Mesh> terrainMeshes(
   Set<(int, int)> bridgeCells = const {},
   bool includeGround = true,
   bool includeCliffs = true,
+  bool receiveShadows = false,
   ({Texture texture, SmartTileSourceRect sourceRect})? cliffTexture,
 }) sync* {
   final groups =
@@ -2026,13 +2125,18 @@ Iterable<Mesh> terrainMeshes(
     for (final entry in groups.entries) {
       final cliff = cliffTexture;
       final material = entry.key.$2 && cliff != null
-          ? (SpatialPixelMaterial(cliff.texture)
+          ? (SpatialPixelMaterial(cliff.texture,
+              lightingRole: receiveShadows ? SpatialPixelLightingRole.ground : SpatialPixelLightingRole.surface)
               ..uvRect.setValues(
                 cliff.sourceRect.x / cliff.texture.width,
                 cliff.sourceRect.y / cliff.texture.height,
                 cliff.sourceRect.width / cliff.texture.width,
                 cliff.sourceRect.height / cliff.texture.height,
               ))
+          : receiveShadows
+          ? (SpatialPixelMaterial(Texture.standard,
+              lightingRole: SpatialPixelLightingRole.ground, preserveUnlitColor: true)
+              ..albedoColor = entry.key.$1)
           : UnlitMaterial(albedoColor: entry.key.$1);
       mesh.addSurface(
         Surface(

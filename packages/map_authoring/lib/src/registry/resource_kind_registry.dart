@@ -233,6 +233,14 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Map',
         summary: 'Editable PokeMap map',
         extensions: const {
+          'modelShadowCasting': {
+            'field': 'spatialScene.instances[].castsShadows',
+            'type': ['boolean', 'null'],
+            'default': null,
+            'inherits': 'model3d.castsShadowsByDefault',
+            'actions': ['map3d.instance.upsert', 'map3d.instance.upsert_batch'],
+            'capability': 'map3d.shadows@1',
+          },
           'entityBatchCreation': {
             'action': 'entity.create_batch',
             'parameter': 'entities',
@@ -848,6 +856,13 @@ final class AuthoringResourceKindRegistry {
           displayName: '3D model',
           summary: 'Inspected project-owned GLB model, authoring transform and default movement blocking for new instances',
           extensions: const {
+            'castsShadowsByDefault': {
+              'type': 'boolean',
+              'default': false,
+              'serializedDefaultOmitted': true,
+              'instanceOverrideField': 'castsShadows',
+              'instanceOverrideNullable': true,
+            },
             'blocksMovementByDefault': {
               'type': 'boolean',
               'default': true,

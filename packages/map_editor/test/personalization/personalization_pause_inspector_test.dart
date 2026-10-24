@@ -328,7 +328,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
-    expect(find.byType(PlayerPauseSurface), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
         of: find.byType(RuntimePlayerPauseShell),
@@ -338,7 +341,7 @@ void main() {
     );
     expect(
       find.descendant(
-        of: find.byType(PlayerPauseSurface),
+        of: find.byType(PlayerMenuSelectableRow),
         matching: find.text('Bestiaire'),
       ),
       findsOneWidget,

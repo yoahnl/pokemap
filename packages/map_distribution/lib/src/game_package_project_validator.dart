@@ -150,6 +150,12 @@ final class GamePackageProjectValidator {
                 .contains(SpatialModelClipCapabilities.capabilityId)) {
           _fail('Clipped 3D models require map3d.model-clip@1.');
         }
+        if (SpatialModelShadowCapabilities.requiresCapability(project,
+                maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialModelShadowCapabilities.capabilityId)) {
+          _fail('Shadow-casting 3D models require map3d.shadows@1.');
+        }
         if (maps.any((map) => map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) _fail('Orthographic cameras require map3d.camera-orthographic@1.');
         if (maps.any((map) => !map.spatialScene!.generateCliffs) &&
             !packageManifest.compatibility.requiredCapabilities

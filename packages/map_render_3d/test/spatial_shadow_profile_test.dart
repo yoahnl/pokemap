@@ -4,6 +4,27 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
 
 void main() {
+  test('softness and actor receivers opt in with bounded filter radii', () {
+    final original = SpatialShadowProfile(casterInstanceIds: {'house'});
+    expect(original.filterRadius, 1);
+    expect(original.actorReceivers, isFalse);
+    final soft = SpatialShadowProfile(
+      casterInstanceIds: {'house'},
+      filterRadius: 2.5,
+      actorReceivers: true,
+    );
+    expect(soft.filterRadius, 2.5);
+    expect(soft.actorReceivers, isTrue);
+    for (final radius in [-.1, 8.1, double.nan]) {
+      expect(
+        () => SpatialShadowProfile(
+          casterInstanceIds: {'house'},
+          filterRadius: radius,
+        ),
+        throwsArgumentError,
+      );
+    }
+  });
   test(
     'the light projection puts a roof before its ground shadow on the same ray',
     () {

@@ -254,6 +254,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
   Set<String>? knownSpeciesIds,
   Set<String>? knownMoveIds,
   bool requirePokemonCatalogs = false,
+  int symbolicExplorationBudget = 16384,
 }) {
   final diagnostics = <NarrativeProjectDiagnostic>[];
   final mapsById = {for (final map in maps) map.id: map};
@@ -312,6 +313,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
   final symbolicReachability = solveNarrativeSymbolicReachability(
     project,
     maps: maps,
+    explorationBudget: symbolicExplorationBudget,
   );
   _appendSymbolicReachabilityDiagnostics(symbolicReachability, diagnostics);
   _appendSceneOutcomePolicyDiagnostics(

@@ -20,7 +20,7 @@ void main() {
     const expectedTypes = <PersonalizationStudioScene, Type>{
       PersonalizationStudioScene.title: PlayerTitleSurface,
       PersonalizationStudioScene.intro: PlayerIntroVideoSurface,
-      PersonalizationStudioScene.pause: PlayerPauseSurface,
+      PersonalizationStudioScene.pause: RuntimePlayerPauseShell,
       PersonalizationStudioScene.dialogue: PlayerDialogueSurface,
       PersonalizationStudioScene.battle: PlayerBattleScene,
     };
@@ -30,7 +30,10 @@ void main() {
       await tester.pump();
       expect(find.byType(entry.value), findsOneWidget, reason: entry.key.name);
       if (entry.key == PersonalizationStudioScene.pause) {
-        expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+          findsOneWidget,
+        );
       }
       if (entry.key == PersonalizationStudioScene.battle) {
         expect(find.byType(PlayerBattleSurface), findsOneWidget);
@@ -204,11 +207,20 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final action in PlayerPauseAction.values) {
-      final actionButton = find.byKey(ValueKey<String>('pause.${action.name}'));
+      if (action == PlayerPauseAction.returnToTitle) {
+        await tester.ensureVisible(_pauseAction(PlayerPauseAction.options));
+        await tester.pumpAndSettle();
+        await tester.tap(_pauseAction(PlayerPauseAction.options));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+        await tester.pumpAndSettle();
+      }
+      final actionButton = _pauseAction(action);
+      expect(actionButton, findsOneWidget, reason: action.name);
       await tester.ensureVisible(actionButton);
       await tester.pumpAndSettle();
       if (action == PlayerPauseAction.quests) {
-        final unavailable = tester.widget<PlayerActionButton>(actionButton);
+        final unavailable = tester.widget<PlayerMenuSelectableRow>(actionButton);
         expect(unavailable.onPressed, isNull);
         expect(
           unavailable.disabledReason,
@@ -240,9 +252,11 @@ void main() {
         expect(find.text('Camille'), findsOneWidget);
       }
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('runtime-pause-back-to-root')),
-      );
+      if (action == PlayerPauseAction.returnToTitle) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      } else {
+        await tester.tap(_pauseFrameReturn());
+      }
       await tester.pumpAndSettle();
 
       expect(
@@ -251,7 +265,13 @@ void main() {
         ),
         findsNothing,
       );
-      final restoredButton = tester.widget<PlayerActionButton>(actionButton);
+      final restoredButton = tester.widget<PlayerMenuSelectableRow>(
+        _pauseAction(
+          action == PlayerPauseAction.returnToTitle
+              ? PlayerPauseAction.party
+              : action,
+        ),
+      );
       expect(restoredButton.selected, isTrue);
       expect(
         FocusManager.instance.primaryFocus,
@@ -261,10 +281,14 @@ void main() {
 
     expect(
       targetedActions,
-      PlayerPauseAction.values
-          .where((action) => action != PlayerPauseAction.quests)
-          .map((action) => action.name)
-          .toList(),
+      [
+        for (final action in PlayerPauseAction.values)
+          if (action != PlayerPauseAction.quests) ...[
+            if (action == PlayerPauseAction.returnToTitle)
+              PlayerPauseAction.options.name,
+            action.name,
+          ],
+      ],
     );
   });
 
@@ -276,14 +300,14 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(_app(_adapter(PersonalizationStudioScene.pause)));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('pause.resume')));
+    await tester.tap(_pauseAction(PlayerPauseAction.resume));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey<String>('runtime-pause-back-to-root')),
+      _pauseFrameReturn(),
     );
     await tester.pumpAndSettle();
-    final resume = tester.widget<PlayerActionButton>(
-      find.byKey(const ValueKey<String>('pause.resume')),
+    final resume = tester.widget<PlayerMenuSelectableRow>(
+      _pauseAction(PlayerPauseAction.resume),
     );
     expect(resume.selected, isTrue);
     expect(resume.showFocusHighlight, isFalse);
@@ -305,7 +329,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey<String>('player-pause-preview-detail-resume')),
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-party')),
       findsOneWidget,
     );
 
@@ -313,8 +337,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<PlayerActionButton>(
-            find.byKey(const ValueKey<String>('pause.resume')),
+          .widget<PlayerMenuSelectableRow>(
+            _pauseAction(PlayerPauseAction.party),
           )
           .selected,
       isTrue,
@@ -341,17 +365,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey<String>('player-pause-preview-detail-party')),
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-bag')),
       findsOneWidget,
     );
     expect(
       tester
-          .widget<PlayerActionButton>(
-            find.byKey(const ValueKey<String>('pause.party')),
-          )
-          .selected,
-      isTrue,
+          .widget<RuntimePlayerPauseShell>(find.byType(RuntimePlayerPauseShell))
+          .focusController!
+          .logicalSelectionId,
+      'pause.bag',
     );
+    expect(
+      tester
+          .widget<RuntimePlayerPauseShell>(find.byType(RuntimePlayerPauseShell))
+          .focusController!
+          .activeInputSource,
+      PlayerInputSource.controller,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    final bag = tester.widget<PlayerMenuSelectableRow>(
+      _pauseAction(PlayerPauseAction.bag),
+    );
+    expect(bag.selected, isTrue);
+    expect(FocusManager.instance.primaryFocus, same(bag.focusNode));
   });
 
   testWidgets('closes stale detail and restores focus after a draft update', (
@@ -378,7 +415,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey<String>('pause.party')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('player-pause-preview-detail-party')),
@@ -406,12 +443,15 @@ void main() {
     expect(find.byKey(const ValueKey<String>('pause.party')), findsNothing);
     expect(find.byType(PlayerPausePreviewShell), findsOneWidget);
     expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
-    expect(find.byType(PlayerPauseSurface), findsOneWidget);
-    final resume = tester.widget<PlayerActionButton>(
-      find.byKey(const ValueKey<String>('pause.resume')),
+    expect(
+      find.byKey(const ValueKey('runtime-night-illustrated-frame')),
+      findsOneWidget,
     );
-    expect(resume.selected, isTrue);
-    expect(FocusManager.instance.primaryFocus, same(resume.focusNode));
+    final bag = tester.widget<PlayerMenuSelectableRow>(
+      _pauseAction(PlayerPauseAction.bag),
+    );
+    expect(bag.selected, isTrue);
+    expect(FocusManager.instance.primaryFocus, same(bag.focusNode));
   });
 
   testWidgets(
@@ -731,6 +771,21 @@ final class _PlaybackDriver implements PlayerIntroPlaybackDriver {
     snapshot.dispose();
   }
 }
+
+Finder _pauseFrameReturn() => find.byWidgetPredicate(
+  (widget) =>
+      widget is PlayerMenuSelectableRow && widget.id == 'pause-frame-return',
+);
+
+Finder _pauseAction(PlayerPauseAction action) => switch (action) {
+  PlayerPauseAction.resume => _pauseFrameReturn(),
+  PlayerPauseAction.returnToTitle => find.byWidgetPredicate(
+    (widget) =>
+        widget is PlayerMenuSelectableRow &&
+        widget.id == 'options-return-title',
+  ),
+  _ => find.byKey(ValueKey<String>('pause.${action.name}')),
+};
 
 PersonalizationPlayerSurfaceAdapter _adapter(
   PersonalizationStudioScene scene,

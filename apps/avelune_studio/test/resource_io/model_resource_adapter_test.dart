@@ -22,6 +22,7 @@ void main() {
       await fixture.resources.mutate('model3d.configure', {
         'modelId': id,
         'scale': 2,
+        'castsShadowsByDefault': true,
         'pivot': {'x': 1, 'y': 2, 'z': 3},
       });
       final beforeMap = await fixture.mapFile.readAsBytes();
@@ -34,6 +35,7 @@ void main() {
       expect(model.id, id);
       expect(model.name, 'Fontaine');
       expect(model.scale, 2);
+      expect(model.castsShadowsByDefault, isTrue);
       expect(model.pivot.toJson(), {'x': 1.0, 'y': 2.0, 'z': 3.0});
       expect(model.inspection.animations.single.name, 'Wind');
       expect(await fixture.resources.readModel(id), animatedGlb());
@@ -45,6 +47,7 @@ void main() {
         reopened.models3d.single.inspection.animations,
         model.inspection.animations,
       );
+      expect(reopened.models3d.single.castsShadowsByDefault, isTrue);
     },
   );
 
@@ -61,17 +64,20 @@ void main() {
         name: 'Maison',
       );
       final model = imported.manifest.models3d.single;
+      expect(model.castsShadowsByDefault, isFalse);
       expect(await fixture.resources.readModel(model.id), triangleGlb());
       await fixture.resources.mutate('model3d.configure', {
         'modelId': model.id,
         'name': 'Maison bleue',
         'scale': 2,
+        'castsShadowsByDefault': true,
       });
       final reopened = await LocalMapWorkspaceAdapter().loadProject(
         fixture.session,
       );
       expect(reopened.models3d.single.name, 'Maison bleue');
       expect(reopened.models3d.single.scale, 2);
+      expect(reopened.models3d.single.castsShadowsByDefault, isTrue);
       expect(await fixture.mapFile.readAsBytes(), mapBefore);
       final nativePath = Platform.environment['AVELUNE_3D_NATIVE_FIXTURE'];
       if (nativePath != null) {

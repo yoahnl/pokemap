@@ -7,6 +7,7 @@ import 'package:avelune_studio/app/studio_bootstrap.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest_view.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 import 'package:avelune_studio/platform/playtest/studio_game_playtest_view.dart';
@@ -370,6 +371,20 @@ Future<void> main() async {
     if (current == null || scene == null) {
       return developer.ServiceExtensionResponse.result('{"available":false}');
     }
+    if (params['selectInstanceId'] case final id?) {
+      if (session.state.project?.directoryPath != root ||
+          !current.document.current.spatialScene!.instances.any(
+            (instance) => instance.id == id,
+          )) {
+        throw StateError(
+          'Select an existing instance in the requested Studio project.',
+        );
+      }
+      current.view.select(current.document, MapSelectionFamily.decor, id);
+      current.view.revealInspector = true;
+      current.onChanged();
+      await WidgetsBinding.instance.endOfFrame;
+    }
     final box = canvasElement?.findRenderObject();
     final bounds = box is RenderBox
         ? box.localToGlobal(Offset.zero) & box.size
@@ -381,6 +396,12 @@ Future<void> main() async {
         'tool': current.view.tool.name,
         'undoCount': current.document.undoCount,
         'dirty': current.document.dirty,
+        'selectedId': current.document.selectedId,
+        'shadowStats': {
+          'casterDrawCount': scene.controller.shadowStats.casterDrawCount,
+          'receiverDrawCount': scene.controller.shadowStats.receiverDrawCount,
+          'targetAllocations': scene.controller.shadowStats.targetAllocations,
+        },
         'placement': scene.placementPreview == null
             ? null
             : {

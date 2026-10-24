@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/resources.dart';
 
@@ -14,6 +12,8 @@ final class SpatialShadowProfile {
     this.opacity = .65,
     this.receiverMinY = -.5,
     this.receiverMaxY = .5,
+    this.filterRadius = 1,
+    this.actorReceivers = false,
   }) : casterInstanceIds = Set.unmodifiable(casterInstanceIds) {
     if (![
           center.x,
@@ -25,6 +25,7 @@ final class SpatialShadowProfile {
           opacity,
           receiverMinY,
           receiverMaxY,
+          filterRadius,
         ].every((v) => v.isFinite) ||
         extent <= 0 ||
         depth <= 1 ||
@@ -37,12 +38,17 @@ final class SpatialShadowProfile {
         receiverMinY > receiverMaxY) {
       throw ArgumentError('Invalid experimental shadow map profile.');
     }
+    if (filterRadius < 0 || filterRadius > 8) {
+      throw ArgumentError('Invalid experimental shadow filter radius.');
+    }
   }
 
   final Set<String> casterInstanceIds;
   final ({double x, double y, double z}) center;
   final double extent, depth, bias, opacity, receiverMinY, receiverMaxY;
   final int resolution;
+  final double filterRadius;
+  final bool actorReceivers;
 }
 
 ({Matrix4 view, Matrix4 projection, Matrix4 viewProjection})
@@ -94,9 +100,3 @@ final class SpatialShadowStats {
       targetAllocations,
       hiddenDrawCount;
 }
-
-double spatialShadowVisibility({
-  required double receiverDepth,
-  required double storedDepth,
-  required double bias,
-}) => receiverDepth - math.max(0, bias) <= storedDepth ? 1 : 0;

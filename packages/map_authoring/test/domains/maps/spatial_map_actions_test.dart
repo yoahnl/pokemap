@@ -9,6 +9,50 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
+  test('shadow defaults and nullable placement overrides match direct API and JSONL', () async {
+    final outputs = <Object?>[];
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      expect((await f.apply(await f.plan())).status, AuthoringResultStatus.success);
+      await f.executeAction('model3d.configure', {
+        'modelId': 'house', 'castsShadowsByDefault': true,
+      }, direct: direct);
+      final placement = SpatialModelInstance(id: 'shadow-house', modelId: 'house',
+        position: Model3dVector3(x: 1.5, y: 0, z: 1.5));
+      for (final override in [false, true, null]) {
+        await f.executeAction('map3d.instance.upsert', {
+          'mapId': 'first-map', 'instance': {...placement.toJson(), 'castsShadows': override},
+        }, direct: direct);
+        final snapshot = await f.snapshots.load(f.project);
+        final instance = snapshot.mapById('first-map')!.spatialScene!.instances.single;
+        expect(instance.toJson()['castsShadows'], override);
+        expect(snapshot.manifest.models3d.single.toJson()['castsShadowsByDefault'], true);
+        outputs.add(instance.toJson());
+      }
+      final inheritedMapBytes = await File('${f.root.path}/maps/first-map.json').readAsBytes();
+      await f.executeAction('model3d.configure_batch', {
+        'models': [{'modelId': 'house', 'castsShadowsByDefault': false}],
+      }, direct: direct);
+      final inheritedSnapshot = await f.snapshots.load(f.project);
+      expect(inheritedSnapshot.mapById('first-map')!.spatialScene!.instances.single
+          .effectiveCastsShadows(inheritedSnapshot.manifest.models3d.single), false);
+      expect(await File('${f.root.path}/maps/first-map.json').readAsBytes(), inheritedMapBytes);
+      await f.executeAction('map3d.instance.upsert_batch', {
+        'mapId': 'first-map', 'instances': [{...placement.toJson(), 'castsShadows': true}],
+      }, direct: direct);
+      final overriddenSnapshot = await f.snapshots.load(f.project);
+      expect(overriddenSnapshot.mapById('first-map')!.spatialScene!.instances.single
+          .effectiveCastsShadows(overriddenSnapshot.manifest.models3d.single), true);
+      final before = await File('${f.root.path}/maps/first-map.json').readAsBytes();
+      final rejected = await f.planAction('map3d.instance.upsert', {
+        'mapId': 'first-map', 'instance': {...placement.toJson(), 'castsShadows': 'true'},
+      });
+      expect(rejected.status, AuthoringResultStatus.failure);
+      expect(await File('${f.root.path}/maps/first-map.json').readAsBytes(), before);
+    }
+    expect(outputs.take(3).toList(), outputs.skip(3).toList());
+  });
   test('orthographic camera is identical through direct API and JSONL with safe rejection', () async {
     final outputs = <Map<String, dynamic>>[];
     for (final direct in [true, false]) {

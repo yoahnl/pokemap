@@ -99,7 +99,11 @@ class SpatialModelEditingCommands {
       blocksMovement: currentModel.blocksMovementByDefault,
     );
     document.commit(
-      operations.upsertInstance(document.current, instance, model: currentModel),
+      operations.upsertInstance(
+        document.current,
+        instance,
+        model: currentModel,
+      ),
     );
     document.selectedId = instance.id;
     return selected(instance.id)!;
@@ -112,6 +116,8 @@ class SpatialModelEditingCommands {
     double? rotation,
     double? scale,
     bool? blocksMovement,
+    bool? castsShadows,
+    bool clearCastsShadows = false,
     double? heightOffset,
     int? animationIndex,
     bool clearAnimation = false,
@@ -158,6 +164,8 @@ class SpatialModelEditingCommands {
       rotationDegrees: rotation,
       scale: scale,
       blocksMovement: blocksMovement,
+      castsShadows: castsShadows,
+      clearCastsShadows: clearCastsShadows,
       animationIndex: animationIndex,
       clearAnimation: clearAnimation,
       animationLoop: animationLoop,
@@ -216,6 +224,7 @@ class SpatialModelEditingCommands {
       animationLoop: item.animationLoop,
       animationSpeed: item.animationSpeed,
       blocksMovement: item.blocksMovement,
+      castsShadows: item.castsShadows,
       clip: item.clip,
     );
     final source = owner(id);

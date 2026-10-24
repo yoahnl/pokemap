@@ -49,7 +49,7 @@ final class Model3dActions {
           'source.replace_batch' =>
             'Replace 1 to 50 inspected GLB sources in one recoverable publication',
           'configure' =>
-            'Configure a model name, scale, pivot, collision volume, default movement blocking and attached stair profile',
+            'Configure a model name, scale, pivot, collision volume, default movement blocking, shadow casting and attached stair profile',
           'configure_batch' =>
             'Configure 1 to 50 models in one recoverable publication with aggregated attached stair updates',
           _ => 'Delete an unused model and its owned source'
@@ -206,6 +206,7 @@ final class Model3dActions {
           'collisionBounds',
           'rampProfile',
           'blocksMovementByDefault',
+          'castsShadowsByDefault',
         },
       'model3d.delete' => {'modelId'},
       _ => throw const FormatException('Unknown model action.'),
@@ -377,6 +378,7 @@ final class Model3dActions {
           pivot: current.pivot,
           collisionBounds: current.collisionBounds,
           blocksMovementByDefault: current.blocksMovementByDefault,
+          castsShadowsByDefault: current.castsShadowsByDefault,
           rampProfile: current.rampProfile);
       final sameContent = source.artifact.digest == actual.digest &&
           source.artifact.byteLength == actual.byteLength;
@@ -531,6 +533,7 @@ final class Model3dActions {
             pivot: current.pivot,
             collisionBounds: current.collisionBounds,
             blocksMovementByDefault: current.blocksMovementByDefault,
+            castsShadowsByDefault: current.castsShadowsByDefault,
             rampProfile: current.rampProfile);
         final sameContent = source.artifact.digest == actual.digest &&
             source.artifact.byteLength == actual.byteLength;
@@ -855,7 +858,8 @@ void _requireNativeDoorSource(AuthoringPlanningContext context,
               pivot: candidate.pivot,
               collisionBounds: candidate.collisionBounds,
               rampProfile: candidate.rampProfile,
-              blocksMovementByDefault: candidate.blocksMovementByDefault)
+              blocksMovementByDefault: candidate.blocksMovementByDefault,
+              castsShadowsByDefault: candidate.castsShadowsByDefault)
           : candidate,
   ];
   for (final map in context.snapshot.maps) {
@@ -890,6 +894,10 @@ void _requireClippedSource(
 Map<String, Object?> _configurationProperties() => {
       'modelId': {'type': 'string', 'pattern': r'^[a-zA-Z0-9_-]{1,128}$'},
       'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
+      'castsShadowsByDefault': {
+        'type': 'boolean',
+        'description': 'Shadow casting default inherited by instances without an override.',
+      },
       'blocksMovementByDefault': {
         'type': 'boolean',
         'description':
@@ -958,7 +966,12 @@ ProjectModel3dEntry _configuredModel(
       fields['blocksMovementByDefault'] is! bool) {
     throw const FormatException('Default movement blocking must be boolean.');
   }
+  if (fields.containsKey('castsShadowsByDefault') &&
+      fields['castsShadowsByDefault'] is! bool) {
+    throw const FormatException('Default shadow casting must be boolean.');
+  }
   return current.copyWith(
+      castsShadowsByDefault: fields['castsShadowsByDefault'] as bool?,
       blocksMovementByDefault: fields['blocksMovementByDefault'] as bool?,
       name: fields.containsKey('name') ? parameters.string('name') : null,
       scale: fields['scale'] as num?,
@@ -1013,6 +1026,7 @@ Map<String, Object?> _modelBatchDiffValue(ProjectModel3dEntry model) {
       'scale': model.scale,
       'pivot': model.pivot.toJson(),
       'blocksMovementByDefault': model.blocksMovementByDefault,
+      'castsShadowsByDefault': model.castsShadowsByDefault,
       if (model.collisionBounds != null)
         'collisionBounds': model.collisionBounds!.toJson(),
       if (model.rampProfile != null) 'rampProfile': model.rampProfile!.toJson(),

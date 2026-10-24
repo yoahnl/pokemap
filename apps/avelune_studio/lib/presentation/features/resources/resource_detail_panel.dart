@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import '../../../features/decors/application/decor_source_support.dart';
 import '../../../features/terrains/domain/terrain_draft_compatibility.dart';
@@ -10,6 +11,7 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_catalog.dart';
 import 'resource_item_actions.dart';
+import 'model_shadow_controls.dart';
 
 class ResourceDetailPanel extends StatelessWidget {
   const ResourceDetailPanel({
@@ -32,6 +34,7 @@ class ResourceDetailPanel extends StatelessWidget {
     this.onDuplicate,
     this.onClassify,
     this.activeMapId,
+    this.onModelShadowsChanged,
   });
   final ResourceItem? item;
   final int openUsage;
@@ -47,6 +50,7 @@ class ResourceDetailPanel extends StatelessWidget {
   final ValueChanged<ResourceItem>? onReplace, onRemove, onDuplicate;
   final ValueChanged<ResourceItem>? onClassify;
   final String? activeMapId;
+  final Future<void> Function(ProjectModel3dEntry, bool)? onModelShadowsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +102,20 @@ class ResourceDetailPanel extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (entry.model3d case final model?) ...[
+                  ModelShadowControls(
+                    key: ValueKey('resource-model-shadows-${model.id}'),
+                    model:
+                        project.models3d
+                            .where((value) => value.id == model.id)
+                            .firstOrNull ??
+                        model,
+                    busy: onModelShadowsChanged == null,
+                    onChanged: (value) =>
+                        onModelShadowsChanged?.call(model, value),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (metadata?.description case final description?) ...[
                   SelectableText(
                     description,

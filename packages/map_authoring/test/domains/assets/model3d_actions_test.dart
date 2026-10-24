@@ -6,6 +6,29 @@ import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
 
 void main() {
+  test('shadow default survives single and batch source replacement and rejects invalid configuration', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.dispose);
+    await f.apply(await f.plan());
+    await f.apply(await f.planAction('model3d.configure', {
+      'modelId': 'house', 'castsShadowsByDefault': true,
+    }));
+    await f.apply(await f.planReplacement(animatedGlb()));
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.toJson()['castsShadowsByDefault'], true);
+    final staged = await f.request('stage_artifact', {'sourcePath': '${f.root.path}/input.glb'});
+    await f.apply(await f.planAction('model3d.source.replace_batch', {
+      'models': [{'modelId': 'house', 'artifactHandle': staged.data['artifactHandle']}],
+    }));
+    expect((await f.snapshots.load(f.project)).manifest.models3d.single.toJson()['castsShadowsByDefault'], true);
+    final before = await f.projectFile.readAsBytes();
+    for (final invalid in [null, 1, 'true']) {
+      final rejected = await f.planAction('model3d.configure', {
+        'modelId': 'house', 'castsShadowsByDefault': invalid,
+      });
+      expect(rejected.status, AuthoringResultStatus.failure);
+      expect(await f.projectFile.readAsBytes(), before);
+    }
+  });
   nativeDoorSourceReplacementTests();
   for (final defaultBlocking in [true, false]) {
     test('configure unchanged model default blocking $defaultBlocking is a no-op', () async {

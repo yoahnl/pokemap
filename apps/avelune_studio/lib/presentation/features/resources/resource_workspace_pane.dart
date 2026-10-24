@@ -144,6 +144,12 @@ class ResourceWorkspacePane extends StatelessWidget {
               modelLibrary: (items) =>
                   ModelResourceLibrary(navigation: n, items: items),
               onImportModel: n.busy ? null : () => importStudioModel(n),
+              onModelShadowsChanged: n.busy
+                  ? null
+                  : (model, enabled) => n.mutate('model3d.configure', {
+                      'modelId': model.id,
+                      'castsShadowsByDefault': enabled,
+                    }),
               onExportPack: n.packTransfer?.exportAvailable != true || n.busy
                   ? null
                   : () => exportPack(context),

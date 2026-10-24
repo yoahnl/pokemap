@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
+import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 
 void main() {
   test('a house shadow darkens its ground instead of hiding the ground', () {
@@ -376,6 +377,36 @@ void main() {
       expect(harness.device.snapshots, isEmpty);
     },
   );
+  test('hidden material filters affect one instance without mutating shared meshes', () {
+    final harness = _Harness();
+    final context = harness.context as SpatialRenderContext;
+    context.lighting = SpatialLightingProfile.stylized(
+      hiddenMaterialsByInstance: {
+        'house': {'painted-shadow'},
+      },
+    );
+    final shared = _ProbeMaterial(
+      Model3dAlphaMode.opaque,
+      sourceMaterialName: 'painted-shadow',
+      lightingRole: SpatialPixelLightingRole.actor,
+    );
+    final hidden = _surface('house-shadow', shared, depth: .5);
+    final visible = _surface('neighbor-shadow', shared, depth: .4);
+    harness.submit(-1, (draw) {
+      context.sourceInstanceId = 'house';
+      draw.drawSurface(hidden);
+      context.sourceInstanceId = 'neighbor';
+      draw.drawSurface(visible);
+      context.sourceInstanceId = null;
+    });
+    context.flush();
+    expect(harness.device.names, ['neighbor-shadow']);
+    expect(hidden.material, same(shared));
+    expect(visible.material, same(shared));
+    expect(context.shadowStats.hiddenDrawCount, 1);
+    expect(context.shadowStats.casterDrawCount, 0);
+    expect(context.shadowStats.targetAllocations, 0);
+  });
 }
 
 void _expectVector(List<double> actual, List<double> expected) {
@@ -506,12 +537,17 @@ class _PixelDevice extends GraphicsDevice {
 }
 
 class _ProbeMaterial extends SpatialPixelMaterial {
-  _ProbeMaterial(Model3dAlphaMode? mode)
-    : super(
-        Texture(ByteData(4), width: 1, height: 1),
-        alphaMode: mode,
-        alphaCutoff: .5,
-      );
+  _ProbeMaterial(
+    Model3dAlphaMode? mode, {
+    String? sourceMaterialName,
+    SpatialPixelLightingRole lightingRole = SpatialPixelLightingRole.surface,
+  }) : super(
+         Texture(ByteData(4), width: 1, height: 1),
+         alphaMode: mode,
+         alphaCutoff: .5,
+         sourceMaterialName: sourceMaterialName,
+         lightingRole: lightingRole,
+       );
   final _pipeline = _UnusedPipeline();
   final _vertex = _NoOpVertexShader();
   final _fragment = _NoOpFragmentShader();

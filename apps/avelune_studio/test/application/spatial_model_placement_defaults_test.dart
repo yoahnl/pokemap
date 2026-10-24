@@ -13,6 +13,43 @@ EditableMapDocument documentFor(MapData map) => EditableMapDocument(
 );
 
 void main() {
+  test(
+    'shadow overrides preserve inheritance, duplication, history and storage',
+    () {
+      final base = spatialEnvironmentProject();
+      final project = base.copyWith(
+        models3d: [base.models3d.single.copyWith(castsShadowsByDefault: true)],
+      );
+      final document = documentFor(spatialEnvironmentMap());
+      final commands = SpatialModelEditingCommands(document, project);
+      final placed = commands.place(
+        project.models3d.single,
+        const GridPos(x: 3, y: 3),
+      );
+      expect(placed.castsShadows, isNull);
+      commands.update(placed.id, castsShadows: false);
+      commands.update(placed.id, x: 4.5);
+      commands.duplicate(placed.id);
+      expect(
+        document.current.spatialScene!.instances.every(
+          (item) => item.castsShadows == false,
+        ),
+        isTrue,
+      );
+      commands.update(placed.id, clearCastsShadows: true);
+      expect(commands.selected(placed.id)!.castsShadows, isNull);
+      document.restore(redo: false);
+      expect(commands.selected(placed.id)!.castsShadows, isFalse);
+      document.restore(redo: true);
+      final reopened = MapData.fromJson(
+        jsonDecode(jsonEncode(document.current.toJson())),
+      );
+      expect(reopened.spatialScene!.instances.first.castsShadows, isNull);
+      expect(reopened.spatialScene!.instances.last.castsShadows, isFalse);
+      expect(project.models3d.single.castsShadowsByDefault, isTrue);
+    },
+  );
+
   test('decor placement copies the resource default without changing existing instances', () {
     final base = spatialEnvironmentProject();
     final model = base.models3d.single.copyWith(blocksMovementByDefault: false);
@@ -31,7 +68,7 @@ void main() {
     );
     final commands = SpatialModelEditingCommands(document, project);
     final placed = commands.placeAt(
-        base.models3d.single,
+      base.models3d.single,
       Model3dVector3(x: 4.5, y: 0, z: 5.5),
     );
     expect(placed.blocksMovement, isFalse);
@@ -107,7 +144,11 @@ void main() {
       blocksMovement: false,
       clip: SpatialModelClip(left: -20, top: -20, right: -19, bottom: -19),
     );
-    final document = documentFor(map.copyWith(spatialScene: map.spatialScene!.copyWith(instances: [original])));
+    final document = documentFor(
+      map.copyWith(
+        spatialScene: map.spatialScene!.copyWith(instances: [original]),
+      ),
+    );
     SpatialModelEditingCommands(document, project).duplicate(original.id);
     final duplicate = document.current.spatialScene!.instances.last;
     expect(duplicate.id, isNot(original.id));

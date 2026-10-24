@@ -186,6 +186,7 @@ final class CanonicalGamePackageExportService {
         );
       }
       var animatedDecor = false;
+      var modelShadows = false;
       var orthographicCamera = false;
       var spatialGameplay = false;
       var spatialStory = false;
@@ -212,6 +213,8 @@ final class CanonicalGamePackageExportService {
               relativePath: entry.relativePath);
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+          modelShadows |= SpatialModelShadowCapabilities.requiresCapability(
+              projection.project, maps: [map]);
           customTerrainAppearance |= map.spatialScene?.generateCliffs == false;
           continuousTerrain |=
               map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
@@ -236,6 +239,7 @@ final class CanonicalGamePackageExportService {
               ? 'map3d@1'
               : 'map@1',
         if (animatedDecor) 'map3d.animation@1',
+        if (modelShadows) SpatialModelShadowCapabilities.capabilityId,
         if (customTerrainAppearance) 'map3d.terrain-appearance@1',
         if (continuousTerrain) SpatialTerrainSurfaceSet.capabilityId,
         if (fractionalRamps) SpatialRamp.fractionalLevelsCapabilityId,
@@ -434,6 +438,7 @@ final class CanonicalGamePackageExportService {
             'map@1',
             'map3d@1',
             'map3d.animation@1',
+            SpatialModelShadowCapabilities.capabilityId,
             'map3d.terrain-appearance@1',
             SpatialTerrainSurfaceSet.capabilityId,
             SpatialRamp.fractionalLevelsCapabilityId,

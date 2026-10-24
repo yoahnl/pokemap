@@ -3,20 +3,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 void main() {
+  test(
+    'prelit model surfaces can independently bypass additional lighting',
+    () {
+      expect(SpatialLightingProfile.stylized().surfaceStrength, 1);
+      final native = SpatialLightingProfile.stylized(surfaceStrength: 0);
+      expect(native.surfaceStrength, 0);
+      expect(native.actorStrength, .25);
+      expect(native.groundStrength, .7);
+      for (final value in [-.1, 1.1, double.nan]) {
+        expect(
+          () => SpatialLightingProfile.stylized(surfaceStrength: value),
+          throwsArgumentError,
+        );
+      }
+    },
+  );
   testWidgets('lighting remains disabled outside the experimental scope', (
     tester,
   ) async {
     SpatialLightingProfile? observed;
+    SpatialLightingProfile? optional;
     await tester.pumpWidget(
       Builder(
         builder: (context) {
           observed = SpatialLightingPreview.of(context);
+          optional = SpatialLightingPreview.maybeOf(context);
           return const SizedBox();
         },
       ),
     );
     expect(observed, same(SpatialLightingProfile.disabled));
     expect(observed!.enabled, isFalse);
+    expect(optional, isNull);
   });
 
   testWidgets('the same descendant switches lighting on and back off', (

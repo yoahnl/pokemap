@@ -14,6 +14,64 @@ import '../../../../map_distribution/test/support/spatial_package_fixture.dart'
     as spatial_fixture;
 
 void main() {
+  test('local export bounds story exploration without certifying completion',
+      () async {
+    final root = await _createPlayableProject();
+    addTearDown(() => root.delete(recursive: true));
+    final file = File(p.join(root.path, 'project.json'));
+    final project = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    final scene = project.scenes.single;
+    final bounded = SceneAsset(
+        id: scene.id,
+        name: scene.name,
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            ...scene.graph.nodes,
+            for (var index = 0; index < 300; index++)
+              SceneNode(id: 'merge_$index', kind: SceneNodeKind.merge),
+          ],
+          edges: [
+            ...scene.graph.edges.where((edge) => edge.id != 'start-finish'),
+            SceneEdge(
+                id: 'start-merge',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'merge_0',
+                kind: SceneEdgeKind.defaultFlow),
+            for (var index = 0; index < 300; index++)
+              SceneEdge(
+                  id: 'merge-edge-$index',
+                  fromNodeId: 'merge_$index',
+                  fromPortId: 'completed',
+                  toNodeId: index == 299 ? 'finish' : 'merge_${index + 1}',
+                  kind: SceneEdgeKind.defaultFlow),
+          ],
+        ));
+    await file.writeAsString(
+        jsonEncode(project.copyWith(scenes: [bounded]).toJson()));
+    final artifact = await CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection)
+        .build(
+            projectRoot: root,
+            profile: _profile(),
+            mode: GamePackageExportMode.localTest);
+    expect(artifact.certification.isExportable, isTrue);
+    expect(artifact.certification.isCertified, isFalse);
+    final report = artifact.certification.gameplayReadinessReport;
+    expect(report.symbolicReachability!.verdict,
+        NarrativeSymbolicVerdict.indeterminate);
+    expect(report.byCode('narrativeSolvabilityIndeterminate'), isNotEmpty);
+    expect(report.errorCount, 0);
+    final published = await CanonicalGamePackageExportService(
+            pokemonValidator: _acceptPokemonProjection)
+        .build(projectRoot: root, profile: _profile());
+    expect(published.certification.isCertified, isTrue);
+    expect(published.certification.gameplayReadinessReport.narrativelySolvable,
+        NarrativeSymbolicVerdict.pass);
+  });
+
   test(
       'canonical Whirlpool export keeps the shared route and water and refuses 3D',
       () async {

@@ -22,6 +22,8 @@ final class GamePackageGameplayReadinessGate {
     Object? pokemonValidationFailure,
   }) {
     final project = projection.project;
+    final symbolicExplorationBudget =
+        mode == GamePackageExportMode.localTest ? 256 : 16384;
     final diagnostics = <NarrativeProjectDiagnostic>[];
     if (project.settings.dimension == ProjectDimension.threeD) {
       try {
@@ -199,6 +201,7 @@ final class GamePackageGameplayReadinessGate {
     try {
       narrativeReport = validateNarrativeProject(
         project,
+        symbolicExplorationBudget: symbolicExplorationBudget,
         presentationMediaCatalog: switch (projection.payloadFiles['project/$projectMediaCatalogStorageKey']) {
           final bytes? => decodeProjectMediaCatalogBytes(bytes),
           null => null,
@@ -230,6 +233,7 @@ final class GamePackageGameplayReadinessGate {
     final runtimeReachability = _runtimeEntryReachability(
       project: project,
       maps: maps,
+      symbolicExplorationBudget: symbolicExplorationBudget,
       narrativeReport: narrativeReport,
       target: diagnostics,
     );
@@ -519,6 +523,7 @@ Set<String> _runtimeStartEventIds(ProjectManifest project) {
 NarrativeSymbolicReachabilityReport? _runtimeEntryReachability({
   required ProjectManifest project,
   required List<MapData> maps,
+  required int symbolicExplorationBudget,
   required NarrativeProjectValidationReport? narrativeReport,
   required List<NarrativeProjectDiagnostic> target,
 }) {
@@ -533,6 +538,7 @@ NarrativeSymbolicReachabilityReport? _runtimeEntryReachability({
         newGame: _withoutImplicitPreSessionEntry(project.newGame),
       ),
       maps: maps,
+      explorationBudget: symbolicExplorationBudget,
     );
   } on Object catch (error) {
     target.add(

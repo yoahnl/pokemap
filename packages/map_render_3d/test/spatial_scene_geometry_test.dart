@@ -9,8 +9,35 @@ import 'package:map_render_3d/src/adaptive_camera.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 import 'package:map_render_3d/src/spatial_cell_overlay.dart';
+import 'package:map_render_3d/src/spatial_pixel_material.dart';
 
 void main() {
+  test('untextured terrain opts into shadow receiving without replacing native palette', () {
+    const ground = Color(0xff125588), edge = Color(0xff113344);
+    final scene = MapSpatialScene(width: 2, depth: 2);
+    final original = terrainMeshes(
+      scene,
+      ground,
+      edge,
+    ).expand((mesh) => mesh.surfaces).toList();
+    final receiving = terrainMeshes(
+      scene,
+      ground,
+      edge,
+      receiveShadows: true,
+    ).expand((mesh) => mesh.surfaces).toList();
+    expect(original.first.material, isNot(isA<SpatialPixelMaterial>()));
+    for (var i = 0; i < receiving.length; i++) {
+      final material = receiving[i].material as SpatialPixelMaterial;
+      expect(material.lightingRole, SpatialPixelLightingRole.ground);
+      expect(material.preserveUnlitColor, isTrue);
+      expect(
+        material.albedoColor,
+        (original[i].material as UnlitMaterial).albedoColor,
+      );
+      expect(receiving[i].positions, original[i].positions);
+    }
+  });
   test(
     'collision and marker overlays follow relief and partition large meshes',
     () {
@@ -85,9 +112,8 @@ void main() {
 
       final base = Float32List.fromList([depth(Vector3.zero())]).single;
       final painted = Float32List.fromList([depth(Vector3(0, .001, 0))]).single;
-      final overlay = Float32List.fromList([
-        depth(Vector3(0, .0015, 0)),
-      ]).single;
+      final overlay = Float32List.fromList([depth(Vector3(0, .0015, 0))])
+          .single;
       expect(painted, lessThan(base));
       expect(overlay, lessThan(painted));
       camera.frame(Vector3.zero(), pitch: .7, yaw: 0, distance: 5);

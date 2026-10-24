@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import '../map_workspace/map_workspace_visuals.dart';
 import '../map_workspace/workspace_compact_panel.dart';
@@ -63,6 +64,7 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.onManageFamilies,
     this.onClassify,
     this.activeMapId,
+    this.onModelShadowsChanged,
   });
   final ProjectManifest project;
   final List<MapData> openMaps;
@@ -99,6 +101,7 @@ class ResourceLibraryScreen extends StatefulWidget {
   final VoidCallback? onManageFamilies;
   final ValueChanged<ResourceItem>? onClassify;
   final String? activeMapId;
+  final Future<void> Function(ProjectModel3dEntry, bool)? onModelShadowsChanged;
   @override
   State<ResourceLibraryScreen> createState() => _ResourceLibraryScreenState();
 }
@@ -206,6 +209,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
               ),
         targetMapName: widget.targetMapName,
         activeMapId: widget.activeMapId,
+        onModelShadowsChanged: widget.onModelShadowsChanged,
         canUse: widget.canUse && widget.project.maps.isNotEmpty,
         onInformation: widget.onInformation == null
             ? null

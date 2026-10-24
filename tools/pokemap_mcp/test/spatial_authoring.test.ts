@@ -60,6 +60,10 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     const playbackSchema = record(record(record(instanceSchema.properties).instance).properties);
     assert.ok(playbackSchema.animationLoop);
     assert.ok(playbackSchema.animationSpeed);
+    assert.deepEqual(record(playbackSchema.castsShadows).type, ["boolean", "null"]);
+    const modelConfig = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "model3d.configure")!;
+    const modelProperties = record(record(record(modelConfig.extensions).inputSchema).properties);
+    assert.equal(record(modelProperties.castsShadowsByDefault).type, "boolean");
     const cameraSchema = record(record((catalog.mutationActions as JsonRecord[]).find((item) => item.id === "map3d.camera.configure")!.extensions).inputSchema);
     const cameraProperties = record(record(record(cameraSchema.properties).camera).properties);
     assert.deepEqual(record(cameraProperties.projection).enum, ["perspective", "orthographic"]);
@@ -96,8 +100,9 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await writeFile(path, triangleGlb());
     const staged = await call("pokemap_artifact_stage", { sourcePath: path, declaredMediaType: "model/gltf-binary" });
     await mutate("model3d.import", { modelId: "rock", name: "Rock", artifactHandle: staged.artifactHandle });
-    await mutate("model3d.configure", { modelId: "rock", scale: 2 });
+    await mutate("model3d.configure", { modelId: "rock", scale: 2, castsShadowsByDefault: true });
     const manifest = JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")) as JsonRecord;
+    assert.equal(record((manifest.models3d as unknown[])[0]).castsShadowsByDefault, true);
     const mapEntry = record((manifest.maps as unknown[])[0]);
     const mapId = String(mapEntry.id);
     const cliffPath = join(root, "cliff.png");
@@ -108,7 +113,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     const cliffFrame = { atlasId: "cliff", column: 0, row: 0, columnSpan: 1, rowSpan: 1 };
     await mutate("map3d.terrain.configure_appearance", { mapId, cliffFrame, generateCliffs: false });
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 2, z: 3, level: 2 }] });
-    await mutate("map3d.instance.upsert", { mapId, instance: { id: "rock-1", modelId: "rock", position: { x: 2.2, y: 2, z: 3.7 }, rotationDegrees: 90, scale: 1, animationIndex: 0, animationLoop: false, animationSpeed: .25, blocksMovement: true } });
+    await mutate("map3d.instance.upsert", { mapId, instance: { id: "rock-1", modelId: "rock", position: { x: 2.2, y: 2, z: 3.7 }, rotationDegrees: 90, scale: 1, animationIndex: 0, animationLoop: false, animationSpeed: .25, blocksMovement: true, castsShadows: false } });
     const orthographicCamera = { mode: "fixed", projection: "orthographic", orthographicHeight: 12.5, pitchDegrees: 60, yawDegrees: 15, fieldOfViewDegrees: 30, distance: 25 };
     await mutate("map3d.camera.configure", { mapId, camera: orthographicCamera });
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 4, z: 2, level: 1 }] });
@@ -128,6 +133,21 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.equal(animated.animationIndex, 0);
     assert.equal(animated.animationLoop, false);
     assert.equal(animated.animationSpeed, .25);
+    assert.equal(animated.castsShadows, false);
+    for (const value of [true, null]) {
+      await mutate("map3d.instance.upsert", { mapId, instance: { ...animated, castsShadows: value } });
+      const stored = JSON.parse(await readFile(join(projectRoot, String(mapEntry.relativePath)), "utf8")) as JsonRecord;
+      assert.equal(record((record(stored.spatialScene).instances as unknown[])[0]).castsShadows, value === null ? undefined : value);
+    }
+    const beforeBadShadow = await readFile(join(projectRoot, String(mapEntry.relativePath)));
+    const shadowRevision = await call("pokemap_validate", { projectHandle });
+    await call("pokemap_plan", { projectHandle, request: {
+      requestId: "bad-shadow-override", actionId: "map3d.instance.upsert", actionVersion: 1,
+      workspaceHandle, expectedRevision: shadowRevision.snapshotRevision,
+      idempotencyKey: "bad-shadow-override", dryRun: false,
+      parameters: { mapId, instance: { ...animated, castsShadows: "true" } },
+    } }, true);
+    assert.deepEqual(await readFile(join(projectRoot, String(mapEntry.relativePath))), beforeBadShadow);
     assert.deepEqual(map.layers, []);
     await mutate("map.create", { mapId: "second", name: "Second", width: 8, height: 6 });
     await mutate("entity.create", { mapId, entity: { id: "start", kind: "spawn", pos: { x: 4, y: 4 }, size: { width: 1, height: 1 }, blocksMovement: false, spawn: { role: "player_start", facing: "south" } } });

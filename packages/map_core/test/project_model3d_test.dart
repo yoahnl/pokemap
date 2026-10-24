@@ -3,6 +3,58 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('shadow casting defaults off and roundtrips explicit resource settings', () {
+    final original = _model();
+    expect(original.toJson(), isNot(contains('castsShadowsByDefault')));
+    final enabled = ProjectModel3dEntry.fromJson({
+      ...original.toJson(), 'castsShadowsByDefault': true,
+    });
+    expect(enabled.toJson()['castsShadowsByDefault'], true);
+    expect(enabled.copyWith(name: 'Shadow tree').toJson()['castsShadowsByDefault'], true);
+    expect(ProjectModel3dEntry.fromJson(enabled.toJson()), enabled);
+    expect(enabled, isNot(original));
+    for (final invalid in [null, 1, 'true']) {
+      expect(() => ProjectModel3dEntry.fromJson({
+        ...original.toJson(), 'castsShadowsByDefault': invalid,
+      }), throwsFormatException);
+    }
+  });
+  test('instance shadow override preserves inherit on and off through map JSON', () {
+    final original = SpatialModelInstance(id: 'tree', modelId: 'model',
+      position: Model3dVector3.zero);
+    for (final value in [null, false, true]) {
+      final instance = SpatialModelInstance.fromJson({
+        ...original.toJson(), 'castsShadows': value,
+      });
+      expect(instance.toJson()['castsShadows'], value);
+      expect(instance.copyWith(scale: 2).toJson()['castsShadows'], value);
+      expect(SpatialModelInstance.fromJson(instance.toJson()), instance);
+    }
+    for (final invalid in [1, 'false']) {
+      expect(() => SpatialModelInstance.fromJson({
+        ...original.toJson(), 'castsShadows': invalid,
+      }), throwsFormatException);
+    }
+  });
+  test('shadow inheritance resets without losing placement data and derives package capability', () {
+    final disabled = _model();
+    final enabled = disabled.copyWith(castsShadowsByDefault: true);
+    final instance = SpatialModelInstance(id: 'tree', modelId: disabled.id,
+      position: Model3dVector3(x: 1, y: 0, z: 1));
+    expect(instance.effectiveCastsShadows(disabled), false);
+    expect(instance.effectiveCastsShadows(enabled), true);
+    expect(instance.copyWith(castsShadows: false).effectiveCastsShadows(enabled), false);
+    final reset = instance.copyWith(castsShadows: true).copyWith(clearCastsShadows: true);
+    expect(reset, instance);
+    final project = ProjectManifest(name: 'Shadows', maps: [], tilesets: [], models3d: [enabled]);
+    MapData map(SpatialModelInstance item) => MapData(id: 'first-map', name: 'Map',
+      size: const GridSize(width: 4, height: 4),
+      spatialScene: MapSpatialScene(width: 4, depth: 4, instances: [item]));
+    expect(SpatialModelShadowCapabilities.requiresCapability(project), false);
+    expect(SpatialModelShadowCapabilities.requiresCapability(project, maps: [map(instance)]), true);
+    expect(SpatialModelShadowCapabilities.requiresCapability(project, maps: [map(instance.copyWith(castsShadows: false))]), false);
+    expect(SpatialModelShadowCapabilities.requiresCapability(project.copyWith(models3d: [disabled]), maps: [map(instance.copyWith(castsShadows: true))]), true);
+  });
   test('model default blocking preserves explicit false without default churn', () {
     final blocking = _model();
     expect(blocking.toJson(), isNot(contains('blocksMovementByDefault')));

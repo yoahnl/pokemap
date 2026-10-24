@@ -29,7 +29,7 @@ void main() {
     });
   }
 
-  testWidgets('expanded root keeps eight entries inside its left rail',
+  testWidgets('expanded root keeps nine entries inside its left rail',
       (tester) async {
     await _surface(tester, const Size(1440, 900));
     await tester.pumpWidget(_app(_root()));
@@ -56,6 +56,7 @@ void main() {
       PlayerPauseAction.bag,
       PlayerPauseAction.pokedex,
       PlayerPauseAction.quests,
+      PlayerPauseAction.contacts,
       PlayerPauseAction.map,
       PlayerPauseAction.profile,
       PlayerPauseAction.save,

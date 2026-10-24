@@ -150,7 +150,7 @@ void main() {
 
   testWidgets('root navigation scroll and selection survive a pause remount',
       (tester) async {
-    _setSurface(tester, const Size(844, 390));
+    _setSurface(tester, const Size(844, 240));
     final focus = RuntimePlayerFocusController(
       logicalSelectionId: 'pause.bag',
       activeInputSource: PlayerInputSource.touch,

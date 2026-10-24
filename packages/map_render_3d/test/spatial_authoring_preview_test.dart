@@ -80,6 +80,11 @@ void main() {
         final after = view(project);
         expect(identical(before.models, after.models), isFalse);
         expect(after.modelSourcesMatch(before), isTrue);
+        final shadowProject = project.copyWith(
+          models3d: [definition('tree').copyWith(castsShadowsByDefault: true)],
+        );
+        expect(view(shadowProject).modelSourcesMatch(before), isTrue);
+        expect(view(shadowProject).shadowDefaultsMatch(before), isFalse);
         expect(
           view(
             project.copyWith(name: 'Another project'),

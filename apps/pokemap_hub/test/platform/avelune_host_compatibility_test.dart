@@ -22,6 +22,7 @@ void main() {
     });
     expect(compatibility.capabilities, contains('map3d@1'));
     expect(compatibility.capabilities, contains('map3d.animation@1'));
+    expect(compatibility.capabilities, contains('map3d.shadows@1'));
     expect(compatibility.capabilities,
         contains(GameCompletionPartyCapabilities.capabilityId));
     expect(compatibility.supportedSaveFormats,

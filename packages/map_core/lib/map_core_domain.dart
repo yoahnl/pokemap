@@ -32,6 +32,7 @@ export 'src/models/moving_prop.dart';
 export 'src/operations/moving_prop_operations.dart';
 export 'src/models/map_spatial_scene.dart';
 export 'src/operations/spatial_model_clip_capabilities.dart';
+export 'src/operations/spatial_model_shadow_capabilities.dart';
 export 'src/models/spatial_terrain_surface.dart';
 export 'src/models/map_placed_element_origin.dart';
 export 'src/models/element_collision_profile.dart';

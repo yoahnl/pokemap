@@ -15,6 +15,7 @@ final class SpatialLightingProfile {
     required this.sunDirection,
     required this.actorStrength,
     required this.groundStrength,
+    required this.surfaceStrength,
     required this.unlitMaterialNames,
     required this.hiddenMaterialsByInstance,
     required this.shadow,
@@ -29,6 +30,7 @@ final class SpatialLightingProfile {
     sunDirection: (x: 0, y: 1, z: 0),
     actorStrength: 0,
     groundStrength: 0,
+    surfaceStrength: 1,
     unlitMaterialNames: {},
     hiddenMaterialsByInstance: {},
     shadow: null,
@@ -42,6 +44,7 @@ final class SpatialLightingProfile {
     ({double x, double y, double z}) sunDirection = (x: -.65, y: .8, z: .45),
     double actorStrength = .25,
     double groundStrength = .7,
+    double surfaceStrength = 1,
     Set<String> unlitMaterialNames = const {},
     Map<String, Set<String>> hiddenMaterialsByInstance = const {},
     SpatialShadowProfile? shadow,
@@ -64,6 +67,11 @@ final class SpatialLightingProfile {
         groundStrength > 1) {
       throw ArgumentError('Invalid experimental spatial lighting profile.');
     }
+    if (!surfaceStrength.isFinite ||
+        surfaceStrength < 0 ||
+        surfaceStrength > 1) {
+      throw ArgumentError('Invalid experimental surface lighting strength.');
+    }
     return SpatialLightingProfile._(
       enabled: true,
       ambientColor: ambientColor,
@@ -73,6 +81,7 @@ final class SpatialLightingProfile {
       sunDirection: (x: x / length, y: y / length, z: z / length),
       actorStrength: actorStrength,
       groundStrength: groundStrength,
+      surfaceStrength: surfaceStrength,
       unlitMaterialNames: Set.unmodifiable(unlitMaterialNames),
       hiddenMaterialsByInstance: Map.unmodifiable({
         for (final entry in hiddenMaterialsByInstance.entries)
@@ -84,7 +93,11 @@ final class SpatialLightingProfile {
 
   final bool enabled;
   final Color ambientColor, sunColor;
-  final double ambientStrength, sunStrength, actorStrength, groundStrength;
+  final double ambientStrength,
+      sunStrength,
+      actorStrength,
+      groundStrength,
+      surfaceStrength;
   final ({double x, double y, double z}) sunDirection;
   final Set<String> unlitMaterialNames;
   final Map<String, Set<String>> hiddenMaterialsByInstance;
@@ -105,9 +118,10 @@ class SpatialLightingPreview
   }) : super(notifier: controller);
 
   static SpatialLightingProfile of(BuildContext context) =>
-      context
-          .dependOnInheritedWidgetOfExactType<SpatialLightingPreview>()
-          ?.notifier
-          ?.value ??
-      SpatialLightingProfile.disabled;
+      maybeOf(context) ?? SpatialLightingProfile.disabled;
+
+  static SpatialLightingProfile? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<SpatialLightingPreview>()
+      ?.notifier
+      ?.value;
 }

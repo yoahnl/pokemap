@@ -57,6 +57,9 @@ final class SpatialMapActions {
             'orthographicCapability': SpatialCameraProfile.orthographicCapabilityId,
           },
           if (entry.value == 'instance' || entry.value == 'instances')
+            'shadowCasting': {'field': 'castsShadows', 'default': null,
+              'inherits': 'model3d.castsShadowsByDefault', 'replacementSemantics': true},
+          if (entry.value == 'instance' || entry.value == 'instances')
             'model3dClip': {
               'field': 'clip',
               'capability': SpatialModelClipCapabilities.capabilityId,
@@ -224,6 +227,7 @@ MapData _upsertInstance(SemanticMapActionContext context) {
     'animationLoop',
     'animationSpeed',
     'blocksMovement',
+    'castsShadows',
     'clip',
   }));
   _requireAuthoredInstance(context.map, instance.id,
@@ -374,6 +378,7 @@ MapData _upsertInstances(SemanticMapActionContext context) {
       'animationLoop',
       'animationSpeed',
       'blocksMovement',
+      'castsShadows',
       'clip',
     }));
     _requireAuthoredInstance(context.map, instance.id,
@@ -618,6 +623,10 @@ Map<String, Object?> _schema(String field) => switch (field) {
               'maximum': 16
             },
             'blocksMovement': {'type': 'boolean'},
+            'castsShadows': {
+              'type': ['boolean', 'null'],
+              'description': 'Overrides the model shadow default; null or omission inherits it.',
+            },
             'clip': {
               'type': ['object', 'null'],
               'additionalProperties': false,
