@@ -111,6 +111,8 @@ export 'src/domain/action/battle_action.dart'
         PsdkBattleFightAction,
         PsdkBattleHpHealItemEffect,
         PsdkBattleFullRestoreItemEffect,
+        PsdkBattleStatBoostItemEffect,
+        PsdkBattlePreparationItemEffect,
         PsdkBattleItemAction,
         PsdkBattleItemActionEffect,
         PsdkBattleMegaAction,

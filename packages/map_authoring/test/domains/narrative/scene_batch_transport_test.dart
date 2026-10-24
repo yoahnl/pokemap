@@ -491,7 +491,7 @@ final class _Fixture {
     await Directory('${directory.path}/data').create();
     await File('${directory.path}/data/moves.json').writeAsString(jsonEncode({
       'schemaVersion': 1,
-      'kind': 'catalog',
+      'kind': 'pokemon_catalog',
       'catalog': 'moves',
       'entries': [
         {'id': 'tackle', 'name': 'Tackle'}

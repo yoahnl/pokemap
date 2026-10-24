@@ -7,10 +7,66 @@ import 'package:test/test.dart';
 
 void main() {
   group('item mutation transport parity', () {
-    for (final context in ProjectItemUseContext.values) {
-      test('full restore $context roundtrips through direct API and JSONL', () async {
+    for (final scenarioEffect in [
+      (
+        ProjectItemUseContext.overworld,
+        const ProjectItemEffectDefinition.vitamin(
+            stat: ProjectItemVitaminStat.hp,
+            amount: 10,
+            maximumPerStat: 100,
+            friendshipGainLow: 5,
+            friendshipGainMedium: 3,
+            friendshipGainHigh: 2)
+      ),
+      (
+        ProjectItemUseContext.battle,
+        const ProjectItemEffectDefinition.battleBoost(
+            stat: ProjectItemBattleStat.specialDefense, stages: 1)
+      ),
+      (
+        ProjectItemUseContext.battle,
+        const ProjectItemEffectDefinition.battlePreparation(
+            effect: ProjectItemBattlePreparationKind.focusEnergy)
+      ),
+      (
+        ProjectItemUseContext.battle,
+        const ProjectItemEffectDefinition.battlePreparation(
+            effect: ProjectItemBattlePreparationKind.mist, turns: 5)
+      ),
+    ]) {
+      test(
+          'training ${scenarioEffect.$2.toJson()} roundtrips through API and JSONL',
+          () async {
         for (final jsonl in [false, true]) {
-          final harness = await _ItemTransportHarness.create('full-restore-${context.name}-$jsonl');
+          final harness = await _ItemTransportHarness.create('training-$jsonl');
+          addTearDown(harness.dispose);
+          final use = ProjectItemUseDefinition(
+              contexts: {scenarioEffect.$1},
+              target: ProjectItemTargetKind.partyMember,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: scenarioEffect.$2);
+          final scenario = _ItemMutationScenario(
+              'item.set_${scenarioEffect.$1.name}_effect',
+              {'itemId': 'potion', 'use': use.toJson()});
+          final result = jsonl
+              ? await harness.executeJsonl(scenario)
+              : await harness.executeDirect(scenario);
+          expect(
+              ProjectItemCatalog.fromJson(result.catalog)
+                  .entries
+                  .singleWhere((i) => i.id == 'potion')
+                  .uses
+                  .single,
+              use);
+        }
+      });
+    }
+    for (final context in ProjectItemUseContext.values) {
+      test('full restore $context roundtrips through direct API and JSONL',
+          () async {
+        for (final jsonl in [false, true]) {
+          final harness = await _ItemTransportHarness.create(
+              'full-restore-${context.name}-$jsonl');
           addTearDown(harness.dispose);
           final use = ProjectItemUseDefinition(
             contexts: {context},

@@ -123,9 +123,7 @@ final class SourceGrassRustleCompiler {
     limits.validate();
     cancellation?.check();
     final resolver = SourceSemanticResolver.forProject(source);
-    if (!source.canPlan ||
-        !resolver.profile.isQualified ||
-        resolver.profile.scriptsArchiveHash?.value != _scriptsHash) {
+    if (!source.canPlan || !resolver.profile.isQualified) {
       return null;
     }
     final maps = {for (final map in source.maps) map.map.sourceMapId: map.map};
@@ -158,7 +156,12 @@ final class SourceGrassRustleCompiler {
     }
     if (cellsByMap.isEmpty) return null;
     final scriptEntry = _entry(source, 'Data/Scripts.rxdata');
-    await _verifiedRead(scriptEntry, files, limits, cancellation);
+    if (scriptEntry.sha256 != resolver.profile.scriptsArchiveHash) return null;
+    final scriptBytes =
+        await _verifiedRead(scriptEntry, files, limits, cancellation);
+    final sourceSections =
+        _attestGrassSections(scriptBytes, limits, cancellation);
+    if (sourceSections == null) return null;
     final animationEntry = _entry(source, 'Data/Animations.rxdata');
     final animationBytes =
         await _verifiedRead(animationEntry, files, limits, cancellation);
@@ -172,7 +175,7 @@ final class SourceGrassRustleCompiler {
         limits: limits);
     final artifact = NativeArtifact(bytes: compiled.imageBytes, limits: limits);
     final identity = canonicalHashOf({
-      'scripts': _scriptsHash,
+      'scripts': scriptEntry.sha256!.value,
       'animation': animationEntry.sha256!.value,
       'image': imageEntry.sha256!.value,
       'animationId': 1,
@@ -303,7 +306,8 @@ final class SourceGrassRustleCompiler {
           'kind': 'sourceGrassRustle',
           'version': 1,
           'sourceSnapshotHash': source.snapshot.canonicalHash.value,
-          'scriptsArchiveHash': _scriptsHash,
+          'scriptsArchiveHash': scriptEntry.sha256!.value,
+          'sourceSections': sourceSections,
           'animationId': 1,
           'animationArchiveHash': animationEntry.sha256!.value,
           'sourceImageHash': imageEntry.sha256!.value,
@@ -335,8 +339,84 @@ final class SourceGrassRustleCompiler {
   }
 }
 
-const _scriptsHash =
-    '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d';
+const _grassSectionWitnesses = {
+  'Settings': (
+    0,
+    'cc412c0b86e5ebbc121a91ca5efc2d7d6c7b398469cb0c7cd5be1b770531b06f'
+  ),
+  'RPG_Sprite': (
+    9,
+    '353bdd0648e9920f33ab44bf5ade2c13a27494f1d629768b5bcd8ad65849f83f'
+  ),
+  'Sprite_AnimationSprite': (
+    66,
+    '686c9e2f81a578cb8774e66c459e7fb637e49e275440849bc325c7b5506e3859'
+  ),
+  'TerrainTag': (
+    113,
+    '6bcfb146b4ec27576d2c616392e4aa14f1f9baa135db85ac02b33e0139e7382e'
+  ),
+  'Overworld': (
+    241,
+    'c96fe00962737e464754800079f8b1c43a9d2d88ea446c0357211e40383093b6'
+  ),
+};
+
+Map<String, Object?>? _attestGrassSections(
+    List<int> bytes, NativeWriteLimits limits, ScanCancellation? cancellation) {
+  final document = const MarshalDecoder().decode(bytes,
+      sourcePath: 'Data/Scripts.rxdata',
+      limits: MarshalDecodeLimits(
+          maxInputBytes: limits.maxArtifactBytes,
+          maxDepth: 128,
+          maxNodes: 100000,
+          maxObjects: 100000,
+          maxSymbols: 4096,
+          maxContainerEntries: 65536,
+          maxTotalEntries: 100000,
+          maxStringBytes: limits.maxArtifactBytes,
+          maxTotalStringBytes: limits.maxArtifactBytes));
+  final root = document.node(document.rootId);
+  if (root.kind != MarshalKind.array) return null;
+  final facts = <String, Object?>{};
+  var expandedBytes = 0;
+  for (final witness in _grassSectionWitnesses.entries) {
+    cancellation?.check();
+    if (witness.value.$1 >= root.elements.length) return null;
+    final row = document.node(root.elements[witness.value.$1]);
+    if (row.kind != MarshalKind.array || row.elements.length != 3) return null;
+    final name = document.node(row.elements[1]);
+    final data = document.node(row.elements[2]);
+    if (name.kind != MarshalKind.string ||
+        name.text().text != witness.key ||
+        data.kind != MarshalKind.string ||
+        data.bytes == null) {
+      return null;
+    }
+    final remaining = limits.maxTotalArtifactBytes - expandedBytes;
+    if (remaining <= 0) {
+      throw const NativeWriteException('grass_rustle.source.quota',
+          'Grass script witnesses exceed their aggregate byte budget');
+    }
+    final expanded = const BoundedZlibDecoder().decode(data.bytes!,
+        sourcePath: 'Data/Scripts.rxdata',
+        baseOffset: data.dataOffset ?? data.location.byteOffset,
+        limits: ZlibDecodeLimits(
+            maxInputBytes: limits.maxArtifactBytes,
+            maxOutputBytes: remaining < limits.jsonLimits.maxStringCodeUnits
+                ? remaining
+                : limits.jsonLimits.maxStringCodeUnits));
+    expandedBytes += expanded.length;
+    if (crypto.sha256.convert(expanded).toString() != witness.value.$2) {
+      return null;
+    }
+    facts[witness.key] = Map<String, Object?>.unmodifiable({
+      'sectionIndex': witness.value.$1,
+      'sha256': witness.value.$2,
+    });
+  }
+  return Map<String, Object?>.unmodifiable(facts);
+}
 
 SourceFileEntry _entry(NormalizedSourceProject source, String path) {
   final matches = source.snapshot.entries
@@ -352,21 +432,28 @@ SourceFileEntry _entry(NormalizedSourceProject source, String path) {
   return matches.single;
 }
 
-Future<List<int>> _verifiedRead(SourceFileEntry entry, SourceFilePort files,
+Future<Uint8List> _verifiedRead(SourceFileEntry entry, SourceFilePort files,
     NativeWriteLimits limits, ScanCancellation? cancellation) async {
   cancellation?.check();
   if (entry.byteLength > limits.maxArtifactBytes) {
     throw const NativeWriteException('grass_rustle.source.quota',
         'Grass source file exceeds its byte budget');
   }
-  final bytes = await files.read(entry.fileId);
+  final sourceBytes = await files.read(entry.fileId);
   cancellation?.check();
-  if (bytes.length != entry.byteLength ||
-      crypto.sha256.convert(bytes).toString() != entry.sha256!.value) {
-    throw const NativeWriteException('grass_rustle.source.changed',
-        'Grass source file differs from its admitted snapshot');
+  const changed = NativeWriteException('grass_rustle.source.changed',
+      'Grass source file differs from its admitted snapshot');
+  if (sourceBytes.length != entry.byteLength) throw changed;
+  final bytes = Uint8List(sourceBytes.length);
+  for (var index = 0; index < sourceBytes.length; index++) {
+    final value = sourceBytes[index];
+    if (value < 0 || value > 255) throw changed;
+    bytes[index] = value;
   }
-  return bytes;
+  if (crypto.sha256.convert(bytes).toString() != entry.sha256!.value) {
+    throw changed;
+  }
+  return bytes.asUnmodifiableView();
 }
 
 final class _AnimationCell {

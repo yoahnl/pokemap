@@ -69,6 +69,162 @@ void main() {
     });
   });
 
+  test('time visibility preserves the window without a reference', () {
+    const npc = MapEntityNpcData(
+      visibilityRule: MapEntityNpcVisibilityRule(
+        mode: MapEntityNpcVisibilityMode.hiddenWhen,
+        predicate: MapEntityRuntimePredicate(
+          kind: MapEntityRuntimePredicateKind.localTimeWindow,
+          timeWindow: LocalTimeWindow(startMinute: 1200, endMinute: 240),
+        ),
+      ),
+    );
+    final parsed = parseVisibilityRuleFromNpc(npc);
+    expect(parsed.timeWindow, npc.visibilityRule!.predicate!.timeWindow);
+    expect(
+      validateNpcVisibilityDraft(
+        uiMode: parsed.mode,
+        predicateKind: parsed.kind,
+        refMenuId: kNpcRuntimeRefNoneMenuId,
+        timeWindow: parsed.timeWindow,
+      ),
+      isNull,
+    );
+    expect(
+      buildVisibilityRuleForSave(
+        uiMode: parsed.mode,
+        predicateKind: parsed.kind,
+        refMenuId: kNpcRuntimeRefNoneMenuId,
+        timeWindow: parsed.timeWindow,
+      ),
+      npc.visibilityRule,
+    );
+    expect(
+      validateNpcVisibilityDraft(
+        uiMode: parsed.mode,
+        predicateKind: parsed.kind,
+        refMenuId: kNpcRuntimeRefNoneMenuId,
+        timeWindow: const LocalTimeWindow(startMinute: 240, endMinute: 240),
+      ),
+      isNotNull,
+    );
+    expect(
+      buildVisibilityRuleForSave(
+        uiMode: NpcRuntimeVisibilityUiMode.always,
+        predicateKind: parsed.kind,
+        refMenuId: '',
+        timeWindow: parsed.timeWindow,
+      ),
+      isNull,
+    );
+  });
+
+  test('party predicates retain their threshold during unrelated edits', () {
+    const predicate = MapEntityRuntimePredicate(
+      kind: MapEntityRuntimePredicateKind.partyUsableCountAtLeast,
+      minimumCount: 2,
+    );
+    const npc = MapEntityNpcData(
+      visibilityRule: MapEntityNpcVisibilityRule(
+        mode: MapEntityNpcVisibilityMode.visibleWhen,
+        predicate: predicate,
+      ),
+    );
+    final parsed = parseVisibilityRuleFromNpc(npc);
+    expect(parsed.minimumCount, 2);
+    expect(
+      buildVisibilityRuleForSave(
+        uiMode: parsed.mode,
+        predicateKind: parsed.kind,
+        refMenuId: kNpcRuntimeRefNoneMenuId,
+        minimumCount: parsed.minimumCount,
+      ),
+      npc.visibilityRule,
+    );
+    expect(
+      validateNpcVisibilityDraft(
+        uiMode: parsed.mode,
+        predicateKind: parsed.kind,
+        refMenuId: kNpcRuntimeRefNoneMenuId,
+        minimumCount: parsed.minimumCount,
+      ),
+      isNull,
+    );
+    const row = MapEntityConditionalDialogue(
+      when: predicate,
+      dialogue: DialogueRef(dialogueId: 'refusal', startNode: 'Start'),
+    );
+    expect(
+      buildConditionalDialogueRowForSave(
+        conditionKind: row.when.kind,
+        refMenuId: kNpcRuntimeRefNoneMenuId,
+        dialogueId: row.dialogue.dialogueId,
+        startNode: row.dialogue.startNode,
+        minimumCount: row.when.minimumCount,
+      ),
+      row,
+    );
+    expect(
+      validateConditionalDialogueDrafts(
+        rows: [(dialogueMenuId: 'refusal', refMenuId: kNpcRuntimeRefNoneMenuId)],
+        dialogueNoneId: '__none__',
+        predicateKinds: [row.when.kind],
+        minimumCounts: [row.when.minimumCount],
+      ),
+      isNull,
+    );
+  });
+
+  test(
+    'conditional time dialogue retains path, start node and midnight window',
+    () {
+      const original = MapEntityConditionalDialogue(
+        when: MapEntityRuntimePredicate(
+          kind: MapEntityRuntimePredicateKind.localTimeWindow,
+          timeWindow: LocalTimeWindow(startMinute: 1200, endMinute: 1440),
+        ),
+        dialogue: DialogueRef(
+          dialogueId: 'guard',
+          scriptPathRelative: 'dialogues/guard.yarn',
+          startNode: 'Night',
+        ),
+      );
+      expect(
+        validateConditionalDialogueDrafts(
+          rows: [
+            (dialogueMenuId: 'guard', refMenuId: kNpcRuntimeRefNoneMenuId),
+          ],
+          dialogueNoneId: '__none__',
+          predicateKinds: [original.when.kind],
+          timeWindows: [original.when.timeWindow],
+        ),
+        isNull,
+      );
+      expect(
+        validateConditionalDialogueDrafts(
+          rows: [
+            (dialogueMenuId: 'guard', refMenuId: kNpcRuntimeRefNoneMenuId),
+          ],
+          dialogueNoneId: '__none__',
+          predicateKinds: [original.when.kind],
+          timeWindows: const [LocalTimeWindow(startMinute: 10, endMinute: 10)],
+        ),
+        isNotNull,
+      );
+      expect(
+        buildConditionalDialogueRowForSave(
+          conditionKind: original.when.kind,
+          refMenuId: kNpcRuntimeRefNoneMenuId,
+          dialogueId: original.dialogue.dialogueId,
+          startNode: original.dialogue.startNode,
+          scriptPathRelative: original.dialogue.scriptPathRelative,
+          timeWindow: original.when.timeWindow,
+        ),
+        original,
+      );
+    },
+  );
+
   group('validateNpcVisibilityDraft', () {
     test('always: ok même sans cible', () {
       expect(

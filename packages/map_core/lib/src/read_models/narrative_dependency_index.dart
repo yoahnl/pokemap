@@ -887,6 +887,19 @@ final class _NarrativeDependencyIndexBuilder {
                 'maps[${map.id}].entities[$index].npc.visibilityRule.predicate',
               );
             }
+            _collectAuthoredDialogueRef(npc.trainerBattleNotReadyDialogue, owner, 'maps[${map.id}].entities[$index].npc.trainerBattleNotReadyDialogue');
+            final readyPredicate = npc.trainerBattleReadyWhen;
+            if (readyPredicate != null) {
+              _collectMapPredicate(readyPredicate, owner, 'maps[${map.id}].entities[$index].npc.trainerBattleReadyWhen');
+            }
+            final battlePredicate = npc.trainerBattleWhen;
+            if (battlePredicate != null) {
+              _collectMapPredicate(
+                battlePredicate,
+                owner,
+                'maps[${map.id}].entities[$index].npc.trainerBattleWhen',
+              );
+            }
             for (
               var conditionalIndex = 0;
               conditionalIndex < npc.conditionalDialogues.length;
@@ -1102,6 +1115,9 @@ final class _NarrativeDependencyIndexBuilder {
     final sourceId = predicate.refId.trim();
     if (sourceId.isEmpty) return;
     switch (kind) {
+      case MapEntityRuntimePredicateKind.partyUsableCountAtLeast:
+      case MapEntityRuntimePredicateKind.localTimeWindow:
+        break;
       case MapEntityRuntimePredicateKind.badgeOwned:
       case MapEntityRuntimePredicateKind.badgeNotOwned:
         _usage(

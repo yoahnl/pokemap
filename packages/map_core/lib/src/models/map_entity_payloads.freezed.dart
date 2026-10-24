@@ -292,7 +292,7 @@ mixin _$MapEntityRuntimePredicate {
 
  MapEntityRuntimePredicateKind get kind;/// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
 /// id de scénario local (cutscene).
- String get refId;
+ String get refId;@JsonKey(includeIfNull: false) LocalTimeWindow? get timeWindow;@JsonKey(includeIfNull: false) int? get minimumCount;
 /// Create a copy of MapEntityRuntimePredicate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -305,16 +305,16 @@ $MapEntityRuntimePredicateCopyWith<MapEntityRuntimePredicate> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityRuntimePredicate&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.refId, refId) || other.refId == refId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityRuntimePredicate&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.refId, refId) || other.refId == refId)&&(identical(other.timeWindow, timeWindow) || other.timeWindow == timeWindow)&&(identical(other.minimumCount, minimumCount) || other.minimumCount == minimumCount));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,kind,refId);
+int get hashCode => Object.hash(runtimeType,kind,refId,timeWindow,minimumCount);
 
 @override
 String toString() {
-  return 'MapEntityRuntimePredicate(kind: $kind, refId: $refId)';
+  return 'MapEntityRuntimePredicate(kind: $kind, refId: $refId, timeWindow: $timeWindow, minimumCount: $minimumCount)';
 }
 
 
@@ -325,7 +325,7 @@ abstract mixin class $MapEntityRuntimePredicateCopyWith<$Res>  {
   factory $MapEntityRuntimePredicateCopyWith(MapEntityRuntimePredicate value, $Res Function(MapEntityRuntimePredicate) _then) = _$MapEntityRuntimePredicateCopyWithImpl;
 @useResult
 $Res call({
- MapEntityRuntimePredicateKind kind, String refId
+ MapEntityRuntimePredicateKind kind, String refId,@JsonKey(includeIfNull: false) LocalTimeWindow? timeWindow,@JsonKey(includeIfNull: false) int? minimumCount
 });
 
 
@@ -342,11 +342,13 @@ class _$MapEntityRuntimePredicateCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityRuntimePredicate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? kind = null,Object? refId = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? kind = null,Object? refId = null,Object? timeWindow = freezed,Object? minimumCount = freezed,}) {
   return _then(_self.copyWith(
 kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
 as MapEntityRuntimePredicateKind,refId: null == refId ? _self.refId : refId // ignore: cast_nullable_to_non_nullable
-as String,
+as String,timeWindow: freezed == timeWindow ? _self.timeWindow : timeWindow // ignore: cast_nullable_to_non_nullable
+as LocalTimeWindow?,minimumCount: freezed == minimumCount ? _self.minimumCount : minimumCount // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -431,10 +433,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapEntityRuntimePredicateKind kind,  String refId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapEntityRuntimePredicateKind kind,  String refId, @JsonKey(includeIfNull: false)  LocalTimeWindow? timeWindow, @JsonKey(includeIfNull: false)  int? minimumCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntityRuntimePredicate() when $default != null:
-return $default(_that.kind,_that.refId);case _:
+return $default(_that.kind,_that.refId,_that.timeWindow,_that.minimumCount);case _:
   return orElse();
 
 }
@@ -452,10 +454,10 @@ return $default(_that.kind,_that.refId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapEntityRuntimePredicateKind kind,  String refId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapEntityRuntimePredicateKind kind,  String refId, @JsonKey(includeIfNull: false)  LocalTimeWindow? timeWindow, @JsonKey(includeIfNull: false)  int? minimumCount)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityRuntimePredicate():
-return $default(_that.kind,_that.refId);case _:
+return $default(_that.kind,_that.refId,_that.timeWindow,_that.minimumCount);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -472,10 +474,10 @@ return $default(_that.kind,_that.refId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapEntityRuntimePredicateKind kind,  String refId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapEntityRuntimePredicateKind kind,  String refId, @JsonKey(includeIfNull: false)  LocalTimeWindow? timeWindow, @JsonKey(includeIfNull: false)  int? minimumCount)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityRuntimePredicate() when $default != null:
-return $default(_that.kind,_that.refId);case _:
+return $default(_that.kind,_that.refId,_that.timeWindow,_that.minimumCount);case _:
   return null;
 
 }
@@ -487,13 +489,15 @@ return $default(_that.kind,_that.refId);case _:
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntityRuntimePredicate implements MapEntityRuntimePredicate {
-  const _MapEntityRuntimePredicate({required this.kind, this.refId = ''});
+  const _MapEntityRuntimePredicate({required this.kind, this.refId = '', @JsonKey(includeIfNull: false) this.timeWindow, @JsonKey(includeIfNull: false) this.minimumCount});
   factory _MapEntityRuntimePredicate.fromJson(Map<String, dynamic> json) => _$MapEntityRuntimePredicateFromJson(json);
 
 @override final  MapEntityRuntimePredicateKind kind;
 /// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
 /// id de scénario local (cutscene).
 @override@JsonKey() final  String refId;
+@override@JsonKey(includeIfNull: false) final  LocalTimeWindow? timeWindow;
+@override@JsonKey(includeIfNull: false) final  int? minimumCount;
 
 /// Create a copy of MapEntityRuntimePredicate
 /// with the given fields replaced by the non-null parameter values.
@@ -508,16 +512,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityRuntimePredicate&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.refId, refId) || other.refId == refId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityRuntimePredicate&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.refId, refId) || other.refId == refId)&&(identical(other.timeWindow, timeWindow) || other.timeWindow == timeWindow)&&(identical(other.minimumCount, minimumCount) || other.minimumCount == minimumCount));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,kind,refId);
+int get hashCode => Object.hash(runtimeType,kind,refId,timeWindow,minimumCount);
 
 @override
 String toString() {
-  return 'MapEntityRuntimePredicate(kind: $kind, refId: $refId)';
+  return 'MapEntityRuntimePredicate(kind: $kind, refId: $refId, timeWindow: $timeWindow, minimumCount: $minimumCount)';
 }
 
 
@@ -528,7 +532,7 @@ abstract mixin class _$MapEntityRuntimePredicateCopyWith<$Res> implements $MapEn
   factory _$MapEntityRuntimePredicateCopyWith(_MapEntityRuntimePredicate value, $Res Function(_MapEntityRuntimePredicate) _then) = __$MapEntityRuntimePredicateCopyWithImpl;
 @override @useResult
 $Res call({
- MapEntityRuntimePredicateKind kind, String refId
+ MapEntityRuntimePredicateKind kind, String refId,@JsonKey(includeIfNull: false) LocalTimeWindow? timeWindow,@JsonKey(includeIfNull: false) int? minimumCount
 });
 
 
@@ -545,11 +549,13 @@ class __$MapEntityRuntimePredicateCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityRuntimePredicate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? kind = null,Object? refId = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? kind = null,Object? refId = null,Object? timeWindow = freezed,Object? minimumCount = freezed,}) {
   return _then(_MapEntityRuntimePredicate(
 kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
 as MapEntityRuntimePredicateKind,refId: null == refId ? _self.refId : refId // ignore: cast_nullable_to_non_nullable
-as String,
+as String,timeWindow: freezed == timeWindow ? _self.timeWindow : timeWindow // ignore: cast_nullable_to_non_nullable
+as LocalTimeWindow?,minimumCount: freezed == minimumCount ? _self.minimumCount : minimumCount // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -1152,7 +1158,7 @@ $DialogueRefCopyWith<$Res> get dialogue {
 /// @nodoc
 mixin _$MapEntityNpcData {
 
- String get displayName; DialogueRef? get dialogue; EntityFacing get facing; String get visualElementId; String? get trainerId; int get lineOfSightRange; List<EntityFacing> get counterInteractionSides; DialogueRef? get defeatDialogueRef; String? get characterId; MapEntityNpcMovementConfig get movement;/// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
+ String get displayName; DialogueRef? get dialogue; EntityFacing get facing; String get visualElementId; String? get trainerId;@JsonKey(includeIfNull: false) MapEntityRuntimePredicate? get trainerBattleWhen;@JsonKey(includeIfNull: false) MapEntityRuntimePredicate? get trainerBattleReadyWhen;@JsonKey(includeIfNull: false) DialogueRef? get trainerBattleNotReadyDialogue; int get lineOfSightRange; List<EntityFacing> get counterInteractionSides; DialogueRef? get defeatDialogueRef; String? get characterId; MapEntityNpcMovementConfig get movement;/// `null` ou mode [MapEntityNpcVisibilityMode.always] = toujours visible.
  MapEntityNpcVisibilityRule? get visibilityRule;/// Variantes testées **dans l’ordre** avant [dialogue] par défaut.
  List<MapEntityConditionalDialogue> get conditionalDialogues;
 /// Create a copy of MapEntityNpcData
@@ -1167,16 +1173,16 @@ $MapEntityNpcDataCopyWith<MapEntityNpcData> get copyWith => _$MapEntityNpcDataCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&const DeepCollectionEquality().equals(other.counterInteractionSides, counterInteractionSides)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other.conditionalDialogues, conditionalDialogues));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.trainerBattleWhen, trainerBattleWhen) || other.trainerBattleWhen == trainerBattleWhen)&&(identical(other.trainerBattleReadyWhen, trainerBattleReadyWhen) || other.trainerBattleReadyWhen == trainerBattleReadyWhen)&&(identical(other.trainerBattleNotReadyDialogue, trainerBattleNotReadyDialogue) || other.trainerBattleNotReadyDialogue == trainerBattleNotReadyDialogue)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&const DeepCollectionEquality().equals(other.counterInteractionSides, counterInteractionSides)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other.conditionalDialogues, conditionalDialogues));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,lineOfSightRange,const DeepCollectionEquality().hash(counterInteractionSides),defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(conditionalDialogues));
+int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,trainerBattleWhen,trainerBattleReadyWhen,trainerBattleNotReadyDialogue,lineOfSightRange,const DeepCollectionEquality().hash(counterInteractionSides),defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(conditionalDialogues));
 
 @override
 String toString() {
-  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, counterInteractionSides: $counterInteractionSides, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
+  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, trainerBattleWhen: $trainerBattleWhen, trainerBattleReadyWhen: $trainerBattleReadyWhen, trainerBattleNotReadyDialogue: $trainerBattleNotReadyDialogue, lineOfSightRange: $lineOfSightRange, counterInteractionSides: $counterInteractionSides, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
 }
 
 
@@ -1187,11 +1193,11 @@ abstract mixin class $MapEntityNpcDataCopyWith<$Res>  {
   factory $MapEntityNpcDataCopyWith(MapEntityNpcData value, $Res Function(MapEntityNpcData) _then) = _$MapEntityNpcDataCopyWithImpl;
 @useResult
 $Res call({
- String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId, int lineOfSightRange, List<EntityFacing> counterInteractionSides, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
+ String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId,@JsonKey(includeIfNull: false) MapEntityRuntimePredicate? trainerBattleWhen,@JsonKey(includeIfNull: false) MapEntityRuntimePredicate? trainerBattleReadyWhen,@JsonKey(includeIfNull: false) DialogueRef? trainerBattleNotReadyDialogue, int lineOfSightRange, List<EntityFacing> counterInteractionSides, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
 });
 
 
-$DialogueRefCopyWith<$Res>? get dialogue;$DialogueRefCopyWith<$Res>? get defeatDialogueRef;$MapEntityNpcMovementConfigCopyWith<$Res> get movement;$MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule;
+$DialogueRefCopyWith<$Res>? get dialogue;$MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleWhen;$MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleReadyWhen;$DialogueRefCopyWith<$Res>? get trainerBattleNotReadyDialogue;$DialogueRefCopyWith<$Res>? get defeatDialogueRef;$MapEntityNpcMovementConfigCopyWith<$Res> get movement;$MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule;
 
 }
 /// @nodoc
@@ -1204,14 +1210,17 @@ class _$MapEntityNpcDataCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? lineOfSightRange = null,Object? counterInteractionSides = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? trainerBattleWhen = freezed,Object? trainerBattleReadyWhen = freezed,Object? trainerBattleNotReadyDialogue = freezed,Object? lineOfSightRange = null,Object? counterInteractionSides = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
   return _then(_self.copyWith(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,facing: null == facing ? _self.facing : facing // ignore: cast_nullable_to_non_nullable
 as EntityFacing,visualElementId: null == visualElementId ? _self.visualElementId : visualElementId // ignore: cast_nullable_to_non_nullable
 as String,trainerId: freezed == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
-as String?,lineOfSightRange: null == lineOfSightRange ? _self.lineOfSightRange : lineOfSightRange // ignore: cast_nullable_to_non_nullable
+as String?,trainerBattleWhen: freezed == trainerBattleWhen ? _self.trainerBattleWhen : trainerBattleWhen // ignore: cast_nullable_to_non_nullable
+as MapEntityRuntimePredicate?,trainerBattleReadyWhen: freezed == trainerBattleReadyWhen ? _self.trainerBattleReadyWhen : trainerBattleReadyWhen // ignore: cast_nullable_to_non_nullable
+as MapEntityRuntimePredicate?,trainerBattleNotReadyDialogue: freezed == trainerBattleNotReadyDialogue ? _self.trainerBattleNotReadyDialogue : trainerBattleNotReadyDialogue // ignore: cast_nullable_to_non_nullable
+as DialogueRef?,lineOfSightRange: null == lineOfSightRange ? _self.lineOfSightRange : lineOfSightRange // ignore: cast_nullable_to_non_nullable
 as int,counterInteractionSides: null == counterInteractionSides ? _self.counterInteractionSides : counterInteractionSides // ignore: cast_nullable_to_non_nullable
 as List<EntityFacing>,defeatDialogueRef: freezed == defeatDialogueRef ? _self.defeatDialogueRef : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,characterId: freezed == characterId ? _self.characterId : characterId // ignore: cast_nullable_to_non_nullable
@@ -1232,6 +1241,42 @@ $DialogueRefCopyWith<$Res>? get dialogue {
 
   return $DialogueRefCopyWith<$Res>(_self.dialogue!, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of MapEntityNpcData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleWhen {
+    if (_self.trainerBattleWhen == null) {
+    return null;
+  }
+
+  return $MapEntityRuntimePredicateCopyWith<$Res>(_self.trainerBattleWhen!, (value) {
+    return _then(_self.copyWith(trainerBattleWhen: value));
+  });
+}/// Create a copy of MapEntityNpcData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleReadyWhen {
+    if (_self.trainerBattleReadyWhen == null) {
+    return null;
+  }
+
+  return $MapEntityRuntimePredicateCopyWith<$Res>(_self.trainerBattleReadyWhen!, (value) {
+    return _then(_self.copyWith(trainerBattleReadyWhen: value));
+  });
+}/// Create a copy of MapEntityNpcData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DialogueRefCopyWith<$Res>? get trainerBattleNotReadyDialogue {
+    if (_self.trainerBattleNotReadyDialogue == null) {
+    return null;
+  }
+
+  return $DialogueRefCopyWith<$Res>(_self.trainerBattleNotReadyDialogue!, (value) {
+    return _then(_self.copyWith(trainerBattleNotReadyDialogue: value));
   });
 }/// Create a copy of MapEntityNpcData
 /// with the given fields replaced by the non-null parameter values.
@@ -1348,10 +1393,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId, @JsonKey(includeIfNull: false)  MapEntityRuntimePredicate? trainerBattleWhen, @JsonKey(includeIfNull: false)  MapEntityRuntimePredicate? trainerBattleReadyWhen, @JsonKey(includeIfNull: false)  DialogueRef? trainerBattleNotReadyDialogue,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntityNpcData() when $default != null:
-return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
+return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.trainerBattleWhen,_that.trainerBattleReadyWhen,_that.trainerBattleNotReadyDialogue,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
   return orElse();
 
 }
@@ -1369,10 +1414,10 @@ return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElemen
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId, @JsonKey(includeIfNull: false)  MapEntityRuntimePredicate? trainerBattleWhen, @JsonKey(includeIfNull: false)  MapEntityRuntimePredicate? trainerBattleReadyWhen, @JsonKey(includeIfNull: false)  DialogueRef? trainerBattleNotReadyDialogue,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcData():
-return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
+return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.trainerBattleWhen,_that.trainerBattleReadyWhen,_that.trainerBattleNotReadyDialogue,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1389,10 +1434,10 @@ return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElemen
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String displayName,  DialogueRef? dialogue,  EntityFacing facing,  String visualElementId,  String? trainerId, @JsonKey(includeIfNull: false)  MapEntityRuntimePredicate? trainerBattleWhen, @JsonKey(includeIfNull: false)  MapEntityRuntimePredicate? trainerBattleReadyWhen, @JsonKey(includeIfNull: false)  DialogueRef? trainerBattleNotReadyDialogue,  int lineOfSightRange,  List<EntityFacing> counterInteractionSides,  DialogueRef? defeatDialogueRef,  String? characterId,  MapEntityNpcMovementConfig movement,  MapEntityNpcVisibilityRule? visibilityRule,  List<MapEntityConditionalDialogue> conditionalDialogues)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcData() when $default != null:
-return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
+return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElementId,_that.trainerId,_that.trainerBattleWhen,_that.trainerBattleReadyWhen,_that.trainerBattleNotReadyDialogue,_that.lineOfSightRange,_that.counterInteractionSides,_that.defeatDialogueRef,_that.characterId,_that.movement,_that.visibilityRule,_that.conditionalDialogues);case _:
   return null;
 
 }
@@ -1404,7 +1449,7 @@ return $default(_that.displayName,_that.dialogue,_that.facing,_that.visualElemen
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntityNpcData implements MapEntityNpcData {
-  const _MapEntityNpcData({this.displayName = '', this.dialogue, this.facing = EntityFacing.south, this.visualElementId = '', this.trainerId, this.lineOfSightRange = 0, final  List<EntityFacing> counterInteractionSides = const <EntityFacing>[], this.defeatDialogueRef, this.characterId, this.movement = const MapEntityNpcMovementConfig(), this.visibilityRule, final  List<MapEntityConditionalDialogue> conditionalDialogues = const <MapEntityConditionalDialogue>[]}): _counterInteractionSides = counterInteractionSides,_conditionalDialogues = conditionalDialogues;
+  const _MapEntityNpcData({this.displayName = '', this.dialogue, this.facing = EntityFacing.south, this.visualElementId = '', this.trainerId, @JsonKey(includeIfNull: false) this.trainerBattleWhen, @JsonKey(includeIfNull: false) this.trainerBattleReadyWhen, @JsonKey(includeIfNull: false) this.trainerBattleNotReadyDialogue, this.lineOfSightRange = 0, final  List<EntityFacing> counterInteractionSides = const <EntityFacing>[], this.defeatDialogueRef, this.characterId, this.movement = const MapEntityNpcMovementConfig(), this.visibilityRule, final  List<MapEntityConditionalDialogue> conditionalDialogues = const <MapEntityConditionalDialogue>[]}): _counterInteractionSides = counterInteractionSides,_conditionalDialogues = conditionalDialogues;
   factory _MapEntityNpcData.fromJson(Map<String, dynamic> json) => _$MapEntityNpcDataFromJson(json);
 
 @override@JsonKey() final  String displayName;
@@ -1412,6 +1457,9 @@ class _MapEntityNpcData implements MapEntityNpcData {
 @override@JsonKey() final  EntityFacing facing;
 @override@JsonKey() final  String visualElementId;
 @override final  String? trainerId;
+@override@JsonKey(includeIfNull: false) final  MapEntityRuntimePredicate? trainerBattleWhen;
+@override@JsonKey(includeIfNull: false) final  MapEntityRuntimePredicate? trainerBattleReadyWhen;
+@override@JsonKey(includeIfNull: false) final  DialogueRef? trainerBattleNotReadyDialogue;
 @override@JsonKey() final  int lineOfSightRange;
  final  List<EntityFacing> _counterInteractionSides;
 @override@JsonKey() List<EntityFacing> get counterInteractionSides {
@@ -1448,16 +1496,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&const DeepCollectionEquality().equals(other._counterInteractionSides, _counterInteractionSides)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other._conditionalDialogues, _conditionalDialogues));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcData&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.facing, facing) || other.facing == facing)&&(identical(other.visualElementId, visualElementId) || other.visualElementId == visualElementId)&&(identical(other.trainerId, trainerId) || other.trainerId == trainerId)&&(identical(other.trainerBattleWhen, trainerBattleWhen) || other.trainerBattleWhen == trainerBattleWhen)&&(identical(other.trainerBattleReadyWhen, trainerBattleReadyWhen) || other.trainerBattleReadyWhen == trainerBattleReadyWhen)&&(identical(other.trainerBattleNotReadyDialogue, trainerBattleNotReadyDialogue) || other.trainerBattleNotReadyDialogue == trainerBattleNotReadyDialogue)&&(identical(other.lineOfSightRange, lineOfSightRange) || other.lineOfSightRange == lineOfSightRange)&&const DeepCollectionEquality().equals(other._counterInteractionSides, _counterInteractionSides)&&(identical(other.defeatDialogueRef, defeatDialogueRef) || other.defeatDialogueRef == defeatDialogueRef)&&(identical(other.characterId, characterId) || other.characterId == characterId)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.visibilityRule, visibilityRule) || other.visibilityRule == visibilityRule)&&const DeepCollectionEquality().equals(other._conditionalDialogues, _conditionalDialogues));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,lineOfSightRange,const DeepCollectionEquality().hash(_counterInteractionSides),defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(_conditionalDialogues));
+int get hashCode => Object.hash(runtimeType,displayName,dialogue,facing,visualElementId,trainerId,trainerBattleWhen,trainerBattleReadyWhen,trainerBattleNotReadyDialogue,lineOfSightRange,const DeepCollectionEquality().hash(_counterInteractionSides),defeatDialogueRef,characterId,movement,visibilityRule,const DeepCollectionEquality().hash(_conditionalDialogues));
 
 @override
 String toString() {
-  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, lineOfSightRange: $lineOfSightRange, counterInteractionSides: $counterInteractionSides, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
+  return 'MapEntityNpcData(displayName: $displayName, dialogue: $dialogue, facing: $facing, visualElementId: $visualElementId, trainerId: $trainerId, trainerBattleWhen: $trainerBattleWhen, trainerBattleReadyWhen: $trainerBattleReadyWhen, trainerBattleNotReadyDialogue: $trainerBattleNotReadyDialogue, lineOfSightRange: $lineOfSightRange, counterInteractionSides: $counterInteractionSides, defeatDialogueRef: $defeatDialogueRef, characterId: $characterId, movement: $movement, visibilityRule: $visibilityRule, conditionalDialogues: $conditionalDialogues)';
 }
 
 
@@ -1468,11 +1516,11 @@ abstract mixin class _$MapEntityNpcDataCopyWith<$Res> implements $MapEntityNpcDa
   factory _$MapEntityNpcDataCopyWith(_MapEntityNpcData value, $Res Function(_MapEntityNpcData) _then) = __$MapEntityNpcDataCopyWithImpl;
 @override @useResult
 $Res call({
- String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId, int lineOfSightRange, List<EntityFacing> counterInteractionSides, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
+ String displayName, DialogueRef? dialogue, EntityFacing facing, String visualElementId, String? trainerId,@JsonKey(includeIfNull: false) MapEntityRuntimePredicate? trainerBattleWhen,@JsonKey(includeIfNull: false) MapEntityRuntimePredicate? trainerBattleReadyWhen,@JsonKey(includeIfNull: false) DialogueRef? trainerBattleNotReadyDialogue, int lineOfSightRange, List<EntityFacing> counterInteractionSides, DialogueRef? defeatDialogueRef, String? characterId, MapEntityNpcMovementConfig movement, MapEntityNpcVisibilityRule? visibilityRule, List<MapEntityConditionalDialogue> conditionalDialogues
 });
 
 
-@override $DialogueRefCopyWith<$Res>? get dialogue;@override $DialogueRefCopyWith<$Res>? get defeatDialogueRef;@override $MapEntityNpcMovementConfigCopyWith<$Res> get movement;@override $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule;
+@override $DialogueRefCopyWith<$Res>? get dialogue;@override $MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleWhen;@override $MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleReadyWhen;@override $DialogueRefCopyWith<$Res>? get trainerBattleNotReadyDialogue;@override $DialogueRefCopyWith<$Res>? get defeatDialogueRef;@override $MapEntityNpcMovementConfigCopyWith<$Res> get movement;@override $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule;
 
 }
 /// @nodoc
@@ -1485,14 +1533,17 @@ class __$MapEntityNpcDataCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? lineOfSightRange = null,Object? counterInteractionSides = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? displayName = null,Object? dialogue = freezed,Object? facing = null,Object? visualElementId = null,Object? trainerId = freezed,Object? trainerBattleWhen = freezed,Object? trainerBattleReadyWhen = freezed,Object? trainerBattleNotReadyDialogue = freezed,Object? lineOfSightRange = null,Object? counterInteractionSides = null,Object? defeatDialogueRef = freezed,Object? characterId = freezed,Object? movement = null,Object? visibilityRule = freezed,Object? conditionalDialogues = null,}) {
   return _then(_MapEntityNpcData(
 displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,facing: null == facing ? _self.facing : facing // ignore: cast_nullable_to_non_nullable
 as EntityFacing,visualElementId: null == visualElementId ? _self.visualElementId : visualElementId // ignore: cast_nullable_to_non_nullable
 as String,trainerId: freezed == trainerId ? _self.trainerId : trainerId // ignore: cast_nullable_to_non_nullable
-as String?,lineOfSightRange: null == lineOfSightRange ? _self.lineOfSightRange : lineOfSightRange // ignore: cast_nullable_to_non_nullable
+as String?,trainerBattleWhen: freezed == trainerBattleWhen ? _self.trainerBattleWhen : trainerBattleWhen // ignore: cast_nullable_to_non_nullable
+as MapEntityRuntimePredicate?,trainerBattleReadyWhen: freezed == trainerBattleReadyWhen ? _self.trainerBattleReadyWhen : trainerBattleReadyWhen // ignore: cast_nullable_to_non_nullable
+as MapEntityRuntimePredicate?,trainerBattleNotReadyDialogue: freezed == trainerBattleNotReadyDialogue ? _self.trainerBattleNotReadyDialogue : trainerBattleNotReadyDialogue // ignore: cast_nullable_to_non_nullable
+as DialogueRef?,lineOfSightRange: null == lineOfSightRange ? _self.lineOfSightRange : lineOfSightRange // ignore: cast_nullable_to_non_nullable
 as int,counterInteractionSides: null == counterInteractionSides ? _self._counterInteractionSides : counterInteractionSides // ignore: cast_nullable_to_non_nullable
 as List<EntityFacing>,defeatDialogueRef: freezed == defeatDialogueRef ? _self.defeatDialogueRef : defeatDialogueRef // ignore: cast_nullable_to_non_nullable
 as DialogueRef?,characterId: freezed == characterId ? _self.characterId : characterId // ignore: cast_nullable_to_non_nullable
@@ -1514,6 +1565,42 @@ $DialogueRefCopyWith<$Res>? get dialogue {
 
   return $DialogueRefCopyWith<$Res>(_self.dialogue!, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of MapEntityNpcData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleWhen {
+    if (_self.trainerBattleWhen == null) {
+    return null;
+  }
+
+  return $MapEntityRuntimePredicateCopyWith<$Res>(_self.trainerBattleWhen!, (value) {
+    return _then(_self.copyWith(trainerBattleWhen: value));
+  });
+}/// Create a copy of MapEntityNpcData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityRuntimePredicateCopyWith<$Res>? get trainerBattleReadyWhen {
+    if (_self.trainerBattleReadyWhen == null) {
+    return null;
+  }
+
+  return $MapEntityRuntimePredicateCopyWith<$Res>(_self.trainerBattleReadyWhen!, (value) {
+    return _then(_self.copyWith(trainerBattleReadyWhen: value));
+  });
+}/// Create a copy of MapEntityNpcData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DialogueRefCopyWith<$Res>? get trainerBattleNotReadyDialogue {
+    if (_self.trainerBattleNotReadyDialogue == null) {
+    return null;
+  }
+
+  return $DialogueRefCopyWith<$Res>(_self.trainerBattleNotReadyDialogue!, (value) {
+    return _then(_self.copyWith(trainerBattleNotReadyDialogue: value));
   });
 }/// Create a copy of MapEntityNpcData
 /// with the given fields replaced by the non-null parameter values.
@@ -1555,7 +1642,7 @@ $MapEntityNpcVisibilityRuleCopyWith<$Res>? get visibilityRule {
 /// @nodoc
 mixin _$MapEntityNpcMovementConfig {
 
- MapEntityNpcMovementMode get mode; List<GridPos> get waypoints; List<MapEntityNpcRouteStep> get routeSteps; MapEntityNpcRouteInstanceBoolean? get suspendWhenInstanceBoolean; bool get loop; int get pauseDurationMs; int get stepDurationMs;
+ MapEntityNpcMovementMode get mode; List<GridPos> get waypoints; List<MapEntityNpcRouteStep> get routeSteps; MapEntityNpcRouteInstanceBoolean? get suspendWhenInstanceBoolean; bool get loop; int get pauseDurationMs; List<int> get pauseDurationsMs;@JsonKey(includeIfNull: false) MapRect? get movementArea; int get stepDurationMs;
 /// Create a copy of MapEntityNpcMovementConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1568,16 +1655,16 @@ $MapEntityNpcMovementConfigCopyWith<MapEntityNpcMovementConfig> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other.waypoints, waypoints)&&const DeepCollectionEquality().equals(other.routeSteps, routeSteps)&&(identical(other.suspendWhenInstanceBoolean, suspendWhenInstanceBoolean) || other.suspendWhenInstanceBoolean == suspendWhenInstanceBoolean)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other.waypoints, waypoints)&&const DeepCollectionEquality().equals(other.routeSteps, routeSteps)&&(identical(other.suspendWhenInstanceBoolean, suspendWhenInstanceBoolean) || other.suspendWhenInstanceBoolean == suspendWhenInstanceBoolean)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&const DeepCollectionEquality().equals(other.pauseDurationsMs, pauseDurationsMs)&&(identical(other.movementArea, movementArea) || other.movementArea == movementArea)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(waypoints),const DeepCollectionEquality().hash(routeSteps),suspendWhenInstanceBoolean,loop,pauseDurationMs,stepDurationMs);
+int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(waypoints),const DeepCollectionEquality().hash(routeSteps),suspendWhenInstanceBoolean,loop,pauseDurationMs,const DeepCollectionEquality().hash(pauseDurationsMs),movementArea,stepDurationMs);
 
 @override
 String toString() {
-  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, routeSteps: $routeSteps, suspendWhenInstanceBoolean: $suspendWhenInstanceBoolean, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
+  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, routeSteps: $routeSteps, suspendWhenInstanceBoolean: $suspendWhenInstanceBoolean, loop: $loop, pauseDurationMs: $pauseDurationMs, pauseDurationsMs: $pauseDurationsMs, movementArea: $movementArea, stepDurationMs: $stepDurationMs)';
 }
 
 
@@ -1588,11 +1675,11 @@ abstract mixin class $MapEntityNpcMovementConfigCopyWith<$Res>  {
   factory $MapEntityNpcMovementConfigCopyWith(MapEntityNpcMovementConfig value, $Res Function(MapEntityNpcMovementConfig) _then) = _$MapEntityNpcMovementConfigCopyWithImpl;
 @useResult
 $Res call({
- MapEntityNpcMovementMode mode, List<GridPos> waypoints, List<MapEntityNpcRouteStep> routeSteps, MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean, bool loop, int pauseDurationMs, int stepDurationMs
+ MapEntityNpcMovementMode mode, List<GridPos> waypoints, List<MapEntityNpcRouteStep> routeSteps, MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean, bool loop, int pauseDurationMs, List<int> pauseDurationsMs,@JsonKey(includeIfNull: false) MapRect? movementArea, int stepDurationMs
 });
 
 
-
+$MapRectCopyWith<$Res>? get movementArea;
 
 }
 /// @nodoc
@@ -1605,7 +1692,7 @@ class _$MapEntityNpcMovementConfigCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcMovementConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? mode = null,Object? waypoints = null,Object? routeSteps = null,Object? suspendWhenInstanceBoolean = freezed,Object? loop = null,Object? pauseDurationMs = null,Object? stepDurationMs = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? mode = null,Object? waypoints = null,Object? routeSteps = null,Object? suspendWhenInstanceBoolean = freezed,Object? loop = null,Object? pauseDurationMs = null,Object? pauseDurationsMs = null,Object? movementArea = freezed,Object? stepDurationMs = null,}) {
   return _then(_self.copyWith(
 mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcMovementMode,waypoints: null == waypoints ? _self.waypoints : waypoints // ignore: cast_nullable_to_non_nullable
@@ -1613,11 +1700,25 @@ as List<GridPos>,routeSteps: null == routeSteps ? _self.routeSteps : routeSteps 
 as List<MapEntityNpcRouteStep>,suspendWhenInstanceBoolean: freezed == suspendWhenInstanceBoolean ? _self.suspendWhenInstanceBoolean : suspendWhenInstanceBoolean // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcRouteInstanceBoolean?,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,pauseDurationMs: null == pauseDurationMs ? _self.pauseDurationMs : pauseDurationMs // ignore: cast_nullable_to_non_nullable
-as int,stepDurationMs: null == stepDurationMs ? _self.stepDurationMs : stepDurationMs // ignore: cast_nullable_to_non_nullable
+as int,pauseDurationsMs: null == pauseDurationsMs ? _self.pauseDurationsMs : pauseDurationsMs // ignore: cast_nullable_to_non_nullable
+as List<int>,movementArea: freezed == movementArea ? _self.movementArea : movementArea // ignore: cast_nullable_to_non_nullable
+as MapRect?,stepDurationMs: null == stepDurationMs ? _self.stepDurationMs : stepDurationMs // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
+/// Create a copy of MapEntityNpcMovementConfig
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res>? get movementArea {
+    if (_self.movementArea == null) {
+    return null;
+  }
 
+  return $MapRectCopyWith<$Res>(_self.movementArea!, (value) {
+    return _then(_self.copyWith(movementArea: value));
+  });
+}
 }
 
 
@@ -1699,10 +1800,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  int stepDurationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  List<int> pauseDurationsMs, @JsonKey(includeIfNull: false)  MapRect? movementArea,  int stepDurationMs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntityNpcMovementConfig() when $default != null:
-return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
+return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.pauseDurationsMs,_that.movementArea,_that.stepDurationMs);case _:
   return orElse();
 
 }
@@ -1720,10 +1821,10 @@ return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenIns
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  int stepDurationMs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  List<int> pauseDurationsMs, @JsonKey(includeIfNull: false)  MapRect? movementArea,  int stepDurationMs)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcMovementConfig():
-return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
+return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.pauseDurationsMs,_that.movementArea,_that.stepDurationMs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1740,10 +1841,10 @@ return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenIns
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  int stepDurationMs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapEntityNpcMovementMode mode,  List<GridPos> waypoints,  List<MapEntityNpcRouteStep> routeSteps,  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,  bool loop,  int pauseDurationMs,  List<int> pauseDurationsMs, @JsonKey(includeIfNull: false)  MapRect? movementArea,  int stepDurationMs)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityNpcMovementConfig() when $default != null:
-return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.stepDurationMs);case _:
+return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenInstanceBoolean,_that.loop,_that.pauseDurationMs,_that.pauseDurationsMs,_that.movementArea,_that.stepDurationMs);case _:
   return null;
 
 }
@@ -1755,7 +1856,7 @@ return $default(_that.mode,_that.waypoints,_that.routeSteps,_that.suspendWhenIns
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntityNpcMovementConfig implements MapEntityNpcMovementConfig {
-  const _MapEntityNpcMovementConfig({this.mode = MapEntityNpcMovementMode.idle, final  List<GridPos> waypoints = const <GridPos>[], final  List<MapEntityNpcRouteStep> routeSteps = const <MapEntityNpcRouteStep>[], this.suspendWhenInstanceBoolean, this.loop = true, this.pauseDurationMs = 0, this.stepDurationMs = 200}): _waypoints = waypoints,_routeSteps = routeSteps;
+  const _MapEntityNpcMovementConfig({this.mode = MapEntityNpcMovementMode.idle, final  List<GridPos> waypoints = const <GridPos>[], final  List<MapEntityNpcRouteStep> routeSteps = const <MapEntityNpcRouteStep>[], this.suspendWhenInstanceBoolean, this.loop = true, this.pauseDurationMs = 0, final  List<int> pauseDurationsMs = const <int>[], @JsonKey(includeIfNull: false) this.movementArea, this.stepDurationMs = 200}): _waypoints = waypoints,_routeSteps = routeSteps,_pauseDurationsMs = pauseDurationsMs;
   factory _MapEntityNpcMovementConfig.fromJson(Map<String, dynamic> json) => _$MapEntityNpcMovementConfigFromJson(json);
 
 @override@JsonKey() final  MapEntityNpcMovementMode mode;
@@ -1776,6 +1877,14 @@ class _MapEntityNpcMovementConfig implements MapEntityNpcMovementConfig {
 @override final  MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean;
 @override@JsonKey() final  bool loop;
 @override@JsonKey() final  int pauseDurationMs;
+ final  List<int> _pauseDurationsMs;
+@override@JsonKey() List<int> get pauseDurationsMs {
+  if (_pauseDurationsMs is EqualUnmodifiableListView) return _pauseDurationsMs;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_pauseDurationsMs);
+}
+
+@override@JsonKey(includeIfNull: false) final  MapRect? movementArea;
 @override@JsonKey() final  int stepDurationMs;
 
 /// Create a copy of MapEntityNpcMovementConfig
@@ -1791,16 +1900,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other._waypoints, _waypoints)&&const DeepCollectionEquality().equals(other._routeSteps, _routeSteps)&&(identical(other.suspendWhenInstanceBoolean, suspendWhenInstanceBoolean) || other.suspendWhenInstanceBoolean == suspendWhenInstanceBoolean)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityNpcMovementConfig&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other._waypoints, _waypoints)&&const DeepCollectionEquality().equals(other._routeSteps, _routeSteps)&&(identical(other.suspendWhenInstanceBoolean, suspendWhenInstanceBoolean) || other.suspendWhenInstanceBoolean == suspendWhenInstanceBoolean)&&(identical(other.loop, loop) || other.loop == loop)&&(identical(other.pauseDurationMs, pauseDurationMs) || other.pauseDurationMs == pauseDurationMs)&&const DeepCollectionEquality().equals(other._pauseDurationsMs, _pauseDurationsMs)&&(identical(other.movementArea, movementArea) || other.movementArea == movementArea)&&(identical(other.stepDurationMs, stepDurationMs) || other.stepDurationMs == stepDurationMs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(_waypoints),const DeepCollectionEquality().hash(_routeSteps),suspendWhenInstanceBoolean,loop,pauseDurationMs,stepDurationMs);
+int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(_waypoints),const DeepCollectionEquality().hash(_routeSteps),suspendWhenInstanceBoolean,loop,pauseDurationMs,const DeepCollectionEquality().hash(_pauseDurationsMs),movementArea,stepDurationMs);
 
 @override
 String toString() {
-  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, routeSteps: $routeSteps, suspendWhenInstanceBoolean: $suspendWhenInstanceBoolean, loop: $loop, pauseDurationMs: $pauseDurationMs, stepDurationMs: $stepDurationMs)';
+  return 'MapEntityNpcMovementConfig(mode: $mode, waypoints: $waypoints, routeSteps: $routeSteps, suspendWhenInstanceBoolean: $suspendWhenInstanceBoolean, loop: $loop, pauseDurationMs: $pauseDurationMs, pauseDurationsMs: $pauseDurationsMs, movementArea: $movementArea, stepDurationMs: $stepDurationMs)';
 }
 
 
@@ -1811,11 +1920,11 @@ abstract mixin class _$MapEntityNpcMovementConfigCopyWith<$Res> implements $MapE
   factory _$MapEntityNpcMovementConfigCopyWith(_MapEntityNpcMovementConfig value, $Res Function(_MapEntityNpcMovementConfig) _then) = __$MapEntityNpcMovementConfigCopyWithImpl;
 @override @useResult
 $Res call({
- MapEntityNpcMovementMode mode, List<GridPos> waypoints, List<MapEntityNpcRouteStep> routeSteps, MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean, bool loop, int pauseDurationMs, int stepDurationMs
+ MapEntityNpcMovementMode mode, List<GridPos> waypoints, List<MapEntityNpcRouteStep> routeSteps, MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean, bool loop, int pauseDurationMs, List<int> pauseDurationsMs,@JsonKey(includeIfNull: false) MapRect? movementArea, int stepDurationMs
 });
 
 
-
+@override $MapRectCopyWith<$Res>? get movementArea;
 
 }
 /// @nodoc
@@ -1828,7 +1937,7 @@ class __$MapEntityNpcMovementConfigCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityNpcMovementConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? mode = null,Object? waypoints = null,Object? routeSteps = null,Object? suspendWhenInstanceBoolean = freezed,Object? loop = null,Object? pauseDurationMs = null,Object? stepDurationMs = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? mode = null,Object? waypoints = null,Object? routeSteps = null,Object? suspendWhenInstanceBoolean = freezed,Object? loop = null,Object? pauseDurationMs = null,Object? pauseDurationsMs = null,Object? movementArea = freezed,Object? stepDurationMs = null,}) {
   return _then(_MapEntityNpcMovementConfig(
 mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcMovementMode,waypoints: null == waypoints ? _self._waypoints : waypoints // ignore: cast_nullable_to_non_nullable
@@ -1836,12 +1945,26 @@ as List<GridPos>,routeSteps: null == routeSteps ? _self._routeSteps : routeSteps
 as List<MapEntityNpcRouteStep>,suspendWhenInstanceBoolean: freezed == suspendWhenInstanceBoolean ? _self.suspendWhenInstanceBoolean : suspendWhenInstanceBoolean // ignore: cast_nullable_to_non_nullable
 as MapEntityNpcRouteInstanceBoolean?,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,pauseDurationMs: null == pauseDurationMs ? _self.pauseDurationMs : pauseDurationMs // ignore: cast_nullable_to_non_nullable
-as int,stepDurationMs: null == stepDurationMs ? _self.stepDurationMs : stepDurationMs // ignore: cast_nullable_to_non_nullable
+as int,pauseDurationsMs: null == pauseDurationsMs ? _self._pauseDurationsMs : pauseDurationsMs // ignore: cast_nullable_to_non_nullable
+as List<int>,movementArea: freezed == movementArea ? _self.movementArea : movementArea // ignore: cast_nullable_to_non_nullable
+as MapRect?,stepDurationMs: null == stepDurationMs ? _self.stepDurationMs : stepDurationMs // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
 
+/// Create a copy of MapEntityNpcMovementConfig
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res>? get movementArea {
+    if (_self.movementArea == null) {
+    return null;
+  }
 
+  return $MapRectCopyWith<$Res>(_self.movementArea!, (value) {
+    return _then(_self.copyWith(movementArea: value));
+  });
+}
 }
 
 

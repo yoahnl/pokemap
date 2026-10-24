@@ -122,7 +122,7 @@ void main() {
         gameId: 'games.example.instance',
         gameVersion: '0.1.0',
         projectFormat: ProjectFormat.v9,
-        saveFormat: 1,
+        saveFormat: SaveEnvelopeCodec.currentSaveFormat,
         compatibilityId: 'native-instance-v1',
       ),
       profileId: 'player-1',

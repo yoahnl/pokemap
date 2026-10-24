@@ -8,7 +8,7 @@
   "updatedAt": "2026-07-25T10:00:00Z",
   "gameVersion": "1.2.0",
   "projectFormat": "v2",
-  "saveFormat": 1,
+  "saveFormat": 2,
   "compatibilityId": "campaign-v1",
   "status": "active",
   "playTimeSeconds": 0,
@@ -21,6 +21,6 @@
   },
   "checksum": {
     "algorithm": "sha256",
-    "value": "cd6ae9c5e1ae4c3c9ae5ba5574545de893e7ebeabbe1169f9870dec61aacde77"
+    "value": "51cdc166bddc8ab243b6f0753a0125302fb853574abce7a84d3075cfd05c0825"
   }
 }

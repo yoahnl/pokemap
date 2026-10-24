@@ -37,6 +37,119 @@ Map<String, dynamic> _$ProjectItemFullRestoreEffectDefinitionToJson(
   ProjectItemFullRestoreEffectDefinition instance,
 ) => <String, dynamic>{'kind': instance.$type};
 
+ProjectItemVitaminEffectDefinition _$ProjectItemVitaminEffectDefinitionFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(
+    json,
+    allowedKeys: const [
+      'stat',
+      'amount',
+      'maximumPerStat',
+      'maximumTotal',
+      'friendshipGainLow',
+      'friendshipGainMedium',
+      'friendshipGainHigh',
+      'kind',
+    ],
+  );
+  return ProjectItemVitaminEffectDefinition(
+    stat: $enumDecode(_$ProjectItemVitaminStatEnumMap, json['stat']),
+    amount: _itemEffectInteger(json['amount']),
+    maximumPerStat: _itemEffectInteger(json['maximumPerStat']),
+    maximumTotal: json['maximumTotal'] == null
+        ? 510
+        : _itemEffectInteger(json['maximumTotal']),
+    friendshipGainLow: json['friendshipGainLow'] == null
+        ? 0
+        : _itemEffectInteger(json['friendshipGainLow']),
+    friendshipGainMedium: json['friendshipGainMedium'] == null
+        ? 0
+        : _itemEffectInteger(json['friendshipGainMedium']),
+    friendshipGainHigh: json['friendshipGainHigh'] == null
+        ? 0
+        : _itemEffectInteger(json['friendshipGainHigh']),
+    $type: json['kind'] as String?,
+  );
+}
+
+Map<String, dynamic> _$ProjectItemVitaminEffectDefinitionToJson(
+  ProjectItemVitaminEffectDefinition instance,
+) => <String, dynamic>{
+  'stat': _$ProjectItemVitaminStatEnumMap[instance.stat]!,
+  'amount': instance.amount,
+  'maximumPerStat': instance.maximumPerStat,
+  'maximumTotal': instance.maximumTotal,
+  'friendshipGainLow': instance.friendshipGainLow,
+  'friendshipGainMedium': instance.friendshipGainMedium,
+  'friendshipGainHigh': instance.friendshipGainHigh,
+  'kind': instance.$type,
+};
+
+const _$ProjectItemVitaminStatEnumMap = {
+  ProjectItemVitaminStat.hp: 'hp',
+  ProjectItemVitaminStat.attack: 'attack',
+  ProjectItemVitaminStat.defense: 'defense',
+  ProjectItemVitaminStat.specialAttack: 'specialAttack',
+  ProjectItemVitaminStat.specialDefense: 'specialDefense',
+  ProjectItemVitaminStat.speed: 'speed',
+};
+
+ProjectItemBattleBoostEffectDefinition
+_$ProjectItemBattleBoostEffectDefinitionFromJson(Map<String, dynamic> json) {
+  $checkKeys(json, allowedKeys: const ['stat', 'stages', 'kind']);
+  return ProjectItemBattleBoostEffectDefinition(
+    stat: $enumDecode(_$ProjectItemBattleStatEnumMap, json['stat']),
+    stages: _itemEffectInteger(json['stages']),
+    $type: json['kind'] as String?,
+  );
+}
+
+Map<String, dynamic> _$ProjectItemBattleBoostEffectDefinitionToJson(
+  ProjectItemBattleBoostEffectDefinition instance,
+) => <String, dynamic>{
+  'stat': _$ProjectItemBattleStatEnumMap[instance.stat]!,
+  'stages': instance.stages,
+  'kind': instance.$type,
+};
+
+const _$ProjectItemBattleStatEnumMap = {
+  ProjectItemBattleStat.attack: 'attack',
+  ProjectItemBattleStat.defense: 'defense',
+  ProjectItemBattleStat.specialAttack: 'specialAttack',
+  ProjectItemBattleStat.specialDefense: 'specialDefense',
+  ProjectItemBattleStat.speed: 'speed',
+  ProjectItemBattleStat.accuracy: 'accuracy',
+};
+
+ProjectItemBattlePreparationEffectDefinition
+_$ProjectItemBattlePreparationEffectDefinitionFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(json, allowedKeys: const ['effect', 'turns', 'kind']);
+  return ProjectItemBattlePreparationEffectDefinition(
+    effect: $enumDecode(
+      _$ProjectItemBattlePreparationKindEnumMap,
+      json['effect'],
+    ),
+    turns: _itemEffectNullableInteger(json['turns']),
+    $type: json['kind'] as String?,
+  );
+}
+
+Map<String, dynamic> _$ProjectItemBattlePreparationEffectDefinitionToJson(
+  ProjectItemBattlePreparationEffectDefinition instance,
+) => <String, dynamic>{
+  'effect': _$ProjectItemBattlePreparationKindEnumMap[instance.effect]!,
+  'turns': instance.turns,
+  'kind': instance.$type,
+};
+
+const _$ProjectItemBattlePreparationKindEnumMap = {
+  ProjectItemBattlePreparationKind.focusEnergy: 'focusEnergy',
+  ProjectItemBattlePreparationKind.mist: 'mist',
+};
+
 ProjectItemCureStatusEffectDefinition
 _$ProjectItemCureStatusEffectDefinitionFromJson(Map<String, dynamic> json) =>
     ProjectItemCureStatusEffectDefinition(

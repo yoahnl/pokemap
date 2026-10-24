@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -327,12 +328,19 @@ final class SourceSemanticWitnessFiles implements SourceFilePort {
     }
     _reservedBytes += reservedSize;
     _reservedArtifactCount += artifactCount;
-    final bytes = await delegate.read(fileId);
+    final sourceBytes = await delegate.read(fileId);
     cancellation?.check();
-    if (bytes.length != entry.byteLength ||
-        crypto.sha256.convert(bytes).toString() != entry.sha256!.value) {
-      throw const NativeWriteException('semantics.witness.changed',
-          'Semantic source witness differs from its admitted snapshot');
+    const changed = NativeWriteException('semantics.witness.changed',
+        'Semantic source witness differs from its admitted snapshot');
+    if (sourceBytes.length != entry.byteLength) throw changed;
+    final bytes = Uint8List(sourceBytes.length);
+    for (var i = 0; i < bytes.length; i++) {
+      final value = sourceBytes[i];
+      if (value < 0 || value > 255) throw changed;
+      bytes[i] = value;
+    }
+    if (crypto.sha256.convert(bytes).toString() != entry.sha256!.value) {
+      throw changed;
     }
     final witness = <String, Object?>{
       'fileId': fileId.value,
@@ -372,7 +380,7 @@ final class SourceSemanticWitnessFiles implements SourceFilePort {
           .addAll({'encoding': 'canonicalJsonBase64Chunks', 'chunks': chunks});
     }
     _evidence[fileId] = witness;
-    _bytes[fileId] = List.unmodifiable(bytes);
+    _bytes[fileId] = bytes.asUnmodifiableView();
     return _bytes[fileId]!;
   }
 }

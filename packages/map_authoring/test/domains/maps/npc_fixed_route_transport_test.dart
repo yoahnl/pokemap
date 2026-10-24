@@ -97,6 +97,8 @@ void main() {
               'value': true
             },
             'pauseDurationMs': 1600,
+            'pauseDurationsMs': [533, 1067, 1600, 2133],
+            'movementArea': {'pos': {'x': 1, 'y': 0}, 'size': {'width': 3, 'height': 3}},
             'stepDurationMs': 250,
             'loop': true,
           });

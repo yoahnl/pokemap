@@ -1435,9 +1435,6 @@ void _diagnoseActionConsequenceAgainstProject(
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
           interactiveCommand is SceneWorldPresentationInteractiveCommand ||
-          interactiveCommand is ScenePlaySoundEffectInteractiveCommand ||
-          interactiveCommand is SceneStopSoundEffectsInteractiveCommand ||
-          interactiveCommand is ScenePlayMusicEffectInteractiveCommand ||
           interactiveCommand is SceneMusicInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
     diagnostics.add(

@@ -25,10 +25,12 @@ final class RuntimePlayerServiceRecoveryCaps {
   const RuntimePlayerServiceRecoveryCaps({
     required this.maxHpByPartyIndex,
     this.maxPpByPartyIndex = const <int, Map<String, int>>{},
+    this.baseStatsByPartyIndex = const <int, PokemonBaseStats>{},
   });
 
   final Map<int, int> maxHpByPartyIndex;
   final Map<int, Map<String, int>> maxPpByPartyIndex;
+  final Map<int, PokemonBaseStats> baseStatsByPartyIndex;
 }
 
 sealed class PlayerServiceRequest {
@@ -1022,6 +1024,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         );
         successMessage = 'Équipe réordonnée et progression sauvegardée.';
       case RuntimePlayerPauseCommandKind.useBagItem:
+      case RuntimePlayerPauseCommandKind.callContact:
       case RuntimePlayerPauseCommandKind.equipHeldItem:
       case RuntimePlayerPauseCommandKind.unequipHeldItem:
         return const RuntimePlayerPauseCommandResult(
@@ -1394,6 +1397,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           context: ProjectItemUseContext.overworld,
           partyIndex: partyIndex,
           maxHp: maxHp,
+          baseStats: caps.baseStatsByPartyIndex[partyIndex],
           moveId: command.moveTargetId,
           maxPpByMoveId:
               caps.maxPpByPartyIndex[partyIndex] ?? const <String, int>{},
@@ -3267,6 +3271,7 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
   }
   final loader = speciesLoader ?? RuntimePokemonSpeciesLoader();
   final maxHpByPartyIndex = <int, int>{};
+  final baseStatsByPartyIndex = <int, PokemonBaseStats>{};
   for (var index = 0; index < gameState.party.members.length; index++) {
     final pokemon = gameState.party.members[index];
     final species = await loader.loadById(
@@ -3274,15 +3279,17 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
       pokemonConfig: pokemonConfig,
       speciesId: pokemon.speciesId,
     );
+    final baseStats = PokemonBaseStats(
+      hp: species.baseHp,
+      attack: species.baseAttack,
+      defense: species.baseDefense,
+      specialAttack: species.baseSpecialAttack,
+      specialDefense: species.baseSpecialDefense,
+      speed: species.baseSpeed,
+    );
+    baseStatsByPartyIndex[index] = baseStats;
     final stats = const PokemonStatCalculator().calculate(
-      baseStats: PokemonBaseStats(
-        hp: species.baseHp,
-        attack: species.baseAttack,
-        defense: species.baseDefense,
-        specialAttack: species.baseSpecialAttack,
-        specialDefense: species.baseSpecialDefense,
-        speed: species.baseSpeed,
-      ),
+      baseStats: baseStats,
       ivs: pokemon.ivs,
       evs: pokemon.evs,
       level: pokemon.level,
@@ -3309,8 +3316,12 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
   }
   return RuntimePlayerServiceRecoveryCaps(
     maxHpByPartyIndex: Map<int, int>.unmodifiable(maxHpByPartyIndex),
-    maxPpByPartyIndex:
-        Map<int, Map<String, int>>.unmodifiable(maxPpByPartyIndex),
+    baseStatsByPartyIndex: Map<int, PokemonBaseStats>.unmodifiable(
+      baseStatsByPartyIndex,
+    ),
+    maxPpByPartyIndex: Map<int, Map<String, int>>.unmodifiable(
+      maxPpByPartyIndex,
+    ),
   );
 }
 

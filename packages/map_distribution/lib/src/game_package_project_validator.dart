@@ -61,6 +61,22 @@ final class GamePackageProjectValidator {
       }
       _validateComplexity(project.toJson());
       ProjectValidator.validate(project);
+      if (GameCompletionPartyCapabilities.requiresCapability(project) &&
+          packageManifest.compatibility.saveFormat !=
+              SaveEnvelopeCodec.currentSaveFormat) {
+        throw GamePackageFormatException(
+          code: 'completionPartySaveFormatUnsupported',
+          path: r'$.compatibility.saveFormat',
+          message: 'Party recording requires save format '
+              '${SaveEnvelopeCodec.currentSaveFormat}.',
+        );
+      }
+      if (GameCompletionPartyCapabilities.requiresCapability(project) &&
+          !packageManifest.compatibility.requiredCapabilities
+              .contains(GameCompletionPartyCapabilities.capabilityId)) {
+        _fail('Party recording requires '
+            '${GameCompletionPartyCapabilities.capabilityId}.');
+      }
       if (project.version.name != packageManifest.compatibility.projectFormat) {
         throw GamePackageFormatException(
           code: 'projectFormatMismatch',
@@ -97,9 +113,20 @@ final class GamePackageProjectValidator {
                   .contains('map@1')) {
         _fail('Project dimension and map capability do not match.');
       }
+      if (project.contactDevice case final device?) {
+        if (!spatial) _fail('Contact devices require a 3D project.');
+        if (!packageManifest.compatibility.requiredCapabilities.contains(ProjectContactDeviceConfig.capabilityId)) _fail('Contact devices require project.contact-device@1.');
+        final errors = device.referenceErrors(facts: project.facts, sceneIds: project.scenes.map((scene) => scene.id).toSet(), characterIds: project.characters.map((character) => character.id).toSet());
+        if (errors.isNotEmpty) _fail(errors.join('; '));
+      }
       if (spatial) {
+        if (SpatialGameplayCapabilities.requiresAudio(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.audioCapabilityId)) _fail('Spatial scene audio requires map3d.scene-audio@1.');
+        if (project.partyCompanion.enabled && !packageManifest.compatibility.requiredCapabilities
+            .contains(SpatialGameplayCapabilities.companionCapabilityId)) {
+          _fail('A 3D party companion requires ${SpatialGameplayCapabilities.companionCapabilityId}.');
+        }
         GamePackageSpatialProjectValidator(policy: policy, gameplay: gameplay)
-            .validate(project, readPayload);
+            .validate(project, readPayload, payloadPaths: payloadPaths);
         if (SpatialGameplayCapabilities.requiresStory(project) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialGameplayCapabilities.storyCapabilityId)) {
@@ -123,6 +150,7 @@ final class GamePackageProjectValidator {
                 .contains(SpatialModelClipCapabilities.capabilityId)) {
           _fail('Clipped 3D models require map3d.model-clip@1.');
         }
+        if (maps.any((map) => map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) _fail('Orthographic cameras require map3d.camera-orthographic@1.');
         if (maps.any((map) => !map.spatialScene!.generateCliffs) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains('map3d.terrain-appearance@1')) {

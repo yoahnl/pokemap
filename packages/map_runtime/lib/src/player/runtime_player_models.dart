@@ -41,6 +41,8 @@ enum RuntimePlayerAction {
   reorderParty,
   openPokedex,
   openQuests,
+  openContacts,
+  callContact,
   openMap,
   openProfile,
   save,

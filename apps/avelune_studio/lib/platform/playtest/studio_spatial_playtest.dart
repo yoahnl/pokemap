@@ -33,6 +33,8 @@ final class StudioSpatialPlaytest {
   }) async {
     validateHero(bundle);
     final project = bundle.manifest;
+    final catalog =
+        bundle.projectCatalog ?? RuntimeProjectCatalog.ownerOf(project);
     if (!project.newGame.enabled) {
       throw StateError(
         'Configurez la nouvelle partie et son point de départ dans les réglages du projet avant de tester le jeu 3D.',
@@ -61,7 +63,8 @@ final class StudioSpatialPlaytest {
           : await loadRuntimeMapBundle(
               projectFilePath: projectFilePath,
               mapId: project.newGame.startMapId,
-              preloadedManifest: project,
+              projectCatalog: catalog,
+              preloadedManifest: catalog == null ? project : null,
             );
       var draft = NewGameDraft.start(
         draftId: '$launchId-draft',
@@ -110,7 +113,7 @@ final class StudioSpatialPlaytest {
         );
       }
       initialState = createNewGameStateFromSeed(
-        project: project,
+        project: authored.manifest,
         startMap: authored.map,
         seed: committed.seed!,
         currentProjectRevision: projectRevision,
@@ -156,7 +159,8 @@ final class StudioSpatialPlaytest {
             mapId: const GameStateSaveEnvelopeMapper()
                 .restore(initialSave)
                 .currentMapId,
-            preloadedManifest: project,
+            projectCatalog: catalog,
+            preloadedManifest: catalog == null ? project : null,
           );
     final runtime = SpatialExplorationGameSessionRuntime(
       descriptor: GameSessionDescriptor(
@@ -170,9 +174,14 @@ final class StudioSpatialPlaytest {
         saveReadHandle: initialSave == null ? null : '$launchId-save',
         runtimeApiVersion: '1',
         grantedCapabilities: const {
+          GameCompletionPartyCapabilities.capabilityId,
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,
+          SpatialGameplayCapabilities.companionCapabilityId,
+          SpatialCameraProfile.orthographicCapabilityId,
+          ProjectContactDeviceConfig.capabilityId,
+          SpatialGameplayCapabilities.audioCapabilityId,
           'map3d.animation@1',
           SpatialModelClipCapabilities.capabilityId,
           'map3d.terrain-appearance@1',

@@ -33,6 +33,7 @@ InteractiveEncounterEvaluation evaluateInteractiveEncounter({
   required GameState gameState,
   required MapEntity entity,
   ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
 }) {
   final map = world.map, payload = entity.interactiveEncounter;
   if (map.version != ProjectVersion.v8 ||
@@ -117,7 +118,8 @@ InteractiveEncounterEvaluation evaluateInteractiveEncounter({
       source: source,
       encounterKind: payload.encounterKind,
       gameState: gameState,
-      conditionContext: conditionContext);
+      conditionContext: conditionContext,
+      encounterContext: encounterContext);
   return InteractiveEncounterEvaluation(
       reason: refusal == null
           ? null
@@ -176,6 +178,7 @@ InteractiveEncounterResult resolveInteractiveEncounter(
     required int currentStateRevision,
     required String? mapActivationId,
     ScriptEvaluationContext? conditionContext,
+    EncounterEvaluationContext? encounterContext,
     Random? random}) {
   if (!isInteractiveEncounterCurrent(
       ticket: ticket,
@@ -192,7 +195,8 @@ InteractiveEncounterResult resolveInteractiveEncounter(
       project: project,
       gameState: gameState,
       entity: ticket.entity,
-      conditionContext: conditionContext);
+      conditionContext: conditionContext,
+      encounterContext: encounterContext);
   if (!evaluation.isReady) {
     return InteractiveEncounterResult(
         reason: evaluation.reason, encounterCheck: evaluation.encounterCheck);
@@ -205,5 +209,6 @@ InteractiveEncounterResult resolveInteractiveEncounter(
           encounterKind: ticket.entity.interactiveEncounter!.encounterKind,
           gameState: gameState,
           conditionContext: conditionContext,
+          encounterContext: encounterContext,
           random: random));
 }

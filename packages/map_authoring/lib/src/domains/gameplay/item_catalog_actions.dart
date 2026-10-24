@@ -477,40 +477,115 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
     capabilityIds: const <String>['authoring.gameplay.items'],
     extensions: id == 'item.set_overworld_effect'
         ? {
-            'effectKinds': ['heal_hp', 'full_restore', 'cure_status', 'revive', 'restore_pp', 'repel', 'escape_rope', 'bicycle', 'fishing'],
+            'effectKinds': [
+              'heal_hp',
+              'full_restore',
+              'cure_status',
+              'revive',
+              'restore_pp',
+              'repel',
+              'escape_rope',
+              'bicycle',
+              'fishing',
+              'vitamin'
+            ],
+            'vitamin': {
+              'target': 'party_member',
+              'stats': [
+                'hp',
+                'attack',
+                'defense',
+                'specialAttack',
+                'specialDefense',
+                'speed'
+              ],
+              'fields': [
+                'amount',
+                'maximumPerStat',
+                'maximumTotal',
+                'friendshipGainLow',
+                'friendshipGainMedium',
+                'friendshipGainHigh'
+              ],
+              'hpRecalculation': 'species_base_stats_required',
+              'noRoom': 'refused_without_consumption'
+            },
             'fullRestore': _fullRestoreContract,
-            'bicycle': {'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item', 'runtime': '2d'},
-            'fishing': {'rodKinds': ['old_rod', 'good_rod', 'super_rod'],
-              'target': 'world', 'consumption': 'never', 'requiredTag': 'key-item',
-              'runtime': '2d', 'source': 'front_water_cell', 'chance': 'authored_per_attempt'},
+            'bicycle': {
+              'target': 'world',
+              'consumption': 'never',
+              'requiredTag': 'key-item',
+              'runtime': '2d'
+            },
+            'fishing': {
+              'rodKinds': ['old_rod', 'good_rod', 'super_rod'],
+              'target': 'world',
+              'consumption': 'never',
+              'requiredTag': 'key-item',
+              'runtime': '2d',
+              'source': 'front_water_cell',
+              'chance': 'authored_per_attempt'
+            },
           }
         : id == 'item.set_battle_effect'
-        ? {
-            'effectKinds': ['heal_hp', 'full_restore', 'cure_status', 'revive', 'restore_pp'],
-            'fullRestore': _fullRestoreContract,
-            'restorePp': {
-              'target': 'party_move',
-              'amountModes': ['flat', 'full'],
-              'selection': 'party_then_move_slot',
-              'scope': 'single_move',
-              'faintedTarget': 'allowed_without_revive',
-              'fullPp': 'refused_without_consumption_or_turn',
-            },
-          }
-        : id == 'item.set_held_effect'
-        ? {
-            'heldEffectIds':
-                itemSystemV1CapabilityTruth.supportedHeldEffectIds.toList()
-                  ..sort(),
-            'nativePassiveEffects': {
-              PokemonPassiveHeldEffect.preventEvolution.id: {
-                'evolution': 'prevented',
-                'battle': 'neutral',
-                'consumed': false,
-              },
-            },
-          }
-        : const {},
+            ? {
+                'effectKinds': [
+                  'heal_hp',
+                  'full_restore',
+                  'cure_status',
+                  'revive',
+                  'restore_pp',
+                  'battle_boost',
+                  'battle_preparation'
+                ],
+                'battleBoost': {
+                  'target': 'party_member',
+                  'activeOnly': true,
+                  'stats': [
+                    'attack',
+                    'defense',
+                    'specialAttack',
+                    'specialDefense',
+                    'speed',
+                    'accuracy'
+                  ],
+                  'stages': {'minimum': 1, 'maximum': 6},
+                  'atMaximum': 'refused_without_consumption_or_turn',
+                  'persistence': 'battle_only'
+                },
+                'battlePreparation': {
+                  'target': 'party_member',
+                  'activeOnly': true,
+                  'effects': ['focusEnergy', 'mist'],
+                  'focusEnergy': 'until_switch',
+                  'mist': 'authored_turn_duration_bank_scope',
+                  'duplicate': 'refused_without_consumption_or_turn'
+                },
+                'fullRestore': _fullRestoreContract,
+                'restorePp': {
+                  'target': 'party_move',
+                  'amountModes': ['flat', 'full'],
+                  'selection': 'party_then_move_slot',
+                  'scope': 'single_move',
+                  'faintedTarget': 'allowed_without_revive',
+                  'fullPp': 'refused_without_consumption_or_turn',
+                },
+              }
+            : id == 'item.set_held_effect'
+                ? {
+                    'heldEffectIds': itemSystemV1CapabilityTruth
+                        .supportedHeldEffectIds
+                        .toList()
+                      ..sort(),
+                    'nativePassiveEffects': {
+                      PokemonPassiveHeldEffect.preventEvolution.id: {
+                        'evolution': 'prevented',
+                        'battle': 'neutral',
+                        'consumed': false,
+                      },
+                    },
+                  }
+                : const {},
     requiredPermissions: const <AuthoringPermission>[
       AuthoringPermission.projectWrite,
     ],

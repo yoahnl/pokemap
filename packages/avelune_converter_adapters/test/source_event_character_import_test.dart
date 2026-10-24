@@ -9,6 +9,8 @@ import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
+
 final class _Files implements SourceFilePort {
   _Files(this.payloads);
   final Map<ConverterId, List<int>> payloads;
@@ -34,6 +36,7 @@ final class _Files implements SourceFilePort {
   int? attestedLength,
   SourceScanState state = SourceScanState.complete,
   bool unrelated = false,
+  bool windowsEngine = false,
 }) {
   final raster = image.Image(width: width, height: height, numChannels: 4);
   for (var y = 0; y < height; y++) {
@@ -65,6 +68,19 @@ final class _Files implements SourceFilePort {
   if (!missing) entry(path, 'source-npc-image', bytes);
   if (ambiguous) entry(path.toLowerCase(), 'source-npc-ambiguous', bytes);
   if (unrelated) entry('Graphics/Pictures/other.png', 'other-image', bytes);
+  if (windowsEngine) {
+    entries.addAll([
+      SourceFileEntry(fileId: ConverterId('case-scripts'),
+          relativePath: 'Data/Scripts.rxdata', kind: SourceNodeKind.file,
+          byteLength: syntheticInterpretationArchive.length,
+          sha256: syntheticSourceInterpretationProfile.scriptsArchiveHash,
+          format: 'marshal', family: 'scripts'),
+      SourceFileEntry(fileId: ConverterId('case-engine'), relativePath: 'Game.exe',
+          kind: SourceNodeKind.file, byteLength: 14732288,
+          sha256: Sha256Hash('5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04'),
+          format: 'binary', family: 'engine'),
+    ]);
+  }
   return (
     snapshot: SourceSnapshot(
       logicalProjectNamespace: ConverterId(namespace),
@@ -101,6 +117,65 @@ Matcher _code(String value) =>
     isA<ContractError>().having((error) => error.code, 'code', value);
 
 void main() {
+  test('character case alias preserves requested binding and exact admitted pixels', () async {
+    final fixture = _fixture(charsetName: 'npc 01', windowsEngine: true);
+    final actual = await const SourceEventCharacterImporter().read(
+        snapshot: fixture.snapshot, files: fixture.files, charsetName: 'NPC 01',
+        interpretationProfile: syntheticSourceInterpretationProfile,
+        sourcePattern: 2, sourceDirection: 6);
+    final reference = await _read(fixture, charsetName: 'npc 01');
+    expect(actual.bindingKey, sourceEventCharacterBindingKey(
+        characterName: 'NPC 01', pattern: 2, direction: 6));
+    expect(actual.charsetName, 'NPC 01');
+    expect(actual.imageFile.relativePath, 'Graphics/Characters/npc 01.png');
+    expect(actual.binding.sourceFileHash, actual.imageFile.sha256);
+    expect(actual.outputBytes, orderedEquals(reference.outputBytes));
+    expect(actual.character.id, reference.character.id);
+    expect(actual.character.toJson(), reference.character.toJson());
+    expect(actual.mutations.indexed.map((row) => row.$2.toJson(row.$1)).toList(),
+        reference.mutations.indexed.map((row) => row.$2.toJson(row.$1)).toList());
+    expect(fixture.files.reads, [ConverterId('source-npc-image'), ConverterId('source-npc-image')]);
+  });
+
+  test('character case alias fixed pose shares canonical mutation payloads', () async {
+    final fixture = _fixture(charsetName: 'npc 01', windowsEngine: true);
+    Future<SourceEventCharacterImport> read(String name) =>
+        const SourceEventCharacterImporter().read(
+            snapshot: fixture.snapshot, files: fixture.files, charsetName: name,
+            interpretationProfile: syntheticSourceInterpretationProfile,
+            sourcePattern: 2, sourceDirection: 6, fixedDirection: true);
+    final alias = await read('NPC 01');
+    final exact = await read('npc 01');
+    expect(alias.bindingKey, isNot(exact.bindingKey));
+    expect(alias.character.toJson(), exact.character.toJson());
+    expect(alias.mutations.indexed.map((row) => row.$2.toJson(row.$1)).toList(),
+        exact.mutations.indexed.map((row) => row.$2.toJson(row.$1)).toList());
+    expect(alias.imageFile.toJson(), exact.imageFile.toJson());
+    expect(alias.charsetName, 'NPC 01');
+    expect(exact.charsetName, 'npc 01');
+  });
+
+  test('character case alias keeps unqualified source geometry and quota refusals', () async {
+    final unqualified = _fixture(charsetName: 'npc 01');
+    await expectLater(_read(unqualified),
+        throwsA(_code('source.event_character.image_missing')));
+    expect(unqualified.files.reads, isEmpty);
+    final tooTall = _fixture(charsetName: 'npc 01', windowsEngine: true, height: 388);
+    await expectLater(const SourceEventCharacterImporter().read(
+        snapshot: tooTall.snapshot, files: tooTall.files, charsetName: 'NPC 01',
+        interpretationProfile: syntheticSourceInterpretationProfile,
+        sourcePattern: 2, sourceDirection: 6),
+        throwsA(_code('source.event_character.sheet_geometry')));
+    final quota = _fixture(charsetName: 'npc 01', windowsEngine: true);
+    await expectLater(const SourceEventCharacterImporter().read(
+        snapshot: quota.snapshot, files: quota.files, charsetName: 'NPC 01',
+        interpretationProfile: syntheticSourceInterpretationProfile,
+        sourcePattern: 2, sourceDirection: 6,
+        limits: const NativeWriteLimits(maxArtifactBytes: 1)),
+        throwsA(_code('source.event_character.image_limit')));
+    expect(quota.files.reads, isEmpty);
+  });
+
   for (final size in [(384, 256, const GridSize(width: 3, height: 2)), (128, 640, const GridSize(width: 1, height: 5))]) {
     test('passive fixed object preserves every source pixel at ${size.$1} by ${size.$2}', () async {
       final fixture = _fixture(width: size.$1, height: size.$2);

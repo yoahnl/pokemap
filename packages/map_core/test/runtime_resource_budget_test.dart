@@ -4,6 +4,110 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('tall atlas admission retains both default 64 MiB limits', () {
+    const profile = RuntimeResourceProfile();
+    final allocation = runtimeTilesetImageAllocation(
+      encodedLength: 600000,
+      width: 256,
+      height: 28160,
+    );
+    expect(allocation.residentBytes, 256 * 28160 * 4);
+    expect(
+      allocation.residentBytes,
+      lessThanOrEqualTo(profile.maximumResidentBytes),
+    );
+    expect(
+      allocation.transientBytes,
+      lessThanOrEqualTo(profile.maximumTransientBytes),
+    );
+    expect(profile.maximumResidentBytes, 64 * 1024 * 1024);
+    expect(profile.maximumTransientBytes, 64 * 1024 * 1024);
+  });
+
+  test(
+    'tall atlas admission respects a stricter resident or transient profile',
+    () {
+      for (final profile in [
+        const RuntimeResourceProfile(maximumResidentBytes: 16 * 1024 * 1024),
+        const RuntimeResourceProfile(maximumTransientBytes: 32 * 1024 * 1024),
+      ]) {
+        expect(
+          () => runtimeTilesetImageAllocation(
+            encodedLength: 600000,
+            width: 256,
+            height: 28160,
+            profile: profile,
+          ),
+          throwsA(isA<RuntimeResourceAdmissionException>()),
+        );
+      }
+    },
+  );
+
+  test(
+    'a nonchunked transparency transform retains its full scratch admission',
+    () {
+      const profile = RuntimeResourceProfile(
+        maximumTransientBytes: 3 * 32 * 32 * 4 + 200,
+      );
+      expect(
+        runtimeTilesetImageAllocation(
+          encodedLength: 100,
+          width: 32,
+          height: 32,
+          profile: profile,
+        ),
+        isNotNull,
+      );
+      expect(
+        () => runtimeTilesetImageAllocation(
+          encodedLength: 100,
+          width: 32,
+          height: 32,
+          transformRgba: true,
+          profile: profile,
+        ),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+    },
+  );
+
+  test(
+    'high bit depth chunked PNGs reserve their CPU normalization buffer',
+    () {
+      const width = 16;
+      const height = 5000;
+      final low = runtimeTilesetImageAllocation(
+        encodedLength: 100,
+        width: width,
+        height: height,
+      );
+      final high = runtimeTilesetImageAllocation(
+        encodedLength: 100,
+        width: width,
+        height: height,
+        sourceBitDepth: 16,
+      );
+      expect(high.residentBytes, low.residentBytes);
+      expect(high.transientBytes - low.transientBytes, width * height * 4 * 2);
+    },
+  );
+
+  test('encoded scratch cannot overflow a tileset admission', () {
+    expect(
+      () => runtimeTilesetImageAllocation(
+        encodedLength: 0x7fffffffffffffff,
+        width: 1,
+        height: 1,
+        profile: const RuntimeResourceProfile(
+          maximumEncodedBytes: 0x7fffffffffffffff,
+          maximumTransientBytes: 0x7fffffffffffffff,
+        ),
+      ),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+  });
+
   test('RGBA dimensions are bounded before integer multiplication', () {
     expect(runtimeImageRgbaByteLength(2, 3, maximumBytes: 24), 24);
     for (final dimensions in [
@@ -127,72 +231,111 @@ void main() {
   );
 
   for (final commit in [true, false]) {
-    test('transient pressure queues until the active decode ${commit ? 'commits' : 'releases'}', () async {
-      final controller = concurrentBudget();
-      addTearDown(controller.dispose);
-      final held = await controller.acquire(residentBytes: 10, transientBytes: 70);
-      RuntimeResourceReservation? next;
-      Object? error;
-      final queued = controller.acquire(transientBytes: 20).then<void>(
-          (lease) { next = lease; }, onError: (Object failure) { error = failure; });
-      await Future<void>.delayed(Duration.zero);
-      expect(error, isNull);
-      expect(next, isNull);
-      expect(controller.pendingDecodes, 1);
-      expect(controller.activeDecodes, 1);
-      expect(controller.transientBytes, 70);
-      if (commit) {
-        held.commit();
-      } else {
+    test(
+      'transient pressure queues until the active decode ${commit ? 'commits' : 'releases'}',
+      () async {
+        final controller = concurrentBudget();
+        addTearDown(controller.dispose);
+        final held = await controller.acquire(
+          residentBytes: 10,
+          transientBytes: 70,
+        );
+        RuntimeResourceReservation? next;
+        Object? error;
+        final queued = controller
+            .acquire(transientBytes: 20)
+            .then<void>(
+              (lease) {
+                next = lease;
+              },
+              onError: (Object failure) {
+                error = failure;
+              },
+            );
+        await Future<void>.delayed(Duration.zero);
+        expect(error, isNull);
+        expect(next, isNull);
+        expect(controller.pendingDecodes, 1);
+        expect(controller.activeDecodes, 1);
+        expect(controller.transientBytes, 70);
+        if (commit) {
+          held.commit();
+        } else {
+          held.release();
+        }
+        await queued;
+        expect(error, isNull);
+        expect(next, isNotNull);
+        expect(controller.transientBytes, 20);
+        expect(controller.pendingDecodes, 0);
+        expect(controller.activeDecodes, 1);
+        expect(controller.peakConcurrentDecodes, 1);
+        next!.release();
         held.release();
-      }
-      await queued;
-      expect(error, isNull);
-      expect(next, isNotNull);
-      expect(controller.transientBytes, 20);
-      expect(controller.pendingDecodes, 0);
-      expect(controller.activeDecodes, 1);
-      expect(controller.peakConcurrentDecodes, 1);
-      next!.release();
-      held.release();
-      expect(controller.transientBytes, 0);
-      expect(controller.residentBytes, 0);
-      expect(controller.activeDecodes, 0);
-    });
+        expect(controller.transientBytes, 0);
+        expect(controller.residentBytes, 0);
+        expect(controller.activeDecodes, 0);
+      },
+    );
   }
 
-  test('an individually oversized transient request still fails immediately', () async {
-    final controller = concurrentBudget();
-    addTearDown(controller.dispose);
-    final held = await controller.acquire(transientBytes: 70);
-    await expectLater(controller.acquire(transientBytes: 81),
-        throwsA(isA<RuntimeResourceAdmissionException>()
-            .having((error) => error.reason, 'reason', 'transient_bytes')));
-    expect(controller.pendingDecodes, 0);
-    expect(controller.transientBytes, 70);
-    expect(controller.activeDecodes, 1);
-    held.release();
-  });
+  test(
+    'an individually oversized transient request still fails immediately',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final held = await controller.acquire(transientBytes: 70);
+      await expectLater(
+        controller.acquire(transientBytes: 81),
+        throwsA(
+          isA<RuntimeResourceAdmissionException>().having(
+            (error) => error.reason,
+            'reason',
+            'transient_bytes',
+          ),
+        ),
+      );
+      expect(controller.pendingDecodes, 0);
+      expect(controller.transientBytes, 70);
+      expect(controller.activeDecodes, 1);
+      held.release();
+    },
+  );
 
-  test('resident overflow still fails before waiting for transient capacity', () async {
-    final controller = concurrentBudget();
-    addTearDown(controller.dispose);
-    final held = await controller.acquire(residentBytes: 90, transientBytes: 70);
-    await expectLater(controller.acquire(residentBytes: 11, transientBytes: 20),
-        throwsA(isA<RuntimeResourceAdmissionException>()
-            .having((error) => error.reason, 'reason', 'resident_bytes')));
-    expect(controller.pendingDecodes, 0);
-    expect(controller.residentBytes, 90);
-    expect(controller.transientBytes, 70);
-    held.release();
-  });
+  test(
+    'resident overflow still fails before waiting for transient capacity',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final held = await controller.acquire(
+        residentBytes: 90,
+        transientBytes: 70,
+      );
+      await expectLater(
+        controller.acquire(residentBytes: 11, transientBytes: 20),
+        throwsA(
+          isA<RuntimeResourceAdmissionException>().having(
+            (error) => error.reason,
+            'reason',
+            'resident_bytes',
+          ),
+        ),
+      );
+      expect(controller.pendingDecodes, 0);
+      expect(controller.residentBytes, 90);
+      expect(controller.transientBytes, 70);
+      held.release();
+    },
+  );
 
   test('negative demand is rejected during transient pressure', () async {
     final controller = concurrentBudget();
     addTearDown(controller.dispose);
     final held = await controller.acquire(transientBytes: 70);
-    await expectLater(controller.acquire(residentBytes: -1, transientBytes: 20),
-        throwsArgumentError);
+    await expectLater(
+      controller.acquire(residentBytes: -1, transientBytes: 20),
+      throwsArgumentError,
+    );
     expect(controller.pendingDecodes, 0);
     expect(controller.residentBytes, 0);
     expect(controller.transientBytes, 70);
@@ -204,10 +347,16 @@ void main() {
     addTearDown(controller.dispose);
     final held = await controller.acquire(transientBytes: 70);
     final order = <String>[];
-    final prefetch = controller.acquire(transientBytes: 20, prefetch: true)
-        .then((lease) { order.add('prefetch'); return lease; });
-    final demand = controller.acquire(transientBytes: 10)
-        .then((lease) { order.add('demand'); return lease; });
+    final prefetch = controller
+        .acquire(transientBytes: 20, prefetch: true)
+        .then((lease) {
+          order.add('prefetch');
+          return lease;
+        });
+    final demand = controller.acquire(transientBytes: 10).then((lease) {
+      order.add('demand');
+      return lease;
+    });
     final first = await demand;
     expect(order, ['demand']);
     expect(controller.transientBytes, 80);
@@ -227,9 +376,16 @@ void main() {
     addTearDown(controller.dispose);
     final held = await controller.acquire(transientBytes: 70);
     var current = true;
-    final cancelled = expectLater(controller.acquire(transientBytes: 20,
-        isCurrent: () => current), throwsA(isA<RuntimeResourceAdmissionException>()
-            .having((error) => error.reason, 'reason', 'cancelled')));
+    final cancelled = expectLater(
+      controller.acquire(transientBytes: 20, isCurrent: () => current),
+      throwsA(
+        isA<RuntimeResourceAdmissionException>().having(
+          (error) => error.reason,
+          'reason',
+          'cancelled',
+        ),
+      ),
+    );
     current = false;
     held.commit();
     await cancelled;
@@ -239,21 +395,37 @@ void main() {
     held.release();
   });
 
-  test('disposal rejects transient queued demand and frees active capacity', () async {
-    final controller = concurrentBudget();
-    final held = await controller.acquire(residentBytes: 10, transientBytes: 70);
-    final closed = expectLater(controller.acquire(transientBytes: 20),
-        throwsA(isA<RuntimeResourceAdmissionException>()
-            .having((error) => error.reason, 'reason', 'session_closed')));
-    controller.dispose();
-    await closed;
-    expect(controller.pendingDecodes, 0);
-    expect(controller.transientBytes, 0);
-    expect(controller.residentBytes, 0);
-    expect(controller.activeDecodes, 0);
-    expect(() => held.commit(), throwsA(isA<RuntimeResourceAdmissionException>()));
-    held.release();
-  });
+  test(
+    'disposal rejects transient queued demand and frees active capacity',
+    () async {
+      final controller = concurrentBudget();
+      final held = await controller.acquire(
+        residentBytes: 10,
+        transientBytes: 70,
+      );
+      final closed = expectLater(
+        controller.acquire(transientBytes: 20),
+        throwsA(
+          isA<RuntimeResourceAdmissionException>().having(
+            (error) => error.reason,
+            'reason',
+            'session_closed',
+          ),
+        ),
+      );
+      controller.dispose();
+      await closed;
+      expect(controller.pendingDecodes, 0);
+      expect(controller.transientBytes, 0);
+      expect(controller.residentBytes, 0);
+      expect(controller.activeDecodes, 0);
+      expect(
+        () => held.commit(),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      held.release();
+    },
+  );
 
   test(
     'demand wins over queued prefetch and cancellation is observed',

@@ -595,6 +595,19 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/moving_prop_stdio.test.ts',
     };
   }
+  if (actionId == 'fact.create_batch' || actionId == 'entity.create_batch') {
+    final domainTest = actionId == 'fact.create_batch'
+        ? 'test/domains/narrative/fact_create_batch_transport_test.dart'
+        : 'test/domains/maps/entity_create_batch_transport_test.dart';
+    return {
+      AuthoringTransport.directApi: domainTest,
+      AuthoringTransport.cli: domainTest,
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/creation_batch_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/creation_batch_stdio.test.ts',
+    };
+  }
   if (actionId == 'dialogue.create_batch') {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/dialogue_create_batch_test.dart',
@@ -624,6 +637,13 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/tooling/jsonl_defeat_recovery_test.dart',
       AuthoringTransport.editor: '../map_editor/test/project_defeat_recovery_configuration_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/defeat_recovery_stdio.test.ts',
+    };
+  }
+  if (actionId == 'campaign.encounter_table.upsert_batch') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/gameplay/encounter_variants_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/gameplay/encounter_variants_transport_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/encounter_variants_stdio.test.ts',
     };
   }
   if (actionId == 'campaign.trainer.upsert_batch') {
@@ -657,6 +677,22 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/resource_catalog_batch_stdio.test.ts',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/resource_catalog_batch_stdio.test.ts',
+    };
+  }
+  if (actionId == 'contact_device.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/contact_device_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/contact_device_actions_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/contact_device_transport_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/contact_device_stdio.test.ts',
+    };
+  }
+  if (actionId == 'project.rename') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/project_identity_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/project_identity_actions_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/project_identity_transport_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/project_identity_stdio.test.ts',
     };
   }
   if (actionId == 'project.battle_transitions.update') {
@@ -778,6 +814,22 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/domains/maps/npc_fixed_route_transport_test.dart',
       AuthoringTransport.editor: '../../apps/avelune_studio/test/characters/character_fixed_route_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/npc_fixed_route_stdio.test.ts',
+    };
+  }
+  if (actionId == 'npc.set_trainer_battle_readiness') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/npc_party_readiness_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/npc_party_readiness_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/characters/character_party_readiness_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/npc_party_readiness_stdio.test.ts',
+    };
+  }
+  if (actionId == 'npc.set_trainer_battle_rule' || actionId == 'npc.set_visibility_rule') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/npc_local_time_transport_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/npc_local_time_transport_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/characters/character_time_window_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/npc_local_time_stdio.test.ts',
     };
   }
   if (actionId == 'npc.set_counter_interaction_sides') {
@@ -982,6 +1034,9 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           actionId == 'map3d.navigation.configure')
         AuthoringTransport.editor:
             '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
+      if (actionId == 'map3d.camera.configure')
+        AuthoringTransport.editor:
+            '../../apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
     };
@@ -1241,6 +1296,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/domains/gameplay/bag_capacity_authoring_test.dart',
       AuthoringTransport.editor: '../map_editor/test/authoring_api/bag_capacity_gateway_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/bag_capacity_stdio.test.ts',
+    };
+  }
+  if (actionId == 'party_companion.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/gameplay/party_companion_authoring_test.dart',
+      AuthoringTransport.cli: 'test/domains/gameplay/party_companion_authoring_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/party_companion_configuration_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/party_companion_stdio.test.ts',
     };
   }
   if (actionId == 'presentationMedia.import') {
@@ -1740,6 +1803,12 @@ String _notApplicableReason(
 }
 
 String _contractTestFor(String actionId) {
+  if (actionId == 'fact.create_batch') {
+    return 'test/domains/narrative/fact_create_batch_transport_test.dart';
+  }
+  if (actionId == 'entity.create_batch') {
+    return 'test/domains/maps/entity_create_batch_transport_test.dart';
+  }
   if (actionId == 'entity.set_item_payload') {
     return 'test/domains/maps/hidden_item_transport_parity_test.dart';
   }
@@ -1755,6 +1824,9 @@ String _contractTestFor(String actionId) {
   if (actionId == 'bag.capacity.set') {
     return 'test/domains/gameplay/bag_capacity_authoring_test.dart';
   }
+  if (actionId == 'party_companion.configure') {
+    return 'test/domains/gameplay/party_companion_authoring_test.dart';
+  }
   if (actionId == 'dialogue.create_batch') {
     return 'test/domains/narrative/dialogue_create_batch_test.dart';
   }
@@ -1766,6 +1838,9 @@ String _contractTestFor(String actionId) {
   }
   if (actionId == 'campaign.defeat_recovery.update') {
     return 'test/tooling/jsonl_defeat_recovery_test.dart';
+  }
+  if (actionId == 'campaign.encounter_table.upsert_batch') {
+    return 'test/domains/gameplay/encounter_variants_transport_test.dart';
   }
   if (actionId == 'campaign.trainer.upsert_batch') {
     return 'test/domains/gameplay/campaign_trainer_batch_transport_test.dart';
@@ -1799,6 +1874,10 @@ String _contractTestFor(String actionId) {
   }
   if (actionId == 'npc.set_movement_mode') {
     return 'test/domains/maps/npc_fixed_route_actions_test.dart';
+  }
+  if (actionId == 'npc.set_trainer_battle_readiness') return 'test/domains/maps/npc_party_readiness_transport_test.dart';
+  if (actionId == 'npc.set_trainer_battle_rule' || actionId == 'npc.set_visibility_rule') {
+    return 'test/domains/maps/npc_local_time_transport_test.dart';
   }
   if (actionId == 'npc.set_counter_interaction_sides') {
     return 'test/domains/maps/npc_counter_interaction_actions_test.dart';
@@ -2051,6 +2130,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/project/runtime_audio_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['project.rename'],
+    'test/domains/project/project_identity_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['contact_device.configure'],
+    'test/domains/project/contact_device_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['validation.runtime_smoke_profile.'],
     'test/domains/project/runtime_smoke_profile_actions_test.dart',
   ),
@@ -2232,6 +2319,8 @@ const _semanticOwners = <String, String>{
   'pokemonCatalog': 'pokemonDocument',
   'itemCatalog': 'itemCatalog',
   'bagCapacity': 'project',
+  'partyCompanionConfiguration': 'project',
+  'contactDeviceConfiguration': 'project',
   'itemDefinition': 'itemCatalog',
   'itemUsage': 'itemCatalog',
   'itemReadiness': 'itemCatalog',
@@ -2246,6 +2335,8 @@ const _semanticOwners = <String, String>{
 
 const _requiredDirectReadResourceKinds = <String>{
   'bagCapacity',
+  'partyCompanionConfiguration',
+  'contactDeviceConfiguration',
   'trainerPokemonStats',
   'resourcePackJob',
   'resourcePackInspection',

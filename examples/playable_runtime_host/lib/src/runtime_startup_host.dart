@@ -551,7 +551,7 @@ GameIdentity buildStandaloneRuntimeGameIdentity({
     gameId: 'local.pokemap.g${digest.substring(0, 24)}',
     gameVersion: '1.0.0',
     projectFormat: ProjectFormat.parse(projectFormat),
-    saveFormat: 1,
+    saveFormat: SaveEnvelopeCodec.currentSaveFormat,
     compatibilityId: 'standalone-$projectFormat',
   );
 }

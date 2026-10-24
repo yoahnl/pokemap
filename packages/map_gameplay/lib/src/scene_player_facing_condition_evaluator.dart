@@ -6,12 +6,19 @@ import 'gameplay_world_state.dart';
 bool evaluateScenePlayerFacing({
   required SceneConditionSource source,
   required GameplayWorldState world,
+}) =>
+    evaluateScenePlayerFacingDirection(
+        source: source, actualFacing: world.player.facing);
+
+bool evaluateScenePlayerFacingDirection({
+  required SceneConditionSource source,
+  required Direction actualFacing,
 }) {
   final direction = source.playerFacingDirection;
   if (direction == null) {
     throw ArgumentError('A player facing condition is required.');
   }
-  final value = world.player.facing == direction.asDirection;
+  final value = actualFacing == direction.asDirection;
   return switch (source.operator) {
     SceneConditionOperator.isTrue => value,
     SceneConditionOperator.isFalse => !value,

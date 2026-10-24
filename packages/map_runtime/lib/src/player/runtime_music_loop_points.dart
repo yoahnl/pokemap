@@ -47,13 +47,16 @@ RuntimeMusicLoopPoints? readRuntimeMusicLoopPoints(
   String path, {
   int maxPrefixBytes = 65536,
 }) {
+  if (maxPrefixBytes <= 0) return null;
   final file = File(path);
   if (!file.existsSync()) return null;
   Uint8List prefix;
+  int fileLength;
   try {
     final handle = file.openSync();
     try {
       final length = handle.lengthSync();
+      fileLength = length;
       prefix = handle.readSync(
         length < maxPrefixBytes ? length : maxPrefixBytes,
       );
@@ -62,6 +65,10 @@ RuntimeMusicLoopPoints? readRuntimeMusicLoopPoints(
     }
   } on Object {
     return null;
+  }
+
+  if (_matchesFourCC(prefix, 0, 'RIFF')) {
+    return _readWaveLoopPoints(prefix, fileLength);
   }
 
   final startSample = _readTagValue(prefix, 'LOOPSTART');
@@ -74,6 +81,94 @@ RuntimeMusicLoopPoints? readRuntimeMusicLoopPoints(
     lengthSamples: lengthSamples,
     sampleRate: _readVorbisSampleRate(prefix) ?? 44100,
   );
+}
+
+RuntimeMusicLoopPoints? _readWaveLoopPoints(Uint8List bytes, int fileLength) {
+  if (bytes.length < 12 || !_matchesFourCC(bytes, 8, 'WAVE')) return null;
+  final data = ByteData.sublistView(bytes);
+  final riffEnd = 8 + data.getUint32(4, Endian.little);
+  if (riffEnd < 12 || riffEnd > fileLength) return null;
+  int? sampleRate;
+  int? blockAlign;
+  int? dataLength;
+  int? loopStart;
+  int? loopEnd;
+  var hasSampler = false;
+  var offset = 12;
+  while (offset < riffEnd) {
+    if (offset + 8 > bytes.length || offset + 8 > riffEnd) return null;
+    final length = data.getUint32(offset + 4, Endian.little);
+    final payload = offset + 8;
+    final chunkEnd = payload + length;
+    final next = chunkEnd + length % 2;
+    if (next > riffEnd) return null;
+    if (_matchesFourCC(bytes, offset, 'fmt ')) {
+      if (sampleRate != null || length < 16 || payload + 16 > bytes.length) {
+        return null;
+      }
+      final format = data.getUint16(payload, Endian.little);
+      final channels = data.getUint16(payload + 2, Endian.little);
+      final rate = data.getUint32(payload + 4, Endian.little);
+      final byteRate = data.getUint32(payload + 8, Endian.little);
+      final alignment = data.getUint16(payload + 12, Endian.little);
+      final bits = data.getUint16(payload + 14, Endian.little);
+      if (format != 1 ||
+          channels == 0 ||
+          rate == 0 ||
+          !const {8, 16, 24, 32}.contains(bits) ||
+          alignment != channels * (bits ~/ 8) ||
+          byteRate != rate * alignment) {
+        return null;
+      }
+      sampleRate = rate;
+      blockAlign = alignment;
+    } else if (_matchesFourCC(bytes, offset, 'smpl')) {
+      if (hasSampler || length < 36 || chunkEnd > bytes.length) return null;
+      hasSampler = true;
+      final loopCount = data.getUint32(payload + 28, Endian.little);
+      final samplerDataLength = data.getUint32(payload + 32, Endian.little);
+      if (36 + loopCount * 24 + samplerDataLength > length) return null;
+      for (var index = 0; index < loopCount; index++) {
+        final loop = payload + 36 + index * 24;
+        if (data.getUint32(loop + 4, Endian.little) != 0) continue;
+        final start = data.getUint32(loop + 8, Endian.little);
+        final end = data.getUint32(loop + 12, Endian.little);
+        if (end < start ||
+            data.getUint32(loop + 16, Endian.little) != 0 ||
+            data.getUint32(loop + 20, Endian.little) != 0) {
+          return null;
+        }
+        loopStart ??= start;
+        loopEnd ??= end;
+      }
+    } else if (_matchesFourCC(bytes, offset, 'data')) {
+      if (dataLength != null) return null;
+      dataLength = length;
+    }
+    offset = next;
+  }
+  if (sampleRate == null ||
+      blockAlign == null ||
+      dataLength == null ||
+      dataLength % blockAlign != 0 ||
+      loopStart == null ||
+      loopEnd == null ||
+      loopEnd >= dataLength ~/ blockAlign) {
+    return null;
+  }
+  return RuntimeMusicLoopPoints(
+    startSample: loopStart,
+    lengthSamples: loopEnd - loopStart + 1,
+    sampleRate: sampleRate,
+  );
+}
+
+bool _matchesFourCC(Uint8List bytes, int offset, String value) {
+  if (offset + 4 > bytes.length) return false;
+  for (var index = 0; index < 4; index++) {
+    if (bytes[offset + index] != value.codeUnitAt(index)) return false;
+  }
+  return true;
 }
 
 /// Cherche `NOM=` (insensible à la casse) et lit l'entier qui suit.

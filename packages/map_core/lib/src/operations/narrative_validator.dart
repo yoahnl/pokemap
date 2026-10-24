@@ -250,6 +250,20 @@ void _collectMapDiagnostics({
       continue;
     }
     final basePath = 'maps.$mapId.entities.$entityId';
+    final readyWhen = npc.trainerBattleReadyWhen;
+    if (readyWhen != null) {
+      _collectWorldRulePredicateDiagnostics(readyWhen, path: '$basePath.trainerBattleReadyWhen', mapId: mapId, entityId: entityId, diagnostics: diagnostics);
+      _collectRuntimePredicateReads(readyWhen, ref: _NarrativeRef(path: '$basePath.trainerBattleReadyWhen', mapId: mapId, entityId: entityId), readFlags: readFlags, readSteps: readSteps);
+    }
+    final battleWhen = npc.trainerBattleWhen;
+    if (battleWhen != null) {
+      _collectWorldRulePredicateDiagnostics(battleWhen,
+        path: '$basePath.trainerBattleWhen', mapId: mapId, entityId: entityId,
+        diagnostics: diagnostics);
+      _collectRuntimePredicateReads(battleWhen,
+        ref: _NarrativeRef(path: '$basePath.trainerBattleWhen', mapId: mapId, entityId: entityId),
+        readFlags: readFlags, readSteps: readSteps);
+    }
     final visibilityRule = npc.visibilityRule;
     final visibilityPredicate = visibilityRule?.predicate;
     if (visibilityRule != null &&
@@ -544,6 +558,20 @@ void _collectWorldRulePredicateDiagnostics(
   required String entityId,
   required List<NarrativeValidationDiagnostic> diagnostics,
 }) {
+  if (predicate.kind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) {
+    if (predicate.refId.isEmpty && predicate.timeWindow == null && predicate.minimumCount != null && predicate.minimumCount! >= 1 && predicate.minimumCount! <= 6) return;
+    diagnostics.add(NarrativeValidationDiagnostic(severity: NarrativeValidationSeverity.error, kind: NarrativeValidationDiagnosticKind.worldRulePredicateEmptyRefId, message: 'Party readiness requires a minimum count from 1 to 6.', path: '$path.minimumCount', mapId: mapId, entityId: entityId));
+    return;
+  }
+  if (predicate.kind == MapEntityRuntimePredicateKind.localTimeWindow) {
+    if (predicate.refId.isEmpty && predicate.timeWindow?.isValid == true) return;
+    diagnostics.add(NarrativeValidationDiagnostic(
+      severity: NarrativeValidationSeverity.error,
+      kind: NarrativeValidationDiagnosticKind.worldRulePredicateEmptyRefId,
+      message: 'Local time predicate requires a valid window without a reference.',
+      path: '$path.timeWindow', mapId: mapId, entityId: entityId));
+    return;
+  }
   if (predicate.refId.trim().isNotEmpty) {
     return;
   }
@@ -934,6 +962,8 @@ void _collectRuntimePredicateReads(
     case MapEntityRuntimePredicateKind.stepCompleted:
     case MapEntityRuntimePredicateKind.stepNotCompleted:
       _addRef(readSteps, predicate.refId, ref);
+    case MapEntityRuntimePredicateKind.partyUsableCountAtLeast:
+    case MapEntityRuntimePredicateKind.localTimeWindow:
     case MapEntityRuntimePredicateKind.chapterCompleted:
     case MapEntityRuntimePredicateKind.chapterNotCompleted:
     case MapEntityRuntimePredicateKind.cutsceneCompleted:

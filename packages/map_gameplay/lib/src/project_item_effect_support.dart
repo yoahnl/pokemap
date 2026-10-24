@@ -7,6 +7,9 @@ ProjectItemEffectRuntimeSupport projectItemEffectRuntimeSupport(
 ) => switch (effect) {
   ProjectItemHealHpEffectDefinition() ||
   ProjectItemFullRestoreEffectDefinition() ||
+  ProjectItemVitaminEffectDefinition() ||
+  ProjectItemBattleBoostEffectDefinition() ||
+  ProjectItemBattlePreparationEffectDefinition() ||
   ProjectItemCureStatusEffectDefinition() ||
   ProjectItemReviveEffectDefinition() ||
   ProjectItemRestorePpEffectDefinition() ||

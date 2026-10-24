@@ -5,6 +5,24 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('native painted material selects its logical table variant', () {
+    final project = _project().copyWith(encounterTables: [
+      _project().encounterTables.single.copyWith(entries: [], variants: [
+        const ProjectEncounterVariant(id: 'day', name: 'Day',
+          timeWindows: [LocalTimeWindow(startMinute: 600, endMinute: 1200)],
+          entries: [ProjectEncounterEntry(speciesId: 'sentret', minLevel: 3, maxLevel: 3)])]),
+    ]);
+    final result = checkEncounterAtPlayerPosition(world: GameplayWorldState.initial(
+      map: _map(), playerPos: const GridPos(x: 1, y: 0), project: project),
+      project: project, encounterKind: EncounterKind.walk,
+      encounterContext: EncounterEvaluationContext(localMinuteOfDay: 600),
+      policy: const GameplayEncounterPolicy(chancePerStep: 1), random: Random(1));
+    expect(result.encounter?.speciesId, 'sentret');
+    expect(result.encounter?.variantId, 'day');
+    expect(result.sourceKind, EncounterSourceKind.smartTileLayer);
+    expect(_map().gameplayZones, isEmpty);
+  });
+
   test('triggers a native Smart Tile encounter without gameplay zones', () {
     final map = _map();
     final project = _project();

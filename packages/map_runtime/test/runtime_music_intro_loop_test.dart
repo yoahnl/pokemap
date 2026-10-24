@@ -59,6 +59,7 @@ final class _FakeLoopDriver
   final Map<Object, StreamController<void>> _completions =
       <Object, StreamController<void>>{};
   var _nextHandle = 0;
+  Completer<void>? seekGate;
 
   @override
   Future<Object> play(
@@ -86,11 +87,33 @@ final class _FakeLoopDriver
   @override
   Future<void> seekAndResume(Object handle, Duration position) async {
     seeks.add(position);
+    await seekGate?.future;
   }
 
   void completeTrack(Object handle) => _completions[handle]?.add(null);
 
   Object get lastHandle => 'handle-${_nextHandle - 1}';
+}
+
+final class _LoopTimer implements Timer {
+  _LoopTimer(this.callback);
+  final void Function() callback;
+  var _active = true;
+
+  @override
+  bool get isActive => _active;
+
+  @override
+  int get tick => _active ? 0 : 1;
+
+  @override
+  void cancel() => _active = false;
+
+  void fire() {
+    if (!_active) return;
+    _active = false;
+    callback();
+  }
 }
 
 /// Un driver SANS la capacité de boucle : il doit garder l'ancien
@@ -194,6 +217,152 @@ void main() {
   });
 
   group('le service ne rejoue plus l’intro', () {
+    for (final completionFirst in [false, true]) {
+      test(
+        'timer and completion coalesce during a held seek '
+        '(completion first: $completionFirst)',
+        () async {
+          final driver = _FakeLoopDriver();
+          final timers = <_LoopTimer>[];
+          final service = RuntimeMusicService(
+            driver: driver,
+            loopTimerFactory: (_, callback) {
+              final timer = _LoopTimer(callback);
+              timers.add(timer);
+              return timer;
+            },
+          );
+          addTearDown(service.dispose);
+          final path = writeTrack(
+            name: 'coalesced.ogg',
+            loopStart: 48000,
+            loopLength: 96000,
+            sampleRate: 48000,
+          );
+          await service.update(route: RuntimeAudioRoute.overworld, path: path);
+          final gate = driver.seekGate = Completer<void>();
+          if (completionFirst) {
+            driver.completeTrack(driver.lastHandle);
+          } else {
+            timers.single.fire();
+          }
+          await Future<void>.delayed(Duration.zero);
+          expect(driver.seeks, hasLength(1));
+          if (completionFirst) {
+            timers.single.fire();
+          } else {
+            driver.completeTrack(driver.lastHandle);
+          }
+          await Future<void>.delayed(Duration.zero);
+          gate.complete();
+          driver.seekGate = null;
+          await Future<void>.delayed(Duration.zero);
+          expect(driver.seeks, hasLength(1));
+          expect(timers, hasLength(2));
+          timers.last.fire();
+          await Future<void>.delayed(Duration.zero);
+          expect(driver.seeks, hasLength(2));
+          driver.completeTrack(driver.lastHandle);
+          await Future<void>.delayed(Duration.zero);
+          expect(driver.seeks, hasLength(3));
+        },
+      );
+    }
+
+    test('a failed seek releases coalescing for completion fallback', () async {
+      final driver = _FakeLoopDriver();
+      final timers = <_LoopTimer>[];
+      final service = RuntimeMusicService(
+        driver: driver,
+        loopTimerFactory: (_, callback) {
+          final timer = _LoopTimer(callback);
+          timers.add(timer);
+          return timer;
+        },
+      );
+      addTearDown(service.dispose);
+      final path = writeTrack(
+        name: 'failed-seek.ogg',
+        loopStart: 48000,
+        loopLength: 96000,
+        sampleRate: 48000,
+      );
+      await service.update(route: RuntimeAudioRoute.overworld, path: path);
+      final gate = driver.seekGate = Completer<void>();
+      timers.single.fire();
+      await Future<void>.delayed(Duration.zero);
+      driver.completeTrack(driver.lastHandle);
+      await Future<void>.delayed(Duration.zero);
+      final failure = StateError('seek unavailable');
+      gate.completeError(failure);
+      driver.seekGate = null;
+      await Future<void>.delayed(Duration.zero);
+      expect(driver.seeks, hasLength(1));
+      expect(service.lastFailure, same(failure));
+      driver.completeTrack(driver.lastHandle);
+      await Future<void>.delayed(Duration.zero);
+      expect(driver.seeks, hasLength(2));
+      expect(timers, hasLength(2));
+    });
+
+    for (final action in ['silence', 'change', 'dispose']) {
+      test('held loop return preserves $action invalidation', () async {
+        final driver = _FakeLoopDriver();
+        final timers = <_LoopTimer>[];
+        final service = RuntimeMusicService(
+          driver: driver,
+          fadeDelay: (_) async {},
+          loopTimerFactory: (_, callback) {
+            final timer = _LoopTimer(callback);
+            timers.add(timer);
+            return timer;
+          },
+        );
+        addTearDown(service.dispose);
+        final first = writeTrack(
+          name: 'held-first.ogg',
+          loopStart: 48000,
+          loopLength: 96000,
+          sampleRate: 48000,
+        );
+        final second = writeTrack(
+          name: 'held-second.ogg',
+          loopStart: 48000,
+          loopLength: 96000,
+          sampleRate: 48000,
+        );
+        await service.update(route: RuntimeAudioRoute.overworld, path: first);
+        final firstHandle = driver.lastHandle;
+        final gate = driver.seekGate = Completer<void>();
+        timers.single.fire();
+        await Future<void>.delayed(Duration.zero);
+        driver.completeTrack(firstHandle);
+        await Future<void>.delayed(Duration.zero);
+        final invalidation = action == 'dispose'
+            ? service.dispose()
+            : service.update(
+                route: RuntimeAudioRoute.overworld,
+                path: action == 'change' ? second : null,
+                immediateStop: true,
+              );
+        gate.complete();
+        driver.seekGate = null;
+        await invalidation;
+        timers.first.callback();
+        driver.completeTrack(firstHandle);
+        await Future<void>.delayed(Duration.zero);
+        expect(driver.seeks, hasLength(1));
+        if (action == 'change') {
+          expect(service.playingPath, second);
+          timers.last.fire();
+          await Future<void>.delayed(Duration.zero);
+          expect(driver.seeks, hasLength(2));
+        } else {
+          expect(service.isPlaying, isFalse);
+        }
+      });
+    }
+
     test(
         'une piste à points de boucle est jouée SANS boucle native, et '
         'reprend au point de boucle à sa fin', () async {

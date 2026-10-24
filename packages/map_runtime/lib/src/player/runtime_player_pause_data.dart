@@ -12,6 +12,7 @@ enum RuntimePlayerPauseSection {
   bag,
   pokedex,
   quests,
+  contacts,
   map,
   profile,
   options,
@@ -267,6 +268,7 @@ final class RuntimePlayerDetailEntrySnapshot {
     this.pokemonSummary,
     this.bagItem,
     this.pokedexEntry,
+    this.portraitFilePath,
   }) {
     if (id.trim().isEmpty || title.trim().isEmpty) {
       throw ArgumentError('Detail entry id and title must not be empty.');
@@ -289,6 +291,7 @@ final class RuntimePlayerDetailEntrySnapshot {
   final RuntimePlayerHeldItemActionSnapshot? heldItemAction;
   final RuntimePlayerBagItemSnapshot? bagItem;
   final RuntimePlayerPokedexEntrySnapshot? pokedexEntry;
+  final String? portraitFilePath;
 
   /// Présente uniquement sur une entrée d'équipe : la fiche canonique que le PC
   /// affiche pour le même individu.
@@ -356,26 +359,36 @@ final class RuntimePlayerPauseDetailSnapshot {
 }
 
 final class RuntimePlayerPauseCommand {
+  const RuntimePlayerPauseCommand.callContact({required this.contactId})
+      : kind = RuntimePlayerPauseCommandKind.callContact,
+        itemTargetId = '',
+        partyTargetId = '',
+        moveTargetId = null,
+        secondPartyTargetId = null;
+
   const RuntimePlayerPauseCommand.useBagItem({
     required this.itemTargetId,
     this.partyTargetId = '',
     this.moveTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.useBagItem,
-        secondPartyTargetId = null;
+        secondPartyTargetId = null,
+        contactId = null;
 
   const RuntimePlayerPauseCommand.equipHeldItem({
     required this.itemTargetId,
     required this.partyTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.equipHeldItem,
         moveTargetId = null,
-        secondPartyTargetId = null;
+        secondPartyTargetId = null,
+        contactId = null;
 
   const RuntimePlayerPauseCommand.unequipHeldItem({
     required this.partyTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.unequipHeldItem,
         itemTargetId = '',
         moveTargetId = null,
-        secondPartyTargetId = null;
+        secondPartyTargetId = null,
+        contactId = null;
 
   /// BETA-PTY-002. Échange deux membres de l'équipe.
   ///
@@ -388,7 +401,8 @@ final class RuntimePlayerPauseCommand {
     required String this.secondPartyTargetId,
   })  : kind = RuntimePlayerPauseCommandKind.reorderPartyMember,
         itemTargetId = '',
-        moveTargetId = null;
+        moveTargetId = null,
+        contactId = null;
 
   /// BETA-PTY-002. Place un membre en tête d'équipe.
   const RuntimePlayerPauseCommand.setPartyLead({
@@ -396,9 +410,11 @@ final class RuntimePlayerPauseCommand {
   })  : kind = RuntimePlayerPauseCommandKind.setPartyLead,
         itemTargetId = '',
         moveTargetId = null,
-        secondPartyTargetId = null;
+        secondPartyTargetId = null,
+        contactId = null;
 
   final RuntimePlayerPauseCommandKind kind;
+  final String? contactId;
   final String itemTargetId;
   final String partyTargetId;
   final String? moveTargetId;
@@ -408,6 +424,7 @@ final class RuntimePlayerPauseCommand {
 }
 
 enum RuntimePlayerPauseCommandKind {
+  callContact,
   useBagItem,
   equipHeldItem,
   unequipHeldItem,

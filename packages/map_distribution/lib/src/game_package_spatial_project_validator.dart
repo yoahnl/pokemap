@@ -61,6 +61,16 @@ final class GamePackageSpatialProjectValidator {
         final payload = node.payload;
         final command =
             payload is SceneActionPayload ? payload.interactiveCommand : null;
+        final soundId = switch (command) {
+          ScenePlaySoundEffectInteractiveCommand(:final mediaAssetId) || ScenePlayMusicEffectInteractiveCommand(:final mediaAssetId) => mediaAssetId,
+          _ => null,
+        };
+        if (soundId != null) {
+          final media = project.cinematicMediaAssets.where((asset) => asset.id == soundId);
+          if (media.length != 1 || media.single.kind != CinematicMediaAssetKind.sound || media.single.loopByDefault) {
+            _fail('runtime3d.scene_audio_invalid', 'scenes.${scene.id}.nodes.${node.id}.interactiveCommand', 'Scene audio requires a unique registered non-looping sound.');
+          }
+        }
         if (command is! ScenePlayModelAnimationInteractiveCommand) continue;
         final instance = mapsById[command.mapId]
             ?.spatialScene
@@ -348,7 +358,43 @@ final class GamePackageSpatialProjectValidator {
     }
   }
 
-  void validate(ProjectManifest project, GamePackagePayloadReader readPayload) {
+  void _validateCompanionSpecies(ProjectManifest project,
+      GamePackagePayloadReader readPayload, Iterable<String> payloadPaths) {
+    final mappings = project.partyCompanion.mappings;
+    if (mappings.isEmpty) return;
+    final requestedIds = mappings.map((mapping) => mapping.speciesId).toSet();
+    final speciesById = <String, PokemonSpeciesFile>{};
+    final prefix = 'project/${project.pokemon.speciesDir}/';
+    for (final path in payloadPaths) {
+      if (!path.startsWith(prefix) ||
+          path.substring(prefix.length).contains('/') ||
+          !path.toLowerCase().endsWith('.json')) {
+        continue;
+      }
+      final json = _object(_json(_read(readPayload, path)));
+      final id = json['id'];
+      if (id is! String || !requestedIds.contains(id.trim())) continue;
+      final species = PokemonSpeciesFile.fromJson(json);
+      if (speciesById.containsKey(species.id)) {
+        _fail('runtime3d.companion_species_invalid', path,
+            'Companion species identities must be unique.');
+      }
+      speciesById[species.id] = species;
+    }
+    for (final mapping in mappings) {
+      final species = speciesById[mapping.speciesId];
+      if (species == null ||
+          !species.classification.isEnabledInProject ||
+          species.forms.formId != mapping.formId) {
+        _fail('runtime3d.companion_species_invalid',
+            'project.partyCompanion.mappings.${mapping.speciesId}',
+            'Companion visuals require an enabled project species and its authored form.');
+      }
+    }
+  }
+
+  void validate(ProjectManifest project, GamePackagePayloadReader readPayload,
+      {Iterable<String> payloadPaths = const []}) {
     try {
       if (project.version != ProjectVersion.v9 ||
           project.settings.dimension != ProjectDimension.threeD ||
@@ -396,6 +442,7 @@ final class GamePackageSpatialProjectValidator {
         _unsupported('project/project.json');
       }
       if (gameplay) _validateGameplay(project);
+      _validateCompanionSpecies(project, readPayload, payloadPaths);
       final maps = <MapData>[];
       for (final entry in project.maps) {
         final path = 'project/${entry.relativePath}';

@@ -36,7 +36,7 @@ void main() {
       Future<void> catalogue(List<Object?> entries) =>
           moves.writeAsString(jsonEncode({
             'schemaVersion': 1,
-            'kind': 'catalog',
+            'kind': 'pokemon_catalog',
             'catalog': 'moves',
             'entries': entries
           }));

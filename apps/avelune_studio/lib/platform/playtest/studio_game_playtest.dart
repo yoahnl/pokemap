@@ -92,6 +92,7 @@ final class StudioGamePlaytest {
               preloadedInitialMap: preloader.resolveForSession,
               commitCheckpoint: saves.commit,
               mountSession: mountSpatial,
+              audioMixer: audio,
               unmountSession: unmountSpatial,
             );
           }
@@ -351,6 +352,7 @@ final class _StudioGameSource implements RuntimeGameSource {
       saveReadHandle: saveReadHandle,
       runtimeApiVersion: '1.0.0',
       grantedCapabilities: {
+        GameCompletionPartyCapabilities.capabilityId,
         'battle.v1',
         'party.v1',
         'bag.v1',
@@ -360,6 +362,10 @@ final class _StudioGameSource implements RuntimeGameSource {
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,
+          SpatialGameplayCapabilities.companionCapabilityId,
+          SpatialCameraProfile.orthographicCapabilityId,
+          ProjectContactDeviceConfig.capabilityId,
+          SpatialGameplayCapabilities.audioCapabilityId,
           'map3d.animation@1',
           SpatialModelClipCapabilities.capabilityId,
           'map3d.terrain-appearance@1',

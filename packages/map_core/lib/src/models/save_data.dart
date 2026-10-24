@@ -17,6 +17,7 @@ import 'map_instance_world_state.dart';
 import 'rail_journey.dart';
 import 'repel_state.dart';
 import 'escape_return_point.dart';
+import 'game_completion_party_journal.dart';
 
 part 'save_data.freezed.dart';
 part 'save_data.g.dart';
@@ -838,6 +839,8 @@ abstract class SaveData with _$SaveData {
     /// mentionnaient nulle part.
     @Default(MovementMode.walk) MovementMode playerMovementMode,
     @Default(PlayerParty()) PlayerParty party,
+    @Default(GameCompletionPartyJournal.empty())
+    GameCompletionPartyJournal completionPartyJournal,
     @Default(PokemonStorage()) PokemonStorage pokemonStorage,
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,
@@ -948,5 +951,8 @@ void validateItemSystemSaveSchema(Map<String, dynamic> json) {
 
 SaveData _decodeSaveData(Map<String, dynamic> json) {
   validateItemSystemSaveSchema(json);
+  if (json['completionPartyJournal'] is! Map<String, dynamic>) {
+    throw const FormatException('The save is missing its completion party journal.');
+  }
   return _$SaveDataFromJson(json);
 }

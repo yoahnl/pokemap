@@ -16,6 +16,7 @@ import 'map_workspace_tool_strip_selection.dart';
 import 'map_decor_geometry_panel.dart';
 import 'map_moving_prop_panel.dart';
 import 'map_catalogue_properties.dart';
+import 'map_camera_panel.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
@@ -382,6 +383,8 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     onRename: widget.onRenameMap,
                     onEscapeSettings: widget.onEscapeSettings,
                   ),
+                  if (document.current.spatialScene != null)
+                    MapCameraPanel(document: document, onChanged: onChanged),
                   Text(mapToolHelp(widget.tool)),
                 ],
                 if (selected != null) ...[

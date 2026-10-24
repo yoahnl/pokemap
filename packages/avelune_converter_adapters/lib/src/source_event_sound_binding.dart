@@ -2,6 +2,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 
 import 'native_project_writer.dart';
+import 'source_engine_game_ini.dart';
 
 enum SourceEventAudioKind { sound, music, musicEffect, ambience }
 
@@ -100,9 +101,20 @@ final class SourceEventSoundResolver {
           config.byteLength != 6212 ||
           config.sha256!.value !=
               '90a3aee82895e48e6c767f973b637d27856cccfd575f48b78d04191cb3e7d35f' ||
-          ini.byteLength != 121 ||
-          ini.sha256!.value !=
-              '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6') {
+          ini.byteLength < 1 || ini.byteLength > 4096) {
+        _unavailable('engine_unqualified');
+      }
+      if (ini.byteLength > limits.maxArtifactBytes ||
+          ini.byteLength > limits.maxTotalArtifactBytes) {
+        _unavailable('audio_quota');
+      }
+      final iniBytes = await files.read(ini.fileId);
+      cancellation?.check();
+      if (iniBytes.length != ini.byteLength ||
+          crypto.sha256.convert(iniBytes).toString() != ini.sha256!.value) {
+        _unavailable('engine_configuration_changed');
+      }
+      if (!sourceEngineGameIniIsLocal(iniBytes)) {
         _unavailable('engine_unqualified');
       }
     }

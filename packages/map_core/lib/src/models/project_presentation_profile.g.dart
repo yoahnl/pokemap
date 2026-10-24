@@ -243,6 +243,7 @@ const _$ProjectPauseActionIdEnumMap = {
   ProjectPauseActionId.bag: 'bag',
   ProjectPauseActionId.pokedex: 'pokedex',
   ProjectPauseActionId.quests: 'quests',
+  ProjectPauseActionId.contacts: 'contacts',
   ProjectPauseActionId.map: 'map',
   ProjectPauseActionId.profile: 'profile',
   ProjectPauseActionId.save: 'save',

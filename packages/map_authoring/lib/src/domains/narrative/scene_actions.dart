@@ -30,6 +30,20 @@ final class ScenePreSessionInteractionCueBindingDraft {
 final class SceneActions {
   const SceneActions();
 
+  static const _finishGameContract = {
+    'consequenceKind': 'finishGame',
+    'contractVersion': 1,
+    'recordParty': {
+      'type': 'boolean',
+      'default': false,
+      'requiredCapability': 'game.completion-party-journal@1',
+      'persistentField': 'completionPartyJournal',
+      'snapshot': 'immutableCurrentPartyInOrder',
+      'deduplication': 'saveIdAndEndingId',
+      'commit': 'sameVerifiedFinalCheckpointBeforePresentation',
+    },
+  };
+
   static const _integerOperandContract = {
     'kinds': ['literal', 'integerFact', 'gameRead', 'random'],
     'gameReads': ['money', 'partyCount', 'itemCount'],
@@ -339,13 +353,14 @@ final class SceneActions {
   };
 
   static const _soundEffectContract = {
-    'projectDimension': 'twoD',
-    'parameters': ['mediaAssetId', 'volume'],
+    'projectDimensions': ['twoD', 'threeD'],
+    'parameters': ['mediaAssetId', 'volume', 'waitForCompletion'],
     'mediaReference': 'knownNonLoopingSound',
     'finiteNumbers': true,
     'volumeRange': [0, 1],
     'unsupportedParameters': ['pitch'],
-    'completion': 'started',
+    'completion': 'startedOrNaturalCompletionWhenRequested',
+    'waitForCompletion': {'type': 'boolean', 'default': false},
     'persistent': false,
     'outputPorts': ['completed', 'blocked'],
   };
@@ -396,8 +411,8 @@ final class SceneActions {
   };
 
   static const _musicEffectContract = {
-    'projectDimension': 'twoD',
-    'parameters': ['mediaAssetId', 'volume', 'bgmInterruption'],
+    'projectDimensions': ['twoD', 'threeD'],
+    'parameters': ['mediaAssetId', 'volume', 'bgmInterruption', 'waitForCompletion'],
     'role': 'musicEffect',
     'mediaReference': 'knownNonLoopingSound',
     'finiteNumbers': true,
@@ -407,7 +422,8 @@ final class SceneActions {
       'integerRange': [0, 60000],
     },
     'unsupportedParameters': ['pitch'],
-    'completion': 'started',
+    'completion': 'startedOrNaturalCompletionWhenRequested',
+    'waitForCompletion': {'type': 'boolean', 'default': false},
     'persistent': false,
     'outputPorts': ['completed', 'blocked'],
   };
@@ -553,6 +569,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'whiteOut': _whiteOutContract,
         'calculateIntegerFacts': _calculateIntegerFactsContract,
@@ -579,7 +596,7 @@ final class SceneActions {
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
         'sceneMusic': _sceneMusicContract,
-        'stopSoundEffects': {'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
+        'stopSoundEffects': {'projectDimensions': ['twoD', 'threeD'], 'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
         'actorRoute': _actorRouteContract,
       },
     ),
@@ -637,7 +654,7 @@ final class SceneActions {
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
         'sceneMusic': _sceneMusicContract,
-        'stopSoundEffects': {'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
+        'stopSoundEffects': {'projectDimensions': ['twoD', 'threeD'], 'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -694,6 +711,7 @@ final class SceneActions {
       'Create or replace a complete Scene graph',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
+        'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'whiteOut': _whiteOutContract,
         'calculateIntegerFacts': _calculateIntegerFactsContract,
@@ -715,7 +733,7 @@ final class SceneActions {
         'playSoundEffect': _soundEffectContract,
         'playMusicEffect': _musicEffectContract,
         'sceneMusic': _sceneMusicContract,
-        'stopSoundEffects': {'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
+        'stopSoundEffects': {'projectDimensions': ['twoD', 'threeD'], 'parameters': ['scope'], 'scopes': ['scene', 'map'], 'owner': 'currentMapActivationAndOptionalScene', 'excludes': ['musicEffects', 'music', 'ambience', 'battleEffects']},
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
@@ -760,6 +778,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'sceneContract': 'scene.upsert',
+        'finishGame': _finishGameContract,
         'batch': {
           'minScenes': 1,
           'maxScenes': 128,

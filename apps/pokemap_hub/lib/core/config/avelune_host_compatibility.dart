@@ -7,6 +7,7 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
       hubVersion: Version.parse('0.1.0'),
       runtimeApiVersion: Version.parse('1.4.0'),
       capabilities: const <String>{
+        GameCompletionPartyCapabilities.capabilityId,
         'catalog.partitioned@2',
         'dialogue.choices@1',
         'map@1',
@@ -18,6 +19,10 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
         SpatialRamp.fractionalLevelsCapabilityId,
         SpatialGameplayCapabilities.capabilityId,
         SpatialGameplayCapabilities.storyCapabilityId,
+        SpatialGameplayCapabilities.companionCapabilityId,
+          SpatialCameraProfile.orthographicCapabilityId,
+          ProjectContactDeviceConfig.capabilityId,
+          SpatialGameplayCapabilities.audioCapabilityId,
         'overworld.menu@1',
         'world.shop@1',
       },
@@ -30,5 +35,5 @@ GamePackageHostCompatibility aveluneHostCompatibility() =>
         ProjectVersion.v8.name,
         ProjectVersion.v9.name,
       },
-      supportedSaveFormats: const <int>{1},
+      supportedSaveFormats: const <int>{SaveEnvelopeCodec.currentSaveFormat},
     );

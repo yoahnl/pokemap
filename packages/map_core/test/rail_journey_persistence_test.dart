@@ -43,6 +43,7 @@ void main() {
         'saveId': 'legacy-game-state',
       });
       final saveData = SaveData.fromJson(const <String, dynamic>{
+        'completionPartyJournal': {'schemaVersion': 1, 'records': []},
         'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'legacy-save-data',
         'itemSystemSchemaVersion': currentItemSystemSaveSchemaVersion,

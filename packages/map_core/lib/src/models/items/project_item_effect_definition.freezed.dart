@@ -23,6 +23,18 @@ ProjectItemEffectDefinition _$ProjectItemEffectDefinitionFromJson(
           return ProjectItemFullRestoreEffectDefinition.fromJson(
             json
           );
+                case 'vitamin':
+          return ProjectItemVitaminEffectDefinition.fromJson(
+            json
+          );
+                case 'battle_boost':
+          return ProjectItemBattleBoostEffectDefinition.fromJson(
+            json
+          );
+                case 'battle_preparation':
+          return ProjectItemBattlePreparationEffectDefinition.fromJson(
+            json
+          );
                 case 'cure_status':
           return ProjectItemCureStatusEffectDefinition.fromJson(
             json
@@ -113,12 +125,15 @@ extension ProjectItemEffectDefinitionPatterns on ProjectItemEffectDefinition {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemFullRestoreEffectDefinition value)?  fullRestore,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult Function( ProjectItemFullRestoreEffectDefinition value)?  fullRestore,TResult Function( ProjectItemVitaminEffectDefinition value)?  vitamin,TResult Function( ProjectItemBattleBoostEffectDefinition value)?  battleBoost,TResult Function( ProjectItemBattlePreparationEffectDefinition value)?  battlePreparation,TResult Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult Function( ProjectItemReviveEffectDefinition value)?  revive,TResult Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult Function( ProjectItemRepelEffectDefinition value)?  repel,TResult Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
-return fullRestore(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return fullRestore(_that);case ProjectItemVitaminEffectDefinition() when vitamin != null:
+return vitamin(_that);case ProjectItemBattleBoostEffectDefinition() when battleBoost != null:
+return battleBoost(_that);case ProjectItemBattlePreparationEffectDefinition() when battlePreparation != null:
+return battlePreparation(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -144,12 +159,15 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemFullRestoreEffectDefinition value)  fullRestore,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemFishingEffectDefinition value)  fishing,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ProjectItemHealHpEffectDefinition value)  healHp,required TResult Function( ProjectItemFullRestoreEffectDefinition value)  fullRestore,required TResult Function( ProjectItemVitaminEffectDefinition value)  vitamin,required TResult Function( ProjectItemBattleBoostEffectDefinition value)  battleBoost,required TResult Function( ProjectItemBattlePreparationEffectDefinition value)  battlePreparation,required TResult Function( ProjectItemCureStatusEffectDefinition value)  cureStatus,required TResult Function( ProjectItemReviveEffectDefinition value)  revive,required TResult Function( ProjectItemRestorePpEffectDefinition value)  restorePp,required TResult Function( ProjectItemRepelEffectDefinition value)  repel,required TResult Function( ProjectItemFishingEffectDefinition value)  fishing,required TResult Function( ProjectItemBicycleEffectDefinition value)  bicycle,required TResult Function( ProjectItemEscapeRopeEffectDefinition value)  escapeRope,required TResult Function( ProjectItemSemanticActionEffectDefinition value)  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
 return healHp(_that);case ProjectItemFullRestoreEffectDefinition():
-return fullRestore(_that);case ProjectItemCureStatusEffectDefinition():
+return fullRestore(_that);case ProjectItemVitaminEffectDefinition():
+return vitamin(_that);case ProjectItemBattleBoostEffectDefinition():
+return battleBoost(_that);case ProjectItemBattlePreparationEffectDefinition():
+return battlePreparation(_that);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that);case ProjectItemReviveEffectDefinition():
 return revive(_that);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that);case ProjectItemRepelEffectDefinition():
@@ -174,12 +192,15 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemFullRestoreEffectDefinition value)?  fullRestore,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ProjectItemHealHpEffectDefinition value)?  healHp,TResult? Function( ProjectItemFullRestoreEffectDefinition value)?  fullRestore,TResult? Function( ProjectItemVitaminEffectDefinition value)?  vitamin,TResult? Function( ProjectItemBattleBoostEffectDefinition value)?  battleBoost,TResult? Function( ProjectItemBattlePreparationEffectDefinition value)?  battlePreparation,TResult? Function( ProjectItemCureStatusEffectDefinition value)?  cureStatus,TResult? Function( ProjectItemReviveEffectDefinition value)?  revive,TResult? Function( ProjectItemRestorePpEffectDefinition value)?  restorePp,TResult? Function( ProjectItemRepelEffectDefinition value)?  repel,TResult? Function( ProjectItemFishingEffectDefinition value)?  fishing,TResult? Function( ProjectItemBicycleEffectDefinition value)?  bicycle,TResult? Function( ProjectItemEscapeRopeEffectDefinition value)?  escapeRope,TResult? Function( ProjectItemSemanticActionEffectDefinition value)?  semanticAction,}){
 final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
-return fullRestore(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return fullRestore(_that);case ProjectItemVitaminEffectDefinition() when vitamin != null:
+return vitamin(_that);case ProjectItemBattleBoostEffectDefinition() when battleBoost != null:
+return battleBoost(_that);case ProjectItemBattlePreparationEffectDefinition() when battlePreparation != null:
+return battlePreparation(_that);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -204,11 +225,14 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function()?  fullRestore,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function()?  fullRestore,TResult Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)?  vitamin,TResult Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)?  battleBoost,TResult Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)?  battlePreparation,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
-return fullRestore();case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return fullRestore();case ProjectItemVitaminEffectDefinition() when vitamin != null:
+return vitamin(_that.stat,_that.amount,_that.maximumPerStat,_that.maximumTotal,_that.friendshipGainLow,_that.friendshipGainMedium,_that.friendshipGainHigh);case ProjectItemBattleBoostEffectDefinition() when battleBoost != null:
+return battleBoost(_that.stat,_that.stages);case ProjectItemBattlePreparationEffectDefinition() when battlePreparation != null:
+return battlePreparation(_that.effect,_that.turns);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -234,11 +258,14 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function()  fullRestore,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function()  fullRestore,required TResult Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)  vitamin,required TResult Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)  battleBoost,required TResult Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)  battlePreparation,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
 return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition():
-return fullRestore();case ProjectItemCureStatusEffectDefinition():
+return fullRestore();case ProjectItemVitaminEffectDefinition():
+return vitamin(_that.stat,_that.amount,_that.maximumPerStat,_that.maximumTotal,_that.friendshipGainLow,_that.friendshipGainMedium,_that.friendshipGainHigh);case ProjectItemBattleBoostEffectDefinition():
+return battleBoost(_that.stat,_that.stages);case ProjectItemBattlePreparationEffectDefinition():
+return battlePreparation(_that.effect,_that.turns);case ProjectItemCureStatusEffectDefinition():
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition():
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition():
@@ -263,11 +290,14 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function()?  fullRestore,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function()?  fullRestore,TResult? Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)?  vitamin,TResult? Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)?  battleBoost,TResult? Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)?  battlePreparation,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
-return fullRestore();case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
+return fullRestore();case ProjectItemVitaminEffectDefinition() when vitamin != null:
+return vitamin(_that.stat,_that.amount,_that.maximumPerStat,_that.maximumTotal,_that.friendshipGainLow,_that.friendshipGainMedium,_that.friendshipGainHigh);case ProjectItemBattleBoostEffectDefinition() when battleBoost != null:
+return battleBoost(_that.stat,_that.stages);case ProjectItemBattlePreparationEffectDefinition() when battlePreparation != null:
+return battlePreparation(_that.effect,_that.turns);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
 return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount);case ProjectItemRepelEffectDefinition() when repel != null:
@@ -396,6 +426,241 @@ String toString() {
 
 
 
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class ProjectItemVitaminEffectDefinition extends ProjectItemEffectDefinition {
+  const ProjectItemVitaminEffectDefinition({required this.stat, @JsonKey(fromJson: _itemEffectInteger) required this.amount, @JsonKey(fromJson: _itemEffectInteger) required this.maximumPerStat, @JsonKey(fromJson: _itemEffectInteger) this.maximumTotal = 510, @JsonKey(fromJson: _itemEffectInteger) this.friendshipGainLow = 0, @JsonKey(fromJson: _itemEffectInteger) this.friendshipGainMedium = 0, @JsonKey(fromJson: _itemEffectInteger) this.friendshipGainHigh = 0, final  String? $type}): $type = $type ?? 'vitamin',super._();
+  factory ProjectItemVitaminEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemVitaminEffectDefinitionFromJson(json);
+
+ final  ProjectItemVitaminStat stat;
+@JsonKey(fromJson: _itemEffectInteger) final  int amount;
+@JsonKey(fromJson: _itemEffectInteger) final  int maximumPerStat;
+@JsonKey(fromJson: _itemEffectInteger) final  int maximumTotal;
+@JsonKey(fromJson: _itemEffectInteger) final  int friendshipGainLow;
+@JsonKey(fromJson: _itemEffectInteger) final  int friendshipGainMedium;
+@JsonKey(fromJson: _itemEffectInteger) final  int friendshipGainHigh;
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectItemVitaminEffectDefinitionCopyWith<ProjectItemVitaminEffectDefinition> get copyWith => _$ProjectItemVitaminEffectDefinitionCopyWithImpl<ProjectItemVitaminEffectDefinition>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemVitaminEffectDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemVitaminEffectDefinition&&(identical(other.stat, stat) || other.stat == stat)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.maximumPerStat, maximumPerStat) || other.maximumPerStat == maximumPerStat)&&(identical(other.maximumTotal, maximumTotal) || other.maximumTotal == maximumTotal)&&(identical(other.friendshipGainLow, friendshipGainLow) || other.friendshipGainLow == friendshipGainLow)&&(identical(other.friendshipGainMedium, friendshipGainMedium) || other.friendshipGainMedium == friendshipGainMedium)&&(identical(other.friendshipGainHigh, friendshipGainHigh) || other.friendshipGainHigh == friendshipGainHigh));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,stat,amount,maximumPerStat,maximumTotal,friendshipGainLow,friendshipGainMedium,friendshipGainHigh);
+
+@override
+String toString() {
+  return 'ProjectItemEffectDefinition.vitamin(stat: $stat, amount: $amount, maximumPerStat: $maximumPerStat, maximumTotal: $maximumTotal, friendshipGainLow: $friendshipGainLow, friendshipGainMedium: $friendshipGainMedium, friendshipGainHigh: $friendshipGainHigh)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectItemVitaminEffectDefinitionCopyWith<$Res> implements $ProjectItemEffectDefinitionCopyWith<$Res> {
+  factory $ProjectItemVitaminEffectDefinitionCopyWith(ProjectItemVitaminEffectDefinition value, $Res Function(ProjectItemVitaminEffectDefinition) _then) = _$ProjectItemVitaminEffectDefinitionCopyWithImpl;
+@useResult
+$Res call({
+ ProjectItemVitaminStat stat,@JsonKey(fromJson: _itemEffectInteger) int amount,@JsonKey(fromJson: _itemEffectInteger) int maximumPerStat,@JsonKey(fromJson: _itemEffectInteger) int maximumTotal,@JsonKey(fromJson: _itemEffectInteger) int friendshipGainLow,@JsonKey(fromJson: _itemEffectInteger) int friendshipGainMedium,@JsonKey(fromJson: _itemEffectInteger) int friendshipGainHigh
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectItemVitaminEffectDefinitionCopyWithImpl<$Res>
+    implements $ProjectItemVitaminEffectDefinitionCopyWith<$Res> {
+  _$ProjectItemVitaminEffectDefinitionCopyWithImpl(this._self, this._then);
+
+  final ProjectItemVitaminEffectDefinition _self;
+  final $Res Function(ProjectItemVitaminEffectDefinition) _then;
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? stat = null,Object? amount = null,Object? maximumPerStat = null,Object? maximumTotal = null,Object? friendshipGainLow = null,Object? friendshipGainMedium = null,Object? friendshipGainHigh = null,}) {
+  return _then(ProjectItemVitaminEffectDefinition(
+stat: null == stat ? _self.stat : stat // ignore: cast_nullable_to_non_nullable
+as ProjectItemVitaminStat,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as int,maximumPerStat: null == maximumPerStat ? _self.maximumPerStat : maximumPerStat // ignore: cast_nullable_to_non_nullable
+as int,maximumTotal: null == maximumTotal ? _self.maximumTotal : maximumTotal // ignore: cast_nullable_to_non_nullable
+as int,friendshipGainLow: null == friendshipGainLow ? _self.friendshipGainLow : friendshipGainLow // ignore: cast_nullable_to_non_nullable
+as int,friendshipGainMedium: null == friendshipGainMedium ? _self.friendshipGainMedium : friendshipGainMedium // ignore: cast_nullable_to_non_nullable
+as int,friendshipGainHigh: null == friendshipGainHigh ? _self.friendshipGainHigh : friendshipGainHigh // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class ProjectItemBattleBoostEffectDefinition extends ProjectItemEffectDefinition {
+  const ProjectItemBattleBoostEffectDefinition({required this.stat, @JsonKey(fromJson: _itemEffectInteger) required this.stages, final  String? $type}): $type = $type ?? 'battle_boost',super._();
+  factory ProjectItemBattleBoostEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemBattleBoostEffectDefinitionFromJson(json);
+
+ final  ProjectItemBattleStat stat;
+@JsonKey(fromJson: _itemEffectInteger) final  int stages;
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectItemBattleBoostEffectDefinitionCopyWith<ProjectItemBattleBoostEffectDefinition> get copyWith => _$ProjectItemBattleBoostEffectDefinitionCopyWithImpl<ProjectItemBattleBoostEffectDefinition>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemBattleBoostEffectDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemBattleBoostEffectDefinition&&(identical(other.stat, stat) || other.stat == stat)&&(identical(other.stages, stages) || other.stages == stages));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,stat,stages);
+
+@override
+String toString() {
+  return 'ProjectItemEffectDefinition.battleBoost(stat: $stat, stages: $stages)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectItemBattleBoostEffectDefinitionCopyWith<$Res> implements $ProjectItemEffectDefinitionCopyWith<$Res> {
+  factory $ProjectItemBattleBoostEffectDefinitionCopyWith(ProjectItemBattleBoostEffectDefinition value, $Res Function(ProjectItemBattleBoostEffectDefinition) _then) = _$ProjectItemBattleBoostEffectDefinitionCopyWithImpl;
+@useResult
+$Res call({
+ ProjectItemBattleStat stat,@JsonKey(fromJson: _itemEffectInteger) int stages
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectItemBattleBoostEffectDefinitionCopyWithImpl<$Res>
+    implements $ProjectItemBattleBoostEffectDefinitionCopyWith<$Res> {
+  _$ProjectItemBattleBoostEffectDefinitionCopyWithImpl(this._self, this._then);
+
+  final ProjectItemBattleBoostEffectDefinition _self;
+  final $Res Function(ProjectItemBattleBoostEffectDefinition) _then;
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? stat = null,Object? stages = null,}) {
+  return _then(ProjectItemBattleBoostEffectDefinition(
+stat: null == stat ? _self.stat : stat // ignore: cast_nullable_to_non_nullable
+as ProjectItemBattleStat,stages: null == stages ? _self.stages : stages // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+class ProjectItemBattlePreparationEffectDefinition extends ProjectItemEffectDefinition {
+  const ProjectItemBattlePreparationEffectDefinition({required this.effect, @JsonKey(fromJson: _itemEffectNullableInteger) this.turns, final  String? $type}): $type = $type ?? 'battle_preparation',super._();
+  factory ProjectItemBattlePreparationEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemBattlePreparationEffectDefinitionFromJson(json);
+
+ final  ProjectItemBattlePreparationKind effect;
+@JsonKey(fromJson: _itemEffectNullableInteger) final  int? turns;
+
+@JsonKey(name: 'kind')
+final String $type;
+
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectItemBattlePreparationEffectDefinitionCopyWith<ProjectItemBattlePreparationEffectDefinition> get copyWith => _$ProjectItemBattlePreparationEffectDefinitionCopyWithImpl<ProjectItemBattlePreparationEffectDefinition>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemBattlePreparationEffectDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemBattlePreparationEffectDefinition&&(identical(other.effect, effect) || other.effect == effect)&&(identical(other.turns, turns) || other.turns == turns));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,effect,turns);
+
+@override
+String toString() {
+  return 'ProjectItemEffectDefinition.battlePreparation(effect: $effect, turns: $turns)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectItemBattlePreparationEffectDefinitionCopyWith<$Res> implements $ProjectItemEffectDefinitionCopyWith<$Res> {
+  factory $ProjectItemBattlePreparationEffectDefinitionCopyWith(ProjectItemBattlePreparationEffectDefinition value, $Res Function(ProjectItemBattlePreparationEffectDefinition) _then) = _$ProjectItemBattlePreparationEffectDefinitionCopyWithImpl;
+@useResult
+$Res call({
+ ProjectItemBattlePreparationKind effect,@JsonKey(fromJson: _itemEffectNullableInteger) int? turns
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectItemBattlePreparationEffectDefinitionCopyWithImpl<$Res>
+    implements $ProjectItemBattlePreparationEffectDefinitionCopyWith<$Res> {
+  _$ProjectItemBattlePreparationEffectDefinitionCopyWithImpl(this._self, this._then);
+
+  final ProjectItemBattlePreparationEffectDefinition _self;
+  final $Res Function(ProjectItemBattlePreparationEffectDefinition) _then;
+
+/// Create a copy of ProjectItemEffectDefinition
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? effect = null,Object? turns = freezed,}) {
+  return _then(ProjectItemBattlePreparationEffectDefinition(
+effect: null == effect ? _self.effect : effect // ignore: cast_nullable_to_non_nullable
+as ProjectItemBattlePreparationKind,turns: freezed == turns ? _self.turns : turns // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

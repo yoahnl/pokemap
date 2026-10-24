@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -98,6 +99,19 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     }
 
     final detail = snapshot.pauseDetailFor(section);
+    if (section == RuntimePlayerPauseSection.contacts && detail != null && detail.entries.isNotEmpty) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final contact in detail.entries)
+          Padding(padding: const EdgeInsets.only(bottom: PlayerSpacing.sm), child: PlayerActionButton(
+            key: ValueKey('contact.${contact.id}'),
+            label: contact.title,
+            icon: Icons.contact_phone_outlined,
+            trailing: contact.portraitFilePath == null ? null : PlayerImageBuilder(path: contact.portraitFilePath!, builder: (context, image) => RawImage(image: image, width: 48, height: 48, fit: BoxFit.contain)),
+            onPressed: onPauseCommand != null && snapshot.isActionEnabled(RuntimePlayerAction.callContact)
+              ? () => onPauseCommand!(RuntimePlayerPauseCommand.callContact(contactId: contact.id)) : null,
+          )),
+      ]);
+    }
     if (section == RuntimePlayerPauseSection.party && detail != null) {
       return PlayerMenuThemeScope(
           role: ProjectPresentationSurfaceRole.party,
@@ -179,6 +193,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.pokedex => RuntimePlayerAction.openPokedex,
         RuntimePlayerPauseSection.map => RuntimePlayerAction.openMap,
         RuntimePlayerPauseSection.quests => RuntimePlayerAction.openQuests,
+        RuntimePlayerPauseSection.contacts => RuntimePlayerAction.openContacts,
         RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
         RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
         RuntimePlayerPauseSection.root => throw StateError(
@@ -198,6 +213,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       RuntimePlayerPauseSection.pokedex => l10n.pokedex,
       RuntimePlayerPauseSection.map => l10n.map,
       RuntimePlayerPauseSection.quests => l10n.quests,
+      RuntimePlayerPauseSection.contacts => snapshot.pauseDetailFor(section)?.title ?? 'Contacts',
       RuntimePlayerPauseSection.profile => l10n.profile,
       RuntimePlayerPauseSection.options => l10n.options,
     };
@@ -210,6 +226,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.pokedex => Icons.menu_book_rounded,
         RuntimePlayerPauseSection.map => Icons.map_rounded,
         RuntimePlayerPauseSection.quests => Icons.menu_book_rounded,
+        RuntimePlayerPauseSection.contacts => Icons.contact_phone_outlined,
         RuntimePlayerPauseSection.profile => Icons.person_rounded,
         RuntimePlayerPauseSection.options => Icons.tune_rounded,
       };
@@ -225,6 +242,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
         RuntimePlayerPauseSection.quests =>
           ProjectPresentationSurfaceRole.pauseMenu,
+        RuntimePlayerPauseSection.contacts => ProjectPresentationSurfaceRole.pauseMenu,
         RuntimePlayerPauseSection.profile =>
           ProjectPresentationSurfaceRole.pauseMenu,
         RuntimePlayerPauseSection.options =>

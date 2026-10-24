@@ -24,6 +24,10 @@ _MapEntityRuntimePredicate _$MapEntityRuntimePredicateFromJson(
 ) => _MapEntityRuntimePredicate(
   kind: $enumDecode(_$MapEntityRuntimePredicateKindEnumMap, json['kind']),
   refId: json['refId'] as String? ?? '',
+  timeWindow: json['timeWindow'] == null
+      ? null
+      : LocalTimeWindow.fromJson(json['timeWindow'] as Map<String, dynamic>),
+  minimumCount: (json['minimumCount'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$MapEntityRuntimePredicateToJson(
@@ -31,9 +35,14 @@ Map<String, dynamic> _$MapEntityRuntimePredicateToJson(
 ) => <String, dynamic>{
   'kind': _$MapEntityRuntimePredicateKindEnumMap[instance.kind]!,
   'refId': instance.refId,
+  'timeWindow': ?instance.timeWindow?.toJson(),
+  'minimumCount': ?instance.minimumCount,
 };
 
 const _$MapEntityRuntimePredicateKindEnumMap = {
+  MapEntityRuntimePredicateKind.partyUsableCountAtLeast:
+      'partyUsableCountAtLeast',
+  MapEntityRuntimePredicateKind.localTimeWindow: 'localTimeWindow',
   MapEntityRuntimePredicateKind.storyFlagSet: 'storyFlagSet',
   MapEntityRuntimePredicateKind.storyFlagUnset: 'storyFlagUnset',
   MapEntityRuntimePredicateKind.stepCompleted: 'stepCompleted',
@@ -86,49 +95,63 @@ Map<String, dynamic> _$MapEntityConditionalDialogueToJson(
   'dialogue': instance.dialogue.toJson(),
 };
 
-_MapEntityNpcData _$MapEntityNpcDataFromJson(Map<String, dynamic> json) =>
-    _MapEntityNpcData(
-      displayName: json['displayName'] as String? ?? '',
-      dialogue: json['dialogue'] == null
-          ? null
-          : DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
-      facing:
-          $enumDecodeNullable(_$EntityFacingEnumMap, json['facing']) ??
-          EntityFacing.south,
-      visualElementId: json['visualElementId'] as String? ?? '',
-      trainerId: json['trainerId'] as String?,
-      lineOfSightRange: (json['lineOfSightRange'] as num?)?.toInt() ?? 0,
-      counterInteractionSides:
-          (json['counterInteractionSides'] as List<dynamic>?)
-              ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
-              .toList() ??
-          const <EntityFacing>[],
-      defeatDialogueRef: json['defeatDialogueRef'] == null
-          ? null
-          : DialogueRef.fromJson(
-              json['defeatDialogueRef'] as Map<String, dynamic>,
+_MapEntityNpcData _$MapEntityNpcDataFromJson(
+  Map<String, dynamic> json,
+) => _MapEntityNpcData(
+  displayName: json['displayName'] as String? ?? '',
+  dialogue: json['dialogue'] == null
+      ? null
+      : DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
+  facing:
+      $enumDecodeNullable(_$EntityFacingEnumMap, json['facing']) ??
+      EntityFacing.south,
+  visualElementId: json['visualElementId'] as String? ?? '',
+  trainerId: json['trainerId'] as String?,
+  trainerBattleWhen: json['trainerBattleWhen'] == null
+      ? null
+      : MapEntityRuntimePredicate.fromJson(
+          json['trainerBattleWhen'] as Map<String, dynamic>,
+        ),
+  trainerBattleReadyWhen: json['trainerBattleReadyWhen'] == null
+      ? null
+      : MapEntityRuntimePredicate.fromJson(
+          json['trainerBattleReadyWhen'] as Map<String, dynamic>,
+        ),
+  trainerBattleNotReadyDialogue: json['trainerBattleNotReadyDialogue'] == null
+      ? null
+      : DialogueRef.fromJson(
+          json['trainerBattleNotReadyDialogue'] as Map<String, dynamic>,
+        ),
+  lineOfSightRange: (json['lineOfSightRange'] as num?)?.toInt() ?? 0,
+  counterInteractionSides:
+      (json['counterInteractionSides'] as List<dynamic>?)
+          ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
+          .toList() ??
+      const <EntityFacing>[],
+  defeatDialogueRef: json['defeatDialogueRef'] == null
+      ? null
+      : DialogueRef.fromJson(json['defeatDialogueRef'] as Map<String, dynamic>),
+  characterId: json['characterId'] as String?,
+  movement: json['movement'] == null
+      ? const MapEntityNpcMovementConfig()
+      : MapEntityNpcMovementConfig.fromJson(
+          json['movement'] as Map<String, dynamic>,
+        ),
+  visibilityRule: json['visibilityRule'] == null
+      ? null
+      : MapEntityNpcVisibilityRule.fromJson(
+          json['visibilityRule'] as Map<String, dynamic>,
+        ),
+  conditionalDialogues:
+      (json['conditionalDialogues'] as List<dynamic>?)
+          ?.map(
+            (e) => MapEntityConditionalDialogue.fromJson(
+              e as Map<String, dynamic>,
             ),
-      characterId: json['characterId'] as String?,
-      movement: json['movement'] == null
-          ? const MapEntityNpcMovementConfig()
-          : MapEntityNpcMovementConfig.fromJson(
-              json['movement'] as Map<String, dynamic>,
-            ),
-      visibilityRule: json['visibilityRule'] == null
-          ? null
-          : MapEntityNpcVisibilityRule.fromJson(
-              json['visibilityRule'] as Map<String, dynamic>,
-            ),
-      conditionalDialogues:
-          (json['conditionalDialogues'] as List<dynamic>?)
-              ?.map(
-                (e) => MapEntityConditionalDialogue.fromJson(
-                  e as Map<String, dynamic>,
-                ),
-              )
-              .toList() ??
-          const <MapEntityConditionalDialogue>[],
-    );
+          )
+          .toList() ??
+      const <MapEntityConditionalDialogue>[],
+);
 
 Map<String, dynamic> _$MapEntityNpcDataToJson(_MapEntityNpcData instance) =>
     <String, dynamic>{
@@ -137,6 +160,10 @@ Map<String, dynamic> _$MapEntityNpcDataToJson(_MapEntityNpcData instance) =>
       'facing': _$EntityFacingEnumMap[instance.facing]!,
       'visualElementId': instance.visualElementId,
       'trainerId': instance.trainerId,
+      'trainerBattleWhen': ?instance.trainerBattleWhen?.toJson(),
+      'trainerBattleReadyWhen': ?instance.trainerBattleReadyWhen?.toJson(),
+      'trainerBattleNotReadyDialogue': ?instance.trainerBattleNotReadyDialogue
+          ?.toJson(),
       'lineOfSightRange': instance.lineOfSightRange,
       'counterInteractionSides': instance.counterInteractionSides
           .map((e) => _$EntityFacingEnumMap[e]!)
@@ -182,6 +209,14 @@ _MapEntityNpcMovementConfig _$MapEntityNpcMovementConfigFromJson(
         ),
   loop: json['loop'] as bool? ?? true,
   pauseDurationMs: (json['pauseDurationMs'] as num?)?.toInt() ?? 0,
+  pauseDurationsMs:
+      (json['pauseDurationsMs'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const <int>[],
+  movementArea: json['movementArea'] == null
+      ? null
+      : MapRect.fromJson(json['movementArea'] as Map<String, dynamic>),
   stepDurationMs: (json['stepDurationMs'] as num?)?.toInt() ?? 200,
 );
 
@@ -194,6 +229,8 @@ Map<String, dynamic> _$MapEntityNpcMovementConfigToJson(
   'suspendWhenInstanceBoolean': instance.suspendWhenInstanceBoolean?.toJson(),
   'loop': instance.loop,
   'pauseDurationMs': instance.pauseDurationMs,
+  'pauseDurationsMs': instance.pauseDurationsMs,
+  'movementArea': ?instance.movementArea?.toJson(),
   'stepDurationMs': instance.stepDurationMs,
 };
 

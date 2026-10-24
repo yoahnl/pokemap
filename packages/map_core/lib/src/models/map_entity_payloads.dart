@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
 import 'geometry.dart';
+import 'local_time_window.dart';
 
 part 'map_entity_payloads.freezed.dart';
 part 'map_entity_payloads.g.dart';
@@ -52,6 +53,10 @@ enum MapEntityNpcVisibilityMode {
 
 /// Condition réutilisable (visibilité ou variante de dialogue).
 enum MapEntityRuntimePredicateKind {
+  @JsonValue('partyUsableCountAtLeast')
+  partyUsableCountAtLeast,
+  @JsonValue('localTimeWindow')
+  localTimeWindow,
   @JsonValue('storyFlagSet')
   storyFlagSet,
   @JsonValue('storyFlagUnset')
@@ -74,7 +79,7 @@ enum MapEntityRuntimePredicateKind {
   badgeNotOwned,
 }
 
-@freezed
+@Freezed(fromJson: true, toJson: true)
 abstract class MapEntityRuntimePredicate with _$MapEntityRuntimePredicate {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityRuntimePredicate({
@@ -83,10 +88,30 @@ abstract class MapEntityRuntimePredicate with _$MapEntityRuntimePredicate {
     /// Id métier selon [kind] : nom de flag, id de step, id de chapitre,
     /// id de scénario local (cutscene).
     @Default('') String refId,
+    @JsonKey(includeIfNull: false) LocalTimeWindow? timeWindow,
+    @JsonKey(includeIfNull: false) int? minimumCount,
   }) = _MapEntityRuntimePredicate;
 
-  factory MapEntityRuntimePredicate.fromJson(Map<String, dynamic> json) =>
-      _$MapEntityRuntimePredicateFromJson(json);
+  factory MapEntityRuntimePredicate.fromJson(Map<String, dynamic> json) {
+    if (json['minimumCount'] != null && json['minimumCount'] is! int) throw const FormatException('The minimum count must be an integer.');
+    final predicate = _$MapEntityRuntimePredicateFromJson(json);
+    if (predicate.kind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) {
+      if (predicate.refId.isNotEmpty || predicate.timeWindow != null ||
+          predicate.minimumCount == null || predicate.minimumCount! < 1 || predicate.minimumCount! > 6) {
+        throw const FormatException('Party readiness predicates require a minimum count from 1 to 6 and no reference or time window.');
+      }
+    } else if (predicate.minimumCount != null) {
+      throw const FormatException('Only party readiness predicates accept a minimum count.');
+    }
+    if (predicate.kind == MapEntityRuntimePredicateKind.localTimeWindow) {
+      if (predicate.refId.isNotEmpty || predicate.timeWindow == null) {
+        throw const FormatException('Local time predicates require a time window and no reference.');
+      }
+    } else if (predicate.timeWindow != null) {
+      throw const FormatException('Only local time predicates accept a time window.');
+    }
+    return predicate;
+  }
 }
 
 @freezed
@@ -123,6 +148,9 @@ abstract class MapEntityNpcData with _$MapEntityNpcData {
     @Default(EntityFacing.south) EntityFacing facing,
     @Default('') String visualElementId,
     String? trainerId,
+    @JsonKey(includeIfNull: false) MapEntityRuntimePredicate? trainerBattleWhen,
+    @JsonKey(includeIfNull: false) MapEntityRuntimePredicate? trainerBattleReadyWhen,
+    @JsonKey(includeIfNull: false) DialogueRef? trainerBattleNotReadyDialogue,
     @Default(0) int lineOfSightRange,
     @Default(<EntityFacing>[]) List<EntityFacing> counterInteractionSides,
     DialogueRef? defeatDialogueRef,
@@ -309,6 +337,8 @@ abstract class MapEntityNpcMovementConfig with _$MapEntityNpcMovementConfig {
     MapEntityNpcRouteInstanceBoolean? suspendWhenInstanceBoolean,
     @Default(true) bool loop,
     @Default(0) int pauseDurationMs,
+    @Default(<int>[]) List<int> pauseDurationsMs,
+    @JsonKey(includeIfNull: false) MapRect? movementArea,
     @Default(200) int stepDurationMs,
   }) = _MapEntityNpcMovementConfig;
 

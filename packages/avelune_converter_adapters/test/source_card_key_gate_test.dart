@@ -112,6 +112,16 @@ Future<
       interpretationProfile: profile,
       includeEventSystem: true,
       extraFiles: {
+        'Game.ini': latin1.encode([
+          '[Game]',
+          'Library=RGSS104E.dll',
+          'Scripts=Data/Scripts.rxdata',
+          'Title=Original card gate fixture',
+          'RTP1=',
+          'RTP2=',
+          'RTP3=',
+          '',
+        ].join('\r\n')),
         if (includeEncounter)
           'PBS/encounters.txt': utf8.encode('[214]\nLand,11\n100,RATTATA,2,3\n'),
         'PBS/pokemon.txt': utf8
@@ -232,11 +242,6 @@ Future<
             'Game.exe',
             14732288,
             '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04'
-          ),
-          (
-            'Game.ini',
-            121,
-            '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6'
           ),
           (
             'mkxp.json',

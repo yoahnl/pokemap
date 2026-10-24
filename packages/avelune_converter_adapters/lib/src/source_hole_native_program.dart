@@ -204,29 +204,25 @@ bool _shape(SourceEventDefinition event) {
   final types = terrainBump
       ? <Type>[
           SourceSoundEffectNode,
-          SourceUnknownNode,
-          SourceUnknownNode,
+          SourceForcedMoveRouteNode,
           SourceWaitNode,
           SourceToneNode,
           SourceWaitNode,
           SourceWarpNode,
           SourceMoveRouteBarrierNode,
-          SourceUnknownNode,
-          SourceUnknownNode,
+          SourceForcedMoveRouteNode,
           SourceToneNode,
           SourceSoundEffectNode
         ]
       : <Type>[
-          SourceUnknownNode,
-          SourceUnknownNode,
+          SourceForcedMoveRouteNode,
           SourceMoveRouteBarrierNode,
           SourceSoundEffectNode,
           SourceWaitNode,
           SourceToneNode,
           SourceWaitNode,
           SourceWarpNode,
-          SourceUnknownNode,
-          SourceUnknownNode,
+          SourceForcedMoveRouteNode,
           SourceMoveRouteBarrierNode,
           SourceToneNode,
           SourceSoundEffectNode
@@ -236,11 +232,24 @@ bool _shape(SourceEventDefinition event) {
           .any((index) => nodes[index].runtimeType != types[index])) {
     return false;
   }
-  final falling = nodes[terrainBump ? 0 : 3] as SourceSoundEffectNode;
+  final routes = nodes.whereType<SourceForcedMoveRouteNode>().toList();
+  for (final (index, kind)
+      in [SourceMoveRouteStepKind.hide, SourceMoveRouteStepKind.show].indexed) {
+    final route = routes[index];
+    if (route.targetSourceCharacterId != -1 ||
+        route.repeat ||
+        !route.skippable ||
+        route.steps.length != 1 ||
+        route.steps.single.sourceCode != 42 ||
+        route.steps.single.kind != kind) {
+      return false;
+    }
+  }
+  final falling = nodes[terrainBump ? 0 : 2] as SourceSoundEffectNode;
   final landing = nodes.last as SourceSoundEffectNode;
-  final dark = nodes[terrainBump ? 4 : 5] as SourceToneNode;
-  final clear = nodes[terrainBump ? 10 : 11] as SourceToneNode;
-  final warp = nodes[terrainBump ? 6 : 7] as SourceWarpNode;
+  final dark = nodes[terrainBump ? 3 : 4] as SourceToneNode;
+  final clear = nodes[terrainBump ? 8 : 9] as SourceToneNode;
+  final warp = nodes[terrainBump ? 5 : 6] as SourceWarpNode;
   final waits = nodes.whereType<SourceWaitNode>().toList();
   return falling.volume >= 0 &&
       falling.volume <= 100 &&
@@ -291,7 +300,7 @@ bool _opacityRoutesAreSafe(Map<String, Object?> page) {
     if (route is! Map ||
         route['__class__'] != 'RPG::MoveRoute' ||
         route['repeat'] != false ||
-        route['skippable'] is! bool) {
+        route['skippable'] != true) {
       return false;
     }
     final steps = route['list'];
@@ -368,6 +377,7 @@ String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({
                   SourceSoundEffectNode() => node.toJson(),
                   SourceWaitNode() => node.toJson(),
                   SourceToneNode() => node.toJson(),
+                  SourceForcedMoveRouteNode() => node.toJson(),
                   SourceMoveRouteBarrierNode() => node.toJson(),
                   SourceWarpNode() => {
                       'kind': 'warp',

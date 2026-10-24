@@ -140,18 +140,51 @@ class CharacterEditingCommands {
       updateEntityOnMap(
         document.current,
         entityId: id,
-        npc: entity!.npc!.copyWith(trainerId: trainerId),
+        npc: entity!.npc!.copyWith(
+          trainerId: trainerId,
+          trainerBattleReadyWhen: trainerId == null ? null : entity.npc!.trainerBattleReadyWhen,
+          trainerBattleNotReadyDialogue: trainerId == null ? null : entity.npc!.trainerBattleNotReadyDialogue,
+          trainerBattleWhen: trainerId == null
+              ? null
+              : entity.npc!.trainerBattleWhen,
+        ),
       ),
     );
   }
 
-  void setMovementConfiguration(String id, MapEntityNpcMovementConfig movement) {
-    if (movement.mode == MapEntityNpcMovementMode.fixedRoute &&
-        project.settings.dimension != ProjectDimension.twoD) {
-      throw StateError('Les suites de pas sont disponibles sur les cartes 2D.');
-    }
-    document.commit(const EntityActions().setMovementConfiguration(
-        document.current, entityId: id, movement: movement));
+  void setVisibilityRule(String id, MapEntityNpcVisibilityRule? rule) =>
+      document.commit(
+        const EntityActions().setVisibilityRule(
+          document.current,
+          entityId: id,
+          visibilityRule: rule,
+        ),
+      );
+
+  void setTrainerBattleReadiness(String id, MapEntityRuntimePredicate? condition, DialogueRef? refusal) =>
+      document.commit(const EntityActions().setTrainerBattleReadiness(document.current,
+        entityId: id, trainerBattleReadyWhen: condition, trainerBattleNotReadyDialogue: refusal));
+
+  void setTrainerBattleRule(String id, MapEntityRuntimePredicate? rule) =>
+      document.commit(
+        const EntityActions().setTrainerBattleRule(
+          document.current,
+          entityId: id,
+          trainerBattleWhen: rule,
+        ),
+      );
+
+  void setMovementConfiguration(
+    String id,
+    MapEntityNpcMovementConfig movement,
+  ) {
+    document.commit(
+      const EntityActions().setMovementConfiguration(
+        document.current,
+        entityId: id,
+        movement: movement,
+      ),
+    );
   }
 
   void setCounterInteractionSides(String id, List<EntityFacing> sides) =>

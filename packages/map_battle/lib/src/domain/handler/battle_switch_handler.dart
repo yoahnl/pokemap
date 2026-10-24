@@ -673,6 +673,7 @@ List<BattleEffect> _slotPersistentEffects(PsdkBattleCombatant active) {
   return active.effects.effects
       .where(
         (effect) =>
+            effect.scope is BankBattleEffectScope ||
             effect is DelayedMoveEffect ||
             effect is WishEffect ||
             effect is ShedTailEffect,

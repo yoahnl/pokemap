@@ -58,6 +58,7 @@ final class RuntimeMusicService {
   Duration? _loopDueAt;
   void Function()? _loopReturnAction;
   int _loopGeneration = 0;
+  bool _loopRestartPending = false;
   int _interruptionGeneration = 0;
   double _interruptionEnvelope = 1;
   String? _playingPath;
@@ -212,8 +213,7 @@ final class RuntimeMusicService {
           firstPass: true,
         );
         _loopSubscription = looping.onComplete(handle).listen((_) {
-          if (!identical(_handle, handle) || _isPaused) return;
-          unawaited(_enqueue(() => _restartLoop(looping, handle, loopPoints)));
+          _requestLoopRestart(looping, handle, loopPoints);
         });
       }
       if (_musicEffects.isNotEmpty) {
@@ -330,10 +330,32 @@ final class RuntimeMusicService {
     final remaining = firstPass ? points.end : points.end - points.start;
     _loopReturnDelay = remaining;
     _loopReturnAction = () {
-      if (!identical(_handle, handle) || _isPaused) return;
-      unawaited(_enqueue(() => _restartLoop(driver, handle, points)));
+      _requestLoopRestart(driver, handle, points);
     };
     _armLoopReturn(remaining);
+  }
+
+  void _requestLoopRestart(
+    FlameCinematicAudioLoopDriver driver,
+    Object handle,
+    RuntimeMusicLoopPoints points,
+  ) {
+    if (_disposed ||
+        !identical(_handle, handle) ||
+        _isPaused ||
+        _loopRestartPending) {
+      return;
+    }
+    final generation = _loopGeneration;
+    _loopRestartPending = true;
+    unawaited(_enqueue(() async {
+      try {
+        if (generation != _loopGeneration) return;
+        await _restartLoop(driver, handle, points);
+      } finally {
+        _loopRestartPending = false;
+      }
+    }));
   }
 
   Future<void> _restartLoop(

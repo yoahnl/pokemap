@@ -1,5 +1,6 @@
 {
   "saveId": "item-system-v1-golden",
+  "completionPartyJournal": {"schemaVersion": 1, "records": []},
   "mapInstanceWorldState": {
     "schemaVersion": 6,
     "instancesByMapId": {}

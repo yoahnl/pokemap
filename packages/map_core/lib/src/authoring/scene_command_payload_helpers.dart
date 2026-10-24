@@ -79,6 +79,11 @@ SceneFinishGameConsequence _buildFinishGameConsequence(
   return SceneFinishGameConsequence(
     endingId: _endingIdFromFriendlyName(required('endingName')),
     outcome: outcome,
+    recordParty: switch (parameters['recordParty']) {
+      null || 'false' => false,
+      'true' => true,
+      _ => throw const FormatException('recordParty must be true or false.'),
+    },
     result: SceneFinishGameResult(
       title: localized('resultTitle', 'resultTitleEn'),
       summary: localized('resultSummary', 'resultSummaryEn'),

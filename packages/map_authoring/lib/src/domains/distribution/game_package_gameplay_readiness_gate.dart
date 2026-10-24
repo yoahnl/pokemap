@@ -45,7 +45,8 @@ final class GamePackageGameplayReadinessGate {
                     projection.payloadFiles['project/${entry.relativePath}']!)
             ]);
         GamePackageSpatialProjectValidator(gameplay: gameplay)
-            .validate(project, (path) => projection.payloadFiles[path]);
+            .validate(project, (path) => projection.payloadFiles[path],
+                payloadPaths: projection.payloadFiles.keys);
         if (gameplay) {
           _appendPokemonValidationDiagnostics(
             project: project,

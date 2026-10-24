@@ -20,6 +20,7 @@ import '../models/map_placed_element_origin.dart';
 import '../models/moving_platform.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import '../models/project_party_companion_config.dart';
 import '../models/project_presentation_profile.dart';
 import '../models/pokemon_ruleset_profile.dart';
 import '../models/project_tileset_source.dart';
@@ -32,6 +33,7 @@ import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/script_conditions.dart';
+import '../models/narrative_fact.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import '../operations/map_entities.dart';
@@ -117,6 +119,33 @@ class ProjectValidator {
     ProjectMediaCatalog? presentationMediaCatalog,
   }) {
     final spatial = manifest.settings.dimension == ProjectDimension.threeD;
+    if (manifest.contactDevice != null && !spatial) {
+      throw const ValidationException('A contact device requires a 3D project.');
+    }
+    final contactErrors = manifest.contactDevice?.referenceErrors(
+      facts: manifest.facts,
+      sceneIds: manifest.scenes.map((scene) => scene.id).toSet(),
+      characterIds: manifest.characters.map((character) => character.id).toSet(),
+    ) ?? const <String>[];
+    if (contactErrors.isNotEmpty) {
+      throw ValidationException(contactErrors.join(' '));
+    }
+    final companion = manifest.partyCompanion;
+    try {
+      ProjectPartyCompanionConfig.fromJson(companion.toJson());
+    } on FormatException catch (error) {
+      throw ValidationException(error.message);
+    }
+    if (companion.enabled && (!spatial || !manifest.pokemon.enabled)) {
+      throw const ValidationException('A party companion requires an enabled Pokemon project in 3D.');
+    }
+    for (final visual in companion.mappings) {
+      final matches = manifest.characters.where((actor) => actor.id == visual.characterId).toList();
+      if (matches.length != 1 || EntityFacing.values.any((facing) => !matches.single.animations.any((clip) =>
+          clip.state == CharacterAnimationState.walk && clip.direction == facing && clip.frames.isNotEmpty))) {
+        throw ValidationException('Companion character ${visual.characterId} requires four walking directions.');
+      }
+    }
     if (manifest.version != (spatial ? ProjectVersion.v9 : ProjectVersion.v8)) {
       throw const ValidationException(
         '2D projects require v8; 3D projects require v9.',
@@ -279,7 +308,7 @@ class ProjectValidator {
     _validateRailJourneys(manifest, maps: maps, itemCatalog: itemCatalog);
     _validateSceneRailJourneyReferences(manifest);
     _validateHierarchy(manifest);
-    _validateEncounterTables(manifest.encounterTables);
+    _validateEncounterTables(manifest.encounterTables, manifest.facts);
     _validateProjectDialogues(manifest);
     _validateNewGameConfig(manifest, presentationMediaCatalog: presentationMediaCatalog);
     manifest.defeatRecovery?.validate(manifest.facts);
@@ -2142,7 +2171,8 @@ class ProjectValidator {
     }
   }
 
-  static void _validateEncounterTables(List<ProjectEncounterTable> tables) {
+  static void _validateEncounterTables(List<ProjectEncounterTable> tables,
+      List<NarrativeFactDefinition> facts) {
     for (final table in tables) {
       final id = table.id.trim();
       if (id.isEmpty) {
@@ -2193,8 +2223,53 @@ class ProjectValidator {
           );
         }
       }
-      for (var i = 0; i < table.entries.length; i++) {
-        final entry = table.entries[i];
+      final variantIds = <String>{};
+      for (final variant in table.variants) {
+        if (variant.id.trim().isEmpty ||
+            variant.id != variant.id.trim() ||
+            !variantIds.add(variant.id) ||
+            variant.name.trim().isEmpty ||
+            variant.entries.isEmpty) {
+          throw ValidationException(
+            'Encounter table $id variant requires a unique id, name and entries',
+            code: 'encounter.variant_invalid',
+          );
+        }
+        for (final window in variant.timeWindows) {
+          if (!window.isValid) {
+            throw ValidationException(
+              'Encounter table $id variant ${variant.id} requires a valid local time window',
+              code: 'encounter.time_window_invalid',
+            );
+          }
+        }
+        for (final condition in variant.conditions) {
+          _validateScriptCondition(
+            condition,
+            contextLabel: 'Encounter table $id variant ${variant.id}',
+          );
+          void validateFactReference(ScriptCondition value) {
+            if (value.type == ScriptConditionType.factEquals) {
+              final factId = value.params[ScriptConditionParams.factId];
+              final matches = facts.where((fact) => fact.id == factId).toList();
+              if (matches.length != 1 || matches.single.valueKind.wireName !=
+                  value.params[ScriptConditionParams.valueType]) {
+                throw ValidationException(
+                  'Encounter table $id variant ${variant.id} references an unknown or incompatible Fact: $factId',
+                  code: 'encounter.variant_fact_invalid',
+                );
+              }
+            }
+            for (final child in value.children) {
+              validateFactReference(child);
+            }
+          }
+          validateFactReference(condition);
+        }
+      }
+      final allEntries = table.allEntries.toList(growable: false);
+      for (var i = 0; i < allEntries.length; i++) {
+        final entry = allEntries[i];
         if (entry.speciesId.trim().isEmpty) {
           throw ValidationException(
             'Encounter table $id entry $i has empty speciesId',
@@ -3142,12 +3217,11 @@ class MapValidator {
           (map.spatialScene != null || map.version == ProjectVersion.v9)) {
         throw ValidationException('Field obstacles require a 2D map.');
       }
-      if ((map.spatialScene != null || map.version == ProjectVersion.v9) &&
-          entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute) {
-        throw const ValidationException(
-          'Fixed NPC routes require a 2D map.',
-          code: 'npc.fixed_route.dimension',
-        );
+      final movementArea = entity.npc?.movement.movementArea;
+      if (movementArea != null &&
+          (movementArea.pos.x + movementArea.size.width > map.size.width ||
+              movementArea.pos.y + movementArea.size.height > map.size.height)) {
+        throw const ValidationException('NPC movement area must fit inside the map.', code: 'npc.movement_area.invalid');
       }
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {

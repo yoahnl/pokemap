@@ -3,6 +3,20 @@ import '../models/narrative_fact.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../read_models/narrative_dependency_index.dart';
+import '../operations/narrative_fact_runtime.dart';
+
+const maxNarrativeFactBatchSize = 128;
+
+final class NarrativeFactBatchException implements Exception {
+  const NarrativeFactBatchException({required this.index, required this.cause});
+
+  final int index;
+  final Object cause;
+
+  @override
+  String toString() =>
+      'NarrativeFactBatchException(index: $index, cause: $cause)';
+}
 
 final class NarrativeFactCreationResult {
   const NarrativeFactCreationResult({
@@ -78,6 +92,53 @@ NarrativeFactCreationResult addNarrativeFact(
     updatedProject: manifest.copyWith(facts: [...manifest.facts, fact]),
     createdFact: fact,
   );
+}
+
+ProjectManifest addNarrativeFacts(
+  ProjectManifest manifest, {
+  required List<NarrativeFactDefinition> facts,
+}) {
+  if (facts.isEmpty || facts.length > maxNarrativeFactBatchSize) {
+    throw ArgumentError.value(
+      facts.length,
+      'facts.length',
+      'must be between 1 and $maxNarrativeFactBatchSize',
+    );
+  }
+  final ids = manifest.facts.map((fact) => fact.id).toSet();
+  for (var index = 0; index < facts.length; index++) {
+    final fact = facts[index];
+    try {
+      if (ids.contains(fact.id)) {
+        throw ArgumentError.value(fact.id, 'fact.id', 'already exists');
+      }
+      final canonicalId = _uniqueFactId(fact.label, ids);
+      if (fact.id != canonicalId) {
+        throw ArgumentError.value(
+          fact.id,
+          'fact.id',
+          'must equal the canonical generated id $canonicalId',
+        );
+      }
+      ids.add(fact.id);
+    } on Object catch (error) {
+      throw NarrativeFactBatchException(index: index, cause: error);
+    }
+  }
+  final candidateFacts = [...manifest.facts, ...facts];
+  final issues = NarrativeFactRuntimeResolver.fromFacts(candidateFacts).issues;
+  for (final issue in issues) {
+    final index = facts.lastIndexWhere(
+      (fact) => issue.factIds.contains(fact.id),
+    );
+    if (index >= 0) {
+      throw NarrativeFactBatchException(
+        index: index,
+        cause: ArgumentError.value(issue.runtimeKey, 'facts', issue.message),
+      );
+    }
+  }
+  return manifest.copyWith(facts: candidateFacts);
 }
 
 NarrativeFactUpdateResult updateNarrativeFact(

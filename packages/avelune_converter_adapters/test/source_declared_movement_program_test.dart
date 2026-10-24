@@ -161,6 +161,62 @@ SourceEventAnalysis _analyze(NormalizedSourceProject source) =>
         .analyze();
 
 void main() {
+  test('indexed elevator candidacy preserves exact declared pages and neighbors',
+      () async {
+    const declaredPage = LiteralFixtureEventPage(
+        characterName: 'OriginalLiftActor',
+        commands: [LiteralFixtureEventCommand(0, [])]);
+    final profile = SourceInterpretationProfile.fromJson({
+      ...syntheticSourceInterpretationProfile.toJson(),
+      'declaredPrograms': [
+        {
+          'id': 'indexed-original-elevator-actor',
+          'family': 'elevator',
+          'pages': {'program': _pageValue(declaredPage)},
+          'parameters': {'role': 'actor', 'familyId': 'indexed-original-lift'}
+        }
+      ]
+    });
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: syntheticInterpretationArchive,
+        interpretationProfile: profile,
+        includeEventSystem: true,
+        maps: [
+          LiteralFixtureMap(id: 17, events: const [
+            LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: [declaredPage]),
+            LiteralFixtureEvent(id: 2, x: 1, y: 0, pages: [
+              LiteralFixtureEventPage(commands: [LiteralFixtureEventCommand(0, [])])
+            ])
+          ]),
+          LiteralFixtureMap(id: 83, events: const [
+            LiteralFixtureEvent(id: 1, x: 0, y: 0, pages: [
+              LiteralFixtureEventPage(commands: [LiteralFixtureEventCommand(0, [])])
+            ])
+          ])
+        ]);
+    final source = fixture.source;
+    final analysis = _analyze(source);
+    final expected = <ConverterId, bool>{};
+    for (final event in analysis.events) {
+      final original = source.maps
+          .singleWhere((map) => map.map.sourceMapId == event.sourceMapId)
+          .map.events.singleWhere((raw) => raw.sourceEventId == event.sourceEventId);
+      expected[event.identity] = matchSourceDeclaredProgram(
+          source: source, profile: analysis.profile,
+          sourceMapId: event.sourceMapId, event: original,
+          families: const {SourceDeclaredProgramFamily.elevator}) != null;
+      expect(source.uniqueEventAt(event.sourceMapId, event.sourceEventId)!.toJson(),
+          original.toJson());
+      expect(isSourceElevatorFamilyEvent(event,
+          source: source, profile: analysis.profile), expected[event.identity]);
+    }
+    expect(expected[analysis.eventAt(17, 1)!.identity], isTrue);
+    expect(expected[analysis.eventAt(17, 2)!.identity], isFalse);
+    expect(expected[analysis.eventAt(83, 1)!.identity], isFalse);
+    expect(source.uniqueEventAt(17, 1),
+        same(source.uniqueEventAt(17, 1)));
+  });
+
   final oraclePath = Platform.environment['AVELUNE_DECLARED_MOVEMENT_ORACLE'];
   test('explicit oracle dataset preserves complete declared movement programs',
       () async {
@@ -630,6 +686,121 @@ void main() {
             sourceElevatorPrograms(source: absent, analysis: _analyze(absent)),
             isEmpty);
       }
+    }
+  });
+
+  test('native holes require exact typed player hide and show routes',
+      () async {
+    for (final variant in [
+      'valid',
+      'terrainBump',
+      'target',
+      'repeat',
+      'skippable',
+      'reversedOpacity',
+      'extraStep'
+    ]) {
+      final original = _holePage(12, 'Original shaft');
+      final hidden = _move(variant == 'reversedOpacity' ? 255 : 0);
+      final commands = [
+        LiteralFixtureEventCommand(209, [
+          variant == 'target' ? 0 : -1,
+          LiteralFixtureObject('RPG::MoveRoute', {
+            '@repeat': variant == 'repeat',
+            '@skippable': variant != 'skippable',
+            '@list': [
+              hidden,
+              if (variant == 'extraStep') _move(0),
+              const LiteralFixtureObject(
+                  'RPG::MoveCommand', {'@code': 0, '@parameters': <Object?>[]})
+            ]
+          })
+        ]),
+        LiteralFixtureEventCommand(509, [hidden]),
+        if (variant == 'extraStep') LiteralFixtureEventCommand(509, [_move(0)]),
+        ...original.commands.skip(2)
+      ];
+      final terrainOrder = [3, 0, 1, 4, 5, 6, 7, 2, 8, 9, 11, 12, 13];
+      final page = LiteralFixtureEventPage(
+          trigger: 1,
+          through: variant != 'terrainBump',
+          commands: variant == 'terrainBump'
+              ? [for (final index in terrainOrder) commands[index]]
+              : commands);
+      final fixture = await LiteralTileFixture.create(
+          namespace: 'typed-hole-$variant',
+          scriptsBytes: syntheticInterpretationArchive,
+          interpretationProfile: syntheticSourceInterpretationProfile,
+          includeEventSystem: true,
+          maps: [
+            LiteralFixtureMap(id: 11, events: [
+              LiteralFixtureEvent(
+                  id: 23,
+                  x: 0,
+                  y: 0,
+                  name: 'Original shaft size(2,1)',
+                  pages: [page])
+            ]),
+            LiteralFixtureMap(id: 12)
+          ]);
+      final analysis = _analyze(fixture.source);
+      final event = analysis.eventAt(11, 23)!;
+      final accepted = variant == 'valid' || variant == 'terrainBump';
+      expect(isSourceHoleNativeIdentity(event), accepted, reason: variant);
+      final programs =
+          sourceHoleNativePrograms(source: fixture.source, analysis: analysis);
+      expect(programs.length, accepted ? 1 : 0, reason: variant);
+      if (!accepted) continue;
+      final routes = event.pages.single.body.nodes
+          .whereType<SourceForcedMoveRouteNode>()
+          .toList();
+      expect(routes.map((route) => route.steps.single.kind),
+          [SourceMoveRouteStepKind.hide, SourceMoveRouteStepKind.show]);
+      expect(programs.values.single.terrainBump, variant == 'terrainBump');
+      final sourcePage = event.pages.single;
+      final forged = SourceEventDefinition(
+          identity: event.identity,
+          sourceMapId: event.sourceMapId,
+          sourceEventId: event.sourceEventId,
+          sourceFileId: event.sourceFileId,
+          name: event.name,
+          x: event.x,
+          y: event.y,
+          locator: event.locator,
+          pages: [
+            SourceEventPageAnalysis(
+                sourcePage: sourcePage.sourcePage,
+                locator: sourcePage.locator,
+                condition: sourcePage.condition,
+                graphic: sourcePage.graphic,
+                rawDataRef: sourcePage.rawDataRef,
+                diagnostics: sourcePage.diagnostics,
+                body: SourceEventBlock(
+                    span: sourcePage.body.span,
+                    diagnostics: sourcePage.body.diagnostics,
+                    nodes: [
+                      for (final node in sourcePage.body.nodes)
+                        if (node is SourceForcedMoveRouteNode)
+                          SourceForcedMoveRouteNode(node.span,
+                              targetSourceCharacterId:
+                                  node.targetSourceCharacterId,
+                              repeat: node.repeat,
+                              skippable: node.skippable,
+                              steps: node.steps,
+                              rawDataRefs: node.rawDataRefs,
+                              terminatorNodeId: node.terminatorNodeId,
+                              profileHash: literalFixtureHash([1, 2, 3]))
+                        else
+                          node
+                    ]))
+          ]);
+      expect(isSourceHoleNativeIdentity(forged), isTrue);
+      expect(
+          sourceHoleNativePrograms(
+              source: fixture.source,
+              analysis: _withEvents(analysis, [forged])),
+          isEmpty,
+          reason: 'Typed route evidence must match authoritative analysis');
     }
   });
 

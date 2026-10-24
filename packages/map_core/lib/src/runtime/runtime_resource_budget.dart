@@ -1,5 +1,61 @@
 import 'dart:async';
 
+const int runtimeTilesetChunkHeight = 4096;
+
+({int residentBytes, int transientBytes}) runtimeTilesetImageAllocation({
+  required int encodedLength,
+  required int width,
+  required int height,
+  bool transformRgba = false,
+  int sourceBitDepth = 8,
+  RuntimeResourceProfile profile = const RuntimeResourceProfile(),
+}) {
+  if (encodedLength <= 0 || encodedLength > profile.maximumEncodedBytes) {
+    throw const RuntimeResourceAdmissionException('encoded_bytes');
+  }
+  final chunked = height > runtimeTilesetChunkHeight;
+  final encodedCopyCount = chunked ? 6 : 2;
+  if (encodedLength > profile.maximumTransientBytes ~/ encodedCopyCount) {
+    throw const RuntimeResourceAdmissionException('image_dimensions');
+  }
+  final encodedCopies = encodedLength * encodedCopyCount;
+  final chunkScratch = chunked
+      ? runtimeImageRgbaByteLength(
+          width,
+          runtimeTilesetChunkHeight,
+          maximumBytes: profile.maximumTransientBytes,
+        )
+      : 0;
+  final fullImageScratchCopies = chunked
+      ? (sourceBitDepth > 8 ? 4 : 2)
+      : (transformRgba ? 4 : 2);
+  if (chunked && height > profile.maximumTransientBytes ~/ 7) {
+    throw const RuntimeResourceAdmissionException('image_dimensions');
+  }
+  final scanlineScratch = chunked ? height * 7 : 0;
+  final availablePixels =
+      (profile.maximumTransientBytes -
+          encodedCopies -
+          chunkScratch -
+          scanlineScratch) ~/
+      fullImageScratchCopies;
+  final pixels = runtimeImageRgbaByteLength(
+    width,
+    height,
+    maximumBytes: profile.maximumResidentBytes < availablePixels
+        ? profile.maximumResidentBytes
+        : availablePixels,
+  );
+  return (
+    residentBytes: pixels,
+    transientBytes:
+        encodedCopies +
+        pixels * fullImageScratchCopies +
+        chunkScratch +
+        scanlineScratch,
+  );
+}
+
 int runtimeImageRgbaByteLength(
   int width,
   int height, {

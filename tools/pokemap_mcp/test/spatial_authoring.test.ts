@@ -60,6 +60,10 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     const playbackSchema = record(record(record(instanceSchema.properties).instance).properties);
     assert.ok(playbackSchema.animationLoop);
     assert.ok(playbackSchema.animationSpeed);
+    const cameraSchema = record(record((catalog.mutationActions as JsonRecord[]).find((item) => item.id === "map3d.camera.configure")!.extensions).inputSchema);
+    const cameraProperties = record(record(record(cameraSchema.properties).camera).properties);
+    assert.deepEqual(record(cameraProperties.projection).enum, ["perspective", "orthographic"]);
+    assert.equal(record(cameraProperties.orthographicHeight).exclusiveMinimum, 0);
     for (const id of ["model3d.import", "model3d.configure", "model3d.delete", "map3d.terrain.set_levels", "map3d.terrain.configure_appearance", "map3d.instance.upsert", "map3d.instance.delete", "map3d.camera.configure", "map3d.navigation.configure", "connection.create_bidirectional_apply", "connection.delete_bidirectional_apply"]) assert.ok(ids.includes(id), id);
     const eventDescriptor = (catalog.mutationActions as JsonRecord[]).find((item) => item.id === "event_v2.create_draft")!;
     const modelSource = (record(eventDescriptor.extensions).sourceVariants as JsonRecord[])
@@ -67,7 +71,8 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     assert.ok(modelSource);
     assert.deepEqual(modelSource.requiredFields, ["kind", "mapId", "instanceId"]);
     assert.equal(modelSource.dimension, "threeD");
-    const request = { name: "Spatial MCP", folderName: "spatial", parentPath: root, template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6 };
+    const request = { name: "Spatial MCP", folderName: "spatial", parentPath: root, template: "empty", dimension: "threeD", mapWidth: 8, mapHeight: 6,
+      spatialCamera: { mode: "fixed", projection: "orthographic", orthographicHeight: 12, pitchDegrees: 48, yawDegrees: 0, fieldOfViewDegrees: 30, distance: 25 } };
     const preview = await call("pokemap_project_create_preview", { request });
     const created = await call("pokemap_project_create", { request, confirmation: preview.confirmation });
     const projectRoot = String(created.projectPath);
@@ -104,7 +109,8 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     await mutate("map3d.terrain.configure_appearance", { mapId, cliffFrame, generateCliffs: false });
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 2, z: 3, level: 2 }] });
     await mutate("map3d.instance.upsert", { mapId, instance: { id: "rock-1", modelId: "rock", position: { x: 2.2, y: 2, z: 3.7 }, rotationDegrees: 90, scale: 1, animationIndex: 0, animationLoop: false, animationSpeed: .25, blocksMovement: true } });
-    await mutate("map3d.camera.configure", { mapId, camera: { mode: "fixed", pitchDegrees: 60, yawDegrees: 15, fieldOfViewDegrees: 30, distance: 25 } });
+    const orthographicCamera = { mode: "fixed", projection: "orthographic", orthographicHeight: 12.5, pitchDegrees: 60, yawDegrees: 15, fieldOfViewDegrees: 30, distance: 25 };
+    await mutate("map3d.camera.configure", { mapId, camera: orthographicCamera });
     await mutate("map3d.terrain.set_levels", { mapId, cells: [{ x: 4, z: 2, level: 1 }] });
     const navigation = { spawn: { x: 4, z: 4 }, allowDiagonalMovement: false, ramps: [{ id: "stairs", x: 4, z: 3, width: 1, depth: 1, lowLevel: 0, highLevel: 1, direction: "north" }], blockedAreas: [{ x: 0, z: 0, width: 1, depth: 1 }] };
     await mutate("map3d.navigation.configure", { mapId, navigation });
@@ -112,6 +118,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     const scene = record(map.spatialScene);
     assert.equal((scene.heightLevels as number[])[3 * 8 + 2], 2);
     assert.equal(record(scene.camera).pitchDegrees, 60);
+    assert.deepEqual(scene.camera, orthographicCamera);
     assert.deepEqual(scene.navigation, navigation);
     assert.deepEqual(scene.cliffFrame, cliffFrame);
     assert.equal(scene.generateCliffs, false);
@@ -175,6 +182,7 @@ test("built MCP server creates a 3D project and persists resource, terrain, inst
     const queried = await call("pokemap_query", { projectHandle: reopened.projectHandle, resourceKind: "map", operation: "list", view: "detail" });
     for (const item of queried.items as JsonRecord[]) assert.equal((item.connections as unknown[]).length, 1);
     const reopenedMap = (queried.items as JsonRecord[]).find((item) => item.id === mapId)!;
+    assert.deepEqual(record(reopenedMap.spatialScene).camera, orthographicCamera);
     assert.deepEqual(record(reopenedMap.spatialScene).cliffFrame, cliffFrame);
     assert.equal(record(reopenedMap.spatialScene).generateCliffs, false);
     projectHandle = String(reopened.projectHandle);

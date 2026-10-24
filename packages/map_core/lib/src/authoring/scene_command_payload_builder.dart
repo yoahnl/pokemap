@@ -17,6 +17,7 @@ import '../runtime/character_custom_animation_runtime_contract.dart';
 import '../read_models/narrative_command_catalog.dart';
 
 part 'scene_command_payload_helpers.dart';
+part 'scene_finish_game_authoring.dart';
 
 SceneNodePayload buildScenePayloadForNarrativeCommand({
   required String commandId,
@@ -439,11 +440,12 @@ SceneActionPayload _buildWorldTonePayload(Map<String, String> parameters) {
 }
 
 SceneActionPayload _buildSoundEffectPayload(Map<String, String> parameters) {
-  _requirePresentationParameters(parameters, const {'mediaAssetId', 'volume'});
+  _requirePresentationParameters(parameters, {'mediaAssetId', 'volume', if (parameters.containsKey('waitForCompletion')) 'waitForCompletion'});
   return SceneActionPayload.interactive(
     SceneInteractiveCommand.playSoundEffect(
       mediaAssetId: parameters['mediaAssetId']!,
       volume: double.parse(parameters['volume']!),
+      waitForCompletion: parameters.containsKey('waitForCompletion') ? bool.parse(parameters['waitForCompletion']!) : false,
     ),
   );
 }
@@ -598,13 +600,15 @@ SceneActionPayload _buildStopSoundEffectsPayload(Map<String, String> parameters)
 }
 
 SceneActionPayload _buildMusicEffectPayload(Map<String, String> parameters) {
-  _requirePresentationParameters(parameters, const {
+  _requirePresentationParameters(parameters, {
     'mediaAssetId', 'volume', 'fadeOutMs', 'fadeInMs',
+    if (parameters.containsKey('waitForCompletion')) 'waitForCompletion',
   });
   return SceneActionPayload.interactive(
     SceneInteractiveCommand.playMusicEffect(
       mediaAssetId: parameters['mediaAssetId']!,
       volume: double.parse(parameters['volume']!),
+      waitForCompletion: parameters.containsKey('waitForCompletion') ? bool.parse(parameters['waitForCompletion']!) : false,
       bgmInterruption: DialogueBgmInterruption(
         fadeOutMs: int.parse(parameters['fadeOutMs']!),
         fadeInMs: int.parse(parameters['fadeInMs']!),

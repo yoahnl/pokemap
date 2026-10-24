@@ -108,6 +108,7 @@ final class PokemonCatalogCoherenceLoader {
         media: media,
         assetProbeStatuses: assetProbeStatuses,
         ruleset: manifest.pokemon.ruleset,
+        encounterTables: manifest.encounterTables,
       ),
     );
     return PokemonCatalogCoherenceReport(<PokemonCatalogDiagnostic>[

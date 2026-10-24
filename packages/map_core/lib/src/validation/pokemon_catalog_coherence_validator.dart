@@ -1,6 +1,7 @@
 import '../models/pokemon_project_data.dart';
 import '../models/pokemon_companion_ownership.dart';
 import '../models/pokemon_ruleset_profile.dart';
+import '../models/project_manifest.dart';
 
 enum PokemonCatalogDiagnosticSeverity { error, warning }
 
@@ -95,8 +96,10 @@ final class PokemonCatalogCoherenceSnapshot {
         const [],
     Iterable<PokemonCatalogDocument<PokemonMediaFile>> media = const [],
     Map<String, PokemonAssetProbeStatus> assetProbeStatuses = const {},
+    Iterable<ProjectEncounterTable> encounterTables = const [],
     required this.ruleset,
-  }) : catalogs = List.unmodifiable(catalogs),
+  }) : encounterTables = List.unmodifiable(encounterTables),
+       catalogs = List.unmodifiable(catalogs),
        species = List.unmodifiable(species),
        learnsets = List.unmodifiable(learnsets),
        evolutions = List.unmodifiable(evolutions),
@@ -116,6 +119,71 @@ final class PokemonCatalogCoherenceSnapshot {
   final List<PokemonCatalogDocument<PokemonMediaFile>> media;
   final Map<String, PokemonAssetProbeStatus> assetProbeStatuses;
   final PokemonRulesetProfile ruleset;
+  final List<ProjectEncounterTable> encounterTables;
+}
+
+List<PokemonCatalogDiagnostic> validateEncounterCatalogReferences({
+  required Iterable<ProjectEncounterTable> encounterTables,
+  required Iterable<PokemonSpeciesFile> species,
+  required Set<String> moveIds,
+  required Set<String> abilityIds,
+}) {
+  final collector = _DiagnosticCollector();
+  final speciesIds = {for (final entry in species) entry.id};
+  final disabledSpeciesIds = {
+    for (final entry in species)
+      if (!entry.classification.isEnabledInProject) entry.id,
+  };
+  final catalogIds = {'moves': moveIds, 'abilities': abilityIds};
+  for (final table in encounterTables) {
+    void validateEntries(List<ProjectEncounterEntry> entries, String prefix) {
+      for (var index = 0; index < entries.length; index++) {
+        final entry = entries[index];
+        final path = '$prefix[$index]';
+        if (!speciesIds.contains(entry.speciesId) ||
+            disabledSpeciesIds.contains(entry.speciesId)) {
+          collector.error(
+            code: 'encounter.species_unavailable',
+            path: '$path.speciesId',
+            message:
+                'Encounter references unavailable species "${entry.speciesId}".',
+            action: 'Choose an enabled species from the project catalog.',
+          );
+        }
+        for (final moveId
+            in entry.pokemonOverrides?.knownMoveIds ?? const <String>[]) {
+          if (!(catalogIds['moves']?.contains(moveId) ?? false)) {
+            collector.error(
+              code: 'encounter.move_unknown',
+              path: '$path.pokemonOverrides.knownMoveIds',
+              message: 'Encounter references unknown move "$moveId".',
+              action: 'Choose a move from the project catalog.',
+            );
+          }
+        }
+        final abilityId = entry.pokemonOverrides?.abilityId;
+        if (abilityId != null &&
+            !(catalogIds['abilities']?.contains(abilityId) ?? false)) {
+          collector.error(
+            code: 'encounter.ability_unknown',
+            path: '$path.pokemonOverrides.abilityId',
+            message: 'Encounter references unknown ability "$abilityId".',
+            action: 'Choose an ability from the project catalog.',
+          );
+        }
+      }
+    }
+
+    validateEntries(table.entries, 'encounterTables[${table.id}].entries');
+    for (final variant in table.variants) {
+      validateEntries(
+        variant.entries,
+        'encounterTables[${table.id}].variants[${variant.id}].entries',
+      );
+    }
+  }
+
+  return List.unmodifiable(collector.diagnostics);
 }
 
 final class PokemonCatalogCoherenceValidator {
@@ -251,6 +319,15 @@ final class PokemonCatalogCoherenceValidator {
         collector: collector,
       );
     }
+
+    collector.diagnostics.addAll(
+      validateEncounterCatalogReferences(
+        encounterTables: snapshot.encounterTables,
+        species: snapshot.species.map((document) => document.value),
+        moveIds: catalogIds['moves'] ?? const {},
+        abilityIds: catalogIds['abilities'] ?? const {},
+      ),
+    );
 
     return PokemonCatalogCoherenceReport(collector.diagnostics);
   }

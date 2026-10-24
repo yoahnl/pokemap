@@ -287,6 +287,7 @@ final class _Run {
   Map<String, Object?> dexEvidence = {};
   NativeSourceSpeciesBindingResult? nativeMediaSpeciesBindings;
   NativeCatalogPublicationSelection? nativePublicationSelection;
+  final nativeEvolutionAdaptations = <Map<String, Object?>>[];
   ConverterId get namespace => source.snapshot.logicalProjectNamespace;
   SourcePbsIdentity identity(SourcePbsFamily family, String symbol,
           {int form = 0}) =>
@@ -740,6 +741,8 @@ final class _Run {
             },
           if (nativePublicationSelection != null)
             'nativePublicationSelection': nativePublicationSelection!.toJson(),
+          if (nativeEvolutionAdaptations.isNotEmpty)
+            'nativeEvolutionAdaptations': nativeEvolutionAdaptations,
           if (nativeReferenceAvailability != null)
             'nativeReferenceAvailability': nativeReferenceAvailability,
           if (nativeBinding != null)
@@ -922,7 +925,8 @@ final class _Run {
                   bundle.learnsetsBySpeciesId[species.id]!)
               .toJson());
       _doc(SourceCatalogDocumentKind.evolution, 'evolutions', species.id,
-          bundle.evolutionsBySpeciesId[species.id]!.toJson());
+          _nativeProgressionEvolutions(
+              bundle.evolutionsBySpeciesId[species.id]!).toJson());
       _doc(SourceCatalogDocumentKind.media, 'media', species.id,
           bundle.mediaBySpeciesId[species.id]!.toJson());
     }
@@ -1120,6 +1124,57 @@ final class _Run {
           'Native closure exceeds its document limit.');
     }
     return mediaEvidence;
+  }
+
+  PokemonEvolutionFile _nativeProgressionEvolutions(PokemonEvolutionFile file) {
+    final progression = <PokemonEvolutionEntry>[];
+    for (var index = 0; index < file.evolutions.length; index++) {
+      final evolution = file.evolutions[index];
+      if (!_isNativeBattleFormTransformation(evolution)) {
+        progression.add(evolution);
+        continue;
+      }
+      nativeEvolutionAdaptations.add({
+        'speciesId': file.speciesId,
+        'sourceEvolutionIndex': index,
+        'sourceEvolution': evolution.toJson(),
+        'policy': 'nativeBattleFormTransformationOutsideProgression',
+        'progressionEvolutionPublished': false,
+        'runtimeBattleTransformationQualified': false,
+      });
+    }
+    return PokemonEvolutionFile(
+        schemaVersion: file.schemaVersion,
+        speciesId: file.speciesId,
+        preEvolution: file.preEvolution,
+        evolutions: progression);
+  }
+
+  bool _isNativeBattleFormTransformation(PokemonEvolutionEntry evolution) {
+    if (evolution.method != 'conditional' ||
+        evolution.minLevel != null || evolution.minFriendship != null ||
+        evolution.itemId != null || evolution.requiredMoveId != null ||
+        evolution.tradeRequirements != null ||
+        evolution.conditionText.length != 1) {
+      return false;
+    }
+    final text = evolution.conditionText['psdk'];
+    if (text == null || text.length > 4096) return false;
+    try {
+      final conditions = jsonDecode(text);
+      if (conditions is! List || conditions.length != 1) return false;
+      final condition = conditions.single;
+      if (condition is! Map || condition.length != 2 ||
+          !condition.keys.every(const {'type', 'value'}.contains) ||
+          condition['type'] != 'gemme') {
+        return false;
+      }
+      final value = condition['value'];
+      return value is String && value.length <= 192 &&
+          RegExp(r'^[a-z][a-z0-9_]*$').stringMatch(value) == value;
+    } on FormatException {
+      return false;
+    }
   }
 
   Future<void> _readDex() async {

@@ -127,6 +127,7 @@ final class PortableProjectCatalog {
     final projection = ProjectManifest(
       name: project.name,
       version: project.version,
+      settings: project.settings,
       maps: const [],
       tilesets: const [],
     ).toJson();

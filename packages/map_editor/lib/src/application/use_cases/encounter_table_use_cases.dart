@@ -42,6 +42,7 @@ class CreateEncounterTableUseCase {
     required EncounterKind encounterKind,
     double chancePerStep = defaultEncounterChancePerStep,
     List<ScriptCondition> conditions = const <ScriptCondition>[],
+    List<ProjectEncounterVariant> variants = const [],
     List<String> tags = const [],
   }) async {
     final trimmed = name.trim();
@@ -56,6 +57,7 @@ class CreateEncounterTableUseCase {
       encounterKind: encounterKind,
       chancePerStep: chancePerStep,
       conditions: conditions,
+      variants: variants,
       tags: tags,
     );
     final projected = project.copyWith(
@@ -83,6 +85,7 @@ class UpdateEncounterTableUseCase {
     EncounterKind? encounterKind,
     double? chancePerStep,
     List<ScriptCondition>? conditions,
+    List<ProjectEncounterVariant>? variants,
     List<String>? tags,
   }) async {
     final index = project.encounterTables.indexWhere((t) => t.id == tableId);
@@ -101,6 +104,7 @@ class UpdateEncounterTableUseCase {
       encounterKind: encounterKind ?? current.encounterKind,
       chancePerStep: chancePerStep ?? current.chancePerStep,
       conditions: conditions ?? current.conditions,
+      variants: variants ?? current.variants,
       tags: tags ?? current.tags,
     );
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);

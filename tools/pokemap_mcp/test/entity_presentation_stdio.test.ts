@@ -41,10 +41,10 @@ test("live MCP discovers and edits typed conditional entity presentations", { ti
   const presentation = { schemaVersion: 2, variants: [{id: "walking",
     condition: {kind: "leaf", condition: {kind: "fact", factId: "walking", expectedValue: true}},
     characterId: "guide", facing: "east", interactionMode: "front", blocksMovement: true,
-    movement: {mode: "fixedRoute", waypoints: [], routeSteps: [{kind: "move", direction: "east"}, {kind: "move", direction: "west"}], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 50, stepDurationMs: 200}, startsOnNpcContact: true,
+    movement: {mode: "fixedRoute", waypoints: [], routeSteps: [{kind: "move", direction: "east"}, {kind: "move", direction: "west"}], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 50, pauseDurationsMs: [], stepDurationMs: 200}, startsOnNpcContact: true,
     size: {width: 1, height: 1}, counterInteractionSides: [],
   }, { id: "first", condition: { kind: "all", children: [] },
-    movement: {mode: "idle", waypoints: [], routeSteps: [], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 0, stepDurationMs: 200}, startsOnNpcContact: false,
+    movement: {mode: "idle", waypoints: [], routeSteps: [], suspendWhenInstanceBoolean: null, loop: true, pauseDurationMs: 0, pauseDurationsMs: [], stepDurationMs: 200}, startsOnNpcContact: false,
     characterId: null, facing: "south", interactionMode: "overlap", blocksMovement: false,
     size: { width: 2, height: 2 }, counterInteractionSides: ["south"] }] };
   try {

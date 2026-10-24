@@ -12,6 +12,7 @@ class PokemonCommerceIntegerField extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.minimum = 0,
+    this.maximum,
     this.optional = true,
   });
 
@@ -21,6 +22,7 @@ class PokemonCommerceIntegerField extends StatefulWidget {
   final int? value;
   final ValueChanged<int?> onChanged;
   final int minimum;
+  final int? maximum;
   final bool optional;
 
   @override
@@ -56,9 +58,15 @@ class _PokemonCommerceIntegerFieldState
     final number = int.tryParse(value);
     final valid = value.isEmpty
         ? widget.optional
-        : number != null && number >= widget.minimum;
+        : number != null &&
+              number >= widget.minimum &&
+              (widget.maximum == null || number <= widget.maximum!);
     setState(
-      () => error = valid ? null : 'Valeur entière ≥ ${widget.minimum} requise',
+      () => error = valid
+          ? null
+          : widget.maximum == null
+          ? 'Valeur entière ≥ ${widget.minimum} requise'
+          : 'Valeur entière entre ${widget.minimum} et ${widget.maximum} requise',
     );
     widget.commerce.setFieldError(widget.fieldId, error);
     if (valid) widget.onChanged(value.isEmpty ? null : number);

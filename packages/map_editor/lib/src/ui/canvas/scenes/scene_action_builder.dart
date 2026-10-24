@@ -224,6 +224,11 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     }
     _textControllers.clear();
     _values.clear();
+    final previousFinish = widget.initialPayload?.consequence;
+    final finishParameters = command.id == NarrativeCommandIds.finishGame &&
+            previousFinish is SceneFinishGameConsequence
+        ? sceneFinishGameAuthoringParameters(previousFinish)
+        : const <String, String>{};
     for (final parameter in command.parameters) {
       final data =
           widget.initialPayload?.interactiveCommand?.toJson() ??
@@ -238,6 +243,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           ? (data['presetValues'] as List? ?? const []).join('\n')
           : nestedText is Map ? nestedText['fallbackText'] : nestedText;
       final storedValue =
+          finishParameters.containsKey(parameter.id)
+          ? finishParameters[parameter.id]
+          :
           data['kind'] == command.id &&
               (_is2DPresentationCommand(command.id) ||
                   command.id == NarrativeCommandIds.warp ||
@@ -266,7 +274,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
               : null);
       switch (parameter.kind) {
         case NarrativeCommandParameterKind.boolean:
-          _values[parameter.id] = (initial == 'false' || storedValue == false)
+          _values[parameter.id] = (initial == 'false' || storedValue == false ||
+              initial == null && command.id == NarrativeCommandIds.finishGame &&
+                  parameter.id == 'recordParty')
               ? 'false' : 'true';
         case NarrativeCommandParameterKind.integer:
           final value =
@@ -1527,6 +1537,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         commandId: _command.id,
         parameters: parameters,
       );
+      final previousPayload = widget.initialPayload;
+      final previousFinish = previousPayload?.consequence;
+      if (_command.id == NarrativeCommandIds.finishGame &&
+          previousPayload != null && previousFinish is SceneFinishGameConsequence) {
+        payload = SceneActionPayload(
+          actionKind: previousPayload.actionKind,
+          parameters: previousPayload.parameters,
+          consequence: updateSceneFinishGameAuthoringParameters(
+              previousFinish, parameters),
+          preSessionInteraction: previousPayload.preSessionInteraction,
+        );
+      }
       final original = widget.initialPayload?.interactiveCommand;
       if (original is SceneInputIntegerToFactInteractiveCommand && payload is SceneActionPayload &&
           payload.interactiveCommand is SceneInputIntegerToFactInteractiveCommand) {

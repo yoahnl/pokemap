@@ -34,6 +34,123 @@ Map<String, Object?> _pin(String path, List<int> bytes) =>
     {'relativePath': path, 'sha256': crypto.sha256.convert(bytes).toString()};
 
 void main() {
+  test('character case alias requires its exact admitted Windows source contract', () {
+    final profile = syntheticSourceInterpretationProfile;
+    final imageHash = Sha256Hash('c' * 64);
+    SourceSnapshot snapshot({bool knownEngine = true, bool includeEngine = true,
+        bool matchingScripts = true, bool duplicate = false,
+        SourceScanState state = SourceScanState.complete,
+        String path = 'Graphics/Characters/requested.png'}) => SourceSnapshot(
+      logicalProjectNamespace: ConverterId('character-case-alias'),
+      policyHash: SourceScanPolicy().canonicalHash,
+      entries: [
+        SourceFileEntry(fileId: ConverterId('case-image'), relativePath: path,
+            kind: SourceNodeKind.file, byteLength: 4, sha256: imageHash,
+            format: 'raster', family: 'graphics'),
+        if (duplicate) SourceFileEntry(fileId: ConverterId('case-duplicate'),
+            relativePath: 'Graphics/Characters/Requested.png',
+            kind: SourceNodeKind.file, byteLength: 4, sha256: imageHash,
+            format: 'raster', family: 'graphics'),
+        SourceFileEntry(fileId: ConverterId('case-scripts'),
+            relativePath: 'Data/Scripts.rxdata', kind: SourceNodeKind.file,
+            byteLength: 1, sha256: matchingScripts ? profile.scriptsArchiveHash
+                : Sha256Hash('d' * 64), format: 'marshal', family: 'scripts'),
+        if (includeEngine) SourceFileEntry(fileId: ConverterId('case-engine'),
+            relativePath: 'Game.exe', kind: SourceNodeKind.file,
+            byteLength: 14732288, sha256: Sha256Hash(knownEngine
+                ? '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04'
+                : 'e' * 64), format: 'binary', family: 'engine'),
+      ], diagnostics: [], excludedPaths: [], profileEvidence: [],
+      state: state);
+    SourceCharacterPresentationBinding? resolve(SourceSnapshot source,
+        {SourceInterpretationProfile? selected}) =>
+        resolveSourceCharacterPresentation(snapshot: source,
+            profile: selected ?? profile, charsetName: 'Requested');
+    final binding = resolve(snapshot())!;
+    expect(binding.requestedCharset, 'Requested');
+    expect(binding.actualCharsetName, 'requested');
+    expect(binding.actualSourceFile.relativePath, 'Graphics/Characters/requested.png');
+    expect(binding.actualSourceFile.sha256, imageHash);
+    expect(binding.substitution, isNull);
+    expect(binding.toJson()['sourceVisualParity'], isTrue);
+    expect(resolve(snapshot(knownEngine: false)), isNull);
+    expect(resolve(snapshot(includeEngine: false)), isNull);
+    expect(resolve(snapshot(matchingScripts: false)), isNull);
+    expect(resolve(snapshot(state: SourceScanState.partial)), isNull);
+    expect(resolve(snapshot(), selected: SourceInterpretationProfile.fromJson({
+      ...profile.toJson(), 'capabilities': ['events'],
+    })), isNull);
+    expect(resolveSourceCharacterPresentation(snapshot: snapshot(),
+        profile: null, charsetName: 'Requested'), isNull);
+    expect(resolve(snapshot(path: 'Graphics/Characters/Other.png')), isNull);
+    expect(() => snapshot(duplicate: true), throwsA(isA<ContractError>().having(
+        (error) => error.code, 'code', 'source.snapshot_collision')));
+    final declared = _profile([], {'characterSubstitutions': [{
+      'requestedCharset': 'Requested', 'actualCharset': 'Available',
+      'targetSha256': imageHash.value, 'reason': 'Selected artwork',
+    }]});
+    expect(resolve(snapshot(path: 'Graphics/Characters/available.png'),
+        selected: declared), isNull);
+  });
+
+  test('character path lookup preserves exact priority and strict failures', () {
+    final pin = Sha256Hash('a' * 64);
+    final profile = _profile([], {
+      'characterSubstitutions': [
+        {
+          'requestedCharset': 'Requested',
+          'actualCharset': 'Available',
+          'targetSha256': pin.value,
+          'reason': 'Selected artwork',
+        }
+      ]
+    });
+    SourceSnapshot snapshot(List<(String, SourceNodeKind, Sha256Hash?)> files) =>
+        SourceSnapshot(
+            logicalProjectNamespace: ConverterId('character-index'),
+            policyHash: Sha256Hash('b' * 64),
+            entries: [
+              for (var index = 0; index < files.length; index++)
+                SourceFileEntry(fileId: ConverterId('character-file-$index'),
+                    relativePath: files[index].$1, kind: files[index].$2,
+                    byteLength: files[index].$2 == SourceNodeKind.file ? 4 : 0,
+                    sha256: files[index].$3, format: 'png', family: 'image')
+            ],
+            diagnostics: [], excludedPaths: [], profileEvidence: [],
+            state: SourceScanState.partial);
+    SourceCharacterPresentationBinding? resolve(
+            List<(String, SourceNodeKind, Sha256Hash?)> files,
+            {String charset = 'Requested'}) =>
+        resolveSourceCharacterPresentation(snapshot: snapshot(files),
+            profile: profile, charsetName: charset);
+    final alternate = ('Graphics/Characters/Available.png', SourceNodeKind.file, pin);
+
+    final exact = resolve([
+      ('Graphics/Characters/Requested.png', SourceNodeKind.file, Sha256Hash('c' * 64)),
+      alternate,
+    ])!;
+    expect(exact.substitution, isNull);
+    expect(exact.actualSourceFile.sha256, Sha256Hash('c' * 64));
+    expect(resolve([alternate])!.substitution, isNotNull);
+    for (final invalid in [
+      [('Graphics/Characters/requested.PNG', SourceNodeKind.file, pin), alternate],
+      [('Graphics/Characters/Requested.png', SourceNodeKind.directory, null), alternate],
+      [('Graphics/Characters/Requested.png', SourceNodeKind.file, null), alternate],
+      [('Graphics/Characters/Requested.png', SourceNodeKind.file, pin),
+        ('Graphics/Characters/requested.PNG', SourceNodeKind.file, pin), alternate],
+      [('Graphics/Characters/available.PNG', SourceNodeKind.file, pin)],
+      [('Graphics/Characters/Available.png', SourceNodeKind.file, Sha256Hash('d' * 64))],
+      [('Graphics/Characters/Available.png', SourceNodeKind.directory, null)],
+      [('Graphics/Characters/Available.png', SourceNodeKind.file, null)],
+    ]) {
+      expect(resolve(invalid), isNull, reason: '$invalid');
+    }
+    expect(resolve([
+      ('Graphics/Characters/Cafe\u0301.png', SourceNodeKind.file, pin),
+    ], charset: 'Café'), isNull);
+    expect(() => resolve([alternate], charset: '../escape'), throwsFormatException);
+  });
+
   test(
       'explicit character substitution is strict by default and preserves declared trade presentation in two projects',
       () async {

@@ -75,6 +75,7 @@ final class HubInProcessSessionFactory {
                   commitCheckpoint ??
                   HubSessionCheckpointCommitter(store: saves).commit,
               mountSession: mount,
+              audioMixer: audioMixer,
               unmountSession: unmount,
               preloadedInitialMap: preloadedInitialMap,
               now: now,

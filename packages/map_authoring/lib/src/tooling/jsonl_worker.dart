@@ -1010,6 +1010,8 @@ final class JsonlWorker {
                   'pitchDegrees',
                   'yawDegrees',
                   'fieldOfViewDegrees',
+                  'projection',
+                  'orthographicHeight',
                   'distance',
                 ],
               },

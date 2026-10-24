@@ -242,6 +242,9 @@ void _validateUse(
   );
   final kind = effect['kind'];
   final allowedFields = switch (kind) {
+    'vitamin' => const {'kind', 'stat', 'amount', 'maximumPerStat', 'maximumTotal', 'friendshipGainLow', 'friendshipGainMedium', 'friendshipGainHigh'},
+    'battle_boost' => const {'kind', 'stat', 'stages'},
+    'battle_preparation' => const {'kind', 'effect', 'turns'},
     'heal_hp' || 'restore_pp' => const {'kind', 'mode', 'amount'},
     'cure_status' => const {'kind', 'mode', 'statusIds'},
     'revive' => const {'kind', 'rateNumerator', 'rateDenominator'},

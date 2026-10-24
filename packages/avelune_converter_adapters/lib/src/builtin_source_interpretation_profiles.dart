@@ -159,6 +159,16 @@ const _essentialsStaticProfileJson = r'''
       "index": 93,
       "name": "Audio_Play",
       "sha256": "e21c2f9b086f99777b7421c850e4b04cb8e5db574876b3fbb9c0fd9932e1d1fb"
+    },
+    "events.Pokemon": {
+      "index": 273,
+      "name": "Pokemon",
+      "sha256": "2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec"
+    },
+    "events.Species_files": {
+      "index": 130,
+      "name": "Species_files",
+      "sha256": "b0d4786a3b33dbb06a68aa395e813ed21be46d826dab69b5c9ab41a99ae7e0d3"
     }
   },
   "declaredPrograms": [],

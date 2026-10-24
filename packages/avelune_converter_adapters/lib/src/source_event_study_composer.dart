@@ -525,15 +525,18 @@ final class SourceEventStudyComposer {
     }
     final decorativePokemonBindings = <ConverterId, SourceDecorativePokemonBinding>{};
     final decorativePokemonEvidence = <Map<String, Object?>>[];
-    SourcePbsProject? decorativePbs;
-    for (final event in selectedEvents.where((event) => sourceDecorativePokemonSymbol(event) != null)) {
-      try {
-        decorativePbs ??= await const SourcePbsParser().read(snapshot: source.snapshot,
-            files: recording, cancellation: cancellation);
-        final binding = await const SourceDecorativePokemonBindingResolver().read(
-            source: source, analysis: analysis, event: event, files: recording,
-            pbs: decorativePbs, nativeCatalog: sharedNativeCatalog,
+    final decorativeEvents = selectedEvents.where((event) =>
+        sourceDecorativePokemonSymbol(event) != null).toList();
+    final decorativeBatch = await const SourceDecorativePokemonBindingResolver()
+        .readAll(source: source, analysis: analysis, events: decorativeEvents,
+            files: recording, nativeCatalog: decorativeEvents.isEmpty
+                ? null : sharedNativeCatalog,
             limits: limits, cancellation: cancellation);
+    for (final event in decorativeEvents) {
+      try {
+        final failure = decorativeBatch.refusals[event.identity];
+        if (failure != null) throw failure;
+        final binding = decorativeBatch.bindings[event.identity]!;
         decorativePokemonBindings[event.identity] = binding;
         sounds[binding.sound.name] = binding.sound;
         soundEvidence.add({'sourceName': binding.sound.name, 'status': 'imported', ...binding.sound.evidence});
@@ -839,6 +842,7 @@ final class SourceEventStudyComposer {
               snapshot: source.snapshot,
               files: recording,
               charsetName: visualAdaptation?.actualCharsetName ?? graphic.characterName,
+              interpretationProfile: source.interpretationProfile,
               sourcePattern: graphic.pattern,
               sourceDirection: graphic.direction,
               stationaryFootprint: sourcePassiveFixedFootprint(event),
@@ -852,6 +856,8 @@ final class SourceEventStudyComposer {
           characterEvidence.add(
               {'bindingKey': key, 'status': 'imported', ...imported.evidence,
                 'requestedGraphic': graphic.characterName,
+                if (presentation.actualCharsetName != graphic.characterName && visualAdaptation == null)
+                  'sourcePresentation': presentation.toJson(),
                 if (visualAdaptation != null) 'visualAdaptation': visualAdaptation.toJson()});
         } on NativeWriteException catch (error) {
           cancellation?.check();
@@ -895,6 +901,7 @@ final class SourceEventStudyComposer {
           final imported = await const SourceEventCharacterImporter().read(
               snapshot: source.snapshot, files: recording,
               charsetName: step.characterName!, sourcePattern: step.characterPattern!,
+              interpretationProfile: source.interpretationProfile,
               sourceDirection: step.characterDirection!, limits: limits, cancellation: cancellation);
           visited.add(key);
           bindings[key] = imported.binding;

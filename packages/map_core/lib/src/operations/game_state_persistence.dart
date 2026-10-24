@@ -4,6 +4,7 @@ import '../models/spatial_world_state.dart';
 import '../models/moving_platform.dart';
 import '../models/moving_prop.dart';
 import '../models/map_instance_world_state.dart';
+import '../models/game_completion_party_journal.dart';
 
 Map<String, dynamic> strictGameStateSaveJson(GameState state) {
   final normalized = normalizeLoadedGameState(state);
@@ -15,6 +16,11 @@ Map<String, dynamic> strictGameStateSaveJson(GameState state) {
 
 GameState gameStateFromStrictSaveJson(Map<String, dynamic> json) {
   validateItemSystemSaveSchema(json);
+  final journal = json['completionPartyJournal'];
+  if (journal is! Map) {
+    throw const FormatException('The save is missing its completion party journal.');
+  }
+  GameCompletionPartyJournal.fromJson(Map<String, dynamic>.from(journal));
   final spatial = json['spatialWorldState'];
   if (spatial is! Map) {
     throw const FormatException('The save is missing its spatial world state.');
@@ -63,6 +69,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     playerMovementMode: normalizedSaveData.playerMovementMode,
     playerFacing: normalizedSaveData.playerFacing,
     party: normalizedSaveData.party,
+    completionPartyJournal: normalizedSaveData.completionPartyJournal,
     pokemonStorage: normalizedSaveData.pokemonStorage,
     trainerProfile: normalizedSaveData.trainerProfile,
     bag: normalizedSaveData.bag,
@@ -112,6 +119,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     playerMovementMode: normalizedGameState.playerMovementMode,
     playerFacing: normalizedGameState.playerFacing,
     party: normalizedGameState.party,
+    completionPartyJournal: normalizedGameState.completionPartyJournal,
     pokemonStorage: normalizedGameState.pokemonStorage,
     trainerProfile: normalizedGameState.trainerProfile,
     bag: normalizedGameState.bag,

@@ -13,6 +13,11 @@ final class FactRuleActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     for (final entry in const [
       ('fact.create', 'Create a typed narrative Fact', ['project', 'fact']),
+      (
+        'fact.create_batch',
+        'Create a bounded atomic typed narrative Fact batch',
+        ['project', 'fact'],
+      ),
       ('fact.update', 'Update a typed narrative Fact', ['project', 'fact']),
       (
         'fact.delete',
@@ -44,23 +49,39 @@ final class FactRuleActions {
         entry.$1,
         entry.$2,
         resourceKinds: entry.$3,
-        extensions: entry.$1 == 'world_rule.upsert_batch'
+        extensions: entry.$1 == 'fact.create_batch'
             ? const {
                 'batch': {
-                  'minRules': 1,
-                  'maxRules': maxWorldRuleBatchSize,
+                  'minFacts': 1,
+                  'maxFacts': maxNarrativeFactBatchSize,
                   'uniqueBy': 'id',
-                  'semantics': 'createOrUpdate',
+                  'semantics': 'createOnly',
                   'atomic': true,
                 },
-                'rules': {
+                'facts': {
                   'type': 'array',
                   'minItems': 1,
-                  'maxItems': maxWorldRuleBatchSize,
+                  'maxItems': maxNarrativeFactBatchSize,
                   'uniqueBy': 'id',
                 },
               }
-            : const {},
+            : entry.$1 == 'world_rule.upsert_batch'
+                ? const {
+                    'batch': {
+                      'minRules': 1,
+                      'maxRules': maxWorldRuleBatchSize,
+                      'uniqueBy': 'id',
+                      'semantics': 'createOrUpdate',
+                      'atomic': true,
+                    },
+                    'rules': {
+                      'type': 'array',
+                      'minItems': 1,
+                      'maxItems': maxWorldRuleBatchSize,
+                      'uniqueBy': 'id',
+                    },
+                  }
+                : const {},
         risk: entry.$1.endsWith('.delete')
             ? AuthoringRiskLevel.high
             : AuthoringRiskLevel.medium,
@@ -70,6 +91,21 @@ final class FactRuleActions {
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
     switch (context.request.actionId) {
+      case 'fact.create_batch':
+        final facts = _decodeFactBatch(parameters);
+        final projected = createFacts(context.snapshot.manifest, facts: facts);
+        return narrativeProjectDraft(
+          context.snapshot,
+          projected,
+          operation: context.request.actionId,
+          path: '/facts',
+          before: context.snapshot.manifest.facts
+              .map((fact) => fact.toJson())
+              .toList(),
+          after: projected.facts.map((fact) => fact.toJson()).toList(),
+          preview: {'factIds': facts.map((fact) => fact.id).toList()},
+          includeInspectionPreview: true,
+        );
       case 'world_rule.upsert_batch':
         final rules = _decodeRuleBatch(parameters);
         final projected = upsertWorldRuleDefinitions(
@@ -220,6 +256,32 @@ final class FactRuleActions {
         }
         return result.updatedProject;
       });
+
+  ProjectManifest createFacts(
+    ProjectManifest project, {
+    required List<NarrativeFactDefinition> facts,
+  }) {
+    if (facts.isEmpty || facts.length > maxNarrativeFactBatchSize) {
+      throw NarrativeAuthoringException(
+        'fact.batch_invalid',
+        'A Fact batch requires 1 to $maxNarrativeFactBatchSize facts.',
+      );
+    }
+    try {
+      return addNarrativeFacts(project, facts: facts);
+    } on NarrativeFactBatchException catch (error) {
+      throw NarrativeAuthoringException(
+        'fact.batch_rejected',
+        'The canonical Fact operation rejected a batch member.',
+        details: {
+          'index': error.index,
+          'factId': facts[error.index].id,
+          'validationType': error.cause.runtimeType.toString(),
+          'reason': error.cause.toString(),
+        },
+      );
+    }
+  }
 
   ProjectManifest updateFact(
     ProjectManifest project, {
@@ -413,6 +475,45 @@ NarrativeFactDefinition _decodeFact(Map<String, dynamic> json) {
       details: {'validationType': error.runtimeType.toString()},
     );
   }
+}
+
+List<NarrativeFactDefinition> _decodeFactBatch(
+    Map<String, Object?> parameters) {
+  if (parameters.keys.any((key) => key != 'facts')) {
+    throw NarrativeAuthoringException(
+      'fact.batch_invalid',
+      'The Fact batch accepts only the facts parameter.',
+    );
+  }
+  final raw = parameters['facts'];
+  if (raw is! List || raw.isEmpty || raw.length > maxNarrativeFactBatchSize) {
+    throw NarrativeAuthoringException(
+      'fact.batch_invalid',
+      'A Fact batch requires 1 to $maxNarrativeFactBatchSize facts.',
+    );
+  }
+  final facts = <NarrativeFactDefinition>[];
+  for (var index = 0; index < raw.length; index++) {
+    try {
+      final value = raw[index];
+      if (value is! Map) {
+        throw const FormatException('A Fact must be a JSON object.');
+      }
+      facts.add(
+          NarrativeFactDefinition.fromJson(Map<String, dynamic>.from(value)));
+    } on Object catch (error) {
+      throw NarrativeAuthoringException(
+        'fact.batch_fact_invalid',
+        'The Fact batch member cannot be decoded.',
+        details: {
+          'index': index,
+          'validationType': error.runtimeType.toString(),
+          'reason': error.toString(),
+        },
+      );
+    }
+  }
+  return facts;
 }
 
 WorldRuleDefinition _decodeRule(Map<String, dynamic> json) {

@@ -53,6 +53,8 @@ enum RuntimeBattleItemEffectKind {
   cureStatus,
   revive,
   restorePp,
+  statBoost,
+  preparation,
 }
 
 RuntimeBattleItemApplyResult? tryApplyRuntimeBattleItemUse({
@@ -170,6 +172,20 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     return null;
   }
   final targetBefore = party[targetPartyIndex];
+  final actorBattler = psdkSession.state.psdkState.battlerAt(
+    psdkSession.decisionRequest.actor,
+  );
+  final targetIsActor = targetBefore.id == actorBattler.id;
+  if ((effect is ProjectItemBattleBoostEffectDefinition ||
+          effect is ProjectItemBattlePreparationEffectDefinition) &&
+      !targetIsActor) {
+    return null;
+  }
+  final bankHasMist = psdkSession.state.psdkState.combatants.entries.any(
+    (entry) =>
+        entry.key.bank == psdkPlayerSlot.bank &&
+        entry.value.effects.contains('mist'),
+  );
   final battleEffect = _battleItemEffectFor(
     effect: effect,
     target: targetBefore,
@@ -215,8 +231,17 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
       context: ProjectItemUseContext.battle,
       partyIndex: runtimePartyIndex,
       maxHp: targetBefore.maxHp,
-      targetHasBattleConfusion:
-          targetBefore.effects.contains(PsdkBattleEffectIds.confusion),
+      targetHasBattleConfusion: targetBefore.effects.contains(
+        PsdkBattleEffectIds.confusion,
+      ),
+      targetIsActiveBattler: targetIsActor,
+      targetBattleStages: {
+        for (final stat in ProjectItemBattleStat.values)
+          stat: targetBefore.statStages.valueOf(_battleStatId(stat)),
+      },
+      targetHasFocusEnergy: targetBefore.effects.contains('focus_energy'),
+      targetHasDragonCheer: targetBefore.effects.contains('dragon_cheer'),
+      targetBankHasMist: bankHasMist,
       moveId: selectedMove?.id,
       maxPpByMoveId: selectedMove == null
           ? const {}
@@ -232,14 +257,23 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   }
 
   final actor = psdkSession.decisionRequest.actor;
-  final turn = psdkSession.submitBattleItem(
-    itemId: itemId,
-    displayName: definition.displayName,
-    targetPartyIndex: targetPartyIndex,
-    effect: battleEffect,
-    consumeItem: shouldConsume,
-    request: request,
-  );
+  late final BattleEngineTurnResult turn;
+  try {
+    turn = psdkSession.submitBattleItem(
+      itemId: itemId,
+      displayName: definition.displayName,
+      targetPartyIndex: targetPartyIndex,
+      effect: battleEffect,
+      consumeItem: shouldConsume,
+      request: request,
+    );
+  } on BattleDecisionRejectedError {
+    if (effect is ProjectItemBattleBoostEffectDefinition ||
+        effect is ProjectItemBattlePreparationEffectDefinition) {
+      return null;
+    }
+    rethrow;
+  }
   final itemEvents = turn.timeline.events
       .whereType<BattleItemTimelineEvent>()
       .where(
@@ -420,6 +454,22 @@ PsdkBattleItemActionEffect? _battleItemEffectFor({
   int? targetMoveIndex,
 }) {
   return switch (effect) {
+    ProjectItemBattleBoostEffectDefinition(:final stat, :final stages) =>
+      target.isFainted || target.statStages.valueOf(_battleStatId(stat)) >= 6
+          ? null
+          : PsdkBattleStatBoostItemEffect(
+              stat: _battleStatId(stat),
+              stages: stages,
+            ),
+    ProjectItemBattlePreparationEffectDefinition(
+      effect: final preparation,
+      :final turns,
+    ) =>
+      target.isFainted
+          ? null
+          : preparation == ProjectItemBattlePreparationKind.focusEnergy
+          ? const PsdkBattlePreparationItemEffect.focusEnergy()
+          : PsdkBattlePreparationItemEffect.mist(turns: turns!),
     ProjectItemFullRestoreEffectDefinition() =>
       target.isFainted ||
               (target.currentHp >= target.maxHp &&
@@ -485,7 +535,9 @@ PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
 }
 
 bool _isSupportedBattleMedicineEffect(ProjectItemEffectDefinition effect) {
-  return effect is ProjectItemHealHpEffectDefinition ||
+  return effect is ProjectItemBattleBoostEffectDefinition ||
+      effect is ProjectItemBattlePreparationEffectDefinition ||
+      effect is ProjectItemHealHpEffectDefinition ||
       effect is ProjectItemFullRestoreEffectDefinition ||
       effect is ProjectItemCureStatusEffectDefinition ||
       effect is ProjectItemReviveEffectDefinition ||
@@ -496,6 +548,10 @@ RuntimeBattleItemEffectKind _runtimeEffectKind(
   ProjectItemEffectDefinition effect,
 ) {
   return switch (effect) {
+    ProjectItemBattleBoostEffectDefinition() =>
+      RuntimeBattleItemEffectKind.statBoost,
+    ProjectItemBattlePreparationEffectDefinition() =>
+      RuntimeBattleItemEffectKind.preparation,
     ProjectItemFullRestoreEffectDefinition() =>
       RuntimeBattleItemEffectKind.fullRestore,
     ProjectItemHealHpEffectDefinition() => RuntimeBattleItemEffectKind.healHp,
@@ -510,6 +566,12 @@ RuntimeBattleItemEffectKind _runtimeEffectKind(
     _ => throw StateError('Unsupported battle item effect.'),
   };
 }
+
+String _battleStatId(ProjectItemBattleStat stat) => switch (stat) {
+  ProjectItemBattleStat.specialAttack => 'special_attack',
+  ProjectItemBattleStat.specialDefense => 'special_defense',
+  _ => stat.name,
+};
 
 PsdkBattleMajorStatus? _psdkStatusForGameplayItemStatus(String statusId) {
   return switch (statusId.trim()) {

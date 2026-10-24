@@ -18,6 +18,8 @@ import 'project_new_game_config.dart';
 import 'project_defeat_recovery_config.dart';
 import 'pokemon_ruleset_profile.dart';
 import 'project_bag_capacity.dart';
+import 'project_party_companion_config.dart';
+import 'project_contact_device_config.dart';
 import 'save_data.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
@@ -37,6 +39,7 @@ import 'scenario_asset.dart';
 import 'scene_asset.dart';
 import 'script_asset.dart';
 import 'script_conditions.dart';
+import 'local_time_window.dart';
 import 'smart_tile.dart';
 import 'storyline_asset.dart';
 import 'tileset_transparent_color.dart';
@@ -527,6 +530,8 @@ abstract class ProjectManifest with _$ProjectManifest {
     ProjectBattleTransitionConfig? battleTransitions,
     @Default(ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1))
     ProjectPokemonConfig pokemon,
+    @Default(ProjectPartyCompanionConfig()) ProjectPartyCompanionConfig partyCompanion,
+    @JsonKey(includeIfNull: false) ProjectContactDeviceConfig? contactDevice,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @JsonKey(includeIfNull: false) ProjectDefeatRecoveryConfig? defeatRecovery,
     @Default(ProjectBagCapacity.unlimited())
@@ -1098,6 +1103,22 @@ abstract class ProjectEncounterEntry with _$ProjectEncounterEntry {
       _$ProjectEncounterEntryFromJson(json);
 }
 
+@freezed
+abstract class ProjectEncounterVariant with _$ProjectEncounterVariant {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectEncounterVariant({
+    required String id,
+    required String name,
+    @Default(0) int priority,
+    @Default([]) List<ScriptCondition> conditions,
+    @Default([]) List<LocalTimeWindow> timeWindows,
+    @Default([]) List<ProjectEncounterEntry> entries,
+  }) = _ProjectEncounterVariant;
+
+  factory ProjectEncounterVariant.fromJson(Map<String, dynamic> json) =>
+      _$ProjectEncounterVariantFromJson(json);
+}
+
 /// Table de rencontres réutilisable au niveau projet.
 ///
 /// Une [MapGameplayZone] peut y faire référence via [MapGameplayZone.encounterTableId].
@@ -1121,11 +1142,21 @@ abstract class ProjectEncounterTable with _$ProjectEncounterTable {
     /// before a roll can occur.
     @Default([]) List<ScriptCondition> conditions,
     @Default([]) List<ProjectEncounterEntry> entries,
+    @Default([]) List<ProjectEncounterVariant> variants,
     @Default([]) List<String> tags,
   }) = _ProjectEncounterTable;
 
   factory ProjectEncounterTable.fromJson(Map<String, dynamic> json) =>
       _$ProjectEncounterTableFromJson(json);
+}
+
+extension ProjectEncounterTableEntries on ProjectEncounterTable {
+  Iterable<ProjectEncounterEntry> get allEntries sync* {
+    yield* entries;
+    for (final variant in variants) {
+      yield* variant.entries;
+    }
+  }
 }
 
 extension TilesetVisualFrameListX on List<TilesetVisualFrame> {

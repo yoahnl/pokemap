@@ -1,0 +1,2125 @@
+{
+  "date": "2026-10-24",
+  "status": "TO REVIEW · conception",
+  "scope": "133 compositions/étapes dans cinq dispositions ; 446 variantes statiques sélectionnables. Pas de code produit modifié.",
+  "branch": "main",
+  "head": "44d6df8b55a17089e5dea1fad68958028c4ac562",
+  "initialGitEntries": 349,
+  "otherFinalGitEntries": 352,
+  "gitWrites": false,
+  "sourceFiles": [
+    "index.html",
+    "atlas.css",
+    "atlas.js",
+    "inventory.json",
+    "catalog.js"
+  ],
+  "standalone": "atlas-autonome.html",
+  "previews": [
+    "previews/landscape-controller-battle-root.png",
+    "previews/landscape-controller-pause-root.png",
+    "previews/landscape-controller-world-explore.png",
+    "previews/landscape-touch-battle-root.png",
+    "previews/landscape-touch-pause-root.png",
+    "previews/landscape-touch-world-explore.png",
+    "previews/portrait-controller-battle-root.png",
+    "previews/portrait-controller-pause-root.png",
+    "previews/portrait-controller-world-explore.png",
+    "previews/portrait-touch-battle-root.png",
+    "previews/portrait-touch-pause-root.png",
+    "previews/portrait-touch-world-explore.png",
+    "previews/thor-dual-battle-root.png",
+    "previews/thor-dual-pause-root.png",
+    "previews/thor-dual-world-explore.png",
+    "previews/thor-equipe.png"
+  ],
+  "staticCheck": {
+    "command": "node /tmp/check_runtime_atlas.cjs",
+    "boards": 2230,
+    "rendererOutputs": 2676,
+    "result": "PASS",
+    "checks": [
+      "Chaque couple écran/état dans cinq modes",
+      "Deux rendus pour Thor",
+      "Aucune exception ni chaîne undefined/NaN"
+    ]
+  },
+  "domCheck": {
+    "date": "2026-10-24T13:49:12.392Z",
+    "modes": [
+      {
+        "boards": 446,
+        "brokenImages": [],
+        "mode": "portrait-touch",
+        "multipleFocus": 0,
+        "overflow": [],
+        "overflowCount": 0,
+        "smallTargetCount": 0,
+        "smallTargets": [],
+        "surfaces": 446
+      },
+      {
+        "boards": 446,
+        "brokenImages": [],
+        "mode": "portrait-controller",
+        "multipleFocus": 0,
+        "overflow": [],
+        "overflowCount": 0,
+        "smallTargetCount": 0,
+        "smallTargets": [],
+        "surfaces": 446
+      },
+      {
+        "boards": 446,
+        "brokenImages": [],
+        "mode": "landscape-touch",
+        "multipleFocus": 0,
+        "overflow": [],
+        "overflowCount": 0,
+        "smallTargetCount": 0,
+        "smallTargets": [],
+        "surfaces": 446
+      },
+      {
+        "boards": 446,
+        "brokenImages": [],
+        "mode": "landscape-controller",
+        "multipleFocus": 0,
+        "overflow": [],
+        "overflowCount": 0,
+        "smallTargetCount": 0,
+        "smallTargets": [],
+        "surfaces": 446
+      },
+      {
+        "boards": 446,
+        "brokenImages": [],
+        "mode": "thor-dual",
+        "multipleFocus": 0,
+        "overflow": [],
+        "overflowCount": 0,
+        "smallTargetCount": 0,
+        "smallTargets": [],
+        "surfaces": 892
+      }
+    ],
+    "errors": []
+  },
+  "domCheckLimits": [
+    "Mesure scrollWidth/clientWidth de chaque surface, pas audit sémantique complet de chaque texte",
+    "Boutons visibles >=47px de boîte logique (tolérance 1px) hors touches clavier logiciel ; cible de conception48px",
+    "Nombre de focus visuels au plus1parcomposition, pas preuve manette matérielle",
+    "Les contenus longs défilent ; le contrôle ne requiert pas que tout soit visible simultanément"
+  ],
+  "interactionChecks": [
+    {
+      "flow": "Achat Potion ×3→×4",
+      "result": "Total1200 ; aprèsachat2050sur3250"
+    },
+    {
+      "flow": "Antidote sélectionné en boutique",
+      "result": "Nom et prix100conservés"
+    },
+    {
+      "flow": "SuperPotion→Carapuce",
+      "result": "25→43/43PV ; +18"
+    },
+    {
+      "flow": "Sélectionminimum nonatteint→1choix",
+      "result": "Valider activé avec aria-disabled mis à jour"
+    },
+    {
+      "flow": "Nom vide→Yoahn",
+      "result": "Valider activé"
+    },
+    {
+      "flow": "Son50% et commandesgaucher",
+      "result": "Valeur et aria-checked misàjour"
+    },
+    {
+      "flow": "Pause manette→droite→Entrée",
+      "result": "Sac"
+    },
+    {
+      "flow": "RemplacementobligatoireThor→Échap",
+      "result": "Reste sur écran ; un focus"
+    },
+    {
+      "flow": "HTMLautonomeThorcombat→Attaquer",
+      "result": "Capacités ; imagesdatachargées ; zéroCSS/JSexterne"
+    }
+  ],
+  "commands": [
+    {
+      "command": "node --check documentation/design/runtime-interface-2026-10-24/atlas.js",
+      "exit": 0
+    },
+    {
+      "command": "bash tools/scripts/check_markdown_hygiene.sh",
+      "exit": 0,
+      "output": "Markdown hygiene: no new Markdown files."
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "independentReview": {
+    "runtime_ui_audit": "Inventaire code + corrections sac/CT/évolution/statistiques ; rendu2230sans exception. Limites runtime explicites.",
+    "layout_design_contract": "4PNGinspectées. FocuscombatThor corrigé et indicationdéfilementéquipe ajoutée. Présentable pour revue de conception."
+  },
+  "limits": [
+    "Aucune validation physique téléphone/AYNThor/manette ni lecteurécran",
+    "Temporalité/animations figées ; certaines variantes partagent géométrie",
+    "Services sur compagnon au-delà menu/combat constituent cibleàimplémenter",
+    "Deuxsurfaces supplémentaires proposées : sélectionsauvegarde/déplacementPCinterboîtes",
+    "Sprites/données démonstration ; décors générés ; aucune extractionROM",
+    "Pas de test/buildFlutter : codeproduit inchangé",
+    "MCP/roadmapFG inchangés ; aucune certificationnouvelle"
+  ],
+  "files": [
+    {
+      "path": "asset-provenance.json",
+      "bytes": 5605,
+      "sha256": "42de1e0a25f93727efc1f370d438deaa8de7e15218a23b84f28b12dbc7aac68b"
+    },
+    {
+      "path": "assets/battle-v2.png",
+      "bytes": 1956570,
+      "sha256": "dcd82598b0c3f5a6cb2e59be55120c6c81f62036fa5c5d12627c7f097b681767"
+    },
+    {
+      "path": "assets/battle.png",
+      "bytes": 2726003,
+      "sha256": "8ef18a13727055361183610ea7237cd14cc6212ada36cb5d07343b6565f5939c"
+    },
+    {
+      "path": "assets/bulbasaur-back.png",
+      "bytes": 807,
+      "sha256": "81eb76dd39e4f2b7c6bc80a8c39cc29bf94424d47ceeb2072520e2608c94238d"
+    },
+    {
+      "path": "assets/bulbasaur-front.png",
+      "bytes": 1097,
+      "sha256": "bc994a569f9662ad27fe4228b2afef5923e4727265c314a09b1f277db08476eb"
+    },
+    {
+      "path": "assets/charmander-back.png",
+      "bytes": 962,
+      "sha256": "744c837acaddf1e71fd0bed2c30466be121f63a9155e44c74c35be2eccf0e329"
+    },
+    {
+      "path": "assets/charmander-front.png",
+      "bytes": 1112,
+      "sha256": "cfaa28150390f54c85bf4c4170698489ccb760949fe41b9739826b31c8b8e9b1"
+    },
+    {
+      "path": "assets/dm-sans-license.txt",
+      "bytes": 4482,
+      "sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1"
+    },
+    {
+      "path": "assets/dm-sans.ttf",
+      "bytes": 240164,
+      "sha256": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d"
+    },
+    {
+      "path": "assets/eclipse.png",
+      "bytes": 81820,
+      "sha256": "45bc50b9c81f769c75742534df47020c9f8ce1d01ff259cc2321f5ae991ab9a9"
+    },
+    {
+      "path": "assets/eevee-back.png",
+      "bytes": 1028,
+      "sha256": "1c2d395abd0e53ce01aff06f76421cac593ccd25f7b2d757f28c94f483aadb0f"
+    },
+    {
+      "path": "assets/eevee-front.png",
+      "bytes": 1217,
+      "sha256": "12a279d00a05a34051dc04f47be948f6bb9c3928c7b70f44f17cb67f32838231"
+    },
+    {
+      "path": "assets/leo.png",
+      "bytes": 2232593,
+      "sha256": "6f65e1fa958308372773ca742b7118e8ab5d7564b1d19ef619b9ef7e7ca57d42"
+    },
+    {
+      "path": "assets/lucide-license.txt",
+      "bytes": 3208,
+      "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+    },
+    {
+      "path": "assets/lucide.min.js",
+      "bytes": 397450,
+      "sha256": "ab85225ecc1daa2033607856f03dd2dabcbc08e2d260a5b97e17c690aa929766"
+    },
+    {
+      "path": "assets/pidgey-back.png",
+      "bytes": 1140,
+      "sha256": "fa8cdc6431d2ba05e9e37867ab921f405d5272efd07da69b8a70fdab9ed5cb28"
+    },
+    {
+      "path": "assets/pidgey-front.png",
+      "bytes": 1161,
+      "sha256": "94b054a666ba738038afd27d3bb3d6e227f6b36c06b746bea2179a07e2162a73"
+    },
+    {
+      "path": "assets/pikachu-back.png",
+      "bytes": 1086,
+      "sha256": "9b9a9b3a662547f3c92c808a68a0766d1b3a4c53a168ffb03cbbbc62f932749c"
+    },
+    {
+      "path": "assets/pikachu-front.png",
+      "bytes": 1300,
+      "sha256": "ea9862730b702571ab287dce0b032c418a8d82dd7d8ddcbad515ee61c4372e84"
+    },
+    {
+      "path": "assets/region.png",
+      "bytes": 3525129,
+      "sha256": "dfdc83b800a119a114ff9f2499e9426f6c6385e6d2cb1b13d8e1ba0c975bb21c"
+    },
+    {
+      "path": "assets/squirtle-back.png",
+      "bytes": 1008,
+      "sha256": "b65ec0d034d1a9274ed9b8948893e26b957d7f9fbdc093584dcd95ca9b7e502a"
+    },
+    {
+      "path": "assets/squirtle-front.png",
+      "bytes": 1223,
+      "sha256": "6849015e633aa17ce39b83a2c4badb8ab973a35ece5f49c5a360ee75ebde95d3"
+    },
+    {
+      "path": "assets/world.png",
+      "bytes": 3605577,
+      "sha256": "28d30956385a04acd498527c3c9aa850a895256c75c71082eb22ba4b24827c23"
+    },
+    {
+      "path": "atlas-autonome.html",
+      "bytes": 30754803,
+      "sha256": "5fe53eaa4d089f437d76b3b34fb5bedfbbca0e156e136e403f656878892e1cff"
+    },
+    {
+      "path": "atlas.css",
+      "bytes": 41157,
+      "sha256": "ff1304b9d397b142d0af503c5de79574a23b8ff1e8fbbf0fbee61ba60582ddee"
+    },
+    {
+      "path": "atlas.js",
+      "bytes": 129218,
+      "sha256": "76bf046e8f0b720ed8cc62afbdca5f3e5248b15bc2fd36bf0b474e1f3f4a1757"
+    },
+    {
+      "path": "battle.css",
+      "bytes": 29474,
+      "sha256": "d3bd4f2927190a9eb81e638ddaeeb3e6a00dd00c2c6e4a599dfbf740b230752d"
+    },
+    {
+      "path": "catalog.js",
+      "bytes": 101819,
+      "sha256": "6f2bcbe0a8984cce89b369b563c93370bfaf8fc8fa961c3bc3868ad9f07df533"
+    },
+    {
+      "path": "combat-checks.json",
+      "bytes": 2812,
+      "sha256": "b34eead5cfc95545cb039fdc9392c984eeb8442d21da93f7553bfda1bcb09339"
+    },
+    {
+      "path": "index.html",
+      "bytes": 2690,
+      "sha256": "ab96b7a4a8d89ee4bd3160f32a4356a2da35974bee5f822576ffe400c8d50a11"
+    },
+    {
+      "path": "inventory.json",
+      "bytes": 147435,
+      "sha256": "5ad94a1d67db89b104c78095aa49e552cd89e6d6a0217aa484a6c1d7598a58a7"
+    },
+    {
+      "path": "previews/landscape-controller-battle-bag.png",
+      "bytes": 54205,
+      "sha256": "4e94613e579b03a328115c54bf78b1030cbaaab647adf8de8bbfe443cc6c164f"
+    },
+    {
+      "path": "previews/landscape-controller-battle-fight.png",
+      "bytes": 71688,
+      "sha256": "3cdfee1872563eac5be631ff908850e1286940d7da66cc9f0b4c8d0bd2256238"
+    },
+    {
+      "path": "previews/landscape-controller-battle-medicine-target.png",
+      "bytes": 55858,
+      "sha256": "4bec95d37b6783f3649704bdbaf49bfab46025641293129fad33c7046611aebb"
+    },
+    {
+      "path": "previews/landscape-controller-battle-party.png",
+      "bytes": 57310,
+      "sha256": "22dcf43708329276fbe78dc7ad973a83e724f63774d788b4c846ecdc869697a2"
+    },
+    {
+      "path": "previews/landscape-controller-battle-root.png",
+      "bytes": 72481,
+      "sha256": "98db843025ffb28c3a59450929b3e5c8d2bd0af9b740878e0453614368ef4f8b"
+    },
+    {
+      "path": "previews/landscape-controller-battle-target.png",
+      "bytes": 71261,
+      "sha256": "4eaf23d70b98dbf33cef58e0f8e183498f78aa1b0ca6214073ff6a09b791c8f2"
+    },
+    {
+      "path": "previews/landscape-controller-battle-turn.png",
+      "bytes": 65626,
+      "sha256": "7e3de8f92fe30ed71552b9dc9fe90f3bac4129148019d41bd9aa7ba561fa7145"
+    },
+    {
+      "path": "previews/landscape-controller-pause-root.png",
+      "bytes": 76045,
+      "sha256": "907d9ce01e9946192ed8eb1c32faecdd7f96f1a75145be2bd1389e6d90e3ace6"
+    },
+    {
+      "path": "previews/landscape-controller-postbattle-victory.png",
+      "bytes": 62279,
+      "sha256": "fdbfe97f9d90f6b6e489f4efcd99a5d17cb509794240042c7aaf919f1e73152a"
+    },
+    {
+      "path": "previews/landscape-controller-world-explore.png",
+      "bytes": 134251,
+      "sha256": "5f1b8d7d794b8381e2b4a2210052d6a5754a8ea0b78bd815881f1c6049b3ac59"
+    },
+    {
+      "path": "previews/landscape-touch-battle-bag.png",
+      "bytes": 53353,
+      "sha256": "413c1727a72991798afd318523b507766d905b02f8c741b1c16377ec0bc1ffc5"
+    },
+    {
+      "path": "previews/landscape-touch-battle-fight.png",
+      "bytes": 56956,
+      "sha256": "157953a468b08f8a7f865f75e96ab5131748b2294bacb094ce4e5845b5529968"
+    },
+    {
+      "path": "previews/landscape-touch-battle-medicine-target.png",
+      "bytes": 55073,
+      "sha256": "c03d67942f61ef652f9b724097f929f1219fc33eb2a97b4dbb0db4829194af7a"
+    },
+    {
+      "path": "previews/landscape-touch-battle-party.png",
+      "bytes": 56019,
+      "sha256": "0283a01bde1b2f6fcedaaac991d58bac535bdf0790302ad646808fb20e00ea70"
+    },
+    {
+      "path": "previews/landscape-touch-battle-root.png",
+      "bytes": 63696,
+      "sha256": "e3c4a2ba74af7f6b9e9145403bfd50ab20c466534e3b3c242b5c5190d376557b"
+    },
+    {
+      "path": "previews/landscape-touch-battle-target.png",
+      "bytes": 70639,
+      "sha256": "4a3b861cfdfccc7a8fc144c54580a36b9dabe07ca4b53d7832a04a1ee4a85dfa"
+    },
+    {
+      "path": "previews/landscape-touch-battle-turn.png",
+      "bytes": 65626,
+      "sha256": "7e3de8f92fe30ed71552b9dc9fe90f3bac4129148019d41bd9aa7ba561fa7145"
+    },
+    {
+      "path": "previews/landscape-touch-pause-root.png",
+      "bytes": 74878,
+      "sha256": "b65bdb27ffddefb471e0b1678a905abd3cecb18dc1e4e21ded524ea35080fd71"
+    },
+    {
+      "path": "previews/landscape-touch-postbattle-victory.png",
+      "bytes": 61610,
+      "sha256": "96a8f4e88ceb9fc266918c7121f2ca2aa661370f422f8a6395371b6b7b6b3430"
+    },
+    {
+      "path": "previews/landscape-touch-world-explore.png",
+      "bytes": 133896,
+      "sha256": "ccb5db8c75488be38834b1f17a765b6d353902d69a5510b2b2c734acc352af61"
+    },
+    {
+      "path": "previews/portrait-controller-battle-bag.png",
+      "bytes": 57708,
+      "sha256": "486500da9f3d105f397070ca74d016e78cb0e1931060ebd10f6604c676ff812b"
+    },
+    {
+      "path": "previews/portrait-controller-battle-fight.png",
+      "bytes": 60650,
+      "sha256": "9ba064377d428085f40ff1ca052f2aea5008484a1d63430760b5aa74442bd7dc"
+    },
+    {
+      "path": "previews/portrait-controller-battle-medicine-target.png",
+      "bytes": 57289,
+      "sha256": "2c4e84d37b9d22da08df85beb507d7514616916f31aeb3cf81d90249d7ae3b56"
+    },
+    {
+      "path": "previews/portrait-controller-battle-party.png",
+      "bytes": 58538,
+      "sha256": "70d51da32167d02e6ad78a8b102907a34184f4c9a692417a984d46040e69bf2a"
+    },
+    {
+      "path": "previews/portrait-controller-battle-root.png",
+      "bytes": 56065,
+      "sha256": "c0a6ac8dbe96eeae8a41548b0a6854bd96dd28ec3464861cfcbcb72ce8896fdd"
+    },
+    {
+      "path": "previews/portrait-controller-battle-target.png",
+      "bytes": 55555,
+      "sha256": "6b4454fee2283330f50cce49c843c70076344159c1c2c1af2ec6a416d7f9fb9f"
+    },
+    {
+      "path": "previews/portrait-controller-battle-turn.png",
+      "bytes": 50473,
+      "sha256": "b37520c696450c7219e7642da190127b901ae99be077e083d356f38ad876fac8"
+    },
+    {
+      "path": "previews/portrait-controller-pause-root.png",
+      "bytes": 60647,
+      "sha256": "40f2273528feb557ac374051f017a49f878c4d248933c4bd3a708c622d9aa2f5"
+    },
+    {
+      "path": "previews/portrait-controller-postbattle-victory.png",
+      "bytes": 54124,
+      "sha256": "2119d4d08cde2b3e0fa8c54024b7769bdf444ce39e6f0a04fd595f1d425d9384"
+    },
+    {
+      "path": "previews/portrait-controller-world-explore.png",
+      "bytes": 107980,
+      "sha256": "22941245118906c1a903b151843a1f9921c53d67ab80531e7a4b97038532a141"
+    },
+    {
+      "path": "previews/portrait-touch-battle-bag.png",
+      "bytes": 56779,
+      "sha256": "1e73f08e84deb127fac3ae8c4dde4b18bd4c70d7611ad106a46154629a4cefbb"
+    },
+    {
+      "path": "previews/portrait-touch-battle-fight.png",
+      "bytes": 59168,
+      "sha256": "af6e025a6557c9cd3e55fdccdcb4e2fc5feb58e4e8687e03d8f88d0642be361b"
+    },
+    {
+      "path": "previews/portrait-touch-battle-medicine-target.png",
+      "bytes": 56402,
+      "sha256": "24efaee6f458d7c3c76e007469e8489dac885e68928cc0db7a59af873a1d4c1f"
+    },
+    {
+      "path": "previews/portrait-touch-battle-party.png",
+      "bytes": 56874,
+      "sha256": "944975ddb532ae9d974b3e1b4368b35d63ffd76d7955089a8d3f48355a6466c8"
+    },
+    {
+      "path": "previews/portrait-touch-battle-root.png",
+      "bytes": 54075,
+      "sha256": "c7bd2146f6a229ce19d72c602058c1a56e9b83b9df3e662b16421c92aa3d6984"
+    },
+    {
+      "path": "previews/portrait-touch-battle-target.png",
+      "bytes": 54676,
+      "sha256": "c32538cbe4cb0c493f1686e451851b850aa77b5a5c64f5387c882bef4149e58f"
+    },
+    {
+      "path": "previews/portrait-touch-battle-turn.png",
+      "bytes": 50473,
+      "sha256": "b37520c696450c7219e7642da190127b901ae99be077e083d356f38ad876fac8"
+    },
+    {
+      "path": "previews/portrait-touch-pause-root.png",
+      "bytes": 61809,
+      "sha256": "e4979ef803cb39af3c33861af4e5b5d5f215556640e886ea353333095aee5ff6"
+    },
+    {
+      "path": "previews/portrait-touch-postbattle-victory.png",
+      "bytes": 54332,
+      "sha256": "e371089a6e4337d9209aaeae238bf0ce144691449b5d1c93322a0e3f03c679ea"
+    },
+    {
+      "path": "previews/portrait-touch-world-explore.png",
+      "bytes": 108950,
+      "sha256": "6bfe07e892de7ac491dcc240b92a08f65b235118861718266d13caf0f7b0c58d"
+    },
+    {
+      "path": "previews/thor-dual-battle-bag.png",
+      "bytes": 103410,
+      "sha256": "406d7130cb57b8b7703292514e4fc7430ad265c9f8a51a0b966c8ab3359c967d"
+    },
+    {
+      "path": "previews/thor-dual-battle-fight.png",
+      "bytes": 106651,
+      "sha256": "b24a197d6dc818299a4b6d070f3f8b05b9ce8efb72bf528e562098db22a9b509"
+    },
+    {
+      "path": "previews/thor-dual-battle-medicine-target.png",
+      "bytes": 103495,
+      "sha256": "8ee10c7f33aee6869a57017854cd4f4e8ee9c855d2f54997189383dc01f4377e"
+    },
+    {
+      "path": "previews/thor-dual-battle-party.png",
+      "bytes": 104830,
+      "sha256": "a838eea639df06459124d672097d690ddebbc71183e7157c39644146f6345f87"
+    },
+    {
+      "path": "previews/thor-dual-battle-root.png",
+      "bytes": 97854,
+      "sha256": "5d6604266e895a47572e5ec35f769e1f4a6ac5c5cb1f673830a0ecca9388d8f7"
+    },
+    {
+      "path": "previews/thor-dual-battle-target.png",
+      "bytes": 96840,
+      "sha256": "b89a54b85accdc6a4ebd648310396ca7e787aaa607413ad2750ed5bc398a3a71"
+    },
+    {
+      "path": "previews/thor-dual-battle-turn.png",
+      "bytes": 87829,
+      "sha256": "d3df38030c377ca5f00bc6d8c6262715779c66df6dbe3a2016551b2448841f8f"
+    },
+    {
+      "path": "previews/thor-dual-pause-root.png",
+      "bytes": 148887,
+      "sha256": "17a23424219d4d0f94b3c23ce7a3b928bc226ca0f4e0a341e9b1dc8b31d8bfdc"
+    },
+    {
+      "path": "previews/thor-dual-postbattle-victory.png",
+      "bytes": 94214,
+      "sha256": "a570a210b2188b463a25f7447ba0a9c0880004da42e20287256508cfc3427774"
+    },
+    {
+      "path": "previews/thor-dual-world-explore.png",
+      "bytes": 144170,
+      "sha256": "a5cbe2eadec239fd68a3e702c339b97edb2d1750379b7ca578b51a0f87678abe"
+    },
+    {
+      "path": "previews/thor-equipe.png",
+      "bytes": 47101,
+      "sha256": "5765f541edcb2b14d28ddfe35147d5be8d145c17b79e5c852113452fdf4f8c4b"
+    },
+    {
+      "path": "verify-combat.cjs",
+      "bytes": 12491,
+      "sha256": "ebdddbe37d965cf0299f0ceb9a49bd0607f15e92944f1e9cbd7cc33b49d02373"
+    }
+  ],
+  "combatRevision2": {
+    "status": "TO REVIEW",
+    "date": "2026-10-24",
+    "initialGitEntries": 400,
+    "initialArtifactFiles": 45,
+    "finalSnapshotGitEntries": 442,
+    "finalArtifactFiles": 84,
+    "otherConcurrentEntries": 358,
+    "scope": "Refonte des seules compositions de combat et après-combat ; aucun fichier produit modifié.",
+    "initialAudit": "Cartes de pause sans hiérarchie, colonne paysage opaque, focus et métadonnées faibles sur Thor ; pertes de contexte attaque/membre/objet dans les parcours de démonstration.",
+    "changedFiles": [
+      "asset-provenance.json",
+      "assets/battle-v2.png",
+      "atlas-autonome.html",
+      "atlas.js",
+      "battle.css",
+      "catalog.js",
+      "combat-checks.json",
+      "index.html",
+      "inventory.json",
+      "previews/landscape-controller-battle-bag.png",
+      "previews/landscape-controller-battle-fight.png",
+      "previews/landscape-controller-battle-medicine-target.png",
+      "previews/landscape-controller-battle-party.png",
+      "previews/landscape-controller-battle-root.png",
+      "previews/landscape-controller-battle-target.png",
+      "previews/landscape-controller-battle-turn.png",
+      "previews/landscape-controller-postbattle-victory.png",
+      "previews/landscape-touch-battle-bag.png",
+      "previews/landscape-touch-battle-fight.png",
+      "previews/landscape-touch-battle-medicine-target.png",
+      "previews/landscape-touch-battle-party.png",
+      "previews/landscape-touch-battle-root.png",
+      "previews/landscape-touch-battle-target.png",
+      "previews/landscape-touch-battle-turn.png",
+      "previews/landscape-touch-postbattle-victory.png",
+      "previews/portrait-controller-battle-bag.png",
+      "previews/portrait-controller-battle-fight.png",
+      "previews/portrait-controller-battle-medicine-target.png",
+      "previews/portrait-controller-battle-party.png",
+      "previews/portrait-controller-battle-root.png",
+      "previews/portrait-controller-battle-target.png",
+      "previews/portrait-controller-battle-turn.png",
+      "previews/portrait-controller-postbattle-victory.png",
+      "previews/portrait-touch-battle-bag.png",
+      "previews/portrait-touch-battle-fight.png",
+      "previews/portrait-touch-battle-medicine-target.png",
+      "previews/portrait-touch-battle-party.png",
+      "previews/portrait-touch-battle-root.png",
+      "previews/portrait-touch-battle-target.png",
+      "previews/portrait-touch-battle-turn.png",
+      "previews/portrait-touch-postbattle-victory.png",
+      "previews/thor-dual-battle-bag.png",
+      "previews/thor-dual-battle-fight.png",
+      "previews/thor-dual-battle-medicine-target.png",
+      "previews/thor-dual-battle-party.png",
+      "previews/thor-dual-battle-root.png",
+      "previews/thor-dual-battle-target.png",
+      "previews/thor-dual-battle-turn.png",
+      "previews/thor-dual-postbattle-victory.png",
+      "verify-combat.cjs",
+      "verification.json"
+    ],
+    "sourceZones": {
+      "atlas.js": [
+        "combat context and renderer",
+        "renderCombatPost",
+        "primaryPreview/secondaryContent combat branches",
+        "click/keyboard focus context",
+        "combat-only inspector annotations"
+      ],
+      "battle.css": [
+        "battle HUD/scenes",
+        "touch/controller layouts",
+        "Thor panel/typography",
+        "selection and disabled states"
+      ],
+      "index.html": [
+        "battle stylesheet and cache versions"
+      ],
+      "inventory.json": [
+        "combatRevision metadata"
+      ],
+      "catalog.js": [
+        "inventory mirror"
+      ],
+      "atlas-autonome.html": [
+        "rebuilt self-contained artifact"
+      ],
+      "verify-combat.cjs": [
+        "23 independent assertions plus one added stale action regression"
+      ]
+    },
+    "domCheck": {
+      "date": "2026-10-24T13:49:12.392Z",
+      "modes": [
+        {
+          "boards": 446,
+          "brokenImages": [],
+          "mode": "portrait-touch",
+          "multipleFocus": 0,
+          "overflow": [],
+          "overflowCount": 0,
+          "smallTargetCount": 0,
+          "smallTargets": [],
+          "surfaces": 446
+        },
+        {
+          "boards": 446,
+          "brokenImages": [],
+          "mode": "portrait-controller",
+          "multipleFocus": 0,
+          "overflow": [],
+          "overflowCount": 0,
+          "smallTargetCount": 0,
+          "smallTargets": [],
+          "surfaces": 446
+        },
+        {
+          "boards": 446,
+          "brokenImages": [],
+          "mode": "landscape-touch",
+          "multipleFocus": 0,
+          "overflow": [],
+          "overflowCount": 0,
+          "smallTargetCount": 0,
+          "smallTargets": [],
+          "surfaces": 446
+        },
+        {
+          "boards": 446,
+          "brokenImages": [],
+          "mode": "landscape-controller",
+          "multipleFocus": 0,
+          "overflow": [],
+          "overflowCount": 0,
+          "smallTargetCount": 0,
+          "smallTargets": [],
+          "surfaces": 446
+        },
+        {
+          "boards": 446,
+          "brokenImages": [],
+          "mode": "thor-dual",
+          "multipleFocus": 0,
+          "overflow": [],
+          "overflowCount": 0,
+          "smallTargetCount": 0,
+          "smallTargets": [],
+          "surfaces": 892
+        }
+      ],
+      "errors": []
+    },
+    "semanticChecks": {
+      "scope": "Independent renderer/handler assertions, no DOM decoration or browser geometry certification",
+      "compositions": 133,
+      "states": 446,
+      "modes": 5,
+      "checks": 24,
+      "passed": 24,
+      "failed": [],
+      "results": [
+        {
+          "name": "non-first attack identity survives handler, target and turn",
+          "passed": true
+        },
+        {
+          "name": "attack zero PP disabled, Struggle offered and retained",
+          "passed": true
+        },
+        {
+          "name": "disabled attack handler leaves previous action unchanged",
+          "passed": true
+        },
+        {
+          "name": "switch changes actor sprite HUD and following moves",
+          "passed": true
+        },
+        {
+          "name": "active and KO members cannot be switched to",
+          "passed": true
+        },
+        {
+          "name": "forced replacement has KO actor and no back button",
+          "passed": true
+        },
+        {
+          "name": "trapped actor makes all switch choices disabled",
+          "passed": true
+        },
+        {
+          "name": "root unavailable bag and forbidden fleeing are disabled",
+          "passed": true
+        },
+        {
+          "name": "Potion accepts hurt members and rejects full HP and KO",
+          "passed": true
+        },
+        {
+          "name": "Rappel accepts KO and uses correct item and selected member",
+          "passed": true
+        },
+        {
+          "name": "Antidote has no eligible target in non-poisoned team",
+          "passed": true
+        },
+        {
+          "name": "Huile reachable and zero PP allowed, full PP refused",
+          "passed": true
+        },
+        {
+          "name": "Ball identity survives selection into capture message",
+          "passed": true
+        },
+        {
+          "name": "second enemy selection survives into turn label",
+          "passed": true
+        },
+        {
+          "name": "postbattle forgotten move survives click handler",
+          "passed": true
+        },
+        {
+          "name": "bag CT result retains Protection and selected individual",
+          "passed": true
+        },
+        {
+          "name": "combat state does not leak into unrelated menu renderers",
+          "passed": true
+        },
+        {
+          "name": "five compositions keep root commands and separate Thor scene",
+          "passed": true
+        },
+        {
+          "name": "all catalog states and modes generate HTML without exceptions",
+          "passed": true
+        },
+        {
+          "name": "selected second enemy remains visible in phone and Thor turn",
+          "passed": true
+        },
+        {
+          "name": "level-up labels and numerical stats follow every active fighter",
+          "passed": true
+        },
+        {
+          "name": "focus helper changes selected move and its description without a click",
+          "passed": true
+        },
+        {
+          "name": "actual arrow-key handler removes old selection and updates description",
+          "passed": true
+        },
+        {
+          "name": "selecting an attack target clears a previous switch action",
+          "passed": true
+        }
+      ]
+    },
+    "visualReview": {
+      "reviewer": "layout_design_contract",
+      "initialFindings": [
+        "Thor metadata too small",
+        "Selection too weak"
+      ],
+      "corrections": [
+        "PP16px,type12px,description14px",
+        "Gold selected background with strong outline",
+        "Disabled reasons remain readable"
+      ],
+      "verdict": "Revised Thor moves and landscape controller root presentable for aesthetic review; no new blocking defect observed on those two PNGs."
+    },
+    "exports": {
+      "combatPlates": 40,
+      "families": [
+        "root",
+        "moves",
+        "bag",
+        "party",
+        "target",
+        "medicine-target",
+        "turn",
+        "victory"
+      ],
+      "modes": 5
+    },
+    "offlineCheck": {
+      "embeddedBackground": true,
+      "embeddedSprites": true,
+      "externalScripts": 0,
+      "externalStylesheets": 0,
+      "flow": "Charge → cible → Bulbi utilise Charge"
+    },
+    "unrelatedPreviewHashesPreserved": [
+      "previews/landscape-controller-pause-root.png",
+      "previews/landscape-controller-world-explore.png",
+      "previews/landscape-touch-pause-root.png",
+      "previews/landscape-touch-world-explore.png",
+      "previews/portrait-controller-pause-root.png",
+      "previews/portrait-controller-world-explore.png",
+      "previews/portrait-touch-pause-root.png",
+      "previews/portrait-touch-world-explore.png",
+      "previews/thor-dual-pause-root.png",
+      "previews/thor-dual-world-explore.png",
+      "previews/thor-equipe.png"
+    ],
+    "limitations": [
+      "Prototype HTML only, no runtime implementation or hardware certification",
+      "Statistical progression and effectiveness are demonstration data",
+      "Temporal animation stages are static",
+      "Physical button mapping and text legibility on Thor require real-device verification"
+    ],
+    "gitWrites": false,
+    "notion": "POST-UI-MENU-000 · epic DOING unchanged · revision TO REVIEW"
+  },
+  "adaptiveRevision": {
+    "revision": "Adaptation sans défilement · 24 octobre 2026",
+    "scope": "Maquettes HTML uniquement ; aucun changement de runtime",
+    "baselineFile": "/tmp/avelune-scroll-initial.json",
+    "geometry": {
+      "logicalViewport": [
+        844,
+        390
+      ],
+      "previousPanelHeight": 202,
+      "panelHeight": 140,
+      "arenaHeight": 250,
+      "returnInfoRailWidth": 60,
+      "recoveredArenaHeight": 62
+    },
+    "browserMetrics": [
+      {
+        "boards": 446,
+        "brokenImages": 0,
+        "emptyPages": [],
+        "hiddenOverflow": [],
+        "lostControls": [],
+        "lostText": [],
+        "mode": "landscape-touch",
+        "outsideControls": [],
+        "pageHosts": 174,
+        "scrolling": [],
+        "surfaces": 446,
+        "totalPages": 668,
+        "unfitted": []
+      },
+      {
+        "boards": 446,
+        "brokenImages": 0,
+        "emptyPages": [],
+        "hiddenOverflow": [],
+        "lostControls": [],
+        "lostText": [],
+        "mode": "landscape-controller",
+        "outsideControls": [],
+        "pageHosts": 180,
+        "scrolling": [],
+        "surfaces": 446,
+        "totalPages": 649,
+        "unfitted": []
+      },
+      {
+        "boards": 446,
+        "brokenImages": 0,
+        "emptyPages": [],
+        "hiddenOverflow": [],
+        "lostControls": [],
+        "lostText": [],
+        "mode": "portrait-touch",
+        "outsideControls": [],
+        "pageHosts": 39,
+        "scrolling": [],
+        "surfaces": 446,
+        "totalPages": 78,
+        "unfitted": []
+      },
+      {
+        "boards": 446,
+        "brokenImages": 0,
+        "emptyPages": [],
+        "hiddenOverflow": [],
+        "lostControls": [],
+        "lostText": [],
+        "mode": "portrait-controller",
+        "outsideControls": [],
+        "pageHosts": 41,
+        "scrolling": [],
+        "surfaces": 446,
+        "totalPages": 82,
+        "unfitted": []
+      },
+      {
+        "boards": 446,
+        "brokenImages": 0,
+        "emptyPages": [],
+        "hiddenOverflow": [],
+        "lostControls": [],
+        "lostText": [],
+        "mode": "thor-dual",
+        "outsideControls": [],
+        "pageHosts": 159,
+        "scrolling": [],
+        "surfaces": 892,
+        "totalPages": 488,
+        "unfitted": []
+      }
+    ],
+    "metricDefinitions": {
+      "unfitted": "Chaque page est mesurée en DOM avant masquage ; tolérance2px",
+      "lostText": "Comparaison du multiensemble des mots des vrais nœuds texte avant/après pagination, hors navigation ajoutée ; inclut toutes les pages",
+      "lostControls": "Références des vrais button/input/select/textarea conservées après pagination",
+      "hiddenOverflow": "Ancêtres visibles overflow:hidden/clip avec débordement vertical ; sous-pages masquées exclues",
+      "outsideControls": "Rectangles des boutons/input/select visibles hors surface de jeu ; tolérance2px",
+      "emptyPages": "Exclut les pages de carte avec fond CSS"
+    },
+    "browserJourneys": [
+      {
+        "name": "Infos combat paysage",
+        "result": "Ouverture Infos → Charge → Normal / PP30/35 / Puiss.40 / Préc.100% / description complète ; fermeture → Retour → battle.root ; aucun débordement du panneau ouvert"
+      },
+      {
+        "name": "Réglages audio Thor",
+        "result": "Volume général80→50, page suivante Effets85, retour puis paysage manette : valeurs50/65/85 et libellés conservés séparément"
+      },
+      {
+        "name": "Sélection multiple et changement de mode",
+        "result": "Décocher seul choix puis changer portrait tactile→paysage manette : zéro sélection, quatre icônes décochées, Valider reste désactivé"
+      },
+      {
+        "name": "Validation en cours",
+        "result": "newgame.name/submitting → changement de disposition : Validation et Retour restent désactivés"
+      },
+      {
+        "name": "Saisie nom et clavier paginé",
+        "result": "Nom Tom conservé paysage manette→Thor ; état invalid-too-short reste vide ; trois pages du clavier paysage parcourues, champ toujours visible ; toutes les lettres/chiffres/Espace/Effacer accessibles"
+      },
+      {
+        "name": "PC Thor",
+        "result": "HTML autonome final : trois vues PC Thor parcourues (Boîte : 30 cases distinctes, Équipe, Actions : Voir la fiche / Échanger avec l’équipe / Retirer / Déposer). Suivant désactivé sur la troisième vue."
+      }
+    ],
+    "largeText150": [
+      {
+        "errors": 0,
+        "large": 1,
+        "lost": 0,
+        "mode": "#screen=dialogue.choices&mode=landscape-touch&state=long-labels&view=single",
+        "pages": [],
+        "scroll": 0
+      },
+      {
+        "errors": 0,
+        "large": 1,
+        "lost": 0,
+        "mode": "#screen=dialogue.choices&mode=landscape-controller&state=long-labels&view=single",
+        "pages": [],
+        "scroll": 0
+      },
+      {
+        "errors": 0,
+        "large": 1,
+        "lost": 0,
+        "mode": "#screen=dialogue.choices&mode=portrait-touch&state=long-labels&view=single",
+        "pages": [],
+        "scroll": 0
+      },
+      {
+        "errors": 0,
+        "large": 1,
+        "lost": 0,
+        "mode": "#screen=dialogue.choices&mode=portrait-controller&state=long-labels&view=single",
+        "pages": [],
+        "scroll": 0
+      },
+      {
+        "errors": 0,
+        "large": 2,
+        "lost": 0,
+        "mode": "#screen=dialogue.choices&mode=thor-dual&state=long-labels&view=single",
+        "pages": [],
+        "scroll": 0
+      }
+    ],
+    "offline": {
+      "bytes": 30784629,
+      "externalScripts": 0,
+      "externalStylesheets": 0,
+      "imagesLoaded": true,
+      "journey": "Infos→Charge→Fermer→Retour→battle.root"
+    },
+    "independentReview": {
+      "runtime_ui_audit": "Restauration par état, busy, sélection multiple, navigation imbriquée, perte textuelle, split cachant contenu et détails combat : réserves traitées. Risque de fragmentation setting évité en gardant ce groupe atomique.",
+      "layout_design_contract": "Quatre PNG corrigés présentables en revue ; Son visible, rail Retour/Infos compact, PC lisible. Pagination PC renommée Vue après réserve mineure."
+    },
+    "limitations": [
+      "Formats fixes de référence390×844,844×390 etThor768×432/496×432 ; pas de certification de toutes les tailles ou insets matériels",
+      "Revue visuelle de cinq PNG représentatifs, pas de revue esthétique humaine des2230 variantes",
+      "Texte150% vérifié sur choix de dialogue, pas sur tous les menus",
+      "Pages automatiques à revoir sur appareil/manette physique ; aucune implémentation Flutter",
+      "Les outils externes à la maquette (navigation de l’atlas/galerie) restent défilants"
+    ],
+    "git": {
+      "branch": "main",
+      "head": "44d6df8b55a17089e5dea1fad68958028c4ac562",
+      "initialEntries": 445,
+      "initialAtlasEntries": 84,
+      "writeOperations": false,
+      "finalEntries": 461,
+      "finalAtlasEntries": 91,
+      "finalOtherEntries": 370
+    },
+    "files": [
+      {
+        "file": "adaptive-checks.json",
+        "bytes": 6690,
+        "sha256": "33283ae759a832284ba7897c26906f7fd329a46c4a873d45d450b49bdbf9ee0f"
+      },
+      {
+        "file": "adaptive.css",
+        "bytes": 12123,
+        "sha256": "1307e0c15da03e34d648a1ec6d68e8fee06fae60c6a10df36ed406b477ed29f5"
+      },
+      {
+        "file": "adaptive.js",
+        "bytes": 14089,
+        "sha256": "149443f71d6cd571de1385a779a224674c5a52c997860aac04cf41e2efc02ecf"
+      },
+      {
+        "file": "asset-provenance.json",
+        "bytes": 5605,
+        "sha256": "42de1e0a25f93727efc1f370d438deaa8de7e15218a23b84f28b12dbc7aac68b"
+      },
+      {
+        "file": "assets/battle-v2.png",
+        "bytes": 1956570,
+        "sha256": "dcd82598b0c3f5a6cb2e59be55120c6c81f62036fa5c5d12627c7f097b681767"
+      },
+      {
+        "file": "assets/battle.png",
+        "bytes": 2726003,
+        "sha256": "8ef18a13727055361183610ea7237cd14cc6212ada36cb5d07343b6565f5939c"
+      },
+      {
+        "file": "assets/bulbasaur-back.png",
+        "bytes": 807,
+        "sha256": "81eb76dd39e4f2b7c6bc80a8c39cc29bf94424d47ceeb2072520e2608c94238d"
+      },
+      {
+        "file": "assets/bulbasaur-front.png",
+        "bytes": 1097,
+        "sha256": "bc994a569f9662ad27fe4228b2afef5923e4727265c314a09b1f277db08476eb"
+      },
+      {
+        "file": "assets/charmander-back.png",
+        "bytes": 962,
+        "sha256": "744c837acaddf1e71fd0bed2c30466be121f63a9155e44c74c35be2eccf0e329"
+      },
+      {
+        "file": "assets/charmander-front.png",
+        "bytes": 1112,
+        "sha256": "cfaa28150390f54c85bf4c4170698489ccb760949fe41b9739826b31c8b8e9b1"
+      },
+      {
+        "file": "assets/dm-sans-license.txt",
+        "bytes": 4482,
+        "sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1"
+      },
+      {
+        "file": "assets/dm-sans.ttf",
+        "bytes": 240164,
+        "sha256": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d"
+      },
+      {
+        "file": "assets/eclipse.png",
+        "bytes": 81820,
+        "sha256": "45bc50b9c81f769c75742534df47020c9f8ce1d01ff259cc2321f5ae991ab9a9"
+      },
+      {
+        "file": "assets/eevee-back.png",
+        "bytes": 1028,
+        "sha256": "1c2d395abd0e53ce01aff06f76421cac593ccd25f7b2d757f28c94f483aadb0f"
+      },
+      {
+        "file": "assets/eevee-front.png",
+        "bytes": 1217,
+        "sha256": "12a279d00a05a34051dc04f47be948f6bb9c3928c7b70f44f17cb67f32838231"
+      },
+      {
+        "file": "assets/leo.png",
+        "bytes": 2232593,
+        "sha256": "6f65e1fa958308372773ca742b7118e8ab5d7564b1d19ef619b9ef7e7ca57d42"
+      },
+      {
+        "file": "assets/lucide-license.txt",
+        "bytes": 3208,
+        "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+      },
+      {
+        "file": "assets/lucide.min.js",
+        "bytes": 397450,
+        "sha256": "ab85225ecc1daa2033607856f03dd2dabcbc08e2d260a5b97e17c690aa929766"
+      },
+      {
+        "file": "assets/pidgey-back.png",
+        "bytes": 1140,
+        "sha256": "fa8cdc6431d2ba05e9e37867ab921f405d5272efd07da69b8a70fdab9ed5cb28"
+      },
+      {
+        "file": "assets/pidgey-front.png",
+        "bytes": 1161,
+        "sha256": "94b054a666ba738038afd27d3bb3d6e227f6b36c06b746bea2179a07e2162a73"
+      },
+      {
+        "file": "assets/pikachu-back.png",
+        "bytes": 1086,
+        "sha256": "9b9a9b3a662547f3c92c808a68a0766d1b3a4c53a168ffb03cbbbc62f932749c"
+      },
+      {
+        "file": "assets/pikachu-front.png",
+        "bytes": 1300,
+        "sha256": "ea9862730b702571ab287dce0b032c418a8d82dd7d8ddcbad515ee61c4372e84"
+      },
+      {
+        "file": "assets/region.png",
+        "bytes": 3525129,
+        "sha256": "dfdc83b800a119a114ff9f2499e9426f6c6385e6d2cb1b13d8e1ba0c975bb21c"
+      },
+      {
+        "file": "assets/squirtle-back.png",
+        "bytes": 1008,
+        "sha256": "b65ec0d034d1a9274ed9b8948893e26b957d7f9fbdc093584dcd95ca9b7e502a"
+      },
+      {
+        "file": "assets/squirtle-front.png",
+        "bytes": 1223,
+        "sha256": "6849015e633aa17ce39b83a2c4badb8ab973a35ece5f49c5a360ee75ebde95d3"
+      },
+      {
+        "file": "assets/world.png",
+        "bytes": 3605577,
+        "sha256": "28d30956385a04acd498527c3c9aa850a895256c75c71082eb22ba4b24827c23"
+      },
+      {
+        "file": "atlas-autonome.html",
+        "bytes": 30784629,
+        "sha256": "92192e10f4534b943b7becbd9f914f666a6de358bb2087f1d872c777c7dcf70f"
+      },
+      {
+        "file": "atlas.css",
+        "bytes": 41157,
+        "sha256": "ff1304b9d397b142d0af503c5de79574a23b8ff1e8fbbf0fbee61ba60582ddee"
+      },
+      {
+        "file": "atlas.js",
+        "bytes": 132187,
+        "sha256": "1aad378cb75eacc3d1ffca2cbf2acd657f300d7e178b2f737adf8efc794d582a"
+      },
+      {
+        "file": "battle.css",
+        "bytes": 29474,
+        "sha256": "d3bd4f2927190a9eb81e638ddaeeb3e6a00dd00c2c6e4a599dfbf740b230752d"
+      },
+      {
+        "file": "catalog.js",
+        "bytes": 102398,
+        "sha256": "9a3375daf2a03e697a7d5782a4bdd466f4dd73a78d28156cf6350686e00222df"
+      },
+      {
+        "file": "combat-checks.json",
+        "bytes": 2812,
+        "sha256": "b34eead5cfc95545cb039fdc9392c984eeb8442d21da93f7553bfda1bcb09339"
+      },
+      {
+        "file": "index.html",
+        "bytes": 2799,
+        "sha256": "abb50f9b2dfe799191e6360f40fed053d1723662a57e409f0d09046252a32aeb"
+      },
+      {
+        "file": "inventory.json",
+        "bytes": 148096,
+        "sha256": "69f0d83648716c444ffd1d5cbe026b9e0106ac6d4c7d05290f8d795b03323e92"
+      },
+      {
+        "file": "previews/landscape-controller-battle-bag.png",
+        "bytes": 54199,
+        "sha256": "2856b1fc3598d25cd23cca8460320ad70db3c0487d55a7a918f679eeb57fd4b5"
+      },
+      {
+        "file": "previews/landscape-controller-battle-fight.png",
+        "bytes": 71914,
+        "sha256": "056d40ecea2e969a4c2ce088f60426e7a0fdbc38750988a23ca12e145d71c7cf"
+      },
+      {
+        "file": "previews/landscape-controller-battle-medicine-target.png",
+        "bytes": 56004,
+        "sha256": "99a05995813ca61172d80cb140235b48168446baee08f715c3bd2c56a0041a67"
+      },
+      {
+        "file": "previews/landscape-controller-battle-party.png",
+        "bytes": 57436,
+        "sha256": "176141c6d61937563fb5202744d158bec861313fae2938cf0003a09a0843250b"
+      },
+      {
+        "file": "previews/landscape-controller-battle-root.png",
+        "bytes": 72485,
+        "sha256": "b51b306eb4e8feba6d7acaead1dc58e822662d03a08cf1da00a4d57cb375a8ad"
+      },
+      {
+        "file": "previews/landscape-controller-battle-target.png",
+        "bytes": 71278,
+        "sha256": "630d8494ba2396bebe531d605c0c7acf39735dc90dbe08be3f47a825a12686ea"
+      },
+      {
+        "file": "previews/landscape-controller-battle-turn.png",
+        "bytes": 65626,
+        "sha256": "7e3de8f92fe30ed71552b9dc9fe90f3bac4129148019d41bd9aa7ba561fa7145"
+      },
+      {
+        "file": "previews/landscape-controller-name-error.png",
+        "bytes": 28968,
+        "sha256": "05463def980374f212a5c5e713eb98028344f2950b4d2b22b0ec8181a0fa74c2"
+      },
+      {
+        "file": "previews/landscape-controller-pause-root.png",
+        "bytes": 76045,
+        "sha256": "907d9ce01e9946192ed8eb1c32faecdd7f96f1a75145be2bd1389e6d90e3ace6"
+      },
+      {
+        "file": "previews/landscape-controller-pc-box.png",
+        "bytes": 32602,
+        "sha256": "35bf9b1882d30f2837fb7c43dd45286b2d3cd825f317f7162379517d445100eb"
+      },
+      {
+        "file": "previews/landscape-controller-postbattle-victory.png",
+        "bytes": 62279,
+        "sha256": "fdbfe97f9d90f6b6e489f4efcd99a5d17cb509794240042c7aaf919f1e73152a"
+      },
+      {
+        "file": "previews/landscape-controller-world-explore.png",
+        "bytes": 134619,
+        "sha256": "2f4c158f3792716108c9d60ba746774933fc151c0a27ac083f746e0858e114a8"
+      },
+      {
+        "file": "previews/landscape-touch-battle-bag.png",
+        "bytes": 53342,
+        "sha256": "57f43c2ece225d04e4f7d109074281efa6a09d02834673b4b4aed39aee552b78"
+      },
+      {
+        "file": "previews/landscape-touch-battle-fight.png",
+        "bytes": 66739,
+        "sha256": "7f642108fbf5ddf51fae1c2b659ef46715aada33d5028128a28885209c0df37b"
+      },
+      {
+        "file": "previews/landscape-touch-battle-medicine-target.png",
+        "bytes": 55203,
+        "sha256": "b9a533453b5f687e80c8adfdf541890a09cf6238ed059d4f0537880b31ba1493"
+      },
+      {
+        "file": "previews/landscape-touch-battle-party.png",
+        "bytes": 56074,
+        "sha256": "7f97e7afdeb736429e25cc8f22465a54937081d87bf6db64e4453641106e8725"
+      },
+      {
+        "file": "previews/landscape-touch-battle-root.png",
+        "bytes": 63696,
+        "sha256": "e3c4a2ba74af7f6b9e9145403bfd50ab20c466534e3b3c242b5c5190d376557b"
+      },
+      {
+        "file": "previews/landscape-touch-battle-target.png",
+        "bytes": 70655,
+        "sha256": "50eb31a4a35d2dce72afc1435b27aa4504feb24777c498ce59a58b192284773a"
+      },
+      {
+        "file": "previews/landscape-touch-battle-turn.png",
+        "bytes": 65626,
+        "sha256": "7e3de8f92fe30ed71552b9dc9fe90f3bac4129148019d41bd9aa7ba561fa7145"
+      },
+      {
+        "file": "previews/landscape-touch-pause-root.png",
+        "bytes": 74878,
+        "sha256": "b65bdb27ffddefb471e0b1678a905abd3cecb18dc1e4e21ded524ea35080fd71"
+      },
+      {
+        "file": "previews/landscape-touch-postbattle-victory.png",
+        "bytes": 61610,
+        "sha256": "96a8f4e88ceb9fc266918c7121f2ca2aa661370f422f8a6395371b6b7b6b3430"
+      },
+      {
+        "file": "previews/landscape-touch-world-explore.png",
+        "bytes": 133879,
+        "sha256": "b03c0b073ce59094ac77ee7bcc463645b57c11948253a5576801e1549d22d162"
+      },
+      {
+        "file": "previews/portrait-controller-battle-bag.png",
+        "bytes": 58036,
+        "sha256": "1a297b976775addeaf8d6647c637bf07c8e611482328da1de3c615da277f45c2"
+      },
+      {
+        "file": "previews/portrait-controller-battle-fight.png",
+        "bytes": 61055,
+        "sha256": "3663cc143e56bd74628ba528156326e6306ae17488b2e34559539776fd3cd7b9"
+      },
+      {
+        "file": "previews/portrait-controller-battle-medicine-target.png",
+        "bytes": 57280,
+        "sha256": "7dcd797e616b39f348fb326b28bcf5f1ee0d6cd3b654ee420259f9963905cb73"
+      },
+      {
+        "file": "previews/portrait-controller-battle-party.png",
+        "bytes": 58592,
+        "sha256": "1ac2902b4c02236c4e2e148422b660f7bcc62951f27c1aee76be60e7a16da83c"
+      },
+      {
+        "file": "previews/portrait-controller-battle-root.png",
+        "bytes": 56061,
+        "sha256": "4f9d069cf9c852f455662948a0c9d0a44091633803000346c39f6406474f118f"
+      },
+      {
+        "file": "previews/portrait-controller-battle-target.png",
+        "bytes": 55555,
+        "sha256": "6b4454fee2283330f50cce49c843c70076344159c1c2c1af2ec6a416d7f9fb9f"
+      },
+      {
+        "file": "previews/portrait-controller-battle-turn.png",
+        "bytes": 50473,
+        "sha256": "b37520c696450c7219e7642da190127b901ae99be077e083d356f38ad876fac8"
+      },
+      {
+        "file": "previews/portrait-controller-pause-root.png",
+        "bytes": 64556,
+        "sha256": "c0b727880e800cc2721dd04d82fa0170df2b0612351aef561cb37a285d312f1a"
+      },
+      {
+        "file": "previews/portrait-controller-postbattle-victory.png",
+        "bytes": 54124,
+        "sha256": "2119d4d08cde2b3e0fa8c54024b7769bdf444ce39e6f0a04fd595f1d425d9384"
+      },
+      {
+        "file": "previews/portrait-controller-world-explore.png",
+        "bytes": 108237,
+        "sha256": "eabcfc5f00113dbe7b8353b002d508089048c7fe9162bd08cbfb3e9a95a29bff"
+      },
+      {
+        "file": "previews/portrait-touch-battle-bag.png",
+        "bytes": 57094,
+        "sha256": "29e659c6d95e26e30e8af6cb178fe36f7c490ded26adf8c93e9721925287dc9b"
+      },
+      {
+        "file": "previews/portrait-touch-battle-fight.png",
+        "bytes": 60363,
+        "sha256": "3ff834919ed0bdfb64c7c78b2a22d18406e82a01ec82c24273dc455d8da84c02"
+      },
+      {
+        "file": "previews/portrait-touch-battle-medicine-target.png",
+        "bytes": 56369,
+        "sha256": "207a3334236d2da4d84f0619f3db7180e314243b7c95b7b918bf57512a4f8095"
+      },
+      {
+        "file": "previews/portrait-touch-battle-party.png",
+        "bytes": 56889,
+        "sha256": "1b64d264cf3ae0c1ccfae9e3776b863ab591907c90ef1eaf4a1d4b922fa1fa63"
+      },
+      {
+        "file": "previews/portrait-touch-battle-root.png",
+        "bytes": 54075,
+        "sha256": "c7bd2146f6a229ce19d72c602058c1a56e9b83b9df3e662b16421c92aa3d6984"
+      },
+      {
+        "file": "previews/portrait-touch-battle-target.png",
+        "bytes": 54676,
+        "sha256": "c32538cbe4cb0c493f1686e451851b850aa77b5a5c64f5387c882bef4149e58f"
+      },
+      {
+        "file": "previews/portrait-touch-battle-turn.png",
+        "bytes": 50473,
+        "sha256": "b37520c696450c7219e7642da190127b901ae99be077e083d356f38ad876fac8"
+      },
+      {
+        "file": "previews/portrait-touch-pause-root.png",
+        "bytes": 66434,
+        "sha256": "384ed08e27b7addc9fca3b4eb0ed77fb7ca77e2e3733b2e7c6fc01579e15ab47"
+      },
+      {
+        "file": "previews/portrait-touch-postbattle-victory.png",
+        "bytes": 54332,
+        "sha256": "e371089a6e4337d9209aaeae238bf0ce144691449b5d1c93322a0e3f03c679ea"
+      },
+      {
+        "file": "previews/portrait-touch-world-explore.png",
+        "bytes": 108966,
+        "sha256": "6d27df4d4580e6c499be7c837809abb6495c5d67006dcd7b1d2b25b2ec675776"
+      },
+      {
+        "file": "previews/thor-dual-battle-bag.png",
+        "bytes": 103698,
+        "sha256": "20e0e8113e2b32b15a85b56f53ad0a615b21ee6dcac27f24bcb65f55c27388ad"
+      },
+      {
+        "file": "previews/thor-dual-battle-fight.png",
+        "bytes": 106383,
+        "sha256": "3e5a878a8da33f9a4ad6f10fc645a8f77d1fc1e31f726b627a6791f9a24b98b6"
+      },
+      {
+        "file": "previews/thor-dual-battle-medicine-target.png",
+        "bytes": 103845,
+        "sha256": "7203011537d102373aab0790ab7fa5571e28ac6b0e6070a0e4ec4d5a8d3154a8"
+      },
+      {
+        "file": "previews/thor-dual-battle-party.png",
+        "bytes": 105278,
+        "sha256": "02c75bcbf63b40adf846b8113a50810276d8b921895990c532ba54189c605f08"
+      },
+      {
+        "file": "previews/thor-dual-battle-root.png",
+        "bytes": 97847,
+        "sha256": "df280c37dbfb44ece1fd04fe8e73adc93aca5b56d75d46f1d30f958d0114bea4"
+      },
+      {
+        "file": "previews/thor-dual-battle-target.png",
+        "bytes": 96849,
+        "sha256": "ebc77dd3728441b9e6761b700024483ea12f3e824aa25d7c56ba2148bccfa2f5"
+      },
+      {
+        "file": "previews/thor-dual-battle-turn.png",
+        "bytes": 87829,
+        "sha256": "d3df38030c377ca5f00bc6d8c6262715779c66df6dbe3a2016551b2448841f8f"
+      },
+      {
+        "file": "previews/thor-dual-options-audio.png",
+        "bytes": 142278,
+        "sha256": "468c0b2a998f6d8d66744ac70ad692e0b19eff3f7c341d77249b1682e12b220d"
+      },
+      {
+        "file": "previews/thor-dual-pause-root.png",
+        "bytes": 148887,
+        "sha256": "17a23424219d4d0f94b3c23ce7a3b928bc226ca0f4e0a341e9b1dc8b31d8bfdc"
+      },
+      {
+        "file": "previews/thor-dual-pc-box.png",
+        "bytes": 49274,
+        "sha256": "0a35e5f9a5b7ea2f670e8591fc8c5cc5f979d868904cb167e96c95723a9395ed"
+      },
+      {
+        "file": "previews/thor-dual-postbattle-victory.png",
+        "bytes": 94309,
+        "sha256": "c927299aaf01848dc36f638dd2442ad2b285c539572e2e9f7b56e66fb4d223c1"
+      },
+      {
+        "file": "previews/thor-dual-world-explore.png",
+        "bytes": 144806,
+        "sha256": "4bd6a5925daafd66cfde6d197d02a2015389ab5bbd6256c3eb1224705c63e7e0"
+      },
+      {
+        "file": "previews/thor-equipe.png",
+        "bytes": 42835,
+        "sha256": "11197b07398cea0db190ad80887cfc1658588c2ecbea673af27528df0632fe30"
+      },
+      {
+        "file": "verify-combat.cjs",
+        "bytes": 12508,
+        "sha256": "25d12de7e5f22032ebcdcd185c5fbeeae009b83c61875a2691e831dada390595"
+      }
+    ],
+    "consoleErrorsFinal": 0
+  },
+  "targetingRevision": {
+    "scope": "Correction du parcours des maquettes uniquement, sans moteur/runtime modifié",
+    "audit": "Les attaques étaient toujours branchées sur battle.target ; tests précédents rendaient manuellement le ciblage sans vérifier la navigation effective",
+    "rule": {
+      "single": "Une cible valide → résolution directement",
+      "multiple": "Plusieurs choix valides → sélecteur, Retour conservant le contexte",
+      "none": "Aucun choix valide → refus sans mutation ni navigation"
+    },
+    "tests": {
+      "red": {
+        "checks": 27,
+        "passed": 22,
+        "failed": 5
+      },
+      "green": {
+        "checks": 30,
+        "passed": 30,
+        "failed": 0
+      },
+      "command": "node documentation/design/runtime-interface-2026-10-24/verify-combat.cjs"
+    },
+    "browserJourneys": {
+      "duels": [
+        {
+          "message": true,
+          "mode": "landscape-touch",
+          "screen": "battle.turn",
+          "state": "presentingTurn",
+          "targetChoices": 0
+        },
+        {
+          "message": true,
+          "mode": "landscape-controller",
+          "screen": "battle.turn",
+          "state": "presentingTurn",
+          "targetChoices": 0
+        },
+        {
+          "message": true,
+          "mode": "portrait-touch",
+          "screen": "battle.turn",
+          "state": "presentingTurn",
+          "targetChoices": 0
+        },
+        {
+          "message": true,
+          "mode": "portrait-controller",
+          "screen": "battle.turn",
+          "state": "presentingTurn",
+          "targetChoices": 0
+        },
+        {
+          "message": true,
+          "mode": "thor-dual",
+          "screen": "battle.turn",
+          "state": "presentingTurn",
+          "targetChoices": 0
+        }
+      ],
+      "multiple": {
+        "choices": 2,
+        "screen": "battle.target"
+      },
+      "offline": {
+        "externalCss": 0,
+        "externalScripts": 0,
+        "message": true,
+        "screen": "battle.turn",
+        "targetChoices": 0
+      },
+      "backState": "multiple-valid-targets",
+      "multipleOutcome": "Charge sur Évoli observé, deux ennemis conservés"
+    },
+    "geometry": [
+      {
+        "lost": 0,
+        "mode": "landscape-touch",
+        "outside": 0,
+        "screen": "battle.fight",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "landscape-touch",
+        "outside": 0,
+        "screen": "battle.target",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "landscape-controller",
+        "outside": 0,
+        "screen": "battle.fight",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "landscape-controller",
+        "outside": 0,
+        "screen": "battle.target",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "portrait-touch",
+        "outside": 0,
+        "screen": "battle.fight",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "portrait-touch",
+        "outside": 0,
+        "screen": "battle.target",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "portrait-controller",
+        "outside": 0,
+        "screen": "battle.fight",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "portrait-controller",
+        "outside": 0,
+        "screen": "battle.target",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "thor-dual",
+        "outside": 0,
+        "screen": "battle.fight",
+        "scrolls": 0
+      },
+      {
+        "lost": 0,
+        "mode": "thor-dual",
+        "outside": 0,
+        "screen": "battle.target",
+        "scrolls": 0
+      }
+    ],
+    "renderer": {
+      "boards": 2230,
+      "surfaces": 2676,
+      "result": "PASS"
+    },
+    "build": {
+      "offlineBytes": 30786337,
+      "externalCss": 0,
+      "externalScripts": 0
+    },
+    "independentReview": {
+      "audit": "Cause identifiée dans destinations attaque/Lutte systématiques",
+      "implementation": "Patch principal limité aux commandes de capacité et au catalogue de démonstration",
+      "tests": "30 assertions du runner final ; passe indépendante27+3 également30/30",
+      "validation": "Clics sur cinq formats, HTML autonome et dix compositions modifiées sans scroll/perte/commande hors surface",
+      "critique": "Aucun blocage sur le flux corrigé ; contexte multiple présent avant et après choix, y compris Thor"
+    },
+    "files": [
+      "atlas.js",
+      "index.html",
+      "inventory.json",
+      "catalog.js",
+      "verify-combat.cjs",
+      "combat-checks.json",
+      "atlas-autonome.html",
+      "asset-provenance.json",
+      "verification.json",
+      "previews/landscape-touch-battle-target.png",
+      "previews/landscape-touch-battle-turn.png",
+      "previews/landscape-controller-battle-target.png",
+      "previews/landscape-controller-battle-turn.png",
+      "previews/portrait-touch-battle-target.png",
+      "previews/portrait-touch-battle-turn.png",
+      "previews/portrait-controller-battle-target.png",
+      "previews/portrait-controller-battle-turn.png",
+      "previews/thor-dual-battle-target.png",
+      "previews/thor-dual-battle-turn.png"
+    ],
+    "git": {
+      "branch": "main",
+      "head": "44d6df8b55a17089e5dea1fad68958028c4ac562",
+      "initialEntries": 461,
+      "initialAtlasEntries": 91,
+      "finalEntries": 461,
+      "finalAtlasEntries": 91,
+      "writeOperations": false
+    },
+    "limitations": [
+      "Données de cibles illustratives, non moteur de ciblage",
+      "Aucune implémentation Flutter ni certification matérielle",
+      "Les soins et changements de membre gardent leurs étapes dédiées"
+    ],
+    "notion": "POST-UI-MENU-000 · correction TO REVIEW, epic DOING",
+    "hashes": [
+      {
+        "file": "adaptive-checks.json",
+        "sha256": "33283ae759a832284ba7897c26906f7fd329a46c4a873d45d450b49bdbf9ee0f"
+      },
+      {
+        "file": "adaptive.css",
+        "sha256": "1307e0c15da03e34d648a1ec6d68e8fee06fae60c6a10df36ed406b477ed29f5"
+      },
+      {
+        "file": "adaptive.js",
+        "sha256": "149443f71d6cd571de1385a779a224674c5a52c997860aac04cf41e2efc02ecf"
+      },
+      {
+        "file": "asset-provenance.json",
+        "sha256": "42de1e0a25f93727efc1f370d438deaa8de7e15218a23b84f28b12dbc7aac68b"
+      },
+      {
+        "file": "assets/battle-v2.png",
+        "sha256": "dcd82598b0c3f5a6cb2e59be55120c6c81f62036fa5c5d12627c7f097b681767"
+      },
+      {
+        "file": "assets/battle.png",
+        "sha256": "8ef18a13727055361183610ea7237cd14cc6212ada36cb5d07343b6565f5939c"
+      },
+      {
+        "file": "assets/bulbasaur-back.png",
+        "sha256": "81eb76dd39e4f2b7c6bc80a8c39cc29bf94424d47ceeb2072520e2608c94238d"
+      },
+      {
+        "file": "assets/bulbasaur-front.png",
+        "sha256": "bc994a569f9662ad27fe4228b2afef5923e4727265c314a09b1f277db08476eb"
+      },
+      {
+        "file": "assets/charmander-back.png",
+        "sha256": "744c837acaddf1e71fd0bed2c30466be121f63a9155e44c74c35be2eccf0e329"
+      },
+      {
+        "file": "assets/charmander-front.png",
+        "sha256": "cfaa28150390f54c85bf4c4170698489ccb760949fe41b9739826b31c8b8e9b1"
+      },
+      {
+        "file": "assets/dm-sans-license.txt",
+        "sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1"
+      },
+      {
+        "file": "assets/dm-sans.ttf",
+        "sha256": "8cd08d97e89c24d0aa92edd2f0f4c8ee6195eee9b7c9f154865a58b02f0c1c0d"
+      },
+      {
+        "file": "assets/eclipse.png",
+        "sha256": "45bc50b9c81f769c75742534df47020c9f8ce1d01ff259cc2321f5ae991ab9a9"
+      },
+      {
+        "file": "assets/eevee-back.png",
+        "sha256": "1c2d395abd0e53ce01aff06f76421cac593ccd25f7b2d757f28c94f483aadb0f"
+      },
+      {
+        "file": "assets/eevee-front.png",
+        "sha256": "12a279d00a05a34051dc04f47be948f6bb9c3928c7b70f44f17cb67f32838231"
+      },
+      {
+        "file": "assets/leo.png",
+        "sha256": "6f65e1fa958308372773ca742b7118e8ab5d7564b1d19ef619b9ef7e7ca57d42"
+      },
+      {
+        "file": "assets/lucide-license.txt",
+        "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+      },
+      {
+        "file": "assets/lucide.min.js",
+        "sha256": "ab85225ecc1daa2033607856f03dd2dabcbc08e2d260a5b97e17c690aa929766"
+      },
+      {
+        "file": "assets/pidgey-back.png",
+        "sha256": "fa8cdc6431d2ba05e9e37867ab921f405d5272efd07da69b8a70fdab9ed5cb28"
+      },
+      {
+        "file": "assets/pidgey-front.png",
+        "sha256": "94b054a666ba738038afd27d3bb3d6e227f6b36c06b746bea2179a07e2162a73"
+      },
+      {
+        "file": "assets/pikachu-back.png",
+        "sha256": "9b9a9b3a662547f3c92c808a68a0766d1b3a4c53a168ffb03cbbbc62f932749c"
+      },
+      {
+        "file": "assets/pikachu-front.png",
+        "sha256": "ea9862730b702571ab287dce0b032c418a8d82dd7d8ddcbad515ee61c4372e84"
+      },
+      {
+        "file": "assets/region.png",
+        "sha256": "dfdc83b800a119a114ff9f2499e9426f6c6385e6d2cb1b13d8e1ba0c975bb21c"
+      },
+      {
+        "file": "assets/squirtle-back.png",
+        "sha256": "b65ec0d034d1a9274ed9b8948893e26b957d7f9fbdc093584dcd95ca9b7e502a"
+      },
+      {
+        "file": "assets/squirtle-front.png",
+        "sha256": "6849015e633aa17ce39b83a2c4badb8ab973a35ece5f49c5a360ee75ebde95d3"
+      },
+      {
+        "file": "assets/world.png",
+        "sha256": "28d30956385a04acd498527c3c9aa850a895256c75c71082eb22ba4b24827c23"
+      },
+      {
+        "file": "atlas-autonome.html",
+        "sha256": "72a24f06aa3c40b94459158270609403d262daa19e7aa695db249a68212c68e5"
+      },
+      {
+        "file": "atlas.css",
+        "sha256": "ff1304b9d397b142d0af503c5de79574a23b8ff1e8fbbf0fbee61ba60582ddee"
+      },
+      {
+        "file": "atlas.js",
+        "sha256": "e32d82365070f63a8efcaf9bc1ebc13f5c32e08fa27613a31e29902286f1dbad"
+      },
+      {
+        "file": "battle.css",
+        "sha256": "d3bd4f2927190a9eb81e638ddaeeb3e6a00dd00c2c6e4a599dfbf740b230752d"
+      },
+      {
+        "file": "catalog.js",
+        "sha256": "f9fdd9d45d6bc50a1b5622d5e87b6b1745aba5f6dd5645b3566848b7b7e5779f"
+      },
+      {
+        "file": "combat-checks.json",
+        "sha256": "6169953c6c8541b27a0415f9c73b4dd0baa3983b9fb488c59ec5de87e6344a29"
+      },
+      {
+        "file": "index.html",
+        "sha256": "4461196f2df2952d137e3d45ef702f548819adae03be70d73fc6f7526f078958"
+      },
+      {
+        "file": "inventory.json",
+        "sha256": "9eb3067b455b8fda70a87f6b61d52aed3c46bd57456c40ecbfaf488889f405e2"
+      },
+      {
+        "file": "previews/landscape-controller-battle-bag.png",
+        "sha256": "2856b1fc3598d25cd23cca8460320ad70db3c0487d55a7a918f679eeb57fd4b5"
+      },
+      {
+        "file": "previews/landscape-controller-battle-fight.png",
+        "sha256": "056d40ecea2e969a4c2ce088f60426e7a0fdbc38750988a23ca12e145d71c7cf"
+      },
+      {
+        "file": "previews/landscape-controller-battle-medicine-target.png",
+        "sha256": "99a05995813ca61172d80cb140235b48168446baee08f715c3bd2c56a0041a67"
+      },
+      {
+        "file": "previews/landscape-controller-battle-party.png",
+        "sha256": "176141c6d61937563fb5202744d158bec861313fae2938cf0003a09a0843250b"
+      },
+      {
+        "file": "previews/landscape-controller-battle-root.png",
+        "sha256": "b51b306eb4e8feba6d7acaead1dc58e822662d03a08cf1da00a4d57cb375a8ad"
+      },
+      {
+        "file": "previews/landscape-controller-battle-target.png",
+        "sha256": "f06359ecb1cb0815f3c200a73acbed639b661d197d5fa90f814d444bfdfa18e1"
+      },
+      {
+        "file": "previews/landscape-controller-battle-turn.png",
+        "sha256": "71bf51bd992ebc30b2b07262716c5288615ce2342df638e7162b99c844dd61ae"
+      },
+      {
+        "file": "previews/landscape-controller-name-error.png",
+        "sha256": "05463def980374f212a5c5e713eb98028344f2950b4d2b22b0ec8181a0fa74c2"
+      },
+      {
+        "file": "previews/landscape-controller-pause-root.png",
+        "sha256": "907d9ce01e9946192ed8eb1c32faecdd7f96f1a75145be2bd1389e6d90e3ace6"
+      },
+      {
+        "file": "previews/landscape-controller-pc-box.png",
+        "sha256": "35bf9b1882d30f2837fb7c43dd45286b2d3cd825f317f7162379517d445100eb"
+      },
+      {
+        "file": "previews/landscape-controller-postbattle-victory.png",
+        "sha256": "fdbfe97f9d90f6b6e489f4efcd99a5d17cb509794240042c7aaf919f1e73152a"
+      },
+      {
+        "file": "previews/landscape-controller-world-explore.png",
+        "sha256": "2f4c158f3792716108c9d60ba746774933fc151c0a27ac083f746e0858e114a8"
+      },
+      {
+        "file": "previews/landscape-touch-battle-bag.png",
+        "sha256": "57f43c2ece225d04e4f7d109074281efa6a09d02834673b4b4aed39aee552b78"
+      },
+      {
+        "file": "previews/landscape-touch-battle-fight.png",
+        "sha256": "7f642108fbf5ddf51fae1c2b659ef46715aada33d5028128a28885209c0df37b"
+      },
+      {
+        "file": "previews/landscape-touch-battle-medicine-target.png",
+        "sha256": "b9a533453b5f687e80c8adfdf541890a09cf6238ed059d4f0537880b31ba1493"
+      },
+      {
+        "file": "previews/landscape-touch-battle-party.png",
+        "sha256": "7f97e7afdeb736429e25cc8f22465a54937081d87bf6db64e4453641106e8725"
+      },
+      {
+        "file": "previews/landscape-touch-battle-root.png",
+        "sha256": "e3c4a2ba74af7f6b9e9145403bfd50ab20c466534e3b3c242b5c5190d376557b"
+      },
+      {
+        "file": "previews/landscape-touch-battle-target.png",
+        "sha256": "9e8ce430d6318941c489a17415a85a79e59b359c889035bc2de26f63b16ed401"
+      },
+      {
+        "file": "previews/landscape-touch-battle-turn.png",
+        "sha256": "71bf51bd992ebc30b2b07262716c5288615ce2342df638e7162b99c844dd61ae"
+      },
+      {
+        "file": "previews/landscape-touch-pause-root.png",
+        "sha256": "b65bdb27ffddefb471e0b1678a905abd3cecb18dc1e4e21ded524ea35080fd71"
+      },
+      {
+        "file": "previews/landscape-touch-postbattle-victory.png",
+        "sha256": "96a8f4e88ceb9fc266918c7121f2ca2aa661370f422f8a6395371b6b7b6b3430"
+      },
+      {
+        "file": "previews/landscape-touch-world-explore.png",
+        "sha256": "b03c0b073ce59094ac77ee7bcc463645b57c11948253a5576801e1549d22d162"
+      },
+      {
+        "file": "previews/portrait-controller-battle-bag.png",
+        "sha256": "1a297b976775addeaf8d6647c637bf07c8e611482328da1de3c615da277f45c2"
+      },
+      {
+        "file": "previews/portrait-controller-battle-fight.png",
+        "sha256": "3663cc143e56bd74628ba528156326e6306ae17488b2e34559539776fd3cd7b9"
+      },
+      {
+        "file": "previews/portrait-controller-battle-medicine-target.png",
+        "sha256": "7dcd797e616b39f348fb326b28bcf5f1ee0d6cd3b654ee420259f9963905cb73"
+      },
+      {
+        "file": "previews/portrait-controller-battle-party.png",
+        "sha256": "1ac2902b4c02236c4e2e148422b660f7bcc62951f27c1aee76be60e7a16da83c"
+      },
+      {
+        "file": "previews/portrait-controller-battle-root.png",
+        "sha256": "4f9d069cf9c852f455662948a0c9d0a44091633803000346c39f6406474f118f"
+      },
+      {
+        "file": "previews/portrait-controller-battle-target.png",
+        "sha256": "c36a1a3904fb2a459269c84f3dfe1a61c567a40f69a7bba792a99a3715017fb0"
+      },
+      {
+        "file": "previews/portrait-controller-battle-turn.png",
+        "sha256": "d89be2209ce467afcf0db18867dcee480736f5f7c8bfc0bd0efbf03fb2ad06c1"
+      },
+      {
+        "file": "previews/portrait-controller-pause-root.png",
+        "sha256": "c0b727880e800cc2721dd04d82fa0170df2b0612351aef561cb37a285d312f1a"
+      },
+      {
+        "file": "previews/portrait-controller-postbattle-victory.png",
+        "sha256": "2119d4d08cde2b3e0fa8c54024b7769bdf444ce39e6f0a04fd595f1d425d9384"
+      },
+      {
+        "file": "previews/portrait-controller-world-explore.png",
+        "sha256": "eabcfc5f00113dbe7b8353b002d508089048c7fe9162bd08cbfb3e9a95a29bff"
+      },
+      {
+        "file": "previews/portrait-touch-battle-bag.png",
+        "sha256": "29e659c6d95e26e30e8af6cb178fe36f7c490ded26adf8c93e9721925287dc9b"
+      },
+      {
+        "file": "previews/portrait-touch-battle-fight.png",
+        "sha256": "3ff834919ed0bdfb64c7c78b2a22d18406e82a01ec82c24273dc455d8da84c02"
+      },
+      {
+        "file": "previews/portrait-touch-battle-medicine-target.png",
+        "sha256": "207a3334236d2da4d84f0619f3db7180e314243b7c95b7b918bf57512a4f8095"
+      },
+      {
+        "file": "previews/portrait-touch-battle-party.png",
+        "sha256": "1b64d264cf3ae0c1ccfae9e3776b863ab591907c90ef1eaf4a1d4b922fa1fa63"
+      },
+      {
+        "file": "previews/portrait-touch-battle-root.png",
+        "sha256": "c7bd2146f6a229ce19d72c602058c1a56e9b83b9df3e662b16421c92aa3d6984"
+      },
+      {
+        "file": "previews/portrait-touch-battle-target.png",
+        "sha256": "9abef9430e3404828a437d207dd032f83c7d368bb545c4d4fe671b53e30d464d"
+      },
+      {
+        "file": "previews/portrait-touch-battle-turn.png",
+        "sha256": "d89be2209ce467afcf0db18867dcee480736f5f7c8bfc0bd0efbf03fb2ad06c1"
+      },
+      {
+        "file": "previews/portrait-touch-pause-root.png",
+        "sha256": "384ed08e27b7addc9fca3b4eb0ed77fb7ca77e2e3733b2e7c6fc01579e15ab47"
+      },
+      {
+        "file": "previews/portrait-touch-postbattle-victory.png",
+        "sha256": "e371089a6e4337d9209aaeae238bf0ce144691449b5d1c93322a0e3f03c679ea"
+      },
+      {
+        "file": "previews/portrait-touch-world-explore.png",
+        "sha256": "6d27df4d4580e6c499be7c837809abb6495c5d67006dcd7b1d2b25b2ec675776"
+      },
+      {
+        "file": "previews/thor-dual-battle-bag.png",
+        "sha256": "20e0e8113e2b32b15a85b56f53ad0a615b21ee6dcac27f24bcb65f55c27388ad"
+      },
+      {
+        "file": "previews/thor-dual-battle-fight.png",
+        "sha256": "3e5a878a8da33f9a4ad6f10fc645a8f77d1fc1e31f726b627a6791f9a24b98b6"
+      },
+      {
+        "file": "previews/thor-dual-battle-medicine-target.png",
+        "sha256": "7203011537d102373aab0790ab7fa5571e28ac6b0e6070a0e4ec4d5a8d3154a8"
+      },
+      {
+        "file": "previews/thor-dual-battle-party.png",
+        "sha256": "02c75bcbf63b40adf846b8113a50810276d8b921895990c532ba54189c605f08"
+      },
+      {
+        "file": "previews/thor-dual-battle-root.png",
+        "sha256": "df280c37dbfb44ece1fd04fe8e73adc93aca5b56d75d46f1d30f958d0114bea4"
+      },
+      {
+        "file": "previews/thor-dual-battle-target.png",
+        "sha256": "50400fbd8b34ab66b91e03f2595c80b7e04f81b89ddc0785d3f6c7cf66b873b6"
+      },
+      {
+        "file": "previews/thor-dual-battle-turn.png",
+        "sha256": "8e706cab94e69c35900f4595ba84fc52e84cfc5cea23796fbc9497d421759fa5"
+      },
+      {
+        "file": "previews/thor-dual-options-audio.png",
+        "sha256": "468c0b2a998f6d8d66744ac70ad692e0b19eff3f7c341d77249b1682e12b220d"
+      },
+      {
+        "file": "previews/thor-dual-pause-root.png",
+        "sha256": "17a23424219d4d0f94b3c23ce7a3b928bc226ca0f4e0a341e9b1dc8b31d8bfdc"
+      },
+      {
+        "file": "previews/thor-dual-pc-box.png",
+        "sha256": "0a35e5f9a5b7ea2f670e8591fc8c5cc5f979d868904cb167e96c95723a9395ed"
+      },
+      {
+        "file": "previews/thor-dual-postbattle-victory.png",
+        "sha256": "c927299aaf01848dc36f638dd2442ad2b285c539572e2e9f7b56e66fb4d223c1"
+      },
+      {
+        "file": "previews/thor-dual-world-explore.png",
+        "sha256": "4bd6a5925daafd66cfde6d197d02a2015389ab5bbd6256c3eb1224705c63e7e0"
+      },
+      {
+        "file": "previews/thor-equipe.png",
+        "sha256": "11197b07398cea0db190ad80887cfc1658588c2ecbea673af27528df0632fe30"
+      },
+      {
+        "file": "verify-combat.cjs",
+        "sha256": "68ef717593f375695a1d33861527f95eb737fd82eb82012baffa439dfff48a65"
+      }
+    ]
+  }
+}

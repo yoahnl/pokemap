@@ -108,6 +108,27 @@ sealed class PsdkBattleItemActionEffect {
   const PsdkBattleItemActionEffect();
 }
 
+final class PsdkBattleStatBoostItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattleStatBoostItemEffect(
+      {required this.stat, required this.stages});
+
+  final String stat;
+  final int stages;
+}
+
+final class PsdkBattlePreparationItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattlePreparationItemEffect.focusEnergy()
+      : effectId = 'focus_energy',
+        turns = null;
+
+  const PsdkBattlePreparationItemEffect.mist({required int turns})
+      : effectId = 'mist',
+        turns = turns;
+
+  final String effectId;
+  final int? turns;
+}
+
 final class PsdkBattleFullRestoreItemEffect extends PsdkBattleItemActionEffect {
   const PsdkBattleFullRestoreItemEffect();
 }

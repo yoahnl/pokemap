@@ -15,6 +15,8 @@ import '../transactions/plan_store.dart';
 import '../domains/project/regional_map_actions.dart';
 import '../domains/project/battle_transition_default_actions.dart';
 import '../domains/project/runtime_audio_actions.dart';
+import '../domains/project/project_identity_actions.dart';
+import '../domains/project/contact_device_actions.dart';
 import '../domains/project/runtime_smoke_profile_actions.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/model3d_actions.dart';
@@ -39,6 +41,7 @@ import '../domains/gameplay/pokemon_media_import_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/gameplay/bag_capacity_actions.dart';
+import '../domains/gameplay/party_companion_actions.dart';
 import '../domains/gameplay/campaign_content_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_animation_definition_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_animation_clip_actions.dart';
@@ -173,6 +176,8 @@ final class MapMutationDispatcher {
     const visualOrganization = VisualOrganizationActions();
     const battleTransitionDefaults = BattleTransitionDefaultActions();
     const runtimeAudio = RuntimeAudioActions();
+    const projectIdentity = ProjectIdentityActions();
+    const contactDevice = ContactDeviceActions();
     const runtimeSmokeProfile = RuntimeSmokeProfileActions();
     const palettes = PaletteActions();
     const elements = ElementActions();
@@ -184,6 +189,7 @@ final class MapMutationDispatcher {
     const pokemonRuleset = PokemonRulesetActions();
     const itemCatalog = ItemCatalogActions();
     const bagCapacity = BagCapacityActions();
+    const partyCompanion = PartyCompanionActions();
     const campaignContent = CampaignContentActions();
     const characterStudioAnimationDefinitions =
         CharacterStudioAnimationDefinitionActions();
@@ -415,6 +421,10 @@ final class MapMutationDispatcher {
           build: runtimeAudio.build,
         ),
       MapMutationActionRegistration(
+        descriptor: ProjectIdentityActions.descriptor,
+        build: projectIdentity.build,
+      ),
+      MapMutationActionRegistration(
         descriptor: RuntimeSmokeProfileActions.descriptor,
         build: runtimeSmokeProfile.build,
       ),
@@ -453,10 +463,14 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: bagCapacity.build,
         ),
+      for (final descriptor in PartyCompanionActions.descriptors)
+        MapMutationActionRegistration(descriptor: descriptor, build: partyCompanion.build),
+      MapMutationActionRegistration(descriptor: ContactDeviceActions.descriptor, build: contactDevice.build),
       for (final descriptor in CampaignContentActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
-          build: campaignContent.build,
+          build: descriptor.id == 'campaign.encounter_table.upsert_batch'
+              ? campaignContent.buildEncounterTableBatch : campaignContent.build,
         ),
       for (final descriptor
           in CharacterStudioAnimationDefinitionActions.descriptors)

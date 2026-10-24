@@ -382,6 +382,11 @@ final class RuntimeProjectCatalog {
       );
     }
     final merged = project.copyWith(
+      models3d: _mergeNarrativeVisualDefinitions(
+        sources.expand((view) => view.models3d),
+        (entry) => entry.id,
+        (entry) => entry.toJson(),
+      ),
       elements: _mergeNarrativeVisualDefinitions(
         sources.expand((view) => view.elements),
         (entry) => entry.id,

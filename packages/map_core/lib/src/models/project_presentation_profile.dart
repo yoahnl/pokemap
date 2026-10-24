@@ -213,6 +213,7 @@ enum ProjectPauseActionId {
   bag,
   pokedex,
   quests,
+  contacts,
   map,
   profile,
   save,
@@ -318,6 +319,10 @@ const List<ProjectPauseActionProfile> defaultProjectPauseActions =
       ),
       ProjectPauseActionProfile(
         id: ProjectPauseActionId.quests,
+        icon: ProjectPauseActionIcon.book,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.contacts,
         icon: ProjectPauseActionIcon.book,
       ),
       ProjectPauseActionProfile(

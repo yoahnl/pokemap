@@ -9,7 +9,7 @@ void main() {
     SceneInteractiveCommand.worldTone(red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
     SceneInteractiveCommand.playSoundEffect(mediaAssetId: 'door', volume: .8),
   ]) {
-  test('${command.kind.name} refuses 3D canonical publication and command availability', () {
+  test('${command.kind.name} checks publication and availability for each dimension', () {
     final scene = SceneAsset(id: 'wait', name: 'Wait', graph: SceneGraph(
       startNodeId: 'start', nodes: [SceneNode(id: 'start', kind: SceneNodeKind.start),
         SceneNode(id: 'action', kind: SceneNodeKind.action,
@@ -25,12 +25,12 @@ void main() {
         cinematicMediaAssets: [CinematicMediaAsset(id: 'door', label: 'Door',
           kind: CinematicMediaAssetKind.sound, relativePath: 'audio/door.wav')]);
       final report = diagnoseSceneAgainstProject(scene, project);
-      expect(report.hasErrors, dimension == ProjectDimension.threeD);
+      expect(report.hasErrors, dimension == ProjectDimension.threeD && command is! ScenePlaySoundEffectInteractiveCommand);
       expect(report.diagnostics.any((d) => d.code.name == 'commandUnsupportedDimension'),
-          dimension == ProjectDimension.threeD);
+          dimension == ProjectDimension.threeD && command is! ScenePlaySoundEffectInteractiveCommand);
       expect(diagnoseInteractiveCommand(command: command, project: project)
           .any((d) => d.code == NarrativeCommandDiagnosticCode.unsupportedCommand),
-          dimension == ProjectDimension.threeD);
+          dimension == ProjectDimension.threeD && command is! ScenePlaySoundEffectInteractiveCommand);
     }
   });
   }
@@ -418,7 +418,7 @@ void main() {
         );
         expect(descriptor.capabilities.reason, contains('2D'));
         expect(
-          descriptor.parameters.every((parameter) => parameter.required),
+          descriptor.parameters.where((parameter) => parameter.id != 'waitForCompletion').every((parameter) => parameter.required),
           isTrue,
         );
       }
@@ -438,10 +438,11 @@ void main() {
       expect(soundDescriptor.parameters.map((parameter) => parameter.id), [
         'mediaAssetId',
         'volume',
+        'waitForCompletion',
       ]);
       expect(
         soundDescriptor.parameters.map((parameter) => parameter.kind.name),
-        ['soundMediaReference', 'number'],
+        ['soundMediaReference', 'number', 'boolean'],
       );
       expect(
         catalog.publishable.any(

@@ -417,6 +417,19 @@ final class SourceSnapshot {
   late final Map<ConverterId, SourceFileEntry> _entriesById = {
     for (final entry in entries) entry.fileId: entry,
   };
+  late final Map<String, List<SourceFileEntry>> _entriesByPathCollisionKey = () {
+    final buckets = <String, List<SourceFileEntry>>{};
+    for (final entry in entries) {
+      (buckets[sourcePathCollisionKey(entry.relativePath)] ??= []).add(entry);
+    }
+    return Map<String, List<SourceFileEntry>>.unmodifiable({
+      for (final entry in buckets.entries)
+        entry.key: List<SourceFileEntry>.unmodifiable(entry.value),
+    });
+  }();
+  List<SourceFileEntry> entriesMatchingPath(String relativePath) =>
+      _entriesByPathCollisionKey[sourcePathCollisionKey(relativePath)] ??
+      const <SourceFileEntry>[];
   final List<SourceScanDiagnostic> diagnostics;
   final List<String> excludedPaths;
   final List<SourceProfileEvidence> profileEvidence;

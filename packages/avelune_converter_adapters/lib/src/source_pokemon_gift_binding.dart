@@ -115,6 +115,7 @@ final class SourcePokemonGiftBindingResolver {
         snapshot: source.snapshot, files: files, cancellation: cancellation);
     final catalogHash = canonicalHashOf(nativeCatalog.toJson(),
         limits: nativePsdkCatalogShardJsonLimits);
+    final programs = <String, SourcePokemonGiftNode>{};
     for (final event in candidates) {
       cancellation?.check();
       final id = event.identity.value;
@@ -130,14 +131,23 @@ final class SourcePokemonGiftBindingResolver {
         refusals[id] = 'sourcePokemonGiftWholeEventUnqualified';
         continue;
       }
-      try {
-        final identities = await const NativeSourceSpeciesBindings().bind(
-            snapshot: source.snapshot,
-            source: pbs,
-            files: files,
+      programs[id] = program;
+    }
+    final speciesBindings = await const NativeSourceSpeciesBindings()
+        .bindAvailable(snapshot: source.snapshot, source: pbs, files: files,
             nativeCatalog: nativeCatalog,
-            requestedSourceSymbols: [program.sourceSpeciesSymbol],
+            requestedSourceSymbols: programs.values
+                .map((program) => program.sourceSpeciesSymbol),
             cancellation: cancellation);
+    for (final event in candidates) {
+      cancellation?.check();
+      final id = event.identity.value;
+      final program = programs[id];
+      if (program == null) continue;
+      try {
+        final failure = speciesBindings.refusals[program.sourceSpeciesSymbol];
+        if (failure != null) throw failure;
+        final identities = speciesBindings.bindings[program.sourceSpeciesSymbol]!;
         final identity = identities.rows.single;
         final speciesId = identity['nativeSpeciesId'] as String;
         final species = nativeCatalog.speciesById[speciesId];

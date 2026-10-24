@@ -1,0 +1,5569 @@
+{
+  "generatedOn": "2026-10-24",
+  "scope": "Static source inventory for exhaustive non-production mock atlas. No functional certification.",
+  "root": "../../..",
+  "schemaVersion": 1,
+  "screenCount": 133,
+  "modes": {
+    "landscape-touch": {
+      "label": "Paysage · tactile",
+      "width": 844,
+      "height": 390,
+      "orientation": "landscape",
+      "input": "touch"
+    },
+    "landscape-controller": {
+      "label": "Paysage · manette",
+      "width": 844,
+      "height": 390,
+      "orientation": "landscape",
+      "input": "gamepad"
+    },
+    "portrait-touch": {
+      "label": "Portrait · tactile",
+      "width": 390,
+      "height": 844,
+      "orientation": "portrait",
+      "input": "touch"
+    },
+    "portrait-controller": {
+      "label": "Portrait · manette",
+      "width": 390,
+      "height": 844,
+      "orientation": "portrait",
+      "input": "gamepad"
+    },
+    "thor-dual": {
+      "label": "AYN Thor · deux écrans",
+      "width": 768,
+      "height": 432,
+      "secondaryWidth": 496,
+      "secondaryHeight": 432,
+      "orientation": "dual",
+      "input": "gamepad",
+      "physicalTop": [
+        1920,
+        1080
+      ],
+      "physicalBottom": [
+        1240,
+        1080
+      ],
+      "primaryDiagonalInches": 6,
+      "secondaryDiagonalInches": 3.92,
+      "source": "https://www.ayntec.com/products/ayn-thor",
+      "specSource": "https://ae-pic-a1.aliexpress-media.com/kf/S21d979b6c8d840ddaebfeb976094e0cfP.pdf"
+    }
+  },
+  "crossCuttingStates": [
+    "enabled",
+    "selected-focused",
+    "disabled-with-safe-reason",
+    "hidden-by-profile",
+    "busy-no-double-submit",
+    "empty",
+    "error-with-safe-message",
+    "long-text",
+    "system-text-scale",
+    "reduced-motion",
+    "high-contrast",
+    "safe-area",
+    "controller-disconnect",
+    "orientation-change",
+    "stale-snapshot-rejection",
+    "companion-detach"
+  ],
+  "knownGaps": [
+    "No autonomous load-slot picker surface found despite payload contract.",
+    "PC move-to-other-box action exists but no dedicated control found in PlayerPcOverlay.",
+    "Remote world services explicitly rejected on companion; second-screen services would be an extension.",
+    "Unknown Dex entries must hide identity/types/description/media.",
+    "No generic quest-detail screen proven; generic rows only.",
+    "New Game identity/starter prompts are authored optional scenes, not obligatory fixed wizard.",
+    "RestoreBackup/migrate labels exist but router dispatch does not implement them.",
+    "Battle payload does not guarantee all desired move power/accuracy/effectiveness detail; render only available facts.",
+    "PostBattle overlay is ordered messages and choices, not an evolution animation implementation.",
+    "Existing image fixtures may be tiny technical fixtures: visually inspect before use."
+  ],
+  "dualscreenSources": [
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/avelune_android/host_core/src/main/kotlin/com/yoahnl/avelune/host/DisplayTopology.kt",
+      "line": 3,
+      "symbol": "data class DisplayCapability"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/avelune_android/host_core/src/main/kotlin/com/yoahnl/avelune/host/RuntimeCompanion.kt",
+      "line": 5,
+      "symbol": "object RuntimeCompanionFocusPolicy"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/pokemap_hub/lib/embedding/avelune_gameplay_companion_app.dart",
+      "line": 253,
+      "symbol": "dispatchWorldService"
+    },
+    {
+      "path": "/Users/karim/Project/pokemonProject/apps/pokemap_hub/lib/embedding/avelune_gameplay_companion.dart",
+      "line": 10,
+      "symbol": "enum AveluneGameplayCompanionMode"
+    }
+  ],
+  "screens": [
+    {
+      "id": "startup.prepare",
+      "label": "Préparation du jeu",
+      "group": "startup",
+      "fields": [
+        "Identité projet",
+        "Étape localisée",
+        "Progression si connue"
+      ],
+      "actions": [
+        "Annuler / Retour si disponible"
+      ],
+      "states": [
+        "manifestAndIdentity",
+        "playerPreferences",
+        "saveDiscovery",
+        "initialMap",
+        "presentationProfile",
+        "splashBranding",
+        "introAndPoster",
+        "titleMenuAndMusic"
+      ],
+      "notes": "Étapes internes à localiser, ne pas afficher noms techniques bruts.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_runtime/lib/src/player/runtime_startup_models.dart",
+          "line": 54,
+          "symbol": "enum RuntimeStartupPreparationStage"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "startup.splash",
+      "label": "Signature Avelune",
+      "group": "startup",
+      "fields": [
+        "Logo",
+        "Signature",
+        "Animation eclipse"
+      ],
+      "actions": [
+        "Passer si autorisé"
+      ],
+      "states": [
+        "animating",
+        "reduced-motion",
+        "exiting"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_runtime_splash_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "startup.intro",
+      "label": "Introduction vidéo",
+      "group": "startup",
+      "fields": [
+        "Vidéo ou poster",
+        "Sous-titres si disponibles"
+      ],
+      "actions": [
+        "Passer",
+        "Continuer",
+        "Rejouer"
+      ],
+      "states": [
+        "loading",
+        "playing",
+        "poster",
+        "reduced-motion",
+        "media-failed",
+        "skippable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_intro_video_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "startup.title-prompt",
+      "label": "Appuyer pour commencer",
+      "group": "startup",
+      "fields": [
+        "Logo jeu",
+        "Fond image/vidéo",
+        "Invite localisée"
+      ],
+      "actions": [
+        "Commencer"
+      ],
+      "states": [
+        "idle",
+        "loading-background",
+        "poster-fallback"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_title_prompt_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "title.menu",
+      "label": "Écran titre",
+      "group": "startup",
+      "fields": [
+        "Titre",
+        "Auteur",
+        "Description optionnelle",
+        "Logo/fond",
+        "Résumé sauvegarde: lieu, date, temps de jeu"
+      ],
+      "actions": [
+        "Continuer",
+        "Nouvelle partie",
+        "Charger",
+        "Options",
+        "Crédits / À propos",
+        "Retour au Hub"
+      ],
+      "states": [
+        "save-present",
+        "no-save",
+        "unusable-save",
+        "configured-actions-hidden",
+        "action-disabled-with-reason"
+      ],
+      "notes": "Les labels, ordre et visibilité viennent du profil projet.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_title_surface.dart",
+          "line": 15,
+          "symbol": "enum PlayerTitleMenuAction"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "title.load-slot",
+      "label": "Choix de sauvegarde",
+      "group": "startup",
+      "fields": [
+        "Profil",
+        "Emplacement",
+        "Résumé de sauvegarde"
+      ],
+      "actions": [
+        "Charger",
+        "Retour"
+      ],
+      "states": [
+        "selected-slot",
+        "unavailable"
+      ],
+      "notes": "Payload de sélection disponible mais aucun écran multi-slots autonome trouvé; identifier explicitement cette maquette comme proposition.",
+      "support": "proposed-surface-existing-payload",
+      "sources": [
+        {
+          "path": "packages/map_runtime/lib/src/player/runtime_player_models.dart",
+          "line": 127,
+          "symbol": "final class RuntimePlayerLoadSlot"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "newgame.overwrite",
+      "label": "Remplacer la sauvegarde ?",
+      "group": "newgame",
+      "fields": [
+        "Résumé partie existante",
+        "Avertissement suppression/remplacement"
+      ],
+      "actions": [
+        "Oui",
+        "Non",
+        "Annuler"
+      ],
+      "states": [
+        "usable-save",
+        "unusable-save"
+      ],
+      "notes": "Confirmation existante avant transaction Nouvelle Partie.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_runtime/lib/src/player/runtime_player_coordinator.dart",
+          "line": 1163,
+          "symbol": "final overwrite = await interactions.request"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "newgame.name",
+      "label": "Choisir son nom",
+      "group": "newgame",
+      "fields": [
+        "Prompt auteur",
+        "Nom",
+        "Compteur de caractères",
+        "Limites"
+      ],
+      "actions": [
+        "Valider",
+        "Annuler si permis"
+      ],
+      "states": [
+        "empty",
+        "editing",
+        "invalid-too-short",
+        "invalid-too-long",
+        "submitting"
+      ],
+      "notes": "Scène pré-session auteur, pas étape obligatoire universelle.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_core/lib/src/models/scene_pre_session_interaction.dart",
+          "line": 5,
+          "symbol": "enum ScenePreSessionDraftField"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "newgame.avatar",
+      "label": "Choisir son personnage",
+      "group": "newgame",
+      "fields": [
+        "Prompt auteur",
+        "Options avatar",
+        "Sélection courante"
+      ],
+      "actions": [
+        "Sélectionner",
+        "Valider si selection",
+        "Retour/Annuler si permis"
+      ],
+      "states": [
+        "normal",
+        "option-disabled",
+        "selection-required"
+      ],
+      "notes": "Rendu actuel générique choice/selection; portraits en cartes seraient direction graphique, pas nouveau catalogue.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_core/lib/src/models/scene_pre_session_interaction.dart",
+          "line": 5,
+          "symbol": "enum ScenePreSessionDraftField"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "newgame.starter",
+      "label": "Choisir son premier compagnon",
+      "group": "newgame",
+      "fields": [
+        "Prompt auteur",
+        "Options starter",
+        "Sélection courante"
+      ],
+      "actions": [
+        "Sélectionner",
+        "Valider si selection",
+        "Retour/Annuler si permis"
+      ],
+      "states": [
+        "normal",
+        "option-disabled",
+        "selection-required"
+      ],
+      "notes": "Authoré et facultatif.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_core/lib/src/models/scene_pre_session_interaction.dart",
+          "line": 5,
+          "symbol": "enum ScenePreSessionDraftField"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.loading",
+      "label": "Chargement de la partie",
+      "group": "session",
+      "fields": [
+        "Titre/logo jeu",
+        "Étape",
+        "Progression connue ou indéterminée"
+      ],
+      "actions": [
+        "Annuler si autorisé"
+      ],
+      "states": [
+        "project",
+        "save",
+        "world",
+        "mount",
+        "resources",
+        "map",
+        "player",
+        "ready"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_world_loading_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.lifecycle-paused",
+      "label": "Session suspendue",
+      "group": "session",
+      "fields": [
+        "Session suspendue"
+      ],
+      "actions": [],
+      "states": [
+        "paused",
+        "resuming"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_surface_router.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.completing",
+      "label": "Validation de fin de partie",
+      "group": "session",
+      "fields": [
+        "Validation",
+        "Progression indéterminée"
+      ],
+      "actions": [],
+      "states": [
+        "validating",
+        "failure"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_surface_router.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.result",
+      "label": "Fin de partie",
+      "group": "session",
+      "fields": [
+        "Titre résultat",
+        "Résumé",
+        "Détails de complétion"
+      ],
+      "actions": [
+        "Voir les crédits"
+      ],
+      "states": [
+        "credits-available",
+        "credits-disabled"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_session_surfaces.dart",
+          "line": 89,
+          "symbol": "class PlayerResultSurface"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.credits",
+      "label": "Crédits",
+      "group": "session",
+      "fields": [
+        "Titre",
+        "Auteur",
+        "Texte de fin"
+      ],
+      "actions": [
+        "Retour au titre",
+        "Retour au Hub"
+      ],
+      "states": [
+        "one-return-route-disabled"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_session_surfaces.dart",
+          "line": 129,
+          "symbol": "class PlayerCreditsSurface"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.closing",
+      "label": "Fermeture de partie",
+      "group": "session",
+      "fields": [
+        "Fermeture / Retour au Hub"
+      ],
+      "actions": [],
+      "states": [
+        "disposingSession",
+        "externalExit"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_surface_router.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "session.error",
+      "label": "Impossible de poursuivre",
+      "group": "session",
+      "fields": [
+        "Message sûr",
+        "Recommandation",
+        "Code optionnel",
+        "Étape optionnelle"
+      ],
+      "actions": [
+        "Réessayer si récupérable",
+        "Fermer / Annuler si disponible",
+        "Retour au Hub si disponible",
+        "Diagnostics si host les fournit"
+      ],
+      "states": [
+        "retry",
+        "repair",
+        "titleOrHub",
+        "hubOnly"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_session_surfaces.dart",
+          "line": 181,
+          "symbol": "class PlayerErrorSurface"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "startup.error",
+      "label": "Échec de préparation",
+      "group": "startup",
+      "fields": [
+        "Message sûr",
+        "Option de relance"
+      ],
+      "actions": [
+        "Réessayer",
+        "Retour"
+      ],
+      "states": [
+        "recoverable-error"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_runtime_startup_shell.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "world.explore",
+      "label": "Exploration",
+      "group": "world",
+      "fields": [
+        "Monde",
+        "Joueur",
+        "Interaction disponible",
+        "Course autorisée",
+        "Menu"
+      ],
+      "actions": [
+        "Déplacement",
+        "Interagir",
+        "Menu",
+        "Course selon profil"
+      ],
+      "states": [
+        "idle",
+        "moving",
+        "running",
+        "interaction-available",
+        "input-locked",
+        "left-handed",
+        "controller-no-virtual-controls"
+      ],
+      "notes": "Les maquettes manette ne doivent pas conserver joystick virtuel.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_touch_controls.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "world.notification",
+      "label": "Notification",
+      "group": "world",
+      "fields": [
+        "Texte",
+        "Ton sémantique",
+        "Icône"
+      ],
+      "actions": [],
+      "states": [
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_notification_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "world.cinematic",
+      "label": "Scène de présentation",
+      "group": "world",
+      "fields": [
+        "Visuels/couches auteur",
+        "Texte/sous-titres",
+        "Vidéo/image",
+        "Orientation",
+        "Mode mouvement réduit"
+      ],
+      "actions": [
+        "Passer si autorisé"
+      ],
+      "states": [
+        "playing",
+        "captions",
+        "reduced-motion",
+        "reduced-flashes",
+        "skippable",
+        "unskippable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_presentation_frame_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "dialogue.line",
+      "label": "Dialogue",
+      "group": "dialogue",
+      "fields": [
+        "Nom locuteur optionnel",
+        "Portrait optionnel",
+        "Texte riche / icônes",
+        "Indicateur de suite"
+      ],
+      "actions": [
+        "Révéler le texte",
+        "Continuer / Terminer"
+      ],
+      "states": [
+        "typing",
+        "revealed",
+        "last-line",
+        "auto-after-reveal",
+        "without-portrait",
+        "with-portrait",
+        "advance-unavailable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_dialogue_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "dialogue.choices",
+      "label": "Choix de dialogue",
+      "group": "dialogue",
+      "fields": [
+        "Prompt",
+        "Options",
+        "Sélection"
+      ],
+      "actions": [
+        "Choisir",
+        "Valider"
+      ],
+      "states": [
+        "enabled",
+        "disabled-option",
+        "long-labels",
+        "scrolling"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_dialogue_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "interaction.message",
+      "label": "Message structuré",
+      "group": "interaction",
+      "fields": [
+        "Prompt",
+        "Locuteur optionnel"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "pending"
+      ],
+      "notes": "Même famille réutilisée monde et pré-session selon kind; entier réservé à transaction monde.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_scene_interaction_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "interaction.choice",
+      "label": "Choix structuré",
+      "group": "interaction",
+      "fields": [
+        "Prompt",
+        "Options nommées",
+        "Sélection"
+      ],
+      "actions": [
+        "Choisir",
+        "Annuler si permis"
+      ],
+      "states": [
+        "enabled",
+        "disabled-option",
+        "submitting"
+      ],
+      "notes": "Même famille réutilisée monde et pré-session selon kind; entier réservé à transaction monde.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_scene_interaction_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "interaction.confirmation",
+      "label": "Confirmation",
+      "group": "interaction",
+      "fields": [
+        "Question"
+      ],
+      "actions": [
+        "Oui",
+        "Non",
+        "Annuler si permis"
+      ],
+      "states": [
+        "enabled",
+        "submitting",
+        "disabled"
+      ],
+      "notes": "Même famille réutilisée monde et pré-session selon kind; entier réservé à transaction monde.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_scene_interaction_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "interaction.text",
+      "label": "Saisie de texte",
+      "group": "interaction",
+      "fields": [
+        "Prompt",
+        "Valeur",
+        "Compteur",
+        "Contraintes min/max graphèmes",
+        "Clavier système"
+      ],
+      "actions": [
+        "Valider",
+        "Annuler si permis"
+      ],
+      "states": [
+        "editing",
+        "keyboard-open",
+        "too-short",
+        "too-long",
+        "server-error"
+      ],
+      "notes": "Même famille réutilisée monde et pré-session selon kind; entier réservé à transaction monde.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_scene_interaction_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "interaction.selection",
+      "label": "Sélection simple ou multiple",
+      "group": "interaction",
+      "fields": [
+        "Prompt",
+        "Options",
+        "Cases cochées",
+        "Compte min/max"
+      ],
+      "actions": [
+        "Cocher / Décocher",
+        "Valider",
+        "Annuler si permis"
+      ],
+      "states": [
+        "normal",
+        "minimum-not-met",
+        "maximum-reached",
+        "disabled-option"
+      ],
+      "notes": "Même famille réutilisée monde et pré-session selon kind; entier réservé à transaction monde.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_scene_interaction_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "interaction.integer",
+      "label": "Saisie numérique",
+      "group": "interaction",
+      "fields": [
+        "Prompt",
+        "Nombre de chiffres",
+        "Minimum",
+        "Maximum",
+        "Valeur initiale"
+      ],
+      "actions": [
+        "Modifier chiffre / valeur",
+        "Valider",
+        "Annuler seulement si allowCancel"
+      ],
+      "states": [
+        "normal",
+        "out-of-range",
+        "cancel-forbidden",
+        "error"
+      ],
+      "notes": "Même famille réutilisée monde et pré-session selon kind; entier réservé à transaction monde.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_scene_interaction_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pause.root",
+      "label": "Pause",
+      "group": "pause",
+      "fields": [
+        "Titre",
+        "Lieu / profil résumé si configuré",
+        "Entrées configurables",
+        "Sauvegarde/retour"
+      ],
+      "actions": [
+        "Reprendre",
+        "Équipe",
+        "Sac",
+        "Pokédex",
+        "Journal",
+        "Contacts",
+        "Carte",
+        "Profil",
+        "Sauvegarder",
+        "Options",
+        "Retour au titre"
+      ],
+      "states": [
+        "root",
+        "entry-hidden",
+        "entry-disabled-with-reason",
+        "root-actions-only-companion"
+      ],
+      "notes": "Ne pas exposer PC/boutique partout. Les capacités et le profil contrôlent visibilité.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pause_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pause.unavailable",
+      "label": "Section indisponible",
+      "group": "pause",
+      "fields": [
+        "Nom section",
+        "Raison sûre"
+      ],
+      "actions": [
+        "Retour"
+      ],
+      "states": [
+        "capability-missing",
+        "progression-locked",
+        "content-missing"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_detail_router.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "party.list",
+      "label": "Équipe",
+      "group": "party",
+      "fields": [
+        "1 à 6 membres",
+        "Portrait",
+        "Nom/surnom",
+        "Niveau",
+        "Genre optionnel",
+        "PV actuels/max",
+        "Statut",
+        "Sélection"
+      ],
+      "actions": [
+        "Ouvrir détail",
+        "Résumé",
+        "Objet",
+        "Déplacer",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "empty",
+        "fainted-member",
+        "pending",
+        "command-error",
+        "six-members"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_party.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "party.detail",
+      "label": "Détail du membre",
+      "group": "party",
+      "fields": [
+        "Illustration",
+        "Identité",
+        "Types",
+        "Niveau",
+        "PV",
+        "Statistiques",
+        "Talent",
+        "Objet tenu",
+        "4 capacités et PP"
+      ],
+      "actions": [
+        "Résumé",
+        "Objet",
+        "Déplacer si autorisé",
+        "Retour à équipe"
+      ],
+      "states": [
+        "normal",
+        "fainted",
+        "status",
+        "missing-illustration",
+        "missing-pp"
+      ],
+      "notes": "Portrait utilise détail séparé; paysage maître-détail seulement si place suffisante.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_party_pokemon_detail.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "party.action-menu",
+      "label": "Actions du membre",
+      "group": "party",
+      "fields": [
+        "Membre sélectionné"
+      ],
+      "actions": [
+        "Voir fiche",
+        "Gérer objet tenu",
+        "Déplacer si au moins 2",
+        "Retour"
+      ],
+      "states": [
+        "modal",
+        "disabled-busy"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_party.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "party.reorder",
+      "label": "Déplacer un membre",
+      "group": "party",
+      "fields": [
+        "Source sélectionnée",
+        "Destination dans équipe",
+        "Indication permutation"
+      ],
+      "actions": [
+        "Choisir destination",
+        "Annuler"
+      ],
+      "states": [
+        "source",
+        "destination-selected",
+        "pending",
+        "error"
+      ],
+      "notes": "Ne pas ajouter glisser-déposer requis; clavier/manette doivent offrir mêmes opérations.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_party.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "party.held-item",
+      "label": "Objet tenu",
+      "group": "party",
+      "fields": [
+        "Objet actuel ou Aucun",
+        "Objets compatibles dans sac",
+        "Règle retour objet au sac"
+      ],
+      "actions": [
+        "Donner",
+        "Remplacer",
+        "Retirer",
+        "Fermer"
+      ],
+      "states": [
+        "no-held-item",
+        "held-item",
+        "no-compatible-bag-item",
+        "pending",
+        "error"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_party.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pokemon.summary",
+      "label": "Fiche complète",
+      "group": "pokemon",
+      "fields": [
+        "Espèce/surnom",
+        "Forme",
+        "Illustration",
+        "Niveau",
+        "PV",
+        "Statut",
+        "Chromatique",
+        "Genre",
+        "Types",
+        "Expérience",
+        "Nature",
+        "Talent",
+        "Objet",
+        "Amitié",
+        "Attaque/Défense/Atq.Spé/Déf.Spé/Vitesse",
+        "Capacités+PP",
+        "Origine",
+        "Lieu/source/niveau rencontre",
+        "Ball"
+      ],
+      "actions": [
+        "Fermer / Retour"
+      ],
+      "states": [
+        "party-context",
+        "pc-context",
+        "missing-optional-data",
+        "missing-media"
+      ],
+      "notes": "Fiche canonique équipe/PC; toute division en onglets est choix de présentation.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pokemon_summary_sheet.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.list",
+      "label": "Sac",
+      "group": "bag",
+      "fields": [
+        "Poches",
+        "Favoris",
+        "Nom objet",
+        "Quantité",
+        "Icône",
+        "Argent",
+        "Sélection"
+      ],
+      "actions": [
+        "Changer poche",
+        "Sélectionner objet",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "empty",
+        "empty-pocket",
+        "empty-favorites",
+        "long-list"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.detail",
+      "label": "Détail objet",
+      "group": "bag",
+      "fields": [
+        "Nom",
+        "Icône",
+        "Description",
+        "Quantité",
+        "Utilisabilité",
+        "Raison indisponible"
+      ],
+      "actions": [
+        "Utiliser si possible",
+        "Ajouter/Retirer favori si capacité",
+        "Retour"
+      ],
+      "states": [
+        "usable",
+        "unusable",
+        "world-only",
+        "battle-only",
+        "no-effect",
+        "pending",
+        "result-message",
+        "error"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.world-confirm",
+      "label": "Utiliser un objet terrain",
+      "group": "bag",
+      "fields": [
+        "Objet",
+        "Effet / demande confirmation"
+      ],
+      "actions": [
+        "Confirmer",
+        "Retour"
+      ],
+      "states": [
+        "enabled",
+        "disabled",
+        "pending"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.target-party",
+      "label": "Choisir une cible",
+      "group": "bag",
+      "fields": [
+        "Objet",
+        "Membres équipe",
+        "Éligibilité et raison par cible"
+      ],
+      "actions": [
+        "Choisir membre",
+        "Retour"
+      ],
+      "states": [
+        "eligible",
+        "ineligible",
+        "empty-party"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.target-move",
+      "label": "Choisir une capacité",
+      "group": "bag",
+      "fields": [
+        "Membre",
+        "Capacités",
+        "PP / sous-titre"
+      ],
+      "actions": [
+        "Choisir capacité",
+        "Retour"
+      ],
+      "states": [
+        "eligible",
+        "no-moves",
+        "no-effect"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.teach-replace",
+      "label": "Apprendre / remplacer une capacité",
+      "group": "bag",
+      "fields": [
+        "Nouvelle capacité",
+        "Membre",
+        "Capacités connues",
+        "Capacité à oublier"
+      ],
+      "actions": [
+        "Choisir capacité à remplacer si nécessaire",
+        "Confirmer",
+        "Retour"
+      ],
+      "states": [
+        "free-move-slot",
+        "replacement-required",
+        "incompatible-target"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "bag.confirm",
+      "label": "Confirmer utilisation",
+      "group": "bag",
+      "fields": [
+        "Objet",
+        "Cible",
+        "Capacité si nécessaire",
+        "Action localisée"
+      ],
+      "actions": [
+        "Confirmer",
+        "Retour"
+      ],
+      "states": [
+        "party-member",
+        "party-move",
+        "move-replacement",
+        "submitting"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_bag.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "dex.list",
+      "label": "Pokédex",
+      "group": "pokedex",
+      "fields": [
+        "Compteurs Vus/Capturés/Total",
+        "Recherche nom ou numéro",
+        "Filtres Tous/Vus/Capturés",
+        "Numéro",
+        "Nom ou ???",
+        "Statut"
+      ],
+      "actions": [
+        "Rechercher",
+        "Effacer",
+        "Filtrer",
+        "Sélectionner entrée",
+        "Retour"
+      ],
+      "states": [
+        "all",
+        "seen",
+        "caught",
+        "query",
+        "empty",
+        "no-results"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_pokedex.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "dex.detail",
+      "label": "Entrée du Pokédex",
+      "group": "pokedex",
+      "fields": [
+        "Numéro",
+        "Nom si connu",
+        "Statut",
+        "Illustration si connue",
+        "Types si connus",
+        "Description si disponible"
+      ],
+      "actions": [
+        "Retour à liste"
+      ],
+      "states": [
+        "unknown",
+        "seen",
+        "caught",
+        "missing-description",
+        "missing-image"
+      ],
+      "notes": "Unknown interdit identité, types, description et images privés au niveau modèle.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_pokedex.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "map.view",
+      "label": "Carte régionale",
+      "group": "map",
+      "fields": [
+        "Image carte",
+        "Région",
+        "Marqueurs",
+        "Position actuelle",
+        "Lieu sélectionné",
+        "État découvert/non découvert"
+      ],
+      "actions": [
+        "Panoramique",
+        "Zoom",
+        "Choisir lieu",
+        "Changer région",
+        "Infos",
+        "Retour"
+      ],
+      "states": [
+        "current",
+        "discovered",
+        "unknown",
+        "no-region",
+        "no-points",
+        "missing-background",
+        "selection-invalidated"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_region_map.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "map.regions",
+      "label": "Choisir une région",
+      "group": "map",
+      "fields": [
+        "Liste régions"
+      ],
+      "actions": [
+        "Choisir",
+        "Retour"
+      ],
+      "states": [
+        "one-region",
+        "multiple-regions"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_region_map.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "map.overlap",
+      "label": "Lieux superposés",
+      "group": "map",
+      "fields": [
+        "Liste lieux sous le même point"
+      ],
+      "actions": [
+        "Choisir lieu",
+        "Retour"
+      ],
+      "states": [
+        "overlap"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_region_map.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "map.location",
+      "label": "Informations du lieu",
+      "group": "map",
+      "fields": [
+        "Nom ou ???",
+        "Description si connue",
+        "Statut",
+        "Position"
+      ],
+      "actions": [
+        "Retour"
+      ],
+      "states": [
+        "current",
+        "discovered",
+        "unknown"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_region_map.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "map.travel-service",
+      "label": "Destination de voyage",
+      "group": "map",
+      "fields": [
+        "Carte",
+        "Lieu sélectionné",
+        "Message de disponibilité"
+      ],
+      "actions": [
+        "Sélectionner",
+        "Confirmer destination autorisée",
+        "Annuler/Fermer"
+      ],
+      "states": [
+        "selecting",
+        "unavailable",
+        "applying",
+        "failed"
+      ],
+      "notes": "Service ouvert par règle/interaction existante. La carte pause seule ne devient pas fast travel universel.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_regional_map_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "profile.card",
+      "label": "Carte de profil",
+      "group": "profile",
+      "fields": [
+        "Nom",
+        "Portrait/avatar",
+        "Lieu",
+        "Argent/devise",
+        "Temps jeu si connu",
+        "Pronoms",
+        "Badges acquis / total",
+        "Pokédex si actif"
+      ],
+      "actions": [
+        "Défiler",
+        "Retour"
+      ],
+      "states": [
+        "portrait-present",
+        "portrait-missing",
+        "no-badges",
+        "missing-playtime",
+        "pokedex-disabled"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_profile.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "quests.list",
+      "label": "Journal / quêtes",
+      "group": "quests",
+      "fields": [
+        "Titre",
+        "Entrées génériques: titre/sous-titre/trailing/progress",
+        "Message vide"
+      ],
+      "actions": [
+        "Défiler",
+        "Retour"
+      ],
+      "states": [
+        "entries",
+        "empty",
+        "unavailable"
+      ],
+      "notes": "Aucun système de fiche de quête dédiée n’est prouvé par le routeur; ne pas inventer objectifs interactifs.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_detail_router.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "contacts.list",
+      "label": "Contacts",
+      "group": "contacts",
+      "fields": [
+        "Nom contact",
+        "Portrait optionnel"
+      ],
+      "actions": [
+        "Appeler si autorisé",
+        "Retour"
+      ],
+      "states": [
+        "available",
+        "call-disabled",
+        "empty",
+        "unavailable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_detail_router.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "contacts.call",
+      "label": "Appel de contact",
+      "group": "contacts",
+      "fields": [
+        "Dialogue / scène auteur de l’appel",
+        "Nom et portrait si dialogue les fournit"
+      ],
+      "actions": [
+        "Actions dialogue existantes"
+      ],
+      "states": [
+        "available",
+        "unavailable"
+      ],
+      "notes": "Pas de dialer/téléphonie réseau; scène runtime déclenchée par callContact.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_runtime/lib/src/player/contact_device_pause.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.general",
+      "label": "Général",
+      "group": "options",
+      "fields": [
+        "Vitesse textes Lente/Normale/Rapide/Instantanée"
+      ],
+      "actions": [
+        "Modifier",
+        "Par défaut pour catégorie",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "saving",
+        "save-failed-keeps-confirmed",
+        "read-only"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.display",
+      "label": "Affichage",
+      "group": "options",
+      "fields": [
+        "Effets menu Complet/Réduit/Sans transparence"
+      ],
+      "actions": [
+        "Modifier",
+        "Par défaut pour catégorie",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "saving",
+        "save-failed-keeps-confirmed",
+        "read-only"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.audio",
+      "label": "Son",
+      "group": "options",
+      "fields": [
+        "Volume principal",
+        "Musique",
+        "Effets sonores",
+        "0 à 100 %, pas de 5 % aux flèches"
+      ],
+      "actions": [
+        "Modifier",
+        "Par défaut pour catégorie",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "saving",
+        "save-failed-keeps-confirmed",
+        "read-only"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.controls",
+      "label": "Commandes",
+      "group": "options",
+      "fields": [
+        "Course tactile: geste/marche seule/automatique si permis",
+        "Joystick tactile à droite",
+        "Aides commandes",
+        "Opacité tactile 30–100 %",
+        "Bindings clavier/manette/tactile"
+      ],
+      "actions": [
+        "Modifier",
+        "Par défaut pour catégorie",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "saving",
+        "save-failed-keeps-confirmed",
+        "read-only"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.language",
+      "label": "Langue",
+      "group": "options",
+      "fields": [
+        "Français",
+        "English",
+        "Ne modifie pas langue du contenu auteur"
+      ],
+      "actions": [
+        "Modifier",
+        "Par défaut pour catégorie",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "saving",
+        "save-failed-keeps-confirmed",
+        "read-only"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.accessibility",
+      "label": "Accessibilité",
+      "group": "options",
+      "fields": [
+        "Taille texte 0.8–1.6",
+        "Réduire animations",
+        "Renforcer contraste",
+        "Vibrations seulement plateforme compatible"
+      ],
+      "actions": [
+        "Modifier",
+        "Par défaut pour catégorie",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "saving",
+        "save-failed-keeps-confirmed",
+        "read-only"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.categories",
+      "label": "Catégories des options",
+      "group": "options",
+      "fields": [
+        "Général",
+        "Affichage",
+        "Son",
+        "Commandes",
+        "Langue",
+        "Accessibilité"
+      ],
+      "actions": [
+        "Ouvrir catégorie",
+        "Retour au titre si fourni",
+        "Retour"
+      ],
+      "states": [
+        "compact-categories",
+        "expanded-sidebar"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.choice",
+      "label": "Choisir une valeur",
+      "group": "options",
+      "fields": [
+        "Libellé réglage",
+        "Valeurs possibles",
+        "Valeur courante"
+      ],
+      "actions": [
+        "Choisir",
+        "Retour"
+      ],
+      "states": [
+        "text-speed",
+        "menu-effects",
+        "language",
+        "touch-run-mode"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.reset",
+      "label": "Rétablir une catégorie ?",
+      "group": "options",
+      "fields": [
+        "Catégorie",
+        "Effets du reset explicites"
+      ],
+      "actions": [
+        "Rétablir",
+        "Annuler"
+      ],
+      "states": [
+        "general",
+        "display",
+        "audio",
+        "controls",
+        "language",
+        "accessibility"
+      ],
+      "notes": "Reset catégorie Commandes conserve bindings; reset périphérique séparé.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "options.bindings",
+      "label": "Réaffecter une commande",
+      "group": "options",
+      "fields": [
+        "Périphérique",
+        "Action logique",
+        "Binding actuel",
+        "Inputs disponibles"
+      ],
+      "actions": [
+        "Sélectionner entrée",
+        "Réinitialiser périphérique",
+        "Retour"
+      ],
+      "states": [
+        "keyboard",
+        "controller",
+        "touch-swap-ab",
+        "conflict-rejected",
+        "pending",
+        "failure"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/runtime_player_options.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.confirm",
+      "label": "Sauvegarder la partie ?",
+      "group": "save",
+      "fields": [
+        "Nom joueur",
+        "Lieu",
+        "Temps jeu",
+        "Dernière sauvegarde si connue",
+        "Destination profil/emplacement"
+      ],
+      "actions": [
+        "Sauvegarder",
+        "Annuler"
+      ],
+      "states": [
+        "normal",
+        "save-unavailable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_dialog.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.progress",
+      "label": "Sauvegarde en cours",
+      "group": "save",
+      "fields": [
+        "Progression indéterminée",
+        "Message en cours"
+      ],
+      "actions": [],
+      "states": [
+        "saving",
+        "exit-after-save"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_dialog.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.success",
+      "label": "Partie sauvegardée",
+      "group": "save",
+      "fields": [
+        "Confirmation",
+        "Reçu runtime"
+      ],
+      "actions": [
+        "Retour"
+      ],
+      "states": [
+        "saved"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_dialog.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.failure",
+      "label": "Sauvegarde impossible",
+      "group": "save",
+      "fields": [
+        "Message sûr",
+        "Dernier état sauvegarde"
+      ],
+      "actions": [
+        "Réessayer",
+        "Retour"
+      ],
+      "states": [
+        "disk-error",
+        "missing-receipt",
+        "unexpected-failure"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_dialog.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.exit",
+      "label": "Revenir au titre ?",
+      "group": "save",
+      "fields": [
+        "Avertissement progression non sauvegardée"
+      ],
+      "actions": [
+        "Sauvegarder et quitter",
+        "Quitter sans sauvegarder si permis",
+        "Rester"
+      ],
+      "states": [
+        "confirm",
+        "saving",
+        "exiting",
+        "exit-failed",
+        "discard-unavailable",
+        "save-and-exit-unavailable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_dialog.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.recovery",
+      "label": "Sauvegarde inutilisable",
+      "group": "save",
+      "fields": [
+        "Cause sûre",
+        "Versions détectée/attendue si disponibles",
+        "Actions diagnostic"
+      ],
+      "actions": [
+        "Réessayer si déclaré",
+        "Supprimer si déclaré",
+        "Retour si déclaré"
+      ],
+      "states": [
+        "unreadable",
+        "unsupportedSchema",
+        "invalidState"
+      ],
+      "notes": "Labels restoreBackup/migrate existent mais routeur ne les exécute pas: ne pas inventer migration/restauration active.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_recovery_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "save.delete-confirm",
+      "label": "Supprimer définitivement ?",
+      "group": "save",
+      "fields": [
+        "Avertissement irréversibilité"
+      ],
+      "actions": [
+        "Supprimer définitivement",
+        "Annuler"
+      ],
+      "states": [
+        "confirm"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_save_recovery_surface.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "shop.buy",
+      "label": "Boutique — Acheter",
+      "group": "service",
+      "fields": [
+        "Titre/message",
+        "Argent",
+        "Objets",
+        "Prix unitaire",
+        "Stock restant",
+        "Quantité possédée"
+      ],
+      "actions": [
+        "Choisir objet",
+        "Acheter/Vendre",
+        "Fermer"
+      ],
+      "states": [
+        "normal",
+        "out-of-stock",
+        "unavailable-item",
+        "empty"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_shop_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "shop.sell",
+      "label": "Boutique — Vendre",
+      "group": "service",
+      "fields": [
+        "Argent",
+        "Objets vendables",
+        "Prix revente",
+        "Quantité possédée"
+      ],
+      "actions": [
+        "Choisir objet",
+        "Acheter/Vendre",
+        "Fermer"
+      ],
+      "states": [
+        "normal",
+        "no-sellable-item",
+        "unsellable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_shop_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "shop.quantity",
+      "label": "Quantité et transaction",
+      "group": "service",
+      "fields": [
+        "Objet sélectionné",
+        "Prix unitaire",
+        "Quantité",
+        "Total",
+        "Argent"
+      ],
+      "actions": [
+        "Diminuer",
+        "Augmenter",
+        "Confirmer achat/vente",
+        "Annuler/Fermer"
+      ],
+      "states": [
+        "normal",
+        "insufficient-funds",
+        "stock-limit",
+        "inventory-limit",
+        "applying",
+        "completed",
+        "failed"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_shop_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "heal.confirm",
+      "label": "Soigner l’équipe ?",
+      "group": "service",
+      "fields": [
+        "Message",
+        "Membres",
+        "PV",
+        "Statut",
+        "Nombre capacités PP épuisés"
+      ],
+      "actions": [
+        "Soigner équipe",
+        "Annuler"
+      ],
+      "states": [
+        "needs-heal",
+        "already-healthy",
+        "empty",
+        "unavailable"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_heal_confirmation.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "heal.applying",
+      "label": "Soin de l’équipe",
+      "group": "service",
+      "fields": [
+        "Progression ou animation machine monde",
+        "Nombre de membres"
+      ],
+      "actions": [],
+      "states": [
+        "applying",
+        "world-healing-display"
+      ],
+      "notes": "Pendant display machine monde, le panneau peut s’effacer au profit animation de l’entité.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_heal_confirmation.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "heal.result",
+      "label": "Équipe soignée",
+      "group": "service",
+      "fields": [
+        "Message",
+        "Équipe et PV restaurés"
+      ],
+      "actions": [
+        "Retour au jeu",
+        "Réessayer si échec",
+        "Annuler/Fermer"
+      ],
+      "states": [
+        "completed",
+        "failed"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_heal_confirmation.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pc.box",
+      "label": "Stockage PC",
+      "group": "service",
+      "fields": [
+        "Titre/message",
+        "Sélecteur box et compte/capacité",
+        "Équipe",
+        "Créatures stockées",
+        "Noms/niveaux",
+        "Disponibilité transfert"
+      ],
+      "actions": [
+        "Choisir box",
+        "Déposer",
+        "Retirer",
+        "Échanger",
+        "Voir résumé",
+        "Fermer"
+      ],
+      "states": [
+        "normal",
+        "empty-box",
+        "full-box",
+        "full-party",
+        "last-usable-protected",
+        "applying",
+        "failed"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pc_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pc.swap",
+      "label": "Échanger équipe / box",
+      "group": "service",
+      "fields": [
+        "Créature box",
+        "Candidats équipe"
+      ],
+      "actions": [
+        "Choisir partenaire échange",
+        "Annuler"
+      ],
+      "states": [
+        "enabled",
+        "disabled-candidate"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pc_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pc.summary",
+      "label": "Fiche depuis PC",
+      "group": "service",
+      "fields": [
+        "Fiche canonique si résolue",
+        "Fallback champs bruts sinon"
+      ],
+      "actions": [
+        "Fermer"
+      ],
+      "states": [
+        "canonical-summary",
+        "catalog-missing-fallback"
+      ],
+      "notes": "",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pc_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "pc.move-box",
+      "label": "Déplacer vers une autre box",
+      "group": "service",
+      "fields": [
+        "Créature",
+        "Box destination",
+        "Capacité"
+      ],
+      "actions": [
+        "Choisir destination",
+        "Déplacer",
+        "Annuler"
+      ],
+      "states": [
+        "normal",
+        "box-full",
+        "applying",
+        "failed"
+      ],
+      "notes": "Action modèle RuntimeWorldServiceAction.move existe; contrôle dédié non trouvé dans PlayerPcOverlay. À identifier comme proposition de surface.",
+      "support": "proposed-surface-existing-action",
+      "sources": [
+        {
+          "path": "packages/map_runtime/lib/src/player/runtime_world_service_models.dart",
+          "line": 184,
+          "symbol": "enum RuntimeWorldServiceAction"
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "gift.received",
+      "label": "Vous recevez un compagnon !",
+      "group": "gift",
+      "fields": [
+        "Espèce",
+        "Annonce"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "submitting",
+        "failed"
+      ],
+      "notes": "Étapes facultatives selon projection runtime; ne pas imposer l’entrée Dex si non pertinente.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pokemon_gift_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "gift.pokedex",
+      "label": "Nouvelle entrée au Pokédex",
+      "group": "gift",
+      "fields": [
+        "Entrée et description"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "submitting",
+        "failed"
+      ],
+      "notes": "Étapes facultatives selon projection runtime; ne pas imposer l’entrée Dex si non pertinente.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pokemon_gift_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "gift.nickname-confirm",
+      "label": "Donner un surnom ?",
+      "group": "gift",
+      "fields": [
+        "Espèce"
+      ],
+      "actions": [
+        "Oui",
+        "Non"
+      ],
+      "states": [
+        "active",
+        "submitting",
+        "failed"
+      ],
+      "notes": "Étapes facultatives selon projection runtime; ne pas imposer l’entrée Dex si non pertinente.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pokemon_gift_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "gift.nickname",
+      "label": "Choisir un surnom",
+      "group": "gift",
+      "fields": [
+        "Texte",
+        "Contraintes",
+        "Compteur"
+      ],
+      "actions": [
+        "Valider",
+        "Annuler si permis"
+      ],
+      "states": [
+        "active",
+        "submitting",
+        "failed"
+      ],
+      "notes": "Étapes facultatives selon projection runtime; ne pas imposer l’entrée Dex si non pertinente.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pokemon_gift_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "gift.destination",
+      "label": "Destination du compagnon",
+      "group": "gift",
+      "fields": [
+        "Nom/surnom",
+        "Équipe ou PC"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "submitting",
+        "failed"
+      ],
+      "notes": "Étapes facultatives selon projection runtime; ne pas imposer l’entrée Dex si non pertinente.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_pokemon_gift_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "trade.select-first",
+      "label": "Choisir un Pokémon à échanger",
+      "group": "trade",
+      "fields": [
+        "Membres, nom/niveau"
+      ],
+      "actions": [
+        "Choisir",
+        "Annuler"
+      ],
+      "states": [
+        "active",
+        "applying",
+        "failed"
+      ],
+      "notes": "Échange local d’équipe; ne pas représenter réseau/online.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_party_trade_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "trade.choose-partner",
+      "label": "Choisir son partenaire",
+      "group": "trade",
+      "fields": [
+        "Premier membre"
+      ],
+      "actions": [
+        "Même partenaire / soi selon contrat",
+        "Choisir autre membre",
+        "Annuler"
+      ],
+      "states": [
+        "active",
+        "applying",
+        "failed"
+      ],
+      "notes": "Échange local d’équipe; ne pas représenter réseau/online.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_party_trade_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "trade.select-partner",
+      "label": "Choisir le second membre",
+      "group": "trade",
+      "fields": [
+        "Autres membres"
+      ],
+      "actions": [
+        "Choisir",
+        "Annuler"
+      ],
+      "states": [
+        "active",
+        "applying",
+        "failed"
+      ],
+      "notes": "Échange local d’équipe; ne pas représenter réseau/online.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_party_trade_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "trade.review",
+      "label": "Confirmer l’échange",
+      "group": "trade",
+      "fields": [
+        "Deux membres"
+      ],
+      "actions": [
+        "Confirmer",
+        "Annuler"
+      ],
+      "states": [
+        "active",
+        "applying",
+        "failed"
+      ],
+      "notes": "Échange local d’équipe; ne pas représenter réseau/online.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_party_trade_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "trade.result",
+      "label": "Échange terminé",
+      "group": "trade",
+      "fields": [
+        "Message"
+      ],
+      "actions": [
+        "Fermer"
+      ],
+      "states": [
+        "active",
+        "applying",
+        "failed"
+      ],
+      "notes": "Échange local d’équipe; ne pas représenter réseau/online.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_party_trade_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.intro",
+      "label": "Entrée en combat",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt"
+      ],
+      "actions": [
+        "Continuer si disponible"
+      ],
+      "states": [
+        "trainer",
+        "wild",
+        "transition",
+        "hud-not-yet-revealed"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.root",
+      "label": "Que faire ?",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Actions racine"
+      ],
+      "actions": [
+        "Attaquer",
+        "Sac",
+        "Équipe",
+        "Fuite"
+      ],
+      "states": [
+        "normal",
+        "run-forbidden",
+        "bag-unavailable",
+        "commands-disabled-while-turn"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.fight",
+      "label": "Choisir une capacité",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "4 capacités",
+        "PP",
+        "Type",
+        "Catégorie / détails disponibles"
+      ],
+      "actions": [
+        "Choisir capacité",
+        "Retour"
+      ],
+      "states": [
+        "normal",
+        "no-pp",
+        "disabled",
+        "struggle-if-projected",
+        "multiple-valid-targets"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock. Une seule cible valide : action directe. Plusieurs choix valides : ouvrir le ciblage. Les données de cibles du prototype sont illustratives.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.target",
+      "label": "Choisir une cible",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Cibles valides",
+        "Sélection de case/combatant"
+      ],
+      "actions": [
+        "Choisir cible",
+        "Retour"
+      ],
+      "states": [
+        "multiple-valid-targets",
+        "disabled-target"
+      ],
+      "notes": "Écran présenté uniquement si la capacité offre plusieurs choix de cible valides. Une cible unique, soi-même ou un groupe imposé ne demande pas de confirmation supplémentaire. Données de démonstration ; le contrat moteur reste l’autorité.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.bag",
+      "label": "Sac en combat",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Objets projetés",
+        "Quantités",
+        "Catégorie",
+        "Icônes"
+      ],
+      "actions": [
+        "Choisir objet",
+        "Retour"
+      ],
+      "states": [
+        "balls",
+        "medicine",
+        "item-disabled",
+        "empty"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.medicine-target",
+      "label": "Cible de médicament",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Équipe",
+        "PV/statut",
+        "Éligibilité"
+      ],
+      "actions": [
+        "Choisir membre",
+        "Retour"
+      ],
+      "states": [
+        "eligible",
+        "fainted",
+        "no-effect",
+        "ineligible"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.medicine-move",
+      "label": "Cible de récupération PP",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Membre",
+        "Capacités et PP"
+      ],
+      "actions": [
+        "Choisir capacité",
+        "Retour"
+      ],
+      "states": [
+        "eligible",
+        "full-pp-disabled"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.party",
+      "label": "Changer de combattant",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Équipe",
+        "Niveaux/PV/statut",
+        "Membre actif"
+      ],
+      "actions": [
+        "Choisir membre",
+        "Retour si permis"
+      ],
+      "states": [
+        "current-active-disabled",
+        "fainted-disabled",
+        "trapped-if-runtime"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.forced-replacement",
+      "label": "Choisir un remplaçant",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Membres utilisables",
+        "Raison remplacement"
+      ],
+      "actions": [
+        "Choisir remplaçant"
+      ],
+      "states": [
+        "forcedReplacement",
+        "no-back",
+        "unusable-disabled"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.turn",
+      "label": "Résolution du tour",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Journal/message attaque/statut/dégâts"
+      ],
+      "actions": [
+        "Continuer seulement si projeté"
+      ],
+      "states": [
+        "presentingTurn",
+        "animation",
+        "hp-tween",
+        "xp-tween",
+        "all-commands-disabled"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.continue",
+      "label": "Message de combat",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Texte courant"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "continueOnly"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "battle.decision",
+      "label": "Décision progression en combat",
+      "group": "battle",
+      "fields": [
+        "Décor/sprites combat",
+        "HUD adversaire: nom/niveau/statut/PV",
+        "HUD joueur: nom/niveau/PV chiffrés/statut/XP",
+        "Prompt",
+        "Choix décision non remappés en commandes racine"
+      ],
+      "actions": [
+        "Choisir décision"
+      ],
+      "states": [
+        "decision",
+        "move-learning",
+        "evolution"
+      ],
+      "notes": "Autorité métier et sélection issues de BattleCommandOverlaySnapshot, jamais déduites du mock.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.victory",
+      "label": "Victoire",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.defeat",
+      "label": "Défaite",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.fled",
+      "label": "Fuite",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.captured",
+      "label": "Capture réussie",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.experience",
+      "label": "Expérience gagnée",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.levelUp",
+      "label": "Niveau supérieur",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.moveAutomaticallyLearned",
+      "label": "Capacité apprise automatiquement",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.moveLearningPrompt",
+      "label": "Apprendre une capacité ?",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Choisir décision parmi options runtime"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.moveReplacementPrompt",
+      "label": "Quelle capacité oublier ?",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Choisir décision parmi options runtime"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.moveLearned",
+      "label": "Capacité apprise",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.moveReplaced",
+      "label": "Capacité remplacée",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.moveDeclined",
+      "label": "Apprentissage refusé",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.evolutionPrompt",
+      "label": "Faire évoluer ?",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Choisir décision parmi options runtime"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.evolutionAccepted",
+      "label": "Évolution acceptée",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.evolutionRefused",
+      "label": "Évolution refusée",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.money",
+      "label": "Argent obtenu",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.item",
+      "label": "Objet obtenu",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.flag",
+      "label": "Progression histoire",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.badge",
+      "label": "Badge obtenu",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.fieldAbility",
+      "label": "Capacité terrain débloquée",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.trainerDefeated",
+      "label": "Dresseur battu",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.captureDestination",
+      "label": "Destination de capture",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "active",
+        "completed"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "postbattle.error",
+      "label": "Erreur de progression",
+      "group": "postbattle",
+      "fields": [
+        "Message runtime",
+        "Index/total progression",
+        "Avancement",
+        "Choix et sélection si décision"
+      ],
+      "actions": [
+        "Continuer"
+      ],
+      "states": [
+        "pending",
+        "completed",
+        "hasFailure"
+      ],
+      "notes": "Ne pas simuler animation évolution, comparaison stat avant/après ou nouvelle fiche si payload ne les fournit pas.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "packages/map_player_ui/lib/src/player/player_post_battle_overlay.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "companion.waiting",
+      "label": "Écran compagnon en attente",
+      "group": "companion",
+      "fields": [
+        "Écran secondaire sans données exploitables"
+      ],
+      "actions": [],
+      "states": [
+        "waiting",
+        "presentation-loading",
+        "not-attached"
+      ],
+      "notes": "Actuel: surface vide. Cible peut proposer un état discret explicite.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "apps/pokemap_hub/lib/embedding/avelune_gameplay_companion_app.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "companion.blocked",
+      "label": "Compagnon indisponible",
+      "group": "companion",
+      "fields": [
+        "Contexte contrôlé écran principal"
+      ],
+      "actions": [],
+      "states": [
+        "blocked",
+        "world-service-on-owner",
+        "remote-busy"
+      ],
+      "notes": "Actuel: surface vide; monde-services explicitement refusés côté remote.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "apps/pokemap_hub/lib/embedding/avelune_gameplay_companion_app.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "companion.menu",
+      "label": "Menu sur écran compagnon",
+      "group": "companion",
+      "fields": [
+        "PokeMapPlayerSessionView sans monde",
+        "Actions pause",
+        "Détails menu"
+      ],
+      "actions": [
+        "Actions du Player avec révision",
+        "Retour",
+        "Favoris",
+        "Bindings"
+      ],
+      "states": [
+        "menu",
+        "busy",
+        "detached"
+      ],
+      "notes": "pauseRootActionsOnly:true, contrôles virtuels:false; commande pause propriétaire avant action.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "apps/pokemap_hub/lib/embedding/avelune_gameplay_companion_app.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "companion.battle",
+      "label": "Commandes combat sur écran compagnon",
+      "group": "companion",
+      "fields": [
+        "Panneau commandes uniquement"
+      ],
+      "actions": [
+        "Choisir entrée",
+        "Retour si mode autorise"
+      ],
+      "states": [
+        "battle",
+        "busy",
+        "detached"
+      ],
+      "notes": "PlayerBattleDisplay.commandsOnly; sprites/HUD monde restent sur principale.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "apps/pokemap_hub/lib/embedding/avelune_gameplay_companion_app.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "host.project-loader",
+      "label": "Sélection du projet — outil host",
+      "group": "host",
+      "fields": [
+        "Chemin projet",
+        "Carte disponible",
+        "État chargement",
+        "Erreur sûre"
+      ],
+      "actions": [
+        "Parcourir",
+        "Choisir carte",
+        "Lancer"
+      ],
+      "states": [
+        "empty",
+        "loaded",
+        "loading",
+        "error"
+      ],
+      "notes": "Écran développeur host, pas menu du jeu distribué; inventorier séparément.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "examples/playable_runtime_host/lib/main.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    },
+    {
+      "id": "host.legacy-menu",
+      "label": "Menu de secours host",
+      "group": "host",
+      "fields": [
+        "Pokédex/équipe/sac/profil/save/options/carte"
+      ],
+      "actions": [
+        "Naviguer",
+        "Sauvegarder",
+        "Charger",
+        "Quitter",
+        "Fermer"
+      ],
+      "states": [
+        "legacy-fallback"
+      ],
+      "notes": "Chemin utilisé seulement si nouveau contrôleur absent; ne pas lui créer une direction produit séparée.",
+      "support": "existing",
+      "sources": [
+        {
+          "path": "examples/playable_runtime_host/lib/src/in_game_menu.dart",
+          "line": 1,
+          "symbol": null
+        }
+      ],
+      "modes": [
+        "landscape-touch",
+        "landscape-controller",
+        "portrait-touch",
+        "portrait-controller",
+        "thor-dual"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "world",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3/assets/maps/vermeil-village-stage.png",
+      "role": "scène monde",
+      "qualification": "fixture-local-visually-inspect-before-use",
+      "pixelSize": [
+        1672,
+        941
+      ]
+    },
+    {
+      "id": "battle-bg",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3/assets/battle/battle-clearing.png",
+      "role": "décor combat",
+      "qualification": "fixture-local-visually-inspect-before-use",
+      "pixelSize": [
+        1672,
+        941
+      ]
+    },
+    {
+      "id": "hero",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3/assets/presentation/hero.png",
+      "role": "fond titre/menu",
+      "qualification": "fixture-local-visually-inspect-before-use",
+      "pixelSize": [
+        1672,
+        941
+      ]
+    },
+    {
+      "id": "logo",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3/assets/presentation/icon.png",
+      "role": "icône projet",
+      "qualification": "fixture-local-visually-inspect-before-use",
+      "pixelSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "id": "portrait",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3/assets/characters/leo-happy.png",
+      "role": "portrait dialogue",
+      "qualification": "fixture-local-visually-inspect-before-use",
+      "pixelSize": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "id": "intro-poster",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_personalization_v3/assets/presentation/intro/poster.png",
+      "role": "poster intro",
+      "qualification": "fixture-local-visually-inspect-before-use",
+      "pixelSize": [
+        1672,
+        941
+      ]
+    },
+    {
+      "id": "region-map",
+      "path": "/Users/karim/Project/pokemonProject/examples/playable_runtime_host/dev/fixtures/menu9/train-region-draft.png",
+      "role": "carte régionale",
+      "qualification": "existing-draft-inspect-before-use",
+      "pixelSize": [
+        1473,
+        1068
+      ]
+    },
+    {
+      "id": "pokedex-pokefront-0001",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokefront/0001.png",
+      "role": "sprite face",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeback-0001",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeback/0001.png",
+      "role": "sprite dos",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeicon-0001",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeicon/0001.png",
+      "role": "miniature équipe",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        64,
+        32
+      ]
+    },
+    {
+      "id": "pokedex-pokefront-0004",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokefront/0004.png",
+      "role": "sprite face",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeback-0004",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeback/0004.png",
+      "role": "sprite dos",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeicon-0004",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeicon/0004.png",
+      "role": "miniature équipe",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        64,
+        32
+      ]
+    },
+    {
+      "id": "pokedex-pokefront-0007",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokefront/0007.png",
+      "role": "sprite face",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeback-0007",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeback/0007.png",
+      "role": "sprite dos",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeicon-0007",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeicon/0007.png",
+      "role": "miniature équipe",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        64,
+        32
+      ]
+    },
+    {
+      "id": "pokedex-pokefront-0025",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokefront/0025.png",
+      "role": "sprite face",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeback-0025",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeback/0025.png",
+      "role": "sprite dos",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeicon-0025",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeicon/0025.png",
+      "role": "miniature équipe",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        64,
+        32
+      ]
+    },
+    {
+      "id": "pokedex-pokefront-0448",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokefront/0448.png",
+      "role": "sprite face",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeback-0448",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeback/0448.png",
+      "role": "sprite dos",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        96,
+        96
+      ]
+    },
+    {
+      "id": "pokedex-pokeicon-0448",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/pokedex/pokeicon/0448.png",
+      "role": "miniature équipe",
+      "qualification": "local-reference-only-no-production-import-in-this-task",
+      "pixelSize": [
+        64,
+        32
+      ]
+    },
+    {
+      "id": "item-001",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/icons/001.png",
+      "role": "icône ball — identifier visuellement",
+      "qualification": "local-reference-only",
+      "pixelSize": [
+        32,
+        32
+      ]
+    },
+    {
+      "id": "item-004",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/icons/004.png",
+      "role": "icône ball — identifier visuellement",
+      "qualification": "local-reference-only",
+      "pixelSize": [
+        32,
+        32
+      ]
+    },
+    {
+      "id": "item-017",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/icons/017.png",
+      "role": "icône Potion visuellement vérifiée",
+      "qualification": "local-reference-only",
+      "pixelSize": [
+        32,
+        32
+      ]
+    },
+    {
+      "id": "region-map-psdk",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/interface/worldmap/worldmaps/world_map.png",
+      "role": "carte régionale",
+      "qualification": "local-reference-only",
+      "pixelSize": [
+        256,
+        168
+      ]
+    },
+    {
+      "id": "back-grass",
+      "path": "/Users/karim/Project/pokemonProject autre dossiers/pokémon_sdk_test_project/graphics/battlebacks/back_grass.png",
+      "role": "décor arrière combat",
+      "qualification": "local-reference-only",
+      "pixelSize": [
+        320,
+        240
+      ]
+    },
+    {
+      "id": "font-body",
+      "path": "/Users/karim/Project/pokemonProject/packages/map_player_ui/assets/fonts/DMSans-Variable.ttf",
+      "role": "typographie UI",
+      "qualification": "local-existing"
+    },
+    {
+      "id": "font-display",
+      "path": "/Users/karim/Project/pokemonProject/packages/map_player_ui/assets/fonts/Marcellus-Regular.ttf",
+      "role": "typographie titres",
+      "qualification": "local-existing"
+    }
+  ],
+  "design": {
+    "status": "TO REVIEW",
+    "date": "2026-10-24",
+    "palette": {
+      "background": "#07121D",
+      "base": "#0D1D2B",
+      "surface": "#132A3D",
+      "text": "#F4F7FC",
+      "secondary": "#B9C9D9",
+      "selection": "#A3D8FF"
+    },
+    "type": {
+      "body": 16,
+      "title": 24,
+      "secondary": 13,
+      "largeTextScale": 1.5
+    },
+    "targetSize": 48,
+    "safeAreaPhonePortrait": [
+      32,
+      0,
+      24,
+      0
+    ],
+    "safeAreaPhoneLandscape": [
+      12,
+      44,
+      20,
+      44
+    ],
+    "limits": [
+      "UI design target, not runtime implementation",
+      "No physical device validation",
+      "Data and capabilities shown are demonstrative",
+      "All dualscreen service routing beyond menu/battle is proposed extension"
+    ],
+    "assets": []
+  },
+  "stateLabels": {
+    "accessibility": "Accessibilité",
+    "action-disabled-with-reason": "Action indisponible, motif affiché",
+    "active": "Étape en cours",
+    "advance-unavailable": "Suite indisponible",
+    "all": "Toutes les espèces",
+    "all-commands-disabled": "Toutes les commandes suspendues",
+    "already-healthy": "Équipe déjà en pleine forme",
+    "animating": "Animation en cours",
+    "animation": "Animation de combat",
+    "applying": "Action en cours",
+    "audio": "Audio",
+    "auto-after-reveal": "Avance automatique après lecture",
+    "available": "Disponible",
+    "bag-unavailable": "Sac indisponible",
+    "balls": "Objets de capture",
+    "battle": "Commandes de combat",
+    "battle-only": "Utilisable en combat",
+    "blocked": "Interaction bloquée",
+    "box-full": "Boîte de destination pleine",
+    "busy": "Opération en cours",
+    "call-disabled": "Appel indisponible",
+    "cancel-forbidden": "Annulation impossible",
+    "canonical-summary": "Fiche complète",
+    "capability-missing": "Fonction non disponible dans ce jeu",
+    "captions": "Sous-titres",
+    "catalog-missing-fallback": "Fiche réduite, catalogue absent",
+    "caught": "Espèce capturée",
+    "command-error": "Échec de la commande",
+    "commands-disabled-while-turn": "Commandes suspendues pendant le tour",
+    "compact-categories": "Catégories compactes",
+    "completed": "Étape terminée",
+    "configured-actions-hidden": "Actions masquées par le jeu",
+    "confirm": "Confirmation attendue",
+    "conflict-rejected": "Attribution refusée : conflit",
+    "content-missing": "Contenu indisponible",
+    "continueOnly": "Continuer uniquement",
+    "controller": "Manette",
+    "controller-no-virtual-controls": "Manette, commandes tactiles masquées",
+    "controls": "Commandes",
+    "credits-available": "Générique disponible",
+    "credits-disabled": "Générique indisponible",
+    "current": "Position actuelle",
+    "current-active-disabled": "Créature déjà au combat",
+    "decision": "Décision attendue",
+    "destination-selected": "Destination choisie",
+    "detached": "Écran compagnon déconnecté",
+    "disabled": "Action désactivée",
+    "disabled-busy": "Action suspendue pendant le traitement",
+    "disabled-candidate": "Candidat indisponible",
+    "disabled-option": "Option indisponible",
+    "disabled-target": "Cible indisponible",
+    "discard-unavailable": "Quitter sans sauvegarder indisponible",
+    "discovered": "Lieu découvert",
+    "disk-error": "Échec d’écriture",
+    "display": "Affichage",
+    "disposingSession": "Fermeture de la session",
+    "editing": "Saisie en cours",
+    "eligible": "Cible compatible",
+    "empty": "Aucun élément",
+    "empty-box": "Boîte vide",
+    "empty-favorites": "Aucun favori",
+    "empty-party": "Équipe vide",
+    "empty-pocket": "Poche vide",
+    "enabled": "Action disponible",
+    "entries": "Entrées disponibles",
+    "entry-disabled-with-reason": "Entrée indisponible, motif affiché",
+    "entry-hidden": "Entrée masquée",
+    "error": "Erreur",
+    "evolution": "Évolution",
+    "exit-after-save": "Quitter après la sauvegarde",
+    "exit-failed": "Échec de la fermeture",
+    "exiting": "Fermeture en cours",
+    "expanded-sidebar": "Catégories dans la barre latérale",
+    "externalExit": "Retour vers l’application hôte",
+    "failed": "Action échouée",
+    "failure": "Échec",
+    "fainted": "Créature K.O.",
+    "fainted-disabled": "Créature K.O., sélection impossible",
+    "fainted-member": "Membre de l’équipe K.O.",
+    "forcedReplacement": "Remplacement obligatoire",
+    "free-move-slot": "Emplacement de capacité libre",
+    "full-box": "Boîte pleine",
+    "full-party": "Équipe complète",
+    "full-pp-disabled": "PP au maximum, sélection impossible",
+    "general": "Général",
+    "hasFailure": "Résultat avec une erreur",
+    "held-item": "Objet tenu",
+    "hp-tween": "Mise à jour animée des PV",
+    "hubOnly": "Retour à la bibliothèque uniquement",
+    "hud-not-yet-revealed": "Informations de combat pas encore affichées",
+    "idle": "En attente",
+    "incompatible-target": "Cible incompatible",
+    "ineligible": "Cible non compatible",
+    "info": "Information",
+    "initialMap": "Préparation de la carte de départ",
+    "input-locked": "Commandes temporairement bloquées",
+    "insufficient-funds": "Argent insuffisant",
+    "interaction-available": "Interaction disponible",
+    "introAndPoster": "Préparation de l’introduction",
+    "invalid-too-long": "Saisie trop longue",
+    "invalid-too-short": "Saisie trop courte",
+    "invalidState": "Données de sauvegarde invalides",
+    "inventory-limit": "Capacité du sac atteinte",
+    "item-disabled": "Objet indisponible",
+    "keyboard": "Clavier",
+    "keyboard-open": "Clavier de saisie ouvert",
+    "language": "Langue",
+    "last-line": "Dernière réplique",
+    "last-usable-protected": "Dernier membre apte protégé",
+    "left-handed": "Commandes pour gaucher",
+    "legacy-fallback": "Menu de secours historique",
+    "loaded": "Jeu chargé",
+    "loading": "Chargement en cours",
+    "loading-background": "Chargement de l’illustration",
+    "long-labels": "Libellés longs",
+    "long-list": "Liste longue",
+    "manifestAndIdentity": "Identification du jeu",
+    "map": "Chargement de la carte",
+    "maximum-reached": "Maximum de sélections atteint",
+    "media-failed": "Lecture du média impossible",
+    "medicine": "Objets de soin",
+    "menu": "Menus sur l’écran compagnon",
+    "menu-effects": "Effets des menus",
+    "minimum-not-met": "Sélection minimale non atteinte",
+    "missing-background": "Fond de carte absent",
+    "missing-description": "Description absente",
+    "missing-illustration": "Illustration absente",
+    "missing-image": "Image absente",
+    "missing-media": "Médias absents",
+    "missing-optional-data": "Informations facultatives absentes",
+    "missing-playtime": "Temps de jeu indisponible",
+    "missing-pp": "PP indisponibles",
+    "missing-receipt": "Confirmation de sauvegarde absente",
+    "modal": "Menu d’actions ouvert",
+    "mount": "Mise en place du monde",
+    "move-learning": "Apprentissage d’une capacité",
+    "move-replacement": "Remplacement d’une capacité",
+    "moving": "Marche",
+    "multiple-regions": "Plusieurs régions",
+    "multiple-valid-targets": "Plusieurs cibles possibles",
+    "needs-heal": "Équipe à soigner",
+    "no-back": "Retour impossible",
+    "no-badges": "Aucun badge",
+    "no-compatible-bag-item": "Aucun objet compatible dans le sac",
+    "no-effect": "Sans effet",
+    "no-held-item": "Aucun objet tenu",
+    "no-moves": "Aucune capacité",
+    "no-points": "Aucun lieu disponible",
+    "no-pp": "Aucun PP restant",
+    "no-region": "Aucune région disponible",
+    "no-results": "Aucun résultat",
+    "no-save": "Aucune sauvegarde",
+    "no-sellable-item": "Aucun objet vendable",
+    "normal": "Affichage courant",
+    "not-attached": "Écran compagnon non connecté",
+    "one-region": "Une seule région",
+    "one-return-route-disabled": "Une destination de retour indisponible",
+    "option-disabled": "Choix indisponible",
+    "out-of-range": "Valeur hors limites",
+    "out-of-stock": "Rupture de stock",
+    "overlap": "Plusieurs lieux superposés",
+    "party-context": "Consultation depuis l’équipe",
+    "party-member": "Confirmation du membre ciblé",
+    "party-move": "Confirmation de la capacité ciblée",
+    "paused": "Session suspendue",
+    "pc-context": "Consultation depuis le PC",
+    "pending": "Traitement en attente",
+    "player": "Préparation du personnage",
+    "playerPreferences": "Chargement des préférences",
+    "playing": "Lecture en cours",
+    "pokedex-disabled": "Pokédex indisponible",
+    "portrait-missing": "Portrait absent",
+    "portrait-present": "Portrait affiché",
+    "poster": "Image d’attente",
+    "poster-fallback": "Image de remplacement",
+    "presentation-loading": "Chargement de la présentation",
+    "presentationProfile": "Préparation de l’interface",
+    "presentingTurn": "Déroulement du tour",
+    "progression-locked": "Fonction à débloquer",
+    "project": "Chargement du projet",
+    "query": "Recherche",
+    "read-only": "Consultation seule",
+    "ready": "Prêt",
+    "recoverable-error": "Erreur avec solution de reprise",
+    "reduced-flashes": "Éclairs lumineux réduits",
+    "reduced-motion": "Animations réduites",
+    "remote-busy": "Écran compagnon en cours de traitement",
+    "repair": "Réparation proposée",
+    "replacement-required": "Remplacement nécessaire",
+    "resources": "Chargement des ressources",
+    "result-message": "Résultat de l’action",
+    "resuming": "Reprise en cours",
+    "retry": "Nouvelle tentative proposée",
+    "revealed": "Texte entièrement affiché",
+    "root": "Accueil du menu",
+    "root-actions-only-companion": "Actions principales sur le compagnon",
+    "run-forbidden": "Fuite impossible",
+    "running": "Course",
+    "save": "Chargement de la sauvegarde",
+    "save-and-exit-unavailable": "Sauvegarder puis quitter indisponible",
+    "save-failed-keeps-confirmed": "Échec, dernière valeur confirmée conservée",
+    "save-present": "Sauvegarde disponible",
+    "save-unavailable": "Sauvegarde indisponible",
+    "saveDiscovery": "Recherche des sauvegardes",
+    "saved": "Sauvegarde terminée",
+    "saving": "Enregistrement en cours",
+    "scrolling": "Contenu réparti en pages",
+    "seen": "Espèce rencontrée",
+    "selected-slot": "Emplacement sélectionné",
+    "selecting": "Sélection en cours",
+    "selection-invalidated": "Sélection devenue indisponible",
+    "selection-required": "Choix requis",
+    "server-error": "Erreur du service",
+    "single": "Une seule cible",
+    "six-members": "Six membres dans l’équipe",
+    "skippable": "Passage autorisé",
+    "source": "Source sélectionnée",
+    "splashBranding": "Préparation de la signature",
+    "status": "Altération de statut",
+    "stock-limit": "Limite du stock atteinte",
+    "struggle-if-projected": "Lutte si proposée par le combat",
+    "submitting": "Validation en cours",
+    "success": "Réussite",
+    "text-speed": "Vitesse du texte",
+    "titleMenuAndMusic": "Préparation du titre et de la musique",
+    "titleOrHub": "Retour au titre ou à la bibliothèque",
+    "too-long": "Saisie trop longue",
+    "too-short": "Saisie trop courte",
+    "touch-run-mode": "Mode de course tactile",
+    "touch-swap-ab": "Inversion des boutons tactiles",
+    "trainer": "Combat contre un dresseur",
+    "transition": "Transition en cours",
+    "trapped-if-runtime": "Changement bloqué si retenu au combat",
+    "typing": "Texte en cours d’affichage",
+    "unavailable": "Indisponible",
+    "unavailable-item": "Objet indisponible",
+    "unexpected-failure": "Erreur inattendue",
+    "unknown": "Information inconnue",
+    "unreadable": "Sauvegarde illisible",
+    "unsellable": "Objet invendable",
+    "unskippable": "Passage impossible",
+    "unsupportedSchema": "Format de sauvegarde non pris en charge",
+    "unusable": "Utilisation impossible",
+    "unusable-disabled": "Membre non utilisable, sélection impossible",
+    "unusable-save": "Sauvegarde inutilisable",
+    "usable": "Utilisation possible",
+    "usable-save": "Sauvegarde utilisable",
+    "validating": "Vérification en cours",
+    "waiting": "En attente de la session",
+    "warning": "Attention",
+    "wild": "Combat sauvage",
+    "with-portrait": "Avec portrait",
+    "without-portrait": "Sans portrait",
+    "world": "Préparation du monde",
+    "world-healing-display": "Soins représentés dans le monde",
+    "world-only": "Utilisable hors combat",
+    "world-service-on-owner": "Service sur l’écran principal",
+    "xp-tween": "Mise à jour animée de l’expérience"
+  },
+  "stateNotes": {
+    "animating": "Même composition : la signature progresse dans le temps. Cette planche fixe ne vérifie ni les durées ni la fluidité.",
+    "animation": "Même scène : les effets et poses évoluent pendant l’action. La planche fixe ne représente qu’un instant.",
+    "hp-tween": "Même composition : la jauge de PV évolue entre deux valeurs. La planche fixe ne valide pas l’interpolation.",
+    "xp-tween": "Même composition : la jauge d’expérience progresse. La planche fixe ne valide ni l’enchaînement des niveaux ni les durées.",
+    "presentingTurn": "Même composition : le tour déroule les actions reçues. La planche fixe ne prouve pas leur ordre ni leur synchronisation.",
+    "typing": "Même boîte : le texte se révèle progressivement. La planche fixe montre un instant de lecture.",
+    "revealed": "Même boîte : le texte est intégralement affiché; la commande suivante devient disponible selon la scène.",
+    "auto-after-reveal": "Même boîte : la scène avance automatiquement après révélation et délai prévus. La planche fixe ne vérifie pas ce délai.",
+    "last-line": "Même boîte : la prochaine avance termine ce dialogue plutôt que d’ouvrir une nouvelle réplique.",
+    "active": "Étape présentée au joueur. Une composition identique à l’état terminé n’atteste pas l’exécution de la transition.",
+    "completed": "Étape terminée : la suite peut être proposée. La planche fixe ne prouve pas que la transition a été exécutée.",
+    "pending": "La demande attend son résultat. Conserver la sélection et éviter une seconde validation de la même action.",
+    "busy": "Opération en cours : bloquer les validations répétées et conserver une indication lisible.",
+    "submitting": "La validation a été envoyée; conserver les données saisies jusqu’au résultat.",
+    "applying": "L’action est en cours d’application. Cette planche ne prouve ni son exécution ni son résultat.",
+    "saving": "L’enregistrement est en cours. Une planche fixe ne constitue pas une preuve de persistance.",
+    "resuming": "La session se réactive. Les commandes du monde restent bloquées jusqu’à la fin de la reprise.",
+    "exiting": "La fermeture est engagée. La planche ne représente pas les effets de fermeture de l’application.",
+    "disposingSession": "Les ressources de session sont libérées avant le retour à l’hôte. Ce déroulement n’est pas mesuré par la maquette.",
+    "externalExit": "Le prochain état appartient à l’application hôte. La maquette représente l’intention de retour.",
+    "transition": "Même scène ou cadrage intermédiaire : la transition se joue dans le temps. Durée et continuité restent à éprouver.",
+    "loading": "Chargement en cours : la composition peut rester stable tandis que le contenu arrive.",
+    "loading-background": "Même cadre : l’illustration arrive de façon asynchrone; conserver un fond lisible en attendant.",
+    "presentation-loading": "Même cadre compagnon : attendre une présentation exploitable avant d’activer ses commandes.",
+    "idle": "La scène attend une action; aucun déroulement temporel n’est attesté par la planche.",
+    "playing": "Le média ou la scène progresse dans le temps. La maquette fixe ne remplace pas une lecture réelle.",
+    "moving": "Le personnage marche dans le monde. La planche fixe ne valide ni déplacement ni caméra.",
+    "running": "Le personnage court dans le monde. La planche fixe ne valide ni vitesse ni animation.",
+    "scrolling": "Les choix sont répartis en pages explicites selon la hauteur disponible, sans zone défilante.",
+    "exit-after-save": "La fermeture doit suivre une sauvegarde confirmée. La planche fixe ne prouve pas cet enchaînement.",
+    "saved": "Afficher cet état après confirmation de la sauvegarde; son dessin seul ne prouve pas l’écriture."
+  },
+  "coverageNote": "133 compositions ou étapes, états réels inventoriés et états nominaux ajoutés pour la revue. Les animations temporelles partagent une géométrie statique explicitement documentée.",
+  "combatRevision": {
+    "version": 2,
+    "date": "2026-10-24",
+    "status": "TO REVIEW",
+    "scope": "Combat et progression après combat, cinq dispositions. Les autres menus conservent leur présentation.",
+    "directions": {
+      "portrait-touch": "Scène haute, grande commande Attaquer puis Pokémon/Sac/Fuite ; six membres visibles pour les cibles de soin.",
+      "portrait-controller": "Scène plus haute et tableau plus compact, focus unique et navigation clavier de démonstration.",
+      "landscape-touch": "Scène et barre de commandes basse ; capacités en grille 2×2, cibles48px.",
+      "landscape-controller": "Scène plein cadre, commandes angulaires compactes au bas droit, capacités en liste.",
+      "thor-dual": "Scène et HUD sur le principal, décisions sur le compagnon, focus unique en bas."
+    },
+    "references": [
+      {
+        "title": "Nintendo — Pokémon Black Version2, manuel officiel, p.10",
+        "url": "https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/DS_pokemon_black_2?_a=DATAg1AAZAA0",
+        "observed": "Page de combat rendue et inspectée ; identité/niveau/PV/EXP et disposition du duel."
+      },
+      {
+        "title": "Pokémon Épée/Bouclier — captures officielles",
+        "url": "https://www.pokemon.co.jp/ex/sword_shield/howtoplay/190605_02.html",
+        "observed": "Capture img_howtoplay02_03.jpg inspectée : scène dégagée, HUD et bande de narration."
+      }
+    ],
+    "limits": [
+      "Adaptation Avelune, pas copie exacte des interfaces Nintendo",
+      "Données, statistiques, efficacité et progression illustratives",
+      "Rendus et parcours du prototype uniquement ; aucune certification runtime/manette physique/Thor"
+    ]
+  },
+  "adaptiveRevision": {
+    "date": "2026-10-24",
+    "status": "TO REVIEW · conception",
+    "rule": "Aucun défilement interne des surfaces de jeu. Recomposition, retours à la ligne et pagination explicite. Les outils de consultation de l’atlas restent défilants.",
+    "landscapeTouchMoves": {
+      "panelHeight": 140,
+      "arenaHeight": 250,
+      "returnInfoRailWidth": 60,
+      "previousPanelHeight": 202,
+      "arenaHeightRecovered": 62
+    },
+    "preservation": "Nœuds des contrôles déplacés sans clone ; textes et contrôles comparés avant/après pagination ; champs conservés par composition et état."
+  },
+  "targetingRevision": {
+    "status": "TO REVIEW · conception",
+    "singleValidChoice": "Capacité → résolution directement",
+    "multipleValidChoices": "Capacité → choix de cible → résolution",
+    "noValidChoice": "Refus explicite, aucune résolution",
+    "scope": "Maquettes uniquement, objets et choix de membre conservés"
+  }
+}

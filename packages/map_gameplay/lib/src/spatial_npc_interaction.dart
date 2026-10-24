@@ -36,23 +36,30 @@ MapEntity? findSpatialEntityInteraction({
   var nearest = double.infinity;
   final candidates = entities.toList();
   final overlapping = candidates.where((entity) {
-    if (entity.interactionMode != MapEntityInteractionMode.overlap) return false;
+    if (entity.interactionMode != MapEntityInteractionMode.overlap)
+      return false;
     final state = actorStateProvider?.call(entity.id);
     final left = state == null ? entity.pos.x.toDouble() : state.x - .5;
     final top = state == null ? entity.pos.y.toDouble() : state.z - .5;
-    return x >= left && x < left + entity.size.width && z >= top && z < top + entity.size.height;
+    return x >= left &&
+        x < left + entity.size.width &&
+        z >= top &&
+        z < top + entity.size.height;
   }).toList();
-  if (overlapping.isNotEmpty) return overlapping.length == 1 ? overlapping.single : null;
+  if (overlapping.isNotEmpty)
+    return overlapping.length == 1 ? overlapping.single : null;
   for (final entity in candidates) {
     if (entity.kind == MapEntityKind.spawn) continue;
     if (entity.interactionMode == MapEntityInteractionMode.overlap) continue;
     final state = actorStateProvider?.call(entity.id);
     final anchorX = state?.x ?? entity.pos.x + .5;
     final anchorZ = state?.z ?? entity.pos.y + .5;
-    final targetX = entity.presentation == null ? anchorX :
-      x.clamp(anchorX, anchorX + entity.size.width - 1);
-    final targetZ = entity.presentation == null ? anchorZ :
-      z.clamp(anchorZ, anchorZ + entity.size.height - 1);
+    final targetX = entity.presentation == null
+        ? anchorX
+        : x.clamp(anchorX, anchorX + entity.size.width - 1);
+    final targetZ = entity.presentation == null
+        ? anchorZ
+        : z.clamp(anchorZ, anchorZ + entity.size.height - 1);
     final dx = targetX - x, dz = targetZ - z;
     final (forward, lateral) = switch (facing) {
       EntityFacing.north => (-dz, dx.abs()),
@@ -64,7 +71,13 @@ MapEntity? findSpatialEntityInteraction({
         forward <= 1.25 &&
         lateral <= .5 &&
         forward < nearest &&
-        _hasNavigableTerrainBetween(scene, x, z, x + dx, z + dz)) {
+        _hasNavigableTerrainBetween(scene, x, z, x + dx, z + dz,
+            ignoreBlockedAt: entity.kind == MapEntityKind.custom ||
+                    entity.kind == MapEntityKind.sign
+                ? (px, pz) =>
+                    px.floor() == targetX.floor() &&
+                    pz.floor() == targetZ.floor()
+                : null)) {
       result = entity;
       nearest = forward;
     }
@@ -79,6 +92,7 @@ SpatialModelInstance? findSpatialModelInteraction({
   required double x,
   required double z,
   required EntityFacing facing,
+  SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
 }) {
   if (!x.isFinite ||
       !z.isFinite ||
@@ -139,7 +153,20 @@ SpatialModelInstance? findSpatialModelInteraction({
         x,
         z,
         x + forwardAxis.x * distance - forwardAxis.z * lateral,
-        z + forwardAxis.z * distance + forwardAxis.x * lateral)) {
+        z + forwardAxis.z * distance + forwardAxis.x * lateral,
+        ignoreBlockedAt: (px, pz) =>
+            _polygonOverlapsCell(geometry.polygon, px.floor(), pz.floor()))) {
+      continue;
+    }
+    if (_modelOccludesInteraction(scene, resources, instance.id,
+        x: x,
+        z: z,
+        actorHeight: actorHeight,
+        forwardX: forwardAxis.x,
+        forwardZ: forwardAxis.z,
+        distance: distance,
+        lateral: lateral,
+        modelStateProvider: modelStateProvider)) {
       continue;
     }
     result = instance;
@@ -186,8 +213,69 @@ EntityFacing spatialNpcFacingPlayer(MapEntity entity,
       : (dz < 0 ? EntityFacing.north : EntityFacing.south);
 }
 
+bool _polygonOverlapsCell(List<({double x, double z})> points, int x, int z) {
+  var polygon = <_InteractionProjection>[
+    for (final point in points) (forward: point.x, lateral: point.z),
+  ];
+  polygon = _clipInteractionPolygon(polygon, (p) => p.forward - x);
+  polygon = _clipInteractionPolygon(polygon, (p) => x + 1 - p.forward);
+  polygon = _clipInteractionPolygon(polygon, (p) => p.lateral - z);
+  polygon = _clipInteractionPolygon(polygon, (p) => z + 1 - p.lateral);
+  var area = 0.0;
+  for (var i = 0; i < polygon.length; i++) {
+    final next = polygon[(i + 1) % polygon.length];
+    area +=
+        polygon[i].forward * next.lateral - next.forward * polygon[i].lateral;
+  }
+  return area.abs() > .000000001;
+}
+
+bool _modelOccludesInteraction(MapSpatialScene scene,
+    Map<String, ProjectModel3dEntry> models, String targetId,
+    {required double x,
+    required double z,
+    required double actorHeight,
+    required double forwardX,
+    required double forwardZ,
+    required double distance,
+    required double lateral,
+    SpatialModelRuntimeState? Function(String instanceId)?
+        modelStateProvider}) {
+  for (final obstacle in scene.instances) {
+    final blocks = modelStateProvider?.call(obstacle.id)?.blocksMovement ??
+        obstacle.blocksMovement;
+    if (obstacle.id == targetId || !blocks) continue;
+    final model = models[obstacle.modelId];
+    if (model == null) {
+      throw StateError('Modèle d’interaction absent : ${obstacle.modelId}');
+    }
+    final geometry =
+        spatialModelWorldGeometry(obstacle, model, useCollisionBounds: true);
+    if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {
+      continue;
+    }
+    var polygon = <_InteractionProjection>[
+      for (final point in geometry.polygon)
+        (
+          forward: (point.x - x) * forwardX + (point.z - z) * forwardZ,
+          lateral: -(point.x - x) * forwardZ + (point.z - z) * forwardX
+        ),
+    ];
+    polygon = _clipInteractionPolygon(polygon, (p) => p.forward - .000000001);
+    polygon = _clipInteractionPolygon(
+        polygon, (p) => distance - .000000001 - p.forward);
+    polygon = _clipInteractionPolygon(
+        polygon, (p) => p.lateral - lateral + .000000001);
+    polygon = _clipInteractionPolygon(
+        polygon, (p) => lateral + .000000001 - p.lateral);
+    if (polygon.isNotEmpty) return true;
+  }
+  return false;
+}
+
 bool _hasNavigableTerrainBetween(
-    MapSpatialScene scene, double ax, double az, double bx, double bz) {
+    MapSpatialScene scene, double ax, double az, double bx, double bz,
+    {bool Function(double x, double z)? ignoreBlockedAt}) {
   final steps = (math.max((bx - ax).abs(), (bz - az).abs()) *
           SpatialMovementController.pixelsPerCell)
       .ceil();
@@ -199,11 +287,12 @@ bool _hasNavigableTerrainBetween(
         x >= scene.width ||
         z < 0 ||
         z >= scene.depth ||
-        scene.navigation.blockedAreas.any((area) =>
-            x >= area.x &&
-            x < area.x + area.width &&
-            z >= area.z &&
-            z < area.z + area.depth) ||
+        (ignoreBlockedAt?.call(x, z) != true &&
+            scene.navigation.blockedAreas.any((area) =>
+                x >= area.x &&
+                x < area.x + area.width &&
+                z >= area.z &&
+                z < area.z + area.depth)) ||
         !canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z)) {
       return false;
     }

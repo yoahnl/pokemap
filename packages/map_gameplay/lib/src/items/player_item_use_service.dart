@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../player_item_effects.dart';
+import '../pokemon_stat_calculator.dart';
 import 'bag_operation_result.dart';
 import 'bag_operations.dart';
 import 'item_capability_resolver.dart';
@@ -16,6 +17,12 @@ final class PlayerItemUseRequest {
     this.moveId,
     this.maxPpByMoveId = const <String, int>{},
     this.targetHasBattleConfusion = false,
+    this.baseStats,
+    this.targetIsActiveBattler = false,
+    this.targetBattleStages = const {},
+    this.targetHasFocusEnergy = false,
+    this.targetHasDragonCheer = false,
+    this.targetBankHasMist = false,
   });
 
   final GameState state;
@@ -26,6 +33,12 @@ final class PlayerItemUseRequest {
   final String? moveId;
   final Map<String, int> maxPpByMoveId;
   final bool targetHasBattleConfusion;
+  final PokemonBaseStats? baseStats;
+  final bool targetIsActiveBattler;
+  final Map<ProjectItemBattleStat, int> targetBattleStages;
+  final bool targetHasFocusEnergy;
+  final bool targetHasDragonCheer;
+  final bool targetBankHasMist;
 }
 
 final class PlayerItemUseService {
@@ -41,7 +54,14 @@ final class PlayerItemUseService {
   PlayerItemUseResult use(PlayerItemUseRequest request) {
     final itemId = request.itemId.trim();
     if (itemId.isEmpty ||
-        (request.targetHasBattleConfusion &&
+        request.targetBattleStages.values
+            .any((stage) => stage < -6 || stage > 6) ||
+        ((request.targetHasBattleConfusion ||
+                request.targetIsActiveBattler ||
+                request.targetBattleStages.isNotEmpty ||
+                request.targetHasFocusEnergy ||
+                request.targetHasDragonCheer ||
+                request.targetBankHasMist) &&
             request.context != ProjectItemUseContext.battle)) {
       return PlayerItemUseResult.failed(
         request.state,
@@ -137,6 +157,19 @@ final class PlayerItemUseService {
       );
     }
 
+    final vitamin = use.effect;
+    if (vitamin is ProjectItemVitaminEffectDefinition &&
+        vitamin.stat == ProjectItemVitaminStat.hp &&
+        request.baseStats == null) {
+      return PlayerItemUseResult.failed(
+          request.state, PlayerItemUseFailure.invalidRequest);
+    }
+    if (vitamin is ProjectItemVitaminEffectDefinition &&
+        vitamin.stat == ProjectItemVitaminStat.hp &&
+        request.maxHp == 1) {
+      return PlayerItemUseResult.failed(
+          request.state, PlayerItemUseFailure.noEffect);
+    }
     final application = applyPlayerItemEffect(
       request.state.party.members[request.partyIndex],
       use: use,
@@ -144,12 +177,39 @@ final class PlayerItemUseService {
       moveId: request.moveId,
       maxPpByMoveId: request.maxPpByMoveId,
       targetHasBattleConfusion: request.targetHasBattleConfusion,
+      targetIsActiveBattler: request.targetIsActiveBattler,
+      targetBattleStages: request.targetBattleStages,
+      targetHasFocusEnergy: request.targetHasFocusEnergy,
+      targetHasDragonCheer: request.targetHasDragonCheer,
+      targetBankHasMist: request.targetBankHasMist,
     );
     if (!application.isApplied) {
       return PlayerItemUseResult.failed(
         request.state,
         application.failure!,
       );
+    }
+
+    var pokemon = application.pokemon!;
+    if (vitamin is ProjectItemVitaminEffectDefinition &&
+        vitamin.stat == ProjectItemVitaminStat.hp) {
+      try {
+        final stats = const PokemonStatCalculator().calculate(
+            baseStats: request.baseStats!,
+            ivs: pokemon.ivs,
+            evs: pokemon.evs,
+            level: pokemon.level,
+            naturePolicy: PokemonNatureStatPolicy.canonical,
+            natureId: pokemon.natureId);
+        pokemon = pokemon.copyWith(
+            currentHp: pokemon.isFainted
+                ? 0
+                : (pokemon.currentHp + stats.maxHp - request.maxHp)
+                    .clamp(1, stats.maxHp));
+      } on ArgumentError {
+        return PlayerItemUseResult.failed(
+            request.state, PlayerItemUseFailure.invalidRequest);
+      }
     }
 
     Bag nextBag = request.state.bag;
@@ -175,7 +235,7 @@ final class PlayerItemUseService {
     }
 
     final members = [...request.state.party.members];
-    members[request.partyIndex] = application.pokemon!;
+    members[request.partyIndex] = pokemon;
     return PlayerItemUseResult.success(
       state: request.state.copyWith(
         party: PlayerParty(members: members).normalized(),

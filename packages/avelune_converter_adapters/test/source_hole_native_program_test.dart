@@ -153,13 +153,14 @@ void main() {
         expect(programs([changed]), isEmpty);
       });
     }
-    test('a caller cannot delete opaque routes and retain source authority',
+    test(
+        'a caller cannot delete typed opacity routes and retain source authority',
         () {
       final event = holes.first;
       final changed = _copy(
         event,
         nodes: event.pages.single.body.nodes
-            .where((node) => node is! SourceUnknownNode)
+            .where((node) => node is! SourceForcedMoveRouteNode)
             .toList(),
       );
       expect(programs([changed]), isEmpty);

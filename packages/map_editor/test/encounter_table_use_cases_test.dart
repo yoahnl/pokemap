@@ -14,6 +14,22 @@ void main() {
   });
 
   group('encounter table use cases', () {
+    test('variant authoring uses the canonical gateway and refuses invalid windows before write', () async {
+      const variant = ProjectEncounterVariant(id: 'morning', name: 'Morning',
+        timeWindows: [LocalTimeWindow(startMinute: 240, endMinute: 600)],
+        entries: [ProjectEncounterEntry(speciesId: 'sentret', minLevel: 2, maxLevel: 4)]);
+      final created = await CreateEncounterTableUseCase(gateway).execute(workspace, _project(),
+        name: 'Conditional', encounterKind: EncounterKind.walk, variants: [variant]);
+      expect(gateway.upsertedTables.single.variants.single, variant);
+      final updated = await UpdateEncounterTableUseCase(gateway).execute(workspace, created,
+        tableId: created.encounterTables.single.id, variants: [variant.copyWith(priority: 3)]);
+      expect(updated.encounterTables.single.variants.single.priority, 3);
+      await expectLater(UpdateEncounterTableUseCase(gateway).execute(workspace, updated,
+        tableId: updated.encounterTables.single.id, variants: [variant.copyWith(timeWindows: [
+          const LocalTimeWindow(startMinute: 240, endMinute: 240)])]), throwsA(isA<ValidationException>()));
+      expect(gateway.upsertedTables, hasLength(2));
+    });
+
     test('routes table creation through the encounter authoring gateway',
         () async {
       final project = _project();

@@ -359,6 +359,62 @@ void main() {
     },
   );
 
+  for (final restore in [false, true]) {
+    test('scoped map catalog resolves another map, restore=$restore', () async {
+      final authored = fixtures.animatedDoorBundle(bundle);
+      final other = bundle.map.copyWith(id: 'other', entities: []);
+      final project = authored.manifest.copyWith(
+        maps: [
+          ...authored.manifest.maps,
+          const ProjectMapEntry(
+            id: 'other',
+            name: 'Autre terrain',
+            relativePath: 'other.json',
+          ),
+        ],
+      );
+      await File('${root.path}/project.json')
+          .writeAsString(jsonEncode(project.toJson()));
+      await File('${root.path}/field.json')
+          .writeAsString(jsonEncode(authored.map.toJson()));
+      await File('${root.path}/other.json')
+          .writeAsString(jsonEncode(other.toJson()));
+      if (restore) {
+        bundle = authored.copyWith(manifest: project);
+        final host = await prepare();
+        await host.runtime.load((_) {});
+        await host.runtime.gameplayReady;
+        expect(await host.save(), isTrue);
+      }
+      final catalog = await RuntimeProjectCatalog.open(
+        '${root.path}/project.json',
+      );
+      addTearDown(catalog.dispose);
+      final scoped = await catalog.manifestForMap(other);
+      expect(scoped.models3d, isEmpty);
+      expect(project.models3d, isNotEmpty);
+      bundle = RuntimeMapBundle(
+        manifest: scoped,
+        map: other,
+        projectRootDirectory: bundle.projectRootDirectory,
+        tilesetAbsolutePathsById: bundle.tilesetAbsolutePathsById,
+        characterAnimationAbsolutePathsByAssetId:
+            bundle.characterAnimationAbsolutePathsByAssetId,
+        projectCatalog: catalog,
+      );
+      final host = await prepare(restore: restore);
+      await host.runtime.load((_) {});
+      await host.runtime.gameplayReady;
+      expect(
+        host.runtime.gameStateSnapshot.currentMapId,
+        restore ? 'field' : 'other',
+      );
+      if (restore) {
+        expect(host.runtime.session!.bundle.manifest.models3d, isNotEmpty);
+      }
+    });
+  }
+
   testWidgets(
     'spatial playtest fills the scene under the toolbar Column loose width',
     (tester) async {

@@ -114,92 +114,93 @@ void main() {
     );
   });
 
-  test(
-    'large and small PNGs queue within the unchanged 64 MiB profile',
-    () async {
-      final directory = await Directory.systemTemp.createTemp(
-        'large-png-admission-',
-      );
-      addTearDown(() => directory.delete(recursive: true));
-      final large = Uint8List.fromList(
-        img.encodePng(img.Image(width: 256, height: 16192)),
-      );
-      final small = Uint8List.fromList(
-        img.encodePng(img.Image(width: 256, height: 4096)),
-      );
-      final firstFile = await File('${directory.path}/large.png')
-          .writeAsBytes(large);
-      final secondFile = await File('${directory.path}/small.png')
-          .writeAsBytes(small);
-      const profile = RuntimeResourceProfile();
-      const resident = 256 * (16192 + 4096) * 4;
-      final firstTransient = large.length * 2 + 256 * 16192 * 4 * 4;
-      final secondTransient = small.length * 2 + 256 * 4096 * 4 * 2;
-      expect(resident, lessThan(profile.maximumResidentBytes));
-      expect(firstTransient, lessThan(profile.maximumTransientBytes));
-      expect(secondTransient, lessThan(profile.maximumTransientBytes));
-      expect(
-        firstTransient + secondTransient,
-        greaterThan(profile.maximumTransientBytes),
-      );
-      final budget = RuntimeResourceBudget(profile: profile);
-      addTearDown(budget.dispose);
-      final started = Completer<void>();
-      final release = Completer<void>();
-      final images = <RuntimeTilesetImage>[];
-      addTearDown(() {
-        for (final image in images) {
-          image.dispose();
-        }
-      });
-      final first = loadTilesetImageFromFilePath(
-        firstFile.path,
-        resourceBudget: budget,
-        decoder: (bytes) async {
-          started.complete();
-          await release.future;
-          return decodeFirstFrameAndDispose(
-            await ui.instantiateImageCodec(bytes),
-          );
-        },
-      );
-      await started.future;
-      Object? failure;
-      var finished = false;
-      final second =
-          loadTilesetImageFromFilePath(
-            secondFile.path,
-            resourceBudget: budget,
-          ).then<void>(
-            (image) {
-              images.add(image);
-              finished = true;
-            },
-            onError: (Object error) {
-              failure = error;
-              finished = true;
-            },
-          );
-      while (budget.pendingDecodes == 0 && !finished) {
-        await Future<void>.delayed(Duration.zero);
-      }
-      final pending = budget.pendingDecodes;
-      release.complete();
-      images.add(await first);
-      await second;
-      expect(failure, isNull);
-      expect(pending, 1);
-      expect(budget.residentBytes, resident);
-      expect(budget.transientBytes, 0);
+  test('large PNGs queue within the unchanged 64 MiB profile', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'large-png-admission-',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final large = Uint8List.fromList(
+      img.encodePng(img.Image(width: 256, height: 16192)),
+    );
+    final small = Uint8List.fromList(
+      img.encodePng(img.Image(width: 256, height: 16192)),
+    );
+    final firstFile = await File('${directory.path}/large.png')
+        .writeAsBytes(large);
+    final secondFile = await File('${directory.path}/small.png')
+        .writeAsBytes(small);
+    const profile = RuntimeResourceProfile();
+    const resident = 256 * 16192 * 4 * 2;
+    final firstTransient = runtimeTilesetImageAllocation(
+      encodedLength: large.length,
+      width: 256,
+      height: 16192,
+    ).transientBytes;
+    final secondTransient = runtimeTilesetImageAllocation(
+      encodedLength: small.length,
+      width: 256,
+      height: 16192,
+    ).transientBytes;
+    expect(resident, lessThan(profile.maximumResidentBytes));
+    expect(firstTransient, lessThan(profile.maximumTransientBytes));
+    expect(secondTransient, lessThan(profile.maximumTransientBytes));
+    expect(
+      firstTransient + secondTransient,
+      greaterThan(profile.maximumTransientBytes),
+    );
+    final budget = RuntimeResourceBudget(profile: profile);
+    addTearDown(budget.dispose);
+    final held = await budget.acquire(
+      residentBytes: resident ~/ 2,
+      transientBytes: firstTransient,
+    );
+    final images = <RuntimeTilesetImage>[];
+    addTearDown(() {
+      held.release();
       for (final image in images) {
         image.dispose();
       }
-      expect(
-        budget.residentBytes + budget.transientBytes + budget.activeDecodes,
-        0,
-      );
-    },
-  );
+    });
+    Object? failure;
+    var finished = false;
+    final second =
+        loadTilesetImageFromFilePath(
+          secondFile.path,
+          resourceBudget: budget,
+        ).then<void>(
+          (image) {
+            images.add(image);
+            finished = true;
+          },
+          onError: (Object error) {
+            failure = error;
+            finished = true;
+          },
+        );
+    while (budget.pendingDecodes == 0 && !finished) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    final pending = budget.pendingDecodes;
+    held.release();
+    await second;
+    images.add(
+      await loadTilesetImageFromFilePath(
+        firstFile.path,
+        resourceBudget: budget,
+      ),
+    );
+    expect(failure, isNull);
+    expect(pending, 1);
+    expect(budget.residentBytes, resident);
+    expect(budget.transientBytes, 0);
+    for (final image in images) {
+      image.dispose();
+    }
+    expect(
+      budget.residentBytes + budget.transientBytes + budget.activeDecodes,
+      0,
+    );
+  });
 
   test(
     'individually admitted PNGs queue under combined transient pressure',

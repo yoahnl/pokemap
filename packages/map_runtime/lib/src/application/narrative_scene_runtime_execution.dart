@@ -26,6 +26,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   void Function(GameState Function()? projector)? onSceneStateProjection,
   List<NarrativeOutcomeRef> hostedBattleOutcomes = const [],
   int maxSteps = 100,
+  DateTime Function()? completionClock,
 }) async {
   if (currentGameState() != request.gameState) {
     return NarrativeSceneExecutionResult.failed(
@@ -76,6 +77,8 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   // Scene completes, those authoritative writes are kept by rebasing the
   // buffered consequences onto the latest host GameState.
   final pendingConsequences = <SceneConsequence>[];
+  int? frozenCompletionRecordedAtEpochMs;
+  final preparedCompletionPartyRecords = <String, GameCompletionPartyRecord>{};
   final preparedPokemonGifts = <String, PreparedScenePokemonGift>{};
   final pendingPokemonGrantOperationIds = <String?>[];
   final pendingRailProgressionOperationIds = <String?>[];
@@ -125,7 +128,13 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
             ))
           index,
     ];
-    return writer.applyAll(
+    if (additional is SceneFinishGameConsequence && additional.recordParty ||
+        pendingConsequences.any((consequence) =>
+            consequence is SceneFinishGameConsequence && consequence.recordParty)) {
+      frozenCompletionRecordedAtEpochMs ??=
+          (completionClock ?? DateTime.now)().millisecondsSinceEpoch;
+    }
+    final result = writer.applyAll(
       state,
       [
         for (final index in indices) pendingConsequences[index],
@@ -136,11 +145,21 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         if (additional != null) grantOperationId,
       ],
       preparedPokemonGifts: preparedPokemonGifts,
+      completionRecordedAtEpochMs: frozenCompletionRecordedAtEpochMs,
+      preparedCompletionPartyRecords: preparedCompletionPartyRecords,
       railProgressionOperationIds: [
         for (final index in indices) pendingRailProgressionOperationIds[index],
         if (additional != null) railOperationId,
       ],
     );
+    if (result.success && additional is SceneFinishGameConsequence && additional.recordParty) {
+      for (final record in result.gameState.completionPartyJournal.records) {
+        if (record.endingId == additional.endingId) {
+          preparedCompletionPartyRecords.putIfAbsent(record.endingId, () => record);
+        }
+      }
+    }
+    return result;
   }
 
   final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);

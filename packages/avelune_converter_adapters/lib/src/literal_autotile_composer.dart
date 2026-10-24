@@ -12,6 +12,17 @@ import 'native_project_writer.dart';
 
 enum LiteralAutotileFormat { simple, standard, extended }
 
+const _framebufferClippingWitnesses = {
+  'TilemapRenderer':
+      '321f334b2eeee0f1fa45d16f52117feb7ea765e17643b88c09a69285ada4bdef',
+  'AutotileExpander':
+      'c40587686d2176794b79aa926e0adc5fdb67db102dd6f14a7e54a1618635e597',
+  'TileDrawingHelper':
+      '2a94034ce77b68faeb8c7620e4a9cf2ceea81580992db7c86424cc3b63393bc7',
+};
+const _framebufferClippingEngineHash =
+    '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04';
+
 final class LiteralAutotilePart {
   const LiteralAutotilePart(
       {required this.x,
@@ -75,6 +86,15 @@ final class LiteralAutotileProfile {
   final bool extendedAttested;
   final int? baseFrameDurationMs;
   final Map<String, Object?> provenance;
+
+  bool get _framebufferExpanderAttested {
+    final sections = provenance['sections'];
+    return sections is Map &&
+        _framebufferClippingWitnesses.entries.every((witness) {
+          final section = sections[witness.key];
+          return section is Map && section['sha256'] == witness.value;
+        });
+  }
 }
 
 final class LiteralAutotileComposition {
@@ -145,7 +165,8 @@ final class LiteralAutotileComposition {
             x: frame * frameWidth + rectangles[quarter].$1,
             y: rectangles[quarter].$2,
             width: 16,
-            height: 16,
+            height: math.max(
+                0, math.min(16, sourcePixelHeight - rectangles[quarter].$2)),
             destinationX: quarter % 2 * 16,
             destinationY: quarter ~/ 2 * 16)
     ]);
@@ -351,20 +372,26 @@ final class LiteralAutotileComposer {
     final bytes = await _readVerified(entry, files, limits, cancellation);
     final (width, height) =
         const NativePngValidator().headerDimensions(bytes, limits: limits);
+    final partialStandard = height > 32 && height < 128;
     final format = switch (height) {
       32 => LiteralAutotileFormat.simple,
       128 => LiteralAutotileFormat.standard,
       192 => LiteralAutotileFormat.extended,
-      _ => null,
+      _ => partialStandard ? LiteralAutotileFormat.standard : null,
     };
     if (format == null) {
       throw LiteralAutotileFailure('autotile.geometry',
-          'Autotile height must be 32, 128, or attested 192 pixels',
+          'Autotile height must be 32, 128, attested partial standard, or attested 192 pixels',
           locator: reference.locator);
     }
     if (format == LiteralAutotileFormat.extended && !profile.extendedAttested) {
       throw LiteralAutotileFailure('autotile.extended.unverified',
           'Extended autotile geometry requires the attested source expander',
+          locator: reference.locator);
+    }
+    if (partialStandard && !profile._framebufferExpanderAttested) {
+      throw LiteralAutotileFailure('autotile.clipping.unverified',
+          'Partial standard autotiles require the attested source expander and native framebuffer clipping contract',
           locator: reference.locator);
     }
     final frameWidth = format == LiteralAutotileFormat.simple ? 32 : 96;
@@ -398,6 +425,32 @@ final class LiteralAutotileComposer {
           locator: reference.locator);
     }
     const NativePngValidator().validate(bytes, limits: limits);
+    Map<String, Object?>? sourceClipping;
+    if (partialStandard) {
+      final engines = snapshot.entriesMatchingPath('Game.exe');
+      if (engines.length != 1 ||
+          engines.single.kind != SourceNodeKind.file ||
+          engines.single.sha256?.value != _framebufferClippingEngineHash) {
+        throw LiteralAutotileFailure('autotile.clipping.unverified',
+            'Partial standard autotiles require the attested source engine for native framebuffer clipping',
+            locator: reference.locator);
+      }
+      final engine = engines.single;
+      await _readVerified(engine, files, limits, cancellation);
+      sourceClipping = {
+        'contract': 'mkxp-2.4.2-c9378cf-native-framebuffer-source-clip-v1',
+        'backend': 'glBlitFramebuffer',
+        'sourcePixelHeight': height,
+        'quadFallbackQualified': false,
+        'engine': {
+          'version': '2.4.2',
+          'revision': 'c9378cfaba06e0b299a1bfd4197f62da018693da',
+          'sourceFilePath': engine.relativePath,
+          'sourceFileId': engine.fileId.value,
+          'sourceFileHash': engine.sha256!.value,
+        },
+      };
+    }
     cancellation?.check();
     final decoded = image.decodePng(Uint8List.fromList(bytes));
     if (decoded == null || decoded.width != width || decoded.height != height) {
@@ -416,7 +469,7 @@ final class LiteralAutotileComposer {
           final sourceY = rects[quarter].$2;
           final targetX = variant % 8 * 32 + quarter % 2 * 16;
           final targetY = frame * 192 + variant ~/ 8 * 32 + quarter ~/ 2 * 16;
-          for (var y = 0; y < 16; y++) {
+          for (var y = 0; y < math.min(16, height - sourceY); y++) {
             var target =
                 (targetY + y) * rowBytes + 1 + targetX * 4 * channelBytes;
             for (var x = 0; x < 16; x++) {
@@ -442,7 +495,12 @@ final class LiteralAutotileComposer {
           'PNG encoder exceeded its reserved output bound');
     }
     final artifact = NativeArtifact(bytes: output, limits: limits);
-    final diagnostics = <LiteralAutotileDiagnostic>[];
+    final diagnostics = <LiteralAutotileDiagnostic>[
+      if (sourceClipping != null)
+        LiteralAutotileDiagnostic('autotile.source_rect.clipped',
+            'Partial source rectangles use the attested mkxp-z 2.4.2 native framebuffer clipping contract; the quad fallback and historical source GPU backend are unqualified',
+            locator: reference.locator),
+    ];
     int? duration;
     if (profile.clockAttested) {
       duration = attestedFrameDurationMs(reference.sourceName);
@@ -513,6 +571,7 @@ final class LiteralAutotileComposer {
       'patternReference': 'TileDrawingHelper:5-18',
       'geometryReference': 'AutotileExpander:9-65',
       'sourceProfile': profile.provenance,
+      if (sourceClipping != null) 'sourceClipping': sourceClipping,
       'firstFrameOnly': !animated,
       'degraded': frameCount > 1 && !animated,
       'frameDurationMs': duration,
@@ -559,14 +618,19 @@ Future<List<int>> _readVerified(SourceFileEntry entry, SourceFilePort files,
     throw const LiteralAutotileFailure(
         'autotile.quota.input', 'Source file exceeds the admitted byte budget');
   }
-  final bytes = await files.read(entry.fileId);
+  final sourceBytes = await files.read(entry.fileId);
   cancellation?.check();
-  if (bytes.length != entry.byteLength ||
-      sha256.convert(bytes).toString() != entry.sha256!.value) {
-    throw const LiteralAutotileFailure('autotile.source.hash',
-        'Source bytes differ from the admitted snapshot');
+  const changed = LiteralAutotileFailure('autotile.source.hash',
+      'Source bytes differ from the admitted snapshot');
+  if (sourceBytes.length != entry.byteLength) throw changed;
+  final bytes = Uint8List(sourceBytes.length);
+  for (var index = 0; index < bytes.length; index++) {
+    final value = sourceBytes[index];
+    if (value < 0 || value > 255) throw changed;
+    bytes[index] = value;
   }
-  return bytes;
+  if (sha256.convert(bytes).toString() != entry.sha256!.value) throw changed;
+  return bytes.asUnmodifiableView();
 }
 
 Map<String, Object?> _freeze(

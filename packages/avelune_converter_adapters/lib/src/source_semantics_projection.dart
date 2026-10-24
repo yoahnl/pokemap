@@ -364,6 +364,19 @@ final class _ProjectionRun {
   var allQualified = true;
   static const categoryId = 'ac12-source-semantics';
 
+  late final Set<(int, int)> invisibleAutotileSlots =
+      sourceUsesInvisibleEmptyAutotiles(
+              snapshot: source.snapshot, profile: source.interpretationProfile)
+          ? {
+              for (final tileset in source.tilesets)
+                for (final image in tileset.images)
+                  if (image.role == 'autotile' &&
+                      image.state == 'none' &&
+                      image.slot != null)
+                    (tileset.sourceTilesetId, image.slot!),
+            }
+          : {};
+
   Future<void> project() async {
     artifacts.addAll(grassRustle?.artifacts ?? const []);
     mutations.addAll(grassRustle?.mutations ?? const []);
@@ -453,10 +466,16 @@ final class _ProjectionRun {
         final sourceCells = layer.cells;
         for (var index = 0; index < sourceCells.length; index++) {
           final tile = sourceCells[index];
-          if (tile == 0) continue;
+          if (tile == 0 ||
+              (tile >= 48 &&
+                  tile < 384 &&
+                  invisibleAutotileSlots.contains(
+                      (sourceTilesetId, tile ~/ 48 - 1)))) {
+            continue;
+          }
           final crop = crops[(sourceTilesetId, tile)] ??
-              (throw const NativeWriteException('semantics.crop.missing',
-                  'Every source tile requires its exact literal crop'));
+              (throw NativeWriteException('semantics.crop.missing',
+                  'Every visible source tile requires its exact literal crop: sourceMapId=$id, sourceTilesetId=$sourceTilesetId, tileId=$tile, x=${index % original.width}, y=${index ~/ original.width}, sourceZ=${layer.sourceZ}'));
           if (crop.terrainTag == 6 || crop.terrainTag == 16) {
             reflectiveTileCount++;
             continue;

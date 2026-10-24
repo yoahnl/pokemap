@@ -331,12 +331,11 @@ void _validateEntity(
       (map.spatialScene != null || map.version == ProjectVersion.v9)) {
     throw const ValidationException('Healing displays require a 2D map.');
   }
-  if ((map.spatialScene != null || map.version == ProjectVersion.v9) &&
-      entity.npc?.movement.mode == MapEntityNpcMovementMode.fixedRoute) {
-    throw const ValidationException(
-      'Fixed NPC routes require a 2D map.',
-      code: 'npc.fixed_route.dimension',
-    );
+  final movementArea = entity.npc?.movement.movementArea;
+  if (movementArea != null &&
+      (movementArea.pos.x + movementArea.size.width > map.size.width ||
+          movementArea.pos.y + movementArea.size.height > map.size.height)) {
+    throw const ValidationException('NPC movement area must fit inside the map.', code: 'npc.movement_area.invalid');
   }
   assertValidMapEntityTypedPayloads(entity);
 }
@@ -460,6 +459,26 @@ void _assertNpcVisibilityAndConditionalDialogues(
         _assertRuntimePredicateRef(entityId, pred, 'visibility');
     }
   }
+  final readyWhen = n.trainerBattleReadyWhen;
+  final refusal = n.trainerBattleNotReadyDialogue;
+  if (readyWhen != null || refusal != null) {
+    if (n.trainerId?.trim().isNotEmpty != true || readyWhen == null) {
+      throw ValidationException('Entity $entityId requires a trainer and readiness condition for its refusal dialogue');
+    }
+    _assertRuntimePredicateRef(entityId, readyWhen, 'trainer battle readiness');
+    if (refusal != null) {
+      if (refusal.dialogueId.trim().isEmpty) {throw ValidationException('Entity $entityId refusal dialogue is missing dialogueId');}
+      _assertDialogueScriptPath(refusal.scriptPathRelative, entityId);
+      assertValidDialogueStartNode(refusal.startNode, contextLabel: 'Entity $entityId (battle refusal)');
+    }
+  }
+  final battleWhen = n.trainerBattleWhen;
+  if (battleWhen != null) {
+    if (n.trainerId?.trim().isNotEmpty != true) {
+      throw ValidationException('Entity $entityId requires a trainer for its battle condition');
+    }
+    _assertRuntimePredicateRef(entityId, battleWhen, 'trainer battle');
+  }
   for (var i = 0; i < n.conditionalDialogues.length; i++) {
     final row = n.conditionalDialogues[i];
     _assertRuntimePredicateRef(entityId, row.when, 'conditional dialogue #$i');
@@ -481,6 +500,30 @@ void _assertRuntimePredicateRef(
   MapEntityRuntimePredicate predicate,
   String contextLabel,
 ) {
+  if (predicate.kind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) {
+    if (predicate.refId.isEmpty &&
+        predicate.timeWindow == null &&
+        predicate.minimumCount != null &&
+        predicate.minimumCount! >= 1 &&
+        predicate.minimumCount! <= 6) {
+      return;
+    }
+    throw ValidationException(
+      'Entity $entityId $contextLabel requires a minimum usable party count from 1 to 6',
+    );
+  }
+  if (predicate.minimumCount != null) {
+    throw ValidationException(
+      'Entity $entityId $contextLabel does not accept a minimum count',
+    );
+  }
+  if (predicate.kind == MapEntityRuntimePredicateKind.localTimeWindow) {
+    if (predicate.refId.isEmpty && predicate.timeWindow?.isValid == true) return;
+    throw ValidationException('Entity $entityId $contextLabel requires a valid local time window without a reference');
+  }
+  if (predicate.timeWindow != null) {
+    throw ValidationException('Entity $entityId $contextLabel does not accept a local time window');
+  }
   if (predicate.refId.trim().isEmpty) {
     throw ValidationException(
       'Entity $entityId $contextLabel: a target must be selected (empty ref)',
@@ -513,6 +556,11 @@ void assertEntityDialogueRefsAgainstProject(
     case MapEntityKind.npc:
       _assertDialogueRefAgainstRegistry(
         entity.npc?.dialogue,
+        entity.id,
+        manifest,
+      );
+      _assertDialogueRefAgainstRegistry(
+        entity.npc?.trainerBattleNotReadyDialogue,
         entity.id,
         manifest,
       );
@@ -599,7 +647,8 @@ void assertValidMapEntityNpcMovementConfig(
   MapEntityNpcMovementConfig movement,
 ) {
   if (movement.mode != MapEntityNpcMovementMode.fixedRoute) {
-    if (movement.routeSteps.isNotEmpty || movement.suspendWhenInstanceBoolean != null) {
+    if (movement.routeSteps.isNotEmpty || movement.suspendWhenInstanceBoolean != null ||
+        movement.pauseDurationsMs.isNotEmpty || movement.movementArea != null) {
       throw const ValidationException(
         'Autonomous route steps require the fixedRoute movement mode.',
         code: 'npc.fixed_route.invalid',
@@ -612,6 +661,11 @@ void assertValidMapEntityNpcMovementConfig(
       movement.waypoints.isNotEmpty ||
       movement.pauseDurationMs < 0 ||
       movement.pauseDurationMs > 3600000 ||
+      movement.pauseDurationsMs.length > 256 ||
+      movement.pauseDurationsMs.any((pause) => pause < 0 || pause > 3600000) ||
+      (movement.movementArea != null &&
+          (movement.movementArea!.pos.x < 0 || movement.movementArea!.pos.y < 0 ||
+              movement.movementArea!.size.width < 1 || movement.movementArea!.size.height < 1)) ||
       movement.stepDurationMs < 1 ||
       movement.stepDurationMs > 60000) {
     throw const ValidationException(

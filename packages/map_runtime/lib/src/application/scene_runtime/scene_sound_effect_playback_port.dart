@@ -6,6 +6,10 @@ abstract interface class SceneSoundEffectPlaybackPort {
   });
 }
 
+abstract interface class SceneSoundCompletionPort {
+  Future<bool> waitForPlayback(String playbackId);
+}
+
 abstract interface class SceneOwnedSoundEffectPlaybackPort
     implements SceneSoundEffectPlaybackPort {
   Future<void> playOwnedSoundEffect(

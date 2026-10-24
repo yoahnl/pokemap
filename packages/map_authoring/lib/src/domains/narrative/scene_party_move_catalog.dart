@@ -49,7 +49,7 @@ Future<Set<String>> loadScenePartyMoveCatalog(ProjectSnapshot snapshot) async {
       throw const FormatException('Moves catalogue malformed.');
     }
     final catalog = PokemonCatalogFile.fromJson(json);
-    if (catalog.kind != 'catalog' || catalog.catalog != 'moves') {
+    if (catalog.kind != 'pokemon_catalog' || catalog.catalog != 'moves') {
       throw const FormatException('Wrong catalogue.');
     }
     final ids = <String>{};

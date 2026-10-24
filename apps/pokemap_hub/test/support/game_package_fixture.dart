@@ -28,6 +28,7 @@ Future<File> writeTestPackage(
   int extraFiles = 0,
   String minHubVersion = '1.0.0',
   String projectFormat = 'v8',
+  int saveFormat = 1,
   List<String> requiredCapabilities = const <String>[],
   Map<String, List<int>> additionalPayloadFiles = const <String, List<int>>{},
 }) async {
@@ -42,7 +43,7 @@ Future<File> writeTestPackage(
       minHubVersion: Version.parse(minHubVersion),
       runtimeApiExpression: '>=1.0.0 <2.0.0',
       projectFormat: projectFormat,
-      saveFormat: 1,
+      saveFormat: saveFormat,
       compatibilityId: 'main',
       requiredCapabilities: requiredCapabilities,
     ),

@@ -8,6 +8,98 @@ import 'native_psdk_trainer_bundle.dart';
 final class NativeSourceSpeciesBindings {
   const NativeSourceSpeciesBindings();
 
+  Future<NativeSourceSpeciesBindingBatch> bindAvailable({
+    required SourceSnapshot snapshot,
+    required SourcePbsProject source,
+    required SourceFilePort files,
+    required NativePsdkCatalog nativeCatalog,
+    required Iterable<String> requestedSourceSymbols,
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    final symbols = <String>{};
+    var inputRows = 0;
+    for (final symbol in requestedSourceSymbols) {
+      cancellation?.check();
+      if (++inputRows > 1000000 || symbol.isEmpty || symbol.length > 192) {
+        _invalid('requested_symbols', r'$.requestedSourceSymbols',
+            'Requested symbols must be nonempty, at most 192 code units, and bounded to the source ceiling of 1000000 event requests.');
+      }
+      symbols.add(symbol);
+    }
+    final bindings = <String, NativeSourceSpeciesBindingResult>{};
+    final refusals = <String, ContractError>{};
+    late final String operationCatalogHash;
+    void verifyOperationCatalog() {
+      cancellation?.check();
+      if (_catalogHash(nativeCatalog) != operationCatalogHash) {
+        _invalid('catalog_integrity', r'$.nativeCatalog',
+            'The native catalog changed during batched identity resolution.');
+      }
+    }
+    Future<void> resolve(List<String> requested) async {
+      cancellation?.check();
+      try {
+        final result = await bind(snapshot: snapshot, source: source,
+            files: files, nativeCatalog: nativeCatalog,
+            requestedSourceSymbols: requested, cancellation: cancellation);
+        if (result.evidence['nativeCatalogHash'] != operationCatalogHash) {
+          _invalid('catalog_integrity', r'$.nativeCatalog',
+              'A species binding differs from the batched native catalog.');
+        }
+        for (final row in result.rows) {
+          final symbol = row['sourceSymbol']! as String;
+          bindings[symbol] = NativeSourceSpeciesBindingResult._([row], {
+            ...result.evidence,
+            'requestedSourceSymbols': [symbol],
+            'mappingCount': 1,
+            'ignoredSourceFieldDiagnostics': row['ignoredSourceFieldDiagnostics'],
+          });
+        }
+      } on ContractError catch (error) {
+        cancellation?.check();
+        final localIdentityFailure = const {
+          'native_species.compiled_identity',
+          'native_species.pbs_identity',
+          'native_species.source_name',
+          'native_species.source_form_name',
+          'native_species.native_form_identity',
+        }.contains(error.code) ||
+            error.code == 'native_species.native_base_identity' &&
+                error.path.startsWith('PBS/');
+        if (!localIdentityFailure) rethrow;
+        if (requested.length == 1) {
+          refusals[requested.single] = error;
+        } else {
+          final middle = requested.length ~/ 2;
+          await resolve(requested.sublist(0, middle));
+          await resolve(requested.sublist(middle));
+        }
+      }
+      verifyOperationCatalog();
+    }
+    if (symbols.isNotEmpty) {
+      try {
+        operationCatalogHash = _catalogHash(nativeCatalog);
+        final ordered = symbols.toList()..sort();
+        for (var offset = 0; offset < ordered.length; offset += 2048) {
+          final end = offset + 2048 < ordered.length
+              ? offset + 2048 : ordered.length;
+          await resolve(ordered.sublist(offset, end));
+        }
+        verifyOperationCatalog();
+      } on ContractError catch (error) {
+        cancellation?.check();
+        if (error.code == 'source.cancelled') rethrow;
+        bindings.clear();
+        refusals
+          ..clear()
+          ..addEntries(symbols.map((symbol) => MapEntry(symbol, error)));
+      }
+    }
+    return NativeSourceSpeciesBindingBatch._(bindings, refusals);
+  }
+
   Future<NativeSourceSpeciesBindingResult> bindNativeBases({
     required SourceSnapshot snapshot,
     required SourcePbsProject source,
@@ -293,6 +385,16 @@ final class NativeSourceSpeciesBindings {
       'activationQualified': false,
     });
   }
+}
+
+final class NativeSourceSpeciesBindingBatch {
+  NativeSourceSpeciesBindingBatch._(
+      Map<String, NativeSourceSpeciesBindingResult> bindings,
+      Map<String, ContractError> refusals)
+      : bindings = Map.unmodifiable(bindings),
+        refusals = Map.unmodifiable(refusals);
+  final Map<String, NativeSourceSpeciesBindingResult> bindings;
+  final Map<String, ContractError> refusals;
 }
 
 final class NativeSourceSpeciesBindingResult {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'character_autonomy_limits_inspector.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
@@ -30,10 +31,6 @@ class _CharacterFixedRouteInspectorState
     extends State<CharacterFixedRouteInspector> {
   String? _problem;
   MapEntityNpcMovementConfig get _movement => widget.entity.npc!.movement;
-  bool get _twoD =>
-      widget.map.spatialScene == null &&
-      widget.map.version != ProjectVersion.v9 &&
-      widget.project.settings.dimension == ProjectDimension.twoD;
 
   void _change(MapEntityNpcMovementConfig movement) {
     widget.onChanged(
@@ -140,8 +137,7 @@ class _CharacterFixedRouteInspectorState
             'scriptedOnly': 'Seulement pendant une interaction',
             if (movement.mode == MapEntityNpcMovementMode.patrol)
               'patrol': 'Patrouille existante',
-            if (_twoD || movement.mode == MapEntityNpcMovementMode.fixedRoute)
-              'fixedRoute': 'Suite de pas',
+            'fixedRoute': 'Suite de pas',
           },
           onChanged: (name) {
             if (name == movement.mode.name) return;
@@ -160,13 +156,13 @@ class _CharacterFixedRouteInspectorState
                       ]
                     : const [],
                 suspendWhenInstanceBoolean: null,
+                pauseDurationsMs: const [],
+                movementArea: null,
               ),
             );
           },
         ),
-        if (movement.mode == MapEntityNpcMovementMode.fixedRoute && !_twoD)
-          const Text('Les suites de pas sont disponibles sur les cartes 2D.'),
-        if (movement.mode == MapEntityNpcMovementMode.fixedRoute && _twoD) ...[
+        if (movement.mode == MapEntityNpcMovementMode.fixedRoute) ...[
           const SizedBox(height: 8),
           StudioChoice(
             label: 'Répéter la suite',
@@ -185,6 +181,8 @@ class _CharacterFixedRouteInspectorState
             value: '${movement.stepDurationMs}',
             tryCommit: (raw) => _time(raw, pause: false),
           ),
+          CharacterAutonomyLimitsInspector(entity: widget.entity, map: widget.map,
+              movement: movement, onChanged: _change),
           if (_problem != null) Text(_problem!),
           const SizedBox(height: 8),
           const Text(

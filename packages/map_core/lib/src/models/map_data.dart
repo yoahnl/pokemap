@@ -669,7 +669,7 @@ extension MapEntityProjectElementVisualX on MapEntity {
   }
 }
 
-@freezed
+@Freezed(fromJson: true, toJson: true)
 abstract class MapWarp with _$MapWarp {
   @JsonSerializable(explicitToJson: true)
   const factory MapWarp({

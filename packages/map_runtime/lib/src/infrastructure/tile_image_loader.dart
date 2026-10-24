@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -361,7 +364,13 @@ Future<RuntimeTilesetImage> decodeRuntimeTilesetImage(
   final dimensions = _pngPrefixDimensions(bytes);
   final allocation = dimensions == null
       ? (residentBytes: 0, transientBytes: bytes.length * 2)
-      : _imageAllocation(bytes.length, dimensions, transparentColor, budget.profile);
+      : _imageAllocation(
+          bytes.length,
+          dimensions,
+          transparentColor,
+          budget.profile,
+          sourceBitDepth: bytes[24],
+        );
   final reservation = await budget.acquire(
     residentBytes: allocation.residentBytes,
     transientBytes: allocation.transientBytes,
@@ -392,11 +401,23 @@ Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
   final budget = resourceBudget ?? defaultRuntimeResourceBudget;
   final length = await file.length();
   _checkEncodedLength(length, budget);
-  final dimensions = await _readPngPrefixDimensions(file, length, budget,
-      prefetch: prefetch, isCurrent: isCurrent);
+  final prefix = await _readPngPrefixDimensions(
+    file,
+    length,
+    budget,
+    prefetch: prefetch,
+    isCurrent: isCurrent,
+  );
+  final dimensions = prefix?.dimensions;
   final allocation = dimensions == null
       ? (residentBytes: 0, transientBytes: length * 2)
-      : _imageAllocation(length, dimensions, transparentColor, budget.profile);
+      : _imageAllocation(
+          length,
+          dimensions,
+          transparentColor,
+          budget.profile,
+          sourceBitDepth: prefix!.sourceBitDepth,
+        );
   final reservation = await budget.acquire(
     residentBytes: allocation.residentBytes,
     transientBytes: allocation.transientBytes,
@@ -435,23 +456,34 @@ Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
   return (width: header.getUint32(16), height: header.getUint32(20));
 }
 
-Future<({int width, int height})?> _readPngPrefixDimensions(
-  File file, int length, RuntimeResourceBudget budget, {
+Future<({({int width, int height}) dimensions, int sourceBitDepth})?>
+_readPngPrefixDimensions(
+  File file,
+  int length,
+  RuntimeResourceBudget budget, {
   required bool prefetch,
   bool Function()? isCurrent,
 }) async {
   final prefixLength = length < 33 ? length : 33;
   final reservation = await budget.acquire(
-      transientBytes: prefixLength * 2, prefetch: prefetch, isCurrent: isCurrent);
+    transientBytes: prefixLength * 2,
+    prefetch: prefetch,
+    isCurrent: isCurrent,
+  );
   try {
     final handle = await file.open();
     try {
       final prefix = await handle.read(prefixLength);
       if (prefix.length != prefixLength) {
-        throw const RuntimeResourceAdmissionException('image_changed_during_read');
+        throw const RuntimeResourceAdmissionException(
+          'image_changed_during_read',
+        );
       }
       reservation.ensureCurrent();
-      return _pngPrefixDimensions(prefix);
+      final dimensions = _pngPrefixDimensions(prefix);
+      return dimensions == null
+          ? null
+          : (dimensions: dimensions, sourceBitDepth: prefix[24]);
     } finally {
       await handle.close();
     }
@@ -464,17 +496,17 @@ Future<({int width, int height})?> _readPngPrefixDimensions(
   int encodedLength,
   ({int width, int height}) dimensions,
   TilesetTransparentColor? transparentColor,
-  RuntimeResourceProfile profile,
-) {
-  final scratchFactor = transparentColor != null ||
-          dimensions.height > kRuntimeMaxTilesetChunkHeight ? 4 : 2;
-  final availablePixels =
-      (profile.maximumTransientBytes - encodedLength * 2) ~/ scratchFactor;
-  final pixels = runtimeImageRgbaByteLength(dimensions.width, dimensions.height,
-      maximumBytes: profile.maximumResidentBytes < availablePixels
-          ? profile.maximumResidentBytes : availablePixels);
-  return (residentBytes: pixels,
-      transientBytes: encodedLength * 2 + pixels * scratchFactor);
+  RuntimeResourceProfile profile, {
+  int sourceBitDepth = 8,
+}) {
+  return runtimeTilesetImageAllocation(
+    encodedLength: encodedLength,
+    width: dimensions.width,
+    height: dimensions.height,
+    transformRgba: transparentColor != null,
+    sourceBitDepth: sourceBitDepth,
+    profile: profile,
+  );
 }
 
 void _checkEncodedLength(int length, RuntimeResourceBudget budget) {
@@ -533,17 +565,30 @@ Future<RuntimeTilesetImage> _decodeAdmittedImage(
     if (expectedDimensions != null && dimensions != expectedDimensions) {
       throw const RuntimeResourceAdmissionException('image_dimensions_changed');
     }
+    final png = _pngPrefixDimensions(bytes);
     final allocation = _imageAllocation(
-        bytes.length, dimensions, transparentColor, reservation.profile);
+      bytes.length,
+      dimensions,
+      transparentColor,
+      reservation.profile,
+      sourceBitDepth: png == null ? 8 : bytes[24],
+    );
     reservation.resize(
       residentBytes: allocation.residentBytes,
       transientBytes: allocation.transientBytes,
     );
-    image = await _loadTilesetImageWithUiCodec(
-      bytes,
-      transparentColor: transparentColor,
-      decoder: decoder,
-    );
+    image = png != null && dimensions.height > runtimeTilesetChunkHeight
+        ? await _loadChunkedPng(
+            bytes,
+            dimensions,
+            transparentColor,
+            reservation,
+          )
+        : await _loadTilesetImageWithUiCodec(
+            bytes,
+            transparentColor: transparentColor,
+            decoder: decoder,
+          );
     if (image.width != dimensions.width || image.height != dimensions.height) {
       throw const RuntimeResourceAdmissionException(
         'decoded_dimensions_changed',
@@ -556,6 +601,215 @@ Future<RuntimeTilesetImage> _decodeAdmittedImage(
   } catch (_) {
     image?.dispose();
     reservation.release();
+    rethrow;
+  }
+}
+
+void _validatePngInflation(
+  Uint8List bytes,
+  ({int width, int height}) dimensions,
+) {
+  final bits = bytes[24];
+  final colorType = bytes[25];
+  final channels = switch (colorType) {
+    0 || 3 => 1,
+    2 => 3,
+    4 => 2,
+    6 => 4,
+    _ => 0,
+  };
+  final legalBits = colorType == 0
+      ? const [1, 2, 4, 8, 16]
+      : colorType == 3
+      ? const [1, 2, 4, 8]
+      : const [8, 16];
+  if (channels == 0 ||
+      !legalBits.contains(bits) ||
+      bytes[26] != 0 ||
+      bytes[27] != 0 ||
+      bytes[28] > 1) {
+    throw const RuntimeResourceAdmissionException('png_format');
+  }
+  final passes = bytes[28] == 0
+      ? const [(0, 0, 1, 1)]
+      : const [
+          (0, 0, 8, 8),
+          (4, 0, 8, 8),
+          (0, 4, 4, 8),
+          (2, 0, 4, 4),
+          (0, 2, 2, 4),
+          (1, 0, 2, 2),
+          (0, 1, 1, 2),
+        ];
+  var expected = 0;
+  for (final pass in passes) {
+    final w = dimensions.width <= pass.$1
+        ? 0
+        : (dimensions.width - pass.$1 + pass.$3 - 1) ~/ pass.$3;
+    final h = dimensions.height <= pass.$2
+        ? 0
+        : (dimensions.height - pass.$2 + pass.$4 - 1) ~/ pass.$4;
+    if (w != 0 && h != 0) {
+      expected += (((w * channels * bits + 7) ~/ 8) + 1) * h;
+    }
+  }
+  final counter = _PngInflationCounter(expected);
+  final inflater = ZLibCodec().decoder.startChunkedConversion(counter);
+  final data = ByteData.sublistView(bytes);
+  var offset = 8;
+  var chunks = 0;
+  var foundData = false;
+  var dataEnded = false;
+  var ended = false;
+  var closed = false;
+  try {
+    while (offset < bytes.length) {
+      if (++chunks > 4096 || offset > bytes.length - 12) {
+        throw const RuntimeResourceAdmissionException('png_chunks');
+      }
+      final length = data.getUint32(offset);
+      if (length > bytes.length - offset - 12) {
+        throw const RuntimeResourceAdmissionException('png_chunks');
+      }
+      final type = data.getUint32(offset + 4);
+      if ((offset == 8 && (type != 0x49484452 || length != 13)) ||
+          (offset != 8 && type == 0x49484452)) {
+        throw const RuntimeResourceAdmissionException('png_chunks');
+      }
+      if (type == 0x6163544c || type == 0x6663544c || type == 0x66644154) {
+        throw const RuntimeResourceAdmissionException('png_animation');
+      }
+      if (type == 0x49444154) {
+        if (dataEnded) {
+          throw const RuntimeResourceAdmissionException('png_chunks');
+        }
+        foundData = true;
+        for (
+          var start = offset + 8;
+          start < offset + 8 + length;
+          start += 1024
+        ) {
+          final end = start + 1024 < offset + 8 + length
+              ? start + 1024
+              : offset + 8 + length;
+          inflater.add(Uint8List.sublistView(bytes, start, end));
+        }
+      } else if (foundData) {
+        dataEnded = true;
+      }
+      offset += length + 12;
+      if (type == 0x49454e44) {
+        ended = length == 0 && offset == bytes.length;
+        break;
+      }
+    }
+    closed = true;
+    inflater.close();
+    if (!ended || !foundData || counter.count != expected) {
+      throw const RuntimeResourceAdmissionException('png_scanlines');
+    }
+  } on RuntimeResourceAdmissionException {
+    rethrow;
+  } on Object {
+    throw const RuntimeResourceAdmissionException('png_scanlines');
+  } finally {
+    if (!closed) {
+      try {
+        inflater.close();
+      } on Object {}
+    }
+  }
+}
+
+final class _PngInflationCounter extends ByteConversionSinkBase {
+  _PngInflationCounter(this.expected);
+  final int expected;
+  int count = 0;
+  @override
+  void add(List<int> chunk) {
+    if (chunk.length > expected - count) {
+      throw const RuntimeResourceAdmissionException('png_scanlines');
+    }
+    count += chunk.length;
+  }
+
+  @override
+  void close() {}
+}
+
+Uint8List _decodePngRgba(
+  Uint8List bytes,
+  ({int width, int height}) dimensions,
+  TilesetTransparentColor? transparentColor,
+) {
+  _validatePngInflation(bytes, dimensions);
+  final decoded = img.decodePng(bytes, frame: 0);
+  if (decoded == null ||
+      decoded.width != dimensions.width ||
+      decoded.height != dimensions.height) {
+    throw const RuntimeResourceAdmissionException('decoded_dimensions_changed');
+  }
+  final rgba = decoded
+      .convert(format: img.Format.uint8, numChannels: 4)
+      .toUint8List();
+  for (var offset = 0; offset < rgba.length; offset += 4) {
+    final alpha =
+        transparentColor?.matchesRgb(
+              red: rgba[offset],
+              green: rgba[offset + 1],
+              blue: rgba[offset + 2],
+            ) ==
+            true
+        ? 0
+        : rgba[offset + 3];
+    for (var channel = 0; channel < 3; channel++) {
+      rgba[offset + channel] = (rgba[offset + channel] * alpha + 127) ~/ 255;
+    }
+    rgba[offset + 3] = alpha;
+  }
+  return rgba;
+}
+
+Future<RuntimeTilesetImage> _loadChunkedPng(
+  Uint8List bytes,
+  ({int width, int height}) dimensions,
+  TilesetTransparentColor? transparentColor,
+  RuntimeResourceReservation reservation,
+) async {
+  final rgba = await Isolate.run(
+    () => _decodePngRgba(bytes, dimensions, transparentColor),
+  );
+  final chunks = buildRuntimeTilesetChunks(
+    totalWidth: dimensions.width,
+    totalHeight: dimensions.height,
+  );
+  final images = <ui.Image>[];
+  try {
+    for (final chunk in chunks) {
+      reservation.ensureCurrent();
+      final pixels = Uint8List.sublistView(
+        rgba,
+        chunk.top * dimensions.width * 4,
+        chunk.bottom * dimensions.width * 4,
+      );
+      images.add(
+        await _decodeImageFromRgbaPixels(
+          pixels,
+          width: chunk.width,
+          height: chunk.height,
+        ),
+      );
+    }
+    return RuntimeTilesetImage(
+      images: images,
+      chunks: chunks,
+      width: dimensions.width,
+      height: dimensions.height,
+    );
+  } catch (_) {
+    for (final image in images) {
+      image.dispose();
+    }
     rethrow;
   }
 }

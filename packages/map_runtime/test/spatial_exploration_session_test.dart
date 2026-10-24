@@ -7,9 +7,142 @@ import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
+import 'package:map_runtime/src/spatial/spatial_story_playback.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'spatial emote uses catalog frames above the actor and releases resources',
+    () async {
+      final root = await Directory.systemTemp.createTemp('spatial-emote-');
+      addTearDown(() => root.delete(recursive: true));
+      final path = '${root.path}/actor.png';
+      await File(path)
+          .writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+      final actor = ProjectCharacterEntry(
+        id: 'actor',
+        name: 'Actor',
+        tilesetId: 'unused',
+        animations: [
+          for (final direction in EntityFacing.values)
+          for (final state in [CharacterAnimationState.idle, CharacterAnimationState.walk])
+            CharacterAnimation(
+              state: state,
+              direction: direction,
+              sourceAssetId: 'actor',
+              frames: [
+                CharacterAnimationFrame(
+                  source: const TilesetSourceRect(
+                    x: 0,
+                    y: 0,
+                    width: 32,
+                    height: 32,
+                  ),
+                  durationMs: 100,
+                ),
+              ],
+            ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'Spatial emotes',
+        maps: const [],
+        tilesets: const [],
+        settings: const ProjectSettings(
+          dimension: ProjectDimension.threeD,
+          defaultPlayerCharacterId: 'actor',
+        ),
+        characters: [actor],
+        cinematics: [
+          CinematicAsset(
+            id: 'reaction',
+            title: 'Reaction',
+            mapId: 'map',
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'bubble',
+                  kind: CinematicTimelineStepKind.actorEmote,
+                  actorId: 'hero',
+                  durationMs: 600,
+                  metadata: const {'actor.emoteId': 'exclamation'},
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 8, height: 8),
+        entities: [MapEntity(id: 'walker', kind: MapEntityKind.npc, pos: const GridPos(x: 2, y: 2),
+          npc: const MapEntityNpcData(characterId: 'actor', movement: MapEntityNpcMovementConfig(
+            mode: MapEntityNpcMovementMode.fixedRoute,
+            routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)],
+            pauseDurationMs: 1, stepDurationMs: 100,
+            movementArea: MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 3, height: 3)))) )],
+        spatialScene: MapSpatialScene(width: 8, depth: 8),
+      );
+      final session = await SpatialExplorationSession.load(
+        RuntimeMapBundle(
+          manifest: project,
+          map: map,
+          projectRootDirectory: root.path,
+          tilesetAbsolutePathsById: const {},
+          resourceBudget: budget,
+          characterAnimationAbsolutePathsByAssetId: {'actor': path},
+        ),
+      );
+      var pose = const SpatialCinematicActorPose(
+        x: 4.5,
+        z: 4.5,
+        facing: EntityFacing.south,
+        emoteId: 'exclamation',
+      );
+      session.heroStoryPose = () => pose;
+      final first = session.frames(0);
+      expect(first, contains('cinematic-emote:hero'));
+      expect(
+        first['cinematic-emote:hero']!.y,
+        first['hero']!.y,
+      );
+      expect(
+        first['cinematic-emote:hero']!.billboardVerticalOffset,
+        closeTo(first['hero']!.height + .15, .000001),
+      );
+      expect(
+        first['cinematic-emote:hero']!.frame,
+        const Rect.fromLTWH(0, 0, 16, 16),
+      );
+      expect(budget.residentBytes, greaterThan(32 * 32 * 8));
+      pose = pose.copyWith(emoteElapsedSeconds: .28);
+      expect(
+        session.frames(0)['cinematic-emote:hero']!.frame,
+        const Rect.fromLTWH(16, 0, 16, 16),
+      );
+      pose = pose.copyWith(clearEmote: true);
+      expect(session.frames(0), isNot(contains('cinematic-emote:hero')));
+      var gameState = GameState(saveId: 'save', currentMapId: 'map',
+        playerPosition: GridPos(x: session.movement.x.floor(), y: session.movement.z.floor()),
+        playerSpatialPosition: PlayerSpatialPosition(x: session.movement.x, z: session.movement.z));
+      final story = SpatialStoryPlayback(session: session, readGameState: () => gameState,
+          writeGameState: (state) => gameState = state);
+      session.frames(.001);
+      final walking = session.frames(.05)['map:npc:walker']!;
+      expect(walking.x, greaterThan(2.5));
+      session.setLifecyclePaused(true);
+      expect(session.frames(1)['map:npc:walker']!.x, walking.x);
+      session.setLifecyclePaused(false);
+      session.frames(.1);
+      expect(gameState.spatialWorldState.actorState('map', 'walker')!.x, 3.5);
+      story.dispose();
+      session.dispose();
+      expect(budget.residentBytes, 0);
+    },
+  );
   test('conditional spatial sprites preserve saved pose and apply only changed facing declarations', () async {
     final root = await Directory.systemTemp.createTemp('spatial-presentations-');
     addTearDown(() => root.delete(recursive: true));

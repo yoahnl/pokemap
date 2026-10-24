@@ -221,6 +221,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
     if (data['mapId'] != null && data['entityId'] != null) {
       _values['npcRef'] = '${data['mapId']}::${data['entityId']}';
     }
+    final finish = current.consequence;
+    if (finish is SceneFinishGameConsequence) {
+      _values.addAll(sceneFinishGameAuthoringParameters(finish));
+    }
     try {
       final rebuilt = _buildPayload();
       _unsupported = rebuilt != current;
@@ -234,11 +238,17 @@ class _SceneActionFormState extends State<SceneActionForm> {
   }
 
   SceneNodePayload _buildPayload() {
-    var built = buildScenePayloadForNarrativeCommand(
+    final original = widget.current;
+    final previousFinish = original is SceneActionPayload
+        ? original.consequence : null;
+    var built = _commandId == NarrativeCommandIds.finishGame &&
+            previousFinish is SceneFinishGameConsequence
+        ? SceneActionPayload.consequence(
+            updateSceneFinishGameAuthoringParameters(previousFinish, _values))
+        : buildScenePayloadForNarrativeCommand(
       commandId: _commandId!,
       parameters: _values,
     );
-    final original = widget.current;
     if (built is SceneActionPayload && original is SceneActionPayload) {
       final fresh = built.interactiveCommand, previous = original.interactiveCommand;
       if (fresh is SceneInputIntegerToFactInteractiveCommand && previous is SceneInputIntegerToFactInteractiveCommand) {

@@ -318,6 +318,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
     @visibleForTesting math.Random? encounterRandom,
+    DateTime Function()? encounterClock,
     @visibleForTesting math.Random? npcRouteRandom,
     RuntimePostBattleDecisionCoordinator? postBattleDecisionCoordinator,
     @visibleForTesting this.postBattleOverlayMounter,
@@ -350,6 +351,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     @visibleForTesting RuntimeMusicService? ambienceMusicService,
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
+        _encounterClock = encounterClock ?? DateTime.now,
         _audioMixer = audioMixer,
         _overworldSfxPlayer = overworldSfxPlayer ??
             FlameAudioOverworldSfxPlayer(mixer: audioMixer),
@@ -4263,6 +4265,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         mapId: mapId,
         entity: npcEntity,
         chapterIndex: _globalStoryChapterIndexFor(manifest),
+        localMinuteOfDay: _npcPresenceMinuteWhileMoving[(mapId, npcEntity.id)] ??
+            _localMinuteOfDay,
       );
       final projection = _resolveWorldRuleProjectionForMap(
         mapId,
@@ -4321,6 +4325,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     return MapEntityRuntimePredicateEvaluator(
       gameState: _gameState,
       chapterIndex: _globalStoryChapterIndexFor(_bundle.manifest),
+      localMinuteOfDay: _localMinuteOfDay,
     ).resolveNpcDialogue(npc);
   }
 
@@ -5766,6 +5771,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   @override
   void update(double dt) {
     if (_isRemoved || _advancingTestSimulation) return;
+    _refreshNpcLocalTime();
     _updateFps(dt);
     if (_simulationClock.advanceFrame(dt, (step) {
       super.update(step);
@@ -5796,6 +5802,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('The test session cannot advance now.');
     }
     _advancingTestSimulation = true;
+    _refreshNpcLocalTime();
     try {
       var remaining = duration.inMicroseconds / Duration.microsecondsPerSecond;
       while (remaining > 1e-10) {
@@ -5953,6 +5960,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         checkpointLocked ||
         _sceneForcedRouteBarrierCount > 0 ||
         _sceneActorRouteTargets.isNotEmpty;
+    if (!blocksNewOverworldLaunch && _npcHoursLineOfSightRefreshPending) {
+      _npcHoursLineOfSightRefreshPending = false;
+      _checkTrainerLineOfSight();
+    }
     if (!blocksNewOverworldLaunch && _startNarrativeTriggerQueueDrain()) {
       _clearPressedMovementControls();
       return;
@@ -6051,6 +6062,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         pendingBattleRequest != null &&
         !_player.isStepping) {
       _pendingBattleRequest = null;
+      if (pendingBattleOwner == null &&
+          pendingBattleRequest is TrainerBattleStartRequest &&
+          !_isNativeTrainerBattleRequestAllowed(pendingBattleRequest)) {
+        _triggeredTrainerBattles.remove(pendingBattleRequest.npcEntityId);
+        _trainerEncounterMusicActive = false;
+        _syncRuntimeMusic();
+        return;
+      }
       _startBattleHandoff(pendingBattleRequest);
       return;
     }
@@ -6646,6 +6665,94 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     return committedStateRevision;
   }
 
+  final DateTime Function() _encounterClock;
+  int? _runtimeLocalMinuteOfDay;
+  bool _npcHoursLineOfSightRefreshPending = false;
+  final Map<(String, String), int> _npcPresenceMinuteWhileMoving = {};
+
+  bool _npcHasActiveMovementOwner(String mapId, String entityId) =>
+      mapId == _activeMapId &&
+      (_pendingScenarioMoveContinuationsByEntity.containsKey(entityId) ||
+          _pendingSceneNpcMovesByEntity.containsKey(entityId) ||
+          (_scriptedEntityMovementController?.activeForcedMoveEntityIds
+                  .contains(entityId) ?? false) ||
+          _sceneActorRouteTargets.any((target) =>
+              target.mapId == mapId && target.entityId == entityId));
+
+  int _readLocalMinuteOfDay() {
+    final now = _encounterClock();
+    return now.hour * 60 + now.minute;
+  }
+
+  int get _localMinuteOfDay =>
+      _runtimeLocalMinuteOfDay ??= _readLocalMinuteOfDay();
+
+  int? _npcReadinessUsableCount;
+
+  void _refreshNpcLocalTime() {
+    final previous = _runtimeLocalMinuteOfDay;
+    final minute = _readLocalMinuteOfDay();
+    _runtimeLocalMinuteOfDay = minute;
+    if (previous == null || !isLoaded) return;
+    final usableCount = usablePartyMemberCount(_gameState.party);
+    var boundaryChanged = _npcReadinessUsableCount != null && _npcReadinessUsableCount != usableCount;
+    if (boundaryChanged) {
+      for (final entity in _world.map.entities) {
+        if (entity.npc?.trainerBattleReadyWhen != null) _triggeredTrainerBattles.remove(entity.id);
+      }
+    }
+    _npcReadinessUsableCount = usableCount;
+    _npcPresenceMinuteWhileMoving.removeWhere((key, value) {
+      final released = !_npcHasActiveMovementOwner(key.$1, key.$2);
+      boundaryChanged |= released;
+      return released;
+    });
+    if (previous != minute) {
+      final maps = {
+        _world.map,
+        for (final loaded in _loadedMapsById.values) loaded.bundle.map,
+      };
+      for (final map in maps) {
+        for (final entity in map.entities) {
+          final npc = entity.npc;
+          if (npc == null) continue;
+          for (final predicate in [
+            npc.visibilityRule?.predicate,
+            npc.trainerBattleWhen,
+            npc.trainerBattleReadyWhen,
+            for (final row in npc.conditionalDialogues) row.when,
+          ]) {
+            final window = predicate?.timeWindow;
+            if (predicate?.kind != MapEntityRuntimePredicateKind.localTimeWindow ||
+                window == null ||
+                window.contains(previous) == window.contains(minute)) {
+              continue;
+            }
+            boundaryChanged = true;
+            if (identical(predicate, npc.visibilityRule?.predicate) &&
+                _npcHasActiveMovementOwner(map.id, entity.id)) {
+              _npcPresenceMinuteWhileMoving.putIfAbsent(
+                (map.id, entity.id), () => previous,
+              );
+            }
+            if (identical(predicate, npc.trainerBattleWhen) &&
+                window.contains(minute)) {
+              _triggeredTrainerBattles.remove(entity.id);
+            }
+          }
+        }
+      }
+    }
+    if (boundaryChanged) {
+      _interactionResolutionKey = null;
+      _refreshWorldNpcPresence();
+      _npcHoursLineOfSightRefreshPending = true;
+    }
+  }
+
+  EncounterEvaluationContext get _encounterEvaluationContext =>
+      EncounterEvaluationContext(localMinuteOfDay: _localMinuteOfDay);
+
   void _checkStepEncounter({required bool repelActiveForStep}) {
     final encounterKind = _world.player.movementMode == MovementMode.surf
         ? EncounterKind.surf
@@ -6673,6 +6780,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       gameState: _gameState,
       random: _encounterRandom,
       repelActiveForStep: repelActiveForStep,
+      conditionContext: ScriptEvaluationContext(narrativeFactResolver: _narrativeFactResolver),
+      encounterContext: _encounterEvaluationContext,
     );
     _logEncounterCheck(check);
     if (!check.triggered) {
@@ -9598,6 +9707,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         debugPrint(
           '[encounter] table=${check.tableId ?? 'unknown'} has an invalid authored rate',
         );
+        return;
+      case GameplayEncounterCheckStatus.encounterTimeUnavailable:
+      case GameplayEncounterCheckStatus.noEligibleVariant:
+      case GameplayEncounterCheckStatus.ambiguousVariant:
+        debugPrint('[encounter] table=${check.tableId} refused: ${check.status.name}');
         return;
       case GameplayEncounterCheckStatus.emptyEncounterTable:
         debugPrint(
@@ -14436,6 +14550,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ),
         playbackId: playbackId,
       );
+      if (command.waitForCompletion) {
+        final port = _dialogueFeedbackAudio;
+        if (port is! SceneSoundCompletionPort || !await (port as SceneSoundCompletionPort).waitForPlayback(playbackId)) return 'blocked';
+      }
     } on Object catch (error) {
       debugPrint('[scene_runtime] music effect start failed: $error');
       if (session != null && !_scenePresentationScopeIsCurrent(session)) {
@@ -14481,6 +14599,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       } else {
         await port.playSoundEffect(command.mediaAssetId, volume: command.volume, playbackId: playbackId);
       }
+      if (command.waitForCompletion && (port is! SceneSoundCompletionPort || !await (port as SceneSoundCompletionPort).waitForPlayback(playbackId))) return 'blocked';
     } on Object catch (error) {
       debugPrint('[scene_runtime] sound start failed: $error');
       if (session != null && !_scenePresentationScopeIsCurrent(session)) {
@@ -15758,6 +15877,41 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       found);
   }
 
+  bool _isNpcTrainerBattleAllowed(MapEntity entity) {
+    final predicate = entity.npc?.trainerBattleWhen;
+    if (predicate == null) return true;
+    return MapEntityRuntimePredicateEvaluator(
+      gameState: _gameState,
+      chapterIndex: _globalStoryChapterIndexFor(_bundle.manifest),
+      localMinuteOfDay: _localMinuteOfDay,
+    ).evaluatePredicate(predicate);
+  }
+
+  bool _isNpcTrainerBattleReady(MapEntity entity) {
+    final predicate = entity.npc?.trainerBattleReadyWhen;
+    if (predicate == null) return true;
+    return MapEntityRuntimePredicateEvaluator(
+      gameState: _gameState,
+      chapterIndex: _globalStoryChapterIndexFor(_bundle.manifest),
+      localMinuteOfDay: _localMinuteOfDay,
+    ).evaluatePredicate(predicate);
+  }
+
+  bool _isNativeTrainerBattleRequestAllowed(TrainerBattleStartRequest request) {
+    if (request.mapId != _world.map.id) return true;
+    for (final entity in _world.map.entities) {
+      if (entity.id == request.npcEntityId && entity.npc != null) {
+        final trainer = _bundle.manifest.trainers.where((entry) => entry.id == request.trainerId).firstOrNull;
+        if (entity.npc!.trainerId == request.trainerId &&
+            _storyBranching.isTrainerDefeated(_gameState, request.trainerId) &&
+            trainer?.rematchPolicy != ProjectTrainerRematchPolicy.allowed) {return false;}
+        return _npcPresencePredicateFor(_bundle.manifest)(_world.map.id, entity) &&
+            _isNpcTrainerBattleAllowed(entity) && _isNpcTrainerBattleReady(entity);
+      }
+    }
+    return true;
+  }
+
   void _handleNpcInteraction(MapEntity entity) {
     if (!_npcPresencePredicateFor(_bundle.manifest)(_world.map.id, entity)) {
       debugPrint('[interact] ignored absent npc=${entity.id}');
@@ -15858,6 +16012,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
       final trainerId = entity.npc?.trainerId;
       if (trainerId == null || trainerId.isEmpty) continue;
+      if (!_isNpcTrainerBattleAllowed(entity) || !_isNpcTrainerBattleReady(entity)) continue;
 
       final losRange = entity.npc?.lineOfSightRange ?? 0;
       if (losRange <= 0) continue;
@@ -16015,6 +16170,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
 
+    if (!_isNpcTrainerBattleAllowed(entity) || !_isNpcTrainerBattleReady(entity) ||
+        !_npcPresencePredicateFor(_bundle.manifest)(_world.map.id, entity)) {
+      _abandonTrainerSpot(pending, reason: 'trainer is no longer available');
+      _trainerEncounterMusicActive = false;
+      _syncRuntimeMusic();
+      return;
+    }
+
     switch (pending.stage) {
       case _TrainerSpotStage.exclamation:
         pending.remainingSeconds -= dt;
@@ -16121,6 +16284,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     bool lifecycleDialogueHandled = false,
     bool fromManualInteraction = false,
   }) {
+    if (!_npcPresencePredicateFor(_bundle.manifest)(_world.map.id, entity)) {
+      return;
+    }
     final npc = entity.npc;
     final trainerId = npc?.trainerId;
     if (trainerId == null || trainerId.isEmpty) {
@@ -16139,11 +16305,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
 
     final isDefeated = _storyBranching.isTrainerDefeated(_gameState, trainerId);
+    final battleAllowed = _isNpcTrainerBattleAllowed(entity);
+    final battleReady = _isNpcTrainerBattleReady(entity);
+    if (!battleAllowed && lifecycleDialogueHandled) return;
     final plan = resolveRuntimeTrainerInteractionPlan(
       trainer: trainer,
       npc: npc!,
       isDefeated: isDefeated,
+      battleAllowed: battleAllowed,
+      battleReady: battleReady,
+      nonBattleDialogue: _resolveNpcDialogueRef(entity),
     );
+    if (lifecycleDialogueHandled && plan.disposition != RuntimeTrainerInteractionDisposition.battle &&
+        plan.disposition != RuntimeTrainerInteractionDisposition.dialogueThenBattle) {
+      _tryOpenDialogue(entity.id, plan.dialogue, entity.inspectorHeadline);
+      return;
+    }
 
     if (!lifecycleDialogueHandled) {
       switch (plan.disposition) {
@@ -16158,7 +16335,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           return;
         case RuntimeTrainerInteractionDisposition.blocked:
           debugPrint('[trainer] already defeated trainer=$trainerId');
-          _showNotification('Le dresseur est déjà vaincu.');
+          _showNotification(isDefeated
+              ? 'Le dresseur est déjà vaincu.'
+              : 'Le combat ne peut pas commencer.');
           return;
         case RuntimeTrainerInteractionDisposition.dialogueThenBattle:
           if (_triggeredTrainerBattles.contains(entity.id) &&
@@ -18507,19 +18686,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
     }
 
-    for (final zone in bundle.map.gameplayZones) {
-      if (zone.kind != GameplayZoneKind.encounter) {
-        continue;
-      }
-      final tableId = zone.encounter?.encounterTableId?.trim() ?? '';
-      if (tableId.isEmpty) {
-        continue;
-      }
+    final encounterTableIds = <String>{
+      for (final zone in bundle.map.gameplayZones)
+        if (zone.kind == GameplayZoneKind.encounter && zone.encounter?.encounterTableId != null)
+          zone.encounter!.encounterTableId!,
+      for (final layer in bundle.map.layers.whereType<SmartTileLayer>())
+        if (layer.encounterBehavior?.encounter.encounterTableId != null)
+          layer.encounterBehavior!.encounter.encounterTableId!,
+      for (final entity in bundle.map.entities)
+        if (entity.interactiveEncounter != null)
+          entity.interactiveEncounter!.encounterTableId,
+    };
+    for (final tableId in encounterTableIds) {
       final table = _findEncounterTable(bundle.manifest, tableId);
       if (table == null) {
         continue;
       }
-      for (final entry in table.entries) {
+      for (final entry in table.allEntries) {
         final speciesId = entry.speciesId.trim();
         if (speciesId.isNotEmpty) {
           speciesIds.add(speciesId);

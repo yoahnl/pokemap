@@ -1,4 +1,7 @@
 library map_gameplay;
+export 'src/contact_device_access.dart';
+
+export 'src/game_completion_party_recording.dart';
 
 export 'src/interactive_encounter_action.dart';
 
@@ -147,6 +150,9 @@ export 'src/gameplay_encounter.dart'
     show
         defaultEncounterChancePerStep,
         GameplayEncounterPolicy,
+        EncounterEvaluationContext,
+        EncounterVariantResolution,
+        resolveEncounterVariant,
         GameplayEncounterCheckStatus,
         GameplayEncounter,
         GameplayEncounterCheckResult,
@@ -395,3 +401,6 @@ export 'src/field_traversal_action.dart';
 export 'src/field_traversal_geometry.dart';
 
 export 'src/narrative_parallel_scheduler.dart';
+
+export 'src/party_readiness.dart';
+export 'src/party_companion_trail.dart';

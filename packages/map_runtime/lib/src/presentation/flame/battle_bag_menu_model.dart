@@ -2,17 +2,9 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
-enum BattleBagMenuMode {
-  empty,
-  available,
-  unavailable,
-}
+enum BattleBagMenuMode { empty, available, unavailable }
 
-enum BattleBagItemKind {
-  captureBall,
-  medicine,
-  unsupported,
-}
+enum BattleBagItemKind { captureBall, medicine, unsupported }
 
 enum BattleBagMenuDisabledReason {
   trainerBattle,
@@ -78,10 +70,7 @@ class BattleBagMenuEntry {
 }
 
 class BattleBagMenuModel {
-  const BattleBagMenuModel({
-    required this.mode,
-    required this.entries,
-  });
+  const BattleBagMenuModel({required this.mode, required this.entries});
 
   final BattleBagMenuMode mode;
   final List<BattleBagMenuEntry> entries;
@@ -101,22 +90,19 @@ BattleBagMenuModel buildBattleBagMenuModel({
   final entries = List<BattleBagMenuEntry>.unmodifiable(
     _sortedBagEntriesForDisplay(
       normalizedBag.entries.asMap().entries.map(
-            (entry) => _buildEntry(
-              visualIndex: entry.key,
-              bagEntry: entry.value,
-              gameState: gameState,
-              session: session,
-              captureChoice: captureChoice,
-              resolver: resolver,
-            ),
-          ),
+        (entry) => _buildEntry(
+          visualIndex: entry.key,
+          bagEntry: entry.value,
+          gameState: gameState,
+          session: session,
+          captureChoice: captureChoice,
+          resolver: resolver,
+        ),
+      ),
     ),
   );
 
-  return BattleBagMenuModel(
-    mode: _modeForEntries(entries),
-    entries: entries,
-  );
+  return BattleBagMenuModel(mode: _modeForEntries(entries), entries: entries);
 }
 
 List<BattleBagMenuEntry> _sortedBagEntriesForDisplay(
@@ -176,37 +162,34 @@ BattleBagMenuEntry _buildEntry({
 
   return switch (kind) {
     BattleBagItemKind.captureBall => _buildCaptureEntry(
-        visualIndex: visualIndex,
-        bagEntry: bagEntry,
-        gameState: gameState,
-        session: session,
-        captureChoice: captureChoice,
-        definition: definition!,
-      ),
+      visualIndex: visualIndex,
+      bagEntry: bagEntry,
+      gameState: gameState,
+      session: session,
+      captureChoice: captureChoice,
+      definition: definition!,
+    ),
     BattleBagItemKind.medicine => _buildMedicineEntry(
-        visualIndex: visualIndex,
-        bagEntry: bagEntry,
-        session: session,
-        definition: definition!,
-      ),
+      visualIndex: visualIndex,
+      bagEntry: bagEntry,
+      session: session,
+      definition: definition!,
+    ),
     BattleBagItemKind.unsupported => BattleBagMenuEntry(
-        visualIndex: visualIndex,
+      visualIndex: visualIndex,
+      itemId: bagEntry.itemId,
+      displayName: definition?.displayName ?? bagEntry.itemId,
+      pocketId: definition?.pocketId ?? '',
+      quantity: bagEntry.quantity,
+      kind: kind,
+      usability: resolveBattleBagItemUsability(
         itemId: bagEntry.itemId,
-        displayName: definition?.displayName ?? bagEntry.itemId,
-        pocketId: definition?.pocketId ?? '',
-        quantity: bagEntry.quantity,
-        kind: kind,
-        usability: resolveBattleBagItemUsability(
-          itemId: bagEntry.itemId,
-          resolver: resolver,
-        ),
-        isSelectable: false,
-        disabledReason: _unsupportedDisabledReason(
-          bagEntry.itemId,
-          resolver,
-        ),
-        action: null,
+        resolver: resolver,
       ),
+      isSelectable: false,
+      disabledReason: _unsupportedDisabledReason(bagEntry.itemId, resolver),
+      action: null,
+    ),
   };
 }
 
@@ -221,9 +204,11 @@ BattleBagMenuEntry _buildCaptureEntry({
   // BETA-ENC-006 : party pleine ET stockage plein — la soumission amont
   // refuserait le lancer (StateError), donc l'entrée doit être désactivée
   // avec une raison lisible plutôt que de laisser partir un geste sans issue.
-  final storageIsFull = gameState.party.members.length >= 6 &&
-      const PlayerStorageOperations()
-              .findFirstAvailableSlot(gameState.pokemonStorage) ==
+  final storageIsFull =
+      gameState.party.members.length >= 6 &&
+      const PlayerStorageOperations().findFirstAvailableSlot(
+            gameState.pokemonStorage,
+          ) ==
           null;
   final isSelectable = captureChoice != null && !storageIsFull;
   return BattleBagMenuEntry(
@@ -240,11 +225,8 @@ BattleBagMenuEntry _buildCaptureEntry({
     disabledReason: isSelectable
         ? null
         : storageIsFull
-            ? BattleBagMenuDisabledReason.storageFull
-            : _captureDisabledReason(
-                gameState: gameState,
-                session: session,
-              ),
+        ? BattleBagMenuDisabledReason.storageFull
+        : _captureDisabledReason(gameState: gameState, session: session),
     action: isSelectable
         ? BattleBagMenuActionCapture(
             PlayerBattleChoiceCapture(
@@ -315,10 +297,7 @@ ItemUsabilityState _unsupportedUsability(
   String itemId,
   ItemCapabilityResolver resolver,
 ) {
-  return resolveBattleBagItemUsability(
-    itemId: itemId,
-    resolver: resolver,
-  );
+  return resolveBattleBagItemUsability(itemId: itemId, resolver: resolver);
 }
 
 BattleBagMenuDisabledReason _unsupportedDisabledReason(
@@ -368,7 +347,9 @@ BattleBagItemKind classifyBattleBagItem({
 }
 
 bool _isMedicineEffect(ProjectItemEffectDefinition effect) {
-  return effect is ProjectItemHealHpEffectDefinition ||
+  return effect is ProjectItemBattleBoostEffectDefinition ||
+      effect is ProjectItemBattlePreparationEffectDefinition ||
+      effect is ProjectItemHealHpEffectDefinition ||
       effect is ProjectItemFullRestoreEffectDefinition ||
       effect is ProjectItemCureStatusEffectDefinition ||
       effect is ProjectItemReviveEffectDefinition ||

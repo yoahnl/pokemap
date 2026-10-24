@@ -113,6 +113,7 @@ void main() {
       },
     });
     final save = SaveData.fromJson({
+      'completionPartyJournal': {'schemaVersion': 1, 'records': []},
       'mapInstanceWorldState': _mapInstanceWorldStateJson,
       'saveId': 'old',
       'itemSystemSchemaVersion': 1,
@@ -136,6 +137,7 @@ void main() {
     );
     expect(
       () => SaveData.fromJson({
+        'completionPartyJournal': {'schemaVersion': 1, 'records': []},
         'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'bad',
         'itemSystemSchemaVersion': 1,

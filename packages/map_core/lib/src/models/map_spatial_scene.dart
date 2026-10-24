@@ -12,13 +12,17 @@ enum ProjectDimension { twoD, threeD }
 
 enum SpatialCameraMode { fixed }
 
+enum SpatialCameraProjection { perspective, orthographic }
+
 final class SpatialCameraProfile {
   SpatialCameraProfile({
     this.mode = SpatialCameraMode.fixed,
+    this.projection = SpatialCameraProjection.perspective,
     this.pitchDegrees = 48.7,
     this.yawDegrees = 0,
     this.fieldOfViewDegrees = 16.2,
     this.distance = 42,
+    this.orthographicHeight = 12,
   }) {
     if (!pitchDegrees.isFinite ||
         pitchDegrees <= 0 ||
@@ -29,39 +33,100 @@ final class SpatialCameraProfile {
         fieldOfViewDegrees >= 120 ||
         !distance.isFinite ||
         distance <= 0 ||
-        distance > 10000) {
+        distance > 10000 ||
+        !orthographicHeight.isFinite ||
+        orthographicHeight <= 0 ||
+        orthographicHeight > 10000) {
       throw const FormatException('Invalid spatial camera.');
     }
   }
   final SpatialCameraMode mode;
-  final double pitchDegrees, yawDegrees, fieldOfViewDegrees, distance;
+  final SpatialCameraProjection projection;
+  final double pitchDegrees,
+      yawDegrees,
+      fieldOfViewDegrees,
+      distance,
+      orthographicHeight;
+  static const orthographicCapabilityId = 'map3d.camera-orthographic@1';
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SpatialCameraProfile &&
           other.mode == mode &&
+          other.projection == projection &&
           other.pitchDegrees == pitchDegrees &&
           other.yawDegrees == yawDegrees &&
           other.fieldOfViewDegrees == fieldOfViewDegrees &&
-          other.distance == distance;
+          other.distance == distance &&
+          other.orthographicHeight == orthographicHeight;
   @override
-  int get hashCode =>
-      Object.hash(mode, pitchDegrees, yawDegrees, fieldOfViewDegrees, distance);
+  int get hashCode => Object.hash(
+    mode,
+    projection,
+    pitchDegrees,
+    yawDegrees,
+    fieldOfViewDegrees,
+    distance,
+    orthographicHeight,
+  );
 
-  factory SpatialCameraProfile.fromJson(Map<String, dynamic> json) =>
-      SpatialCameraProfile(
-        mode: SpatialCameraMode.values.byName(json['mode'] as String),
-        pitchDegrees: (json['pitchDegrees'] as num).toDouble(),
-        yawDegrees: (json['yawDegrees'] as num).toDouble(),
-        fieldOfViewDegrees: (json['fieldOfViewDegrees'] as num).toDouble(),
-        distance: (json['distance'] as num).toDouble(),
+  factory SpatialCameraProfile.fromJson(Map<String, dynamic> json) {
+    final projectionName = json.containsKey('projection')
+        ? json['projection']
+        : SpatialCameraProjection.perspective.name;
+    final projection = SpatialCameraProjection.values
+        .where((value) => value.name == projectionName)
+        .firstOrNull;
+    if (projection == null) {
+      throw const FormatException('Invalid spatial camera projection.');
+    }
+    if (projection == SpatialCameraProjection.orthographic &&
+        !json.containsKey('orthographicHeight')) {
+      throw const FormatException(
+        'An orthographic camera requires its visible height.',
       );
+    }
+    final height = json.containsKey('orthographicHeight')
+        ? json['orthographicHeight']
+        : 12;
+    if (height is! num) {
+      throw const FormatException('Invalid spatial orthographic height.');
+    }
+    return SpatialCameraProfile(
+      mode: SpatialCameraMode.values.byName(json['mode'] as String),
+      projection: projection,
+      pitchDegrees: (json['pitchDegrees'] as num).toDouble(),
+      yawDegrees: (json['yawDegrees'] as num).toDouble(),
+      fieldOfViewDegrees: (json['fieldOfViewDegrees'] as num).toDouble(),
+      distance: (json['distance'] as num).toDouble(),
+      orthographicHeight: height.toDouble(),
+    );
+  }
+
+  SpatialCameraProfile copyWith({
+    SpatialCameraProjection? projection,
+    double? pitchDegrees,
+    double? yawDegrees,
+    double? fieldOfViewDegrees,
+    double? distance,
+    double? orthographicHeight,
+  }) => SpatialCameraProfile(
+    mode: mode,
+    projection: projection ?? this.projection,
+    pitchDegrees: pitchDegrees ?? this.pitchDegrees,
+    yawDegrees: yawDegrees ?? this.yawDegrees,
+    fieldOfViewDegrees: fieldOfViewDegrees ?? this.fieldOfViewDegrees,
+    distance: distance ?? this.distance,
+    orthographicHeight: orthographicHeight ?? this.orthographicHeight,
+  );
   Map<String, dynamic> toJson() => {
     'mode': mode.name,
+    'projection': projection.name,
     'pitchDegrees': pitchDegrees,
     'yawDegrees': yawDegrees,
     'fieldOfViewDegrees': fieldOfViewDegrees,
     'distance': distance,
+    'orthographicHeight': orthographicHeight,
   };
 }
 

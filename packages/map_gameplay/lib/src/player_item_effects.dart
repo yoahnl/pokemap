@@ -73,6 +73,11 @@ PlayerItemEffectApplication applyPlayerItemEffect(
   required String? moveId,
   required Map<String, int> maxPpByMoveId,
   bool targetHasBattleConfusion = false,
+  bool targetIsActiveBattler = false,
+  Map<ProjectItemBattleStat, int> targetBattleStages = const {},
+  bool targetHasFocusEnergy = false,
+  bool targetHasDragonCheer = false,
+  bool targetBankHasMist = false,
 }) {
   // BETA-ITM-007 : le support vient de la source unique, pour que l'Item Studio
   // et le runtime ne puissent pas se contredire. Refuser ICI plutôt que dans une
@@ -85,8 +90,27 @@ PlayerItemEffectApplication applyPlayerItemEffect(
     );
   }
   return switch (use.effect) {
-    ProjectItemFullRestoreEffectDefinition() =>
-      _applyFullRestore(
+    ProjectItemBattleBoostEffectDefinition(:final stat) =>
+      !targetIsActiveBattler || target.isFainted
+          ? const PlayerItemEffectApplication.failed(
+              PlayerItemUseFailure.wrongTarget)
+          : (targetBattleStages[stat] ?? 0) >= 6
+              ? const PlayerItemEffectApplication.failed(
+                  PlayerItemUseFailure.noEffect)
+              : PlayerItemEffectApplication.applied(target),
+    ProjectItemBattlePreparationEffectDefinition(:final effect) =>
+      !targetIsActiveBattler || target.isFainted
+          ? const PlayerItemEffectApplication.failed(
+              PlayerItemUseFailure.wrongTarget)
+          : (effect == ProjectItemBattlePreparationKind.focusEnergy
+                  ? targetHasFocusEnergy || targetHasDragonCheer
+                  : targetBankHasMist)
+              ? const PlayerItemEffectApplication.failed(
+                  PlayerItemUseFailure.noEffect)
+              : PlayerItemEffectApplication.applied(target),
+    ProjectItemVitaminEffectDefinition() =>
+      _applyVitamin(target, use.effect as ProjectItemVitaminEffectDefinition),
+    ProjectItemFullRestoreEffectDefinition() => _applyFullRestore(
         target,
         maxHp: maxHp,
         targetHasBattleConfusion: targetHasBattleConfusion,
@@ -123,6 +147,30 @@ PlayerItemEffectApplication applyPlayerItemEffect(
         PlayerItemUseFailure.unsupportedCapability,
       ),
   };
+}
+
+PlayerItemEffectApplication _applyVitamin(
+    PlayerPokemon target, ProjectItemVitaminEffectDefinition effect) {
+  final values = target.evs.toJson(), current = values[effect.stat.name] as int;
+  final total =
+      values.values.cast<int>().fold<int>(0, (sum, value) => sum + value);
+  final amount = effect.amount
+      .clamp(
+          0, (effect.maximumPerStat - current).clamp(0, effect.maximumPerStat))
+      .clamp(0, (effect.maximumTotal - total).clamp(0, effect.maximumTotal));
+  if (amount == 0) {
+    return const PlayerItemEffectApplication.failed(
+        PlayerItemUseFailure.noEffect);
+  }
+  final gain = target.friendship < 100
+      ? effect.friendshipGainLow
+      : target.friendship < 200
+          ? effect.friendshipGainMedium
+          : effect.friendshipGainHigh;
+  return PlayerItemEffectApplication.applied(target.copyWith(
+      evs: PokemonStatSpread.fromJson(
+          {...values, effect.stat.name: current + amount}),
+      friendship: (target.friendship + gain).clamp(0, 255)));
 }
 
 PlayerItemEffectApplication _applyFullRestore(

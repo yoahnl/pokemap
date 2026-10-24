@@ -40,6 +40,16 @@ Future<LiteralTileFixture> _fixture({
     extraFiles: {
       'Data/map_connections.dat': literalFixtureMarshal([]),
       'Audio/SE/Exit Door.wav': sourceMapMusicFixtureWav(),
+      'Game.ini': latin1.encode([
+        '[Game]',
+        'Library=RGSS104E.dll',
+        'Scripts=Data/Scripts.rxdata',
+        'Title=Original transfer fixture',
+        'RTP1=',
+        'RTP2=',
+        'RTP3=',
+        '',
+      ].join('\r\n')),
     },
     maps: [
       LiteralFixtureMap(id: 7, width: 5, height: 5, layers: [
@@ -105,11 +115,6 @@ Future<SourceEventProjection> _project(LiteralTileFixture fixture,
           'Game.exe',
           14732288,
           '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04'
-        ),
-        (
-          'Game.ini',
-          121,
-          '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6'
         ),
         (
           'mkxp.json',

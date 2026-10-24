@@ -84,14 +84,15 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
       combatant: combatant,
       effect: use.effect,
       confused: isConfusedByLineupIndex?.call(combatant.lineupIndex) ?? false,
+      isActive: isActive,
     );
     final isSelectable =
         allowsTargeting && targetAllowed && effectDisabledReason == null;
     final disabledReason = isSelectable
         ? null
         : !allowsTargeting || !targetAllowed
-            ? BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest
-            : effectDisabledReason;
+        ? BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest
+        : effectDisabledReason;
 
     return BattleMedicineTargetEntry(
       visualIndex: visualIndex,
@@ -142,33 +143,44 @@ BattleMedicineTargetDisabledReason? _effectDisabledReason({
   required BattleCombatant combatant,
   required ProjectItemEffectDefinition effect,
   required bool confused,
+  required bool isActive,
 }) {
   return switch (effect) {
-    ProjectItemFullRestoreEffectDefinition() => combatant.isFainted
-        ? BattleMedicineTargetDisabledReason.fainted
-        : combatant.currentHp < combatant.maxHp ||
-              combatant.majorStatus != null ||
-              confused
-        ? null
-        : BattleMedicineTargetDisabledReason.fullHp,
-    ProjectItemHealHpEffectDefinition() => combatant.isFainted
-        ? BattleMedicineTargetDisabledReason.fainted
-        : combatant.currentHp >= combatant.maxHp
-            ? BattleMedicineTargetDisabledReason.fullHp
-            : null,
-    ProjectItemCureStatusEffectDefinition() => combatant.isFainted
-        ? BattleMedicineTargetDisabledReason.fainted
-        : _effectCuresStatus(effect, combatant.majorStatus)
-            ? null
-            : BattleMedicineTargetDisabledReason.noCompatibleStatus,
-    ProjectItemReviveEffectDefinition() => combatant.isFainted
-        ? null
-        : BattleMedicineTargetDisabledReason.notFainted,
-    ProjectItemRestorePpEffectDefinition() => combatant.moves.any(
-        (move) => move.currentPp < move.pp,
-      )
-        ? null
-        : BattleMedicineTargetDisabledReason.fullPp,
+    ProjectItemBattleBoostEffectDefinition() ||
+    ProjectItemBattlePreparationEffectDefinition() =>
+      combatant.isFainted
+          ? BattleMedicineTargetDisabledReason.fainted
+          : !isActive
+          ? BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest
+          : null,
+    ProjectItemFullRestoreEffectDefinition() =>
+      combatant.isFainted
+          ? BattleMedicineTargetDisabledReason.fainted
+          : combatant.currentHp < combatant.maxHp ||
+                combatant.majorStatus != null ||
+                confused
+          ? null
+          : BattleMedicineTargetDisabledReason.fullHp,
+    ProjectItemHealHpEffectDefinition() =>
+      combatant.isFainted
+          ? BattleMedicineTargetDisabledReason.fainted
+          : combatant.currentHp >= combatant.maxHp
+          ? BattleMedicineTargetDisabledReason.fullHp
+          : null,
+    ProjectItemCureStatusEffectDefinition() =>
+      combatant.isFainted
+          ? BattleMedicineTargetDisabledReason.fainted
+          : _effectCuresStatus(effect, combatant.majorStatus)
+          ? null
+          : BattleMedicineTargetDisabledReason.noCompatibleStatus,
+    ProjectItemReviveEffectDefinition() =>
+      combatant.isFainted
+          ? null
+          : BattleMedicineTargetDisabledReason.notFainted,
+    ProjectItemRestorePpEffectDefinition() =>
+      combatant.moves.any((move) => move.currentPp < move.pp)
+          ? null
+          : BattleMedicineTargetDisabledReason.fullPp,
     ProjectItemRepelEffectDefinition() ||
     ProjectItemSemanticActionEffectDefinition() =>
       BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest,

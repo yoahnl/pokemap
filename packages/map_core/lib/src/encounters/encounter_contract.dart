@@ -8,6 +8,36 @@ import '../models/map_gameplay_zone_payloads.dart';
 import '../models/project_manifest.dart';
 import '../operations/map_gameplay_zones.dart';
 
+const encounterVariantAuthoringContract = <String, Object?>{
+  'field': 'variants',
+  'fields': ['id', 'name', 'priority', 'conditions', 'timeWindows', 'entries'],
+  'conditions': 'ScriptCondition',
+  'conditionCombination': 'all',
+  'timeWindows': {
+    'fields': ['startMinute', 'endMinute'],
+    'clock': 'deviceLocalTime',
+    'clockInjectable': true,
+    'minuteRange': [0, 1439],
+    'startMinuteRange': [0, 1439],
+    'endMinuteRange': [0, 1440],
+    'startInclusive': true,
+    'endExclusive': true,
+    'wrapsMidnightWhenStartGreaterThanEnd': true,
+    'equalEndpoints': 'reject',
+    'empty': 'allDay',
+    'combination': 'any',
+  },
+  'selection': 'highestEligiblePriorityBeforeRandom',
+  'equalPriorityOverlap': 'refuseWithoutRandom',
+  'noMatch': 'baseEntriesOrRefuseWithoutRandom',
+  'missingClock': 'refuseWithoutRandom',
+  'entries': 'ProjectEncounterEntry',
+  'minimumVariantEntries': 1,
+  'chancePerStep': 'sharedAuthoredTableRatePerEligibleAttempt',
+  'speciesAndMoveReferences': 'allBaseAndVariantEntries',
+  'presentation': 'sharedEncounterSourcePresentation',
+};
+
 enum EncounterProbabilityIssue {
   invalidChancePerStep,
   nonPositiveWeight,

@@ -12,7 +12,7 @@ final class SaveEnvelopeCodec {
   const SaveEnvelopeCodec({this.maxEncodedBytes = 64 * 1024 * 1024});
 
   static const int currentSchemaVersion = 1;
-  static const int currentSaveFormat = 1;
+  static const int currentSaveFormat = 2;
 
   final int maxEncodedBytes;
 

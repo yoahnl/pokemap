@@ -169,6 +169,16 @@ void main() {
     expect(host.state.bag.entries, isEmpty);
   });
 
+  test('map enter failures preserve the underlying scene reason', () async {
+    final map = _map();
+    final host = await _Host.create(_project(map, records: [
+      _event(1, NarrativeEventSourceRef.mapEnter(map.id), 'failed'),
+    ], scenes: [_scene('failed', [SceneConsequence.takeItem(itemId: 'missing_item', quantity: 1)])]), map);
+    await expectLater(host.events.activateMap(_activation('failed')),
+        throwsA(isA<StateError>().having((error) => error.message, 'message',
+            allOf(contains('Map enter failed (sceneFailure)'), contains('takeItem requires 1 of "missing_item"')))));
+  });
+
   test('dialogue suspends checkpoint and disposal cancels the final commit',
       () async {
     final map = _map(entities: const [
@@ -529,6 +539,50 @@ void main() {
     finish.complete('completed');
     await interaction;
     expect(host.state.trainerProfile.money, 100);
+  });
+
+  test('committed scene relocation rearms cell entry at the cinematic arrival',
+      () async {
+    final map = _map(triggers: const [
+      MapTrigger(id: 'arrival', type: TriggerType.event,
+        area: MapRect(pos: GridPos(x: 4, y: 3),
+          size: GridSize(width: 1, height: 1))),
+    ]);
+    final project = _project(map, records: [
+      _event(1, NarrativeEventSourceRef.mapEnter(map.id), 'relocation'),
+      _event(2, NarrativeEventSourceRef.triggerEnter(map.id, 'arrival'), 'reward',
+        oneShot: false),
+    ], scenes: [
+      _scene('relocation', [], dialogue: true),
+      _scene('reward', [SceneConsequence.giveMoney(amount: 10)]),
+    ]);
+    final host = await _Host.create(project, map,
+      createSceneCallbacks: (read, commit) => SceneRuntimeHostCallbacks(
+        evaluateCondition: (_) => 'true',
+        showDialogue: (_) async {
+          commit(read().copyWith(playerPosition: const GridPos(x: 4, y: 3),
+            playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 3.5)));
+          return 'completed';
+        },
+        startBattle: (_) => 'victory',
+        playCinematic: (_) => 'completed',
+      ));
+    await host.events.activateMap(_activation('arrival'));
+    expect(host.state.playerPosition, const GridPos(x: 4, y: 3));
+    expect(host.state.trainerProfile.money, 0);
+    host.moveTo(4.5, 4.5);
+    await host.events.playerEnteredCell(
+      previousPosition: const GridPos(x: 4, y: 3),
+      currentPosition: const GridPos(x: 4, y: 4));
+    host.moveTo(4.5, 3.5);
+    await host.events.playerEnteredCell(
+      previousPosition: const GridPos(x: 4, y: 4),
+      currentPosition: const GridPos(x: 4, y: 3));
+    expect(host.state.trainerProfile.money, 10);
+    host.moveTo(3.5, 3.5);
+    expect(() => host.events.playerEnteredCell(
+      previousPosition: const GridPos(x: 1, y: 1),
+      currentPosition: const GridPos(x: 3, y: 3)), throwsStateError);
   });
 
   test('conditional NPC visibility also filters the query world collision',

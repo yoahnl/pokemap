@@ -29,6 +29,7 @@ extension _PlayableMapFishing on PlayableMapGame {
       gameState: expectedState,
       item: item,
       conditionContext: _fishingConditionContext,
+      encounterContext: _encounterEvaluationContext,
     );
     if (!evaluation.isReady) return evaluation.reason;
     final sequence = ++_fishingAttemptSequence;
@@ -67,6 +68,7 @@ extension _PlayableMapFishing on PlayableMapGame {
         gameState: state,
         item: item,
         conditionContext: _fishingConditionContext,
+      encounterContext: _encounterEvaluationContext,
       );
       if (!refreshed.isReady) return refreshed.reason;
       _fishingTicket = FishingActionTicket(
@@ -160,6 +162,7 @@ extension _PlayableMapFishing on PlayableMapGame {
           currentStateRevision: _gameStateRevision,
           mapActivationId: _currentMapActivationId,
           conditionContext: _fishingConditionContext,
+      encounterContext: _encounterEvaluationContext,
           random: _encounterRandom,
         );
       },
@@ -192,6 +195,7 @@ extension _PlayableMapFishing on PlayableMapGame {
               gameState: playerServiceGameStateSnapshot,
               item: ticket.item,
               conditionContext: _fishingConditionContext,
+      encounterContext: _encounterEvaluationContext,
             ).isReady ||
             !_tryEnqueueBattleRequest(
               buildBattleStartRequestFromEncounter(

@@ -154,6 +154,112 @@ final class SourceDecorativePokemonBindingResolver {
       SourcePbsProject? pbs,
       NativePsdkCatalog? nativeCatalog,
       NativeWriteLimits limits = const NativeWriteLimits(),
+      ScanCancellation? cancellation}) =>
+      _read(source: source, analysis: analysis, event: event, files: files,
+          pbs: pbs, nativeCatalog: nativeCatalog, limits: limits,
+          cancellation: cancellation);
+
+  Future<SourceDecorativePokemonBindings> readAll({
+    required NormalizedSourceProject source,
+    required SourceEventAnalysis analysis,
+    required Iterable<SourceEventDefinition> events,
+    required SourceFilePort files,
+    SourcePbsProject? pbs,
+    NativePsdkCatalog? nativeCatalog,
+    NativeWriteLimits limits = const NativeWriteLimits(),
+    ScanCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    limits.validate();
+    final selected = events.toList();
+    final bindings = <ConverterId, SourceDecorativePokemonBinding>{};
+    final refusals = <ConverterId, Object>{};
+    final candidates = <SourceEventDefinition>[];
+    for (final event in selected) {
+      cancellation?.check();
+      try {
+        _validatedSymbol(source, analysis, event);
+        candidates.add(event);
+      } on NativeWriteException catch (error) {
+        refusals[event.identity] = error;
+      }
+    }
+    if (candidates.isEmpty) {
+      return SourceDecorativePokemonBindings._(bindings, refusals);
+    }
+    final SourcePbsProject catalogSource;
+    final NativeSourceSpeciesBindingBatch species;
+    try {
+      catalogSource = pbs ?? await const SourcePbsParser().read(
+          snapshot: source.snapshot, files: files, cancellation: cancellation);
+      species = await const NativeSourceSpeciesBindings().bindAvailable(
+          snapshot: source.snapshot, source: catalogSource, files: files,
+          nativeCatalog: nativeCatalog ?? NativePsdkCatalogManifest.builtin(),
+          requestedSourceSymbols:
+              candidates.map((event) => sourceDecorativePokemonSymbol(event)!),
+          cancellation: cancellation);
+    } on ContractError catch (error) {
+      cancellation?.check();
+      for (final event in candidates) {
+        refusals[event.identity] = error;
+      }
+      return SourceDecorativePokemonBindings._(bindings, refusals);
+    }
+    for (final event in candidates) {
+      cancellation?.check();
+      final symbol = sourceDecorativePokemonSymbol(event)!;
+      final failure = species.refusals[symbol];
+      if (failure != null) {
+        refusals[event.identity] = failure;
+        continue;
+      }
+      try {
+        bindings[event.identity] = await _read(source: source,
+            analysis: analysis, event: event, files: files,
+            pbs: catalogSource, nativeCatalog: nativeCatalog,
+            admittedSpecies: species.bindings[symbol]!, limits: limits,
+            cancellation: cancellation);
+      } on SourceEventSoundBindingUnavailable catch (error) {
+        refusals[event.identity] = error;
+      } on ContractError catch (error) {
+        cancellation?.check();
+        refusals[event.identity] = error;
+      } on NativeWriteException catch (error) {
+        if (error.code != 'events.decorative_pokemon.binding') rethrow;
+        refusals[event.identity] = error;
+      }
+    }
+    return SourceDecorativePokemonBindings._(bindings, refusals);
+  }
+
+  String _validatedSymbol(NormalizedSourceProject source,
+      SourceEventAnalysis analysis, SourceEventDefinition event) {
+    final profile = SourceEventProfile.forProject(source);
+    final symbol = sourceDecorativePokemonSymbol(event);
+    if (symbol == null || !profile.isQualified ||
+        profile.canonicalHash != analysis.profile.canonicalHash ||
+        !profile.supportsDecorativePokemonCry) {
+      throw const NativeWriteException('events.decorative_pokemon.binding',
+          'Decorative cries require their complete literal event, compiled species and exact source sound.');
+    }
+    final original = SourceEventAnalyzer.forProject(source, profile: profile)
+        .analyzeEventAt(event.sourceMapId, event.sourceEventId);
+    if (original == null || _fingerprint(original) != _fingerprint(event)) {
+      throw const NativeWriteException('events.decorative_pokemon.binding',
+          'Decorative cries require their complete literal event, compiled species and exact source sound.');
+    }
+    return symbol;
+  }
+
+  Future<SourceDecorativePokemonBinding> _read(
+      {required NormalizedSourceProject source,
+      required SourceEventAnalysis analysis,
+      required SourceEventDefinition event,
+      required SourceFilePort files,
+      SourcePbsProject? pbs,
+      NativePsdkCatalog? nativeCatalog,
+      NativeSourceSpeciesBindingResult? admittedSpecies,
+      NativeWriteLimits limits = const NativeWriteLimits(),
       ScanCancellation? cancellation}) async {
     Never refuse() => throw const NativeWriteException(
         'events.decorative_pokemon.binding',
@@ -161,25 +267,13 @@ final class SourceDecorativePokemonBindingResolver {
     cancellation?.check();
     limits.validate();
     final profile = SourceEventProfile.forProject(source);
-    final symbol = sourceDecorativePokemonSymbol(event);
-    if (symbol == null ||
-        !profile.isQualified ||
-        profile.canonicalHash != analysis.profile.canonicalHash ||
-        profile.scriptsArchiveHash?.value !=
-            '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d') {
-      refuse();
-    }
-    final original = SourceEventAnalyzer.forProject(source, profile: profile)
-        .analyzeEventAt(event.sourceMapId, event.sourceEventId);
-    if (original == null || _fingerprint(original) != _fingerprint(event)) {
-      refuse();
-    }
+    final symbol = _validatedSymbol(source, analysis, event);
     final catalogSource = pbs ??
         await const SourcePbsParser().read(
             snapshot: source.snapshot,
             files: files,
             cancellation: cancellation);
-    final species = await const NativeSourceSpeciesBindings().bind(
+    final species = admittedSpecies ?? await const NativeSourceSpeciesBindings().bind(
         snapshot: source.snapshot,
         source: catalogSource,
         files: files,
@@ -223,6 +317,16 @@ final class SourceDecorativePokemonBindingResolver {
         species.evidence,
         List.unmodifiable(witnesses));
   }
+}
+
+final class SourceDecorativePokemonBindings {
+  SourceDecorativePokemonBindings._(
+      Map<ConverterId, SourceDecorativePokemonBinding> bindings,
+      Map<ConverterId, Object> refusals)
+      : bindings = Map.unmodifiable(bindings),
+        refusals = Map.unmodifiable(refusals);
+  final Map<ConverterId, SourceDecorativePokemonBinding> bindings;
+  final Map<ConverterId, Object> refusals;
 }
 
 String _fingerprint(SourceEventDefinition event) => canonicalJsonOf({

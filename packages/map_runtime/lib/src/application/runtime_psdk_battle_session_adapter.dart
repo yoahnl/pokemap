@@ -716,17 +716,17 @@ final class RuntimePsdkBattleSessionAdapter {
   }) {
     return switch (effect) {
       final PsdkBattleHpHealItemEffect hpEffect => BattleActionBagHpHealItemUse(
-          itemId: itemId,
-          displayName: _itemDisplayNames[itemId] ?? itemId,
-          targetLineupIndex: lineupIndexForCombatantId(
-            targetPartyIndex == null
-                ? state.psdkState.battlerAt(target).id
-                : state.psdkState
-                    .partyForBank(target.bank)[targetPartyIndex]
-                    .id,
-          ),
-          effect: _toLegacyHpHealEffect(hpEffect),
+        itemId: itemId,
+        displayName: _itemDisplayNames[itemId] ?? itemId,
+        targetLineupIndex: lineupIndexForCombatantId(
+          targetPartyIndex == null
+              ? state.psdkState.battlerAt(target).id
+              : state.psdkState.partyForBank(target.bank)[targetPartyIndex].id,
         ),
+        effect: _toLegacyHpHealEffect(hpEffect),
+      ),
+      PsdkBattleStatBoostItemEffect() ||
+      PsdkBattlePreparationItemEffect() ||
       PsdkBattleFullRestoreItemEffect() ||
       PsdkBattleStatusCureItemEffect() ||
       PsdkBattleReviveItemEffect() ||
@@ -743,6 +743,8 @@ final class RuntimePsdkBattleSessionAdapter {
         restoreToFull
             ? const BattleBagRestoreToFullHpHealEffect()
             : BattleBagFlatHpHealEffect(amount!),
+      PsdkBattleStatBoostItemEffect() ||
+      PsdkBattlePreparationItemEffect() ||
       PsdkBattleFullRestoreItemEffect() ||
       PsdkBattleStatusCureItemEffect() ||
       PsdkBattleReviveItemEffect() ||

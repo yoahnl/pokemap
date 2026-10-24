@@ -126,6 +126,7 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     List<_Roster>? compiled,
     bool contradictoryProfile = false,
     Map<String, List<int>> extraFiles = const {},
+    Object? Function(_Roster row)? transformCompiledKey,
     Object Function(_Roster row, LiteralFixtureObject object)?
         transformCompiledRecord}) async {
   final records = compiled ?? rosters;
@@ -135,7 +136,9 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     123,
     ..._integer(records.length),
     for (final row in records) ...[
-      ..._encode([_Symbol(row.type), row.name, row.version]),
+      ..._encode(transformCompiledKey == null
+          ? [_Symbol(row.type), row.name, row.version]
+          : transformCompiledKey(row)),
       ..._encode(((LiteralFixtureObject object) =>
               transformCompiledRecord?.call(row, object) ?? object)(
           LiteralFixtureObject('GameData::Trainer', {
@@ -481,6 +484,38 @@ Future<void> _realOracle(String studyPath) async {
 }
 
 void main() {
+  final compiledProbePath =
+      Platform.environment['AVELUNE_TRAINER_COMPILED_PATH'];
+  test('external compiled trainer catalogue keeps unnamed keys unbound',
+      () async {
+    final file = File(compiledProbePath!);
+    expect(await file.length(), lessThanOrEqualTo(8388608));
+    final bytes = await file.readAsBytes();
+    final input = await _source([
+      _roster(type: 'QUALIFICATION_SENTINEL', name: 'Unbound source probe')
+    ], extraFiles: {'Data/trainers.dat': bytes});
+    final result = await _prepare(input, requested: [_key(
+        input.pbs.logicalProjectNamespace, type: 'QUALIFICATION_SENTINEL',
+        name: 'Unbound source probe')]);
+    expect(result.trainers, isEmpty);
+    expect(result.refusals.single.code, 'native_trainer.compiled_missing');
+    final refusals = result.evidence['compiledIdentityRefusals'] as List;
+    for (final refusal in refusals.cast<Map>()) {
+      expect((refusal['sourceIdentity'] as Map)['trainerName'], isNull);
+      expect(refusal['code'], 'native_trainer.compiled_identity');
+    }
+    expect(literalFixtureHash(await file.readAsBytes()), literalFixtureHash(bytes));
+    print(jsonEncode({
+      'kind': 'externalCompiledTrainerIdentityProbe',
+      'compiledBytes': bytes.length,
+      'compiledSha256': literalFixtureHash(bytes).value,
+      'qualifiedTrainers': result.trainers.length,
+      'requestedRefusals': result.refusals.map((row) => row.toJson()).toList(),
+      'compiledIdentityRefusals': refusals,
+      'sourceScriptsExecuted': 0,
+    }));
+  }, skip: compiledProbePath == null);
+
   test('compiled prize witness cannot be borrowed from another source snapshot',
       () async {
     final first = await _source([_roster()]);
@@ -1388,6 +1423,75 @@ void main() {
           await _source([_roster()], extraFiles: {'Data/trainers.dat': bytes});
       await expectLater(_prepare(source), throwsA(isA<ContractError>()));
     }
+  });
+
+  group('compiled unnamed trainer identities', () {
+    Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> fixture(
+        {Object? malformedKey}) => _source(
+          [_roster(), _roster(name: 'Missing')],
+          compiled: [_roster(), _roster(name: 'Unnamed')],
+          transformCompiledKey: (row) => row.name == 'Unnamed'
+              ? malformedKey ?? [_Symbol(row.type), null, row.version]
+              : [_Symbol(row.type), row.name, row.version],
+          transformCompiledRecord: (row, object) => row.name == 'Unnamed'
+              ? LiteralFixtureObject(object.name, {
+                  ...object.fields,
+                  '@id': [_Symbol(row.type), null, row.version],
+                  '@real_name': '',
+                })
+              : object);
+
+    test('isolates a nil name without inventing a named trainer', () async {
+      final source = await fixture();
+      final result = await _prepare(source, requested: [
+        _key(source.pbs.logicalProjectNamespace),
+        _key(source.pbs.logicalProjectNamespace, name: 'Missing'),
+      ]);
+      expect(result.trainers.single.name, 'Joey');
+      expect(result.refusals.single.identity.trainerName, 'Missing');
+      expect(result.refusals.single.code, 'native_trainer.compiled_missing');
+      final failures = result.evidence['compiledIdentityRefusals'] as List;
+      expect(failures, hasLength(1));
+      final failure = failures.single as Map;
+      expect(failure['code'], 'native_trainer.compiled_identity');
+      expect((failure['sourceIdentity'] as Map)['trainerName'], isNull);
+      expect((failure['sourceIdentity'] as Map)['trainerType'], 'ARBITRARY');
+      expect(failure['message'], contains('Data/trainers.dat:'));
+      final packed = result.artifacts();
+      final restored = await NativeTrainerCatalogQualification.fromArtifacts(
+          evidence: packed.evidence,
+          artifacts: packed.artifacts,
+          normalizedSource: source.fixture.source,
+          files: source.fixture.files,
+          nativeCatalog: NativePsdkTrainerBundle.builtin());
+      expect(restored.evidenceHash, result.evidenceHash);
+    });
+
+    test('refuses requests with no portable name before binding', () async {
+      final source = await fixture();
+      for (final name in <String?>[null, '']) {
+        await expectLater(_prepare(source, requested: [SourcePbsIdentity(
+            namespace: source.pbs.logicalProjectNamespace,
+            family: SourcePbsFamily.trainers,
+            trainerType: 'ARBITRARY', trainerName: name, version: 0)]),
+            _error('native_trainer.source_identity'));
+      }
+    });
+
+    test('keeps malformed type version shape and empty names globally refused',
+        () async {
+      for (final key in <Object>[
+        ['ARBITRARY', null, 0],
+        [const _Symbol('ARBITRARY'), null, -1],
+        [const _Symbol('ARBITRARY'), null,
+          const _EncodedMarshal([105, 3, 0, 0, 1])],
+        [const _Symbol('ARBITRARY'), null],
+        [const _Symbol('ARBITRARY'), '', 0],
+      ]) {
+        await expectLater(_prepare(await fixture(malformedKey: key)),
+            _error('native_trainer.compiled_identity'));
+      }
+    });
   });
 
   test(

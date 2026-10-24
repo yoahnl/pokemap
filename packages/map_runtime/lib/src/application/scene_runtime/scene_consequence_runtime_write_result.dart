@@ -40,6 +40,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   ambiguousBadge,
   partyFull,
   gameAlreadyCompleted,
+  invalidCompletionPartyRecord,
   unknownNpc,
   invalidPlayerAvatar,
 }

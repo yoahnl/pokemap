@@ -132,6 +132,7 @@ abstract final class RuntimeCompanionPresentationCodec {
               'partyTargetId': value.partyTargetId,
               'moveTargetId': value.moveTargetId,
               'secondPartyTargetId': value.secondPartyTargetId,
+              if (value.contactId != null) 'contactId': value.contactId,
             },
           _ => throw const FormatException(
               'Unsupported companion command payload.'),
@@ -149,6 +150,8 @@ abstract final class RuntimeCompanionPresentationCodec {
             saveBeforeExit: value['saveBeforeExit'] as bool),
         'pause' => switch (RuntimePlayerPauseCommandKind.values
               .byName(value['command'] as String)) {
+            RuntimePlayerPauseCommandKind.callContact =>
+              RuntimePlayerPauseCommand.callContact(contactId: value['contactId'] as String),
             RuntimePlayerPauseCommandKind.useBagItem =>
               RuntimePlayerPauseCommand.useBagItem(
                   itemTargetId: value['itemTargetId'] as String,
@@ -758,6 +761,7 @@ abstract final class RuntimeCompanionPresentationCodec {
           RuntimePlayerDetailEntrySnapshot value) =>
       {
         'id': value.id,
+        if (value.portraitFilePath != null) 'portraitFilePath': value.portraitFilePath,
         'title': value.title,
         'subtitle': value.subtitle,
         'trailingLabel':
@@ -782,6 +786,7 @@ abstract final class RuntimeCompanionPresentationCodec {
   static RuntimePlayerDetailEntrySnapshot
       decodeRuntimePlayerDetailEntrySnapshot(Map<String, dynamic> data) =>
           RuntimePlayerDetailEntrySnapshot(
+            portraitFilePath: data['portraitFilePath'] as String?,
             id: data['id'] as String,
             title: data['title'] as String,
             subtitle:

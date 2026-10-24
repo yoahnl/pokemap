@@ -216,6 +216,8 @@ final class LiteralTileFixture {
     Map<String, List<int>> autotilePngs = const {},
     List<int>? scriptsBytes,
     SourceInterpretationProfile? interpretationProfile,
+    SourceInterpretationProfile? Function(SourceSnapshot)?
+        interpretationProfileForSnapshot,
     Map<String, List<int>> extraFiles = const {},
     bool includeEventSystem = false,
     List<String?> switchNames = const [null, 'Original door opened', 'Original reward consumed'],
@@ -223,6 +225,11 @@ final class LiteralTileFixture {
     Map<int, List<LiteralFixtureEventCommand>> commonEvents = const {},
     Map<int, int> commonEventTriggers = const {},
   }) async {
+    if (interpretationProfile != null &&
+        interpretationProfileForSnapshot != null) {
+      throw ArgumentError(
+          'Select either an explicit interpretation profile or a snapshot profile factory.');
+    }
     final sourceMaps = maps ?? [LiteralFixtureMap(id: 1)];
     final sourceTilesets = tilesets ?? [LiteralFixtureTileset(id: 1)];
     final bytes = <String, List<int>>{
@@ -364,7 +371,10 @@ final class LiteralTileFixture {
     }
     final files = LiteralFixtureFiles(snapshot, frozenBytes);
     final source = await const RmxpSourceNormalizer().normalize(
-        snapshot: snapshot, files: files, interpretationProfile: interpretationProfile, selectedMapIds: selectedMapIds,
+        snapshot: snapshot, files: files,
+        interpretationProfile: interpretationProfile ??
+            interpretationProfileForSnapshot?.call(snapshot),
+        selectedMapIds: selectedMapIds,
         includeEventSystem: includeEventSystem);
     files.reads.clear();
     return LiteralTileFixture._(

@@ -332,10 +332,10 @@ PresentationPreviewContextResourceSnapshot _encounterContext(
   String? Function(String speciesId)? speciesDisplayName,
   String? Function(String speciesId, bool playerSide)? battleSpritePath,
 }) {
-  final enemySpeciesIds = table.entries.map((entry) => entry.speciesId).toSet();
+  final enemySpeciesIds = table.allEntries.map((entry) => entry.speciesId).toSet();
   final playerPokemon = playerPokemonOptions.firstOrNull;
   final diagnostics = <String>[
-    if (table.entries.isEmpty) 'previewContext.encounterTableEmpty',
+    if (table.allEntries.isEmpty) 'previewContext.encounterTableEmpty',
     if (playerPokemon == null) 'previewContext.playerPokemonUnavailable',
   ];
   return _snapshot(
@@ -348,8 +348,13 @@ PresentationPreviewContextResourceSnapshot _encounterContext(
     detail: <String, Object?>{
       'encounterTableId': table.id,
       'encounterKind': table.encounterKind.name,
+      if (table.variants.isNotEmpty) ...{
+        'variants': [for (final variant in table.variants) variant.toJson()],
+        'entrySelection': encounterVariantAuthoringContract['selection'],
+        'entriesView': 'allPotentialEntriesForPresentationPreview',
+      },
       'entries': <Object?>[
-        for (final entry in table.entries)
+        for (final entry in table.allEntries)
           <String, Object?>{
             ...entry.toJson(),
             if (speciesDisplayName?.call(entry.speciesId) case final name?)

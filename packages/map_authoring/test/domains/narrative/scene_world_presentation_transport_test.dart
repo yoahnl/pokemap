@@ -528,12 +528,12 @@ void main() {
       expect(tone['rgbRange'], [-255, 255]);
       expect(tone['grayRange'], [0, 255]);
       expect(tone['projectDimension'], 'twoD');
-      expect(sound['projectDimension'], 'twoD');
+      expect(sound['projectDimensions'], ['twoD', 'threeD']);
       expect(tone['durationMsRange'], [0, 2147483647]);
       expect(tone['completion'], 'scheduled');
       expect(sound['mediaReference'], 'knownNonLoopingSound');
       expect(sound['volumeRange'], [0, 1]);
-      expect(sound['completion'], 'started');
+      expect(sound['completion'], 'startedOrNaturalCompletionWhenRequested');
       expect(sound['unsupportedParameters'], ['pitch']);
     }
   });
@@ -550,14 +550,14 @@ void main() {
           .singleWhere((d) => d.id == id)
           .extensions['playMusicEffect'] as Map;
       expect(contract['parameters'],
-          ['mediaAssetId', 'volume', 'bgmInterruption']);
+          ['mediaAssetId', 'volume', 'bgmInterruption', 'waitForCompletion']);
       expect(contract['role'], 'musicEffect');
       expect(contract['mediaReference'], 'knownNonLoopingSound');
       expect(contract['bgmInterruption'], {
         'parameters': ['fadeOutMs', 'fadeInMs'],
         'integerRange': [0, 60000]
       });
-      expect(contract['completion'], 'started');
+      expect(contract['completion'], 'startedOrNaturalCompletionWhenRequested');
     }
   });
 
@@ -596,6 +596,28 @@ void main() {
   });
 
   for (final jsonl in [false, true]) {
+    test('${jsonl ? 'JSONL' : 'direct API'} persists awaited 3D audio and cold reopens', () async {
+      final fixture = await _Fixture.create(spatial:true, initialCommand:SceneInteractiveCommand.playSoundEffect(mediaAssetId:'door',volume:1));
+      addTearDown(fixture.dispose);
+      for(final command in [
+        SceneInteractiveCommand.playSoundEffect(mediaAssetId:'door',volume:.5,waitForCompletion:true),
+        SceneInteractiveCommand.playMusicEffect(mediaAssetId:'door',volume:.5,bgmInterruption:DialogueBgmInterruption(fadeOutMs:0,fadeInMs:100),waitForCompletion:true),
+      ]) {
+        final request = await fixture.request(command.toJson());
+        if(jsonl) {
+          final planned = await fixture.success('plan',{'projectHandle':fixture.project.value,'request':request.toJson()});
+          await fixture.success('apply',{'projectHandle':fixture.project.value,'planId':planned['planId'],'operationId':'apply-${fixture.sequence}'});
+        } else {
+          final planned = await fixture.mutations.plan(fixture.project,request);
+          await fixture.mutations.apply(fixture.project,planId:planned['planId']! as String,operationId:'apply-${fixture.sequence}');
+        }
+        await fixture.success('close',{'workspaceHandle':fixture.workspace.value});
+        await fixture.open();
+        final scene = (await fixture.snapshot()).manifest.scenes.singleWhere((s)=>s.id=='edit');
+        expect((scene.graph.nodes[1].payload as SceneActionPayload).interactiveCommand,command);
+      }
+    });
+
     test(
         '${jsonl ? 'JSONL' : 'direct API'} rejects 3D presentation on every semantic entrypoint before writes',
         () async {
@@ -603,13 +625,6 @@ void main() {
         SceneInteractiveCommand.wait(durationMs: 400),
         SceneInteractiveCommand.worldTone(
             red: -255, green: 0, blue: 0, gray: 0, durationMs: 300),
-        SceneInteractiveCommand.playSoundEffect(
-            mediaAssetId: 'door', volume: .8),
-        SceneInteractiveCommand.playMusicEffect(
-            mediaAssetId: 'door',
-            volume: .8,
-            bgmInterruption:
-                DialogueBgmInterruption(fadeOutMs: 0, fadeInMs: 200)),
       ]) {
         final initial = switch (command) {
           SceneWaitInteractiveCommand() =>

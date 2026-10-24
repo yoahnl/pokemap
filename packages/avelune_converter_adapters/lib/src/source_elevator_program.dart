@@ -146,19 +146,13 @@ bool isSourceElevatorFamilyEvent(SourceEventDefinition event,
 SourceDeclaredProgramMatch? _elevatorBinding(NormalizedSourceProject source,
     SourceEventProfile profile, SourceEventDefinition event,
     {String? familyId}) {
-  final maps = source.maps
-      .where((ir) => ir.map.sourceMapId == event.sourceMapId)
-      .toList();
-  if (maps.length != 1) return null;
-  final events = maps.single.map.events
-      .where((candidate) => candidate.sourceEventId == event.sourceEventId)
-      .toList();
-  if (events.length != 1) return null;
+  final original = source.uniqueEventAt(event.sourceMapId, event.sourceEventId);
+  if (original == null) return null;
   return matchSourceDeclaredProgram(
       source: source,
       profile: profile,
       sourceMapId: event.sourceMapId,
-      event: events.single,
+      event: original,
       families: const {SourceDeclaredProgramFamily.elevator},
       familyId: familyId);
 }

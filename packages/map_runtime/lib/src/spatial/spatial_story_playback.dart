@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -5,6 +7,7 @@ import '../application/scene_runtime/cinematic_runtime_playback_controller.dart'
 import '../application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_exploration_session.dart';
+import 'spatial_npc_fixed_route_runtime.dart';
 
 final class SpatialStoryPlayback {
   SpatialStoryPlayback({
@@ -20,6 +23,34 @@ final class SpatialStoryPlayback {
       canClose: _canClose,
       commit: (world) =>
           writeGameState(readGameState().copyWith(spatialWorldState: world)),
+    );
+    autonomousNpcs = SpatialNpcFixedRouteRuntime(
+      readMap: () => projectMapEntityPresentations(project: session.bundle.manifest,
+          gameState: readGameState(), map: session.bundle.map),
+      readActor: (entity) => models.worldState.actorState(session.bundle.map.id, entity.id),
+      isPresent: (entity) => session.entityIsPresent?.call(session.bundle.map.id, entity) ?? true,
+      readVariantKey: (entity) => entity.properties[mapEntityPresentationVariantIdProperty],
+      readInstanceBoolean: (id, key) {
+        final instances = readGameState().mapInstanceWorldState;
+        final scope = instances.instanceRef(session.bundle.map.id);
+        return scope != null && instances.eventBoolean(scope, id, key);
+      },
+      canTraverse: (entity, x, z, nextX, nextZ, reservations) {
+        SpatialActorRuntimeState? current(String id) {
+          final pose = autonomousNpcs.poseFor(id);
+          return pose == null ? models.worldState.actorState(session.bundle.map.id, id) :
+              SpatialActorRuntimeState(x: pose.x, z: pose.z, facing: pose.facing);
+        }
+        return session.movement.canTraverseActor(x, z, nextX, nextZ,
+            ignoredEntityId: entity.id, collideWithPlayer: true,
+            actorStateProvider: (id) => reservations[id] ?? current(id));
+      },
+      commitActor: (id, pose) {
+        final world = models.worldState.setActorState(session.bundle.map.id, id, pose);
+        writeGameState(readGameState().copyWith(spatialWorldState: world));
+        models.synchronize(world);
+      },
+      random: Random(),
     );
     cinematics = CinematicRuntimePlaybackController(
       sink: SpatialCinematicRuntimePlaybackSink(
@@ -69,8 +100,13 @@ final class SpatialStoryPlayback {
       ),
     );
     session.worldStateProvider = () => models.worldState;
-    session.heroStoryPose = () => _poses['player'];
-    session.npcStoryPose = (entity) => _poses['entity:${entity.id}'];
+    session.heroStoryPose = () => cinematics.isPlaying ? _poses['player'] : null;
+    session.npcStoryPose = (entity) => cinematics.isPlaying ? _poses['entity:${entity.id}'] : null;
+    session.npcAutonomousPose = (entity) => autonomousNpcs.poseFor(entity.id);
+    session.onBeforeMapChange = () {
+      autonomousNpcs.flush();
+      autonomousNpcs.reset();
+    };
     session.onPresentationFrame = update;
     session.onCancelStory = cancel;
     session.onSkipStory = skip;
@@ -83,6 +119,7 @@ final class SpatialStoryPlayback {
   final void Function(GameState) writeGameState;
   late final SpatialModelAnimationController models;
   late final CinematicRuntimePlaybackController cinematics;
+  late final SpatialNpcFixedRouteRuntime autonomousNpcs;
   final _poses = <String, SpatialCinematicActorPose>{};
   SpatialCinematicCameraPose? camera;
   bool _disposed = false;
@@ -110,6 +147,8 @@ final class SpatialStoryPlayback {
             true)) {
       return null;
     }
+    final autonomous = autonomousNpcs.poseFor(entity.id);
+    if (autonomous != null) return autonomous;
     final saved =
         models.worldState.actorState(session.bundle.map.id, entity.id);
     return SpatialCinematicActorPose(
@@ -194,6 +233,8 @@ final class SpatialStoryPlayback {
     if (_disposed || models.isPlaying) {
       throw StateError('Spatial playback is busy.');
     }
+    autonomousNpcs.update(0, paused: true);
+    _poses.clear();
     wasCancelled = false;
     session.interactionError.value = null;
     models.synchronize(readGameState().spatialWorldState);
@@ -211,12 +252,15 @@ final class SpatialStoryPlayback {
       }
       return result.scenePortId!;
     } finally {
+      if (!cinematics.isPlaying) _poses.clear();
       _publishActivity();
     }
   }
 
   void update(double dt, bool paused) {
     if (_disposed) return;
+    autonomousNpcs.update(dt, paused: paused || models.isPlaying || cinematics.isPlaying ||
+        session.interactionActive.value || session.storyInputLocked || session.nativeDoorTraversalActive);
     models.update(dt, paused: paused);
     if (!paused && dt.isFinite && dt > 0) {
       cinematics.update(Duration(microseconds: (dt * 1000000).round()));
@@ -227,6 +271,7 @@ final class SpatialStoryPlayback {
     if (models.isPlaying || cinematics.isPlaying) cancel();
     models.synchronize(state);
     _poses.clear();
+    autonomousNpcs.reset();
     camera = null;
   }
 
@@ -254,13 +299,16 @@ final class SpatialStoryPlayback {
     if (_disposed) return;
     cancel();
     _disposed = true;
+    autonomousNpcs.dispose();
     models.dispose();
     session.onPresentationFrame = null;
+    session.onBeforeMapChange = null;
     session.onCancelStory = null;
     session.onSkipStory = null;
     session.worldStateProvider = null;
     session.heroStoryPose = null;
     session.npcStoryPose = null;
+    session.npcAutonomousPose = null;
     session.storyCamera = null;
   }
 }

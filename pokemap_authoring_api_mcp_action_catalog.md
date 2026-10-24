@@ -1153,6 +1153,61 @@ refusée. Toute entrée invalide refuse le lot entier avant projection. La
 projection réutilise les gestes Smart Tiles natifs, puis valide et sauvegarde
 une seule map avec une transaction/annulation pour tout le lot.
 
+`map3d.camera.configure` conserve un profil fixe par carte et accepte
+`projection: perspective | orthographic`. `orthographicHeight` est la hauteur
+verticale complète visible, exprimée en cases du monde, strictement positive
+et bornée à 10 000. Les profils perspective existants conservent leur champ de
+vision, inclinaison, orientation et distance. En orthographique, le zoom et la
+transition optique règlent la hauteur visible sans déplacer la caméra ; les
+vues libre et du dessus de Studio conservent leur projection de travail.
+Le même profil est proposé par l'inspecteur de carte, l'API, JSONL et MCP.
+Un paquet utilisant cette projection exige `map3d.camera-orthographic@1`.
+
+`party_companion.configure` v1 reçoit `{enabled, mappings}`, chaque association
+portant `{speciesId, formId, characterId}`. La ressource
+`partyCompanionConfiguration` v1 est un singleton d'identifiant `project` :
+ses vues summary et detail exposent `{id, resourceKind, enabled, mappings}`.
+L'action demande la permission `projectWrite` et déclare les capacités
+`authoring.gameData.pokemon` et `map3d.party-companion@1`. Les champs inconnus
+et les associations espèce/forme répétées sont refusés. Le premier
+membre conscient de l'équipe détermine le personnage qui suit le trajet validé
+du joueur à une case de distance. Les espèces et formes doivent être actives
+dans le catalogue du projet, et les personnages doivent disposer des quatre
+directions de marche. Le compagnon ne bloque pas le joueur ; les scènes et les
+changements de carte réinitialisent son trajet transitoire. L'inspecteur Studio,
+l'API, JSONL et MCP utilisent ce même contrat. Sa publication exige
+`map3d.party-companion@1`.
+
+`contact_device.configure` v1 reçoit `{configuration}`, où `null` retire
+l'appareil et un objet complet définit `{id, label, acquiredFactId,
+emptyMessage, contacts}`. Chaque contact définit `{id, label,
+registeredFactId, sceneId, unavailableSceneId}`, avec `availableFactId` et
+`characterId` facultatifs. Les faits sont des booléens déclarés, distincts pour
+l'acquisition et chaque enregistrement ; les scènes et personnages doivent
+exister. La ressource `contactDeviceConfiguration` v1 est un singleton
+d'identifiant `project` : ses vues summary et detail exposent
+`{id, resourceKind, configuration}`, avec `configuration: null` en l'absence
+d'appareil. L'action demande la permission `projectWrite` et déclare les
+capacités `authoring.contact_device` et `project.contact-device@1`. Les champs
+inconnus, identifiants de contacts répétés et faits d'enregistrement partagés
+sont refusés.
+L'appareil apparaît dans le menu après acquisition et ses contacts persistent
+par les faits narratifs existants. Les appels exécutent les conversations
+configurées, sans réseau. Studio, l'API, JSONL et MCP utilisent le même contrat,
+limité aux projets 3D. Sa publication exige `project.contact-device@1`.
+
+Ces deux mutations sont de risque `medium` et déclarent les garanties
+`atomic`, `dryRun`, `idempotent`, `revisionChecked` et `undoable`. Elles
+remplacent la configuration complète par le cycle canonique plan/apply ; les
+ressources singleton ne constituent pas un chemin d'écriture JSON parallèle.
+
+Les commandes de scène `playSoundEffect` et `playMusicEffect` acceptent le
+booléen facultatif `waitForCompletion` ; lorsqu'il vaut `true`, leur sortie
+attend la fin naturelle du média. Une erreur, un arrêt ou une annulation libère
+l'attente sans annoncer une lecture achevée. Les scènes 3D utilisant ces sons
+exigent `map3d.scene-audio@1` ; le lecteur et les volumes sont partagés avec les
+commandes audio existantes.
+
 Les lots de ressources et de placements 3D utilisent les contrats suivants :
 
 ```text
@@ -1611,6 +1666,7 @@ entity.list
 entity.get
 entity.find_at
 entity.create
+entity.create_batch
 entity.update
 entity.upsert
 entity.clone
@@ -1882,6 +1938,7 @@ markEventConsumed
 narrative_fact.list
 narrative_fact.get
 narrative_fact.create
+fact.create_batch
 narrative_fact.update
 narrative_fact.clone
 narrative_fact.type_change_plan
@@ -1905,6 +1962,22 @@ world_rule.delete_apply
 world_rule.simulate
 world_rule.validate
 ```
+
+`fact.create_batch` v1 reçoit `{facts: [...]}` avec de 1 à 128 définitions
+complètes. Il crée uniquement de nouveaux états narratifs, dans l’ordre reçu,
+avec les mêmes identifiants canoniques, types et aliases runtime que
+`fact.create`. Une collision avec un état existant, un doublon ou un membre
+invalide refuse tout le lot. Le plan produit un seul draft de projet, une seule
+transaction et une entrée d’historique. Les limites de requête, révisions,
+autorisations et contrôles de rejeu restent ceux du transport canonique.
+
+`entity.create_batch` v1 reçoit `{mapId, entities: [...]}` avec de 1 à 128
+entités complètes sur une même carte. Chaque membre suit la normalisation et
+les validations de `entity.create` ; les identifiants doivent être nouveaux et
+uniques après normalisation. Un membre invalide refuse le lot avant toute
+écriture. La carte candidate est validée une fois et publiée par une seule
+transaction, avec une seule entrée d’historique. Aucun remplacement implicite
+d’une entité existante n’est autorisé.
 
 `world_rule.upsert_batch` crée ou met à jour atomiquement de 1 à 128 règles
 complètes dans `rules`, avec des IDs uniques. Les règles existantes conservent

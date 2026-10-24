@@ -353,7 +353,11 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
   final map = await catalog.loadMapData(mapId);
   final project = await catalog.manifestForMap(
     map,
-    extraCharacterIds: additionalCharacterIds,
+    extraCharacterIds: {
+      ...additionalCharacterIds,
+      if (catalog.projectMetadata.partyCompanion.enabled)
+        for (final visual in catalog.projectMetadata.partyCompanion.mappings) visual.characterId,
+    },
   );
   MapValidator.validate(map, projectDialogueContext: project);
   final composition = buildMapVisualCompositionPlan(map);
@@ -403,6 +407,11 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     manifest = normalized == preloadedManifest ? preloadedManifest : normalized;
   }
   progressSink?.call(RuntimeMapBundleLoadStage.manifest);
+  additionalCharacterIds = {
+    ...additionalCharacterIds,
+    if (manifest.partyCompanion.enabled)
+      for (final visual in manifest.partyCompanion.mappings) visual.characterId,
+  };
   final entry = projectMapEntryForId(manifest, mapId);
   if (entry == null) {
     _runtimeLoaderLog(

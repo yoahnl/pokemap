@@ -6,6 +6,7 @@ import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
 import 'native_project_writer.dart';
+import 'source_character_presentation_binding.dart';
 import 'source_event_projection.dart';
 import 'source_event_character_identity.dart';
 
@@ -152,6 +153,7 @@ final class SourceEventCharacterImporter {
     required SourceSnapshot snapshot,
     required SourceFilePort files,
     required String charsetName,
+    SourceInterpretationProfile? interpretationProfile,
     required int sourcePattern,
     required int sourceDirection,
     bool fixedDirection = false,
@@ -197,7 +199,11 @@ final class SourceEventCharacterImporter {
       throw ContractError('source.event_character.image_ambiguous', path,
           'The source character image cannot have ambiguous file identities.');
     }
-    if (matching.isEmpty || matching.single.relativePath != path) {
+    if (matching.isEmpty ||
+        (matching.single.relativePath != path &&
+            !sourceCharacterCaseAliasIsQualified(snapshot: snapshot,
+                profile: interpretationProfile, requestedPath: path,
+                actualPath: matching.single.relativePath))) {
       throw ContractError('source.event_character.image_missing', path,
           'The exact source character image is absent from the snapshot.');
     }
@@ -242,7 +248,7 @@ final class SourceEventCharacterImporter {
       'version': 1,
       'namespace': snapshot.logicalProjectNamespace.value,
       'sourceFileId': entry.fileId.value,
-      'sourcePath': path,
+      'sourcePath': entry.relativePath,
       'sourceFileHash': entry.sha256!.value,
     };
     final imageKey = canonicalHashOf(imageIdentity).value.substring(0, 32);
@@ -254,13 +260,15 @@ final class SourceEventCharacterImporter {
     }).value.substring(0, 32);
     final tilesetId = 'source_event_$imageKey';
     final assetId = 'image_$tilesetId';
+    final canonicalCharsetName = entry.relativePath.substring(
+        'Graphics/Characters/'.length, entry.relativePath.length - 4);
     final characterId = fixedDirection ? sourceFixedDirectionCharacterId(
         snapshot: snapshot, imageFile: entry, pattern: sourcePattern,
         direction: sourceDirection) : 'source-event-$characterKey';
     final stableName = 'Source Event $characterKey';
     final character = ProjectCharacterEntry(
       id: characterId,
-      name: '$charsetName · pattern $sourcePattern',
+      name: '$canonicalCharsetName · pattern $sourcePattern',
       tilesetId: tilesetId,
       frameWidth: nativeWidth ~/ 32,
       frameHeight: nativeHeight ~/ 32,
@@ -305,7 +313,7 @@ final class SourceEventCharacterImporter {
       ], {
         'artifactHandle': artifact.handle,
         'tilesetId': tilesetId,
-        'name': charsetName,
+        'name': canonicalCharsetName,
         'tileWidth': 32,
         'tileHeight': 32,
       }),

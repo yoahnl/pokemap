@@ -28,10 +28,7 @@ class _EntityPropertyDraft {
 
 /// Draft local pour les waypoints PNJ.
 class _NpcWaypointDraft {
-  _NpcWaypointDraft({
-    required this.xController,
-    required this.yController,
-  });
+  _NpcWaypointDraft({required this.xController, required this.yController});
 
   final TextEditingController xController;
   final TextEditingController yController;
@@ -52,6 +49,9 @@ class _NpcConditionalDialogueRowDraft {
     required this.refMenuId,
     required this.dialogueMenuId,
     required this.startNode,
+    this.timeWindow,
+    this.minimumCount,
+    this.originalDialogue,
   });
 
   factory _NpcConditionalDialogueRowDraft.fromModel(
@@ -67,6 +67,9 @@ class _NpcConditionalDialogueRowDraft {
           : when.refId.trim(),
       dialogueMenuId: dialogueId.isEmpty ? _kDialogueNoneMenuId : dialogueId,
       startNode: TextEditingController(text: dialogue.startNode ?? ''),
+      timeWindow: when.timeWindow,
+      minimumCount: when.minimumCount,
+      originalDialogue: dialogue,
     );
   }
 
@@ -83,6 +86,9 @@ class _NpcConditionalDialogueRowDraft {
   String refMenuId;
   String dialogueMenuId;
   final TextEditingController startNode;
+  final LocalTimeWindow? timeWindow;
+  final int? minimumCount;
+  final DialogueRef? originalDialogue;
 
   void dispose() {
     startNode.dispose();

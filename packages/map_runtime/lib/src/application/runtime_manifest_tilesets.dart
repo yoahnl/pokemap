@@ -190,6 +190,10 @@ Set<String> collectRuntimeMapCharacterIds(
   final knownCharacters = manifest.characters.map((value) => value.id).toSet();
   return {
     if (playerId != null && playerId.isNotEmpty) playerId,
+    if (manifest.partyCompanion.enabled)
+      for (final visual in manifest.partyCompanion.mappings) visual.characterId,
+    if (manifest.contactDevice case final device?)
+      for (final contact in device.contacts) ?contact.characterId,
     ...manifest.newGame.playerAvatarCharacterIds,
     for (final scene in manifest.scenes)
       if (sceneIds.contains(scene.id))

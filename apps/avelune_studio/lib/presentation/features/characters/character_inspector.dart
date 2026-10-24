@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../map_workspace/entity_presentation_controls.dart';
 import '../../../features/map_workspace/application/map_entity_editing_commands.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/characters/application/character_editing_commands.dart';
@@ -12,6 +14,7 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'character_workspace_visuals.dart';
 import 'character_fixed_route_inspector.dart';
+import 'character_time_rules_inspector.dart';
 
 class CharacterInspector extends StatefulWidget {
   const CharacterInspector({
@@ -129,10 +132,17 @@ class _CharacterInspectorState extends State<CharacterInspector> {
           'La profondeur du personnage suit sa position dans le jeu, indépendamment de l’empilement des décors.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        EntityPresentationControls(entity: entity, project: widget.project,
+        EntityPresentationControls(
+          entity: entity,
+          project: widget.project,
           map: widget.document.current,
-          onChanged: (value) => _change(() => MapEntityEditingCommands(widget.document,
-            widget.project).setPresentation(entity.id, value))),
+          onChanged: (value) => _change(
+            () => MapEntityEditingCommands(
+              widget.document,
+              widget.project,
+            ).setPresentation(entity.id, value),
+          ),
+        ),
         const SizedBox(height: 12),
         DropdownButtonFormField<EntityFacing>(
           key: ValueKey('facing-${entity.id}-${npc.facing.name}'),
@@ -187,9 +197,24 @@ class _CharacterInspectorState extends State<CharacterInspector> {
           ),
         ),
         const SizedBox(height: 12),
-        CharacterFixedRouteInspector(entity: entity, map: widget.document.current,
-          project: widget.project, onChanged: (movement) => _change(() =>
-            _commands.setMovementConfiguration(entity.id, movement))),
+        CharacterTimeRulesInspector(
+          entity: entity,
+          dialogues: widget.project.dialogues,
+          onReadinessChanged: (condition, refusal) => _change(() => _commands.setTrainerBattleReadiness(entity.id, condition, refusal)),
+          onVisibilityChanged: (rule) =>
+              _change(() => _commands.setVisibilityRule(entity.id, rule)),
+          onBattleChanged: (rule) =>
+              _change(() => _commands.setTrainerBattleRule(entity.id, rule)),
+        ),
+        const SizedBox(height: 12),
+        CharacterFixedRouteInspector(
+          entity: entity,
+          map: widget.document.current,
+          project: widget.project,
+          onChanged: (movement) => _change(
+            () => _commands.setMovementConfiguration(entity.id, movement),
+          ),
+        ),
         const SizedBox(height: 18),
         Text('Interaction', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),

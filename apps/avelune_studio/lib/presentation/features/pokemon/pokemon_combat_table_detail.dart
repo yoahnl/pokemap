@@ -6,11 +6,16 @@ import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_time_window.dart';
+import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_combat_detail_header.dart';
 import 'pokemon_combat_reference_list.dart';
 import 'pokemon_combat_species_picker.dart';
 part 'pokemon_combat_table_entry.dart';
+part 'pokemon_combat_table_variants.dart';
+part 'pokemon_combat_variant_conditions.dart';
+part 'pokemon_combat_variant_time_windows.dart';
 
 class PokemonCombatTableDetail extends StatelessWidget {
   const PokemonCombatTableDetail({
@@ -112,7 +117,10 @@ class PokemonCombatTableDetail extends StatelessWidget {
                 const SizedBox(height: 12),
                 StudioDraftField(
                   key: ValueKey('${table.id}:chance'),
-                  label: (fishing || table.encounterKind == EncounterKind.headbutt || table.encounterKind == EncounterKind.special)
+                  label:
+                      (fishing ||
+                          table.encounterKind == EncounterKind.headbutt ||
+                          table.encounterKind == EncounterKind.special)
                       ? 'Probabilité par tentative (0 à 100 %)'
                       : 'Probabilité par pas (0 à 100 %)',
                   value: combat.numericValue(
@@ -125,9 +133,12 @@ class PokemonCombatTableDetail extends StatelessWidget {
                     );
                   }),
                 ),
-                if (table.encounterKind == EncounterKind.headbutt || table.encounterKind == EncounterKind.special) ...[
+                if (table.encounterKind == EncounterKind.headbutt ||
+                    table.encounterKind == EncounterKind.special) ...[
                   const SizedBox(height: 8),
-                  const Text('Associez cette table à un objet dans son inspecteur : Coud’Boule sur un arbre ou rencontre après Éclate-Roc sur un rocher. Un seul tirage par tentative.'),
+                  const Text(
+                    'Associez cette table à un objet dans son inspecteur : Coud’Boule sur un arbre ou rencontre après Éclate-Roc sur un rocher. Un seul tirage par tentative.',
+                  ),
                 ],
                 if (fishing) ...[
                   const SizedBox(height: 8),
@@ -141,9 +152,15 @@ class PokemonCombatTableDetail extends StatelessWidget {
                 ),
               const SizedBox(height: 20),
               Text(
-                unique ? 'Pokémon rencontré' : 'Espèces et poids relatifs',
+                unique ? 'Pokémon rencontré' : 'Rencontres par défaut',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
+              if (!unique) ...[
+                const SizedBox(height: 6),
+                const Text(
+                  'Cette liste est utilisée si aucune variante ne correspond. Sans liste par défaut, aucune rencontre ne se produit dans ce cas.',
+                ),
+              ],
               const SizedBox(height: 10),
               for (var i = 0; i < table.entries.length; i++) ...[
                 _buildCombatTableEntry(
@@ -186,6 +203,16 @@ class PokemonCombatTableDetail extends StatelessWidget {
                           },
                   ),
                 ),
+              if (!unique) ...[
+                const SizedBox(height: 24),
+                _buildCombatTableVariants(
+                  context,
+                  combat,
+                  index,
+                  table,
+                  species,
+                ),
+              ],
               if (onBack != null) ...[
                 const SizedBox(height: 18),
                 Text(

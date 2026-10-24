@@ -127,6 +127,46 @@ List<int> _paintOriginalAtlasPixel(MapData map, image.Image atlas, int cell,
 }
 
 void main() {
+  test('regular atlases beyond native image admission block publication',
+      () async {
+    final fixture = await LiteralTileFixture.create(tilesets: [
+      LiteralFixtureTileset(
+        id: 1,
+        png: image.encodePng(image.Image(width: 256, height: 50016, numChannels: 4)),
+      ),
+    ]);
+    final composition = await _compose(fixture);
+    expect(composition.canWrite, isFalse);
+    expect(
+      _blocking(composition, 'literal.tileset.runtime_image_budget').locator['sourceTilesetId'],
+      1,
+    );
+  });
+
+  test('tall admitted atlases preserve source bytes and their last tile identity',
+      () async {
+    const height = 28160;
+    const lastTile = 384 + 8 * (height ~/ 32) - 1;
+    final bytes = image.encodePng(image.Image(width: 256, height: height, numChannels: 4));
+    final fixture = await LiteralTileFixture.create(
+      maps: [
+        LiteralFixtureMap(id: 1, layers: [
+          [384, 391, lastTile],
+          [0, 0, 0],
+          [0, 0, 0],
+        ]),
+      ],
+      tilesets: [LiteralFixtureTileset(id: 1, metadataTileCount: 8000, png: bytes)],
+    );
+    final composition = await _compose(fixture);
+    expect(composition.canWrite, isTrue);
+    expect(composition.draft!.artifacts.single.bytes, orderedEquals(bytes));
+    final layer = _layerFor(composition, 1, 0);
+    expect(layer.palette.last.localTileId, lastTile - 384);
+    final crop = composition.crops.singleWhere((crop) => crop.sourceTileId == lastTile);
+    expect(crop.y, height - 32);
+  });
+
   test('reuse refuses stricter resolved draft aggregate node budget', () async {
     final fixture = await LiteralTileFixture.create();
     const generous = NativeWriteLimits(maxDraftEvidenceJsonNodes: 2000000);
@@ -609,6 +649,9 @@ void main() {
   }.entries) {
     test('TIL-01 tile ${entry.key} has an explicit localized blocker',
         () async {
+      final autotileSlot = entry.key >= 48 && entry.key < 384
+          ? entry.key ~/ 48 - 1
+          : null;
       final fixture = await LiteralTileFixture.create(
         maps: [
           LiteralFixtureMap(id: 1, layers: [
@@ -623,6 +666,11 @@ void main() {
               autotileNames:
                   List.generate(7, (slot) => 'OriginalAutotile$slot'))
         ],
+        autotilePngs: {
+          if (autotileSlot != null)
+            'OriginalAutotile$autotileSlot': image.encodePng(
+                image.Image(width: 32, height: 31, numChannels: 4)),
+        },
       );
       expect(fixture.source.canPlan, isTrue);
       final result = await _compose(fixture);

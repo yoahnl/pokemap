@@ -203,13 +203,11 @@ void main() {
     );
   });
 
-  test('fixed route refuses a spatial map before adding the entity', () {
+  test('fixed route supports a spatial map without changing its placement', () {
     final movement = MapEntityNpcMovementConfig.fromJson(_route());
     final spatial = _map().copyWith(version: ProjectVersion.v9);
-    expect(
-      () => addEntityToMap(spatial, entity: _entity(movement)),
-      throwsA(isA<ValidationException>()),
-    );
+    final next = addEntityToMap(spatial, entity: _entity(movement));
+    expect(next.entities.single.npc!.movement, movement);
     expect(spatial.entities, isEmpty);
   });
 

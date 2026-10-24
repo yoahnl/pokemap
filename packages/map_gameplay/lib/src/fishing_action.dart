@@ -53,6 +53,7 @@ FishingAttemptEvaluation evaluateFishingAttempt({
   required GameState gameState,
   required ProjectItemDefinition item,
   ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
 }) {
   final map = world.map;
   if (map.version != ProjectVersion.v8 || map.spatialScene != null) {
@@ -110,6 +111,7 @@ FishingAttemptEvaluation evaluateFishingAttempt({
     encounterKind: rodKind.encounterKind,
     gameState: gameState,
     conditionContext: conditionContext,
+    encounterContext: encounterContext,
   );
   return FishingAttemptEvaluation(
     reason: refusal == null ? null : FishingBlockReason.encounterUnavailable,
@@ -172,6 +174,7 @@ FishingAttemptResult resolveFishingAttempt({
   required int currentStateRevision,
   required String? mapActivationId,
   ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
   Random? random,
 }) {
   if (!isFishingAttemptCurrent(
@@ -189,7 +192,8 @@ FishingAttemptResult resolveFishingAttempt({
       project: project,
       gameState: gameState,
       item: item,
-      conditionContext: conditionContext);
+      conditionContext: conditionContext,
+      encounterContext: encounterContext);
   if (!evaluation.isReady) {
     return FishingAttemptResult(
         reason: evaluation.reason, encounterCheck: evaluation.encounterCheck);
@@ -202,6 +206,7 @@ FishingAttemptResult resolveFishingAttempt({
     encounterKind: fishingRodKindForItem(item)!.encounterKind,
     gameState: gameState,
     conditionContext: conditionContext,
+    encounterContext: encounterContext,
     random: random,
   ));
 }

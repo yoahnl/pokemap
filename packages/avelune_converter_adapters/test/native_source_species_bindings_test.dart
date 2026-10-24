@@ -84,8 +84,22 @@ Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> _source(
     List<int>? compiled,
     List<int>? scriptsBytes,
     List<LiteralFixtureMap>? maps}) async {
+  final usesSyntheticScripts = scriptsBytes != null &&
+      literalFixtureHash(scriptsBytes) ==
+          literalFixtureHash(syntheticInterpretationArchive);
   final fixture = await LiteralTileFixture.create(
-      interpretationProfile: scriptsBytes == null ? null : fixtureSourceInterpretationProfile,
+      interpretationProfile:
+          usesSyntheticScripts ? fixtureSourceInterpretationProfile : null,
+      interpretationProfileForSnapshot: scriptsBytes == null || usesSyntheticScripts
+          ? null
+          : (snapshot) {
+              final profile = detectBuiltinSourceInterpretationProfile(snapshot);
+              if (profile == null) {
+                throw StateError(
+                    'The selected source archive has no attested built-in interpretation profile.');
+              }
+              return profile;
+            },
       scriptsBytes: scriptsBytes,
       maps: maps,
       includeEventSystem: maps != null,
@@ -207,6 +221,344 @@ Matcher _code(String value) => throwsA(isA<ContractError>()
     .having((e) => e.code, 'code', 'native_species.$value'));
 
 void main() {
+  test('fixture selects and verifies its profile from the completed snapshot',
+      () async {
+    SourceSnapshot? observed;
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: syntheticInterpretationArchive,
+        interpretationProfileForSnapshot: (snapshot) {
+          observed = snapshot;
+          expect(snapshot.entries.singleWhere((entry) =>
+              entry.relativePath == 'Data/Scripts.rxdata').sha256,
+              literalFixtureHash(syntheticInterpretationArchive));
+          return fixtureSourceInterpretationProfile;
+        });
+    expect(observed, same(fixture.snapshot));
+    expect(fixture.source.interpretationProfile,
+        same(fixtureSourceInterpretationProfile));
+  });
+
+  test('fixture refuses simultaneous explicit and snapshot-selected profiles',
+      () async {
+    await expectLater(LiteralTileFixture.create(
+        scriptsBytes: syntheticInterpretationArchive,
+        interpretationProfile: fixtureSourceInterpretationProfile,
+        interpretationProfileForSnapshot: (_) =>
+            fixtureSourceInterpretationProfile), throwsArgumentError);
+  });
+
+  Future<({LiteralTileFixture fixture, SourcePbsProject pbs})> giftBatch(
+          {bool missingSymbol = false}) =>
+      _source(
+        const [
+          _Record('ALPHA', 'ALPHA', 'Alpha'),
+          _Record('BETA', 'BETA', 'Beta'),
+        ],
+        scriptsBytes: syntheticInterpretationArchive,
+        maps: [
+          LiteralFixtureMap(id: 17, events: [
+            for (var index = 0; index < 12; index++)
+              LiteralFixtureEvent(id: index + 1, x: index % 3, y: 0, pages: [
+                LiteralFixtureEventPage(characterName: 'Original', commands: [
+                  LiteralFixtureEventCommand(355, [
+                    'pbAddPokemon(:${missingSymbol && index == 11 ? 'MISSING' : index.isEven ? 'ALPHA' : 'BETA'},7)'
+                  ]),
+                  const LiteralFixtureEventCommand(123, ['A', 0]),
+                ]),
+                const LiteralFixtureEventPage(
+                    characterName: 'Original',
+                    selfSwitch: 'A',
+                    commands: [LiteralFixtureEventCommand(101, ['After'])]),
+              ])
+          ])
+        ],
+      );
+
+  SourceEventAnalysis giftAnalysis(LiteralTileFixture fixture) =>
+      SourceEventAnalyzer.forProject(fixture.source,
+              profile: SourceEventProfile.forProject(fixture.source))
+          .analyze();
+
+  test('species batch preserves singleton evidence for repeated consumers',
+      () async {
+    final source = await _source(const [
+      _Record('ALPHA', 'ALPHA', 'Alpha'),
+      _Record('BETA', 'BETA', 'Beta'),
+    ]);
+    final catalog = _catalog([
+      _native('alpha', 'Alpha'),
+      _native('beta', 'Beta'),
+    ]);
+    source.fixture.files.reads.clear();
+
+    final batch = await _resolver.bindAvailable(
+        snapshot: source.fixture.snapshot, source: source.pbs,
+        files: source.fixture.files, nativeCatalog: catalog,
+        requestedSourceSymbols:
+            List.generate(100, (index) => index.isEven ? 'ALPHA' : 'BETA'));
+
+    expect(batch.bindings.keys, unorderedEquals(['ALPHA', 'BETA']));
+    expect(batch.refusals, isEmpty);
+    final witness = source.fixture.snapshot.entries
+        .singleWhere((entry) => entry.relativePath == 'Data/species.dat');
+    expect(source.fixture.files.reads.where((id) => id == witness.fileId),
+        hasLength(1));
+    for (final symbol in ['ALPHA', 'BETA']) {
+      final singleton = await _bind(source, catalog, [symbol]);
+      expect(batch.bindings[symbol]!.rows, singleton.rows);
+      expect(batch.bindings[symbol]!.evidence, singleton.evidence);
+    }
+    expect(() => batch.bindings.clear(), throwsUnsupportedError);
+    expect(() => batch.bindings['ALPHA']!.rows.single['sourceSymbol'] = 'OTHER',
+        throwsUnsupportedError);
+  });
+
+  test('species batch deduplicates repeated requests beyond one batch',
+      () async {
+    final source = await _source(const [_Record('ALPHA', 'ALPHA', 'Alpha')]);
+    final catalog = _catalog([_native('alpha', 'Alpha')]);
+    source.fixture.files.reads.clear();
+
+    final batch = await _resolver.bindAvailable(
+        snapshot: source.fixture.snapshot, source: source.pbs,
+        files: source.fixture.files, nativeCatalog: catalog,
+        requestedSourceSymbols: List.filled(8193, 'ALPHA'));
+
+    expect(batch.bindings.keys, ['ALPHA']);
+    expect(batch.refusals, isEmpty);
+    final witness = source.fixture.snapshot.entries
+        .singleWhere((entry) => entry.relativePath == 'Data/species.dat');
+    expect(source.fixture.files.reads.where((id) => id == witness.fileId),
+        hasLength(1));
+  });
+
+  for (final mutateSecondBatch in [false, true]) {
+    test('species batch partitions 2049 source aliases with later mutation=$mutateSecondBatch',
+        () async {
+      final symbols = List.generate(2049,
+          (index) => 'ALIAS${index.toString().padLeft(4, '0')}');
+      final source = await _source([
+        for (final symbol in symbols) _Record(symbol, symbol, 'Alpha'),
+      ]);
+      final catalog = _catalog([_native('alpha', 'Alpha')]);
+      source.fixture.files.reads.clear();
+      var reads = 0;
+      source.fixture.files.onRead = (path) {
+        if (path == 'Data/species.dat' && ++reads == 2 && mutateSecondBatch) {
+          catalog.speciesById['alpha']!.names['en'] = 'Changed';
+        }
+      };
+
+      final batch = await _resolver.bindAvailable(
+          snapshot: source.fixture.snapshot, source: source.pbs,
+          files: source.fixture.files, nativeCatalog: catalog,
+          requestedSourceSymbols: symbols);
+
+      expect(reads, 2);
+      if (mutateSecondBatch) {
+        expect(batch.bindings, isEmpty);
+        expect(batch.refusals.keys, unorderedEquals(symbols));
+        expect(batch.refusals.values.map((error) => error.code),
+            everyElement('native_species.catalog_integrity'));
+      } else {
+        expect(batch.bindings.keys, unorderedEquals(symbols));
+        expect(batch.refusals, isEmpty);
+        expect(batch.bindings.values.map((result) =>
+            result.rows.single['nativeSpeciesId']), everyElement('alpha'));
+      }
+    });
+  }
+
+  test('species batch rejects a catalogue changed between successful bindings',
+      () async {
+    final symbols = List.generate(2049,
+        (index) => 'ALIAS${index.toString().padLeft(4, '0')}');
+    final source = await _source([
+      for (final symbol in symbols) _Record(symbol, symbol, 'Alpha'),
+    ]);
+    final catalog = _BoundaryMutationCatalog(_catalog([_native('alpha', 'Alpha')]));
+    source.fixture.files.onRead = (path) {
+      if (path == 'Data/species.dat') catalog.witnessRead = true;
+    };
+
+    final batch = await _resolver.bindAvailable(
+        snapshot: source.fixture.snapshot, source: source.pbs,
+        files: source.fixture.files, nativeCatalog: catalog,
+        requestedSourceSymbols: symbols);
+
+    expect(catalog.mutated, isTrue);
+    expect(catalog.delegate.speciesById['alpha']!.names['en'], 'Alpha');
+    expect(batch.bindings, isEmpty);
+    expect(batch.refusals.keys, unorderedEquals(symbols));
+    expect(batch.refusals.values.map((error) => error.code),
+        everyElement('native_species.catalog_integrity'));
+  });
+
+  test('species batch refuses traversal beyond the source event ceiling',
+      () async {
+    final source = await _source(const [_Record('ALPHA', 'ALPHA', 'Alpha')]);
+    final catalog = _catalog([_native('alpha', 'Alpha')]);
+    source.fixture.files.reads.clear();
+
+    await expectLater(_resolver.bindAvailable(
+        snapshot: source.fixture.snapshot, source: source.pbs,
+        files: source.fixture.files, nativeCatalog: catalog,
+        requestedSourceSymbols: Iterable.generate(1000001, (_) => 'ALPHA')),
+        _code('requested_symbols'));
+
+    expect(source.fixture.files.reads, isEmpty);
+  });
+
+  for (final defect in ['changedBytes', 'malformedCompiled', 'mutatedCatalog']) {
+    test('species batch refuses global $defect without repeated reads', () async {
+      final source = await _source(const [
+        _Record('ALPHA', 'ALPHA', 'Alpha'),
+        _Record('BETA', 'BETA', 'Beta'),
+      ], compiled: defect == 'malformedCompiled' ? [4, 8, 48] : null);
+      final catalog = _catalog([
+        _native('alpha', 'Alpha'),
+        _native('beta', 'Beta'),
+      ]);
+      source.fixture.files.reads.clear();
+      if (defect == 'changedBytes') {
+        source.fixture.files.overrides['Data/species.dat'] = [4, 8, 48];
+      } else if (defect == 'mutatedCatalog') {
+        source.fixture.files.onRead = (path) {
+          if (path == 'Data/species.dat') {
+            catalog.speciesById['alpha']!.names['en'] = 'Changed';
+          }
+        };
+      }
+
+      final batch = await _resolver.bindAvailable(
+          snapshot: source.fixture.snapshot, source: source.pbs,
+          files: source.fixture.files, nativeCatalog: catalog,
+          requestedSourceSymbols: ['ALPHA', 'BETA']);
+
+      expect(batch.bindings, isEmpty);
+      expect(batch.refusals.keys, unorderedEquals(['ALPHA', 'BETA']));
+      final witness = source.fixture.snapshot.entries
+          .singleWhere((entry) => entry.relativePath == 'Data/species.dat');
+      expect(source.fixture.files.reads.where((id) => id == witness.fileId),
+          hasLength(1));
+    });
+  }
+
+  test('species batch discards earlier successes after a global mutation',
+      () async {
+    final source = await _source(const [
+      _Record('ALPHA', 'ALPHA', 'Alpha'),
+      _Record('BETA', 'BETA', 'Beta'),
+    ]);
+    final catalog = _catalog([
+      _native('alpha', 'Alpha'),
+      _native('beta', 'Beta'),
+    ]);
+    var reads = 0;
+    source.fixture.files.onRead = (path) {
+      if (path == 'Data/species.dat' && ++reads == 3) {
+        catalog.speciesById['alpha']!.names['en'] = 'Changed';
+      }
+    };
+
+    final batch = await _resolver.bindAvailable(
+        snapshot: source.fixture.snapshot, source: source.pbs,
+        files: source.fixture.files, nativeCatalog: catalog,
+        requestedSourceSymbols: ['ALPHA', 'BETA', 'MISSING']);
+
+    expect(batch.bindings, isEmpty);
+    expect(batch.refusals.keys, unorderedEquals(['ALPHA', 'BETA', 'MISSING']));
+    expect(batch.refusals.values.map((error) => error.code),
+        everyElement('native_species.catalog_integrity'));
+    expect(reads, 3);
+  });
+
+  test('gift batch reads the compiled species witness once for twelve events',
+      () async {
+    final source = await giftBatch();
+    final analysis = giftAnalysis(source.fixture);
+    final catalog = _catalog([
+      _native('alpha', 'Alpha'),
+      _native('beta', 'Beta'),
+    ]);
+    source.fixture.files.reads.clear();
+
+    final result = await const SourcePokemonGiftBindingResolver().read(
+        source: source.fixture.source,
+        analysis: analysis,
+        files: source.fixture.files,
+        nativeCatalog: catalog);
+
+    expect(result.byEventIdentity, hasLength(12));
+    expect(result.refusals, isEmpty);
+    final witness = source.fixture.snapshot.entries
+        .singleWhere((entry) => entry.relativePath == 'Data/species.dat');
+    expect(source.fixture.files.reads.where((id) => id == witness.fileId),
+        hasLength(1));
+    for (final event in analysis.events) {
+      final binding = result.byEventIdentity[event.identity.value]!;
+      expect(binding.nativeSpeciesId,
+          event.sourceEventId.isOdd ? 'alpha' : 'beta');
+      expect(binding.isBoundToEvent(
+          source: source.fixture.source, analysis: analysis, event: event), isTrue);
+      expect(binding.evidence['sourceScriptsExecuted'], 0);
+    }
+  });
+
+  test('gift batch isolates a missing species without dropping valid events',
+      () async {
+    final source = await giftBatch(missingSymbol: true);
+    final analysis = giftAnalysis(source.fixture);
+    final result = await const SourcePokemonGiftBindingResolver().read(
+        source: source.fixture.source,
+        analysis: analysis,
+        files: source.fixture.files,
+        nativeCatalog: _catalog([
+          _native('alpha', 'Alpha'),
+          _native('beta', 'Beta'),
+        ]));
+
+    expect(result.byEventIdentity, hasLength(11));
+    final missing = analysis.eventAt(17, 12)!;
+    expect(result.refusals, {
+      missing.identity.value:
+          'sourcePokemonGiftCatalogueUnqualified:native_species.compiled_identity'
+    });
+  });
+
+  for (final defect in ['changedBytes', 'mutatedCatalog']) {
+    test('gift batch refuses $defect for every affected event', () async {
+      final source = await giftBatch();
+      final analysis = giftAnalysis(source.fixture);
+      final catalog = _catalog([
+        _native('alpha', 'Alpha'),
+        _native('beta', 'Beta'),
+      ]);
+      if (defect == 'changedBytes') {
+        source.fixture.files.overrides['Data/species.dat'] = [4, 8, 48];
+      } else {
+        source.fixture.files.onRead = (path) {
+          if (path == 'Data/species.dat') {
+            catalog.speciesById['alpha']!.names['en'] = 'Changed';
+          }
+        };
+      }
+
+      final result = await const SourcePokemonGiftBindingResolver().read(
+          source: source.fixture.source,
+          analysis: analysis,
+          files: source.fixture.files,
+          nativeCatalog: catalog);
+
+      expect(result.byEventIdentity, isEmpty);
+      expect(result.refusals, hasLength(12));
+      expect(result.refusals.values,
+          everyElement(contains(defect == 'changedBytes'
+              ? 'native_species.compiled_species_changed'
+              : 'native_species.catalog_integrity')));
+    });
+  }
+
   test(
       'binds exact names independently from source symbol spelling with immutable evidence',
       () async {
@@ -604,9 +956,7 @@ void main() {
       source = await fixture();
       analysis = SourceEventAnalyzer.forProject(source.fixture.source,
               profile:
-                  SourceEventProfile.forProject(source.fixture.source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-))
+                  SourceEventProfile.forProject(source.fixture.source))
           .analyze();
       event = analysis.eventAt(17, 9)!;
       catalog = _catalog([_native('clockbird', 'Clockbird')]);
@@ -635,9 +985,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
           false);
       final other = await fixture(mapId: 59);
       final otherAnalysis = SourceEventAnalyzer.forProject(other.fixture.source,
-              profile: SourceEventProfile.forProject(other.fixture.source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-))
+              profile: SourceEventProfile.forProject(other.fixture.source))
           .analyze();
       final otherBindings = await const SourcePokemonGiftBindingResolver().read(
           source: other.fixture.source,
@@ -660,9 +1008,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       ]) {
         final a = SourceEventAnalyzer.forProject(variant.fixture.source,
                 profile:
-                    SourceEventProfile.forProject(variant.fixture.source,
-interpretationProfile: fixtureSourceInterpretationProfile,
-))
+                    SourceEventProfile.forProject(variant.fixture.source))
             .analyze();
         final result = await const SourcePokemonGiftBindingResolver().read(
             source: variant.fixture.source,
@@ -741,8 +1087,7 @@ interpretationProfile: fixtureSourceInterpretationProfile,
               scriptsArchiveHash: analysis.profile.scriptsArchiveHash,
               sourceSnapshotHash: Sha256Hash('f' * 64),
               normalizationHash: source.fixture.source.canonicalHash,
-interpretationProfile: fixtureSourceInterpretationProfile,
-),
+              interpretationProfile: source.fixture.source.interpretationProfile),
           events: [event],
           diagnostics: []);
       expect(
@@ -1046,4 +1391,40 @@ interpretationProfile: fixtureSourceInterpretationProfile,
       skip: giftArchive == null
           ? 'Exact source Scripts.rxdata oracle required'
           : false);
+}
+
+final class _BoundaryMutationCatalog implements NativePsdkCatalog {
+  _BoundaryMutationCatalog(this.delegate);
+
+  final NativePsdkCatalog delegate;
+  var witnessRead = false;
+  var mutated = false;
+  var checksAfterWitness = 0;
+
+  @override
+  Map<String, PokemonSpeciesFile> get speciesById => delegate.speciesById;
+  @override
+  Map<String, PokemonLearnsetFile> get learnsetsBySpeciesId => delegate.learnsetsBySpeciesId;
+  @override
+  Map<String, PokemonMove> get movesById => delegate.movesById;
+  @override
+  Map<String, PokemonEvolutionFile> get evolutionsBySpeciesId => delegate.evolutionsBySpeciesId;
+  @override
+  Map<String, PokemonMediaFile> get mediaBySpeciesId => delegate.mediaBySpeciesId;
+  @override
+  Map<String, Map<String, Object?>> get fallbackMedia => delegate.fallbackMedia;
+  @override
+  Map<String, PokemonCatalogFile> get catalogs => delegate.catalogs;
+  @override
+  Map<String, Object?> get evidence => delegate.evidence;
+
+  @override
+  Map<String, Object?> toJson() {
+    final snapshot = (jsonDecode(jsonEncode(delegate.toJson())) as Map).cast<String, Object?>();
+    if (witnessRead && !mutated && ++checksAfterWitness == 2) {
+      delegate.speciesById['alpha']!.names['fr'] = 'Mutation entre lots';
+      mutated = true;
+    }
+    return snapshot;
+  }
 }

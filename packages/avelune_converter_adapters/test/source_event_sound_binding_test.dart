@@ -29,6 +29,69 @@ void main() {
             'Audio/SE/Original Door.ogg': sourceMapMusicFixtureWav(),
         });
 
+    group('local engine INI', () {
+      Future<SourceMapMusicFixture> input(List<int> ini) =>
+          SourceMapMusicFixture.create(oracle: oracle, filePatches: {
+            'Game.ini': ini,
+          }, extraFiles: {
+            'Audio/SE/Original Door.wav': sourceMapMusicFixtureWav(),
+          });
+      Future<SourceEventSoundBinding> read(SourceMapMusicFixture fixture) =>
+          const SourceEventSoundResolver().read(source: fixture.source,
+              files: fixture.files, name: 'Original Door');
+
+      test('accepts original source INI and unrelated bounded titles', () async {
+        final text = latin1.decode(oracle.gameIniBytes);
+        for (final ini in [oracle.gameIniBytes,
+          latin1.encode(text.replaceFirst(RegExp(r'Title=[^\r\n]*'),
+              'Title=Orbit Adventure'))]) {
+          final fixture = await input(ini);
+          final binding = await read(fixture);
+          expect(binding.gainForVolume(100), closeTo(0.48, 1e-12));
+          expect(binding.evidence['requiredRuntimeContext'],
+              'freshGameDefaultOptions');
+          expect(binding.evidence['fullSourceParity'], isFalse);
+          expect((binding.evidence['sourceGameIniFile'] as Map)['sha256'],
+              literalFixtureHash(ini).value);
+        }
+      });
+
+      test('rejects changed engine settings and malformed INI', () async {
+        final text = latin1.decode(oracle.gameIniBytes);
+        for (final ini in [
+          text.replaceFirst('Library=RGSS104E.dll', 'Library=Other.dll'),
+          text.replaceFirst(r'Scripts=Data\Scripts.rxdata',
+              r'Scripts=Other\Scripts.rxdata'),
+          text.replaceFirst('RTP1=', 'RTP1=External'),
+          '$text\r\nRTP1=\r\n', '$text\r\nUnknown=value\r\n',
+          text.replaceFirst('[Game]', '[Other]'),
+          text.replaceFirst(RegExp(r'Title=[^\r\n]*'), 'Title='),
+          '$text\u0000', 'x' * 4097,
+        ]) {
+          await expectLater(read(await input(latin1.encode(ini))),
+              throwsA(isA<SourceEventSoundBindingUnavailable>().having(
+                  (error) => error.reason, 'reason', 'engine_unqualified')));
+        }
+      });
+
+      test('rejects bytes changed after their snapshot and cancellation',
+          () async {
+        final fixture = await input(oracle.gameIniBytes);
+        fixture.files.overrides['Game.ini'] = [...oracle.gameIniBytes, 10];
+        await expectLater(read(fixture), throwsA(
+            isA<SourceEventSoundBindingUnavailable>().having(
+                (error) => error.reason, 'reason',
+                'engine_configuration_changed')));
+        fixture.files.reads.clear();
+        await expectLater(const SourceEventSoundResolver().read(
+            source: fixture.source, files: fixture.files, name: 'Original Door',
+            cancellation: ScanCancellation()..cancel()),
+            throwsA(isA<ContractError>().having((error) => error.code,
+                'code', 'source.cancelled')));
+        expect(fixture.files.reads, isEmpty);
+      });
+    });
+
     test('imports finite canonical sound with source option and engine gain',
         () async {
       final input = await fixture();

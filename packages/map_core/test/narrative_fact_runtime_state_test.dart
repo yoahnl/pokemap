@@ -173,6 +173,7 @@ void main() {
       final save = SaveData.fromJson({
         'mapInstanceWorldState': _mapInstanceWorldStateJson,
         'saveId': 'save_data_without_fact_state',
+        'completionPartyJournal': {'schemaVersion': 1, 'records': []},
         'itemSystemSchemaVersion': 1,
       });
 
@@ -192,6 +193,7 @@ void main() {
         () => SaveData.fromJson({
           'mapInstanceWorldState': _mapInstanceWorldStateJson,
           'saveId': 'invalid_save_data',
+          'completionPartyJournal': {'schemaVersion': 1, 'records': []},
           'itemSystemSchemaVersion': 1,
           'narrativeFactRuntimeState': null,
         }),

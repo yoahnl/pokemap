@@ -154,6 +154,7 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.playSoundEffect({
     required String mediaAssetId,
     required double volume,
+    bool waitForCompletion,
   }) = ScenePlaySoundEffectInteractiveCommand;
 
   factory SceneInteractiveCommand.stopSoundEffects({
@@ -164,6 +165,7 @@ abstract base class SceneInteractiveCommand {
     required String mediaAssetId,
     required double volume,
     required DialogueBgmInterruption bgmInterruption,
+    bool waitForCompletion,
   }) = ScenePlayMusicEffectInteractiveCommand;
 
   factory SceneInteractiveCommand.sceneMusic({
@@ -660,24 +662,30 @@ final class ScenePlaySoundEffectInteractiveCommand
   ScenePlaySoundEffectInteractiveCommand({
     required String mediaAssetId,
     required double volume,
+    this.waitForCompletion = false,
   }) : mediaAssetId = _normalize(mediaAssetId, 'mediaAssetId'),
        volume = _boundedPresentationNumber(volume, 'volume', 0, 1);
 
   factory ScenePlaySoundEffectInteractiveCommand.fromJson(
     Map<String, dynamic> json,
   ) {
-    _presentationCommandFields(json, const {'kind', 'mediaAssetId', 'volume'});
+    _presentationCommandFields(json, {'kind', 'mediaAssetId', 'volume', if (json.containsKey('waitForCompletion')) 'waitForCompletion'});
+    if (json.containsKey('waitForCompletion') && json['waitForCompletion'] is! bool) {
+      throw const FormatException('waitForCompletion must be a boolean.');
+    }
     if (json['kind'] != 'playSoundEffect') {
       throw const FormatException('Invalid sound effect command.');
     }
     return ScenePlaySoundEffectInteractiveCommand(
       mediaAssetId: _required(json, 'mediaAssetId'),
       volume: _presentationNumber(json, 'volume'),
+      waitForCompletion: json['waitForCompletion'] as bool? ?? false,
     );
   }
 
   final String mediaAssetId;
   final double volume;
+  final bool waitForCompletion;
 
   @override
   SceneInteractiveCommandKind get kind =>
@@ -689,14 +697,15 @@ final class ScenePlaySoundEffectInteractiveCommand
     'kind': kind.name,
     'mediaAssetId': mediaAssetId,
     'volume': volume,
+    if (waitForCompletion) 'waitForCompletion': true,
   };
   @override
   bool operator ==(Object other) =>
       other is ScenePlaySoundEffectInteractiveCommand &&
       other.mediaAssetId == mediaAssetId &&
-      other.volume == volume;
+      other.volume == volume && other.waitForCompletion == waitForCompletion;
   @override
-  int get hashCode => Object.hash(mediaAssetId, volume);
+  int get hashCode => Object.hash(mediaAssetId, volume, waitForCompletion);
 }
 
 final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveCommand {
@@ -704,21 +713,27 @@ final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveComma
     required String mediaAssetId,
     required double volume,
     required this.bgmInterruption,
+    this.waitForCompletion = false,
   }) : mediaAssetId = _normalize(mediaAssetId, 'mediaAssetId'),
        volume = _boundedPresentationNumber(volume, 'volume', 0, 1);
 
   factory ScenePlayMusicEffectInteractiveCommand.fromJson(
     Map<String, dynamic> json,
   ) {
-    _presentationCommandFields(json, const {
+    _presentationCommandFields(json, {
       'kind', 'mediaAssetId', 'volume', 'bgmInterruption',
+      if (json.containsKey('waitForCompletion')) 'waitForCompletion',
     });
+    if (json.containsKey('waitForCompletion') && json['waitForCompletion'] is! bool) {
+      throw const FormatException('waitForCompletion must be a boolean.');
+    }
     if (json['kind'] != 'playMusicEffect' || json['bgmInterruption'] is! Map) {
       throw const FormatException('Invalid music effect command.');
     }
     return ScenePlayMusicEffectInteractiveCommand(
       mediaAssetId: _required(json, 'mediaAssetId'),
       volume: _presentationNumber(json, 'volume'),
+      waitForCompletion: json['waitForCompletion'] as bool? ?? false,
       bgmInterruption: DialogueBgmInterruption.fromJson(
         Map<String, dynamic>.from(json['bgmInterruption'] as Map),
       ),
@@ -728,6 +743,7 @@ final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveComma
   final String mediaAssetId;
   final double volume;
   final DialogueBgmInterruption bgmInterruption;
+  final bool waitForCompletion;
 
   @override
   SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.playMusicEffect;
@@ -741,6 +757,7 @@ final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveComma
     'mediaAssetId': mediaAssetId,
     'volume': volume,
     'bgmInterruption': bgmInterruption.toJson(),
+    if (waitForCompletion) 'waitForCompletion': true,
   };
 
   @override
@@ -748,10 +765,10 @@ final class ScenePlayMusicEffectInteractiveCommand extends SceneInteractiveComma
       other is ScenePlayMusicEffectInteractiveCommand &&
       other.mediaAssetId == mediaAssetId &&
       other.volume == volume &&
-      other.bgmInterruption == bgmInterruption;
+      other.bgmInterruption == bgmInterruption && other.waitForCompletion == waitForCompletion;
 
   @override
-  int get hashCode => Object.hash(mediaAssetId, volume, bgmInterruption);
+  int get hashCode => Object.hash(mediaAssetId, volume, bgmInterruption, waitForCompletion);
 }
 
 final class SceneMusicInteractiveCommand extends SceneInteractiveCommand {

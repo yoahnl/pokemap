@@ -4,6 +4,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:crypto/crypto.dart' as crypto;
 
 import 'native_project_writer.dart';
+import 'source_engine_game_ini.dart';
 
 enum SourceMapMusicPolicy { sourceEngineGain, nativeAuthoredVolume }
 
@@ -185,12 +186,13 @@ final class SourceMapMusicResolver {
       gameIni = entry('Game.ini', 'configuration_unqualified');
       if (configuration.byteLength != 6212 ||
           configuration.sha256!.value != _configurationHash ||
-          gameIni.byteLength != 121 ||
-          gameIni.sha256!.value != _gameIniHash) {
+          gameIni.byteLength < 1 || gameIni.byteLength > 4096) {
         _unavailable('configuration_unqualified');
       }
       await read(configuration);
-      await read(gameIni);
+      if (!sourceEngineGameIniIsLocal(await read(gameIni))) {
+        _unavailable('configuration_unqualified');
+      }
     }
 
     final musicId = fields['@bgm'];
@@ -462,8 +464,6 @@ const _engineHash =
     '5c75e92fcbb6ec50b9f8fc61913d751a8945d6a1fc69c3017c7b8686b532bf04';
 const _configurationHash =
     '90a3aee82895e48e6c767f973b637d27856cccfd575f48b78d04191cb3e7d35f';
-const _gameIniHash =
-    '5ca2b3b37b92767097a5db5a126c6c50cc6fc2602d3fa9776f06883838aba5f6';
 const _audioTypes = {
   'wav': 'audio/wav',
   'ogg': 'audio/ogg',

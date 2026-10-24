@@ -6,6 +6,93 @@ import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtim
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('parallel emote expiry preserves the other actor facing', () async {
+    final host = _MultiActorHost();
+    final controller = host.controller();
+    final base = host.asset();
+    CinematicTimelineStep reaction(String actor, int duration) => CinematicTimelineStep(
+      id: actor, kind: CinematicTimelineStepKind.actorEmote, actorId: actor,
+      durationMs: duration, parallelGroupId: 'together',
+      metadata: const {'actor.emoteId': 'exclamation'});
+    final future = controller.play(base.copyWith(timeline: CinematicTimeline(steps: [
+      reaction('guide', 400), CinematicTimelineStep(id: 'blocker-face',
+        kind: CinematicTimelineStepKind.actorFace, actorId: 'blocker', durationMs: 800,
+        parallelGroupId: 'together', metadata: const {'actor.direction': 'left'})])));
+    expect(host.locked, isTrue);
+    controller.update(const Duration(milliseconds: 400));
+    expect(host.poses['guide']!.emoteId, isNull);
+    expect(host.poses['blocker']!.emoteId, isNull);
+    expect(host.poses['blocker']!.facing, EntityFacing.west);
+    controller.update(const Duration(milliseconds: 400));
+    expect((await future).success, isTrue);
+    expect(host.poses.values.every((pose) => pose.emoteId == null), isTrue);
+  });
+
+  test('invalid emotes reject before writes and commit failure clears transients', () async {
+    final host = _Host();
+    CinematicAsset reaction(String id) => _asset().copyWith(timeline: CinematicTimeline(steps: [
+      CinematicTimelineStep(id: 'bubble', kind: CinematicTimelineStepKind.actorEmote,
+        actorId: 'guide', durationMs: 400, metadata: {'actor.emoteId': id})]));
+    expect((await host.controller().play(reaction('missing'))).success, isFalse);
+    expect(host.writes, 0);
+    host.failCommit = true;
+    final initial = host.pose;
+    final controller = host.controller();
+    final future = controller.play(reaction('exclamation'));
+    controller.update(const Duration(milliseconds: 200));
+    expect(host.pose.emoteId, 'exclamation');
+    controller.update(const Duration(milliseconds: 200));
+    expect((await future).success, isFalse);
+    expect(host.pose, initial);
+    expect(host.locked, isFalse);
+  });
+
+  test(
+    'spatial emote expires and cancellation rolls transient state back',
+    () async {
+      for (final cancelled in [false, true]) {
+        final host = _Host();
+        final initial = host.pose;
+        final base = _asset();
+        final asset = base.copyWith(
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'reaction',
+                kind: CinematicTimelineStepKind.actorEmote,
+                actorId: 'guide',
+                durationMs: 600,
+                metadata: const {
+                  'authoring.kind': 'basicBlock',
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.block': 'actorEmote',
+                  'actor.emoteId': 'exclamation',
+                },
+              ),
+            ],
+          ),
+        );
+        final controller = host.controller();
+        final future = controller.play(asset);
+        expect(host.locked, isTrue);
+        controller.update(const Duration(milliseconds: 280));
+        expect(host.pose.emoteId, 'exclamation');
+        expect(host.pose.emoteElapsedSeconds, closeTo(.28, .00001));
+        if (cancelled) {
+          controller.cancel();
+          expect((await future).success, isFalse);
+          expect(host.pose, initial);
+        } else {
+          controller.update(const Duration(milliseconds: 320));
+          expect((await future).success, isTrue);
+          expect(host.pose.emoteId, isNull);
+          expect(host.committed.single.emoteId, isNull);
+        }
+        expect(host.locked, isFalse);
+      }
+    },
+  );
+
   test('jump overflies a blocked path and validates its landing again', () async {
     final host = _Host();
     final base = _asset();
@@ -230,6 +317,7 @@ void main() {
         CinematicTimelineStepKind.camera,
         CinematicTimelineStepKind.actorMove,
         CinematicTimelineStepKind.actorFace,
+        CinematicTimelineStepKind.actorEmote,
         CinematicTimelineStepKind.marker,
       }.contains(kind))) {
     test('rejects ${kind.name} before changing any actor', () async {

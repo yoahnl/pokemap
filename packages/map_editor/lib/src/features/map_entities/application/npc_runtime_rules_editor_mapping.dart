@@ -22,6 +22,8 @@ enum NpcRuntimeVisibilityUiMode {
 /// Libellés FR pour le menu « type de condition » (flags, steps, etc.).
 String npcRuntimePredicateKindLabelFr(MapEntityRuntimePredicateKind k) {
   return switch (k) {
+    MapEntityRuntimePredicateKind.partyUsableCountAtLeast => 'Un minimum de Pokémon aptes au combat',
+    MapEntityRuntimePredicateKind.localTimeWindow => 'Une plage horaire locale',
     MapEntityRuntimePredicateKind.badgeOwned => 'Un badge est obtenu',
     MapEntityRuntimePredicateKind.badgeNotOwned => 'Un badge n’est pas obtenu',
     MapEntityRuntimePredicateKind.storyFlagSet => 'Un flag est actif',
@@ -52,7 +54,9 @@ MapEntityRuntimePredicateKind? parsePredicateKindMenuId(String raw) {
 }
 
 List<MapEntityRuntimePredicateKind> get allNpcRuntimePredicateKinds =>
-    MapEntityRuntimePredicateKind.values.toList(growable: false);
+    MapEntityRuntimePredicateKind.values
+        .where((kind) => kind != MapEntityRuntimePredicateKind.localTimeWindow && kind != MapEntityRuntimePredicateKind.partyUsableCountAtLeast)
+        .toList(growable: false);
 
 /// Reconstitue la règle persistée à partir du brouillon UI.
 ///
@@ -63,12 +67,22 @@ MapEntityNpcVisibilityRule? buildVisibilityRuleForSave({
   required NpcRuntimeVisibilityUiMode uiMode,
   required MapEntityRuntimePredicateKind predicateKind,
   required String refMenuId,
+  LocalTimeWindow? timeWindow,
+  int? minimumCount,
 }) {
   if (uiMode == NpcRuntimeVisibilityUiMode.always) {
     return null;
   }
+  if (predicateKind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) {
+    if (minimumCount == null || minimumCount < 1 || minimumCount > 6) return null;
+    return MapEntityNpcVisibilityRule(mode: uiMode == NpcRuntimeVisibilityUiMode.visibleOnlyIf ? MapEntityNpcVisibilityMode.visibleWhen : MapEntityNpcVisibilityMode.hiddenWhen, predicate: MapEntityRuntimePredicate(kind: predicateKind, minimumCount: minimumCount));
+  }
   final ref = refMenuId.trim();
-  if (ref.isEmpty || ref == kNpcRuntimeRefNoneMenuId) {
+  final isTimeWindow =
+      predicateKind == MapEntityRuntimePredicateKind.localTimeWindow;
+  if (isTimeWindow
+      ? timeWindow?.isValid != true
+      : ref.isEmpty || ref == kNpcRuntimeRefNoneMenuId) {
     return null;
   }
   return MapEntityNpcVisibilityRule(
@@ -77,7 +91,8 @@ MapEntityNpcVisibilityRule? buildVisibilityRuleForSave({
         : MapEntityNpcVisibilityMode.hiddenWhen,
     predicate: MapEntityRuntimePredicate(
       kind: predicateKind,
-      refId: ref,
+      refId: isTimeWindow ? '' : ref,
+      timeWindow: isTimeWindow ? timeWindow : null,
     ),
   );
 }
@@ -86,9 +101,20 @@ MapEntityNpcVisibilityRule? buildVisibilityRuleForSave({
 String? validateNpcVisibilityDraft({
   required NpcRuntimeVisibilityUiMode uiMode,
   required String refMenuId,
+  MapEntityRuntimePredicateKind? predicateKind,
+  LocalTimeWindow? timeWindow,
+  int? minimumCount,
 }) {
   if (uiMode == NpcRuntimeVisibilityUiMode.always) {
     return null;
+  }
+  if (predicateKind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) {
+    return minimumCount != null && minimumCount >= 1 && minimumCount <= 6 ? null : 'Le minimum de Pokémon aptes est invalide.';
+  }
+  if (predicateKind == MapEntityRuntimePredicateKind.localTimeWindow) {
+    return timeWindow?.isValid == true
+        ? null
+        : 'La plage horaire de visibilité est invalide.';
   }
   final r = refMenuId.trim();
   if (r.isEmpty || r == kNpcRuntimeRefNoneMenuId) {
@@ -101,14 +127,19 @@ String? validateNpcVisibilityDraft({
 ({
   NpcRuntimeVisibilityUiMode mode,
   MapEntityRuntimePredicateKind kind,
-  String refId
-}) parseVisibilityRuleFromNpc(MapEntityNpcData npc) {
+  String refId,
+  LocalTimeWindow? timeWindow,
+  int? minimumCount,
+})
+parseVisibilityRuleFromNpc(MapEntityNpcData npc) {
   final rule = npc.visibilityRule;
   if (rule == null || rule.mode == MapEntityNpcVisibilityMode.always) {
     return (
       mode: NpcRuntimeVisibilityUiMode.always,
       kind: MapEntityRuntimePredicateKind.storyFlagSet,
       refId: '',
+      timeWindow: null,
+      minimumCount: null,
     );
   }
   final p = rule.predicate;
@@ -117,7 +148,7 @@ String? validateNpcVisibilityDraft({
   final mode = rule.mode == MapEntityNpcVisibilityMode.visibleWhen
       ? NpcRuntimeVisibilityUiMode.visibleOnlyIf
       : NpcRuntimeVisibilityUiMode.hiddenIf;
-  return (mode: mode, kind: kind, refId: ref);
+  return (mode: mode, kind: kind, refId: ref, timeWindow: p?.timeWindow, minimumCount: p?.minimumCount);
 }
 
 /// Construit une ligne [MapEntityConditionalDialogue] si le dialogue est choisi.
@@ -126,6 +157,9 @@ MapEntityConditionalDialogue? buildConditionalDialogueRowForSave({
   required String refMenuId,
   required String dialogueId,
   String? startNode,
+  String scriptPathRelative = '',
+  LocalTimeWindow? timeWindow,
+  int? minimumCount,
 }) {
   final dlgId = dialogueId.trim();
   if (dlgId.isEmpty) {
@@ -135,10 +169,17 @@ MapEntityConditionalDialogue? buildConditionalDialogueRowForSave({
   return MapEntityConditionalDialogue(
     when: MapEntityRuntimePredicate(
       kind: conditionKind,
-      refId: ref,
+      minimumCount: conditionKind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast ? minimumCount : null,
+      refId: conditionKind == MapEntityRuntimePredicateKind.localTimeWindow || conditionKind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast
+          ? ''
+          : ref,
+      timeWindow: conditionKind == MapEntityRuntimePredicateKind.localTimeWindow
+          ? timeWindow
+          : null,
     ),
     dialogue: DialogueRef(
       dialogueId: dlgId,
+      scriptPathRelative: scriptPathRelative,
       startNode: startNode,
     ),
   );
@@ -148,10 +189,26 @@ MapEntityConditionalDialogue? buildConditionalDialogueRowForSave({
 String? validateConditionalDialogueDrafts({
   required List<({String dialogueMenuId, String refMenuId})> rows,
   required String dialogueNoneId,
+  List<MapEntityRuntimePredicateKind> predicateKinds = const [],
+  List<LocalTimeWindow?> timeWindows = const [],
+  List<int?> minimumCounts = const [],
 }) {
-  for (final row in rows) {
+  for (var index = 0; index < rows.length; index++) {
+    final row = rows[index];
     final dlg = row.dialogueMenuId.trim();
     if (dlg.isEmpty || dlg == dialogueNoneId) {
+      continue;
+    }
+    if (index < predicateKinds.length && predicateKinds[index] == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) {
+      if (index >= minimumCounts.length || minimumCounts[index] == null || minimumCounts[index]! < 1 || minimumCounts[index]! > 6) return 'Le minimum de Pokémon aptes d’une variante est invalide.';
+      continue;
+    }
+    if (index < predicateKinds.length &&
+        predicateKinds[index] ==
+            MapEntityRuntimePredicateKind.localTimeWindow) {
+      if (index >= timeWindows.length || timeWindows[index]?.isValid != true) {
+        return 'La plage horaire d’une variante de dialogue est invalide.';
+      }
       continue;
     }
     final ref = row.refMenuId.trim();

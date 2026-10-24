@@ -18,6 +18,7 @@ extension _PlayableMapInteractiveEncounters on PlayableMapGame {
       gameState: _gameState,
       entity: entity,
       conditionContext: _interactiveEncounterConditionContext,
+      encounterContext: _encounterEvaluationContext,
     );
     if (!evaluation.isReady) {
       _showNotification(switch (evaluation.reason) {
@@ -126,6 +127,7 @@ extension _PlayableMapInteractiveEncounters on PlayableMapGame {
       currentStateRevision: _gameStateRevision,
       mapActivationId: _currentMapActivationId,
       conditionContext: _interactiveEncounterConditionContext,
+      encounterContext: _encounterEvaluationContext,
       random: _encounterRandom,
     );
     final encounter = result.encounterCheck?.encounter;

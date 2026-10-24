@@ -1,6 +1,7 @@
 {
   "itemSystemSchemaVersion": 1,
   "saveId": "phase-a-golden-slice",
+  "completionPartyJournal": {"schemaVersion": 1, "records": []},
   "mapInstanceWorldState": {
     "schemaVersion": 6,
     "instancesByMapId": {}

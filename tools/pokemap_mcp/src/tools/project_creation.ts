@@ -18,6 +18,8 @@ const requestSchema = z.object({
     pitchDegrees: z.number().finite().gt(0).lt(90),
     yawDegrees: z.number().finite(),
     fieldOfViewDegrees: z.number().finite().gt(1).lt(120),
+    projection: z.enum(["perspective", "orthographic"]).optional(),
+    orthographicHeight: z.number().finite().gt(0).lte(10000).optional(),
     distance: z.number().finite().gt(0).max(10000),
   }).strict().optional(),
   tileSize: z.union([z.literal(16), z.literal(32), z.literal(48)]).optional(),

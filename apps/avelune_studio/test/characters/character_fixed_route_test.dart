@@ -147,24 +147,33 @@ void main() {
     },
   );
 
-  testWidgets('3D Studio cannot offer or commit a new fixed route', (
+  testWidgets('3D Studio offers fixed routes and guided fixed bounds', (
     tester,
   ) async {
     final fixture = _fixture(spatial: true);
-    final before = fixture.$1.current;
     final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
-    expect(
-      () => commands.setMovementConfiguration('npc', _movement()),
-      throwsStateError,
-    );
-    expect(fixture.$1.current, before);
-    expect(fixture.$1.undoCount, 0);
+    commands.setMovementConfiguration('npc', _movement());
+    expect(fixture.$1.current.entities.single.npc!.movement, _movement());
+    expect(fixture.$1.undoCount, 1);
     await _surface(tester, fixture);
     final picker = find.byKey(const ValueKey('npc-movement-mode'));
     await tester.ensureVisible(picker);
     await tester.tap(picker);
     await tester.pumpAndSettle();
-    expect(find.text('Suite de pas'), findsNothing);
+    expect(find.text('Suite de pas'), findsWidgets);
+    await tester.tapAt(const Offset(900, 20));
+    await tester.pumpAndSettle();
+    final area = find.byKey(const ValueKey('npc-limit-movement-area'));
+    await tester.ensureVisible(area);
+    await tester.tap(area);
+    await tester.pumpAndSettle();
+    expect(fixture.$1.current.entities.single.npc!.movement.movementArea,
+        const MapRect(pos: GridPos(x: 2, y: 3), size: GridSize(width: 3, height: 3)));
+    final choices = find.byKey(const ValueKey('npc-random-pauses'));
+    await tester.ensureVisible(choices);
+    await tester.tap(choices);
+    await tester.pumpAndSettle();
+    expect(fixture.$1.current.entities.single.npc!.movement.pauseDurationsMs, [500, 1000]);
     expect(tester.takeException(), isNull);
   });
 }

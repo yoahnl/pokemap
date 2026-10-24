@@ -13,10 +13,14 @@ final class SpatialCinematicActorPose {
     this.motion = CharacterAnimationState.idle,
     this.animationSeconds = 0,
     this.liftCells = 0,
+    this.emoteId,
+    this.emoteElapsedSeconds = 0,
   });
 
   final double x, z, animationSeconds, liftCells;
   final EntityFacing facing;
+  final String? emoteId;
+  final double emoteElapsedSeconds;
   final CharacterAnimationState motion;
 
   SpatialCinematicActorPose copyWith({
@@ -26,6 +30,9 @@ final class SpatialCinematicActorPose {
     CharacterAnimationState? motion,
     double? animationSeconds,
     double? liftCells,
+    String? emoteId,
+    double? emoteElapsedSeconds,
+    bool clearEmote = false,
   }) =>
       SpatialCinematicActorPose(
         x: x ?? this.x,
@@ -34,6 +41,10 @@ final class SpatialCinematicActorPose {
         motion: motion ?? this.motion,
         animationSeconds: animationSeconds ?? this.animationSeconds,
         liftCells: liftCells ?? this.liftCells,
+        emoteId: clearEmote ? null : emoteId ?? this.emoteId,
+        emoteElapsedSeconds: clearEmote
+            ? 0
+            : emoteElapsedSeconds ?? this.emoteElapsedSeconds,
       );
 
   @override
@@ -43,10 +54,15 @@ final class SpatialCinematicActorPose {
       other.z == z &&
       other.facing == facing &&
       other.motion == motion &&
-      other.animationSeconds == animationSeconds && other.liftCells == liftCells;
+      other.animationSeconds == animationSeconds && other.liftCells == liftCells &&
+      other.emoteId == emoteId &&
+      other.emoteElapsedSeconds == emoteElapsedSeconds;
 
   @override
-  int get hashCode => Object.hash(x, z, facing, motion, animationSeconds, liftCells);
+  int get hashCode => Object.hash(x, z, facing, motion, animationSeconds, liftCells,
+    emoteId,
+    emoteElapsedSeconds,
+  );
 }
 
 final class SpatialCinematicCameraPose {
@@ -156,6 +172,7 @@ final class SpatialCinematicRuntimePlaybackSink
           CinematicTimelineStepKind.actorMove,
           CinematicTimelineStepKind.actorJump,
           CinematicTimelineStepKind.actorFace,
+          CinematicTimelineStepKind.actorEmote,
           CinematicTimelineStepKind.marker,
         }.contains(step.kind)) {
           return _rejected(
@@ -261,6 +278,14 @@ final class SpatialCinematicRuntimePlaybackSink
             final route = _movementRoute(asset, map, step, before);
             routes[step.id] = route;
             next[binding] = pose.copyWith(x: route.last.x, z: route.last.y);
+          case CinematicTimelineStepKind.actorEmote:
+            final emote = cinematicTimelineActorEmoteEmoteIdOf(step);
+            if (cinematicEmoteCatalogEntryById(emote) == null ||
+                (step.durationMs ?? 0) <= 0) {
+              throw StateError(
+                'Emote ${step.id} requires a catalog entry and duration.',
+              );
+            }
           case CinematicTimelineStepKind.actorFace:
             final facing = cinematicTimelineActorFacingDirectionOf(step);
             if (facing == null) {
@@ -348,6 +373,15 @@ final class SpatialCinematicRuntimePlaybackSink
           _validateRoute(prepared.map, binding, _route!, poses: _livePoses(prepared));
         }
         writeActor(binding, pose.copyWith(animationSeconds: 0));
+      case CinematicTimelineStepKind.actorEmote:
+        final binding = _stepActor = prepared.bindings[step.actorId]!;
+        writeActor(
+          binding,
+          _actor(binding).copyWith(
+            emoteId: cinematicTimelineActorEmoteEmoteIdOf(step),
+            emoteElapsedSeconds: 0,
+          ),
+        );
       case CinematicTimelineStepKind.actorFace:
         final binding = _stepActor = prepared.bindings[step.actorId]!;
         writeActor(
@@ -379,6 +413,16 @@ final class SpatialCinematicRuntimePlaybackSink
         ? 1.0
         : (context.elapsed.inMicroseconds / (duration * 1000)).clamp(0.0, 1.0);
     final route = _route, binding = _stepActor;
+    if (context.step.kind == CinematicTimelineStepKind.actorEmote &&
+        binding != null) {
+      writeActor(
+        binding,
+        _actor(binding).copyWith(
+          emoteElapsedSeconds:
+              context.elapsed.inMicroseconds / Duration.microsecondsPerSecond,
+        ),
+      );
+    }
     if (route != null && binding != null && _groupSteps.isNotEmpty) {
       _validateGroupMotion(map: prepared.map, bindings: prepared.bindings,
           start: _groupStartPoses, routes: prepared.routes, steps: _groupSteps,
@@ -462,7 +506,9 @@ final class SpatialCinematicRuntimePlaybackSink
       writeActor(
           binding,
           _actor(binding).copyWith(
-              motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0));
+              motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0,
+          clearEmote: context.step.kind == CinematicTimelineStepKind.actorEmote,
+        ));
     }
     _stepActor = null;
     _route = null;
@@ -559,7 +605,9 @@ final class SpatialCinematicRuntimePlaybackSink
       z = pixelZ.round() / 16;
     }
     return pose.copyWith(
-        x: x, z: z, motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0);
+        x: x, z: z, motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0,
+      clearEmote: true,
+    );
   }
 
   Map<CinematicActorBinding, SpatialCinematicActorPose> _livePoses(
@@ -681,7 +729,7 @@ final class SpatialCinematicRuntimePlaybackSink
         );
         if (!canTraverse(binding, previous.x, previous.y, point.x, point.y,
             traversalPoses)) {
-          throw StateError('Actor ${binding.actorId} route is blocked.');
+          throw StateError('Actor ${binding.actorId} route is blocked: (${previous.x}, ${previous.y}) -> (${point.x}, ${point.y}).');
         }
         previous = point;
       }

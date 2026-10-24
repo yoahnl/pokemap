@@ -101,9 +101,10 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     assert.deepEqual(record(extension.wait).durationMsRange, [0, 2147483647]);
     assert.deepEqual(record(extension.wait).outputPorts, ["completed"]);
     assert.equal(record(extension.wait).completion, "elapsed");
-    for (const id of ["wait", "worldTone", "playSoundEffect", "playMusicEffect", "sceneMusic"]) {
+    for (const id of ["wait", "worldTone", "sceneMusic"]) {
       assert.equal(record(extension[id]).projectDimension, "twoD");
     }
+    for (const id of ["playSoundEffect", "playMusicEffect", "stopSoundEffects"]) assert.deepEqual(record(extension[id]).projectDimensions, ["twoD", "threeD"]);
     assert.deepEqual(record(extension.stopSoundEffects).scopes, ["scene", "map"]);
     assert.ok(extension.worldPresentation);
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
@@ -127,8 +128,8 @@ test("live MCP persists native presentation data and refuses invalid sound refer
     }
     const commands = [
       { kind: "worldTone", red: -255, green: -254.5, blue: 0, gray: 10, durationMs: 300 },
-      { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8 },
-      { kind: "playMusicEffect", mediaAssetId: "door", volume: 0.8, bgmInterruption: { fadeOutMs: 200, fadeInMs: 400 } },
+      { kind: "playSoundEffect", mediaAssetId: "door", volume: 0.8, waitForCompletion: true },
+      { kind: "playMusicEffect", mediaAssetId: "door", volume: 0.8, waitForCompletion: true, bgmInterruption: { fadeOutMs: 200, fadeInMs: 400 } },
       { kind: "sceneMusic", operation: "play", mediaAssetId: "music", volume: 0.8 },
       { kind: "sceneMusic", operation: "restore" },
       { kind: "sceneMusic", operation: "fadeOut", durationMs: 0 },
@@ -235,9 +236,12 @@ test("live MCP persists native presentation data and refuses invalid sound refer
       size: { width: 4, height: 4 }, layers: [], spatialScene: { schemaVersion: 1, width: 4, depth: 4, heightLevels: Array(16).fill(0), levelHeight: 1, instances: [],
         camera: { mode: "fixed", pitchDegrees: 48.7, yawDegrees: 0, fieldOfViewDegrees: 16.2, distance: 42 } } }));
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: spatialRoot });
-    const spatialBefore = await readFile(spatialFile);
     const spatialMapBefore = await readFile(spatialMapFile);
     for (const command of presentationCommands) {
+      const spatialBefore = await readFile(spatialFile);
+      const spatialAudio = ["playSoundEffect", "playMusicEffect"].includes(command.kind);
+      if (spatialAudio) Object.assign(command, { waitForCompletion: true });
+      let audioPlan: JsonRecord | undefined;
       const sceneId = `edit-${command.kind}`;
       const invalidScene = scene(sceneId, command);
       for (const actionId of ["scene.interactive_command.set", "scene.upsert", "scene.graph.patch"]) {
@@ -249,10 +253,17 @@ test("live MCP persists native presentation data and refuses invalid sound refer
         const id = `spatial-${++sequence}`;
         const error = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
           requestId: id, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle,
-          expectedRevision: validation.snapshotRevision, idempotencyKey: id, parameters } }, true);
-        assert.ok(JSON.stringify(error).includes("commandUnsupportedDimension"));
+          expectedRevision: validation.snapshotRevision, idempotencyKey: id, parameters } }, !spatialAudio);
+        if (spatialAudio) { assert.equal(error.applicable, true); audioPlan = error; }
+        else assert.ok(JSON.stringify(error).includes("commandUnsupportedDimension"));
         assert.deepEqual(await readFile(spatialFile), spatialBefore);
         assert.deepEqual(await readFile(spatialMapFile), spatialMapBefore);
+      }
+      if (audioPlan) {
+        await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: audioPlan.planId, operationId: `spatial-audio-${++sequence}` });
+        const saved = JSON.parse(await readFile(spatialFile, "utf8"));
+        const selected = saved.scenes.find((s: JsonRecord) => s.id === sceneId);
+        assert.equal(selected.graph.nodes[1].payload.interactiveCommand.waitForCompletion, true);
       }
     }
   } finally {

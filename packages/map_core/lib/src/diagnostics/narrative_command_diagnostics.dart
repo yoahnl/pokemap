@@ -91,9 +91,6 @@ List<NarrativeCommandDiagnostic> diagnoseInteractiveCommand({
   if ((command is SceneWhiteOutInteractiveCommand ||
           command is SceneWaitInteractiveCommand ||
           command is SceneWorldToneInteractiveCommand ||
-          command is ScenePlaySoundEffectInteractiveCommand ||
-          command is SceneStopSoundEffectsInteractiveCommand ||
-          command is ScenePlayMusicEffectInteractiveCommand ||
           command is SceneMusicInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {
     return const [

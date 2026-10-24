@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:avelune_converter_adapters/src/source_catalog_projection.dart';
+import 'package:avelune_converter_adapters/src/native_psdk_trainer_bundle.dart';
+import 'package:avelune_converter_adapters/src/native_psdk_catalog.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -215,6 +217,141 @@ PokemonCatalogCoherenceReport _coherence(SourceCatalogProjection p) =>
         ]));
 
 void main() {
+  group('native battle form evolution publication', () {
+    NativePsdkTrainerBundle catalog(PokemonEvolutionEntry rule) {
+      final raw = (jsonDecode(jsonEncode(
+          NativePsdkTrainerBundle.builtin().toJson())) as Map)
+          .cast<String, dynamic>();
+      final template = (raw['species'] as List).first as Map;
+      final media = (raw['media'] as List).cast<Map>().firstWhere(
+          (row) => row['speciesId'] == template['id']);
+      final fallback = (raw['fallbackMedia'] as List).cast<Map>();
+      final front = fallback.firstWhere((row) =>
+          (row['targetPath'] as String).endsWith('_front.png'));
+      final back = fallback.firstWhere((row) =>
+          (row['targetPath'] as String).endsWith('_back.png'));
+      raw['species'] = [for (final id in ['alpha', 'beta']) {
+        ...template, 'id': id, 'slug': id, 'names': {'en': id},
+        'forms': {'baseFormId': id, 'formId': '0',
+          'isBaseForm': true, 'otherForms': <String>[]},
+        'refs': {'learnset': id, 'evolution': id, 'media': id},
+      }];
+      raw['sourceLearnsets'] = [for (final id in ['alpha', 'beta'])
+        PokemonLearnsetFile(speciesId: id, startingMoves: const ['tackle'])
+            .toJson()];
+      raw['media'] = [for (final id in ['alpha', 'beta'])
+        {...media, 'speciesId': id, 'variants': {'0': {
+          'frontStatic': front['targetPath'],
+          'backStatic': back['targetPath'],
+        }}}];
+      raw['fallbackMedia'] = [front, back];
+      raw['evolutions'] = [
+        PokemonEvolutionFile(speciesId: 'alpha', evolutions: [rule,
+          const PokemonEvolutionEntry(targetSpeciesId: 'beta',
+              method: 'level_up', minLevel: 20)]).toJson(),
+        const PokemonEvolutionFile(speciesId: 'beta').toJson(),
+      ];
+      return NativePsdkTrainerBundle.fromJson(raw);
+    }
+    Future<SourceCatalogProjection> publish(NativePsdkTrainerBundle bundle)
+        async {
+      final f = await _fixture(encounters: '');
+      return const SourceCatalogProjector().read(
+          source: f.fixture.source, pbs: f.pbs, files: f.fixture.files,
+          nativeMapIds: {98: 'native-fixture'}, nativeTrainerBundle: bundle,
+          requestedNativeSpeciesIds: ['alpha']);
+    }
+    PokemonEvolutionFile evolution(SourceCatalogProjection projection) =>
+        PokemonEvolutionFile.fromJson(Map<String, dynamic>.from(
+            projection.documents.singleWhere((row) => row.relativePath ==
+                'data/pokemon/evolutions/alpha.json').document));
+    List<String> graphErrors(SourceCatalogProjection projection) =>
+        const PokemonCatalogCoherenceValidator().validate(
+            PokemonCatalogCoherenceSnapshot(
+                ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+                species: [for (final row in projection.documents.where(
+                    (row) => row.kind == SourceCatalogDocumentKind.species))
+                  PokemonCatalogDocument(path: row.relativePath,
+                      value: PokemonSpeciesFile.fromJson(
+                          Map<String, dynamic>.from(row.document)))],
+                evolutions: [for (final row in projection.documents.where(
+                    (row) => row.kind == SourceCatalogDocumentKind.evolution))
+                  PokemonCatalogDocument(path: row.relativePath,
+                      value: PokemonEvolutionFile.fromJson(
+                          Map<String, dynamic>.from(row.document)))],
+            )).diagnostics.where((row) => const {
+              'evolution.self_target', 'evolution.cycle_detected'
+            }.contains(row.code)).map((row) => row.code).toList();
+
+    test('preserves exact gemme evidence outside the progression graph',
+        () async {
+      const rule = PokemonEvolutionEntry(targetSpeciesId: 'alpha',
+          method: 'conditional', conditionText: {
+            'psdk': '[{"type":"gemme","value":"fixture_orb"}]'});
+      final bundle = catalog(rule);
+      final before = canonicalHashOf(bundle.toJson(),
+          limits: nativePsdkCatalogShardJsonLimits);
+      final projected = await publish(bundle);
+      expect(evolution(projected).evolutions.single.targetSpeciesId, 'beta');
+      expect(graphErrors(projected), isEmpty);
+      final adaptation =
+          (projected.evidence['nativeEvolutionAdaptations'] as List).single
+              as Map;
+      expect(adaptation['speciesId'], 'alpha');
+      expect(adaptation['sourceEvolution'], rule.toJson());
+      expect(adaptation['runtimeBattleTransformationQualified'], isFalse);
+      expect(adaptation['progressionEvolutionPublished'], isFalse);
+      expect(bundle.evolutionsBySpeciesId['alpha']!.evolutions.first.toJson(),
+          rule.toJson());
+      expect(canonicalHashOf(bundle.toJson(),
+          limits: nativePsdkCatalogShardJsonLimits), before);
+    });
+
+    test('keeps gemme with typed progression or extra text constraints',
+        () async {
+      for (final typedProgression in [true, false]) {
+        final projected = await publish(catalog(PokemonEvolutionEntry(
+            targetSpeciesId: 'alpha', method: 'conditional',
+            minLevel: typedProgression ? 20 : null,
+            conditionText: {
+              'psdk': '[{"type":"gemme","value":"fixture_orb"}]',
+              if (!typedProgression) 'other': 'Authored restriction',
+            })));
+        expect(evolution(projected).evolutions.first.targetSpeciesId, 'alpha');
+        expect(graphErrors(projected), containsAll([
+          'evolution.self_target', 'evolution.cycle_detected']));
+        expect(projected.evidence['nativeEvolutionAdaptations'] ?? const [],
+            isEmpty);
+      }
+    });
+
+    for (final (label, method, text) in [
+      ('non gemme', 'conditional',
+          '[{"type":"futureCondition","value":"fixture_orb"}]'),
+      ('malformed', 'conditional', 'invalid json'),
+      ('mixed', 'conditional',
+          '[{"type":"gemme","value":"fixture_orb"},{"type":"minLevel","value":20}]'),
+      ('unknown key', 'conditional',
+          '[{"type":"gemme","value":"fixture_orb","extra":true}]'),
+      ('invalid symbol', 'conditional',
+          '[{"type":"gemme","value":"../fixture_orb"}]'),
+      ('wrong method', 'level_up',
+          '[{"type":"gemme","value":"fixture_orb"}]'),
+    ]) {
+      test('keeps $label self-targets subject to the coherence gate', () async {
+        final projected = await publish(catalog(PokemonEvolutionEntry(
+            targetSpeciesId: 'alpha', method: method,
+            minLevel: method == 'level_up' ? 20 : null,
+            conditionText: {'psdk': text})));
+        expect(evolution(projected).evolutions.first.targetSpeciesId, 'alpha');
+        expect(graphErrors(projected), containsAll([
+          'evolution.self_target', 'evolution.cycle_detected']));
+        expect(projected.evidence['nativeEvolutionAdaptations'] ?? const [],
+            isEmpty);
+      });
+    }
+  });
+
   test('attested PBS entry references fit without duplicating source fields',
       () async {
     final f = await _fixture(

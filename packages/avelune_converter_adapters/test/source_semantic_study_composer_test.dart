@@ -39,9 +39,16 @@ void main() {
     final fixture = await LiteralTileFixture.create(scriptsBytes: bytes);
     final entry = fixture.source.snapshot.entries
         .singleWhere((entry) => entry.relativePath == 'Data/Scripts.rxdata');
+    final mutableBytes = Uint8List.fromList(bytes);
+    fixture.files.overrides[entry.relativePath] = mutableBytes;
     final recording = SourceSemanticWitnessFiles(fixture.source.snapshot,
         fixture.files, const NativeWriteLimits(), null);
-    expect(await recording.read(entry.fileId), bytes);
+    final retained = await recording.read(entry.fileId);
+    expect(retained, isA<Uint8List>());
+    expect(retained, bytes);
+    expect(() => retained[0] = 23, throwsUnsupportedError);
+    mutableBytes[0] ^= 1;
+    expect(retained, bytes);
     final row = recording.evidence.single;
     expect(row['encoding'], 'canonicalJsonBase64Chunks');
     final chunks = row['chunks'] as List;
@@ -59,8 +66,27 @@ void main() {
     }
     expect(restored, bytes);
     expect(literalFixtureHash(restored), entry.sha256);
-    expect(await recording.read(entry.fileId), bytes);
+    expect(await recording.read(entry.fileId), same(retained));
     expect(fixture.files.reads.where((id) => id == entry.fileId), hasLength(1));
+  });
+
+  test('semantic witnesses reject out of range bytes before compact storage',
+      () async {
+    for (final invalid in [-1, 256]) {
+      final fixture = await LiteralTileFixture.create(
+          scriptsBytes: [invalid & 255, 7, 11]);
+      final entry = fixture.source.snapshot.entries
+          .singleWhere((entry) => entry.relativePath == 'Data/Scripts.rxdata');
+      fixture.files.overrides[entry.relativePath] = [invalid, 7, 11];
+      final recording = SourceSemanticWitnessFiles(fixture.source.snapshot,
+          fixture.files, const NativeWriteLimits(), null);
+      await expectLater(
+          recording.read(entry.fileId),
+          throwsA(isA<NativeWriteException>().having(
+              (error) => error.code, 'code', 'semantics.witness.changed')));
+      expect(recording.evidence, isEmpty);
+      expect(recording.artifacts, isEmpty);
+    }
   });
 
   test('chunk artifact budget is checked before reading a large source',

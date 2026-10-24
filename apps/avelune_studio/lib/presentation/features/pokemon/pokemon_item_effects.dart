@@ -59,6 +59,25 @@ class PokemonItemEffects extends StatelessWidget {
       );
 
   ProjectItemEffectDefinition _effect(String kind) => switch (kind) {
+    'vitamin' => const ProjectItemEffectDefinition.vitamin(
+      stat: ProjectItemVitaminStat.hp,
+      amount: 10,
+      maximumPerStat: 100,
+      friendshipGainLow: 5,
+      friendshipGainMedium: 3,
+      friendshipGainHigh: 2,
+    ),
+    'battle_boost' => const ProjectItemEffectDefinition.battleBoost(
+      stat: ProjectItemBattleStat.attack,
+      stages: 1,
+    ),
+    'focus_energy' => const ProjectItemEffectDefinition.battlePreparation(
+      effect: ProjectItemBattlePreparationKind.focusEnergy,
+    ),
+    'mist' => const ProjectItemEffectDefinition.battlePreparation(
+      effect: ProjectItemBattlePreparationKind.mist,
+      turns: 5,
+    ),
     'full_restore' => const ProjectItemEffectDefinition.fullRestore(),
     'repel' => const ProjectItemEffectDefinition.repel(steps: 100),
     'escape_rope' => const ProjectItemEffectDefinition.escapeRope(),
@@ -82,6 +101,10 @@ class PokemonItemEffects extends StatelessWidget {
   };
 
   String _kind(ProjectItemEffectDefinition effect) => switch (effect) {
+    ProjectItemVitaminEffectDefinition() => 'vitamin',
+    ProjectItemBattleBoostEffectDefinition() => 'battle_boost',
+    ProjectItemBattlePreparationEffectDefinition(:final effect) =>
+      effect == ProjectItemBattlePreparationKind.mist ? 'mist' : 'focus_energy',
     ProjectItemFullRestoreEffectDefinition() => 'full_restore',
     ProjectItemHealHpEffectDefinition() => 'heal',
     ProjectItemCureStatusEffectDefinition() => 'cure',
@@ -182,6 +205,13 @@ class PokemonItemEffects extends StatelessWidget {
                   'cure': 'Guérir les statuts',
                   'revive': 'Réanimer',
                   if (context == ProjectItemUseContext.overworld)
+                    'vitamin': 'Vitamine (EV et bonheur)',
+                  if (context == ProjectItemUseContext.battle) ...{
+                    'battle_boost': 'Augmenter une statistique',
+                    'focus_energy': 'Muscle + (critiques)',
+                    'mist': 'Défense Spéciale (Brume)',
+                  },
+                  if (context == ProjectItemUseContext.overworld)
                     'pp': 'Restaurer les PP',
                   if (context == ProjectItemUseContext.overworld)
                     'repel': 'Repousse',
@@ -210,6 +240,78 @@ class PokemonItemEffects extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
+              if (use.effect
+                  case final ProjectItemVitaminEffectDefinition vitamin) ...[
+                StudioSelect(
+                  label: 'Statistique entraînée',
+                  value: vitamin.stat.name,
+                  options: {
+                    for (final stat in ProjectItemVitaminStat.values)
+                      stat.name: _statLabel(stat.name),
+                  },
+                  onChanged: (value) => _set(
+                    context,
+                    use.copyWith(
+                      effect: vitamin.copyWith(
+                        stat: ProjectItemVitaminStat.values.byName(value),
+                      ),
+                    ),
+                  ),
+                ),
+                for (final field in [
+                  'amount',
+                  'maximumPerStat',
+                  'maximumTotal',
+                  'friendshipGainLow',
+                  'friendshipGainMedium',
+                  'friendshipGainHigh',
+                ])
+                  _integerEffectField(context, use, field, switch (field) {
+                    'amount' => 'EV ajoutés',
+                    'maximumPerStat' => 'Plafond d’EV par statistique',
+                    'maximumTotal' => 'Plafond total d’EV',
+                    'friendshipGainLow' => 'Bonheur ajouté (0–99)',
+                    'friendshipGainMedium' => 'Bonheur ajouté (100–199)',
+                    _ => 'Bonheur ajouté (200–255)',
+                  }, (vitamin.toJson()[field] as int)),
+              ],
+              if (use.effect
+                  case final ProjectItemBattleBoostEffectDefinition boost) ...[
+                StudioSelect(
+                  label: 'Statistique augmentée',
+                  value: boost.stat.name,
+                  options: {
+                    for (final stat in ProjectItemBattleStat.values)
+                      stat.name: _statLabel(stat.name),
+                  },
+                  onChanged: (value) => _set(
+                    context,
+                    use.copyWith(
+                      effect: boost.copyWith(
+                        stat: ProjectItemBattleStat.values.byName(value),
+                      ),
+                    ),
+                  ),
+                ),
+                _integerEffectField(
+                  context,
+                  use,
+                  'stages',
+                  'Crans ajoutés (1–6)',
+                  boost.stages,
+                ),
+              ],
+              if (use.effect case ProjectItemBattlePreparationEffectDefinition(
+                effect: ProjectItemBattlePreparationKind.mist,
+                :final turns,
+              ))
+                _integerEffectField(
+                  context,
+                  use,
+                  'turns',
+                  'Durée en tours',
+                  turns!,
+                ),
               if (use.effect
                   case ProjectItemHealHpEffectDefinition(
                         :final mode,
@@ -324,4 +426,49 @@ class PokemonItemEffects extends StatelessWidget {
       ),
     );
   }
+
+  Widget _integerEffectField(
+    ProjectItemUseContext context,
+    ProjectItemUseDefinition use,
+    String field,
+    String label,
+    int value,
+  ) => PokemonCommerceIntegerField(
+    key: ValueKey(
+      'item-effect-${commerce.item!.id}-${context.name}-$field-${commerce.formVersion}',
+    ),
+    commerce: commerce,
+    fieldId: 'item-effect-${commerce.item!.id}-${context.name}-$field',
+    label: label,
+    value: value,
+    minimum: field.startsWith('friendship') ? 0 : 1,
+    maximum: field == 'stages'
+        ? 6
+        : field == 'maximumTotal'
+        ? 1530
+        : field == 'maximumPerStat'
+        ? 252
+        : 255,
+    optional: false,
+    onChanged: (next) => _set(
+      context,
+      use.copyWith(
+        effect: ProjectItemEffectDefinition.fromJson({
+          ...use.effect.toJson(),
+          field: next,
+        }).normalized(),
+      ),
+    ),
+  );
+
+  String _statLabel(String stat) => switch (stat) {
+    'hp' => 'PV',
+    'attack' => 'Attaque',
+    'defense' => 'Défense',
+    'specialAttack' => 'Attaque Spéciale',
+    'specialDefense' => 'Défense Spéciale',
+    'speed' => 'Vitesse',
+    'accuracy' => 'Précision',
+    _ => stat,
+  };
 }

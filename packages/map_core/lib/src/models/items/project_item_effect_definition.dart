@@ -9,6 +9,35 @@ enum ProjectItemAmountMode { flat, full }
 
 enum ProjectItemStatusCureMode { listed, all }
 
+enum ProjectItemVitaminStat {
+  hp,
+  attack,
+  defense,
+  specialAttack,
+  specialDefense,
+  speed,
+}
+
+enum ProjectItemBattleStat {
+  attack,
+  defense,
+  specialAttack,
+  specialDefense,
+  speed,
+  accuracy,
+}
+
+enum ProjectItemBattlePreparationKind { focusEnergy, mist }
+
+int _itemEffectInteger(Object? value) {
+  if (value is! int)
+    throw FormatException('Item effect values must be integers', value);
+  return value;
+}
+
+int? _itemEffectNullableInteger(Object? value) =>
+    value == null ? null : _itemEffectInteger(value);
+
 enum ProjectFishingRodKind {
   @JsonValue('old_rod')
   oldRod,
@@ -37,6 +66,29 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory ProjectItemEffectDefinition.fullRestore() =
       ProjectItemFullRestoreEffectDefinition;
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ProjectItemEffectDefinition.vitamin({
+    required ProjectItemVitaminStat stat,
+    @JsonKey(fromJson: _itemEffectInteger) required int amount,
+    @JsonKey(fromJson: _itemEffectInteger) required int maximumPerStat,
+    @JsonKey(fromJson: _itemEffectInteger) @Default(510) int maximumTotal,
+    @JsonKey(fromJson: _itemEffectInteger) @Default(0) int friendshipGainLow,
+    @JsonKey(fromJson: _itemEffectInteger) @Default(0) int friendshipGainMedium,
+    @JsonKey(fromJson: _itemEffectInteger) @Default(0) int friendshipGainHigh,
+  }) = ProjectItemVitaminEffectDefinition;
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ProjectItemEffectDefinition.battleBoost({
+    required ProjectItemBattleStat stat,
+    @JsonKey(fromJson: _itemEffectInteger) required int stages,
+  }) = ProjectItemBattleBoostEffectDefinition;
+
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
+  const factory ProjectItemEffectDefinition.battlePreparation({
+    required ProjectItemBattlePreparationKind effect,
+    @JsonKey(fromJson: _itemEffectNullableInteger) int? turns,
+  }) = ProjectItemBattlePreparationEffectDefinition;
 
   @JsonSerializable(explicitToJson: true)
   const factory ProjectItemEffectDefinition.cureStatus({
@@ -84,6 +136,42 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
   ProjectItemEffectDefinition normalized() {
     return map(
       fullRestore: (effect) => effect,
+      vitamin: (effect) {
+        if (effect.amount <= 0 ||
+            effect.amount > 255 ||
+            effect.maximumPerStat <= 0 ||
+            effect.maximumPerStat > 252 ||
+            effect.maximumTotal <= 0 ||
+            effect.maximumTotal > 1530 ||
+            [
+              effect.friendshipGainLow,
+              effect.friendshipGainMedium,
+              effect.friendshipGainHigh,
+            ].any((value) => value < 0 || value > 255)) {
+          throw StateError(
+            'Vitamin amounts, EV limits and friendship gains must be bounded',
+          );
+        }
+        return effect;
+      },
+      battleBoost: (effect) {
+        if (effect.stages <= 0 || effect.stages > 6) {
+          throw StateError('Battle boost stages must be between 1 and 6');
+        }
+        return effect;
+      },
+      battlePreparation: (effect) {
+        if (effect.effect == ProjectItemBattlePreparationKind.focusEnergy
+            ? effect.turns != null
+            : effect.turns == null ||
+                  effect.turns! <= 0 ||
+                  effect.turns! > 255) {
+          throw StateError(
+            'Focus Energy has no turn limit; Mist requires 1 to 255 turns',
+          );
+        }
+        return effect;
+      },
       healHp: (effect) => _normalizeAmountEffect(
         effect,
         mode: effect.mode,

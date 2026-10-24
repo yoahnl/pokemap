@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../support/spatial_smart_tile_fixture.dart';
+import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import '../support/scene_catalog_pokemon_gift_fixture.dart';
 
 void main() {
@@ -114,6 +115,73 @@ void main() {
   tearDown(() async {
     await runtime.dispose();
     await root.delete(recursive: true);
+  });
+
+  for (final stopBeforeCompletion in [false, true]) {
+    test('spatial scene audio ${stopBeforeCompletion ? 'shutdown releases pending sound' : 'waits before applying reward'}', () async {
+      await runtime.dispose();
+      final audio = _SceneAudioDriver();
+      final sound = SceneAsset(id:'arrival-sound',name:'Arrival',graph:SceneGraph(startNodeId:'start',nodes:[
+        SceneNode(id:'start',kind:SceneNodeKind.start),
+        SceneNode(id:'sound',kind:SceneNodeKind.action,payload:SceneActionPayload.interactive(ScenePlaySoundEffectInteractiveCommand(mediaAssetId:'cue',volume:.8,waitForCompletion:true))),
+        SceneNode(id:'reward',kind:SceneNodeKind.action,payload:SceneActionPayload.consequence(SceneConsequence.giveMoney(amount:25))),
+        SceneNode(id:'end',kind:SceneNodeKind.end),
+      ],edges:[
+        SceneEdge(id:'start-sound',fromNodeId:'start',fromPortId:'completed',toNodeId:'sound',kind:SceneEdgeKind.defaultFlow),
+        SceneEdge(id:'sound-reward',fromNodeId:'sound',fromPortId:'completed',toNodeId:'reward',kind:SceneEdgeKind.actionCompleted),
+        SceneEdge(id:'sound-blocked',fromNodeId:'sound',fromPortId:'blocked',toNodeId:'end',kind:SceneEdgeKind.actionCompleted),
+        SceneEdge(id:'reward-end',fromNodeId:'reward',fromPortId:'completed',toNodeId:'end',kind:SceneEdgeKind.actionCompleted),
+      ]));
+      expect(buildSceneRuntimePlan(sound).canBuild,true,reason:buildSceneRuntimePlan(sound).diagnostics.map((d)=>d.message).join('; '));
+      bundle = bundle.copyWith(manifest:bundle.manifest.copyWith(
+        cinematicMediaAssets:[CinematicMediaAsset(id:'cue',label:'Cue',kind:CinematicMediaAssetKind.sound,relativePath:'assets/cue.wav')],
+        scenes:[sound],eventRegistry:NarrativeEventRegistry(schemaVersion:1,mode:EventSystemMode.v2Only,records:[spatialEvent(NarrativeEventSourceRef.mapEnter('field'),sound.id)],legacyClaims:const[]),
+      ));
+      final diagnostics = SceneProjectDiagnosticsContext(bundle.manifest,mapsById:{bundle.map.id:bundle.map}).diagnose(sound);
+      expect(diagnostics.errorCount,0,reason:diagnostics.diagnostics.map((d)=>d.message).join('; '));
+      runtime = SpatialExplorationGameSessionRuntime(descriptor:descriptor(additionalCapabilities:{SpatialGameplayCapabilities.audioCapabilityId}),
+        sceneAudioDriverFactory:()=>audio,projectFilePath:()async=>'${root.path}/project.json',
+        preloadedInitialMap:({required projectFilePath,required descriptor,required initialSave})async=>RuntimeInitialMapPreloadResult(bundle:bundle),
+        mountSession:(_)async{},unmountSession:(_)async{});
+      await runtime.load((_){});
+      await Future.any([audio.started.future,runtime.gameplayReady.then((_) => throw StateError('Scene finished without audio: ${runtime.session!.interactionError.value}'))]).timeout(const Duration(seconds:3));
+      expect(runtime.gameStateSnapshot.trainerProfile.money,0);
+      if(stopBeforeCompletion) {
+        await runtime.stop(GameSessionExitReason.hub);
+        await runtime.gameplayReady;
+        expect(runtime.gameStateSnapshot.trainerProfile.money,0);
+      } else {
+        audio.complete.add(null);
+        await runtime.gameplayReady;
+        expect(runtime.gameStateSnapshot.trainerProfile.money,25);
+      }
+      await runtime.dispose();
+      await audio.complete.close();
+    });
+  }
+
+  test('autonomous spatial poses persist mid-step without a Scene transaction', () async {
+    final npc = bundle.map.entities.single;
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc.copyWith(
+      npc: npc.npc!.copyWith(movement: const MapEntityNpcMovementConfig(
+        mode: MapEntityNpcMovementMode.fixedRoute,
+        routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)],
+        pauseDurationMs: 1, stepDurationMs: 1000,
+      )),
+    )]));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    session.frames(.001);
+    final visible = session.frames(.05)['field:npc:npc']!;
+    expect(visible.x, greaterThan(4.5));
+    final checkpoint = (await runtime.captureCheckpoint())!;
+    final saved = gameStateFromStrictSaveJson(Map<String, dynamic>.from(checkpoint.state));
+    expect(saved.spatialWorldState.actorState('field', 'npc')!.x, visible.x);
+    await runtime.pause();
+    expect(session.frames(1)['field:npc:npc']!.x, visible.x);
+    await runtime.resume();
+    expect(session.frames(.05)['field:npc:npc']!.x, greaterThan(visible.x));
   });
 
   for (final continueGame in [false, true]) {
@@ -2297,7 +2365,7 @@ Future<void> waitForValue<T>(
 }
 
 GameSessionDescriptor descriptor(
-        {bool continueGame = false, GameState? initialState}) =>
+        {bool continueGame = false, GameState? initialState, Set<String> additionalCapabilities = const {}}) =>
     GameSessionDescriptor(
         sessionId: 'session',
         sessionToken: 'token',
@@ -2325,7 +2393,7 @@ GameSessionDescriptor descriptor(
                         name: 'Yoahn', avatarCharacterId: 'hero')),
         installedVersionHandle: 'installed',
         runtimeApiVersion: '1.4.0',
-        grantedCapabilities: const {'map3d@1', 'map3d.story@1'},
+        grantedCapabilities: {'map3d@1', 'map3d.story@1', ...additionalCapabilities},
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions());
 
@@ -2787,4 +2855,20 @@ SceneAsset spatialScene(String id, List<SceneConsequence> consequences,
                   ? SceneEdgeKind.actionCompleted
                   : SceneEdgeKind.defaultFlow)
       ]));
+}
+
+final class _SceneAudioDriver implements FlameCinematicAudioDriver, FlameCinematicAudioLoopDriver {
+  final complete = StreamController<void>.broadcast(sync:true);
+  final started = Completer<void>();
+  final handle = Object();
+  @override
+  Future<Object> play(String path,{required double volume,required bool loop}) async => handle;
+  @override
+  Future<void> stop(Object handle)async{}
+  @override
+  Future<void> setVolume(Object handle,double volume)async{}
+  @override
+  Stream<void> onComplete(Object handle) { if(!started.isCompleted) started.complete(); return complete.stream; }
+  @override
+  Future<void> seekAndResume(Object handle,Duration position)async{}
 }

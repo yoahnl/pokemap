@@ -55,7 +55,7 @@ final class SourceMapMusicFixture {
     final original = await LiteralTileFixture.create(interpretationProfile: fixtureSourceInterpretationProfile,
 
       namespace: namespace,
-      scriptsBytes: oracle.scriptsBytes,
+      scriptsBytes: syntheticInterpretationArchive,
       maps: maps ??
           [
             LiteralFixtureMap(

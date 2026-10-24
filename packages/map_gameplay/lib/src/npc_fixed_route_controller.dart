@@ -20,6 +20,7 @@ final class NpcFixedRouteController {
   })  : movement = movement.copyWith(
           routeSteps: List.unmodifiable(movement.routeSteps),
           waypoints: List.unmodifiable(movement.waypoints),
+          pauseDurationsMs: List.unmodifiable(movement.pauseDurationsMs),
         ),
         _random = random,
         _readInstanceBoolean = readInstanceBoolean {
@@ -33,7 +34,7 @@ final class NpcFixedRouteController {
       throw ArgumentError(
           'An instance-bound NPC route requires its state reader.');
     }
-    _pauseRemaining = Duration(milliseconds: movement.pauseDurationMs);
+    _pauseRemaining = _nextPause();
   }
 
   final SceneActorTarget target;
@@ -103,7 +104,7 @@ final class NpcFixedRouteController {
         _stepIndex = 0;
       }
     }
-    _pauseRemaining = Duration(milliseconds: movement.pauseDurationMs);
+    _pauseRemaining = _nextPause();
     return true;
   }
 
@@ -112,13 +113,17 @@ final class NpcFixedRouteController {
       return;
     }
     _pending = null;
-    _pauseRemaining = Duration(milliseconds: movement.pauseDurationMs);
+    _pauseRemaining = _nextPause();
   }
 
   void dispose() {
     _disposed = true;
     _pending = null;
   }
+
+  Duration _nextPause() => Duration(milliseconds: movement.pauseDurationsMs.isEmpty
+      ? movement.pauseDurationMs
+      : movement.pauseDurationsMs[_random.nextInt(movement.pauseDurationsMs.length)]);
 
   bool get _suspendedByInstanceBoolean {
     final binding = movement.suspendWhenInstanceBoolean;
@@ -198,6 +203,15 @@ NpcFixedRouteStepPlan planNpcFixedRouteStep({
       attempt.step is! MapEntityNpcRandomMoveStep) {
     return NpcFixedRouteStepPlan._(
         world: faced, motion: null, isBlocked: false);
+  }
+  final area = owner.movement.movementArea;
+  final delta = attempt.direction.asDirection;
+  if (area != null &&
+      (actor.pos.x + delta.dx < area.pos.x ||
+          actor.pos.y + delta.dy < area.pos.y ||
+          actor.pos.x + delta.dx + actor.size.width > area.pos.x + area.size.width ||
+          actor.pos.y + delta.dy + actor.size.height > area.pos.y + area.size.height)) {
+    return NpcFixedRouteStepPlan._(world: faced, motion: null, isBlocked: true);
   }
   final motion = planActorRouteMove(
     world: faced,

@@ -77,6 +77,14 @@ final class SpatialSceneCallbacks
     final source = intent.conditionSource;
     if (source == null) throw StateError('The Scene condition is missing.');
     final state = readGameState();
+    if (source.sourceKind == SceneConditionSourceKind.playerFacing) {
+      return evaluateScenePlayerFacingDirection(
+            source: source,
+            actualFacing: state.playerFacing.asDirection,
+          )
+          ? 'true'
+          : 'false';
+    }
     if (source.sourceKind == SceneConditionSourceKind.partyState) {
       return evaluateScenePartyCondition(source: source, gameState: state,
           context: partyConditionContext) ? 'true' : 'false';

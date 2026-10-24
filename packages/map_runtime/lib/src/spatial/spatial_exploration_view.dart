@@ -198,6 +198,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                   texture: entry.value.texture,
                   width: entry.value.width,
                   height: entry.value.height,
+                  billboardVerticalOffset: entry.value.billboardVerticalOffset,
                   frame: entry.value.frame,
                 ),
             },

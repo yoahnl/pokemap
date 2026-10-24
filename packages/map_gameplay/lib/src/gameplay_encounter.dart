@@ -10,6 +10,93 @@ import 'script_condition_evaluator.dart';
 /// Backward-compatible gameplay export for the authored model default.
 const double defaultEncounterChancePerStep = core.defaultEncounterChancePerStep;
 
+class EncounterEvaluationContext {
+  EncounterEvaluationContext({required this.localMinuteOfDay}) {
+    RangeError.checkValueInInterval(
+        localMinuteOfDay, 0, 1439, 'localMinuteOfDay');
+  }
+
+  factory EncounterEvaluationContext.fromLocalTime(DateTime time) =>
+      EncounterEvaluationContext(
+          localMinuteOfDay: time.hour * 60 + time.minute);
+
+  final int localMinuteOfDay;
+}
+
+class EncounterVariantResolution {
+  const EncounterVariantResolution({
+    this.entries = const [],
+    this.variantId,
+    this.refusal,
+  });
+
+  final List<ProjectEncounterEntry> entries;
+  final String? variantId;
+  final GameplayEncounterCheckStatus? refusal;
+}
+
+EncounterVariantResolution resolveEncounterVariant({
+  required ProjectEncounterTable table,
+  GameState? gameState,
+  ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
+}) {
+  final eligible = <ProjectEncounterVariant>[];
+  const evaluator = ScriptConditionEvaluator();
+  bool needsFactContext(ScriptCondition condition) =>
+      condition.type == ScriptConditionType.factEquals ||
+      condition.children.any(needsFactContext);
+  for (final variant in table.variants) {
+    if (variant.conditions.isNotEmpty &&
+        (gameState == null ||
+            (variant.conditions.any(needsFactContext) &&
+                conditionContext?.narrativeFactResolver == null))) {
+      return const EncounterVariantResolution(
+        refusal: GameplayEncounterCheckStatus.conditionContextUnavailable,
+      );
+    }
+    if (variant.conditions.any((condition) => !evaluator.evaluate(
+          condition,
+          gameState!,
+          context: conditionContext,
+        ))) {
+      continue;
+    }
+    if (variant.timeWindows.isNotEmpty) {
+      final minute = encounterContext?.localMinuteOfDay;
+      if (minute == null) {
+        return const EncounterVariantResolution(
+          refusal: GameplayEncounterCheckStatus.encounterTimeUnavailable,
+        );
+      }
+      if (!variant.timeWindows.any((window) => window.contains(minute))) {
+        continue;
+      }
+    }
+    eligible.add(variant);
+  }
+  if (eligible.isEmpty) {
+    return EncounterVariantResolution(
+      entries: table.entries,
+      refusal: table.variants.isNotEmpty && table.entries.isEmpty
+          ? GameplayEncounterCheckStatus.noEligibleVariant
+          : null,
+    );
+  }
+  final priority = eligible
+      .map((variant) => variant.priority)
+      .reduce((left, right) => left > right ? left : right);
+  final highest =
+      eligible.where((variant) => variant.priority == priority).toList();
+  if (highest.length != 1) {
+    return const EncounterVariantResolution(
+      refusal: GameplayEncounterCheckStatus.ambiguousVariant,
+    );
+  }
+  return EncounterVariantResolution(
+      entries: highest.single.entries, variantId: highest.single.id);
+}
+
 class GameplayEncounterPolicy {
   const GameplayEncounterPolicy({
     this.chancePerStep,
@@ -33,6 +120,9 @@ enum GameplayEncounterCheckStatus {
   conditionsNotMet,
   invalidEncounterRate,
   emptyEncounterTable,
+  encounterTimeUnavailable,
+  noEligibleVariant,
+  ambiguousVariant,
   rollFailed,
   repelled,
   triggered,
@@ -53,6 +143,7 @@ class GameplayEncounter {
     required this.playerPos,
     this.generationSeed = 0,
     this.pokemonOverrides,
+    this.variantId,
   });
 
   final String mapId;
@@ -68,6 +159,7 @@ class GameplayEncounter {
   final GridPos playerPos;
   final int generationSeed;
   final ProjectEncounterPokemonOverrides? pokemonOverrides;
+  final String? variantId;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -84,6 +176,7 @@ class GameplayEncounter {
       'playerPos': playerPos.toJson(),
       'generationSeed': generationSeed,
       'pokemonOverrides': pokemonOverrides?.toJson(),
+      if (variantId != null) 'variantId': variantId,
     };
   }
 
@@ -116,6 +209,7 @@ class GameplayEncounter {
           ? GridPos.fromJson(json['playerPos'] as Map<String, dynamic>)
           : const GridPos(x: 0, y: 0),
       generationSeed: (json['generationSeed'] as num?)?.toInt() ?? 0,
+      variantId: json['variantId'] as String?,
       pokemonOverrides: json['pokemonOverrides'] is Map
           ? ProjectEncounterPokemonOverrides.fromJson(
               (json['pokemonOverrides'] as Map).cast<String, dynamic>(),
@@ -157,6 +251,7 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   GameState? gameState,
   bool? repelActiveForStep,
   ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
   Random? random,
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
@@ -188,6 +283,7 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
     gameState: gameState,
     repelActiveForStep: repelActiveForStep,
     conditionContext: conditionContext,
+    encounterContext: encounterContext,
     random: random,
     policy: policy,
   );
@@ -199,6 +295,7 @@ GameplayEncounterCheckResult? validateEncounterSource({
   required EncounterKind encounterKind,
   GameState? gameState,
   ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
   if (source.encounter.encounterKind != encounterKind) {
@@ -270,8 +367,23 @@ GameplayEncounterCheckResult? validateEncounterSource({
     }
   }
 
+  final selection = resolveEncounterVariant(
+    table: table,
+    gameState: gameState,
+    conditionContext: conditionContext,
+    encounterContext: encounterContext,
+  );
+  if (selection.refusal != null) {
+    return GameplayEncounterCheckResult(
+      status: selection.refusal!,
+      sourceId: source.id,
+      sourceKind: source.kind,
+      tableId: table.id,
+      encounterKind: encounterKind,
+    );
+  }
   final entries = canonicalEncounterEntries(
-    _validEncounterEntries(table.entries),
+    _validEncounterEntries(selection.entries),
   );
   if (entries.isEmpty) {
     return GameplayEncounterCheckResult(
@@ -304,6 +416,7 @@ GameplayEncounterCheckResult checkEncounterFromSource({
   GameState? gameState,
   bool? repelActiveForStep,
   ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
   Random? random,
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
@@ -313,6 +426,7 @@ GameplayEncounterCheckResult checkEncounterFromSource({
     encounterKind: encounterKind,
     gameState: gameState,
     conditionContext: conditionContext,
+    encounterContext: encounterContext,
     policy: policy,
   );
   if (refusal != null) return refusal;
@@ -320,7 +434,14 @@ GameplayEncounterCheckResult checkEncounterFromSource({
     project.encounterTables,
     source.encounter.encounterTableId!.trim(),
   )!;
-  final entries = canonicalEncounterEntries(_validEncounterEntries(table.entries));
+  final selection = resolveEncounterVariant(
+    table: table,
+    gameState: gameState,
+    conditionContext: conditionContext,
+    encounterContext: encounterContext,
+  );
+  final entries =
+      canonicalEncounterEntries(_validEncounterEntries(selection.entries));
   final chancePerStep = policy.chancePerStep ?? table.chancePerStep;
   final position = world.player.pos;
   final rng = random ?? Random();
@@ -377,6 +498,7 @@ GameplayEncounterCheckResult checkEncounterFromSource({
       encounterRoll: roll,
     ),
     pokemonOverrides: selected.pokemonOverrides,
+    variantId: selection.variantId,
   );
   return GameplayEncounterCheckResult(
     status: GameplayEncounterCheckStatus.triggered,

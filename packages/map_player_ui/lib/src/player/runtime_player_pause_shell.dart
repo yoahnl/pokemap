@@ -889,7 +889,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                   if (_returnToTitleInOptions) PlayerPauseAction.returnToTitle
                 },
               )
-            : widget.presentation,
+            : _presentation,
         showGameTitle: !_isIllustrated &&
             (resolved == null ||
                 resolved.variant.visibleSecondaryElements.contains(
@@ -1108,6 +1108,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         _presentation.label(PlayerPauseAction.map, l10n),
       RuntimePlayerPauseSection.quests =>
         _presentation.label(PlayerPauseAction.quests, l10n),
+      RuntimePlayerPauseSection.contacts => widget.detailTitle ?? 'Contacts',
       RuntimePlayerPauseSection.profile =>
         _presentation.label(PlayerPauseAction.profile, l10n),
       RuntimePlayerPauseSection.options =>
@@ -1118,7 +1119,6 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   PlayerPausePresentation get _presentation {
     final presentation =
         widget.presentation ?? PlayerPausePresentation.fromLabels(widget.labels);
-    if (!_isActionsOnlyRoot) return presentation;
     return PlayerPausePresentation(
       style: presentation.style,
       background: presentation.background,
@@ -1130,7 +1130,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       actionIcons: presentation.actionIcons,
       hiddenActions: {
         ...presentation.hiddenActions,
-        PlayerPauseAction.resume,
+        if (_isActionsOnlyRoot) PlayerPauseAction.resume,
+        if (!widget.actions.containsKey(PlayerPauseAction.contacts)) PlayerPauseAction.contacts,
       },
       composition: presentation.composition,
     );
@@ -1149,6 +1150,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
         RuntimePlayerPauseSection.quests =>
           ProjectPresentationSurfaceRole.pauseMenu,
+        RuntimePlayerPauseSection.contacts => ProjectPresentationSurfaceRole.pauseMenu,
         RuntimePlayerPauseSection.profile =>
           ProjectPresentationSurfaceRole.pauseMenu,
         RuntimePlayerPauseSection.options =>

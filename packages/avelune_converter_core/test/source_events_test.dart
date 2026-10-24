@@ -633,6 +633,321 @@ _RubyObject _strengthPage() => _page([
     ], trigger: 1, character: 'OBJ_FRLG_Strength Boulder');
 
 void main() {
+  final cryArchivePath = Platform.environment['AVELUNE_KNOWN_SCRIPTS_ARCHIVE'];
+  group('RMXP parser choices', () {
+    late List<int> interpreter;
+    setUpAll(() async {
+      final archive = await File(cryArchivePath!).readAsBytes();
+      final doc = const MarshalDecoder().decode(archive,
+          sourcePath: 'Data/Scripts.rxdata');
+      final row = doc.node(doc.node(doc.rootId).elements[34]);
+      expect(doc.node(row.elements[1]).text().text, 'Interpreter_Commands');
+      interpreter = const BoundedZlibDecoder().decode(
+          doc.node(row.elements[2]).bytes!, sourcePath: 'Data/Scripts.rxdata');
+    });
+
+    Future<({NormalizedSourceProject source, SourceInterpretationProfile full})>
+        input({int cancel = 0, Object? transient = const [0, 1, 2, 3],
+          bool knownRole = true, bool changedHelper = false}) async {
+      final bytes = [...interpreter, if (changedHelper) 10];
+      final archive = _MarshalFixture().dump([
+        [0, 'Interpreter_Commands', _RubyBytes(zlib.encode(bytes))],
+      ]);
+      final pin = {'index': 0, 'name': 'Interpreter_Commands',
+        'sha256': _hash(bytes).value};
+      SourceInterpretationProfile profile(bool known) =>
+          SourceInterpretationProfile.fromJson({
+            'kind': 'sourceInterpretationProfile', 'schemaVersion': 2,
+            'profileId': 'original-transient-choice-contract',
+            'semanticsId': 'rmxp-essentials-static-v1',
+            'scriptsArchive': {'relativePath': 'Data/Scripts.rxdata',
+              'sha256': _hash(archive).value},
+            'capabilities': ['events'],
+            'sections': {known ? 'events.Interpreter_Commands' : 'events.Unrelated': pin},
+          });
+      final files = _source({
+        ..._project(maps: {1: _map(events: {1: _event(1, [_page([
+          _command(102, [['Take', 'Leave'], cancel, transient]),
+          _command(402, [0, 'Take']), _command(123, ['A', 0], indent: 1),
+          _command(0, [], indent: 1),
+          _command(402, [1, 'Leave']), _command(0, [], indent: 1),
+          if (cancel == 5) ...[
+            _command(403, []), _command(101, ['Cancelled'], indent: 1),
+            _command(0, [], indent: 1),
+          ],
+          _command(404, []), _command(101, ['After']), _command(0, []),
+        ])])})}),
+        'Data/System.rxdata': _MarshalFixture().dump(_RubyObject('RPG::System', {
+          '@switches': ['', 'Ready'], '@variables': ['', 'Value'],
+        })),
+        'Data/Scripts.rxdata': archive,
+      });
+      final source = await const RmxpSourceNormalizer().normalize(
+          snapshot: files.snapshot, files: files, includeEventSystem: true,
+          interpretationProfile: profile(knownRole));
+      return (source: source, full: profile(true));
+    }
+
+    for (final cancel in [0, 2, 5]) {
+      test('attested transient identity keeps branches and cancel $cancel', () async {
+        final fixture = await input(cancel: cancel);
+        final event = SourceEventAnalyzer.forProject(fixture.source,
+            profile: SourceEventProfile.forProject(fixture.source))
+            .analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isFalse);
+        final choice = event.pages.single.body.nodes.first as SourceChoiceNode;
+        expect(choice.branches.map((branch) => branch.label), ['Take', 'Leave']);
+        expect(choice.branches.map((branch) => branch.index), [0, 1]);
+        expect(choice.cancelType, cancel);
+        expect(choice.cancellation.kind, cancel == 0
+            ? SourceChoiceCancellationKind.disabled : cancel == 5
+            ? SourceChoiceCancellationKind.branch : SourceChoiceCancellationKind.choice);
+        expect((choice.branches.first.body.nodes.single as SourceSelfSwitchNode).letter, 'A');
+        if (cancel == 5) {
+          expect((choice.cancelBranch!.nodes.single as SourceTextNode).text, 'Cancelled');
+        }
+        expect(event.pages.single.body.nodes.whereType<SourceTextNode>().single.text, 'After');
+      });
+    }
+    for (final transient in <Object?>[null, [0, 1, 2], [0, 1, 2, 4], [0, 1, 2, '3']]) {
+      test('unproved transient $transient stays refused', () async {
+        final fixture = await input(transient: transient);
+        final event = SourceEventAnalyzer.forProject(fixture.source,
+            profile: SourceEventProfile.forProject(fixture.source))
+            .analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isTrue);
+      });
+    }
+    for (final changedHelper in [false, true]) {
+      test('unattested Interpreter contract stays refused changed=$changedHelper', () async {
+        final fixture = await input(knownRole: changedHelper, changedHelper: changedHelper);
+        final event = SourceEventAnalyzer.forProject(fixture.source,
+            profile: SourceEventProfile.forProject(fixture.source))
+            .analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isTrue);
+      });
+    }
+    test('caller pins cannot invent a normalized Interpreter attestation', () async {
+      final fixture = await input(knownRole: false);
+      final event = SourceEventAnalyzer.forProject(fixture.source,
+          profile: SourceEventProfile.forProject(fixture.source,
+              interpretationProfile: fixture.full)).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isTrue);
+    });
+  }, skip: cryArchivePath == null);
+
+  test('RMXP parser unproven conditional loop keeps one opaque source span', () async {
+    final source = await _events([_page([
+      _command(112, []), _command(111, [2, 'A', 0], indent: 1),
+      _command(113, [], indent: 2), _command(0, [], indent: 2),
+      _command(412, [], indent: 1), _command(0, [], indent: 1),
+      _command(413, []), _command(101, ['After']), _command(0, []),
+    ])]);
+    final event = _analyzer(source).analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isTrue);
+    final nodes = event.pages.single.body.nodes;
+    expect(nodes, hasLength(2));
+    final opaque = nodes.first as SourceUnknownNode;
+    expect(opaque.reason, 'events.unproven_loop');
+    expect([opaque.span.firstCommandIndex, opaque.span.lastCommandIndex], [0, 6]);
+    expect((nodes.last as SourceTextNode).text, 'After');
+    expect(event.pages.single.diagnostics.map((diagnostic) => diagnostic.code), ['events.unproven_loop']);
+  });
+
+  test('RMXP parser nested unproven loops stop at their matching outer repeat', () async {
+    final source = await _events([_page([
+      _command(112, []), _command(112, [], indent: 1),
+      _command(101, ['Inner'], indent: 2), _command(413, [], indent: 1),
+      _command(113, [], indent: 1), _command(413, []),
+      _command(101, ['After']), _command(0, []),
+    ])]);
+    final event = _analyzer(source).analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isTrue);
+    final unknown = event.pages.single.body.nodes.first as SourceUnknownNode;
+    expect([unknown.span.firstCommandIndex, unknown.span.lastCommandIndex], [0, 5]);
+    expect(event.pages.single.body.nodes.whereType<SourceTextNode>().single.text, 'After');
+    expect(event.pages.single.diagnostics.map((diagnostic) => diagnostic.code), ['events.unproven_loop']);
+  });
+
+  test('RMXP parser malformed repeat parameters remain invalid source', () async {
+    final source = await _events([_page([
+      _command(112, []), _command(101, ['Body'], indent: 1),
+      _command(413, [1]), _command(0, []),
+    ])]);
+    final event = _analyzer(source).analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isTrue);
+    expect(event.pages.single.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('events.invalid_command_parameters'));
+  });
+
+  for (final code in [29, 30]) {
+    test('RMXP parser valid route state $code remains unsupported without false invalid parameters', () async {
+      final source = await _events([_page([
+        ..._forcedRoute([_moveCommand(code, parameters: [6])]),
+        _command(101, ['After']), _command(0, []),
+      ])]);
+      final event = _analyzer(source).analyze().requireEvent(1, 1);
+      expect(event.isQuarantined, isTrue);
+      final nodes = event.pages.single.body.nodes;
+      expect(nodes, hasLength(2));
+      final unknown = nodes.first as SourceUnknownNode;
+      expect(unknown.reason, 'events.move_route_state_unsupported');
+      expect([unknown.span.firstCommandIndex, unknown.span.lastCommandIndex], [0, 1]);
+      expect((nodes.last as SourceTextNode).text, 'After');
+      expect(event.pages.single.diagnostics.map((diagnostic) => diagnostic.code),
+          ['events.move_route_state_unsupported']);
+      expect(nodes.whereType<SourceForcedMoveRouteNode>(), isEmpty);
+    });
+    for (final value in [0, 7]) {
+      test('RMXP parser invalid route state $code value $value stays refused', () async {
+        final source = await _events([_page([
+          ..._forcedRoute([_moveCommand(code, parameters: [value])]), _command(0, []),
+        ])]);
+        final event = _analyzer(source).analyze().requireEvent(1, 1);
+        expect(event.isQuarantined, isTrue);
+        expect(event.pages.single.diagnostics.map((diagnostic) => diagnostic.code),
+            contains('events.invalid_command_parameters'));
+      });
+    }
+  }
+  test('RMXP parser unsupported route state still requires exact copied commands', () async {
+    final route = _forcedRoute([_moveCommand(29, parameters: [6])]);
+    route[1] = _command(509, [_moveCommand(29, parameters: [3])]);
+    final event = _analyzer(await _events([_page([...route, _command(0, [])])]))
+        .analyze().requireEvent(1, 1);
+    expect(event.isQuarantined, isTrue);
+    expect(event.pages.single.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('events.invalid_command_parameters'));
+  });
+  group('cry section witnesses', () {
+    late Map<String, List<int>> helpers;
+    setUpAll(() async {
+      final archive = await File(cryArchivePath!).readAsBytes();
+      final document = const MarshalDecoder().decode(archive,
+          sourcePath: 'Data/Scripts.rxdata');
+      helpers = {};
+      for (final rowId in document.node(document.rootId).elements) {
+        final row = document.node(rowId);
+        if (row.kind != MarshalKind.array || row.elements.length != 3) continue;
+        final name = document.node(row.elements[1]).text().text;
+        if (name != null &&
+            const {'Pokemon', 'Species_files', 'Audio_Play'}.contains(name)) {
+          helpers[name] = zlib.decode(document.node(row.elements[2]).bytes!);
+        }
+      }
+      expect(helpers.keys,
+          unorderedEquals(['Pokemon', 'Species_files', 'Audio_Play']));
+    });
+
+    Future<({NormalizedSourceProject source, SourceInterpretationProfile full})>
+        input({bool unrelatedChanged = false, bool helperChanged = false,
+            bool repinHelper = false, bool omitCryPins = false}) async {
+      final names = ['Pokemon', 'Species_files', 'Audio_Play', 'Unrelated'];
+      final sections = [
+        for (final name in names.take(3)) [...helpers[name]!],
+        utf8.encode(unrelatedChanged ? 'changed unrelated metadata' : 'metadata'),
+      ];
+      if (helperChanged) sections.first[sections.first.length - 1] ^= 1;
+      final archive = _MarshalFixture().dump([
+        for (var index = 0; index < names.length; index++)
+          [index, names[index], _RubyBytes(zlib.encode(sections[index]))]
+      ]);
+      final profile = <String, Object?>{
+        'kind': 'sourceInterpretationProfile', 'schemaVersion': 2,
+        'profileId': 'generic-cry-witness',
+        'semanticsId': 'rmxp-essentials-static-v1',
+        'scriptsArchive': {
+          'relativePath': 'Data/Scripts.rxdata', 'sha256': _hash(archive).value,
+        },
+        'capabilities': ['events'],
+        'sections': {
+          for (var index = 0; index < names.length; index++)
+            'events.${names[index]}': {
+              'index': index, 'name': names[index],
+              'sha256': _hash(index == 0 && !repinHelper
+                  ? helpers['Pokemon']! : sections[index]).value,
+            }
+        },
+      };
+      final full = SourceInterpretationProfile.fromJson(profile);
+      final selected = omitCryPins
+          ? SourceInterpretationProfile.fromJson({
+              ...profile,
+              'sections': {
+                'events.Unrelated': (profile['sections'] as Map)['events.Unrelated'],
+              },
+            })
+          : full;
+      final files = _source({
+        ..._project(maps: {1: _map(events: {1: _event(1, [
+          _page([
+            _command(355, ['Pokemon.play_cry(:ALPHA)']),
+            _command(101, ['A source cry.']), _command(0, []),
+          ], character: 'Original'),
+        ])})}),
+        'Data/System.rxdata': _MarshalFixture().dump(_RubyObject('RPG::System', {
+          '@switches': ['', 'Ready'], '@variables': ['', 'Value'],
+        })),
+        'Data/Scripts.rxdata': archive,
+      });
+      final source = await const RmxpSourceNormalizer().normalize(
+          snapshot: files.snapshot, files: files,
+          interpretationProfile: selected, includeEventSystem: true);
+      return (source: source, full: full);
+    }
+
+    test('accepts the same attested helpers after unrelated archive changes',
+        () async {
+      final first = await input();
+      final changed = await input(unrelatedChanged: true);
+      expect(first.source.interpretationProfile!.scriptsArchiveHash,
+          isNot(changed.source.interpretationProfile!.scriptsArchiveHash));
+      for (final fixture in [first, changed]) {
+        final analysis = SourceEventAnalyzer.forProject(fixture.source,
+                profile: SourceEventProfile.forProject(fixture.source))
+            .analyze();
+        final event = analysis.requireEvent(1, 1);
+        expect(event.isQuarantined, isFalse);
+        expect(event.pages.single.body.nodes.first,
+            isA<SourceSoundEffectNode>());
+        final cry = event.pages.single.body.nodes.first as SourceSoundEffectNode;
+        expect(cry.name, 'Cries/ALPHA');
+        expect(cry.volume, 90);
+        expect(cry.pitch, 100);
+      }
+    });
+
+    test('rejects a helper whose bytes differ from its selected section pin',
+        () async {
+      await expectLater(input(helperChanged: true),
+          throwsA(isA<ContractError>().having((error) => error.code, 'code',
+              'interpretation_profile.section_mismatch')));
+    });
+
+    test('does not recognize a changed helper even when its new hash is selected',
+        () async {
+      final fixture = await input(helperChanged: true, repinHelper: true);
+      final event = SourceEventAnalyzer.forProject(fixture.source,
+              profile: SourceEventProfile.forProject(fixture.source))
+          .analyze().requireEvent(1, 1);
+      expect(event.pages.single.body.nodes.first,
+          isNot(isA<SourceSoundEffectNode>()));
+      expect(event.isQuarantined, isTrue);
+    });
+
+    test('rejects caller section overrides not attested during normalization',
+        () async {
+      final fixture = await input(omitCryPins: true);
+      final event = SourceEventAnalyzer.forProject(fixture.source,
+              profile: SourceEventProfile.forProject(fixture.source,
+                  interpretationProfile: fixture.full))
+          .analyze().requireEvent(1, 1);
+      expect(event.pages.single.body.nodes.first,
+          isNot(isA<SourceSoundEffectNode>()));
+      expect(event.isQuarantined, isTrue);
+    });
+  }, skip: cryArchivePath == null);
+
   group('STD04 typed standard operations', () {
     for (final parameters in <List<int>>[
       [1, 3, 0, 1, 2],

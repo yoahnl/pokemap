@@ -424,6 +424,31 @@ final class NormalizedSourceProject {
   final List<int> selectedSourceMapIds;
   final List<int> unprocessedSourceMapIds;
   ({Sha256Hash profileHash, SourceEventAnalysis analysis})? _eventAnalysisCache;
+  late final Map<int, SourceMapData?> _sourceMapsById = _indexSourceMaps();
+  final Map<int, Map<int, SourceEvent?>> _sourceEventsByMapId = {};
+
+  Map<int, SourceMapData?> _indexSourceMaps() {
+    final indexed = <int, SourceMapData?>{};
+    for (final ir in maps) {
+      final map = ir.map;
+      final id = map.sourceMapId;
+      indexed[id] = indexed.containsKey(id) ? null : map;
+    }
+    return Map.unmodifiable(indexed);
+  }
+
+  SourceEvent? uniqueEventAt(int sourceMapId, int sourceEventId) {
+    final map = _sourceMapsById[sourceMapId];
+    if (map == null) return null;
+    return _sourceEventsByMapId.putIfAbsent(sourceMapId, () {
+      final indexed = <int, SourceEvent?>{};
+      for (final event in map.events) {
+        final id = event.sourceEventId;
+        indexed[id] = indexed.containsKey(id) ? null : event;
+      }
+      return Map.unmodifiable(indexed);
+    })[sourceEventId];
+  }
 
   bool get canPlan =>
       maps.isNotEmpty &&

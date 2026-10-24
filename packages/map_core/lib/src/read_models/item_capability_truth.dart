@@ -5,6 +5,9 @@ import '../models/items/project_item_effect_definition.dart';
 enum ProjectItemEffectCapability {
   healHp,
   fullRestore,
+  vitamin,
+  battleBoost,
+  battlePreparation,
   cureStatus,
   revive,
   restorePp,
@@ -87,6 +90,9 @@ final class ItemCapabilityTruth {
 
 final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
   supportedUses: <ItemUseCapability>{
+    ItemUseCapability(context: ProjectItemUseContext.overworld, effect: ProjectItemEffectCapability.vitamin),
+    ItemUseCapability(context: ProjectItemUseContext.battle, effect: ProjectItemEffectCapability.battleBoost),
+    ItemUseCapability(context: ProjectItemUseContext.battle, effect: ProjectItemEffectCapability.battlePreparation),
     ItemUseCapability(
       context: ProjectItemUseContext.overworld,
       effect: ProjectItemEffectCapability.healHp,
@@ -174,6 +180,9 @@ ProjectItemEffectCapability projectItemEffectCapabilityOf(
   ProjectItemEffectDefinition effect,
 ) {
   return switch (effect) {
+    ProjectItemVitaminEffectDefinition() => ProjectItemEffectCapability.vitamin,
+    ProjectItemBattleBoostEffectDefinition() => ProjectItemEffectCapability.battleBoost,
+    ProjectItemBattlePreparationEffectDefinition() => ProjectItemEffectCapability.battlePreparation,
     ProjectItemHealHpEffectDefinition() => ProjectItemEffectCapability.healHp,
     ProjectItemFullRestoreEffectDefinition() =>
       ProjectItemEffectCapability.fullRestore,

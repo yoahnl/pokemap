@@ -76,6 +76,7 @@ class WildBattleStartRequest extends BattleStartRequest {
     required this.weight,
     required this.playerPos,
     this.generationSeed = 0,
+    this.encounterVariantId,
     this.pokemonOverrides,
     this.generatedPokemon,
     this.generationProfileId = '',
@@ -98,6 +99,7 @@ class WildBattleStartRequest extends BattleStartRequest {
   final int weight;
   final GridPos playerPos;
   final int generationSeed;
+  final String? encounterVariantId;
   final ProjectEncounterPokemonOverrides? pokemonOverrides;
   final PlayerPokemon? generatedPokemon;
   final String generationProfileId;
@@ -125,6 +127,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       weight: weight,
       playerPos: playerPos,
       generationSeed: generationSeed,
+      encounterVariantId: encounterVariantId,
       pokemonOverrides: pokemonOverrides,
       generatedPokemon: pokemon,
       generationProfileId: profileId,
@@ -153,6 +156,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       'weight': weight,
       'playerPos': playerPos.toJson(),
       'generationSeed': generationSeed,
+      if (encounterVariantId != null) 'encounterVariantId': encounterVariantId,
       'pokemonOverrides': pokemonOverrides?.toJson(),
       'generatedPokemon': generatedPokemon?.toJson(),
       'generationProfileId': generationProfileId,

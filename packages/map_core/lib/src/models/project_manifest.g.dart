@@ -167,6 +167,16 @@ _ProjectManifest _$ProjectManifestFromJson(
   pokemon: json['pokemon'] == null
       ? const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1)
       : ProjectPokemonConfig.fromJson(json['pokemon'] as Map<String, dynamic>),
+  partyCompanion: json['partyCompanion'] == null
+      ? const ProjectPartyCompanionConfig()
+      : ProjectPartyCompanionConfig.fromJson(
+          json['partyCompanion'] as Map<String, dynamic>,
+        ),
+  contactDevice: json['contactDevice'] == null
+      ? null
+      : ProjectContactDeviceConfig.fromJson(
+          json['contactDevice'] as Map<String, dynamic>,
+        ),
   newGame: json['newGame'] == null
       ? const ProjectNewGameConfig()
       : ProjectNewGameConfig.fromJson(json['newGame'] as Map<String, dynamic>),
@@ -268,6 +278,8 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'battleAudio': ?instance.battleAudio?.toJson(),
   'battleTransitions': ?instance.battleTransitions?.toJson(),
   'pokemon': instance.pokemon.toJson(),
+  'partyCompanion': instance.partyCompanion.toJson(),
+  'contactDevice': ?instance.contactDevice?.toJson(),
   'newGame': instance.newGame.toJson(),
   'defeatRecovery': ?instance.defeatRecovery?.toJson(),
   'bagCapacity': ?_projectBagCapacityToJson(instance.bagCapacity),
@@ -798,6 +810,42 @@ Map<String, dynamic> _$ProjectEncounterEntryToJson(
   'pokemonOverrides': ?instance.pokemonOverrides?.toJson(),
 };
 
+_ProjectEncounterVariant _$ProjectEncounterVariantFromJson(
+  Map<String, dynamic> json,
+) => _ProjectEncounterVariant(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  priority: (json['priority'] as num?)?.toInt() ?? 0,
+  conditions:
+      (json['conditions'] as List<dynamic>?)
+          ?.map((e) => ScriptCondition.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  timeWindows:
+      (json['timeWindows'] as List<dynamic>?)
+          ?.map((e) => LocalTimeWindow.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  entries:
+      (json['entries'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectEncounterEntry.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$ProjectEncounterVariantToJson(
+  _ProjectEncounterVariant instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'priority': instance.priority,
+  'conditions': instance.conditions.map((e) => e.toJson()).toList(),
+  'timeWindows': instance.timeWindows.map((e) => e.toJson()).toList(),
+  'entries': instance.entries.map((e) => e.toJson()).toList(),
+};
+
 _ProjectEncounterTable _$ProjectEncounterTableFromJson(
   Map<String, dynamic> json,
 ) => _ProjectEncounterTable(
@@ -819,6 +867,13 @@ _ProjectEncounterTable _$ProjectEncounterTableFromJson(
           )
           .toList() ??
       const [],
+  variants:
+      (json['variants'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectEncounterVariant.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
@@ -833,6 +888,7 @@ Map<String, dynamic> _$ProjectEncounterTableToJson(
   'chancePerStep': instance.chancePerStep,
   'conditions': instance.conditions.map((e) => e.toJson()).toList(),
   'entries': instance.entries.map((e) => e.toJson()).toList(),
+  'variants': instance.variants.map((e) => e.toJson()).toList(),
   'tags': instance.tags,
 };
 

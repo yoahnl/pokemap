@@ -1344,6 +1344,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
     var pitch = control.pitch;
     var yaw = control.yaw;
+    camera.projection = CameraProjection.perspective;
     camera.fovY = 40;
     final aspect = size.y > 0 ? size.x / size.y : 1.0;
     var distance =
@@ -1357,10 +1358,16 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     } else if (control.view == SpatialEditorView.game) {
       pitch = scene.camera.pitchDegrees * math.pi / 180;
       yaw = scene.camera.yawDegrees * math.pi / 180;
-      distance = scene.camera.distance * control.zoom * (cameraPose?.zoom ?? 1);
-      applySpatialCameraMagnification(
+      final zoom = control.zoom * (cameraPose?.zoom ?? 1);
+      distance = scene.camera.distance *
+          (scene.camera.projection == SpatialCameraProjection.perspective
+              ? zoom
+              : 1);
+      applySpatialCameraProfile(
         camera,
-        baseFieldOfViewDegrees: scene.camera.fieldOfViewDegrees,
+        profile: scene.camera,
+        zoom: zoom,
+        viewportAspectRatio: aspect,
         magnification: configuration.cameraMagnification?.call() ?? 1,
       );
     }
@@ -1503,6 +1510,13 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           Quaternion.axisAngle(Vector3(1, 0, 0), -math.pi / 2),
         );
         actor.mesh.scale.setValues(1, 1, 1);
+      }
+      if (frame.billboardVerticalOffset != 0) {
+        actor.mesh.position.add(spatialActorBillboardOffset(
+          verticalOffset: frame.billboardVerticalOffset,
+          rotation: actor.mesh.rotation,
+          scale: actor.mesh.scale,
+        ));
       }
       actor.mesh.scale.x *= frame.resolvedWidth / 1.92;
       actor.mesh.scale.y *= frame.height / 1.92;

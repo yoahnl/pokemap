@@ -428,6 +428,10 @@ void _validateEffect(
 }) {
   final effect = use.effect;
   final targetIsCompatible = switch (effect) {
+    ProjectItemVitaminEffectDefinition() ||
+    ProjectItemBattleBoostEffectDefinition() ||
+    ProjectItemBattlePreparationEffectDefinition() =>
+      use.target == ProjectItemTargetKind.partyMember,
     ProjectItemHealHpEffectDefinition() ||
     ProjectItemFullRestoreEffectDefinition() ||
     ProjectItemCureStatusEffectDefinition() ||
@@ -457,6 +461,16 @@ void _validateEffect(
   }
 
   switch (effect) {
+    case ProjectItemVitaminEffectDefinition():
+    case ProjectItemBattleBoostEffectDefinition():
+    case ProjectItemBattlePreparationEffectDefinition():
+      try {
+        effect.normalized();
+      } on StateError catch (error) {
+        addDiagnostic(ProjectItemCatalogDiagnosticCode.invalidDefinition,
+          ProjectItemCatalogDiagnosticSeverity.error, '$error', '$path.effect',
+          entryIndex: entryIndex, itemId: itemId);
+      }
     case ProjectItemFullRestoreEffectDefinition():
       break;
     case ProjectItemHealHpEffectDefinition(:final mode, :final amount):

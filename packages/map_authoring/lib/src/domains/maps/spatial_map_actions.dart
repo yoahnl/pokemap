@@ -51,6 +51,11 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (entry.value == 'camera') ...{
+            'projections': ['perspective', 'orthographic'],
+            'orthographicHeightUnits': 'world_cells_full_vertical_extent',
+            'orthographicCapability': SpatialCameraProfile.orthographicCapabilityId,
+          },
           if (entry.value == 'instance' || entry.value == 'instances')
             'model3dClip': {
               'field': 'clip',
@@ -158,10 +163,12 @@ final class SpatialMapActions {
             SpatialCameraProfile.fromJson(_object(
                 context.parameters.object(field), {
               'mode',
+              'projection',
               'pitchDegrees',
               'yawDegrees',
               'fieldOfViewDegrees',
-              'distance'
+              'distance',
+              'orthographicHeight'
             }))),
       };
       return context.draftMap(
@@ -634,6 +641,15 @@ Map<String, Object?> _schema(String field) => switch (field) {
             'mode': {
               'enum': ['fixed']
             },
+            'projection': {
+              'type': 'string',
+              'enum': ['perspective', 'orthographic']
+            },
+            'orthographicHeight': {
+              'type': 'number',
+              'exclusiveMinimum': 0,
+              'maximum': 10000
+            },
             'pitchDegrees': {
               'type': 'number',
               'exclusiveMinimum': 0,
@@ -650,7 +666,16 @@ Map<String, Object?> _schema(String field) => switch (field) {
               'exclusiveMinimum': 0,
               'maximum': 10000
             }
-          }
+          },
+          'allOf': [
+            {
+              'if': {
+                'properties': {'projection': {'const': 'orthographic'}},
+                'required': ['projection'],
+              },
+              'then': {'required': ['orthographicHeight']},
+            },
+          ],
         },
     };
 

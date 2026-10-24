@@ -1207,7 +1207,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
             onPauseCommand: (command) async {
               final unavailableMessage = context.playerL10n.actionUnavailable;
               final result = await _dispatchCommand(
-                command.kind ==
+                command.kind == RuntimePlayerPauseCommandKind.callContact
+                    ? RuntimePlayerAction.callContact
+                    : command.kind ==
                             RuntimePlayerPauseCommandKind.reorderPartyMember ||
                         command.kind == RuntimePlayerPauseCommandKind.setPartyLead
                     ? RuntimePlayerAction.reorderParty

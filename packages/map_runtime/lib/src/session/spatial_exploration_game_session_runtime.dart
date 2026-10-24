@@ -25,6 +25,9 @@ import '../application/scene_runtime/scene_wild_battle_request.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_player_host.dart';
+import '../player/runtime_music_service.dart';
+import '../player/runtime_audio_mixer.dart';
+import '../presentation/flame/battle_music_resolver.dart';
 import '../player/runtime_world_service_models.dart';
 import '../application/runtime_overworld_interaction.dart';
 import 'runtime_overworld_interaction_port.dart';
@@ -36,6 +39,10 @@ import '../spatial/spatial_battle_runtime.dart';
 import '../spatial/spatial_gameplay_events.dart';
 import '../spatial/spatial_scene_callbacks.dart';
 import '../spatial/spatial_story_playback.dart';
+import '../spatial/spatial_scene_audio_runtime.dart';
+import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
+import '../player/contact_device_pause.dart';
+import '../application/dialogue_portrait_resolver.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'game_session_contract.dart';
 import 'in_process_game_session_adapter.dart';
@@ -66,6 +73,9 @@ final class SpatialExplorationGameSessionRuntime
     GameSessionCheckpointCommitter? commitCheckpoint,
     PlayerServiceRecoveryCapsLoader? recoveryCapsLoader,
     DateTime Function()? now,
+    RuntimeAudioMixer? audioMixer,
+    @visibleForTesting FlameCinematicAudioDriver Function()? sceneAudioDriverFactory,
+    @visibleForTesting RuntimeMusicService Function(RuntimeAudioMixer)? musicServiceFactory,
   })  : _projectFilePath = projectFilePath,
         _mountSession = mountSession,
         _unmountSession = unmountSession,
@@ -73,9 +83,20 @@ final class SpatialExplorationGameSessionRuntime
         _preloadedInitialMap = preloadedInitialMap,
         _commitCheckpoint = commitCheckpoint,
         _recoveryCapsLoader = recoveryCapsLoader,
-        _now = now ?? DateTime.now;
+        _now = now ?? DateTime.now,
+        _audioMixer = audioMixer ?? RuntimeAudioMixer(),
+        _ownsAudioMixer = audioMixer == null,
+        _sceneAudioDriverFactory = sceneAudioDriverFactory {
+    _music = musicServiceFactory?.call(_audioMixer) ?? RuntimeMusicService(mixer: _audioMixer);
+  }
 
   final GameSessionDescriptor descriptor;
+  final RuntimeAudioMixer _audioMixer;
+  final bool _ownsAudioMixer;
+  late final RuntimeMusicService _music;
+  final FlameCinematicAudioDriver Function()? _sceneAudioDriverFactory;
+  SpatialSceneAudioRuntime? _sceneAudio;
+  String? _audioMapId;
   final SessionProjectFilePathLoader _projectFilePath;
   final SpatialExplorationSessionMount _mountSession, _unmountSession;
   final SessionPreloadedInitialMapLoader? _preloadedInitialMap;
@@ -89,6 +110,7 @@ final class SpatialExplorationGameSessionRuntime
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool _pauseCommandInFlight = false;
+  String? _pendingContactId;
   GameState Function()? _sceneStateReader;
   void Function(GameState)? _sceneStateWriter;
   SpatialGameplayEvents? _gameplay;
@@ -136,6 +158,7 @@ final class SpatialExplorationGameSessionRuntime
   @override
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     _preferences = preferences;
+    if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
   }
 
@@ -543,6 +566,9 @@ final class SpatialExplorationGameSessionRuntime
             commit,
             () => SceneInteractiveCommandRuntimeExecutor(
                 playModelAnimation: (command) => _story!.playModel(command),
+                playSoundEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
+                playMusicEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
+                stopSoundEffects: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 warp: (command) =>
                     _executeSceneWarp(command, read: read, commit: commit),
                 openWorldService: (request) async {
@@ -587,6 +613,7 @@ final class SpatialExplorationGameSessionRuntime
         .where((warp) => warp.id == command.warpId)
         .firstOrNull;
     if (warp == null) return 'blocked';
+    _story?.autonomousNpcs.flush();
     final source = read();
     final pendingActivation = _pendingSceneMapActivation;
     final pendingWarp = _hasUncommittedSceneWarp;
@@ -748,7 +775,13 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   void _onMapActivated() {
-    if (_disposed || _stopped || _materializingState) return;
+    if (_disposed || _stopped) return;
+    if (_audioMapId != _session?.bundle.map.id) {
+      _audioMapId = _session?.bundle.map.id;
+      unawaited(_sceneAudio?.reset());
+    }
+    _syncMapMusic();
+    if (_materializingState) return;
     if (_session?.nativeDoorTraversalActive ?? false) return;
     _syncGameState();
     _lastCell = _gameState!.playerPosition;
@@ -766,6 +799,26 @@ final class SpatialExplorationGameSessionRuntime
       }
       unawaited(_runGameplay(() => gameplay.activateMap(activation)));
     }
+  }
+
+  void _observeMusic(Future<void> operation) {
+    unawaited(operation.catchError((Object error) {
+      _music.lastFailure = error;
+    }));
+  }
+
+  void _syncMapMusic() {
+    final session = _session;
+    if (_disposed || _stopped || session == null) return;
+    _observeMusic(_music.update(route: RuntimeAudioRoute.overworld,
+        path: const BattleMusicResolver().resolveMapMusicAbsolutePath(bundle: session.bundle),
+        volume: session.bundle.map.mapMetadata.musicVolume ?? .8));
+  }
+
+  void _syncMusicSuspension() {
+    if (_disposed || _stopped) return;
+    _observeMusic(_music.setSuspended(_locks.contains(RuntimeExternalInputLock.lifecycle) ||
+        (_session?.lifecyclePaused ?? false)));
   }
 
   @override
@@ -802,6 +855,16 @@ final class SpatialExplorationGameSessionRuntime
       _projectCatalog = catalog;
       final manifest = preload?.bundle.manifest ?? catalog!.projectMetadata;
       _ensureLoadActive(generation);
+      for (final requirement in {
+        if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
+        if (SpatialGameplayCapabilities.requiresAudio(manifest)) SpatialGameplayCapabilities.audioCapabilityId,
+      }) {
+        if (!descriptor.grantedCapabilities.contains(requirement)) throw StateError('The project requires $requirement.');
+      }
+      if (manifest.partyCompanion.enabled &&
+          !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.companionCapabilityId)) {
+        throw StateError('A party companion requires ${SpatialGameplayCapabilities.companionCapabilityId}.');
+      }
       if (manifest.settings.dimension != ProjectDimension.threeD ||
           manifest.maps.isEmpty) {
         throw StateError('A spatial project with an initial map is required.');
@@ -861,6 +924,13 @@ final class SpatialExplorationGameSessionRuntime
       reportProgress(const GameSessionLoadingProgress(
           stage: 'resources', current: 1, total: 3));
       _gameState = state;
+      if (bundle.map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic && !descriptor.grantedCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) throw StateError('The map requires ${SpatialCameraProfile.orthographicCapabilityId}.');
+      _audioMapId = bundle.map.id;
+      _sceneAudio = SpatialSceneAudioRuntime(
+        mediaAssets: manifest.cinematicMediaAssets,
+        resolvePath: (asset) => p.join(bundle.projectRootDirectory, asset.relativePath),
+        mixer: _audioMixer, music: _music, driverFactory: _sceneAudioDriverFactory,
+      );
       await _initializeSpatialGameplay(bundle, path,
           generation: generation,
           narrativeSnapshot: preload?.narrativeSnapshot);
@@ -894,10 +964,11 @@ final class SpatialExplorationGameSessionRuntime
         readGameState: _readMutableState,
         writeGameState: (state) {
           final writer = _sceneStateWriter;
-          if (writer == null) {
-            throw StateError('Spatial playback has no Scene transaction.');
+          if (writer != null) {
+            writer(state);
+          } else {
+            _gameState = state;
           }
-          writer(state);
         },
       );
       _initializePlayerServices(bundle);
@@ -905,6 +976,7 @@ final class SpatialExplorationGameSessionRuntime
       loaded.transitioning.addListener(_syncMovement);
       loaded.mapRevision.addListener(_onMapActivated);
       loaded.onFrame = _publishFrame;
+      loaded.onLifecyclePausedChanged = (_) => _syncMusicSuspension();
       if (_preferences case final preferences?) {
         loaded.setTextSpeed(preferences.dialogueTextSpeed);
       }
@@ -913,6 +985,8 @@ final class SpatialExplorationGameSessionRuntime
       _mountFuture = Future<void>.sync(() => _mountSession(this));
       await _mountFuture;
       _ensureLoadActive(generation);
+      _syncMapMusic();
+      _syncMusicSuspension();
       if (!_paused) _playWatch.start();
       reportProgress(const GameSessionLoadingProgress(
           stage: 'ready', current: 3, total: 3));
@@ -954,6 +1028,7 @@ final class SpatialExplorationGameSessionRuntime
         !event.isRepeat) {
       if (event.control == RuntimeInputControl.secondary) {
         _story?.cancel();
+        unawaited(_sceneAudio?.reset());
       } else if (event.control == RuntimeInputControl.primary) {
         _story?.skip();
       }
@@ -1026,6 +1101,7 @@ final class SpatialExplorationGameSessionRuntime
       _locks.remove(owner);
     }
     _syncMovement();
+    if (owner == RuntimeExternalInputLock.lifecycle) _syncMusicSuspension();
   }
 
   void _syncMovement() {
@@ -1038,6 +1114,9 @@ final class SpatialExplorationGameSessionRuntime
     final battling = _battle?.isActive ?? false;
     if (paused || talking || battling) _pressed.clear();
     final busy = _gameplayOperations > 0 || (_gameplay?.isBusy ?? false);
+    if (!_disposed && !_stopped && (paused || talking || battling || busy)) {
+      _story?.autonomousNpcs.update(0, paused: true);
+    }
     if (!paused || _stopped) {
       _materializationResumed?.complete();
       _materializationResumed = null;
@@ -1076,6 +1155,7 @@ final class SpatialExplorationGameSessionRuntime
     _ensureOpen();
     _transferPauseEpoch++;
     _paused = true;
+    _story?.autonomousNpcs.update(0, paused: true);
     _playWatch.stop();
     if ((_session?.transitioning.value ?? false) &&
         !(_session?.nativeDoorTraversalActive ?? false)) {
@@ -1090,6 +1170,14 @@ final class SpatialExplorationGameSessionRuntime
     _paused = false;
     if (!_stopped && _session != null) _playWatch.start();
     _syncMovement();
+    final contactId = _pendingContactId;
+    _pendingContactId = null;
+    if (contactId != null && !_stopped) {
+      unawaited(_runGameplay(() async {
+        final called = await _gameplay?.callContact(contactId) ?? false;
+        if (!called && !_disposed && !_stopped) throw StateError('The contact conversation is unavailable.');
+      }));
+    }
   }
 
   @override
@@ -1107,7 +1195,10 @@ final class SpatialExplorationGameSessionRuntime
       throw StateError('The spatial checkpoint position is blocked.');
     }
     return _activityGate.runCheckpoint(NarrativeRuntimeCheckpointOperation.save,
-        () async => _checkpointFromState(gameStateSnapshot));
+        () async {
+      _story?.autonomousNpcs.flush();
+      return _checkpointFromState(gameStateSnapshot);
+    });
   }
 
   GameSessionCheckpoint _checkpointFromState(GameState state) {
@@ -1126,7 +1217,10 @@ final class SpatialExplorationGameSessionRuntime
 
   void _initializePlayerServices(RuntimeMapBundle bundle) {
     final services = PlayerServiceRuntimeController.contextual(
-        currentGameState: () => _sceneStateReader?.call() ?? gameStateSnapshot,
+        currentGameState: () {
+          _story?.autonomousNpcs.flush();
+          return _sceneStateReader?.call() ?? gameStateSnapshot;
+        },
         commitAndSave: _commitPlayerServiceState,
         setInputLocked: (locked) {
           if (_disposed) return;
@@ -1247,6 +1341,17 @@ final class SpatialExplorationGameSessionRuntime
     }
     _pauseCommandInFlight = true;
     try {
+      if (command.kind == RuntimePlayerPauseCommandKind.callContact) {
+        final contactId = command.contactId;
+        try {
+          if (contactId == null || _pendingContactId != null || _gameplay == null) throw StateError('Contact unavailable.');
+          ContactDeviceAccess.resolve(project: _session!.bundle.manifest, state: gameStateSnapshot).sceneForContact(contactId);
+          _pendingContactId = contactId;
+          return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.accepted, safeMessage: '', resumeGameplay: true);
+        } on StateError {
+          return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable, safeMessage: 'Contact indisponible.');
+        }
+      }
       return await switch (command.kind) {
         RuntimePlayerPauseCommandKind.reorderPartyMember ||
         RuntimePlayerPauseCommandKind.setPartyLead =>
@@ -1284,9 +1389,13 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<void> stop(GameSessionExitReason reason) async {
+    _pendingContactId = null;
+    _story?.autonomousNpcs.flush();
     _story?.cancel();
     if (_disposed) return;
     _stopped = true;
+    final sceneAudioStopped = _sceneAudio?.dispose();
+    final musicStopped = _music.dispose();
     _loadGeneration++;
     _playWatch.stop();
     _gameplay?.invalidate();
@@ -1295,6 +1404,8 @@ final class SpatialExplorationGameSessionRuntime
     _session?.closeDialogue();
     _syncMovement();
     await _rollbackPendingSceneWarp();
+    await sceneAudioStopped;
+    await musicStopped;
   }
 
   @override
@@ -1311,6 +1422,10 @@ final class SpatialExplorationGameSessionRuntime
     final session = _session!;
     final mapRevision = session.mapRevision.value;
     final manifest = session.bundle.manifest;
+    final contactPortraits = DialoguePortraitResolver(manifest: manifest, projectRootDirectory: session.bundle.projectRootDirectory);
+    if (manifest.contactDevice != null) {
+      await contactPortraits.ensureCatalogLoaded(characterIds: manifest.contactDevice!.contacts.map((c) => c.characterId).whereType<String>());
+    }
     final details = await const RuntimePlayerPauseDataBuilder().build(
         gameState: state,
         projectRootDirectory: session.bundle.projectRootDirectory,
@@ -1329,14 +1444,22 @@ final class SpatialExplorationGameSessionRuntime
       throw StateError('Session changed.');
     }
     return RuntimePlayerCompanionMenuData(
-        pauseMenuState: state.pauseMenuState, pauseDetails: details);
+        pauseMenuState: state.pauseMenuState, pauseDetails: {
+          ...details,
+          if (buildContactDevicePauseDetail(project: manifest, state: state, portraitLookup: contactPortraits.resolve) case final contactDetail?)
+            RuntimePlayerPauseSection.contacts: contactDetail,
+        });
   }
 
   @override
   Future<void> dispose() async {
     if (_disposed) return;
+    _pendingContactId = null;
+    _story?.autonomousNpcs.flush();
     _story?.cancel();
     _disposed = true;
+    final sceneAudioStopped = _sceneAudio?.dispose();
+    final musicStopped = _music.dispose();
     _projectCatalog?.dispose();
     _projectCatalog = null;
     _stopped = true;
@@ -1370,6 +1493,7 @@ final class SpatialExplorationGameSessionRuntime
           _session?.interactionActive.removeListener(_syncMovement);
           _session?.transitioning.removeListener(_syncMovement);
           _session?.mapRevision.removeListener(_onMapActivated);
+          if (_session case final session?) session.onLifecyclePausedChanged = null;
           _session?.dispose();
           _session = null;
           overworldInteractions.dispose();
@@ -1377,6 +1501,8 @@ final class SpatialExplorationGameSessionRuntime
           await _worldServiceSnapshots.close();
           inputAuthority.dispose();
           await _events.close();
+          await sceneAudioStopped;
+    await musicStopped;
         }
       }
     }

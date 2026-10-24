@@ -1221,8 +1221,15 @@ List<_QueryRecord> _records(
         ...snapshot.manifest.bagCapacity.toJson(),
       };
       return [_QueryRecord(summary: record, detail: record)];
+    case 'partyCompanionConfiguration':
+      final companionRecord = <String, Object?>{'id': 'project', 'resourceKind': 'partyCompanionConfiguration',
+        ...snapshot.manifest.partyCompanion.toJson()};
+      return [_QueryRecord(summary: companionRecord, detail: companionRecord)];
     case 'itemDefinition':
       return _itemDefinitionRecords(snapshot);
+    case 'contactDeviceConfiguration':
+      final contactDeviceRecord = <String, Object?>{'id': 'project', 'resourceKind': 'contactDeviceConfiguration', 'configuration': snapshot.manifest.contactDevice?.toJson()};
+      return [_QueryRecord(summary: contactDeviceRecord, detail: contactDeviceRecord)];
     case 'itemUsage':
       return _itemUsageRecords(snapshot);
     case 'itemReadiness':

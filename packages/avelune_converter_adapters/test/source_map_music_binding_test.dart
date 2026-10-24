@@ -251,6 +251,50 @@ void main() {
     oracle = await SourceMapMusicOracle.read(scriptsPath);
   });
 
+  group('local engine INI', () {
+    test('accepts original source INI and unrelated bounded titles', () async {
+      final text = latin1.decode(oracle.gameIniBytes);
+      for (final ini in [oracle.gameIniBytes,
+        latin1.encode(text.replaceFirst(RegExp(r'Title=[^\r\n]*'),
+            'Title=Orbit Adventure'))]) {
+        final fixture = await SourceMapMusicFixture.create(oracle: oracle,
+            filePatches: {'Game.ini': ini});
+        final binding = (await _read(fixture))!;
+        expect(binding.nativeVolume, closeTo(0.64, 1e-12));
+        expect(binding.evidence['requiredRuntimeContext'],
+            'freshGameDefaultOptions');
+        expect(binding.evidence['fullSourceParity'], isFalse);
+      }
+    });
+
+    test('rejects changed engine settings and malformed INI', () async {
+      final text = latin1.decode(oracle.gameIniBytes);
+      for (final ini in [
+        text.replaceFirst('Library=RGSS104E.dll', 'Library=Other.dll'),
+        text.replaceFirst(r'Scripts=Data\Scripts.rxdata',
+            r'Scripts=Other\Scripts.rxdata'),
+        text.replaceFirst('RTP2=', 'RTP2=External'),
+        '$text\r\nRTP1=\r\n', '$text\r\nUnknown=value\r\n',
+        text.replaceFirst('[Game]', '[Other]'),
+        text.replaceFirst(RegExp(r'Title=[^\r\n]*'), 'Title='),
+        '$text\u0000', 'x' * 4097,
+      ]) {
+        final fixture = await SourceMapMusicFixture.create(oracle: oracle,
+            filePatches: {'Game.ini': latin1.encode(ini)});
+        await expectLater(_read(fixture),
+            throwsA(_unavailable('configuration_unqualified')));
+      }
+    });
+
+    test('rejects INI bytes changed after their snapshot', () async {
+      final fixture = await SourceMapMusicFixture.create(oracle: oracle,
+          filePatches: {'Game.ini': oracle.gameIniBytes});
+      fixture.files.overrides['Game.ini'] = [...oracle.gameIniBytes, 10];
+      await expectLater(_read(fixture), throwsA(isA<ContractError>().having(
+          (error) => error.code, 'code', 'source.map_music.source_changed')));
+    });
+  });
+
   test(
       'composition shares a qualified music artifact across distinct map owners',
       () async {

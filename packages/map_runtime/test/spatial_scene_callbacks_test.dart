@@ -38,6 +38,31 @@ SceneRuntimePlanIntent condition(SceneConditionSourceKind kind, String id,
     ));
 
 void main() {
+  test(
+    'player facing conditions read fresh directions and preserve negation',
+    () {
+      var state = const GameState(saveId: 'save');
+      final host = callbacks(read: () => state);
+      for (final actual in EntityFacing.values) {
+        state = state.copyWith(playerFacing: actual);
+        for (final requested in EntityFacing.values) {
+          for (final expected in [true, false]) {
+            final intent = SceneRuntimePlanIntent.evaluateCondition(
+              source: SceneConditionSource.playerFacing(
+                direction: requested,
+                expected: expected,
+              ),
+            );
+            expect(
+              host.evaluateCondition(intent),
+              (actual == requested) == expected ? 'true' : 'false',
+            );
+          }
+        }
+      }
+    },
+  );
+
   test('condition reads the current scene state and both story flag stores',
       () {
     var state = const GameState(saveId: 'save');

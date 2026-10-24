@@ -30,6 +30,7 @@ export 'src/operations/moving_prop_operations.dart';
 export 'src/operations/moving_platform_operations.dart';
 export 'src/operations/validate_spatial_world_state.dart';
 export 'src/read_models/spatial_gameplay_capabilities.dart';
+export 'src/read_models/game_completion_party_capabilities.dart';
 
 export 'src/models/pokedex_species_range.dart';
 
@@ -49,3 +50,5 @@ export 'src/models/project_defeat_recovery_config.dart';
 export 'src/models/scene_integer_operand.dart';
 export 'src/models/scene_random_state.dart';
 export 'src/operations/scene_integer_operations.dart';
+export 'src/models/project_party_companion_config.dart';
+export 'src/models/project_contact_device_config.dart';

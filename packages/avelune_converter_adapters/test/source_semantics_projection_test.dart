@@ -1,6 +1,8 @@
 import 'dart:typed_data';
+import 'dart:io';
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';
 
+import 'package:avelune_converter_adapters/src/builtin_source_interpretation_profiles.dart';
 import 'package:avelune_converter_adapters/src/source_semantics_projection.dart';
 import 'package:avelune_converter_adapters/src/native_project_writer.dart';
 import 'package:avelune_converter_adapters/src/literal_tile_composer.dart';
@@ -14,6 +16,110 @@ import 'package:test/test.dart';
 import 'support/literal_tile_fixture.dart';
 
 void main() {
+  final invisibleScriptsPath =
+      Platform.environment['AVELUNE_BUILTIN_HOENN_SCRIPTS'] ??
+          Platform.environment['AVELUNE_BUILTIN_JOHTO_SCRIPTS'];
+  test(
+      'SEM-EMPTY qualified invisible autotile skips visuals and preserves collision',
+      () async {
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: await File(invisibleScriptsPath!).readAsBytes(),
+        interpretationProfileForSnapshot:
+            detectBuiltinSourceInterpretationProfile,
+        maps: [
+          LiteralFixtureMap(id: 1, width: 3, height: 3, layers: [
+            List.filled(9, 391),
+            [0, 0, 0, 0, 144, 0, 0, 0, 0],
+            List.filled(9, 0),
+          ])
+        ],
+        tilesets: [
+          LiteralFixtureTileset(
+              id: 1,
+              passages: {144: 15},
+              priorities: {144: 1},
+              terrainTags: {144: 7})
+        ]);
+    final base = await _invisibleBase(fixture);
+    expect(base.canWrite, isTrue);
+    expect(base.crops.map((crop) => crop.sourceTileId), [391]);
+    expect(fixture.source.maps.single.map.layers[1].cells[4], 144);
+    final result = await const SourceSemanticsProjector().project(
+        source: fixture.source,
+        base: base,
+        player: _playerForFixture(fixture),
+        files: fixture.files);
+    final native = result.nativeMaps[1]!;
+    expect(native.layers.whereType<CollisionLayer>().single.collisions,
+        [false, false, false, false, true, false, false, false, false]);
+    final sourceLayer =
+        base.layerProvenance.singleWhere((entry) => entry.sourceZ == 1);
+    final visual = native.layers
+            .singleWhere((layer) => layer.id == sourceLayer.nativeLayerId)
+        as TileLayer;
+    expect(visual.cells, List.filled(9, 0));
+    expect(visual.palette, isEmpty);
+    expect(
+        native.placedElements
+            .where((entry) => entry.id.startsWith('ac12-occ-')),
+        isEmpty);
+    expect(fixture.source.maps.single.map.layers[1].cells[4], 144);
+    expect(fixture.source.tilesets.single.passages.valueAt(144, 0, 0), 15);
+    expect(fixture.source.tilesets.single.priorities.valueAt(144, 0, 0), 1);
+    expect(fixture.source.tilesets.single.terrainTags.valueAt(144, 0, 0), 7);
+    expect(() => MapValidator.validate(native), returnsNormally);
+  },
+      skip: invisibleScriptsPath == null
+          ? 'Explicit attested renderer archive required'
+          : false);
+
+  test('SEM-EMPTY unknown renderer cannot admit invisible autotiles', () async {
+    final scripts = await File(invisibleScriptsPath!).readAsBytes();
+    final profile = SourceInterpretationProfile.fromJson({
+      'kind': 'sourceInterpretationProfile',
+      'schemaVersion': 2,
+      'profileId': 'unqualified-empty-visual-renderer',
+      'semanticsId': 'rmxp-essentials-static-v1',
+      'scriptsArchive': {
+        'relativePath': 'Data/Scripts.rxdata',
+        'sha256': literalFixtureHash(scripts).value
+      },
+      'capabilities': ['autotiles'],
+      'sections': {
+        'autotiles.UnknownRenderer': {
+          'index': 72,
+          'name': 'TilemapRenderer',
+          'sha256':
+              '321f334b2eeee0f1fa45d16f52117feb7ea765e17643b88c09a69285ada4bdef',
+        }
+      },
+    });
+    final fixture = await LiteralTileFixture.create(
+        scriptsBytes: scripts,
+        interpretationProfile: profile,
+        maps: [
+          LiteralFixtureMap(id: 1, layers: const [
+            [391, 144, 391],
+            [0, 0, 0],
+            [0, 0, 0],
+          ])
+        ]);
+    expect(fixture.source.canPlan, isFalse);
+    final base = await _invisibleBase(fixture);
+    expect(base.canWrite, isFalse);
+    await expectLater(
+        const SourceSemanticsProjector().project(
+            source: fixture.source,
+            base: base,
+            player: _playerForFixture(fixture),
+            files: fixture.files),
+        throwsA(isA<NativeWriteException>().having(
+            (error) => error.code, 'code', 'semantics.source.binding')));
+  },
+      skip: invisibleScriptsPath == null
+          ? 'Explicit attested renderer archive required'
+          : false);
+
   for (final priority in [1, 2]) {
     test('compact occlusion stays within each image budget priority $priority', () async {
       final fixture = await LiteralTileFixture.create(maps: [
@@ -485,6 +591,16 @@ void main() {
     expect(result.playableCertified, isFalse);
   });
 }
+
+Future<LiteralTileComposition> _invisibleBase(LiteralTileFixture fixture,
+        {int mapId = 1}) =>
+    const LiteralTileComposer().compose(
+        source: fixture.source,
+        files: fixture.files,
+        selectedSourceMapIds: [mapId],
+        projectName: 'Original empty autotile projection',
+        parentPath: '/private/tmp',
+        folderName: 'original-empty-autotile-projection');
 
 SourcePlayerCharacterImport _playerForFixture(LiteralTileFixture fixture) {
   final entries = fixture.snapshot.entries;

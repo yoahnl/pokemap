@@ -328,10 +328,15 @@ final class _UseEditor extends StatelessWidget {
                     .copyWith(
                       effect: effect,
                       target:
-                          effect is ProjectItemFullRestoreEffectDefinition
+                          effect is ProjectItemFullRestoreEffectDefinition ||
+                              effect is ProjectItemVitaminEffectDefinition ||
+                              effect
+                                  is ProjectItemBattleBoostEffectDefinition ||
+                              effect
+                                  is ProjectItemBattlePreparationEffectDefinition
                           ? ProjectItemTargetKind.partyMember
                           : effect is ProjectItemRepelEffectDefinition ||
-                              effect is ProjectItemFishingEffectDefinition
+                                effect is ProjectItemFishingEffectDefinition
                           ? ProjectItemTargetKind.world
                           : effect is ProjectItemRestorePpEffectDefinition
                           ? ProjectItemTargetKind.partyMove
@@ -523,6 +528,40 @@ List<(String, String)> _effectOptions(
           const ProjectItemEffectDefinition.repel(steps: 100),
           'Repousse pendant 100 pas',
         ),
+        for (final stat in ProjectItemVitaminStat.values)
+          (
+            ProjectItemEffectDefinition.vitamin(
+              stat: stat,
+              amount: 10,
+              maximumPerStat: 100,
+              friendshipGainLow: 5,
+              friendshipGainMedium: 3,
+              friendshipGainHigh: 2,
+            ),
+            'Vitamine — ${_trainingStatLabel(stat.name)} (+10 EV, plafond 100)',
+          ),
+        for (final stat in ProjectItemBattleStat.values)
+          for (final stages in [1, 2])
+            (
+              ProjectItemEffectDefinition.battleBoost(
+                stat: stat,
+                stages: stages,
+              ),
+              '${_trainingStatLabel(stat.name)} +$stages (combat)',
+            ),
+        (
+          const ProjectItemEffectDefinition.battlePreparation(
+            effect: ProjectItemBattlePreparationKind.focusEnergy,
+          ),
+          'Muscle + — augmente les critiques',
+        ),
+        (
+          const ProjectItemEffectDefinition.battlePreparation(
+            effect: ProjectItemBattlePreparationKind.mist,
+            turns: 5,
+          ),
+          'Défense Spéciale — Brume pendant 5 tours',
+        ),
         (
           const ProjectItemEffectDefinition.restorePp(
             mode: ProjectItemAmountMode.flat,
@@ -563,6 +602,17 @@ List<(String, String)> _effectOptions(
 String _effectIdentity(ProjectItemEffectDefinition effect) {
   return jsonEncode(effect.toJson());
 }
+
+String _trainingStatLabel(String stat) => switch (stat) {
+  'hp' => 'PV',
+  'attack' => 'Attaque',
+  'defense' => 'Défense',
+  'specialAttack' => 'Attaque Spéciale',
+  'specialDefense' => 'Défense Spéciale',
+  'speed' => 'Vitesse',
+  'accuracy' => 'Précision',
+  _ => stat,
+};
 
 ProjectItemEffectDefinition _decodeEffect(String identity) {
   return ProjectItemEffectDefinition.fromJson(

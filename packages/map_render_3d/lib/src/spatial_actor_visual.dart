@@ -55,6 +55,7 @@ final class SpatialActorVisual {
     required this.frame,
     this.width,
     this.height = 1.92,
+    this.billboardVerticalOffset = 0,
   }) : assert(width == null || width > 0),
        assert(height > 0);
   final double x, y, z;
@@ -62,6 +63,7 @@ final class SpatialActorVisual {
   final ui.Rect frame;
   final double? width;
   final double height;
+  final double billboardVerticalOffset;
   double get resolvedWidth => width ?? height * frame.width / frame.height;
 }
 
@@ -74,3 +76,10 @@ final class SpatialActorVisual {
   ),
   scale: Vector3(1, 1 / math.cos(camera.pitchDegrees * math.pi / 180), 1),
 );
+
+Vector3 spatialActorBillboardOffset({
+  required double verticalOffset,
+  required Quaternion rotation,
+  required Vector3 scale,
+}) => Matrix4.compose(Vector3.zero(), rotation, scale)
+    .transform3(Vector3(0, verticalOffset, 0));

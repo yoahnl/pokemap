@@ -917,7 +917,7 @@ final class ProjectSnapshotLoader {
       } else {
         final speciesIds = <String>{
           for (final table in manifest.encounterTables)
-            for (final entry in table.entries) entry.speciesId,
+            for (final entry in table.allEntries) entry.speciesId,
           for (final pokemon in manifest.newGame.initialParty)
             pokemon.speciesId,
           for (final starter in manifest.newGame.starterOptions)

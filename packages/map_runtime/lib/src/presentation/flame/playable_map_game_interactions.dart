@@ -178,6 +178,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       placedCooldownReady,
       _placedElementWarpTraversalController.isActive,
       _cachedNarrativeRuntimeSnapshot,
+      _localMinuteOfDay,
       includeHidden,
     );
     if (_interactionResolutionKey == key) return _cachedInteractionResolution;
@@ -486,6 +487,8 @@ extension _PlayableMapInteractions on PlayableMapGame {
           trainer: trainer,
           npc: entity.npc!,
           isDefeated: _storyBranching.isTrainerDefeated(_gameState, trainer.id),
+          battleAllowed: _isNpcTrainerBattleAllowed(entity),
+          nonBattleDialogue: dialogue,
         );
         return (
           jsonEncode([

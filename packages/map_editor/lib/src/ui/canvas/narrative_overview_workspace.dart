@@ -8,6 +8,8 @@ import '../design_system/design_system.dart';
 import 'narrative_overview_empty_states.dart';
 import 'narrative_overview_structure_inspector.dart';
 import 'new_game/project_new_game_configuration_sheet.dart';
+import 'new_game/contact_device_configuration_sheet.dart';
+import 'new_game/party_companion_configuration_sheet.dart';
 import 'new_game/project_defeat_recovery_configuration_sheet.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
@@ -51,6 +53,12 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
       actions: overview == null
           ? const <Widget>[]
           : <Widget>[
+              PokeMapButton(key: const Key('party-companion-launcher'),
+                onPressed: () => showPokeMapDesktopSideSheet<void>(context: context, title: 'Compagnon d’équipe',
+                  semanticLabel: 'Configuration du compagnon d’équipe', width: 560,
+                  builder: (_) => const PartyCompanionConfigurationSheet()),
+                variant: PokeMapButtonVariant.secondary, size: PokeMapButtonSize.compact,
+                leading: const Icon(CupertinoIcons.paw), child: const Text('Compagnon')),
               PokeMapButton(
                 key: projectDefeatRecoveryLauncherKey,
                 onPressed: () => showPokeMapDesktopSideSheet<void>(
@@ -64,6 +72,14 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
                 size: PokeMapButtonSize.compact,
                 leading: const Icon(CupertinoIcons.arrow_uturn_left),
                 child: const Text('Après une défaite'),
+              ),
+              PokeMapButton(
+                key: const Key('contact-device-launcher'),
+                onPressed: () => showPokeMapDesktopSideSheet<void>(context: context, title: 'Appareil de contacts', semanticLabel: 'Configuration de l’appareil de contacts', width: 560, builder: (_) => const ContactDeviceConfigurationSheet()),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.compact,
+                leading: const Icon(CupertinoIcons.person_2),
+                child: const Text('Contacts'),
               ),
               PokeMapButton(
                 key: projectNewGameConfigurationLauncherKey,

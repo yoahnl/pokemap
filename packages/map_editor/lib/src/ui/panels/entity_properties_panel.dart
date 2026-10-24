@@ -97,6 +97,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   MapEntityRuntimePredicateKind _npcVisPredicateKind =
       MapEntityRuntimePredicateKind.storyFlagSet;
   String _npcVisRefMenuId = kNpcRuntimeRefNoneMenuId;
+  LocalTimeWindow? _npcVisTimeWindow;
+  int? _npcVisMinimumCount;
   final List<_NpcConditionalDialogueRowDraft> _npcCondRows = [];
 
   final _signTitle = TextEditingController();
@@ -558,6 +560,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     final vis = parseVisibilityRuleFromNpc(n);
     _npcVisUiMode = vis.mode;
     _npcVisPredicateKind = vis.kind;
+    _npcVisTimeWindow = vis.timeWindow;
+    _npcVisMinimumCount = vis.minimumCount;
     _npcVisRefMenuId = vis.refId.trim().isEmpty
         ? kNpcRuntimeRefNoneMenuId
         : vis.refId.trim();
@@ -612,6 +616,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         return const [];
       }
       return switch (k) {
+        MapEntityRuntimePredicateKind.partyUsableCountAtLeast || MapEntityRuntimePredicateKind.localTimeWindow => const [],
         MapEntityRuntimePredicateKind.badgeOwned ||
         MapEntityRuntimePredicateKind.badgeNotOwned => catalog.badges,
         MapEntityRuntimePredicateKind.storyFlagSet ||
@@ -728,6 +733,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         const SizedBox(height: 8),
         Builder(
           builder: (context) {
+            if (_npcVisPredicateKind ==
+                MapEntityRuntimePredicateKind.localTimeWindow) {
+              return _preservedNpcTimeWindow(_npcVisTimeWindow, accent);
+            }
+            if (_npcVisPredicateKind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast) return Text('Au moins ${_npcVisMinimumCount ?? 0} Pokémon aptes au combat');
             final opts = optionsForPredicateKind(_npcVisPredicateKind);
             final ids = mergeRuntimeRefMenuIds(opts, _npcVisRefMenuId);
             final noneL = _l('Choisir…', 'Choose…');
@@ -782,6 +792,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           },
         ),
         if (catalog != null &&
+            _npcVisPredicateKind != MapEntityRuntimePredicateKind.localTimeWindow &&
             optionsForPredicateKind(_npcVisPredicateKind).isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -858,6 +869,18 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     ];
   }
 
+  Widget _preservedNpcTimeWindow(LocalTimeWindow? window, Color accent) {
+    String time(int minute) =>
+        '${(minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}';
+    final label = window == null
+        ? _l('Plage horaire manquante', 'Missing time window')
+        : '${time(window.startMinute)} – ${time(window.endMinute)}';
+    return InspectorEmbeddedFootnote(
+      text: _l('Plage horaire conservée : $label', 'Preserved time window: $label'),
+      accent: accent,
+    );
+  }
+
   Widget _buildNpcConditionalDialogueRow(
     BuildContext context, {
     required int index,
@@ -872,6 +895,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         return const [];
       }
       return switch (k) {
+        MapEntityRuntimePredicateKind.partyUsableCountAtLeast || MapEntityRuntimePredicateKind.localTimeWindow => const [],
         MapEntityRuntimePredicateKind.badgeOwned ||
         MapEntityRuntimePredicateKind.badgeNotOwned => catalog.badges,
         MapEntityRuntimePredicateKind.storyFlagSet ||
@@ -958,7 +982,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   ),
                 ),
               const SizedBox(height: 6),
-              if (widget.embedded)
+              if (row.conditionKind == MapEntityRuntimePredicateKind.localTimeWindow)
+                _preservedNpcTimeWindow(row.timeWindow, accent)
+              else if (row.conditionKind == MapEntityRuntimePredicateKind.partyUsableCountAtLeast)
+                Text('Au moins ${row.minimumCount ?? 0} Pokémon aptes au combat')
+              else if (widget.embedded)
                 InspectorEmbeddedDropdown(
                   accent: accent,
                   fieldLabel: _l('Cible', 'Target'),
@@ -2348,6 +2376,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         final visErr = validateNpcVisibilityDraft(
           uiMode: _npcVisUiMode,
           refMenuId: _npcVisRefMenuId,
+          predicateKind: _npcVisPredicateKind,
+          timeWindow: _npcVisTimeWindow,
+          minimumCount: _npcVisMinimumCount,
         );
         if (visErr != null) {
           if (!context.mounted) {
@@ -2364,6 +2395,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
               )
               .toList(growable: false),
           dialogueNoneId: _kDialogueNoneMenuId,
+          predicateKinds: _npcCondRows.map((row) => row.conditionKind).toList(),
+          timeWindows: _npcCondRows.map((row) => row.timeWindow).toList(),
+          minimumCounts: _npcCondRows.map((row) => row.minimumCount).toList(),
         );
         if (condErr != null) {
           if (!context.mounted) {
@@ -2376,6 +2410,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           uiMode: _npcVisUiMode,
           predicateKind: _npcVisPredicateKind,
           refMenuId: _npcVisRefMenuId,
+          timeWindow: _npcVisTimeWindow,
+          minimumCount: _npcVisMinimumCount,
         );
         final conditionalDialogues = <MapEntityConditionalDialogue>[];
         for (final row in _npcCondRows) {
@@ -2383,6 +2419,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           final built = buildConditionalDialogueRowForSave(
             conditionKind: row.conditionKind,
             refMenuId: row.refMenuId,
+            timeWindow: row.timeWindow,
+            minimumCount: row.minimumCount,
+            scriptPathRelative: dlgMenu == row.originalDialogue?.dialogueId
+                ? row.originalDialogue!.scriptPathRelative
+                : '',
             dialogueId: dlgMenu == _kDialogueNoneMenuId ? '' : dlgMenu,
             startNode: row.startNode.text.trim().isEmpty
                 ? null
@@ -2393,7 +2434,14 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           }
         }
 
-        npcPayload = MapEntityNpcData(
+        final originalNpc =
+            notifier.getSelectedEntity()?.npc ?? const MapEntityNpcData();
+        npcPayload = originalNpc.copyWith(
+          trainerBattleReadyWhen: trainerId == null ? null : originalNpc.trainerBattleReadyWhen,
+          trainerBattleNotReadyDialogue: trainerId == null ? null : originalNpc.trainerBattleNotReadyDialogue,
+          trainerBattleWhen: trainerId == null
+              ? null
+              : originalNpc.trainerBattleWhen,
           displayName: _nameController.text.trim(),
           dialogue: npcDlg,
           facing: _npcFacing,

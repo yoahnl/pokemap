@@ -166,8 +166,30 @@ void main() {
     },
   );
 
+  test('ineligible timed variants refuse fishing without RNG or consumption', () async {
+    final mounted = await mountFishing(
+      encounterVariants: const [ProjectEncounterVariant(id: 'morning', name: 'Morning',
+        timeWindows: [LocalTimeWindow(startMinute: 240, endMinute: 600)],
+        entries: [ProjectEncounterEntry(speciesId: 'sparkitten', minLevel: 5, maxLevel: 5)])],
+      encounterClock: () => DateTime(2026, 1, 1, 22),
+    );
+    final result = await mounted.controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'));
+    expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(mounted.random.doubleCalls, 0);
+    expect(mounted.game.fishingPhase, isNull);
+    expect(mounted.game.debugPendingBattleRequest, isNull);
+    expect(mounted.game.gameStateSnapshot.bag, mounted.initial.bag);
+    expect(mounted.game.gameStateSnapshot.repelState, mounted.initial.repelState);
+  });
+
   test('fishing hands the real front-water encounter to the native battle queue once', () async {
-    final mounted = await mountFishing(battleData: true);
+    final mounted = await mountFishing(battleData: true,
+      encounterVariants: const [ProjectEncounterVariant(id: 'morning', name: 'Morning',
+        timeWindows: [LocalTimeWindow(startMinute: 240, endMinute: 600)],
+        entries: [ProjectEncounterEntry(speciesId: 'sparkitten', minLevel: 5, maxLevel: 5)])],
+      encounterClock: () => DateTime(2026, 1, 1, 6),
+    );
     final game = mounted.game;
     await mounted.controller.useBagItemOutsideBattle(
       const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'),
@@ -184,6 +206,7 @@ void main() {
     expect(request, isA<WildBattleStartRequest>());
     final wild = request! as WildBattleStartRequest;
     expect(wild.encounterKind, EncounterKind.oldRod);
+    expect(wild.encounterVariantId, 'morning');
     expect(wild.returnContext.playerPos, mounted.initial.playerPosition);
     expect(wild.playerPos, mounted.initial.playerPosition);
     expect(wild.generatedPokemon, isNotNull);
@@ -304,6 +327,8 @@ Future<
 >
 mountFishing({
   double chance = 1,
+  List<ProjectEncounterVariant>? encounterVariants,
+  DateTime Function()? encounterClock,
   bool water = true,
   bool battleData = false,
   MovementMode initialMode = MovementMode.walk,
@@ -381,7 +406,8 @@ mountFishing({
                 name: 'Rod',
                 encounterKind: EncounterKind.oldRod,
                 chancePerStep: chance,
-                entries: const [
+                variants: encounterVariants ?? const [],
+                entries: encounterVariants != null ? const [] : const [
                   ProjectEncounterEntry(
                     speciesId: 'sparkitten',
                     minLevel: 5,
@@ -424,6 +450,7 @@ mountFishing({
     initialMapActivationReason: MapActivationReason.saveRestore,
     overworldCheckpointWriter: checkpoint,
     encounterRandom: random,
+    encounterClock: encounterClock,
   );
   final controller = PlayerServiceRuntimeController.contextual(
     currentGameState: () => game.playerServiceGameStateSnapshot,
@@ -456,6 +483,7 @@ class _FishingGame extends PlayableMapGame {
     super.initialMapActivationReason,
     super.overworldCheckpointWriter,
     super.encounterRandom,
+    super.encounterClock,
   });
   @override
   bool get isLoaded => true;

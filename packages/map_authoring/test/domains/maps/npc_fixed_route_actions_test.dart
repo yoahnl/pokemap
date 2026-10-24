@@ -7,13 +7,22 @@ import 'package:test/test.dart';
 import 'map_catalog_fixture.dart';
 
 void main() {
+  test('canonical action stores fixed bounds and random pause choices', () {
+    final next = _build(_map(), {..._parameters(),
+      'pauseDurationsMs': [533, 1067, 1600, 2133],
+      'movementArea': {'pos': {'x': 1, 'y': 0}, 'size': {'width': 3, 'height': 3}},
+    });
+    final movement = next.entities.single.npc!.movement;
+    expect(movement.pauseDurationsMs, [533, 1067, 1600, 2133]);
+    expect(movement.movementArea, const MapRect(pos: GridPos(x: 1, y: 0), size: GridSize(width: 3, height: 3)));
+  });
   test('movement action describes closed native fixed-route semantics', () {
     final descriptor = EntityActions.descriptors
         .singleWhere((action) => action.id == 'npc.set_movement_mode');
     final movement = descriptor.extensions['npcMovement'] as Map;
     expect(movement['modes'], contains('fixedRoute'));
     expect(movement['fixedRoute'], {
-      'mapMode': '2d',
+      'mapMode': '2d_and_3d',
       'stepKinds': ['move', 'face', 'randomFacing', 'randomMove'],
       'directions': ['north', 'south', 'east', 'west'],
       'maximumSteps': 256,
@@ -78,17 +87,16 @@ void main() {
     expect(() => route.add(const GridPos(x: 1, y: 1)), throwsUnsupportedError);
   });
 
-  test('typed fixed route refuses 3D before changing map data', () {
+  test('typed fixed route supports 3D without changing source map data', () {
     final map = _map();
     final spatial = map.copyWith(
         spatialScene: MapSpatialScene(
             width: map.size.width,
             depth: map.size.height,
             heightLevels: List.filled(map.size.width * map.size.height, 0)));
-    expect(
-        () => const EntityActions().setMovementConfiguration(spatial,
-            entityId: 'actor', movement: _movement()),
-        throwsA(isA<MapAuthoringException>()));
+    final next = const EntityActions().setMovementConfiguration(spatial,
+            entityId: 'actor', movement: _movement());
+    expect(next.entities.single.npc!.movement, _movement());
     expect(spatial.entities.single.npc!.movement.mode,
         MapEntityNpcMovementMode.patrol);
   });

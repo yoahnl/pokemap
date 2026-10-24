@@ -7,6 +7,12 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('project rename cites four dedicated transport proofs', () {
+      final evidence = AuthoringFullParityCatalog.canonical()
+          .requireMutationAction('project.rename');
+      expect(evidence.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
+      expect(evidence.contractTestPath, 'test/domains/project/project_identity_actions_test.dart');
+    });
     test('foreground Border action cites its four focused transport proofs', () {
       final evidence = AuthoringFullParityCatalog.canonical()
           .requireMutationAction('border_layer.set_foreground');

@@ -339,6 +339,7 @@ bool _isRuntimeSection(PlayerPauseAction action) => switch (action) {
       PlayerPauseAction.pokedex ||
       PlayerPauseAction.map ||
       PlayerPauseAction.quests ||
+      PlayerPauseAction.contacts ||
       PlayerPauseAction.profile ||
       PlayerPauseAction.options =>
         true,
@@ -355,6 +356,7 @@ RuntimePlayerPauseSection _sectionFor(PlayerPauseAction action) =>
       PlayerPauseAction.pokedex => RuntimePlayerPauseSection.pokedex,
       PlayerPauseAction.map => RuntimePlayerPauseSection.map,
       PlayerPauseAction.quests => RuntimePlayerPauseSection.quests,
+      PlayerPauseAction.contacts => RuntimePlayerPauseSection.contacts,
       PlayerPauseAction.profile => RuntimePlayerPauseSection.profile,
       PlayerPauseAction.options => RuntimePlayerPauseSection.options,
       PlayerPauseAction.resume ||
@@ -370,6 +372,7 @@ RuntimePlayerAction _runtimeActionFor(RuntimePlayerPauseSection section) =>
       RuntimePlayerPauseSection.pokedex => RuntimePlayerAction.openPokedex,
       RuntimePlayerPauseSection.map => RuntimePlayerAction.openMap,
       RuntimePlayerPauseSection.quests => RuntimePlayerAction.openQuests,
+      RuntimePlayerPauseSection.contacts => RuntimePlayerAction.openContacts,
       RuntimePlayerPauseSection.profile => RuntimePlayerAction.openProfile,
       RuntimePlayerPauseSection.options => RuntimePlayerAction.openOptions,
       RuntimePlayerPauseSection.root => throw StateError(
@@ -384,6 +387,7 @@ ProjectPresentationSurfaceRole _surfaceRoleFor(PlayerPauseAction action) =>
       PlayerPauseAction.pokedex => ProjectPresentationSurfaceRole.pokedex,
       PlayerPauseAction.map => ProjectPresentationSurfaceRole.map,
       PlayerPauseAction.quests => ProjectPresentationSurfaceRole.pauseMenu,
+      PlayerPauseAction.contacts => ProjectPresentationSurfaceRole.pauseMenu,
       PlayerPauseAction.profile => ProjectPresentationSurfaceRole.pauseMenu,
       PlayerPauseAction.options => ProjectPresentationSurfaceRole.options,
       PlayerPauseAction.resume ||

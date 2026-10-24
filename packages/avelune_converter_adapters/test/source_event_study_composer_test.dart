@@ -15,6 +15,56 @@ import 'support/declared_program_fixture.dart';
 
 void main() {
   final scriptsPath = Platform.environment['AVELUNE_AC13_SOURCE_SCRIPTS'];
+  final caseEnginePath = Platform.environment['AVELUNE_CHARACTER_CASE_ENGINE'];
+
+  test('character case alias remains bound through canonical event composition', () async {
+    final fixture = await LiteralTileFixture.create(
+        interpretationProfile: fixtureSourceInterpretationProfile,
+        scriptsBytes: syntheticInterpretationArchive, includeEventSystem: true,
+        extraFiles: {
+          'Game.exe': await File(caseEnginePath!).readAsBytes(),
+          'PBS/metadata.txt': utf8.encode('[1]\nWalkCharset = OriginalPlayer\n'),
+          'Graphics/Characters/OriginalPlayer.png': image.encodePng(
+              image.Image(width: 128, height: 192, numChannels: 4)),
+          'Graphics/Characters/npc_Original.png': image.encodePng(
+              image.Image(width: 128, height: 192, numChannels: 4)),
+        }, maps: [LiteralFixtureMap(id: 1, width: 3, height: 3, layers: [
+          List.filled(9, 384), List.filled(9, 0), List.filled(9, 0),
+        ], events: [
+          for (final (index, charset) in ['NPC_Original', 'npc_Original'].indexed)
+            LiteralFixtureEvent(id: index + 1, x: index + 1, y: 1, pages: [
+              LiteralFixtureEventPage(characterName: charset, commands: const []),
+            ]),
+        ])]);
+    final literal = await const LiteralTileComposer().compose(
+        source: fixture.source, files: fixture.files, selectedSourceMapIds: [1],
+        projectName: 'Original character case', parentPath: '/private/tmp',
+        folderName: 'unused-character-case');
+    final semantic = (await const SourceSemanticStudyComposer().compose(
+        source: fixture.source, base: literal, files: fixture.files))!;
+    final result = (await const SourceEventStudyComposer().compose(
+        source: fixture.source, base: semantic, files: fixture.files))!;
+    final projection = result.projection.semanticEvidence;
+    expect(projection['qualifiedEventCount'], 2);
+    expect((projection['events'] as List).cast<Map>()
+        .every((event) => (event['gaps'] as List).isEmpty), isTrue);
+    final evidence = result.draft.compositionEvidence['sourceEvents'] as Map;
+    final characters = (evidence['characters'] as List).cast<Map>().toList();
+    expect(characters, hasLength(2));
+    expect(characters.map((character) =>
+        jsonDecode(character['bindingKey'] as String)['characterName']),
+        unorderedEquals(['NPC_Original', 'npc_Original']));
+    expect(characters.map((character) => character['characterId']).toSet(), hasLength(1));
+    final character = characters.singleWhere((character) =>
+        character['requestedGraphic'] == 'NPC_Original');
+    expect(character['status'], 'imported');
+    expect(jsonDecode(character['bindingKey'] as String)['characterName'], 'NPC_Original');
+    expect((character['imageFile'] as Map)['relativePath'],
+        'Graphics/Characters/npc_Original.png');
+    expect((character['sourcePresentation'] as Map)['actualCharsetName'], 'npc_Original');
+    expect((character['sourcePresentation'] as Map)['sourceVisualParity'], isTrue);
+    expect(character.containsKey('visualAdaptation'), isFalse);
+  }, skip: caseEnginePath == null ? 'Explicit attested Windows engine required' : false);
 
   test('shared native catalog preserves independent trade composition', () async {
     final binding = (fixtureSourceInterpretationProfile.toJson()['declaredPrograms']

@@ -33,6 +33,7 @@ WildBattleStartRequest buildBattleStartRequestFromEncounter({
     weight: encounter.weight,
     playerPos: encounter.playerPos,
     generationSeed: encounter.generationSeed,
+    encounterVariantId: encounter.variantId,
     pokemonOverrides: encounter.pokemonOverrides,
     encounterSourceSnapshot: encounterSourceSnapshot,
   );

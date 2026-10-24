@@ -110,7 +110,8 @@ Future<CanonicalBorderSnapshotPreparation> prepareResourcePackElementSource(
             dstX: slice.destinationRect.x - visual.bounds.x,
             dstY: slice.destinationRect.y - visual.bounds.y,
             dstW: slice.destinationRect.width,
-            dstH: slice.destinationRect.height);
+            dstH: slice.destinationRect.height,
+            blend: img.BlendMode.direct);
       }
       frames.add(CanonicalBorderSourceFrame(
           sourceProjectRelativePath: tileset.relativePath,

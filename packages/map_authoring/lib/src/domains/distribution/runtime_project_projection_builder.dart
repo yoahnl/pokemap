@@ -855,7 +855,8 @@ final class RuntimeProjectProjectionBuilder {
               .decodeUtf8(payload['project/${entry.relativePath}']!)
       ]);
       GamePackageSpatialProjectValidator(gameplay: gameplay)
-          .validate(projectedProject, (path) => payload[path]);
+          .validate(projectedProject, (path) => payload[path],
+              payloadPaths: payload.keys);
     }
     await catalogReader?.read((_) async {});
     return RuntimeProjectProjection(

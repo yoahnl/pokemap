@@ -28,6 +28,7 @@ void main() {
       sourceId: 'smart_tile_layer:grass_north',
       sourceKind: EncounterSourceKind.smartTileLayer,
       tableId: 'grass_north',
+      variantId: 'morning',
       encounterKind: EncounterKind.walk,
       speciesId: 'sproutle',
       level: 5,
@@ -52,6 +53,9 @@ void main() {
       createdAtEpochMs: 42,
     );
 
+    expect(request.encounterVariantId, 'morning');
+    expect(request.toJson()['encounterVariantId'], 'morning');
+    expect(request.withGeneratedPokemon(pokemon: const PlayerPokemon(speciesId: 'sproutle', natureId: 'hardy', abilityId: 'test'), profileId: 'test', schemaVersion: 1).encounterVariantId, 'morning');
     expect(request.encounterSourceId, 'smart_tile_layer:grass_north');
     expect(request.encounterSourceKind, EncounterSourceKind.smartTileLayer);
     expect(request.source, RuntimeBattleSourceKind.wildEncounter);

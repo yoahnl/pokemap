@@ -316,6 +316,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
   party: json['party'] == null
       ? const PlayerParty()
       : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
+  completionPartyJournal: json['completionPartyJournal'] == null
+      ? const GameCompletionPartyJournal.empty()
+      : GameCompletionPartyJournal.fromJson(
+          json['completionPartyJournal'] as Map<String, dynamic>,
+        ),
   pokemonStorage: json['pokemonStorage'] == null
       ? const PokemonStorage()
       : PokemonStorage.fromJson(json['pokemonStorage'] as Map<String, dynamic>),
@@ -396,6 +401,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,
   'playerMovementMode': _$MovementModeEnumMap[instance.playerMovementMode]!,
   'party': instance.party.toJson(),
+  'completionPartyJournal': instance.completionPartyJournal.toJson(),
   'pokemonStorage': instance.pokemonStorage.toJson(),
   'trainerProfile': instance.trainerProfile.toJson(),
   'bag': instance.bag.toJson(),

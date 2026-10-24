@@ -18,7 +18,9 @@ class AdaptiveCamera3D extends CameraComponent3D {
     final aspect = viewportAspectRatio.isFinite && viewportAspectRatio > 0
         ? viewportAspectRatio
         : 1.0;
-    final framedDistance = distance / math.min(1.0, aspect);
+    final framedDistance = projection == CameraProjection.orthographic
+        ? distance
+        : distance / math.min(1.0, aspect);
     target.setFrom(center);
     position.setValues(
       center.x + framedDistance * math.cos(pitch) * math.sin(yaw),
@@ -34,6 +36,26 @@ class AdaptiveCamera3D extends CameraComponent3D {
     final near = math.max(0.001, distance * .02);
     final size = viewport.virtualSize;
     final aspect = size.y > 0 ? size.x / size.y : 1.0;
-    return _projection..setAsPerspective(fovY, aspect, near, far);
+    return switch (projection) {
+      CameraProjection.perspective =>
+        _projection..setAsPerspective(fovY, aspect, near, far),
+      CameraProjection.orthographic => _orthographicProjection(
+        aspect,
+        near,
+        far,
+      ),
+    };
+  }
+
+  Matrix4 _orthographicProjection(double aspect, double near, double far) {
+    _projection.setAsOrthographic(fovY, aspect, near, far);
+    for (var column = 0; column < 4; column++) {
+      _projection.setEntry(
+        2,
+        column,
+        (_projection.entry(2, column) + _projection.entry(3, column)) / 2,
+      );
+    }
+    return _projection;
   }
 }

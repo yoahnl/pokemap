@@ -378,6 +378,21 @@ final class PokemonCatalogActions {
           );
     final resourceId =
         deleting ? _string(parameters, 'resourceId') : document!.identity;
+    if (kind == PokemonDocumentKind.species) {
+      final companionForms = context.snapshot.manifest.partyCompanion.mappings
+          .where((mapping) => mapping.speciesId == resourceId)
+          .map((mapping) => mapping.formId)
+          .toSet();
+      if (companionForms.isNotEmpty) {
+        final forms = document?.toJson()['forms'];
+        if (deleting ||
+            forms is! Map ||
+            companionForms.any((formId) => forms['formId'] != formId)) {
+          throw const FormatException(
+              'Remove the companion visual mapping before deleting its species or changing its form.');
+        }
+      }
+    }
     if (!deleting &&
         kind == PokemonDocumentKind.catalog &&
         ((resourceId == 'items') != isItemCatalog)) {

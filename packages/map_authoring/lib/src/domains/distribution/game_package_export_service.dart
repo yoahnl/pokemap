@@ -186,6 +186,7 @@ final class CanonicalGamePackageExportService {
         );
       }
       var animatedDecor = false;
+      var orthographicCamera = false;
       var spatialGameplay = false;
       var spatialStory = false;
       var customTerrainAppearance = false;
@@ -217,6 +218,7 @@ final class CanonicalGamePackageExportService {
           fractionalRamps |= map.spatialScene!.navigation.ramps
               .any((ramp) => ramp.hasFractionalLevels);
           modelClips |= map.spatialScene!.instances.any((instance) => instance.clip != null);
+          orthographicCamera |= map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic;
           animatedDecor |= SpatialGameplayCapabilities.requiresModelAnimation(
               projection.project,
               maps: [map]);
@@ -227,6 +229,8 @@ final class CanonicalGamePackageExportService {
       }
       final requiredCapabilities = <String>{
         ...profile.requiredCapabilities,
+        if (GameCompletionPartyCapabilities.requiresCapability(projection.project))
+          GameCompletionPartyCapabilities.capabilityId,
         if (projection.project.maps.isNotEmpty)
           projection.project.settings.dimension == ProjectDimension.threeD
               ? 'map3d@1'
@@ -238,6 +242,10 @@ final class CanonicalGamePackageExportService {
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
+        if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
+        if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
+        if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
+        if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,
       }.toList(growable: false)
         ..sort();
       final emptyContent = GamePackageContent(
@@ -266,7 +274,7 @@ final class CanonicalGamePackageExportService {
           minHubVersion: Version.parse('0.1.0'),
           runtimeApiExpression: '>=1.0.0 <2.0.0',
           projectFormat: projection.project.version.name,
-          saveFormat: 1,
+          saveFormat: SaveEnvelopeCodec.currentSaveFormat,
           compatibilityId: 'main',
           requiredCapabilities: requiredCapabilities,
         ),
@@ -420,6 +428,7 @@ final class CanonicalGamePackageExportService {
           hubVersion: Version.parse('1.2.0'),
           runtimeApiVersion: Version.parse('1.4.0'),
           capabilities: const <String>{
+            GameCompletionPartyCapabilities.capabilityId,
             'catalog.partitioned@2',
             'dialogue.choices@1',
             'map@1',
@@ -431,12 +440,16 @@ final class CanonicalGamePackageExportService {
             SpatialModelClipCapabilities.capabilityId,
             SpatialGameplayCapabilities.capabilityId,
             SpatialGameplayCapabilities.storyCapabilityId,
+            SpatialGameplayCapabilities.companionCapabilityId,
+            SpatialCameraProfile.orthographicCapabilityId,
+            ProjectContactDeviceConfig.capabilityId,
+            SpatialGameplayCapabilities.audioCapabilityId,
             'overworld.menu@1',
             'world.shop@1',
           },
           supportedProjectFormats: <String>{projection.project.version.name},
           currentProjectFormat: projection.project.version.name,
-          supportedSaveFormats: const <int>{1},
+          supportedSaveFormats: const <int>{SaveEnvelopeCodec.currentSaveFormat},
         ),
       );
       final inspection = inspector.inspect(built.packageBytes);

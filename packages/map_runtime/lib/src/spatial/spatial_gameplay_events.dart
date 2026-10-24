@@ -160,7 +160,7 @@ final class SpatialGameplayEvents {
       );
     }
     return SpatialGameplayEvents._(
-      project: project,
+      project: snapshot.project,
       currentModelDefinitions: currentModelDefinitions,
       mapsById: maps,
       narrativeSnapshot: snapshot,
@@ -222,6 +222,32 @@ final class SpatialGameplayEvents {
   List<NarrativeOutcomeRef>? _sceneBattleOutcomes;
 
   bool get isBusy => _pendingOperations > 0;
+
+  Future<bool> callContact(String contactId) async {
+    if (!_available || isBusy || !_canProcessInput()) return false;
+    return await _run<bool>(() async {
+      final sceneId = ContactDeviceAccess.resolve(project: project, state: _readGameState()).sceneForContact(contactId);
+      final executionId = _runtimeIdFactory('evx');
+      final updated = await _transactions.transact<GameState>((_) async {
+        final result = await _executeScene(NarrativeSceneExecutionRequest(eventId: _runtimeIdFactory('evt'), sceneId: sceneId, executionId: executionId, gameState: _readGameState()));
+        _ensureCurrent();
+        if (result is NarrativeSceneExecutionFailed) throw StateError('Contact conversation failed: ${result.failure}');
+        if (result is! NarrativeSceneExecutionCompleted) throw const _SpatialGameplayCancelled();
+        if (result.gameCompletion != null) throw StateError('Contact conversations cannot finish the game.');
+        final progress = result.updatedGameState.narrativeEventProgress;
+        final state = result.updatedGameState.copyWith(narrativeEventProgress: progress.copyWith(pendingNarrativeOutcomeDeliveries: [
+          ...progress.pendingNarrativeOutcomeDeliveries,
+          for (final outcome in result.qualifiedOutcomes)
+            NarrativeOutcomeDelivery(deliveryId: _runtimeIdFactory('outd'), outcome: outcome, causationExecutionId: executionId, rootCorrelationId: _runtimeIdFactory('corr'), depth: 0, attemptCount: 0),
+        ]));
+        return NarrativeEventStateTransaction.commit(state, state);
+      });
+      _ensureCurrent();
+      _commit(updated);
+      await _settle();
+      return true;
+    }) ?? false;
+  }
   GameState? get projectedSceneGameState => _sceneStateProjection?.call();
   bool get _available => !_disposed && _isActive();
   bool get _currentOperation =>
@@ -256,7 +282,12 @@ final class SpatialGameplayEvents {
       final result = await _mapEnter.dispatchCompletedActivation(activation);
       if (!_currentOperation) return;
       if (result is MapEnterProductionDispatchFailed) {
-        throw StateError('Map enter failed: ${result.failure}');
+        final failure = result.failure;
+        if (failure is NarrativeEventExecutionFailure) {
+          Error.throwWithStackTrace(StateError('Map enter failed (${failure.kind.name}): ${failure.cause}'),
+              failure.stackTrace ?? StackTrace.current);
+        }
+        throw StateError('Map enter failed: $failure');
       }
       if (result is MapEnterProductionDispatchAuthorityBlocked) {
         throw StateError(
@@ -401,6 +432,7 @@ final class SpatialGameplayEvents {
     return findSpatialModelInteraction(
       scene: map.spatialScene!,
       models: currentModelDefinitions?.call() ?? project.models3d,
+      modelStateProvider: (id) => state.spatialWorldState.modelState(map.id, id),
       instances: map.spatialScene!.instances.where(
         (instance) => ids.contains(instance.id),
       ),
@@ -712,7 +744,12 @@ final class SpatialGameplayEvents {
       );
       _ensureCurrent();
       if (result is NarrativeSpatialProductionDispatchFailed) {
-        throw StateError('Spatial event failed: ${result.failure}');
+        final failure = result.failure;
+        if (failure is NarrativeEventExecutionFailure) {
+          Error.throwWithStackTrace(StateError('Spatial event failed (${failure.kind.name}): ${failure.cause}'),
+              failure.stackTrace ?? StackTrace.current);
+        }
+        throw StateError('Spatial event failed: $failure');
       }
       if (result is NarrativeSpatialProductionDispatchAuthorityBlocked) {
         throw StateError(
@@ -902,6 +939,16 @@ final class SpatialGameplayEvents {
     await _drainOutcomes();
     _ensureCurrent();
     await _flushHostEffects();
+    final state = _readGameState();
+    if (_activation?.mapId == state.currentMapId &&
+        _lastCell != state.playerPosition) {
+      _lastCell = state.playerPosition;
+      _occupiedTriggers = resolveNarrativeTriggerEnterFronts(
+        map: _map,
+        currentPosition: state.playerPosition,
+        previousOccupiedTriggerIds: null,
+      ).currentOccupiedTriggerIds;
+    }
   }
 
   Future<void> _flushHostEffects() async {

@@ -26,6 +26,7 @@ import '../presentation/flame/flame_narrative_sound_playback_adapter.dart';
 import '../player/runtime_music_service.dart';
 import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
+import 'spatial_cinematic_emote_visuals.dart';
 import 'spatial_smart_tile_animation_controller.dart';
 
 final class SpatialExplorationSession {
@@ -149,13 +150,92 @@ final class SpatialExplorationSession {
   SpatialWorldState Function()? worldStateProvider;
   SpatialCinematicActorPose? Function()? heroStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcStoryPose;
+  SpatialCinematicActorPose? Function(MapEntity)? npcAutonomousPose;
   SpatialCinematicCameraPose? Function()? storyCamera;
-  VoidCallback? onCancelStory, onSkipStory;
+  VoidCallback? onCancelStory, onSkipStory, onBeforeMapChange;
   final storyActive = ValueNotifier(false);
   bool storyInputLocked = false;
+  final _companionTrail = PartyCompanionTrail();
+  ProjectCharacterEntry? _companionCharacter;
+
+  PartyCompanionTrailPoint? get companionPosition => _companionTrail.position;
+  String? get companionCharacterId => _companionCharacter?.id;
+
+  void _updateCompanion(double dt) {
+    final config = bundle.manifest.partyCompanion;
+    final state = presentationStateProvider?.call();
+    final lead = state?.party.members
+        .where((pokemon) => !pokemon.isFainted)
+        .firstOrNull;
+    final visual = lead == null
+        ? null
+        : config.resolve(lead.speciesId, lead.formId);
+    if (!config.enabled ||
+        visual == null ||
+        storyActive.value ||
+        storyInputLocked ||
+        transitioning.value) {
+      _companionTrail.clear();
+      _companionCharacter = null;
+      return;
+    }
+    _companionCharacter = bundle.manifest.characters
+        .where((actor) => actor.id == visual.characterId)
+        .firstOrNull;
+    _companionTrail.observe(
+      mapId: bundle.map.id,
+      individualId: lead!.individualId,
+      x: movement.x,
+      z: movement.z,
+      dt: dt,
+      paused: presentationPaused || interactionActive.value,
+      canTraverse: (fromX, fromZ, toX, toZ) =>
+          movement.canTraverseActor(fromX, fromZ, toX, toZ),
+    );
+  }
+
+  SpatialActorVisual? _companionFrame() {
+    final actor = _companionCharacter;
+    final position = _companionTrail.position;
+    if (actor == null || position == null) return null;
+    final facing = _companionTrail.facingX.abs() > _companionTrail.facingZ.abs()
+        ? (_companionTrail.facingX > 0 ? EntityFacing.east : EntityFacing.west)
+        : (_companionTrail.facingZ < 0 ? EntityFacing.north : EntityFacing.south);
+    final motion = _companionTrail.moving
+        ? CharacterAnimationState.walk
+        : CharacterAnimationState.idle;
+    final animation = actor.animations
+            .where((value) => value.direction == facing && value.state == motion)
+            .firstOrNull ??
+        actor.animations.firstWhere((value) =>
+            value.direction == facing &&
+            value.state == CharacterAnimationState.walk);
+    final total = animation.frames
+        .fold<int>(0, (sum, frame) => sum + frame.durationMs);
+    var remaining = (_companionTrail.animationSeconds * 1000).floor();
+    remaining = animation.loop
+        ? remaining % total
+        : remaining.clamp(0, total - 1);
+    var frame = animation.frames.last;
+    for (final candidate in animation.frames) {
+      if (remaining < candidate.durationMs) {
+        frame = candidate;
+        break;
+      }
+      remaining -= candidate.durationMs;
+    }
+    final resolved = _resolve(animation, frame, actor: actor);
+    return SpatialActorVisual(
+      x: position.x,
+      z: position.z,
+      y: bundle.map.spatialScene!.worldHeightAt(position.x, position.z),
+      texture: _textures[resolved.imageId]!,
+      frame: resolved.sourceRect,
+    );
+  }
 
   SpatialActorRuntimeState? actorRuntimeState(MapEntity entity) {
-    final pose = npcStoryPose?.call(entity);
+    final pose = npcStoryPose?.call(entity) ?? npcAutonomousPose?.call(entity);
     return pose == null
         ? worldStateProvider?.call().actorState(bundle.map.id, entity.id)
         : SpatialActorRuntimeState(x: pose.x, z: pose.z, facing: pose.facing);
@@ -226,11 +306,14 @@ final class SpatialExplorationSession {
   RuntimeDialogueTextSpeed textSpeed = RuntimeDialogueTextSpeed.instant;
   bool dialoguePaused = false;
   bool _lifecyclePaused = false;
+  bool get lifecyclePaused => _lifecyclePaused;
+  void Function(bool paused)? onLifecyclePausedChanged;
   double _presentationSeconds = 0;
   bool get presentationPaused => dialoguePaused || _lifecyclePaused;
   void setLifecyclePaused(bool paused) {
     if (_disposed) return;
     _lifecyclePaused = paused;
+    onLifecyclePausedChanged?.call(paused);
     if (paused && transitioning.value) cancelPendingTransition();
     movement.setPaused(
       presentationPaused || interactionActive.value || transitioning.value,
@@ -586,6 +669,13 @@ final class SpatialExplorationSession {
       }
     }
     final characters = <ProjectCharacterEntry>{character};
+    if (bundle.manifest.partyCompanion.enabled) {
+      for (final visual in bundle.manifest.partyCompanion.mappings) {
+        final actor = bundle.manifest.characters.where((entry) => entry.id == visual.characterId).firstOrNull;
+        if (actor == null) throw StateError('Personnage du compagnon absent : ${visual.characterId}');
+        characters.add(actor);
+      }
+    }
     for (final entity in bundle.map.entities) {
       for (final variant in entity.presentation?.variants ?? const <MapEntityPresentationVariant>[]) {
         final id = variant.characterId;
@@ -657,6 +747,7 @@ final class SpatialExplorationSession {
         }
         await assets.load(imageId, path, entityVisuals);
       }
+      await assets.emotes.prepare(bundle.manifest.cinematics.where((asset) => asset.mapId == bundle.map.id));
       entityVisuals.validateImages(images);
       session._entityVisuals = entityVisuals;
       session.entityIsPresent = entityIsPresent;
@@ -766,6 +857,7 @@ final class SpatialExplorationSession {
         if (door != null) unawaited(enterWarp(door));
       }
       movement.update(dt);
+      _updateCompanion(dt);
       if (!presentationPaused &&
           !storyInputLocked &&
           !interactionActive.value &&
@@ -886,7 +978,13 @@ final class SpatialExplorationSession {
     final hero = frame(dt);
     final result = <String, SpatialActorVisual>{
       if (nativeDoorHeroVisible) 'hero': hero,
+      'party-companion': ?_companionFrame(),
     };
+    final heroEmote = heroStoryPose?.call();
+    if (result['hero'] != null && heroEmote?.emoteId != null) {
+      result['cinematic-emote:hero'] = _assets.emotes.frame(actor: hero,
+          emoteId: heroEmote!.emoteId!, elapsedSeconds: heroEmote.emoteElapsedSeconds);
+    }
     final activeOrigin = _mapOrigins[bundle.map.id] ?? ui.Offset.zero;
     final visible = mapIds ??
         {
@@ -936,7 +1034,16 @@ final class SpatialExplorationSession {
             frame: visual.frame,
             width: visual.width,
           height: visual.height,
+          billboardVerticalOffset: visual.billboardVerticalOffset,
         );
+      }
+    }
+    for (final entity in bundle.map.entities.where((entity) => entity.npc != null)) {
+      final pose = npcStoryPose?.call(entity);
+      final visual = result['${bundle.map.id}:npc:${entity.id}'];
+      if (visual != null && pose?.emoteId != null) {
+        result['cinematic-emote:npc:${entity.id}'] = _assets.emotes.frame(
+            actor: visual, emoteId: pose!.emoteId!, elapsedSeconds: pose.emoteElapsedSeconds);
       }
     }
     return result;
@@ -951,15 +1058,17 @@ final class SpatialExplorationSession {
     final actor = source.manifest.characters.firstWhere(
       (c) => c.id == entity.npc!.characterId,
     );
-    final pose = active ? npcStoryPose?.call(entity) : null;
+    final storyPose = active ? npcStoryPose?.call(entity) : null;
+    final pose = storyPose ?? (active ? npcAutonomousPose?.call(entity) : null);
     final saved = active
         ? actorRuntimeState(entity)
         : worldStateProvider?.call().actorState(source.map.id, entity.id);
     final presentationFacing = _presentationFacingFor(entity, source, saved);
-    final facing = pose?.facing ??
+    final facing = storyPose?.facing ??
         (active && _dialogueEntityId == entity.id
             ? npcFacing[entity.id]
             : null) ??
+        pose?.facing ??
         presentationFacing ??
         saved?.facing ??
         (active ? npcFacing[entity.id] : null) ??
@@ -1239,6 +1348,7 @@ final class SpatialExplorationSession {
         _visibleMaps.contains(connection.targetMapId) &&
         movement.connectionArrival != null) {
       try {
+        onBeforeMapChange?.call();
         prepared.movement.adoptConnectionMotion(movement);
         _preparedMaps[bundle.map.id] = _capturePrepared();
         bundle = prepared.bundle;
@@ -1672,6 +1782,7 @@ final class SpatialExplorationSession {
           )) {
         throw StateError('Le chemin de sortie de la porte est bloqué.');
       }
+      onBeforeMapChange?.call();
       final previousOrigin = _mapOrigins[bundle.map.id] ?? ui.Offset.zero;
       _preparedMaps[bundle.map.id] = _capturePrepared();
       final nextMovement = preparedCandidate.movement;
@@ -1857,7 +1968,8 @@ final class _PreparedSpatialMap {
 }
 
 final class _SpatialActorAssets {
-  _SpatialActorAssets(this.budget);
+  _SpatialActorAssets(this.budget) : emotes = SpatialCinematicEmoteVisuals(budget);
+  final SpatialCinematicEmoteVisuals emotes;
   final RuntimeResourceBudget budget;
   final reservations = <String, RuntimeResourceReservation>{};
   final images = <String, ui.Image>{};
@@ -1943,6 +2055,7 @@ final class _SpatialActorAssets {
   }
 
   void dispose() {
+    emotes.dispose();
     if (disposed) return;
     disposed = true;
     for (final image in images.values) {

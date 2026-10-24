@@ -6,6 +6,25 @@ import 'package:test/test.dart';
 
 void main() {
   group('presentationPreviewContext resource', () {
+    test('variant-only encounters discover actual species media without claiming a selected entry', () {
+      final requested = <String>[];
+      final manifest = const ProjectManifest(name: 'Variants', maps: [], tilesets: [],
+        encounterTables: [ProjectEncounterTable(id: 'route', name: 'Route', encounterKind: EncounterKind.walk,
+          variants: [ProjectEncounterVariant(id: 'night', name: 'Night',
+            entries: [ProjectEncounterEntry(speciesId: 'hoothoot', minLevel: 2, maxLevel: 4)])])]);
+      final context = const PresentationPreviewContextProjector().project(
+        manifest: manifest, workspaceRevision: 'revision', maps: [],
+        includedKinds: {'encounter'}, dialogueSourceText: (_) => null,
+        portraitAssetPath: (_) => null, battleSpritePath: (speciesId, playerSide) {
+          requested.add(speciesId);
+          return null;
+        }).single;
+      expect(requested, contains('hoothoot'));
+      expect(context.detail['entriesView'], 'allPotentialEntriesForPresentationPreview');
+      expect(context.detail['battleMediaDiagnostics'], contains('previewContext.enemyBattleSpriteUnavailable'));
+      expect(context.detail['diagnostics'], isNot(contains('previewContext.encounterTableEmpty')));
+    });
+
     test('projects only requested kinds without reading unrelated sources', () {
       final snapshot = _snapshot();
       var dialogueReads = 0;

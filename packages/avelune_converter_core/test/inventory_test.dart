@@ -196,6 +196,95 @@ Future<({SourceSnapshot complete, SourceSnapshot partial})> snapshotPair(
 }
 
 void main() {
+  group('path collision index', () {
+    test('reuses immutable buckets without changing inventory identity', () async {
+      final snapshot = await scan(FakeSourceTree.text({
+        for (var index = 0; index < 128; index++)
+          'Data/entry$index.bin': '$index',
+        'Graphics/Characters/Café.png': 'image',
+      }));
+      final before = canonicalJsonOf(snapshot.toJson());
+      final hash = snapshot.canonicalHash;
+      final bucket = snapshot.entriesMatchingPath('Graphics/Characters/Café.png');
+
+      expect(bucket, hasLength(1));
+      expect(bucket.single.relativePath, 'Graphics/Characters/Café.png');
+      for (var index = 0; index < 1000; index++) {
+        expect(identical(bucket,
+            snapshot.entriesMatchingPath('GRAPHICS/CHARACTERS/Cafe\u0301.PNG')),
+            isTrue);
+      }
+      expect(() => bucket.clear(), throwsUnsupportedError);
+      expect(() => bucket[0] = bucket.single, throwsUnsupportedError);
+      expect(snapshot.entriesMatchingPath('Graphics/Characters/Absent.png'),
+          isEmpty);
+      expect(snapshot.canonicalHash, hash);
+      expect(canonicalJsonOf(snapshot.toJson()), before);
+    });
+
+    for (final paths in [
+      ['Graphics/Characters/Actor.png', 'Graphics/Characters/actor.PNG'],
+      ['Graphics/Characters/Café.png', 'Graphics/Characters/Cafe\u0301.png'],
+      ['Graphics/Characters/straße.png', 'Graphics/Characters/STRASSE.png'],
+    ]) {
+      test('retains every ambiguous entry for ${paths.first}', () async {
+        final first = await scan(FakeSourceTree.text({paths.first: 'first'}));
+        final second = await scan(FakeSourceTree.text({paths.last: 'second'}));
+        final partial = SourceSnapshot(
+            logicalProjectNamespace: first.logicalProjectNamespace,
+            policyHash: first.policyHash,
+            entries: [first.entries.single, second.entries.single],
+            diagnostics: [], excludedPaths: [], profileEvidence: [],
+            state: SourceScanState.partial);
+
+        final indexed = partial.entriesMatchingPath(paths.first);
+        final original = partial.entries.where((entry) =>
+            sourcePathCollisionKey(entry.relativePath) ==
+            sourcePathCollisionKey(paths.first)).toList();
+
+        expect(indexed, original);
+        expect(indexed, hasLength(2));
+        expect(identical(indexed, partial.entriesMatchingPath(paths.last)),
+            isTrue);
+      });
+    }
+
+    test('isolates different snapshots with the same requested path', () async {
+      const path = 'Graphics/Characters/Actor.png';
+      final first = await scan(FakeSourceTree.text({path: 'first'}));
+      final second = await scan(FakeSourceTree.text({path: 'changed'}));
+      final firstBucket = first.entriesMatchingPath(path);
+      final secondBucket = second.entriesMatchingPath(path);
+
+      expect(identical(firstBucket, secondBucket), isFalse);
+      expect(firstBucket.single.sha256, isNot(secondBucket.single.sha256));
+      expect(identical(firstBucket.single, first.entries.single), isTrue);
+      expect(identical(secondBucket.single, second.entries.single), isTrue);
+    });
+
+    test('retains node kind and missing hashes for caller validation', () async {
+      final original = await scan(FakeSourceTree.text({'original.bin': 'data'}));
+      final directory = SourceFileEntry(
+          fileId: ConverterId('index-directory'),
+          relativePath: 'Graphics/Characters/Directory.png',
+          kind: SourceNodeKind.directory, byteLength: 0, sha256: null,
+          format: 'directory', family: 'unknown');
+      final unhashed = SourceFileEntry(
+          fileId: ConverterId('index-unhashed'),
+          relativePath: 'Graphics/Characters/Unhashed.png',
+          kind: SourceNodeKind.file, byteLength: 4, sha256: null,
+          format: 'png', family: 'image');
+      final partial = SourceSnapshot(
+          logicalProjectNamespace: original.logicalProjectNamespace,
+          policyHash: original.policyHash, entries: [directory, unhashed],
+          diagnostics: [], excludedPaths: [], profileEvidence: [],
+          state: SourceScanState.partial);
+
+      expect(partial.entriesMatchingPath(directory.relativePath), [directory]);
+      expect(partial.entriesMatchingPath(unhashed.relativePath), [unhashed]);
+    });
+  });
+
   group('SRC-01 immutable source inventory', () {
     test('hashes real file bytes and preserves directory structure', () async {
       final tree = FakeSourceTree.text(

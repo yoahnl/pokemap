@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -143,6 +145,7 @@ final class CampaignContentActions {
   const CampaignContentActions();
 
   static const maxTrainerBatchSize = 512;
+  static const maxEncounterBatchSize = 200;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     for (final kind in CampaignContentKind.values) ...[
@@ -158,6 +161,8 @@ final class CampaignContentActions {
         risk: AuthoringRiskLevel.high,
       ),
     ],
+    _descriptor('campaign.encounter_table.upsert_batch',
+      'Create or update 1 to 200 encounter tables atomically with validated variant and catalog references'),
     _descriptor(
       'campaign.trainer.upsert_batch',
       'Create or update a bounded atomic batch of trainer definitions',
@@ -303,6 +308,72 @@ final class CampaignContentActions {
     return _validated(projected);
   }
 
+  Future<AuthoringMutationDraft> buildEncounterTableBatch(AuthoringPlanningContext context) async {
+    final values = _decodeEncounterBatch(context.request.parameters);
+    final projected = upsertEncounterTableBatch(context.snapshot.manifest, values: values);
+    final species = <PokemonSpeciesFile>[];
+    for (final id in {for (final table in values) for (final entry in table.allEntries) entry.speciesId}) {
+      final bytes = await context.snapshot.readResourceBytes(pokemonSpeciesResourceIdentity(id));
+      if (bytes == null) {
+        throw ValidationException('Encounter batch references unavailable species: $id',
+          code: 'encounter.species_unavailable', details: {'speciesId': id});
+      }
+      try {
+        species.add(PokemonSpeciesFile.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map)));
+      } on Object catch (error) {
+        if (error is! FormatException && error is! TypeError && error is! ArgumentError) rethrow;
+        throw ValidationException('Encounter batch references an invalid species document: $id',
+          code: 'encounter.species_invalid', details: {'speciesId': id});
+      }
+    }
+    Future<Set<String>> catalogIds(String kind) async {
+      final bytes = await context.snapshot.readResourceBytes('pokemonCatalog:$kind');
+      if (bytes == null) return const {};
+      try {
+        final catalog = PokemonCatalogFile.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+        return {for (final entry in catalog.entries) if (entry['id'] is String) entry['id'] as String};
+      } on Object catch (error) {
+        if (error is! FormatException && error is! TypeError && error is! ArgumentError) rethrow;
+        throw ValidationException('Encounter batch requires a valid $kind catalog.',
+          code: 'encounter.batch_catalog_invalid', details: {'catalog': kind});
+      }
+    }
+    final diagnostics = validateEncounterCatalogReferences(encounterTables: values,
+      species: species, moveIds: await catalogIds('moves'), abilityIds: await catalogIds('abilities'));
+    if (diagnostics.isNotEmpty) {
+      throw ValidationException('Encounter batch catalog references are invalid.',
+        code: 'encounter.batch_catalog_invalid', details: {'diagnostics': [for (final issue in diagnostics) issue.toJson()]});
+    }
+    return _projectDraft(context.snapshot, projected,
+      operation: context.request.actionId, path: '/encounterTables',
+      before: [for (final table in context.snapshot.manifest.encounterTables) table.toJson()],
+      after: [for (final table in projected.encounterTables) table.toJson()],
+      preview: {'batchSize': values.length, 'atomic': true, 'projectFileWrites': 1,
+        'validation': 'projectAndEncounterCatalogReferences'});
+  }
+
+  ProjectManifest upsertEncounterTableBatch(ProjectManifest project, {
+    required List<ProjectEncounterTable> values,
+  }) {
+    if (values.isEmpty || values.length > maxEncounterBatchSize) {
+      throw const ValidationException('An encounter batch requires 1 to 200 values.', code: 'encounter.batch_invalid');
+    }
+    final replacements = <String, ProjectEncounterTable>{};
+    for (var index = 0; index < values.length; index++) {
+      final table = values[index];
+      if (table.id.trim() != table.id || replacements.containsKey(table.id)) {
+        throw ValidationException('Encounter batch identities must be canonical and unique.',
+          code: 'encounter.batch_duplicate_id', details: {'index': index, 'tableId': table.id});
+      }
+      replacements[table.id] = table;
+    }
+    final existingIds = project.encounterTables.map((table) => table.id).toSet();
+    return _validated(project.copyWith(encounterTables: [
+      for (final table in project.encounterTables) replacements[table.id] ?? table,
+      for (final table in values) if (!existingIds.contains(table.id)) table,
+    ]));
+  }
+
   ProjectManifest upsertTrainerBatch(
     ProjectManifest project, {
     required List<ProjectTrainerEntry> values,
@@ -419,7 +490,18 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'campaignContent'],
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      extensions: id == 'campaign.defeat_recovery.update'
+      extensions: {'campaign.encounter_table.upsert', 'campaign.encounter_table.upsert_batch'}.contains(id)
+          ? {
+              'encounterVariants': encounterVariantAuthoringContract,
+              'tableValueField': id.endsWith('_batch') ? 'values[]' : 'value',
+              if (id.endsWith('_batch')) ...{
+                'batch': const {'minValues': 1, 'maxValues': CampaignContentActions.maxEncounterBatchSize, 'uniqueBy': 'id', 'semantics': 'createOrUpdate', 'atomic': true},
+                'values': const {'type': 'array', 'minItems': 1, 'maxItems': CampaignContentActions.maxEncounterBatchSize, 'items': 'ProjectEncounterTable', 'uniqueBy': 'id'},
+                'validation': 'projectVariantsFactsAndReferencedSpeciesMovesAbilitiesBeforeWrite',
+                'editor': 'notApplicableBulkTransport;StudioAuthorsIndividualTables',
+              },
+            }
+          : id == 'campaign.defeat_recovery.update'
           ? const {
               'defeatRecovery': {
                 'field': 'defeatRecovery.recoveredFactId',
@@ -573,6 +655,27 @@ Object _decode(CampaignContentKind kind, Map<String, dynamic> json) =>
       CampaignContentKind.trainer => _trainerFromJson(json),
       CampaignContentKind.character => ProjectCharacterEntry.fromJson(json),
     };
+
+List<ProjectEncounterTable> _decodeEncounterBatch(Map<String, Object?> parameters) {
+  final values = parameters['values'];
+  if (parameters.length != 1 || values is! List || values.isEmpty ||
+      values.length > CampaignContentActions.maxEncounterBatchSize) {
+    throw const ValidationException('An encounter batch requires only 1 to 200 values.', code: 'encounter.batch_invalid');
+  }
+  final decoded = <ProjectEncounterTable>[];
+  for (var index = 0; index < values.length; index++) {
+    try {
+      final value = values[index];
+      if (value is! Map) throw const FormatException('An encounter table must be an object.');
+      decoded.add(ProjectEncounterTable.fromJson(Map<String, dynamic>.from(value)));
+    } on Object catch (error) {
+      if (error is! FormatException && error is! TypeError && error is! ArgumentError) rethrow;
+      throw ValidationException('The batch contains an invalid encounter table.',
+        code: 'encounter.batch_entry_invalid', details: {'index': index});
+    }
+  }
+  return decoded;
+}
 
 List<ProjectTrainerEntry> _decodeTrainerBatch(Map<String, Object?> parameters) {
   final values = parameters['values'];

@@ -59,7 +59,8 @@ final class GamePackageBuilder {
   final GamePackageManifestCodec manifestCodec;
   final GamePackageSecurityPolicy securityPolicy;
 
-  Map<String, List<int>> _publicationPayload(Map<String, List<int>> files) {
+  ({Map<String, List<int>> files, ProjectManifest project}) _publicationPayload(
+      Map<String, List<int>> files) {
     try {
       final bytes = files['project/project.json'];
       if (bytes == null) throw const FormatException('Missing project');
@@ -74,14 +75,14 @@ final class GamePackageBuilder {
           raw.containsKey('kind') ||
           raw.containsKey('root');
       if (hasPublicationMarker) {
-        PortableCatalogPublication.decodeProjectSync(raw,
+        final project = PortableCatalogPublication.decodeProjectSync(raw,
             limits: CatalogStorageLimits(
                 maxStoredBytes: securityPolicy.maxCatalogBytes),
             readObject: (ref) =>
                 files[
                     'project/${PortableCatalogPublication.objectPath(ref)}'] ??
                 (throw const FormatException('Missing catalog object')));
-        return files;
+        return (files: files, project: project);
       }
       if (files.keys
           .any((path) => path.startsWith('project/catalog/objects/'))) {
@@ -96,13 +97,13 @@ final class GamePackageBuilder {
       final publication = PortableCatalogPublication.encodeProject(project,
           limits: CatalogStorageLimits(
               maxStoredBytes: securityPolicy.maxCatalogBytes));
-      return {
+      return (project: project, files: {
         ...files,
         'project/project.json':
             CanonicalJson.encodeUtf8(publication.descriptor),
         for (final object in publication.storage.objects.entries)
           'project/catalog/objects/${object.key}.json': object.value,
-      };
+      });
     } on Object catch (error) {
       if (error is GamePackageFormatException) rethrow;
       throw GamePackageFormatException(
@@ -117,14 +118,32 @@ final class GamePackageBuilder {
     required Map<String, List<int>> payloadFiles,
     PackageMediaTypeResolver? mediaTypeForPath,
   }) {
-    final publicationPayload = _publicationPayload(payloadFiles);
+    final publication = _publicationPayload(payloadFiles);
+    final publicationPayload = publication.files;
+    final recordsParty =
+        GameCompletionPartyCapabilities.requiresCapability(publication.project);
+    if (recordsParty &&
+        manifest.compatibility.saveFormat != SaveEnvelopeCodec.currentSaveFormat) {
+      throw GamePackageFormatException(
+        code: 'completionPartySaveFormatUnsupported',
+        path: r'$.compatibility.saveFormat',
+        message: 'Party recording requires save format '
+            '${SaveEnvelopeCodec.currentSaveFormat}.',
+      );
+    }
     final required = manifest.compatibility.requiredCapabilities;
-    final changesCapability = !required.contains('catalog.partitioned@2');
+    final targetCapabilities = {
+      ...required,
+      'catalog.partitioned@2',
+      if (recordsParty)
+        GameCompletionPartyCapabilities.capabilityId,
+    };
+    final changesCapability = !required.toSet().containsAll(targetCapabilities);
     if (manifest.signature != null && changesCapability) {
       throw GamePackageFormatException(
           code: 'staleSignature',
           path: r'$.signature',
-          message: 'Partitioned publication changes signed capabilities.');
+          message: 'Project publication changes signed capabilities.');
     }
     final old = manifest.compatibility;
     final compatibility = changesCapability
@@ -135,7 +154,7 @@ final class GamePackageBuilder {
             saveFormat: old.saveFormat,
             compatibilityId: old.compatibilityId,
             requiredCapabilities:
-                {...required, 'catalog.partitioned@2'}.toList()..sort())
+                targetCapabilities.toList()..sort())
         : old;
     final inventory = inventoryBuilder.buildWithSnapshot(
       publicationPayload,

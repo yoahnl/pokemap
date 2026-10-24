@@ -30,14 +30,16 @@ extension PokemonCombatValidation on PokemonCombatController {
   String? _validate(PokemonWorkspaceIndex index) {
     final selectedTable = table?.current;
     if (selectedTable != null) {
-      if (selectedTable.entries.isEmpty) return 'Ajoutez au moins une espèce.';
+      if (selectedTable.allEntries.isEmpty) {
+        return 'Ajoutez au moins une espèce.';
+      }
       if (selectedTable.tags.contains('studio:unique') &&
-          (selectedTable.entries.length != 1 ||
-              selectedTable.entries.single.minLevel !=
-                  selectedTable.entries.single.maxLevel)) {
+          (selectedTable.allEntries.length != 1 ||
+              selectedTable.allEntries.single.minLevel !=
+                  selectedTable.allEntries.single.maxLevel)) {
         return 'Une rencontre unique demande une espèce et un niveau fixe.';
       }
-      for (final entry in selectedTable.entries) {
+      for (final entry in selectedTable.allEntries) {
         if (!index.entries.any(
           (species) => species.id == entry.speciesId && species.enabled,
         )) {
@@ -48,6 +50,26 @@ extension PokemonCombatValidation on PokemonCombatController {
             entry.weight < 1) {
           return 'Corrigez les niveaux et poids des rencontres.';
         }
+      }
+      try {
+        ProjectValidator.validate(
+          snapshot!.project.copyWith(
+            encounterTables: [
+              for (final value in snapshot!.project.encounterTables)
+                if (value.id != selectedTable.id) value,
+              selectedTable,
+            ],
+          ),
+        );
+      } on ValidationException catch (failure) {
+        return switch (failure.code) {
+          'encounter.time_window_invalid' =>
+            'Choisissez deux horaires différents pour chaque plage horaire.',
+          'encounter.variant_fact_invalid' => 'Une condition de variante utilise un état du monde absent ou incompatible.',
+          'encounter.variant_invalid' =>
+            'Chaque variante demande un nom et au moins une espèce.',
+          _ => failure.toString(),
+        };
       }
     }
     final selectedTrainer = trainer?.current;

@@ -15,6 +15,7 @@ void main() {
     late Map<String, List<int>> engine;
     setUpAll(() async {
       final root = File(archivePath!).parent.parent.path;
+      final audioRoot = root.replaceFirst(' - Hoenn', ' - Johto');
       engine = {
         for (final path in [
           'Data/Scripts.rxdata',
@@ -23,7 +24,7 @@ void main() {
           'mkxp.json'
         ])
           path: await File(
-                  '${path == 'Game.exe' ? root.replaceFirst(' - Johto', ' - Hoenn') : path == 'Game.ini' ? root.replaceFirst(' - Johto', ' - Kanto') : root}/$path')
+                  '${path == 'Data/Scripts.rxdata' ? root : path == 'Game.exe' ? audioRoot.replaceFirst(' - Johto', ' - Hoenn') : path == 'Game.ini' ? audioRoot.replaceFirst(' - Johto', ' - Kanto') : audioRoot}/$path')
               .readAsBytes()
       };
     });
@@ -32,7 +33,8 @@ void main() {
           NormalizedSourceProject source,
           LiteralFixtureFiles files,
           SourceEventAnalysis analysis
-        })> input({String defect = '', bool facing = false}) async {
+        })> input({String defect = '', bool facing = false, int eventCount = 1,
+            int? missingSpeciesEventId}) async {
       final route = LiteralFixtureObject('RPG::MoveRoute', {
         '@repeat': false,
         '@skippable': false,
@@ -73,7 +75,8 @@ void main() {
           },
           maps: [
             LiteralFixtureMap(id: 1, events: [
-              LiteralFixtureEvent(id: 1, x: 1, y: 0, pages: [
+              for (var index = 0; index < eventCount; index++)
+              LiteralFixtureEvent(id: index + 1, x: 1, y: 0, pages: [
                 LiteralFixtureEventPage(
                     characterName: 'PKMN_MEOWTH',
                     moveType: defect == 'moving' ? 1 : 0,
@@ -82,7 +85,9 @@ void main() {
                       LiteralFixtureEventCommand(355, [
                         defect == 'expression'
                             ? r'Pokemon.play_cry($game_variables[1])'
-                            : 'Pokemon.play_cry(:MEOWTH)'
+                            : index + 1 == missingSpeciesEventId
+                                ? 'Pokemon.play_cry(:MISSING)'
+                                : 'Pokemon.play_cry(:MEOWTH)'
                       ]),
                       const LiteralFixtureEventCommand(101, ['Meowth: Meow!']),
                       if (defect == 'effect')
@@ -116,6 +121,58 @@ void main() {
             .analyze()
       );
     }
+
+    test('decorative batch reads one species witness for twelve events', () async {
+      final f = await input(eventCount: 12);
+      final catalog = NativePsdkCatalogManifest.builtin();
+      f.files.reads.clear();
+
+      final result = await const SourceDecorativePokemonBindingResolver().readAll(
+          source: f.source, analysis: f.analysis, events: f.analysis.events,
+          files: f.files, nativeCatalog: catalog);
+
+      expect(result.bindings, hasLength(12));
+      expect(result.refusals, isEmpty);
+      final witness = f.source.snapshot.entries
+          .singleWhere((entry) => entry.relativePath == 'Data/species.dat');
+      expect(f.files.reads.where((id) => id == witness.fileId), hasLength(1));
+      final reference = await const SourceDecorativePokemonBindingResolver().read(
+          source: f.source, analysis: f.analysis, event: f.analysis.events.first,
+          files: f.files, nativeCatalog: catalog);
+      for (final event in f.analysis.events) {
+        final binding = result.bindings[event.identity]!;
+        expect(binding.isBoundTo(f.source, f.analysis, event), isTrue);
+        expect(binding.toJson()['sourceSpeciesBinding'],
+            reference.toJson()['sourceSpeciesBinding']);
+      }
+    });
+
+    test('decorative batch isolates a missing cry species between valid neighbors',
+        () async {
+      final f = await input(eventCount: 3, missingSpeciesEventId: 2);
+      final catalog = NativePsdkCatalogManifest.builtin();
+      final result = await const SourceDecorativePokemonBindingResolver().readAll(
+          source: f.source, analysis: f.analysis, events: f.analysis.events,
+          files: f.files, nativeCatalog: catalog);
+      final before = f.analysis.eventAt(1, 1)!;
+      final invalid = f.analysis.eventAt(1, 2)!;
+      final after = f.analysis.eventAt(1, 3)!;
+
+      expect(result.bindings.keys,
+          unorderedEquals([before.identity, after.identity]));
+      expect(result.refusals.keys, [invalid.identity]);
+      expect(result.refusals[invalid.identity],
+          isA<ContractError>().having((error) => error.code, 'code',
+              'native_species.compiled_identity').having(
+              (error) => error.path, 'path', contains('MISSING')));
+      for (final event in [before, after]) {
+        final binding = result.bindings[event.identity]!;
+        expect(binding.isBoundTo(f.source, f.analysis, event), isTrue);
+        expect(binding.sound.name, 'Cries/MEOWTH');
+        expect(binding.toJson()['sourceSpeciesBinding'],
+            result.bindings[before.identity]!.toJson()['sourceSpeciesBinding']);
+      }
+    });
 
     test(
         'literal cry retains source volume, raw span and original source bytes',

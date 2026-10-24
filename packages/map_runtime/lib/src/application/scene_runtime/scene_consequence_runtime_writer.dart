@@ -85,12 +85,16 @@ final class SceneConsequenceRuntimeWriter {
     SceneConsequence consequence, {
     String? pokemonGrantOperationId,
     String? railProgressionOperationId,
+    int? completionRecordedAtEpochMs,
+    Map<String, GameCompletionPartyRecord> preparedCompletionPartyRecords = const {},
   }) {
     return applyAll(
       gameState,
       <SceneConsequence>[consequence],
       pokemonGrantOperationIds: <String?>[pokemonGrantOperationId],
       railProgressionOperationIds: <String?>[railProgressionOperationId],
+      completionRecordedAtEpochMs: completionRecordedAtEpochMs,
+      preparedCompletionPartyRecords: preparedCompletionPartyRecords,
     );
   }
 
@@ -100,6 +104,8 @@ final class SceneConsequenceRuntimeWriter {
     List<String?> pokemonGrantOperationIds = const <String?>[],
     List<String?> railProgressionOperationIds = const <String?>[],
     Map<String, PreparedScenePokemonGift> preparedPokemonGifts = const {},
+    int? completionRecordedAtEpochMs,
+    Map<String, GameCompletionPartyRecord> preparedCompletionPartyRecords = const {},
   }) {
     var nextState = gameState;
     final applied = <SceneConsequence>[];
@@ -153,6 +159,8 @@ final class SceneConsequenceRuntimeWriter {
         factWriter,
         grantOperationId,
         railOperationId,
+        completionRecordedAtEpochMs,
+        preparedCompletionPartyRecords,
       );
       if (step.errorCode != null) {
         return SceneConsequenceRuntimeWriteResult.failed(
@@ -180,6 +188,8 @@ final class SceneConsequenceRuntimeWriter {
     NarrativeFactRuntimeWriter factWriter,
     String? pokemonGrantOperationId,
     String? railProgressionOperationId,
+    int? completionRecordedAtEpochMs,
+    Map<String, GameCompletionPartyRecord> preparedCompletionPartyRecords,
   ) {
     return switch (consequence.kind) {
       SceneConsequenceKind.setPlayerAvatar => _applySetPlayerAvatar(
@@ -277,6 +287,8 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.finishGame => _applyFinishGame(
           gameState,
           consequence as SceneFinishGameConsequence,
+          completionRecordedAtEpochMs,
+          preparedCompletionPartyRecords,
         ),
     };
   }
@@ -989,6 +1001,8 @@ final class SceneConsequenceRuntimeWriter {
   _SceneConsequenceRuntimeWriteStep _applyFinishGame(
     GameState gameState,
     SceneFinishGameConsequence consequence,
+    int? completionRecordedAtEpochMs,
+    Map<String, GameCompletionPartyRecord> preparedCompletionPartyRecords,
   ) {
     final completedEndingId =
         gameState.metadata[sceneGameCompletionEndingMetadataKey];
@@ -1002,8 +1016,30 @@ final class SceneConsequenceRuntimeWriter {
         '"$completedEndingId" with "${consequence.endingId}".',
       );
     }
+    var nextState = gameState;
+    if (consequence.recordParty) {
+      if (completionRecordedAtEpochMs == null) {
+        return _SceneConsequenceRuntimeWriteStep.failed(
+          SceneConsequenceRuntimeWriteErrorCode.invalidCompletionPartyRecord,
+          'Party recording requires a frozen completion timestamp.',
+        );
+      }
+      try {
+        nextState = recordGameCompletionParty(
+          gameState: gameState,
+          endingId: consequence.endingId,
+          completedAtEpochMs: completionRecordedAtEpochMs,
+          preparedRecord: preparedCompletionPartyRecords[consequence.endingId],
+        );
+      } on FormatException catch (error) {
+        return _SceneConsequenceRuntimeWriteStep.failed(
+          SceneConsequenceRuntimeWriteErrorCode.invalidCompletionPartyRecord,
+          'Party recording failed: $error',
+        );
+      }
+    }
     return _SceneConsequenceRuntimeWriteStep.applied(
-      gameState.copyWith(
+      nextState.copyWith(
         metadata: <String, String>{
           ...gameState.metadata,
           sceneGameCompletionEndingMetadataKey: consequence.endingId,

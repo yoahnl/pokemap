@@ -139,8 +139,10 @@ final class NativeTrainerCatalogQualification {
       _invalid('compiled_changed',
           'Compiled trainer bytes differ from their snapshot witness.');
     }
+    final compiledIdentityRefusals = <NativeTrainerQualificationRefusal>[];
     final compiled = _readCompiled(
-        bytes, snapshot.logicalProjectNamespace, limits, cancellation);
+        bytes, snapshot.logicalProjectNamespace, limits, cancellation,
+        identityRefusals: compiledIdentityRefusals);
     final byIdentity = <String, List<SourcePbsEntry>>{};
     for (final entry in source.entries) {
       cancellation?.check();
@@ -494,6 +496,8 @@ final class NativeTrainerCatalogQualification {
       'sourceProfile': source.profile.name,
       'logicalProjectNamespace': snapshot.logicalProjectNamespace.value,
       'compiledTrainerWitness': witness.toJson(),
+      'compiledIdentityRefusals':
+          compiledIdentityRefusals.map((failure) => failure.toJson()).toList(),
       'nativeCatalogHash': catalogHash,
       'movePolicy': 'nativeAveluneDefaultsOnlyWithoutAuthoredMoves',
       'authoredBindings': authored.evidence,
@@ -897,7 +901,8 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
     List<int> bytes,
     ConverterId namespace,
     NativeTrainerQualificationLimits limits,
-    ScanCancellation? cancellation) {
+    ScanCancellation? cancellation,
+    {required List<NativeTrainerQualificationRefusal> identityRefusals}) {
   try {
     final document = const MarshalDecoder().decode(bytes,
         sourcePath: 'Data/trainers.dat',
@@ -911,21 +916,22 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
       _invalid('compiled_shape',
           'Compiled trainers require an inert bounded hash of typed trainer objects.');
     }
-    List<Object?>? identity(MarshalNode? value) {
+    List<Object?>? identity(MarshalNode? value, {bool allowNilName = false}) {
       if (value == null ||
           value.kind != MarshalKind.array ||
           value.elements.length != 3) {
         return null;
       }
       final type = _text(document.node(value.elements[0]), MarshalKind.symbol);
-      final name = _text(document.node(value.elements[1]), MarshalKind.string);
+      final nameNode = document.node(value.elements[1]);
+      final name = _text(nameNode, MarshalKind.string);
       final version = _number(document.node(value.elements[2]), 65535);
       if (type == null ||
           type.isEmpty ||
           type.length > 192 ||
-          name == null ||
-          name.isEmpty ||
-          name.length > 192 ||
+          (name == null &&
+              !(allowNilName && nameNode.kind == MarshalKind.nil)) ||
+          (name != null && (name.isEmpty || name.length > 192)) ||
           version == null) {
         return null;
       }
@@ -935,7 +941,8 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
     final result = <String, List<_CompiledTrainer>>{};
     for (final pair in root.pairs) {
       cancellation?.check();
-      final key = identity(document.node(pair.key));
+      final keyNode = document.node(pair.key);
+      final key = identity(keyNode, allowNilName: true);
       if (key == null) {
         _invalid('compiled_identity',
             'Compiled trainer keys require exact bounded type, name and version identities.');
@@ -944,8 +951,14 @@ Map<String, List<_CompiledTrainer>> _readCompiled(
           namespace: namespace,
           family: SourcePbsFamily.trainers,
           trainerType: key[0] as String,
-          trainerName: key[1] as String,
+          trainerName: key[1] as String?,
           version: key[2] as int);
+      if (key[1] == null) {
+        identityRefusals.add(NativeTrainerQualificationRefusal(
+            sourceIdentity,
+            'native_trainer.compiled_identity',
+            'Compiled trainer key has no portable literal name at Data/trainers.dat:${keyNode.location.byteOffset}:${keyNode.location.graphPath}.'));
+      }
       final object = document.node(pair.value);
       if (object.kind != MarshalKind.object ||
           object.className != 'GameData::Trainer') {

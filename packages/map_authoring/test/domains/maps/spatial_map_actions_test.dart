@@ -9,6 +9,41 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
+  test('orthographic camera is identical through direct API and JSONL with safe rejection', () async {
+    final outputs = <Map<String, dynamic>>[];
+    for (final direct in [true, false]) {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final profile = SpatialCameraProfile(
+        projection: SpatialCameraProjection.orthographic,
+        orthographicHeight: 12.5,
+        pitchDegrees: 49,
+      );
+      await fixture.executeAction('map3d.camera.configure', {
+        'mapId': 'first-map', 'camera': profile.toJson(),
+      }, direct: direct);
+      final map = (await fixture.snapshots.load(fixture.project)).mapById('first-map')!;
+      expect(map.spatialScene!.camera, profile);
+      outputs.add(map.spatialScene!.camera.toJson());
+      final file = File('${fixture.root.path}/maps/first-map.json');
+      final before = await file.readAsBytes();
+      for (final invalid in [0, -1, 10001]) {
+        final parameters = {'mapId': 'first-map', 'camera': {
+          ...profile.toJson(), 'orthographicHeight': invalid,
+        }};
+        if (direct) {
+          await expectLater(fixture.executeAction('map3d.camera.configure',
+            parameters, direct: true), throwsA(isA<MapAuthoringException>()));
+        } else {
+          final rejected = await fixture.planAction('map3d.camera.configure', parameters);
+          expect(rejected.status, AuthoringResultStatus.failure);
+        }
+        expect(await file.readAsBytes(), before);
+      }
+    }
+    expect(outputs[0], outputs[1]);
+  });
+
   test('canonical navigation accepts quarter-level ramp 36 and refuses 65 without writes', () async {
     for (final direct in [true, false]) {
       final f = await _Fixture.create();

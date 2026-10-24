@@ -210,6 +210,7 @@ abstract base class SceneConsequence {
     required SceneFinishGameResult result,
     SceneFinishGameCredits? credits,
     required ScenePostGamePolicy postGamePolicy,
+    bool recordParty,
     String? label,
     String? notes,
   }) = SceneFinishGameConsequence;
@@ -1445,6 +1446,7 @@ final class SceneFinishGameConsequence extends SceneConsequence {
     required this.result,
     this.credits,
     required this.postGamePolicy,
+    this.recordParty = false,
     String? label,
     String? notes,
   })  : endingId = endingId.trim(),
@@ -1463,6 +1465,11 @@ final class SceneFinishGameConsequence extends SceneConsequence {
   factory SceneFinishGameConsequence.fromJson(Map<String, dynamic> json) {
     final version = json['contractVersion'];
     if (version == null) {
+      if (json.containsKey('recordParty')) {
+        throw const FormatException(
+          'Party recording requires the versioned Finish Game contract.',
+        );
+      }
       return SceneFinishGameConsequence._fromLegacyJson(json);
     }
     if (version is! int || version != sceneFinishGameContractVersion) {
@@ -1480,6 +1487,9 @@ final class SceneFinishGameConsequence extends SceneConsequence {
           ? null
           : SceneFinishGameCredits.fromJson(json['credits']),
       postGamePolicy: _readPostGamePolicy(json['postGamePolicy']),
+      recordParty: json.containsKey('recordParty')
+          ? _readRequiredBool(json, 'recordParty')
+          : false,
       label: _readOptionalString(json, 'label'),
       notes: _readOptionalString(json, 'notes'),
     );
@@ -1547,6 +1557,7 @@ final class SceneFinishGameConsequence extends SceneConsequence {
   final SceneFinishGameResult result;
   final SceneFinishGameCredits? credits;
   final ScenePostGamePolicy postGamePolicy;
+  final bool recordParty;
   final String? label;
   final String? notes;
 
@@ -1560,6 +1571,7 @@ final class SceneFinishGameConsequence extends SceneConsequence {
         'result': result.toJson(),
         'credits': credits?.toJson(),
         'postGamePolicy': postGamePolicy.name,
+        if (recordParty) 'recordParty': true,
         'label': label,
         'notes': notes,
       });
@@ -1575,6 +1587,7 @@ final class SceneFinishGameConsequence extends SceneConsequence {
           other.result == result &&
           other.credits == credits &&
           other.postGamePolicy == postGamePolicy &&
+          other.recordParty == recordParty &&
           other.label == label &&
           other.notes == notes;
 
@@ -1587,6 +1600,7 @@ final class SceneFinishGameConsequence extends SceneConsequence {
         result,
         credits,
         postGamePolicy,
+        recordParty,
         label,
         notes,
       );

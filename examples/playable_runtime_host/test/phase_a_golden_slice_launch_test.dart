@@ -94,6 +94,7 @@ void main() {
         projectFilePath: projectFilePath,
         projectFormat: manifest.version.name,
       );
+      expect(identity.saveFormat, SaveEnvelopeCodec.currentSaveFormat);
       expect(
         await StandalonePlayerSaveGateway(
           projectFilePath: projectFilePath,

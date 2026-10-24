@@ -64,7 +64,7 @@ void main() {
           gameId: 'org.example.valbois',
           gameVersion: '0.1.0',
           projectFormat: ProjectFormat.v9,
-          saveFormat: 1,
+          saveFormat: SaveEnvelopeCodec.currentSaveFormat,
           compatibilityId: 'valbois'),
       profileId: 'profile',
       slotId: 'slot',

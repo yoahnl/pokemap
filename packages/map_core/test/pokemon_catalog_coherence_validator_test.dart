@@ -4,6 +4,22 @@ import 'package:test/test.dart';
 void main() {
   const validator = PokemonCatalogCoherenceValidator();
 
+  test('variant-only dependencies validate species moves abilities and media', () {
+    final entry = const ProjectEncounterEntry(speciesId: 'bulbasaur', minLevel: 2, maxLevel: 4,
+      pokemonOverrides: ProjectEncounterPokemonOverrides(knownMoveIds: ['tackle'], abilityId: 'overgrow'));
+    ProjectEncounterTable table(ProjectEncounterEntry candidate) => ProjectEncounterTable(id: 'route', name: 'Route', encounterKind: EncounterKind.walk,
+      variants: [ProjectEncounterVariant(id: 'morning', name: 'Morning', entries: [candidate])]);
+    expect(validator.validate(_validSnapshot(encounterTables: [table(entry)])).diagnostics, isEmpty);
+    final invalid = entry.copyWith(speciesId: 'missing', pokemonOverrides: const ProjectEncounterPokemonOverrides(knownMoveIds: ['missing-move'], abilityId: 'missing-ability'));
+    final report = validator.validate(_validSnapshot(encounterTables: [table(invalid)]));
+    expect(report.diagnostics.map((entry) => entry.code), containsAll(['encounter.species_unavailable', 'encounter.move_unknown', 'encounter.ability_unknown']));
+    expect(report.diagnostics.where((entry) => entry.code.startsWith('encounter.')).every((entry) => entry.path.contains('variants[morning].entries[0]')), isTrue);
+    final mediaReport = validator.validate(_validSnapshot(encounterTables: [table(entry)],
+      assetProbeStatuses: const {'assets/pokemon/bulbasaur-front.png': PokemonAssetProbeStatus.missing,
+        'assets/pokemon/bulbasaur-back.png': PokemonAssetProbeStatus.exists}));
+    expect(mediaReport.canExport, isFalse);
+  });
+
   test('accepts a complete beta catalog without network access', () {
     final report = validator.validate(_validSnapshot());
 
@@ -786,6 +802,7 @@ void main() {
 }
 
 PokemonCatalogCoherenceSnapshot _validSnapshot({
+  Iterable<ProjectEncounterTable> encounterTables = const [],
   Iterable<PokemonCatalogDocument<PokemonCatalogFile>>? catalogs,
   Iterable<PokemonCatalogDocument<PokemonSpeciesFile>>? species,
   Iterable<PokemonCatalogDocument<PokemonLearnsetFile>>? learnsets,
@@ -793,6 +810,7 @@ PokemonCatalogCoherenceSnapshot _validSnapshot({
   Iterable<PokemonCatalogDocument<PokemonMediaFile>>? media,
   Map<String, PokemonAssetProbeStatus>? assetProbeStatuses,
 }) => PokemonCatalogCoherenceSnapshot(
+  encounterTables: encounterTables,
   catalogs: catalogs ?? _validCatalogs(),
   species: species ?? [_document('species/bulbasaur.json', _species())],
   learnsets: learnsets ?? [_document('learnsets/bulbasaur.json', _learnset())],

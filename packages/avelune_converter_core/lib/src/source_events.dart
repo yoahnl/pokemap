@@ -219,6 +219,16 @@ final class SourceEventProfile {
   bool get isQualified =>
       interpretationProfile?.supports('events') == true &&
       interpretationProfile!.matchesArchive(scriptsArchiveHash);
+  bool get supportsDecorativePokemonCry => isQualified &&
+      const {
+        'Pokemon': '2cc5db14ec402faedd355afddca951743a7723d1dc0724c45d3f230c2cb116ec',
+        'Species_files': 'b0d4786a3b33dbb06a68aa395e813ed21be46d826dab69b5c9ab41a99ae7e0d3',
+        'Audio_Play': 'e21c2f9b086f99777b7421c850e4b04cb8e5db574876b3fbb9c0fd9932e1d1fb',
+      }.entries.every((witness) {
+        final section = interpretationProfile!.sections['events.${witness.key}'];
+        return section?['name'] == witness.key &&
+            section?['sha256'] == witness.value;
+      });
   late final Sha256Hash canonicalHash = canonicalHashOf(toJson());
   Map<String, Object?> toJson() => {
         'profile': 'rmxp-static-events-v1',
@@ -1885,11 +1895,13 @@ final class _SourceEventParser {
         factIds: [analyzer.variableFactId(assignment.id)])];
   }
 
-  SourceUnknownNode _unknown(String reason, {int? calledCommonEventId}) {
-    final current = index++;
-    _diagnostic(reason, current, current, calledCommonEventId: calledCommonEventId);
-    return SourceUnknownNode(
-        _span(current, current), commands[current], reason);
+  SourceUnknownNode _unknown(String reason,
+      {int? calledCommonEventId, int? lastIndex}) {
+    final current = index;
+    final last = lastIndex ?? current;
+    index = last + 1;
+    _diagnostic(reason, current, last, calledCommonEventId: calledCommonEventId);
+    return SourceUnknownNode(_span(current, last), commands[current], reason);
   }
 
   SourceEventNode _commonEvent() {
@@ -2372,8 +2384,9 @@ final class _SourceEventParser {
           final cry = RegExp(r'^Pokemon\.play_cry\(:([A-Z][A-Za-z0-9_]{0,63})\)$')
               .firstMatch(literal);
           if (cry != null && rawCommon == null && rawPage != null &&
-              analyzer.profile.scriptsArchiveHash?.value ==
-                  '3cfd90e8af16ab072807362b0b4da0aceb4fb5064e21396de81859827e0cb81d') {
+              analyzer.profile.supportsDecorativePokemonCry &&
+              analyzer.profile.interpretationProfile?.canonicalHash ==
+                  analyzer.project.interpretationProfile?.canonicalHash) {
             final raw = _rawFacingParameters(command, 1);
             if (_eventLiteralText(_document, raw.single) != literal) {
               throw const FormatException();
@@ -2512,14 +2525,14 @@ final class _SourceEventParser {
       end++;
     }
     if (end == commands.length) return _unknown('events.invalid_loop_structure');
+    _literalIntegerParameters(commands[end], 0);
     final breaks = [for (var i = first + 1; i < end; i++)
       if (commands[i].code == 113 && commands[i].indent == indent + 1) i];
-    if (breaks.isEmpty) return _unknown('events.unproven_loop');
+    if (breaks.isEmpty) return _unknown('events.unproven_loop', lastIndex: end);
     final breakIndex = breaks.first;
     if (commands.sublist(first + 1, breakIndex).any((c) => c.code == 112 || c.code == 113 || c.code == 119)) {
-      return _unknown('events.unproven_loop');
+      return _unknown('events.unproven_loop', lastIndex: end);
     }
-    _literalIntegerParameters(commands[end], 0);
     _literalIntegerParameters(commands[breakIndex], 0);
     index++;
     final body = _block(indent + 1, stopAtLoopBreak: true);
@@ -2949,6 +2962,7 @@ final class _SourceEventParser {
     }
     final steps = <SourceMoveRouteStep>[];
     final refs = <SourcePreservedData>[route];
+    var unsupportedState = false;
     int? forwardDirection;
     if (target == -1 && !repeat && !skippable && list.length == 2 &&
         first > 0 && commands[first - 1].code == 201 &&
@@ -2976,6 +2990,10 @@ final class _SourceEventParser {
         throw const FormatException();
       }
       refs.add(copy);
+      if (sourceValue.containsKey('unsupportedState')) {
+        unsupportedState = true;
+        continue;
+      }
       steps.add(SourceMoveRouteStep(
           kind: SourceMoveRouteStepKind.values
               .byName(sourceValue['kind'] as String),
@@ -2992,6 +3010,10 @@ final class _SourceEventParser {
           soundName: sourceValue['name'] as String?,
           soundVolume: sourceValue['volume'] as int?,
           soundPitch: sourceValue['pitch'] as int?));
+    }
+    if (unsupportedState) {
+      return _unknown('events.move_route_state_unsupported',
+          lastIndex: first + list.length - 1);
     }
     index = first + list.length;
     return SourceForcedMoveRouteNode(_span(first, index - 1),
@@ -3010,6 +3032,14 @@ final class _SourceEventParser {
         doc, id, 'RPG::MoveCommand', const {'@code', '@parameters'});
     final code = _eventInt(doc,
         _facingPlain(doc, _eventField(fields, '@code'), MarshalKind.integer));
+    if (code == 29 || code == 30) {
+      final parameters =
+          _facingArray(doc, _eventField(fields, '@parameters'), 1);
+      final value =
+          _eventInt(doc, _facingPlain(doc, parameters.single, MarshalKind.integer));
+      if (value < 1 || value > 6) throw const FormatException();
+      return {'code': code, 'unsupportedState': value};
+    }
     final kind = switch (code) {
       1 => SourceMoveRouteStepKind.moveDown,
       2 => SourceMoveRouteStepKind.moveLeft,
@@ -3373,7 +3403,28 @@ final class _SourceEventParser {
     var cancelType = 0;
     do {
       final params = commands[index].parameters;
-      _arity(params, 2);
+      if (params.length == 3) {
+        final selected = analyzer.profile.interpretationProfile;
+        final witness = selected?.sections['events.Interpreter_Commands'];
+        final transient = params[2];
+        if (!analyzer._isQualified ||
+            analyzer.project.interpretationProfile == null ||
+            selected?.canonicalHash !=
+                analyzer.project.interpretationProfile!.canonicalHash ||
+            analyzer.profile.scriptsArchiveHash !=
+                _eventScriptsHash(analyzer.project) ||
+            witness?['name'] != 'Interpreter_Commands' ||
+            witness?['sha256'] !=
+                'ec927a007bee1889223dbc8b3de115f062a5308ab4410f87dab965eef3032561' ||
+            transient is! List ||
+            transient.length != 4 ||
+            !transient.asMap().entries.every(
+                (entry) => entry.value is int && entry.value == entry.key)) {
+          throw const FormatException();
+        }
+      } else {
+        _arity(params, 2);
+      }
       final options = params[0];
       final groupCancel = _integer(params[1]);
       if (options is! List || options.isEmpty || options.length > 4 ||

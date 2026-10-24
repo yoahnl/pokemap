@@ -8,10 +8,7 @@ enum RuntimeTrainerInteractionDisposition {
   blocked,
 }
 
-enum RuntimeTrainerPostBattleResult {
-  victory,
-  defeat,
-}
+enum RuntimeTrainerPostBattleResult { victory, defeat }
 
 final class RuntimeTrainerInteractionPlan {
   const RuntimeTrainerInteractionPlan({
@@ -33,22 +30,12 @@ RuntimeTrainerInteractionPlan resolveRuntimeTrainerInteractionPlan({
   required ProjectTrainerEntry trainer,
   required MapEntityNpcData npc,
   required bool isDefeated,
+  bool? battleAllowed,
+  bool? battleReady,
+  DialogueRef? nonBattleDialogue,
 }) {
-  if (isDefeated) {
-    final rematchAllowed =
-        trainer.rematchPolicy == ProjectTrainerRematchPolicy.allowed;
-    final victoryDialogue = _trainerDialogueRef(trainer.victoryDialogueId);
-    final dialogue = rematchAllowed
-        ? victoryDialogue ?? npc.defeatDialogueRef
-        : npc.defeatDialogueRef ?? victoryDialogue;
-    if (rematchAllowed) {
-      return RuntimeTrainerInteractionPlan(
-        disposition: dialogue == null
-            ? RuntimeTrainerInteractionDisposition.battle
-            : RuntimeTrainerInteractionDisposition.dialogueThenBattle,
-        dialogue: dialogue,
-      );
-    }
+  if (!(battleAllowed ?? npc.trainerBattleWhen == null)) {
+    final dialogue = nonBattleDialogue ?? npc.dialogue;
     return RuntimeTrainerInteractionPlan(
       disposition: dialogue == null
           ? RuntimeTrainerInteractionDisposition.blocked
@@ -56,11 +43,32 @@ RuntimeTrainerInteractionPlan resolveRuntimeTrainerInteractionPlan({
       dialogue: dialogue,
     );
   }
+  final rematchAllowed = trainer.rematchPolicy == ProjectTrainerRematchPolicy.allowed;
+  final victoryDialogue = _trainerDialogueRef(trainer.victoryDialogueId);
+  if (isDefeated && !rematchAllowed) {
+    final dialogue = npc.defeatDialogueRef ?? victoryDialogue;
+    return RuntimeTrainerInteractionPlan(
+      disposition: dialogue == null ? RuntimeTrainerInteractionDisposition.blocked : RuntimeTrainerInteractionDisposition.dialogueOnly,
+      dialogue: dialogue,
+    );
+  }
+  if (!(battleReady ?? npc.trainerBattleReadyWhen == null)) {
+    final dialogue = npc.trainerBattleNotReadyDialogue;
+    return RuntimeTrainerInteractionPlan(
+      disposition: dialogue == null ? RuntimeTrainerInteractionDisposition.blocked : RuntimeTrainerInteractionDisposition.dialogueOnly,
+      dialogue: dialogue,
+    );
+  }
+  if (isDefeated) {
+    final dialogue = victoryDialogue ?? npc.defeatDialogueRef;
+    return RuntimeTrainerInteractionPlan(
+      disposition: dialogue == null ? RuntimeTrainerInteractionDisposition.battle : RuntimeTrainerInteractionDisposition.dialogueThenBattle,
+      dialogue: dialogue,
+    );
+  }
 
-  final dialogue = _trainerDialogueRef(
-        trainer.preBattleDialogueId,
-      ) ??
-      npc.dialogue;
+  final dialogue =
+      _trainerDialogueRef(trainer.preBattleDialogueId) ?? npc.dialogue;
   return RuntimeTrainerInteractionPlan(
     disposition: dialogue == null
         ? RuntimeTrainerInteractionDisposition.battle
@@ -82,8 +90,9 @@ DialogueRef? resolveRuntimeTrainerPostBattleDialogue({
   return switch (result) {
     RuntimeTrainerPostBattleResult.victory =>
       _trainerDialogueRef(trainer.victoryDialogueId) ?? npc.defeatDialogueRef,
-    RuntimeTrainerPostBattleResult.defeat =>
-      _trainerDialogueRef(trainer.defeatDialogueId),
+    RuntimeTrainerPostBattleResult.defeat => _trainerDialogueRef(
+      trainer.defeatDialogueId,
+    ),
   };
 }
 

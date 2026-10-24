@@ -14,7 +14,7 @@ function record(value: unknown): JsonRecord {
 }
 
 for (const spatial of [false, true]) {
-test(`live MCP discovers, authors and reopens closed native fixed routes in ${spatial ? "3D refusal" : "2D"}`, { timeout: 120_000 }, async () => {
+test(`live MCP discovers, authors and reopens closed native fixed routes in ${spatial ? "3D" : "2D"}`, { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "npc-fixed-route-mcp-"));
   const projectFile = join(root, "project.json");
   const mapFile = join(root, "maps/center.json");
@@ -65,19 +65,15 @@ test(`live MCP discovers, authors and reopens closed native fixed routes in ${sp
     assert.deepEqual(fixed.stepKinds, ["move", "face", "randomFacing", "randomMove"]);
     assert.equal(fixed.skippable, false);
     assert.equal(fixed.pathfinding, false);
-    assert.equal(fixed.mapMode, "2d");
+    assert.equal(fixed.mapMode, "2d_and_3d");
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const initial = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     const steps = [{ kind: "move", direction: "east" }, { kind: "face", direction: "north" }, { kind: "randomFacing" }, { kind: "randomMove" }];
     const flag = { key: "npc.autonomousRouteStopped", value: true };
     const parameters = { mapId: "center", entityId: "npc", mode: "fixedRoute", routeSteps: steps,
-      suspendWhenInstanceBoolean: flag, pauseDurationMs: 1600, stepDurationMs: 250, loop: true };
-    if (spatial) {
-      const rejected = await plan(parameters, true);
-      assert.equal(rejected.domainCode, "npc.movement_invalid");
-      assert.deepEqual(await readFile(projectFile), projectBefore);
-      return;
-    }
+      suspendWhenInstanceBoolean: flag, pauseDurationMs: 1600, stepDurationMs: 250, loop: true,
+      pauseDurationsMs: [533, 1067, 1600, 2133],
+      movementArea: { pos: { x: 1, y: 1 }, size: { width: 3, height: 3 } } };
     const planned = await plan(parameters);
     await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
       planId: planned.planId, operationId: "apply-fixed-route" });
@@ -88,6 +84,8 @@ test(`live MCP discovers, authors and reopens closed native fixed routes in ${sp
     assert.deepEqual(movement.routeSteps, steps);
     assert.deepEqual(movement.suspendWhenInstanceBoolean, flag);
     assert.equal(movement.pauseDurationMs, 1600);
+    assert.deepEqual(movement.pauseDurationsMs, parameters.pauseDurationsMs);
+    assert.deepEqual(movement.movementArea, parameters.movementArea);
     assert.equal(movement.stepDurationMs, 250);
     assert.equal(npc.displayName, "Guide");
     assert.deepEqual(record((saved.entities as JsonRecord[])[0]).pos, { x: 2, y: 2 });

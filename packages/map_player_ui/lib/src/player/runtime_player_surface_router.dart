@@ -774,6 +774,7 @@ class _RuntimePlayerSurfaceRouterState
         PlayerPauseAction.pokedex => RuntimePlayerAction.openPokedex,
         PlayerPauseAction.map => RuntimePlayerAction.openMap,
         PlayerPauseAction.quests => RuntimePlayerAction.openQuests,
+        PlayerPauseAction.contacts => RuntimePlayerAction.openContacts,
         PlayerPauseAction.profile => RuntimePlayerAction.openProfile,
         PlayerPauseAction.save => RuntimePlayerAction.save,
         PlayerPauseAction.options => RuntimePlayerAction.openOptions,

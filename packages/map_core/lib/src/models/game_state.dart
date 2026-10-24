@@ -15,6 +15,7 @@ import 'rail_journey.dart';
 import 'repel_state.dart';
 import 'escape_return_point.dart';
 import 'save_data.dart';
+import 'game_completion_party_journal.dart';
 
 part 'game_state.freezed.dart';
 part 'game_state.g.dart';
@@ -105,6 +106,8 @@ abstract class GameState with _$GameState {
 
     /// Équipe du joueur.
     @Default(PlayerParty()) PlayerParty party,
+    @Default(GameCompletionPartyJournal.empty())
+    GameCompletionPartyJournal completionPartyJournal,
     @Default(PokemonStorage()) PokemonStorage pokemonStorage,
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,

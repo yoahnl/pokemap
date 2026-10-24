@@ -45,34 +45,155 @@ final class EntityActions {
     ])
       semanticActionDescriptor(entry.$1, entry.$2),
     AuthoringActionDescriptor(
-      id: 'npc.set_movement_mode', version: 1,
-      summary: 'Set typed NPC movement, direct autonomous steps and instance suspension atomically',
+      id: 'entity.create_batch',
+      version: 1,
+      summary: 'Create a bounded atomic batch of typed entities on one map',
+      inputSchemaId: 'schema.entity.create_batch.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable,
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'parameterNames': ['mapId', 'entities'],
+        'batch': {
+          'minEntities': 1,
+          'maxEntities': 128,
+          'uniqueBy': ['id'],
+          'semantics': 'createOnly',
+          'atomic': true,
+          'singleMap': true,
+        },
+        'editorWorkflow': {
+          'applicability': 'notApplicable',
+          'reason': 'Machine batch; the existing entity editor creates one entity.',
+        },
+      },
+    ),
+    AuthoringActionDescriptor(
+      id: 'npc.set_trainer_battle_readiness', version: 1,
+      summary: 'Set an NPC battle readiness condition and refusal dialogue atomically',
+      inputSchemaId: 'schema.npc.set_trainer_battle_readiness.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1', riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'], requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent, AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
+      extensions: const {'semanticIds': true, 'rawTilesetRequired': false,
+        'npcBattleReadiness': {'parameters': ['mapId','entityId','trainerBattleReadyWhen','trainerBattleNotReadyDialogue'],
+          'predicateKind': 'partyUsableCountAtLeast', 'predicateFields': ['minimumCount'], 'minimumCountRange': [1,6],
+          'usable': 'currentHpGreaterThanZero', 'eggModel': 'notAvailable', 'scope': 'beforeBattle',
+          'precedence': ['availability','defeatedWithoutRematch','readiness','battle'],
+          'nullCondition': 'alwaysReady', 'missingRefusal': 'blocked', 'clearBothTogether': true,
+          'affects': ['manualInteraction','lineOfSight','postDialogueRecheck','handoffRecheck'],
+          'unassignTrainer': 'clearReadinessAndRefusal'}},
+    ),
+    AuthoringActionDescriptor(
+      id: 'npc.set_trainer_battle_rule',
+      version: 1,
+      summary:
+          'Set or clear a typed NPC condition that authorizes trainer battles',
+      inputSchemaId: 'schema.npc.set_trainer_battle_rule.input.v1',
+      outputSchemaId: 'schema.map.semantic_mutation.output.v1',
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
+      requiredPermissions: const [AuthoringPermission.projectWrite],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'npcLocalTime': {
+          'predicateKind': 'localTimeWindow',
+          'windowFields': ['startMinute', 'endMinute'],
+          'startMinuteRange': [0, 1439],
+          'endMinuteRange': [0, 1440],
+          'startInclusive': true,
+          'endExclusive': true,
+          'wrapsMidnight': true,
+          'equalBoundsAllowed': false,
+          'clock': 'runtimeLocal',
+          'parameters': ['mapId', 'entityId', 'trainerBattleWhen'],
+          'clearValue': null,
+          'noRule': 'alwaysAllowed',
+          'unmatchedRule': 'npcDialogueOnly',
+          'missingClock': 'battleBlocked',
+          'affects': ['manualInteraction', 'lineOfSight', 'postDialogueRecheck', 'handoffRecheck']
+        }
+      },
+    ),
+    AuthoringActionDescriptor(
+      id: 'npc.set_movement_mode',
+      version: 1,
+      summary:
+          'Set typed NPC movement, direct autonomous steps and instance suspension atomically',
       inputSchemaId: 'schema.npc.set_movement_mode.input.v1',
       outputSchemaId: 'schema.map.semantic_mutation.output.v1',
       riskLevel: AuthoringRiskLevel.low,
-      resourceKinds: const ['map','preset'],
+      resourceKinds: const ['map', 'preset'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent,
-        AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
       extensions: const {
-        'semanticIds':true,'rawTilesetRequired':false,
+        'semanticIds': true,
+        'rawTilesetRequired': false,
         'npcMovement': {
-          'modes':['idle','patrol','scriptedOnly','fixedRoute'],
-          'parameters':['mapId','entityId','mode','routeSteps','suspendWhenInstanceBoolean',
-            'loop','pauseDurationMs','stepDurationMs'],
+          'modes': ['idle', 'patrol', 'scriptedOnly', 'fixedRoute'],
+          'parameters': [
+            'mapId',
+            'entityId',
+            'mode',
+            'routeSteps',
+            'suspendWhenInstanceBoolean',
+            'loop',
+            'pauseDurationMs',
+            'pauseDurationsMs',
+            'movementArea',
+            'stepDurationMs'
+          ],
           'fixedRoute': {
-            'mapMode':'2d','stepKinds':['move','face','randomFacing','randomMove'],
-            'directions':['north','south','east','west'],'maximumSteps':256,
-            'skippable':false,'pathfinding':false,'initialPause':true,
-            'pauseAfterCompletionOrObstruction':true,
-            'suspensionScope':'ownNpcCurrentMapInstanceBoolean',
+            'mapMode': '2d_and_3d',
+            'stepKinds': ['move', 'face', 'randomFacing', 'randomMove'],
+            'directions': ['north', 'south', 'east', 'west'],
+            'maximumSteps': 256,
+            'skippable': false,
+            'pathfinding': false,
+            'initialPause': true,
+            'pauseAfterCompletionOrObstruction': true,
+            'suspensionScope': 'ownNpcCurrentMapInstanceBoolean',
           },
           'routeStepFields': {
-            'move':['kind','direction'],'face':['kind','direction'],'randomFacing':['kind'],'randomMove':['kind'],
+            'move': ['kind', 'direction'],
+            'face': ['kind', 'direction'],
+            'randomFacing': ['kind'],
+            'randomMove': ['kind'],
           },
-          'suspendWhenInstanceBoolean': {'optional':true,'fields':['key','value'],
-            'maximumKeyLength':128,'owner':'currentNpc','scope':'currentMapInstance'},
-          'fixedRouteTimingLimits': {'pauseDurationMs':[0,3600000],'stepDurationMs':[1,60000]},
+          'suspendWhenInstanceBoolean': {
+            'optional': true,
+            'fields': ['key', 'value'],
+            'maximumKeyLength': 128,
+            'owner': 'currentNpc',
+            'scope': 'currentMapInstance'
+          },
+          'fixedRouteTimingLimits': {
+            'pauseDurationMs': [0, 3600000],
+            'pauseDurationsMs': {'maximumChoices': 256, 'minimum': 0, 'maximum': 3600000, 'selection': 'uniform'},
+            'stepDurationMs': [1, 60000]
+          },
+          'movementArea': {'optional': true, 'shape': 'MapRect', 'anchor': 'fixedMapCoordinates', 'recenterOnLoad': false},
         },
       },
     ),
@@ -131,43 +252,97 @@ final class EntityActions {
       },
     ),
     AuthoringActionDescriptor(
-      id: 'entity.set_presentation', version: 1,
-      summary: 'Set or clear conditional native character, collision, footprint and counter reach variants',
+      id: 'entity.set_presentation',
+      version: 1,
+      summary:
+          'Set or clear conditional native character, collision, footprint and counter reach variants',
       inputSchemaId: 'schema.entity.set_presentation.input.v1',
       outputSchemaId: 'schema.map.semantic_mutation.output.v1',
-      riskLevel: AuthoringRiskLevel.low, resourceKinds: const ['map'],
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent,
-        AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
-      extensions: const {'semanticIds': true, 'rawTilesetRequired': false,
-        'presentation': {'schemaVersion': 2, 'selection': 'firstMatchingVariant',
-          'noMatchingVariant': 'absent', 'entityKinds': ['npc', 'custom'],
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'presentation': {
+          'schemaVersion': 2,
+          'selection': 'firstMatchingVariant',
+          'noMatchingVariant': 'absent',
+          'entityKinds': ['npc', 'custom'],
           'conditionExpressionKinds': ['leaf', 'all', 'any', 'not'],
           'parameters': ['mapId', 'entityId', 'presentation'],
-          'variantFields': ['id', 'condition', 'characterId', 'facing', 'interactionMode', 'blocksMovement',
-            'size', 'counterInteractionSides', 'movement', 'startsOnNpcContact'], 'maximumVariants': 256,
-          'movement': {'scope': 'selectedVariant', 'modes': ['idle', 'scriptedOnly', 'fixedRoute'],
-            'autonomousDimension': 'twoD', 'pageChange': 'cancelMotionAndReservationsThenResetRoute',
-            'samePage': 'preserveProgress', 'saveResume': 'lastCommittedPose',
-            'routeProgressSaved': false},
-          'startsOnNpcContact': {'default': false, 'dimension': 'twoD', 'requires': 'blockingCharacter',
-            'dispatch': 'entityBump', 'duplicateContact': 'latchedUntilSeparation'},
-          'counterReachMapMode': '2d', 'clearValue': null}},
+          'variantFields': [
+            'id',
+            'condition',
+            'characterId',
+            'facing',
+            'interactionMode',
+            'blocksMovement',
+            'size',
+            'counterInteractionSides',
+            'movement',
+            'startsOnNpcContact'
+          ],
+          'maximumVariants': 256,
+          'movement': {
+            'scope': 'selectedVariant',
+            'modes': ['idle', 'scriptedOnly', 'fixedRoute'],
+            'autonomousDimension': 'twoD',
+            'pageChange': 'cancelMotionAndReservationsThenResetRoute',
+            'samePage': 'preserveProgress',
+            'saveResume': 'lastCommittedPose',
+            'routeProgressSaved': false
+          },
+          'startsOnNpcContact': {
+            'default': false,
+            'dimension': 'twoD',
+            'requires': 'blockingCharacter',
+            'dispatch': 'entityBump',
+            'duplicateContact': 'latchedUntilSeparation'
+          },
+          'counterReachMapMode': '2d',
+          'clearValue': null
+        }
+      },
     ),
     AuthoringActionDescriptor(
-      id: 'entity.set_interactive_encounter', version: 1,
+      id: 'entity.set_interactive_encounter',
+      version: 1,
       summary: 'Set or clear a native Headbutt or after Rock Smash encounter',
       inputSchemaId: 'schema.entity.set_interactive_encounter.input.v1',
       outputSchemaId: 'schema.map.semantic_mutation.output.v1',
-      riskLevel: AuthoringRiskLevel.low, resourceKinds: const ['map'],
+      riskLevel: AuthoringRiskLevel.low,
+      resourceKinds: const ['map'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      guarantees: const [AuthoringGuarantee.dryRun, AuthoringGuarantee.idempotent, AuthoringGuarantee.revisionChecked, AuthoringGuarantee.undoable],
-      extensions: const {'semanticIds': true, 'rawTilesetRequired': false,
-        'interactiveEncounter': {'triggers': ['headbutt','afterRockSmash'], 'tableKinds': {'headbutt':'headbutt','afterRockSmash':'special'},
-          'reusePolicies': ['repeatable','oncePerMapInstance'], 'mapMode': '2d', 'visual': 'existingProjectElement',
-          'headbuttRequires': 'partyHasUsableMove:headbutt', 'chancePerAttemptField': 'chancePerStep',
-          'conditions': 'ScriptCondition', 'consumption': 'battlePrepared', 'clearValue': null,
-          'parameters': ['mapId','entityId','interactiveEncounter']}},
+      guarantees: const [
+        AuthoringGuarantee.dryRun,
+        AuthoringGuarantee.idempotent,
+        AuthoringGuarantee.revisionChecked,
+        AuthoringGuarantee.undoable
+      ],
+      extensions: const {
+        'semanticIds': true,
+        'rawTilesetRequired': false,
+        'interactiveEncounter': {
+          'triggers': ['headbutt', 'afterRockSmash'],
+          'tableKinds': {'headbutt': 'headbutt', 'afterRockSmash': 'special'},
+          'reusePolicies': ['repeatable', 'oncePerMapInstance'],
+          'mapMode': '2d',
+          'visual': 'existingProjectElement',
+          'headbuttRequires': 'partyHasUsableMove:headbutt',
+          'chancePerAttemptField': 'chancePerStep',
+          'conditions': 'ScriptCondition',
+          'consumption': 'battlePrepared',
+          'clearValue': null,
+          'parameters': ['mapId', 'entityId', 'interactiveEncounter']
+        }
+      },
     ),
     AuthoringActionDescriptor(
       id: 'entity.set_healing_display',
@@ -240,6 +415,33 @@ final class EntityActions {
     }
   }
 
+  MapData createBatch(MapData map, {required List<MapEntity> entities}) {
+    _requireCreateBatchSize(entities.length);
+    final ids = <String>{};
+    for (var index = 0; index < entities.length; index++) {
+      final id = entities[index].id.trim();
+      if (!ids.add(id)) {
+        throw semanticFailure(
+          'entity.batch_duplicate_id',
+          'Entity identities must be unique within a create batch.',
+          details: {'index': index, 'entityId': id},
+        );
+      }
+    }
+    var candidate = map;
+    for (var index = 0; index < entities.length; index++) {
+      final entity = entities[index];
+      try {
+        candidate = create(candidate, entity);
+      } on MapAuthoringException catch (error) {
+        throw semanticFailure(error.code, error.message,
+            details: {...error.details, 'index': index, 'entityId': entity.id},
+            remediation: error.remediation);
+      }
+    }
+    return candidate;
+  }
+
   MapData moveBatch(MapData map, Map<String, GridPos> destinations) {
     if (destinations.isEmpty) {
       throw semanticFailure(
@@ -274,29 +476,36 @@ final class EntityActions {
       if (step is! MapEntityNpcMoveStep) {
         continue;
       }
-      final (dx,dy) = switch (step.direction) {
-        EntityFacing.north => (0,-1), EntityFacing.south => (0,1),
-        EntityFacing.east => (1,0), EntityFacing.west => (-1,0),
+      final (dx, dy) = switch (step.direction) {
+        EntityFacing.north => (0, -1),
+        EntityFacing.south => (0, 1),
+        EntityFacing.east => (1, 0),
+        EntityFacing.west => (-1, 0),
       };
       final current = positions.last;
-      positions.add(GridPos(x:current.x+dx,y:current.y+dy));
+      positions.add(GridPos(x: current.x + dx, y: current.y + dy));
     }
     return List.unmodifiable(positions);
   }
 
-  MapData setMovementConfiguration(MapData map, {
-    required String entityId, required MapEntityNpcMovementConfig movement,
+  MapData setMovementConfiguration(
+    MapData map, {
+    required String entityId,
+    required MapEntityNpcMovementConfig movement,
   }) {
-    final entity = _npcEntity(map,entityId);
+    final entity = _npcEntity(map, entityId);
     try {
       assertValidMapEntityNpcMovementConfig(movement);
-      return updateEntityOnMap(map, entityId:entity.id, npc:entity.npc!.copyWith(
-        movement:movement.copyWith(routeSteps:List.unmodifiable(movement.routeSteps),
-          waypoints:List.unmodifiable(movement.waypoints))));
+      return updateEntityOnMap(map,
+          entityId: entity.id,
+          npc: entity.npc!.copyWith(
+              movement: movement.copyWith(
+                  routeSteps: List.unmodifiable(movement.routeSteps),
+                  waypoints: List.unmodifiable(movement.waypoints))));
     } on MapAuthoringException {
       rethrow;
     } on Object catch (error) {
-      throw _entityFailure(error,code:'npc.movement_invalid');
+      throw _entityFailure(error, code: 'npc.movement_invalid');
     }
   }
 
@@ -336,13 +545,21 @@ final class EntityActions {
         entityId: entityId, fieldObstacle: fieldObstacle);
   }
 
-  MapData setInteractiveEncounter(MapData map, {required ProjectManifest project, required String entityId, required MapEntityInteractiveEncounterData? interactiveEncounter}) {
+  MapData setInteractiveEncounter(MapData map,
+      {required ProjectManifest project,
+      required String entityId,
+      required MapEntityInteractiveEncounterData? interactiveEncounter}) {
     try {
-      final updated = updateEntityOnMap(map, entityId: entityId, interactiveEncounter: interactiveEncounter);
-      _assertInteractiveEncounterTarget(updated, project, _entityById(updated, entityId));
+      final updated = updateEntityOnMap(map,
+          entityId: entityId, interactiveEncounter: interactiveEncounter);
+      _assertInteractiveEncounterTarget(
+          updated, project, _entityById(updated, entityId));
       return updated;
-    } on MapAuthoringException { rethrow; } on Object {
-      throw semanticFailure('entity.interactive_encounter_invalid', 'Interactive encounters require a matching native table and visual on a blocking 1x1 custom 2D object.');
+    } on MapAuthoringException {
+      rethrow;
+    } on Object {
+      throw semanticFailure('entity.interactive_encounter_invalid',
+          'Interactive encounters require a matching native table and visual on a blocking 1x1 custom 2D object.');
     }
   }
 
@@ -357,7 +574,8 @@ final class EntityActions {
       final updated = updateEntityOnMap(map,
           entityId: entityId, healingDisplay: healingDisplay);
       if (healingDisplay != null) {
-        _assertHealingDisplayTarget(updated, project, _entityById(updated, entityId));
+        _assertHealingDisplayTarget(
+            updated, project, _entityById(updated, entityId));
       }
       return updated;
     } on MapAuthoringException {
@@ -368,19 +586,55 @@ final class EntityActions {
     }
   }
 
-  MapData setPresentation(MapData map, {required ProjectManifest project,
-    required String entityId, required MapEntityPresentation? presentation}) {
-    final entity = _entityById(map, entityId).copyWith(presentation: presentation);
-    final updated = map.copyWith(entities: [for (final value in map.entities)
-      if (value.id == entityId) entity else value]);
-    if (presentation != null) _assertPresentationTarget(updated, project, entity);
+  MapData setPresentation(MapData map,
+      {required ProjectManifest project,
+      required String entityId,
+      required MapEntityPresentation? presentation}) {
+    final entity =
+        _entityById(map, entityId).copyWith(presentation: presentation);
+    final updated = map.copyWith(entities: [
+      for (final value in map.entities)
+        if (value.id == entityId) entity else value
+    ]);
+    if (presentation != null)
+      _assertPresentationTarget(updated, project, entity);
     return updated;
+  }
+
+  MapData setVisibilityRule(MapData map,
+      {required String entityId,
+      required MapEntityNpcVisibilityRule? visibilityRule}) {
+    final entity = _npcEntity(map, entityId);
+    return updateEntityOnMap(map,
+        entityId: entityId,
+        npc: entity.npc!.copyWith(visibilityRule: visibilityRule));
+  }
+
+  MapData setTrainerBattleReadiness(MapData map, {
+    required String entityId,
+    required MapEntityRuntimePredicate? trainerBattleReadyWhen,
+    required DialogueRef? trainerBattleNotReadyDialogue,
+  }) {
+    final entity = _npcEntity(map, entityId);
+    return updateEntityOnMap(map, entityId: entityId,
+      npc: entity.npc!.copyWith(trainerBattleReadyWhen: trainerBattleReadyWhen,
+        trainerBattleNotReadyDialogue: trainerBattleNotReadyDialogue));
+  }
+
+  MapData setTrainerBattleRule(MapData map,
+      {required String entityId,
+      required MapEntityRuntimePredicate? trainerBattleWhen}) {
+    final entity = _npcEntity(map, entityId);
+    return updateEntityOnMap(map,
+        entityId: entityId,
+        npc: entity.npc!.copyWith(trainerBattleWhen: trainerBattleWhen));
   }
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
       'entity.create' || 'entity.upsert' => const {'entity'},
+      'entity.create_batch' => const {'entities'},
       'entity.update' => const {'entityId', 'entity'},
       'entity.clone' => const {'entityId', 'newId', 'x', 'y'},
       'entity.move' => const {'entityId', 'x', 'y'},
@@ -399,7 +653,10 @@ final class EntityActions {
         const {'entityId', 'payload'},
       'entity.set_field_obstacle' => const {'entityId', 'fieldObstacle'},
       'entity.set_presentation' => const {'entityId', 'presentation'},
-      'entity.set_interactive_encounter' => const {'entityId', 'interactiveEncounter'},
+      'entity.set_interactive_encounter' => const {
+          'entityId',
+          'interactiveEncounter'
+        },
       'entity.set_healing_display' => const {'entityId', 'healingDisplay'},
       'entity.set_blocks_movement' => const {'entityId', 'blocksMovement'},
       'entity.patch_properties' => const {'entityId', 'patch'},
@@ -412,6 +669,8 @@ final class EntityActions {
           'dialogue',
         },
       'npc.set_visibility_rule' => const {'entityId', 'visibilityRule'},
+      'npc.set_trainer_battle_readiness' => const {'entityId', 'trainerBattleReadyWhen', 'trainerBattleNotReadyDialogue'},
+      'npc.set_trainer_battle_rule' => const {'entityId', 'trainerBattleWhen'},
       'npc.conditional_dialogue_add' => const {
           'entityId',
           'conditionalDialogue',
@@ -433,6 +692,8 @@ final class EntityActions {
           'suspendWhenInstanceBoolean',
           'loop',
           'pauseDurationMs',
+          'pauseDurationsMs',
+          'movementArea',
           'stepDurationMs',
         },
       'npc.waypoint_add' => const {'entityId', 'x', 'y', 'index'},
@@ -460,6 +721,15 @@ final class EntityActions {
       switch (actionId) {
         case 'entity.create':
           updated = create(context.map, _entity(parameters.object('entity')));
+        case 'entity.create_batch':
+          final raw = parameters.list('entities');
+          _requireCreateBatchSize(raw.length);
+          final entities = [
+            for (var index = 0; index < raw.length; index++)
+              _entity(_object(raw[index], 'entities[$index]')),
+          ];
+          updated = createBatch(context.map, entities: entities);
+          changedItems = entities.length;
         case 'entity.upsert':
           final entity = _entity(parameters.object('entity'));
           _assertStrictPayload(entity);
@@ -614,19 +884,37 @@ final class EntityActions {
               entityId: parameters.string('entityId'),
               fieldObstacle: obstacle);
         case 'entity.set_presentation':
-          if (!parameters.contains('presentation')) throw invalidSemanticField('presentation', 'a typed payload or explicit null');
+          if (!parameters.contains('presentation'))
+            throw invalidSemanticField(
+                'presentation', 'a typed payload or explicit null');
           final raw = parameters.value('presentation');
-          updated = setPresentation(context.map, project: context.manifest,
-            entityId: parameters.string('entityId'), presentation: raw == null ? null :
-              MapEntityPresentation.fromJson(_object(raw, 'presentation').cast<String, dynamic>()));
+          updated = setPresentation(context.map,
+              project: context.manifest,
+              entityId: parameters.string('entityId'),
+              presentation: raw == null
+                  ? null
+                  : MapEntityPresentation.fromJson(
+                      _object(raw, 'presentation').cast<String, dynamic>()));
         case 'entity.set_interactive_encounter':
-          if (!parameters.contains('interactiveEncounter')) throw invalidSemanticField('interactiveEncounter', 'a typed payload or explicit null');
+          if (!parameters.contains('interactiveEncounter'))
+            throw invalidSemanticField(
+                'interactiveEncounter', 'a typed payload or explicit null');
           final raw = parameters.value('interactiveEncounter');
           MapEntityInteractiveEncounterData? payload;
           try {
-            payload = raw == null ? null : MapEntityInteractiveEncounterData.fromJson(_object(raw, 'interactiveEncounter').cast<String,dynamic>());
-          } on Object { throw semanticFailure('entity.interactive_encounter_invalid', 'Unsupported interactive encounter payload.'); }
-          updated = setInteractiveEncounter(context.map, project: context.manifest, entityId: parameters.string('entityId'), interactiveEncounter: payload);
+            payload = raw == null
+                ? null
+                : MapEntityInteractiveEncounterData.fromJson(
+                    _object(raw, 'interactiveEncounter')
+                        .cast<String, dynamic>());
+          } on Object {
+            throw semanticFailure('entity.interactive_encounter_invalid',
+                'Unsupported interactive encounter payload.');
+          }
+          updated = setInteractiveEncounter(context.map,
+              project: context.manifest,
+              entityId: parameters.string('entityId'),
+              interactiveEncounter: payload);
         case 'entity.set_healing_display':
           if (!parameters.contains('healingDisplay')) {
             throw invalidSemanticField(
@@ -637,7 +925,8 @@ final class EntityActions {
           if (rawDisplay != null) {
             try {
               display = MapEntityHealingDisplayData.fromJson(
-                  _object(rawDisplay, 'healingDisplay').cast<String, dynamic>());
+                  _object(rawDisplay, 'healingDisplay')
+                      .cast<String, dynamic>());
             } on Object {
               throw semanticFailure('entity.healing_display_invalid',
                   'The healing display payload is unsupported.');
@@ -697,7 +986,13 @@ final class EntityActions {
           updated = _patchNpcJson(
             context.map,
             parameters.string('entityId'),
-            {'trainerId': parameters.value('trainerId')},
+            {
+              'trainerId': parameters.value('trainerId'),
+              if (parameters.value('trainerId') == null)
+                'trainerBattleWhen': null,
+              if (parameters.value('trainerId') == null) 'trainerBattleReadyWhen': null,
+              if (parameters.value('trainerId') == null) 'trainerBattleNotReadyDialogue': null
+            },
           );
         case 'npc.set_dialogue':
           updated = _patchNpcJson(
@@ -712,11 +1007,31 @@ final class EntityActions {
             {'defeatDialogueRef': parameters.value('dialogue')},
           );
         case 'npc.set_visibility_rule':
-          updated = _patchNpcJson(
-            context.map,
-            parameters.string('entityId'),
-            {'visibilityRule': parameters.value('visibilityRule')},
-          );
+          final rawRule = parameters.value('visibilityRule');
+          updated = setVisibilityRule(context.map,
+              entityId: parameters.string('entityId'),
+              visibilityRule: rawRule == null
+                  ? null
+                  : MapEntityNpcVisibilityRule.fromJson(
+                      (rawRule as Map).cast<String, dynamic>()));
+        case 'npc.set_trainer_battle_readiness':
+          if (!parameters.contains('trainerBattleReadyWhen') || !parameters.contains('trainerBattleNotReadyDialogue')) {
+            throw invalidSemanticField('trainerBattleReadyWhen', 'a condition and refusal dialogue, or explicit null for both');
+          }
+          final rawReady = parameters.value('trainerBattleReadyWhen');
+          final rawRefusal = parameters.value('trainerBattleNotReadyDialogue');
+          updated = setTrainerBattleReadiness(context.map,
+            entityId: parameters.string('entityId'),
+            trainerBattleReadyWhen: rawReady == null ? null : MapEntityRuntimePredicate.fromJson(_object(rawReady, 'trainerBattleReadyWhen').cast<String,dynamic>()),
+            trainerBattleNotReadyDialogue: rawRefusal == null ? null : DialogueRef.fromJson(_object(rawRefusal, 'trainerBattleNotReadyDialogue').cast<String,dynamic>()));
+        case 'npc.set_trainer_battle_rule':
+          final rawRule = parameters.value('trainerBattleWhen');
+          updated = setTrainerBattleRule(context.map,
+              entityId: parameters.string('entityId'),
+              trainerBattleWhen: rawRule == null
+                  ? null
+                  : MapEntityRuntimePredicate.fromJson(
+                      (rawRule as Map).cast<String, dynamic>()));
         case 'npc.conditional_dialogue_add':
         case 'npc.conditional_dialogue_update':
         case 'npc.conditional_dialogue_remove':
@@ -736,22 +1051,29 @@ final class EntityActions {
           );
           final movement = entity.npc!.movement.toJson();
           movement['mode'] = parameters.string('mode');
-          final fixedRoute = movement['mode'] == MapEntityNpcMovementMode.fixedRoute.name;
+          final fixedRoute =
+              movement['mode'] == MapEntityNpcMovementMode.fixedRoute.name;
           if (fixedRoute) {
             movement['waypoints'] = <Object>[];
             if (parameters.contains('routeSteps')) {
               movement['routeSteps'] = parameters.list('routeSteps');
             }
             if (parameters.contains('suspendWhenInstanceBoolean')) {
-              movement['suspendWhenInstanceBoolean'] = parameters.value('suspendWhenInstanceBoolean');
+              movement['suspendWhenInstanceBoolean'] =
+                  parameters.value('suspendWhenInstanceBoolean');
             }
           } else {
-            if ((parameters.contains('routeSteps') && parameters.list('routeSteps').isNotEmpty) ||
-                (parameters.contains('suspendWhenInstanceBoolean') && parameters.value('suspendWhenInstanceBoolean') != null)) {
-              throw semanticFailure('npc.movement_invalid','Autonomous steps and suspension require fixedRoute.');
+            if ((parameters.contains('routeSteps') &&
+                    parameters.list('routeSteps').isNotEmpty) ||
+                (parameters.contains('suspendWhenInstanceBoolean') &&
+                    parameters.value('suspendWhenInstanceBoolean') != null)) {
+              throw semanticFailure('npc.movement_invalid',
+                  'Autonomous steps and suspension require fixedRoute.');
             }
             movement['routeSteps'] = <Object>[];
             movement['suspendWhenInstanceBoolean'] = null;
+            movement['pauseDurationsMs'] = <int>[];
+            movement['movementArea'] = null;
           }
           if (parameters.contains('loop')) {
             movement['loop'] = parameters.boolean('loop');
@@ -762,8 +1084,19 @@ final class EntityActions {
           if (parameters.contains('stepDurationMs')) {
             movement['stepDurationMs'] = parameters.integer('stepDurationMs');
           }
-          updated = setMovementConfiguration(context.map, entityId:entity.id,
-            movement:MapEntityNpcMovementConfig.fromJson(movement));
+          if (parameters.contains('pauseDurationsMs')) {
+            final choices = parameters.list('pauseDurationsMs');
+            if (choices.any((value) => value is! int)) {
+              throw semanticFailure('npc.movement_invalid', 'Pause choices must be integer milliseconds.');
+            }
+            movement['pauseDurationsMs'] = choices;
+          }
+          if (parameters.contains('movementArea')) {
+            movement['movementArea'] = parameters.value('movementArea');
+          }
+          updated = setMovementConfiguration(context.map,
+              entityId: entity.id,
+              movement: MapEntityNpcMovementConfig.fromJson(movement));
         case 'npc.waypoint_add':
         case 'npc.waypoint_move':
         case 'npc.waypoint_reorder':
@@ -805,10 +1138,12 @@ final class EntityActions {
       _assertHealingDisplayTarget(updated, context.manifest, entity);
     }
 
-    for (final entity in updated.entities.where((entity) => entity.interactiveEncounter != null)) {
+    for (final entity in updated.entities
+        .where((entity) => entity.interactiveEncounter != null)) {
       _assertInteractiveEncounterTarget(updated, context.manifest, entity);
     }
-    for (final entity in updated.entities.where((entity) => entity.presentation != null)) {
+    for (final entity
+        in updated.entities.where((entity) => entity.presentation != null)) {
       _assertPresentationTarget(updated, context.manifest, entity);
     }
 
@@ -820,16 +1155,34 @@ final class EntityActions {
   }
 }
 
-void _assertPresentationTarget(MapData map, ProjectManifest project, MapEntity entity) {
-  final errors = validateMapEntityPresentation(project: project, map: map, entity: entity);
+void _requireCreateBatchSize(int count) {
+  if (count < 1 || count > 128) {
+    throw semanticFailure(
+      'entity.batch_invalid',
+      'An entity create batch must contain between 1 and 128 entities.',
+      details: {'count': count, 'minEntities': 1, 'maxEntities': 128},
+    );
+  }
+}
+
+void _assertPresentationTarget(
+    MapData map, ProjectManifest project, MapEntity entity) {
+  final errors =
+      validateMapEntityPresentation(project: project, map: map, entity: entity);
   if (!const [MapEntityKind.npc, MapEntityKind.custom].contains(entity.kind) ||
-      entity.sign != null || entity.item != null || entity.spawn != null ||
-      entity.fieldObstacle != null || entity.healingDisplay != null || entity.interactiveEncounter != null ||
+      entity.sign != null ||
+      entity.item != null ||
+      entity.spawn != null ||
+      entity.fieldObstacle != null ||
+      entity.healingDisplay != null ||
+      entity.interactiveEncounter != null ||
       errors.isNotEmpty ||
-      (map.spatialScene != null && entity.presentation!.variants.any((variant) => variant.counterInteractionSides.isNotEmpty))) {
+      (map.spatialScene != null &&
+          entity.presentation!.variants
+              .any((variant) => variant.counterInteractionSides.isNotEmpty))) {
     throw semanticFailure('entity.presentation_invalid',
-      'Presentation requires one NPC or custom owner, valid references and in-bounds footprints.',
-      details: {'errors': errors});
+        'Presentation requires one NPC or custom owner, valid references and in-bounds footprints.',
+        details: {'errors': errors});
   }
 }
 
@@ -1173,10 +1526,15 @@ MapAuthoringException _entityFailure(
       details: {'validationType': error.runtimeType.toString()},
     );
 
-void _assertInteractiveEncounterTarget(MapData map, ProjectManifest project, MapEntity entity) {
+void _assertInteractiveEncounterTarget(
+    MapData map, ProjectManifest project, MapEntity entity) {
   if (entity.interactiveEncounter == null) return;
   try {
-    if (map.version != ProjectVersion.v8 || map.spatialScene != null) throw StateError('Interactive encounters require 2D.');
+    if (map.version != ProjectVersion.v8 || map.spatialScene != null)
+      throw StateError('Interactive encounters require 2D.');
     assertEntityInteractiveEncounterAgainstProject(entity, project);
-  } on Object { throw semanticFailure('entity.interactive_encounter_invalid', 'Interactive encounters require a matching native table and visual on a blocking 1x1 custom 2D object.'); }
+  } on Object {
+    throw semanticFailure('entity.interactive_encounter_invalid',
+        'Interactive encounters require a matching native table and visual on a blocking 1x1 custom 2D object.');
+  }
 }

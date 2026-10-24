@@ -20,7 +20,7 @@ void main() {
       expect(envelope.profileId, 'player-1');
       expect(envelope.slotId, 'slot-1');
       expect(envelope.checksum.value,
-          'cd6ae9c5e1ae4c3c9ae5ba5574545de893e7ebeabbe1169f9870dec61aacde77');
+          '51cdc166bddc8ab243b6f0753a0125302fb853574abce7a84d3075cfd05c0825');
       expect(roundTrip, envelope);
     });
 
@@ -182,7 +182,7 @@ void main() {
   });
 }
 
-GameIdentity _identity({int saveFormat = 1}) => GameIdentity(
+GameIdentity _identity({int saveFormat = SaveEnvelopeCodec.currentSaveFormat}) => GameIdentity(
       gameId: 'games.example.complete',
       gameVersion: '1.2.0',
       projectFormat: ProjectFormat.v2,

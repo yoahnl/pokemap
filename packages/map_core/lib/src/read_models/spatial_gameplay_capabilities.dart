@@ -15,6 +15,14 @@ import 'narrative_command_catalog.dart';
 abstract final class SpatialGameplayCapabilities {
   static const capabilityId = 'map3d.gameplay@1';
   static const storyCapabilityId = 'map3d.story@1';
+  static const companionCapabilityId = 'map3d.party-companion@1';
+  static const audioCapabilityId = 'map3d.scene-audio@1';
+
+  static bool requiresAudio(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && switch ((node.payload as SceneActionPayload).interactiveCommand) {
+    ScenePlaySoundEffectInteractiveCommand() || ScenePlayMusicEffectInteractiveCommand() || SceneStopSoundEffectsInteractiveCommand() => true,
+    _ => false,
+  }));
+
   static const productionExportEnabled = false;
   static const commandIds = <String>{
     NarrativeCommandIds.setFact,
@@ -45,6 +53,9 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.trainerBattle,
     NarrativeCommandIds.staticEncounter,
     NarrativeCommandIds.playModelAnimation,
+    NarrativeCommandIds.playSoundEffect,
+    NarrativeCommandIds.playMusicEffect,
+    NarrativeCommandIds.stopSoundEffects,
   };
   static const cinematicStepKinds = <CinematicTimelineStepKind>{
     CinematicTimelineStepKind.wait,
@@ -52,9 +63,11 @@ abstract final class SpatialGameplayCapabilities {
     CinematicTimelineStepKind.actorMove,
     CinematicTimelineStepKind.actorJump,
     CinematicTimelineStepKind.actorFace,
+    CinematicTimelineStepKind.actorEmote,
     CinematicTimelineStepKind.marker,
   };
   static const conditionSources = <SceneConditionSourceKind>{
+    SceneConditionSourceKind.playerFacing,
     SceneConditionSourceKind.partyState,
     SceneConditionSourceKind.trainerDefeated,
     SceneConditionSourceKind.badge,

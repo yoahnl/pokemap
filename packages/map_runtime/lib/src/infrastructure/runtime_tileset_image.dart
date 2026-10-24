@@ -1,8 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart' show runtimeTilesetChunkHeight;
 
-const int kRuntimeMaxTilesetChunkHeight = 4096;
+const int kRuntimeMaxTilesetChunkHeight = runtimeTilesetChunkHeight;
 
 @immutable
 final class RuntimeTilesetChunk {

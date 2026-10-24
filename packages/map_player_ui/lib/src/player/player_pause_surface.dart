@@ -20,6 +20,7 @@ enum PlayerPauseAction {
   bag,
   pokedex,
   quests,
+  contacts,
   map,
   profile,
   save,
@@ -67,6 +68,7 @@ final class PlayerPauseMenuLabels {
         PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
         PlayerPauseAction.map => map ?? l10n.map,
         PlayerPauseAction.quests => quests ?? l10n.quests,
+        PlayerPauseAction.contacts => 'Contacts',
         PlayerPauseAction.profile => profile ?? l10n.profile,
         PlayerPauseAction.save => save ?? l10n.save,
         PlayerPauseAction.options => options ?? l10n.options,
@@ -211,6 +213,7 @@ PlayerPauseAction _pauseAction(ProjectPauseActionId id) => switch (id) {
       ProjectPauseActionId.pokedex => PlayerPauseAction.pokedex,
       ProjectPauseActionId.map => PlayerPauseAction.map,
       ProjectPauseActionId.quests => PlayerPauseAction.quests,
+      ProjectPauseActionId.contacts => PlayerPauseAction.contacts,
       ProjectPauseActionId.profile => PlayerPauseAction.profile,
       ProjectPauseActionId.save => PlayerPauseAction.save,
       ProjectPauseActionId.options => PlayerPauseAction.options,
@@ -225,6 +228,7 @@ ProjectPauseActionId _projectPauseAction(PlayerPauseAction action) =>
       PlayerPauseAction.pokedex => ProjectPauseActionId.pokedex,
       PlayerPauseAction.map => ProjectPauseActionId.map,
       PlayerPauseAction.quests => ProjectPauseActionId.quests,
+      PlayerPauseAction.contacts => ProjectPauseActionId.contacts,
       PlayerPauseAction.profile => ProjectPauseActionId.profile,
       PlayerPauseAction.save => ProjectPauseActionId.save,
       PlayerPauseAction.options => ProjectPauseActionId.options,
@@ -239,6 +243,7 @@ ProjectPauseActionIcon _defaultPauseActionIcon(PlayerPauseAction action) =>
       PlayerPauseAction.pokedex => ProjectPauseActionIcon.book,
       PlayerPauseAction.map => ProjectPauseActionIcon.map,
       PlayerPauseAction.quests => ProjectPauseActionIcon.book,
+      PlayerPauseAction.contacts => ProjectPauseActionIcon.book,
       PlayerPauseAction.profile => ProjectPauseActionIcon.person,
       PlayerPauseAction.save => ProjectPauseActionIcon.save,
       PlayerPauseAction.options => ProjectPauseActionIcon.settings,
@@ -668,6 +673,7 @@ class PlayerPauseNavigation extends StatelessWidget {
               PlayerPauseAction.party => theme.danger,
               PlayerPauseAction.bag => theme.warning,
               PlayerPauseAction.quests => theme.health,
+              PlayerPauseAction.contacts => theme.health,
               PlayerPauseAction.map ||
               PlayerPauseAction.pokedex ||
               PlayerPauseAction.save =>

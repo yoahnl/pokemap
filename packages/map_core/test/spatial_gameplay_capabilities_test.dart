@@ -2,6 +2,28 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('spatial profile accepts existing facing and emote contracts', () {
+    expect(
+      SpatialGameplayCapabilities.cinematicStepKinds,
+      contains(CinematicTimelineStepKind.actorEmote),
+    );
+    expect(
+      SpatialGameplayCapabilities.supportsSceneNode(
+        SceneExecutionProfile.world,
+        SceneNode(
+          id: 'direction',
+          kind: SceneNodeKind.condition,
+          payload: SceneConditionPayload(
+            conditionSource: SceneConditionSource.playerFacing(
+              direction: EntityFacing.west,
+            ),
+          ),
+        ),
+      ),
+      isTrue,
+    );
+  });
+
   bool supports(SceneNodePayload payload) =>
       SpatialGameplayCapabilities.supportsSceneNode(
         SceneExecutionProfile.world,
@@ -14,6 +36,8 @@ void main() {
       expect(SpatialGameplayCapabilities.capabilityId, 'map3d.gameplay@1');
       expect(SpatialGameplayCapabilities.productionExportEnabled, false);
       expect(SpatialGameplayCapabilities.conditionSources, {
+        SceneConditionSourceKind.playerFacing,
+        SceneConditionSourceKind.integerComparison,
         SceneConditionSourceKind.inventoryItem,
         SceneConditionSourceKind.badge,
         SceneConditionSourceKind.fact,
@@ -27,6 +51,8 @@ void main() {
         (kind) => kind != SceneConditionSourceKind.newGameDraft,
       )) {
         final source = switch (kind) {
+          SceneConditionSourceKind.integerComparison => SceneConditionSource.integerComparison(
+            left: SceneIntegerOperand.literal(1), right: SceneIntegerOperand.literal(1), comparison: NarrativeFactOperator.equals),
           SceneConditionSourceKind.partyState =>
             SceneConditionSource.partyCanReceivePokemon(),
           SceneConditionSourceKind.playerFacing => SceneConditionSource(

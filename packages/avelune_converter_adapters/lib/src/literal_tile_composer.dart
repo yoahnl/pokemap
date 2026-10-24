@@ -829,6 +829,27 @@ final class _LiteralCompositionRun {
             'An XP regular atlas must be 256px wide with complete 32px rows');
         continue;
       }
+      try {
+        runtimeTilesetImageAllocation(
+          encodedLength: artifact.bytes.length,
+          width: size.$1,
+          height: size.$2,
+          sourceBitDepth: artifact.bytes[24],
+        );
+      } on RuntimeResourceAdmissionException catch (error) {
+        diagnostic(
+            'literal.tileset.runtime_image_budget',
+            true,
+            {
+              'file': file.relativePath,
+              'sourceTilesetId': entry.key,
+              'width': size.$1,
+              'height': size.$2,
+              'reason': error.reason,
+            },
+            'The native runtime image budget cannot admit this regular atlas');
+        continue;
+      }
       pixels += size.$1 * size.$2;
       if (pixels > limits.maxTotalImagePixels) {
         throw const NativeWriteException('literal.quota.image',

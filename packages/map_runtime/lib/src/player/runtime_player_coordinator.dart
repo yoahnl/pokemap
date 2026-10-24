@@ -180,6 +180,8 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.reorderParty:
         case RuntimePlayerAction.openPokedex:
         case RuntimePlayerAction.openQuests:
+        case RuntimePlayerAction.openContacts:
+        case RuntimePlayerAction.callContact:
         case RuntimePlayerAction.openMap:
         case RuntimePlayerAction.openProfile:
         case RuntimePlayerAction.openOptions:
@@ -588,11 +590,14 @@ final class RuntimePlayerCoordinator {
           sessionId: reorderSessionId,
           result: reorderResult,
         );
+      case RuntimePlayerAction.callContact:
       case RuntimePlayerAction.useBagItem:
         final pauseCommand = command.payload;
         final commandSection = _snapshot.pauseSection;
         if (pauseCommand is! RuntimePlayerPauseCommand ||
             !switch (pauseCommand.kind) {
+              RuntimePlayerPauseCommandKind.callContact =>
+                command.action == RuntimePlayerAction.callContact && commandSection == RuntimePlayerPauseSection.contacts,
               RuntimePlayerPauseCommandKind.useBagItem =>
                 commandSection == RuntimePlayerPauseSection.bag,
               RuntimePlayerPauseCommandKind.equipHeldItem ||
@@ -657,6 +662,9 @@ final class RuntimePlayerCoordinator {
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
+      case RuntimePlayerAction.openContacts:
+        _publishPause(RuntimePlayerPauseSection.contacts, logicalSelectionId: 'pause.contacts');
+        return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
       case RuntimePlayerAction.openQuests:
         return RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
@@ -2074,6 +2082,11 @@ final class RuntimePlayerCoordinator {
           const RuntimePlayerActionAvailability.enabled(
             RuntimePlayerAction.reorderParty,
           ),
+      ],
+      if (_isPauseActionVisible(ProjectPauseActionId.contacts, pauseMenuState) && pauseDetails.containsKey(RuntimePlayerPauseSection.contacts)) ...[
+        const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openContacts),
+        if (section == RuntimePlayerPauseSection.contacts)
+          const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.callContact),
       ],
       if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(

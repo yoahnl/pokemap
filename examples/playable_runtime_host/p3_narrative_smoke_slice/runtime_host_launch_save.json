@@ -1,6 +1,7 @@
 {
   "itemSystemSchemaVersion": 1,
   "saveId": "p3_narrative_smoke_save",
+  "completionPartyJournal": {"schemaVersion": 1, "records": []},
   "mapInstanceWorldState": {
     "schemaVersion": 4,
     "instancesByMapId": {}
