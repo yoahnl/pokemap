@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
+import '../foundation/player_input_scope.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_intro_video_player.dart';
@@ -21,6 +24,7 @@ import 'player_title_screen.dart';
 import 'pokemap_player_session_view.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
+import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_options.dart';
 import 'player_control_profile.dart';
 
@@ -92,6 +96,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.companionTitleAttached = false,
     this.onCompanionInput,
     this.controlProfile,
+    this.normalizedControllerInputEvents,
   }) : assert(
          splashAnimationProgress == null ||
              (splashAnimationProgress >= 0 && splashAnimationProgress <= 1),
@@ -104,6 +109,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final bool companionTitleAttached;
   final bool Function(RuntimeInputEvent)? onCompanionInput;
   final PlayerControlProfile? controlProfile;
+  final Stream<NormalizedGamepadEvent>? normalizedControllerInputEvents;
   final RuntimeHostSplashBranding branding;
   final RuntimeStartupSnapshot snapshot;
   final RuntimePlayerTitlePresentation titlePresentation;
@@ -160,6 +166,113 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       widget.snapshot.playerSnapshot?.phase == RuntimePlayerPhase.title;
   int? _consumedStartupRevision;
   RuntimePresentationOrientation? _reportedOrientation;
+  late RuntimePlayerGamepadBridge _gamepadBridge;
+  final _controllerMux = RuntimePlayerControllerInputMux();
+  StreamSubscription<NormalizedGamepadEvent>? _controllerSubscription;
+  String? _normalizedDeviceId;
+
+  bool get _ownsControllerInput =>
+      _visiblePhase != RuntimeStartupPhase.launchingSession &&
+      _visiblePhase != RuntimeStartupPhase.completed;
+
+  void _configureControllerInput() {
+    unawaited(_controllerSubscription?.cancel());
+    _controllerSubscription = null;
+    _controllerMux.clear();
+    _normalizedDeviceId = null;
+    if (!_ownsControllerInput) {
+      _gamepadBridge = RuntimePlayerGamepadBridge(controlProfile: widget.controlProfile);
+      return;
+    }
+    _controllerSubscription =
+        (widget.normalizedControllerInputEvents ?? Gamepads.normalizedEvents)
+            .listen((event) {
+              _normalizedDeviceId = event.gamepadId;
+              for (final input in _gamepadBridge.handle(event)) {
+                final routed = _controllerMux.route(
+                  input,
+                  path: 'normalized',
+                  deviceId: event.gamepadId,
+                );
+                if (routed != null) _routeStartupInput(routed.event);
+              }
+            });
+  }
+
+  KeyEventResult _routeOwnedGamepadEvent(KeyEvent event) {
+    if (event.deviceType != ui.KeyEventDeviceType.gamepad) {
+      return KeyEventResult.ignored;
+    }
+    final target = FocusManager.instance.primaryFocus?.context;
+    if (!mounted ||
+        target == null ||
+        PlayerHardwareInputScope.maybeOf(target)?.route !=
+            _routeHardwareInput) {
+      return KeyEventResult.ignored;
+    }
+    return _routeHardwareInput(event);
+  }
+
+  KeyEventResult _routeHardwareInput(KeyEvent event) {
+    if (!_ownsControllerInput) return KeyEventResult.ignored;
+    final input = (widget.controlProfile ?? PlayerControlProfile.standard)
+        .runtimeEventFromKeyEvent(event);
+    if (input == null) return KeyEventResult.ignored;
+    if (event.deviceType != ui.KeyEventDeviceType.gamepad) {
+      _routeStartupInput(input, source: PlayerInputSource.keyboard);
+      return KeyEventResult.handled;
+    }
+    final routed = _controllerMux.route(
+      input,
+      path: 'hardware',
+      deviceId: _normalizedDeviceId ?? 'hardware-gamepad',
+    );
+    if (routed != null) _routeStartupInput(routed.event);
+    return KeyEventResult.handled;
+  }
+
+  void _routeStartupInput(
+    RuntimeInputEvent input, {
+    PlayerInputSource source = PlayerInputSource.controller,
+  }) {
+    if (!_active || !_ownsControllerInput) return;
+    final target = FocusManager.instance.primaryFocus?.context;
+    if (target == null ||
+        PlayerHardwareInputScope.maybeOf(target)?.route !=
+            _routeHardwareInput) {
+      return;
+    }
+    if (_titleTransitionPending && input.isPress) return;
+    final command = playerInputCommandFromRuntimeEvent(input, source: source);
+    final player = widget.snapshot.playerSnapshot;
+    final localSurface =
+        !_delegatesTitle &&
+        ((_visiblePhase == RuntimeStartupPhase.titleMenu &&
+                player != null &&
+                _isTitleOptions(player)) ||
+            ModalRoute.of(target) != ModalRoute.of(context));
+    if (localSurface) {
+      if (command.isPress &&
+          (!command.isRepeat ||
+              command.action == PlayerInputAction.up ||
+              command.action == PlayerInputAction.down ||
+              command.action == PlayerInputAction.left ||
+              command.action == PlayerInputAction.right)) {
+        if (Actions.maybeFind<RuntimePlayerLogicalIntent>(target) != null) {
+          Actions.invoke(
+            target,
+            RuntimePlayerLogicalIntent(command.action, source: command.source),
+          );
+        }
+      }
+      return;
+    }
+    if (!_delegatesTitle && command.action == PlayerInputAction.back) {
+      if (command.isPress && !command.isRepeat) _handleBack();
+      return;
+    }
+    _handleInput(command);
+  }
 
   RuntimeStartupPhase get _visiblePhase =>
       widget.snapshot.phase == RuntimeStartupPhase.lifecyclePaused
@@ -191,11 +304,17 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     );
     _syncSplashAnimations();
     _focusController = RuntimePlayerFocusController(
-      activeInputSource: widget.snapshot.playerSnapshot?.activeInputSource ??
+      activeInputSource:
+          widget.snapshot.playerSnapshot?.activeInputSource ??
           PlayerInputSource.keyboard,
     );
     _introPlaybackController = PlayerIntroVideoPlayerController();
     widget.controller?._attach(_handleInput, _stopIntroPlayback);
+    _gamepadBridge = RuntimePlayerGamepadBridge(
+      controlProfile: widget.controlProfile,
+    );
+    _configureControllerInput();
+    FocusManager.instance.addEarlyKeyEventHandler(_routeOwnedGamepadEvent);
   }
 
   @override
@@ -219,6 +338,25 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     if (oldWidget.reducedMotion && !widget.reducedMotion) {
       _splashAnimation.value = 0;
       _splashAmbientAnimation.value = 0;
+    }
+    if (oldWidget.controlProfile != widget.controlProfile ||
+        oldWidget.snapshot.isLifecycleActive !=
+            widget.snapshot.isLifecycleActive) {
+      _gamepadBridge = _gamepadBridge.rebind(
+        widget.controlProfile ?? PlayerControlProfile.standard,
+      );
+      _controllerMux.clear();
+    }
+    final oldPhase = oldWidget.snapshot.phase == RuntimeStartupPhase.lifecyclePaused
+        ? oldWidget.snapshot.suspendedPhase ?? RuntimeStartupPhase.splash
+        : oldWidget.snapshot.phase;
+    final oldOwnsControllerInput =
+        oldPhase != RuntimeStartupPhase.launchingSession &&
+        oldPhase != RuntimeStartupPhase.completed;
+    if (oldWidget.normalizedControllerInputEvents !=
+            widget.normalizedControllerInputEvents ||
+        oldOwnsControllerInput != _ownsControllerInput) {
+      _configureControllerInput();
     }
     _syncSplashAnimations();
     if (widget.companionTitleAttached != oldWidget.companionTitleAttached) {
@@ -248,56 +386,58 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   Widget build(BuildContext context) {
     final child = switch (_visiblePhase) {
       RuntimeStartupPhase.preparing ||
-      RuntimeStartupPhase.splash =>
-        _buildSplash(),
+      RuntimeStartupPhase.splash => _buildSplash(),
       RuntimeStartupPhase.intro => _buildIntro(),
       RuntimeStartupPhase.titlePrompt => _buildTitlePrompt(),
       RuntimeStartupPhase.titleMenu => RuntimePlayerPreferencesScope(
-          preferences: widget.snapshot.playerSnapshot?.preferences,
-          child: Builder(builder: _buildTitleState),
-        ),
+        preferences: widget.snapshot.playerSnapshot?.preferences,
+        child: Builder(builder: _buildTitleState),
+      ),
       RuntimeStartupPhase.recoverableError => _buildError(context),
       RuntimeStartupPhase.launchingSession ||
-      RuntimeStartupPhase.completed =>
-        _buildSession(context),
+      RuntimeStartupPhase.completed => _buildSession(context),
       RuntimeStartupPhase.lifecyclePaused => _buildSplash(),
     };
-    return PopScope<Object?>(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _handleBack();
-      },
-      child: FocusScope(
-        node: _startupFocus,
-        autofocus: true,
-        child: RuntimePlayerActions(
-          onBack: _handleBack,
-          onMenu: () => _handleInput(
-            const PlayerInputCommand.press(
-              PlayerInputAction.menu,
-              source: PlayerInputSource.keyboard,
+    return PlayerHardwareInputScope(
+      route: _routeHardwareInput,
+      child: PopScope<Object?>(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _handleBack();
+        },
+        child: FocusScope(
+          node: _startupFocus,
+          autofocus: true,
+          child: RuntimePlayerActions(
+            onBack: _handleBack,
+            onMenu: () => _handleInput(
+              const PlayerInputCommand.press(
+                PlayerInputAction.menu,
+                source: PlayerInputSource.keyboard,
+              ),
             ),
-          ),
-          onInputSourceChanged: _focusController.noteInputSource,
-          child: Focus(
-            focusNode: _delegatedTitleFocus,
-            canRequestFocus: _delegatesTitle,
-            autofocus: _delegatesTitle,
-            onKeyEvent: (_, event) {
-              if (!_delegatesTitle) return KeyEventResult.ignored;
-              final input =
-                  (widget.controlProfile ?? PlayerControlProfile.standard)
-                      .runtimeEventFromKeyEvent(event);
-              if (input == null) return KeyEventResult.ignored;
-              if (_titleTransitionPending && input.isPress) {
+            onInputSourceChanged: _focusController.noteInputSource,
+            child: Focus(
+              focusNode: _delegatedTitleFocus,
+              canRequestFocus: _delegatesTitle,
+              autofocus: _delegatesTitle,
+              onKeyEvent: (_, event) {
+                if (!_delegatesTitle) return KeyEventResult.ignored;
+                final input =
+                    (widget.controlProfile ?? PlayerControlProfile.standard)
+                        .runtimeEventFromKeyEvent(event);
+                if (input == null) return KeyEventResult.ignored;
+                if (_titleTransitionPending && input.isPress) {
+                  return KeyEventResult.handled;
+                }
+                widget.onCompanionInput?.call(input);
                 return KeyEventResult.handled;
-              }
-              widget.onCompanionInput?.call(input);
-              return KeyEventResult.handled;
-            },
-            child: IgnorePointer(
-              ignoring: !_active || _delegatesTitle || _titleTransitionPending,
-              child: child,
+              },
+              child: IgnorePointer(
+                ignoring:
+                    !_active || _delegatesTitle || _titleTransitionPending,
+                child: child,
+              ),
             ),
           ),
         ),
@@ -469,6 +609,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     if (_isTitleOptions(player) && !_delegatesTitle) {
       return PlayerTitleOptionsSurface(
         snapshot: player,
+        controlProfile: widget.controlProfile,
+        activeInputSource: _focusController.activeInputSource,
         onReturnToTitle: () {
           _focusController.select('title.openOptions');
           unawaited(_dispatchPlayer(RuntimePlayerAction.returnToTitle, player));
@@ -517,7 +659,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         ),
         logo: widget.titlePresentation.logo,
         accentColor: widget.titlePresentation.accentColor,
-        layoutVariant: widget.titlePresentation.layoutVariant ==
+        layoutVariant:
+            widget.titlePresentation.layoutVariant ==
                 PlayerTitleLayoutVariant.cinematic
             ? PlayerTitleLayoutVariant.runtimeStartupCinematic
             : PlayerTitleLayoutVariant.runtimeStartup,
@@ -602,13 +745,11 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
 
   void _selectTitleAction(
     PlayerTitleMenuAction action,
-    RuntimePlayerSnapshot player,
-  ) {
+    RuntimePlayerSnapshot player, {
+    PlayerInputSource source = PlayerInputSource.touch,
+  }) {
     final runtimeAction = _runtimeAction(action);
-    _focusController.select(
-      'title.${runtimeAction.name}',
-      source: PlayerInputSource.touch,
-    );
+    _focusController.select('title.${runtimeAction.name}', source: source);
     unawaited(_dispatchPlayer(runtimeAction, player));
   }
 
@@ -713,9 +854,9 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     );
     final availabilityByAction =
         <RuntimePlayerAction, RuntimePlayerActionAvailability>{
-      for (final availability in projection.actions)
-        availability.action: availability,
-    };
+          for (final availability in projection.actions)
+            availability.action: availability,
+        };
     final authored = widget.titlePresentation.actions;
     final orderedActions = authored == null
         ? projection.actions.map((availability) => availability.action)
@@ -750,7 +891,11 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     if (command.action == PlayerInputAction.confirm ||
         command.action == PlayerInputAction.menu) {
       final selected = current < 0 ? enabled.first : enabled[current];
-      _selectTitleAction(_titleAction(selected.action), player);
+      _selectTitleAction(
+        _titleAction(selected.action),
+        player,
+        source: command.source,
+      );
       return true;
     }
     return false;
@@ -808,6 +953,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
 
   @override
   void dispose() {
+    FocusManager.instance.removeEarlyKeyEventHandler(_routeOwnedGamepadEvent);
+    unawaited(_controllerSubscription?.cancel());
     widget.controller?._detach(_handleInput, _stopIntroPlayback);
     _splashAnimation.dispose();
     _splashAmbientAnimation.dispose();

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_player_ui/src/player/runtime_player_options.dart';
@@ -19,6 +21,321 @@ void main() {
     description: 'Une aventure ferroviaire.',
   );
 
+  Widget controllerShell(
+    RuntimeStartupSnapshot snapshot, {
+    required Stream<NormalizedGamepadEvent> events,
+    ValueChanged<RuntimeStartupCommand>? onStartup,
+    ValueChanged<RuntimePlayerCommand>? onPlayer,
+    PlayerControlProfile? profile,
+    Widget Function(BuildContext, RuntimePlayerSnapshot?)? sessionBuilder,
+  }) => _app(
+    PlayerRuntimeStartupShell(
+      branding: branding,
+      snapshot: snapshot,
+      titlePresentation: presentation,
+      normalizedControllerInputEvents: events,
+      controlProfile: profile,
+      reducedMotion: true,
+      sessionBuilder: sessionBuilder,
+      onStartupCommand: onStartup ?? (_) {},
+      onPlayerCommand: (command) {
+        onPlayer?.call(command);
+        return _acceptPlayerCommand(command);
+      },
+      onIntroPlaybackCompleted: (_) {},
+      onIntroPlaybackFailed: (_, _) {},
+    ),
+  );
+
+  testWidgets(
+    'normalized held confirm does not cross the title prompt into a menu action',
+    (tester) async {
+      final events = StreamController<NormalizedGamepadEvent>.broadcast(
+        sync: true,
+      );
+      addTearDown(events.close);
+      final startup = <RuntimeStartupCommand>[];
+      final commands = <RuntimePlayerCommand>[];
+      Widget shell(RuntimeStartupSnapshot snapshot) => controllerShell(
+        snapshot,
+        events: events.stream,
+        onStartup: startup.add,
+        onPlayer: commands.add,
+      );
+      await _pumpMeasuredStartupWidget(
+        tester,
+        shell(_startup(RuntimeStartupPhase.titlePrompt)),
+      );
+      events.add(_startupPad(button: GamepadButton.a));
+      await tester.pump();
+      expect(startup.map((command) => command.action), [
+        RuntimeStartupAction.pressStart,
+      ]);
+      await _pumpMeasuredStartupWidget(
+        tester,
+        shell(
+          _startup(
+            RuntimeStartupPhase.titleMenu,
+            revision: 6,
+            player: _titlePlayer(),
+          ),
+        ),
+      );
+      events.add(_startupPad(button: GamepadButton.a));
+      await tester.pump();
+      expect(commands, isEmpty);
+      events.add(_startupPad(button: GamepadButton.a, value: 0));
+      events.add(_startupPad(button: GamepadButton.dpadDown));
+      events.add(_startupPad(button: GamepadButton.dpadDown, value: 0));
+      await tester.pump();
+      events.add(_startupPad(button: GamepadButton.a));
+      await tester.pump();
+      expect(commands.map((command) => command.action), [
+        RuntimePlayerAction.newGame,
+      ]);
+      final title = tester.widget<PlayerTitleScreen>(
+        find.byType(PlayerTitleScreen),
+      );
+      expect(
+        title.focusController!.activeInputSource,
+        PlayerInputSource.controller,
+      );
+    },
+  );
+
+  for (final normalizedFirst in [true, false]) {
+    testWidgets(
+      'title coalesces both gamepad channels normalizedFirst=$normalizedFirst',
+      (tester) async {
+        final events = StreamController<NormalizedGamepadEvent>.broadcast(
+          sync: true,
+        );
+        addTearDown(events.close);
+        final commands = <RuntimePlayerCommand>[];
+        await _pumpMeasuredStartupWidget(
+          tester,
+          controllerShell(
+            _startup(RuntimeStartupPhase.titleMenu, player: _titlePlayer()),
+            events: events.stream,
+            onPlayer: commands.add,
+          ),
+        );
+        if (normalizedFirst) events.add(_startupPad(button: GamepadButton.a));
+        await _startupGamepadPress(
+          tester,
+          LogicalKeyboardKey.gameButtonA,
+          PhysicalKeyboardKey.gameButtonA,
+          whileHeld: () async {
+            if (!normalizedFirst) {
+              events.add(_startupPad(button: GamepadButton.a));
+            }
+            await tester.pump();
+            expect(commands.length, 1);
+          },
+        );
+        events.add(_startupPad(button: GamepadButton.a, value: 0));
+        await tester.pump();
+        expect(commands.length, 1);
+        events.add(_startupPad(button: GamepadButton.a));
+        await tester.pump();
+        expect(commands.length, 2);
+      },
+    );
+  }
+
+  testWidgets('startup gamepad honors remapping pause and session handoff', (
+    tester,
+  ) async {
+    final events = StreamController<NormalizedGamepadEvent>.broadcast(
+      sync: true,
+    );
+    addTearDown(events.close);
+    final commands = <RuntimeStartupCommand>[];
+    final profile = PlayerControlProfile.standard
+        .rebind(
+          device: PlayerControlDevice.gamepad,
+          control: RuntimeInputControl.primary,
+          inputId: 'x',
+        )
+        .profile;
+    Widget shell(RuntimeStartupSnapshot snapshot) => controllerShell(
+      snapshot,
+      events: events.stream,
+      onStartup: commands.add,
+      profile: profile,
+      sessionBuilder: (_, _) => const Text('Session en cours'),
+    );
+    await _pumpMeasuredStartupWidget(
+      tester,
+      shell(_startup(RuntimeStartupPhase.titlePrompt)),
+    );
+    events.add(_startupPad(button: GamepadButton.a));
+    events.add(_startupPad(button: GamepadButton.a, value: 0));
+    await tester.pump();
+    expect(commands, isEmpty);
+    await _pumpMeasuredStartupWidget(
+      tester,
+      shell(_startupPaused(RuntimeStartupPhase.titlePrompt)),
+    );
+    events.add(_startupPad(button: GamepadButton.x));
+    await tester.pump();
+    expect(commands, isEmpty);
+    await _pumpMeasuredStartupWidget(
+      tester,
+      shell(_startup(RuntimeStartupPhase.titlePrompt, revision: 7)),
+    );
+    events.add(_startupPad(button: GamepadButton.x));
+    await tester.pump();
+    expect(commands, isEmpty);
+    events.add(_startupPad(button: GamepadButton.x, value: 0));
+    events.add(_startupPad(button: GamepadButton.x));
+    await tester.pump();
+    expect(commands.length, 1);
+    await _pumpMeasuredStartupWidget(
+      tester,
+      shell(_startup(RuntimeStartupPhase.completed, revision: 8)),
+    );
+    expect(events.hasListener, isFalse);
+    events.add(_startupPad(button: GamepadButton.x, value: 0));
+    events.add(_startupPad(button: GamepadButton.x));
+    await tester.pump();
+    expect(commands.length, 1);
+    expect(find.text('Session en cours'), findsOneWidget);
+  });
+
+  testWidgets('returning to the title rearms controls released during gameplay', (tester) async {
+    final events = StreamController<NormalizedGamepadEvent>.broadcast(sync: true);
+    addTearDown(events.close);
+    final commands = <RuntimePlayerCommand>[];
+    Widget shell(RuntimeStartupSnapshot snapshot) => controllerShell(snapshot,
+      events: events.stream, onPlayer: commands.add,
+      sessionBuilder: (_, _) => const Text('Session en cours'));
+    await _pumpMeasuredStartupWidget(tester, shell(_startup(RuntimeStartupPhase.titleMenu, player: _titlePlayer())));
+    events.add(_startupPad(button: GamepadButton.a));
+    await tester.pump();
+    expect(commands.length, 1);
+    await _pumpMeasuredStartupWidget(tester, shell(_startup(RuntimeStartupPhase.completed, revision: 7)));
+    events.add(_startupPad(button: GamepadButton.a, value: 0));
+    await tester.pump();
+    await _pumpMeasuredStartupWidget(tester, shell(_startup(RuntimeStartupPhase.titleMenu, revision: 8, player: _titlePlayer())));
+    events.add(_startupPad(button: GamepadButton.a));
+    await tester.pump();
+    expect(commands.length, 2);
+  });
+
+  testWidgets('title options accept controller shoulder tabs and back', (
+    tester,
+  ) async {
+    final events = StreamController<NormalizedGamepadEvent>.broadcast(
+      sync: true,
+    );
+    addTearDown(events.close);
+    final commands = <RuntimePlayerCommand>[];
+    await _pumpMeasuredStartupWidget(
+      tester,
+      controllerShell(
+        _startup(
+          RuntimeStartupPhase.titleMenu,
+          player: _optionsPlayer().next(
+            pauseSection: RuntimePlayerPauseSection.options,
+            preferences: const PlayerPreferencesSnapshot(
+              locale: 'fr',
+              accessibility: GameSessionAccessibilityOptions(),
+            ),
+          ),
+        ),
+        events: events.stream,
+        onPlayer: commands.add,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('options-settings-general-bindings')),
+      findsOneWidget,
+    );
+    final footer = find.byKey(
+      const ValueKey('runtime-player-title-options-back'),
+    );
+    Focus.of(
+      tester.element(
+        find.descendant(of: footer, matching: find.byType(Text)).first,
+      ),
+    ).requestFocus();
+    await tester.pump();
+    events.add(_startupPad(button: GamepadButton.rightBumper));
+    events.add(_startupPad(button: GamepadButton.rightBumper, value: 0));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('options-settings-display-bindings')),
+      findsOneWidget,
+    );
+    events.add(_startupPad(button: GamepadButton.leftBumper));
+    events.add(_startupPad(button: GamepadButton.leftBumper, value: 0));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('options-settings-general-bindings')),
+      findsOneWidget,
+    );
+    events.add(_startupPad(button: GamepadButton.b));
+    events.add(_startupPad(button: GamepadButton.b, value: 0));
+    await tester.pumpAndSettle();
+    expect(commands.map((command) => command.action), [
+      RuntimePlayerAction.returnToTitle,
+    ]);
+  });
+
+  testWidgets('physical gamepad starts the title and selects a menu action', (
+    tester,
+  ) async {
+    final startupCommands = <RuntimeStartupCommand>[];
+    final playerCommands = <RuntimePlayerCommand>[];
+    Widget shell(RuntimeStartupSnapshot snapshot) => _app(
+      PlayerRuntimeStartupShell(
+        branding: branding,
+        snapshot: snapshot,
+        titlePresentation: presentation,
+        onStartupCommand: startupCommands.add,
+        onPlayerCommand: (command) {
+          playerCommands.add(command);
+          return _acceptPlayerCommand(command);
+        },
+        onIntroPlaybackCompleted: (_) {},
+        onIntroPlaybackFailed: (_, _) {},
+      ),
+    );
+    await _pumpMeasuredStartupWidget(
+      tester,
+      shell(_startup(RuntimeStartupPhase.titlePrompt)),
+    );
+    await _startupGamepadPress(
+      tester,
+      LogicalKeyboardKey.gameButtonA,
+      PhysicalKeyboardKey.gameButtonA,
+    );
+    await tester.pump();
+    expect(startupCommands.map((command) => command.action), [
+      RuntimeStartupAction.pressStart,
+    ]);
+    await _pumpMeasuredStartupWidget(
+      tester,
+      shell(
+        _startup(
+          RuntimeStartupPhase.titleMenu,
+          revision: 6,
+          player: _titlePlayer(),
+        ),
+      ),
+    );
+    await _startupGamepadPress(
+      tester,
+      LogicalKeyboardKey.gameButtonA,
+      PhysicalKeyboardKey.gameButtonA,
+    );
+    await tester.pump();
+    expect(playerCommands.map((command) => command.action), [
+      RuntimePlayerAction.continueGame,
+    ]);
+  });
   testWidgets(
     'delegated title keeps one input owner and restores local actions after detach',
     (tester) async {
@@ -1571,3 +1888,66 @@ Future<void> _revealPagedTarget(WidgetTester tester, Finder target, {Finder? sco
   }
   expect(target, findsOneWidget);
 }
+
+Future<void> _startupGamepadPress(
+  WidgetTester tester,
+  LogicalKeyboardKey logical,
+  PhysicalKeyboardKey physical, {
+  Future<void> Function()? whileHeld,
+}) async {
+  Future<bool> send(bool down) async {
+    tester.binding.platformDispatcher.onKeyData!(
+      ui.KeyData(
+        timeStamp: Duration.zero,
+        type: down ? ui.KeyEventType.down : ui.KeyEventType.up,
+        physical: physical.usbHidUsage,
+        logical: logical.keyId,
+        character: null,
+        synthesized: false,
+        deviceType: ui.KeyEventDeviceType.gamepad,
+      ),
+    );
+    final response = Completer<bool>();
+    final data = KeyEventSimulator.getKeyData(
+      logical,
+      platform: 'android',
+      isDown: down,
+      physicalKey: physical,
+    )..['source'] = 0x00000401;
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      SystemChannels.keyEvent.name,
+      SystemChannels.keyEvent.codec.encodeMessage(data),
+      (reply) {
+        final value = SystemChannels.keyEvent.codec.decodeMessage(
+          reply,
+        ) as Map<Object?, Object?>?;
+        response.complete(value?['handled'] == true);
+      },
+    );
+    return response.future;
+  }
+
+  try {
+    expect(await send(true), isTrue);
+    await whileHeld?.call();
+  } finally {
+    await send(false);
+  }
+}
+
+NormalizedGamepadEvent _startupPad({
+  required GamepadButton button,
+  double value = 1,
+}) => NormalizedGamepadEvent(
+  gamepadId: 'startup-pad',
+  timestamp: 1,
+  value: value,
+  button: button,
+  rawEvent: GamepadEvent(
+    gamepadId: 'startup-pad',
+    timestamp: 1,
+    type: KeyType.button,
+    key: button.name,
+    value: value,
+  ),
+);

@@ -21,6 +21,83 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+    'stable overworld action stays opaque across hardware input and session updates',
+    (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(revision: 1, phase: RuntimePlayerPhase.playing),
+      );
+      final interactions = ValueNotifier(_overworldSnapshot());
+      final dispatched = <RuntimeOverworldInteractionRequest>[];
+      addTearDown(controller.dispose);
+      addTearDown(interactions.dispose);
+      await _pumpMeasuredSessionWidget(
+        tester,
+        _app(
+          _view(
+            controller,
+            overworldInteractions: interactions,
+            onOverworldInteraction: (request) {
+              dispatched.add(request);
+              return true;
+            },
+            gameplayInputRoute: (_) => true,
+          ),
+        ),
+      );
+      final capsule = find.byType(PlayerOverworldActionCapsule);
+      RuntimePlayerInputSourceNotification(PlayerInputSource.keyboard).dispatch(
+        tester.element(capsule),
+      );
+      await tester.pumpAndSettle();
+      final initialElement = tester.element(capsule);
+      final appearance = find.descendant(
+        of: capsule,
+        matching: find.byType(Opacity),
+      );
+      expect(tester.widget<Opacity>(appearance).opacity, 1);
+      final obsoleteActivation = tester
+          .widget<PlayerOverworldActionCapsule>(capsule)
+          .onPressed!;
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      controller.publish(
+        _snapshot(revision: 2, phase: RuntimePlayerPhase.playing),
+      );
+      await tester.idle();
+      await tester.pump();
+      expect(
+        tester
+            .widget<RuntimePlayerSurfaceRouter>(
+              find.byType(RuntimePlayerSurfaceRouter),
+            )
+            .snapshot
+            .revision,
+        2,
+      );
+      expect(tester.widget<Opacity>(appearance).opacity, 1);
+      expect(tester.element(capsule), same(initialElement));
+      expect(capsule.hitTestable(), findsOneWidget);
+      obsoleteActivation();
+      expect(dispatched, isEmpty);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      final oldGesture = await tester.startGesture(tester.getCenter(capsule));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      controller.publish(
+        _snapshot(revision: 3, phase: RuntimePlayerPhase.playing),
+      );
+      await tester.idle();
+      await tester.pump();
+      await oldGesture.up();
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(dispatched, isEmpty);
+      await tester.tap(capsule);
+      expect(dispatched, [interactions.value.primaryAction!.request]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('touch pause entry routes the first Options PageDown without manual focus', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1920, 1080);
@@ -4854,7 +4931,7 @@ Future<void> _selectOptionsCategory(WidgetTester tester, String category, {bool 
   final target = find.byKey(ValueKey('options-category-$category'));
   final picker = find.byKey(const ValueKey('options-category-picker'));
   if (target.evaluate().isEmpty && picker.evaluate().isNotEmpty) {
-    await tester.tap(picker);
+    await tester.tap(picker, kind: mouse ? ui.PointerDeviceKind.mouse : ui.PointerDeviceKind.touch);
     await tester.pumpAndSettle();
   }
   await _revealPagedTarget(tester, target, scope: find.byKey(const ValueKey('options-categories')), mouse: mouse);

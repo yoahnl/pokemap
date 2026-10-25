@@ -91,8 +91,22 @@ class _PlayerPagedListState extends State<PlayerPagedList>
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.children, widget.children) ||
         oldWidget.sideNavigation != widget.sideNavigation) {
-      _heights.clear();
-      _reportedHeight = null;
+      final previousChildren = {
+        for (var index = 0; index < oldWidget.children.length; index++)
+          ValueKey(oldWidget.children[index].key ?? index):
+              oldWidget.children[index],
+      };
+      final nextChildren = {
+        for (var index = 0; index < widget.children.length; index++)
+          _key(index): widget.children[index],
+      };
+      _heights.removeWhere((key, _) {
+        final previous = previousChildren[key];
+        final next = nextChildren[key];
+        return previous == null ||
+            next == null ||
+            !Widget.canUpdate(previous, next);
+      });
       _measurementEpoch++;
     }
   }

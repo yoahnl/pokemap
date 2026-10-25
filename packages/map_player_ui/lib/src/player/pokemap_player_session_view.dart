@@ -265,6 +265,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   final _touchMenuKey = GlobalKey();
   final _overworldActionKey = GlobalKey();
   int _overworldActionEpoch = 0;
+  ({int pointer, int cancellation, Object identity})? _overworldActionPointer;
   RuntimeOverworldInteractionRequest? _lastOverworldRequest;
   final _touchCancellation = ValueNotifier<int>(0);
   var _pauseFocusController = RuntimePlayerFocusController();
@@ -601,17 +602,38 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
                 Icons.touch_app_outlined
               ),
           };
-          return PlayerOverworldActionCapsule(
-            key: ValueKey((action.request, epoch, cancellation)),
-            label: label,
-            icon: icon,
-            glyph: glyph.isEmpty ? null : glyph,
-            onPressed: () => _dispatchOverworldInteraction(action.request,
-                fromTouch: _pendingPointerKind == ui.PointerDeviceKind.touch,
-                epoch: epoch,
-                cancellation: cancellation),
+          return Listener(
+            onPointerDown: (event) => _overworldActionPointer ??= (
+              pointer: event.pointer,
+              cancellation: cancellation,
+              identity: Object(),
+            ),
+            onPointerUp: _finishOverworldActionPointer,
+            onPointerCancel: _finishOverworldActionPointer,
+            child: PlayerOverworldActionCapsule(
+              key: ValueKey((action.request, epoch)),
+              label: label,
+              icon: icon,
+              glyph: glyph.isEmpty ? null : glyph,
+              onPressed: () => _dispatchOverworldInteraction(action.request,
+                  fromTouch: _pendingPointerKind == ui.PointerDeviceKind.touch,
+                  epoch: epoch,
+                  cancellation:
+                      _overworldActionPointer?.cancellation ?? cancellation),
+            ),
           );
         }));
+  }
+
+  void _finishOverworldActionPointer(PointerEvent event) {
+    final pointer = _overworldActionPointer;
+    if (pointer == null || pointer.pointer != event.pointer) return;
+    scheduleMicrotask(() {
+      if (mounted &&
+          identical(_overworldActionPointer?.identity, pointer.identity)) {
+        _overworldActionPointer = null;
+      }
+    });
   }
 
   (bool, bool, bool) get _presentationOwners => (

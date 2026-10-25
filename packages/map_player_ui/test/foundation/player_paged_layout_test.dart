@@ -269,7 +269,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
   testWidgets(
-    'rebuilding the same keyed rows keeps the active control focused',
+    'rebuilding the same keyed rows keeps content visible and focused in one frame',
     (tester) async {
       final revision = ValueNotifier(0);
       final focus = FocusNode(debugLabel: 'Stable option');
@@ -313,12 +313,166 @@ void main() {
       revision.value++;
       await tester.pump();
       expect(focus.hasFocus, isTrue);
+      expect(
+        find.widgetWithText(TextButton, 'Option 1').hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.text('Autre option').hitTestable(), findsOneWidget);
       await tester.pumpAndSettle();
       expect(focus.hasFocus, isTrue);
       expect(find.text('Option 1'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'reordering keyed rows preserves visible content and measured heights',
+    (tester) async {
+      final arrangement = ValueNotifier((false, 48.0));
+      final heights = <double>[];
+      addTearDown(arrangement.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 320,
+                height: 220,
+                child: ValueListenableBuilder(
+                  valueListenable: arrangement,
+                  builder: (context, value, _) {
+                    final rows = [
+                      SizedBox(
+                        key: const ValueKey('large-keyed-row'),
+                        height: 150,
+                        child: TextButton(
+                          onPressed: () {},
+                          child: const Text('Grand contenu'),
+                        ),
+                      ),
+                      SizedBox(
+                        key: const ValueKey('small-keyed-row'),
+                        height: value.$2,
+                        child: TextButton(
+                          onPressed: () {},
+                          child: const Text('Petit contenu'),
+                        ),
+                      ),
+                    ];
+                    return PlayerPagedList(
+                      onContentHeightChanged: heights.add,
+                      children: value.$1 ? rows.reversed.toList() : rows,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(heights, [206]);
+      arrangement.value = (true, 48);
+      await tester.pump();
+      expect(find.text('Grand contenu').hitTestable(), findsOneWidget);
+      expect(find.text('Petit contenu').hitTestable(), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Petit contenu')).dy,
+        lessThan(tester.getTopLeft(find.text('Grand contenu')).dy),
+      );
+      await tester.pumpAndSettle();
+      expect(heights, [206]);
+      arrangement.value = (true, 100);
+      await tester.pumpAndSettle();
+      expect(heights.last, 258);
+      expect(find.text('Petit contenu').hitTestable(), findsOneWidget);
+      expect(find.text('Grand contenu'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('player-page-next')));
+      await tester.pumpAndSettle();
+      expect(find.text('Grand contenu').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'keyed text remeasures after width theme and text scale changes',
+    (tester) async {
+      const label = 'Une option au texte adaptable';
+      var width = 320.0;
+      var fontSize = 14.0;
+      var textScale = 1.0;
+      final heights = <double>[];
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Theme(
+                  data: ThemeData(
+                    textTheme: TextTheme(
+                      bodyMedium: TextStyle(fontSize: fontSize, height: 1),
+                    ),
+                  ),
+                  child: MediaQuery(
+                    data: MediaQuery.of(context)
+                        .copyWith(textScaler: TextScaler.linear(textScale)),
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(
+                        width: width,
+                        height: 500,
+                        child: PlayerPagedList(
+                          onContentHeightChanged: heights.add,
+                          children: [
+                            Builder(
+                              key: const ValueKey('responsive-keyed-text'),
+                              builder: (context) => Text(
+                                label,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                            const SizedBox(
+                              key: ValueKey('responsive-keyed-end'),
+                              height: 48,
+                              child: Text('Fin'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      var previous = heights.last;
+      for (final change in <VoidCallback>[
+        () => width = 160,
+        () => fontSize = 20,
+        () => textScale = 2,
+      ]) {
+        update(change);
+        await tester.pumpAndSettle();
+        expect(heights.last, greaterThan(previous));
+        expect(
+          heights.last,
+          closeTo(tester.getSize(find.text(label)).height + 56, .5),
+        );
+        previous = heights.last;
+      }
+      update(() => width = 320);
+      await tester.pumpAndSettle();
+      expect(heights.last, lessThan(previous));
+      expect(find.text('Fin').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'growing keyed content remeasures before painting and preserves focus',
     (tester) async {
