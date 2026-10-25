@@ -34,6 +34,7 @@ void main() {
               gameTitle: 'Les Clairières',
               author: 'Studio Brume',
               description: 'Une aventure à votre rythme',
+              backgroundContent: const ColoredBox(color: Color(0xFF000000)),
               layoutVariant: variant,
               continueSave: PlayerTitleContinueSaveData(
                 updatedAt: DateTime(2026, 10, 25),
@@ -72,6 +73,10 @@ void main() {
           );
           await tester.pump();
           await tester.pump();
+          expect(
+            find.byKey(const ValueKey('player-title-branding-backplate')),
+            findsOneWidget,
+          );
           expect(find.byType(PlayerActionButton), findsNWidgets(5));
           expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
           expect(find.byType(SingleChildScrollView), findsNothing);

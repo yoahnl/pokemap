@@ -5,6 +5,79 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    testWidgets('controller keyboard edits graphemes and submits at $size', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final results = <SceneInteractionResult>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('fr'),
+          supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+          localizationsDelegates:
+              PokeMapPlayerLocalizations.localizationsDelegates,
+          theme: PokeMapPlayerTheme.dark(),
+          home: PlayerInputScope(
+            activeInputSource: PlayerInputSource.controller,
+            child: PlayerSceneInteractionSurface(
+              request: SceneInteractionRequest.text(
+                requestId: 'controller-keyboard',
+                revision: 1,
+                prompt: _prompt('Votre nom'),
+                constraints: SceneTextInputConstraints(
+                  minGraphemes: 1,
+                  maxGraphemes: 12,
+                ),
+              ),
+              onResult: results.add,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final keyboard = find.byKey(const ValueKey('scene-controller-keyboard'));
+      expect(keyboard, findsOneWidget);
+      final first = find.byKey(const ValueKey('scene-keyboard-char-A'));
+      expect(tester.getSize(first).height, greaterThanOrEqualTo(48));
+      expect(tester.getSize(first).width, greaterThanOrEqualTo(48));
+      Actions.invoke(
+        tester.element(first),
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.confirm,
+          source: PlayerInputSource.controller,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('scene-interaction-text-field')),
+      );
+      expect(field.readOnly, isTrue);
+      expect(field.controller!.text, 'A');
+      field.controller!.value = const TextEditingValue(
+        text: 'e\u0301👨‍👩‍👧‍👦',
+        selection: TextSelection.collapsed(offset: 13),
+      );
+      await tester.tap(find.byKey(const ValueKey('scene-keyboard-erase')));
+      await tester.pumpAndSettle();
+      expect(field.controller!.text, 'e\u0301');
+      await tester.tap(
+        find.byKey(const ValueKey('scene-interaction-text-submit')),
+      );
+      expect(
+        (results.single as SceneTextSubmittedInteractionResult).value,
+        'e\u0301',
+      );
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets(
     'confirmation is centered and selection shows four choices without pagination',
     (tester) async {

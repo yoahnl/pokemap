@@ -530,9 +530,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   ? 4
                   : 1)
             : (landscape && !companion ? 3 : 1);
+        final cellWidth = (constraints.maxWidth - (columns - 1) * 8) / columns;
         final rows = _categorySettings(
-          _category == PlayerOptionsCategory.audio ||
-              constraints.maxWidth < 400,
+          _category == PlayerOptionsCategory.audio || cellWidth < 400,
         );
         return FocusScope(
           node: _settingsFocus,

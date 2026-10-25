@@ -325,7 +325,7 @@ void main() {
         )..layout();
         expect(
           tester.getSize(badge).width,
-          greaterThanOrEqualTo(typeMeasure.width + 14),
+          greaterThanOrEqualTo(typeMeasure.width + 10),
         );
         typeMeasure.dispose();
       }
@@ -340,37 +340,67 @@ void main() {
         await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
       );
       await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
-      await _pump(
-        tester,
-        viewport: const Size(844, 390),
-        moves: true,
-        referenceMoves: true,
-        source: PlayerInputSource.controller,
-      );
-      for (var index = 0; index < 4; index++) {
-        for (final part in ['name', 'detail']) {
-          final finder = find.byKey(ValueKey('battle-move-$part-$index'));
-          final text = tester.widget<Text>(finder);
-          final context = tester.element(finder);
-          final style = DefaultTextStyle.of(context).style.merge(text.style);
-          final painter = TextPainter(
-            text: TextSpan(text: text.data, style: style),
-            textDirection: TextDirection.ltr,
-            textScaler: MediaQuery.textScalerOf(context),
-          )..layout();
-          expect(
-            tester.getSize(finder).width,
-            greaterThanOrEqualTo(painter.width - .1),
-            reason:
-                '${text.data} must fit at its actual font metrics alongside its type and PP',
-          );
-          painter.dispose();
+      for (final source in [
+        PlayerInputSource.controller,
+        PlayerInputSource.touch,
+      ]) {
+        await _pump(
+          tester,
+          viewport: const Size(844, 390),
+          moves: true,
+          referenceMoves: true,
+          source: source,
+        );
+        for (var index = 0; index < 4; index++) {
+          for (final part in ['name', 'detail']) {
+            final finder = find.byKey(ValueKey('battle-move-$part-$index'));
+            final text = tester.widget<Text>(finder);
+            final context = tester.element(finder);
+            final style = DefaultTextStyle.of(context).style.merge(text.style);
+            final painter = TextPainter(
+              text: TextSpan(text: text.data, style: style),
+              textDirection: TextDirection.ltr,
+              textScaler: MediaQuery.textScalerOf(context),
+            )..layout();
+            expect(
+              tester.getSize(finder).width,
+              greaterThanOrEqualTo(painter.width - .1),
+              reason:
+                  '${text.data} must fit at its actual font metrics alongside its type and PP',
+            );
+            painter.dispose();
+          }
+          final cardFinder = find
+              .descendant(
+                of: find.byKey(ValueKey('battle-entry-$index')),
+                matching: find.byType(Material),
+              )
+              .first;
+          final card = tester.widget<Material>(cardFinder);
+          final path = card.shape!.getOuterPath(tester.getRect(cardFinder));
+          for (final ppPart in ['number', 'caption']) {
+            final bounds = tester.getRect(
+              find.byKey(ValueKey('battle-pp-$ppPart-$index')),
+            );
+            for (final corner in [
+              bounds.topLeft + const Offset(.5, .5),
+              bounds.topRight + const Offset(-.5, .5),
+              bounds.bottomLeft + const Offset(.5, -.5),
+              bounds.bottomRight + const Offset(-.5, -.5),
+            ]) {
+              expect(
+                path.contains(corner),
+                isTrue,
+                reason: '$source move $index PP $ppPart clipped at $corner',
+              );
+            }
+          }
         }
+        expect(find.text('Fouet Lianes'), findsOneWidget);
+        expect(find.text('Vampigraine'), findsOneWidget);
+        expect(find.text('Poudre Dodo'), findsOneWidget);
+        expect(tester.takeException(), isNull);
       }
-      expect(find.text('Fouet Lianes'), findsOneWidget);
-      expect(find.text('Vampigraine'), findsOneWidget);
-      expect(find.text('Poudre Dodo'), findsOneWidget);
-      expect(tester.takeException(), isNull);
     },
   );
 

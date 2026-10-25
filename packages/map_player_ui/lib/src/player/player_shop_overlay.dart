@@ -213,6 +213,9 @@ class _PlayerShopOverlayState extends State<PlayerShopOverlay> {
                                     snapshot: snapshot,
                                     content: content,
                                     onSelect: _select,
+                                    columns: constraints.maxWidth >= 700
+                                        ? 2
+                                        : 1,
                                   );
                                   if (constraints.maxWidth < 700 ||
                                       selected == null) {
@@ -227,6 +230,7 @@ class _PlayerShopOverlayState extends State<PlayerShopOverlay> {
                                       Expanded(
                                         flex: 2,
                                         child: PlayerMenuPanel(
+                                          padding: const EdgeInsets.all(12),
                                           child: PlayerPagedList(
                                             children: [
                                               Text(
@@ -235,21 +239,24 @@ class _PlayerShopOverlayState extends State<PlayerShopOverlay> {
                                                     .playerMenuTheme
                                                     .subtitle,
                                               ),
-                                              Text('${selected.unitPrice} ₽'),
-                                              if (selling)
-                                                Text(
-                                                  l10n.shopOwned(
-                                                    selected.ownedQuantity,
-                                                  ),
-                                                ),
-                                              if (!selling &&
-                                                  selected.remainingStock !=
-                                                      null)
-                                                Text(
-                                                  l10n.shopStock(
-                                                    selected.remainingStock!,
-                                                  ),
-                                                ),
+                                              Text(
+                                                [
+                                                  '${selected.unitPrice} ₽',
+                                                  if (selling)
+                                                    l10n.shopOwned(
+                                                      selected.ownedQuantity,
+                                                    ),
+                                                  if (!selling &&
+                                                      selected.remainingStock !=
+                                                          null)
+                                                    l10n.shopStock(
+                                                      selected.remainingStock!,
+                                                    ),
+                                                ].join(' · '),
+                                                style: context
+                                                    .playerMenuTheme
+                                                    .meta,
+                                              ),
                                               if (selected.unavailableReason !=
                                                   null)
                                                 Text(
@@ -355,26 +362,59 @@ class _ShopInventory extends StatelessWidget {
     required this.snapshot,
     required this.content,
     required this.onSelect,
+    this.columns = 1,
   });
 
   final RuntimeWorldServiceSnapshot snapshot;
   final RuntimeShopServiceContent content;
   final ValueChanged<String> onSelect;
+  final int columns;
+
+  Widget _entry(RuntimeShopEntrySnapshot entry) => _ShopEntry(
+    entry: entry,
+    mode: content.mode,
+    selected: entry.itemId == content.selectedItemId,
+    compact: columns > 1,
+    onPressed: snapshot.isActionEnabled(RuntimeWorldServiceAction.select)
+        ? () => onSelect(entry.itemId)
+        : null,
+  );
 
   @override
-  Widget build(BuildContext context) => PlayerPagedList(
-    key: ValueKey('shop-inventory-${content.mode.name}'),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (content.message.isNotEmpty) Text(content.message),
-      for (final entry in content.entries)
-        _ShopEntry(
-          entry: entry,
-          mode: content.mode,
-          selected: entry.itemId == content.selectedItemId,
-          onPressed: snapshot.isActionEnabled(RuntimeWorldServiceAction.select)
-              ? () => onSelect(entry.itemId)
-              : null,
+      if (content.message.isNotEmpty) ...[
+        Text(content.message, style: context.playerMenuTheme.meta),
+        const SizedBox(height: 8),
+      ],
+      Expanded(
+        child: PlayerPagedList(
+          key: ValueKey('shop-inventory-${content.mode.name}'),
+          children: [
+            for (
+              var offset = 0;
+              offset < content.entries.length;
+              offset += columns
+            )
+              if (columns == 1)
+                _entry(content.entries[offset])
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _entry(content.entries[offset])),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: offset + 1 < content.entries.length
+                          ? _entry(content.entries[offset + 1])
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+          ],
         ),
+      ),
     ],
   );
 }
@@ -385,12 +425,14 @@ class _ShopEntry extends StatelessWidget {
     required this.mode,
     required this.selected,
     required this.onPressed,
+    this.compact = false,
   });
 
   final RuntimeShopEntrySnapshot entry;
   final RuntimeShopMode mode;
   final bool selected;
   final VoidCallback? onPressed;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -404,26 +446,42 @@ class _ShopEntry extends StatelessWidget {
       leading: const Icon(Icons.inventory_2_outlined, size: 24),
       selected: selected,
       onPressed: onPressed,
-      trailing: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          Text(
-            selling && !entry.canTransact
-                ? l10n.shopUnsellable
-                : '${entry.unitPrice} ₽',
-          ),
-          if (selling)
-            Text(
-              l10n.shopOwned(entry.ownedQuantity),
-              style: Theme.of(context).textTheme.bodySmall,
-            )
-          else if (stock != null)
-            Text(
-              l10n.shopStock(stock),
-              style: Theme.of(context).textTheme.bodySmall,
+      minimumHeight: compact ? 58 : 48,
+      contentPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 8)
+          : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      contentGap: compact ? 8 : 12,
+      subtitle: compact
+          ? [
+              selling && !entry.canTransact
+                  ? l10n.shopUnsellable
+                  : '${entry.unitPrice} ₽',
+              if (selling) l10n.shopOwned(entry.ownedQuantity),
+              if (!selling && stock != null) l10n.shopStock(stock),
+            ].join(' · ')
+          : null,
+      trailing: compact
+          ? const Icon(Icons.chevron_right_rounded, size: 16)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                Text(
+                  selling && !entry.canTransact
+                      ? l10n.shopUnsellable
+                      : '${entry.unitPrice} ₽',
+                ),
+                if (selling)
+                  Text(
+                    l10n.shopOwned(entry.ownedQuantity),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  )
+                else if (stock != null)
+                  Text(
+                    l10n.shopStock(stock),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }

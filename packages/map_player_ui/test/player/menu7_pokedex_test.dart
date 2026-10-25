@@ -20,6 +20,51 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
   });
 
+  for (final format in [
+    (size: Size(844, 390), companion: false),
+    (size: Size(496, 432), companion: true),
+  ]) {
+    testWidgets('seven short dex entries share one view at $format', (
+      tester,
+    ) async {
+      final detail = _detail([
+        for (var index = 1; index <= 7; index++)
+          _entry(index, title: 'Espèce $index'),
+      ]);
+      await _pump(
+        tester,
+        detail,
+        size: format.size,
+        companion: format.companion,
+        safeInsets: format.companion
+            ? EdgeInsets.zero
+            : const EdgeInsets.fromLTRB(44, 12, 44, 20),
+      );
+      final body = tester.getRect(
+        find.byKey(const ValueKey('runtime-player-detail-pokedex')),
+      );
+      final filters = tester.getRect(
+        find.byKey(const ValueKey('pokedex-filters')),
+      );
+      final search = tester.getRect(
+        find.byKey(const ValueKey('pokedex-search-panel')),
+      );
+      expect(filters.height, 48);
+      expect(search.height, 48);
+      expect(filters.top, search.top);
+      expect(search.left - filters.right, 8);
+      for (var index = 1; index <= 7; index++) {
+        final row = find.byKey(ValueKey('pokedex-entry-species.$index'));
+        expect(row.hitTestable(), findsOneWidget);
+        final rect = tester.getRect(row);
+        expect(body.contains(rect.topLeft), isTrue);
+        expect(rect.bottom, lessThanOrEqualTo(body.bottom + .1));
+      }
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('pokedex uses bounded content pages', (tester) async {
     await _pump(tester, _detail(_entries()));
     final surface = find.byKey(const ValueKey('runtime-player-detail-pokedex'));
@@ -788,6 +833,8 @@ Future<void> _pump(
   RuntimePlayerPauseDetailSnapshot detail, {
   Size size = const Size(1440, 900),
   double scale = 1,
+  bool companion = false,
+  EdgeInsets safeInsets = EdgeInsets.zero,
   RuntimePlayerPokedexNavigation? navigation,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -802,9 +849,12 @@ Future<void> _pump(
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
-        child: child!,
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(scale),
+          padding: safeInsets,
+          viewPadding: safeInsets,
+        ),
+        child: companion ? PlayerCompanionScope(child: child!) : child!,
       ),
       home: PlayerMenuThemeScope(
         role: ProjectPresentationSurfaceRole.pokedex,

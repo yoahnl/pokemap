@@ -805,14 +805,24 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
           ),
       ],
     );
-    if (data.background == null && data.backgroundContent == null)
+    if (data.background == null && data.backgroundContent == null) {
       return content;
+    }
     return Container(
       key: const ValueKey('player-title-branding-backplate'),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.base.withValues(alpha: theme.highContrast ? 1 : .96),
-        borderRadius: BorderRadius.circular(4),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0, .08, .92, 1],
+          colors: [
+            theme.base.withValues(alpha: theme.highContrast ? 1 : 0),
+            theme.base.withValues(alpha: theme.highContrast ? 1 : .96),
+            theme.base.withValues(alpha: theme.highContrast ? 1 : .96),
+            theme.base.withValues(alpha: theme.highContrast ? 1 : 0),
+          ],
+        ),
       ),
       child: content,
     );

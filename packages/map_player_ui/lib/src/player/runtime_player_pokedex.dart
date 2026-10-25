@@ -268,10 +268,11 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
       builder: (context, constraints) {
         _compact = true;
         final selected = _selected;
+        final scale = MediaQuery.textScalerOf(context).scale(1);
         final listing = _listing(
           scrollControls:
-              constraints.maxHeight <
-              180 + 120 * MediaQuery.textScalerOf(context).scale(1),
+              constraints.maxHeight < 160 ||
+              (scale >= 1.5 && constraints.maxHeight < 180 + 120 * scale),
         );
         return SizedBox.expand(
           key: const ValueKey('runtime-player-detail-pokedex'),

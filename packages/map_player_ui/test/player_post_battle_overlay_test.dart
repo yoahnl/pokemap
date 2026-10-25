@@ -35,6 +35,36 @@ void main() {
     );
   });
 
+  testWidgets(
+    'learning prompt uses its specific 400 pixel landscape pane with one safe margin',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final commands = <PostBattlePresentationCommand>[];
+      await _pump(
+        tester,
+        _snapshot(),
+        onCommand: commands.add,
+        safePadding: const EdgeInsets.fromLTRB(44, 12, 44, 20),
+      );
+      final panel = tester.getRect(
+        find.byKey(const ValueKey('post-battle-result-panel')),
+      );
+      expect(panel, const Rect.fromLTWH(400, 20, 400, 350));
+      expect(find.text('Pikachu veut apprendre Tonnerre.'), findsOneWidget);
+      expect(find.text('3 / 4'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('post-battle-choice-1')));
+      expect(
+        commands.single,
+        isA<PostBattleSelectDecisionCommand>()
+            .having((value) => value.snapshotRevision, 'revision', 15)
+            .having((value) => value.decisionIndex, 'index', 1),
+      );
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('result keeps actions reachable without an inner scroll', (
     tester,
   ) async {
@@ -281,6 +311,7 @@ Future<void> _pump(
   WidgetTester tester,
   PostBattlePresentationSnapshot snapshot, {
   ValueChanged<PostBattlePresentationCommand>? onCommand,
+  EdgeInsets safePadding = EdgeInsets.zero,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -288,6 +319,11 @@ Future<void> _pump(
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(padding: safePadding, viewPadding: safePadding),
+        child: child!,
+      ),
       home: Scaffold(
         body: PlayerPostBattleOverlay(
           snapshot: snapshot,

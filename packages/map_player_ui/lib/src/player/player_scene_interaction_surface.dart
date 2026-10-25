@@ -9,6 +9,9 @@ import 'package:map_runtime/map_runtime.dart'
     show PlayerInputAction, PlayerInputSource;
 
 import 'player_dialogue_surface.dart';
+import 'player_scene_keyboard.dart';
+import '../foundation/player_input_scope.dart';
+import '../theme/pokemap_player_window_theme.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../foundation/player_menu_components.dart';
@@ -176,11 +179,12 @@ class _PlayerSceneInteractionSurfaceState
       return _buildMessageDialogue(context, request);
     }
     final selection = request is SceneSelectionInteractionRequest;
-    final centered =
-        request is SceneConfirmationInteractionRequest ||
+    final form =
         request is SceneTextInteractionRequest ||
         request is SceneIntegerInteractionRequest;
-    final panelWidth = selection
+    final fullScreen = selection || form;
+    final centered = request is SceneConfirmationInteractionRequest;
+    final panelWidth = fullScreen
         ? constraints.maxWidth
         : centered
         ? 500.0
@@ -259,9 +263,9 @@ class _PlayerSceneInteractionSurfaceState
               requestHeight +
               (validationMessage == null ? 0 : PlayerSpacing.sm + errorHeight);
     return ColoredBox(
-      color: context.playerMenuTheme.shadow.withValues(
-        alpha: centered || selection ? .5 : 0,
-      ),
+      color: fullScreen
+          ? context.playerMenuTheme.backdrop
+          : context.playerMenuTheme.shadow.withValues(alpha: centered ? .5 : 0),
       child: Actions(
         key: const ValueKey<String>('scene-interaction-actions'),
         actions: <Type, Action<Intent>>{
@@ -282,11 +286,11 @@ class _PlayerSceneInteractionSurfaceState
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) => Align(
-                  alignment: centered || selection
+                  alignment: centered || fullScreen
                       ? Alignment.center
                       : Alignment.bottomCenter,
                   child: Padding(
-                    padding: selection
+                    padding: fullScreen
                         ? EdgeInsets.zero
                         : const EdgeInsets.all(PlayerSpacing.md),
                     child: SizedBox(
@@ -295,22 +299,17 @@ class _PlayerSceneInteractionSurfaceState
                       height: math.max(
                         0,
                         math.min(
-                          selection
+                          fullScreen
                               ? constraints.maxHeight
                               : math.min(620, naturalHeight ?? 620),
                           constraints.maxHeight -
-                              (selection ? 0 : PlayerSpacing.md * 2),
+                              (fullScreen ? 0 : PlayerSpacing.md * 2),
                         ),
                       ),
                       child: PlayerSurfacePaletteScope(
                         role: ProjectPresentationSurfaceRole.dialogue,
-                        child: PlayerPanel(
-                          role: PlayerPanelRole.dialogue,
-                          elevated: true,
-                          padding: const EdgeInsets.all(PlayerSpacing.md),
-                          surfaceColorOverride: context.playerMenuTheme.base,
-                          textColorOverride: context.playerMenuTheme.text,
-                          borderColorOverride: context.playerMenuTheme.border,
+                        child: _SceneInteractionPanel(
+                          fullScreen: fullScreen,
                           child: Semantics(
                             scopesRoute: true,
                             namesRoute: true,
@@ -333,9 +332,10 @@ class _PlayerSceneInteractionSurfaceState
                                             prompt,
                                             maxLines: 3,
                                             overflow: TextOverflow.ellipsis,
-                                            style: context
-                                                .playerMenuTheme
-                                                .subtitle,
+                                            style: context.playerMenuTheme.title
+                                                .copyWith(
+                                                  fontSize: centered ? 20 : 24,
+                                                ),
                                           ),
                                         ),
                                         if (widget.allowCancellation &&
@@ -353,12 +353,25 @@ class _PlayerSceneInteractionSurfaceState
                                                   'scene-interaction-cancel',
                                                 ),
                                                 tooltip: strings.cancel,
-                                                icon: const Icon(Icons.close),
+                                                icon: Icon(
+                                                  fullScreen
+                                                      ? Icons.arrow_back
+                                                      : Icons.close,
+                                                ),
                                                 style: IconButton.styleFrom(
                                                   minimumSize: const Size(
                                                     48,
                                                     48,
                                                   ),
+                                                  shape:
+                                                      const RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.all(
+                                                              Radius.circular(
+                                                                4,
+                                                              ),
+                                                            ),
+                                                      ),
                                                   foregroundColor: context
                                                       .playerMenuTheme
                                                       .text,
@@ -655,8 +668,12 @@ class _PlayerSceneInteractionSurfaceState
           ),
       ],
     ),
-    SceneIntegerInteractionRequest() => _integerInput(request, strings),
-    SceneTextInteractionRequest() => _textInput(request, strings),
+    SceneIntegerInteractionRequest() => _integerInput(
+      context,
+      request,
+      strings,
+    ),
+    SceneTextInteractionRequest() => _textInput(context, request, strings),
     SceneConfirmationInteractionRequest() => Align(
       alignment: Alignment.topCenter,
       child: _measure(
@@ -859,10 +876,18 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   Widget _integerInput(
+    BuildContext context,
     SceneIntegerInteractionRequest request,
     PlayerSceneInteractionStrings strings,
   ) => _SceneInteractionInputForm(
     fieldKey: _inputFieldKey,
+    fullScreen: true,
+    controllerKeyboard: _usesControllerKeyboard(context),
+    controller: _textController,
+    numeric: true,
+    signed: request.minimum < 0,
+    maximum: request.digits + (request.minimum < 0 ? 1 : 0),
+    onKeyboardChanged: () => setState(() => _validationIssue = null),
     measureEpoch: (
       request.requestId,
       request.revision,
@@ -873,7 +898,11 @@ class _PlayerSceneInteractionSurfaceState
       key: const ValueKey<String>('scene-interaction-integer-field'),
       controller: _textController,
       focusNode: _textFocusNode,
-      autofocus: true,
+      autofocus: !_usesControllerKeyboard(context),
+      readOnly: _usesControllerKeyboard(context),
+      canRequestFocus: !_usesControllerKeyboard(context),
+      style: context.playerMenuTheme.body,
+      cursorColor: context.playerMenuTheme.accent,
       enabled: widget.interactionEnabled && !_terminal,
       keyboardType: TextInputType.numberWithOptions(
         signed: request.minimum < 0,
@@ -887,10 +916,10 @@ class _PlayerSceneInteractionSurfaceState
           request.digits + (request.minimum < 0 ? 1 : 0),
         ),
       ],
-      decoration: InputDecoration(
-        labelText: strings.textFieldLabel,
-        helperText: '${request.minimum} – ${request.maximum}',
-      ),
+      decoration: _inputDecoration(
+        context,
+        strings,
+      ).copyWith(helperText: '${request.minimum} – ${request.maximum}'),
       onChanged: (_) => setState(() => _validationIssue = null),
       onSubmitted: !widget.interactionEnabled || _terminal
           ? null
@@ -905,6 +934,35 @@ class _PlayerSceneInteractionSurfaceState
           : () => _submitInteger(request),
     ),
   );
+
+  bool _usesControllerKeyboard(BuildContext context) =>
+      PlayerInputScope.of(context) == PlayerInputSource.controller;
+
+  InputDecoration _inputDecoration(
+    BuildContext context,
+    PlayerSceneInteractionStrings strings,
+  ) {
+    final theme = context.playerMenuTheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.zero,
+      borderSide: BorderSide(color: theme.border),
+    );
+    return InputDecoration(
+      labelText: strings.textFieldLabel,
+      counterText: '',
+      filled: true,
+      fillColor: theme.panel,
+      labelStyle: theme.body.copyWith(color: theme.secondary),
+      floatingLabelStyle: theme.meta.copyWith(color: theme.secondary),
+      helperStyle: theme.meta.copyWith(color: theme.secondary),
+      enabledBorder: border,
+      border: border,
+      focusedBorder: border.copyWith(
+        borderSide: BorderSide(color: theme.accent, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    );
+  }
 
   void _submitInteger(SceneIntegerInteractionRequest request) {
     final value = int.tryParse(_textController.text);
@@ -931,6 +989,7 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   Widget _textInput(
+    BuildContext context,
     SceneTextInteractionRequest request,
     PlayerSceneInteractionStrings strings,
   ) {
@@ -938,6 +997,11 @@ class _PlayerSceneInteractionSurfaceState
     final length = _textController.text.characters.length;
     return _SceneInteractionInputForm(
       fieldKey: _inputFieldKey,
+      fullScreen: true,
+      controllerKeyboard: _usesControllerKeyboard(context),
+      controller: _textController,
+      maximum: maximum,
+      onKeyboardChanged: () => setState(() => _validationIssue = null),
       measureEpoch: (
         request.requestId,
         request.revision,
@@ -948,16 +1012,17 @@ class _PlayerSceneInteractionSurfaceState
         key: const ValueKey<String>('scene-interaction-text-field'),
         controller: _textController,
         focusNode: _textFocusNode,
-        autofocus: true,
+        autofocus: !_usesControllerKeyboard(context),
+        readOnly: _usesControllerKeyboard(context),
+        canRequestFocus: !_usesControllerKeyboard(context),
+        style: context.playerMenuTheme.body,
+        cursorColor: context.playerMenuTheme.accent,
         enabled: widget.interactionEnabled && !_terminal,
         textInputAction: TextInputAction.done,
         inputFormatters: <TextInputFormatter>[
           if (maximum != null) _CommittedGraphemeLimitFormatter(maximum),
         ],
-        decoration: InputDecoration(
-          labelText: strings.textFieldLabel,
-          counterText: '',
-        ),
+        decoration: _inputDecoration(context, strings),
         onChanged: (_) => setState(() => _validationIssue = null),
         onSubmitted: !widget.interactionEnabled || _terminal
             ? null
@@ -1185,6 +1250,32 @@ class _PlayerSceneInteractionSurfaceState
       left.kind == right.kind;
 }
 
+class _SceneInteractionPanel extends StatelessWidget {
+  const _SceneInteractionPanel({required this.child, required this.fullScreen});
+  final Widget child;
+  final bool fullScreen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.playerMenuTheme;
+    if (context.playerWindowTheme != null) {
+      return PlayerPanel(
+        role: PlayerPanelRole.dialogue,
+        padding: const EdgeInsets.all(16),
+        child: child,
+      );
+    }
+    return Material(
+      color: fullScreen ? theme.backdrop : theme.panel,
+      borderRadius: BorderRadius.circular(fullScreen ? 0 : 4),
+      child: DefaultTextStyle(
+        style: theme.body,
+        child: Padding(padding: const EdgeInsets.all(16), child: child),
+      ),
+    );
+  }
+}
+
 class _SceneInteractionInputForm extends StatelessWidget {
   const _SceneInteractionInputForm({
     required this.fieldKey,
@@ -1193,7 +1284,21 @@ class _SceneInteractionInputForm extends StatelessWidget {
     required this.field,
     required this.submit,
     this.counter,
+    this.fullScreen = false,
+    this.controllerKeyboard = false,
+    this.controller,
+    this.maximum,
+    this.numeric = false,
+    this.signed = false,
+    this.onKeyboardChanged,
   });
+  final bool fullScreen;
+  final bool controllerKeyboard;
+  final TextEditingController? controller;
+  final int? maximum;
+  final bool numeric;
+  final bool signed;
+  final VoidCallback? onKeyboardChanged;
   final Widget field;
   final GlobalKey fieldKey;
   final Widget submit;
@@ -1215,6 +1320,40 @@ class _SceneInteractionInputForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      if (fullScreen && constraints.maxHeight >= 160) {
+        final field = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _field(),
+            if (counter case final content?)
+              Padding(padding: const EdgeInsets.only(top: 8), child: content),
+          ],
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (controllerKeyboard) ...[
+              field,
+              const SizedBox(height: 12),
+              Expanded(
+                child: PlayerSceneKeyboard(
+                  controller: controller!,
+                  submit: submit,
+                  maximum: maximum,
+                  numeric: numeric,
+                  signed: signed,
+                  onChanged: onKeyboardChanged!,
+                ),
+              ),
+            ] else ...[
+              Expanded(child: Center(child: field)),
+              const SizedBox(height: 12),
+              submit,
+            ],
+          ],
+        );
+      }
       if (constraints.hasBoundedHeight &&
           constraints.maxHeight < 160 &&
           constraints.maxWidth >= 400) {

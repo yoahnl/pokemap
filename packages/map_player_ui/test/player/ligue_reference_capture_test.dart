@@ -186,8 +186,9 @@ void main() {
               var bottom = 0;
               for (var y = 0; y < image.height; y++) {
                 for (var x = 0; x < image.width; x++) {
-                  if (pixels.getUint8((y * image.width + x) * 4 + 3) == 0)
+                  if (pixels.getUint8((y * image.width + x) * 4 + 3) == 0) {
                     continue;
+                  }
                   if (x < left) left = x;
                   if (y < top) top = y;
                   if (x + 1 > right) right = x + 1;
@@ -224,6 +225,10 @@ void main() {
           try {
             await _mount(tester, mode.key, dark, _router(harness, mode.key));
             if (_includes(_screenFilter, screen)) {
+              if (section == RuntimePlayerPauseSection.options &&
+                  mode.key != 'thor-primary') {
+                await _tap(tester, 'options-category-picker');
+              }
               await _capture(
                 tester,
                 mode.key,
@@ -435,7 +440,7 @@ void main() {
                 : Stack(
                     fit: StackFit.expand,
                     children: [
-                      _image('battle-ligue'),
+                      if (mode.key != 'thor-companion') _battleStage(mode.key),
                       if (mode.key != 'thor-primary')
                         PlayerPostBattleOverlay(
                           snapshot: PostBattlePresentationSnapshot(
@@ -582,6 +587,46 @@ Widget _image(String name, {BoxFit fit = BoxFit.cover}) => RawImage(
   fit: fit,
   filterQuality: FilterQuality.none,
 );
+
+Widget _battleStage(String mode) {
+  final size = _modes[mode]!;
+  final placement = mode.startsWith('thor')
+      ? BattleCommandPanelPlacement.detached
+      : mode == 'landscape-controller'
+      ? BattleCommandPanelPlacement.end
+      : BattleCommandPanelPlacement.bottom;
+  final layout = BattleSceneLayout.forViewport(
+    viewportSize: size,
+    safePadding: _safePadding(mode),
+    commandPanelPlacement: placement,
+    controllerLayout: _controller(mode),
+  );
+  return Stack(
+    fit: StackFit.expand,
+    children: [
+      _image('battle-ligue'),
+      Positioned.fromRect(
+        rect: layout.enemySpriteRect,
+        child: _combatant('pidgey-front', .5),
+      ),
+      Positioned.fromRect(
+        rect: layout.playerSpriteRect,
+        child: _combatant('bulbasaur-back', .68),
+      ),
+      PlayerBattleOverlay(
+        snapshot: _battleSnapshot(
+          size,
+          layout,
+          false,
+          placement: placement,
+          controllerLayout: _controller(mode),
+        ),
+        display: PlayerBattleDisplay.hudOnly,
+        onCommand: (_) {},
+      ),
+    ],
+  );
+}
 
 Widget _combatant(String name, double footXRatio) => CustomPaint(
   painter: _CombatantPainter(

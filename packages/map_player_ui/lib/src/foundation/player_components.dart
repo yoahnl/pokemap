@@ -596,17 +596,26 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
           duration: motion.fast,
           constraints: BoxConstraints(minHeight: widget.minimumHeight),
           padding: menu == null ? const EdgeInsets.all(3) : EdgeInsets.zero,
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(
-              menu == null ? PlayerRadii.sm + 3 : 4,
-            ),
-            border: Border.all(
-              color: _focused && widget.showFocusHighlight
-                  ? menu?.focus ?? colors.focus
-                  : colors.focus.withValues(alpha: 0),
-              width: 3,
-            ),
-          ),
+          foregroundDecoration: menu != null
+              ? BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: _focused && widget.showFocusHighlight
+                          ? menu.accent
+                          : menu.accent.withValues(alpha: 0),
+                      width: 4,
+                    ),
+                  ),
+                )
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(PlayerRadii.sm + 3),
+                  border: Border.all(
+                    color: _focused && widget.showFocusHighlight
+                        ? colors.focus
+                        : colors.focus.withValues(alpha: 0),
+                    width: 3,
+                  ),
+                ),
           child: !enabled && widget.disabledOpacity < 1
               ? Opacity(
                   opacity: widget.disabledOpacity,

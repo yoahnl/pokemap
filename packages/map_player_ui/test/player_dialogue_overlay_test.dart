@@ -6,6 +6,33 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('Ligue dialogue preserves an authored surface palette', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(),
+      palettes: const ProjectPresentationSurfacePalettesProfile(
+        dialogue: ProjectSurfacePaletteProfile(
+          surface: '#102030',
+          text: '#F0F0F0',
+          accent: '#90A0B0',
+        ),
+      ),
+      onCommand: (_) {},
+    );
+    final panel = tester.widget<DecoratedBox>(
+      find.byKey(const ValueKey('player-dialogue-ligue-panel')),
+    );
+    final decoration = panel.decoration as BoxDecoration;
+    expect(decoration.color, const Color(0xFF102030));
+    expect((decoration.border! as Border).left.color, const Color(0xFF90A0B0));
+    final body = tester.widget<Text>(
+      find.byKey(const ValueKey('dialogue-page-text')),
+    );
+    expect(body.style?.color, const Color(0xFFF0F0F0));
+  });
+
   testWidgets('long choice questions paginate without advancing the runtime', (
     tester,
   ) async {
@@ -541,6 +568,7 @@ Future<void> _pump(
   TextScaler textScaler = TextScaler.noScaling,
   PokeMapPlayerTypography? typography,
   ProjectPresentationWindowsProfile? windows,
+  ProjectPresentationSurfacePalettesProfile? palettes,
   ProjectPresentationLayoutsProfile? layouts,
   ProjectDialoguePresentationProfile? dialogue,
   Widget Function(String speaker)? portraitBuilder,
@@ -552,6 +580,9 @@ Future<void> _pump(
           PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
           typography,
         );
+  if (palettes != null) {
+    theme = PokeMapPlayerTheme.withSurfacePalettes(theme, palettes);
+  }
   if (windows != null) {
     theme = PokeMapPlayerTheme.withWindowProfile(theme, windows);
   }

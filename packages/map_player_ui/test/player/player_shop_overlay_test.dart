@@ -1,9 +1,51 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+    'landscape shop keeps four articles and the detail action visible with real font and safe insets',
+    (tester) async {
+      tester.view.physicalSize = const Size(844, 390);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final font = ByteData.sublistView(
+        await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+      );
+      await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      final commands = <RuntimeWorldServiceCommand>[];
+      await _pump(
+        tester,
+        _snapshot(fourEntries: true),
+        commands.add,
+        safePadding: const EdgeInsets.fromLTRB(44, 12, 44, 20),
+      );
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      final cards = [
+        for (final id in ['potion', 'super-potion', 'antidote', 'revive'])
+          tester.getRect(find.byKey(ValueKey('shop-item-$id'))),
+      ];
+      expect(cards[0].top, cards[1].top);
+      expect(cards[2].top, cards[3].top);
+      expect(cards[2].top, greaterThan(cards[0].bottom));
+      for (final card in cards) {
+        expect(card.height, greaterThanOrEqualTo(48));
+        expect(card.top, greaterThanOrEqualTo(12));
+        expect(card.bottom, lessThanOrEqualTo(370));
+      }
+      expect(find.byKey(const ValueKey('shop-open-quantity')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('shop-item-antidote')));
+      expect(commands.single.action, RuntimeWorldServiceAction.select);
+      expect(commands.single.targetId, 'antidote');
+      expect(commands.single.snapshotRevision, 7);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'shop starts with its list and waits for runtime selection before quantity',
     (tester) async {
@@ -12,7 +54,7 @@ void main() {
       await _pump(tester, initial, commands.add);
       expect(find.text('Boutique du Port'), findsOneWidget);
       expect(find.text('500 ₽'), findsOneWidget);
-      expect(find.text('Stock : 3'), findsWidgets);
+      expect(find.textContaining('Stock : 3'), findsWidgets);
       expect(find.byKey(const ValueKey('shop-quantity-plus')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
       await tester.pumpAndSettle();
@@ -113,8 +155,8 @@ void main() {
       final commands = <RuntimeWorldServiceCommand>[];
       final initial = _snapshot(selling: true, quantity: 2);
       await _pump(tester, initial, commands.add, locale: const Locale('en'));
-      expect(find.text('Owned: 3'), findsWidgets);
-      expect(find.text('Cannot be sold'), findsOneWidget);
+      expect(find.textContaining('Owned: 3'), findsWidgets);
+      expect(find.textContaining('Cannot be sold'), findsOneWidget);
       expect(find.byKey(const ValueKey('shop-quantity-review')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
       await _pump(
@@ -168,6 +210,7 @@ void main() {
 RuntimeWorldServiceSnapshot _snapshot({
   int revision = 7,
   bool empty = false,
+  bool fourEntries = false,
   bool selling = false,
   bool confirmEnabled = true,
   int quantity = 1,
@@ -190,6 +233,29 @@ RuntimeWorldServiceSnapshot _snapshot({
               remainingStock: 3,
               ownedQuantity: 3,
             ),
+            if (fourEntries) ...[
+              const RuntimeShopEntrySnapshot(
+                itemId: 'super-potion',
+                label: 'Super Potion',
+                unitPrice: 700,
+                remainingStock: 12,
+                ownedQuantity: 0,
+              ),
+              const RuntimeShopEntrySnapshot(
+                itemId: 'antidote',
+                label: 'Antidote',
+                unitPrice: 100,
+                remainingStock: 12,
+                ownedQuantity: 0,
+              ),
+              const RuntimeShopEntrySnapshot(
+                itemId: 'revive',
+                label: 'Rappel',
+                unitPrice: 1500,
+                remainingStock: 12,
+                ownedQuantity: 0,
+              ),
+            ],
             if (selling)
               const RuntimeShopEntrySnapshot(
                 itemId: 'bike-pass',
@@ -231,6 +297,7 @@ Future<void> _pump(
   RuntimeWorldServiceSnapshot snapshot,
   ValueChanged<RuntimeWorldServiceCommand> onCommand, {
   Locale locale = const Locale('fr'),
+  EdgeInsets safePadding = EdgeInsets.zero,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -238,6 +305,11 @@ Future<void> _pump(
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(padding: safePadding, viewPadding: safePadding),
+        child: child!,
+      ),
       home: PlayerShopOverlay(snapshot: snapshot, onCommand: onCommand),
     ),
   );

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_paged_layout.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -11,6 +12,7 @@ import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_dialogue_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
+import '../theme/pokemap_player_window_theme.dart';
 
 enum PlayerDialogueMode { line, choices }
 
@@ -174,7 +176,16 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
   );
 
   Widget _build(BuildContext context) {
-    return SafeArea(
+    final menu = PokeMapPlayerMenuTheme.resolve(
+      context,
+      role: ProjectPresentationSurfaceRole.dialogue,
+      opaque: true,
+    );
+    final ligue =
+        context.playerDialogueProfile == null &&
+        context.playerWindowTheme == null;
+    final safeInsets = MediaQuery.paddingOf(context);
+    final surface = SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
           final dialogue = context.playerDialogueProfile;
@@ -185,6 +196,19 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
           final margin =
               dialogue?.margin ??
               PlayerSpacing.sm + (resolved?.additionalSafeAreaPadding ?? 0);
+          final companion = PlayerCompanionScope.of(context);
+          final landscape = constraints.maxWidth > constraints.maxHeight;
+          final horizontalMargin = landscape && !companion ? 44.0 : 16.0;
+          final bottomMargin = landscape || companion ? 16.0 : 24.0;
+          final defaultInsets = EdgeInsets.fromLTRB(
+            math.max(0, horizontalMargin - safeInsets.left),
+            math.max(0, 16 - safeInsets.top),
+            math.max(0, horizontalMargin - safeInsets.right),
+            math.max(0, bottomMargin - safeInsets.bottom),
+          );
+          final insets = ligue && resolved == null
+              ? defaultInsets
+              : EdgeInsets.all(margin);
           final showPortrait =
               resolved == null ||
               resolved.variant.visibleSecondaryElements.contains(
@@ -204,9 +228,11 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                 };
           final contentPadding =
               dialogue?.contentPadding ??
-              PlayerSpacing.md * (resolved?.spacingScale ?? 1);
+              (ligue && resolved == null
+                  ? 18.0
+                  : PlayerSpacing.md * (resolved?.spacingScale ?? 1));
           return Padding(
-            padding: EdgeInsets.all(margin),
+            padding: insets,
             child: Align(
               key: dialogue != null
                   ? const ValueKey<String>('player-dialogue-authored-bubble')
@@ -221,43 +247,22 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                 constraints: BoxConstraints(
                   maxWidth: resolved == null
                       ? dialogue == null
-                            ? 760
+                            ? math.max(
+                                0,
+                                constraints.maxWidth - insets.horizontal,
+                              )
                             : constraints.maxWidth * dialogue.maxWidthFactor
                       : dialogue == null
                       ? constraints.maxWidth * resolved.maxWidthFactor
                       : constraints.maxWidth * dialogue.maxWidthFactor,
-                  maxHeight: constraints.maxHeight - margin * 2,
+                  maxHeight: math.max(
+                    0,
+                    constraints.maxHeight - insets.vertical,
+                  ),
                 ),
-                child: PlayerPanel(
-                  elevated: true,
-                  role: PlayerPanelRole.dialogue,
-                  surfaceRole: ProjectPresentationSurfaceRole.dialogue,
-                  padding: EdgeInsets.all(contentPadding),
-                  windowStyleOverride: dialogue == null
-                      ? null
-                      : ProjectWindowStyleProfile(
-                          id: 'dialogue-v9',
-                          shape: dialogue.shape,
-                          borderWidth: dialogue.borderWidth.round(),
-                          cornerRadius: dialogue.cornerRadius.round(),
-                          contentPadding: dialogue.contentPadding.round(),
-                          shadowElevation: 8,
-                          fillOpacity: dialogue.fillOpacity,
-                          fillToken: 'dialogueSurface',
-                          borderToken: 'outline',
-                        ),
-                  surfaceColorOverride:
-                      PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-                        dialogue?.surfaceColor,
-                      ),
-                  borderColorOverride:
-                      PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-                        dialogue?.borderColor,
-                      ),
-                  textColorOverride:
-                      PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-                        dialogue?.textColor,
-                      ),
+                child: _DialoguePanel(
+                  dialogue: dialogue,
+                  contentPadding: contentPadding,
                   child: AnimatedSwitcher(
                     duration: context.playerMotion.fast,
                     child: Semantics(
@@ -316,6 +321,124 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
             ),
           );
         },
+      ),
+    );
+    return ligue
+        ? Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ColoredBox(
+                    key: const ValueKey('player-dialogue-ligue-backdrop'),
+                    color: menu.shadow.withValues(alpha: .3),
+                  ),
+                ),
+              ),
+              surface,
+            ],
+          )
+        : surface;
+  }
+}
+
+class _DialoguePanel extends StatelessWidget {
+  const _DialoguePanel({
+    required this.dialogue,
+    required this.contentPadding,
+    required this.child,
+  });
+
+  final ProjectDialoguePresentationProfile? dialogue;
+  final double contentPadding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = dialogue;
+    if (profile != null || context.playerWindowTheme != null) {
+      return PlayerPanel(
+        elevated: true,
+        role: PlayerPanelRole.dialogue,
+        surfaceRole: ProjectPresentationSurfaceRole.dialogue,
+        padding: EdgeInsets.all(contentPadding),
+        windowStyleOverride: profile == null
+            ? null
+            : ProjectWindowStyleProfile(
+                id: 'dialogue-v9',
+                shape: profile.shape,
+                borderWidth: profile.borderWidth.round(),
+                cornerRadius: profile.cornerRadius.round(),
+                contentPadding: profile.contentPadding.round(),
+                shadowElevation: 8,
+                fillOpacity: profile.fillOpacity,
+                fillToken: 'dialogueSurface',
+                borderToken: 'outline',
+              ),
+        surfaceColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          profile?.surfaceColor,
+        ),
+        borderColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          profile?.borderColor,
+        ),
+        textColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          profile?.textColor,
+        ),
+        child: child,
+      );
+    }
+    final menu = PokeMapPlayerMenuTheme.resolve(
+      context,
+      role: ProjectPresentationSurfaceRole.dialogue,
+      opaque: true,
+    );
+    final baseTheme = Theme.of(context);
+    final palette = context.playerSurfacePalette(
+      ProjectPresentationSurfaceRole.dialogue,
+    );
+    final surface =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette?.surface) ??
+        baseTheme
+            .extension<PokeMapPlayerAuthoredSemanticTheme>()
+            ?.semantic
+            .dialogueSurface ??
+        menu.base;
+    final landscape = MediaQuery.sizeOf(context).aspectRatio > 1;
+    final textTheme = baseTheme.textTheme.apply(
+      bodyColor: menu.text,
+      displayColor: menu.text,
+    );
+    return Theme(
+      data: baseTheme.copyWith(
+        textTheme: textTheme.copyWith(
+          bodyLarge: context.playerTypography.dialogueStyle(
+            menu.body.copyWith(fontSize: landscape ? 16 : 17, height: 1.5),
+          ),
+          labelLarge: context.playerTypography.dialogueStyle(
+            menu.label.copyWith(fontSize: 14, height: 1.5),
+          ),
+        ),
+      ),
+      child: DecoratedBox(
+        key: const ValueKey('player-dialogue-ligue-panel'),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(3),
+          border: Border(left: BorderSide(color: menu.accent, width: 5)),
+        ),
+        child: DefaultTextStyle(
+          style: menu.body,
+          child: IconTheme(
+            data: IconThemeData(color: menu.text),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: contentPadding,
+                vertical: landscape ? 14 : contentPadding,
+              ),
+              child: child,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -399,7 +522,7 @@ class _DialogueLineContent extends StatelessWidget {
       final bodyStyle = context.playerTypography.dialogueStyle(
         Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
       );
-      final footerHeight = math.max(28.0, scaler.scale(14) * 1.5);
+      final footerHeight = _dialogueFooterHeight(context);
       final minimumHeight =
           speakerHeight + measure('M', bodyStyle) + 12 + footerHeight;
       final naturalHeight =
@@ -574,7 +697,7 @@ class _DialogueTextPagesState extends State<_DialogueTextPages> {
         ),
       );
       final scaler = MediaQuery.textScalerOf(context);
-      final footerHeight = math.max(28.0, scaler.scale(14) * 1.5);
+      final footerHeight = _dialogueFooterHeight(context);
 
       final visible = data.lineSpan ?? TextSpan(text: data.text);
       final full = data.isCurrentLineFullyRevealed
@@ -871,6 +994,14 @@ class _DialogueNameplate extends StatelessWidget {
 TextDirection _opposite(TextDirection direction) =>
     direction == TextDirection.ltr ? TextDirection.rtl : TextDirection.ltr;
 
+double _dialogueFooterHeight(BuildContext context) {
+  final scaler = MediaQuery.textScalerOf(context);
+  return context.playerDialogueProfile == null &&
+          context.playerWindowTheme == null
+      ? math.max(48, scaler.scale(20) + 20)
+      : math.max(28, scaler.scale(14) * 1.5);
+}
+
 class _DialogueAdvanceLabel extends StatelessWidget {
   const _DialogueAdvanceLabel({
     required this.data,
@@ -907,6 +1038,51 @@ class _DialogueAdvanceLabel extends StatelessWidget {
       ProjectDialogueProgressIndicator.dots => Icons.more_horiz_rounded,
       ProjectDialogueProgressIndicator.none => null,
     };
+    final label = !data.isCurrentLineFullyRevealed
+        ? context.playerL10n.showFullText
+        : data.isLastContent && !hasMorePages
+        ? context.playerL10n.close
+        : context.playerL10n.next;
+    if (dialogue == null && context.playerWindowTheme == null) {
+      final menu = PokeMapPlayerMenuTheme.resolve(
+        context,
+        role: ProjectPresentationSurfaceRole.dialogue,
+        opaque: true,
+      );
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: DecoratedBox(
+          key: const ValueKey('player-dialogue-ligue-advance'),
+          decoration: BoxDecoration(
+            color: menu.selectionTop,
+            borderRadius: BorderRadius.circular(3),
+            border: Border(left: BorderSide(color: menu.accent, width: 3)),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (compact && icon != null)
+                    Icon(icon, color: menu.selectionText)
+                  else
+                    Flexible(
+                      child: Text(
+                        label,
+                        style: menu.actionLabel.copyWith(
+                          color: menu.selectionText,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: <Widget>[
@@ -1020,22 +1196,28 @@ class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
       role: ProjectPresentationSurfaceRole.dialogue,
       opaque: true,
     );
-    final selectedColor = authoredSelectedColor ?? menuTheme.accent;
+    final selectedColor =
+        authoredSelectedColor ??
+        (dialogue == null ? menuTheme.selectionTop : menuTheme.accent);
     final selectedForeground = authoredSelectedColor == null
         ? menuTheme.selectionText
         : ThemeData.estimateBrightnessForColor(selectedColor) == Brightness.dark
         ? context.playerColors.onPrimary
         : context.playerColors.textPrimary;
-    final shape = switch (dialogue?.choiceShape) {
-      ProjectDialogueChoiceShape.pill => const StadiumBorder(),
-      ProjectDialogueChoiceShape.rectangle => const RoundedRectangleBorder(),
-      ProjectDialogueChoiceShape.cutCorner => const BeveledRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(10)),
-      ),
-      _ => const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-      ),
-    };
+    final shape = dialogue == null
+        ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(3))
+        : switch (dialogue.choiceShape) {
+            ProjectDialogueChoiceShape.pill => const StadiumBorder(),
+            ProjectDialogueChoiceShape.rectangle =>
+              const RoundedRectangleBorder(),
+            ProjectDialogueChoiceShape.cutCorner =>
+              const BeveledRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              ),
+            _ => const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+          };
     final selected = data.choices
         .where((choice) => choice.selected && choice.enabled)
         .firstOrNull;

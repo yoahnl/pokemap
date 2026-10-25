@@ -43,9 +43,17 @@ class PlayerPostBattleOverlay extends StatelessWidget {
   ) {
     final presentation = _presentationFor(kind, context.playerL10n);
     final theme = context.playerMenuTheme;
+    final viewport = MediaQuery.sizeOf(context);
+    final expandedLearningPrompt =
+        kind == RuntimePostBattleMessageKind.moveLearningPrompt &&
+        viewport.width > viewport.height &&
+        !PlayerCompanionScope.of(context);
     return ColoredBox(
       color: context.playerColors.scrim.withValues(alpha: .18),
       child: SafeArea(
+        minimum: expandedLearningPrompt
+            ? const EdgeInsets.all(20)
+            : EdgeInsets.zero,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final landscape = constraints.maxWidth > constraints.maxHeight;
@@ -55,6 +63,8 @@ class PlayerPostBattleOverlay extends StatelessWidget {
             final grouped = summary.isNotEmpty;
             final expandedDecision = snapshot.choices.length > 2;
             final height = companion
+                ? constraints.maxHeight
+                : expandedLearningPrompt
                 ? constraints.maxHeight
                 : landscape
                 ? constraints.maxHeight -
@@ -86,12 +96,12 @@ class PlayerPostBattleOverlay extends StatelessWidget {
                   : Alignment.bottomCenter,
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: companion
+                  horizontal: companion || expandedLearningPrompt
                       ? 0
                       : landscape
                       ? (grouped ? 20 : 44)
                       : 0,
-                  vertical: companion
+                  vertical: companion || expandedLearningPrompt
                       ? 0
                       : landscape
                       ? 20
@@ -101,7 +111,7 @@ class PlayerPostBattleOverlay extends StatelessWidget {
                   width: companion
                       ? constraints.maxWidth
                       : landscape
-                      ? (grouped ? 400 : 332)
+                      ? (grouped || expandedLearningPrompt ? 400 : 332)
                       : constraints.maxWidth,
                   height: height.clamp(0.0, constraints.maxHeight),
                   child: DecoratedBox(

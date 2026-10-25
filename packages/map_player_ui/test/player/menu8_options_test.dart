@@ -16,6 +16,40 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
   });
 
+  for (final size in [const Size(844, 390), const Size(496, 432)]) {
+    testWidgets('general choice text fits its 48px target at $size', (
+      tester,
+    ) async {
+      await _pumpIntegrated(tester, size, input: PlayerInputSource.touch);
+      final choice = find.byKey(const ValueKey('options-text-speed-choice'));
+      expect(choice.hitTestable(), findsOneWidget);
+      expect(tester.getSize(choice).height, greaterThanOrEqualTo(48));
+      final text = find.descendant(of: choice, matching: find.text('Normale'));
+      expect(text, findsOneWidget);
+      final element = tester.element(text);
+      final widget = tester.widget<Text>(text);
+      final rect = tester.getRect(text);
+      final painter = TextPainter(
+        text: TextSpan(
+          text: widget.data,
+          style: DefaultTextStyle.of(element).style.merge(widget.style),
+        ),
+        textDirection: Directionality.of(element),
+        textScaler: MediaQuery.textScalerOf(element),
+        maxLines: 1,
+      )..layout(maxWidth: rect.width);
+      expect(painter.didExceedMaxLines, isFalse);
+      expect(rect.height, closeTo(painter.height, .1));
+      painter.dispose();
+      final back = find.byKey(const ValueKey('pause-frame-return-surface'));
+      expect(back.hitTestable(), findsOneWidget);
+      final label = find.descendant(of: back, matching: find.text('Retour'));
+      expect(label, findsOneWidget);
+      expect(tester.getSize(label).height, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('landscape audio presents all three sliders together', (
     tester,
   ) async {
